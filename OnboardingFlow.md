@@ -1,305 +1,216 @@
-Okay, this is exactly where the "magic" lies! You're right, the system prompt is the heart of the AI's personality and capabilities. Let's refine Onboarding Flow 2 with your "clean and classy" aesthetic, remove the avatar, and then dive into crafting that foundational system prompt.
+**Onboarding Flow 2 (v3.2 - Persona & Context Blueprint)**
 
-**Revised Onboarding Flow 2 (v3.1 - "Persona Blueprint Flow")**
-
-*   **Global Aesthetic Notes:**
-    *   **Typography:** Use a premium, highly legible sans-serif font. Clear hierarchy with font weights and sizes.
-    *   **Spacing:** Generous use of whitespace. Avoid clutter.
-    *   **Color Palette:** Muted, sophisticated colors. Perhaps a primary brand color used sparingly for CTAs and accents. Dark mode should be considered and look equally premium.
-    *   **Animations:** Subtle, physics-based transitions. No jarring or overly playful animations. Think smooth fades, gentle slides.
-    *   **Icons:** Minimalist, line-art style if used.
+*   **Core Principle:** Every screen directly contributes key-value pairs to the `USER_PROFILE_JSON_BLOB` that the System Prompt v0.2 will use.
+*   **Aesthetic:** Clean, minimalist, premium typography, subtle animations, clear progress indication.
+*   **Language:** Direct, respectful, and focused on how their input shapes *their* coach.
 
 ---
 
-### **Onboarding Flow 2 (v3.1 - Persona Blueprint Flow)**
+**0. Global Foundations (Consistent with System Prompt Needs)**
 
-**0. Global Foundations (As before, emphasizing clean design)**
-
-*   **Persistent Footer:** "Privacy & Data" – subtle, smaller text. Sheet uses clear, concise language.
-*   **Progress Bar:** Thin, elegant line at the top, perhaps in the accent color.
-*   **HealthKit Pre-fill:** Data appears seamlessly. If a field is pre-filled, it might have a slightly different visual state (e.g., slightly lighter text until tapped/confirmed by the user).
-*   **Voice Shortcut:** Clean microphone icon, consistently placed.
-*   **Haptics:** Confined to key interactions like the final "Generate Coach" and perhaps subtle feedback on slider adjustments if it feels premium (test this).
+*   **Persistent Footer:** "Privacy & Data: How your information shapes your AirFit Coach." (Slightly more descriptive).
+*   **Progress Bar:** Elegant thin line, 7 segments for the main steps.
+*   **HealthKit Pre-fill:** Actively pre-fills where possible (e.g., typical sleep from HealthKit for the sleep screen). Data is shown as pre-selected/editable.
+*   **Voice Shortcut:** Available for free-text fields (like the goal description).
+*   **Haptics:** Minimal, perhaps on final "Generate Coach" and subtle feedback for coaching style sliders.
 
 ---
 
 **1. Opening Screen**
 
 ```
-[App logo/name - elegant typography, perhaps a very subtle animation if any]
+[AirFit Logo - Elegant & Subtle]
 
-"Let’s design your AirFit Coach."
-   Est. 3-4 minutes to create your personalized experience.
+"Design Your Personalized AirFit Coach"
+   A few minutes is all it takes to create a unique coaching experience tailored to you.
 
-    [Begin →]    [Maybe Later]
+    [Begin Profile Setup →]
+                 [Maybe Later]
 ```
-*   *Language shifted from "build" to "design" to evoke more sophistication.*
-*   *Time estimate slightly reduced due to streamlining.*
+*   *CTA emphasizes "Profile Setup" connecting to `USER_PROFILE_JSON_BLOB`.*
+*   *(Internal mapping: This screen doesn't directly collect data for the JSON yet, but sets the stage).*
 
 ---
 
-**2. Life Snapshot**
+**2. Life Snapshot (Populates `life_context`)**
 
-**Prompt:** "Tell us about your typical rhythm."
-*(This helps your coach understand your context.)*
+**Prompt:** "Understanding your daily rhythm helps your coach provide relevant support. Tap what generally applies:"
 
-Checkbox grid (pre-filled where possible from HealthKit, visually indicated):
-
+Checkbox grid (pre-filled where possible from HealthKit activity data, editable):
 ```
-☐ Predominantly at a desk
-☐ Frequently on my feet
-☐ Often travel
-☐ Have children
-☐ Schedule is unpredictable
-☐ Prefer morning workouts (e.g., 5-8 AM)
-☐ Prefer evening workouts (e.g., 6-9 PM)
-```
-*   *Added a small explainer for "why." Options rephrased for clarity.*
-*   *Info icon (i) next to prompt could offer more detail if tapped.*
+☐ My work is primarily at a desk
+☐ I'm often on my feet or physically active at work
+☐ I travel frequently (for work or leisure)
+☐ I have children / significant family care responsibilities
+☐ My schedule is generally predictable
+☐ My schedule is often unpredictable or chaotic
+
+My preferred time for workouts is typically:
+ ○ Early Bird (e.g., 5-8 AM)
+ ○ Mid-Day (e.g., 11 AM - 2 PM)
+ ○ Evening / Night Owl (e.g., 6 PM onwards)
+ ○ It Varies Greatly
+```*   **JSON Output Keys (example):**
+    *   `life_context.is_desk_job: true/false`
+    *   `life_context.is_physically_active_work: true/false`
+    *   `life_context.travels_frequently: true/false`
+    *   `life_context.has_children_or_family_care: true/false`
+    *   `life_context.schedule_type: "predictable" / "unpredictable_chaotic"`
+    *   `life_context.workout_window_preference: "early_bird" / "mid_day" / "night_owl" / "varies"`
 
 ---
 
-**3. Your Core Aspiration**
+**3. Your Core Aspiration (Populates `goal`)**
 
-**Prompt:** "What's your primary focus right now?"
-*(Your coach will tailor guidance to this aspiration.)*
+**Prompt:** "What is the primary aspiration you want your AirFit Coach to help you achieve?"
 
-| Quick-tap cards (single-select) | If “Describe Your Own” or long-press → opens free-text / voice. |
-| ------------------------------- | --------------------------------------------------------------- |
-| Enhance Strength & Tone 🏋️‍♂️   | Improve Endurance 🏃‍♀️                                        |
-| Optimize Performance 🚀         | Cultivate Lasting Health 🫀                                 |
-| Recover & Rebuild 💆            | Describe Your Own... ✍️                                        |
+Select one primary category:
+```
+[Card-style options, single select]
+□ Enhance Strength & Physical Tone (goal.family: "strength_tone")
+□ Improve Cardiovascular Endurance (goal.family: "endurance")
+□ Optimize Athletic Performance (goal.family: "performance")
+□ Cultivate Lasting Health & Wellbeing (goal.family: "health_wellbeing")
+□ Support Injury Recovery & Pain-Free Movement (goal.family: "recovery_rehab")
+```
+Then, a conditional free-text field appears below:
+**"Briefly describe this in your own words (optional, but helpful for your coach):"**
+`[____________________________________]` (Supports voice input)
 
-*   *Rephrased for a slightly more sophisticated tone. "Other" changed to be more inviting.*
+*   **JSON Output Keys:**
+    *   `goal.family: "strength_tone"` (selected category identifier)
+    *   `goal.raw_text: "User's optional text description"`
 
 ---
 
-**4. Coaching Style Profile**
+**4. Coaching Style Profile (Populates `blend`)**
 
-**Prompt:** "Define your ideal coaching interaction."
-*(Adjust the sliders to reflect your preferred blend. Small descriptive phrases below each slider will update to reflect the chosen intensity.)*
+**Prompt:** "Define your ideal coaching interaction style. Adjust each element to create your preferred blend."
+*(Short descriptive phrases below each slider will update dynamically.)*
 
 ```
-[No avatar, just clean sliders]
-
-AUTHORITATIVE & DIRECT (was Drill Sergeant) 💪
+AUTHORITATIVE & DIRECT
   |—●——————| 25 %
   (Provides clear, firm direction. Expects commitment.)
 
-ENCOURAGING & EMPATHETIC (was Supportive) 🤗
+ENCOURAGING & EMPATHETIC
   |——●—————| 40 %
   (Offers motivation and understanding, celebrates effort.)
 
-ANALYTICAL & INSIGHTFUL (was Data Nerd) 📊
+ANALYTICAL & INSIGHTFUL
   |————●———| 60 %
   (Focuses on metrics, trends, and evidence-based advice.)
 
-PLAYFULLY PROVOCATIVE (was Trash Talk) 😏
+PLAYFULLY PROVOCATIVE
   |—●——————| 20 %
-  (Uses light humor and challenges to motivate.)
-```*   *Names changed for a more professional feel.*
-*   *Crucially, instead of an avatar, as the user slides, a short descriptive sentence *below* the slider (or to the side) changes to reflect what "25% Authoritative" means vs. "75% Authoritative." This gives immediate textual feedback.*
+  (Uses light humor and challenges to motivate when appropriate.)
+```
+*   *(At least one style must have a value > 0%, or a default minimum is set. Total doesn't need to be 100%).*
+*   **JSON Output Keys:**
+    *   `blend.authoritative_direct: 0.25`
+    *   `blend.encouraging_empathetic: 0.40`
+    *   `blend.analytical_insightful: 0.60`
+    *   `blend.playfully_provocative: 0.20`
 
 ---
 
-**5. Engagement Preferences (was Tracking & Feedback Style)**
+**5. Engagement Preferences (Populates `engagement_preferences`)**
 
-**Prompt:** "How would you like your coach to engage with you?"
-*(Select a style, or customize the details.)*
+**Prompt:** "How deeply involved would you like your coach to be in your day-to-day tracking and planning?"
 
-| Card                            | Contents (example descriptions)                                                                  |
-| ------------------------------- | ------------------------------------------------------------------------------------------------ |
-| **"Data-Driven Partnership"**   | Detailed tracking (e.g., macros), daily insights, proactive adjustments for recovery.              |
-| **"Consistent & Balanced"**     | Key metric tracking (e.g., calorie balance), weekly summaries, proactive adjustments for recovery. |
-| **"Guidance on Demand"**        | Primarily tracks workouts you log, provides feedback when you initiate.                          |
-| **Customise Preferences →**     | Reveals toggles for: workout planning detail, food logging detail, update frequency, auto-recovery logic. |
-
-*   *Renamed and descriptions refined.*
+Select one overall style (reveals specific toggles if "Customise" is chosen, or sets defaults):
+```
+[Card-style options, single select]
+□ "Data-Driven Partnership": (Sets defaults for detailed tracking, daily updates, proactive auto-recovery)
+    (engagement_preferences.tracking_style: "data_driven_partnership")
+□ "Balanced & Consistent": (Sets defaults for key metric tracking, weekly updates, proactive auto-recovery)
+    (engagement_preferences.tracking_style: "balanced_consistent")
+□ "Guidance on Demand": (Sets defaults for user-initiated tracking focus, updates when asked, user-decides recovery)
+    (engagement_preferences.tracking_style: "guidance_on_demand")
+□ "Customise My Preferences →" (Reveals individual toggles below)
+```
+**If "Customise" is selected (or for fine-tuning later in settings):**
+*   **Information Depth:**
+    *   `○ Detailed (e.g., macro tracking, in-depth analysis)` (engagement_preferences.information_depth: "detailed")
+    *   `○ Key Metrics (e.g., calorie balance, core performance indicators)` (engagement_preferences.information_depth: "key_metrics")
+    *   `○ Essential Only (e.g., workout completion, basic trends)` (engagement_preferences.information_depth: "essential_only")
+*   **Proactivity & Updates:**
+    *   `○ Daily Insights & Check-ins` (engagement_preferences.update_frequency: "daily")
+    *   `○ Weekly Summaries & Reviews` (engagement_preferences.update_frequency: "weekly")
+    *   `○ Primarily When I Ask` (engagement_preferences.update_frequency: "on_demand")
+*   **Workout Adaptation (Recovery):**
+    *   `[ ] Automatically suggest workout adjustments based on my recovery data` (engagement_preferences.auto_recovery_logic_preference: true/false)
 
 ---
 
-**6. Typical Availability (was Schedule Sketch)**
+**6. Sleep & Notification Boundaries (Populates `sleep_window` and `timezone`)**
 
-**Prompt:** "When are you generally available for workouts?"
-*(Drag preferred time blocks. This helps your coach suggest timely reminders and plans. Skip if your schedule is highly variable.)*
-
-Calendar mini-view (Mon–Sun, clean 3-hour blocks like 6-9 AM, 9-12 PM, etc.). User drags "Workout" chips.
-*   *Visuals should be very clean. Chips are simple rectangles with "Workout."*
-*   *Added instruction to skip if highly variable.*
-
----
-
-**7. Sleep & Notification Boundaries (was Sleep & Recovery Check)**
-
-If HealthKit sleep data exists & >80% consistency → **Skip with a brief notice:** "We've noted your typical sleep patterns from HealthKit to respect your downtime." Show editable preview on profile later.
-
-Otherwise, clean sliders:
+**Prompt:** "To respect your downtime, please indicate your typical sleep schedule. Your coach will avoid sending notifications during these hours."
+*(Pre-filled if consistent HealthKit sleep data is available and authorized.)*
 
 ```
 Typical Bedtime:
-[ 9 PM  —slider— 1 AM ]  (e.g., 10:30 PM)
+[ 9 PM  —slider— 1 AM ]  (e.g., 10:30 PM) (sleep_window.bed_time: "22:30")
 
 Typical Wake Time:
-[ 5 AM  —slider— 9 AM ]  (e.g., 6:30 AM)
+[ 5 AM  —slider— 9 AM ]  (e.g., 6:30 AM) (sleep_window.wake_time: "06:30")
 
 My sleep rhythm is generally:
-○ Consistent   ○ Different on Weekends   ○ Highly Variable
-```*   *Refined prompt and options.*
+ ○ Consistent   ○ Different on Weekends   ○ Highly Variable
+ (sleep_window.consistency: "consistent" / "week_split" / "variable")
+```
+*   **Timezone:** (Auto-detected by the app, with an option for user to manually set/confirm if needed, perhaps on this screen or a final review screen).
+    *   `timezone: "America/Los_Angeles"` (Populated by the app, confirmed by user implicitly or explicitly)
 
 ---
 
-**8. Motivational Style & Check-ins (Micro-modal or new screen if too cramped)**
+**7. Motivational Accents (Populates `motivational_style`)**
 
-**Prompt:** "A couple of final touches for your coach's approach."
+**Prompt:** "A couple of final touches for how your coach acknowledges your efforts and checks in."
 
-1.  **Acknowledging Achievements:**
-    *   Subtle & Affirming (e.g., "Solid progress.") 👊
-    *   Enthusiastic & Celebratory (e.g., "Fantastic work!") 🎉
+1.  **Celebrating Achievements (`celebration_style`):**
+    *   `○ Subtle & Affirming` (e.g., "Solid progress.", "Noted.") (motivational_style.celebration_style: "subtle_affirming")
+    *   `○ Enthusiastic & Encouraging` (e.g., "Fantastic work!", "That's a huge win!") (motivational_style.celebration_style: "enthusiastic_celebratory")
 
-2.  **If You're Inactive for a Few Days:**
-    *   A Gentle Nudge (e.g., "Checking in – everything okay?") 🔔
-    *   Respect Your Space (Coach waits for you to re-engage) 😶
-
-*   *Options rephrased.*
+2.  **If You're Inactive for a Few Days (`absence_response`):**
+    *   `○ A Gentle Nudge from Your Coach` (e.g., "Checking in – how are things?") (motivational_style.absence_response: "gentle_nudge")
+    *   `○ Coach Respects Your Space` (Waits for you to re-engage unless critical) (motivational_style.absence_response: "respect_space")
 
 ---
 
-**9. Crafting Your Coach**
+**8. Crafting Your AirFit Coach**
 
 ```
-[Elegant loading animation - perhaps the progress bar subtly animates, or abstract gradient shapes morph smoothly]
+[Elegant loading animation - abstract, clean, perhaps subtly incorporating the app's accent color]
 
-Analyzing your preferences…
-Defining communication style…
-Aligning with your schedule…
+Analyzing your unique preferences…
+Defining your coach's core communication style…
+Aligning with your daily rhythm and schedule…
 Calibrating motivational approach…
-Finalizing your unique AirFit Coach…
+Finalizing your personalized AirFit Coach profile…
 ```
-*   *Text refined for a more premium feel.*
+*   *(Internally, the app is now constructing the complete `USER_PROFILE_JSON_BLOB` from all collected data.)*
 
 ---
 
-**10. Your AirFit Coach Profile is Ready**
+**9. Your AirFit Coach Profile Is Ready**
 
-**Prompt:** "Meet your personalized AirFit Coach. Here’s a summary of the key characteristics defined by your choices. You can refine these settings later if needed."
+**Prompt:** "Meet your personalized AirFit Coach. This profile, based on your choices, will guide every interaction. You can review and refine these settings at any time."
 
-*   Instead of swipable cards, a single, scrollable screen that feels like a well-designed profile summary:
-    *   **Coaching Style:** "Primarily Analytical & Insightful, with an Encouraging & Empathetic approach, and a touch of Playful Provocation. Expect data-driven advice delivered with understanding." (Dynamically generated sentence based on slider values).
-    *   **Primary Aspiration:** "[User's Chosen Goal]"
-    *   **Engagement Style:** "[Summary of Data-Driven Partnership/Custom Settings]"
-    *   **Communication Boundaries:** "Respects your downtime (e.g., no notifications between 10:30 PM - 6:30 AM). Will offer a [Gentle Nudge/Respect Your Space] if you're inactive."
-    *   **Initial Focus:** "For the first two weeks, your coach will focus on establishing your baseline data for smarter, personalized recommendations." (Toggle for `baseline_mode` ON by default, user can switch it off here).
+A single, scrollable screen summarizing the key aspects of the `USER_PROFILE_JSON_BLOB` in user-friendly language:
 
-Buttons: `[Begin with My Coach →]` • `[Review & Refine Settings]`
+*   **Your Primary Aspiration:** "[`goal.raw_text` or a summary of `goal.family`]"
+*   **Your Coach's Style:** "Expect a primarily [`dominant_blend_component_name`] approach, with elements of [`secondary_blend_component_name`]. Your coach will be [`key_trait_from_blend_1`] and [`key_trait_from_blend_2`]." (This is a dynamically generated sentence from the `blend` values).
+*   **Engagement & Updates:** "Your coach will focus on [`engagement_preferences.information_depth`] and provide updates [`engagement_preferences.update_frequency_description`]. Workout adaptations will be [`auto_recovery_description`]."
+*   **Communication Boundaries:** "Quiet hours are respected between [`sleep_window.bed_time`] - [`sleep_window.wake_time`] ([`timezone`]). If you're inactive, your coach will [`absence_response_description`]."
+*   **Acknowledging Success:** "Achievements will be met with a [`celebration_style_description`]."
+
+**Final Options:**
+*   **`[✓] Establish my 14-day baseline before providing in-depth recommendations`** (Toggled ON by default. `user_profile.baseline_mode_enabled: true/false`)
+    *   *(Small info icon: "This helps your coach learn your typical patterns for even smarter insights.")*
+
+Buttons: `[Begin with My AirFit Coach →]` • `[Review & Refine Profile]`
 
 ---
 
-**How the Personality Integrates into the System Prompt:**
-
-You're spot on. The entire onboarding process culminates in creating a detailed JSON object (let's call it `persona_profile.json` as in your original spec, or `user_profile_config.json`). This JSON is then *injected* as a core part of the system prompt sent to the LLM with every interaction.
-
-**Developing the System Prompt (Iterative Approach - v0.1):**
-
-This is a starting point. We'll refine this. The key is to make it incredibly clear to the LLM what its role is, what data it has access to, how its personality is defined, and how it should behave.
-
-```text
-SYSTEM PROMPT (v0.1 - AirFit Coach Genesis)
-
-## I. CORE IDENTITY & DIRECTIVE
-You are "AirFit Coach," a personalized AI fitness and wellness coach. Your primary directive is to engage with the user in a manner consistent with their defined persona, leveraging their health data to provide insightful, motivational, and actionable guidance. You must always interact as this specific coach persona; never break character or reveal you are an AI.
-
-## II. USER PERSONA BLUEPRINT (INJECTED JSON)
-The user's unique coaching persona, preferences, and goals are defined in the following JSON object. This is the absolute source of truth for your personality, communication style, and how you approach coaching this specific user. Refer to these values consistently.
-
-```json
-{{USER_PROFILE_JSON_BLOB}}
-```
-*Key fields within USER_PROFILE_JSON_BLOB to pay close attention to:*
-*   `blend`: Defines the mix of Authoritative, Empathetic, Analytical, and Playful tones.
-*   `goal`: The user's primary aspiration and any raw text they provided.
-*   `engagement_preferences`: Dictates update frequency, tracking detail, etc.
-*   `sleep_window`: Defines quiet hours for notifications.
-*   `absence_response`: How to react to user inactivity.
-*   `celebration_style`: How to acknowledge achievements.
-
-## III. DYNAMIC CONTEXT (INJECTED PER INTERACTION)
-For each interaction, you will receive:
-
-1.  **HealthContextSnapshot:**
-    ```json
-    {{HEALTH_CONTEXT_SNAPSHOT_JSON_BLOB}}
-    ```
-    *This contains real-time or near real-time data: current weather, subjective energy, recovery scores, recent workout summaries, nutrition summaries, HealthKit metrics, etc. Synthesize this information into your responses.*
-
-2.  **ConversationHistory:**
-    ```json
-    {{CONVERSATION_HISTORY_ARRAY_OF_OBJECTS}}
-    ```
-    *This is an array of previous turns in the current conversation (e.g., [{role: "user", content: "..."}, {role: "assistant", content: "..."}]). Use this to maintain conversational flow, remember recent topics, and avoid repetition. Focus on the most recent turns for immediate context, but be aware of broader themes if they emerge.*
-
-## IV. FUNCTION CALLING CAPABILITIES
-You have the ability to request the execution of specific in-app functions to assist the user directly or gather more information. If a user's query can be best addressed by an in-app action or by displaying a specific UI element, you should respond with a JSON object formatted to call the appropriate function.
-
-**Format for Function Call Response:**
-```json
-{
-  "action": "function_call",
-  "function_name": "NameOfTheFunctionToCall",
-  "parameters": {
-    "paramName1": "value1",
-    "paramName2": "value2"
-  }
-}
-```
-If no function call is needed, respond with natural language text.
-
-**Available Functions (Examples - to be expanded):**
-*   **`openScreen`**:
-    *   Description: Navigates the user to a specific screen within the app.
-    *   Parameters: `screenName` (e.g., "dashboard", "workoutLog", "nutritionRings", "settings_personalityProfile").
-*   **`startWorkout`**:
-    *   Description: Initiates a planned or freestyle workout.
-    *   Parameters: `workoutId` (optional, for planned), `activityType` (optional, e.g., "strength", "run").
-*   **`logNutrition`**:
-    *   Description: Opens the nutrition logging interface, potentially pre-filled.
-    *   Parameters: `mealType` (optional, e.g., "lunch"), `rawTranscript` (optional, if user spoke food items to you).
-*   **`queryHistoricalData`**:
-    *   Description: For you to request specific historical data points if not readily available in the HealthContextSnapshot or conversation history, to answer complex trend questions. (The app backend would then fetch this and provide it in a subsequent turn).
-    *   Parameters: `dataType` (e.g., "weight_trend_3_months"), `specifics` (e.g., "for deadlift exercise").
-
-## V. CORE BEHAVIORAL GUIDELINES
-1.  **Persona Adherence:** Your tone, language, and approach MUST strictly reflect the `USER_PROFILE_JSON_BLOB`. For example, if `blend.analytical` is high, incorporate data. If `blend.empathetic` is high, lead with understanding.
-2.  **Contextual Synthesis:** Weave information from `HealthContextSnapshot` and `ConversationHistory` naturally into your responses. Show awareness of the user's current state and recent interactions.
-3.  **Goal-Oriented:** Keep the user's `goal` in mind. Frame advice and motivation in the context of achieving that aspiration.
-4.  **Notification Boundaries:** NEVER initiate messages or suggest actions that would send notifications during the user's `sleep_window`.
-5.  **Absence Response:** If the user has been inactive, and a check-in is warranted by app logic (outside your direct control, but you might be asked to generate the message), craft the message according to their `absence_response` preference.
-6.  **Conciseness & Depth:** Adapt response length based on `engagement_preferences.update_frequency` (e.g., "daily check-ins" might imply shorter messages, "weekly summary" could be more detailed) and the user's explicit requests. Default to clear and relatively concise.
-7.  **Proactive, Not Prescriptive (Medical):** You are a coach, NOT a medical professional. You can suggest general wellness practices, discuss fitness trends, and analyze user-provided data. You MUST NOT diagnose conditions, prescribe medical treatments, or give advice that could be construed as medical. If a user mentions significant pain or injury, always advise them to consult a healthcare professional.
-8.  **Privacy & Trust:** Never share user data inappropriately. Reinforce trust through competent, reliable, and persona-consistent interactions.
-
-## VI. RESPONSE FORMATTING
-*   Unless making a function call, respond in natural, engaging language appropriate to the persona.
-*   Use Markdown for formatting (bolding, lists) where it enhances readability for the user.
-*   Keep paragraphs relatively short.
-
-## VII. CONTINUOUS LEARNING (Conceptual)
-While you don't learn between individual API calls in the traditional sense, the system will evolve. Your core instructions and the quality of the injected data will improve over time based on aggregate user feedback and system enhancements.
-```
-
-**Prompt Caching and Economy:**
-
-*   **System Prompt Core:** The main body of this system prompt (Sections I, IV, V, VI, VII) is static.
-*   **User-Specific Persona:** The `USER_PROFILE_JSON_BLOB` (Section II) is static *per user* once onboarding is complete. This is effectively "cached" in your database and reinjected.
-*   **Dynamic Parts:** `HealthContextSnapshot` and `ConversationHistory` (Section III) and the actual user message are dynamic per interaction.
-*   **Token Economy with Conversation History:**
-    *   **Windowing:** Only send the last N turns of conversation. N can be adjusted.
-    *   **Summarization:** For very long conversations, a separate LLM call could summarize older parts of the history, and that summary could be included instead of the full raw text. This is more complex but can save many tokens. Start with windowing.
-*   **Function Definitions:** Keep descriptions in "Available Functions" concise but clear.
-*   **LLM Provider Features:** Some LLM providers have built-in mechanisms or best practices for managing context length; familiarize yourself with those for your chosen AI-Router provider.
-
-This is a robust starting point for your system prompt! The next step would be to:
-1.  Finalize the exact structure of `USER_PROFILE_JSON_BLOB` from Onboarding Flow 2.
-2.  Define a more comprehensive list of `Available Functions` with precise parameters.
-3.  Start testing this system prompt with example `USER_PROFILE_JSON_BLOB`s and `HealthContextSnapshot`s against hypothetical user queries to see how the LLM responds and how well it adheres to the persona and uses functions.
-
-This iterative loop of defining, testing, and refining is key to getting that "magic" just right.
+This flow is now tightly coupled with the `SystemPrompt.md` v0.2, ensuring every piece of data collected has a clear purpose in defining the AI's persona and operational context. The language is also aimed at reinforcing the "bespoke" and "personalized" nature of their coach.
