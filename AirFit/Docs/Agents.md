@@ -57,4 +57,3 @@ This repository documents AirFit. All code generation and docs must follow these
 * If details are unclear, add TODOs summarizing what needs human input.
 * Prefer clarity and maintainability over cleverness.
 * If a task is blocked by missing context, pause and ask the user to start a Deep Research thread.
-
