@@ -32,19 +32,20 @@ run: |
 # Codex Agent Configuration for AirFit
 
 ## Environment Requirements
-- Xcode 15.0+ with iOS 17.0 SDK
-- Swift 5.9+
+- Xcode 16.0+ with iOS 18.0 SDK
+- Swift 6.0+
 - SwiftLint 0.54.0+ (installed via Homebrew or Mint)
+- macOS 14.0+ (Sonoma) or later
 
 ## Build & Test Commands
 run: swiftlint --strict
-run: xcodebuild -scheme "AirFit" -destination 'platform=iOS Simulator,name=iPhone 15,OS=17.0' clean build
-run: xcodebuild -scheme "AirFit" -destination 'platform=iOS Simulator,name=iPhone 15,OS=17.0' test
+run: xcodebuild -scheme "AirFit" -destination 'platform=iOS Simulator,name=iPhone 15 Pro,OS=18.0' clean build
+run: xcodebuild -scheme "AirFit" -destination 'platform=iOS Simulator,name=iPhone 15 Pro,OS=18.0' test
 
 ## Module-Specific Tests
 # Run after implementing each module
-run: xcodebuild test -scheme "AirFit" -destination 'platform=iOS Simulator,name=iPhone 15' -only-testing:AirFitTests/OnboardingViewModelTests
-run: xcodebuild test -scheme "AirFit" -destination 'platform=iOS Simulator,name=iPhone 15' -only-testing:AirFitUITests/OnboardingFlowUITests
+run: xcodebuild test -scheme "AirFit" -destination 'platform=iOS Simulator,name=iPhone 15 Pro' -only-testing:AirFitTests/OnboardingViewModelTests
+run: xcodebuild test -scheme "AirFit" -destination 'platform=iOS Simulator,name=iPhone 15 Pro' -only-testing:AirFitUITests/OnboardingFlowUITests
 
 ## Coding Standards
 - Follow Swift API Design Guidelines strictly
@@ -54,6 +55,9 @@ run: xcodebuild test -scheme "AirFit" -destination 'platform=iOS Simulator,name=
 - Prefer protocols for dependency injection
 - Use @Published for all ViewModel state properties
 - Async/await for all asynchronous operations (no completion handlers)
+- Enable strict concurrency checking (Swift 6 default)
+- Use @MainActor for ViewModels and @Sendable for data models
+- Leverage iOS 18 features: Enhanced SwiftData, new SwiftUI APIs
 
 ## Project Conventions
 - File naming: PascalCase matching the primary type (OnboardingView.swift)
@@ -226,12 +230,18 @@ run: |
   fi
   
   # Verify Xcode version
-  xcodebuild -version | grep -E "Xcode 1[5-9]" || echo "WARNING: Xcode 15+ required"
+  xcodebuild -version | grep -E "Xcode 16" || echo "ERROR: Xcode 16+ required for iOS 18 SDK"
+  
+  # Verify Swift version
+  swift --version | grep -E "Swift version 6" || echo "ERROR: Swift 6+ required"
   
   # Install xcbeautify for readable test output (optional)
   if ! command -v xcbeautify &> /dev/null; then
     brew install xcbeautify
   fi
+  
+  # Verify iOS 18 SDK
+  xcodebuild -showsdks | grep -E "iOS 18" || echo "ERROR: iOS 18 SDK not found"
 ```
 
 ### 5. Module Interdependency Graph
@@ -252,35 +262,73 @@ Each module should include working code snippets. For example, in Module 3:
 ```markdown
 ## Working Example: Basic ViewModel Test
 ```swift
-// This is a complete, working test example for OnboardingViewModel
+// This is a complete, working test example for OnboardingViewModel (Swift 6)
 import XCTest
+import SwiftData
 @testable import AirFit
 
+@MainActor
 final class OnboardingViewModelTests: XCTestCase {
     var sut: OnboardingViewModel!
     var mockModelContext: ModelContext!
     
-    override func setUp() {
-        super.setUp()
-        let container = try! ModelContainer(for: User.self, OnboardingProfile.self, configurations: .init(isStoredInMemoryOnly: true))
+    override func setUp() async throws {
+        try await super.setUp()
+        let config = ModelConfiguration(isStoredInMemoryOnly: true)
+        let container = try ModelContainer(
+            for: User.self, OnboardingProfile.self,
+            configurations: config
+        )
         mockModelContext = ModelContext(container)
-        sut = OnboardingViewModel()
+        sut = OnboardingViewModel(modelContext: mockModelContext)
     }
     
-    func test_navigateToNextScreen_fromOpeningScreen_shouldAdvanceToLifeSnapshot() {
+    func test_navigateToNextScreen_fromOpeningScreen_shouldAdvanceToLifeSnapshot() async {
         // Arrange
-        sut.currentScreen = .openingScreen
+        await sut.setScreen(.openingScreen)
         
         // Act
-        sut.navigateToNextScreen()
+        await sut.navigateToNextScreen()
         
         // Assert
-        XCTAssertEqual(sut.currentScreen, .lifeSnapshot)
+        let currentScreen = await sut.currentScreen
+        XCTAssertEqual(currentScreen, .lifeSnapshot)
     }
 }
 ```
 
-### 7. Error Handling Patterns
+### 7. Swift 6 & iOS 18 Specific Features
+
+Add to AGENTS.md:
+
+```markdown
+## Swift 6 Concurrency Requirements
+- Enable complete concurrency checking in build settings
+- All ViewModels must be marked with @MainActor
+- Data models must conform to Sendable
+- Use actor isolation for background services
+- Example ViewModel:
+  ```swift
+  @MainActor
+  final class OnboardingViewModel: ObservableObject {
+      @Published private(set) var currentScreen: OnboardingScreen = .welcome
+      
+      func navigateToNext() async {
+          // UI updates happen on MainActor automatically
+          currentScreen = currentScreen.next()
+      }
+  }
+  ```
+
+## iOS 18 Feature Adoption
+- Use enhanced SwiftData with history tracking
+- Implement new SwiftUI navigation APIs
+- Leverage improved Swift Charts for health data
+- Use new HealthKit permissions model
+- Adopt Control Widget extensions where applicable
+```
+
+### 8. Error Handling Patterns
 
 Add to AGENTS.md:
 

@@ -1,20 +1,21 @@
 # Codex Agent Configuration for AirFit
 
 ## Environment Requirements
-- Xcode 15.0+ with iOS 17.0 SDK  
-- Swift 5.9+
+- Xcode 16.0+ with iOS 18.0 SDK  
+- Swift 6.0+
 - SwiftLint 0.54.0+ (installed via Homebrew: `brew install swiftlint`)
-- iOS Simulator (iPhone 15 with iOS 17.0+)
+- iOS Simulator (iPhone 15 Pro with iOS 18.0+)
+- macOS 15.0+ (Sonoma) or later for Xcode 16
 
 ## Build & Test Commands
 run: swiftlint --strict --reporter json
-run: xcodebuild -scheme "AirFit" -destination 'platform=iOS Simulator,name=iPhone 15,OS=17.0' clean build
-run: xcodebuild -scheme "AirFit" -destination 'platform=iOS Simulator,name=iPhone 15,OS=17.0' test
+run: xcodebuild -scheme "AirFit" -destination 'platform=iOS Simulator,name=iPhone 15 Pro,OS=18.0' clean build
+run: xcodebuild -scheme "AirFit" -destination 'platform=iOS Simulator,name=iPhone 15 Pro,OS=18.0' test
 
 ## Module-Specific Test Verification
 # Run these after implementing each module to verify correctness
-run: xcodebuild test -scheme "AirFit" -destination 'platform=iOS Simulator,name=iPhone 15' -only-testing:AirFitTests/OnboardingViewModelTests
-run: xcodebuild test -scheme "AirFit" -destination 'platform=iOS Simulator,name=iPhone 15' -only-testing:AirFitUITests/OnboardingFlowUITests
+run: xcodebuild test -scheme "AirFit" -destination 'platform=iOS Simulator,name=iPhone 15 Pro' -only-testing:AirFitTests/OnboardingViewModelTests
+run: xcodebuild test -scheme "AirFit" -destination 'platform=iOS Simulator,name=iPhone 15 Pro' -only-testing:AirFitUITests/OnboardingFlowUITests
 
 ## Coding Standards
 - Follow Swift API Design Guidelines (swift.org/documentation/api-design-guidelines)
@@ -25,6 +26,10 @@ run: xcodebuild test -scheme "AirFit" -destination 'platform=iOS Simulator,name=
 - All ViewModel state must use `@Published` properties
 - Use async/await for all asynchronous operations (no completion handlers)
 - Force unwrapping (`!`) is prohibited except in tests
+- Enable strict concurrency checking (Swift 6 default)
+- Use `@MainActor` for all ViewModels and UI-related classes
+- Prefer `Sendable` conformance for data models
+- Use structured concurrency with proper actor isolation
 
 ## Project Conventions
 - File naming: PascalCase matching primary type (e.g., `OnboardingView.swift`)
@@ -50,6 +55,9 @@ run: xcodebuild test -scheme "AirFit" -destination 'platform=iOS Simulator,name=
 - Include deletion rules for all relationships
 - Use `ModelContainer` with in-memory configuration for tests
 - Handle migration with `VersionedSchema` when modifying models
+- Leverage iOS 18's enhanced SwiftData features (history tracking, custom stores)
+- Use `@Query` with animations for reactive UI updates
+- Implement proper actor isolation for background operations
 
 ## Error Handling
 - All throwing functions must use `async throws` or `Result<Success, Error>`
