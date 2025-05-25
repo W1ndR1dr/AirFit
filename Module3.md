@@ -292,6 +292,16 @@
         *   Details: Commit message: "Feat: Implement Onboarding 'Persona Blueprint Flow' UI and core logic".
         *   Acceptance Criteria: Git history shows the new commit. Project builds and runs the onboarding flow.
 
+**Task 3.13: Add Unit & UI Tests**
+    *   **Agent Task 3.13.1 (OnboardingViewModel Unit Tests):**
+        *   Instruction: "Create `OnboardingViewModelTests.swift` in `AirFitTests/`."
+        *   Details: Use mocks from `AirFitTests/Mocks`, create an in-memory `ModelContainer`, and follow `TESTING_GUIDELINES.md`.
+        *   Acceptance Criteria: Unit tests compile and pass.
+    *   **Agent Task 3.13.2 (Onboarding Flow UI Tests):**
+        *   Instruction: "Create `OnboardingFlowUITests.swift` in `AirFitUITests/` to verify the onboarding sequence."
+        *   Details: Expose accessibility identifiers on views and follow the Arrange-Act-Assert pattern.
+        *   Acceptance Criteria: UI tests compile and pass.
+
 ---
 
 **4. Acceptance Criteria for Module Completion**
@@ -304,6 +314,7 @@
 *   The application correctly routes users through the onboarding flow or to the main app content based on their onboarding status.
 *   The UI adheres to the "clean, classy & premium" design principles and uses `AppColors`, `AppFonts`, etc.
 *   All code passes SwiftLint checks.
+*   Unit tests for `OnboardingViewModel` and UI tests for the onboarding flow are implemented and pass.
 
 **5. Code Style Reminders for this Module**
 

@@ -283,6 +283,16 @@
         *   Details: Commit message: "Feat: Implement Dashboard UI with Morning Greeting, Nutrition, and placeholder cards".
         *   Acceptance Criteria: Git history shows the new commit. Project builds and runs, displaying the dashboard.
 
+**Task 6.7: Add Unit & UI Tests**
+    *   **Agent Task 6.7.1 (DashboardViewModel Unit Tests):**
+        *   Instruction: "Create `DashboardViewModelTests.swift` in `AirFitTests/`."
+        *   Details: Use mocks for `CoachEngine` and `ContextAssembler` with an in-memory container following `TESTING_GUIDELINES.md`.
+        *   Acceptance Criteria: Tests compile and pass.
+    *   **Agent Task 6.7.2 (Dashboard UI Tests):**
+        *   Instruction: "Create `DashboardUITests.swift` in `AirFitUITests/` to validate card interactions."
+        *   Details: Verify greeting, macro ring animations, and navigation using accessibility identifiers.
+        *   Acceptance Criteria: UI tests compile and pass.
+
 ---
 
 **4. Acceptance Criteria for Module Completion**
@@ -294,6 +304,7 @@
 *   Placeholder Recovery and Performance cards display basic information.
 *   The UI adheres to the "clean, classy & premium" design principles.
 *   All code passes SwiftLint checks.
+*   Unit tests for `DashboardViewModel` and UI tests for `DashboardView` are implemented and pass.
 
 **5. Code Style Reminders for this Module**
 
