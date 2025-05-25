@@ -285,6 +285,16 @@
         *   Details: Commit message: "Feat: Implement Nutrition Logging module with voice input and AI parsing stubs".
         *   Acceptance Criteria: All changes committed. Project builds.
 
+**Task 8.8: Add Unit & UI Tests**
+    *   **Agent Task 8.8.1 (NutritionLogViewModel Unit Tests):**
+        *   Instruction: "Create `NutritionLogViewModelTests.swift` in `AirFitTests/`."
+        *   Details: Use `MockWhisperServiceWrapper` and mock `CoachEngine` following `TESTING_GUIDELINES.md`.
+        *   Acceptance Criteria: Tests compile and pass.
+    *   **Agent Task 8.8.2 (Nutrition Logging UI Tests):**
+        *   Instruction: "Create `NutritionLoggingUITests.swift` in `AirFitUITests/` to cover the logging flow."
+        *   Details: Verify microphone permission prompts and item confirmation screens using accessibility identifiers.
+        *   Acceptance Criteria: UI tests compile and pass.
+
 ---
 
 **4. Acceptance Criteria for Module Completion**
@@ -296,6 +306,7 @@
 *   Confirmed food items are saved as `FoodEntry` and `FoodItem` entities in SwiftData.
 *   A basic manual food entry option is available.
 *   The UI adheres to design principles. All code passes SwiftLint.
+*   Unit tests for `NutritionLogViewModel` and UI tests for the logging flow are implemented and pass.
 
 **5. Code Style Reminders for this Module**
 

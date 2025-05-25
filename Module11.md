@@ -244,6 +244,16 @@
         *   Details: Commit message: "Feat: Implement Settings module for user preferences and API configuration".
         *   Acceptance Criteria: All changes committed. Project builds and settings are usable.
 
+**Task 11.8: Add Unit & UI Tests**
+    *   **Agent Task 11.8.1 (SettingsViewModel Unit Tests):**
+        *   Instruction: "Create `SettingsViewModelTests.swift` in `AirFitTests/`."
+        *   Details: Mock `APIKeyManager` and `NotificationManager` following `TESTING_GUIDELINES.md`.
+        *   Acceptance Criteria: Tests compile and pass.
+    *   **Agent Task 11.8.2 (Settings UI Tests):**
+        *   Instruction: "Create `SettingsUITests.swift` in `AirFitUITests/` covering navigation and form interactions."
+        *   Details: Use accessibility identifiers on controls.
+        *   Acceptance Criteria: UI tests compile and pass.
+
 ---
 
 **4. Acceptance Criteria for Module Completion**
@@ -258,6 +268,7 @@
 *   Links to privacy policy and app version are available.
 *   All settings are persisted correctly.
 *   UI adheres to design principles and code passes SwiftLint.
+*   Unit tests for `SettingsViewModel` and UI tests for settings navigation are implemented and pass.
 
 **5. Code Style Reminders for this Module**
 

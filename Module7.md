@@ -251,6 +251,20 @@
         *   Details: Commit message: "Feat: Implement Workout Logging Module for WatchOS and iOS with AI Analysis".
         *   Acceptance Criteria: All changes committed. Project builds for both iOS and WatchOS.
 
+**Task 7.7: Add Unit & UI Tests**
+    *   **Agent Task 7.7.1 (WorkoutViewModel Unit Tests):**
+        *   Instruction: "Create `WorkoutViewModelTests.swift` in `AirFitTests/`."
+        *   Details: Mock HealthKit and WatchConnectivity interactions following `TESTING_GUIDELINES.md`.
+        *   Acceptance Criteria: Tests compile and pass.
+    *   **Agent Task 7.7.2 (WatchWorkoutManager Unit Tests):**
+        *   Instruction: "Create `WatchWorkoutManagerTests.swift` in `AirFitTests/`."
+        *   Details: Verify workout session state management.
+        *   Acceptance Criteria: Tests compile and pass.
+    *   **Agent Task 7.7.3 (Workout UI Tests):**
+        *   Instruction: "Create `WorkoutUITests.swift` in `AirFitUITests/` for key workout logging flows."
+        *   Details: Use accessibility identifiers for start, pause, and end actions.
+        *   Acceptance Criteria: UI tests compile and pass.
+
 ---
 
 **4. Acceptance Criteria for Module Completion**
@@ -263,6 +277,7 @@
 *   The mechanism to trigger AI Post-Workout Analysis is in place, and the iOS app can display the (stubbed/mocked) AI-generated summary.
 *   Both WatchOS and iOS UIs adhere to design principles.
 *   All code passes SwiftLint checks.
+*   Unit tests for `WorkoutViewModel` and `WatchWorkoutManager`, and UI tests for workout flows are implemented and pass.
 
 **5. Code Style Reminders for this Module**
 

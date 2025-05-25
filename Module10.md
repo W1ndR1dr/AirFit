@@ -183,6 +183,18 @@
         *   Details: Commit message: "Feat: Implement multi-provider AIAPIService with detailed request/response handling".
         *   Acceptance Criteria: All changes committed. Project builds.
 
+**Task 10.6: Add Unit Tests**
+    *   **Agent Task 10.6.1 (AIAPIService Unit Tests):**
+        *   Instruction: "Create `AIAPIServiceTests.swift` in `AirFitTests/` covering provider switching and request building."
+        *   Details: Use protocol-based mocks and follow `TESTING_GUIDELINES.md`.
+        *   Acceptance Criteria: Tests compile and pass.
+
+**4. Acceptance Criteria for Module Completion**
+
+*   `AIAPIService` securely manages API keys and constructs provider-specific requests.
+*   Streaming responses are parsed correctly for all providers.
+*   Unit tests for `AIAPIService` pass.
+
 ---
 
 This revised Module 10 is much more specific thanks to the deep research. The Code Generation Agent will have a clearer path, but the complexity of handling four different API structures (even with OpenRouter's standardization efforts) remains high. The SSE parsing and function call translations will be the trickiest parts. Good luck to your AI agent!

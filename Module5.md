@@ -337,6 +337,16 @@
         *   Details: Commit message: "Feat: Implement CoachEngine core logic for AI interactions and function calling".
         *   Acceptance Criteria: Git history shows the new commit. Project builds successfully.
 
+**Task 5.6: Add Unit Tests**
+    *   **Agent Task 5.6.1 (CoachEngine Unit Tests):**
+        *   Instruction: "Create `CoachEngineTests.swift` in `AirFitTests/`."
+        *   Details: Utilize mocks for `AIRouterServiceProtocol` and verify message processing and streaming handling as per `TESTING_GUIDELINES.md`.
+        *   Acceptance Criteria: Tests compile and pass.
+    *   **Agent Task 5.6.2 (LocalCommandParser Unit Tests):**
+        *   Instruction: "Create `LocalCommandParserTests.swift` in `AirFitTests/`."
+        *   Details: Test parsing of commands for expected actions.
+        *   Acceptance Criteria: Tests compile and pass.
+
 ---
 
 **4. Acceptance Criteria for Module Completion**
@@ -349,6 +359,7 @@
 *   Conversation history (`CoachMessage` entities with relevant metadata) is saved to SwiftData.
 *   The module is well-structured, uses `AppLogger`, and adheres to coding conventions.
 *   All code passes SwiftLint checks.
+*   Unit tests for `CoachEngine` and `LocalCommandParser` are implemented and pass.
 
 **5. Code Style Reminders for this Module**
 
