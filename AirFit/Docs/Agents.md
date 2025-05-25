@@ -1,6 +1,8 @@
 # AirFit Agent Guidelines
 
 This repository documents AirFit. All code generation and docs must follow these guidelines.
+See `../../AGENTS.md` for build and test commands used by Codex agents.
+
 
 ## 1. Source of Truth
 
