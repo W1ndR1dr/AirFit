@@ -207,6 +207,16 @@ This module focuses on keeping users engaged through timely, persona-driven noti
         *   Details: Commit message: "Feat: Implement Notifications & Engagement Engine with lapse detection".
         *   Acceptance Criteria: All changes committed. Project builds.
 
+**Task 9.7: Add Unit Tests**
+    *   **Agent Task 9.7.1 (NotificationManager Unit Tests):**
+        *   Instruction: "Create `NotificationManagerTests.swift` in `AirFitTests/`."
+        *   Details: Mock `UNUserNotificationCenter` to verify scheduling logic following `TESTING_GUIDELINES.md`.
+        *   Acceptance Criteria: Tests compile and pass.
+    *   **Agent Task 9.7.2 (EngagementEngine Unit Tests):**
+        *   Instruction: "Create `EngagementEngineTests.swift` in `AirFitTests/`."
+        *   Details: Provide mock time scenarios to ensure lapse detection triggers notifications.
+        *   Acceptance Criteria: Tests compile and pass.
+
 ---
 
 **4. Acceptance Criteria for Module Completion**
@@ -219,6 +229,7 @@ This module focuses on keeping users engaged through timely, persona-driven noti
 *   Basic handling for notification taps and custom actions is implemented (logging the intent).
 *   (Stubbed/Initial) Mechanism for periodic lapse detection (e.g., on app foreground or via BGTaskScheduler setup).
 *   All code passes SwiftLint.
+*   Unit tests for `NotificationManager` and `EngagementEngine` are implemented and pass.
 
 **5. Code Style Reminders for this Module**
 

@@ -400,6 +400,16 @@
         *   Details: Commit message: "Feat: Implement HealthKitManager and ContextAssembler for health data aggregation".
         *   Acceptance Criteria: Git history shows the new commit. Project builds successfully.
 
+**Task 4.6: Add Unit Tests**
+    *   **Agent Task 4.6.1 (HealthKitManager Unit Tests):**
+        *   Instruction: "Create `HealthKitManagerTests.swift` in `AirFitTests/`."
+        *   Details: Use in-memory containers and mocks for HealthKit as outlined in `TESTING_GUIDELINES.md`.
+        *   Acceptance Criteria: Tests compile and pass.
+    *   **Agent Task 4.6.2 (ContextAssembler Unit Tests):**
+        *   Instruction: "Create `ContextAssemblerTests.swift` in `AirFitTests/`."
+        *   Details: Mock dependencies and verify assembled snapshots.
+        *   Acceptance Criteria: Tests compile and pass.
+
 ---
 
 **4. Acceptance Criteria for Module Completion**
@@ -411,6 +421,7 @@
 *   A clear point in the app flow is identified for triggering HealthKit authorization.
 *   All code passes SwiftLint checks and adheres to project conventions.
 *   The module is committed to Git.
+*   Unit tests for `HealthKitManager` and `ContextAssembler` are implemented and pass.
 
 **5. Code Style Reminders for this Module**
 
