@@ -20,6 +20,8 @@ targets:
     platform: iOS
     sources:
       - path: AirFit
+        includes:
+          - "**/*.swift"
         excludes:
           - "**/*.md"
           - "**/.*"
