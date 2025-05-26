@@ -38,7 +38,7 @@ struct LifeSnapshotView: View {
                             id: "onboarding.life.family_care"
                         )
                         checkbox(
-                            text: LifeContext.ScheduleType.predictable.displayName,
+                            text: LocalizedStringKey(LifeContext.ScheduleType.predictable.displayName),
                             binding: Binding(
                                 get: { viewModel.lifeContext.scheduleType == .predictable },
                                 set: { if $0 { viewModel.lifeContext.scheduleType = .predictable } }
@@ -46,7 +46,7 @@ struct LifeSnapshotView: View {
                             id: "onboarding.life.schedule_predictable"
                         )
                         checkbox(
-                            text: LifeContext.ScheduleType.unpredictableChaotic.displayName,
+                            text: LocalizedStringKey(LifeContext.ScheduleType.unpredictableChaotic.displayName),
                             binding: Binding(
                                 get: { viewModel.lifeContext.scheduleType == .unpredictableChaotic },
                                 set: { if $0 { viewModel.lifeContext.scheduleType = .unpredictableChaotic } }

@@ -2,7 +2,7 @@
 import Foundation
 
 @MainActor
-final class MockOnboardingService: OnboardingServiceProtocol, MockProtocol {
+final class MockOnboardingService: OnboardingServiceProtocol, @preconcurrency MockProtocol {
     var invocations: [String: [Any]] = [:]
     var stubbedResults: [String: Any] = [:]
 

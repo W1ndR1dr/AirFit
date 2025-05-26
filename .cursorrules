@@ -154,18 +154,9 @@ Module/
 └── Tests/              # Unit and UI tests
 ```
 
-## Required Module Structure
-Each module in /AirFit/Modules/ must have:
-- Models/ folder (if module has data models)
-- Views/ folder
-- ViewModels/ folder
-- Services/ folder (if module needs services)
-- Coordinators/ folder (for navigation)
-
-Note: Currently only Dashboard and Settings modules exist.
-Missing modules that need creation:
-- Onboarding, MealLogging, Progress, MealDiscovery, 
-- AICoach, Health, Notifications
+## Module Structure (Follow Schema Below)
+**Completed**: Dashboard, Settings, Onboarding  
+**Missing**: MealLogging, Progress, MealDiscovery, AICoach, Health, Notifications
 
 ## Code Style Format
 ```swift
@@ -281,12 +272,138 @@ final class OnboardingCoordinator: ObservableObject {
 - [ ] Verify module dependencies are complete
 - [ ] Create feature branch from main
 
+## XcodeGen File Inclusion Schema
+
+### CRITICAL: Target-Specific File Assignment
+
+Our `project.yml` defines 3 targets with specific file inclusion rules:
+
+#### 1. **AirFit** (Main App Target)
+```yaml
+sources:
+  - path: AirFit
+    includes: ["**/*.swift"]
+    excludes: ["**/*.md", "**/.*", "AirFitTests/**", "AirFitUITests/**"]
+  # EXPLICIT FILES (due to XcodeGen nesting bug):
+  - AirFit/Modules/{ModuleName}/...
+  - AirFit/Data/Models/...
+  - AirFit/Core/...
+  - AirFit/Services/...
+  - AirFit/Application/...
+```
+
+#### 2. **AirFitTests** (Unit Test Target)
+```yaml
+sources:
+  - path: AirFit/AirFitTests
+    includes: ["**/*.swift"]
+  # EXPLICIT TEST FILES:
+  - AirFit/AirFitTests/Onboarding/OnboardingServiceTests.swift
+  - AirFit/AirFitTests/Onboarding/OnboardingFlowViewTests.swift
+  - AirFit/AirFitTests/Onboarding/OnboardingViewTests.swift
+```
+
+#### 3. **AirFitUITests** (UI Test Target)
+```yaml
+sources:
+  - path: AirFit/AirFitUITests
+    includes: ["**/*.swift"]
+```
+
+### XcodeGen Nesting Bug Workaround
+
+**Problem**: `**/*.swift` glob pattern fails for nested directories like `AirFit/Modules/*/`  
+**Root Cause**: XcodeGen doesn't properly expand globs in nested module structures  
+**Solution**: Explicitly list ALL files in nested directories
+
+### File Addition Workflow
+
+#### For Main App Files:
+```bash
+# 1. Create file in appropriate directory
+# 2. Add to project.yml under AirFit target sources
+# 3. Regenerate project
+xcodegen generate
+# 4. Verify inclusion
+grep -c "YourFileName" AirFit.xcodeproj/project.pbxproj
+```
+
+#### For Test Files:
+```bash
+# 1. Create test file in AirFit/AirFitTests/
+# 2. Add to project.yml under AirFitTests target sources  
+# 3. Regenerate project
+xcodegen generate
+# 4. Verify inclusion
+grep -c "YourTestFile" AirFit.xcodeproj/project.pbxproj
+```
+
+### Module File Template
+```yaml
+# Add to AirFit target sources in project.yml:
+- AirFit/Modules/{ModuleName}/Models/{ModuleName}Models.swift
+- AirFit/Modules/{ModuleName}/ViewModels/{ModuleName}ViewModel.swift
+- AirFit/Modules/{ModuleName}/Views/{ModuleName}FlowView.swift
+- AirFit/Modules/{ModuleName}/Views/{Feature}View.swift
+- AirFit/Modules/{ModuleName}/Services/{ModuleName}Service.swift
+- AirFit/Modules/{ModuleName}/Services/{ModuleName}ServiceProtocol.swift
+```
+
+### Test File Template
+```yaml
+# Add to AirFitTests target sources in project.yml:
+- AirFit/AirFitTests/{ModuleName}/{ModuleName}ServiceTests.swift
+- AirFit/AirFitTests/{ModuleName}/{ModuleName}ViewModelTests.swift
+- AirFit/AirFitTests/{ModuleName}/{ModuleName}ViewTests.swift
+```
+
 ## Post-Implementation Checklist
-- [ ] Run swiftlint --fix
-- [ ] Run all tests (unit and UI)
-- [ ] Verify 70% code coverage
-- [ ] Update relevant documentation
-- [ ] Add accessibility identifiers
-- [ ] Test on iPhone 16 Pro simulator
-- [ ] Verify MVVM-C pattern compliance
-- [ ] Commit with descriptive message
+
+### 1. **File Inclusion Verification** (CRITICAL)
+```bash
+# Check ALL new files are included in project
+find AirFit/Modules/YourModule -name "*.swift" | while read file; do
+  filename=$(basename "$file")
+  count=$(grep -c "$filename" AirFit.xcodeproj/project.pbxproj)
+  echo "$filename: $count"
+  if [ $count -eq 0 ]; then echo "❌ MISSING: $file"; fi
+done
+
+# Check test files
+find AirFit/AirFitTests/YourModule -name "*.swift" | while read file; do
+  filename=$(basename "$file")
+  count=$(grep -c "$filename" AirFit.xcodeproj/project.pbxproj)
+  echo "$filename: $count"
+  if [ $count -eq 0 ]; then echo "❌ MISSING: $file"; fi
+done
+```
+
+### 2. **Build Verification**
+```bash
+# Clean build to verify all files compile
+xcodebuild clean build -scheme "AirFit" -destination 'platform=iOS Simulator,name=iPhone 16 Pro' -quiet
+echo "✅ Build Status: $?"
+```
+
+### 3. **Test Coverage Verification**
+```bash
+# Run module-specific tests
+xcodebuild test -scheme "AirFit" -destination 'platform=iOS Simulator,name=iPhone 16 Pro' -only-testing:AirFitTests/YourModuleTests
+```
+
+### 4. **Code Quality**
+```bash
+# SwiftLint check
+swiftlint --strict
+```
+
+### 5. **Final Commit**
+```bash
+git add .
+git commit -m "Feat: Add Module X with comprehensive test coverage
+
+- Implemented YourModule with N files
+- Added comprehensive test suite (X tests)
+- Verified XcodeGen file inclusion
+- All builds and tests passing"
+```

@@ -4,7 +4,7 @@ import Testing
 
 struct CoreSetupTests {
     // MARK: - Core View Components Tests
-    @Test
+    @Test @MainActor
     func test_emptyStateView_initialization() {
         let emptyState = EmptyStateView(
             icon: "star",
@@ -19,7 +19,7 @@ struct CoreSetupTests {
         #expect(emptyState.actionTitle == nil)
     }
 
-    @Test
+    @Test @MainActor
     func test_emptyStateView_withAction() {
         var actionCalled = false
         let action = { actionCalled = true }
@@ -36,7 +36,7 @@ struct CoreSetupTests {
         #expect(emptyState.action != nil)
     }
 
-    @Test
+    @Test @MainActor
     func test_sectionHeader_initialization() {
         let header = SectionHeader(title: "Test Section")
 
@@ -45,7 +45,7 @@ struct CoreSetupTests {
         #expect(header.action == nil)
     }
 
-    @Test
+    @Test @MainActor
     func test_sectionHeader_withIconAndAction() {
         var actionCalled = false
         let action = { actionCalled = true }

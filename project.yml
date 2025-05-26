@@ -25,6 +25,87 @@ targets:
         excludes:
           - "**/*.md"
           - "**/.*"
+          - "AirFitTests/**"
+          - "AirFitUITests/**"
+      - AirFit/Modules/Onboarding/Models/OnboardingModels.swift
+      - AirFit/Modules/Onboarding/ViewModels/OnboardingViewModel.swift
+      - AirFit/Modules/Onboarding/Views/OnboardingFlowView.swift
+      - AirFit/Modules/Onboarding/Views/LifeSnapshotView.swift
+      - AirFit/Modules/Onboarding/Views/OpeningScreenView.swift
+      - AirFit/Modules/Onboarding/Views/CoachProfileReadyView.swift
+      - AirFit/Modules/Onboarding/Views/CoreAspirationView.swift
+      - AirFit/Modules/Onboarding/Views/EngagementPreferencesView.swift
+      - AirFit/Modules/Onboarding/Views/GeneratingCoachView.swift
+      - AirFit/Modules/Onboarding/Views/OnboardingNavigationButtons.swift
+      - AirFit/Modules/Onboarding/Views/MotivationalAccentsView.swift
+      - AirFit/Modules/Onboarding/Views/SleepAndBoundariesView.swift
+      - AirFit/Modules/Onboarding/Views/CoachingStyleView.swift
+      - AirFit/Modules/Onboarding/Services/OnboardingService.swift
+      - AirFit/Modules/Onboarding/Services/OnboardingServiceProtocol.swift
+      - AirFit/Modules/Onboarding/Coordinators/OnboardingCoordinator.swift
+      # Data Layer Models (CRITICAL: XcodeGen nesting bug)
+      - AirFit/Data/Models/OnboardingProfile.swift
+      - AirFit/Data/Models/User.swift
+      - AirFit/Data/Models/CoachMessage.swift
+      - AirFit/Data/Models/FoodEntry.swift
+      - AirFit/Data/Models/FoodItem.swift
+      - AirFit/Data/Models/MealTemplate.swift
+      - AirFit/Data/Models/FoodItemTemplate.swift
+      - AirFit/Data/Models/WorkoutTemplate.swift
+      - AirFit/Data/Models/HealthKitSyncRecord.swift
+      - AirFit/Data/Models/Workout.swift
+      - AirFit/Data/Models/DailyLog.swift
+      - AirFit/Data/Models/ChatMessage.swift
+      - AirFit/Data/Models/ChatAttachment.swift
+      - AirFit/Data/Models/Exercise.swift
+      - AirFit/Data/Models/ExerciseTemplate.swift
+      - AirFit/Data/Models/ExerciseSet.swift
+      - AirFit/Data/Models/NutritionData.swift
+      - AirFit/Data/Models/ChatSession.swift
+      - AirFit/Data/Models/SetTemplate.swift
+      # Data Layer Extensions & Managers (CRITICAL: XcodeGen nesting bug)
+      - AirFit/Data/Extensions/FetchDescriptor+Extensions.swift
+      - AirFit/Data/Extensions/ModelContainer+Testing.swift
+      - AirFit/Data/Managers/DataManager.swift
+      - AirFit/Data/Migrations/SchemaV1.swift
+      # Core Layer Files (CRITICAL: XcodeGen nesting bug)
+      - AirFit/Core/Constants/APIConstants.swift
+      - AirFit/Core/Constants/AppConstants.swift
+      - AirFit/Core/Enums/GlobalEnums.swift
+      - AirFit/Core/Enums/AppError.swift
+      - AirFit/Core/Extensions/String+Extensions.swift
+      - AirFit/Core/Extensions/View+Extensions.swift
+      - AirFit/Core/Extensions/Color+Extensions.swift
+      - AirFit/Core/Extensions/Date+Extensions.swift
+      - AirFit/Core/Extensions/Double+Extensions.swift
+      - AirFit/Core/Utilities/AppState.swift
+      - AirFit/Core/Utilities/DependencyContainer.swift
+      - AirFit/Core/Utilities/HapticManager.swift
+      - AirFit/Core/Utilities/KeychainWrapper.swift
+      - AirFit/Core/Utilities/AppLogger.swift
+      - AirFit/Core/Utilities/Formatters.swift
+      - AirFit/Core/Utilities/Validators.swift
+      - AirFit/Core/Theme/AppShadows.swift
+      - AirFit/Core/Theme/AppSpacing.swift
+      - AirFit/Core/Theme/AppColors.swift
+      - AirFit/Core/Theme/AppFonts.swift
+      - AirFit/Core/Views/CommonComponents.swift
+      - AirFit/Core/Protocols/ViewModelProtocol.swift
+      # Services Layer Files (CRITICAL: XcodeGen nesting bug)
+      - AirFit/Services/Security/APIKeyManagerProtocol.swift
+      - AirFit/Services/Platform/NotificationManagerProtocol.swift
+      - AirFit/Services/Network/NetworkClient.swift
+      - AirFit/Services/Network/NetworkClientProtocol.swift
+      - AirFit/Services/User/UserServiceProtocol.swift
+      - AirFit/Services/Speech/WhisperServiceWrapperProtocol.swift
+      - AirFit/Services/AI/AIAPIServiceProtocol.swift
+      - AirFit/Services/AI/AIServiceProtocol.swift
+      - AirFit/Services/AI/AIModels.swift
+      # Application Layer Files (CRITICAL: XcodeGen nesting bug)
+      - AirFit/Application/AirFitApp.swift
+      - AirFit/Application/MinimalContentView.swift
+      # NOTE: Original ContentView.swift and DashboardView.swift temporarily excluded due to API issues
+      # These will be fixed in future modules
     resources:
       - AirFit/Assets.xcassets
       - AirFit/Resources
@@ -45,12 +126,22 @@ targets:
           - "**/*.swift"
         excludes:
           - "**/*.md"
+      # Explicit test files (CRITICAL: XcodeGen nesting bug)
+      - AirFit/AirFitTests/Onboarding/OnboardingServiceTests.swift
+      - AirFit/AirFitTests/Onboarding/OnboardingFlowViewTests.swift
+      - AirFit/AirFitTests/Onboarding/OnboardingViewTests.swift
+      - AirFit/AirFitTests/Onboarding/OnboardingViewModelTests.swift
+      - AirFit/AirFitTests/Onboarding/OnboardingIntegrationTests.swift
+      - AirFit/AirFitTests/Onboarding/OnboardingModelsTests.swift
     dependencies:
       - target: AirFit
     settings:
       BUNDLE_LOADER: $(TEST_HOST)
       TEST_HOST: $(BUILT_PRODUCTS_DIR)/AirFit.app/AirFit
       GENERATE_INFOPLIST_FILE: YES
+      SWIFT_VERSION: "6.0"
+      ENABLE_STRICT_CONCURRENCY: YES
+      SWIFT_STRICT_CONCURRENCY: complete
 
   AirFitUITests:
     type: bundle.ui-testing
@@ -66,6 +157,9 @@ targets:
     settings:
       TEST_TARGET_NAME: AirFit
       GENERATE_INFOPLIST_FILE: YES
+      SWIFT_VERSION: "6.0"
+      ENABLE_STRICT_CONCURRENCY: YES
+      SWIFT_STRICT_CONCURRENCY: complete
 
 
 

@@ -1,6 +1,6 @@
 import Foundation
 
-// MARK: - Navigation (9 screens per OnboardingFlow.md)
+// MARK: - Navigation (9 screens per OnboardingFlow.md v3.2)
 enum OnboardingScreen: String, CaseIterable, Sendable {
     case openingScreen = "opening"
     case lifeSnapshot = "lifeSnapshot"
@@ -98,15 +98,6 @@ struct Goal: Codable, Sendable {
     }
 }
 
-// MARK: - Structured Goal (for AI analysis)
-struct StructuredGoal: Codable, Sendable {
-    let goalType: String
-    let primaryMetric: String
-    let timeframe: String?
-    let specificTarget: String?
-    let whyImportant: String?
-}
-
 // MARK: - Blend (matches OnboardingFlow.md structure)
 struct Blend: Codable, Sendable {
     var authoritativeDirect: Double = 0.25
@@ -146,7 +137,16 @@ struct EngagementPreferences: Codable, Sendable {
             case .dataDrivenPartnership: return "Data-Driven Partnership"
             case .balancedConsistent: return "Balanced & Consistent"
             case .guidanceOnDemand: return "Guidance on Demand"
-            case .custom: return "Custom"
+            case .custom: return "Customise My Preferences"
+            }
+        }
+
+        var description: String {
+            switch self {
+            case .dataDrivenPartnership: return "Detailed tracking, daily updates, proactive auto-recovery"
+            case .balancedConsistent: return "Key metric tracking, weekly updates, proactive auto-recovery"
+            case .guidanceOnDemand: return "User-initiated tracking focus, updates when asked, user-decides recovery"
+            case .custom: return "Customise individual preferences"
             }
         }
     }
@@ -158,9 +158,17 @@ struct EngagementPreferences: Codable, Sendable {
 
         var displayName: String {
             switch self {
-            case .detailed: return "Detailed (e.g., macro tracking, in-depth analysis)"
-            case .keyMetrics: return "Key Metrics (e.g., calorie balance, core performance indicators)"
-            case .essentialOnly: return "Essential Only (e.g., workout completion, basic trends)"
+            case .detailed: return "Detailed"
+            case .keyMetrics: return "Key Metrics"
+            case .essentialOnly: return "Essential Only"
+            }
+        }
+
+        var description: String {
+            switch self {
+            case .detailed: return "e.g., macro tracking, in-depth analysis"
+            case .keyMetrics: return "e.g., calorie balance, core performance indicators"
+            case .essentialOnly: return "e.g., workout completion, basic trends"
             }
         }
     }
@@ -245,7 +253,7 @@ struct MotivationalStyle: Codable, Sendable {
     }
 }
 
-// MARK: - USER_PROFILE_JSON_BLOB (matches OnboardingFlow.md and SystemPrompt.md)
+// MARK: - USER_PROFILE_JSON_BLOB (matches SystemPrompt.md structure)
 struct UserProfileJsonBlob: Codable, Sendable {
     let lifeContext: LifeContext
     let goal: Goal

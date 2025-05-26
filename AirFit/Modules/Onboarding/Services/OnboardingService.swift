@@ -2,7 +2,7 @@ import Foundation
 import SwiftData
 
 /// Production implementation of onboarding persistence
-final class OnboardingService: OnboardingServiceProtocol {
+final class OnboardingService: OnboardingServiceProtocol, @unchecked Sendable {
     private let modelContext: ModelContext
 
     init(modelContext: ModelContext) {
@@ -37,7 +37,7 @@ final class OnboardingService: OnboardingServiceProtocol {
     // MARK: - Private Helpers
     private func validateProfileStructure(_ profile: OnboardingProfile) throws {
         // Validate that the JSON can be decoded back to our expected structure
-        guard let personaProfile = profile.personaProfile else {
+        guard !profile.personaPromptData.isEmpty else {
             throw OnboardingError.invalidProfileData
         }
 

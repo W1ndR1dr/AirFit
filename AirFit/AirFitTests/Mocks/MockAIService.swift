@@ -2,20 +2,20 @@
 import Foundation
 
 @MainActor
-final class MockAIService: AIServiceProtocol, MockProtocol {
+final class MockAIService: AIServiceProtocol, @preconcurrency MockProtocol {
     var invocations: [String: [Any]] = [:]
     var stubbedResults: [String: Any] = [:]
 
-    var analyzeGoalResult: Result<StructuredGoal, Error> = .failure(MockError.notSet)
+    var analyzeGoalResult: Result<String, Error> = .failure(MockError.notSet)
     private(set) var analyzeGoalCalled = false
 
-    func analyzeGoal(_ goalText: String) async throws -> StructuredGoal {
+    func analyzeGoal(_ goalText: String) async throws -> String {
         recordInvocation(#function, arguments: goalText)
         analyzeGoalCalled = true
 
         switch analyzeGoalResult {
-        case .success(let goal):
-            return goal
+        case .success(let analysis):
+            return analysis
         case .failure(let error):
             throw error
         }
@@ -23,18 +23,6 @@ final class MockAIService: AIServiceProtocol, MockProtocol {
 
     enum MockError: Error {
         case notSet
-    }
-}
-
-extension StructuredGoal {
-    static var mock: StructuredGoal {
-        StructuredGoal(
-            goalType: "weight_loss",
-            primaryMetric: "weight",
-            timeframe: "3 months",
-            specificTarget: "10 lbs",
-            whyImportant: "Health and fitness"
-        )
     }
 }
 

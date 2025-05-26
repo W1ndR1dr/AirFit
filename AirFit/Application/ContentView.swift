@@ -7,7 +7,7 @@ struct ContentView: View {
     @State private var appState: AppState?
 
     var body: some View {
-        Group {
+        VStack {
             if let appState = appState {
                 if appState.isLoading {
                     LoadingView()
@@ -15,7 +15,7 @@ struct ContentView: View {
                     WelcomeView(appState: appState)
                 } else if appState.shouldShowOnboarding {
                     OnboardingFlowView(
-                        aiService: MockAIService(),
+                        aiService: StubAIService(),
                         onboardingService: OnboardingService(modelContext: modelContext),
                         onCompletion: {
                             Task {
@@ -49,7 +49,7 @@ struct ContentView: View {
 // MARK: - Supporting Views
 private struct LoadingView: View {
     var body: some View {
-        VStack(spacing: AppConstants.Spacing.large) {
+        VStack(spacing: AppSpacing.large) {
             ProgressView()
                 .scaleEffect(1.5)
                 .tint(AppColors.accentColor)
@@ -68,10 +68,10 @@ private struct WelcomeView: View {
     let appState: AppState
 
     var body: some View {
-        VStack(spacing: AppConstants.Spacing.xlarge) {
+        VStack(spacing: AppSpacing.xlarge) {
             Spacer()
 
-            VStack(spacing: AppConstants.Spacing.large) {
+            VStack(spacing: AppSpacing.large) {
                 Text("Welcome to")
                     .font(AppFonts.title)
                     .foregroundColor(AppColors.textSecondary)
@@ -101,10 +101,10 @@ private struct WelcomeView: View {
                     .frame(maxWidth: .infinity)
                     .padding()
                     .background(AppColors.accentColor)
-                    .cornerRadius(AppConstants.CornerRadius.medium)
+                    .cornerRadius(AppConstants.Layout.defaultCornerRadius.medium)
             }
-            .padding(.horizontal, AppConstants.Spacing.large)
-            .padding(.bottom, AppConstants.Spacing.xlarge)
+            .padding(.horizontal, AppSpacing.large)
+            .padding(.bottom, AppSpacing.xlarge)
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity)
         .background(AppColors.backgroundPrimary)
@@ -117,7 +117,7 @@ private struct ErrorView: View {
     let onRetry: () -> Void
 
     var body: some View {
-        VStack(spacing: AppConstants.Spacing.large) {
+        VStack(spacing: AppSpacing.large) {
             Image(systemName: "exclamationmark.triangle")
                 .font(.system(size: 48))
                 .foregroundColor(AppColors.errorColor)
@@ -139,10 +139,10 @@ private struct ErrorView: View {
                 .font(AppFonts.headline)
                 .fontWeight(.semibold)
                 .foregroundColor(AppColors.textOnAccent)
-                .padding(.horizontal, AppConstants.Spacing.large)
-                .padding(.vertical, AppConstants.Spacing.medium)
+                .padding(.horizontal, AppSpacing.large)
+                .padding(.vertical, AppSpacing.medium)
                 .background(AppColors.accentColor)
-                .cornerRadius(AppConstants.CornerRadius.medium)
+                .cornerRadius(AppConstants.Layout.defaultCornerRadius.medium)
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity)
         .background(AppColors.backgroundPrimary)

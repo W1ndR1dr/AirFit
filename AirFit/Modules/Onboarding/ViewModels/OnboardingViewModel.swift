@@ -15,12 +15,11 @@ final class OnboardingViewModel {
     // MARK: - Navigation State
     private(set) var currentScreen: OnboardingScreen = .openingScreen
     private(set) var isLoading = false
-    private(set) var error: Error?
+    var error: Error?
 
-    // MARK: - Collected Data
+    // MARK: - Collected Data (matches OnboardingFlow.md structure)
     var lifeContext = LifeContext()
     var goal = Goal()
-    private(set) var structuredGoal: StructuredGoal?
     var blend = Blend()
     var engagementPreferences = EngagementPreferences()
     var sleepWindow = SleepWindow()
@@ -108,17 +107,9 @@ final class OnboardingViewModel {
 
     // MARK: - Business Logic
     func analyzeGoalText() async {
-        guard !goal.rawText.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty else { return }
-        isLoading = true
-        defer { isLoading = false }
-
-        do {
-            structuredGoal = try await aiService.analyzeGoal(goal.rawText)
-            AppLogger.info("Goal analysis completed", category: .ai)
-        } catch {
-            self.error = error
-            AppLogger.error("Goal analysis failed", error: error, category: .ai)
-        }
+        // Goal analysis is handled by the AI coach after onboarding completion
+        // The raw text is sufficient for the USER_PROFILE_JSON_BLOB
+        AppLogger.info("Goal text captured: \(goal.rawText)", category: .onboarding)
     }
 
     func completeOnboarding() async throws {

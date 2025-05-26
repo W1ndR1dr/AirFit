@@ -99,3 +99,11 @@ enum AIProvider: String, CaseIterable {
         }
     }
 }
+
+// MARK: - Stub Implementation for Development
+struct StubAIService: AIServiceProtocol {
+    func analyzeGoal(_ goalText: String) async throws -> String {
+        // Return a simple analysis for development
+        return "Goal analysis: \(goalText)"
+    }
+}

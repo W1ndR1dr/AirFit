@@ -2,23 +2,29 @@ import XCTest
 import SwiftData
 @testable import AirFit
 
-@MainActor
 final class UserModelTests: XCTestCase {
     var container: ModelContainer!
     var context: ModelContext!
 
+    @MainActor
     override func setUp() async throws {
-        try await super.setUp()
+        await MainActor.run {
+            super.setUp()
+        }
         container = try ModelContainer.createTestContainer()
         context = container.mainContext
     }
 
+    @MainActor
     override func tearDown() async throws {
         container = nil
         context = nil
-        try await super.tearDown()
+        await MainActor.run {
+            super.tearDown()
+        }
     }
 
+    @MainActor
     func test_createUser_withDefaultValues_shouldInitializeCorrectly() throws {
         // Arrange & Act
         let user = User()
@@ -35,11 +41,12 @@ final class UserModelTests: XCTestCase {
         XCTAssertFalse(user.isInactive)
     }
 
+    @MainActor
     func test_createUser_withCustomValues_shouldSetCorrectly() throws {
         // Arrange
         let user = User(
-            name: "Test User",
             email: "test@example.com",
+            name: "Test User",
             preferredUnits: "metric"
         )
 
@@ -54,6 +61,7 @@ final class UserModelTests: XCTestCase {
         XCTAssertTrue(user.isMetric)
     }
 
+    @MainActor
     func test_userRelationships_whenDeleted_shouldCascadeDelete() throws {
         // Arrange
         let user = User(name: "Test User")
@@ -82,6 +90,7 @@ final class UserModelTests: XCTestCase {
         XCTAssertEqual(try context.fetchCount(FetchDescriptor<Workout>()), 0)
     }
 
+    @MainActor
     func test_getTodaysLog_withMultipleLogs_shouldReturnToday() throws {
         // Arrange
         let user = User(name: "Test User")
@@ -106,6 +115,7 @@ final class UserModelTests: XCTestCase {
         XCTAssertEqual(result?.date, Calendar.current.startOfDay(for: Date()))
     }
 
+    @MainActor
     func test_getRecentMeals_shouldReturnSortedMeals() throws {
         // Arrange
         let user = User(name: "Test User")

@@ -2,10 +2,36 @@
 import Foundation
 import SwiftData
 
-@MainActor
-final class MockUserService: UserServiceProtocol, MockProtocol {
-    var invocations: [String: [Any]] = [:]
-    var stubbedResults: [String: Any] = [:]
+final class MockUserService: UserServiceProtocol, MockProtocol, @unchecked Sendable {
+    private let lock = NSLock()
+    private var _invocations: [String: [Any]] = [:]
+    private var _stubbedResults: [String: Any] = [:]
+    
+    var invocations: [String: [Any]] {
+        get {
+            lock.lock()
+            defer { lock.unlock() }
+            return _invocations
+        }
+        set {
+            lock.lock()
+            defer { lock.unlock() }
+            _invocations = newValue
+        }
+    }
+    
+    var stubbedResults: [String: Any] {
+        get {
+            lock.lock()
+            defer { lock.unlock() }
+            return _stubbedResults
+        }
+        set {
+            lock.lock()
+            defer { lock.unlock() }
+            _stubbedResults = newValue
+        }
+    }
 
     var createUserResult: Result<User, Error> = .success(User.mock)
     var updateProfileResult: Result<Void, Error> = .success(())

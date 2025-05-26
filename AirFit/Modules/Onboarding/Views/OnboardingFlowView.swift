@@ -14,14 +14,12 @@ struct OnboardingFlowView: View {
         onboardingService: OnboardingServiceProtocol,
         onCompletion: (() -> Void)? = nil
     ) {
-        let context = ModelContext(AirFitApp.sharedModelContainer)
-        _viewModel = State(
-            initialValue: OnboardingViewModel(
-                aiService: aiService,
-                onboardingService: onboardingService,
-                modelContext: context
-            )
-        )
+        // We'll initialize the viewModel in onAppear when we have access to modelContext
+        _viewModel = State(initialValue: OnboardingViewModel(
+            aiService: aiService,
+            onboardingService: onboardingService,
+            modelContext: try! ModelContext(.init(for: OnboardingProfile.self))
+        ))
         self.onCompletion = onCompletion
     }
 
