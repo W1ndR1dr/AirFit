@@ -5,7 +5,7 @@ import SwiftUI
 struct AirFitApp: App {
     // MARK: - Properties
     @StateObject private var appState = AppState()
-    @Environment(\.scenePhase) 
+    @Environment(\.scenePhase)
     private var scenePhase
 
     // MARK: - Initialization

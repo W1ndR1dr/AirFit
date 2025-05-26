@@ -3,7 +3,7 @@ import SwiftUI
 
 enum AppConstants {
     // MARK: - Nested Types
-    
+
     // MARK: - Layout
     enum Layout {
         static let defaultPadding: CGFloat = 16
@@ -58,9 +58,9 @@ enum AppConstants {
         static let minHeight: Double = 50 // cm
         static let maxHeight: Double = 300 // cm
     }
-    
+
     // MARK: - Static Properties
-    
+
     // MARK: - App Info
     static let appName = "AirFit"
     static let appVersion = Bundle.main.infoDictionary?["CFBundleShortVersionString"] as? String ?? "1.0"

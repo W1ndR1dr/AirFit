@@ -2,7 +2,7 @@ import Foundation
 
 public enum Validators {
     // MARK: - Nested Types
-    
+
     // MARK: - Result Type
     enum ValidationResult: Equatable {
         case success
@@ -22,9 +22,9 @@ public enum Validators {
             }
         }
     }
-    
+
     // MARK: - Static Methods
-    
+
     // MARK: - User Input
     static func validateEmail(_ email: String) -> ValidationResult {
         guard !email.isBlank else {

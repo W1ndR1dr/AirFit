@@ -115,8 +115,6 @@ excluded:
   - DerivedData
   - fastlane
   - .git
-  - AirFitTests
-  - AirFitUITests
 
 # MARK: - Reporter
 reporter: "xcode" 

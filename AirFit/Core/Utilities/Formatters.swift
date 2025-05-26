@@ -2,13 +2,13 @@ import Foundation
 
 public enum Formatters {
     // MARK: - Nested Types
-    
+
     enum WeightUnit {
         case metric, imperial
     }
-    
+
     // MARK: - Static Properties
-    
+
     // MARK: - Number Formatters
     static let integer: NumberFormatter = {
         let formatter = NumberFormatter()
@@ -56,7 +56,7 @@ public enum Formatters {
     }()
 
     // MARK: - Static Methods
-    
+
     // MARK: - Custom Formatters
     static func formatCalories(_ calories: Double) -> String {
         "\(integer.string(from: NSNumber(value: calories)) ?? "0") cal"

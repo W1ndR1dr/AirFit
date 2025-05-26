@@ -14,7 +14,7 @@ struct Endpoint: Sendable {
     let headers: [String: String]?
     let queryItems: [URLQueryItem]?
     let body: Data?
-    
+
     init(
         path: String,
         method: HTTPMethod = .get,
@@ -47,7 +47,7 @@ enum NetworkError: LocalizedError, Sendable {
     case httpError(statusCode: Int, data: Data?)
     case networkError(Error)
     case timeout
-    
+
     var errorDescription: String? {
         switch self {
         case .invalidURL:
@@ -66,4 +66,4 @@ enum NetworkError: LocalizedError, Sendable {
             return "Request timed out"
         }
     }
-} 
+}

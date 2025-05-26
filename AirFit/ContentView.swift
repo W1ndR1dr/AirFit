@@ -5,4 +5,4 @@ struct ContentView: View {
         Text("AirFit")
             .font(.largeTitle)
     }
-} 
+}
