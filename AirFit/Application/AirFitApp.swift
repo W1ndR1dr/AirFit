@@ -6,7 +6,8 @@ import Foundation
 struct AirFitApp: App {
     // MARK: - Properties
     @Environment(\.scenePhase) private var scenePhase
-    @StateObject private var appState = AppState()
+    @StateObject 
+    private var appState = AppState()
 
     // MARK: - Model Container
     static let sharedModelContainer: ModelContainer = {

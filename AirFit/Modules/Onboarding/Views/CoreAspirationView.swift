@@ -40,12 +40,13 @@ struct CoreAspirationView: View {
                                 } else {
                                     viewModel.startVoiceCapture()
                                 }
-                            }
-                        ) {
+                            },
+                            label: {
                             Image(systemName: viewModel.isTranscribing ? "stop.circle.fill" : "mic.circle.fill")
                                 .font(.system(size: 28))
                                 .foregroundColor(AppColors.accentColor)
-                        }
+                            }
+                        )
                         .accessibilityIdentifier("onboarding.goal.voice")
                     }
                     .padding(.horizontal, AppSpacing.large)
@@ -69,8 +70,8 @@ struct CoreAspirationView: View {
 
     private func goalCard(family: Goal.GoalFamily) -> some View {
         Button(
-            action: { viewModel.goal.family = family }
-        ) {
+            action: { viewModel.goal.family = family },
+            label: {
             HStack {
                 Text(family.displayName)
                     .font(AppFonts.body)
@@ -89,7 +90,8 @@ struct CoreAspirationView: View {
                 RoundedRectangle(cornerRadius: AppConstants.Layout.defaultCornerRadius)
                     .stroke(viewModel.goal.family == family ? AppColors.accentColor : Color.clear, lineWidth: 2)
             )
-        }
+            }
+        )
         .buttonStyle(.plain)
         .accessibilityIdentifier("onboarding.goal.\(family.rawValue)")
     }

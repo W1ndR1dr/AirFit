@@ -89,8 +89,8 @@ struct LifeSnapshotView: View {
 
     private func workoutOption(_ option: LifeContext.WorkoutWindow) -> some View {
         Button(
-            action: { viewModel.lifeContext.workoutWindowPreference = option }
-        ) {
+            action: { viewModel.lifeContext.workoutWindowPreference = option },
+            label: {
             HStack {
                 Image(systemName: workoutOptionIcon(for: option))
                     .foregroundColor(AppColors.accentColor)
@@ -100,7 +100,8 @@ struct LifeSnapshotView: View {
                 Spacer()
             }
             .padding(.vertical, AppSpacing.xSmall)
-        }
+            }
+        )
         .buttonStyle(.plain)
         .accessibilityIdentifier("onboarding.life.workout_\(option.rawValue)")
     }
@@ -114,8 +115,8 @@ struct LifeSnapshotView: View {
 private struct CheckboxToggleStyle: ToggleStyle {
     func makeBody(configuration: Configuration) -> some View {
         Button(
-            action: { configuration.isOn.toggle() }
-        ) {
+            action: { configuration.isOn.toggle() },
+            label: {
             HStack(alignment: .center, spacing: AppSpacing.xSmall) {
                 Image(systemName: configuration.isOn ? "checkmark.square.fill" : "square")
                     .foregroundColor(AppColors.accentColor)
@@ -123,7 +124,8 @@ private struct CheckboxToggleStyle: ToggleStyle {
             }
             .frame(maxWidth: .infinity, alignment: .leading)
             .padding(.vertical, AppSpacing.xSmall)
-        }
+            }
+        )
         .buttonStyle(.plain)
     }
 }

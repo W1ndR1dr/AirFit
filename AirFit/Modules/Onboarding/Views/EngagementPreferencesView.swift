@@ -60,8 +60,8 @@ struct EngagementPreferencesView: View {
         id: String
     ) -> some View {
         Button(
-            action: { selectPreset(style) }
-        ) {
+            action: { selectPreset(style) },
+            label: {
             HStack {
                 Text(title)
                     .font(AppFonts.body)
@@ -83,7 +83,8 @@ struct EngagementPreferencesView: View {
                         lineWidth: 2
                     )
             )
-        }
+            }
+        )
         .buttonStyle(.plain)
         .accessibilityIdentifier(id)
     }

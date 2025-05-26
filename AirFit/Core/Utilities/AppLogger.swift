@@ -59,13 +59,23 @@ public enum AppLogger {
         log(message, category: category, level: .default, file: file, function: function, line: line)
     }
 
+    struct LogContext {
+        let file: String
+        let function: String
+        let line: Int
+
+        init(file: String = #fileID, function: String = #function, line: Int = #line) {
+            self.file = file
+            self.function = function
+            self.line = line
+        }
+    }
+
     static func error(
         _ message: String,
         error: Error? = nil,
         category: Category = .general,
-        file: String = #fileID,
-        function: String = #function,
-        line: Int = #line
+        context: LogContext = LogContext()
     ) {
         var fullMessage = message
         if let error = error {
@@ -74,7 +84,8 @@ public enum AppLogger {
                 fullMessage += "\nUnderlying: \(underlyingError.localizedDescription)"
             }
         }
-        log(fullMessage, category: category, level: .error, file: file, function: function, line: line)
+        log(fullMessage, category: category, level: .error,
+            file: context.file, function: context.function, line: context.line)
     }
 
     static func fault(

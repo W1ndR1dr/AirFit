@@ -122,13 +122,13 @@ private struct PrivacyFooter: View {
         Button(
             action: {
                 AppLogger.info("Privacy policy tapped", category: .onboarding)
-            }
-        ) {
+            },
+            label: {
             Text("Privacy & Data")
                 .font(AppFonts.caption)
                 .foregroundColor(AppColors.textTertiary)
-        }
+            }
+        )
         .accessibilityIdentifier("onboarding.privacy")
     }
 }
-

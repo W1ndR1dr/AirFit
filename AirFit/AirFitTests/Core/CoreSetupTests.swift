@@ -4,7 +4,8 @@ import Testing
 
 struct CoreSetupTests {
     // MARK: - Core View Components Tests
-    @Test func test_emptyStateView_initialization() {
+    @Test
+    func test_emptyStateView_initialization() {
         let emptyState = EmptyStateView(
             icon: "star",
             title: "Test Title",
@@ -18,7 +19,8 @@ struct CoreSetupTests {
         #expect(emptyState.actionTitle == nil)
     }
 
-    @Test func test_emptyStateView_withAction() {
+    @Test
+    func test_emptyStateView_withAction() {
         var actionCalled = false
         let action = { actionCalled = true }
 
@@ -34,7 +36,8 @@ struct CoreSetupTests {
         #expect(emptyState.action != nil)
     }
 
-    @Test func test_sectionHeader_initialization() {
+    @Test
+    func test_sectionHeader_initialization() {
         let header = SectionHeader(title: "Test Section")
 
         #expect(header.title == "Test Section")
@@ -42,7 +45,8 @@ struct CoreSetupTests {
         #expect(header.action == nil)
     }
 
-    @Test func test_sectionHeader_withIconAndAction() {
+    @Test
+    func test_sectionHeader_withIconAndAction() {
         var actionCalled = false
         let action = { actionCalled = true }
 
@@ -58,7 +62,8 @@ struct CoreSetupTests {
     }
 
     // MARK: - Theme Access Tests
-    @Test func test_appColors_accessibility() {
+    @Test
+    func test_appColors_accessibility() {
         // Test that all core colors are accessible
         _ = AppColors.backgroundPrimary
         _ = AppColors.backgroundSecondary
@@ -74,7 +79,8 @@ struct CoreSetupTests {
         #expect(true)
     }
 
-    @Test func test_appFonts_accessibility() {
+    @Test
+    func test_appFonts_accessibility() {
         // Test that font properties are accessible
         _ = AppFonts.largeTitle
         _ = AppFonts.title
@@ -86,7 +92,8 @@ struct CoreSetupTests {
         #expect(true)
     }
 
-    @Test func test_appSpacing_constants() {
+    @Test
+    func test_appSpacing_constants() {
         // Test that spacing constants are defined
         #expect(AppSpacing.xSmall > 0)
         #expect(AppSpacing.small > 0)
@@ -101,7 +108,8 @@ struct CoreSetupTests {
         #expect(AppSpacing.large < AppSpacing.xLarge)
     }
 
-    @Test func test_appConstants_layout() {
+    @Test
+    func test_appConstants_layout() {
         // Test that layout constants are accessible
         #expect(AppConstants.Layout.defaultPadding > 0)
         #expect(AppConstants.Layout.defaultCornerRadius > 0)
@@ -113,14 +121,16 @@ struct CoreSetupTests {
     }
 
     // MARK: - View Extensions Tests
-    @Test func test_viewExtensions_compilation() {
+    @Test
+    func test_viewExtensions_compilation() {
         // Test that view extensions are available (basic compilation test)
         // Note: Actual usage testing will be done in UI tests
         #expect(true) // Extensions compile if this test runs
     }
 
     // MARK: - Core Enums Tests
-    @Test func test_globalEnums_accessibility() {
+    @Test
+    func test_globalEnums_accessibility() {
         // Test BiologicalSex enum
         let sexCases = BiologicalSex.allCases
         #expect(sexCases.count == 2)
@@ -141,7 +151,8 @@ struct CoreSetupTests {
         #expect(FitnessGoal.gainMuscle.calorieAdjustment == 300)
     }
 
-    @Test func test_appTab_enum() {
+    @Test
+    func test_appTab_enum() {
         let tabCases = AppTab.allCases
         #expect(tabCases.count == 5)
 
@@ -152,7 +163,8 @@ struct CoreSetupTests {
     }
 
     // MARK: - Error Handling Tests
-    @Test func test_appError_descriptions() {
+    @Test
+    func test_appError_descriptions() {
         let networkError = AppError.networkError(underlying: NSError(domain: "test", code: 1))
         let validationError = AppError.validationError(message: "Invalid input")
         let unauthorized = AppError.unauthorized

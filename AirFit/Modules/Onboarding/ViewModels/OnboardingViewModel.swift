@@ -30,7 +30,7 @@ final class OnboardingViewModel {
 
     // MARK: - Voice Input
     private(set) var isTranscribing = false
-    
+
     // MARK: - HealthKit Integration
     var hasHealthKitIntegration: Bool {
         healthPrefillProvider != nil

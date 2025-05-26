@@ -38,17 +38,17 @@ final class NetworkClient: NetworkClientProtocol {
                 let decoded = try decoder.decode(T.self, from: data)
                 return decoded
             } catch {
-                AppLogger.error("Decoding failed for \(T.self)",
-                              error: error,
-                              category: .networking)
+                                AppLogger.error("Decoding failed for \(T.self)", 
+                               error: error, 
+                               category: .networking)
                 throw NetworkError.decodingError(error)
             }
         } catch let error as NetworkError {
             throw error
         } catch {
             AppLogger.error("Network request failed",
-                          error: error,
-                          category: .networking)
+                            error: error,
+                            category: .networking)
             throw NetworkError.networkError(error)
         }
     }

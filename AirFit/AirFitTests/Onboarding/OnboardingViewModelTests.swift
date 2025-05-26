@@ -120,7 +120,8 @@ final class OnboardingViewModelTests: XCTestCase {
         sut.validateBlend()
 
         // Assert
-        let total = sut.blend.authoritativeDirect + sut.blend.encouragingEmpathetic + sut.blend.analyticalInsightful + sut.blend.playfullyProvocative
+        let total = sut.blend.authoritativeDirect + sut.blend.encouragingEmpathetic +
+                   sut.blend.analyticalInsightful + sut.blend.playfullyProvocative
         XCTAssertEqual(total, 1.0, accuracy: 0.0001)
         XCTAssertTrue(sut.blend.isValid)
     }
@@ -131,7 +132,12 @@ final class OnboardingViewModelTests: XCTestCase {
         sut.lifeContext.isDeskJob = true
         sut.goal.family = .performance
         sut.goal.rawText = "Run a marathon"
-        sut.blend = Blend(authoritativeDirect: 0.4, encouragingEmpathetic: 0.3, analyticalInsightful: 0.2, playfullyProvocative: 0.1)
+        sut.blend = Blend(
+            authoritativeDirect: 0.4,
+            encouragingEmpathetic: 0.3,
+            analyticalInsightful: 0.2,
+            playfullyProvocative: 0.1
+        )
         sut.engagementPreferences.trackingStyle = .guidanceOnDemand
         sut.sleepWindow.bedTime = "23:00"
         sut.sleepWindow.wakeTime = "07:00"
