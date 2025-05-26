@@ -18,18 +18,30 @@ struct SleepAndBoundariesView: View {
         VStack(spacing: AppSpacing.large) {
             ScrollView {
                 VStack(alignment: .leading, spacing: AppSpacing.large) {
-                    Text(LocalizedStringKey("onboarding.sleep.prompt"))
-                        .font(AppFonts.body)
-                        .foregroundColor(AppColors.textPrimary)
-                        .padding(.horizontal, AppSpacing.large)
-                        .accessibilityIdentifier("onboarding.sleep.prompt")
+                    VStack(alignment: .leading, spacing: AppSpacing.small) {
+                        Text(LocalizedStringKey("onboarding.sleep.prompt"))
+                            .font(AppFonts.body)
+                            .foregroundColor(AppColors.textPrimary)
+                            .accessibilityIdentifier("onboarding.sleep.prompt")
+                        if viewModel.hasHealthKitIntegration {
+                            HStack {
+                                Image(systemName: "heart.fill")
+                                    .foregroundColor(AppColors.accentColor)
+                                    .font(.caption)
+                                Text("Pre-filled from HealthKit when available")
+                                    .font(AppFonts.caption)
+                                    .foregroundColor(AppColors.textSecondary)
+                            }
+                        }
+                    }
+                    .padding(.horizontal, AppSpacing.large)
 
                     timeSlider(
                         title: LocalizedStringKey("onboarding.sleep.bedtime"),
                         minutes: $bedMinutes,
                         id: "onboarding.sleep.bedtime"
                     )
-                    .onChange(of: bedMinutes) { newValue in
+                    .onChange(of: bedMinutes) { _, newValue in
                         viewModel.sleepWindow.bedTime = Self.hhmm(from: newValue)
                     }
 
@@ -38,7 +50,7 @@ struct SleepAndBoundariesView: View {
                         minutes: $wakeMinutes,
                         id: "onboarding.sleep.waketime"
                     )
-                    .onChange(of: wakeMinutes) { newValue in
+                    .onChange(of: wakeMinutes) { _, newValue in
                         viewModel.sleepWindow.wakeTime = Self.hhmm(from: newValue)
                     }
 
@@ -46,7 +58,7 @@ struct SleepAndBoundariesView: View {
                         Text(LocalizedStringKey("onboarding.sleep.rhythmPrompt"))
                             .font(AppFonts.headline)
                             .foregroundColor(AppColors.textPrimary)
-                        ForEach(SleepWindow.SleepConsistency.allCases, id: \..self) { option in
+                        ForEach(SleepWindow.SleepConsistency.allCases, id: \.self) { option in
                             radioOption(
                                 title: option.displayName,
                                 isSelected: viewModel.sleepWindow.consistency == option,
@@ -64,7 +76,7 @@ struct SleepAndBoundariesView: View {
                 }
             }
 
-            NavigationButtons(
+            OnboardingNavigationButtons(
                 backAction: viewModel.navigateToPreviousScreen,
                 nextAction: viewModel.navigateToNextScreen
             )
@@ -83,11 +95,13 @@ struct SleepAndBoundariesView: View {
                 Text(displayTime(minutes.wrappedValue))
                     .font(AppFonts.captionBold)
                     .foregroundColor(AppColors.textSecondary)
+                    .accessibilityLabel("Time: \(displayTime(minutes.wrappedValue))")
             }
 
-            Slider(value: minutes, in: 0...1439, step: 15)
+            Slider(value: minutes, in: 0...1_439, step: 15)
                 .tint(AppColors.accentColor)
                 .accessibilityIdentifier("\(id).slider")
+                .accessibilityHint("Adjust time by dragging the slider")
         }
         .padding(.horizontal, AppSpacing.large)
     }
@@ -133,37 +147,3 @@ struct SleepAndBoundariesView: View {
         return String(format: "%02d:%02d", h, m)
     }
 }
-
-// MARK: - NavigationButtons
-private struct NavigationButtons: View {
-    var backAction: () -> Void
-    var nextAction: () -> Void
-
-    var body: some View {
-        HStack(spacing: AppSpacing.medium) {
-            Button(action: backAction) {
-                Text(LocalizedStringKey("action.back"))
-                    .font(AppFonts.body)
-                    .foregroundColor(AppColors.textPrimary)
-                    .frame(maxWidth: .infinity)
-                    .padding()
-                    .background(AppColors.backgroundSecondary)
-                    .cornerRadius(AppConstants.Layout.defaultCornerRadius)
-            }
-            .accessibilityIdentifier("onboarding.back.button")
-
-            Button(action: nextAction) {
-                Text(LocalizedStringKey("action.next"))
-                    .font(AppFonts.bodyBold)
-                    .foregroundColor(AppColors.textOnAccent)
-                    .frame(maxWidth: .infinity)
-                    .padding()
-                    .background(AppColors.accentColor)
-                    .cornerRadius(AppConstants.Layout.defaultCornerRadius)
-            }
-            .accessibilityIdentifier("onboarding.next.button")
-        }
-        .padding(.horizontal, AppSpacing.large)
-    }
-}
-
