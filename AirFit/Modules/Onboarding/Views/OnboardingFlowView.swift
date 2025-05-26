@@ -7,9 +7,12 @@ struct OnboardingFlowView: View {
     private var modelContext
     @State private var viewModel: OnboardingViewModel
 
+    let onCompletion: (() -> Void)?
+
     init(
         aiService: AIServiceProtocol,
-        onboardingService: OnboardingServiceProtocol
+        onboardingService: OnboardingServiceProtocol,
+        onCompletion: (() -> Void)? = nil
     ) {
         let context = ModelContext(AirFitApp.sharedModelContainer)
         _viewModel = State(
@@ -19,6 +22,7 @@ struct OnboardingFlowView: View {
                 modelContext: context
             )
         )
+        self.onCompletion = onCompletion
     }
 
     var body: some View {
@@ -73,6 +77,9 @@ struct OnboardingFlowView: View {
             Button("OK") { viewModel.error = nil }
         } message: {
             Text(viewModel.error?.localizedDescription ?? NSLocalizedString("error.generic", comment: ""))
+        }
+        .onAppear {
+            viewModel.onCompletionCallback = onCompletion
         }
         .accessibilityIdentifier("onboarding.flow")
     }

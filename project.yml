@@ -27,6 +27,7 @@ targets:
           - "**/.*"
     resources:
       - AirFit/Assets.xcassets
+      - AirFit/Resources
     settings:
       PRODUCT_BUNDLE_IDENTIFIER: com.airfit.app
       INFOPLIST_FILE: AirFit/Info.plist
@@ -39,7 +40,9 @@ targets:
     type: bundle.unit-test
     platform: iOS
     sources:
-      - path: AirFitTests
+      - path: AirFit/AirFitTests
+        includes:
+          - "**/*.swift"
         excludes:
           - "**/*.md"
     dependencies:
@@ -47,6 +50,22 @@ targets:
     settings:
       BUNDLE_LOADER: $(TEST_HOST)
       TEST_HOST: $(BUILT_PRODUCTS_DIR)/AirFit.app/AirFit
+      GENERATE_INFOPLIST_FILE: YES
+
+  AirFitUITests:
+    type: bundle.ui-testing
+    platform: iOS
+    sources:
+      - path: AirFit/AirFitUITests
+        includes:
+          - "**/*.swift"
+        excludes:
+          - "**/*.md"
+    dependencies:
+      - target: AirFit
+    settings:
+      TEST_TARGET_NAME: AirFit
+      GENERATE_INFOPLIST_FILE: YES
 
 
 
@@ -56,12 +75,14 @@ schemes:
       targets:
         AirFit: all
         AirFitTests: [test]
+        AirFitUITests: [test]
     run:
       config: Debug
     test:
       config: Debug
       targets:
         - AirFitTests
+        - AirFitUITests
     profile:
       config: Release
     analyze:

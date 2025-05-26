@@ -166,6 +166,9 @@
 "error.healthKit.description" = "Grant access in Settings > Privacy > Health";
 "error.camera" = "Camera access required";
 "error.camera.description" = "Grant access in Settings > Privacy > Camera";
+"error.onboarding.noUser" = "No user found for onboarding";
+"error.onboarding.invalidData" = "Invalid profile data";
+"error.onboarding.missingField" = "Missing required field: %@";
 
 // MARK: - Success Messages
 "success.saved" = "Saved successfully";

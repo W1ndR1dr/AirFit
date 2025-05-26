@@ -43,6 +43,9 @@ final class OnboardingViewModel {
     private let speechService: WhisperServiceWrapperProtocol?
     private let healthPrefillProvider: HealthKitPrefillProviding?
 
+    // MARK: - Completion Callback
+    var onCompletionCallback: (() -> Void)?
+
     // MARK: - Initialization
     init(
         aiService: AIServiceProtocol,
@@ -137,7 +140,10 @@ final class OnboardingViewModel {
         try await onboardingService.saveProfile(profile)
         try modelContext.save()
 
-        AppLogger.info("Onboarding completed", category: .onboarding)
+        AppLogger.info("Onboarding completed successfully", category: .onboarding)
+
+        // Notify completion
+        onCompletionCallback?()
     }
 
     func validateBlend() {

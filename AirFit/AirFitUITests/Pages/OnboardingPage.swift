@@ -1,7 +1,16 @@
 import XCTest
+import XCUIAutomation
+
+enum GoalFamily: String {
+    case weightLoss = "weight_loss"
+    case strengthTone = "strength_tone"
+    case performance = "performance"
+    case wellness = "wellness"
+}
 
 /// Page object for interacting with the onboarding flow.
-class OnboardingPage: BasePage {
+@MainActor
+final class OnboardingPage: BasePage {
     // MARK: - Opening Screen
     var beginButton: XCUIElement {
         app.buttons["onboarding.begin.button"]
@@ -11,13 +20,13 @@ class OnboardingPage: BasePage {
         app.buttons["onboarding.skip.button"]
     }
 
-    func verifyOnOpeningScreen() {
-        verifyElement(exists: beginButton)
-        verifyElement(exists: skipButton)
+    func verifyOnOpeningScreen() async {
+        await verifyElement(exists: beginButton)
+        await verifyElement(exists: skipButton)
     }
 
-    func tapBegin() {
-        tapElement(beginButton)
+    func tapBegin() async {
+        await tapElement(beginButton)
     }
 
     // MARK: - Life Snapshot
@@ -25,18 +34,18 @@ class OnboardingPage: BasePage {
         app.otherElements["onboarding.lifeSnapshot"]
     }
 
-    func verifyOnLifeSnapshot() {
-        verifyElement(exists: lifeSnapshotScreen)
+    func verifyOnLifeSnapshot() async {
+        await verifyElement(exists: lifeSnapshotScreen)
     }
 
-    func selectLifeOption(_ optionId: String) {
+    func selectLifeOption(_ optionId: String) async {
         let toggle = app.switches[optionId]
-        tapElement(toggle)
+        await tapElement(toggle)
     }
 
-    func selectWorkoutOption(_ option: String) {
+    func selectWorkoutOption(_ option: String) async {
         let button = app.buttons[option]
-        tapElement(button)
+        await tapElement(button)
     }
 
     // MARK: - Core Aspiration
@@ -44,16 +53,31 @@ class OnboardingPage: BasePage {
         app.otherElements["onboarding.coreAspiration"]
     }
 
-    func verifyOnCoreAspiration() {
-        verifyElement(exists: coreAspirationScreen)
+    var goalScreen: XCUIElement {
+        app.otherElements["onboarding.goal"]
     }
 
-    func selectPredefinedGoal(_ goal: String) {
+    func verifyOnCoreAspiration() async {
+        await verifyElement(exists: coreAspirationScreen)
+    }
+
+    func selectPredefinedGoal(_ goal: String) async {
         let card = app.buttons[goal]
-        tapElement(card)
+        await tapElement(card)
     }
 
-    var goalTextField: XCUIElement {
+    func selectGoalFamily(_ family: GoalFamily) async {
+        let familyButton = app.buttons["onboarding.goal.family.\(family.rawValue)"]
+        familyButton.tap()
+    }
+
+    func selectLifeSnapshotOptions() async {
+        // Select some default life snapshot options
+        app.buttons["onboarding.life.desk_job"].tap()
+        app.buttons["onboarding.life.workout_early_bird"].tap()
+    }
+
+    var goalTextInput: XCUIElement {
         app.textFields["onboarding.goal.text"]
     }
 
@@ -61,12 +85,12 @@ class OnboardingPage: BasePage {
         app.buttons["onboarding.goal.voice"]
     }
 
-    func enterGoalText(_ text: String) {
-        typeText(in: goalTextField, text: text)
+    func enterGoalText(_ text: String) async {
+        await typeText(in: goalTextInput, text: text)
     }
 
-    func tapVoiceButton() {
-        tapElement(voiceButton)
+    func tapVoiceButton() async {
+        await tapElement(voiceButton)
     }
 
     // MARK: - Coaching Style
@@ -74,13 +98,18 @@ class OnboardingPage: BasePage {
         app.otherElements["onboarding.coachingStyle"]
     }
 
-    func verifyOnCoachingStyle() {
-        verifyElement(exists: coachingStyleScreen)
+    func verifyOnCoachingStyle() async {
+        await verifyElement(exists: coachingStyleScreen)
     }
 
-    func adjustSlider(_ identifier: String, to position: CGFloat) {
+    func waitForCoachingStyleScreen() async -> Bool {
+        await app.otherElements["onboarding.coachingStyle"].waitForExistence(timeout: timeout)
+    }
+
+    func adjustSlider(_ identifier: String, to position: CGFloat) async {
         let slider = app.sliders[identifier]
-        XCTAssertTrue(slider.waitForExistence(timeout: timeout))
+        let exists = await slider.waitForExistence(timeout: timeout)
+        XCTAssertTrue(exists)
         slider.adjust(toNormalizedSliderPosition: position)
     }
 
@@ -89,24 +118,28 @@ class OnboardingPage: BasePage {
         app.otherElements["onboarding.engagementPreferences"]
     }
 
-    func verifyOnEngagementPreferences() {
-        verifyElement(exists: engagementScreen)
+    func verifyOnEngagementPreferences() async {
+        await verifyElement(exists: engagementScreen)
     }
 
-    func selectEngagementCard(_ id: String) {
+    func waitForEngagementPreferencesScreen() async -> Bool {
+        await app.otherElements["onboarding.engagementPreferences"].waitForExistence(timeout: timeout)
+    }
+
+    func selectEngagementCard(_ id: String) async {
         let card = app.buttons[id]
-        tapElement(card)
+        card.tap()
     }
 
-    func selectRadioOption(_ id: String) {
+    func selectRadioOption(_ id: String) async {
         let button = app.buttons[id]
-        tapElement(button)
+        button.tap()
     }
 
-    func toggleAutoRecovery(_ on: Bool) {
+    func toggleAutoRecovery(_ on: Bool) async {
         let toggle = app.switches["onboarding.engagement.autoRecovery"]
-        if toggle.isOn != on {
-            tapElement(toggle)
+        if await toggle.isOn != on {
+            toggle.tap()
         }
     }
 
@@ -115,13 +148,18 @@ class OnboardingPage: BasePage {
         app.otherElements["onboarding.sleepBoundaries"]
     }
 
-    func verifyOnSleepBoundaries() {
-        verifyElement(exists: sleepScreen)
+    func verifyOnSleepBoundaries() async {
+        await verifyElement(exists: sleepScreen)
     }
 
-    func adjustTimeSlider(_ id: String, to position: CGFloat) {
+    func waitForSleepBoundariesScreen() async -> Bool {
+        await app.otherElements["onboarding.sleepBoundaries"].waitForExistence(timeout: timeout)
+    }
+
+    func adjustTimeSlider(_ id: String, to position: CGFloat) async {
         let slider = app.sliders[id]
-        XCTAssertTrue(slider.waitForExistence(timeout: timeout))
+        let exists = await slider.waitForExistence(timeout: timeout)
+        XCTAssertTrue(exists)
         slider.adjust(toNormalizedSliderPosition: position)
     }
 
@@ -130,13 +168,17 @@ class OnboardingPage: BasePage {
         app.otherElements["onboarding.motivationalAccents"]
     }
 
-    func verifyOnMotivationalAccents() {
-        verifyElement(exists: motivationScreen)
+    func verifyOnMotivationalAccents() async {
+        await verifyElement(exists: motivationScreen)
     }
 
-    func selectMotivationOption(_ id: String) {
+    func waitForMotivationalAccentsScreen() async -> Bool {
+        await app.otherElements["onboarding.motivationalAccents"].waitForExistence(timeout: timeout)
+    }
+
+    func selectMotivationOption(_ id: String) async {
         let button = app.buttons[id]
-        tapElement(button)
+        button.tap()
     }
 
     // MARK: - Generating Coach
@@ -144,8 +186,12 @@ class OnboardingPage: BasePage {
         app.otherElements["onboarding.generatingCoach"]
     }
 
-    func verifyOnGeneratingCoach() {
-        verifyElement(exists: generatingScreen)
+    func verifyOnGeneratingCoach() async {
+        await verifyElement(exists: generatingScreen)
+    }
+
+    func waitForGeneratingCoachScreen() async -> Bool {
+        await app.otherElements["onboarding.generatingCoach"].waitForExistence(timeout: timeout)
     }
 
     // MARK: - Coach Ready
@@ -153,12 +199,16 @@ class OnboardingPage: BasePage {
         app.otherElements["onboarding.coachProfileReady"]
     }
 
-    func verifyCoachProfileReady() {
-        verifyElement(exists: coachReadyScreen)
+    func verifyCoachProfileReady() async {
+        await verifyElement(exists: coachReadyScreen)
     }
 
     var beginCoachButton: XCUIElement {
         app.buttons["onboarding.beginCoach.button"]
+    }
+
+    func tapBeginCoachButton() async {
+        app.buttons["onboarding.beginCoach.button"].tap()
     }
 
     // MARK: - Navigation
@@ -170,20 +220,24 @@ class OnboardingPage: BasePage {
         app.buttons["onboarding.back.button"]
     }
 
-    func tapNext() {
-        tapElement(nextButton)
+    func tapNextButton() async {
+        app.buttons["onboarding.next.button"].tap()
     }
 
-    func tapBack() {
-        tapElement(backButton)
+    func tapBackButton() async {
+        app.buttons["onboarding.back.button"].tap()
     }
 
     // MARK: - Verification
-    func isOnDashboard() -> Bool {
-        app.tabBars["main.tabbar"].waitForExistence(timeout: 5)
+    func isOnDashboard() async -> Bool {
+        await app.tabBars["main.tabbar"].waitForExistence(timeout: 5)
     }
 }
 
 private extension XCUIElement {
-    var isOn: Bool { (value as? String) == "1" }
+    var isOn: Bool {
+        get async {
+            (await value as? String) == "1"
+        }
+    }
 }
