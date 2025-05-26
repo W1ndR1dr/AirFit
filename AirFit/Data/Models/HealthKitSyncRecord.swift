@@ -2,7 +2,7 @@ import SwiftData
 import Foundation
 
 @Model
-final class HealthKitSyncRecord: Sendable {
+final class HealthKitSyncRecord: @unchecked Sendable {
     // MARK: - Properties
     var id: UUID
     var dataType: String // HKQuantityType identifier
@@ -11,10 +11,10 @@ final class HealthKitSyncRecord: Sendable {
     var recordCount: Int
     var success: Bool
     var errorMessage: String?
-    
+
     // MARK: - Relationships
     var user: User?
-    
+
     // MARK: - Initialization
     init(
         id: UUID = UUID(),
@@ -30,7 +30,7 @@ final class HealthKitSyncRecord: Sendable {
         self.success = true
         self.user = user
     }
-    
+
     // MARK: - Methods
     func recordSync(count: Int, success: Bool, error: String? = nil) {
         self.lastSyncDate = Date()
@@ -41,7 +41,7 @@ final class HealthKitSyncRecord: Sendable {
 }
 
 enum SyncDirection: String, Sendable {
-    case read = "read"
-    case write = "write"
-    case both = "both"
+    case read
+    case write
+    case both
 }

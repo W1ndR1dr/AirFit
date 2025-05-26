@@ -2,7 +2,7 @@ import SwiftData
 import Foundation
 
 @Model
-final class FoodItem: Sendable {
+final class FoodItem: @unchecked Sendable {
     // MARK: - Properties
     var id: UUID
     var name: String
@@ -19,51 +19,51 @@ final class FoodItem: Sendable {
     var sodiumMg: Double?
     var servingSize: String?
     var servingsConsumed: Double = 1.0
-    
+
     // Data Source
     var dataSource: String? // "user", "database", "ai_parsed", "barcode"
     var databaseID: String? // External database reference
     var verificationStatus: String? // "verified", "unverified", "user_modified"
-    
+
     // MARK: - Relationships
     var foodEntry: FoodEntry?
-    
+
     // MARK: - Computed Properties
     var actualCalories: Double {
         (calories ?? 0) * servingsConsumed
     }
-    
+
     var actualProtein: Double {
         (proteinGrams ?? 0) * servingsConsumed
     }
-    
+
     var actualCarbs: Double {
         (carbGrams ?? 0) * servingsConsumed
     }
-    
+
     var actualFat: Double {
         (fatGrams ?? 0) * servingsConsumed
     }
-    
-    var macroPercentages: (protein: Double, carbs: Double, fat: Double)? {
+
+    var macroPercentages: FoodMacroPercentages? {
         guard let protein = proteinGrams,
               let carbs = carbGrams,
               let fat = fatGrams else { return nil }
-        
+
         let totalCalories = (protein * 4) + (carbs * 4) + (fat * 9)
-        guard totalCalories > 0 else { return (0, 0, 0) }
-        
-        return (
+        guard totalCalories > 0 else { return FoodMacroPercentages(protein: 0, carbs: 0, fat: 0) }
+
+        return FoodMacroPercentages(
             protein: (protein * 4) / totalCalories,
             carbs: (carbs * 4) / totalCalories,
             fat: (fat * 9) / totalCalories
         )
     }
-    
+
     var isValid: Bool {
         !name.isEmpty && calories != nil && calories! >= 0
     }
-    
+
     // MARK: - Initialization
     init(
         id: UUID = UUID(),
@@ -86,7 +86,7 @@ final class FoodItem: Sendable {
         self.carbGrams = carbGrams
         self.fatGrams = fatGrams
     }
-    
+
     // MARK: - Methods
     func updateNutrition(
         calories: Double,
@@ -106,4 +106,11 @@ final class FoodItem: Sendable {
         self.sodiumMg = sodium
         self.verificationStatus = "user_modified"
     }
+}
+
+// MARK: - Supporting Types
+struct FoodMacroPercentages: Sendable {
+    let protein: Double
+    let carbs: Double
+    let fat: Double
 }

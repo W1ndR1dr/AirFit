@@ -2,7 +2,7 @@ import SwiftData
 import Foundation
 
 @Model
-final class WorkoutTemplate: Sendable {
+final class WorkoutTemplate: @unchecked Sendable {
     // MARK: - Properties
     var id: UUID
     var name: String
@@ -14,31 +14,31 @@ final class WorkoutTemplate: Sendable {
     var isFavorite: Bool = false
     var lastUsedDate: Date?
     var useCount: Int = 0
-    
+
     // MARK: - Relationships
     @Relationship(deleteRule: .cascade, inverse: \ExerciseTemplate.workoutTemplate)
     var exercises: [ExerciseTemplate] = []
-    
+
     // MARK: - Computed Properties
     var workoutTypeEnum: WorkoutType? {
         WorkoutType(rawValue: workoutType)
     }
-    
+
     var difficultyLevel: DifficultyLevel? {
         guard let difficulty = difficulty else { return nil }
         return DifficultyLevel(rawValue: difficulty)
     }
-    
+
     var formattedDuration: String? {
         guard let duration = estimatedDuration else { return nil }
         let minutes = Int(duration / 60)
         return "\(minutes) min"
     }
-    
+
     var totalSets: Int {
         exercises.reduce(0) { $0 + $1.sets.count }
     }
-    
+
     // MARK: - Initialization
     init(
         id: UUID = UUID(),
@@ -51,17 +51,17 @@ final class WorkoutTemplate: Sendable {
         self.workoutType = workoutType.rawValue
         self.isSystemTemplate = isSystemTemplate
     }
-    
+
     // MARK: - Methods
     func recordUse() {
         lastUsedDate = Date()
         useCount += 1
     }
-    
+
     func toggleFavorite() {
         isFavorite.toggle()
     }
-    
+
     func addExercise(_ exercise: ExerciseTemplate) {
         exercises.append(exercise)
         exercise.workoutTemplate = self
@@ -70,10 +70,10 @@ final class WorkoutTemplate: Sendable {
 
 // MARK: - DifficultyLevel Enum
 enum DifficultyLevel: String, Sendable {
-    case beginner = "beginner"
-    case intermediate = "intermediate"
-    case advanced = "advanced"
-    
+    case beginner
+    case intermediate
+    case advanced
+
     var displayName: String {
         switch self {
         case .beginner: return "Beginner"
@@ -81,7 +81,7 @@ enum DifficultyLevel: String, Sendable {
         case .advanced: return "Advanced"
         }
     }
-    
+
     var color: String {
         switch self {
         case .beginner: return "SuccessColor"

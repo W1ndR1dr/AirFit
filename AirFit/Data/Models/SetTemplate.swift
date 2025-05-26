@@ -2,7 +2,7 @@ import SwiftData
 import Foundation
 
 @Model
-final class SetTemplate: Sendable {
+final class SetTemplate: @unchecked Sendable {
     // MARK: - Properties
     var id: UUID
     var setNumber: Int
@@ -10,19 +10,19 @@ final class SetTemplate: Sendable {
     var targetWeightKg: Double?
     var targetDurationSeconds: TimeInterval?
     var notes: String?
-    
+
     // MARK: - Relationships
     var exerciseTemplate: ExerciseTemplate?
-    
+
     // MARK: - Computed Properties
     var isTimeBasedSet: Bool {
         targetDurationSeconds != nil
     }
-    
+
     var isRepBasedSet: Bool {
         targetReps != nil
     }
-    
+
     var formattedTarget: String {
         if let reps = targetReps, let weight = targetWeightKg {
             return "\(reps) × \(Int(weight))kg"
@@ -40,7 +40,7 @@ final class SetTemplate: Sendable {
             return "No target"
         }
     }
-    
+
     // MARK: - Initialization
     init(
         id: UUID = UUID(),
@@ -55,7 +55,7 @@ final class SetTemplate: Sendable {
         self.targetWeightKg = targetWeightKg
         self.targetDurationSeconds = targetDurationSeconds
     }
-    
+
     // MARK: - Methods
     func duplicate() -> SetTemplate {
         SetTemplate(

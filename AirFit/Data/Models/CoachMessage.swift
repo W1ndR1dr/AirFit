@@ -2,14 +2,15 @@ import SwiftData
 import Foundation
 
 @Model
-final class CoachMessage: Sendable {
+final class CoachMessage: @unchecked Sendable {
     // MARK: - Properties
     var id: UUID
     var timestamp: Date
     var role: String
-    @Attribute(.externalStorage) var content: String
+    @Attribute(.externalStorage)
+    var content: String
     var conversationID: UUID?
-    
+
     // AI Metadata
     var modelUsed: String?
     var promptTokens: Int?
@@ -17,38 +18,38 @@ final class CoachMessage: Sendable {
     var totalTokens: Int?
     var temperature: Double?
     var responseTimeMs: Int?
-    
+
     // Function Calling
     var functionCallData: Data?
     var functionResultData: Data?
-    
+
     // User Feedback
     var userRating: Int? // 1-5
     var userFeedback: String?
     var wasHelpful: Bool?
-    
+
     // MARK: - Relationships
     var user: User?
-    
+
     // MARK: - Computed Properties
     var messageRole: MessageRole? {
         MessageRole(rawValue: role)
     }
-    
+
     var functionCall: FunctionCall? {
         guard let data = functionCallData else { return nil }
         return try? JSONDecoder().decode(FunctionCall.self, from: data)
     }
-    
+
     var functionResult: FunctionResult? {
         guard let data = functionResultData else { return nil }
         return try? JSONDecoder().decode(FunctionResult.self, from: data)
     }
-    
+
     var estimatedCost: Double? {
         guard let total = totalTokens,
               let model = modelUsed else { return nil }
-        
+
         // Rough cost estimates per 1K tokens
         let costPer1K: Double = switch model {
         case "gpt-4": 0.03
@@ -56,10 +57,10 @@ final class CoachMessage: Sendable {
         case "claude-3": 0.025
         default: 0.01
         }
-        
-        return Double(total) / 1000.0 * costPer1K
+
+        return Double(total) / 1_000.0 * costPer1K
     }
-    
+
     // MARK: - Initialization
     init(
         id: UUID = UUID(),
@@ -76,7 +77,7 @@ final class CoachMessage: Sendable {
         self.conversationID = conversationID
         self.user = user
     }
-    
+
     // MARK: - Methods
     func recordAIMetadata(
         model: String,
@@ -90,9 +91,9 @@ final class CoachMessage: Sendable {
         self.completionTokens = completionTokens
         self.totalTokens = promptTokens + completionTokens
         self.temperature = temperature
-        self.responseTimeMs = Int(responseTime * 1000)
+        self.responseTimeMs = Int(responseTime * 1_000)
     }
-    
+
     func recordUserFeedback(rating: Int? = nil, feedback: String? = nil, helpful: Bool? = nil) {
         if let rating = rating { self.userRating = rating }
         if let feedback = feedback { self.userFeedback = feedback }
@@ -102,17 +103,17 @@ final class CoachMessage: Sendable {
 
 // MARK: - Supporting Types
 enum MessageRole: String, Codable, Sendable {
-    case system = "system"
-    case user = "user"
-    case assistant = "assistant"
-    case function = "function"
-    case tool = "tool"
+    case system
+    case user
+    case assistant
+    case function
+    case tool
 }
 
 struct FunctionCall: Codable, Sendable {
     let name: String
     let arguments: [String: AnyCodable]
-    
+
     init(name: String, arguments: [String: Any]) {
         self.name = name
         self.arguments = arguments.compactMapValues { AnyCodable($0) }
@@ -123,7 +124,7 @@ struct FunctionResult: Codable, Sendable {
     let success: Bool
     let result: AnyCodable?
     let error: String?
-    
+
     init(success: Bool, result: Any? = nil, error: String? = nil) {
         self.success = success
         self.result = result.map { AnyCodable($0) }
@@ -132,16 +133,16 @@ struct FunctionResult: Codable, Sendable {
 }
 
 // MARK: - AnyCodable Helper
-struct AnyCodable: Codable {
+struct AnyCodable: Codable, @unchecked Sendable {
     let value: Any
-    
+
     init(_ value: Any) {
         self.value = value
     }
-    
+
     init(from decoder: Decoder) throws {
         let container = try decoder.singleValueContainer()
-        
+
         if container.decodeNil() {
             self.value = NSNull()
         } else if let bool = try? container.decode(Bool.self) {
@@ -160,10 +161,10 @@ struct AnyCodable: Codable {
             throw DecodingError.dataCorruptedError(in: container, debugDescription: "Unable to decode AnyCodable")
         }
     }
-    
+
     func encode(to encoder: Encoder) throws {
         var container = encoder.singleValueContainer()
-        
+
         switch value {
         case is NSNull:
             try container.encodeNil()
@@ -180,7 +181,10 @@ struct AnyCodable: Codable {
         case let dictionary as [String: Any]:
             try container.encode(dictionary.mapValues { AnyCodable($0) })
         default:
-            throw EncodingError.invalidValue(value, EncodingError.Context(codingPath: [], debugDescription: "Unable to encode AnyCodable"))
+            throw EncodingError.invalidValue(
+                value,
+                EncodingError.Context(codingPath: [], debugDescription: "Unable to encode AnyCodable")
+            )
         }
     }
 }

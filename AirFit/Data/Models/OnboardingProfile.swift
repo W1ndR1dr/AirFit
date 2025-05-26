@@ -2,26 +2,27 @@ import SwiftData
 import Foundation
 
 @Model
-final class OnboardingProfile: Sendable {
+final class OnboardingProfile: @unchecked Sendable {
     // MARK: - Properties
     var id: UUID
     var createdAt: Date
     var personaPromptData: Data
     var communicationPreferencesData: Data
-    @Attribute(.externalStorage) var rawFullProfileData: Data
-    
+    @Attribute(.externalStorage)
+    var rawFullProfileData: Data
+
     // MARK: - Relationships
     var user: User?
-    
+
     // MARK: - Computed Properties
     var personaProfile: PersonaProfile? {
         try? JSONDecoder().decode(PersonaProfile.self, from: personaPromptData)
     }
-    
+
     var communicationPreferences: CommunicationPreferences? {
         try? JSONDecoder().decode(CommunicationPreferences.self, from: communicationPreferencesData)
     }
-    
+
     // MARK: - Initialization
     init(
         id: UUID = UUID(),
@@ -38,7 +39,7 @@ final class OnboardingProfile: Sendable {
         self.rawFullProfileData = rawFullProfileData
         self.user = user
     }
-    
+
     // MARK: - Convenience Initializer
     init(
         user: User,
@@ -48,10 +49,10 @@ final class OnboardingProfile: Sendable {
         self.id = UUID()
         self.createdAt = Date()
         self.user = user
-        
+
         let encoder = JSONEncoder()
         encoder.dateEncodingStrategy = .iso8601
-        
+
         self.personaPromptData = try encoder.encode(personaProfile)
         self.communicationPreferencesData = try encoder.encode(communicationPreferences)
         self.rawFullProfileData = try encoder.encode(personaProfile) // Full profile for v1
@@ -130,17 +131,13 @@ struct CoachingStylePreferences: Codable, Sendable {
     let dataFocus: Double // 0-1
 }
 
-struct EngagementPreset: String, Codable, Sendable {
+struct EngagementPreset: Codable, Sendable, RawRepresentable {
     static let minimal = EngagementPreset(rawValue: "minimal")
     static let standard = EngagementPreset(rawValue: "standard")
     static let engaged = EngagementPreset(rawValue: "engaged")
     static let intense = EngagementPreset(rawValue: "intense")
-    
+
     let rawValue: String
-    
-    init(rawValue: String) {
-        self.rawValue = rawValue
-    }
 }
 
 struct CustomEngagementSettings: Codable, Sendable {
@@ -168,26 +165,18 @@ struct MotivationStyle: Codable, Sendable {
     let outcomeOriented: Double // 0-1
 }
 
-struct AchievementStyle: String, Codable, Sendable {
+struct AchievementStyle: Codable, Sendable, RawRepresentable {
     static let celebrate = AchievementStyle(rawValue: "celebrate")
     static let acknowledge = AchievementStyle(rawValue: "acknowledge")
     static let minimal = AchievementStyle(rawValue: "minimal")
-    
+
     let rawValue: String
-    
-    init(rawValue: String) {
-        self.rawValue = rawValue
-    }
 }
 
-struct InactivityResponseStyle: String, Codable, Sendable {
+struct InactivityResponseStyle: Codable, Sendable, RawRepresentable {
     static let gentle = InactivityResponseStyle(rawValue: "gentle")
     static let motivating = InactivityResponseStyle(rawValue: "motivating")
     static let concerned = InactivityResponseStyle(rawValue: "concerned")
-    
+
     let rawValue: String
-    
-    init(rawValue: String) {
-        self.rawValue = rawValue
-    }
 }

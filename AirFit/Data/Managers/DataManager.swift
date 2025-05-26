@@ -1,26 +1,26 @@
 import Foundation
 import SwiftData
 
-@globalActor
-actor DataManager {
+@MainActor
+final class DataManager {
     static let shared = DataManager()
     private init() {}
 
     // MARK: - Initial Setup
-    func performInitialSetup() async {
+    func performInitialSetup(with container: ModelContainer) async {
         do {
-            let context = AirFitApp.sharedModelContainer.mainContext
+            let context = container.mainContext
             let descriptor = FetchDescriptor<User>()
             let existing = try context.fetch(descriptor)
 
             if existing.isEmpty {
-                AppLogger.info("No existing user found, waiting for onboarding", category: .data)
+                print("No existing user found, waiting for onboarding")
             } else {
-                AppLogger.info("Found \(existing.count) existing users", category: .data)
+                print("Found \(existing.count) existing users")
                 await createSystemTemplatesIfNeeded(context: context)
             }
         } catch {
-            AppLogger.error("Failed to perform initial setup", error: error, category: .data)
+            print("Failed to perform initial setup: \(error)")
         }
     }
 
@@ -32,7 +32,7 @@ actor DataManager {
             let existingTemplates = try context.fetch(descriptor)
 
             if existingTemplates.isEmpty {
-                AppLogger.info("Creating system workout templates", category: .data)
+                print("Creating system workout templates")
                 createDefaultWorkoutTemplates(context: context)
                 try context.save()
             }
@@ -42,12 +42,12 @@ actor DataManager {
             let existingMealTemplates = try context.fetch(mealDescriptor)
 
             if existingMealTemplates.isEmpty {
-                AppLogger.info("Creating system meal templates", category: .data)
+                print("Creating system meal templates")
                 createDefaultMealTemplates(context: context)
                 try context.save()
             }
         } catch {
-            AppLogger.error("Failed to create system templates", error: error, category: .data)
+            print("Failed to create system templates: \(error)")
         }
     }
 

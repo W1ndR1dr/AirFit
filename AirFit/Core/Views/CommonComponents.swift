@@ -99,7 +99,7 @@ public struct Card<Content: View>: View {
     public var body: some View {
         content()
             .padding(AppSpacing.medium)
-            .background(Color.cardBackground)
+            .background(AppColors.cardBackground)
             .clipShape(RoundedRectangle(cornerRadius: AppSpacing.medium))
             .shadow(color: .black.opacity(0.05), radius: 5, y: 2)
     }

@@ -25,43 +25,44 @@ extension ModelContainer {
             MealTemplate.self,
             FoodItemTemplate.self
         ])
-        
+
         let configuration = ModelConfiguration(
             schema: schema,
             isStoredInMemoryOnly: true,
             allowsSave: true
         )
-        
+
         return try ModelContainer(
             for: schema,
             configurations: [configuration]
         )
     }
-    
+
     /// Creates a test container with sample data
+    @MainActor
     static func createTestContainerWithSampleData() throws -> ModelContainer {
         let container = try createTestContainer()
         let context = container.mainContext
-        
+
         // Create test user
         let user = User(
-            name: "Test User",
             email: "test@example.com",
+            name: "Test User",
             preferredUnits: "metric"
         )
         context.insert(user)
-        
+
         // Create today's log
         let todayLog = DailyLog(date: Date(), user: user)
         todayLog.checkIn(energy: 4, sleep: 5, stress: 2, mood: "Good")
         context.insert(todayLog)
-        
+
         // Create sample meal
         let breakfast = FoodEntry(
             mealType: .breakfast,
             user: user
         )
-        
+
         let eggs = FoodItem(
             name: "Scrambled Eggs",
             quantity: 2,
@@ -73,19 +74,19 @@ extension ModelContainer {
         )
         breakfast.addItem(eggs)
         context.insert(breakfast)
-        
+
         // Create sample workout
         let workout = Workout(
             name: "Morning Workout",
             workoutType: .strength,
             user: user
         )
-        
+
         let benchPress = Exercise(
             name: "Bench Press",
             muscleGroups: ["Chest", "Triceps"]
         )
-        
+
         for i in 1...3 {
             let set = ExerciseSet(
                 setNumber: i,
@@ -94,13 +95,13 @@ extension ModelContainer {
             )
             benchPress.addSet(set)
         }
-        
+
         workout.addExercise(benchPress)
         context.insert(workout)
-        
+
         // Save context
         try context.save()
-        
+
         return container
     }
 }
@@ -108,6 +109,7 @@ extension ModelContainer {
 // MARK: - Preview Helpers
 #if DEBUG
 extension ModelContainer {
+    @MainActor
     static var preview: ModelContainer {
         do {
             return try .createTestContainerWithSampleData()
@@ -116,4 +118,4 @@ extension ModelContainer {
         }
     }
 }
-#endif 
+#endif

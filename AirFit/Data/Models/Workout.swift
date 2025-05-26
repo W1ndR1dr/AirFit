@@ -2,7 +2,7 @@ import SwiftData
 import Foundation
 
 @Model
-final class Workout: Sendable {
+final class Workout: @unchecked Sendable {
     // MARK: - Properties
     var id: UUID
     var name: String
@@ -13,29 +13,29 @@ final class Workout: Sendable {
     var notes: String?
     var workoutType: String
     var intensity: String? // "low", "moderate", "high"
-    
+
     // HealthKit Integration
     var healthKitWorkoutID: String?
     var healthKitSyncedDate: Date?
-    
+
     // Template Reference
     var templateID: UUID?
-    
+
     // MARK: - Relationships
     @Relationship(deleteRule: .cascade, inverse: \Exercise.workout)
     var exercises: [Exercise] = []
-    
+
     var user: User?
-    
+
     // MARK: - Computed Properties
     var isCompleted: Bool {
         completedDate != nil
     }
-    
+
     var totalSets: Int {
         exercises.reduce(0) { $0 + $1.sets.count }
     }
-    
+
     var totalVolume: Double {
         exercises.reduce(0) { total, exercise in
             total + exercise.sets.reduce(0) { setTotal, set in
@@ -43,23 +43,23 @@ final class Workout: Sendable {
             }
         }
     }
-    
+
     var workoutTypeEnum: WorkoutType? {
         WorkoutType(rawValue: workoutType)
     }
-    
+
     var formattedDuration: String? {
         guard let duration = durationSeconds else { return nil }
-        let hours = Int(duration) / 3600
-        let minutes = (Int(duration) % 3600) / 60
-        
+        let hours = Int(duration) / 3_600
+        let minutes = (Int(duration) % 3_600) / 60
+
         if hours > 0 {
             return "\(hours)h \(minutes)m"
         } else {
             return "\(minutes)m"
         }
     }
-    
+
     // MARK: - Initialization
     init(
         id: UUID = UUID(),
@@ -74,38 +74,38 @@ final class Workout: Sendable {
         self.plannedDate = plannedDate
         self.user = user
     }
-    
+
     // MARK: - Methods
     func startWorkout() {
         if completedDate == nil {
             completedDate = Date()
         }
     }
-    
+
     func completeWorkout() {
         completedDate = Date()
         if let startTime = plannedDate {
             durationSeconds = Date().timeIntervalSince(startTime)
         }
     }
-    
+
     func addExercise(_ exercise: Exercise) {
         exercises.append(exercise)
         exercise.workout = self
     }
-    
+
     func createFromTemplate(_ template: WorkoutTemplate) {
         self.name = template.name
         self.workoutType = template.workoutType
         self.templateID = template.id
-        
+
         // Copy exercises from template
         for templateExercise in template.exercises {
             let exercise = Exercise(
                 name: templateExercise.name,
                 muscleGroups: templateExercise.muscleGroups
             )
-            
+
             // Copy sets from template
             for templateSet in templateExercise.sets {
                 let set = ExerciseSet(
@@ -116,7 +116,7 @@ final class Workout: Sendable {
                 )
                 exercise.addSet(set)
             }
-            
+
             addExercise(exercise)
         }
     }
@@ -124,15 +124,15 @@ final class Workout: Sendable {
 
 // MARK: - WorkoutType Enum
 enum WorkoutType: String, Codable, CaseIterable, Sendable {
-    case strength = "strength"
-    case cardio = "cardio"
-    case flexibility = "flexibility"
-    case sports = "sports"
-    case general = "general"
-    case hiit = "hiit"
-    case yoga = "yoga"
-    case pilates = "pilates"
-    
+    case strength
+    case cardio
+    case flexibility
+    case sports
+    case general
+    case hiit
+    case yoga
+    case pilates
+
     var displayName: String {
         switch self {
         case .strength: return "Strength Training"
@@ -145,7 +145,7 @@ enum WorkoutType: String, Codable, CaseIterable, Sendable {
         case .pilates: return "Pilates"
         }
     }
-    
+
     var systemImage: String {
         switch self {
         case .strength: return "dumbbell.fill"

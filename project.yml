@@ -1,0 +1,68 @@
+name: AirFit
+options:
+  bundleIdPrefix: com.airfit
+  deploymentTarget:
+    iOS: "18.0"
+  developmentLanguage: en
+  xcodeVersion: "16.0"
+
+settings:
+  SWIFT_VERSION: "6.0"
+  IPHONEOS_DEPLOYMENT_TARGET: "18.0"
+  ENABLE_STRICT_CONCURRENCY: YES
+  SWIFT_STRICT_CONCURRENCY: complete
+
+packages: {}
+
+targets:
+  AirFit:
+    type: application
+    platform: iOS
+    sources:
+      - path: AirFit
+        excludes:
+          - "**/*.md"
+          - "**/.*"
+    resources:
+      - AirFit/Assets.xcassets
+    settings:
+      PRODUCT_BUNDLE_IDENTIFIER: com.airfit.app
+      INFOPLIST_FILE: AirFit/Info.plist
+      SWIFT_VERSION: "6.0"
+      ENABLE_STRICT_CONCURRENCY: YES
+      SWIFT_STRICT_CONCURRENCY: complete
+    dependencies: []
+
+  AirFitTests:
+    type: bundle.unit-test
+    platform: iOS
+    sources:
+      - path: AirFitTests
+        excludes:
+          - "**/*.md"
+    dependencies:
+      - target: AirFit
+    settings:
+      BUNDLE_LOADER: $(TEST_HOST)
+      TEST_HOST: $(BUILT_PRODUCTS_DIR)/AirFit.app/AirFit
+
+
+
+schemes:
+  AirFit:
+    build:
+      targets:
+        AirFit: all
+        AirFitTests: [test]
+    run:
+      config: Debug
+    test:
+      config: Debug
+      targets:
+        - AirFitTests
+    profile:
+      config: Release
+    analyze:
+      config: Debug
+    archive:
+      config: Release 

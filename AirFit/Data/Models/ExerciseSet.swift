@@ -2,7 +2,7 @@ import SwiftData
 import Foundation
 
 @Model
-final class ExerciseSet: Sendable {
+final class ExerciseSet: @unchecked Sendable {
     // MARK: - Properties
     var id: UUID
     var setNumber: Int
@@ -16,37 +16,37 @@ final class ExerciseSet: Sendable {
     var restDurationSeconds: TimeInterval?
     var notes: String?
     var completedAt: Date?
-    
+
     // MARK: - Relationships
     var exercise: Exercise?
-    
+
     // MARK: - Computed Properties
     var isCompleted: Bool {
         completedReps != nil || completedDurationSeconds != nil
     }
-    
+
     var volume: Double? {
         guard let weight = completedWeightKg ?? targetWeightKg,
               let reps = completedReps ?? targetReps else { return nil }
         return weight * Double(reps)
     }
-    
+
     var oneRepMax: Double? {
         guard let weight = completedWeightKg ?? targetWeightKg,
               let reps = completedReps ?? targetReps,
               reps > 0 else { return nil }
-        
+
         // Epley Formula: 1RM = weight × (1 + reps/30)
         return weight * (1 + Double(reps) / 30)
     }
-    
+
     var intensityPercentage: Double? {
         guard let weight = completedWeightKg ?? targetWeightKg,
               let oneRM = oneRepMax,
               oneRM > 0 else { return nil }
         return (weight / oneRM) * 100
     }
-    
+
     // MARK: - Initialization
     init(
         id: UUID = UUID(),
@@ -61,7 +61,7 @@ final class ExerciseSet: Sendable {
         self.targetWeightKg = targetWeightKg
         self.targetDurationSeconds = targetDurationSeconds
     }
-    
+
     // MARK: - Methods
     func complete(
         reps: Int? = nil,
@@ -75,7 +75,7 @@ final class ExerciseSet: Sendable {
         self.rpe = rpe
         self.completedAt = Date()
     }
-    
+
     func reset() {
         completedReps = nil
         completedWeightKg = nil

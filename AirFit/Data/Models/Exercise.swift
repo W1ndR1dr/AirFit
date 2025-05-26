@@ -2,7 +2,7 @@ import SwiftData
 import Foundation
 
 @Model
-final class Exercise: Sendable {
+final class Exercise: @unchecked Sendable {
     // MARK: - Properties
     var id: UUID
     var name: String
@@ -11,13 +11,13 @@ final class Exercise: Sendable {
     var notes: String?
     var orderIndex: Int
     var restSeconds: TimeInterval?
-    
+
     // MARK: - Relationships
     @Relationship(deleteRule: .cascade, inverse: \ExerciseSet.exercise)
     var sets: [ExerciseSet] = []
-    
+
     var workout: Workout?
-    
+
     // MARK: - Computed Properties
     var muscleGroups: [String] {
         get {
@@ -28,7 +28,7 @@ final class Exercise: Sendable {
             muscleGroupsData = try? JSONEncoder().encode(newValue)
         }
     }
-    
+
     var equipment: [String] {
         get {
             guard let data = equipmentData else { return [] }
@@ -38,11 +38,11 @@ final class Exercise: Sendable {
             equipmentData = try? JSONEncoder().encode(newValue)
         }
     }
-    
+
     var completedSets: [ExerciseSet] {
         sets.filter { $0.isCompleted }
     }
-    
+
     var bestSet: ExerciseSet? {
         sets.max { set1, set2 in
             let volume1 = (set1.completedWeightKg ?? 0) * Double(set1.completedReps ?? 0)
@@ -50,7 +50,7 @@ final class Exercise: Sendable {
             return volume1 < volume2
         }
     }
-    
+
     // MARK: - Initialization
     init(
         id: UUID = UUID(),
@@ -65,16 +65,16 @@ final class Exercise: Sendable {
         self.muscleGroups = muscleGroups
         self.equipment = equipment
     }
-    
+
     // MARK: - Methods
     func addSet(_ set: ExerciseSet) {
         sets.append(set)
         set.exercise = self
     }
-    
+
     func duplicateLastSet() {
         guard let lastSet = sets.last else { return }
-        
+
         let newSet = ExerciseSet(
             setNumber: lastSet.setNumber + 1,
             targetReps: lastSet.targetReps,

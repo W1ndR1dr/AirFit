@@ -21,7 +21,7 @@ extension FetchDescriptor where T == DailyLog {
         descriptor.fetchLimit = 1
         return descriptor
     }
-    
+
     static func dateRange(from start: Date, to end: Date) -> FetchDescriptor<DailyLog> {
         var descriptor = FetchDescriptor<DailyLog>()
         descriptor.predicate = #Predicate { log in
@@ -37,7 +37,7 @@ extension FetchDescriptor where T == FoodEntry {
         let calendar = Calendar.current
         let startOfDay = calendar.startOfDay(for: date)
         let endOfDay = calendar.date(byAdding: .day, value: 1, to: startOfDay)!
-        
+
         var descriptor = FetchDescriptor<FoodEntry>()
         descriptor.predicate = #Predicate { entry in
             entry.mealType == mealType.rawValue &&
@@ -47,10 +47,10 @@ extension FetchDescriptor where T == FoodEntry {
         descriptor.sortBy = [SortDescriptor(\.loggedAt)]
         return descriptor
     }
-    
+
     static func recentEntries(days: Int = 7) -> FetchDescriptor<FoodEntry> {
         let cutoffDate = Calendar.current.date(byAdding: .day, value: -days, to: Date())!
-        
+
         var descriptor = FetchDescriptor<FoodEntry>()
         descriptor.predicate = #Predicate { entry in
             entry.loggedAt > cutoffDate
@@ -70,10 +70,10 @@ extension FetchDescriptor where T == Workout {
         descriptor.fetchLimit = limit
         return descriptor
     }
-    
+
     static func completed(days: Int = 30) -> FetchDescriptor<Workout> {
         let cutoffDate = Calendar.current.date(byAdding: .day, value: -days, to: Date())!
-        
+
         var descriptor = FetchDescriptor<Workout>()
         descriptor.predicate = #Predicate { workout in
             workout.completedDate != nil && workout.completedDate! > cutoffDate
@@ -92,7 +92,7 @@ extension FetchDescriptor where T == WorkoutTemplate {
         descriptor.sortBy = [SortDescriptor(\.name)]
         return descriptor
     }
-    
+
     static var favoriteTemplates: FetchDescriptor<WorkoutTemplate> {
         var descriptor = FetchDescriptor<WorkoutTemplate>()
         descriptor.predicate = #Predicate { template in
@@ -112,7 +112,7 @@ extension FetchDescriptor where T == MealTemplate {
         descriptor.sortBy = [SortDescriptor(\.name)]
         return descriptor
     }
-    
+
     static func forMealType(_ mealType: MealType) -> FetchDescriptor<MealTemplate> {
         var descriptor = FetchDescriptor<MealTemplate>()
         descriptor.predicate = #Predicate { template in
@@ -132,7 +132,7 @@ extension FetchDescriptor where T == ChatSession {
         descriptor.sortBy = [SortDescriptor(\.lastMessageDate, order: .reverse)]
         return descriptor
     }
-    
+
     static var archivedChats: FetchDescriptor<ChatSession> {
         var descriptor = FetchDescriptor<ChatSession>()
         descriptor.predicate = #Predicate { session in
@@ -141,4 +141,4 @@ extension FetchDescriptor where T == ChatSession {
         descriptor.sortBy = [SortDescriptor(\.archivedAt, order: .reverse)]
         return descriptor
     }
-} 
+}

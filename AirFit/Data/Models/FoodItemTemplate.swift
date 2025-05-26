@@ -2,7 +2,7 @@ import SwiftData
 import Foundation
 
 @Model
-final class FoodItemTemplate: Sendable {
+final class FoodItemTemplate: @unchecked Sendable {
     // MARK: - Properties
     var id: UUID
     var name: String
@@ -17,41 +17,41 @@ final class FoodItemTemplate: Sendable {
     var sugarGrams: Double?
     var sodiumMg: Double?
     var servingSize: String?
-    
+
     // MARK: - Relationships
     var mealTemplate: MealTemplate?
-    
+
     // MARK: - Computed Properties
-    var macroPercentages: (protein: Double, carbs: Double, fat: Double)? {
+    var macroPercentages: MacroPercentages? {
         guard let protein = proteinGrams,
               let carbs = carbGrams,
               let fat = fatGrams else { return nil }
-        
+
         let totalCalories = (protein * 4) + (carbs * 4) + (fat * 9)
-        guard totalCalories > 0 else { return (0, 0, 0) }
-        
-        return (
+        guard totalCalories > 0 else { return MacroPercentages(protein: 0, carbs: 0, fat: 0) }
+
+        return MacroPercentages(
             protein: (protein * 4) / totalCalories,
             carbs: (carbs * 4) / totalCalories,
             fat: (fat * 9) / totalCalories
         )
     }
-    
+
     var isComplete: Bool {
         calories != nil && proteinGrams != nil &&
         carbGrams != nil && fatGrams != nil
     }
-    
+
     var formattedQuantity: String? {
         guard let quantity = quantity else { return nil }
-        
+
         if let unit = unit {
             return "\(Int(quantity)) \(unit)"
         } else {
             return "\(Int(quantity))"
         }
     }
-    
+
     // MARK: - Initialization
     init(
         id: UUID = UUID(),
@@ -66,7 +66,7 @@ final class FoodItemTemplate: Sendable {
         self.quantity = quantity
         self.unit = unit
     }
-    
+
     // MARK: - Methods
     func updateNutrition(
         calories: Double,
@@ -85,7 +85,7 @@ final class FoodItemTemplate: Sendable {
         self.sugarGrams = sugar
         self.sodiumMg = sodium
     }
-    
+
     func duplicate() -> FoodItemTemplate {
         let copy = FoodItemTemplate(
             name: name,
@@ -93,7 +93,7 @@ final class FoodItemTemplate: Sendable {
             quantity: quantity,
             unit: unit
         )
-        
+
         copy.calories = calories
         copy.proteinGrams = proteinGrams
         copy.carbGrams = carbGrams
@@ -102,7 +102,14 @@ final class FoodItemTemplate: Sendable {
         copy.sugarGrams = sugarGrams
         copy.sodiumMg = sodiumMg
         copy.servingSize = servingSize
-        
+
         return copy
     }
+}
+
+// MARK: - Supporting Types
+struct MacroPercentages: Sendable {
+    let protein: Double
+    let carbs: Double
+    let fat: Double
 }

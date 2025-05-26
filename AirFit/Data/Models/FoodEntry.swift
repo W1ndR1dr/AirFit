@@ -2,7 +2,7 @@ import SwiftData
 import Foundation
 
 @Model
-final class FoodEntry: Sendable {
+final class FoodEntry: @unchecked Sendable {
     // MARK: - Properties
     var id: UUID
     var loggedAt: Date
@@ -10,49 +10,48 @@ final class FoodEntry: Sendable {
     var rawTranscript: String?
     var photoData: Data?
     var notes: String?
-    
+
     // AI Metadata
     var parsingModelUsed: String?
     var parsingConfidence: Double?
     var parsingTimestamp: Date?
-    
+
     // MARK: - Relationships
     @Relationship(deleteRule: .cascade, inverse: \FoodItem.foodEntry)
     var items: [FoodItem] = []
-    
-    @Relationship(deleteRule: .nullify, inverse: \NutritionData.foodEntries)
+
     var nutritionData: NutritionData?
-    
+
     var user: User?
-    
+
     // MARK: - Computed Properties
     var totalCalories: Double {
         items.reduce(0) { $0 + ($1.calories ?? 0) }
     }
-    
+
     var totalProtein: Double {
         items.reduce(0) { $0 + ($1.proteinGrams ?? 0) }
     }
-    
+
     var totalCarbs: Double {
         items.reduce(0) { $0 + ($1.carbGrams ?? 0) }
     }
-    
+
     var totalFat: Double {
         items.reduce(0) { $0 + ($1.fatGrams ?? 0) }
     }
-    
+
     var mealTypeEnum: MealType? {
         MealType(rawValue: mealType)
     }
-    
+
     var isComplete: Bool {
         !items.isEmpty && items.allSatisfy { item in
             item.calories != nil && item.proteinGrams != nil &&
             item.carbGrams != nil && item.fatGrams != nil
         }
     }
-    
+
     // MARK: - Initialization
     init(
         id: UUID = UUID(),
@@ -71,13 +70,13 @@ final class FoodEntry: Sendable {
         self.notes = notes
         self.user = user
     }
-    
+
     // MARK: - Methods
     func addItem(_ item: FoodItem) {
         items.append(item)
         item.foodEntry = self
     }
-    
+
     func updateFromAIParsing(model: String, confidence: Double) {
         self.parsingModelUsed = model
         self.parsingConfidence = confidence
@@ -87,13 +86,13 @@ final class FoodEntry: Sendable {
 
 // MARK: - MealType Enum
 enum MealType: String, Codable, CaseIterable, Sendable {
-    case breakfast = "breakfast"
-    case lunch = "lunch"
-    case dinner = "dinner"
-    case snack = "snack"
+    case breakfast
+    case lunch
+    case dinner
+    case snack
     case preWorkout = "pre_workout"
     case postWorkout = "post_workout"
-    
+
     var displayName: String {
         switch self {
         case .breakfast: return "Breakfast"
@@ -104,7 +103,7 @@ enum MealType: String, Codable, CaseIterable, Sendable {
         case .postWorkout: return "Post-Workout"
         }
     }
-    
+
     var defaultTime: DateComponents {
         switch self {
         case .breakfast: return DateComponents(hour: 8, minute: 0)

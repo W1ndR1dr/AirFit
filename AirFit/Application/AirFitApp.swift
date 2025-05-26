@@ -51,7 +51,7 @@ struct AirFitApp: App {
             AppLogger.info("ModelContainer initialized successfully", category: .data)
             return container
         } catch {
-            AppLogger.fault("Failed to create ModelContainer", error: error, category: .data)
+            AppLogger.error("Failed to create ModelContainer", error: error, category: .data)
             fatalError("Could not create ModelContainer: \(error)")
         }
     }()
@@ -114,7 +114,7 @@ struct AirFitApp: App {
 
     private func setupInitialData() {
         Task {
-            await DataManager.shared.performInitialSetup()
+            await DataManager.shared.performInitialSetup(with: Self.sharedModelContainer)
         }
     }
 }
@@ -133,5 +133,3 @@ class AppState: ObservableObject {
         // Load from UserDefaults or Keychain
     }
 }
-
-

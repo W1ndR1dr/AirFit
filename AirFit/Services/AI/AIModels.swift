@@ -2,7 +2,7 @@ import Combine
 import Foundation
 
 /// Represents a chat message exchanged with the AI.
-struct ChatMessage: Codable {
+struct AIChatMessage: Codable {
     let role: String
     let content: String
 }
@@ -70,7 +70,7 @@ struct AnyCodableValue: Codable {
 /// Request sent to the AI service.
 struct AIRequest {
     let systemPrompt: String
-    let conversationHistory: [ChatMessage]
+    let conversationHistory: [AIChatMessage]
     let userMessage: String
     let availableFunctions: [AIFunctionSchema]?
 }

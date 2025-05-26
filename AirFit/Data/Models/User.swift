@@ -2,9 +2,10 @@ import SwiftData
 import Foundation
 
 @Model
-final class User: Sendable {
+final class User: @unchecked Sendable {
     // MARK: - Properties
-    @Attribute(.unique) var id: UUID
+    @Attribute(.unique)
+    var id: UUID
     var createdAt: Date
     var lastActiveAt: Date
     var email: String?
@@ -24,11 +25,11 @@ final class User: Sendable {
         let daysSinceActive = Calendar.current.dateComponents([.day], from: lastActiveAt, to: Date()).day ?? 0
         return daysSinceActive > 7
     }
-    
+
     var activeChats: [ChatSession] {
         chatSessions.filter { $0.isActive }
     }
-    
+
     // MARK: - Relationships
     @Relationship(deleteRule: .cascade, inverse: \OnboardingProfile.user)
     var onboardingProfile: OnboardingProfile?
@@ -47,10 +48,10 @@ final class User: Sendable {
 
         @Relationship(deleteRule: .cascade, inverse: \HealthKitSyncRecord.user)
     var healthKitSyncRecords: [HealthKitSyncRecord] = []
-    
+
     @Relationship(deleteRule: .cascade, inverse: \ChatSession.user)
     var chatSessions: [ChatSession] = []
-    
+
     // MARK: - Initialization
     init(
         id: UUID = UUID(),
