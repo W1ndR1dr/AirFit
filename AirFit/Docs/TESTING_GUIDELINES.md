@@ -49,3 +49,11 @@ All tests must run without network access and pass in automated CI pipelines.
 ## Accessibility Identifiers
 
 Every interactive view used in UI tests must expose identifiers to allow reliable selection.
+
+## UI Test Page Objects
+
+Adopt the Page Object pattern for UI tests to keep assertions readable. Store page objects under `AirFitUITests/PageObjects` and expose convenience actions for tapping buttons or verifying view state.
+
+## SwiftData Helpers
+
+Use `ModelContainer.makeInMemoryContainer` from `AirFitTests/TestUtils` to create isolated in-memory stores for tests involving persistence.
