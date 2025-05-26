@@ -1,0 +1,178 @@
+# SwiftLint configuration for AirFit
+# Updated for Swift 6 and SwiftLint 0.54.0+
+
+disabled_rules:
+  - line_length # Will be opt-in with specific configuration
+  - trailing_whitespace # Handled by formatter
+  - todo # We want to allow TODOs during development
+
+opt_in_rules:
+  - attributes
+  - closure_end_indentation
+  - closure_spacing
+  - collection_alignment
+  - contains_over_filter_count
+  - contains_over_filter_is_empty
+  - contains_over_first_not_nil
+  - contains_over_range_nil_comparison
+  - empty_collection_literal
+  - empty_count
+  - empty_string
+  - empty_xctest_method
+  - explicit_init
+  - first_where
+  - flatmap_over_map_reduce
+  - identical_operands
+  - joined_default_parameter
+  - last_where
+  - legacy_multiple
+  - legacy_random
+  - literal_expression_end_indentation
+  - lower_acl_than_parent
+  - modifier_order
+  - nimble_operator
+  - nslocalizedstring_key
+  - number_separator
+  - operator_usage_whitespace
+  - overridden_super_call
+  - override_in_extension
+  - pattern_matching_keywords
+  - prefer_self_type_over_type_of_self
+  - private_action
+  - private_outlet
+  - prohibited_super_call
+  - quick_discouraged_call
+  - quick_discouraged_focused_test
+  - quick_discouraged_pending_test
+  - reduce_into
+  - redundant_nil_coalescing
+  - redundant_type_annotation
+  - single_test_class
+  - sorted_first_last
+  - static_operator
+  - strong_iboutlet
+  - toggle_bool
+  - unavailable_function
+  - unneeded_parentheses_in_closure_argument
+  - untyped_error_in_catch
+  - vertical_parameter_alignment_on_call
+  - xct_specific_matcher
+  - yoda_condition
+  - force_unwrapping
+  - implicitly_unwrapped_optional
+  - string_literal_at_end_of_multiline_literal
+  - explicit_type_interface
+  - file_name
+  - file_types_order
+  - indentation_width
+  - multiline_arguments
+  - multiline_function_chains
+  - multiline_literal_brackets
+  - multiline_parameters
+  - multiline_parameters_brackets
+  - no_space_in_method_call
+  - optional_enum_case_matching
+  - prefer_self_in_static_references
+  - prefer_zero_over_explicit_init
+  - prefixed_toplevel_constant
+  - raw_value_for_camel_cased_codable_enum
+  - sorted_imports
+  - trailing_closure
+  - type_contents_order
+  - unused_declaration
+  - unused_import
+  - vertical_whitespace_closing_braces
+  - vertical_whitespace_opening_braces
+
+analyzer_rules:
+  - unused_import
+  - unused_declaration
+
+included:
+  - AirFit
+
+excluded:
+  - Carthage
+  - Pods
+  - .build
+  - .swiftpm
+  - AirFit/Resources/Generated
+
+line_length:
+  warning: 120
+  error: 150
+  ignores_urls: true
+  ignores_function_declarations: true
+  ignores_comments: true
+
+type_body_length:
+  warning: 300
+  error: 500
+
+file_length:
+  warning: 500
+  error: 800
+  ignore_comment_only_lines: true
+
+function_body_length:
+  warning: 50
+  error: 100
+
+function_parameter_count:
+  warning: 6
+  error: 8
+
+cyclomatic_complexity:
+  warning: 15
+  error: 25
+
+nesting:
+  type_level:
+    warning: 2
+    error: 3
+  function_level:
+    warning: 3
+    error: 5
+
+identifier_name:
+  min_length:
+    warning: 2
+    error: 1
+  max_length:
+    warning: 50
+    error: 60
+  validates_start_with_lowercase: true
+  allowed_symbols: ["_"]
+  excludes:
+    - id
+    - URL
+    - AI
+
+type_name:
+  min_length:
+    warning: 3
+    error: 1
+  max_length:
+    warning: 50
+    error: 60
+
+trailing_comma:
+  mandatory_comma: true
+
+vertical_whitespace:
+  max_empty_lines: 2
+
+custom_rules:
+  no_print:
+    name: "No direct print statements"
+    regex: '(^|\s)print\('
+    message: "Use AppLogger instead of print()"
+    severity: warning
+
+  no_nslog:
+    name: "No NSLog statements"
+    regex: '(^|\s)NSLog\('
+    message: "Use AppLogger instead of NSLog()"
+    severity: error
+
+reporter: "xcode"
