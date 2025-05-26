@@ -1,15 +1,14 @@
 import Foundation
 
-// MARK: - Navigation
+// MARK: - Navigation (9 screens per OnboardingFlow.md)
 enum OnboardingScreen: String, CaseIterable, Sendable {
     case openingScreen = "opening"
     case lifeSnapshot = "lifeSnapshot"
     case coreAspiration = "coreAspiration"
     case coachingStyle = "coachingStyle"
     case engagementPreferences = "engagement"
-    case typicalAvailability = "availability"
     case sleepAndBoundaries = "sleep"
-    case motivationAndCheckins = "motivation"
+    case motivationalAccents = "motivation"
     case generatingCoach = "generating"
     case coachProfileReady = "ready"
 
@@ -17,49 +16,89 @@ enum OnboardingScreen: String, CaseIterable, Sendable {
         switch self {
         case .openingScreen: return ""
         case .lifeSnapshot: return "Life Snapshot"
-        case .coreAspiration: return "Core Aspiration"
-        case .coachingStyle: return "Coaching Style"
-        case .engagementPreferences: return "Engagement"
-        case .typicalAvailability: return "Availability"
-        case .sleepAndBoundaries: return "Sleep & Recovery"
-        case .motivationAndCheckins: return "Motivation"
-        case .generatingCoach: return "Creating Your Coach"
-        case .coachProfileReady: return "Coach Ready"
+        case .coreAspiration: return "Your Core Aspiration"
+        case .coachingStyle: return "Coaching Style Profile"
+        case .engagementPreferences: return "Engagement Preferences"
+        case .sleepAndBoundaries: return "Sleep & Notification Boundaries"
+        case .motivationalAccents: return "Motivational Accents"
+        case .generatingCoach: return "Crafting Your AirFit Coach"
+        case .coachProfileReady: return "Your AirFit Coach Profile Is Ready"
         }
     }
 
     var progress: Double {
-        guard let index = Self.allCases.firstIndex(of: self) else { return 0 }
-        return Double(index) / Double(Self.allCases.count - 2)
+        // 7 segments for main steps (excluding opening, generating, ready)
+        let mainSteps = Self.allCases.filter { 
+            $0 != .openingScreen && $0 != .generatingCoach && $0 != .coachProfileReady 
+        }
+        guard let index = mainSteps.firstIndex(of: self) else { return 0 }
+        return Double(index) / Double(mainSteps.count - 1)
     }
 }
 
-// MARK: - Life Snapshot
-struct LifeSnapshotSelections: Codable, Sendable {
-    var busyProfessional = false
-    var parentCaregiver = false
-    var student = false
-    var shiftWorker = false
-    var travelFrequently = false
-    var workFromHome = false
-    var recovering = false
-    var newToFitness = false
-
-    var selectedItems: [String] {
-        var items: [String] = []
-        if busyProfessional { items.append("Busy Professional") }
-        if parentCaregiver { items.append("Parent/Caregiver") }
-        if student { items.append("Student") }
-        if shiftWorker { items.append("Shift Worker") }
-        if travelFrequently { items.append("Travel Frequently") }
-        if workFromHome { items.append("Work From Home") }
-        if recovering { items.append("Recovering from Injury/Illness") }
-        if newToFitness { items.append("New to Fitness") }
-        return items
+// MARK: - Life Context (matches OnboardingFlow.md JSON structure)
+struct LifeContext: Codable, Sendable {
+    var isDeskJob = false
+    var isPhysicallyActiveWork = false
+    var travelsFrequently = false
+    var hasChildrenOrFamilyCare = false
+    var scheduleType: ScheduleType = .predictable
+    var workoutWindowPreference: WorkoutWindow = .varies
+    
+    enum ScheduleType: String, Codable, CaseIterable, Sendable {
+        case predictable = "predictable"
+        case unpredictableChaotic = "unpredictable_chaotic"
+        
+        var displayName: String {
+            switch self {
+            case .predictable: return "My schedule is generally predictable"
+            case .unpredictableChaotic: return "My schedule is often unpredictable or chaotic"
+            }
+        }
+    }
+    
+    enum WorkoutWindow: String, Codable, CaseIterable, Sendable {
+        case earlyBird = "early_bird"
+        case midDay = "mid_day"
+        case nightOwl = "night_owl"
+        case varies = "varies"
+        
+        var displayName: String {
+            switch self {
+            case .earlyBird: return "Early Bird (e.g., 5-8 AM)"
+            case .midDay: return "Mid-Day (e.g., 11 AM - 2 PM)"
+            case .nightOwl: return "Evening / Night Owl (e.g., 6 PM onwards)"
+            case .varies: return "It Varies Greatly"
+            }
+        }
     }
 }
 
-// MARK: - Core Aspiration
+// MARK: - Goal (matches OnboardingFlow.md structure)
+struct Goal: Codable, Sendable {
+    var family: GoalFamily = .healthWellbeing
+    var rawText: String = ""
+    
+    enum GoalFamily: String, Codable, CaseIterable, Sendable {
+        case strengthTone = "strength_tone"
+        case endurance = "endurance"
+        case performance = "performance"
+        case healthWellbeing = "health_wellbeing"
+        case recoveryRehab = "recovery_rehab"
+        
+        var displayName: String {
+            switch self {
+            case .strengthTone: return "Enhance Strength & Physical Tone"
+            case .endurance: return "Improve Cardiovascular Endurance"
+            case .performance: return "Optimize Athletic Performance"
+            case .healthWellbeing: return "Cultivate Lasting Health & Wellbeing"
+            case .recoveryRehab: return "Support Injury Recovery & Pain-Free Movement"
+            }
+        }
+    }
+}
+
+// MARK: - Structured Goal (for AI analysis)
 struct StructuredGoal: Codable, Sendable {
     let goalType: String
     let primaryMetric: String
@@ -68,134 +107,170 @@ struct StructuredGoal: Codable, Sendable {
     let whyImportant: String?
 }
 
-// MARK: - Coaching Style
-struct CoachingStylePreferences: Codable, Sendable {
+// MARK: - Blend (matches OnboardingFlow.md structure)
+struct Blend: Codable, Sendable {
     var authoritativeDirect: Double = 0.25
-    var empatheticEncouraging: Double = 0.25
-    var analyticalPrecise: Double = 0.25
-    var playfulMotivating: Double = 0.25
+    var encouragingEmpathetic: Double = 0.25
+    var analyticalInsightful: Double = 0.25
+    var playfullyProvocative: Double = 0.25
 
     var isValid: Bool {
-        abs((authoritativeDirect + empatheticEncouraging + analyticalPrecise + playfulMotivating) - 1.0) < 0.01
+        abs((authoritativeDirect + encouragingEmpathetic + analyticalInsightful + playfullyProvocative) - 1.0) < 0.01
     }
 
     mutating func normalize() {
-        let total = authoritativeDirect + empatheticEncouraging + analyticalPrecise + playfulMotivating
+        let total = authoritativeDirect + encouragingEmpathetic + analyticalInsightful + playfullyProvocative
         guard total > 0 else { return }
         authoritativeDirect /= total
-        empatheticEncouraging /= total
-        analyticalPrecise /= total
-        playfulMotivating /= total
+        encouragingEmpathetic /= total
+        analyticalInsightful /= total
+        playfullyProvocative /= total
     }
 }
 
-// MARK: - Engagement
-enum EngagementPreset: String, Codable, CaseIterable, Sendable {
-    case dataDrivenPartnership = "data_driven"
-    case consistentBalanced = "consistent_balanced"
-    case guidanceOnDemand = "guidance_on_demand"
-    case custom = "custom"
-
-    var displayName: String {
-        switch self {
-        case .dataDrivenPartnership: return "Data-Driven Partnership"
-        case .consistentBalanced: return "Consistent & Balanced"
-        case .guidanceOnDemand: return "Guidance On-Demand"
-        case .custom: return "Custom"
+// MARK: - Engagement Preferences (matches OnboardingFlow.md structure)
+struct EngagementPreferences: Codable, Sendable {
+    var trackingStyle: TrackingStyle = .dataDrivenPartnership
+    var informationDepth: InformationDepth = .keyMetrics
+    var updateFrequency: UpdateFrequency = .weekly
+    var autoRecoveryLogicPreference = true
+    
+    enum TrackingStyle: String, Codable, CaseIterable, Sendable {
+        case dataDrivenPartnership = "data_driven_partnership"
+        case balancedConsistent = "balanced_consistent"
+        case guidanceOnDemand = "guidance_on_demand"
+        
+        var displayName: String {
+            switch self {
+            case .dataDrivenPartnership: return "Data-Driven Partnership"
+            case .balancedConsistent: return "Balanced & Consistent"
+            case .guidanceOnDemand: return "Guidance on Demand"
+            }
+        }
+    }
+    
+    enum InformationDepth: String, Codable, CaseIterable, Sendable {
+        case detailed = "detailed"
+        case keyMetrics = "key_metrics"
+        case essentialOnly = "essential_only"
+        
+        var displayName: String {
+            switch self {
+            case .detailed: return "Detailed (e.g., macro tracking, in-depth analysis)"
+            case .keyMetrics: return "Key Metrics (e.g., calorie balance, core performance indicators)"
+            case .essentialOnly: return "Essential Only (e.g., workout completion, basic trends)"
+            }
+        }
+    }
+    
+    enum UpdateFrequency: String, Codable, CaseIterable, Sendable {
+        case daily = "daily"
+        case weekly = "weekly"
+        case onDemand = "on_demand"
+        
+        var displayName: String {
+            switch self {
+            case .daily: return "Daily Insights & Check-ins"
+            case .weekly: return "Weekly Summaries & Reviews"
+            case .onDemand: return "Primarily When I Ask"
+            }
         }
     }
 }
 
-struct CustomEngagementSettings: Codable, Sendable {
-    var detailedTracking = false
-    var dailyInsights = false
-    var autoRecoveryAdjust = false
-}
-
-// MARK: - Availability
-struct WorkoutAvailabilityBlock: Codable, Identifiable, Sendable {
-    let id = UUID()
-    var dayOfWeek: Int
-    var startTime: Date
-    var endTime: Date
-
-    var dayName: String {
-        let formatter = DateFormatter()
-        formatter.dateFormat = "EEEE"
-        let date = Calendar.current.date(from: DateComponents(weekday: dayOfWeek))!
-        return formatter.string(from: date)
-    }
-}
-
-// MARK: - Sleep
-enum SleepRhythmType: String, Codable, CaseIterable, Sendable {
-    case consistent = "consistent"
-    case weekendsDifferent = "weekends_different"
-    case highlyVariable = "highly_variable"
-
-    var displayName: String {
-        switch self {
-        case .consistent: return "Consistent"
-        case .weekendsDifferent: return "Weekends Different"
-        case .highlyVariable: return "Highly Variable"
+// MARK: - Sleep Window (matches OnboardingFlow.md structure)
+struct SleepWindow: Codable, Sendable {
+    var bedTime: String = "22:30"  // "HH:mm" format
+    var wakeTime: String = "06:30" // "HH:mm" format
+    var consistency: SleepConsistency = .consistent
+    
+    enum SleepConsistency: String, Codable, CaseIterable, Sendable {
+        case consistent = "consistent"
+        case weekSplit = "week_split"
+        case variable = "variable"
+        
+        var displayName: String {
+            switch self {
+            case .consistent: return "Consistent"
+            case .weekSplit: return "Different on Weekends"
+            case .variable: return "Highly Variable"
+            }
         }
     }
 }
 
-struct SleepSchedule: Codable, Sendable {
-    let bedtime: Date
-    let wakeTime: Date
-    let rhythm: SleepRhythmType
-}
-
-// MARK: - Motivation
-enum AchievementStyle: String, Codable, CaseIterable, Sendable {
-    case enthusiasticCelebration = "enthusiastic"
-    case subtleAffirming = "subtle"
-    case dataFocused = "data_focused"
-    case privateReflection = "private"
-
-    var displayName: String {
-        switch self {
-        case .enthusiasticCelebration: return "Enthusiastic Celebration"
-        case .subtleAffirming: return "Subtle & Affirming"
-        case .dataFocused: return "Data-Focused"
-        case .privateReflection: return "Private Reflection"
+// MARK: - Motivational Style (matches OnboardingFlow.md structure)
+struct MotivationalStyle: Codable, Sendable {
+    var celebrationStyle: CelebrationStyle = .subtleAffirming
+    var absenceResponse: AbsenceResponse = .gentleNudge
+    
+    enum CelebrationStyle: String, Codable, CaseIterable, Sendable {
+        case subtleAffirming = "subtle_affirming"
+        case enthusiasticCelebratory = "enthusiastic_celebratory"
+        
+        var displayName: String {
+            switch self {
+            case .subtleAffirming: return "Subtle & Affirming"
+            case .enthusiasticCelebratory: return "Enthusiastic & Encouraging"
+            }
+        }
+        
+        var description: String {
+            switch self {
+            case .subtleAffirming: return "e.g., \"Solid progress.\", \"Noted.\""
+            case .enthusiasticCelebratory: return "e.g., \"Fantastic work!\", \"That's a huge win!\""
+            }
+        }
+    }
+    
+    enum AbsenceResponse: String, Codable, CaseIterable, Sendable {
+        case gentleNudge = "gentle_nudge"
+        case respectSpace = "respect_space"
+        
+        var displayName: String {
+            switch self {
+            case .gentleNudge: return "A Gentle Nudge from Your Coach"
+            case .respectSpace: return "Coach Respects Your Space"
+            }
+        }
+        
+        var description: String {
+            switch self {
+            case .gentleNudge: return "e.g., \"Checking in – how are things?\""
+            case .respectSpace: return "Waits for you to re-engage unless critical"
+            }
         }
     }
 }
 
-enum InactivityResponseStyle: String, Codable, CaseIterable, Sendable {
-    case motivationalPush = "motivational"
-    case gentleNudge = "gentle"
-    case factualReminder = "factual"
-    case waitForMe = "wait"
-
-    var displayName: String {
-        switch self {
-        case .motivationalPush: return "Motivational Push"
-        case .gentleNudge: return "Gentle Nudge"
-        case .factualReminder: return "Factual Reminder"
-        case .waitForMe: return "Wait for Me"
-        }
+// MARK: - USER_PROFILE_JSON_BLOB (matches OnboardingFlow.md and SystemPrompt.md)
+struct UserProfileJsonBlob: Codable, Sendable {
+    let lifeContext: LifeContext
+    let goal: Goal
+    let blend: Blend
+    let engagementPreferences: EngagementPreferences
+    let sleepWindow: SleepWindow
+    let motivationalStyle: MotivationalStyle
+    let timezone: String
+    let baselineModeEnabled: Bool
+    
+    init(
+        lifeContext: LifeContext,
+        goal: Goal,
+        blend: Blend,
+        engagementPreferences: EngagementPreferences,
+        sleepWindow: SleepWindow,
+        motivationalStyle: MotivationalStyle,
+        timezone: String = TimeZone.current.identifier,
+        baselineModeEnabled: Bool = true
+    ) {
+        self.lifeContext = lifeContext
+        self.goal = goal
+        self.blend = blend
+        self.engagementPreferences = engagementPreferences
+        self.sleepWindow = sleepWindow
+        self.motivationalStyle = motivationalStyle
+        self.timezone = timezone
+        self.baselineModeEnabled = baselineModeEnabled
     }
-}
-
-struct MotivationStyle: Codable, Sendable {
-    let achievementStyle: AchievementStyle
-    let inactivityStyle: InactivityResponseStyle
-}
-
-// MARK: - Complete Profile
-struct PersonaProfile: Codable, Sendable {
-    let lifeContext: LifeSnapshotSelections
-    let coreAspiration: String
-    let structuredGoal: StructuredGoal?
-    let coachingStyle: CoachingStylePreferences
-    let engagementPreference: EngagementPreset
-    let customEngagement: CustomEngagementSettings
-    let availability: [WorkoutAvailabilityBlock]
-    let sleepSchedule: SleepSchedule
-    let motivationStyle: MotivationStyle
-    let establishBaseline: Bool
 }

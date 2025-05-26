@@ -37,3 +37,16 @@ extension StructuredGoal {
         )
     }
 }
+
+extension UserProfileJsonBlob {
+    static var mock: UserProfileJsonBlob {
+        UserProfileJsonBlob(
+            lifeContext: LifeContext(),
+            goal: Goal(),
+            blend: Blend(),
+            engagementPreferences: EngagementPreferences(),
+            sleepWindow: SleepWindow(),
+            motivationalStyle: MotivationalStyle()
+        )
+    }
+}
