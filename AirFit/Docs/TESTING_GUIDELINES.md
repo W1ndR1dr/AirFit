@@ -748,3 +748,9 @@ Following these testing guidelines ensures that AirFit maintains high quality, r
 7. Ensure all UI is accessible and testable
 
 Good tests give us confidence to move fast without breaking things. They're an investment in our ability to evolve and improve AirFit over time.
+
+### Additional Implementation Notes
+
+- Every interactive view used in UI tests must expose identifiers to allow reliable selection
+- UI Test Page Objects are stored under `AirFitUITests/PageObjects` following the Page Object pattern
+- SwiftData Helpers use `ModelContainer.makeInMemoryContainer` from `AirFitTests/TestUtils` for isolated testing
