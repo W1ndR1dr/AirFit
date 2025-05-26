@@ -28,8 +28,8 @@ enum OnboardingScreen: String, CaseIterable, Sendable {
 
     var progress: Double {
         // 7 segments for main steps (excluding opening, generating, ready)
-        let mainSteps = Self.allCases.filter { 
-            $0 != .openingScreen && $0 != .generatingCoach && $0 != .coachProfileReady 
+        let mainSteps = Self.allCases.filter {
+            $0 != .openingScreen && $0 != .generatingCoach && $0 != .coachProfileReady
         }
         guard let index = mainSteps.firstIndex(of: self) else { return 0 }
         return Double(index) / Double(mainSteps.count - 1)
@@ -44,11 +44,11 @@ struct LifeContext: Codable, Sendable {
     var hasChildrenOrFamilyCare = false
     var scheduleType: ScheduleType = .predictable
     var workoutWindowPreference: WorkoutWindow = .varies
-    
+
     enum ScheduleType: String, Codable, CaseIterable, Sendable {
         case predictable = "predictable"
         case unpredictableChaotic = "unpredictable_chaotic"
-        
+
         var displayName: String {
             switch self {
             case .predictable: return "My schedule is generally predictable"
@@ -56,13 +56,13 @@ struct LifeContext: Codable, Sendable {
             }
         }
     }
-    
+
     enum WorkoutWindow: String, Codable, CaseIterable, Sendable {
         case earlyBird = "early_bird"
         case midDay = "mid_day"
         case nightOwl = "night_owl"
         case varies = "varies"
-        
+
         var displayName: String {
             switch self {
             case .earlyBird: return "Early Bird (e.g., 5-8 AM)"
@@ -78,14 +78,14 @@ struct LifeContext: Codable, Sendable {
 struct Goal: Codable, Sendable {
     var family: GoalFamily = .healthWellbeing
     var rawText: String = ""
-    
+
     enum GoalFamily: String, Codable, CaseIterable, Sendable {
         case strengthTone = "strength_tone"
         case endurance = "endurance"
         case performance = "performance"
         case healthWellbeing = "health_wellbeing"
         case recoveryRehab = "recovery_rehab"
-        
+
         var displayName: String {
             switch self {
             case .strengthTone: return "Enhance Strength & Physical Tone"
@@ -134,26 +134,28 @@ struct EngagementPreferences: Codable, Sendable {
     var informationDepth: InformationDepth = .keyMetrics
     var updateFrequency: UpdateFrequency = .weekly
     var autoRecoveryLogicPreference = true
-    
+
     enum TrackingStyle: String, Codable, CaseIterable, Sendable {
         case dataDrivenPartnership = "data_driven_partnership"
         case balancedConsistent = "balanced_consistent"
         case guidanceOnDemand = "guidance_on_demand"
-        
+        case custom = "custom"
+
         var displayName: String {
             switch self {
             case .dataDrivenPartnership: return "Data-Driven Partnership"
             case .balancedConsistent: return "Balanced & Consistent"
             case .guidanceOnDemand: return "Guidance on Demand"
+            case .custom: return "Custom"
             }
         }
     }
-    
+
     enum InformationDepth: String, Codable, CaseIterable, Sendable {
         case detailed = "detailed"
         case keyMetrics = "key_metrics"
         case essentialOnly = "essential_only"
-        
+
         var displayName: String {
             switch self {
             case .detailed: return "Detailed (e.g., macro tracking, in-depth analysis)"
@@ -162,12 +164,12 @@ struct EngagementPreferences: Codable, Sendable {
             }
         }
     }
-    
+
     enum UpdateFrequency: String, Codable, CaseIterable, Sendable {
         case daily = "daily"
         case weekly = "weekly"
         case onDemand = "on_demand"
-        
+
         var displayName: String {
             switch self {
             case .daily: return "Daily Insights & Check-ins"
@@ -183,12 +185,12 @@ struct SleepWindow: Codable, Sendable {
     var bedTime: String = "22:30"  // "HH:mm" format
     var wakeTime: String = "06:30" // "HH:mm" format
     var consistency: SleepConsistency = .consistent
-    
+
     enum SleepConsistency: String, Codable, CaseIterable, Sendable {
         case consistent = "consistent"
         case weekSplit = "week_split"
         case variable = "variable"
-        
+
         var displayName: String {
             switch self {
             case .consistent: return "Consistent"
@@ -203,18 +205,18 @@ struct SleepWindow: Codable, Sendable {
 struct MotivationalStyle: Codable, Sendable {
     var celebrationStyle: CelebrationStyle = .subtleAffirming
     var absenceResponse: AbsenceResponse = .gentleNudge
-    
+
     enum CelebrationStyle: String, Codable, CaseIterable, Sendable {
         case subtleAffirming = "subtle_affirming"
         case enthusiasticCelebratory = "enthusiastic_celebratory"
-        
+
         var displayName: String {
             switch self {
             case .subtleAffirming: return "Subtle & Affirming"
             case .enthusiasticCelebratory: return "Enthusiastic & Encouraging"
             }
         }
-        
+
         var description: String {
             switch self {
             case .subtleAffirming: return "e.g., \"Solid progress.\", \"Noted.\""
@@ -222,18 +224,18 @@ struct MotivationalStyle: Codable, Sendable {
             }
         }
     }
-    
+
     enum AbsenceResponse: String, Codable, CaseIterable, Sendable {
         case gentleNudge = "gentle_nudge"
         case respectSpace = "respect_space"
-        
+
         var displayName: String {
             switch self {
             case .gentleNudge: return "A Gentle Nudge from Your Coach"
             case .respectSpace: return "Coach Respects Your Space"
             }
         }
-        
+
         var description: String {
             switch self {
             case .gentleNudge: return "e.g., \"Checking in – how are things?\""
@@ -253,7 +255,7 @@ struct UserProfileJsonBlob: Codable, Sendable {
     let motivationalStyle: MotivationalStyle
     let timezone: String
     let baselineModeEnabled: Bool
-    
+
     init(
         lifeContext: LifeContext,
         goal: Goal,

@@ -47,9 +47,7 @@ struct EngagementPreferencesView: View {
 
             NavigationButtons(
                 backAction: viewModel.navigateToPreviousScreen,
-                nextAction: {
-                    viewModel.navigateToNextScreen()
-                }
+                nextAction: handleNext
             )
         }
         .accessibilityIdentifier("onboarding.engagementPreferences")
@@ -61,7 +59,9 @@ struct EngagementPreferencesView: View {
         style: EngagementPreferences.TrackingStyle,
         id: String
     ) -> some View {
-        Button(action: { selectPreset(style) }) {
+        Button(
+            action: { selectPreset(style) }
+        ) {
             HStack {
                 Text(title)
                     .font(AppFonts.body)
@@ -78,7 +78,10 @@ struct EngagementPreferencesView: View {
             .cornerRadius(AppConstants.Layout.defaultCornerRadius)
             .overlay(
                 RoundedRectangle(cornerRadius: AppConstants.Layout.defaultCornerRadius)
-                    .stroke(viewModel.engagementPreferences.trackingStyle == style ? AppColors.accentColor : Color.clear, lineWidth: 2)
+                    .stroke(
+                        viewModel.engagementPreferences.trackingStyle == style ? AppColors.accentColor : Color.clear,
+                        lineWidth: 2
+                    )
             )
         }
         .buttonStyle(.plain)
@@ -86,15 +89,14 @@ struct EngagementPreferencesView: View {
     }
 
     // MARK: - Custom Options
-    @ViewBuilder
-    private var customOptions: some View {
+    @ViewBuilder private var customOptions: some View {
         VStack(alignment: .leading, spacing: AppSpacing.medium) {
             Text("Information Depth:")
                 .font(AppFonts.headline)
                 .foregroundColor(AppColors.textPrimary)
                 .padding(.top, AppSpacing.medium)
 
-            ForEach(EngagementPreferences.InformationDepth.allCases, id: \..self) { depth in
+            ForEach(EngagementPreferences.InformationDepth.allCases, id: \.self) { depth in
                 radioOption(
                     title: depth.displayName,
                     isSelected: viewModel.engagementPreferences.informationDepth == depth,
@@ -108,7 +110,7 @@ struct EngagementPreferencesView: View {
                 .foregroundColor(AppColors.textPrimary)
                 .padding(.top, AppSpacing.medium)
 
-            ForEach(EngagementPreferences.UpdateFrequency.allCases, id: \..self) { freq in
+            ForEach(EngagementPreferences.UpdateFrequency.allCases, id: \.self) { freq in
                 radioOption(
                     title: freq.displayName,
                     isSelected: viewModel.engagementPreferences.updateFrequency == freq,
@@ -130,7 +132,9 @@ struct EngagementPreferencesView: View {
     }
 
     private func radioOption(title: String, isSelected: Bool, action: @escaping () -> Void, id: String) -> some View {
-        Button(action: action) {
+        Button(
+            action: action
+        ) {
             HStack {
                 Image(systemName: isSelected ? "largecircle.fill.circle" : "circle")
                     .foregroundColor(AppColors.accentColor)
@@ -143,6 +147,10 @@ struct EngagementPreferencesView: View {
         }
         .buttonStyle(.plain)
         .accessibilityIdentifier(id)
+    }
+
+    private func handleNext() {
+        viewModel.navigateToNextScreen()
     }
 
     private func selectPreset(_ preset: EngagementPreferences.TrackingStyle) {
@@ -173,7 +181,9 @@ private struct NavigationButtons: View {
 
     var body: some View {
         HStack(spacing: AppSpacing.medium) {
-            Button(action: backAction) {
+            Button(
+                action: backAction
+            ) {
                 Text(LocalizedStringKey("action.back"))
                     .font(AppFonts.body)
                     .foregroundColor(AppColors.textPrimary)
@@ -184,7 +194,9 @@ private struct NavigationButtons: View {
             }
             .accessibilityIdentifier("onboarding.back.button")
 
-            Button(action: nextAction) {
+            Button(
+                action: nextAction
+            ) {
                 Text(LocalizedStringKey("action.next"))
                     .font(AppFonts.bodyBold)
                     .foregroundColor(AppColors.textOnAccent)

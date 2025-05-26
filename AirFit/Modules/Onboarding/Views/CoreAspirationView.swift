@@ -17,7 +17,7 @@ struct CoreAspirationView: View {
                         .accessibilityIdentifier("onboarding.goal.prompt")
 
                     LazyVGrid(columns: columns, spacing: AppSpacing.medium) {
-                        ForEach(Goal.GoalFamily.allCases, id: \..self) { family in
+                        ForEach(Goal.GoalFamily.allCases, id: \.self) { family in
                             goalCard(family: family)
                         }
                     }
@@ -33,13 +33,15 @@ struct CoreAspirationView: View {
                             .textFieldStyle(.roundedBorder)
                             .accessibilityIdentifier("onboarding.goal.text")
 
-                        Button(action: {
-                            if viewModel.isTranscribing {
-                                viewModel.stopVoiceCapture()
-                            } else {
-                                viewModel.startVoiceCapture()
+                        Button(
+                            action: {
+                                if viewModel.isTranscribing {
+                                    viewModel.stopVoiceCapture()
+                                } else {
+                                    viewModel.startVoiceCapture()
+                                }
                             }
-                        }) {
+                        ) {
                             Image(systemName: viewModel.isTranscribing ? "stop.circle.fill" : "mic.circle.fill")
                                 .font(.system(size: 28))
                                 .foregroundColor(AppColors.accentColor)
@@ -52,19 +54,23 @@ struct CoreAspirationView: View {
 
             NavigationButtons(
                 backAction: viewModel.navigateToPreviousScreen,
-                nextAction: {
-                    Task {
-                        await viewModel.analyzeGoalText()
-                        viewModel.navigateToNextScreen()
-                    }
-                }
+                nextAction: handleNext
             )
         }
         .accessibilityIdentifier("onboarding.coreAspiration")
     }
 
+    private func handleNext() {
+        Task {
+            await viewModel.analyzeGoalText()
+            viewModel.navigateToNextScreen()
+        }
+    }
+
     private func goalCard(family: Goal.GoalFamily) -> some View {
-        Button(action: { viewModel.goal.family = family }) {
+        Button(
+            action: { viewModel.goal.family = family }
+        ) {
             HStack {
                 Text(family.displayName)
                     .font(AppFonts.body)
@@ -89,7 +95,6 @@ struct CoreAspirationView: View {
     }
 }
 
-
 // MARK: - NavigationButtons
 private struct NavigationButtons: View {
     var backAction: () -> Void
@@ -97,7 +102,9 @@ private struct NavigationButtons: View {
 
     var body: some View {
         HStack(spacing: AppSpacing.medium) {
-            Button(action: backAction) {
+            Button(
+                action: backAction
+            ) {
                 Text(LocalizedStringKey("action.back"))
                     .font(AppFonts.body)
                     .foregroundColor(AppColors.textPrimary)
@@ -108,7 +115,9 @@ private struct NavigationButtons: View {
             }
             .accessibilityIdentifier("onboarding.back.button")
 
-            Button(action: nextAction) {
+            Button(
+                action: nextAction
+            ) {
                 Text(LocalizedStringKey("action.next"))
                     .font(AppFonts.bodyBold)
                     .foregroundColor(AppColors.textOnAccent)
@@ -122,4 +131,3 @@ private struct NavigationButtons: View {
         .padding(.horizontal, AppSpacing.large)
     }
 }
-

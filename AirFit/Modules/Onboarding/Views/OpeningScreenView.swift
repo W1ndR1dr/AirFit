@@ -16,19 +16,19 @@ struct OpeningScreenView: View {
                     .scaleEffect(animateIn ? 1 : 0.5)
                     .opacity(animateIn ? 1 : 0)
 
-                Text(AppConstants.appName)
+                Text("AirFit")
                     .font(AppFonts.largeTitle)
                     .foregroundColor(AppColors.textPrimary)
                     .opacity(animateIn ? 1 : 0)
             }
 
             VStack(spacing: AppSpacing.small) {
-                Text(LocalizedStringKey("onboarding.opening.title"))
+                Text("Let's design your AirFit Coach")
                     .font(AppFonts.title3)
                     .foregroundColor(AppColors.textPrimary)
                     .multilineTextAlignment(.center)
 
-                Text(LocalizedStringKey("onboarding.opening.subtitle"))
+                Text("Est. 3-4 minutes to create your personalized experience")
                     .font(AppFonts.subheadline)
                     .foregroundColor(AppColors.textSecondary)
                     .multilineTextAlignment(.center)
@@ -39,10 +39,12 @@ struct OpeningScreenView: View {
             Spacer()
 
             VStack(spacing: AppSpacing.medium) {
-                Button(action: {
-                    viewModel.navigateToNextScreen()
-                }) {
-                    Text(LocalizedStringKey("onboarding.beginProfileSetup"))
+                Button(
+                    action: {
+                        viewModel.navigateToNextScreen()
+                    }
+                ) {
+                    Text("Begin")
                         .font(AppFonts.bodyBold)
                         .foregroundColor(AppColors.textOnAccent)
                         .frame(maxWidth: .infinity)
@@ -52,10 +54,12 @@ struct OpeningScreenView: View {
                 }
                 .accessibilityIdentifier("onboarding.begin.button")
 
-                Button(action: {
-                    AppLogger.info("Onboarding skipped", category: .onboarding)
-                }) {
-                    Text(LocalizedStringKey("onboarding.maybeLater"))
+                Button(
+                    action: {
+                        AppLogger.info("Onboarding skipped", category: .onboarding)
+                    }
+                ) {
+                    Text("Maybe Later")
                         .font(AppFonts.body)
                         .foregroundColor(AppColors.textSecondary)
                 }
@@ -67,10 +71,11 @@ struct OpeningScreenView: View {
         }
         .padding(AppSpacing.medium)
         .onAppear {
-            withAnimation(.easeOut(duration: 0.8).delay(0.2)) {
+            withAnimation(
+                .easeOut(duration: 0.8).delay(0.2)
+            ) {
                 animateIn = true
             }
         }
     }
 }
-

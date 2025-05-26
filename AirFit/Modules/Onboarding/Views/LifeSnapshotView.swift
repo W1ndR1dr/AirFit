@@ -60,7 +60,7 @@ struct LifeSnapshotView: View {
                         Text(LocalizedStringKey("onboarding.lifeSnapshot.workoutPrompt"))
                             .font(AppFonts.headline)
                             .foregroundColor(AppColors.textPrimary)
-                        ForEach(LifeContext.WorkoutWindow.allCases, id: \..self) { option in
+                        ForEach(LifeContext.WorkoutWindow.allCases, id: \.self) { option in
                             workoutOption(option)
                         }
                     }
@@ -88,9 +88,11 @@ struct LifeSnapshotView: View {
     }
 
     private func workoutOption(_ option: LifeContext.WorkoutWindow) -> some View {
-        Button(action: { viewModel.lifeContext.workoutWindowPreference = option }) {
+        Button(
+            action: { viewModel.lifeContext.workoutWindowPreference = option }
+        ) {
             HStack {
-                Image(systemName: viewModel.lifeContext.workoutWindowPreference == option ? "largecircle.fill.circle" : "circle")
+                Image(systemName: workoutOptionIcon(for: option))
                     .foregroundColor(AppColors.accentColor)
                 Text(option.displayName)
                     .font(AppFonts.body)
@@ -102,12 +104,18 @@ struct LifeSnapshotView: View {
         .buttonStyle(.plain)
         .accessibilityIdentifier("onboarding.life.workout_\(option.rawValue)")
     }
+
+    private func workoutOptionIcon(for option: LifeContext.WorkoutWindow) -> String {
+        viewModel.lifeContext.workoutWindowPreference == option ? "largecircle.fill.circle" : "circle"
+    }
 }
 
 // MARK: - CheckboxToggleStyle
 private struct CheckboxToggleStyle: ToggleStyle {
     func makeBody(configuration: Configuration) -> some View {
-        Button(action: { configuration.isOn.toggle() }) {
+        Button(
+            action: { configuration.isOn.toggle() }
+        ) {
             HStack(alignment: .center, spacing: AppSpacing.xSmall) {
                 Image(systemName: configuration.isOn ? "checkmark.square.fill" : "square")
                     .foregroundColor(AppColors.accentColor)
@@ -127,7 +135,9 @@ private struct NavigationButtons: View {
 
     var body: some View {
         HStack(spacing: AppSpacing.medium) {
-            Button(action: backAction) {
+            Button(
+                action: backAction
+            ) {
                 Text(LocalizedStringKey("action.back"))
                     .font(AppFonts.body)
                     .foregroundColor(AppColors.textPrimary)
@@ -138,7 +148,9 @@ private struct NavigationButtons: View {
             }
             .accessibilityIdentifier("onboarding.back.button")
 
-            Button(action: nextAction) {
+            Button(
+                action: nextAction
+            ) {
                 Text(LocalizedStringKey("action.next"))
                     .font(AppFonts.bodyBold)
                     .foregroundColor(AppColors.textOnAccent)
@@ -152,4 +164,3 @@ private struct NavigationButtons: View {
         .padding(.horizontal, AppSpacing.large)
     }
 }
-
