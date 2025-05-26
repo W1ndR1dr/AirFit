@@ -50,10 +50,13 @@ opt_in_rules:
   - static_operator
   - toggle_bool
   - unneeded_break_in_switch
-  - unused_import
   - vertical_parameter_alignment
   - vertical_parameter_alignment_on_call
   - yoda_condition
+
+# MARK: - Analyzer Rules
+analyzer_rules:
+  - unused_import
 
 # MARK: - Rule Configuration
 line_length:
@@ -103,7 +106,7 @@ identifier_name:
 
 # MARK: - Paths
 included:
-  - AirFit
+  - .
 
 excluded:
   - Carthage
@@ -112,6 +115,8 @@ excluded:
   - DerivedData
   - fastlane
   - .git
+  - AirFitTests
+  - AirFitUITests
 
 # MARK: - Reporter
 reporter: "xcode" 
