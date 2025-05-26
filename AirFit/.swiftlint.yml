@@ -1,14 +1,15 @@
-# SwiftLint configuration for AirFit
-# Updated for Swift 6 and SwiftLint 0.54.0+
+# SwiftLint Configuration for AirFit
+# Production-ready configuration for Swift 6 and iOS 18
+# Version: 1.0 - Bulletproof Foundation
 
+# MARK: - Disabled Rules
 disabled_rules:
-  - line_length # Will be configured below
-  - trailing_whitespace # Handled by formatter
-  - todo # We want to allow TODOs during development
-  - explicit_type_interface # Too aggressive for Swift's type inference
+  - todo # Allow TODOs during development
+  - explicit_type_interface # Swift's type inference is sufficient
 
+# MARK: - Opt-in Rules (Carefully Selected)
 opt_in_rules:
-  # Clarity
+  # Code Quality
   - attributes
   - closure_end_indentation
   - closure_spacing
@@ -32,8 +33,6 @@ opt_in_rules:
   - literal_expression_end_indentation
   - lower_acl_than_parent
   - modifier_order
-  - nimble_operator
-  - nslocalizedstring_key
   - number_separator
   - operator_usage_whitespace
   - overridden_super_call
@@ -42,9 +41,6 @@ opt_in_rules:
   - prefer_self_type_over_type_of_self
   - private_action
   - prohibited_super_call
-  - quick_discouraged_call
-  - quick_discouraged_focused_test
-  - quick_discouraged_pending_test
   - reduce_into
   - redundant_nil_coalescing
   - redundant_type_annotation
@@ -60,16 +56,18 @@ opt_in_rules:
   - xct_specific_matcher
   - yoda_condition
   
-  # Force unwrapping
+  # Force unwrapping prevention
   - force_unwrapping
   - implicitly_unwrapped_optional
   
-  # String
-  - string_literal_at_end_of_multiline_literal
-  
-  # Metrics
+  # File organization
   - file_name
   - file_types_order
+  - sorted_imports
+  - trailing_closure
+  - type_contents_order
+  
+  # Code style
   - indentation_width
   - multiline_arguments
   - multiline_function_chains
@@ -82,16 +80,16 @@ opt_in_rules:
   - prefer_zero_over_explicit_init
   - prefixed_toplevel_constant
   - raw_value_for_camel_cased_codable_enum
-  - sorted_imports
-  - trailing_closure
-  - type_contents_order
+  - trailing_comma
   - vertical_whitespace_closing_braces
   - vertical_whitespace_opening_braces
 
+# MARK: - Analyzer Rules
 analyzer_rules:
   - unused_import
   - unused_declaration
 
+# MARK: - Included/Excluded Paths
 included:
   - AirFit
 
@@ -102,8 +100,10 @@ excluded:
   - .swiftpm
   - AirFit/Resources/Generated
   - AirFit/Application/GeneratedAssetSymbols.swift
+  - swiftlint_violations.txt
 
-# Rule configurations
+# MARK: - Rule Configurations
+
 line_length:
   warning: 120
   error: 150
@@ -147,12 +147,18 @@ identifier_name:
   max_length:
     warning: 50
     error: 60
-  validates_start_with_lowercase: warning
+  validates_start_with_lowercase: error
   allowed_symbols: ["_"]
   excluded:
     - id
     - URL
     - AI
+    - x  # Allow single letter for coordinates
+    - y  # Allow single letter for coordinates
+    - r  # Allow single letter for red component
+    - g  # Allow single letter for green component
+    - b  # Allow single letter for blue component
+    - a  # Allow single letter for alpha component
 
 type_name:
   min_length:
@@ -168,6 +174,53 @@ trailing_comma:
 vertical_whitespace:
   max_empty_lines: 2
 
+indentation_width:
+  indentation_width: 4
+  include_comments: true
+
+file_types_order:
+  order:
+    - supporting_type
+    - main_type
+    - extension
+
+type_contents_order:
+  order:
+    - case
+    - associated_type
+    - type_alias
+    - subtype
+    - type_property
+    - instance_property
+    - ib_outlet
+    - ib_inspectable
+    - initializer
+    - type_method
+    - view_life_cycle_method
+    - ib_action
+    - other_method
+    - subscript
+    - deinitializer
+
+attributes:
+  always_on_same_line:
+    - "@IBAction"
+    - "@IBOutlet"
+    - "@IBInspectable"
+    - "@IBDesignable"
+    - "@NSManaged"
+    - "@objc"
+    - "@nonobjc"
+    - "@inline"
+    - "@discardableResult"
+    - "@available"
+    - "@MainActor"
+    - "@Sendable"
+  always_on_line_above:
+    - "@Test"
+    - "@Suite"
+
+# MARK: - Custom Rules
 custom_rules:
   no_print:
     name: "No direct print statements"
@@ -182,4 +235,5 @@ custom_rules:
     message: "Use AppLogger instead of NSLog()"
     severity: error
 
+# MARK: - Reporter
 reporter: "xcode" 
