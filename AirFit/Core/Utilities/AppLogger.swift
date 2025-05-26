@@ -1,87 +1,147 @@
 import Foundation
 import os.log
 
-struct AppLogger {
-    private static let subsystem = Bundle.main.bundleIdentifier ?? "com.airfit.app"
-    
-    enum LogCategory: String {
+/// Centralized logging system for AirFit
+enum AppLogger {
+    // MARK: - Categories
+    enum Category: String {
         case general = "General"
         case ui = "UI"
         case data = "Data"
-        case healthKit = "HealthKit"
         case network = "Network"
+        case health = "HealthKit"
         case ai = "AI"
+        case auth = "Authentication"
         case onboarding = "Onboarding"
-        case dashboard = "Dashboard"
-        case settings = "Settings"
-        case error = "Error"
+        case meals = "Meals"
         case performance = "Performance"
+
+        var osLog: OSLog {
+            OSLog(subsystem: subsystem, category: rawValue)
+        }
     }
-    
-    private static func getOSLog(category: LogCategory) -> OSLog {
-        return OSLog(subsystem: subsystem, category: category.rawValue)
-    }
-    
-    static func log(
+
+    private static let subsystem = Bundle.main.bundleIdentifier ?? "com.airfit.app"
+
+    // MARK: - Logging Methods
+    static func debug(
         _ message: String,
-        category: LogCategory = .general,
-        level: OSLogType = .default,
-        file: String = #file,
+        category: Category = .general,
+        file: String = #fileID,
         function: String = #function,
         line: Int = #line
     ) {
         #if DEBUG
-        let fileName = (file as NSString).lastPathComponent
-        let logMessage = "[\(fileName):\(line)] \(function) - \(message)"
-        os_log("%{public}@", log: getOSLog(category: category), type: level, logMessage)
+        log(message, category: category, level: .debug, file: file, function: function, line: line)
         #endif
     }
-    
-    static func debug(
-        _ message: String,
-        category: LogCategory = .general,
-        file: String = #file,
-        function: String = #function,
-        line: Int = #line
-    ) {
-        log(message, category: category, level: .debug, file: file, function: function, line: line)
-    }
-    
+
     static func info(
         _ message: String,
-        category: LogCategory = .general,
-        file: String = #file,
+        category: Category = .general,
+        file: String = #fileID,
         function: String = #function,
         line: Int = #line
     ) {
         log(message, category: category, level: .info, file: file, function: function, line: line)
     }
-    
-    static func error(
+
+    static func warning(
         _ message: String,
-        category: LogCategory = .general,
-        error: Error? = nil,
-        file: String = #file,
+        category: Category = .general,
+        file: String = #fileID,
         function: String = #function,
         line: Int = #line
     ) {
-        #if DEBUG
-        let fileName = (file as NSString).lastPathComponent
-        var logMessage = "[\(fileName):\(line)] \(function) - ERROR: \(message)"
-        if let error = error {
-            logMessage += "\nError Details: \(error.localizedDescription)"
-        }
-        os_log("%{public}@", log: getOSLog(category: category), type: .error, logMessage)
-        #endif
+        log(message, category: category, level: .default, file: file, function: function, line: line)
     }
-    
+
+    static func error(
+        _ message: String,
+        error: Error? = nil,
+        category: Category = .general,
+        file: String = #fileID,
+        function: String = #function,
+        line: Int = #line
+    ) {
+        var fullMessage = message
+        if let error = error {
+            fullMessage += "\nError: \(error.localizedDescription)"
+            if let underlyingError = (error as NSError).userInfo[NSUnderlyingErrorKey] as? Error {
+                fullMessage += "\nUnderlying: \(underlyingError.localizedDescription)"
+            }
+        }
+        log(fullMessage, category: category, level: .error, file: file, function: function, line: line)
+    }
+
     static func fault(
         _ message: String,
-        category: LogCategory = .general,
-        file: String = #file,
+        category: Category = .general,
+        file: String = #fileID,
         function: String = #function,
         line: Int = #line
     ) {
         log(message, category: category, level: .fault, file: file, function: function, line: line)
     }
-} 
+
+    // MARK: - Private Methods
+    private static func log(
+        _ message: String,
+        category: Category,
+        level: OSLogType,
+        file: String,
+        function: String,
+        line: Int
+    ) {
+        let fileName = (file as NSString).lastPathComponent
+        let logMessage = "[\(fileName):\(line)] \(function) - \(message)"
+
+        os_log("%{public}@", log: category.osLog, type: level, logMessage)
+
+        #if DEBUG
+        let emoji = emojiForLevel(level)
+        let timestamp = Date().formatted(.dateTime.hour().minute().second())
+        print("\(emoji) \(timestamp) [\(category.rawValue)] \(logMessage)")
+        #endif
+    }
+
+    private static func emojiForLevel(_ level: OSLogType) -> String {
+        switch level {
+        case .debug: return "🔍"
+        case .info: return "ℹ️"
+        case .default: return "⚠️"
+        case .error: return "❌"
+        case .fault: return "💥"
+        default: return "📝"
+        }
+    }
+}
+
+// MARK: - Performance Logging
+extension AppLogger {
+    static func measure<T>(
+        _ label: String,
+        category: Category = .performance,
+        operation: () throws -> T
+    ) rethrows -> T {
+        let startTime = CFAbsoluteTimeGetCurrent()
+        defer {
+            let timeElapsed = (CFAbsoluteTimeGetCurrent() - startTime) * 1000
+            debug("\(label) took \(String(format: "%.2f", timeElapsed))ms", category: category)
+        }
+        return try operation()
+    }
+
+    static func measureAsync<T>(
+        _ label: String,
+        category: Category = .performance,
+        operation: () async throws -> T
+    ) async rethrows -> T {
+        let startTime = CFAbsoluteTimeGetCurrent()
+        defer {
+            let timeElapsed = (CFAbsoluteTimeGetCurrent() - startTime) * 1000
+            debug("\(label) took \(String(format: "%.2f", timeElapsed))ms", category: category)
+        }
+        return try await operation()
+    }
+}
