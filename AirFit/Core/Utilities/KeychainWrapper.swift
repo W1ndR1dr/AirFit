@@ -43,7 +43,7 @@ public final class KeychainWrapper {
         let status = SecItemCopyMatching(query as CFDictionary, &dataTypeRef)
         
         guard status == errSecSuccess,
-              let data = dataTypeRef as? Data else {
+            let data = dataTypeRef as? Data else {
             throw KeychainError.itemNotFound
         }
         

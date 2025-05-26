@@ -6,6 +6,9 @@
 disabled_rules:
   - todo # Allow TODOs during development
   - explicit_type_interface # Swift's type inference is sufficient
+  - file_types_order # Too restrictive for our modular architecture
+  - type_contents_order # Too restrictive for our code organization
+  - file_name # Allow descriptive file names that don't match single types
 
 # MARK: - Opt-in Rules (Carefully Selected)
 opt_in_rules:
@@ -83,7 +86,7 @@ nesting:
 
 identifier_name:
   min_length:
-    warning: 2
+    warning: 1  # Allow single letter variables for common cases
     error: 1
   max_length:
     warning: 40
@@ -93,6 +96,10 @@ identifier_name:
     - x
     - y
     - z
+    - a  # alpha
+    - r  # red
+    - g  # green
+    - b  # blue
 
 # MARK: - Paths
 included:

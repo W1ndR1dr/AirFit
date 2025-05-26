@@ -5,7 +5,7 @@ final class KeychainWrapperTests: XCTestCase {
     var sut: KeychainWrapper!
     let testKey = "test_key"
     let testString = "test_value_123"
-    let testData = "test_data".data(using: .utf8)!
+    let testData = "test_data".data(using: .utf8) ?? Data()
     
     override func setUp() {
         super.setUp()
