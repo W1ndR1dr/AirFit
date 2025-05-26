@@ -4,9 +4,57 @@ import SwiftUI
 @main
 struct AirFitApp: App {
     // MARK: - Properties
+    @Environment(\.scenePhase) private var scenePhase
     @StateObject private var appState = AppState()
-    @Environment(\.scenePhase)
-    private var scenePhase
+
+    // MARK: - Model Container
+    static let sharedModelContainer: ModelContainer = {
+        let schema = Schema([
+            User.self,
+            OnboardingProfile.self,
+            DailyLog.self,
+            FoodEntry.self,
+            FoodItem.self,
+            Workout.self,
+            Exercise.self,
+            ExerciseSet.self,
+            CoachMessage.self,
+            ChatSession.self,
+            ChatMessage.self,
+            ChatAttachment.self,
+            NutritionData.self,
+            HealthKitSyncRecord.self,
+            WorkoutTemplate.self,
+            ExerciseTemplate.self,
+            SetTemplate.self,
+            MealTemplate.self,
+            FoodItemTemplate.self
+        ])
+
+        let modelConfiguration = ModelConfiguration(
+            schema: schema,
+            isStoredInMemoryOnly: false,
+            allowsSave: true,
+            cloudKitDatabase: .automatic
+        )
+
+        do {
+            let container = try ModelContainer(
+                for: schema,
+                migrationPlan: AirFitMigrationPlan.self,
+                configurations: [modelConfiguration]
+            )
+
+            container.mainContext.autosaveEnabled = true
+            container.mainContext.undoManager = nil
+
+            AppLogger.info("ModelContainer initialized successfully", category: .data)
+            return container
+        } catch {
+            AppLogger.fault("Failed to create ModelContainer", error: error, category: .data)
+            fatalError("Could not create ModelContainer: \(error)")
+        }
+    }()
 
     // MARK: - Initialization
     init() {
@@ -19,10 +67,9 @@ struct AirFitApp: App {
         WindowGroup {
             ContentView()
                 .environmentObject(appState)
-                .modelContainer(for: [
-                    // Add SwiftData models here
-                ])
+                .modelContainer(Self.sharedModelContainer)
                 .onAppear {
+                    setupInitialData()
                     AppLogger.info("Main view appeared", category: .ui)
                 }
         }
@@ -59,8 +106,15 @@ struct AirFitApp: App {
             AppLogger.info("App became inactive", category: .general)
         case .background:
             AppLogger.info("App entered background", category: .general)
+            try? Self.sharedModelContainer.mainContext.save()
         @unknown default:
             break
+        }
+    }
+
+    private func setupInitialData() {
+        Task {
+            await DataManager.shared.performInitialSetup()
         }
     }
 }
@@ -77,5 +131,44 @@ class AppState: ObservableObject {
 
     private func loadUserState() {
         // Load from UserDefaults or Keychain
+    }
+}
+
+// MARK: - Migration Plan
+enum AirFitMigrationPlan: SchemaMigrationPlan {
+    static var schemas: [any VersionedSchema.Type] {
+        [SchemaV1.self]
+    }
+
+    static var stages: [MigrationStage] {
+        []
+    }
+}
+
+// MARK: - Schema Versions
+enum SchemaV1: VersionedSchema {
+    static var versionIdentifier = Schema.Version(1, 0, 0)
+    static var models: [any PersistentModel.Type] {
+        [
+            User.self,
+            OnboardingProfile.self,
+            DailyLog.self,
+            FoodEntry.self,
+            FoodItem.self,
+            Workout.self,
+            Exercise.self,
+            ExerciseSet.self,
+            CoachMessage.self,
+            ChatSession.self,
+            ChatMessage.self,
+            ChatAttachment.self,
+            NutritionData.self,
+            HealthKitSyncRecord.self,
+            WorkoutTemplate.self,
+            ExerciseTemplate.self,
+            SetTemplate.self,
+            MealTemplate.self,
+            FoodItemTemplate.self
+        ]
     }
 }
