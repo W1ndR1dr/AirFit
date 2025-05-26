@@ -114,16 +114,6 @@ private struct PrivacyFooter: View {
 // MARK: - Placeholder Views
 
 
-private struct SleepAndBoundariesView: View {
-    @Bindable var viewModel: OnboardingViewModel
-    var body: some View { Text("Sleep & Boundaries") }
-}
-
-private struct MotivationalAccentsView: View {
-    @Bindable var viewModel: OnboardingViewModel
-    var body: some View { Text("Motivational Accents") }
-}
-
 private struct GeneratingCoachView: View {
     @Bindable var viewModel: OnboardingViewModel
     var body: some View { Text("Generating Coach...") }

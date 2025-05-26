@@ -225,3 +225,10 @@
 "onboarding.coreAspiration.freeformPrompt" = "Briefly describe this in your own words (optional, but helpful for your coach):";
 "onboarding.coaching.prompt" = "Define your ideal coaching interaction style. Adjust each element to create your preferred blend.";
 "onboarding.engagement.prompt" = "How deeply involved would you like your coach to be in your day-to-day tracking and planning?";
+"onboarding.sleep.prompt" = "To respect your downtime, please indicate your typical sleep schedule. Your coach will avoid sending notifications during these hours.";
+"onboarding.sleep.bedtime" = "Typical Bedtime";
+"onboarding.sleep.waketime" = "Typical Wake Time";
+"onboarding.sleep.rhythmPrompt" = "My sleep rhythm is generally:";
+"onboarding.motivation.prompt" = "A couple of final touches for how your coach acknowledges your efforts and checks in.";
+"onboarding.motivation.celebrationPrompt" = "Celebrating Achievements:";
+"onboarding.motivation.absencePrompt" = "If You're Inactive for a Few Days:";
