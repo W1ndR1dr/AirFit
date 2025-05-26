@@ -1,0 +1,173 @@
+import Testing
+import SwiftUI
+@testable import AirFit
+
+struct CoreSetupTests {
+    
+    // MARK: - Core View Components Tests
+    @Test func test_emptyStateView_initialization() {
+        let emptyState = EmptyStateView(
+            icon: "star",
+            title: "Test Title",
+            message: "Test Message"
+        )
+        
+        #expect(emptyState.icon == "star")
+        #expect(emptyState.title == "Test Title")
+        #expect(emptyState.message == "Test Message")
+        #expect(emptyState.action == nil)
+        #expect(emptyState.actionTitle == nil)
+    }
+    
+    @Test func test_emptyStateView_withAction() {
+        var actionCalled = false
+        let action = { actionCalled = true }
+        
+        let emptyState = EmptyStateView(
+            icon: "plus",
+            title: "Add Item",
+            message: "No items found",
+            action: action,
+            actionTitle: "Add Now"
+        )
+        
+        #expect(emptyState.actionTitle == "Add Now")
+        #expect(emptyState.action != nil)
+    }
+    
+    @Test func test_sectionHeader_initialization() {
+        let header = SectionHeader(title: "Test Section")
+        
+        #expect(header.title == "Test Section")
+        #expect(header.icon == nil)
+        #expect(header.action == nil)
+    }
+    
+    @Test func test_sectionHeader_withIconAndAction() {
+        var actionCalled = false
+        let action = { actionCalled = true }
+        
+        let header = SectionHeader(
+            title: "Settings",
+            icon: "gear",
+            action: action
+        )
+        
+        #expect(header.title == "Settings")
+        #expect(header.icon == "gear")
+        #expect(header.action != nil)
+    }
+    
+    // MARK: - Theme Access Tests
+    @Test func test_appColors_accessibility() {
+        // Test that all core colors are accessible
+        let _ = AppColors.backgroundPrimary
+        let _ = AppColors.backgroundSecondary
+        let _ = AppColors.textPrimary
+        let _ = AppColors.textSecondary
+        let _ = AppColors.cardBackground
+        let _ = AppColors.accentColor
+        let _ = AppColors.buttonBackground
+        let _ = AppColors.errorColor
+        let _ = AppColors.successColor
+        
+        // If we get here without crashes, colors are accessible
+        #expect(true)
+    }
+    
+    @Test func test_appFonts_accessibility() {
+        // Test that font methods are accessible
+        let _ = AppFonts.largeTitle()
+        let _ = AppFonts.title()
+        let _ = AppFonts.headline()
+        let _ = AppFonts.body()
+        let _ = AppFonts.caption()
+        
+        // If we get here without crashes, fonts are accessible
+        #expect(true)
+    }
+    
+    @Test func test_appSpacing_constants() {
+        // Test that spacing constants are defined
+        #expect(AppSpacing.xSmall > 0)
+        #expect(AppSpacing.small > 0)
+        #expect(AppSpacing.medium > 0)
+        #expect(AppSpacing.large > 0)
+        #expect(AppSpacing.xLarge > 0)
+        
+        // Test logical ordering
+        #expect(AppSpacing.xSmall < AppSpacing.small)
+        #expect(AppSpacing.small < AppSpacing.medium)
+        #expect(AppSpacing.medium < AppSpacing.large)
+        #expect(AppSpacing.large < AppSpacing.xLarge)
+    }
+    
+    @Test func test_appConstants_layout() {
+        // Test that layout constants are accessible
+        #expect(AppConstants.Layout.defaultPadding > 0)
+        #expect(AppConstants.Layout.defaultCornerRadius > 0)
+        #expect(AppConstants.Layout.defaultSpacing > 0)
+        
+        // Test reasonable values
+        #expect(AppConstants.Layout.defaultPadding >= 8)
+        #expect(AppConstants.Layout.defaultCornerRadius >= 4)
+    }
+    
+    // MARK: - View Extensions Tests
+    @Test func test_viewExtensions_compilation() {
+        // Test that view extensions compile without errors
+        let testView = Text("Test")
+        
+        // These should compile without errors
+        let _ = testView.standardPadding()
+        let _ = testView.cardStyle()
+        let _ = testView.primaryButton()
+        
+        #expect(true)
+    }
+    
+    // MARK: - Core Enums Tests
+    @Test func test_globalEnums_accessibility() {
+        // Test BiologicalSex enum
+        let sexCases = BiologicalSex.allCases
+        #expect(sexCases.count == 3)
+        #expect(sexCases.contains(.male))
+        #expect(sexCases.contains(.female))
+        #expect(sexCases.contains(.other))
+        
+        // Test ActivityLevel enum
+        let activityCases = ActivityLevel.allCases
+        #expect(activityCases.count == 5)
+        #expect(ActivityLevel.sedentary.multiplier == 1.2)
+        #expect(ActivityLevel.extreme.multiplier == 1.9)
+        
+        // Test FitnessGoal enum
+        let goalCases = FitnessGoal.allCases
+        #expect(goalCases.count == 3)
+        #expect(FitnessGoal.loseWeight.calorieAdjustment == -500)
+        #expect(FitnessGoal.maintainWeight.calorieAdjustment == 0)
+        #expect(FitnessGoal.gainMuscle.calorieAdjustment == 300)
+    }
+    
+    @Test func test_appTab_enum() {
+        let tabCases = AppTab.allCases
+        #expect(tabCases.count == 5)
+        
+        // Test system images are defined
+        for tab in tabCases {
+            #expect(!tab.systemImage.isEmpty)
+        }
+    }
+    
+    // MARK: - Error Handling Tests
+    @Test func test_appError_descriptions() {
+        let networkError = AppError.networkError(underlying: NSError(domain: "test", code: 1))
+        let validationError = AppError.validationError(message: "Invalid input")
+        let unauthorized = AppError.unauthorized
+        
+        #expect(networkError.errorDescription?.contains("Network error") == true)
+        #expect(validationError.errorDescription == "Invalid input")
+        #expect(unauthorized.errorDescription == "Please log in to continue")
+        #expect(unauthorized.recoverySuggestion == "Tap here to log in")
+    }
+} 
