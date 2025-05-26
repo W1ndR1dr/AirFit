@@ -28,6 +28,12 @@ final class MockAIService: AIServiceProtocol, MockProtocol {
 
 extension StructuredGoal {
     static var mock: StructuredGoal {
-        StructuredGoal(type: "weight_loss", target: 10, timeframe: 90, metric: "lb")
+        StructuredGoal(
+            goalType: "weight_loss",
+            primaryMetric: "weight",
+            timeframe: "3 months",
+            specificTarget: "10 lbs",
+            whyImportant: "Health and fitness"
+        )
     }
 }

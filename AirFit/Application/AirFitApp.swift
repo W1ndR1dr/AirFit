@@ -1,5 +1,6 @@
 import SwiftData
 import SwiftUI
+import Foundation
 
 @main
 struct AirFitApp: App {

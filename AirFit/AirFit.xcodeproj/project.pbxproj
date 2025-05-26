@@ -26,9 +26,7 @@
 		D3A73B6A2DE41A2C004CFCBA /* GlobalEnums.swift in Sources */ = {isa = PBXBuildFile; fileRef = D3A73B0C2DE41A2C004CFCBA /* GlobalEnums.swift */; };
 		D3A73B6B2DE41A2C004CFCBA /* AppFonts.swift in Sources */ = {isa = PBXBuildFile; fileRef = D3A73B172DE41A2C004CFCBA /* AppFonts.swift */; };
 		D3A73B6C2DE41A2C004CFCBA /* AppConstants.swift in Sources */ = {isa = PBXBuildFile; fileRef = D3A73B092DE41A2C004CFCBA /* AppConstants.swift */; };
-
 		D3A73B6E2DE41A2C004CFCBA /* KeychainWrapper.swift in Sources */ = {isa = PBXBuildFile; fileRef = D3A73B1F2DE41A2C004CFCBA /* KeychainWrapper.swift */; };
-
 		D3A73B702DE41A2C004CFCBA /* AIAPIServiceProtocol.swift in Sources */ = {isa = PBXBuildFile; fileRef = D3A73B4D2DE41A2C004CFCBA /* AIAPIServiceProtocol.swift */; };
 		D3A73B712DE41A2C004CFCBA /* CommonComponents.swift in Sources */ = {isa = PBXBuildFile; fileRef = D3A73B222DE41A2C004CFCBA /* CommonComponents.swift */; };
 		D3A73B722DE41A2C004CFCBA /* Validators.swift in Sources */ = {isa = PBXBuildFile; fileRef = D3A73B202DE41A2C004CFCBA /* Validators.swift */; };
@@ -85,9 +83,7 @@
 		D3A73BA52DE41A2C004CFCBA /* GlobalEnums.swift in Sources */ = {isa = PBXBuildFile; fileRef = D3A73B0C2DE41A2C004CFCBA /* GlobalEnums.swift */; };
 		D3A73BA62DE41A2C004CFCBA /* AppFonts.swift in Sources */ = {isa = PBXBuildFile; fileRef = D3A73B172DE41A2C004CFCBA /* AppFonts.swift */; };
 		D3A73BA72DE41A2C004CFCBA /* AppConstants.swift in Sources */ = {isa = PBXBuildFile; fileRef = D3A73B092DE41A2C004CFCBA /* AppConstants.swift */; };
-
 		D3A73BA92DE41A2C004CFCBA /* KeychainWrapper.swift in Sources */ = {isa = PBXBuildFile; fileRef = D3A73B1F2DE41A2C004CFCBA /* KeychainWrapper.swift */; };
-
 		D3A73BAB2DE41A2C004CFCBA /* AIAPIServiceProtocol.swift in Sources */ = {isa = PBXBuildFile; fileRef = D3A73B4D2DE41A2C004CFCBA /* AIAPIServiceProtocol.swift */; };
 		D3A73BAC2DE41A2C004CFCBA /* CommonComponents.swift in Sources */ = {isa = PBXBuildFile; fileRef = D3A73B222DE41A2C004CFCBA /* CommonComponents.swift */; };
 		D3A73BAD2DE41A2C004CFCBA /* Validators.swift in Sources */ = {isa = PBXBuildFile; fileRef = D3A73B202DE41A2C004CFCBA /* Validators.swift */; };
@@ -125,7 +121,6 @@
 		D37459E52DE3B49700EBAA4D /* AirFitTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = AirFitTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
 		D37459EF2DE3B49700EBAA4D /* AirFitUITests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = AirFitUITests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
 		D3A73B032DE41A2C004CFCBA /* AirFitApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AirFitApp.swift; sourceTree = "<group>"; };
-
 		D3A73B062DE41A2C004CFCBA /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
 		D3A73B072DE41A2C004CFCBA /* ContentView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ContentView.swift; sourceTree = "<group>"; };
 		D3A73B082DE41A2C004CFCBA /* APIConstants.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = APIConstants.swift; sourceTree = "<group>"; };
@@ -149,7 +144,6 @@
 		D3A73B1F2DE41A2C004CFCBA /* KeychainWrapper.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = KeychainWrapper.swift; sourceTree = "<group>"; };
 		D3A73B202DE41A2C004CFCBA /* Validators.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Validators.swift; sourceTree = "<group>"; };
 		D3A73B222DE41A2C004CFCBA /* CommonComponents.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CommonComponents.swift; sourceTree = "<group>"; };
-
 		D3A73B262DE41A2C004CFCBA /* Codex_Optimization_Report.md */ = {isa = PBXFileReference; lastKnownFileType = net.daringfireball.markdown; path = Codex_Optimization_Report.md; sourceTree = "<group>"; };
 		D3A73B272DE41A2C004CFCBA /* CONSISTENCY_SUMMARY.md */ = {isa = PBXFileReference; lastKnownFileType = net.daringfireball.markdown; path = CONSISTENCY_SUMMARY.md; sourceTree = "<group>"; };
 		D3A73B292DE41A2C004CFCBA /* AgentsMarkdown.md */ = {isa = PBXFileReference; lastKnownFileType = net.daringfireball.markdown; path = AgentsMarkdown.md; sourceTree = "<group>"; };
@@ -713,9 +707,7 @@
 				D3A73BA52DE41A2C004CFCBA /* GlobalEnums.swift in Sources */,
 				D3A73BA62DE41A2C004CFCBA /* AppFonts.swift in Sources */,
 				D3A73BA72DE41A2C004CFCBA /* AppConstants.swift in Sources */,
-
 				D3A73BA92DE41A2C004CFCBA /* KeychainWrapper.swift in Sources */,
-
 				D3A73BAB2DE41A2C004CFCBA /* AIAPIServiceProtocol.swift in Sources */,
 				D3A73BAC2DE41A2C004CFCBA /* CommonComponents.swift in Sources */,
 				D3A73BAD2DE41A2C004CFCBA /* Validators.swift in Sources */,
@@ -752,9 +744,7 @@
 				D3A73B6A2DE41A2C004CFCBA /* GlobalEnums.swift in Sources */,
 				D3A73B6B2DE41A2C004CFCBA /* AppFonts.swift in Sources */,
 				D3A73B6C2DE41A2C004CFCBA /* AppConstants.swift in Sources */,
-
 				D3A73B6E2DE41A2C004CFCBA /* KeychainWrapper.swift in Sources */,
-
 				D3A73B702DE41A2C004CFCBA /* AIAPIServiceProtocol.swift in Sources */,
 				D3A73B712DE41A2C004CFCBA /* CommonComponents.swift in Sources */,
 				D3A73B722DE41A2C004CFCBA /* Validators.swift in Sources */,
