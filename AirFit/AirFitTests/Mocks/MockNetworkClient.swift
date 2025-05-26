@@ -120,7 +120,7 @@ final class MockNetworkClient: NetworkClientProtocol, @unchecked Sendable {
     // Verification helpers
     func verify(endpoint: String, calledTimes times: Int) {
         let actualCalls = capturedRequests.filter { $0.path == endpoint }.count
-        assert(actualCalls == times, 
+        assert(actualCalls == times,
                "\(endpoint) was called \(actualCalls) times, expected \(times)")
     }
     
