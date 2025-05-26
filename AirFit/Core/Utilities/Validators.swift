@@ -1,6 +1,6 @@
 import Foundation
 
-enum Validators {
+public enum Validators {
     // MARK: - User Input
     static func validateEmail(_ email: String) -> ValidationResult {
         guard !email.isBlank else {

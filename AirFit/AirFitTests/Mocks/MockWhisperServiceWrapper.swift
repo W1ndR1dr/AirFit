@@ -1,6 +1,6 @@
-import Foundation
-import Combine
 @testable import AirFit
+import Combine
+import Foundation
 
 final class MockWhisperServiceWrapper: WhisperServiceWrapperProtocol {
     var isAvailable = CurrentValueSubject<Bool, Never>(true)

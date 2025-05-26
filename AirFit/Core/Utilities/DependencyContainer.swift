@@ -2,7 +2,7 @@ import Foundation
 import SwiftData
 
 @MainActor
-final class DependencyContainer {
+public final class DependencyContainer {
     static let shared = DependencyContainer()
     
     // MARK: - Properties

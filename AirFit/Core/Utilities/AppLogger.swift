@@ -2,19 +2,22 @@ import Foundation
 import os.log
 
 /// Centralized logging system for AirFit
-enum AppLogger {
+public enum AppLogger {
     // MARK: - Categories
     enum Category: String {
         case general = "General"
         case ui = "UI"
         case data = "Data"
         case network = "Network"
+        case networking = "Networking"
         case health = "HealthKit"
         case ai = "AI"
         case auth = "Authentication"
         case onboarding = "Onboarding"
         case meals = "Meals"
         case performance = "Performance"
+        case app = "App"
+        case storage = "Storage"
 
         var osLog: OSLog {
             OSLog(subsystem: subsystem, category: rawValue)
@@ -100,8 +103,8 @@ enum AppLogger {
 
         #if DEBUG
         let emoji = emojiForLevel(level)
-        let timestamp = Date().formatted(.dateTime.hour().minute().second())
-        print("\(emoji) \(timestamp) [\(category.rawValue)] \(logMessage)")
+        let timestamp = Date().formatted(date: .omitted, time: .standard)
+        debugPrint("\(emoji) \(timestamp) [\(category.rawValue)] \(logMessage)")
         #endif
     }
 
@@ -126,7 +129,7 @@ extension AppLogger {
     ) rethrows -> T {
         let startTime = CFAbsoluteTimeGetCurrent()
         defer {
-            let timeElapsed = (CFAbsoluteTimeGetCurrent() - startTime) * 1000
+            let timeElapsed = (CFAbsoluteTimeGetCurrent() - startTime) * 1_000
             debug("\(label) took \(String(format: "%.2f", timeElapsed))ms", category: category)
         }
         return try operation()
@@ -139,7 +142,7 @@ extension AppLogger {
     ) async rethrows -> T {
         let startTime = CFAbsoluteTimeGetCurrent()
         defer {
-            let timeElapsed = (CFAbsoluteTimeGetCurrent() - startTime) * 1000
+            let timeElapsed = (CFAbsoluteTimeGetCurrent() - startTime) * 1_000
             debug("\(label) took \(String(format: "%.2f", timeElapsed))ms", category: category)
         }
         return try await operation()

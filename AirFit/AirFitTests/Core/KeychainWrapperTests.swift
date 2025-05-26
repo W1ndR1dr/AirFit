@@ -1,5 +1,5 @@
-import XCTest
 @testable import AirFit
+import XCTest
 
 final class KeychainWrapperTests: XCTestCase {
     var sut: KeychainWrapper!

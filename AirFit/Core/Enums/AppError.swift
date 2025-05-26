@@ -1,6 +1,6 @@
 import Foundation
 
-enum AppError: LocalizedError, Sendable {
+public enum AppError: LocalizedError, Sendable {
     case networkError(underlying: Error)
     case decodingError(underlying: Error)
     case validationError(message: String)
@@ -10,7 +10,7 @@ enum AppError: LocalizedError, Sendable {
     case healthKitNotAuthorized
     case cameraNotAuthorized
 
-    var errorDescription: String? {
+    public var errorDescription: String? {
         switch self {
         case .networkError(let error):
             return "Network error: \(error.localizedDescription)"
@@ -31,7 +31,7 @@ enum AppError: LocalizedError, Sendable {
         }
     }
 
-    var recoverySuggestion: String? {
+    public var recoverySuggestion: String? {
         switch self {
         case .networkError:
             return "Please check your internet connection and try again"

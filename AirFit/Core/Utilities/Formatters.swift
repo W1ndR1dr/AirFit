@@ -1,6 +1,6 @@
 import Foundation
 
-enum Formatters {
+public enum Formatters {
     // MARK: - Number Formatters
     static let integer: NumberFormatter = {
         let formatter = NumberFormatter()

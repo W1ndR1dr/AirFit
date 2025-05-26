@@ -1,6 +1,6 @@
 import SwiftUI
 
-struct AppFonts {
+public struct AppFonts {
     // MARK: - Font Sizes
     private enum Size {
         static let largeTitle: CGFloat = 34

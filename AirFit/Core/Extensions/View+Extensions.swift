@@ -6,24 +6,24 @@ extension View {
     }
     
     func standardPadding() -> some View {
-        self.padding(AppConstants.defaultPadding)
+        self.padding(AppConstants.Layout.defaultPadding)
     }
     
     func cardStyle() -> some View {
         self
             .background(AppColors.cardBackground)
-            .cornerRadius(AppConstants.defaultCornerRadius)
+            .cornerRadius(AppConstants.Layout.defaultCornerRadius)
             .shadow(color: AppColors.shadowColor, radius: 4, x: 0, y: 2)
     }
     
     func primaryButton() -> some View {
         self
-            .font(AppFonts.headline())
+            .font(AppFonts.headline)
             .foregroundColor(AppColors.buttonText)
             .frame(maxWidth: .infinity)
             .padding()
             .background(AppColors.buttonBackground)
-            .cornerRadius(AppConstants.defaultCornerRadius)
+            .cornerRadius(AppConstants.Layout.defaultCornerRadius)
     }
     
     func onFirstAppear(perform action: @escaping () -> Void) -> some View {

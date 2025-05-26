@@ -1,5 +1,5 @@
-import Foundation
 @testable import AirFit
+import Foundation
 
 final class MockAPIKeyManager: APIKeyManagerProtocol {
     var savedKeys: [AIProvider: String] = [:]

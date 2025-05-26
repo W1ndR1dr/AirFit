@@ -1,5 +1,5 @@
-import UIKit
 import CoreHaptics
+import UIKit
 
 /// Manages haptic feedback throughout the app
 @MainActor
@@ -18,6 +18,31 @@ final class HapticManager {
         setupHapticEngine()
         prepareGenerators()
     }
+
+    // MARK: - Public Methods
+
+    /// Play impact haptic feedback
+    static func impact(_ style: UIImpactFeedbackGenerator.FeedbackStyle) {
+        Task { @MainActor in
+            shared.impactFeedback.impactOccurred(intensity: style.intensity)
+        }
+    }
+
+    /// Play notification haptic feedback
+    static func notification(_ type: UINotificationFeedbackGenerator.FeedbackType) {
+        Task { @MainActor in
+            shared.notificationFeedback.notificationOccurred(type)
+        }
+    }
+
+    /// Play selection haptic feedback
+    static func selection() {
+        Task { @MainActor in
+            shared.selectionFeedback.selectionChanged()
+        }
+    }
+
+    // MARK: - Private Methods
 
     private func setupHapticEngine() {
         guard CHHapticEngine.capabilitiesForHardware().supportsHaptics else {
@@ -48,29 +73,6 @@ final class HapticManager {
         impactFeedback.prepare()
         notificationFeedback.prepare()
         selectionFeedback.prepare()
-    }
-
-    // MARK: - Public Methods
-
-    /// Play impact haptic feedback
-    static func impact(_ style: UIImpactFeedbackGenerator.FeedbackStyle) {
-        Task { @MainActor in
-            shared.impactFeedback.impactOccurred(intensity: style.intensity)
-        }
-    }
-
-    /// Play notification haptic feedback
-    static func notification(_ type: UINotificationFeedbackGenerator.FeedbackType) {
-        Task { @MainActor in
-            shared.notificationFeedback.notificationOccurred(type)
-        }
-    }
-
-    /// Play selection haptic feedback
-    static func selection() {
-        Task { @MainActor in
-            shared.selectionFeedback.selectionChanged()
-        }
     }
 }
 

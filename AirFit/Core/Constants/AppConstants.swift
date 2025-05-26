@@ -38,13 +38,16 @@ enum AppConstants {
     enum Storage {
         static let userDefaultsSuiteName = "group.com.airfit.app"
         static let keychainServiceName = "com.airfit.app"
-        static let documentsDirectory = FileManager.default.urls(for: .documentDirectory, in: .userDomainMask).first!
+        static let documentsDirectory = FileManager.default.urls(
+            for: .documentDirectory,
+            in: .userDomainMask
+        ).first ?? URL(fileURLWithPath: NSTemporaryDirectory())
     }
 
     // MARK: - Health
     enum Health {
         static let maxDaysToSync = 30
-        static let updateInterval: TimeInterval = 3600 // 1 hour
+        static let updateInterval: TimeInterval = 3_600 // 1 hour
     }
 
     // MARK: - Validation

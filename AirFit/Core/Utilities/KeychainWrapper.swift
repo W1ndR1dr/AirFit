@@ -1,157 +1,151 @@
 import Foundation
 import Security
 
-final class KeychainWrapper {
+public final class KeychainWrapper {
     static let shared = KeychainWrapper()
     
-    private let serviceName = AppConstants.Storage.keychainServiceName
+    private let service = Bundle.main.bundleIdentifier ?? "com.airfit.app"
     
     private init() {}
     
-    // MARK: - Save
-    @discardableResult
-    func save(_ data: Data, for key: String) -> Bool {
-        delete(key: key) // Delete any existing item first
-        
+    // MARK: - Public Methods
+    
+    func save(_ data: Data, forKey key: String) throws {
         let query: [String: Any] = [
             kSecClass as String: kSecClassGenericPassword,
-            kSecAttrService as String: serviceName,
+            kSecAttrService as String: service,
             kSecAttrAccount as String: key,
             kSecValueData as String: data,
-            kSecAttrAccessible as String: kSecAttrAccessibleWhenUnlockedThisDeviceOnly
+            kSecAttrAccessible as String: kSecAttrAccessibleWhenUnlockedThisDeviceOnly,
         ]
         
+        // Delete any existing item
+        SecItemDelete(query as CFDictionary)
+        
+        // Add new item
         let status = SecItemAdd(query as CFDictionary, nil)
         
-        if status != errSecSuccess {
-            AppLogger.error("Keychain save failed", 
-                          error: KeychainError.saveFailed(status),
-                          category: .storage)
-        }
-        
-        return status == errSecSuccess
-    }
-    
-    @discardableResult
-    func saveString(_ string: String, for key: String) -> Bool {
-        guard let data = string.data(using: .utf8) else {
-            AppLogger.error("Failed to encode string for keychain", category: .storage)
-            return false
-        }
-        return save(data, for: key)
-    }
-    
-    @discardableResult
-    func saveCodable<T: Codable>(_ object: T, for key: String) -> Bool {
-        do {
-            let data = try JSONEncoder().encode(object)
-            return save(data, for: key)
-        } catch {
-            AppLogger.error("Failed to encode object for keychain", 
-                          error: error,
-                          category: .storage)
-            return false
+        guard status == errSecSuccess else {
+            throw KeychainError.unhandledError(status: status)
         }
     }
     
-    // MARK: - Retrieve
-    func getData(for key: String) -> Data? {
+    func load(key: String) throws -> Data {
         let query: [String: Any] = [
             kSecClass as String: kSecClassGenericPassword,
-            kSecAttrService as String: serviceName,
+            kSecAttrService as String: service,
             kSecAttrAccount as String: key,
             kSecReturnData as String: true,
-            kSecMatchLimit as String: kSecMatchLimitOne
+            kSecMatchLimit as String: kSecMatchLimitOne,
         ]
         
-        var result: AnyObject?
-        let status = SecItemCopyMatching(query as CFDictionary, &result)
+        var dataTypeRef: AnyObject?
+        let status = SecItemCopyMatching(query as CFDictionary, &dataTypeRef)
         
         guard status == errSecSuccess,
-              let data = result as? Data else {
-            if status != errSecItemNotFound {
-                AppLogger.error("Keychain retrieval failed", 
-                              error: KeychainError.retrievalFailed(status),
-                              category: .storage)
-            }
-            return nil
+              let data = dataTypeRef as? Data else {
+            throw KeychainError.itemNotFound
         }
         
         return data
     }
     
-    func getString(for key: String) -> String? {
-        guard let data = getData(for: key) else { return nil }
-        return String(data: data, encoding: .utf8)
-    }
-    
-    func getCodable<T: Codable>(_ type: T.Type, for key: String) -> T? {
-        guard let data = getData(for: key) else { return nil }
-        
-        do {
-            return try JSONDecoder().decode(type, from: data)
-        } catch {
-            AppLogger.error("Failed to decode object from keychain", 
-                          error: error,
-                          category: .storage)
-            return nil
-        }
-    }
-    
-    // MARK: - Delete
-    @discardableResult
-    func delete(key: String) -> Bool {
+    func delete(key: String) throws {
         let query: [String: Any] = [
             kSecClass as String: kSecClassGenericPassword,
-            kSecAttrService as String: serviceName,
-            kSecAttrAccount as String: key
+            kSecAttrService as String: service,
+            kSecAttrAccount as String: key,
         ]
         
         let status = SecItemDelete(query as CFDictionary)
         
-        if status != errSecSuccess && status != errSecItemNotFound {
-            AppLogger.error("Keychain deletion failed", 
-                          error: KeychainError.deletionFailed(status),
-                          category: .storage)
+        guard status == errSecSuccess || status == errSecItemNotFound else {
+            throw KeychainError.unhandledError(status: status)
         }
-        
-        return status == errSecSuccess || status == errSecItemNotFound
     }
     
-    // MARK: - Clear All
-    func clearAll() {
+    func update(_ data: Data, forKey key: String) throws {
         let query: [String: Any] = [
             kSecClass as String: kSecClassGenericPassword,
-            kSecAttrService as String: serviceName
+            kSecAttrService as String: service,
+            kSecAttrAccount as String: key,
         ]
         
-        let status = SecItemDelete(query as CFDictionary)
+        let attributesToUpdate: [String: Any] = [
+            kSecValueData as String: data,
+        ]
         
-        if status != errSecSuccess && status != errSecItemNotFound {
-            AppLogger.error("Failed to clear keychain", 
-                          error: KeychainError.clearFailed(status),
-                          category: .storage)
+        let status = SecItemUpdate(
+            query as CFDictionary,
+            attributesToUpdate as CFDictionary
+        )
+        
+        if status == errSecItemNotFound {
+            try save(data, forKey: key)
+        } else if status != errSecSuccess {
+            throw KeychainError.unhandledError(status: status)
+        }
+    }
+    
+    func exists(key: String) -> Bool {
+        let query: [String: Any] = [
+            kSecClass as String: kSecClassGenericPassword,
+            kSecAttrService as String: service,
+            kSecAttrAccount as String: key,
+        ]
+        
+        let status = SecItemCopyMatching(query as CFDictionary, nil)
+        return status == errSecSuccess
+    }
+}
+
+// MARK: - KeychainError
+public enum KeychainError: LocalizedError, Sendable {
+    case itemNotFound
+    case duplicateItem
+    case invalidData
+    case unhandledError(status: OSStatus)
+    
+    public var errorDescription: String? {
+        switch self {
+        case .itemNotFound:
+            return "Item not found in keychain"
+        case .duplicateItem:
+            return "Item already exists in keychain"
+        case .invalidData:
+            return "Invalid data format"
+        case .unhandledError(let status):
+            return "Keychain error: \(status)"
         }
     }
 }
 
-// MARK: - Error
-enum KeychainError: LocalizedError {
-    case saveFailed(OSStatus)
-    case retrievalFailed(OSStatus)
-    case deletionFailed(OSStatus)
-    case clearFailed(OSStatus)
-    
-    var errorDescription: String? {
-        switch self {
-        case .saveFailed(let status):
-            return "Failed to save to keychain: \(status)"
-        case .retrievalFailed(let status):
-            return "Failed to retrieve from keychain: \(status)"
-        case .deletionFailed(let status):
-            return "Failed to delete from keychain: \(status)"
-        case .clearFailed(let status):
-            return "Failed to clear keychain: \(status)"
+// MARK: - Convenience Methods
+extension KeychainWrapper {
+    func saveString(_ string: String, forKey key: String) throws {
+        guard let data = string.data(using: .utf8) else {
+            throw KeychainError.invalidData
         }
+        try save(data, forKey: key)
+    }
+    
+    func loadString(key: String) throws -> String {
+        let data = try load(key: key)
+        guard let string = String(data: data, encoding: .utf8) else {
+            throw KeychainError.invalidData
+        }
+        return string
+    }
+    
+    func saveCodable<T: Codable>(_ object: T, forKey key: String) throws {
+        let encoder = JSONEncoder()
+        let data = try encoder.encode(object)
+        try save(data, forKey: key)
+    }
+    
+    func loadCodable<T: Codable>(_ type: T.Type, key: String) throws -> T {
+        let data = try load(key: key)
+        let decoder = JSONDecoder()
+        return try decoder.decode(type, from: data)
     }
 } 

@@ -1,5 +1,5 @@
-import Testing
 @testable import AirFit
+import Testing
 
 struct FormattersTests {
     @Test func test_formatCalories() {

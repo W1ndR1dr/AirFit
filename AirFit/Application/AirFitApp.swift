@@ -1,11 +1,11 @@
-import SwiftUI
 import SwiftData
+import SwiftUI
 
 @main
 struct AirFitApp: App {
     // MARK: - Properties
-    @Environment(\.scenePhase) private var scenePhase
     @StateObject private var appState = AppState()
+    @Environment(\.scenePhase) private var scenePhase
 
     // MARK: - Initialization
     init() {
@@ -18,7 +18,9 @@ struct AirFitApp: App {
         WindowGroup {
             ContentView()
                 .environmentObject(appState)
-                .modelContainer(for: [])
+                .modelContainer(for: [
+                    // Add SwiftData models here
+                ])
                 .onAppear {
                     AppLogger.info("Main view appeared", category: .ui)
                 }

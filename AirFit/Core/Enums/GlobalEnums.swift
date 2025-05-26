@@ -1,26 +1,25 @@
 import Foundation
+import SwiftUI
 
 // MARK: - User Related
-enum BiologicalSex: String, Codable, CaseIterable, Sendable {
-    case male = "male"
-    case female = "female"
-    case other = "other"
+public enum BiologicalSex: String, Codable, CaseIterable, Sendable {
+    case male
+    case female
 
     var displayName: String {
         switch self {
         case .male: return "Male"
         case .female: return "Female"
-        case .other: return "Other"
         }
     }
 }
 
-enum ActivityLevel: String, Codable, CaseIterable, Sendable {
-    case sedentary = "sedentary"
+public enum ActivityLevel: String, Codable, CaseIterable, Sendable {
+    case sedentary
     case lightlyActive = "lightly_active"
-    case moderate = "moderate"
+    case moderate
     case veryActive = "very_active"
-    case extreme = "extreme"
+    case extreme
 
     var displayName: String {
         switch self {
@@ -43,7 +42,7 @@ enum ActivityLevel: String, Codable, CaseIterable, Sendable {
     }
 }
 
-enum FitnessGoal: String, Codable, CaseIterable, Sendable {
+public enum FitnessGoal: String, Codable, CaseIterable, Sendable {
     case loseWeight = "lose_weight"
     case maintainWeight = "maintain_weight"
     case gainMuscle = "gain_muscle"
@@ -66,17 +65,17 @@ enum FitnessGoal: String, Codable, CaseIterable, Sendable {
 }
 
 // MARK: - App State
-enum LoadingState: Equatable, Sendable {
+public enum LoadingState: Equatable, Sendable {
     case idle
     case loading
     case loaded
     case error(Error)
 
-    static func == (lhs: LoadingState, rhs: LoadingState) -> Bool {
+    public static func == (lhs: Self, rhs: Self) -> Bool {
         switch (lhs, rhs) {
         case (.idle, .idle), (.loading, .loading), (.loaded, .loaded):
             return true
-        case (.error(let lhsError), .error(let rhsError)):
+        case let (.error(lhsError), .error(rhsError)):
             return lhsError.localizedDescription == rhsError.localizedDescription
         default:
             return false
@@ -85,7 +84,7 @@ enum LoadingState: Equatable, Sendable {
 }
 
 // MARK: - Navigation
-enum AppTab: String, CaseIterable, Sendable {
+public enum AppTab: String, CaseIterable, Sendable {
     case dashboard
     case meals
     case discover

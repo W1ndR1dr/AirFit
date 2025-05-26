@@ -1,5 +1,5 @@
-import Foundation
 import Combine
+import Foundation
 
 /// Represents a chat message exchanged with the AI.
 struct ChatMessage: Codable {

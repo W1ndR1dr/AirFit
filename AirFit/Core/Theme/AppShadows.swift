@@ -1,6 +1,6 @@
 import SwiftUI
 
-struct AppShadows {
+public struct AppShadows {
     // MARK: - Shadow Styles
     static let small = Shadow(
         color: Color.black.opacity(0.08),

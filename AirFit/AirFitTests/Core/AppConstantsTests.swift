@@ -1,5 +1,5 @@
-import Testing
 @testable import AirFit
+import Testing
 
 struct AppConstantsTests {
     @Test func test_layout_constants() {

@@ -1,6 +1,6 @@
 import SwiftUI
 
-enum AppSpacing {
+public enum AppSpacing {
     /// 4pt
     static let xxSmall: CGFloat = 4
     /// 8pt

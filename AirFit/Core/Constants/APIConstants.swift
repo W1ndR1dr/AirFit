@@ -1,6 +1,6 @@
 import Foundation
 
-enum APIConstants {
+public enum APIConstants {
     // MARK: - Base URLs
     static let baseURL = "https://api.airfit.com/v1"
     static let authBaseURL = "https://auth.airfit.com/v1"
@@ -69,7 +69,7 @@ enum APIConstants {
     // MARK: - Cache
     enum Cache {
         static let defaultExpiration: TimeInterval = 300 // 5 minutes
-        static let longExpiration: TimeInterval = 3600 // 1 hour
-        static let userProfileExpiration: TimeInterval = 86400 // 24 hours
+        static let longExpiration: TimeInterval = 3_600 // 1 hour
+        static let userProfileExpiration: TimeInterval = 86_400 // 24 hours
     }
 } 

@@ -1,0 +1,212 @@
+/* 
+  Localizable.strings
+  AirFit
+
+  Comprehensive localization file for all UI text
+*/
+
+// MARK: - App General
+"app.name" = "AirFit";
+"app.tagline" = "Your AI-Powered Nutrition Coach";
+
+// MARK: - Common Actions
+"action.continue" = "Continue";
+"action.next" = "Next";
+"action.previous" = "Previous";
+"action.done" = "Done";
+"action.save" = "Save";
+"action.cancel" = "Cancel";
+"action.delete" = "Delete";
+"action.edit" = "Edit";
+"action.add" = "Add";
+"action.search" = "Search";
+"action.filter" = "Filter";
+"action.sort" = "Sort";
+"action.share" = "Share";
+"action.close" = "Close";
+"action.retry" = "Retry";
+"action.refresh" = "Refresh";
+"action.settings" = "Settings";
+"action.logout" = "Log Out";
+"action.getStarted" = "Get Started";
+"action.skip" = "Skip";
+"action.back" = "Back";
+"action.viewAll" = "View All";
+"action.learnMore" = "Learn More";
+
+// MARK: - Tab Bar
+"tab.dashboard" = "Dashboard";
+"tab.meals" = "Meals";
+"tab.discover" = "Discover";
+"tab.progress" = "Progress";
+"tab.settings" = "Settings";
+
+// MARK: - Onboarding
+"onboarding.welcome.title" = "Welcome to AirFit";
+"onboarding.welcome.subtitle" = "Your personalized AI nutrition coach";
+"onboarding.welcome.description" = "Track meals, get AI-powered insights, and achieve your health goals with ease.";
+
+"onboarding.profile.title" = "Let's Get to Know You";
+"onboarding.profile.subtitle" = "Help us personalize your experience";
+"onboarding.profile.name" = "What's your name?";
+"onboarding.profile.age" = "How old are you?";
+"onboarding.profile.sex" = "Biological sex";
+"onboarding.profile.height" = "Height";
+"onboarding.profile.weight" = "Weight";
+"onboarding.profile.activityLevel" = "Activity Level";
+
+"onboarding.goals.title" = "What's Your Goal?";
+"onboarding.goals.subtitle" = "We'll help you get there";
+"onboarding.goals.loseWeight" = "Lose Weight";
+"onboarding.goals.maintainWeight" = "Maintain Weight";
+"onboarding.goals.gainMuscle" = "Build Muscle";
+
+"onboarding.permissions.title" = "Enable Features";
+"onboarding.permissions.subtitle" = "Get the most out of AirFit";
+"onboarding.permissions.health" = "Health Data";
+"onboarding.permissions.health.description" = "Sync with Apple Health for accurate tracking";
+"onboarding.permissions.notifications" = "Notifications";
+"onboarding.permissions.notifications.description" = "Get reminders and meal insights";
+"onboarding.permissions.camera" = "Camera";
+"onboarding.permissions.camera.description" = "Scan barcodes and take meal photos";
+
+"onboarding.complete.title" = "You're All Set!";
+"onboarding.complete.subtitle" = "Let's start your journey to better health";
+
+// MARK: - Dashboard
+"dashboard.greeting.morning" = "Good morning, %@";
+"dashboard.greeting.afternoon" = "Good afternoon, %@";
+"dashboard.greeting.evening" = "Good evening, %@";
+
+"dashboard.summary.title" = "Today's Summary";
+"dashboard.summary.calories" = "Calories";
+"dashboard.summary.protein" = "Protein";
+"dashboard.summary.carbs" = "Carbs";
+"dashboard.summary.fat" = "Fat";
+"dashboard.summary.remaining" = "%@ remaining";
+"dashboard.summary.over" = "%@ over";
+
+"dashboard.quickActions.title" = "Quick Actions";
+"dashboard.quickActions.logMeal" = "Log Meal";
+"dashboard.quickActions.scanBarcode" = "Scan Barcode";
+"dashboard.quickActions.voiceLog" = "Voice Log";
+"dashboard.quickActions.aiAssistant" = "AI Assistant";
+
+"dashboard.recentMeals.title" = "Recent Meals";
+"dashboard.recentMeals.empty" = "No meals logged yet";
+"dashboard.recentMeals.breakfast" = "Breakfast";
+"dashboard.recentMeals.lunch" = "Lunch";
+"dashboard.recentMeals.dinner" = "Dinner";
+"dashboard.recentMeals.snack" = "Snack";
+
+// MARK: - Meal Logging
+"meal.log.title" = "Log Meal";
+"meal.log.searchPlaceholder" = "Search for food...";
+"meal.log.serving" = "Serving";
+"meal.log.quantity" = "Quantity";
+"meal.log.mealType" = "Meal Type";
+"meal.log.time" = "Time";
+"meal.log.notes" = "Notes (optional)";
+"meal.log.photo" = "Add Photo";
+"meal.log.barcode" = "Scan Barcode";
+"meal.log.voice" = "Voice Input";
+"meal.log.favorites" = "Favorites";
+"meal.log.recent" = "Recent";
+"meal.log.custom" = "Create Custom Food";
+
+// MARK: - Progress
+"progress.title" = "Your Progress";
+"progress.weight.title" = "Weight Trend";
+"progress.calories.title" = "Calorie Intake";
+"progress.macros.title" = "Macro Distribution";
+"progress.streak.title" = "Logging Streak";
+"progress.streak.days" = "%d days";
+"progress.insights.title" = "AI Insights";
+"progress.export" = "Export Data";
+
+// MARK: - Settings
+"settings.title" = "Settings";
+"settings.account.section" = "Account";
+"settings.account.profile" = "Profile";
+"settings.account.goals" = "Goals & Targets";
+"settings.account.subscription" = "Subscription";
+
+"settings.preferences.section" = "Preferences";
+"settings.preferences.units" = "Units";
+"settings.preferences.notifications" = "Notifications";
+"settings.preferences.privacy" = "Privacy";
+"settings.preferences.theme" = "Appearance";
+
+"settings.data.section" = "Data";
+"settings.data.health" = "Health Integration";
+"settings.data.export" = "Export Data";
+"settings.data.delete" = "Delete Account";
+
+"settings.about.section" = "About";
+"settings.about.version" = "Version";
+"settings.about.terms" = "Terms of Service";
+"settings.about.privacy" = "Privacy Policy";
+"settings.about.support" = "Support";
+"settings.about.rate" = "Rate AirFit";
+
+// MARK: - Errors
+"error.generic" = "Something went wrong";
+"error.network" = "Network connection error";
+"error.network.description" = "Please check your internet connection and try again";
+"error.unauthorized" = "Authentication required";
+"error.unauthorized.description" = "Please log in to continue";
+"error.serverError" = "Server error";
+"error.serverError.description" = "We're having trouble connecting. Please try again later";
+"error.validation" = "Invalid input";
+"error.healthKit" = "Health access required";
+"error.healthKit.description" = "Grant access in Settings > Privacy > Health";
+"error.camera" = "Camera access required";
+"error.camera.description" = "Grant access in Settings > Privacy > Camera";
+
+// MARK: - Success Messages
+"success.saved" = "Saved successfully";
+"success.deleted" = "Deleted successfully";
+"success.updated" = "Updated successfully";
+"success.mealLogged" = "Meal logged successfully";
+"success.goalUpdated" = "Goal updated successfully";
+
+// MARK: - Empty States
+"empty.meals" = "No meals logged yet";
+"empty.meals.description" = "Start tracking your nutrition by logging your first meal";
+"empty.favorites" = "No favorites yet";
+"empty.favorites.description" = "Save your frequently eaten foods for quick access";
+"empty.progress" = "Not enough data yet";
+"empty.progress.description" = "Keep logging meals to see your progress trends";
+
+// MARK: - AI Assistant
+"ai.greeting" = "Hi! I'm your AI nutrition coach. How can I help you today?";
+"ai.placeholder" = "Ask me anything about nutrition...";
+"ai.suggestions.title" = "Suggestions";
+"ai.thinking" = "Thinking...";
+"ai.error" = "I'm having trouble understanding. Could you try rephrasing?";
+
+// MARK: - Units
+"units.metric" = "Metric";
+"units.imperial" = "Imperial";
+"units.kg" = "kg";
+"units.lbs" = "lbs";
+"units.cm" = "cm";
+"units.ft" = "ft";
+"units.in" = "in";
+"units.cal" = "cal";
+"units.g" = "g";
+"units.oz" = "oz";
+"units.ml" = "ml";
+"units.cup" = "cup";
+
+// MARK: - Time
+"time.today" = "Today";
+"time.yesterday" = "Yesterday";
+"time.thisWeek" = "This Week";
+"time.lastWeek" = "Last Week";
+"time.thisMonth" = "This Month";
+"time.lastMonth" = "Last Month";
+"time.morning" = "Morning";
+"time.afternoon" = "Afternoon";
+"time.evening" = "Evening";
+"time.night" = "Night"; 

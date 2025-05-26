@@ -1,6 +1,6 @@
+@testable import AirFit
 import SwiftUI
 import Testing
-@testable import AirFit
 
 struct ExtensionsTests {
     @Test func test_kilogramsToPounds() {

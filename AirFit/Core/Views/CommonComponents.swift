@@ -1,7 +1,7 @@
 import SwiftUI
 
 // MARK: - Section Header
-struct SectionHeader: View {
+public struct SectionHeader: View {
     let title: String
     let icon: String?
     let action: (() -> Void)?
@@ -12,7 +12,7 @@ struct SectionHeader: View {
         self.action = action
     }
 
-    var body: some View {
+    public var body: some View {
         HStack {
             if let icon = icon {
                 Image(systemName: icon)
@@ -38,7 +38,7 @@ struct SectionHeader: View {
 }
 
 // MARK: - Empty State View
-struct EmptyStateView: View {
+public struct EmptyStateView: View {
     let icon: String
     let title: String
     let message: String
@@ -59,7 +59,7 @@ struct EmptyStateView: View {
         self.actionTitle = actionTitle
     }
 
-    var body: some View {
+    public var body: some View {
         VStack(spacing: AppSpacing.large) {
             Image(systemName: icon)
                 .font(.system(size: 60))
@@ -89,14 +89,14 @@ struct EmptyStateView: View {
 }
 
 // MARK: - Card View
-struct Card<Content: View>: View {
+public struct Card<Content: View>: View {
     let content: () -> Content
 
     init(@ViewBuilder content: @escaping () -> Content) {
         self.content = content
     }
 
-    var body: some View {
+    public var body: some View {
         content()
             .padding(AppSpacing.medium)
             .background(Color.cardBackground)
@@ -106,11 +106,11 @@ struct Card<Content: View>: View {
 }
 
 // MARK: - Loading Overlay Modifier
-struct LoadingOverlay: ViewModifier {
+public struct LoadingOverlay: ViewModifier {
     let isLoading: Bool
     let message: String?
 
-    func body(content: Content) -> some View {
+    public func body(content: Content) -> some View {
         ZStack {
             content
                 .disabled(isLoading)

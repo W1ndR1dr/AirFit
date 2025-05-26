@@ -43,7 +43,6 @@ final class NetworkClient: NetworkClientProtocol {
                               category: .networking)
                 throw NetworkError.decodingError(error)
             }
-            
         } catch let error as NetworkError {
             throw error
         } catch {
@@ -69,7 +68,6 @@ final class NetworkClient: NetworkClientProtocol {
             guard (200...299).contains(httpResponse.statusCode) else {
                 throw NetworkError.httpError(statusCode: httpResponse.statusCode, data: nil)
             }
-            
         } catch let error as NetworkError {
             throw error
         } catch {
@@ -96,7 +94,6 @@ final class NetworkClient: NetworkClientProtocol {
             }
             
             return data
-            
         } catch let error as NetworkError {
             throw error
         } catch {

@@ -1,5 +1,5 @@
-import Testing
 @testable import AirFit
+import Testing
 
 struct ValidatorsTests {
     @Test func test_validateEmail() {

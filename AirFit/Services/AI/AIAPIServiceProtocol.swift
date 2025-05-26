@@ -1,5 +1,5 @@
-import Foundation
 import Combine
+import Foundation
 
 /// Defines interaction with an AI provider's API.
 protocol AIAPIServiceProtocol {

@@ -1,6 +1,6 @@
-import Foundation
-import Combine
 @testable import AirFit
+import Combine
+import Foundation
 
 final class MockAIAPIService: AIAPIServiceProtocol {
     var configureCalledWith: (provider: AIProvider, apiKey: String, modelIdentifier: String?)?
