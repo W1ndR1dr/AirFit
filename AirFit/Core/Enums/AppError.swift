@@ -20,7 +20,7 @@ public enum AppError: LocalizedError, Sendable {
             return message
         case .unauthorized:
             return "Please log in to continue"
-        case .serverError(let code, let message):
+        case let .serverError(code, message):
             return message ?? "Server error (Code: \(code))"
         case .unknown(let message):
             return message

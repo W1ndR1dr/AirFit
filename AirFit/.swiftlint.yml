@@ -214,11 +214,11 @@ attributes:
     - "@inline"
     - "@discardableResult"
     - "@available"
-    - "@MainActor"
     - "@Sendable"
   always_on_line_above:
     - "@Test"
     - "@Suite"
+    - "@MainActor"
 
 # MARK: - Custom Rules
 custom_rules:

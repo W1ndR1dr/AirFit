@@ -1,6 +1,30 @@
 import Foundation
 
 public enum Validators {
+    // MARK: - Nested Types
+    
+    // MARK: - Result Type
+    enum ValidationResult: Equatable {
+        case success
+        case failure(String)
+
+        var isValid: Bool {
+            switch self {
+            case .success: return true
+            case .failure: return false
+            }
+        }
+
+        var errorMessage: String? {
+            switch self {
+            case .success: return nil
+            case .failure(let message): return message
+            }
+        }
+    }
+    
+    // MARK: - Static Methods
+    
     // MARK: - User Input
     static func validateEmail(_ email: String) -> ValidationResult {
         guard !email.isBlank else {
@@ -53,25 +77,5 @@ public enum Validators {
             return .failure("Please enter a valid height")
         }
         return .success
-    }
-
-    // MARK: - Result Type
-    enum ValidationResult: Equatable {
-        case success
-        case failure(String)
-
-        var isValid: Bool {
-            switch self {
-            case .success: return true
-            case .failure: return false
-            }
-        }
-
-        var errorMessage: String? {
-            switch self {
-            case .success: return nil
-            case .failure(let message): return message
-            }
-        }
     }
 }

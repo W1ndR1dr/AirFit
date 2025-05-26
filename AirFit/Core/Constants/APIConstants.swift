@@ -1,13 +1,7 @@
 import Foundation
 
 public enum APIConstants {
-    // MARK: - Base URLs
-    static let baseURL = "https://api.airfit.com/v1"
-    static let authBaseURL = "https://auth.airfit.com/v1"
-    
-    // MARK: - API Versions
-    static let apiVersion = "v1"
-    static let minimumSupportedVersion = "1.0.0"
+    // MARK: - Nested Types
     
     // MARK: - Headers
     enum Headers {
@@ -72,4 +66,14 @@ public enum APIConstants {
         static let longExpiration: TimeInterval = 3_600 // 1 hour
         static let userProfileExpiration: TimeInterval = 86_400 // 24 hours
     }
+    
+    // MARK: - Static Properties
+    
+    // MARK: - Base URLs
+    static let baseURL = "https://api.airfit.com/v1"
+    static let authBaseURL = "https://auth.airfit.com/v1"
+    
+    // MARK: - API Versions
+    static let apiVersion = "v1"
+    static let minimumSupportedVersion = "1.0.0"
 } 
