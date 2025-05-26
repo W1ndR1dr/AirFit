@@ -20,11 +20,15 @@ final class User: Sendable {
         Calendar.current.dateComponents([.day], from: createdAt, to: Date()).day ?? 0
     }
 
-    var isInactive: Bool {
+        var isInactive: Bool {
         let daysSinceActive = Calendar.current.dateComponents([.day], from: lastActiveAt, to: Date()).day ?? 0
         return daysSinceActive > 7
     }
-
+    
+    var activeChats: [ChatSession] {
+        chatSessions.filter { $0.isActive }
+    }
+    
     // MARK: - Relationships
     @Relationship(deleteRule: .cascade, inverse: \OnboardingProfile.user)
     var onboardingProfile: OnboardingProfile?
@@ -41,9 +45,12 @@ final class User: Sendable {
     @Relationship(deleteRule: .cascade, inverse: \CoachMessage.user)
     var coachMessages: [CoachMessage] = []
 
-    @Relationship(deleteRule: .cascade, inverse: \HealthKitSyncRecord.user)
+        @Relationship(deleteRule: .cascade, inverse: \HealthKitSyncRecord.user)
     var healthKitSyncRecords: [HealthKitSyncRecord] = []
-
+    
+    @Relationship(deleteRule: .cascade, inverse: \ChatSession.user)
+    var chatSessions: [ChatSession] = []
+    
     // MARK: - Initialization
     init(
         id: UUID = UUID(),
