@@ -228,7 +228,6 @@
 			children = (
 				D3A73B052DE41A2C004CFCBA /* Application */,
 				D3A73B062DE41A2C004CFCBA /* Assets.xcassets */,
-				D3A73B072DE41A2C004CFCBA /* ContentView.swift */,
 				D3A73B252DE41A2C004CFCBA /* Core */,
 				D3A73B402DE41A2C004CFCBA /* Docs */,
 				D3A73B492DE41A2C004CFCBA /* Modules */,
@@ -254,6 +253,7 @@
 			isa = PBXGroup;
 			children = (
 				D3A73B032DE41A2C004CFCBA /* AirFitApp.swift */,
+				D3A73B072DE41A2C004CFCBA /* ContentView.swift */,
 			);
 			path = Application;
 			sourceTree = "<group>";
