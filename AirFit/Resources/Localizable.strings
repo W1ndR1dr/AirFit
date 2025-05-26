@@ -223,3 +223,5 @@
 "onboarding.lifeSnapshot.workoutPrompt" = "My preferred time for workouts is typically:";
 "onboarding.coreAspiration.prompt" = "What is the primary aspiration you want your AirFit Coach to help you achieve?";
 "onboarding.coreAspiration.freeformPrompt" = "Briefly describe this in your own words (optional, but helpful for your coach):";
+"onboarding.coaching.prompt" = "Define your ideal coaching interaction style. Adjust each element to create your preferred blend.";
+"onboarding.engagement.prompt" = "How deeply involved would you like your coach to be in your day-to-day tracking and planning?";
