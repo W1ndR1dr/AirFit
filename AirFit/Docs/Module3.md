@@ -1,11 +1,13 @@
 **Modular Sub-Document 3: Onboarding Module (UI & Logic for "Persona Blueprint Flow")**
 
-**Version:** 1.0
+**Version:** 2.0
 **Parent Document:** AirFit App - Master Architecture Specification (v1.2)
 **Prerequisites:**
-    *   Completion of Modular Sub-Document 1: Core Project Setup & Configuration.
-    *   Completion of Modular Sub-Document 2: Data Layer (SwiftData Schema & Managers) – specifically `User` and `OnboardingProfile` models.
-**Date:** May 24, 2025
+    *   Completion of Module 0: Testing Foundation
+    *   Completion of Module 1: Core Project Setup & Configuration
+    *   Completion of Module 2: Data Layer (SwiftData Schema & Managers)
+**Date:** December 2024
+**Updated For:** iOS 18+, macOS 15+, Xcode 16+, Swift 6+
 
 **1. Module Overview**
 
@@ -28,9 +30,9 @@
 *   **Inputs:**
     *   AirFit App - Design Specification (v1.2) – for UI/UX details of each onboarding screen.
     *   AirFit App - Master Architecture Specification (v1.2) – for LLM call definitions, data flow, and interaction with other layers.
-    *   Modular Sub-Document 1: `AppColors`, `AppFonts`, `AppConstants`, `View+Extensions`.
-    *   Modular Sub-Document 2: `User`, `OnboardingProfile`, `CommunicationPreferences` models.
-    *   (Implicit) A mock or basic implementation of `AIRouterService` for LLM Call 1, or a plan to integrate with it once that service is developed. For initial tasks, the LLM call can be stubbed.
+    *   Module 1: `AppColors`, `AppFonts`, `AppConstants`, `View+Extensions`.
+    *   Module 2: `User`, `OnboardingProfile`, `CommunicationPreferences` models.
+    *   Module 0: Testing framework and guidelines.
 *   **Outputs:**
     *   A fully interactive onboarding user interface.
     *   A new `User` entity and associated `OnboardingProfile` entity saved to SwiftData upon completion.
@@ -38,292 +40,907 @@
 
 **3. Detailed Component Specifications & Agent Tasks**
 
-*(AI Agent Tasks: These tasks involve creating SwiftUI views, ViewModel/Manager classes, and integrating with previously defined models and utilities. Agents should adhere to the "clean, classy & premium" design philosophy.)*
-
 ---
 
 **Task 3.0: Setup Onboarding Flow Management**
-    *   **Agent Task 3.0.1:**
-        *   Instruction: "Create a Swift file named `OnboardingViewModel.swift` in `AirFit/Modules/Onboarding/ViewModels/`."
-        *   Details:
-            *   Define an `ObservableObject` class `OnboardingViewModel`.
-            *   Properties:
-                *   `@Published var currentScreen: OnboardingScreen = .openingScreen` (Define `OnboardingScreen` enum).
-                *   `@Published var lifeSnapshotData: LifeSnapshotSelections = LifeSnapshotSelections()` (Define `LifeSnapshotSelections` struct to hold boolean flags for each option).
-                *   `@Published var coreAspirationText: String = ""`
-                *   `@Published var coreAspirationStructured: StructuredGoal? = nil` (Define `StructuredGoal` struct for LLM output).
-                *   `@Published var coachingStyleBlend: CoachingStylePreferences = CoachingStylePreferences()` (Define `CoachingStylePreferences` struct with Double properties for each style, e.g., `authoritativeDirect`, `empatheticEncouraging`).
-                *   `@Published var engagementPreference: EngagementPreset = .dataDrivenPartnership` (Define `EngagementPreset` enum: `dataDrivenPartnership`, `consistentBalanced`, `guidanceOnDemand`, `custom`). If `custom`, add individual bools: `detailedTracking`, `dailyInsights`, `autoRecoveryAdjust`.
-                *   `@Published var typicalAvailability: [WorkoutAvailabilityBlock] = []` (Define `WorkoutAvailabilityBlock` struct: `dayOfWeek`, `startTime`, `endTime`).
-                *   `@Published var sleepBedtime: Date = Calendar.current.date(bySettingHour: 22, minute: 30, second: 0, of: Date())!`
-                *   `@Published var sleepWakeTime: Date = Calendar.current.date(bySettingHour: 6, minute: 30, second: 0, of: Date())!`
-                *   `@Published var sleepRhythm: SleepRhythmType = .consistent` (Define `SleepRhythmType` enum: `consistent`, `weekendsDifferent`, `highlyVariable`).
-                *   `@Published var achievementAcknowledgement: AchievementStyle = .subtleAffirming` (Define `AchievementStyle` enum).
-                *   `@Published var inactivityResponse: InactivityResponseStyle = .gentleNudge` (Define `InactivityResponseStyle` enum).
-                *   `@Published var preferredUnits: String = "imperial"` (Can be pre-filled or asked here/settings).
-                *   `@Published var establishBaseline: Bool = true`
-            *   Methods:
-                *   `func navigateToNextScreen()`
-                *   `func navigateToPreviousScreen()` (if back navigation is allowed on all screens)
-                *   `func processCoreAspiration()` (handles LLM call if custom goal)
-                *   `func completeOnboarding(modelContext: ModelContext)` (constructs JSONs, saves User & OnboardingProfile)
-            *   Stub out methods for now. Inject `ModelContext` where needed for saving.
-        *   Acceptance Criteria: `OnboardingViewModel.swift` and supporting structs/enums are created and compile.
-    *   **Agent Task 3.0.2:**
-        *   Instruction: "Define the `OnboardingScreen` enum in a new file `OnboardingModels.swift` within `AirFit/Modules/Onboarding/Models/` (or a shared enum file if preferred)."
-        *   Details: Include cases for all screens in Persona Blueprint Flow v3.1: `.openingScreen`, `.lifeSnapshot`, `.coreAspiration`, `.coachingStyle`, `.engagementPreferences`, `.typicalAvailability`, `.sleepAndBoundaries`, `.motivationAndCheckins`, `.generatingCoach`, `.coachProfileReady`. Make it `CaseIterable` if useful.
-        *   Acceptance Criteria: `OnboardingScreen` enum defined.
-    *   **Agent Task 3.0.3:**
-        *   Instruction: "Create a main SwiftUI View named `OnboardingFlowView.swift` in `AirFit/Modules/Onboarding/Views/`."
-        *   Details:
-            *   This view will observe an instance of `OnboardingViewModel`.
-            *   It will use a `switch` statement on `viewModel.currentScreen` to display the appropriate screen view.
-            *   It will contain the persistent "Privacy & Data" footer and the top progress bar (visual placeholders for now).
-            ```swift
-            // AirFit/Modules/Onboarding/Views/OnboardingFlowView.swift
-            import SwiftUI
 
-            struct OnboardingFlowView: View {
-                @StateObject private var viewModel = OnboardingViewModel()
-                @Environment(\.modelContext) private var modelContext // For saving at the end
+**Agent Task 3.0.1: Create OnboardingViewModel**
+- Instruction: "Create OnboardingViewModel.swift with complete state management"
+- File: `AirFit/Modules/Onboarding/ViewModels/OnboardingViewModel.swift`
+- Required Implementation:
+  ```swift
+  import SwiftUI
+  import SwiftData
+  
+  @MainActor
+  @Observable
+  final class OnboardingViewModel {
+      // MARK: - Navigation State
+      private(set) var currentScreen: OnboardingScreen = .openingScreen
+      private(set) var isLoading = false
+      private(set) var error: Error?
+      
+      // MARK: - Life Snapshot Data
+      var lifeSnapshotData = LifeSnapshotSelections()
+      
+      // MARK: - Core Aspiration
+      var coreAspirationText = ""
+      private(set) var coreAspirationStructured: StructuredGoal?
+      
+      // MARK: - Coaching Style
+      var coachingStyleBlend = CoachingStylePreferences()
+      
+      // MARK: - Engagement Preferences
+      var engagementPreference: EngagementPreset = .dataDrivenPartnership
+      var customEngagementSettings = CustomEngagementSettings()
+      
+      // MARK: - Availability
+      var typicalAvailability: [WorkoutAvailabilityBlock] = []
+      
+      // MARK: - Sleep & Boundaries
+      var sleepBedtime = Calendar.current.date(bySettingHour: 22, minute: 30, second: 0, of: Date())!
+      var sleepWakeTime = Calendar.current.date(bySettingHour: 6, minute: 30, second: 0, of: Date())!
+      var sleepRhythm: SleepRhythmType = .consistent
+      
+      // MARK: - Motivation Style
+      var achievementAcknowledgement: AchievementStyle = .subtleAffirming
+      var inactivityResponse: InactivityResponseStyle = .gentleNudge
+      
+      // MARK: - Settings
+      var preferredUnits: String = "imperial"
+      var establishBaseline = true
+      
+      // MARK: - Dependencies
+      private let aiService: AIServiceProtocol
+      private let userService: UserServiceProtocol
+      private let modelContext: ModelContext
+      
+      // MARK: - Initialization
+      init(
+          aiService: AIServiceProtocol,
+          userService: UserServiceProtocol,
+          modelContext: ModelContext
+      ) {
+          self.aiService = aiService
+          self.userService = userService
+          self.modelContext = modelContext
+      }
+      
+      // MARK: - Navigation
+      func navigateToNextScreen() {
+          guard let currentIndex = OnboardingScreen.allCases.firstIndex(of: currentScreen),
+                currentIndex < OnboardingScreen.allCases.count - 1 else { return }
+          
+          currentScreen = OnboardingScreen.allCases[currentIndex + 1]
+          AppLogger.info("Navigated to \(currentScreen)", category: .onboarding)
+      }
+      
+      func navigateToPreviousScreen() {
+          guard let currentIndex = OnboardingScreen.allCases.firstIndex(of: currentScreen),
+                currentIndex > 0 else { return }
+          
+          currentScreen = OnboardingScreen.allCases[currentIndex - 1]
+          AppLogger.info("Navigated back to \(currentScreen)", category: .onboarding)
+      }
+      
+      // MARK: - Business Logic
+      func processCoreAspiration() async {
+          guard !coreAspirationText.isBlank else { return }
+          
+          isLoading = true
+          defer { isLoading = false }
+          
+          do {
+              let structuredGoal = try await aiService.analyzeGoal(coreAspirationText)
+              self.coreAspirationStructured = structuredGoal
+              AppLogger.info("Goal analysis completed", category: .ai)
+          } catch {
+              self.error = error
+              AppLogger.error("Goal analysis failed", error: error, category: .ai)
+          }
+      }
+      
+      func completeOnboarding() async throws {
+          isLoading = true
+          defer { isLoading = false }
+          
+          // Create persona profile
+          let personaProfile = buildPersonaProfile()
+          let communicationPrefs = buildCommunicationPreferences()
+          
+          // Create user and profile
+          let user = User(preferredUnits: preferredUnits)
+          let profile = OnboardingProfile(
+              user: user,
+              personaPromptData: try JSONEncoder().encode(personaProfile),
+              communicationPreferencesData: try JSONEncoder().encode(communicationPrefs),
+              rawFullProfileData: try JSONEncoder().encode(personaProfile)
+          )
+          
+          // Save to SwiftData
+          modelContext.insert(user)
+          modelContext.insert(profile)
+          try modelContext.save()
+          
+          AppLogger.info("Onboarding completed successfully", category: .onboarding)
+      }
+      
+      // MARK: - Private Methods
+      private func buildPersonaProfile() -> PersonaProfile {
+          PersonaProfile(
+              lifeContext: lifeSnapshotData,
+              coreAspiration: coreAspirationText,
+              structuredGoal: coreAspirationStructured,
+              coachingStyle: coachingStyleBlend,
+              engagementPreference: engagementPreference,
+              customEngagement: customEngagementSettings,
+              availability: typicalAvailability,
+              sleepSchedule: SleepSchedule(
+                  bedtime: sleepBedtime,
+                  wakeTime: sleepWakeTime,
+                  rhythm: sleepRhythm
+              ),
+              motivationStyle: MotivationStyle(
+                  achievementStyle: achievementAcknowledgement,
+                  inactivityStyle: inactivityResponse
+              ),
+              establishBaseline: establishBaseline
+          )
+      }
+      
+      private func buildCommunicationPreferences() -> CommunicationPreferences {
+          CommunicationPreferences(
+              coachingStyleBlend: coachingStyleBlend,
+              achievementAcknowledgement: achievementAcknowledgement,
+              inactivityResponse: inactivityResponse
+          )
+      }
+  }
+  ```
+- Acceptance Criteria:
+  - ViewModel compiles with Swift 6 concurrency
+  - All properties are properly observable
+  - Navigation methods work correctly
+  - Async methods handle errors properly
+  - Dependencies are injected (not hardcoded)
 
-                var body: some View {
-                    VStack {
-                        // Placeholder for Progress Bar
-                        HStack {
-                            ForEach(0..<OnboardingScreen.allCases.count - 2, id: \.self) { index in // -2 for generating & profile
-                                Rectangle()
-                                    .fill(index < OnboardingScreen.allCases.firstIndex(of: viewModel.currentScreen)! ? AppColors.accentColor : Color.gray.opacity(0.3))
-                                    .frame(height: 4)
-                            }
-                        }
-                        .padding(.horizontal)
-                        .padding(.top)
+**Agent Task 3.0.2: Define Supporting Models**
+- Instruction: "Create OnboardingModels.swift with all required types"
+- File: `AirFit/Modules/Onboarding/Models/OnboardingModels.swift`
+- Required Types:
+  ```swift
+  import Foundation
+  
+  // MARK: - Navigation
+  enum OnboardingScreen: String, CaseIterable, Sendable {
+      case openingScreen = "opening"
+      case lifeSnapshot = "lifeSnapshot"
+      case coreAspiration = "coreAspiration"
+      case coachingStyle = "coachingStyle"
+      case engagementPreferences = "engagement"
+      case typicalAvailability = "availability"
+      case sleepAndBoundaries = "sleep"
+      case motivationAndCheckins = "motivation"
+      case generatingCoach = "generating"
+      case coachProfileReady = "ready"
+      
+      var title: String {
+          switch self {
+          case .openingScreen: return ""
+          case .lifeSnapshot: return "Life Snapshot"
+          case .coreAspiration: return "Core Aspiration"
+          case .coachingStyle: return "Coaching Style"
+          case .engagementPreferences: return "Engagement"
+          case .typicalAvailability: return "Availability"
+          case .sleepAndBoundaries: return "Sleep & Recovery"
+          case .motivationAndCheckins: return "Motivation"
+          case .generatingCoach: return "Creating Your Coach"
+          case .coachProfileReady: return "Coach Ready"
+          }
+      }
+      
+      var progress: Double {
+          guard let index = Self.allCases.firstIndex(of: self) else { return 0 }
+          return Double(index) / Double(Self.allCases.count - 2) // Exclude last 2 screens
+      }
+  }
+  
+  // MARK: - Life Snapshot
+  struct LifeSnapshotSelections: Codable, Sendable {
+      var busyProfessional = false
+      var parentCaregiver = false
+      var student = false
+      var shiftWorker = false
+      var travelFrequently = false
+      var workFromHome = false
+      var recovering = false
+      var newToFitness = false
+      
+      var selectedItems: [String] {
+          var items: [String] = []
+          if busyProfessional { items.append("Busy Professional") }
+          if parentCaregiver { items.append("Parent/Caregiver") }
+          if student { items.append("Student") }
+          if shiftWorker { items.append("Shift Worker") }
+          if travelFrequently { items.append("Travel Frequently") }
+          if workFromHome { items.append("Work From Home") }
+          if recovering { items.append("Recovering from Injury/Illness") }
+          if newToFitness { items.append("New to Fitness") }
+          return items
+      }
+  }
+  
+  // MARK: - Core Aspiration
+  struct StructuredGoal: Codable, Sendable {
+      let goalType: String
+      let primaryMetric: String
+      let timeframe: String?
+      let specificTarget: String?
+      let whyImportant: String?
+  }
+  
+  // MARK: - Coaching Style
+  struct CoachingStylePreferences: Codable, Sendable {
+      var authoritativeDirect: Double = 0.25
+      var empatheticEncouraging: Double = 0.25
+      var analyticalPrecise: Double = 0.25
+      var playfulMotivating: Double = 0.25
+      
+      var isValid: Bool {
+          abs((authoritativeDirect + empatheticEncouraging + analyticalPrecise + playfulMotivating) - 1.0) < 0.01
+      }
+      
+      mutating func normalize() {
+          let total = authoritativeDirect + empatheticEncouraging + analyticalPrecise + playfulMotivating
+          guard total > 0 else { return }
+          authoritativeDirect /= total
+          empatheticEncouraging /= total
+          analyticalPrecise /= total
+          playfulMotivating /= total
+      }
+  }
+  
+  // MARK: - Engagement
+  enum EngagementPreset: String, Codable, CaseIterable, Sendable {
+      case dataDrivenPartnership = "data_driven"
+      case consistentBalanced = "consistent_balanced"
+      case guidanceOnDemand = "guidance_on_demand"
+      case custom = "custom"
+      
+      var displayName: String {
+          switch self {
+          case .dataDrivenPartnership: return "Data-Driven Partnership"
+          case .consistentBalanced: return "Consistent & Balanced"
+          case .guidanceOnDemand: return "Guidance On-Demand"
+          case .custom: return "Custom"
+          }
+      }
+  }
+  
+  struct CustomEngagementSettings: Codable, Sendable {
+      var detailedTracking = false
+      var dailyInsights = false
+      var autoRecoveryAdjust = false
+  }
+  
+  // MARK: - Availability
+  struct WorkoutAvailabilityBlock: Codable, Identifiable, Sendable {
+      let id = UUID()
+      var dayOfWeek: Int // 1 = Sunday, 7 = Saturday
+      var startTime: Date
+      var endTime: Date
+      
+      var dayName: String {
+          let formatter = DateFormatter()
+          formatter.dateFormat = "EEEE"
+          let date = Calendar.current.date(from: DateComponents(weekday: dayOfWeek))!
+          return formatter.string(from: date)
+      }
+  }
+  
+  // MARK: - Sleep
+  enum SleepRhythmType: String, Codable, CaseIterable, Sendable {
+      case consistent = "consistent"
+      case weekendsDifferent = "weekends_different"
+      case highlyVariable = "highly_variable"
+      
+      var displayName: String {
+          switch self {
+          case .consistent: return "Consistent"
+          case .weekendsDifferent: return "Weekends Different"
+          case .highlyVariable: return "Highly Variable"
+          }
+      }
+  }
+  
+  struct SleepSchedule: Codable, Sendable {
+      let bedtime: Date
+      let wakeTime: Date
+      let rhythm: SleepRhythmType
+  }
+  
+  // MARK: - Motivation
+  enum AchievementStyle: String, Codable, CaseIterable, Sendable {
+      case enthusiasticCelebration = "enthusiastic"
+      case subtleAffirming = "subtle"
+      case dataFocused = "data_focused"
+      case privateReflection = "private"
+      
+      var displayName: String {
+          switch self {
+          case .enthusiasticCelebration: return "Enthusiastic Celebration"
+          case .subtleAffirming: return "Subtle & Affirming"
+          case .dataFocused: return "Data-Focused"
+          case .privateReflection: return "Private Reflection"
+          }
+      }
+  }
+  
+  enum InactivityResponseStyle: String, Codable, CaseIterable, Sendable {
+      case motivationalPush = "motivational"
+      case gentleNudge = "gentle"
+      case factualReminder = "factual"
+      case waitForMe = "wait"
+      
+      var displayName: String {
+          switch self {
+          case .motivationalPush: return "Motivational Push"
+          case .gentleNudge: return "Gentle Nudge"
+          case .factualReminder: return "Factual Reminder"
+          case .waitForMe: return "Wait for Me"
+          }
+      }
+  }
+  
+  struct MotivationStyle: Codable, Sendable {
+      let achievementStyle: AchievementStyle
+      let inactivityStyle: InactivityResponseStyle
+  }
+  
+  // MARK: - Complete Profile
+  struct PersonaProfile: Codable, Sendable {
+      let lifeContext: LifeSnapshotSelections
+      let coreAspiration: String
+      let structuredGoal: StructuredGoal?
+      let coachingStyle: CoachingStylePreferences
+      let engagementPreference: EngagementPreset
+      let customEngagement: CustomEngagementSettings
+      let availability: [WorkoutAvailabilityBlock]
+      let sleepSchedule: SleepSchedule
+      let motivationStyle: MotivationStyle
+      let establishBaseline: Bool
+  }
+  ```
+- Acceptance Criteria:
+  - All types conform to Codable and Sendable
+  - Display names are user-friendly
+  - Validation logic works correctly
+  - IDs are properly generated for Identifiable types
 
-
-                        // Main content based on current screen
-                        switch viewModel.currentScreen {
-                        case .openingScreen:
-                            OpeningScreenView(viewModel: viewModel)
-                        case .lifeSnapshot:
-                            LifeSnapshotView(viewModel: viewModel)
-                        // ... Add cases for ALL other onboarding screens
-                        // case .coreAspiration: CoreAspirationView(viewModel: viewModel)
-                        // case .coachingStyle: CoachingStyleView(viewModel: viewModel)
-                        // case .engagementPreferences: EngagementPreferencesView(viewModel: viewModel)
-                        // case .typicalAvailability: TypicalAvailabilityView(viewModel: viewModel)
-                        // case .sleepAndBoundaries: SleepAndBoundariesView(viewModel: viewModel)
-                        // case .motivationAndCheckins: MotivationAndCheckinsView(viewModel: viewModel)
-                        // case .generatingCoach: GeneratingCoachView(viewModel: viewModel)
-                        // case .coachProfileReady: CoachProfileReadyView(viewModel: viewModel, onComplete: { /* Handle completion */ })
-                        default: // Temporary
-                            Text("Screen not implemented: \(viewModel.currentScreen.rawValue)")
-                            Button("Next (Dev)") { viewModel.navigateToNextScreen() }
-                        }
-
-                        Spacer() // Pushes content up
-
-                        // Placeholder for Persistent Footer
-                        Text("Privacy & Data")
-                            .font(AppFonts.secondaryBody(size: 12)) // Use defined AppFonts
-                            .foregroundColor(AppColors.textSecondary) // Use defined AppColors
-                            .padding(.bottom)
-                    }
-                    .animation(.default, value: viewModel.currentScreen) // Add animation for screen transitions
-                }
-            }
-            ```
-        *   Acceptance Criteria: `OnboardingFlowView.swift` created, uses `OnboardingViewModel`, and can switch between placeholder screen views.
+**Agent Task 3.0.3: Create OnboardingFlowView**
+- Instruction: "Create main onboarding container view with progress tracking"
+- File: `AirFit/Modules/Onboarding/Views/OnboardingFlowView.swift`
+- Complete Implementation:
+  ```swift
+  import SwiftUI
+  import SwiftData
+  
+  struct OnboardingFlowView: View {
+      @Environment(\.modelContext) private var modelContext
+      @State private var viewModel: OnboardingViewModel
+      
+      init(aiService: AIServiceProtocol, userService: UserServiceProtocol) {
+          let modelContext = ModelContext(ModelContainer.shared)
+          _viewModel = State(initialValue: OnboardingViewModel(
+              aiService: aiService,
+              userService: userService,
+              modelContext: modelContext
+          ))
+      }
+      
+      var body: some View {
+          VStack(spacing: 0) {
+              // Progress Bar
+              if viewModel.currentScreen != .openingScreen &&
+                 viewModel.currentScreen != .generatingCoach &&
+                 viewModel.currentScreen != .coachProfileReady {
+                  ProgressBar(progress: viewModel.currentScreen.progress)
+                      .padding(.horizontal)
+                      .padding(.top)
+              }
+              
+              // Screen Content
+              Group {
+                  switch viewModel.currentScreen {
+                  case .openingScreen:
+                      OpeningScreenView(viewModel: viewModel)
+                  case .lifeSnapshot:
+                      LifeSnapshotView(viewModel: viewModel)
+                  case .coreAspiration:
+                      CoreAspirationView(viewModel: viewModel)
+                  case .coachingStyle:
+                      CoachingStyleView(viewModel: viewModel)
+                  case .engagementPreferences:
+                      EngagementPreferencesView(viewModel: viewModel)
+                  case .typicalAvailability:
+                      TypicalAvailabilityView(viewModel: viewModel)
+                  case .sleepAndBoundaries:
+                      SleepAndBoundariesView(viewModel: viewModel)
+                  case .motivationAndCheckins:
+                      MotivationAndCheckinsView(viewModel: viewModel)
+                  case .generatingCoach:
+                      GeneratingCoachView(viewModel: viewModel)
+                  case .coachProfileReady:
+                      CoachProfileReadyView(viewModel: viewModel)
+                  }
+              }
+              .transition(.asymmetric(
+                  insertion: .move(edge: .trailing).combined(with: .opacity),
+                  removal: .move(edge: .leading).combined(with: .opacity)
+              ))
+              .animation(.easeInOut(duration: 0.3), value: viewModel.currentScreen)
+              
+              // Privacy Footer
+              if viewModel.currentScreen != .generatingCoach &&
+                 viewModel.currentScreen != .coachProfileReady {
+                  PrivacyFooter()
+                      .padding(.bottom)
+              }
+          }
+          .background(AppColors.backgroundPrimary)
+          .loadingOverlay(viewModel.isLoading)
+          .alert("Error", isPresented: .constant(viewModel.error != nil)) {
+              Button("OK") { viewModel.error = nil }
+          } message: {
+              Text(viewModel.error?.localizedDescription ?? "An error occurred")
+          }
+          .accessibilityElement(id: "onboarding.flow")
+      }
+  }
+  
+  // MARK: - Supporting Views
+  struct ProgressBar: View {
+      let progress: Double
+      
+      var body: some View {
+          GeometryReader { geometry in
+              ZStack(alignment: .leading) {
+                  RoundedRectangle(cornerRadius: 2)
+                      .fill(AppColors.dividerColor)
+                      .frame(height: 4)
+                  
+                  RoundedRectangle(cornerRadius: 2)
+                      .fill(AppColors.accentColor)
+                      .frame(width: geometry.size.width * progress, height: 4)
+              }
+          }
+          .frame(height: 4)
+          .accessibilityElement(id: "onboarding.progress")
+          .accessibilityValue("\(Int(progress * 100))% complete")
+      }
+  }
+  
+  struct PrivacyFooter: View {
+      var body: some View {
+          Button(action: {
+              // Open privacy policy
+              AppLogger.info("Privacy policy tapped", category: .onboarding)
+          }) {
+              Text("Privacy & Data")
+                  .font(AppFonts.caption)
+                  .foregroundColor(AppColors.textTertiary)
+          }
+          .accessibilityElement(id: "onboarding.privacy")
+      }
+  }
+  ```
 
 ---
-
-**(For each screen in "Persona Blueprint Flow v3.1", create a similar task block. I will detail one fully, and the agent should follow the pattern for the rest.)**
 
 **Task 3.1: Implement Opening Screen View**
-    *   **Agent Task 3.1.1:**
-        *   Instruction: "Create `OpeningScreenView.swift` in `AirFit/Modules/Onboarding/Views/` as per Persona Blueprint Flow v3.1, Screen 1."
-        *   Details:
-            *   Use `AppColors`, `AppFonts`, `AppConstants` for styling.
-            *   Content: App logo/name (placeholder `Text("AirFit")` for now), "Let’s design your AirFit Coach.", "Est. 3-4 minutes...", "Begin" button, "Maybe Later" button.
-            *   "Begin" button action: Call `viewModel.navigateToNextScreen()`.
-            *   "Maybe Later" button action: (For now, can also call `navigateToNextScreen()` for flow testing, or implement dismiss logic later).
-            ```swift
-            // AirFit/Modules/Onboarding/Views/OpeningScreenView.swift
-            import SwiftUI
 
-            struct OpeningScreenView: View {
-                @ObservedObject var viewModel: OnboardingViewModel // Passed in
-
-                var body: some View {
-                    VStack(spacing: AppConstants.defaultPadding * 2) {
-                        Spacer()
-                        Text("AirFit") // Placeholder for logo/name
-                            .font(AppFonts.primaryTitle(size: 40)) // Use defined AppFonts
-                            .foregroundColor(AppColors.textPrimary) // Use defined AppColors
-
-                        Text("Let’s design your AirFit Coach.")
-                            .font(AppFonts.primaryBody(size: 20))
-                            .foregroundColor(AppColors.textSecondary)
-                            .multilineTextAlignment(.center)
-
-                        Text("Est. 3-4 minutes to create your personalized experience.")
-                            .font(AppFonts.secondaryBody(size: 14))
-                            .foregroundColor(AppColors.textSecondary.opacity(0.7))
-
-                        Spacer()
-
-                        Button(action: {
-                            viewModel.navigateToNextScreen()
-                        }) {
-                            Text("Begin")
-                                .font(AppFonts.primaryBody(size: 18).weight(.semibold))
-                                .foregroundColor(.white)
-                                .frame(maxWidth: .infinity)
-                                .padding()
-                                .background(AppColors.accentColor)
-                                .cornerRadius(AppConstants.defaultCornerRadius)
-                        }
-                        .padding(.horizontal, AppConstants.defaultPadding * 2)
-
-                        Button(action: {
-                            // For now, treat as "skip onboarding" for dev flow
-                            // Later, this might dismiss the onboarding flow.
-                            AppLogger.log("'Maybe Later' tapped on Opening Screen.", category: .onboarding)
-                            // viewModel.skipOnboarding() // Implement this method if needed
-                        }) {
-                            Text("Maybe Later")
-                                .font(AppFonts.primaryBody(size: 16))
-                                .foregroundColor(AppColors.textSecondary)
-                        }
-                        .padding(.bottom, AppConstants.defaultPadding)
-                    }
-                    .padding(AppConstants.defaultPadding)
-                }
-            }
-            ```
-        *   Acceptance Criteria: `OpeningScreenView.swift` created, compiles, visually matches design intent, and buttons trigger ViewModel actions.
-
----
-
-**Task 3.2 - 3.8: Implement Remaining Onboarding Screens**
-    *   **Agent Task (Pattern):** For each screen specified in "Persona Blueprint Flow v3.1" (Life Snapshot, Core Aspiration, Coaching Style, Engagement Preferences, Typical Availability, Sleep & Boundaries, Motivational Style & Check-ins):
-        *   Instruction: "Create `[ScreenName]View.swift` in `AirFit/Modules/Onboarding/Views/`. Implement the UI and interactions as described in Persona Blueprint Flow v3.1, Screen X: '[Screen Title]'."
-        *   Details:
-            *   Use appropriate SwiftUI controls (Text, Button, Toggle, Slider, Picker, List, custom Checkbox if needed).
-            *   Bind UI controls to the corresponding `@Published` properties in `OnboardingViewModel`.
-            *   Use `AppColors`, `AppFonts`, `AppConstants` for styling.
-            *   Include "Next" buttons that call `viewModel.navigateToNextScreen()`.
-            *   For sliders in `CoachingStyleView`, provide descriptive text feedback below/beside each slider that updates dynamically based on the slider's value (as specified in flow v3.1).
-            *   For `CoreAspirationView`, if "Describe Your Own" is chosen, provide a `TextEditor` for input, and the "Next" button should trigger `viewModel.processCoreAspiration()` before `navigateToNextScreen()`.
-            *   (HealthKit Pre-fill): For screens like Life Snapshot or Sleep, note where HealthKit data *would* pre-fill options. The actual HealthKit fetch logic will be in Module D; for now, the ViewModel properties can have default values.
-        *   Acceptance Criteria (for each screen): View created, compiles, binds correctly to ViewModel, visually aligns with design, "Next" button functions.
-
----
-
-**Task 3.9: Implement Logic in OnboardingViewModel**
-    *   **Agent Task 3.9.1 (Navigation):**
-        *   Instruction: "Implement the `navigateToNextScreen()` and `navigateToPreviousScreen()` methods in `OnboardingViewModel.swift`."
-        *   Details: Use the `OnboardingScreen` enum and its `allCases` to advance or go back. Handle edge cases (first/last screen).
-        *   Acceptance Criteria: Navigation logic works correctly through all defined screens.
-    *   **Agent Task 3.9.2 (Goal Analysis - LLM Call):**
-        *   Instruction: "Implement the `processCoreAspiration()` method in `OnboardingViewModel.swift`."
-        *   Details:
-            *   If `coreAspirationText` is not blank:
-                *   Construct the system prompt for "LLM Call 1: Goal Analysis" (from Master Architecture Spec 3.2). Inject `coreAspirationText`.
-                *   (Stub/Mock) Simulate a call to `AIRouterService.getStreamingResponse()` (or a non-streaming equivalent if simpler for this specific JSON output call).
-                *   The AI Router service will be fully implemented later. For now, the agent can create a mock function within the ViewModel or assume a global mock service that returns a predefined valid JSON string (e.g., `{"goal_type": "aesthetic", "primary_metric": "body_fat_percentage", ...}`).
-                *   Parse the returned JSON into the `coreAspirationStructured` property. Handle potential parsing errors.
-                *   Log the request and (mock) response using `AppLogger`.
-        *   Acceptance Criteria: Method attempts to process custom goal text, (mock) interacts with an AI service, and updates `coreAspirationStructured`.
-    *   **Agent Task 3.9.3 (Completion Logic):**
-        *   Instruction: "Implement the `completeOnboarding(modelContext: ModelContext)` method in `OnboardingViewModel.swift`."
-        *   Details:
-            1.  Create a new `User` object, populating `preferredUnits`.
-            2.  Construct the `persona_profile.json` data: This involves creating a dictionary or a Swift `Codable` struct that mirrors the `persona_profile.json` structure discussed previously (which includes life context, goal info, blend percentages, tracking style, sleep details, celebration style, absence response, etc., all sourced from the ViewModel's @Published properties). Encode this to `Data` using `JSONEncoder`. This will be stored as `personaPromptData` in `OnboardingProfile`.
-            3.  Construct `CommunicationPreferences` struct from ViewModel data and encode to `Data` for `communicationPreferencesData`.
-            4.  Store the full `persona_profile.json` data also as `rawFullProfileData`.
-            5.  Create an `OnboardingProfile` object, linking it to the new `User`, and providing the generated `Data` objects.
-            6.  Insert both `User` and `OnboardingProfile` into the `modelContext`.
-            7.  Attempt to save the `modelContext`. Handle errors with `AppLogger`.
-            8.  Set a flag or trigger a callback to indicate onboarding is complete (for navigation to the main app).
-        *   Acceptance Criteria: Method correctly assembles data, creates `User` and `OnboardingProfile` entities, and saves them to SwiftData.
+**Agent Task 3.1.1: Create OpeningScreenView**
+- Instruction: "Create opening screen with accessibility and proper styling"
+- File: `AirFit/Modules/Onboarding/Views/OpeningScreenView.swift`
+- Complete Implementation:
+  ```swift
+  import SwiftUI
+  
+  struct OpeningScreenView: View {
+      @Bindable var viewModel: OnboardingViewModel
+      @State private var animateIn = false
+      
+      var body: some View {
+          VStack(spacing: AppSpacing.large) {
+              Spacer()
+              
+              // Logo/Title
+              VStack(spacing: AppSpacing.medium) {
+                  Image(systemName: "figure.run.circle.fill")
+                      .font(.system(size: 80))
+                      .foregroundStyle(AppColors.accentGradient)
+                      .scaleEffect(animateIn ? 1 : 0.5)
+                      .opacity(animateIn ? 1 : 0)
+                  
+                  Text("AirFit")
+                      .font(AppFonts.largeTitle)
+                      .foregroundColor(AppColors.textPrimary)
+                      .opacity(animateIn ? 1 : 0)
+              }
+              
+              // Tagline
+              VStack(spacing: AppSpacing.small) {
+                  Text("Let's design your AirFit Coach")
+                      .font(AppFonts.title3)
+                      .foregroundColor(AppColors.textPrimary)
+                      .multilineTextAlignment(.center)
+                  
+                  Text("Est. 3-4 minutes to create your personalized experience")
+                      .font(AppFonts.subheadline)
+                      .foregroundColor(AppColors.textSecondary)
+                      .multilineTextAlignment(.center)
+              }
+              .opacity(animateIn ? 1 : 0)
+              .offset(y: animateIn ? 0 : 20)
+              
+              Spacer()
+              
+              // Actions
+              VStack(spacing: AppSpacing.medium) {
+                  Button(action: {
+                      viewModel.navigateToNextScreen()
+                  }) {
+                      Text("Begin")
+                          .font(AppFonts.bodyBold)
+                          .foregroundColor(AppColors.textOnAccent)
+                          .frame(maxWidth: .infinity)
+                          .padding()
+                          .background(AppColors.accentColor)
+                          .cornerRadius(AppConstants.Layout.defaultCornerRadius)
+                  }
+                  .accessibilityElement(id: "onboarding.begin.button")
+                  
+                  Button(action: {
+                      // Skip onboarding
+                      AppLogger.info("Onboarding skipped", category: .onboarding)
+                  }) {
+                      Text("Maybe Later")
+                          .font(AppFonts.body)
+                          .foregroundColor(AppColors.textSecondary)
+                  }
+                  .accessibilityElement(id: "onboarding.skip.button")
+              }
+              .padding(.horizontal, AppSpacing.large)
+              .opacity(animateIn ? 1 : 0)
+              .offset(y: animateIn ? 0 : 20)
+          }
+          .padding(AppSpacing.medium)
+          .onAppear {
+              withAnimation(.easeOut(duration: 0.8).delay(0.2)) {
+                  animateIn = true
+              }
+          }
+      }
+  }
+  ```
 
 ---
 
-**Task 3.10: Implement Final Onboarding Screens (Generating & Profile Ready)**
-    *   **Agent Task 3.10.1:**
-        *   Instruction: "Create `GeneratingCoachView.swift` in `AirFit/Modules/Onboarding/Views/`."
-        *   Details:
-            *   Display an elegant loading animation (e.g., animated progress bar fill, morphing shapes as per Design Spec). Show text like "Crafting Your Coach…", "Analyzing preferences…".
-            *   In its `onAppear`, this view should trigger `viewModel.completeOnboarding(modelContext: modelContext)`.
-            *   After a simulated delay (or upon completion of `completeOnboarding`), automatically call `viewModel.navigateToNextScreen()` to go to `CoachProfileReadyView`.
-        *   Acceptance Criteria: View displays loading animation and text, triggers completion logic, and navigates.
-    *   **Agent Task 3.10.2:**
-        *   Instruction: "Create `CoachProfileReadyView.swift` in `AirFit/Modules/Onboarding/Views/`."
-        *   Details:
-            *   Display the summary of the generated coach profile as per "Persona Blueprint Flow v3.1, Screen 10." This involves fetching the just-saved `OnboardingProfile` data (or passing relevant ViewModel data directly) to show coaching style summary, primary aspiration, engagement style, communication boundaries, and the "Establish Baseline" toggle.
-            *   "Begin with My Coach" button: Triggers a callback/navigation to the main app (e.g., Dashboard).
-            *   "Review & Refine Settings" button: (Future) Navigates to a settings area to tweak persona elements. For now, can also navigate to the main app.
-        *   Acceptance Criteria: View displays profile summary and actions.
+**Task 3.2-3.8: Implement Remaining Onboarding Screens**
+
+For brevity, I'll show the pattern for one more screen, then list the requirements for the others:
+
+**Agent Task 3.2.1: Create LifeSnapshotView**
+- Instruction: "Create life snapshot selection screen with multi-select options"
+- File: `AirFit/Modules/Onboarding/Views/LifeSnapshotView.swift`
+- Key Requirements:
+  - Multi-select toggle list
+  - At least one selection required
+  - HealthKit pre-fill indicators (future)
+  - Smooth animations
+  - Accessibility for each option
+
+**Similar patterns for:**
+- Task 3.3: CoreAspirationView (with text input and predefined options)
+- Task 3.4: CoachingStyleView (with interactive sliders and real-time feedback)
+- Task 3.5: EngagementPreferencesView (with preset selection and custom options)
+- Task 3.6: TypicalAvailabilityView (with time slot picker)
+- Task 3.7: SleepAndBoundariesView (with time pickers and rhythm selection)
+- Task 3.8: MotivationAndCheckinsView (with style selections)
 
 ---
 
-**Task 3.11: Integrate Onboarding into App Flow**
-    *   **Agent Task 3.11.1:**
-        *   Instruction: "Modify `AirFit/Application/AirFitApp.swift` and its `ContentView.swift` (or create a new root view like `MainView.swift`)."
-        *   Details:
-            *   Implement logic to check if a `User` and `OnboardingProfile` exist in SwiftData.
-            *   If onboarding is NOT complete: Display `OnboardingFlowView`.
-            *   If onboarding IS complete: Display the main app content (e.g., a placeholder `Text("Dashboard Placeholder")` for now).
-            *   The `OnboardingFlowView` should have a callback or mechanism to signal completion to this root view so it can switch its displayed content.
-        *   Acceptance Criteria: App correctly shows onboarding for new users and skips to main content for existing users.
+**4. Testing Requirements**
+
+### Unit Tests
+
+**Agent Task 3.13.1: Create OnboardingViewModelTests**
+- File: `AirFitTests/Onboarding/OnboardingViewModelTests.swift`
+- Required Test Cases:
+  ```swift
+  @MainActor
+  final class OnboardingViewModelTests: XCTestCase {
+      var sut: OnboardingViewModel!
+      var mockAIService: MockAIService!
+      var mockUserService: MockUserService!
+      var modelContext: ModelContext!
+      
+      override func setUp() async throws {
+          try await super.setUp()
+          
+          // Setup in-memory SwiftData
+          modelContext = try SwiftDataTestHelper.createTestContext(
+              for: User.self, OnboardingProfile.self
+          )
+          
+          // Setup mocks
+          mockAIService = MockAIService()
+          mockUserService = MockUserService()
+          
+          // Create SUT
+          sut = OnboardingViewModel(
+              aiService: mockAIService,
+              userService: mockUserService,
+              modelContext: modelContext
+          )
+      }
+      
+      // MARK: - Navigation Tests
+      func test_navigateToNextScreen_fromOpeningScreen_shouldAdvanceToLifeSnapshot() {
+          // Arrange
+          sut.currentScreen = .openingScreen
+          
+          // Act
+          sut.navigateToNextScreen()
+          
+          // Assert
+          XCTAssertEqual(sut.currentScreen, .lifeSnapshot)
+      }
+      
+      func test_navigateToNextScreen_fromLastScreen_shouldNotAdvance() {
+          // Arrange
+          sut.currentScreen = .coachProfileReady
+          
+          // Act
+          sut.navigateToNextScreen()
+          
+          // Assert
+          XCTAssertEqual(sut.currentScreen, .coachProfileReady)
+      }
+      
+      // MARK: - Goal Analysis Tests
+      func test_processCoreAspiration_withValidText_shouldCallAIService() async {
+          // Arrange
+          sut.coreAspirationText = "I want to lose 20 pounds"
+          let expectedGoal = StructuredGoal(
+              goalType: "weight_loss",
+              primaryMetric: "weight",
+              timeframe: "3 months",
+              specificTarget: "20 lbs",
+              whyImportant: "Health"
+          )
+          mockAIService.analyzeGoalResult = .success(expectedGoal)
+          
+          // Act
+          await sut.processCoreAspiration()
+          
+          // Assert
+          XCTAssertEqual(sut.coreAspirationStructured?.goalType, "weight_loss")
+          XCTAssertFalse(sut.isLoading)
+          XCTAssertNil(sut.error)
+      }
+      
+      func test_processCoreAspiration_withEmptyText_shouldNotCallAIService() async {
+          // Arrange
+          sut.coreAspirationText = ""
+          
+          // Act
+          await sut.processCoreAspiration()
+          
+          // Assert
+          XCTAssertFalse(mockAIService.analyzeGoalCalled)
+          XCTAssertNil(sut.coreAspirationStructured)
+      }
+      
+      // MARK: - Onboarding Completion Tests
+      func test_completeOnboarding_withValidData_shouldSaveUserAndProfile() async throws {
+          // Arrange
+          setupValidOnboardingData()
+          
+          // Act
+          try await sut.completeOnboarding()
+          
+          // Assert
+          let users = try modelContext.fetch(FetchDescriptor<User>())
+          let profiles = try modelContext.fetch(FetchDescriptor<OnboardingProfile>())
+          
+          XCTAssertEqual(users.count, 1)
+          XCTAssertEqual(profiles.count, 1)
+          XCTAssertEqual(users.first?.preferredUnits, "imperial")
+      }
+      
+      // MARK: - Validation Tests
+      func test_coachingStyleBlend_shouldNormalizeTo100Percent() {
+          // Arrange
+          sut.coachingStyleBlend = CoachingStylePreferences(
+              authoritativeDirect: 0.5,
+              empatheticEncouraging: 0.5,
+              analyticalPrecise: 0.5,
+              playfulMotivating: 0.5
+          )
+          
+          // Act
+          sut.coachingStyleBlend.normalize()
+          
+          // Assert
+          XCTAssertEqual(sut.coachingStyleBlend.authoritativeDirect, 0.25, accuracy: 0.01)
+          XCTAssertEqual(sut.coachingStyleBlend.empatheticEncouraging, 0.25, accuracy: 0.01)
+          XCTAssertTrue(sut.coachingStyleBlend.isValid)
+      }
+      
+      // MARK: - Helper Methods
+      private func setupValidOnboardingData() {
+          sut.lifeSnapshotData.busyProfessional = true
+          sut.coreAspirationText = "Get healthier"
+          sut.coachingStyleBlend = CoachingStylePreferences()
+          sut.engagementPreference = .dataDrivenPartnership
+          sut.sleepBedtime = Date()
+          sut.sleepWakeTime = Date()
+      }
+  }
+  ```
+- Test Coverage Requirements:
+  - All navigation paths: 100%
+  - Business logic methods: 80%
+  - Error handling: 100%
+  - Data validation: 90%
+
+### UI Tests
+
+**Agent Task 3.13.2: Create OnboardingFlowUITests**
+- File: `AirFitUITests/Onboarding/OnboardingFlowUITests.swift`
+- Required Test Scenarios:
+  ```swift
+  final class OnboardingFlowUITests: XCTestCase {
+      var app: XCUIApplication!
+      var onboardingPage: OnboardingPage!
+      
+      override func setUp() {
+          super.setUp()
+          continueAfterFailure = false
+          
+          app = XCUIApplication()
+          app.launchArguments = ["--uitesting", "--reset-onboarding"]
+          app.launch()
+          
+          onboardingPage = OnboardingPage(app: app)
+      }
+      
+      func test_completeOnboardingFlow_happyPath() {
+          // Opening Screen
+          onboardingPage.verifyOnOpeningScreen()
+          onboardingPage.tapBegin()
+          
+          // Life Snapshot
+          onboardingPage.verifyOnLifeSnapshot()
+          onboardingPage.selectLifeOption("Busy Professional")
+          onboardingPage.tapNext()
+          
+          // Core Aspiration
+          onboardingPage.verifyOnCoreAspiration()
+          onboardingPage.selectPredefinedGoal("Lose Weight")
+          onboardingPage.tapNext()
+          
+          // Continue through all screens...
+          
+          // Verify completion
+          XCTAssertTrue(onboardingPage.isOnDashboard())
+      }
+      
+      func test_navigationBack_shouldReturnToPreviousScreen() {
+          // Navigate forward
+          onboardingPage.tapBegin()
+          onboardingPage.selectLifeOption("Student")
+          onboardingPage.tapNext()
+          
+          // Navigate back
+          onboardingPage.tapBack()
+          
+          // Verify
+          onboardingPage.verifyOnLifeSnapshot()
+      }
+      
+      func test_validationError_shouldShowAlert() {
+          // Skip to life snapshot
+          onboardingPage.tapBegin()
+          
+          // Try to proceed without selection
+          onboardingPage.tapNext()
+          
+          // Verify error
+          XCTAssertTrue(app.alerts["Validation Error"].exists)
+      }
+  }
+  ```
+
+### Page Object
+
+**Agent Task 3.13.3: Create OnboardingPage Object**
+- File: `AirFitUITests/Pages/OnboardingPage.swift`
+- Implementation:
+  ```swift
+  class OnboardingPage: BasePage {
+      // MARK: - Opening Screen
+      var beginButton: XCUIElement {
+          app.buttons["onboarding.begin.button"]
+      }
+      
+      var skipButton: XCUIElement {
+          app.buttons["onboarding.skip.button"]
+      }
+      
+      func verifyOnOpeningScreen() {
+          verifyElement(exists: beginButton)
+          verifyElement(exists: skipButton)
+      }
+      
+      func tapBegin() {
+          tapElement(beginButton)
+      }
+      
+      // MARK: - Life Snapshot
+      func selectLifeOption(_ option: String) {
+          let toggle = app.switches["onboarding.life.\(option.lowercased().replacingOccurrences(of: " ", with: "_"))"]
+          tapElement(toggle)
+      }
+      
+      // MARK: - Navigation
+      var nextButton: XCUIElement {
+          app.buttons["onboarding.next.button"]
+      }
+      
+      var backButton: XCUIElement {
+          app.buttons["onboarding.back.button"]
+      }
+      
+      func tapNext() {
+          tapElement(nextButton)
+      }
+      
+      func tapBack() {
+          tapElement(backButton)
+      }
+      
+      // MARK: - Verification
+      func isOnDashboard() -> Bool {
+          app.tabBars["main.tabbar"].waitForExistence(timeout: 5)
+      }
+  }
+  ```
 
 ---
 
-**Task 3.12: Final Review & Commit**
-    *   **Agent Task 3.12.1:**
-        *   Instruction: "Review all created SwiftUI views and the `OnboardingViewModel` for correctness, adherence to design specifications, data binding, navigation logic, and interaction with SwiftData."
-        *   Acceptance Criteria: All components function as intended, code is clean, and follows styling guidelines.
-    *   **Agent Task 3.12.2:**
-        *   Instruction: "Stage all new and modified files related to the Onboarding module."
-        *   Acceptance Criteria: `git status` shows all relevant files staged.
-    *   **Agent Task 3.12.3:**
-        *   Instruction: "Commit the staged changes with a descriptive message."
-        *   Details: Commit message: "Feat: Implement Onboarding 'Persona Blueprint Flow' UI and core logic".
-        *   Acceptance Criteria: Git history shows the new commit. Project builds and runs the onboarding flow.
+**5. Acceptance Criteria for Module Completion**
 
-**Task 3.13: Add Unit & UI Tests**
-    *   **Agent Task 3.13.1 (OnboardingViewModel Unit Tests):**
-        *   Instruction: "Create `OnboardingViewModelTests.swift` in `AirFitTests/`."
-        *   Details: Use mocks from `AirFitTests/Mocks`, create an in-memory `ModelContainer`, and follow `TESTING_GUIDELINES.md`.
-        *   Acceptance Criteria: Unit tests compile and pass.
-    *   **Agent Task 3.13.2 (Onboarding Flow UI Tests):**
-        *   Instruction: "Create `OnboardingFlowUITests.swift` in `AirFitUITests/` to verify the onboarding sequence."
-        *   Details: Expose accessibility identifiers on views and follow the Arrange-Act-Assert pattern.
-        *   Acceptance Criteria: UI tests compile and pass.
+- ✅ All 10 screens of "Persona Blueprint Flow v3.1" implemented
+- ✅ OnboardingViewModel manages complete state and navigation
+- ✅ User inputs validated and stored correctly
+- ✅ LLM integration for goal analysis (mocked for testing)
+- ✅ Persona profile JSON correctly constructed
+- ✅ User and OnboardingProfile saved to SwiftData
+- ✅ App routes correctly based on onboarding status
+- ✅ UI follows design system (colors, fonts, spacing)
+- ✅ All code passes SwiftLint with zero violations
+- ✅ Unit test coverage ≥ 80% for ViewModel
+- ✅ UI tests cover happy path and error cases
+- ✅ Accessibility identifiers on all interactive elements
+- ✅ Performance: Screen transitions < 300ms
+- ✅ Memory usage: < 50MB during onboarding
 
----
+**6. Module Dependencies**
 
-**4. Acceptance Criteria for Module Completion**
-
-*   All screens of the "Persona Blueprint Flow v3.1" are implemented as SwiftUI views.
-*   `OnboardingViewModel` manages the state, data collection, and navigation for the entire flow.
-*   User inputs are correctly captured and stored in the ViewModel.
-*   LLM Call 1 (Goal Analysis) is (mock) integrated for custom goal input.
-*   Upon completion, `persona_profile.json` data is correctly constructed, and `User` and `OnboardingProfile` entities are successfully saved to SwiftData.
-*   The application correctly routes users through the onboarding flow or to the main app content based on their onboarding status.
-*   The UI adheres to the "clean, classy & premium" design principles and uses `AppColors`, `AppFonts`, etc.
-*   All code passes SwiftLint checks.
-*   Unit tests for `OnboardingViewModel` and UI tests for the onboarding flow are implemented and pass.
-
-**5. Code Style Reminders for this Module**
-
-*   SwiftUI views should be broken down into smaller, reusable sub-views where appropriate for clarity and maintainability.
-*   Use `@StateObject` for the `OnboardingViewModel` in `OnboardingFlowView` and `@ObservedObject` when passing it to sub-views.
-*   Ensure all user-interactive elements are accessible and provide appropriate feedback.
-*   ViewModel logic should be clearly separated from view rendering.
-*   Use `AppLogger` for logging key events and potential errors during the onboarding process.
+- **Requires Completion Of:** Module 0, 1, 2
+- **Must Be Completed Before:** Module 4 (Dashboard needs user profile)
+- **Can Run In Parallel With:** Module 8 (Meal Discovery)
 
 ---
-
-This module is quite substantial. Due to the number of screens and the ViewModel logic, this will likely involve many iterations with the AI agent(s). Clear instructions for each screen's specific UI elements and bindings will be crucial. Good luck with the "vibe-coding"!

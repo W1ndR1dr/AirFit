@@ -1,26 +1,33 @@
 **Modular Sub-Document 4: HealthKit & Context Aggregation Module**
 
-**Version:** 1.0
+**Version:** 2.0
 **Parent Document:** AirFit App - Master Architecture Specification (v1.2)
 **Prerequisites:**
     *   Completion of Modular Sub-Document 1: Core Project Setup & Configuration.
     *   Completion of Modular Sub-Document 2: Data Layer (SwiftData Schema & Managers) – specifically `DailyLog` and potentially `Workout` if this module also saves HealthKit-derived workouts.
-**Date:** May 24, 2025
+**Date:** May 25, 2025
+**Updated For:** iOS 18+, macOS 15+, Xcode 16+, Swift 6+
 
 **1. Module Overview**
 
-*   **Purpose:** To manage all interactions with Apple's HealthKit, request user permissions for health data access, fetch relevant health metrics, and assemble this data (along with other contextual information) into a `HealthContextSnapshot`.
+*   **Purpose:** To provide comprehensive health data integration through Apple HealthKit, implementing privacy-first data access, real-time health metrics aggregation, and context assembly for AI-driven insights using iOS 18's enhanced HealthKit capabilities.
 *   **Responsibilities:**
-    *   Defining and managing the set of HealthKit data types the app requests.
-    *   Implementing logic for requesting user authorization to read HealthKit data.
-    *   Fetching various health metrics (e.g., sleep, heart rate, HRV, workouts, activity rings, body weight) from HealthKit.
-    *   (Potentially) Subscribing to HealthKit background updates for key data types.
-    *   Implementing the `ContextAssembler` service, which gathers data from `HealthKitManager`, in-app sources (like `DailyLog`), and other services (like `WeatherService`) to create the `HealthContextSnapshot`.
-*   **Key Components within this Module:**
-    *   `HealthKitManager.swift` (Service class) located in `AirFit/Services/Health/`.
-    *   `ContextAssembler.swift` (Service class) located in `AirFit/Services/AI/` or a general `AirFit/Services/Context/` folder.
-    *   `HealthContextSnapshot.swift` (Struct definition) located in `AirFit/Core/Models/` or `AirFit/Services/Context/`.
-    *   Configuration for HealthKit entitlements and usage descriptions in `Info.plist`.
+    *   HealthKit authorization with granular permissions
+    *   Real-time and historical health data fetching
+    *   Sleep analysis with iOS 18's enhanced sleep stages
+    *   Activity metrics including new workout types
+    *   Heart health monitoring (HR, HRV, VO2 Max)
+    *   Body measurements and trends
+    *   Background health data updates
+    *   Context assembly for AI coaching
+    *   Privacy-compliant data handling
+*   **Key Components:**
+    *   `HealthKitManager.swift` - Core HealthKit service with async/await
+    *   `HealthContextSnapshot.swift` - Comprehensive health context model
+    *   `ContextAssembler.swift` - Data aggregation service
+    *   `HealthKitTypes.swift` - Type definitions and extensions
+    *   Authorization UI components
+    *   Background task handlers
 
 **2. Dependencies**
 
@@ -29,10 +36,15 @@
     *   Modular Sub-Document 1: `AppLogger`, `AppConstants`.
     *   Modular Sub-Document 2: `DailyLog` model (for fetching subjective energy), `Workout` model (if saving HealthKit workouts directly).
     *   (Future) `WeatherServiceAPIClient` (from Services Layer - Part 1) for weather data.
+    *   iOS 18 HealthKit framework
+    *   Design specifications for health features
 *   **Outputs:**
     *   A `HealthKitManager` capable of requesting permissions and fetching data.
     *   A `ContextAssembler` capable of creating up-to-date `HealthContextSnapshot` instances.
     *   The app is correctly configured to request HealthKit permissions.
+    *   Health data access for all app features
+    *   Real-time context for AI coaching
+    *   Background health monitoring
 
 **3. Detailed Component Specifications & Agent Tasks**
 
@@ -42,112 +54,275 @@
 
 **Task 4.0: Project Configuration for HealthKit**
     *   **Agent Task 4.0.1:**
-        *   Instruction: "Enable the HealthKit capability for the 'AirFit' iOS target."
-        *   Details: In Xcode, navigate to the project settings, select the "AirFit" iOS target, go to the "Signing & Capabilities" tab, and click the "+" button to add the "HealthKit" capability. Ensure "Clinical Health Records" is NOT selected unless explicitly required (it's not for this app spec).
-        *   Acceptance Criteria: The HealthKit capability is listed for the iOS target. An `AirFit.entitlements` file is created or updated.
+        *   Instruction: "Enable HealthKit capability with background delivery"
+        *   Details:
+            *   Open project settings in Xcode
+            *   Select "AirFit" iOS target
+            *   Go to "Signing & Capabilities" tab
+            *   Click "+" and add "HealthKit"
+            *   Check "Background Delivery" option
+            *   Do NOT check "Clinical Health Records"
+        *   Acceptance Criteria:
+            *   HealthKit capability enabled
+            *   Background Delivery enabled
+            *   AirFit.entitlements updated
     *   **Agent Task 4.0.2:**
-        *   Instruction: "Add required HealthKit usage description keys to the `Info.plist` file for the 'AirFit' iOS target."
-        *   Details: Add the following keys with user-facing strings explaining why the app needs access. These strings must be clear and build user trust.
-            *   `NSHealthShareUsageDescription`: (e.g., "AirFit uses your health data to provide personalized coaching insights, track your progress, and tailor workout and nutrition advice. Your data is used to understand your activity levels, sleep patterns, and other wellness metrics to help your AI Coach support your goals.")
-            *   `NSHealthUpdateUsageDescription`: (e.g., "AirFit needs permission to save workouts you log in the app to Apple Health. This allows you to keep all your fitness data in one place and contributes to your activity rings.") *(Initially, we might only read data, but good to have if we plan to write workouts later).*
-        *   Acceptance Criteria: The specified keys and their string values are present in the iOS target's `Info.plist`.
+        *   Instruction: "Configure Info.plist"
+        *   File: `AirFit/Info.plist`
+        *   Add these keys:
+            ```xml
+            <key>NSHealthShareUsageDescription</key>
+            <string>AirFit personalizes your fitness journey by analyzing your activity, sleep, heart health, and body metrics. Your AI coach uses this data to provide tailored recommendations and track your progress. All health data remains private and is never shared without your explicit consent.</string>
+            
+            <key>NSHealthUpdateUsageDescription</key>
+            <string>AirFit saves your workouts and body measurements to Apple Health, keeping all your fitness data synchronized. This helps you track progress across all your devices and contributes to your activity rings.</string>
+            
+            <key>NSHealthClinicalHealthRecordsShareUsageDescription</key>
+            <string>AirFit does not access clinical health records.</string>
+            ```
+        *   Acceptance Criteria:
+            *   Specified keys and their string values are present in the iOS target's `Info.plist`.
 
 ---
 
-**Task 4.1: Define HealthContextSnapshot Struct**
+**Task 4.1: Define Health Data Models**
     *   **Agent Task 4.1.1:**
-        *   Instruction: "Create a new Swift file named `HealthContextSnapshot.swift` in `AirFit/Core/Models/` (or `AirFit/Services/Context/` if preferred for service-related DTOs)."
-        *   Details: Define the `HealthContextSnapshot` struct. This struct will be populated by `ContextAssembler`.
+        *   Instruction: "Create HealthContextSnapshot"
+        *   File: `AirFit/Core/Models/HealthContextSnapshot.swift`
+        *   Complete Implementation:
             ```swift
-            // AirFit/Core/Models/HealthContextSnapshot.swift
             import Foundation
-
-            struct HealthContextSnapshot {
-                // Timestamps
-                let timestamp: Date // When this snapshot was generated
-                let date: Date // The current day (start of day) for context
-
-                // User-Logged Subjective Data (from DailyLog or live input)
-                var subjectiveEnergyLevel: Int? // 1-5 scale
-                var subjectiveMood: Int? // (Future placeholder) 1-5 scale
-                var subjectiveStress: Int? // (Future placeholder) 1-5 scale
-
-                // Environmental Data
-                var currentWeatherCondition: String? // e.g., "Sunny", "Cloudy" (from WeatherService)
-                var currentTemperatureCelsius: Double? // (from WeatherService)
-
-                // HealthKit - Activity & Vitals
-                var restingHeartRateBPM: Double?
-                var heartRateVariabilitySDNNms: Double?
-                var activeEnergyBurnedTodayKcal: Double?
-                var stepCountToday: Int?
-                var exerciseMinutesToday: Int?
-                var standHoursToday: Int?
-
-                // HealthKit - Sleep
-                var lastNightSleepDurationHours: Double?
-                var lastNightSleepEfficiencyPercentage: Double? // (Total time asleep / Total time in bed) * 100
-                var lastNightBedtime: Date?
-                var lastNightWaketime: Date?
-
-                // HealthKit - Body Measurements
-                var latestBodyWeightKg: Double?
-                var latestBodyFatPercentage: Double? // (If available)
-
-                // App-Specific Context
-                var activeWorkoutNameInProgress: String? // If a workout is currently active in the app
-                var timeSinceLastCoachInteractionMinutes: Int?
-                var lastMealLogged: String? // e.g., "Breakfast, 2 hours ago" (summary)
-                var upcomingPlannedWorkoutName: String? // Name of the next planned workout today/tomorrow
-
-                // Recent Performance Snippets (Optional, could be fetched on demand by AI function call too)
-                // var recentPRs: [String]? // e.g., ["Squat: 100kg (3 days ago)"]
-                // var daysSinceLastWorkoutOfTypeX: [String: Int]? // e.g., ["Strength": 2, "Cardio": 1]
-
-                init(timestamp: Date = Date(),
-                     date: Date = Calendar.current.startOfDay(for: Date()),
-                     subjectiveEnergyLevel: Int? = nil,
-                     currentWeatherCondition: String? = nil,
-                     currentTemperatureCelsius: Double? = nil,
-                     restingHeartRateBPM: Double? = nil,
-                     heartRateVariabilitySDNNms: Double? = nil,
-                     activeEnergyBurnedTodayKcal: Double? = nil,
-                     stepCountToday: Int? = nil,
-                     exerciseMinutesToday: Int? = nil,
-                     standHoursToday: Int? = nil,
-                     lastNightSleepDurationHours: Double? = nil,
-                     lastNightSleepEfficiencyPercentage: Double? = nil,
-                     lastNightBedtime: Date? = nil,
-                     lastNightWaketime: Date? = nil,
-                     latestBodyWeightKg: Double? = nil,
-                     latestBodyFatPercentage: Double? = nil,
-                     activeWorkoutNameInProgress: String? = nil,
-                     timeSinceLastCoachInteractionMinutes: Int? = nil,
-                     lastMealLogged: String? = nil,
-                     upcomingPlannedWorkoutName: String? = nil
+            import HealthKit
+            
+            struct HealthContextSnapshot: Sendable {
+                // MARK: - Metadata
+                let id: UUID
+                let timestamp: Date
+                let date: Date // Start of day for context
+                
+                // MARK: - Subjective Data
+                let subjectiveData: SubjectiveData
+                
+                // MARK: - Environmental Context
+                let environment: EnvironmentContext
+                
+                // MARK: - Activity Metrics
+                let activity: ActivityMetrics
+                
+                // MARK: - Sleep Analysis
+                let sleep: SleepAnalysis
+                
+                // MARK: - Heart Health
+                let heartHealth: HeartHealthMetrics
+                
+                // MARK: - Body Metrics
+                let body: BodyMetrics
+                
+                // MARK: - App Context
+                let appContext: AppSpecificContext
+                
+                // MARK: - Trends
+                let trends: HealthTrends
+                
+                init(
+                    id: UUID = UUID(),
+                    timestamp: Date = Date(),
+                    date: Date = Calendar.current.startOfDay(for: Date()),
+                    subjectiveData: SubjectiveData = SubjectiveData(),
+                    environment: EnvironmentContext = EnvironmentContext(),
+                    activity: ActivityMetrics = ActivityMetrics(),
+                    sleep: SleepAnalysis = SleepAnalysis(),
+                    heartHealth: HeartHealthMetrics = HeartHealthMetrics(),
+                    body: BodyMetrics = BodyMetrics(),
+                    appContext: AppSpecificContext = AppSpecificContext(),
+                    trends: HealthTrends = HealthTrends()
                 ) {
+                    self.id = id
                     self.timestamp = timestamp
                     self.date = date
-                    self.subjectiveEnergyLevel = subjectiveEnergyLevel
-                    // Initialize all other properties...
-                    self.currentWeatherCondition = currentWeatherCondition
-                    self.currentTemperatureCelsius = currentTemperatureCelsius
-                    self.restingHeartRateBPM = restingHeartRateBPM
-                    self.heartRateVariabilitySDNNms = heartRateVariabilitySDNNms
-                    self.activeEnergyBurnedTodayKcal = activeEnergyBurnedTodayKcal
-                    self.stepCountToday = stepCountToday
-                    self.exerciseMinutesToday = exerciseMinutesToday
-                    self.standHoursToday = standHoursToday
-                    self.lastNightSleepDurationHours = lastNightSleepDurationHours
-                    self.lastNightSleepEfficiencyPercentage = lastNightSleepEfficiencyPercentage
-                    self.lastNightBedtime = lastNightBedtime
-                    self.lastNightWaketime = lastNightWaketime
-                    self.latestBodyWeightKg = latestBodyWeightKg
-                    self.latestBodyFatPercentage = latestBodyFatPercentage
-                    self.activeWorkoutNameInProgress = activeWorkoutNameInProgress
-                    self.timeSinceLastCoachInteractionMinutes = timeSinceLastCoachInteractionMinutes
-                    self.lastMealLogged = lastMealLogged
-                    self.upcomingPlannedWorkoutName = upcomingPlannedWorkoutName
+                    self.subjectiveData = subjectiveData
+                    self.environment = environment
+                    self.activity = activity
+                    self.sleep = sleep
+                    self.heartHealth = heartHealth
+                    self.body = body
+                    self.appContext = appContext
+                    self.trends = trends
+                }
+            }
+            
+            // MARK: - Component Structures
+            
+            struct SubjectiveData: Sendable {
+                var energyLevel: Int? // 1-5
+                var mood: Int? // 1-5
+                var stress: Int? // 1-5
+                var motivation: Int? // 1-5
+                var soreness: Int? // 1-5
+                var notes: String?
+            }
+            
+            struct EnvironmentContext: Sendable {
+                var weatherCondition: String?
+                var temperature: Measurement<UnitTemperature>?
+                var humidity: Double? // 0-100%
+                var airQualityIndex: Int?
+                var timeOfDay: TimeOfDay
+                
+                enum TimeOfDay: String, Sendable {
+                    case earlyMorning = "early_morning" // 5-8am
+                    case morning = "morning" // 8-12pm
+                    case afternoon = "afternoon" // 12-5pm
+                    case evening = "evening" // 5-9pm
+                    case night = "night" // 9pm-5am
+                    
+                    init(from date: Date = Date()) {
+                        let hour = Calendar.current.component(.hour, from: date)
+                        switch hour {
+                        case 5..<8: self = .earlyMorning
+                        case 8..<12: self = .morning
+                        case 12..<17: self = .afternoon
+                        case 17..<21: self = .evening
+                        default: self = .night
+                        }
+                    }
+                }
+            }
+            
+            struct ActivityMetrics: Sendable {
+                // Daily totals
+                var activeEnergyBurned: Measurement<UnitEnergy>?
+                var basalEnergyBurned: Measurement<UnitEnergy>?
+                var steps: Int?
+                var distance: Measurement<UnitLength>?
+                var flightsClimbed: Int?
+                var exerciseMinutes: Int?
+                var standHours: Int?
+                var moveMinutes: Int?
+                
+                // Current activity
+                var currentHeartRate: Int?
+                var isWorkoutActive: Bool = false
+                var workoutType: HKWorkoutActivityType?
+                
+                // Ring progress (0-1)
+                var moveProgress: Double?
+                var exerciseProgress: Double?
+                var standProgress: Double?
+            }
+            
+            struct SleepAnalysis: Sendable {
+                var lastNight: SleepSession?
+                var weeklyAverage: SleepAverages?
+                
+                struct SleepSession: Sendable {
+                    let bedtime: Date?
+                    let wakeTime: Date?
+                    let totalSleepTime: TimeInterval?
+                    let timeInBed: TimeInterval?
+                    let efficiency: Double? // 0-100%
+                    
+                    // iOS 18 sleep stages
+                    let remTime: TimeInterval?
+                    let coreTime: TimeInterval?
+                    let deepTime: TimeInterval?
+                    let awakeTime: TimeInterval?
+                    
+                    var quality: SleepQuality? {
+                        guard let efficiency = efficiency else { return nil }
+                        switch efficiency {
+                        case 85...: return .excellent
+                        case 75..<85: return .good
+                        case 65..<75: return .fair
+                        default: return .poor
+                        }
+                    }
+                }
+                
+                struct SleepAverages: Sendable {
+                    let averageBedtime: Date?
+                    let averageWakeTime: Date?
+                    let averageDuration: TimeInterval?
+                    let averageEfficiency: Double?
+                    let consistency: Double? // 0-100%
+                }
+                
+                enum SleepQuality: String, Sendable {
+                    case excellent, good, fair, poor
+                }
+            }
+            
+            struct HeartHealthMetrics: Sendable {
+                // Resting metrics
+                var restingHeartRate: Int?
+                var hrv: Measurement<UnitDuration>? // milliseconds
+                var respiratoryRate: Double? // breaths/min
+                
+                // Fitness metrics
+                var vo2Max: Double? // ml/kg/min
+                var cardioFitness: CardioFitnessLevel?
+                
+                // Recovery metrics
+                var recoveryHeartRate: Int? // 1 min post-workout
+                var heartRateRecovery: Int? // Drop from peak
+                
+                enum CardioFitnessLevel: String, Sendable {
+                    case low, belowAverage, average, aboveAverage, high
+                }
+            }
+            
+            struct BodyMetrics: Sendable {
+                var weight: Measurement<UnitMass>?
+                var bodyFatPercentage: Double?
+                var leanBodyMass: Measurement<UnitMass>?
+                var bmi: Double?
+                var bodyMassIndex: BMICategory?
+                
+                // Trends
+                var weightTrend: Trend?
+                var bodyFatTrend: Trend?
+                
+                enum BMICategory: String, Sendable {
+                    case underweight, normal, overweight, obese
+                    
+                    init?(bmi: Double) {
+                        switch bmi {
+                        case ..<18.5: self = .underweight
+                        case 18.5..<25: self = .normal
+                        case 25..<30: self = .overweight
+                        case 30...: self = .obese
+                        default: return nil
+                        }
+                    }
+                }
+                
+                enum Trend: String, Sendable {
+                    case increasing, stable, decreasing
+                }
+            }
+            
+            struct AppSpecificContext: Sendable {
+                var activeWorkoutName: String?
+                var lastMealTime: Date?
+                var lastMealSummary: String?
+                var waterIntakeToday: Measurement<UnitVolume>?
+                var lastCoachInteraction: Date?
+                var upcomingWorkout: String?
+                var currentStreak: Int?
+            }
+            
+            struct HealthTrends: Sendable {
+                var weeklyActivityChange: Double? // percentage
+                var sleepConsistencyScore: Double? // 0-100
+                var recoveryTrend: RecoveryTrend?
+                var performanceTrend: PerformanceTrend?
+                
+                enum RecoveryTrend: String, Sendable {
+                    case wellRecovered, normal, needsRecovery, overreaching
+                }
+                
+                enum PerformanceTrend: String, Sendable {
+                    case peaking, improving, maintaining, declining
                 }
             }
             ```
@@ -155,38 +330,442 @@
 
 ---
 
-**Task 4.2: Implement HealthKitManager Service**
+**Task 4.2: Implement HealthKitManager**
     *   **Agent Task 4.2.1:**
-        *   Instruction: "Create a new Swift file named `HealthKitManager.swift` in `AirFit/Services/Health/`."
-        *   Details:
-            *   Import `HealthKit`.
-            *   Define a class `HealthKitManager` (can be an `ObservableObject` if its state needs to be observed by UI, e.g., authorization status, but primarily a service).
-            *   Private property: `let healthStore = HKHealthStore()`.
-            *   Define sets for HealthKit types to read:
-                ```swift
-                private var readDataTypes: Set<HKObjectType> {
-                    return [
-                        HKObjectType.quantityType(forIdentifier: .heartRate)!,
-                        HKObjectType.quantityType(forIdentifier: .restingHeartRate)!,
-                        HKObjectType.quantityType(forIdentifier: .heartRateVariabilitySDNN)!,
-                        HKObjectType.quantityType(forIdentifier: .stepCount)!,
-                        HKObjectType.quantityType(forIdentifier: .activeEnergyBurned)!,
-                        HKObjectType.quantityType(forIdentifier: .distanceWalkingRunning)!,
-                        HKObjectType.quantityType(forIdentifier: .appleExerciseTime)!,
-                        HKObjectType.quantityType(forIdentifier: .appleStandTime)!, // If using Apple's stand goal
-                        HKObjectType.categoryType(forIdentifier: .sleepAnalysis)!,
-                        HKObjectType.quantityType(forIdentifier: .bodyMass)!, // Weight
+        *   Instruction: "Create HealthKitManager"
+        *   File: `AirFit/Services/Health/HealthKitManager.swift`
+        *   Complete Implementation:
+            ```swift
+            import HealthKit
+            import Observation
+            
+            @MainActor
+            @Observable
+            final class HealthKitManager {
+                // MARK: - Properties
+                private let healthStore = HKHealthStore()
+                private(set) var authorizationStatus: AuthorizationStatus = .notDetermined
+                
+                // MARK: - Types
+                enum AuthorizationStatus {
+                    case notDetermined
+                    case authorized
+                    case denied
+                    case restricted
+                }
+                
+                // MARK: - Data Types Configuration
+                private var readTypes: Set<HKObjectType> {
+                    let quantityTypes: [HKQuantityTypeIdentifier] = [
+                        // Activity
+                        .activeEnergyBurned,
+                        .basalEnergyBurned,
+                        .stepCount,
+                        .distanceWalkingRunning,
+                        .distanceCycling,
+                        .flightsClimbed,
+                        .appleExerciseTime,
+                        .appleStandTime,
+                        .appleMoveTime,
+                        
+                        // Heart
+                        .heartRate,
+                        .restingHeartRate,
+                        .heartRateVariabilitySDNN,
+                        .heartRateRecoveryOneMinute,
+                        .vo2Max,
+                        .respiratoryRate,
+                        
+                        // Body
+                        .bodyMass,
+                        .bodyFatPercentage,
+                        .leanBodyMass,
+                        .bodyMassIndex,
+                        
+                        // Vitals
+                        .bloodPressureSystolic,
+                        .bloodPressureDiastolic,
+                        .bodyTemperature,
+                        .oxygenSaturation,
+                        
+                        // Other
+                        .dietaryWater
+                    ]
+                    
+                    var types: Set<HKObjectType> = Set(quantityTypes.compactMap {
+                        HKObjectType.quantityType(forIdentifier: $0)
+                    })
+                    
+                    // Category types
+                    types.insert(HKObjectType.categoryType(forIdentifier: .sleepAnalysis)!)
+                    types.insert(HKObjectType.categoryType(forIdentifier: .mindfulSession)!)
+                    
+                    // Workout type
+                    types.insert(HKObjectType.workoutType())
+                    
+                    // iOS 18 - new sleep stages
+                    if #available(iOS 18.0, *) {
+                        types.insert(HKObjectType.categoryType(forIdentifier: .sleepStages)!)
+                    }
+                    
+                    return types
+                }
+                
+                private var writeTypes: Set<HKSampleType> {
+                    [
+                        HKObjectType.quantityType(forIdentifier: .bodyMass)!,
                         HKObjectType.quantityType(forIdentifier: .bodyFatPercentage)!,
-                        HKObjectType.workoutType() // To read workouts logged by other apps
-                        // Add other types as needed
+                        HKObjectType.quantityType(forIdentifier: .dietaryWater)!,
+                        HKObjectType.workoutType()
                     ]
                 }
-                // Define writeDataTypes if the app will save data to HealthKit
-                // private var writeDataTypes: Set<HKSampleType> = [
-                // HKObjectType.workoutType(),
-                // HKObjectType.quantityType(forIdentifier: .activeEnergyBurned)!
-                // ]
-                ```
+                
+                // MARK: - Authorization
+                func requestAuthorization() async throws {
+                    guard HKHealthStore.isHealthDataAvailable() else {
+                        authorizationStatus = .restricted
+                        throw HealthKitError.notAvailable
+                    }
+                    
+                    do {
+                        try await healthStore.requestAuthorization(
+                            toShare: writeTypes,
+                            read: readTypes
+                        )
+                        
+                        authorizationStatus = .authorized
+                        AppLogger.info("HealthKit authorization granted", category: .health)
+                        
+                    } catch {
+                        authorizationStatus = .denied
+                        AppLogger.error("HealthKit authorization failed", error: error, category: .health)
+                        throw error
+                    }
+                }
+                
+                // MARK: - Activity Data Fetching
+                func fetchTodayActivityMetrics() async throws -> ActivityMetrics {
+                    let calendar = Calendar.current
+                    let now = Date()
+                    let startOfDay = calendar.startOfDay(for: now)
+                    let predicate = HKQuery.predicateForSamples(
+                        withStart: startOfDay,
+                        end: now,
+                        options: .strictStartDate
+                    )
+                    
+                    async let activeEnergy = fetchTotalQuantity(
+                        type: .activeEnergyBurned,
+                        unit: .kilocalorie(),
+                        predicate: predicate
+                    )
+                    
+                    async let steps = fetchTotalQuantity(
+                        type: .stepCount,
+                        unit: .count(),
+                        predicate: predicate
+                    )
+                    
+                    async let distance = fetchTotalQuantity(
+                        type: .distanceWalkingRunning,
+                        unit: .meter(),
+                        predicate: predicate
+                    )
+                    
+                    async let exerciseTime = fetchTotalQuantity(
+                        type: .appleExerciseTime,
+                        unit: .minute(),
+                        predicate: predicate
+                    )
+                    
+                    async let standHours = fetchStandHours(for: now)
+                    async let currentHR = fetchLatestHeartRate()
+                    
+                    let (energy, stepCount, dist, exercise, stand, hr) = try await (
+                        activeEnergy,
+                        steps,
+                        distance,
+                        exerciseTime,
+                        standHours,
+                        currentHR
+                    )
+                    
+                    return ActivityMetrics(
+                        activeEnergyBurned: energy.map { Measurement(value: $0, unit: .kilocalories) },
+                        steps: stepCount.map { Int($0) },
+                        distance: dist.map { Measurement(value: $0, unit: .meters) },
+                        exerciseMinutes: exercise.map { Int($0) },
+                        standHours: stand,
+                        currentHeartRate: hr
+                    )
+                }
+                
+                // MARK: - Sleep Data Fetching
+                func fetchLastNightSleep() async throws -> SleepAnalysis.SleepSession? {
+                    let calendar = Calendar.current
+                    let now = Date()
+                    
+                    // Look for sleep in the past 24 hours
+                    guard let startDate = calendar.date(byAdding: .hour, value: -24, to: now) else {
+                        return nil
+                    }
+                    
+                    let predicate = HKQuery.predicateForSamples(
+                        withStart: startDate,
+                        end: now,
+                        options: .strictStartDate
+                    )
+                    
+                    let sleepType = HKCategoryType(.sleepAnalysis)
+                    
+                    return try await withCheckedThrowingContinuation { continuation in
+                        let query = HKSampleQuery(
+                            sampleType: sleepType,
+                            predicate: predicate,
+                            limit: HKObjectQueryNoLimit,
+                            sortDescriptors: [NSSortDescriptor(key: HKSampleSortIdentifierEndDate, ascending: false)]
+                        ) { _, samples, error in
+                            if let error = error {
+                                continuation.resume(throwing: error)
+                                return
+                            }
+                            
+                            guard let sleepSamples = samples as? [HKCategorySample] else {
+                                continuation.resume(returning: nil)
+                                return
+                            }
+                            
+                            let session = self.analyzeSleepSamples(sleepSamples)
+                            continuation.resume(returning: session)
+                        }
+                        
+                        healthStore.execute(query)
+                    }
+                }
+                
+                // MARK: - Heart Health Data
+                func fetchHeartHealthMetrics() async throws -> HeartHealthMetrics {
+                    async let rhr = fetchLatestQuantitySample(type: .restingHeartRate, unit: .count().unitDivided(by: .minute()))
+                    async let hrv = fetchLatestQuantitySample(type: .heartRateVariabilitySDNN, unit: .secondUnit(with: .milli))
+                    async let vo2 = fetchLatestQuantitySample(type: .vo2Max, unit: .literUnit(with: .milli).unitDivided(by: .gramUnit(with: .kilo)).unitDivided(by: .minute()))
+                    
+                    let (restingHR, heartRateVariability, vo2Max) = try await (rhr, hrv, vo2)
+                    
+                    return HeartHealthMetrics(
+                        restingHeartRate: restingHR.map { Int($0) },
+                        hrv: heartRateVariability.map { Measurement(value: $0, unit: .milliseconds) },
+                        vo2Max: vo2Max
+                    )
+                }
+                
+                // MARK: - Body Metrics
+                func fetchLatestBodyMetrics() async throws -> BodyMetrics {
+                    async let weight = fetchLatestQuantitySample(
+                        type: .bodyMass,
+                        unit: .gramUnit(with: .kilo)
+                    )
+                    
+                    async let bodyFat = fetchLatestQuantitySample(
+                        type: .bodyFatPercentage,
+                        unit: .percent()
+                    )
+                    
+                    async let bmi = fetchLatestQuantitySample(
+                        type: .bodyMassIndex,
+                        unit: .count()
+                    )
+                    
+                    let (weightKg, fatPercent, bmiValue) = try await (weight, bodyFat, bmi)
+                    
+                    return BodyMetrics(
+                        weight: weightKg.map { Measurement(value: $0, unit: .kilograms) },
+                        bodyFatPercentage: fatPercent.map { $0 * 100 }, // Convert from decimal
+                        bmi: bmiValue,
+                        bodyMassIndex: bmiValue.flatMap { BMICategory(bmi: $0) }
+                    )
+                }
+                
+                // MARK: - Background Delivery
+                func enableBackgroundDelivery() async throws {
+                    let types: [(HKQuantityTypeIdentifier, HKUpdateFrequency)] = [
+                        (.stepCount, .hourly),
+                        (.activeEnergyBurned, .hourly),
+                        (.heartRate, .immediate),
+                        (.bodyMass, .daily)
+                    ]
+                    
+                    for (identifier, frequency) in types {
+                        guard let type = HKQuantityType.quantityType(forIdentifier: identifier) else { continue }
+                        
+                        try await healthStore.enableBackgroundDelivery(
+                            for: type,
+                            frequency: frequency
+                        )
+                    }
+                    
+                    AppLogger.info("HealthKit background delivery enabled", category: .health)
+                }
+                
+                // MARK: - Private Helper Methods
+                private func fetchTotalQuantity(
+                    type: HKQuantityTypeIdentifier,
+                    unit: HKUnit,
+                    predicate: NSPredicate
+                ) async throws -> Double? {
+                    guard let quantityType = HKQuantityType.quantityType(forIdentifier: type) else {
+                        return nil
+                    }
+                    
+                    return try await withCheckedThrowingContinuation { continuation in
+                        let query = HKStatisticsQuery(
+                            quantityType: quantityType,
+                            quantitySamplePredicate: predicate,
+                            options: .cumulativeSum
+                        ) { _, statistics, error in
+                            if let error = error {
+                                continuation.resume(throwing: error)
+                                return
+                            }
+                            
+                            let sum = statistics?.sumQuantity()?.doubleValue(for: unit)
+                            continuation.resume(returning: sum)
+                        }
+                        
+                        healthStore.execute(query)
+                    }
+                }
+                
+                private func fetchLatestQuantitySample(
+                    type: HKQuantityTypeIdentifier,
+                    unit: HKUnit
+                ) async throws -> Double? {
+                    guard let quantityType = HKQuantityType.quantityType(forIdentifier: type) else {
+                        return nil
+                    }
+                    
+                    return try await withCheckedThrowingContinuation { continuation in
+                        let query = HKSampleQuery(
+                            sampleType: quantityType,
+                            predicate: nil,
+                            limit: 1,
+                            sortDescriptors: [NSSortDescriptor(key: HKSampleSortIdentifierStartDate, ascending: false)]
+                        ) { _, samples, error in
+                            if let error = error {
+                                continuation.resume(throwing: error)
+                                return
+                            }
+                            
+                            guard let sample = samples?.first as? HKQuantitySample else {
+                                continuation.resume(returning: nil)
+                                return
+                            }
+                            
+                            let value = sample.quantity.doubleValue(for: unit)
+                            continuation.resume(returning: value)
+                        }
+                        
+                        healthStore.execute(query)
+                    }
+                }
+                
+                private func fetchLatestHeartRate() async throws -> Int? {
+                    try await fetchLatestQuantitySample(
+                        type: .heartRate,
+                        unit: .count().unitDivided(by: .minute())
+                    ).map { Int($0) }
+                }
+                
+                private func fetchStandHours(for date: Date) async throws -> Int? {
+                    // Implementation for stand hours calculation
+                    // This would involve querying stand samples for each hour of the day
+                    return nil // Placeholder
+                }
+                
+                private func analyzeSleepSamples(_ samples: [HKCategorySample]) -> SleepAnalysis.SleepSession? {
+                    guard !samples.isEmpty else { return nil }
+                    
+                    var bedtime = Date.distantFuture
+                    var wakeTime = Date.distantPast
+                    var totalAsleep: TimeInterval = 0
+                    var totalInBed: TimeInterval = 0
+                    
+                    // iOS 18 sleep stages
+                    var remTime: TimeInterval = 0
+                    var coreTime: TimeInterval = 0
+                    var deepTime: TimeInterval = 0
+                    var awakeTime: TimeInterval = 0
+                    
+                    for sample in samples {
+                        let duration = sample.endDate.timeIntervalSince(sample.startDate)
+                        
+                        if sample.startDate < bedtime {
+                            bedtime = sample.startDate
+                        }
+                        if sample.endDate > wakeTime {
+                            wakeTime = sample.endDate
+                        }
+                        
+                        totalInBed += duration
+                        
+                        switch HKCategoryValueSleepAnalysis(rawValue: sample.value) {
+                        case .inBed:
+                            // Count as in bed but awake
+                            awakeTime += duration
+                        case .asleepUnspecified, .asleep:
+                            totalAsleep += duration
+                        case .awake:
+                            awakeTime += duration
+                        case .asleepREM:
+                            totalAsleep += duration
+                            remTime += duration
+                        case .asleepCore:
+                            totalAsleep += duration
+                            coreTime += duration
+                        case .asleepDeep:
+                            totalAsleep += duration
+                            deepTime += duration
+                        default:
+                            break
+                        }
+                    }
+                    
+                    let efficiency = totalInBed > 0 ? (totalAsleep / totalInBed) * 100 : 0
+                    
+                    return SleepAnalysis.SleepSession(
+                        bedtime: bedtime == Date.distantFuture ? nil : bedtime,
+                        wakeTime: wakeTime == Date.distantPast ? nil : wakeTime,
+                        totalSleepTime: totalAsleep,
+                        timeInBed: totalInBed,
+                        efficiency: efficiency,
+                        remTime: remTime > 0 ? remTime : nil,
+                        coreTime: coreTime > 0 ? coreTime : nil,
+                        deepTime: deepTime > 0 ? deepTime : nil,
+                        awakeTime: awakeTime > 0 ? awakeTime : nil
+                    )
+                }
+            }
+            
+            // MARK: - Error Types
+            enum HealthKitError: LocalizedError {
+                case notAvailable
+                case authorizationDenied
+                case dataNotFound
+                case invalidDataType
+                
+                var errorDescription: String? {
+                    switch self {
+                    case .notAvailable:
+                        return "HealthKit is not available on this device"
+                    case .authorizationDenied:
+                        return "HealthKit authorization was denied"
+                    case .dataNotFound:
+                        return "No health data found for the requested type"
+                    case .invalidDataType:
+                        return "Invalid health data type requested"
+                    }
+                }
+            }
+            ```
         *   Acceptance Criteria: `HealthKitManager.swift` created with `healthStore` and data type sets.
     *   **Agent Task 4.2.2 (Authorization):**
         *   Instruction: "Implement `requestHealthKitAuthorization(completion: @escaping (Bool, Error?) -> Void)` method in `HealthKitManager.swift`."

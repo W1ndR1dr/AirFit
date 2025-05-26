@@ -1,141 +1,586 @@
 **Modular Sub-Document 0: Foundational Testing Strategy & Module Test Retrofit Mandate**
 
-**Version:** 1.0
+**Version:** 2.0
 **Parent Document:** AirFit App - Master Architecture Specification (v1.2)
 **Prerequisites:**
     *   Conceptual outline or initial drafts of Modular Sub-Documents 1 through 12.
-**Date:** May 24, 2025
+**Date:** May 2025
+**Updated For:** iOS 18+, macOS 15+, Xcode 16+, Swift 6+
 
 **1. Module Overview**
 
 *   **Purpose:** To establish a comprehensive and non-negotiable testing strategy that underpins the entire AirFit application development process. This module mandates the integration of testing requirements (unit and UI tests) into all feature-specific Modular Sub-Documents (specifically Modules 3 through 11). It also outlines the creation of core testing guidelines and the setup of a reusable mocking framework.
 *   **Responsibilities:**
     *   Defining the overarching testing philosophy and strategy for the AirFit project.
-    *   Creating the `TESTING_GUIDELINES.md` document.
-    *   Establishing a strategy and initial set of mock objects for common services and dependencies.
-    *   **Critically: Tasking an AI Agent (or guiding a process) to systematically review and update all pre-existing feature module sub-documents (Modules 3-11) to explicitly include detailed agent tasks for writing unit and UI tests for their respective components.**
-    *   Ensuring that "testability" and "test coverage" are primary concerns from the outset and throughout the development lifecycle.
-*   **Key Outputs of this Module (as it pertains to setting project standards and retrofitting):**
-    *   `TESTING_GUIDELINES.md` document.
-    *   Initial set of core mock object implementations (e.g., for `AIAPIServiceProtocol`, `APIKeyManager`, etc.).
-    *   **Revised versions of Modular Sub-Documents 3 through 11**, each now containing explicit tasks for test generation.
-    *   A clear directive that no feature module is considered complete without its associated tests being implemented and passing.
+    *   Creating the `TESTING_GUIDELINES.md` document with exact content structure.
+    *   Establishing concrete mock object templates for all service protocols.
+    *   Providing SwiftData test helper utilities.
+    *   Implementing UI test page object pattern examples.
+    *   **Critically: Tasking an AI Agent to systematically review and update all pre-existing feature module sub-documents (Modules 3-11) to explicitly include detailed agent tasks for writing unit and UI tests for their respective components.**
+*   **Key Outputs:**
+    *   `TESTING_GUIDELINES.md` document (500-800 lines).
+    *   Complete mock implementations in `AirFitTests/Mocks/`.
+    *   SwiftData test utilities in `AirFitTests/Utilities/`.
+    *   UI test page objects in `AirFitUITests/Pages/`.
+    *   **Revised versions of Modular Sub-Documents 3 through 11**.
 
 **2. Dependencies**
 
 *   **Inputs:**
-    *   AirFit App - Master Architecture Specification (v1.2) – for understanding component responsibilities and interactions, which informs what needs testing.
-    *   Initial drafts/outlines of Modular Sub-Documents 1-12 – these are the documents to be reviewed and updated.
-*   **Outputs (from the retrofit process):**
-    *   Updated Modular Sub-Documents 3-11, now test-inclusive.
-    *   A project-wide understanding and commitment to test-driven or test-aware development.
+    *   AirFit App - Master Architecture Specification (v1.2).
+    *   Module 1 completion (Core Setup with protocols defined).
+    *   Module 2 completion (Data Layer with models defined).
+*   **Outputs:**
+    *   Testing foundation that all subsequent modules depend on.
+    *   Updated Module 3-11 documents with test tasks.
 
 **3. Detailed Component Specifications & Agent Tasks**
 
 ---
 
-**Task 0.1: Establish Core Testing Guidelines**
-    *   **Agent Task 0.1.1:**
-        *   Instruction: "Create a new Markdown file named `TESTING_GUIDELINES.md` in the project's root directory."
-        *   Details: Populate this file with comprehensive testing guidelines. The content should include, but not be limited to:
-            *   **Philosophy:** Importance of testing, goals (reliability, regression prevention, documentation).
-            *   **Types of Tests:**
-                *   Unit Tests: Scope, purpose, what to test (public methods, logic, edge cases).
-                *   Integration Tests (Conceptual): How different units work together (can be light initially, focusing on service interactions).
-                *   UI Tests: Scope, purpose, what to test (key user flows, UI element states, navigation). Use of accessibility identifiers.
-            *   **Test Structure (Arrange-Act-Assert - AAA):** Mandate this pattern.
-            *   **Naming Conventions:**
-                *   Unit Tests: `test_MethodName_WithCondition_ShouldReturnExpectedBehavior()` or `testGiven[Precondition]_When[Action]_Then[ExpectedResult]()`.
-                *   UI Tests: `test_[FlowName]_When[Action]_Then[UIIsInExpectedState]()`.
-            *   **Test Independence & Isolation:** Each test must be runnable independently and not affect others.
-            *   **Readability & Maintainability:** Tests are code and must be clear and maintainable.
-            *   **Mocking & Stubbing:**
-                *   Clear guidance on when and how to use mocks/stubs for dependencies.
-                *   Preference for protocol-based mocking.
-            *   **SwiftData Testing:** Strategy for using in-memory `ModelContainer` for unit tests.
-            *   **Code Coverage:** Define an initial target (e.g., 70% for business logic) and emphasize its importance.
-            *   **CI/CD:** Note that tests must be runnable in an automated CI environment.
-            *   **Accessibility Identifiers:** Mandate their use for UI testing.
-        *   Acceptance Criteria: `TESTING_GUIDELINES.md` is created and contains comprehensive, actionable guidelines.
+**Task 0.1: Create Comprehensive Testing Guidelines**
+
+**Agent Task 0.1.1:**
+- Instruction: "Create TESTING_GUIDELINES.md with the following exact sections and content structure"
+- Required File Location: `AirFit/Docs/TESTING_GUIDELINES.md`
+- Required Sections:
+  1. **Testing Philosophy** (100-200 words)
+     - Why testing matters for AirFit
+     - Goals: reliability, regression prevention, documentation
+     - Testing as first-class citizen in development
+  
+  2. **Test Types** (with definitions and examples)
+     - **Unit Tests:**
+       - Definition: Tests for individual units of code in isolation
+       - Scope: ViewModels, Services, Utilities, Data transformations
+       - Example structure with actual Swift 6 code
+     - **Integration Tests:**
+       - Definition: Tests for component interactions
+       - Scope: Service + Repository, ViewModel + Service
+       - When to use vs unit tests
+     - **UI Tests:**
+       - Definition: End-to-end user flow tests
+       - Scope: Complete user journeys, critical paths
+       - Accessibility requirements
+  
+  3. **Test Naming Conventions** (with 5+ examples each)
+     ```swift
+     // Unit Test Pattern
+     func test_methodName_givenCondition_shouldExpectedResult()
+     func test_calculateBMR_givenValidUserProfile_shouldReturnPositiveValue()
+     func test_saveProfile_givenNetworkError_shouldThrowConnectionError()
+     
+     // UI Test Pattern  
+     func test_userFlow_whenAction_thenUIState()
+     func test_onboardingFlow_whenCompletingAllSteps_thenDashboardIsVisible()
+     func test_mealLogging_whenAddingMeal_thenMealAppearsInList()
+     ```
+  
+  4. **AAA Pattern** (with 3 complete examples)
+     ```swift
+     // Example 1: Testing calculation logic
+     func test_calculateTDEE_givenSedentaryUser_shouldApplyCorrectMultiplier() {
+         // Arrange
+         let profile = UserProfile(
+             age: 30, weight: 70, height: 175,
+             biologicalSex: .male, activityLevel: .sedentary
+         )
+         let calculator = TDEECalculator()
+         
+         // Act
+         let tdee = calculator.calculateTDEE(for: profile)
+         
+         // Assert
+         XCTAssertEqual(tdee, 1750, accuracy: 50) // BMR * 1.2
+     }
+     
+     // Example 2: Testing async operations
+     func test_fetchMeals_givenValidResponse_shouldUpdatePublishedProperty() async {
+         // Arrange
+         let mockService = MockMealService()
+         mockService.mockResponse = [Meal(id: "1", name: "Salad")]
+         let viewModel = MealViewModel(mealService: mockService)
+         
+         // Act
+         await viewModel.loadMeals()
+         
+         // Assert
+         XCTAssertEqual(viewModel.meals.count, 1)
+         XCTAssertEqual(viewModel.meals.first?.name, "Salad")
+     }
+     
+     // Example 3: Testing error handling
+     func test_login_givenInvalidCredentials_shouldShowErrorAlert() async {
+         // Arrange
+         let mockAuth = MockAuthService()
+         mockAuth.shouldFailWithError = AuthError.invalidCredentials
+         let viewModel = LoginViewModel(authService: mockAuth)
+         
+         // Act
+         await viewModel.login(email: "test@test.com", password: "wrong")
+         
+         // Assert
+         XCTAssertTrue(viewModel.showAlert)
+         XCTAssertEqual(viewModel.alertMessage, "Invalid email or password")
+     }
+     ```
+  
+  5. **Mocking Strategy** (with protocol example and mock implementation)
+     ```swift
+     // Protocol definition
+     protocol NetworkClientProtocol: Sendable {
+         func request<T: Decodable>(_ endpoint: Endpoint) async throws -> T
+     }
+     
+     // Mock implementation
+     final class MockNetworkClient: NetworkClientProtocol {
+         var mockResponses: [String: Any] = [:]
+         var capturedRequests: [Endpoint] = []
+         var shouldThrowError: Error?
+         
+         func request<T: Decodable>(_ endpoint: Endpoint) async throws -> T {
+             capturedRequests.append(endpoint)
+             
+             if let error = shouldThrowError {
+                 throw error
+             }
+             
+             guard let response = mockResponses[endpoint.path] as? T else {
+                 throw NetworkError.invalidResponse
+             }
+             
+             return response
+         }
+     }
+     ```
+  
+  6. **SwiftData Testing** (with complete in-memory container setup)
+     ```swift
+     // Test helper for SwiftData
+     @MainActor
+     class SwiftDataTestHelper {
+         static func createTestContainer(for types: any PersistentModel.Type...) throws -> ModelContainer {
+             let config = ModelConfiguration(isStoredInMemoryOnly: true)
+             let schema = Schema(types)
+             return try ModelContainer(for: schema, configurations: config)
+         }
+         
+         static func createTestContext(for types: any PersistentModel.Type...) throws -> ModelContext {
+             let container = try createTestContainer(for: types)
+             return ModelContext(container)
+         }
+     }
+     
+     // Usage in tests
+     override func setUp() async throws {
+         try await super.setUp()
+         modelContext = try SwiftDataTestHelper.createTestContext(
+             for: User.self, Meal.self, NutritionData.self
+         )
+     }
+     ```
+  
+  7. **Code Coverage Requirements**
+     - ViewModels: 80% minimum
+     - Services: 70% minimum  
+     - Utilities: 90% minimum
+     - UI Tests: Cover all critical user paths
+     - How to measure: `xcrun xccov view --report coverage.xcresult`
+  
+  8. **CI/CD Integration**
+     - Tests must run headlessly
+     - No external dependencies
+     - Timeout considerations
+     - Parallel test execution setup
+  
+  9. **Accessibility Testing**
+     - All interactive elements must have identifiers
+     - Naming convention: `module.component.element`
+     - Example: `onboarding.welcome.continueButton`
+     - VoiceOver testing requirements
+
+- Acceptance Criteria: 
+  - File exists at `AirFit/Docs/TESTING_GUIDELINES.md`
+  - Contains all 9 sections with code examples
+  - At least 3 code examples per section where applicable
+  - File is 500-800 lines
+  - All code examples compile with Swift 6
 
 ---
 
-**Task 0.2: Develop Initial Mocking Framework**
-    *   **Agent Task 0.2.1:**
-        *   Instruction: "Based on the protocols defined for key services in early modules (e.g., `AIAPIServiceProtocol` from Module 10, `WhisperServiceWrapperProtocol` from Module 8, `APIKeyManager` if refactored to a protocol, `NotificationManager` if refactored to a protocol), create initial mock implementations for each."
-        *   Details:
-            *   Place mocks in a dedicated test support directory accessible by test targets (e.g., `AirFit/AirFitTests/Mocks/` or a shared test utilities target).
-            *   Mocks should:
-                *   Conform to their respective protocols.
-                *   Allow configuration of return values for their methods.
-                *   Track whether methods were called and with what parameters.
-                *   Provide default, non-crashing behavior.
-            *   Example structure (reiterating from Module 12 for clarity):
-                ```swift
-                // Example: MockAIAPIService.swift
-                class MockAIAPIService: AIAPIServiceProtocol {
-                    var configureCalledWith: (provider: AIProvider, apiKey: String, modelIdentifier: String?)?
-                    var getStreamingResponseCalledWithRequest: AIRequest?
-                    var mockStreamingResponsePublisher: AnyPublisher<AIResponseType, Error> = Empty().eraseToAnyPublisher()
+**Task 0.2: Create Comprehensive Mock Framework**
 
-                    func configure(provider: AIProvider, apiKey: String, modelIdentifier: String?) {
-                        configureCalledWith = (provider, apiKey, modelIdentifier)
-                    }
+**Agent Task 0.2.1: Create Base Mock Protocols**
+- Instruction: "Create MockProtocol.swift with base mock functionality"
+- File Location: `AirFit/AirFitTests/Mocks/Base/MockProtocol.swift`
+- Content:
+  ```swift
+  import Foundation
+  
+  /// Base protocol for all mocks to track method calls
+  protocol MockProtocol: AnyObject {
+      var invocations: [String: [Any]] { get set }
+      var stubbedResults: [String: Any] { get set }
+      
+      func recordInvocation(_ method: String, arguments: Any...)
+      func stub<T>(_ method: String, with result: T)
+      func verify(_ method: String, called times: Int)
+  }
+  
+  extension MockProtocol {
+      func recordInvocation(_ method: String, arguments: Any...) {
+          if invocations[method] == nil {
+              invocations[method] = []
+          }
+          invocations[method]?.append(arguments)
+      }
+      
+      func stub<T>(_ method: String, with result: T) {
+          stubbedResults[method] = result
+      }
+      
+      func verify(_ method: String, called times: Int) {
+          let actual = invocations[method]?.count ?? 0
+          assert(actual == times, "\(method) was called \(actual) times, expected \(times)")
+      }
+  }
+  ```
 
-                    func getStreamingResponse(for request: AIRequest) -> AnyPublisher<AIResponseType, Error> {
-                        getStreamingResponseCalledWithRequest = request
-                        return mockStreamingResponsePublisher
-                    }
-                }
-                ```
-        *   Acceptance Criteria: Initial mock objects for critical, defined service protocols are created and functional for use in unit tests. *(Vibe-Coder Note: This task might require instructing the agent to first ensure that these services *do* have protocols. If a service was implemented as a concrete class without a protocol in an earlier module's definition, a preceding sub-task here would be "Refactor `[ServiceName].swift` to define and conform to `[ServiceNameProtocol]` to enable mocking.")*
+**Agent Task 0.2.2: Create Service Mocks**
+- Instruction: "Create mock implementations for all service protocols"
+- Required Mocks:
+  1. `MockUserService.swift`
+  2. `MockMealService.swift`
+  3. `MockHealthKitService.swift`
+  4. `MockAICoachService.swift`
+  5. `MockNotificationService.swift`
+  6. `MockNetworkClient.swift`
+
+- Example Template for `MockUserService.swift`:
+  ```swift
+  import Foundation
+  @testable import AirFit
+  
+  @MainActor
+  final class MockUserService: UserServiceProtocol, MockProtocol {
+      var invocations: [String: [Any]] = [:]
+      var stubbedResults: [String: Any] = [:]
+      
+      // Stubbed responses
+      var createUserResult: Result<User, Error> = .success(User.mock)
+      var updateProfileResult: Result<Void, Error> = .success(())
+      var getCurrentUserResult: User? = User.mock
+      
+      func createUser(from profile: OnboardingProfile) async throws -> User {
+          recordInvocation(#function, arguments: profile)
+          
+          switch createUserResult {
+          case .success(let user):
+              return user
+          case .failure(let error):
+              throw error
+          }
+      }
+      
+      func updateProfile(_ updates: ProfileUpdate) async throws {
+          recordInvocation(#function, arguments: updates)
+          
+          if case .failure(let error) = updateProfileResult {
+              throw error
+          }
+      }
+      
+      func getCurrentUser() -> User? {
+          recordInvocation(#function)
+          return getCurrentUserResult
+      }
+  }
+  
+  // Test data extensions
+  extension User {
+      static var mock: User {
+          User(
+              id: UUID(),
+              name: "Test User",
+              email: "test@example.com",
+              profile: UserProfile.mock
+          )
+      }
+  }
+  ```
+
+**Agent Task 0.2.3: Create UI Test Helpers**
+- Instruction: "Create page object base class and examples"
+- File Location: `AirFit/AirFitUITests/Pages/BasePage.swift`
+- Content:
+  ```swift
+  import XCTest
+  
+  class BasePage {
+      let app: XCUIApplication
+      let timeout: TimeInterval = 10
+      
+      required init(app: XCUIApplication) {
+          self.app = app
+      }
+      
+      func waitForElement(_ element: XCUIElement, timeout: TimeInterval? = nil) -> Bool {
+          element.waitForExistence(timeout: timeout ?? self.timeout)
+      }
+      
+      func tapElement(_ element: XCUIElement) {
+          XCTAssertTrue(waitForElement(element), "\(element) not found")
+          element.tap()
+      }
+      
+      func typeText(in element: XCUIElement, text: String) {
+          XCTAssertTrue(waitForElement(element), "\(element) not found")
+          element.tap()
+          element.typeText(text)
+      }
+      
+      func verifyElement(exists element: XCUIElement) {
+          XCTAssertTrue(waitForElement(element), "\(element) should exist")
+      }
+      
+      func verifyElement(notExists element: XCUIElement) {
+          XCTAssertFalse(element.exists, "\(element) should not exist")
+      }
+  }
+  
+  // Example page object
+  class OnboardingPage: BasePage {
+      // Elements
+      var welcomeTitle: XCUIElement {
+          app.staticTexts["onboarding.welcome.title"]
+      }
+      
+      var continueButton: XCUIElement {
+          app.buttons["onboarding.continue.button"]
+      }
+      
+      var nameField: XCUIElement {
+          app.textFields["onboarding.name.field"]
+      }
+      
+      // Actions
+      func tapContinue() {
+          tapElement(continueButton)
+      }
+      
+      func enterName(_ name: String) {
+          typeText(in: nameField, text: name)
+      }
+      
+      // Verifications
+      func verifyOnWelcomeScreen() {
+          verifyElement(exists: welcomeTitle)
+          verifyElement(exists: continueButton)
+      }
+  }
+  ```
+
+**Agent Task 0.2.4: Create Test Data Builders**
+- Instruction: "Create builder pattern for test data creation"
+- File Location: `AirFit/AirFitTests/Utilities/TestDataBuilders.swift`
+- Example:
+  ```swift
+  // Builder for creating test data with Swift 6 features
+  @MainActor
+  final class UserProfileBuilder {
+      private var age: Int = 30
+      private var weight: Double = 70
+      private var height: Double = 175
+      private var biologicalSex: BiologicalSex = .male
+      private var activityLevel: ActivityLevel = .moderate
+      private var goal: FitnessGoal = .maintainWeight
+      
+      func with(age: Int) -> Self {
+          self.age = age
+          return self
+      }
+      
+      func with(weight: Double) -> Self {
+          self.weight = weight
+          return self
+      }
+      
+      func with(activityLevel: ActivityLevel) -> Self {
+          self.activityLevel = activityLevel
+          return self
+      }
+      
+      func build() -> UserProfile {
+          UserProfile(
+              age: age,
+              weight: weight,
+              height: height,
+              biologicalSex: biologicalSex,
+              activityLevel: activityLevel,
+              goal: goal
+          )
+      }
+  }
+  ```
 
 ---
 
-**Task 0.3: Mandate and Execute Retrofit of Testing Tasks into Modules 3-11**
-    *   **Agent Task 0.3.1 (The Retrofit Operation):**
-        *   Instruction: "Systematically review each Modular Sub-Document from Module 3 (Onboarding) through Module 11 (Settings). For each module:
-            1.  Identify every significant logic-bearing component (ViewModels, Engines, Managers, Services, etc.) and every major UI View/User Flow defined.
-            2.  For each such component/flow, append new, explicit 'Agent Tasks' that instruct the Code Generation Agent to write corresponding XCTest unit tests (for logic components) or XCTest UI tests (for UI flows).
-            3.  These new test-generation tasks must adhere to the specifications laid out in the 'General Instructions for the Agent' section of the 'Task Refinement Pass: Integrating Testing Requirements' document (which details how to structure these new test tasks, including references to `TESTING_GUIDELINES.md`, mocking, SwiftData setup, and accessibility identifiers).
-            4.  Update the 'Acceptance Criteria for Module Completion' section of each reviewed module to include successful implementation and passing of these newly defined unit and UI tests."
-        *   Details: The agent performing this "retrofit" task is essentially editing the existing Markdown documents for Modules 3-11. It needs to understand the structure of those documents and inject the new test-related tasks appropriately.
-        *   Example of an injected task (from previous discussion):
-            ```
-            **Agent Task X.Y.Z (Unit Tests for [ComponentName]):**
-                *   Instruction: "Create an XCTest unit test file named `[ComponentName]Tests.swift`..."
-                *   Details: "Utilize mock implementations... For SwiftData, use in-memory ModelContainer... Follow TESTING_GUIDELINES.md..."
-                *   Acceptance Criteria: "Unit tests for `[ComponentName]` are created, compile, and pass..."
-            ```
-        *   Acceptance Criteria: Revised versions of Modular Sub-Documents 3 through 11 are produced, each now containing explicitly defined tasks for generating unit and UI tests for its components. The overall module acceptance criteria are also updated to reflect testing requirements.
+**Task 0.3: Retrofit Testing Requirements into Feature Modules**
+
+**Agent Task 0.3.1: Update Module Documentation Structure**
+- Instruction: "Update each Module (3-11) documentation with specific test tasks"
+- For each module, add:
+  1. **Testing Requirements** section after component specifications
+  2. Specific unit test tasks for each ViewModel/Service
+  3. Specific UI test tasks for each user flow
+  4. Test file naming and location specifications
+  5. Concrete acceptance criteria with metrics
+
+- Template for adding to each module:
+  ```markdown
+  ## Testing Requirements
+  
+  ### Unit Tests
+  
+  **Agent Task X.Y.Z: Create [Component]Tests**
+  - File: `AirFitTests/[Module]/[Component]Tests.swift`
+  - Requirements:
+    - Test all public methods
+    - Use mocks from `AirFitTests/Mocks/`
+    - Achieve 80% code coverage for ViewModels
+    - Follow AAA pattern from TESTING_GUIDELINES.md
+  - Test Cases:
+    1. `test_[method]_given[Condition]_should[Result]()`
+    2. `test_[method]_whenErrorOccurs_shouldHandleGracefully()`
+    3. [List specific test cases for this component]
+  - Acceptance: All tests pass, coverage ≥ 80%
+  
+  ### UI Tests
+  
+  **Agent Task X.Y.Z: Create [Flow]UITests**
+  - File: `AirFitUITests/[Module]/[Flow]UITests.swift`
+  - Requirements:
+    - Use page object pattern
+    - Test happy path and error cases
+    - Verify accessibility
+  - Test Scenarios:
+    1. Complete flow successfully
+    2. Handle validation errors
+    3. Verify navigation
+  - Acceptance: All UI tests pass on iPhone 16 Pro simulator
+  ```
+
+**Agent Task 0.3.2: Create Module Test Verification Script**
+- Instruction: "Create a shell script to verify module test completion"
+- File: `AirFit/Scripts/verify_module_tests.sh`
+- Content:
+  ```bash
+  #!/bin/bash
+  
+  # Usage: ./verify_module_tests.sh [module_number]
+  
+  MODULE=$1
+  
+  if [ -z "$MODULE" ]; then
+      echo "Usage: $0 [module_number]"
+      exit 1
+  fi
+  
+  echo "Verifying tests for Module $MODULE..."
+  
+  # Run module-specific tests
+  xcodebuild test \
+      -scheme "AirFit" \
+      -destination 'platform=iOS Simulator,name=iPhone 16 Pro,OS=18.0' \
+      -only-testing:AirFitTests/Module${MODULE} \
+      -resultBundlePath Module${MODULE}TestResults.xcresult
+  
+  # Extract coverage metrics
+  xcrun xccov view --report Module${MODULE}TestResults.xcresult --json > coverage.json
+  
+  # Check coverage threshold
+  python3 -c "
+  import json
+  with open('coverage.json') as f:
+      data = json.load(f)
+      coverage = data['lineCoverage']
+      print(f'Module ${MODULE} coverage: {coverage*100:.1f}%')
+      exit(0 if coverage >= 0.7 else 1)
+  "
+  ```
 
 ---
 
-**Task 0.4: Final Review & Commit of Foundational Testing Artifacts**
-    *   **Agent Task 0.4.1:**
-        *   Instruction: "Review the created `TESTING_GUIDELINES.md` and the initial set of mock object implementations for clarity, completeness, and adherence to best practices."
-        *   Acceptance Criteria: Core testing documentation and initial mocks are of high quality.
-    *   **Agent Task 0.4.2:**
-        *   Instruction: "Verify that the AI Agent performing Task 0.3 has correctly updated at least one representative feature module sub-document (e.g., Module 3 - Onboarding) with the new testing tasks, and that these new tasks are well-defined."
-        *   Acceptance Criteria: The retrofit process itself is demonstrated to be working correctly on a sample. *(Vibe-Coder Note: You will likely need to review all retrofitted documents from Task 0.3 yourself or with the agent.)*
-    *   **Agent Task 0.4.3:**
-        *   Instruction: "Stage and commit `TESTING_GUIDELINES.md`, all created mock object files, and all *revised* Modular Sub-Documents (Modules 3-11)."
-        *   Details: Commit message: "Feat: Establish Foundational Testing Strategy (Module 0) and retrofit testing tasks into feature modules".
-        *   Acceptance Criteria: All foundational testing artifacts and revised module plans are committed to the Git repository.
+**Task 0.4: Create Testing Dashboard and Documentation**
+
+**Agent Task 0.4.1: Create Test Status Dashboard**
+- Instruction: "Create TEST_STATUS.md to track testing progress"
+- File: `AirFit/Docs/TEST_STATUS.md`
+- Template:
+  ```markdown
+  # AirFit Test Status Dashboard
+  
+  Last Updated: [Date]
+  
+  ## Overall Coverage: X%
+  
+  | Module | Unit Tests | UI Tests | Coverage | Status |
+  |--------|------------|----------|----------|---------|
+  | Module 0 | ✅ 15/15 | N/A | 95% | Complete |
+  | Module 1 | ✅ 20/20 | N/A | 88% | Complete |
+  | Module 2 | ⏳ 18/25 | N/A | 72% | In Progress |
+  | Module 3 | ❌ 0/30 | ❌ 0/5 | 0% | Not Started |
+  ...
+  
+  ## Test Execution Commands
+  
+  ```bash
+  # Run all tests
+  xcodebuild test -scheme "AirFit" 
+  
+  # Run specific module tests
+  ./Scripts/verify_module_tests.sh 3
+  ```
+  ```
+
+**Agent Task 0.4.2: Create Example Test Implementation**
+- Instruction: "Create a complete example test file demonstrating all patterns"
+- File: `AirFit/AirFitTests/Examples/ExampleViewModelTests.swift`
+- Must include:
+  - Swift 6 concurrency (@MainActor)
+  - Mock usage
+  - SwiftData setup
+  - Async testing
+  - Error handling tests
+  - Published property observation
 
 ---
 
 **4. Acceptance Criteria for Module Completion**
 
-*   A comprehensive `TESTING_GUIDELINES.md` document is created and committed.
-*   Initial mock implementations for key service protocols are created and committed.
-*   **All feature-specific Modular Sub-Documents (Modules 3 through 11) have been successfully revised to include explicit tasks for the generation of unit and UI tests, and their overall acceptance criteria now mandate the completion of these tests.**
-*   The project has a clear, documented, and mandated approach to testing that will be applied throughout the development of all subsequent features.
+- ✅ `TESTING_GUIDELINES.md` created with all 9 sections (500-800 lines)
+- ✅ Base mock protocol and utilities created
+- ✅ Mock implementations for all 6 core services
+- ✅ UI test page object pattern implemented with base class
+- ✅ Test data builders created
+- ✅ All Modules 3-11 updated with specific test tasks
+- ✅ Module test verification script functional
+- ✅ TEST_STATUS.md dashboard created
+- ✅ Example test implementation demonstrates all patterns
+- ✅ All code compiles with Swift 6 and Xcode 16
+- ✅ CI can execute all tests successfully
 
-**5. Implications for AI Agent Workflow**
+**5. Module Dependencies**
 
-*   **Order of Execution:** This "Module 0" and its Task 0.3 (the retrofit) should conceptually be completed *before* AI Code Generation Agents begin implementing the feature code for Modules 3-11 based on their *revised* sub-documents.
-*   **Agent Instructions:** When an AI Code Generation Agent is tasked with implementing a component from a revised module (e.g., `OnboardingViewModel.swift`), it will now see an accompanying task to also generate `OnboardingViewModelTests.swift`.
-*   **Iterative Refinement:** The `TESTING_GUIDELINES.md` and mock implementations may evolve as the project progresses and new testing challenges arise.
+- **Requires Completion Of:** Module 1 (protocols defined), Module 2 (data models)
+- **Must Be Completed Before:** Module 3-12 implementation
+- **Can Run In Parallel With:** None (foundational requirement)
+
+**6. Performance Requirements**
+
+- Test suite execution: < 5 minutes for all unit tests
+- Individual test: < 100ms (except integration tests)
+- UI test execution: < 30 seconds per flow
+- Mock setup: < 10ms per mock
 
 ---

@@ -1,110 +1,292 @@
-# Codex Agent Configuration for AirFit
+# AGENTS.md
+
+## Sandboxed Environment Notice
+- This agent runs in an isolated container without network access
+- All project documentation is available locally in /AirFit/Docs/
+- Research reports and analysis are stored in /AirFit/Docs/Research Reports/
+- New research reports may be added during development
+- Consult existing documentation before requesting external information
+
+## Requesting External Research
+When external information is needed:
+1. Create a file: `/AirFit/Docs/Research Reports/REQUEST_[Topic].md`
+2. Include:
+   - Specific questions needing answers
+   - Context about why information is needed
+   - Expected format for response
+3. Example filename: `REQUEST_HealthKitAPI.md`
+4. Check for response in: `RESPONSE_[Topic].md`
 
 ## Environment Requirements
-- Xcode 16.0+ with iOS 18.0 SDK  
-- Swift 6.0+
-- SwiftLint 0.54.0+ (installed via Homebrew: `brew install swiftlint`)
-- iOS Simulator (iPhone 15 Pro with iOS 18.0+)
-- macOS 15.0+ (Sonoma) or later for Xcode 16
+- Xcode 16.0+ with iOS 18.0 SDK
+- Swift 6.0+ with strict concurrency
+- SwiftLint 0.54.0+ 
+- macOS 15.0+ (Sequoia)
+- iPhone 16 Pro Simulator or physical device with iOS 18.0+
 
-## Build & Test Commands
-run: swiftlint --strict --reporter json
-run: xcodebuild -scheme "AirFit" -destination 'platform=iOS Simulator,name=iPhone 15 Pro,OS=18.0' clean build
-run: xcodebuild -scheme "AirFit" -destination 'platform=iOS Simulator,name=iPhone 15 Pro,OS=18.0' test
+## Environment Setup Script
+run: |
+  # Install SwiftLint if not present
+  if ! command -v swiftlint &> /dev/null; then
+    brew install swiftlint || mint install realm/SwiftLint
+  fi
+  
+  # Verify Xcode version
+  xcodebuild -version | grep -E "Xcode 16" || echo "ERROR: Xcode 16+ required for iOS 18 SDK"
+  
+  # Verify Swift version
+  swift --version | grep -E "Swift version 6" || echo "ERROR: Swift 6+ required"
+  
+  # Install xcbeautify for readable test output (optional)
+  if ! command -v xcbeautify &> /dev/null; then
+    brew install xcbeautify
+  fi
+  
+  # Verify iOS 18 SDK
+  xcodebuild -showsdks | grep -E "iOS 18" || echo "ERROR: iOS 18 SDK not found"
 
-## Module-Specific Test Verification
-# Run these after implementing each module to verify correctness
-run: xcodebuild test -scheme "AirFit" -destination 'platform=iOS Simulator,name=iPhone 15 Pro' -only-testing:AirFitTests/OnboardingViewModelTests
-run: xcodebuild test -scheme "AirFit" -destination 'platform=iOS Simulator,name=iPhone 15 Pro' -only-testing:AirFitUITests/OnboardingFlowUITests
+## Build Commands
+```bash
+swiftlint --strict
+xcodebuild -scheme "AirFit" -destination 'platform=iOS Simulator,name=iPhone 16 Pro,OS=18.0' clean build
+xcodebuild -scheme "AirFit" -destination 'platform=iOS Simulator,name=iPhone 16 Pro,OS=18.0' test
+```
+
+## Test Commands
+```bash
+# Module 0 - Testing Foundation
+xcodebuild test -scheme "AirFit" -destination 'platform=iOS Simulator,name=iPhone 16 Pro' -only-testing:AirFitTests/TestingFoundationTests
+
+# Module 1 - Core Setup
+xcodebuild test -scheme "AirFit" -destination 'platform=iOS Simulator,name=iPhone 16 Pro' -only-testing:AirFitTests/CoreSetupTests
+
+# Module 2 - Data Layer
+xcodebuild test -scheme "AirFit" -destination 'platform=iOS Simulator,name=iPhone 16 Pro' -only-testing:AirFitTests/DataLayerTests
+
+# Module 3 - Onboarding
+xcodebuild test -scheme "AirFit" -destination 'platform=iOS Simulator,name=iPhone 16 Pro' -only-testing:AirFitTests/OnboardingViewModelTests
+xcodebuild test -scheme "AirFit" -destination 'platform=iOS Simulator,name=iPhone 16 Pro' -only-testing:AirFitUITests/OnboardingFlowUITests
+
+# Module 4 - Dashboard
+xcodebuild test -scheme "AirFit" -destination 'platform=iOS Simulator,name=iPhone 16 Pro' -only-testing:AirFitTests/DashboardTests
+
+# Module 5 - Meal Logging
+xcodebuild test -scheme "AirFit" -destination 'platform=iOS Simulator,name=iPhone 16 Pro' -only-testing:AirFitTests/MealLoggingTests
+
+# Module 6 - Progress Tracking
+xcodebuild test -scheme "AirFit" -destination 'platform=iOS Simulator,name=iPhone 16 Pro' -only-testing:AirFitTests/ProgressTrackingTests
+
+# Module 7 - Settings
+xcodebuild test -scheme "AirFit" -destination 'platform=iOS Simulator,name=iPhone 16 Pro' -only-testing:AirFitTests/SettingsTests
+
+# Module 8 - Meal Discovery
+xcodebuild test -scheme "AirFit" -destination 'platform=iOS Simulator,name=iPhone 16 Pro' -only-testing:AirFitTests/MealDiscoveryTests
+
+# Module 9 - AI Coach
+xcodebuild test -scheme "AirFit" -destination 'platform=iOS Simulator,name=iPhone 16 Pro' -only-testing:AirFitTests/AICoachTests
+
+# Module 10 - Health Integration
+xcodebuild test -scheme "AirFit" -destination 'platform=iOS Simulator,name=iPhone 16 Pro' -only-testing:AirFitTests/HealthIntegrationTests
+
+# Module 11 - Notifications
+xcodebuild test -scheme "AirFit" -destination 'platform=iOS Simulator,name=iPhone 16 Pro' -only-testing:AirFitTests/NotificationTests
+
+# Module 12 - Integration
+xcodebuild test -scheme "AirFit" -destination 'platform=iOS Simulator,name=iPhone 16 Pro' -only-testing:AirFitUITests/IntegrationTests
+```
+
+## Project Structure
+```
+AirFit/
+├── Core/
+│   ├── Constants/
+│   ├── Extensions/
+│   ├── Theme/
+│   └── Utilities/
+├── Modules/
+│   ├── Dashboard/
+│   ├── Onboarding/
+│   ├── MealLogging/
+│   ├── Progress/
+│   ├── Settings/
+│   ├── MealDiscovery/
+│   ├── AICoach/
+│   ├── Health/
+│   └── Notifications/
+├── Assets.xcassets/
+├── Docs/
+└── Tests/
+```
+
+## Swift 6 Requirements
+- Enable complete concurrency checking
+- All ViewModels: @MainActor @Observable
+- All data models: Sendable
+- Use actor isolation for services
+- Async/await for all asynchronous operations
+- No completion handlers
+
+## iOS 18 Features
+- SwiftData with history tracking
+- @NavigationDestination for navigation
+- Swift Charts for data visualization
+- HealthKit granular permissions
+- Control Widget extensions
+- @Previewable macro for previews
+- ScrollView content margins
+
+## Architecture Pattern
+- MVVM-C (Model-View-ViewModel-Coordinator)
+- ViewModels handle business logic and state
+- Views are purely declarative SwiftUI
+- Coordinators manage navigation flow
+- Services handle data operations
+- Dependency injection via protocols
+
+## Code Organization
+```
+Module/
+├── Views/              # SwiftUI views
+├── ViewModels/         # @Observable ViewModels
+├── Models/             # Data models (Sendable)
+├── Services/           # Business logic and API
+├── Coordinators/       # Navigation management
+└── Tests/              # Unit and UI tests
+```
+
+## Required Module Structure
+Each module in /AirFit/Modules/ must have:
+- Models/ folder (if module has data models)
+- Views/ folder
+- ViewModels/ folder
+- Services/ folder (if module needs services)
+- Coordinators/ folder (for navigation)
+
+Note: Currently only Dashboard and Settings modules exist.
+Missing modules that need creation:
+- Onboarding, MealLogging, Progress, MealDiscovery, 
+- AICoach, Health, Notifications
+
+## Code Style Format
+```swift
+// MARK: - View
+struct OnboardingView: View {
+    @State private var viewModel: OnboardingViewModel
+    
+    var body: some View {
+        // SwiftUI content
+    }
+}
+
+// MARK: - ViewModel
+@MainActor
+@Observable
+final class OnboardingViewModel {
+    private(set) var state: ViewState = .idle
+    private let service: ServiceProtocol
+    
+    init(service: ServiceProtocol) {
+        self.service = service
+    }
+}
+
+// MARK: - Service Protocol
+protocol OnboardingServiceProtocol: Sendable {
+    func saveProfile(_ profile: Profile) async throws
+}
+
+// MARK: - Coordinator
+@MainActor
+final class OnboardingCoordinator: ObservableObject {
+    @Published var path = NavigationPath()
+    
+    func showNextScreen() {
+        path.append(OnboardingRoute.profileSetup)
+    }
+}
+```
 
 ## Coding Standards
-- Follow Swift API Design Guidelines (swift.org/documentation/api-design-guidelines)
-- Use SwiftUI exclusively for new UI (no UIKit unless interfacing with system APIs)
-- Architecture: MVVM pattern with one ViewModel per major View
-- All public APIs must have `///` documentation comments
-- Use protocols for all dependencies to enable mocking
-- All ViewModel state must use `@Published` properties
-- Use async/await for all asynchronous operations (no completion handlers)
-- Force unwrapping (`!`) is prohibited except in tests
-- Enable strict concurrency checking (Swift 6 default)
-- Use `@MainActor` for all ViewModels and UI-related classes
-- Prefer `Sendable` conformance for data models
-- Use structured concurrency with proper actor isolation
+- Swift API Design Guidelines
+- SwiftUI only (no UIKit)
+- Protocol-oriented programming
+- /// documentation for public APIs
+- Meaningful names (no abbreviations)
+- AppColors, AppFonts, AppConstants for styling
+- Localizable.strings for all UI text
+- Accessibility identifiers on interactive elements
 
-## Project Conventions
-- File naming: PascalCase matching primary type (e.g., `OnboardingView.swift`)
-- Test file naming: `[Component]Tests.swift` in corresponding test target
-- Group files by feature in Xcode project navigator
-- Use `AppColors`, `AppFonts`, `AppConstants` for all UI styling (no hardcoded values)
-- All user-facing strings must use `LocalizedStringKey` or `String(localized:)`
-- Accessibility identifiers required for ALL interactive UI elements
-- Use semantic color names (e.g., `cardBackground` not `gray3`)
-
-## Testing Requirements
-- Unit tests required for all ViewModels and business logic classes
-- UI tests required for all major user flows (onboarding, core features)
-- Minimum 70% code coverage for ViewModels and Services
-- Use in-memory `ModelContainer` for all SwiftData tests
-- Mock all external dependencies (no real network calls or HealthKit access in tests)
-- Follow AAA pattern (Arrange-Act-Assert) for all tests
-- Test naming: `test_methodName_givenCondition_shouldExpectedResult()`
-
-## SwiftData Requirements
-- Use `@Model` for all persistent entities
-- Define relationships explicitly with `@Relationship`
-- Include deletion rules for all relationships
-- Use `ModelContainer` with in-memory configuration for tests
-- Handle migration with `VersionedSchema` when modifying models
-- Leverage iOS 18's enhanced SwiftData features (history tracking, custom stores)
-- Use `@Query` with animations for reactive UI updates
-- Implement proper actor isolation for background operations
+## Testing Standards
+- Unit tests for all business logic
+- UI tests for major user flows
+- 70% minimum code coverage
+- AAA pattern (Arrange-Act-Assert)
+- In-memory ModelContainer for SwiftData tests
+- Mock all external dependencies
+- Test naming: test_method_givenCondition_shouldResult()
 
 ## Error Handling
-- All throwing functions must use `async throws` or `Result<Success, Error>`
-- Log all errors with `AppLogger.error()`
-- User-facing errors must show actionable alert messages
-- Network errors must implement retry logic (max 3 attempts)
-- Never silently fail - always log or alert
+- Use Result<Success, Error> or async throws
+- User-friendly error messages in alerts
+- AppLogger.error() for all errors
+- Specific catch blocks for known errors
+- Generic fallback for unknown errors
 
-## Git Workflow
-- Create feature branches from 'Codex1' branch
-- Atomic commits: One logical change per commit
-- Commit message format: `Type: Brief description (max 50 chars)`
-  - Types: `Feat`, `Fix`, `Test`, `Docs`, `Refactor`, `Style`, `Perf`
-- All commits must pass SwiftLint and compile without warnings
-- Squash commits before merging if more than 5 commits in PR
+## Git Standards
+- Atomic commits
+- Format: "Type: Brief description"
+- Types: Feat/Fix/Test/Docs/Refactor/Style
+- Run tests before commit
+- Feature branches from main
 
-## Module Implementation Order
-1. Module 1: Core Setup & Configuration (if not complete)
-2. Module 2: Data Layer (SwiftData models)
-3. Module 0: Testing Foundation & Guidelines
-4. Module 3: Onboarding (Persona Blueprint Flow)
-5. Modules 4-11: Features (implement in numerical order)
-6. Module 12: Integration Testing & Polish
+## Module Order
+1. Module 1: Core Setup
+2. Module 2: Data Layer
+3. Module 0: Testing Foundation (guidelines, mocks, test patterns)
+4. Module 12: Testing & QA Framework (test targets, CI/CD setup)
+5. Module 3: Onboarding
+6. Module 4: Dashboard
+7. Module 5: Meal Logging
+8. Module 6: Progress Tracking
+9. Module 7: Settings
+10. Module 8: Meal Discovery
+11. Module 9: AI Coach
+12. Module 10: Health Integration
+13. Module 11: Notifications
+14. Module 13: Chat Interface (AI Coach Interaction)
 
-## Documentation Structure
-- `Docs/ArchitectureOverview.md` - System design and component relationships
-- `Docs/Design.md` - UI/UX specifications and design philosophy
-- `Docs/ModuleX.md` - Detailed requirements for each module
-- `Docs/TESTING_GUIDELINES.md` - Testing patterns and examples
-- `Docs/Agents.md` - Additional AI agent guidance
+## Performance Targets
+- App launch: < 1.5s
+- Transitions: 120fps
+- List scrolling: 120fps with 1000+ items
+- Memory: < 150MB typical
+- SwiftData queries: < 50ms
+- Network timeout: 30s
 
-## Performance Requirements
-- App launch to interactive: < 2 seconds
-- View transitions: Smooth 60fps animations
-- List scrolling: 60fps with 1000+ items
-- Memory usage: < 100MB for typical session
-- Network timeouts: 30 seconds for API calls
+## Documentation References
+- Docs/Module*.md for specifications
+- Docs/Design.md for UI/UX
+- Docs/ArchitectureOverview.md for system design
+- Docs/TESTING_GUIDELINES.md for test patterns
+- Docs/OnboardingFlow.md for user flow
+- Docs/Research Reports/ contains deep research and analysis
+- All module documentation is in /AirFit/Docs/
+- Research reports may be added during development
 
-## Before Starting Any Task
-1. Read the relevant Module document completely
-2. Check for existing code that might conflict
-3. Run existing tests to ensure clean baseline
-4. Create feature branch with descriptive name
+## Pre-Implementation Checklist
+- [ ] Read module documentation in /AirFit/Docs/
+- [ ] Check Research Reports for relevant analysis
+- [ ] Review existing implementations
+- [ ] Check Design.md for UI specifications
+- [ ] Verify module dependencies are complete
+- [ ] Create feature branch from main
 
-## After Completing Any Task
-1. Run `swiftlint --fix` to auto-fix style issues
-2. Run all tests to ensure nothing broke
-3. Check code coverage meets requirements
-4. Commit with descriptive message
-5. Update documentation if APIs changed
+## Post-Implementation Checklist
+- [ ] Run swiftlint --fix
+- [ ] Run all tests (unit and UI)
+- [ ] Verify 70% code coverage
+- [ ] Update relevant documentation
+- [ ] Add accessibility identifiers
+- [ ] Test on iPhone 16 Pro simulator
+- [ ] Verify MVVM-C pattern compliance
+- [ ] Commit with descriptive message
