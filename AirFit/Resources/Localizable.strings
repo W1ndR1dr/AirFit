@@ -214,3 +214,12 @@
 "time.afternoon" = "Afternoon";
 "time.evening" = "Evening";
 "time.night" = "Night"; 
+// MARK: - Onboarding Flow v3
+"onboarding.lifeSnapshot.prompt" = "Understanding your daily rhythm helps your coach provide relevant support. Tap what generally applies:";
+"onboarding.life.deskJob" = "My work is primarily at a desk";
+"onboarding.life.activeWork" = "I'm often on my feet or physically active at work";
+"onboarding.life.travel" = "I travel frequently (for work or leisure)";
+"onboarding.life.familyCare" = "I have children / significant family care responsibilities";
+"onboarding.lifeSnapshot.workoutPrompt" = "My preferred time for workouts is typically:";
+"onboarding.coreAspiration.prompt" = "What is the primary aspiration you want your AirFit Coach to help you achieve?";
+"onboarding.coreAspiration.freeformPrompt" = "Briefly describe this in your own words (optional, but helpful for your coach):";
