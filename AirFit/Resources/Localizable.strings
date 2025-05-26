@@ -232,3 +232,14 @@
 "onboarding.motivation.prompt" = "A couple of final touches for how your coach acknowledges your efforts and checks in.";
 "onboarding.motivation.celebrationPrompt" = "Celebrating Achievements:";
 "onboarding.motivation.absencePrompt" = "If You're Inactive for a Few Days:";
+"onboarding.generating.title" = "Crafting Your AirFit Coach";
+"onboarding.generating.step1" = "Analyzing your unique preferences…";
+"onboarding.generating.step2" = "Defining your coach's core communication style…";
+"onboarding.generating.step3" = "Aligning with your daily rhythm and schedule…";
+"onboarding.generating.step4" = "Calibrating motivational approach…";
+"onboarding.generating.step5" = "Finalizing your personalized AirFit Coach profile…";
+"onboarding.profileReady.title" = "Your AirFit Coach Profile Is Ready";
+"onboarding.profileReady.intro" = "Meet your personalized AirFit Coach. This profile, based on your choices, will guide every interaction.";
+"onboarding.profileReady.baselineToggle" = "Establish my 14-day baseline before providing in-depth recommendations";
+"onboarding.profileReady.begin" = "Begin with My AirFit Coach";
+"onboarding.profileReady.review" = "Review & Refine Profile";
