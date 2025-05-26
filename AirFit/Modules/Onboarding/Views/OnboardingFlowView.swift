@@ -134,58 +134,6 @@ private struct PrivacyFooter: View {
 
 // MARK: - Placeholder Views
 
-private struct SleepAndBoundariesView: View {
-    @Bindable var viewModel: OnboardingViewModel
-
-    var body: some View {
-        VStack(spacing: AppSpacing.large) {
-            Text("Sleep & Boundaries")
-                .font(AppFonts.title2)
-                .foregroundColor(AppColors.textPrimary)
-
-            Text("This screen will be implemented in the next iteration")
-                .font(AppFonts.body)
-                .foregroundColor(AppColors.textSecondary)
-                .multilineTextAlignment(.center)
-
-            Spacer()
-
-            NavigationButtons(
-                backAction: viewModel.navigateToPreviousScreen,
-                nextAction: viewModel.navigateToNextScreen
-            )
-        }
-        .padding(AppSpacing.large)
-        .accessibilityIdentifier("onboarding.sleepAndBoundaries")
-    }
-}
-
-private struct MotivationalAccentsView: View {
-    @Bindable var viewModel: OnboardingViewModel
-
-    var body: some View {
-        VStack(spacing: AppSpacing.large) {
-            Text("Motivational Accents")
-                .font(AppFonts.title2)
-                .foregroundColor(AppColors.textPrimary)
-
-            Text("This screen will be implemented in the next iteration")
-                .font(AppFonts.body)
-                .foregroundColor(AppColors.textSecondary)
-                .multilineTextAlignment(.center)
-
-            Spacer()
-
-            NavigationButtons(
-                backAction: viewModel.navigateToPreviousScreen,
-                nextAction: viewModel.navigateToNextScreen
-            )
-        }
-        .padding(AppSpacing.large)
-        .accessibilityIdentifier("onboarding.motivationalAccents")
-    }
-}
-
 private struct GeneratingCoachView: View {
     @Bindable var viewModel: OnboardingViewModel
 
@@ -264,38 +212,4 @@ private struct CoachProfileReadyView: View {
     }
 }
 
-// MARK: - Shared Navigation Buttons
-private struct NavigationButtons: View {
-    var backAction: () -> Void
-    var nextAction: () -> Void
 
-    var body: some View {
-        HStack(spacing: AppSpacing.medium) {
-            Button(
-                action: backAction
-            ) {
-                Text(LocalizedStringKey("action.back"))
-                    .font(AppFonts.body)
-                    .foregroundColor(AppColors.textPrimary)
-                    .frame(maxWidth: .infinity)
-                    .padding()
-                    .background(AppColors.backgroundSecondary)
-                    .cornerRadius(AppConstants.Layout.defaultCornerRadius)
-            }
-            .accessibilityIdentifier("onboarding.back.button")
-
-            Button(
-                action: nextAction
-            ) {
-                Text(LocalizedStringKey("action.next"))
-                    .font(AppFonts.bodyBold)
-                    .foregroundColor(AppColors.textOnAccent)
-                    .frame(maxWidth: .infinity)
-                    .padding()
-                    .background(AppColors.accentColor)
-                    .cornerRadius(AppConstants.Layout.defaultCornerRadius)
-            }
-            .accessibilityIdentifier("onboarding.next.button")
-        }
-    }
-}
