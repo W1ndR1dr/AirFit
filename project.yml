@@ -39,6 +39,7 @@ targets:
       - AirFit/Modules/Onboarding/Views/OnboardingNavigationButtons.swift
       - AirFit/Modules/Onboarding/Views/MotivationalAccentsView.swift
       - AirFit/Modules/Onboarding/Views/SleepAndBoundariesView.swift
+      - AirFit/Modules/Onboarding/Views/HealthKitAuthorizationView.swift
       - AirFit/Modules/Onboarding/Views/CoachingStyleView.swift
       - AirFit/Modules/Onboarding/Services/OnboardingService.swift
       - AirFit/Modules/Onboarding/Services/OnboardingServiceProtocol.swift
