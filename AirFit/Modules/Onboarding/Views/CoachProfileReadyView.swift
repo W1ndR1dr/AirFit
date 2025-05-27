@@ -42,26 +42,28 @@ struct CoachProfileReadyView: View {
                 .padding(.horizontal, AppSpacing.large)
 
                 VStack(spacing: AppSpacing.medium) {
-                                    Button(
-                    action: {
-                        Task {
-                            do {
-                                try await viewModel.completeOnboarding()
-                            } catch {
-                                AppLogger.error("Failed to complete onboarding", error: error, category: .onboarding)
+                    Button(
+                        action: {
+                            Task {
+                                do {
+                                    try await viewModel.completeOnboarding()
+                                } catch {
+                                    AppLogger.error("Failed to complete onboarding", 
+                                                   error: error, 
+                                                   category: .onboarding)
+                                }
                             }
+                        },
+                        label: {
+                            Text(LocalizedStringKey("onboarding.profileReady.begin"))
+                                .font(AppFonts.bodyBold)
+                                .foregroundColor(AppColors.textOnAccent)
+                                .frame(maxWidth: .infinity)
+                                .padding()
+                                .background(AppColors.accentColor)
+                                .cornerRadius(AppConstants.Layout.defaultCornerRadius)
                         }
-                    },
-                    label: {
-                        Text(LocalizedStringKey("onboarding.profileReady.begin"))
-                            .font(AppFonts.bodyBold)
-                            .foregroundColor(AppColors.textOnAccent)
-                            .frame(maxWidth: .infinity)
-                            .padding()
-                            .background(AppColors.accentColor)
-                            .cornerRadius(AppConstants.Layout.defaultCornerRadius)
-                    }
-                )
+                    )
                     .accessibilityIdentifier("onboarding.beginCoach.button")
 
                     Button(

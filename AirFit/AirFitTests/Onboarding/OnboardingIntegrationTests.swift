@@ -2,7 +2,8 @@ import XCTest
 import SwiftData
 @testable import AirFit
 
-final class OnboardingIntegrationTests: XCTestCase {
+// MARK: - App State Integration Tests
+final class OnboardingAppStateIntegrationTests: XCTestCase {
     var container: ModelContainer!
     var context: ModelContext!
     var appState: AppState!
@@ -91,6 +92,36 @@ final class OnboardingIntegrationTests: XCTestCase {
         XCTAssertTrue(appState.shouldShowDashboard)
         XCTAssertTrue(appState.hasCompletedOnboarding)
     }
+}
+
+// MARK: - Service Integration Tests
+final class OnboardingServiceIntegrationTests: XCTestCase {
+    var container: ModelContainer!
+    var context: ModelContext!
+    var appState: AppState!
+    var onboardingService: OnboardingService!
+
+    @MainActor
+    override func setUp() async throws {
+        await MainActor.run {
+            super.setUp()
+        }
+        container = try ModelContainer.createTestContainer()
+        context = container.mainContext
+        appState = AppState(modelContext: context)
+        onboardingService = OnboardingService(modelContext: context)
+    }
+
+    @MainActor
+    override func tearDown() async throws {
+        container = nil
+        context = nil
+        appState = nil
+        onboardingService = nil
+        await MainActor.run {
+            super.tearDown()
+        }
+    }
 
     @MainActor
     func test_onboardingService_saveProfile_shouldValidateRequiredFields() async throws {
@@ -166,7 +197,11 @@ final class OnboardingIntegrationTests: XCTestCase {
         XCTAssertEqual(user.onboardingProfile?.id, profile.id)
         XCTAssertEqual(profile.user?.id, user.id)
     }
+}
 
+// MARK: - JSON Structure Tests
+final class OnboardingJSONStructureTests: XCTestCase {
+    
     func test_userProfileJsonBlob_shouldMatchSystemPromptRequirements() throws {
         // Arrange
         let profileBlob = createTestProfileBlob()
@@ -250,6 +285,36 @@ final class OnboardingIntegrationTests: XCTestCase {
         XCTAssertNotNil(blend?["encouraging_empathetic"])
         XCTAssertNotNil(blend?["analytical_insightful"])
         XCTAssertNotNil(blend?["playfully_provocative"])
+    }
+}
+
+// MARK: - Flow Integration Tests
+final class OnboardingFlowIntegrationTests: XCTestCase {
+    var container: ModelContainer!
+    var context: ModelContext!
+    var appState: AppState!
+    var onboardingService: OnboardingService!
+
+    @MainActor
+    override func setUp() async throws {
+        await MainActor.run {
+            super.setUp()
+        }
+        container = try ModelContainer.createTestContainer()
+        context = container.mainContext
+        appState = AppState(modelContext: context)
+        onboardingService = OnboardingService(modelContext: context)
+    }
+
+    @MainActor
+    override func tearDown() async throws {
+        container = nil
+        context = nil
+        appState = nil
+        onboardingService = nil
+        await MainActor.run {
+            super.tearDown()
+        }
     }
 
     @MainActor

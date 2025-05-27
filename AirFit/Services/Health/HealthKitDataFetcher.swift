@@ -11,7 +11,7 @@ final class HealthKitDataFetcher {
     }
 
     // MARK: - Background Delivery
-    
+
     /// Enables background delivery for key HealthKit data types
     func enableBackgroundDelivery() async throws {
         let configurations: [(HKQuantityTypeIdentifier, HKUpdateFrequency)] = [

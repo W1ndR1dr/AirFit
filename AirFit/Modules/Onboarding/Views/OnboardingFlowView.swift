@@ -26,7 +26,10 @@ struct OnboardingFlowView: View {
         } catch {
             // Fallback to in-memory container if persistent storage fails
             do {
-                let inMemoryContainer = try ModelContainer(for: OnboardingProfile.self, configurations: ModelConfiguration(isStoredInMemoryOnly: true))
+                let inMemoryContainer = try ModelContainer(
+                    for: OnboardingProfile.self,
+                    configurations: ModelConfiguration(isStoredInMemoryOnly: true)
+                )
                 _viewModel = State(initialValue: OnboardingViewModel(
                     aiService: aiService,
                     onboardingService: onboardingService,

@@ -26,12 +26,15 @@ struct ContentView: View {
                 } else if appState.shouldShowDashboard {
                     DashboardView()
                 } else {
-                    ErrorView(error: appState.error, onRetry: {
-                        appState.clearError()
-                        Task {
-                            await appState.loadUserState()
+                    ErrorView(
+                        error: appState.error,
+                        onRetry: {
+                            appState.clearError()
+                            Task {
+                                await appState.loadUserState()
+                            }
                         }
-                    })
+                    )
                 }
             } else {
                 LoadingView()
@@ -89,11 +92,13 @@ private struct WelcomeView: View {
 
             Spacer()
 
-            Button(action: {
-                Task {
-                    try await appState.createNewUser()
+            Button(
+                action: {
+                    Task {
+                        try await appState.createNewUser()
+                    }
                 }
-            }) {
+            ) {
                 Text("Get Started")
                     .font(AppFonts.headline)
                     .fontWeight(.semibold)

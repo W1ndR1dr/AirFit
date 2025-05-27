@@ -88,7 +88,8 @@ final class OnboardingFlowViewTests: XCTestCase {
 
     func test_progressBar_calculatesCorrectProgress() {
         // Test progress calculation for each screen
-        // Main steps: lifeSnapshot, coreAspiration, coachingStyle, engagementPreferences, sleepAndBoundaries, motivationalAccents (6 total)
+        // Main steps: lifeSnapshot, coreAspiration, coachingStyle, engagementPreferences,
+        // sleepAndBoundaries, motivationalAccents (6 total)
         // Progress = index / (count - 1) = index / 5
         let expectedProgress: [OnboardingScreen: Double] = [
             .openingScreen: 0.0,        // Not in main steps

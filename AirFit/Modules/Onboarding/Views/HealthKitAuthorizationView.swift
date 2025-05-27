@@ -57,7 +57,7 @@ struct HealthKitAuthorizationView: View {
     // Simplified preview without dependencies
     VStack(spacing: AppSpacing.large) {
         Spacer()
-        
+
         VStack(spacing: AppSpacing.small) {
             Image(systemName: "heart.fill")
                 .font(.system(size: 60))
@@ -70,7 +70,7 @@ struct HealthKitAuthorizationView: View {
                 .foregroundColor(AppColors.textSecondary)
                 .multilineTextAlignment(.center)
         }
-        
+
         Button("Authorize HealthKit") {
             // Preview action
         }
@@ -80,7 +80,7 @@ struct HealthKitAuthorizationView: View {
         .padding()
         .background(AppColors.accentColor)
         .cornerRadius(AppConstants.Layout.defaultCornerRadius)
-        
+
         Spacer()
     }
     .padding()

@@ -189,23 +189,59 @@ final class ContextAssembler {
         var weeklyChange: Double?
 
         do {
+            // Defensive programming: Only fetch what we need with proper date bounds
+            let fourteenDaysAgo = Calendar.current.date(byAdding: .day, value: -14, to: Date()) ?? Date()
+            let predicate = #Predicate<DailyLog> { log in
+                log.date >= fourteenDaysAgo && log.steps != nil
+            }
+            
             var descriptor = FetchDescriptor<DailyLog>(
+                predicate: predicate,
                 sortBy: [SortDescriptor(\.date, order: .reverse)]
             )
             descriptor.fetchLimit = 14
+            descriptor.propertiesToFetch = [\.date, \.steps] // Only fetch required properties
+            
             let logs = try context.fetch(descriptor)
-            let recent = logs.prefix(7).compactMap(\.steps)
-            let previous = logs.dropFirst(7).prefix(7).compactMap(\.steps)
-
-            if !recent.isEmpty, !previous.isEmpty {
-                let recentAvg = Double(recent.reduce(0, +)) / Double(recent.count)
-                let previousAvg = Double(previous.reduce(0, +)) / Double(previous.count)
-                if previousAvg > 0 {
-                    weeklyChange = ((recentAvg - previousAvg) / previousAvg) * 100
-                }
+            
+            // Bulletproof data validation
+            guard logs.count >= 7 else {
+                AppLogger.info("Insufficient data for trend calculation: \(logs.count) logs", category: .data)
+                return HealthTrends(weeklyActivityChange: nil)
             }
+            
+            let sevenDaysAgo = Calendar.current.date(byAdding: .day, value: -7, to: Date()) ?? Date()
+            
+            let recentLogs = logs.filter { $0.date >= sevenDaysAgo }
+            let previousLogs = logs.filter { $0.date < sevenDaysAgo }
+            
+            let recentSteps = recentLogs.compactMap(\.steps).filter { $0 > 0 }
+            let previousSteps = previousLogs.compactMap(\.steps).filter { $0 > 0 }
+            
+            guard !recentSteps.isEmpty, !previousSteps.isEmpty else {
+                AppLogger.info("No valid step data for trend calculation", category: .data)
+                return HealthTrends(weeklyActivityChange: nil)
+            }
+            
+            let recentAvg = Double(recentSteps.reduce(0, +)) / Double(recentSteps.count)
+            let previousAvg = Double(previousSteps.reduce(0, +)) / Double(previousSteps.count)
+            
+            guard previousAvg > 0 else {
+                AppLogger.info("Previous average is zero, cannot calculate percentage change", category: .data)
+                return HealthTrends(weeklyActivityChange: nil)
+            }
+            
+            weeklyChange = ((recentAvg - previousAvg) / previousAvg) * 100.0
+            
+            // Sanity check: Cap extreme values
+            if let change = weeklyChange {
+                weeklyChange = max(-500.0, min(500.0, change))
+            }
+            
         } catch {
             AppLogger.error("Failed to calculate trends", error: error, category: .data)
+            // Return safe default instead of crashing
+            return HealthTrends(weeklyActivityChange: nil)
         }
 
         return HealthTrends(weeklyActivityChange: weeklyChange)
