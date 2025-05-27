@@ -10,6 +10,8 @@ final class HealthKitManager {
 
     // MARK: - Properties
     private let healthStore = HKHealthStore()
+    private let dataFetcher: HealthKitDataFetcher
+    private let sleepAnalyzer: HealthKitSleepAnalyzer
     private(set) var authorizationStatus: AuthorizationStatus = .notDetermined
 
     // MARK: - Authorization Status
@@ -44,97 +46,10 @@ final class HealthKitManager {
         }
     }
 
-    // MARK: - Data Types Configuration
-    private var readTypes: Set<HKObjectType> {
-        var types = Set<HKObjectType>()
-
-        // Quantity types
-        let quantityIdentifiers: [HKQuantityTypeIdentifier] = [
-            // Activity
-            .activeEnergyBurned,
-            .basalEnergyBurned,
-            .stepCount,
-            .distanceWalkingRunning,
-            .distanceCycling,
-            .flightsClimbed,
-            .appleExerciseTime,
-            .appleStandTime,
-            .appleMoveTime,
-            // Heart
-            .heartRate,
-            .heartRateVariabilitySDNN,
-            .restingHeartRate,
-            .heartRateRecoveryOneMinute,
-            .vo2Max,
-            .respiratoryRate,
-            // Body
-            .bodyMass,
-            .bodyFatPercentage,
-            .leanBodyMass,
-            .bodyMassIndex,
-            // Vitals
-            .bloodPressureSystolic,
-            .bloodPressureDiastolic,
-            .bodyTemperature,
-            .oxygenSaturation,
-            // Nutrition
-            .dietaryWater
-        ]
-
-        for identifier in quantityIdentifiers {
-            if let type = HKObjectType.quantityType(forIdentifier: identifier) {
-                types.insert(type)
-            }
-        }
-
-        // Category types
-        let categoryIdentifiers: [HKCategoryTypeIdentifier] = [
-            .sleepAnalysis,
-            .mindfulSession
-        ]
-
-        for identifier in categoryIdentifiers {
-            if let type = HKObjectType.categoryType(forIdentifier: identifier) {
-                types.insert(type)
-            }
-        }
-
-        // iOS 16+ sleep stages (not iOS 18 - correcting the specification)
-        if #available(iOS 16.0, *) {
-            // Sleep stages were introduced in iOS 16, not iOS 18
-            // Using the correct category type for sleep analysis which includes stages
-            if let sleepType = HKObjectType.categoryType(forIdentifier: .sleepAnalysis) {
-                types.insert(sleepType)
-            }
-        }
-
-        // Workout type
-        types.insert(HKObjectType.workoutType())
-
-        return types
-    }
-
-    private var writeTypes: Set<HKSampleType> {
-        var types = Set<HKSampleType>()
-
-        let writeIdentifiers: [HKQuantityTypeIdentifier] = [
-            .bodyMass,
-            .bodyFatPercentage,
-            .dietaryWater
-        ]
-
-        for identifier in writeIdentifiers {
-            if let type = HKObjectType.quantityType(forIdentifier: identifier) {
-                types.insert(type)
-            }
-        }
-
-        types.insert(HKObjectType.workoutType())
-        return types
-    }
-
     // MARK: - Initialization
     private init() {
+        self.dataFetcher = HealthKitDataFetcher(healthStore: healthStore)
+        self.sleepAnalyzer = HealthKitSleepAnalyzer(healthStore: healthStore)
         refreshAuthorizationStatus()
     }
 
@@ -146,13 +61,16 @@ final class HealthKitManager {
         }
 
         do {
-            try await healthStore.requestAuthorization(toShare: writeTypes, read: readTypes)
+            try await healthStore.requestAuthorization(
+                toShare: HealthKitDataTypes.writeTypes,
+                read: HealthKitDataTypes.readTypes
+            )
             authorizationStatus = .authorized
             AppLogger.info("HealthKit authorization granted", category: .health)
 
             // Enable background delivery after successful authorization
             do {
-                try await enableBackgroundDelivery()
+                try await dataFetcher.enableBackgroundDelivery()
             } catch {
                 AppLogger.error("Failed to enable HealthKit background delivery", error: error, category: .health)
             }
@@ -183,23 +101,6 @@ final class HealthKitManager {
         }
     }
 
-    // MARK: - Background Delivery
-    private func enableBackgroundDelivery() async throws {
-        let configurations: [(HKQuantityTypeIdentifier, HKUpdateFrequency)] = [
-            (.stepCount, .hourly),
-            (.activeEnergyBurned, .hourly),
-            (.heartRate, .immediate),
-            (.bodyMass, .daily)
-        ]
-
-        for (identifier, frequency) in configurations {
-            guard let type = HKQuantityType.quantityType(forIdentifier: identifier) else { continue }
-            try await healthStore.enableBackgroundDelivery(for: type, frequency: frequency)
-        }
-
-        AppLogger.info("HealthKit background delivery enabled", category: .health)
-    }
-
     // MARK: - Data Fetching Methods
 
     /// Fetches today's activity metrics
@@ -209,68 +110,39 @@ final class HealthKitManager {
         let startOfDay = calendar.startOfDay(for: now)
         let endOfDay = calendar.date(byAdding: .day, value: 1, to: startOfDay) ?? now
 
-        async let activeEnergy = fetchTotalQuantity(
-            identifier: .activeEnergyBurned,
-            start: startOfDay,
-            end: endOfDay,
-            unit: HKUnit.kilocalorie()
+        return try await fetchActivityMetrics(from: startOfDay, to: endOfDay)
+    }
+
+    /// Fetches activity metrics for a specific date range
+    private func fetchActivityMetrics(from startDate: Date, to endDate: Date) async throws -> ActivityMetrics {
+        async let activeEnergy = dataFetcher.fetchTotalQuantity(
+            identifier: .activeEnergyBurned, start: startDate, end: endDate, unit: HKUnit.kilocalorie()
+        )
+        async let basalEnergy = dataFetcher.fetchTotalQuantity(
+            identifier: .basalEnergyBurned, start: startDate, end: endDate, unit: HKUnit.kilocalorie()
+        )
+        async let steps = dataFetcher.fetchTotalQuantity(
+            identifier: .stepCount, start: startDate, end: endDate, unit: HKUnit.count()
+        )
+        async let distance = dataFetcher.fetchTotalQuantity(
+            identifier: .distanceWalkingRunning, start: startDate, end: endDate, unit: HKUnit.meter()
+        )
+        async let flights = dataFetcher.fetchTotalQuantity(
+            identifier: .flightsClimbed, start: startDate, end: endDate, unit: HKUnit.count()
+        )
+        async let exerciseTime = dataFetcher.fetchTotalQuantity(
+            identifier: .appleExerciseTime, start: startDate, end: endDate, unit: HKUnit.minute()
+        )
+        async let standHours = dataFetcher.fetchTotalQuantity(
+            identifier: .appleStandTime, start: startDate, end: endDate, unit: HKUnit.count()
+        )
+        async let moveTime = dataFetcher.fetchTotalQuantity(
+            identifier: .appleMoveTime, start: startDate, end: endDate, unit: HKUnit.minute()
+        )
+        async let currentHR = dataFetcher.fetchLatestQuantitySample(
+            identifier: .heartRate, unit: HKUnit.count().unitDivided(by: HKUnit.minute())
         )
 
-        async let basalEnergy = fetchTotalQuantity(
-            identifier: .basalEnergyBurned,
-            start: startOfDay,
-            end: endOfDay,
-            unit: HKUnit.kilocalorie()
-        )
-
-        async let steps = fetchTotalQuantity(
-            identifier: .stepCount,
-            start: startOfDay,
-            end: endOfDay,
-            unit: HKUnit.count()
-        )
-
-        async let distance = fetchTotalQuantity(
-            identifier: .distanceWalkingRunning,
-            start: startOfDay,
-            end: endOfDay,
-            unit: HKUnit.meter()
-        )
-
-        async let flights = fetchTotalQuantity(
-            identifier: .flightsClimbed,
-            start: startOfDay,
-            end: endOfDay,
-            unit: HKUnit.count()
-        )
-
-        async let exerciseTime = fetchTotalQuantity(
-            identifier: .appleExerciseTime,
-            start: startOfDay,
-            end: endOfDay,
-            unit: HKUnit.minute()
-        )
-
-        async let standHours = fetchTotalQuantity(
-            identifier: .appleStandTime,
-            start: startOfDay,
-            end: endOfDay,
-            unit: HKUnit.count()
-        )
-
-        async let moveTime = fetchTotalQuantity(
-            identifier: .appleMoveTime,
-            start: startOfDay,
-            end: endOfDay,
-            unit: HKUnit.minute()
-        )
-
-        async let currentHR = fetchLatestQuantitySample(
-            identifier: .heartRate,
-            unit: HKUnit.count().unitDivided(by: HKUnit.minute())
-        )
-
-        // Await all results and create ActivityMetrics
         return ActivityMetrics(
             activeEnergyBurned: (try await activeEnergy).map { Measurement(value: $0, unit: UnitEnergy.kilocalories) },
             basalEnergyBurned: (try await basalEnergy).map { Measurement(value: $0, unit: UnitEnergy.kilocalories) },
@@ -291,27 +163,29 @@ final class HealthKitManager {
 
     /// Fetches heart health metrics
     func fetchHeartHealthMetrics() async throws -> HeartHealthMetrics {
-        async let restingHR = fetchLatestQuantitySample(
+        async let restingHR = dataFetcher.fetchLatestQuantitySample(
             identifier: .restingHeartRate,
             unit: HKUnit.count().unitDivided(by: HKUnit.minute())
         )
 
-        async let hrv = fetchLatestQuantitySample(
+        async let hrv = dataFetcher.fetchLatestQuantitySample(
             identifier: .heartRateVariabilitySDNN,
             unit: HKUnit.secondUnit(with: .milli)
         )
 
-        async let respiratoryRate = fetchLatestQuantitySample(
+        async let respiratoryRate = dataFetcher.fetchLatestQuantitySample(
             identifier: .respiratoryRate,
             unit: HKUnit.count().unitDivided(by: HKUnit.minute())
         )
 
-        async let vo2Max = fetchLatestQuantitySample(
+        async let vo2Max = dataFetcher.fetchLatestQuantitySample(
             identifier: .vo2Max,
-            unit: HKUnit.literUnit(with: .milli).unitDivided(by: HKUnit.gramUnit(with: .kilo)).unitDivided(by: HKUnit.minute())
+            unit: HKUnit.literUnit(with: .milli)
+                .unitDivided(by: HKUnit.gramUnit(with: .kilo))
+                .unitDivided(by: HKUnit.minute())
         )
 
-        async let recovery = fetchLatestQuantitySample(
+        async let recovery = dataFetcher.fetchLatestQuantitySample(
             identifier: .heartRateRecoveryOneMinute,
             unit: HKUnit.count().unitDivided(by: HKUnit.minute())
         )
@@ -321,7 +195,9 @@ final class HealthKitManager {
             hrv: (try await hrv).map { Measurement(value: $0, unit: UnitDuration.milliseconds) },
             respiratoryRate: try await respiratoryRate,
             vo2Max: try await vo2Max,
-            cardioFitness: (try await vo2Max).flatMap { HeartHealthMetrics.CardioFitnessLevel.from(vo2Max: $0) },
+            cardioFitness: (try await vo2Max).flatMap {
+                HeartHealthMetrics.CardioFitnessLevel.from(vo2Max: $0)
+            },
             recoveryHeartRate: (try await recovery).map { Int($0) },
             heartRateRecovery: nil // TODO: Calculate from workout data
         )
@@ -329,22 +205,22 @@ final class HealthKitManager {
 
     /// Fetches latest body metrics
     func fetchLatestBodyMetrics() async throws -> BodyMetrics {
-        async let weight = fetchLatestQuantitySample(
+        async let weight = dataFetcher.fetchLatestQuantitySample(
             identifier: .bodyMass,
             unit: HKUnit.gramUnit(with: .kilo)
         )
 
-        async let bodyFat = fetchLatestQuantitySample(
+        async let bodyFat = dataFetcher.fetchLatestQuantitySample(
             identifier: .bodyFatPercentage,
             unit: HKUnit.percent()
         )
 
-        async let leanMass = fetchLatestQuantitySample(
+        async let leanMass = dataFetcher.fetchLatestQuantitySample(
             identifier: .leanBodyMass,
             unit: HKUnit.gramUnit(with: .kilo)
         )
 
-        async let bmi = fetchLatestQuantitySample(
+        async let bmi = dataFetcher.fetchLatestQuantitySample(
             identifier: .bodyMassIndex,
             unit: HKUnit.count()
         )
@@ -368,187 +244,7 @@ final class HealthKitManager {
         let startDate = calendar.date(byAdding: .day, value: -1, to: calendar.startOfDay(for: now)) ?? now
         let endDate = calendar.date(byAdding: .hour, value: 12, to: calendar.startOfDay(for: now)) ?? now
 
-        return try await analyzeSleepSamples(from: startDate, to: endDate)
+        return try await sleepAnalyzer.analyzeSleepSamples(from: startDate, to: endDate)
     }
 
-    // MARK: - Helper Methods
-
-    /// Fetches total quantity for a given identifier and date range
-    private func fetchTotalQuantity(
-        identifier: HKQuantityTypeIdentifier,
-        start: Date,
-        end: Date,
-        unit: HKUnit
-    ) async throws -> Double? {
-        guard let quantityType = HKQuantityType.quantityType(forIdentifier: identifier) else {
-            throw HealthKitError.invalidData
-        }
-
-        let predicate = HKQuery.predicateForSamples(withStart: start, end: end, options: .strictStartDate)
-
-        return try await withCheckedThrowingContinuation { continuation in
-            let query = HKStatisticsQuery(
-                quantityType: quantityType,
-                quantitySamplePredicate: predicate,
-                options: .cumulativeSum
-            ) { _, statistics, error in
-                if let error = error {
-                    continuation.resume(throwing: HealthKitError.queryFailed(error))
-                    return
-                }
-
-                let value = statistics?.sumQuantity()?.doubleValue(for: unit)
-                continuation.resume(returning: value)
-            }
-
-            healthStore.execute(query)
-        }
-    }
-
-    /// Fetches the latest quantity sample for a given identifier
-    private func fetchLatestQuantitySample(
-        identifier: HKQuantityTypeIdentifier,
-        unit: HKUnit
-    ) async throws -> Double? {
-        guard let quantityType = HKQuantityType.quantityType(forIdentifier: identifier) else {
-            throw HealthKitError.invalidData
-        }
-
-        let sortDescriptor = NSSortDescriptor(key: HKSampleSortIdentifierEndDate, ascending: false)
-
-        return try await withCheckedThrowingContinuation { continuation in
-            let query = HKSampleQuery(
-                sampleType: quantityType,
-                predicate: nil,
-                limit: 1,
-                sortDescriptors: [sortDescriptor]
-            ) { _, samples, error in
-                if let error = error {
-                    continuation.resume(throwing: HealthKitError.queryFailed(error))
-                    return
-                }
-
-                guard let sample = samples?.first as? HKQuantitySample else {
-                    continuation.resume(returning: nil)
-                    return
-                }
-
-                let value = sample.quantity.doubleValue(for: unit)
-                continuation.resume(returning: value)
-            }
-
-            healthStore.execute(query)
-        }
-    }
-
-    /// Analyzes sleep samples to create a sleep session
-    private func analyzeSleepSamples(from startDate: Date, to endDate: Date) async throws -> SleepAnalysis.SleepSession? {
-        guard let sleepType = HKObjectType.categoryType(forIdentifier: .sleepAnalysis) else {
-            throw HealthKitError.invalidData
-        }
-
-        let predicate = HKQuery.predicateForSamples(withStart: startDate, end: endDate, options: .strictStartDate)
-        let sortDescriptor = NSSortDescriptor(key: HKSampleSortIdentifierStartDate, ascending: true)
-
-        return try await withCheckedThrowingContinuation { continuation in
-            let query = HKSampleQuery(
-                sampleType: sleepType,
-                predicate: predicate,
-                limit: HKObjectQueryNoLimit,
-                sortDescriptors: [sortDescriptor]
-            ) { _, samples, error in
-                if let error = error {
-                    continuation.resume(throwing: HealthKitError.queryFailed(error))
-                    return
-                }
-
-                guard let sleepSamples = samples as? [HKCategorySample], !sleepSamples.isEmpty else {
-                    continuation.resume(returning: nil)
-                    return
-                }
-
-                let session = self.createSleepSession(from: sleepSamples)
-                continuation.resume(returning: session)
-            }
-
-            healthStore.execute(query)
-        }
-    }
-
-    /// Creates a sleep session from sleep samples
-    nonisolated private func createSleepSession(from samples: [HKCategorySample]) -> SleepAnalysis.SleepSession {
-        let bedtime = samples.first?.startDate
-        let wakeTime = samples.last?.endDate
-
-        var totalSleepTime: TimeInterval = 0
-        var remTime: TimeInterval = 0
-        var coreTime: TimeInterval = 0
-        var deepTime: TimeInterval = 0
-        var awakeTime: TimeInterval = 0
-
-        for sample in samples {
-            let duration = sample.endDate.timeIntervalSince(sample.startDate)
-
-            // iOS 16+ sleep stages analysis
-            if #available(iOS 16.0, *) {
-                switch sample.value {
-                case HKCategoryValueSleepAnalysis.asleepREM.rawValue:
-                    remTime += duration
-                    totalSleepTime += duration
-                case HKCategoryValueSleepAnalysis.asleepCore.rawValue:
-                    coreTime += duration
-                    totalSleepTime += duration
-                case HKCategoryValueSleepAnalysis.asleepDeep.rawValue:
-                    deepTime += duration
-                    totalSleepTime += duration
-                case HKCategoryValueSleepAnalysis.awake.rawValue:
-                    awakeTime += duration
-                case HKCategoryValueSleepAnalysis.asleepUnspecified.rawValue:
-                    totalSleepTime += duration
-                default:
-                    break
-                }
-            } else {
-                // Fallback for older iOS versions
-                if sample.value == HKCategoryValueSleepAnalysis.asleepUnspecified.rawValue {
-                    totalSleepTime += duration
-                } else if sample.value == HKCategoryValueSleepAnalysis.awake.rawValue {
-                    awakeTime += duration
-                }
-            }
-        }
-
-        let timeInBed = bedtime != nil && wakeTime != nil ? wakeTime!.timeIntervalSince(bedtime!) : nil
-        let efficiency = timeInBed != nil && timeInBed! > 0 ? (totalSleepTime / timeInBed!) * 100 : nil
-
-        return SleepAnalysis.SleepSession(
-            bedtime: bedtime,
-            wakeTime: wakeTime,
-            totalSleepTime: totalSleepTime > 0 ? totalSleepTime : nil,
-            timeInBed: timeInBed,
-            efficiency: efficiency,
-            remTime: remTime > 0 ? remTime : nil,
-            coreTime: coreTime > 0 ? coreTime : nil,
-            deepTime: deepTime > 0 ? deepTime : nil,
-            awakeTime: awakeTime > 0 ? awakeTime : nil
-        )
-    }
 }
-
-// MARK: - Extensions
-
-extension HeartHealthMetrics.CardioFitnessLevel {
-    static func from(vo2Max: Double) -> HeartHealthMetrics.CardioFitnessLevel? {
-        // Simplified VO2 Max categorization (would need age/gender specific ranges in production)
-        switch vo2Max {
-        case 0..<25: return .low
-        case 25..<35: return .belowAverage
-        case 35..<45: return .average
-        case 45..<55: return .aboveAverage
-        case 55...: return .high
-        default: return nil
-        }
-    }
-}
-
-extension HealthKitManager: HealthKitManaging {}

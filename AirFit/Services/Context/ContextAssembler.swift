@@ -145,7 +145,7 @@ final class ContextAssembler {
             }
 
             var upcomingDescriptor = FetchDescriptor<Workout>(
-                predicate:                 #Predicate<Workout> { workout in
+                predicate: #Predicate<Workout> { workout in
                     workout.completedDate == nil && workout.plannedDate != nil && workout.plannedDate! > now
                 },
                 sortBy: [SortDescriptor(\.plannedDate, order: .forward)]
@@ -156,7 +156,7 @@ final class ContextAssembler {
             }
 
             var activeDescriptor = FetchDescriptor<Workout>(
-                predicate:                 #Predicate<Workout> { workout in
+                predicate: #Predicate<Workout> { workout in
                     workout.completedDate == nil && workout.plannedDate != nil && workout.plannedDate! <= now
                 },
                 sortBy: [SortDescriptor(\.plannedDate, order: .reverse)]
