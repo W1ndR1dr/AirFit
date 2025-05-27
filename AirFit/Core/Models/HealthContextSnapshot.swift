@@ -116,7 +116,7 @@ struct ActivityMetrics: Sendable, Codable {
     var moveProgress: Double?
     var exerciseProgress: Double?
     var standProgress: Double?
-    
+
     // Computed property for HKWorkoutActivityType
     var workoutType: HKWorkoutActivityType? {
         get {
@@ -259,7 +259,7 @@ struct WorkoutContext: Sendable, Codable {
     var muscleGroupBalance: [String: Int] = [:]
     var intensityTrend: IntensityTrend = .stable
     var recoveryStatus: RecoveryStatus = .unknown
-    
+
     init(
         recentWorkouts: [CompactWorkout] = [],
         activeWorkout: CompactWorkout? = nil,

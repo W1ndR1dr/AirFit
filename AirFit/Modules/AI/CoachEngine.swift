@@ -14,7 +14,7 @@ final class CoachEngine {
     private(set) var activeConversationId: UUID?
     private(set) var streamingTokens: [String] = []
     private(set) var lastFunctionCall: String?
-    
+
     // MARK: - Dependencies
     private let localCommandParser: LocalCommandParser
     private let functionDispatcher: FunctionCallDispatcher
@@ -23,12 +23,12 @@ final class CoachEngine {
     private let aiService: AIAPIServiceProtocol
     private let contextAssembler: ContextAssembler
     private let modelContext: ModelContext
-    
+
     // MARK: - Configuration
     private let maxRetries = 3
     private let streamingTimeout: TimeInterval = 30.0
     private let functionCallTimeout: TimeInterval = 10.0
-    
+
     // MARK: - Initialization
     init(
         localCommandParser: LocalCommandParser,
@@ -46,52 +46,52 @@ final class CoachEngine {
         self.aiService = aiService
         self.contextAssembler = contextAssembler
         self.modelContext = modelContext
-        
+
         // Initialize with a new conversation
         self.activeConversationId = UUID()
     }
-    
+
     // MARK: - Public Methods
-    
+
     /// Processes a user message through the complete AI coaching pipeline
     func processUserMessage(_ text: String, for user: User) async {
         guard !isProcessing else {
             AppLogger.warning("Already processing a message, ignoring new request", category: .ai)
             return
         }
-        
+
         await startProcessing()
-        
+
         do {
             // Ensure we have an active conversation
             let conversationId = activeConversationId ?? UUID()
             if activeConversationId == nil {
                 activeConversationId = conversationId
             }
-            
+
             // Save user message first
             _ = try await conversationManager.saveUserMessage(
                 text,
                 for: user,
                 conversationId: conversationId
             )
-            
+
             AppLogger.info("Processing user message: \(text.prefix(50))...", category: .ai)
-            
+
             // Step 1: Check for local commands first (instant response)
             if let localResponse = await checkLocalCommand(text, for: user) {
                 await handleLocalCommandResponse(localResponse, for: user, conversationId: conversationId)
                 return
             }
-            
+
             // Step 2: Process through AI pipeline
             await processAIResponse(text, for: user, conversationId: conversationId)
-            
+
         } catch {
             await handleError(error)
         }
     }
-    
+
     /// Clears the current conversation and starts a new one
     func clearConversation() {
         activeConversationId = UUID()
@@ -99,17 +99,17 @@ final class CoachEngine {
         streamingTokens = []
         lastFunctionCall = nil
         error = nil
-        
+
         AppLogger.info("Started new conversation: \(activeConversationId?.uuidString ?? "unknown")", category: .ai)
     }
-    
+
     /// Regenerates the last AI response
     func regenerateLastResponse(for user: User) async {
         guard let conversationId = activeConversationId else {
             await handleError(CoachEngineError.noActiveConversation)
             return
         }
-        
+
         do {
             // Get the last user message
             let recentMessages = try await conversationManager.getRecentMessages(
@@ -117,47 +117,47 @@ final class CoachEngine {
                 conversationId: conversationId,
                 limit: 10
             )
-            
+
             guard let lastUserMessage = recentMessages.last(where: { $0.role == .user }) else {
                 await handleError(CoachEngineError.noMessageToRegenerate)
                 return
             }
-            
+
             // Clear current response and regenerate
             currentResponse = ""
             streamingTokens = []
-            
+
             await processAIResponse(lastUserMessage.content, for: user, conversationId: conversationId)
-            
+
         } catch {
             await handleError(error)
         }
     }
-    
+
     // MARK: - Private Methods
-    
+
     private func startProcessing() async {
         isProcessing = true
         error = nil
         currentResponse = ""
         streamingTokens = []
     }
-    
+
     private func finishProcessing() async {
         isProcessing = false
     }
-    
+
     private func checkLocalCommand(_ text: String, for user: User) async -> LocalCommand? {
         let startTime = CFAbsoluteTimeGetCurrent()
-        
+
         let command = localCommandParser.parse(text)
-        
+
         let processingTime = CFAbsoluteTimeGetCurrent() - startTime
-        AppLogger.debug("Local command check took \(Int(processingTime * 1000))ms", category: .ai)
-        
+        AppLogger.debug("Local command check took \(Int(processingTime * 1_000))ms", category: .ai)
+
         return command == .none ? nil : command
     }
-    
+
     private func handleLocalCommandResponse(
         _ command: LocalCommand,
         for user: User,
@@ -166,7 +166,7 @@ final class CoachEngine {
         do {
             // Generate response for local command
             let response = generateLocalCommandResponse(command)
-            
+
             // Save the local command response
             _ = try await conversationManager.createAssistantMessage(
                 response,
@@ -176,42 +176,42 @@ final class CoachEngine {
                 isLocalCommand: true,
                 isError: false
             )
-            
+
             currentResponse = response
             await finishProcessing()
-            
+
             AppLogger.info("Local command processed successfully", category: .ai)
-            
+
         } catch {
             await handleError(error)
         }
     }
-    
+
     private func processAIResponse(
         _ text: String,
         for user: User,
         conversationId: UUID
     ) async {
         let startTime = CFAbsoluteTimeGetCurrent()
-        
+
         do {
             // Step 1: Assemble health context
             let healthContext = await contextAssembler.assembleSnapshot(modelContext: modelContext)
-            
+
             // Step 2: Get conversation history
             let conversationHistory = try await conversationManager.getRecentMessages(
                 for: user,
                 conversationId: conversationId,
                 limit: 20
             )
-            
+
             // Step 3: Build persona-aware system prompt
             let userProfile = try await getUserProfile(for: user)
             let adjustedProfile = personaEngine.adjustPersonaForContext(
                 baseProfile: userProfile,
                 healthContext: healthContext
             )
-            
+
             let systemPrompt = try personaEngine.buildSystemPrompt(
                 userProfile: adjustedProfile,
                 healthContext: healthContext,
@@ -225,7 +225,7 @@ final class CoachEngine {
                 },
                 availableFunctions: FunctionRegistry.availableFunctions
             )
-            
+
             // Step 4: Create AI request
             let aiMessages = conversationHistory.map { aiMessage in
                 AIChatMessage(
@@ -235,29 +235,29 @@ final class CoachEngine {
                     timestamp: aiMessage.timestamp
                 )
             }
-            
+
             // Add current user message
             let currentMessage = AIChatMessage(
                 role: .user,
                 content: text,
                 timestamp: Date()
             )
-            
+
             let aiRequest = AIRequest(
                 systemPrompt: systemPrompt,
                 messages: aiMessages + [currentMessage],
                 functions: FunctionRegistry.availableFunctions,
                 user: user.id.uuidString
             )
-            
+
             // Step 5: Stream AI response
             await streamAIResponse(aiRequest, for: user, conversationId: conversationId, startTime: startTime)
-            
+
         } catch {
             await handleError(error)
         }
     }
-    
+
     private func streamAIResponse(
         _ request: AIRequest,
         for user: User,
@@ -269,10 +269,10 @@ final class CoachEngine {
             var functionCallDetected: AIFunctionCall?
             var firstTokenReceived = false
             var cancellables = Set<AnyCancellable>()
-            
+
             // Create streaming response publisher
             let responsePublisher = aiService.getStreamingResponse(for: request)
-            
+
             // Process streaming response using async/await with Combine
             await withCheckedContinuation { continuation in
                 responsePublisher
@@ -291,39 +291,39 @@ final class CoachEngine {
                         },
                         receiveValue: { [weak self] response in
                             guard let self = self else { return }
-                            
+
                             Task { @MainActor in
                                 switch response {
                                 case .text(let text):
                                     if !firstTokenReceived {
                                         let timeToFirstToken = CFAbsoluteTimeGetCurrent() - startTime
-                                        AppLogger.info("First token received in \(Int(timeToFirstToken * 1000))ms", category: .ai)
+                                        AppLogger.info("First token received in \(Int(timeToFirstToken * 1_000))ms", category: .ai)
                                         firstTokenReceived = true
                                     }
-                                    
+
                                     fullResponse += text
                                     self.streamingTokens.append(text)
                                     self.currentResponse = fullResponse
-                                    
+
                                 case .textDelta(let text):
                                     if !firstTokenReceived {
                                         let timeToFirstToken = CFAbsoluteTimeGetCurrent() - startTime
-                                        AppLogger.info("First token received in \(Int(timeToFirstToken * 1000))ms", category: .ai)
+                                        AppLogger.info("First token received in \(Int(timeToFirstToken * 1_000))ms", category: .ai)
                                         firstTokenReceived = true
                                     }
-                                    
+
                                     fullResponse += text
                                     self.streamingTokens.append(text)
                                     self.currentResponse = fullResponse
-                                    
+
                                 case .functionCall(let functionCall):
                                     functionCallDetected = functionCall
                                     self.lastFunctionCall = functionCall.name
                                     AppLogger.info("Function call detected: \(functionCall.name)", category: .ai)
-                                    
+
                                 case .done(let usage):
                                     AppLogger.info("Stream completed with usage: \(usage?.totalTokens ?? 0) tokens", category: .ai)
-                                    
+
                                 case .error(let aiError):
                                     AppLogger.error("AI service error", error: aiError, category: .ai)
                                     Task { await self.handleError(aiError) }
@@ -333,7 +333,7 @@ final class CoachEngine {
                     )
                     .store(in: &cancellables)
             }
-            
+
             // Step 6: Save AI response
             let assistantMessage = try await conversationManager.createAssistantMessage(
                 fullResponse,
@@ -348,7 +348,7 @@ final class CoachEngine {
                 isLocalCommand: false,
                 isError: false
             )
-            
+
             // Step 7: Execute function call if detected
             if let functionCall = functionCallDetected {
                 await executeFunctionCall(
@@ -358,14 +358,14 @@ final class CoachEngine {
                     originalMessage: assistantMessage
                 )
             }
-            
+
             await finishProcessing()
-            
+
         } catch {
             await handleError(error)
         }
     }
-    
+
     private func executeFunctionCall(
         _ functionCall: AIFunctionCall,
         for user: User,
@@ -373,10 +373,10 @@ final class CoachEngine {
         originalMessage: CoachMessage
     ) async {
         let startTime = CFAbsoluteTimeGetCurrent()
-        
+
         do {
             AppLogger.info("Executing function: \(functionCall.name)", category: .ai)
-            
+
             // Execute function
             let result = try await functionDispatcher.execute(
                 functionCall,
@@ -387,13 +387,13 @@ final class CoachEngine {
                     userId: user.id
                 )
             )
-            
+
             let executionTime = CFAbsoluteTimeGetCurrent() - startTime
-            AppLogger.info("Function executed in \(Int(executionTime * 1000))ms", category: .ai)
-            
+            AppLogger.info("Function executed in \(Int(executionTime * 1_000))ms", category: .ai)
+
             // Create follow-up response about the function execution
             let followUpResponse = generateFunctionFollowUp(result)
-            
+
             // Save function result as assistant message
             _ = try await conversationManager.createAssistantMessage(
                 followUpResponse,
@@ -406,16 +406,16 @@ final class CoachEngine {
                 isLocalCommand: false,
                 isError: !result.success
             )
-            
+
             // Update current response to include function result
             currentResponse += "\n\n" + followUpResponse
-            
+
         } catch {
             AppLogger.error("Function execution failed", error: error, category: .ai)
-            
+
             // Save error response
             let errorResponse = "I encountered an issue while executing that action. Please try again or contact support if the problem persists."
-            
+
             do {
                 _ = try await conversationManager.createAssistantMessage(
                     errorResponse,
@@ -425,14 +425,14 @@ final class CoachEngine {
                     isLocalCommand: false,
                     isError: true
                 )
-                
+
                 currentResponse += "\n\n" + errorResponse
             } catch {
                 await handleError(error)
             }
         }
     }
-    
+
     private func generateFunctionFollowUp(_ result: FunctionExecutionResult) -> String {
         if result.success {
             return result.message
@@ -440,7 +440,7 @@ final class CoachEngine {
             return "I wasn't able to complete that action right now. \(result.message)"
         }
     }
-    
+
     private func generateLocalCommandResponse(_ command: LocalCommand) -> String {
         switch command {
         case .showDashboard:
@@ -463,12 +463,12 @@ final class CoachEngine {
             return "I'm not sure what you'd like me to do. Could you be more specific?"
         }
     }
-    
+
     private func getUserProfile(for user: User) async throws -> PersonaProfile {
         guard let onboardingProfile = user.onboardingProfile else {
             return createDefaultProfile()
         }
-        
+
         do {
             let decoder = JSONDecoder()
             let profile = try decoder.decode(UserProfileJsonBlob.self, from: onboardingProfile.rawFullProfileData)
@@ -478,13 +478,13 @@ final class CoachEngine {
             return createDefaultProfile()
         }
     }
-    
+
     private func handleError(_ error: Error) async {
         self.error = error
         await finishProcessing()
-        
+
         AppLogger.error("CoachEngine error", error: error, category: .ai)
-        
+
         // Set user-friendly error message
         if let coachError = error as? CoachEngineError {
             currentResponse = coachError.userFriendlyMessage
@@ -492,7 +492,7 @@ final class CoachEngine {
             currentResponse = "I'm having trouble processing your request right now. Please try again in a moment."
         }
     }
-    
+
     private func createDefaultProfile() -> PersonaProfile {
         // Create a basic default profile if user hasn't completed onboarding
         return UserProfileJsonBlob(
@@ -522,7 +522,7 @@ enum CoachEngineError: LocalizedError {
     case functionExecutionFailed(String)
     case contextAssemblyFailed
     case invalidUserProfile
-    
+
     var errorDescription: String? {
         switch self {
         case .noActiveConversation:
@@ -541,7 +541,7 @@ enum CoachEngineError: LocalizedError {
             return "Invalid user profile data"
         }
     }
-    
+
     var userFriendlyMessage: String {
         switch self {
         case .noActiveConversation:
@@ -562,20 +562,18 @@ enum CoachEngineError: LocalizedError {
     }
 }
 
-
-
 // MARK: - Extensions
 extension CoachEngine {
     /// Gets conversation statistics for the active conversation
     func getActiveConversationStats(for user: User) async throws -> ConversationStats? {
         guard let conversationId = activeConversationId else { return nil }
-        
+
         return try await conversationManager.getConversationStats(
             for: user,
             conversationId: conversationId
         )
     }
-    
+
     /// Prunes old conversations to maintain performance
     func pruneOldConversations(for user: User) async {
         do {
@@ -585,4 +583,4 @@ extension CoachEngine {
             AppLogger.error("Failed to prune conversations", error: error, category: .ai)
         }
     }
-} 
+}

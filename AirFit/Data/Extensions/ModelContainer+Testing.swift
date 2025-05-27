@@ -109,7 +109,7 @@ extension ModelContainer {
 // MARK: - Preview Helpers
 #if DEBUG
 extension ModelContainer {
-    @MainActor 
+    @MainActor
     static var preview: ModelContainer {
         do {
             return try .createTestContainerWithSampleData()

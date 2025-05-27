@@ -151,24 +151,24 @@ targets:
           - "**/*.md"
           - "Context/ContextAssemblerTests.swift"
       # Explicit test files (CRITICAL: XcodeGen nesting bug)
-      - AirFit/AirFitTests/Onboarding/OnboardingServiceTests.swift
-      - AirFit/AirFitTests/Onboarding/OnboardingFlowViewTests.swift
-      - AirFit/AirFitTests/Onboarding/OnboardingViewTests.swift
-      - AirFit/AirFitTests/Onboarding/OnboardingViewModelTests.swift
-      - AirFit/AirFitTests/Onboarding/OnboardingIntegrationTests.swift
-      - AirFit/AirFitTests/Onboarding/OnboardingModelsTests.swift
+      - AirFit/AirFitTests/Modules/Onboarding/OnboardingServiceTests.swift
+      - AirFit/AirFitTests/Modules/Onboarding/OnboardingFlowViewTests.swift
+      - AirFit/AirFitTests/Modules/Onboarding/OnboardingViewTests.swift
+      - AirFit/AirFitTests/Modules/Onboarding/OnboardingViewModelTests.swift
+      - AirFit/AirFitTests/Modules/Onboarding/OnboardingIntegrationTests.swift
+      - AirFit/AirFitTests/Modules/Onboarding/OnboardingModelsTests.swift
       - AirFit/AirFitTests/Health/HealthKitManagerTests.swift
       - AirFit/AirFitTests/Mocks/MockHealthKitManager.swift
       - AirFit/AirFitTests/Mocks/MockHealthKitPrefillProvider.swift
 # Temporarily excluded due to compilation errors
       # - AirFit/AirFitTests/Context/ContextAssemblerTests.swift
-      - AirFit/AirFitTests/AI/LocalCommandParserTests.swift
-      - AirFit/AirFitTests/AI/FunctionCallDispatcherTests.swift
-      - AirFit/AirFitTests/AI/CoachEngineTests.swift
-      - AirFit/AirFitTests/AI/PersonaEngineTests.swift
-      - AirFit/AirFitTests/AI/ConversationManagerTests.swift
-      - AirFit/AirFitTests/AI/ConversationManagerPersistenceTests.swift
-      - AirFit/AirFitTests/AI/ConversationManagerPerformanceTests.swift
+      - AirFit/AirFitTests/Modules/AI/LocalCommandParserTests.swift
+      - AirFit/AirFitTests/Modules/AI/FunctionCallDispatcherTests.swift
+      - AirFit/AirFitTests/Modules/AI/CoachEngineTests.swift
+      - AirFit/AirFitTests/Modules/AI/PersonaEngineTests.swift
+      - AirFit/AirFitTests/Modules/AI/ConversationManagerTests.swift
+      - AirFit/AirFitTests/Modules/AI/ConversationManagerPersistenceTests.swift
+      - AirFit/AirFitTests/Modules/AI/ConversationManagerPerformanceTests.swift
     dependencies:
       - target: AirFit
     settings:

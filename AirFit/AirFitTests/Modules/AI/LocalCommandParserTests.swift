@@ -4,11 +4,6 @@ import XCTest
 final class LocalCommandParserTests: XCTestCase {
     var sut: LocalCommandParser!
 
-    override func setUp() {
-        super.setUp()
-        // Initialize synchronously - the parser will be created on main actor when first used
-    }
-
     @MainActor
     func test_parseWaterCommands() {
         sut = LocalCommandParser()

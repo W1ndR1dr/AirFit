@@ -7,7 +7,7 @@ final class PersonaEngineTests: XCTestCase {
     var sut: PersonaEngine!
     var modelContext: ModelContext!
     var testUser: User!
-    
+
     // MARK: - Setup & Teardown
     @MainActor
     override func setUp() async throws {
@@ -23,7 +23,7 @@ final class PersonaEngineTests: XCTestCase {
         let configuration = ModelConfiguration(isStoredInMemoryOnly: true)
         let container = try ModelContainer(for: schema, configurations: [configuration])
         modelContext = ModelContext(container)
-        
+
         // Create test user
         testUser = User(
             id: UUID(),
@@ -32,20 +32,20 @@ final class PersonaEngineTests: XCTestCase {
         )
         modelContext.insert(testUser)
         try modelContext.save()
-        
+
         // Initialize system under test
         sut = PersonaEngine()
     }
-    
+
     @MainActor
     override func tearDown() async throws {
         sut = nil
         modelContext = nil
         testUser = nil
     }
-    
+
     // MARK: - Prompt Building Tests
-    
+
     @MainActor
     func test_buildSystemPrompt_withValidInputs_shouldGenerateCompletePrompt() throws {
         // Given
@@ -53,7 +53,7 @@ final class PersonaEngineTests: XCTestCase {
         let healthContext = createTestHealthContext()
         let conversationHistory = createTestConversationHistory()
         let availableFunctions = createTestFunctions()
-        
+
         // When
         let prompt = try sut.buildSystemPrompt(
             userProfile: userProfile,
@@ -61,7 +61,7 @@ final class PersonaEngineTests: XCTestCase {
             conversationHistory: conversationHistory,
             availableFunctions: availableFunctions
         )
-        
+
         // Then
         XCTAssertTrue(prompt.contains("AirFit Coach"))
         XCTAssertFalse(prompt.contains("{{USER_PROFILE_JSON}}")) // Should be replaced
@@ -70,14 +70,14 @@ final class PersonaEngineTests: XCTestCase {
         XCTAssertFalse(prompt.contains("{{AVAILABLE_FUNCTIONS_JSON}}")) // Should be replaced
         XCTAssertFalse(prompt.contains("{{CURRENT_DATETIME_UTC}}")) // Should be replaced
         XCTAssertTrue(prompt.contains(userProfile.timezone))
-        
+
         // Verify JSON injection
         XCTAssertTrue(prompt.contains("\"life_context\""))
         XCTAssertTrue(prompt.contains("\"blend\""))
         XCTAssertTrue(prompt.contains("\"goal\""))
         XCTAssertTrue(prompt.contains("\"engagement_preferences\""))
     }
-    
+
     @MainActor
     func test_buildSystemPrompt_withJSONInjection_shouldEscapeSpecialCharacters() throws {
         // Given
@@ -85,7 +85,7 @@ final class PersonaEngineTests: XCTestCase {
         let healthContext = createTestHealthContext()
         let conversationHistory: [ChatMessage] = []
         let availableFunctions: [AIFunctionDefinition] = []
-        
+
         // When
         let prompt = try sut.buildSystemPrompt(
             userProfile: userProfile,
@@ -93,13 +93,13 @@ final class PersonaEngineTests: XCTestCase {
             conversationHistory: conversationHistory,
             availableFunctions: availableFunctions
         )
-        
+
         // Then
         XCTAssertTrue(prompt.contains("escape"))
         // Note: The PersonaEngine may not filter HTML tags, just ensure JSON is properly escaped
         XCTAssertTrue(prompt.contains("\"")) // Contains quotes (may be escaped in JSON)
     }
-    
+
     @MainActor
     func test_buildSystemPrompt_withLongConversationHistory_shouldLimitToLast20Messages() throws {
         // Given
@@ -107,7 +107,7 @@ final class PersonaEngineTests: XCTestCase {
         let healthContext = createTestHealthContext()
         let conversationHistory = createLongConversationHistory(count: 50)
         let availableFunctions: [AIFunctionDefinition] = []
-        
+
         // When
         let prompt = try sut.buildSystemPrompt(
             userProfile: userProfile,
@@ -115,13 +115,13 @@ final class PersonaEngineTests: XCTestCase {
             conversationHistory: conversationHistory,
             availableFunctions: availableFunctions
         )
-        
+
         // Then
         // Count occurrences of message markers in the JSON
         let messageCount = prompt.components(separatedBy: "\"role\"").count - 1
         XCTAssertLessThanOrEqual(messageCount, 20)
     }
-    
+
     @MainActor
     func test_buildSystemPrompt_withTokenLengthValidation_shouldThrowForLongPrompts() throws {
         // Given
@@ -129,7 +129,7 @@ final class PersonaEngineTests: XCTestCase {
         let healthContext = createMassiveHealthContext()
         let conversationHistory = createLongConversationHistory(count: 20)
         let availableFunctions = createManyTestFunctions(count: 50)
-        
+
         // When & Then
         XCTAssertThrowsError(try sut.buildSystemPrompt(
             userProfile: userProfile,
@@ -145,180 +145,180 @@ final class PersonaEngineTests: XCTestCase {
             XCTAssertGreaterThan(tokens, 8_000)
         }
     }
-    
+
     // MARK: - Persona Adjustment Tests
-    
+
     @MainActor
     func test_adjustPersonaForContext_withLowEnergy_shouldIncreaseEmpathy() {
         // Given
         let baseProfile = createTestUserProfile()
         let healthContext = createTestHealthContextWithLowEnergy()
-        
+
         let originalEmpathy = baseProfile.blend.encouragingEmpathetic
         let originalDirect = baseProfile.blend.authoritativeDirect
-        
+
         // When
         let adjustedProfile = sut.adjustPersonaForContext(
             baseProfile: baseProfile,
             healthContext: healthContext
         )
-        
+
         // Then
         XCTAssertGreaterThan(adjustedProfile.blend.encouragingEmpathetic, originalEmpathy)
         XCTAssertLessThan(adjustedProfile.blend.authoritativeDirect, originalDirect)
         XCTAssertTrue(adjustedProfile.blend.isValid) // Should remain normalized
     }
-    
+
     @MainActor
     func test_adjustPersonaForContext_withHighStress_shouldReduceProvocative() {
         // Given
         let baseProfile = createTestUserProfile()
         let healthContext = createTestHealthContextWithHighStress()
-        
+
         let originalEmpathy = baseProfile.blend.encouragingEmpathetic
         let originalProvocative = baseProfile.blend.playfullyProvocative
-        
+
         // When
         let adjustedProfile = sut.adjustPersonaForContext(
             baseProfile: baseProfile,
             healthContext: healthContext
         )
-        
+
         // Then
         XCTAssertGreaterThan(adjustedProfile.blend.encouragingEmpathetic, originalEmpathy)
         XCTAssertLessThan(adjustedProfile.blend.playfullyProvocative, originalProvocative)
         XCTAssertTrue(adjustedProfile.blend.isValid)
     }
-    
+
     @MainActor
     func test_adjustPersonaForContext_withEveningTime_shouldBeCalmAndLessPlayful() {
         // Given
         let baseProfile = createTestUserProfile()
         let healthContext = createTestHealthContextWithEveningTime()
-        
+
         let originalEmpathy = baseProfile.blend.encouragingEmpathetic
         let originalProvocative = baseProfile.blend.playfullyProvocative
-        
+
         // When
         let adjustedProfile = sut.adjustPersonaForContext(
             baseProfile: baseProfile,
             healthContext: healthContext
         )
-        
+
         // Then
         XCTAssertGreaterThan(adjustedProfile.blend.encouragingEmpathetic, originalEmpathy)
         XCTAssertLessThan(adjustedProfile.blend.playfullyProvocative, originalProvocative)
         XCTAssertTrue(adjustedProfile.blend.isValid)
     }
-    
+
     @MainActor
     func test_adjustPersonaForContext_withPoorSleep_shouldBeMoreUnderstanding() {
         // Given
         let baseProfile = createTestUserProfile()
         let healthContext = createTestHealthContextWithPoorSleep()
-        
+
         let originalEmpathy = baseProfile.blend.encouragingEmpathetic
         let originalDirect = baseProfile.blend.authoritativeDirect
-        
+
         // When
         let adjustedProfile = sut.adjustPersonaForContext(
             baseProfile: baseProfile,
             healthContext: healthContext
         )
-        
+
         // Then
         XCTAssertGreaterThan(adjustedProfile.blend.encouragingEmpathetic, originalEmpathy)
         XCTAssertLessThan(adjustedProfile.blend.authoritativeDirect, originalDirect)
         XCTAssertTrue(adjustedProfile.blend.isValid)
     }
-    
+
     @MainActor
     func test_adjustPersonaForContext_withRecoveryNeeds_shouldBeMoreSupportive() {
         // Given
         let baseProfile = createTestUserProfile()
         let healthContext = createTestHealthContextWithRecoveryNeeds()
-        
+
         let originalEmpathy = baseProfile.blend.encouragingEmpathetic
         let originalDirect = baseProfile.blend.authoritativeDirect
-        
+
         // When
         let adjustedProfile = sut.adjustPersonaForContext(
             baseProfile: baseProfile,
             healthContext: healthContext
         )
-        
+
         // Then
         XCTAssertGreaterThan(adjustedProfile.blend.encouragingEmpathetic, originalEmpathy)
         XCTAssertLessThan(adjustedProfile.blend.authoritativeDirect, originalDirect)
         XCTAssertTrue(adjustedProfile.blend.isValid)
     }
-    
+
     @MainActor
     func test_adjustPersonaForContext_withWorkoutStreak_shouldBeMoreChallenging() {
         // Given
         let baseProfile = createTestUserProfile()
         let healthContext = createTestHealthContextWithWorkoutStreak()
-        
+
         let originalProvocative = baseProfile.blend.playfullyProvocative
         let originalDirect = baseProfile.blend.authoritativeDirect
-        
+
         // When
         let adjustedProfile = sut.adjustPersonaForContext(
             baseProfile: baseProfile,
             healthContext: healthContext
         )
-        
+
         // Then
         XCTAssertGreaterThan(adjustedProfile.blend.playfullyProvocative, originalProvocative)
         XCTAssertGreaterThan(adjustedProfile.blend.authoritativeDirect, originalDirect)
         XCTAssertTrue(adjustedProfile.blend.isValid)
     }
-    
+
     @MainActor
     func test_adjustPersonaForContext_withDetrainingStatus_shouldBeVeryEncouraging() {
         // Given
         let baseProfile = createTestUserProfile()
         let healthContext = createTestHealthContextWithDetraining()
-        
+
         let originalEmpathy = baseProfile.blend.encouragingEmpathetic
         let originalDirect = baseProfile.blend.authoritativeDirect
         let originalProvocative = baseProfile.blend.playfullyProvocative
-        
+
         // When
         let adjustedProfile = sut.adjustPersonaForContext(
             baseProfile: baseProfile,
             healthContext: healthContext
         )
-        
+
         // Then
         XCTAssertGreaterThan(adjustedProfile.blend.encouragingEmpathetic, originalEmpathy)
         XCTAssertLessThan(adjustedProfile.blend.authoritativeDirect, originalDirect)
         XCTAssertLessThan(adjustedProfile.blend.playfullyProvocative, originalProvocative)
         XCTAssertTrue(adjustedProfile.blend.isValid)
     }
-    
+
     @MainActor
     func test_adjustPersonaForContext_withMultipleFactors_shouldApplyAllAdjustments() {
         // Given
         let baseProfile = createTestUserProfile()
         let healthContext = createTestHealthContextWithMultipleFactors()
-        
+
         let originalEmpathy = baseProfile.blend.encouragingEmpathetic
-        
+
         // When
         let adjustedProfile = sut.adjustPersonaForContext(
             baseProfile: baseProfile,
             healthContext: healthContext
         )
-        
+
         // Then - Multiple adjustments should compound
         let empathyIncrease = adjustedProfile.blend.encouragingEmpathetic - originalEmpathy
         XCTAssertGreaterThan(empathyIncrease, 0.2) // Significant increase from multiple factors
         XCTAssertTrue(adjustedProfile.blend.isValid)
     }
-    
+
     // MARK: - Integration Tests
-    
+
     @MainActor
     func test_buildSystemPrompt_withFunctionRegistry_shouldIncludeAllFunctions() throws {
         // Given
@@ -326,7 +326,7 @@ final class PersonaEngineTests: XCTestCase {
         let healthContext = createTestHealthContext()
         let conversationHistory: [ChatMessage] = []
         let availableFunctions = FunctionRegistry.availableFunctions
-        
+
         // When
         let prompt = try sut.buildSystemPrompt(
             userProfile: userProfile,
@@ -334,23 +334,23 @@ final class PersonaEngineTests: XCTestCase {
             conversationHistory: conversationHistory,
             availableFunctions: availableFunctions
         )
-        
+
         // Then
         XCTAssertTrue(prompt.contains("generatePersonalizedWorkoutPlan"))
         XCTAssertTrue(prompt.contains("parseAndLogComplexNutrition"))
         XCTAssertTrue(prompt.contains("analyzePerformanceTrends"))
         XCTAssertTrue(prompt.contains("assistGoalSettingOrRefinement"))
     }
-    
+
     @MainActor
     func test_buildSystemPrompt_withHealthContext_shouldIncludeRelevantMetrics() throws {
         // Given
         let userProfile = createTestUserProfile()
         let healthContext = createTestHealthContextWithSpecificMetrics()
-        
+
         let conversationHistory: [ChatMessage] = []
         let availableFunctions: [AIFunctionDefinition] = []
-        
+
         // When
         let prompt = try sut.buildSystemPrompt(
             userProfile: userProfile,
@@ -358,13 +358,13 @@ final class PersonaEngineTests: XCTestCase {
             conversationHistory: conversationHistory,
             availableFunctions: availableFunctions
         )
-        
+
         // Then
         XCTAssertTrue(prompt.contains("8500") || prompt.contains("8,500"))
         XCTAssertTrue(prompt.contains("65"))
         XCTAssertTrue(prompt.contains("70"))
     }
-    
+
     @MainActor
     func test_buildSystemPrompt_withConversationHistory_shouldMaintainContext() throws {
         // Given
@@ -376,7 +376,7 @@ final class PersonaEngineTests: XCTestCase {
             ChatMessage(role: "user", content: "What about protein?")
         ]
         let availableFunctions: [AIFunctionDefinition] = []
-        
+
         // When
         let prompt = try sut.buildSystemPrompt(
             userProfile: userProfile,
@@ -384,15 +384,15 @@ final class PersonaEngineTests: XCTestCase {
             conversationHistory: conversationHistory,
             availableFunctions: availableFunctions
         )
-        
+
         // Then
         XCTAssertTrue(prompt.contains("calories"))
         XCTAssertTrue(prompt.contains("2000"))
         XCTAssertTrue(prompt.contains("protein"))
     }
-    
+
     // MARK: - Performance Tests
-    
+
     @MainActor
     func test_buildSystemPrompt_performance_shouldCompleteQuickly() throws {
         // Given
@@ -400,10 +400,10 @@ final class PersonaEngineTests: XCTestCase {
         let healthContext = createTestHealthContext()
         let conversationHistory = createTestConversationHistory()
         let availableFunctions = createTestFunctions()
-        
+
         // When
         let startTime = CFAbsoluteTimeGetCurrent()
-        
+
         for _ in 0..<10 {
             _ = try sut.buildSystemPrompt(
                 userProfile: userProfile,
@@ -412,37 +412,37 @@ final class PersonaEngineTests: XCTestCase {
                 availableFunctions: availableFunctions
             )
         }
-        
+
         let averageTime = (CFAbsoluteTimeGetCurrent() - startTime) / 10.0
-        
+
         // Then
         XCTAssertLessThan(averageTime, 0.01) // Should complete in < 10ms
     }
-    
+
     @MainActor
     func test_adjustPersonaForContext_performance_shouldCompleteQuickly() {
         // Given
         let baseProfile = createTestUserProfile()
         let healthContext = createTestHealthContext()
-        
+
         // When
         let startTime = CFAbsoluteTimeGetCurrent()
-        
+
         for _ in 0..<100 {
             _ = sut.adjustPersonaForContext(
                 baseProfile: baseProfile,
                 healthContext: healthContext
             )
         }
-        
+
         let averageTime = (CFAbsoluteTimeGetCurrent() - startTime) / 100.0
-        
+
         // Then
         XCTAssertLessThan(averageTime, 0.001) // Should complete in < 1ms
     }
-    
+
     // MARK: - Error Handling Tests
-    
+
     @MainActor
     func test_buildSystemPrompt_withInvalidTimezone_shouldUseAsIs() throws {
         // Given
@@ -450,7 +450,7 @@ final class PersonaEngineTests: XCTestCase {
         let healthContext = createTestHealthContext()
         let conversationHistory: [ChatMessage] = []
         let availableFunctions: [AIFunctionDefinition] = []
-        
+
         // When
         let prompt = try sut.buildSystemPrompt(
             userProfile: userProfile,
@@ -458,31 +458,31 @@ final class PersonaEngineTests: XCTestCase {
             conversationHistory: conversationHistory,
             availableFunctions: availableFunctions
         )
-        
+
         // Then
         XCTAssertTrue(prompt.contains("Invalid/Timezone")) // Should include as-is
     }
-    
+
     @MainActor
     func test_adjustPersonaForContext_withNilHealthData_shouldReturnOriginalProfile() {
         // Given
         let baseProfile = createTestUserProfile()
         let healthContext = createTestHealthContextWithNilData()
-        
+
         // When
         let adjustedProfile = sut.adjustPersonaForContext(
             baseProfile: baseProfile,
             healthContext: healthContext
         )
-        
+
         // Then - Should be very similar to original (only time-based adjustments)
         let empathyDiff = abs(adjustedProfile.blend.encouragingEmpathetic - baseProfile.blend.encouragingEmpathetic)
         XCTAssertLessThan(empathyDiff, 0.1) // Minimal change
         XCTAssertTrue(adjustedProfile.blend.isValid)
     }
-    
+
     // MARK: - Helper Methods
-    
+
     private func createTestUserProfile() -> PersonaProfile {
         return UserProfileJsonBlob(
             lifeContext: LifeContext(
@@ -521,7 +521,7 @@ final class PersonaEngineTests: XCTestCase {
             baselineModeEnabled: true
         )
     }
-    
+
     private func createTestUserProfileWithSpecialChars() -> PersonaProfile {
         return UserProfileJsonBlob(
             lifeContext: LifeContext(),
@@ -537,7 +537,7 @@ final class PersonaEngineTests: XCTestCase {
             baselineModeEnabled: true
         )
     }
-    
+
     private func createTestUserProfileWithInvalidTimezone() -> PersonaProfile {
         return UserProfileJsonBlob(
             lifeContext: LifeContext(),
@@ -550,7 +550,7 @@ final class PersonaEngineTests: XCTestCase {
             baselineModeEnabled: true
         )
     }
-    
+
     private func createTestHealthContext() -> HealthContextSnapshot {
         return HealthContextSnapshot(
             subjectiveData: SubjectiveData(
@@ -570,7 +570,7 @@ final class PersonaEngineTests: XCTestCase {
             ),
             activity: ActivityMetrics(
                 activeEnergyBurned: Measurement(value: 400, unit: .kilocalories),
-                basalEnergyBurned: Measurement(value: 1500, unit: .kilocalories),
+                basalEnergyBurned: Measurement(value: 1_500, unit: .kilocalories),
                 steps: 7_500,
                 distance: Measurement(value: 5.2, unit: .kilometers),
                 flightsClimbed: 12,
@@ -585,14 +585,14 @@ final class PersonaEngineTests: XCTestCase {
             ),
             sleep: SleepAnalysis(
                 lastNight: SleepAnalysis.SleepSession(
-                    bedtime: Date().addingTimeInterval(-8 * 3600),
+                    bedtime: Date().addingTimeInterval(-8 * 3_600),
                     wakeTime: Date(),
-                    totalSleepTime: 7.5 * 3600,
-                    timeInBed: 8 * 3600,
+                    totalSleepTime: 7.5 * 3_600,
+                    timeInBed: 8 * 3_600,
                     efficiency: 94,
-                    remTime: 2 * 3600,
-                    coreTime: 4 * 3600,
-                    deepTime: 1.5 * 3600,
+                    remTime: 2 * 3_600,
+                    coreTime: 4 * 3_600,
+                    deepTime: 1.5 * 3_600,
                     awakeTime: 30 * 60
                 )
             ),
@@ -610,10 +610,10 @@ final class PersonaEngineTests: XCTestCase {
                 weightTrend: .stable
             ),
             appContext: AppSpecificContext(
-                lastMealTime: Date().addingTimeInterval(-2 * 3600),
+                lastMealTime: Date().addingTimeInterval(-2 * 3_600),
                 lastMealSummary: "Breakfast: Oatmeal with berries",
                 waterIntakeToday: Measurement(value: 1.2, unit: .liters),
-                lastCoachInteraction: Date().addingTimeInterval(-1 * 3600),
+                lastCoachInteraction: Date().addingTimeInterval(-1 * 3_600),
                 currentStreak: 5
             ),
             trends: HealthTrends(
@@ -624,7 +624,7 @@ final class PersonaEngineTests: XCTestCase {
             )
         )
     }
-    
+
     private func createTestHealthContextWithLowEnergy() -> HealthContextSnapshot {
         var context = createTestHealthContext()
         context = HealthContextSnapshot(
@@ -646,7 +646,7 @@ final class PersonaEngineTests: XCTestCase {
         )
         return context
     }
-    
+
     private func createTestHealthContextWithHighStress() -> HealthContextSnapshot {
         var context = createTestHealthContext()
         context = HealthContextSnapshot(
@@ -668,7 +668,7 @@ final class PersonaEngineTests: XCTestCase {
         )
         return context
     }
-    
+
     private func createTestHealthContextWithEveningTime() -> HealthContextSnapshot {
         var context = createTestHealthContext()
         context = HealthContextSnapshot(
@@ -689,7 +689,7 @@ final class PersonaEngineTests: XCTestCase {
         )
         return context
     }
-    
+
     private func createTestHealthContextWithPoorSleep() -> HealthContextSnapshot {
         var context = createTestHealthContext()
         context = HealthContextSnapshot(
@@ -698,15 +698,15 @@ final class PersonaEngineTests: XCTestCase {
             activity: context.activity,
             sleep: SleepAnalysis(
                 lastNight: SleepAnalysis.SleepSession(
-                    bedtime: Date().addingTimeInterval(-8 * 3600),
+                    bedtime: Date().addingTimeInterval(-8 * 3_600),
                     wakeTime: Date(),
-                    totalSleepTime: 4 * 3600, // Only 4 hours
-                    timeInBed: 8 * 3600,
+                    totalSleepTime: 4 * 3_600, // Only 4 hours
+                    timeInBed: 8 * 3_600,
                     efficiency: 50, // Poor efficiency
-                    remTime: 1 * 3600,
-                    coreTime: 2 * 3600,
-                    deepTime: 1 * 3600,
-                    awakeTime: 4 * 3600
+                    remTime: 1 * 3_600,
+                    coreTime: 2 * 3_600,
+                    deepTime: 1 * 3_600,
+                    awakeTime: 4 * 3_600
                 )
             ),
             heartHealth: context.heartHealth,
@@ -716,7 +716,7 @@ final class PersonaEngineTests: XCTestCase {
         )
         return context
     }
-    
+
     private func createTestHealthContextWithRecoveryNeeds() -> HealthContextSnapshot {
         var context = createTestHealthContext()
         context = HealthContextSnapshot(
@@ -736,7 +736,7 @@ final class PersonaEngineTests: XCTestCase {
         )
         return context
     }
-    
+
     private func createTestHealthContextWithWorkoutStreak() -> HealthContextSnapshot {
         var context = createTestHealthContext()
         context = HealthContextSnapshot(
@@ -764,7 +764,7 @@ final class PersonaEngineTests: XCTestCase {
         )
         return context
     }
-    
+
     private func createTestHealthContextWithDetraining() -> HealthContextSnapshot {
         var context = createTestHealthContext()
         context = HealthContextSnapshot(
@@ -792,7 +792,7 @@ final class PersonaEngineTests: XCTestCase {
         )
         return context
     }
-    
+
     private func createTestHealthContextWithMultipleFactors() -> HealthContextSnapshot {
         var context = createTestHealthContext()
         context = HealthContextSnapshot(
@@ -825,7 +825,7 @@ final class PersonaEngineTests: XCTestCase {
         )
         return context
     }
-    
+
     private func createTestHealthContextWithSpecificMetrics() -> HealthContextSnapshot {
         var context = createTestHealthContext()
         context = HealthContextSnapshot(
@@ -869,7 +869,7 @@ final class PersonaEngineTests: XCTestCase {
         )
         return context
     }
-    
+
     private func createTestHealthContextWithNilData() -> HealthContextSnapshot {
         var context = createTestHealthContext()
         context = HealthContextSnapshot(
@@ -896,7 +896,7 @@ final class PersonaEngineTests: XCTestCase {
         )
         return context
     }
-    
+
     private func createTestConversationHistory() -> [ChatMessage] {
         return [
             ChatMessage(role: "user", content: "Good morning! How should I start my day?"),
@@ -905,7 +905,7 @@ final class PersonaEngineTests: XCTestCase {
             ChatMessage(role: "assistant", content: "Given your goals, a protein-rich breakfast would be ideal. How about eggs with some vegetables?")
         ]
     }
-    
+
     private func createTestFunctions() -> [AIFunctionDefinition] {
         return [
             AIFunctionDefinition(
@@ -939,7 +939,7 @@ final class PersonaEngineTests: XCTestCase {
             )
         ]
     }
-    
+
     private func createLongConversationHistory(count: Int) -> [ChatMessage] {
         var messages: [ChatMessage] = []
         for i in 0..<count {
@@ -949,10 +949,10 @@ final class PersonaEngineTests: XCTestCase {
         }
         return messages
     }
-    
+
     private func createMassiveHealthContext() -> HealthContextSnapshot {
         var context = createTestHealthContext()
-        
+
         // Add massive workout context to increase token count
         context = HealthContextSnapshot(
             subjectiveData: context.subjectiveData,
@@ -974,10 +974,10 @@ final class PersonaEngineTests: XCTestCase {
                         CompactWorkout(
                             name: "Workout \(i) with a very long name that includes detailed exercise descriptions and extensive notes about form, technique, and performance metrics",
                             type: "Strength Training with Cardio and Flexibility Components",
-                            date: Date().addingTimeInterval(-Double(i) * 86400),
-                            duration: 3600,
+                            date: Date().addingTimeInterval(-Double(i) * 86_400),
+                            duration: 3_600,
                             exerciseCount: 15,
-                            totalVolume: 5000,
+                            totalVolume: 5_000,
                             avgRPE: 7.5,
                             muscleGroups: ["chest", "back", "shoulders", "arms", "legs", "core", "glutes"],
                             keyExercises: [
@@ -991,10 +991,10 @@ final class PersonaEngineTests: XCTestCase {
             ),
             trends: context.trends
         )
-        
+
         return context
     }
-    
+
     private func createManyTestFunctions(count: Int) -> [AIFunctionDefinition] {
         return Array(0..<count).map { i in
             AIFunctionDefinition(
@@ -1020,4 +1020,4 @@ final class PersonaEngineTests: XCTestCase {
             )
         }
     }
-} 
+}

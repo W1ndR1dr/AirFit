@@ -201,7 +201,7 @@ final class OnboardingServiceIntegrationTests: XCTestCase {
 
 // MARK: - JSON Structure Tests
 final class OnboardingJSONStructureTests: XCTestCase {
-    
+
     func test_userProfileJsonBlob_shouldMatchSystemPromptRequirements() throws {
         // Arrange
         let profileBlob = createTestProfileBlob()

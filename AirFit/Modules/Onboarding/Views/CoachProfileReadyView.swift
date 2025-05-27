@@ -48,8 +48,8 @@ struct CoachProfileReadyView: View {
                                 do {
                                     try await viewModel.completeOnboarding()
                                 } catch {
-                                    AppLogger.error("Failed to complete onboarding", 
-                                                   error: error, 
+                                    AppLogger.error("Failed to complete onboarding",
+                                                   error: error,
                                                    category: .onboarding)
                                 }
                             }

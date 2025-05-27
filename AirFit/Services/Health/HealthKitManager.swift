@@ -158,7 +158,7 @@ final class HealthKitManager {
         metrics.moveProgress = nil // TODO: Calculate from goals
         metrics.exerciseProgress = nil
         metrics.standProgress = nil
-        
+
         return metrics
     }
 

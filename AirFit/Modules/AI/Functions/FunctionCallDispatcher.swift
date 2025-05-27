@@ -35,7 +35,7 @@ enum SendableValue: Sendable {
     case array([SendableValue])
     case dictionary([String: SendableValue])
     case null
-    
+
     init(_ value: Any) {
         switch value {
         case let str as String:
@@ -54,7 +54,7 @@ enum SendableValue: Sendable {
             self = .null
         }
     }
-    
+
     var anyValue: Any {
         switch self {
         case .string(let str): return str
@@ -225,7 +225,7 @@ final class FunctionCallDispatcher: @unchecked Sendable {
     // MARK: - Performance Tracking (Optimized)
     private let metricsQueue = DispatchQueue(label: "com.airfit.function-metrics", attributes: .concurrent)
     private var _functionMetrics: [String: FunctionMetrics] = [:]
-    
+
     // Pre-allocated formatters for performance
     private let intFormatter: NumberFormatter = {
         let formatter = NumberFormatter()
@@ -233,10 +233,10 @@ final class FunctionCallDispatcher: @unchecked Sendable {
         formatter.maximumFractionDigits = 0
         return formatter
     }()
-    
+
     // Function name lookup table for O(1) dispatch
     private let functionDispatchTable: [String: @Sendable (FunctionCallDispatcher, [String: AIAnyCodable], User, FunctionContext) async throws -> (message: String, data: [String: Any])]
-    
+
     private struct FunctionMetrics {
         var totalCalls: Int = 0
         var totalExecutionTime: TimeInterval = 0
@@ -265,7 +265,7 @@ final class FunctionCallDispatcher: @unchecked Sendable {
         self.analyticsService = analyticsService
         self.goalService = goalService
         self.educationService = educationService
-        
+
         // Pre-build dispatch table for O(1) function lookup
         self.functionDispatchTable = [
             "generatePersonalizedWorkoutPlan": { dispatcher, args, user, context in
@@ -323,7 +323,7 @@ final class FunctionCallDispatcher: @unchecked Sendable {
 
         } catch {
             let executionTime = CFAbsoluteTimeGetCurrent() - startTime
-            
+
             // Update metrics
             updateMetrics(for: call.name, executionTime: executionTime, success: false)
 
@@ -366,12 +366,12 @@ final class FunctionCallDispatcher: @unchecked Sendable {
         for user: User,
         context: FunctionContext
     ) async throws -> (message: String, data: [String: Any]) {
-        
+
         // O(1) function dispatch using lookup table
         guard let handler = functionDispatchTable[call.name] else {
             throw FunctionError.unknownFunction(call.name)
         }
-        
+
         return try await handler(self, call.arguments, user, context)
     }
 
@@ -383,13 +383,13 @@ final class FunctionCallDispatcher: @unchecked Sendable {
         context: FunctionContext
     ) async throws -> (message: String, data: [String: Any]) {
 
-        let goalFocus = args["goalFocus"]?.value as? String ?? "general_fitness"
-        let duration = args["durationMinutes"]?.value as? Int ?? 45
-        let intensity = args["intensityPreference"]?.value as? String ?? "moderate"
-        let muscleGroups = args["targetMuscleGroups"]?.value as? [String] ?? ["full_body"]
-        let equipment = args["availableEquipment"]?.value as? [String] ?? ["bodyweight"]
-        let constraints = args["constraints"]?.value as? String
-        let style = args["workoutStyle"]?.value as? String ?? "traditional_sets"
+        let goalFocus = extractString(from: args["goalFocus"]) ?? "general_fitness"
+        let duration = extractInt(from: args["durationMinutes"]) ?? 45
+        let intensity = extractString(from: args["intensityPreference"]) ?? "moderate"
+        let muscleGroups = extractStringArray(from: args["targetMuscleGroups"]) ?? ["full_body"]
+        let equipment = extractStringArray(from: args["availableEquipment"]) ?? ["bodyweight"]
+        let constraints = extractString(from: args["constraints"])
+        let style = extractString(from: args["workoutStyle"]) ?? "traditional_sets"
 
         let plan = try await workoutService.generatePlan(
             for: user,
@@ -406,13 +406,13 @@ final class FunctionCallDispatcher: @unchecked Sendable {
         let muscleGroupsText = muscleGroups.joined(separator: ", ")
         let exerciseCount = plan.exercises.count
         let calories = plan.estimatedCalories
-        
+
         let message = "Created a personalized \(duration)-minute \(goalFocus) workout targeting \(muscleGroupsText). The workout includes \(exerciseCount) exercises and is estimated to burn \(calories) calories."
 
         // Pre-allocate exercise array capacity for better performance
         var exerciseData: [[String: Any]] = []
         exerciseData.reserveCapacity(exerciseCount)
-        
+
         for exercise in plan.exercises {
             exerciseData.append([
                 "name": exercise.name,
@@ -441,11 +441,12 @@ final class FunctionCallDispatcher: @unchecked Sendable {
         context: FunctionContext
     ) async throws -> (message: String, data: [String: Any]) {
 
-        let feedback = args["userFeedback"]?.value as? String ?? ""
-        let adaptationType = args["adaptationType"]?.value as? String ?? "moderate_adjustment"
-        let concern = args["specificConcern"]?.value as? String
-        let urgency = args["urgencyLevel"]?.value as? String ?? "gradual"
-        let maintainGoals = args["maintainGoals"]?.value as? Bool ?? true
+        // Fix the nested AIAnyCodable extraction bug
+        let feedback = extractString(from: args["userFeedback"]) ?? ""
+        let adaptationType = extractString(from: args["adaptationType"]) ?? "moderate_adjustment"
+        let concern = extractString(from: args["specificConcern"])
+        let urgency = extractString(from: args["urgencyLevel"]) ?? "gradual"
+        let maintainGoals = extractBool(from: args["maintainGoals"]) ?? true
 
         // Mock adaptation logic
         let adaptationSummary = generateAdaptationSummary(
@@ -481,11 +482,11 @@ final class FunctionCallDispatcher: @unchecked Sendable {
         context: FunctionContext
     ) async throws -> (message: String, data: [String: Any]) {
 
-        let input = args["naturalLanguageInput"]?.value as? String ?? ""
-        let mealType = args["mealType"]?.value as? String ?? "snack"
-        let timestamp = args["timestamp"]?.value as? String
-        let confidenceThreshold = args["confidenceThreshold"]?.value as? Double ?? 0.7
-        let includeAlternatives = args["includeAlternatives"]?.value as? Bool ?? false
+        let input = extractString(from: args["naturalLanguageInput"]) ?? ""
+        let mealType = extractString(from: args["mealType"]) ?? "snack"
+        let timestamp = extractString(from: args["timestamp"])
+        let confidenceThreshold = extractDouble(from: args["confidenceThreshold"]) ?? 0.7
+        let includeAlternatives = extractBool(from: args["includeAlternatives"]) ?? false
 
         let date = timestamp.flatMap { ISO8601DateFormatter().date(from: $0) } ?? Date()
 
@@ -510,7 +511,7 @@ final class FunctionCallDispatcher: @unchecked Sendable {
         // Pre-allocate items array
         var itemsData: [[String: Any]] = []
         itemsData.reserveCapacity(itemCount)
-        
+
         for item in result.items {
             itemsData.append([
                 "name": item.name,
@@ -546,11 +547,11 @@ final class FunctionCallDispatcher: @unchecked Sendable {
         context: FunctionContext
     ) async throws -> (message: String, data: [String: Any]) {
 
-        let query = args["analysisQuery"]?.value as? String ?? ""
-        let metrics = args["metricsToAnalyze"]?.value as? [String] ?? ["workout_volume", "energy_levels"]
-        let days = args["timePeriodDays"]?.value as? Int ?? 30
-        let depth = args["analysisDepth"]?.value as? String ?? "standard_analysis"
-        let includeRecommendations = args["includeRecommendations"]?.value as? Bool ?? true
+        let query = extractString(from: args["analysisQuery"]) ?? ""
+        let metrics = extractStringArray(from: args["metricsToAnalyze"]) ?? ["workout_volume", "energy_levels"]
+        let days = extractInt(from: args["timePeriodDays"]) ?? 30
+        let depth = extractString(from: args["analysisDepth"]) ?? "standard_analysis"
+        let includeRecommendations = extractBool(from: args["includeRecommendations"]) ?? true
 
         let result = try await analyticsService.analyzePerformance(
             query: query,
@@ -592,13 +593,13 @@ final class FunctionCallDispatcher: @unchecked Sendable {
         context: FunctionContext
     ) async throws -> (message: String, data: [String: Any]) {
 
-        let currentGoal = args["currentGoal"]?.value as? String
-        let aspirations = args["aspirations"]?.value as? String ?? ""
-        let timeframe = args["timeframe"]?.value as? String
-        let fitnessLevel = args["currentFitnessLevel"]?.value as? String
-        let constraints = args["constraints"]?.value as? [String] ?? []
-        let motivations = args["motivationFactors"]?.value as? [String] ?? []
-        let goalType = args["goalType"]?.value as? String
+        let currentGoal = extractString(from: args["currentGoal"])
+        let aspirations = extractString(from: args["aspirations"]) ?? ""
+        let timeframe = extractString(from: args["timeframe"])
+        let fitnessLevel = extractString(from: args["currentFitnessLevel"])
+        let constraints = extractStringArray(from: args["constraints"]) ?? []
+        let motivations = extractStringArray(from: args["motivationFactors"]) ?? []
+        let goalType = extractString(from: args["goalType"])
 
         let result = try await goalService.createOrRefineGoal(
             current: currentGoal,
@@ -642,13 +643,13 @@ final class FunctionCallDispatcher: @unchecked Sendable {
         context: FunctionContext
     ) async throws -> (message: String, data: [String: Any]) {
 
-        let topic = args["topic"]?.value as? String ?? "general_fitness"
-        let userContext = args["userContext"]?.value as? String ?? ""
-        let knowledgeLevel = args["knowledgeLevel"]?.value as? String ?? "intermediate"
-        let contentDepth = args["contentDepth"]?.value as? String ?? "detailed_explanation"
-        let outputFormat = args["outputFormat"]?.value as? String ?? "conversational"
-        let includeActionItems = args["includeActionItems"]?.value as? Bool ?? true
-        let relateToUserData = args["relateToUserData"]?.value as? Bool ?? true
+        let topic = extractString(from: args["topic"]) ?? "general_fitness"
+        let userContext = extractString(from: args["userContext"]) ?? ""
+        let knowledgeLevel = extractString(from: args["knowledgeLevel"]) ?? "intermediate"
+        let contentDepth = extractString(from: args["contentDepth"]) ?? "detailed_explanation"
+        let outputFormat = extractString(from: args["outputFormat"]) ?? "conversational"
+        let includeActionItems = extractBool(from: args["includeActionItems"]) ?? true
+        let relateToUserData = extractBool(from: args["relateToUserData"]) ?? true
 
         let result = try await educationService.generateEducationalContent(
             topic: topic,
@@ -713,12 +714,12 @@ final class FunctionCallDispatcher: @unchecked Sendable {
     private func updateMetrics(for functionName: String, executionTime: TimeInterval, success: Bool) {
         metricsQueue.async(flags: .barrier) { [weak self] in
             guard let self = self else { return }
-            
+
             // Use modify-in-place pattern for better performance
             if self._functionMetrics[functionName] != nil {
                 self._functionMetrics[functionName]!.totalCalls += 1
                 self._functionMetrics[functionName]!.totalExecutionTime += executionTime
-                
+
                 if success {
                     self._functionMetrics[functionName]!.successCount += 1
                 } else {
@@ -729,13 +730,13 @@ final class FunctionCallDispatcher: @unchecked Sendable {
                 var newMetrics = FunctionMetrics()
                 newMetrics.totalCalls = 1
                 newMetrics.totalExecutionTime = executionTime
-                
+
                 if success {
                     newMetrics.successCount = 1
                 } else {
                     newMetrics.errorCount = 1
                 }
-                
+
                 self._functionMetrics[functionName] = newMetrics
             }
         }
@@ -761,6 +762,68 @@ final class FunctionCallDispatcher: @unchecked Sendable {
         default:
             return "I encountered an issue while processing your request. Let me try to help you in a different way."
         }
+    }
+
+    // MARK: - Helper Methods for AIAnyCodable Extraction
+
+    private func extractString(from anyCodable: AIAnyCodable?) -> String? {
+        guard let anyCodable = anyCodable else { return nil }
+        
+        // Handle nested AIAnyCodable
+        if let nestedAnyCodable = anyCodable.value as? AIAnyCodable {
+            return nestedAnyCodable.value as? String
+        }
+        
+        // Handle direct value
+        return anyCodable.value as? String
+    }
+
+    private func extractInt(from anyCodable: AIAnyCodable?) -> Int? {
+        guard let anyCodable = anyCodable else { return nil }
+        
+        // Handle nested AIAnyCodable
+        if let nestedAnyCodable = anyCodable.value as? AIAnyCodable {
+            return nestedAnyCodable.value as? Int
+        }
+        
+        // Handle direct value
+        return anyCodable.value as? Int
+    }
+
+    private func extractDouble(from anyCodable: AIAnyCodable?) -> Double? {
+        guard let anyCodable = anyCodable else { return nil }
+        
+        // Handle nested AIAnyCodable
+        if let nestedAnyCodable = anyCodable.value as? AIAnyCodable {
+            return nestedAnyCodable.value as? Double
+        }
+        
+        // Handle direct value
+        return anyCodable.value as? Double
+    }
+
+    private func extractBool(from anyCodable: AIAnyCodable?) -> Bool? {
+        guard let anyCodable = anyCodable else { return nil }
+        
+        // Handle nested AIAnyCodable
+        if let nestedAnyCodable = anyCodable.value as? AIAnyCodable {
+            return nestedAnyCodable.value as? Bool
+        }
+        
+        // Handle direct value
+        return anyCodable.value as? Bool
+    }
+
+    private func extractStringArray(from anyCodable: AIAnyCodable?) -> [String]? {
+        guard let anyCodable = anyCodable else { return nil }
+        
+        // Handle nested AIAnyCodable
+        if let nestedAnyCodable = anyCodable.value as? AIAnyCodable {
+            return nestedAnyCodable.value as? [String]
+        }
+        
+        // Handle direct value
+        return anyCodable.value as? [String]
     }
 }
 

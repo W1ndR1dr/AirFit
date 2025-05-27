@@ -6,14 +6,14 @@ import Foundation
 final class ConversationManager {
     // MARK: - Properties
     private let modelContext: ModelContext
-    
+
     // MARK: - Initialization
     init(modelContext: ModelContext) {
         self.modelContext = modelContext
     }
-    
+
     // MARK: - Message Creation
-    
+
     /// Saves a user message to the conversation
     func saveUserMessage(
         _ content: String,
@@ -26,17 +26,17 @@ final class ConversationManager {
             conversationID: conversationId,
             user: user
         )
-        
+
         modelContext.insert(message)
         try modelContext.save()
-        
+
         AppLogger.info(
             "Saved user message for conversation \(conversationId)",
             category: .ai
         )
         return message
     }
-    
+
     /// Creates an assistant message with optional function call metadata
     func createAssistantMessage(
         _ content: String,
@@ -52,7 +52,7 @@ final class ConversationManager {
             conversationID: conversationId,
             user: user
         )
-        
+
         // Store function call metadata if provided
         if let call = functionCall {
             do {
@@ -61,27 +61,27 @@ final class ConversationManager {
                 AppLogger.error("Failed to encode function call", error: error, category: .ai)
             }
         }
-        
+
         // Mark as local command if applicable
         if isLocalCommand {
             message.modelUsed = "local_command"
         }
-        
+
         // Mark as error if applicable
         if isError {
             message.wasHelpful = false
         }
-        
+
         modelContext.insert(message)
         try modelContext.save()
-        
+
         AppLogger.info(
             "Created assistant message for conversation \(conversationId)",
             category: .ai
         )
         return message
     }
-    
+
     /// Records AI metadata for a message
     func recordAIMetadata(
         for message: CoachMessage,
@@ -97,13 +97,13 @@ final class ConversationManager {
             temperature: temperature,
             responseTime: responseTime
         )
-        
+
         try modelContext.save()
         AppLogger.debug("Recorded AI metadata for message \(message.id)", category: .ai)
     }
-    
+
     // MARK: - Message Retrieval
-    
+
     /// Retrieves recent messages for AI service compatibility
     func getRecentMessages(
         for user: User,
@@ -113,23 +113,23 @@ final class ConversationManager {
         // Fetch all messages for the user first, then filter in memory
         var descriptor = FetchDescriptor<CoachMessage>()
         descriptor.sortBy = [SortDescriptor(\.timestamp, order: .reverse)]
-        
+
         let allMessages = try modelContext.fetch(descriptor)
-        
+
         // Filter for the specific user and conversation
         let filteredMessages = allMessages
             .filter { message in
                 message.user?.id == user.id && message.conversationID == conversationId
             }
             .prefix(limit)
-        
+
         // Convert to AIChatMessage for AI service compatibility
         let aiMessages = Array(filteredMessages.reversed()).compactMap { message -> AIChatMessage? in
             guard let role = AIMessageRole(rawValue: message.role) else {
                 AppLogger.warning("Invalid message role: \(message.role)", category: .ai)
                 return nil
             }
-            
+
             return AIChatMessage(
                 id: message.id,
                 role: role,
@@ -141,14 +141,14 @@ final class ConversationManager {
                 timestamp: message.timestamp
             )
         }
-        
+
         AppLogger.debug(
             "Retrieved \(aiMessages.count) messages for conversation \(conversationId)",
             category: .ai
         )
         return aiMessages
     }
-    
+
     /// Gets conversation statistics
     func getConversationStats(
         for user: User,
@@ -156,17 +156,17 @@ final class ConversationManager {
     ) async throws -> ConversationStats {
         let descriptor = FetchDescriptor<CoachMessage>()
         let allMessages = try modelContext.fetch(descriptor)
-        
+
         // Filter for the specific user and conversation
         let messages = allMessages.filter { message in
             message.user?.id == user.id && message.conversationID == conversationId
         }
-        
+
         let userMessages = messages.filter { $0.role == MessageRole.user.rawValue }
         let assistantMessages = messages.filter { $0.role == MessageRole.assistant.rawValue }
         let totalTokens = messages.compactMap { $0.totalTokens }.reduce(0, +)
         let totalCost = messages.compactMap { $0.estimatedCost }.reduce(0, +)
-        
+
         return ConversationStats(
             totalMessages: messages.count,
             userMessages: userMessages.count,
@@ -177,9 +177,9 @@ final class ConversationManager {
             lastMessageDate: messages.max { $0.timestamp < $1.timestamp }?.timestamp
         )
     }
-    
+
     // MARK: - Conversation Management
-    
+
     /// Prunes old conversations to prevent memory bloat
     func pruneOldConversations(
         for user: User,
@@ -188,16 +188,16 @@ final class ConversationManager {
         // Get all messages for the user
         var descriptor = FetchDescriptor<CoachMessage>()
         descriptor.sortBy = [SortDescriptor(\.timestamp, order: .reverse)]
-        
+
         let allMessages = try modelContext.fetch(descriptor)
-        
+
         // Filter for the specific user with non-nil conversation IDs
         let userMessages = allMessages.filter { message in
             message.user?.id == user.id && message.conversationID != nil
         }
-        
+
         let conversationIds = Array(Set(userMessages.compactMap { $0.conversationID }))
-        
+
         // Group messages by conversation and find the most recent message in each
         let conversationDates = conversationIds.compactMap { conversationId -> (UUID, Date)? in
             let conversationMessages = userMessages.filter { $0.conversationID == conversationId }
@@ -206,34 +206,34 @@ final class ConversationManager {
             }
             return (conversationId, latestMessage.timestamp)
         }
-        
+
         // Sort by date and keep only the most recent conversations
         let sortedConversations = conversationDates.sorted { $0.1 > $1.1 }
         let conversationsToDelete = sortedConversations.dropFirst(keepLast).map { $0.0 }
-        
+
         if conversationsToDelete.isEmpty {
             AppLogger.info("No conversations to prune for user \(user.id)", category: .ai)
             return
         }
-        
+
         // Delete messages from old conversations
         let messagesToDelete = userMessages.filter { message in
             guard let conversationId = message.conversationID else { return false }
             return conversationsToDelete.contains(conversationId)
         }
-        
+
         for message in messagesToDelete {
             modelContext.delete(message)
         }
-        
+
         try modelContext.save()
-        
+
         AppLogger.info(
             "Pruned \(conversationsToDelete.count) old conversations (\(messagesToDelete.count) messages) for user \(user.id)",
             category: .ai
         )
     }
-    
+
     /// Deletes a specific conversation
     func deleteConversation(
         for user: User,
@@ -241,33 +241,33 @@ final class ConversationManager {
     ) async throws {
         let descriptor = FetchDescriptor<CoachMessage>()
         let allMessages = try modelContext.fetch(descriptor)
-        
+
         // Filter for the specific user and conversation
         let messages = allMessages.filter { message in
             message.user?.id == user.id && message.conversationID == conversationId
         }
-        
+
         for message in messages {
             modelContext.delete(message)
         }
-        
+
         try modelContext.save()
-        
+
         AppLogger.info("Deleted conversation \(conversationId) for user \(user.id)", category: .ai)
     }
-    
+
     /// Gets all conversation IDs for a user
     func getConversationIds(for user: User) async throws -> [UUID] {
         let descriptor = FetchDescriptor<CoachMessage>()
         let allMessages = try modelContext.fetch(descriptor)
-        
+
         // Filter for the specific user with non-nil conversation IDs
         let messages = allMessages.filter { message in
             message.user?.id == user.id && message.conversationID != nil
         }
-        
+
         let conversationIds = Set(messages.compactMap { $0.conversationID })
-        
+
         return Array(conversationIds).sorted { id1, id2 in
             // Sort by most recent message in each conversation
             let date1 = messages.filter { $0.conversationID == id1 }.max { $0.timestamp < $1.timestamp }?.timestamp ?? Date.distantPast
@@ -275,41 +275,41 @@ final class ConversationManager {
             return date1 > date2
         }
     }
-    
+
     /// Archives old messages while keeping conversation metadata
     func archiveOldMessages(
         for user: User,
         olderThan days: Int = 30
     ) async throws {
         let cutoffDate = Calendar.current.date(byAdding: .day, value: -days, to: Date()) ?? Date()
-        
+
         let descriptor = FetchDescriptor<CoachMessage>()
         let allMessages = try modelContext.fetch(descriptor)
-        
+
         // Filter for the specific user and old messages
         let oldMessages = allMessages.filter { message in
             message.user?.id == user.id && message.timestamp < cutoffDate
         }
-        
+
         // Keep only the last message from each conversation for context
         let conversationIds = Set(oldMessages.compactMap { $0.conversationID })
         var messagesToKeep: Set<UUID> = []
-        
+
         for conversationId in conversationIds {
             let conversationMessages = oldMessages.filter { $0.conversationID == conversationId }
             if let lastMessage = conversationMessages.max(by: { $0.timestamp < $1.timestamp }) {
                 messagesToKeep.insert(lastMessage.id)
             }
         }
-        
+
         let messagesToDelete = oldMessages.filter { !messagesToKeep.contains($0.id) }
-        
+
         for message in messagesToDelete {
             modelContext.delete(message)
         }
-        
+
         try modelContext.save()
-        
+
         AppLogger.info(
             "Archived \(messagesToDelete.count) old messages for user \(user.id)",
             category: .ai
@@ -327,11 +327,11 @@ struct ConversationStats: Sendable {
     let estimatedCost: Double
     let firstMessageDate: Date?
     let lastMessageDate: Date?
-    
+
     var averageTokensPerMessage: Double {
         totalMessages > 0 ? Double(totalTokens) / Double(totalMessages) : 0
     }
-    
+
     var costPerMessage: Double {
         totalMessages > 0 ? estimatedCost / Double(totalMessages) : 0
     }
@@ -345,7 +345,7 @@ enum ConversationManagerError: LocalizedError {
     case invalidMessageRole
     case encodingFailed
     case saveFailed(Error)
-    
+
     var errorDescription: String? {
         switch self {
         case .userNotFound:
@@ -360,4 +360,4 @@ enum ConversationManagerError: LocalizedError {
             return "Failed to save message: \(error.localizedDescription)"
         }
     }
-} 
+}

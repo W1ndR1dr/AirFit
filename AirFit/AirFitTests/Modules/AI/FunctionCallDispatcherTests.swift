@@ -64,7 +64,7 @@ final class FunctionCallDispatcherTests: XCTestCase {
         XCTAssertFalse(result.message.isEmpty)
         XCTAssertNotNil(result.data)
         XCTAssertEqual(result.functionName, "generatePersonalizedWorkoutPlan")
-        XCTAssertLessThan(result.executionTimeMs, 1000) // Should complete under 1 second
+        XCTAssertLessThan(result.executionTimeMs, 1_000) // Should complete under 1 second
 
         // Verify data structure
         guard let data = result.data else {
@@ -109,7 +109,7 @@ final class FunctionCallDispatcherTests: XCTestCase {
         } else {
             XCTFail("Expected adaptationType to be a string")
         }
-        
+
         if case .string(let urgencyLevel) = data["urgencyLevel"] {
             XCTAssertEqual(urgencyLevel, "immediate")
         } else {
@@ -307,7 +307,7 @@ final class FunctionCallDispatcherTests: XCTestCase {
 
             XCTAssertTrue(result.success, "Function \(functionCall.name) should succeed")
             XCTAssertLessThan(executionTime, 1.0, "Function \(functionCall.name) should complete under 1 second")
-            XCTAssertLessThan(result.executionTimeMs, 1000, "Reported execution time should be under 1000ms")
+            XCTAssertLessThan(result.executionTimeMs, 1_000, "Reported execution time should be under 1000ms")
         }
     }
 
@@ -336,4 +336,4 @@ final class FunctionCallDispatcherTests: XCTestCase {
         XCTAssertEqual(functionMetrics["successRate"] as? Double, 1.0)
         XCTAssertEqual(functionMetrics["errorCount"] as? Int, 0)
     }
-} 
+}

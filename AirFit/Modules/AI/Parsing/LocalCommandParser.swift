@@ -22,7 +22,7 @@ enum LocalCommand: Equatable {
             switch self {
             case .ounces: return 29.5735
             case .milliliters: return 1.0
-            case .liters: return 1000.0
+            case .liters: return 1_000.0
             case .cups: return 236.588
             }
         }
@@ -105,22 +105,22 @@ final class LocalCommandParser {
     // MARK: - Private Methods
     private func parseWaterCommand(_ input: String) -> LocalCommand? {
         // Check if input contains "water" or water-related terms
-        guard input.contains("water") || input.contains("h2o") || 
+        guard input.contains("water") || input.contains("h2o") ||
               (input.contains("log") && (input.contains("oz") || input.contains("ml") || input.contains("liter"))) else {
             return nil
         }
-        
+
         // Extract amount using simple pattern matching
         let components = input.components(separatedBy: .whitespacesAndNewlines)
         var amount: Double = 8.0 // Default
         var unit: LocalCommand.WaterUnit = .ounces // Default
-        
+
         // Look for numeric values followed by units
         for i in 0..<components.count {
             let component = components[i]
             if let value = Double(component.replacingOccurrences(of: "[^0-9.]", with: "", options: .regularExpression)) {
                 amount = value
-                
+
                 // Check if next component or current component has unit
                 let unitText = component + (i + 1 < components.count ? components[i + 1] : "")
                 if unitText.contains("ml") || unitText.contains("milliliter") {

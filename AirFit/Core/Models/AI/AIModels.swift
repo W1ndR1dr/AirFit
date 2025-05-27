@@ -57,7 +57,7 @@ struct AIFunctionParameters: Codable, Sendable {
     let type: String
     let properties: [String: AIParameterDefinition]
     let required: [String]
-    
+
     init(properties: [String: AIParameterDefinition], required: [String] = []) {
         self.type = "object"
         self.properties = properties
@@ -78,9 +78,9 @@ struct AIParameterDefinition: Codable, Sendable {
         case enumValues = "enum"
         case minimum, maximum, items
     }
-    
+
     // MARK: - Convenience Initializers
-    
+
     /// String parameter with enum values
     init(type: String, description: String, enumValues: [String]) {
         self.type = type
@@ -90,7 +90,7 @@ struct AIParameterDefinition: Codable, Sendable {
         self.maximum = nil
         self.items = nil
     }
-    
+
     /// Numeric parameter with min/max constraints
     init(type: String, description: String, minimum: Double? = nil, maximum: Double? = nil) {
         self.type = type
@@ -100,7 +100,7 @@ struct AIParameterDefinition: Codable, Sendable {
         self.maximum = maximum
         self.items = nil
     }
-    
+
     /// Array parameter with item definition
     init(type: String, description: String, items: AIBox<AIParameterDefinition>) {
         self.type = type
@@ -110,7 +110,7 @@ struct AIParameterDefinition: Codable, Sendable {
         self.maximum = nil
         self.items = items
     }
-    
+
     /// Simple parameter (string, boolean, etc.)
     init(type: String, description: String) {
         self.type = type
@@ -142,7 +142,7 @@ final class AIBox<T: Codable>: Codable, @unchecked Sendable {
 // MARK: - AI Request/Response
 
 struct AIRequest: Sendable {
-    let id: UUID = UUID()
+    let id = UUID()
     let systemPrompt: String
     let messages: [AIChatMessage]
     let functions: [AIFunctionDefinition]?

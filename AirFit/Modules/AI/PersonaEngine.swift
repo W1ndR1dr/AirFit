@@ -9,7 +9,7 @@ typealias PersonaProfile = UserProfileJsonBlob
 final class PersonaEngine {
     // MARK: - Properties
     private let systemPromptTemplate: String
-    
+
     // MARK: - Initialization
     init() {
         self.systemPromptTemplate = Self.buildSystemPromptTemplate()
@@ -94,7 +94,7 @@ final class PersonaEngine {
         // Prepare JSON representations
         let userProfileJSON = try JSONEncoder.airFitEncoder.encodeToString(userProfile)
         let healthContextJSON = try JSONEncoder.airFitEncoder.encodeToString(healthContext)
-        
+
         // Convert ChatMessage to simplified format for context
         let simplifiedHistory = conversationHistory.suffix(20).map { message in
             [
@@ -105,12 +105,12 @@ final class PersonaEngine {
         }
         let conversationJSON = try JSONEncoder.airFitEncoder.encodeToString(simplifiedHistory)
         let functionsJSON = try JSONEncoder.airFitEncoder.encodeToString(availableFunctions)
-        
+
         // Get current time info
         let now = Date()
         let formatter = ISO8601DateFormatter()
         let utcString = formatter.string(from: now)
-        
+
         // Build the prompt
         let prompt = systemPromptTemplate
             .replacingOccurrences(of: "{{USER_PROFILE_JSON}}", with: userProfileJSON)
@@ -119,18 +119,18 @@ final class PersonaEngine {
             .replacingOccurrences(of: "{{CURRENT_DATETIME_UTC}}", with: utcString)
             .replacingOccurrences(of: "{{USER_TIMEZONE}}", with: userProfile.timezone)
             .replacingOccurrences(of: "{{AVAILABLE_FUNCTIONS_JSON}}", with: functionsJSON)
-        
+
         // Validate prompt length
         let estimatedTokens = prompt.count / 4 // Rough estimate: 4 chars per token
         if estimatedTokens > 8_000 {
             AppLogger.warning("System prompt may be too long: ~\(estimatedTokens) tokens", category: .ai)
             throw PersonaEngineError.promptTooLong(estimatedTokens)
         }
-        
+
         AppLogger.info("Built system prompt with ~\(estimatedTokens) tokens", category: .ai)
         return prompt
     }
-    
+
     func adjustPersonaForContext(
         baseProfile: PersonaProfile,
         healthContext: HealthContextSnapshot
@@ -334,7 +334,7 @@ enum PersonaEngineError: LocalizedError {
     case promptTooLong(Int)
     case invalidProfile
     case encodingFailed
-    
+
     var errorDescription: String? {
         switch self {
         case .promptTooLong(let tokens):
@@ -356,7 +356,7 @@ extension JSONEncoder {
         encoder.outputFormatting = [.prettyPrinted, .sortedKeys]
         return encoder
     }()
-    
+
     func encodeToString<T: Encodable>(_ value: T) throws -> String {
         let data = try encode(value)
         guard let string = String(data: data, encoding: .utf8) else {
