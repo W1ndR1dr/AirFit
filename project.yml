@@ -75,6 +75,7 @@ targets:
       - AirFit/Core/Enums/GlobalEnums.swift
       - AirFit/Core/Enums/AppError.swift
       - AirFit/Core/Models/HealthContextSnapshot.swift
+      - AirFit/Core/Models/AI/AIModels.swift
       - AirFit/Core/Extensions/String+Extensions.swift
       - AirFit/Core/Extensions/View+Extensions.swift
       - AirFit/Core/Extensions/Color+Extensions.swift
