@@ -195,20 +195,20 @@ final class OnboardingCoordinator: ObservableObject {
 - Feature branches from main
 
 ## Module Order
-1. Module 1: Core Setup
-2. Module 2: Data Layer
-3. Module 0: Testing Foundation (guidelines, mocks, test patterns)
-4. Module 12: Testing & QA Framework (test targets, CI/CD setup)
-5. Module 3: Onboarding
-6. Module 4: Dashboard
-7. Module 5: Meal Logging
-8. Module 6: Progress Tracking
-9. Module 7: Settings
-10. Module 8: Meal Discovery
-11. Module 9: AI Coach
-12. Module 10: Health Integration
-13. Module 11: Notifications
-14. Module 13: Chat Interface (AI Coach Interaction)
+1. Module 0: Testing Foundation (guidelines, mocks, test patterns)
+2. Module 1: Core Setup
+3. Module 2: Data Layer
+4. Module 3: Onboarding
+5. Module 4: HealthKit & Context Aggregation Module
+6. Module 5: AI Persona Engine & CoachEngine
+7. Module 6: Dashboard Module (UI & Logic)
+8. Module 7: Workout Logging Module (iOS & WatchOS)
+9. Module 8: Food Tracking Module (Voice-First AI-Powered Nutrition)
+10. Module 9: Notifications & Engagement Engine
+11. Module 10: Services Layer (API Clients, Multi-Provider AI Support)
+12. Module 11: Settings Module (UI & Logic)
+13. Module 12: Testing & Quality Assurance Framework
+14. Module 13: Chat Interface Module (AI Coach Interaction)
 
 ## Performance Targets
 - App launch: < 1.5s
