@@ -121,6 +121,8 @@ targets:
       - AirFit/Modules/Dashboard/Views/DashboardView.swift
       - AirFit/Modules/Dashboard/Views/Cards/MorningGreetingCard.swift
       - AirFit/Modules/Dashboard/Views/Cards/NutritionCard.swift
+      - AirFit/Modules/Dashboard/Views/Cards/RecoveryCard.swift
+      - AirFit/Modules/Dashboard/Views/Cards/PerformanceCard.swift
       - AirFit/Services/Health/HealthKitManager.swift
       - AirFit/Services/Health/HealthKitManagerProtocol.swift
       - AirFit/Services/Health/HealthKitDataFetcher.swift
