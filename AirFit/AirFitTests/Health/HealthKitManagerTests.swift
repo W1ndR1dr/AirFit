@@ -9,12 +9,14 @@ import XCTest
 /// allow dependency injection of `HKHealthStore`.
 final class HealthKitManagerTests: XCTestCase {
 
+    @MainActor
     func test_sharedInstance_exists() {
         // The shared singleton should be accessible.
         let manager = HealthKitManager.shared
         XCTAssertNotNil(manager)
     }
 
+    @MainActor
     func test_authorizationStatus_default_isNotDetermined() {
         let manager = HealthKitManager.shared
         // Expect default status to be `.notDetermined` on first launch.

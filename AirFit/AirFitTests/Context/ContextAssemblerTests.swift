@@ -2,29 +2,29 @@ import XCTest
 import SwiftData
 @testable import AirFit
 
-@MainActor
 final class ContextAssemblerTests: XCTestCase {
     var modelContainer: ModelContainer!
     var context: ModelContext!
     var mockHealthKit: MockHealthKitManager!
     var sut: ContextAssembler!
 
+    @MainActor
     override func setUp() async throws {
-        try await super.setUp()
         modelContainer = try ModelContainer.createTestContainer()
         context = modelContainer.mainContext
         mockHealthKit = MockHealthKitManager()
         sut = ContextAssembler(healthKitManager: mockHealthKit)
     }
 
+    @MainActor
     override func tearDown() async throws {
         sut = nil
         mockHealthKit = nil
         context = nil
         modelContainer = nil
-        try await super.tearDown()
     }
 
+    @MainActor
     func test_assembleSnapshot_withCompleteData_populatesSnapshot() async throws {
         // Arrange - mock HealthKit data
         mockHealthKit.activityResult = .success(
@@ -99,6 +99,7 @@ final class ContextAssemblerTests: XCTestCase {
         XCTAssertEqual(snapshot.appContext.lastMealSummary, "Breakfast, 1 item")
     }
 
+    @MainActor
     func test_assembleSnapshot_whenHealthKitThrows_returnsDefaultMetrics() async {
         // Arrange - make HealthKit throw
         mockHealthKit.activityResult = .failure(TestError.test)
@@ -116,6 +117,7 @@ final class ContextAssemblerTests: XCTestCase {
         XCTAssertNil(snapshot.sleep.lastNight)
     }
 
+    @MainActor
     func test_performance_assembleSnapshot_largeDataSet() async throws {
         for day in 0..<50 {
             let log = DailyLog(date: Calendar.current.date(byAdding: .day, value: -day, to: Date())!)
