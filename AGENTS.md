@@ -22,7 +22,7 @@ When external information is needed:
 - Swift 6.0+ with strict concurrency
 - SwiftLint 0.54.0+ 
 - macOS 15.0+ (Sequoia)
-- iPhone 16 Pro Simulator or physical device with iOS 18.0+
+- iPhone 16 Pro Simulator with iOS 18.4 (REQUIRED for builds/tests)
 
 ## Environment Setup Script
 run: |
@@ -46,53 +46,54 @@ run: |
   xcodebuild -showsdks | grep -E "iOS 18" || echo "ERROR: iOS 18 SDK not found"
 
 ## Build Commands
+**IMPORTANT**: Always use iOS 18.4 simulator for builds and tests
 ```bash
 swiftlint --strict
-xcodebuild -scheme "AirFit" -destination 'platform=iOS Simulator,name=iPhone 16 Pro,OS=18.0' clean build
-xcodebuild -scheme "AirFit" -destination 'platform=iOS Simulator,name=iPhone 16 Pro,OS=18.0' test
+xcodebuild -scheme "AirFit" -destination 'platform=iOS Simulator,name=iPhone 16 Pro,OS=18.4' clean build
+xcodebuild -scheme "AirFit" -destination 'platform=iOS Simulator,name=iPhone 16 Pro,OS=18.4' test
 ```
 
 ## Test Commands
 ```bash
 # Module 0 - Testing Foundation
-xcodebuild test -scheme "AirFit" -destination 'platform=iOS Simulator,name=iPhone 16 Pro' -only-testing:AirFitTests/TestingFoundationTests
+xcodebuild test -scheme "AirFit" -destination 'platform=iOS Simulator,name=iPhone 16 Pro,OS=18.4' -only-testing:AirFitTests/TestingFoundationTests
 
 # Module 1 - Core Setup
-xcodebuild test -scheme "AirFit" -destination 'platform=iOS Simulator,name=iPhone 16 Pro' -only-testing:AirFitTests/CoreSetupTests
+xcodebuild test -scheme "AirFit" -destination 'platform=iOS Simulator,name=iPhone 16 Pro,OS=18.4' -only-testing:AirFitTests/CoreSetupTests
 
 # Module 2 - Data Layer
-xcodebuild test -scheme "AirFit" -destination 'platform=iOS Simulator,name=iPhone 16 Pro' -only-testing:AirFitTests/DataLayerTests
+xcodebuild test -scheme "AirFit" -destination 'platform=iOS Simulator,name=iPhone 16 Pro,OS=18.4' -only-testing:AirFitTests/DataLayerTests
 
 # Module 3 - Onboarding
-xcodebuild test -scheme "AirFit" -destination 'platform=iOS Simulator,name=iPhone 16 Pro' -only-testing:AirFitTests/OnboardingViewModelTests
-xcodebuild test -scheme "AirFit" -destination 'platform=iOS Simulator,name=iPhone 16 Pro' -only-testing:AirFitUITests/OnboardingFlowUITests
+xcodebuild test -scheme "AirFit" -destination 'platform=iOS Simulator,name=iPhone 16 Pro,OS=18.4' -only-testing:AirFitTests/OnboardingViewModelTests
+xcodebuild test -scheme "AirFit" -destination 'platform=iOS Simulator,name=iPhone 16 Pro,OS=18.4' -only-testing:AirFitUITests/OnboardingFlowUITests
 
 # Module 4 - Dashboard
-xcodebuild test -scheme "AirFit" -destination 'platform=iOS Simulator,name=iPhone 16 Pro' -only-testing:AirFitTests/DashboardTests
+xcodebuild test -scheme "AirFit" -destination 'platform=iOS Simulator,name=iPhone 16 Pro,OS=18.4' -only-testing:AirFitTests/DashboardTests
 
 # Module 5 - Meal Logging
-xcodebuild test -scheme "AirFit" -destination 'platform=iOS Simulator,name=iPhone 16 Pro' -only-testing:AirFitTests/MealLoggingTests
+xcodebuild test -scheme "AirFit" -destination 'platform=iOS Simulator,name=iPhone 16 Pro,OS=18.4' -only-testing:AirFitTests/MealLoggingTests
 
 # Module 6 - Progress Tracking
-xcodebuild test -scheme "AirFit" -destination 'platform=iOS Simulator,name=iPhone 16 Pro' -only-testing:AirFitTests/ProgressTrackingTests
+xcodebuild test -scheme "AirFit" -destination 'platform=iOS Simulator,name=iPhone 16 Pro,OS=18.4' -only-testing:AirFitTests/ProgressTrackingTests
 
 # Module 7 - Settings
-xcodebuild test -scheme "AirFit" -destination 'platform=iOS Simulator,name=iPhone 16 Pro' -only-testing:AirFitTests/SettingsTests
+xcodebuild test -scheme "AirFit" -destination 'platform=iOS Simulator,name=iPhone 16 Pro,OS=18.4' -only-testing:AirFitTests/SettingsTests
 
 # Module 8 - Meal Discovery
-xcodebuild test -scheme "AirFit" -destination 'platform=iOS Simulator,name=iPhone 16 Pro' -only-testing:AirFitTests/MealDiscoveryTests
+xcodebuild test -scheme "AirFit" -destination 'platform=iOS Simulator,name=iPhone 16 Pro,OS=18.4' -only-testing:AirFitTests/MealDiscoveryTests
 
 # Module 9 - AI Coach
-xcodebuild test -scheme "AirFit" -destination 'platform=iOS Simulator,name=iPhone 16 Pro' -only-testing:AirFitTests/AICoachTests
+xcodebuild test -scheme "AirFit" -destination 'platform=iOS Simulator,name=iPhone 16 Pro,OS=18.4' -only-testing:AirFitTests/AICoachTests
 
 # Module 10 - Health Integration
-xcodebuild test -scheme "AirFit" -destination 'platform=iOS Simulator,name=iPhone 16 Pro' -only-testing:AirFitTests/HealthIntegrationTests
+xcodebuild test -scheme "AirFit" -destination 'platform=iOS Simulator,name=iPhone 16 Pro,OS=18.4' -only-testing:AirFitTests/HealthIntegrationTests
 
 # Module 11 - Notifications
-xcodebuild test -scheme "AirFit" -destination 'platform=iOS Simulator,name=iPhone 16 Pro' -only-testing:AirFitTests/NotificationTests
+xcodebuild test -scheme "AirFit" -destination 'platform=iOS Simulator,name=iPhone 16 Pro,OS=18.4' -only-testing:AirFitTests/NotificationTests
 
 # Module 12 - Integration
-xcodebuild test -scheme "AirFit" -destination 'platform=iOS Simulator,name=iPhone 16 Pro' -only-testing:AirFitUITests/IntegrationTests
+xcodebuild test -scheme "AirFit" -destination 'platform=iOS Simulator,name=iPhone 16 Pro,OS=18.4' -only-testing:AirFitUITests/IntegrationTests
 ```
 
 ## Project Structure
