@@ -2,7 +2,7 @@ import Foundation
 import HealthKit
 
 /// Snapshot of the user's health context for a specific day.
-struct HealthContextSnapshot: Sendable {
+struct HealthContextSnapshot: Sendable, Codable {
     // MARK: - Metadata
     let id: UUID
     let timestamp: Date
@@ -60,7 +60,7 @@ struct HealthContextSnapshot: Sendable {
 }
 
 // MARK: - Component Structures
-struct SubjectiveData: Sendable {
+struct SubjectiveData: Sendable, Codable {
     var energyLevel: Int?      // 1-5
     var mood: Int?             // 1-5
     var stress: Int?           // 1-5
@@ -69,14 +69,14 @@ struct SubjectiveData: Sendable {
     var notes: String?
 }
 
-struct EnvironmentContext: Sendable {
+struct EnvironmentContext: Sendable, Codable {
     var weatherCondition: String?
     var temperature: Measurement<UnitTemperature>?
     var humidity: Double?           // percentage 0-100
     var airQualityIndex: Int?
     var timeOfDay: TimeOfDay = .init()
 
-    enum TimeOfDay: String, Sendable {
+    enum TimeOfDay: String, Sendable, Codable {
         case earlyMorning = "early_morning" // 5-8am
         case morning      = "morning"       // 8-12pm
         case afternoon    = "afternoon"     // 12-5pm
@@ -96,7 +96,7 @@ struct EnvironmentContext: Sendable {
     }
 }
 
-struct ActivityMetrics: Sendable {
+struct ActivityMetrics: Sendable, Codable {
     // Daily totals
     var activeEnergyBurned: Measurement<UnitEnergy>?
     var basalEnergyBurned: Measurement<UnitEnergy>?
@@ -110,19 +110,30 @@ struct ActivityMetrics: Sendable {
     // Current activity
     var currentHeartRate: Int?
     var isWorkoutActive = false
-    var workoutType: HKWorkoutActivityType?
+    var workoutTypeRawValue: UInt?  // Store HKWorkoutActivityType as raw value
 
     // Ring progress (0-1)
     var moveProgress: Double?
     var exerciseProgress: Double?
     var standProgress: Double?
+    
+    // Computed property for HKWorkoutActivityType
+    var workoutType: HKWorkoutActivityType? {
+        get {
+            guard let rawValue = workoutTypeRawValue else { return nil }
+            return HKWorkoutActivityType(rawValue: rawValue)
+        }
+        set {
+            workoutTypeRawValue = newValue?.rawValue
+        }
+    }
 }
 
-struct SleepAnalysis: Sendable {
+struct SleepAnalysis: Sendable, Codable {
     var lastNight: SleepSession?
     var weeklyAverage: SleepAverages?
 
-    struct SleepSession: Sendable {
+    struct SleepSession: Sendable, Codable {
         let bedtime: Date?
         let wakeTime: Date?
         let totalSleepTime: TimeInterval?
@@ -146,7 +157,7 @@ struct SleepAnalysis: Sendable {
         }
     }
 
-    struct SleepAverages: Sendable {
+    struct SleepAverages: Sendable, Codable {
         let averageBedtime: Date?
         let averageWakeTime: Date?
         let averageDuration: TimeInterval?
@@ -154,7 +165,7 @@ struct SleepAnalysis: Sendable {
         let consistency: Double?    // 0-100
     }
 
-    enum SleepQuality: String, Sendable {
+    enum SleepQuality: String, Sendable, Codable {
         case excellent
         case good
         case fair
@@ -162,7 +173,7 @@ struct SleepAnalysis: Sendable {
     }
 }
 
-struct HeartHealthMetrics: Sendable {
+struct HeartHealthMetrics: Sendable, Codable {
     // Resting metrics
     var restingHeartRate: Int?
     var hrv: Measurement<UnitDuration>?      // milliseconds
@@ -176,7 +187,7 @@ struct HeartHealthMetrics: Sendable {
     var recoveryHeartRate: Int?              // 1 min post-workout
     var heartRateRecovery: Int?              // drop from peak
 
-    enum CardioFitnessLevel: String, Sendable {
+    enum CardioFitnessLevel: String, Sendable, Codable {
         case low
         case belowAverage
         case average
@@ -185,7 +196,7 @@ struct HeartHealthMetrics: Sendable {
     }
 }
 
-struct BodyMetrics: Sendable {
+struct BodyMetrics: Sendable, Codable {
     var weight: Measurement<UnitMass>?
     var bodyFatPercentage: Double?
     var leanBodyMass: Measurement<UnitMass>?
@@ -200,7 +211,7 @@ struct BodyMetrics: Sendable {
     var weightTrend: Trend?
     var bodyFatTrend: Trend?
 
-    enum BMICategory: String, Sendable {
+    enum BMICategory: String, Sendable, Codable {
         case underweight
         case normal
         case overweight
@@ -217,14 +228,14 @@ struct BodyMetrics: Sendable {
         }
     }
 
-    enum Trend: String, Sendable {
+    enum Trend: String, Sendable, Codable {
         case increasing
         case stable
         case decreasing
     }
 }
 
-struct AppSpecificContext: Sendable {
+struct AppSpecificContext: Sendable, Codable {
     var activeWorkoutName: String?
     var lastMealTime: Date?
     var lastMealSummary: String?
@@ -232,22 +243,119 @@ struct AppSpecificContext: Sendable {
     var lastCoachInteraction: Date?
     var upcomingWorkout: String?
     var currentStreak: Int?
+    var workoutContext: WorkoutContext?
 }
 
-struct HealthTrends: Sendable {
+// MARK: - Enhanced Workout Context Types
+
+/// Comprehensive workout context optimized for AI coaching with token efficiency
+struct WorkoutContext: Sendable, Codable {
+    var recentWorkouts: [CompactWorkout] = []
+    var activeWorkout: CompactWorkout?
+    var upcomingWorkout: CompactWorkout?
+    var plannedWorkouts: [CompactWorkout] = []
+    var streakDays: Int = 0
+    var weeklyVolume: Double = 0
+    var muscleGroupBalance: [String: Int] = [:]
+    var intensityTrend: IntensityTrend = .stable
+    var recoveryStatus: RecoveryStatus = .unknown
+    
+    init(
+        recentWorkouts: [CompactWorkout] = [],
+        activeWorkout: CompactWorkout? = nil,
+        upcomingWorkout: CompactWorkout? = nil,
+        plannedWorkouts: [CompactWorkout] = [],
+        streakDays: Int = 0,
+        weeklyVolume: Double = 0,
+        muscleGroupBalance: [String: Int] = [:],
+        intensityTrend: IntensityTrend = .stable,
+        recoveryStatus: RecoveryStatus = .unknown
+    ) {
+        self.recentWorkouts = recentWorkouts
+        self.activeWorkout = activeWorkout
+        self.upcomingWorkout = upcomingWorkout
+        self.plannedWorkouts = plannedWorkouts
+        self.streakDays = streakDays
+        self.weeklyVolume = weeklyVolume
+        self.muscleGroupBalance = muscleGroupBalance
+        self.intensityTrend = intensityTrend
+        self.recoveryStatus = recoveryStatus
+    }
+}
+
+/// Compressed workout representation for efficient API context
+struct CompactWorkout: Sendable, Codable {
+    let name: String
+    let type: String
+    let date: Date
+    let duration: TimeInterval?
+    let exerciseCount: Int
+    let totalVolume: Double // weight × reps total
+    let avgRPE: Double?
+    let muscleGroups: [String]
+    let keyExercises: [String] // Top 3 exercises
+}
+
+/// Workout pattern analysis for intelligent coaching
+struct WorkoutPatterns: Sendable, Codable {
+    let weeklyVolume: Double
+    let muscleGroupBalance: [String: Int]
+    let intensityTrend: IntensityTrend
+    let recoveryStatus: RecoveryStatus
+}
+
+enum IntensityTrend: String, Sendable, Codable {
+    case increasing
+    case stable
+    case decreasing
+}
+
+enum RecoveryStatus: String, Sendable, Codable {
+    case active      // 0-1 days since last workout
+    case recovered   // 2-3 days since last workout
+    case wellRested  // 4-7 days since last workout
+    case detraining  // 8+ days since last workout
+    case unknown
+}
+
+// MARK: - Extensions
+
+extension HKWorkoutActivityType {
+    var name: String {
+        switch self {
+        case .traditionalStrengthTraining: return "Strength Training"
+        case .functionalStrengthTraining: return "Functional Training"
+        case .running: return "Running"
+        case .cycling: return "Cycling"
+        case .walking: return "Walking"
+        case .swimming: return "Swimming"
+        case .yoga: return "Yoga"
+        case .pilates: return "Pilates"
+        case .coreTraining: return "Core Training"
+        case .highIntensityIntervalTraining: return "HIIT"
+        case .crossTraining: return "Cross Training"
+        case .flexibility: return "Flexibility"
+        case .cooldown: return "Cooldown"
+        case .other: return "Other"
+        default: return "Workout"
+        }
+    }
+}
+
+struct HealthTrends: Sendable, Codable {
     var weeklyActivityChange: Double?       // percentage
     var sleepConsistencyScore: Double?      // 0-100
     var recoveryTrend: RecoveryTrend?
     var performanceTrend: PerformanceTrend?
 
-    enum RecoveryTrend: String, Sendable {
+    enum RecoveryTrend: String, Sendable, Codable {
         case wellRecovered
         case normal
         case needsRecovery
         case overreaching
     }
 
-    enum PerformanceTrend: String, Sendable {
+    enum PerformanceTrend: String, Sendable, Codable {
         case peaking
         case improving
         case maintaining

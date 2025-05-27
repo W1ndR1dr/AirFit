@@ -127,12 +127,18 @@ final class ContextAssembler {
 
     private func createMockAppContext(using context: ModelContext) async -> AppSpecificContext {
         let now = Date()
+        let sevenDaysAgo = Calendar.current.date(byAdding: .day, value: -7, to: now) ?? now
+        _ = Calendar.current.date(byAdding: .day, value: -14, to: now) ?? now
+        
         var lastMealTime: Date?
         var lastMealSummary: String?
         var activeWorkoutName: String?
         var upcomingWorkout: String?
+        var currentStreak: Int?
+        var workoutContext: WorkoutContext?
 
         do {
+            // Meal context (unchanged)
             var mealDescriptor = FetchDescriptor<FoodEntry>(
                 sortBy: [SortDescriptor(\.loggedAt, order: .reverse)]
             )
@@ -144,27 +150,18 @@ final class ContextAssembler {
                 lastMealSummary = "\(mealName), \(itemCount) item\(itemCount == 1 ? "" : "s")"
             }
 
-            var upcomingDescriptor = FetchDescriptor<Workout>(
-                predicate: #Predicate<Workout> { workout in
-                    workout.completedDate == nil && workout.plannedDate != nil && workout.plannedDate! > now
-                },
-                sortBy: [SortDescriptor(\.plannedDate, order: .forward)]
+            // Enhanced workout context - rolling 7-day window with intelligent selection
+            workoutContext = await assembleWorkoutContext(
+                context: context,
+                now: now,
+                sevenDaysAgo: sevenDaysAgo
             )
-            upcomingDescriptor.fetchLimit = 1
-            if let nextWorkout = try context.fetch(upcomingDescriptor).first {
-                upcomingWorkout = nextWorkout.name
-            }
+            
+            // Extract simplified fields for backward compatibility
+            activeWorkoutName = workoutContext?.activeWorkout?.name
+            upcomingWorkout = workoutContext?.upcomingWorkout?.name
+            currentStreak = workoutContext?.streakDays
 
-            var activeDescriptor = FetchDescriptor<Workout>(
-                predicate: #Predicate<Workout> { workout in
-                    workout.completedDate == nil && workout.plannedDate != nil && workout.plannedDate! <= now
-                },
-                sortBy: [SortDescriptor(\.plannedDate, order: .reverse)]
-            )
-            activeDescriptor.fetchLimit = 1
-            if let active = try context.fetch(activeDescriptor).first {
-                activeWorkoutName = active.name
-            }
         } catch {
             AppLogger.error("Failed to assemble app context", error: error, category: .data)
         }
@@ -176,7 +173,228 @@ final class ContextAssembler {
             waterIntakeToday: nil,
             lastCoachInteraction: nil,
             upcomingWorkout: upcomingWorkout,
-            currentStreak: nil
+            currentStreak: currentStreak,
+            workoutContext: workoutContext
+        )
+    }
+    
+    /// Assembles comprehensive workout context optimized for AI coaching
+    /// Rolling 7-day window with intelligent workout selection for context efficiency
+    private func assembleWorkoutContext(
+        context: ModelContext,
+        now: Date,
+        sevenDaysAgo: Date
+    ) async -> WorkoutContext {
+        do {
+            // Fetch recent completed workouts (last 7 days)
+            var recentDescriptor = FetchDescriptor<Workout>(
+                predicate: #Predicate<Workout> { workout in
+                    workout.completedDate != nil && 
+                    workout.completedDate! >= sevenDaysAgo &&
+                    workout.completedDate! <= now
+                },
+                sortBy: [SortDescriptor(\.completedDate, order: .reverse)]
+            )
+            recentDescriptor.fetchLimit = 10 // Cap for token efficiency
+            let recentWorkouts = try context.fetch(recentDescriptor)
+            
+            // Active workout (in progress) - simplified predicate
+            var activeDescriptor = FetchDescriptor<Workout>(
+                predicate: #Predicate<Workout> { workout in
+                    workout.completedDate == nil
+                },
+                sortBy: [SortDescriptor(\.plannedDate, order: .reverse)]
+            )
+            activeDescriptor.fetchLimit = 1
+            let activeWorkout = try context.fetch(activeDescriptor).first
+            
+            // Upcoming planned workouts (next 3 days)
+            let threeDaysFromNow = Calendar.current.date(byAdding: .day, value: 3, to: now) ?? now
+            var upcomingDescriptor = FetchDescriptor<Workout>(
+                predicate: #Predicate<Workout> { workout in
+                    workout.completedDate == nil && 
+                    workout.plannedDate != nil &&
+                    workout.plannedDate! > now &&
+                    workout.plannedDate! <= threeDaysFromNow
+                },
+                sortBy: [SortDescriptor(\.plannedDate, order: .forward)]
+            )
+            upcomingDescriptor.fetchLimit = 3 // Next 3 planned workouts
+            let upcomingWorkouts = try context.fetch(upcomingDescriptor)
+            
+            // Calculate workout streak
+            let streak = calculateWorkoutStreak(context: context, endDate: now)
+            
+            // Analyze recent performance patterns
+            let patterns = analyzeWorkoutPatterns(recentWorkouts)
+            
+            return WorkoutContext(
+                recentWorkouts: recentWorkouts.map { compressWorkoutForContext($0) },
+                activeWorkout: activeWorkout.map { compressWorkoutForContext($0) },
+                upcomingWorkout: upcomingWorkouts.first.map { compressWorkoutForContext($0) },
+                plannedWorkouts: upcomingWorkouts.dropFirst().map { compressWorkoutForContext($0) },
+                streakDays: streak,
+                weeklyVolume: patterns.weeklyVolume,
+                muscleGroupBalance: patterns.muscleGroupBalance,
+                intensityTrend: patterns.intensityTrend,
+                recoveryStatus: patterns.recoveryStatus
+            )
+            
+        } catch {
+            AppLogger.error("Failed to assemble workout context", error: error, category: .data)
+            return WorkoutContext()
+        }
+    }
+    
+    /// Compresses workout data for efficient API context while preserving coaching value
+    private func compressWorkoutForContext(_ workout: Workout) -> CompactWorkout {
+        let totalVolume = workout.exercises.reduce(into: 0.0) { total, exercise in
+            total += exercise.sets.reduce(into: 0.0) { setTotal, set in
+                let weight = set.completedWeightKg ?? set.targetWeightKg ?? 0
+                let reps = Double(set.completedReps ?? set.targetReps ?? 0)
+                setTotal += (weight * reps)
+            }
+        }
+        
+        let avgRPE = workout.exercises.flatMap { $0.sets }
+            .compactMap { $0.rpe }
+            .reduce(0, +) / Double(max(workout.exercises.flatMap { $0.sets }.count, 1))
+        
+        let muscleGroups = Set(workout.exercises.flatMap { $0.muscleGroups }).sorted()
+        
+        return CompactWorkout(
+            name: workout.name,
+            type: workout.workoutTypeEnum?.displayName ?? "Unknown",
+            date: workout.completedDate ?? workout.plannedDate ?? Date(),
+            duration: workout.durationSeconds,
+            exerciseCount: workout.exercises.count,
+            totalVolume: totalVolume,
+            avgRPE: avgRPE.isFinite ? avgRPE : nil,
+            muscleGroups: muscleGroups,
+            keyExercises: workout.exercises.prefix(3).map { $0.name } // Top 3 exercises
+        )
+    }
+    
+    /// Calculates current workout streak with intelligent gap handling
+    private func calculateWorkoutStreak(context: ModelContext, endDate: Date) -> Int {
+        do {
+            let thirtyDaysAgo = Calendar.current.date(byAdding: .day, value: -30, to: endDate) ?? endDate
+            
+            let descriptor = FetchDescriptor<Workout>(
+                predicate: #Predicate<Workout> { workout in
+                    workout.completedDate != nil && 
+                    workout.completedDate! >= thirtyDaysAgo &&
+                    workout.completedDate! <= endDate
+                },
+                sortBy: [SortDescriptor(\.completedDate, order: .reverse)]
+            )
+            
+            let workouts = try context.fetch(descriptor)
+            guard !workouts.isEmpty else { return 0 }
+            
+            var streak = 0
+            var currentDate = Calendar.current.startOfDay(for: endDate)
+            
+            // Allow 1-day gaps for rest days (intelligent streak calculation)
+            var gapDays = 0
+            let maxGapDays = 2
+            
+            for workout in workouts {
+                guard let completedDate = workout.completedDate else { continue }
+                let workoutDay = Calendar.current.startOfDay(for: completedDate)
+                
+                let daysDiff = Calendar.current.dateComponents([.day], from: workoutDay, to: currentDate).day ?? 0
+                
+                if daysDiff <= 1 + gapDays {
+                    streak += 1
+                    currentDate = workoutDay
+                    gapDays = 0 // Reset gap counter
+                } else if daysDiff <= maxGapDays {
+                    gapDays += daysDiff - 1
+                    currentDate = workoutDay
+                } else {
+                    break // Streak broken
+                }
+            }
+            
+            return streak
+            
+        } catch {
+            AppLogger.error("Failed to calculate workout streak", error: error, category: .data)
+            return 0
+        }
+    }
+    
+    /// Analyzes workout patterns for intelligent coaching insights
+    private func analyzeWorkoutPatterns(_ workouts: [Workout]) -> WorkoutPatterns {
+        guard !workouts.isEmpty else {
+            return WorkoutPatterns(
+                weeklyVolume: 0,
+                muscleGroupBalance: [:],
+                intensityTrend: .stable,
+                recoveryStatus: .unknown
+            )
+        }
+        
+        // Calculate weekly volume
+        let totalVolume = workouts.reduce(into: 0.0) { total, workout in
+            total += workout.exercises.reduce(into: 0.0) { exerciseTotal, exercise in
+                exerciseTotal += exercise.sets.reduce(into: 0.0) { setTotal, set in
+                    let weight = set.completedWeightKg ?? set.targetWeightKg ?? 0
+                    let reps = Double(set.completedReps ?? set.targetReps ?? 0)
+                    setTotal += (weight * reps)
+                }
+            }
+        }
+        
+        // Muscle group distribution
+        var muscleGroupCounts: [String: Int] = [:]
+        for workout in workouts {
+            for exercise in workout.exercises {
+                for muscle in exercise.muscleGroups {
+                    muscleGroupCounts[muscle, default: 0] += 1
+                }
+            }
+        }
+        
+        // Intensity trend analysis
+        let intensityTrend: IntensityTrend
+        if workouts.count >= 3 {
+            let recentAvgRPE = workouts.prefix(3).flatMap { $0.exercises.flatMap { $0.sets } }
+                .compactMap { $0.rpe }.reduce(0, +) / Double(max(workouts.prefix(3).flatMap { $0.exercises.flatMap { $0.sets } }.count, 1))
+            
+            let olderAvgRPE = workouts.dropFirst(3).flatMap { $0.exercises.flatMap { $0.sets } }
+                .compactMap { $0.rpe }.reduce(0, +) / Double(max(workouts.dropFirst(3).flatMap { $0.exercises.flatMap { $0.sets } }.count, 1))
+            
+            if recentAvgRPE > olderAvgRPE + 0.5 {
+                intensityTrend = .increasing
+            } else if recentAvgRPE < olderAvgRPE - 0.5 {
+                intensityTrend = .decreasing
+            } else {
+                intensityTrend = .stable
+            }
+        } else {
+            intensityTrend = .stable
+        }
+        
+        // Recovery status (simplified heuristic)
+        let recoveryStatus: RecoveryStatus
+        let daysSinceLastWorkout = workouts.first?.completedDate.map {
+            Calendar.current.dateComponents([.day], from: $0, to: Date()).day ?? 0
+        } ?? 7
+        
+        switch daysSinceLastWorkout {
+        case 0...1: recoveryStatus = .active
+        case 2...3: recoveryStatus = .recovered
+        case 4...7: recoveryStatus = .wellRested
+        default: recoveryStatus = .detraining
+        }
+        
+        return WorkoutPatterns(
+            weeklyVolume: totalVolume,
+            muscleGroupBalance: muscleGroupCounts,
+            intensityTrend: intensityTrend,
+            recoveryStatus: recoveryStatus
         )
     }
 

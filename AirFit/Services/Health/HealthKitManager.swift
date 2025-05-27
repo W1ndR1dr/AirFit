@@ -143,22 +143,23 @@ final class HealthKitManager {
             identifier: .heartRate, unit: HKUnit.count().unitDivided(by: HKUnit.minute())
         )
 
-        return ActivityMetrics(
-            activeEnergyBurned: (try await activeEnergy).map { Measurement(value: $0, unit: UnitEnergy.kilocalories) },
-            basalEnergyBurned: (try await basalEnergy).map { Measurement(value: $0, unit: UnitEnergy.kilocalories) },
-            steps: (try await steps).map { Int($0) },
-            distance: (try await distance).map { Measurement(value: $0, unit: UnitLength.meters) },
-            flightsClimbed: (try await flights).map { Int($0) },
-            exerciseMinutes: (try await exerciseTime).map { Int($0) },
-            standHours: (try await standHours).map { Int($0) },
-            moveMinutes: (try await moveTime).map { Int($0) },
-            currentHeartRate: (try await currentHR).map { Int($0) },
-            isWorkoutActive: false, // TODO: Implement workout detection
-            workoutType: nil,
-            moveProgress: nil, // TODO: Calculate from goals
-            exerciseProgress: nil,
-            standProgress: nil
-        )
+        var metrics = ActivityMetrics()
+        metrics.activeEnergyBurned = (try await activeEnergy).map { Measurement(value: $0, unit: UnitEnergy.kilocalories) }
+        metrics.basalEnergyBurned = (try await basalEnergy).map { Measurement(value: $0, unit: UnitEnergy.kilocalories) }
+        metrics.steps = (try await steps).map { Int($0) }
+        metrics.distance = (try await distance).map { Measurement(value: $0, unit: UnitLength.meters) }
+        metrics.flightsClimbed = (try await flights).map { Int($0) }
+        metrics.exerciseMinutes = (try await exerciseTime).map { Int($0) }
+        metrics.standHours = (try await standHours).map { Int($0) }
+        metrics.moveMinutes = (try await moveTime).map { Int($0) }
+        metrics.currentHeartRate = (try await currentHR).map { Int($0) }
+        metrics.isWorkoutActive = false // TODO: Implement workout detection
+        metrics.workoutType = nil
+        metrics.moveProgress = nil // TODO: Calculate from goals
+        metrics.exerciseProgress = nil
+        metrics.standProgress = nil
+        
+        return metrics
     }
 
     /// Fetches heart health metrics
