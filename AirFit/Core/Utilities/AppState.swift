@@ -15,11 +15,16 @@ final class AppState {
     // MARK: - Dependencies
     private let modelContext: ModelContext
     private let isUITesting: Bool
+    private let healthKitAuthManager: HealthKitAuthManager
 
     // MARK: - Initialization
-    init(modelContext: ModelContext) {
+    init(
+        modelContext: ModelContext,
+        healthKitAuthManager: HealthKitAuthManager = HealthKitAuthManager()
+    ) {
         self.modelContext = modelContext
         self.isUITesting = ProcessInfo.processInfo.arguments.contains("--uitesting")
+        self.healthKitAuthManager = healthKitAuthManager
 
         if isUITesting {
             setupUITestingState()
@@ -76,6 +81,11 @@ final class AppState {
         error = nil
     }
 
+    @discardableResult
+    func requestHealthKitAuthorization() async -> Bool {
+        await healthKitAuthManager.requestAuthorizationIfNeeded()
+    }
+
     private func setupUITestingState() {
         // For UI testing, create a mock user and set up onboarding state
         isLoading = false
@@ -100,6 +110,10 @@ final class AppState {
 extension AppState {
     var shouldShowOnboarding: Bool {
         !isLoading && currentUser != nil && !hasCompletedOnboarding
+    }
+
+    var healthKitStatus: HealthKitAuthorizationStatus {
+        healthKitAuthManager.authorizationStatus
     }
 
     var shouldCreateUser: Bool {

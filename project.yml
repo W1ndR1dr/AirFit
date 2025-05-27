@@ -86,6 +86,7 @@ targets:
       - AirFit/Core/Utilities/AppLogger.swift
       - AirFit/Core/Utilities/Formatters.swift
       - AirFit/Core/Utilities/Validators.swift
+      - AirFit/Core/Utilities/HealthKitAuthManager.swift
       - AirFit/Core/Theme/AppShadows.swift
       - AirFit/Core/Theme/AppSpacing.swift
       - AirFit/Core/Theme/AppColors.swift

@@ -34,6 +34,7 @@ final class OnboardingViewModel {
     var hasHealthKitIntegration: Bool {
         healthPrefillProvider != nil
     }
+    private(set) var healthKitAuthorizationStatus: HealthKitAuthorizationStatus = .notDetermined
 
     // MARK: - Dependencies
     private let aiService: AIServiceProtocol
@@ -41,6 +42,7 @@ final class OnboardingViewModel {
     private let modelContext: ModelContext
     private let speechService: WhisperServiceWrapperProtocol?
     private let healthPrefillProvider: HealthKitPrefillProviding?
+    private let healthKitAuthManager: HealthKitAuthManager
 
     // MARK: - Completion Callback
     var onCompletionCallback: (() -> Void)?
@@ -51,13 +53,16 @@ final class OnboardingViewModel {
         onboardingService: OnboardingServiceProtocol,
         modelContext: ModelContext,
         speechService: WhisperServiceWrapperProtocol? = nil,
-        healthPrefillProvider: HealthKitPrefillProviding? = nil
+        healthPrefillProvider: HealthKitPrefillProviding? = nil,
+        healthKitAuthManager: HealthKitAuthManager = HealthKitAuthManager()
     ) {
         self.aiService = aiService
         self.onboardingService = onboardingService
         self.modelContext = modelContext
         self.speechService = speechService
         self.healthPrefillProvider = healthPrefillProvider
+        self.healthKitAuthManager = healthKitAuthManager
+        self.healthKitAuthorizationStatus = healthKitAuthManager.authorizationStatus
 
         Task { await prefillFromHealthKit() }
     }
@@ -103,6 +108,17 @@ final class OnboardingViewModel {
     func stopVoiceCapture() {
         speechService?.stopTranscription()
         isTranscribing = false
+    }
+
+    // MARK: - HealthKit Authorization
+    func requestHealthKitAuthorization() async {
+        let granted = await healthKitAuthManager.requestAuthorizationIfNeeded()
+        healthKitAuthorizationStatus = healthKitAuthManager.authorizationStatus
+        if granted {
+            AppLogger.info("HealthKit authorization granted", category: .health)
+        } else {
+            AppLogger.warning("HealthKit authorization not granted", category: .health)
+        }
     }
 
     // MARK: - Business Logic
