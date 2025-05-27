@@ -60,10 +60,14 @@
 		<string>UIInterfaceOrientationLandscapeLeft</string>
 		<string>UIInterfaceOrientationLandscapeRight</string>
 	</array>
-	<key>NSHealthShareUsageDescription</key>
-	<string>AirFit needs access to your health data to track your fitness progress and provide personalized coaching.</string>
-	<key>NSHealthUpdateUsageDescription</key>
-	<string>AirFit needs to update your health data to log workouts and nutrition information.</string>
+        <key>NSHealthShareUsageDescription</key>
+        <string>AirFit personalizes your fitness journey by analyzing your activity, sleep, heart health, and body metrics. Your AI coach uses this data to provide tailored recommendations and track your progress. All health data remains private and is never shared without your explicit consent.</string>
+
+        <key>NSHealthUpdateUsageDescription</key>
+        <string>AirFit saves your workouts and body measurements to Apple Health, keeping all your fitness data synchronized. This helps you track progress across all your devices and contributes to your activity rings.</string>
+
+        <key>NSHealthClinicalHealthRecordsShareUsageDescription</key>
+        <string>AirFit does not access clinical health records.</string>
 	<key>NSMicrophoneUsageDescription</key>
 	<string>AirFit uses the microphone to record voice notes for meal logging and workout tracking.</string>
 	<key>NSCameraUsageDescription</key>
@@ -71,4 +75,4 @@
 	<key>NSPhotoLibraryUsageDescription</key>
 	<string>AirFit needs access to your photo library to save and retrieve meal photos.</string>
 </dict>
-</plist> 
+</plist>
