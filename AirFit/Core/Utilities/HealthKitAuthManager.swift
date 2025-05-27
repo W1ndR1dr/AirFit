@@ -4,10 +4,10 @@ import Observation
 @MainActor
 @Observable
 final class HealthKitAuthManager {
-    private let healthKitManager: HealthKitManager
+    private let healthKitManager: HealthKitManaging
     var authorizationStatus: HealthKitAuthorizationStatus = .notDetermined
 
-    init(healthKitManager: HealthKitManager = .shared) {
+    init(healthKitManager: HealthKitManaging = HealthKitManager.shared) {
         self.healthKitManager = healthKitManager
         refreshStatus()
     }
