@@ -14,12 +14,29 @@ struct OnboardingFlowView: View {
         onboardingService: OnboardingServiceProtocol,
         onCompletion: (() -> Void)? = nil
     ) {
-        // We'll initialize the viewModel in onAppear when we have access to modelContext
-        _viewModel = State(initialValue: OnboardingViewModel(
-            aiService: aiService,
-            onboardingService: onboardingService,
-            modelContext: try! ModelContext(.init(for: OnboardingProfile.self))
-        ))
+        // Create a temporary ModelContext for initialization
+        // The real modelContext from environment will be used in onAppear
+        do {
+            let tempContainer = try ModelContainer(for: OnboardingProfile.self)
+            _viewModel = State(initialValue: OnboardingViewModel(
+                aiService: aiService,
+                onboardingService: onboardingService,
+                modelContext: tempContainer.mainContext
+            ))
+        } catch {
+            // Fallback to in-memory container if persistent storage fails
+            do {
+                let inMemoryContainer = try ModelContainer(for: OnboardingProfile.self, configurations: ModelConfiguration(isStoredInMemoryOnly: true))
+                _viewModel = State(initialValue: OnboardingViewModel(
+                    aiService: aiService,
+                    onboardingService: onboardingService,
+                    modelContext: inMemoryContainer.mainContext
+                ))
+            } catch {
+                // Final fallback - this should never happen but prevents crashes
+                fatalError("Failed to create ModelContainer: \(error)")
+            }
+        }
         self.onCompletion = onCompletion
     }
 
@@ -79,7 +96,6 @@ struct OnboardingFlowView: View {
         .onAppear {
             viewModel.onCompletionCallback = onCompletion
         }
-        .accessibilityIdentifier("onboarding.flow")
     }
 
     // MARK: - Computed Properties

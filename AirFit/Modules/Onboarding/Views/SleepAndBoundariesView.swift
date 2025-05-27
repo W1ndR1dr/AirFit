@@ -81,6 +81,7 @@ struct SleepAndBoundariesView: View {
                 nextAction: viewModel.navigateToNextScreen
             )
         }
+        .accessibilityElement(children: .contain)
         .accessibilityIdentifier("onboarding.sleepBoundaries")
     }
 
@@ -100,7 +101,7 @@ struct SleepAndBoundariesView: View {
 
             Slider(value: minutes, in: 0...1_439, step: 15)
                 .tint(AppColors.accentColor)
-                .accessibilityIdentifier("\(id).slider")
+                .accessibilityIdentifier(id)
                 .accessibilityHint("Adjust time by dragging the slider")
         }
         .padding(.horizontal, AppSpacing.large)

@@ -16,7 +16,7 @@ final class OnboardingServiceTests: XCTestCase {
         modelContainer = try ModelContainer.createTestContainer()
         context = modelContainer.mainContext
         sut = OnboardingService(modelContext: context)
-        
+
         // Create test user
         testUser = User(email: "test@example.com", name: "Test User")
         context.insert(testUser)
@@ -60,7 +60,7 @@ final class OnboardingServiceTests: XCTestCase {
         // Arrange
         try context.delete(model: User.self)
         try context.save()
-        
+
         let profileData = createValidProfileData()
         let profile = OnboardingProfile(
             personaPromptData: profileData,
@@ -101,14 +101,14 @@ final class OnboardingServiceTests: XCTestCase {
     }
 
     @MainActor
-    func test_saveProfile_givenMissingRequiredField_shouldThrowError() async {
+    func test_saveProfile_givenMissingRequiredField_shouldThrowError() async throws {
         // Arrange
         let incompleteProfile = [
             "life_context": ["is_desk_job": true],
             "goal": ["family": "performance"],
             // Missing required fields: blend, engagement_preferences, etc.
         ]
-        let data = try! JSONSerialization.data(withJSONObject: incompleteProfile)
+        let data = try JSONSerialization.data(withJSONObject: incompleteProfile)
         let profile = OnboardingProfile(
             personaPromptData: data,
             communicationPreferencesData: data,
@@ -182,7 +182,7 @@ final class OnboardingServiceTests: XCTestCase {
             "timezone": "America/New_York",
             "baseline_mode_enabled": true
         ] as [String: Any]
-        
+
         let data = try JSONSerialization.data(withJSONObject: completeProfile)
         let profile = OnboardingProfile(
             personaPromptData: data,
@@ -192,7 +192,7 @@ final class OnboardingServiceTests: XCTestCase {
 
         // Act & Assert - Should not throw
         try await sut.saveProfile(profile)
-        
+
         let profiles = try context.fetch(FetchDescriptor<OnboardingProfile>())
         XCTAssertEqual(profiles.count, 1)
     }
@@ -225,7 +225,7 @@ final class OnboardingServiceTests: XCTestCase {
         olderUser.createdAt = Date().addingTimeInterval(-3600) // 1 hour ago
         context.insert(olderUser)
         try context.save()
-        
+
         let profileData = createValidProfileData()
         let profile = OnboardingProfile(
             personaPromptData: profileData,
@@ -249,7 +249,7 @@ final class OnboardingServiceTests: XCTestCase {
         XCTAssertNotNil(OnboardingError.noUserFound.errorDescription)
         XCTAssertNotNil(OnboardingError.invalidProfileData.errorDescription)
         XCTAssertNotNil(OnboardingError.missingRequiredField("test").errorDescription)
-        
+
         // Test that error descriptions are not empty
         XCTAssertFalse(OnboardingError.noUserFound.errorDescription?.isEmpty ?? true)
         XCTAssertFalse(OnboardingError.invalidProfileData.errorDescription?.isEmpty ?? true)
@@ -293,7 +293,11 @@ final class OnboardingServiceTests: XCTestCase {
             "timezone": "UTC",
             "baseline_mode_enabled": true
         ] as [String: Any]
-        
-        return try! JSONSerialization.data(withJSONObject: validProfile)
+
+        do {
+            return try JSONSerialization.data(withJSONObject: validProfile)
+        } catch {
+            fatalError("Failed to create test data: \(error)")
+        }
     }
-} 
+}

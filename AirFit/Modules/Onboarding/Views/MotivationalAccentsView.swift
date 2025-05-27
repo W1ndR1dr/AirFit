@@ -58,6 +58,7 @@ struct MotivationalAccentsView: View {
                 nextAction: viewModel.navigateToNextScreen
             )
         }
+        .accessibilityElement(children: .contain)
         .accessibilityIdentifier("onboarding.motivationalAccents")
     }
 

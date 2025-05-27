@@ -34,7 +34,7 @@ final class MockNetworkClient: NetworkClientProtocol, @unchecked Sendable {
         var currentRequests = _capturedRequests.value
         currentRequests.append(endpoint)
         _capturedRequests.value = currentRequests
-        
+
         let delay = _simulatedDelay.value
         let error = _shouldThrowError.value
         let responses = _mockResponses.value
@@ -61,7 +61,7 @@ final class MockNetworkClient: NetworkClientProtocol, @unchecked Sendable {
         var currentRequests = _capturedRequests.value
         currentRequests.append(endpoint)
         _capturedRequests.value = currentRequests
-        
+
         let error = _shouldThrowError.value
 
         if let error = error {
@@ -73,7 +73,7 @@ final class MockNetworkClient: NetworkClientProtocol, @unchecked Sendable {
         var currentRequests = _capturedRequests.value
         currentRequests.append(endpoint)
         _capturedRequests.value = currentRequests
-        
+
         let delay = _simulatedDelay.value
         let error = _shouldThrowError.value
         let responses = _mockResponses.value

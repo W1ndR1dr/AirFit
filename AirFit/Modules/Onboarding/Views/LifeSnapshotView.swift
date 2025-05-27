@@ -67,13 +67,13 @@ struct LifeSnapshotView: View {
                     .padding(.horizontal, AppSpacing.large)
                 }
             }
+            .accessibilityIdentifier("onboarding.lifeSnapshot")
 
             NavigationButtons(
                 backAction: viewModel.navigateToPreviousScreen,
                 nextAction: viewModel.navigateToNextScreen
             )
         }
-        .accessibilityIdentifier("onboarding.lifeSnapshot")
     }
 
     private func checkbox(text: LocalizedStringKey, binding: Binding<Bool>, id: String) -> some View {

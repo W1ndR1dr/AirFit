@@ -44,7 +44,13 @@ struct CoachProfileReadyView: View {
                 VStack(spacing: AppSpacing.medium) {
                                     Button(
                     action: {
-                        AppLogger.info("Onboarding completed", category: .onboarding)
+                        Task {
+                            do {
+                                try await viewModel.completeOnboarding()
+                            } catch {
+                                AppLogger.error("Failed to complete onboarding", error: error, category: .onboarding)
+                            }
+                        }
                     },
                     label: {
                         Text(LocalizedStringKey("onboarding.profileReady.begin"))

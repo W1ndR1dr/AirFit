@@ -18,7 +18,7 @@ final class KeychainWrapperTests: XCTestCase {
     }
 
     func test_saveData_shouldSucceed() throws {
-        let testData = "test data".data(using: .utf8)!
+        let testData = Data("test data".utf8)
 
         try sut.save(testData, forKey: testKey)
 
@@ -42,7 +42,7 @@ final class KeychainWrapperTests: XCTestCase {
     }
 
     func test_loadData_shouldReturnSavedData() throws {
-        let testData = "test data".data(using: .utf8)!
+        let testData = Data("test data".utf8)
         try sut.save(testData, forKey: testKey)
 
         let retrievedData = try sut.load(key: testKey)
@@ -100,21 +100,21 @@ final class KeychainWrapperTests: XCTestCase {
     }
 
     func test_update_existingKey_shouldSucceed() throws {
-        let originalData = "original".data(using: .utf8)!
-        let updatedData = "updated".data(using: .utf8)!
-        
+        let originalData = Data("original".utf8)
+        let updatedData = Data("updated".utf8)
+
         try sut.save(originalData, forKey: testKey)
         try sut.update(updatedData, forKey: testKey)
-        
+
         let retrievedData = try sut.load(key: testKey)
         XCTAssertEqual(retrievedData, updatedData)
     }
 
     func test_update_nonExistentKey_shouldCreateNew() throws {
-        let testData = "test".data(using: .utf8)!
-        
+        let testData = Data("test".utf8)
+
         try sut.update(testData, forKey: testKey)
-        
+
         let retrievedData = try sut.load(key: testKey)
         XCTAssertEqual(retrievedData, testData)
     }

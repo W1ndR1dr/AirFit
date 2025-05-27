@@ -53,6 +53,7 @@ struct CoachingStyleView: View {
                 }
             )
         }
+        .accessibilityElement(children: .contain)
         .accessibilityIdentifier("onboarding.coachingStyle")
     }
 
@@ -75,7 +76,7 @@ struct CoachingStyleView: View {
 
             Slider(value: value, in: 0...1)
                 .tint(AppColors.accentColor)
-                .accessibilityIdentifier("\(id).slider")
+                .accessibilityIdentifier(id)
 
             Text(description)
                 .font(AppFonts.caption)

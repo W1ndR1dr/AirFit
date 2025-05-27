@@ -14,12 +14,19 @@ final class AppState {
 
     // MARK: - Dependencies
     private let modelContext: ModelContext
+    private let isUITesting: Bool
 
     // MARK: - Initialization
     init(modelContext: ModelContext) {
         self.modelContext = modelContext
-        Task {
-            await loadUserState()
+        self.isUITesting = ProcessInfo.processInfo.arguments.contains("--uitesting")
+
+        if isUITesting {
+            setupUITestingState()
+        } else {
+            Task {
+                await loadUserState()
+            }
         }
     }
 
@@ -67,6 +74,25 @@ final class AppState {
 
     func clearError() {
         error = nil
+    }
+
+    private func setupUITestingState() {
+        // For UI testing, create a mock user and set up onboarding state
+        isLoading = false
+
+        if ProcessInfo.processInfo.arguments.contains("--reset-onboarding") {
+            // Create a user but don't complete onboarding
+            let user = User()
+            modelContext.insert(user)
+            try? modelContext.save()
+            currentUser = user
+            hasCompletedOnboarding = false
+            AppLogger.info("UI Testing: User created for onboarding flow", category: .app)
+        } else {
+            // Default UI testing state
+            hasCompletedOnboarding = false
+            AppLogger.info("UI Testing: Default state configured", category: .app)
+        }
     }
 }
 

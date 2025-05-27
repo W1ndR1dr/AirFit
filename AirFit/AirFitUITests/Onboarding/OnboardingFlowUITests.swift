@@ -48,9 +48,7 @@ final class OnboardingFlowUITests: XCTestCase {
         // Engagement Preferences Screen
         let engagementExists = await onboardingPage.waitForEngagementPreferencesScreen()
         XCTAssertTrue(engagementExists)
-        await onboardingPage.selectEngagementCard("onboarding.engagement.detailed")
-        await onboardingPage.selectRadioOption("onboarding.engagement.daily")
-        await onboardingPage.toggleAutoRecovery(true)
+        await onboardingPage.selectEngagementCard("onboarding.engagement.dataDriven")
         await onboardingPage.tapNextButton()
 
         // Sleep Boundaries Screen
@@ -63,7 +61,7 @@ final class OnboardingFlowUITests: XCTestCase {
         // Motivational Accents Screen
         let motivationExists = await onboardingPage.waitForMotivationalAccentsScreen()
         XCTAssertTrue(motivationExists)
-        await onboardingPage.selectMotivationOption("onboarding.motivation.gentle")
+        await onboardingPage.selectMotivationOption("onboarding.motivation.celebration.subtle_affirming")
         await onboardingPage.tapNextButton()
 
         // Generating Coach Screen
@@ -81,7 +79,31 @@ final class OnboardingFlowUITests: XCTestCase {
     }
 
     func test_cardSelection_updatesState() async throws {
-        let cardId = "onboarding.engagement.detailed"
+        // Navigate to the Engagement Preferences screen
+        await onboardingPage.tapElement(onboardingPage.beginButton)
+
+        // Skip through Life Snapshot screen
+        let lifeSnapshotExists = await onboardingPage.waitForElement(onboardingPage.lifeSnapshotScreen)
+        XCTAssertTrue(lifeSnapshotExists)
+        await onboardingPage.tapNextButton()
+
+        // Skip through Core Aspiration screen
+        let goalScreenExists = await onboardingPage.waitForElement(onboardingPage.goalScreen)
+        XCTAssertTrue(goalScreenExists)
+        await onboardingPage.enterGoalText("Test goal")
+        await onboardingPage.tapNextButton()
+
+        // Skip through Coaching Style screen
+        let coachingStyleExists = await onboardingPage.waitForCoachingStyleScreen()
+        XCTAssertTrue(coachingStyleExists)
+        await onboardingPage.tapNextButton()
+
+        // Now we should be on the Engagement Preferences screen
+        let engagementExists = await onboardingPage.waitForEngagementPreferencesScreen()
+        XCTAssertTrue(engagementExists)
+
+        // Test card selection
+        let cardId = "onboarding.engagement.dataDriven"
         await onboardingPage.selectEngagementCard(cardId)
         let isSelected = app.buttons[cardId].isSelected
         let hasCheckmark = app.buttons[cardId].images["checkmark.circle.fill"].exists
@@ -89,6 +111,25 @@ final class OnboardingFlowUITests: XCTestCase {
     }
 
     func test_sliderAdjustment_updatesValue() async throws {
+        // Navigate to the Coaching Style screen where sliders exist
+        await onboardingPage.tapElement(onboardingPage.beginButton)
+
+        // Skip through Life Snapshot screen
+        let lifeSnapshotExists = await onboardingPage.waitForElement(onboardingPage.lifeSnapshotScreen)
+        XCTAssertTrue(lifeSnapshotExists)
+        await onboardingPage.tapNextButton()
+
+        // Skip through Core Aspiration screen
+        let goalScreenExists = await onboardingPage.waitForElement(onboardingPage.goalScreen)
+        XCTAssertTrue(goalScreenExists)
+        await onboardingPage.enterGoalText("Test goal")
+        await onboardingPage.tapNextButton()
+
+        // Now we should be on the Coaching Style screen
+        let coachingStyleExists = await onboardingPage.waitForCoachingStyleScreen()
+        XCTAssertTrue(coachingStyleExists)
+
+        // Test slider adjustment
         let sliderId = "onboarding.blend.authoritative"
         let slider = app.sliders[sliderId]
         let initialValue = slider.value as? String
@@ -98,6 +139,19 @@ final class OnboardingFlowUITests: XCTestCase {
     }
 
     func test_voiceButton_isAccessible() async throws {
+        // Navigate to the Core Aspiration screen where the voice button exists
+        await onboardingPage.tapElement(onboardingPage.beginButton)
+
+        // Skip through Life Snapshot screen
+        let lifeSnapshotExists = await onboardingPage.waitForElement(onboardingPage.lifeSnapshotScreen)
+        XCTAssertTrue(lifeSnapshotExists)
+        await onboardingPage.tapNextButton()
+
+        // Now we should be on the Core Aspiration screen
+        let goalScreenExists = await onboardingPage.waitForElement(onboardingPage.goalScreen)
+        XCTAssertTrue(goalScreenExists)
+
+        // Test the voice button
         XCTAssertTrue(onboardingPage.voiceButton.exists)
         await onboardingPage.tapElement(onboardingPage.voiceButton)
         XCTAssertTrue(onboardingPage.voiceButton.exists)
@@ -142,4 +196,5 @@ final class OnboardingFlowUITests: XCTestCase {
         let dashboardExists = await onboardingPage.isOnDashboard()
         XCTAssertTrue(dashboardExists)
     }
+
 }

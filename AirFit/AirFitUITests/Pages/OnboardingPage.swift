@@ -31,7 +31,7 @@ final class OnboardingPage: BasePage {
 
     // MARK: - Life Snapshot
     var lifeSnapshotScreen: XCUIElement {
-        app.otherElements["onboarding.lifeSnapshot"]
+        app.scrollViews["onboarding.lifeSnapshot"]
     }
 
     func verifyOnLifeSnapshot() async {
@@ -50,11 +50,11 @@ final class OnboardingPage: BasePage {
 
     // MARK: - Core Aspiration
     var coreAspirationScreen: XCUIElement {
-        app.otherElements["onboarding.coreAspiration"]
+        app.descendants(matching: .any)["onboarding.coreAspiration"]
     }
 
     var goalScreen: XCUIElement {
-        app.otherElements["onboarding.goal"]
+        app.scrollViews["onboarding.coreAspiration"]
     }
 
     func verifyOnCoreAspiration() async {
@@ -95,7 +95,7 @@ final class OnboardingPage: BasePage {
 
     // MARK: - Coaching Style
     var coachingStyleScreen: XCUIElement {
-        app.otherElements["onboarding.coachingStyle"]
+        app.descendants(matching: .any)["onboarding.coachingStyle"]
     }
 
     func verifyOnCoachingStyle() async {
@@ -103,7 +103,7 @@ final class OnboardingPage: BasePage {
     }
 
     func waitForCoachingStyleScreen() async -> Bool {
-        await app.otherElements["onboarding.coachingStyle"].waitForExistence(timeout: timeout)
+        await app.descendants(matching: .any)["onboarding.coachingStyle"].waitForExistence(timeout: timeout)
     }
 
     func adjustSlider(_ identifier: String, to position: CGFloat) async {
@@ -115,7 +115,7 @@ final class OnboardingPage: BasePage {
 
     // MARK: - Engagement Preferences
     var engagementScreen: XCUIElement {
-        app.otherElements["onboarding.engagementPreferences"]
+        app.descendants(matching: .any)["onboarding.engagementPreferences"]
     }
 
     func verifyOnEngagementPreferences() async {
@@ -123,7 +123,7 @@ final class OnboardingPage: BasePage {
     }
 
     func waitForEngagementPreferencesScreen() async -> Bool {
-        await app.otherElements["onboarding.engagementPreferences"].waitForExistence(timeout: timeout)
+        await app.descendants(matching: .any)["onboarding.engagementPreferences"].waitForExistence(timeout: timeout)
     }
 
     func selectEngagementCard(_ id: String) async {
@@ -145,7 +145,7 @@ final class OnboardingPage: BasePage {
 
     // MARK: - Sleep & Boundaries
     var sleepScreen: XCUIElement {
-        app.otherElements["onboarding.sleepBoundaries"]
+        app.descendants(matching: .any)["onboarding.sleepBoundaries"]
     }
 
     func verifyOnSleepBoundaries() async {
@@ -153,7 +153,7 @@ final class OnboardingPage: BasePage {
     }
 
     func waitForSleepBoundariesScreen() async -> Bool {
-        await app.otherElements["onboarding.sleepBoundaries"].waitForExistence(timeout: timeout)
+        await app.descendants(matching: .any)["onboarding.sleepBoundaries"].waitForExistence(timeout: timeout)
     }
 
     func adjustTimeSlider(_ id: String, to position: CGFloat) async {
@@ -165,7 +165,7 @@ final class OnboardingPage: BasePage {
 
     // MARK: - Motivational Accents
     var motivationScreen: XCUIElement {
-        app.otherElements["onboarding.motivationalAccents"]
+        app.descendants(matching: .any)["onboarding.motivationalAccents"]
     }
 
     func verifyOnMotivationalAccents() async {
@@ -173,7 +173,7 @@ final class OnboardingPage: BasePage {
     }
 
     func waitForMotivationalAccentsScreen() async -> Bool {
-        await app.otherElements["onboarding.motivationalAccents"].waitForExistence(timeout: timeout)
+        await app.descendants(matching: .any)["onboarding.motivationalAccents"].waitForExistence(timeout: timeout)
     }
 
     func selectMotivationOption(_ id: String) async {
@@ -183,7 +183,7 @@ final class OnboardingPage: BasePage {
 
     // MARK: - Generating Coach
     var generatingScreen: XCUIElement {
-        app.otherElements["onboarding.generatingCoach"]
+        app.descendants(matching: .any)["onboarding.generatingCoach"]
     }
 
     func verifyOnGeneratingCoach() async {
@@ -191,12 +191,12 @@ final class OnboardingPage: BasePage {
     }
 
     func waitForGeneratingCoachScreen() async -> Bool {
-        await app.otherElements["onboarding.generatingCoach"].waitForExistence(timeout: timeout)
+        await app.descendants(matching: .any)["onboarding.generatingCoach"].waitForExistence(timeout: timeout)
     }
 
     // MARK: - Coach Ready
     var coachReadyScreen: XCUIElement {
-        app.otherElements["onboarding.coachProfileReady"]
+        app.descendants(matching: .any)["onboarding.coachProfileReady"]
     }
 
     func verifyCoachProfileReady() async {

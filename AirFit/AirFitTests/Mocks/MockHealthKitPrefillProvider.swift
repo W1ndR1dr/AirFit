@@ -5,11 +5,11 @@ import Foundation
 final class Mutex<T>: @unchecked Sendable {
     private let lock = NSLock()
     private var _value: T
-    
+
     init(_ value: T) {
         _value = value
     }
-    
+
     var value: T {
         get {
             lock.lock()
@@ -26,7 +26,7 @@ final class Mutex<T>: @unchecked Sendable {
 
 final class MockHealthKitPrefillProvider: HealthKitPrefillProviding, @unchecked Sendable {
     private let _result = Mutex<Result<(bed: Date, wake: Date)?, Error>>(.success(nil))
-    
+
     var result: Result<(bed: Date, wake: Date)?, Error> {
         get { _result.value }
         set { _result.value = newValue }

@@ -22,11 +22,11 @@ struct ContentView: View {
                     Text("Onboarding Complete!")
                         .font(AppFonts.title)
                         .foregroundColor(AppColors.textPrimary)
-                    
+
                     Text("Module 3 testing successful")
                         .font(AppFonts.body)
                         .foregroundColor(AppColors.textSecondary)
-                    
+
                     Button("Restart Onboarding") {
                         showOnboarding = true
                     }
@@ -45,5 +45,5 @@ struct ContentView: View {
 
 #Preview {
     ContentView()
-        .modelContainer(try! ModelContainer(for: OnboardingProfile.self))
-} 
+        .modelContainer(for: OnboardingProfile.self)
+}

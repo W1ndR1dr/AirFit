@@ -52,13 +52,13 @@ struct CoreAspirationView: View {
                     .padding(.horizontal, AppSpacing.large)
                 }
             }
+            .accessibilityIdentifier("onboarding.coreAspiration")
 
             NavigationButtons(
                 backAction: viewModel.navigateToPreviousScreen,
                 nextAction: handleNext
             )
         }
-        .accessibilityIdentifier("onboarding.coreAspiration")
     }
 
     private func handleNext() {

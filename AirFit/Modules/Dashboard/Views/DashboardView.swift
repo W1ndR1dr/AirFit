@@ -170,5 +170,5 @@ private struct FeatureCard: View {
 // MARK: - Previews
 #Preview {
     DashboardView()
-        .modelContainer(try! ModelContainer(.init(for: OnboardingProfile.self)))
+        .modelContainer(for: OnboardingProfile.self)
 }

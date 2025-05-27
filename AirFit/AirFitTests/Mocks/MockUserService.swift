@@ -6,7 +6,7 @@ final class MockUserService: UserServiceProtocol, MockProtocol, @unchecked Senda
     private let lock = NSLock()
     private var _invocations: [String: [Any]] = [:]
     private var _stubbedResults: [String: Any] = [:]
-    
+
     var invocations: [String: [Any]] {
         get {
             lock.lock()
@@ -19,7 +19,7 @@ final class MockUserService: UserServiceProtocol, MockProtocol, @unchecked Senda
             _invocations = newValue
         }
     }
-    
+
     var stubbedResults: [String: Any] {
         get {
             lock.lock()

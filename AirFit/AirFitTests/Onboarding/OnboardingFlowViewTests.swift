@@ -67,7 +67,7 @@ final class OnboardingFlowViewTests: XCTestCase {
             .lifeSnapshot, .coreAspiration, .coachingStyle,
             .engagementPreferences, .sleepAndBoundaries, .motivationalAccents
         ]
-        
+
         for screen in screensWithProgress {
             let shouldShow = shouldShowProgressBar(for: screen)
             XCTAssertTrue(shouldShow, "Progress bar should show for \(screen)")
@@ -79,7 +79,7 @@ final class OnboardingFlowViewTests: XCTestCase {
         let screensWithoutProgress: [OnboardingScreen] = [
             .openingScreen, .generatingCoach, .coachProfileReady
         ]
-        
+
         for screen in screensWithoutProgress {
             let shouldShow = shouldShowProgressBar(for: screen)
             XCTAssertFalse(shouldShow, "Progress bar should hide for \(screen)")
@@ -101,7 +101,7 @@ final class OnboardingFlowViewTests: XCTestCase {
             .generatingCoach: 0.0,      // Not in main steps
             .coachProfileReady: 0.0     // Not in main steps
         ]
-        
+
         for (screen, expected) in expectedProgress {
             let actual = screen.progress
             XCTAssertEqual(actual, expected, accuracy: 0.001, "Progress for \(screen) should be \(expected)")
@@ -114,7 +114,7 @@ final class OnboardingFlowViewTests: XCTestCase {
             .openingScreen, .lifeSnapshot, .coreAspiration, .coachingStyle,
             .engagementPreferences, .sleepAndBoundaries, .motivationalAccents
         ]
-        
+
         for screen in screensWithPrivacy {
             let shouldShow = shouldShowPrivacyFooter(for: screen)
             XCTAssertTrue(shouldShow, "Privacy footer should show for \(screen)")
@@ -125,7 +125,7 @@ final class OnboardingFlowViewTests: XCTestCase {
         let screensWithoutPrivacy: [OnboardingScreen] = [
             .generatingCoach, .coachProfileReady
         ]
-        
+
         for screen in screensWithoutPrivacy {
             let shouldShow = shouldShowPrivacyFooter(for: screen)
             XCTAssertFalse(shouldShow, "Privacy footer should hide for \(screen)")
@@ -173,7 +173,7 @@ final class OnboardingFlowViewTests: XCTestCase {
         // Verify all onboarding screens are handled in the switch statement
         let allScreens = OnboardingScreen.allCases
         XCTAssertEqual(allScreens.count, 9, "Should have exactly 9 onboarding screens")
-        
+
         // Verify specific screens exist
         XCTAssertTrue(allScreens.contains(.openingScreen))
         XCTAssertTrue(allScreens.contains(.lifeSnapshot))
@@ -194,7 +194,7 @@ final class OnboardingFlowViewTests: XCTestCase {
             onboardingService: mockOnboardingService,
             modelContext: context
         )
-        
+
         // Act
         let view = OnboardingFlowView(
             aiService: mockAIService,
@@ -210,19 +210,19 @@ final class OnboardingFlowViewTests: XCTestCase {
         // Arrange
         var completionCalled = false
         let expectation = XCTestExpectation(description: "Completion callback")
-        
+
         let completion = {
             completionCalled = true
             expectation.fulfill()
         }
-        
+
         // Create a view with completion callback
         let view = OnboardingFlowView(
             aiService: mockAIService,
             onboardingService: mockOnboardingService,
             onCompletion: completion
         )
-        
+
         // This test verifies the callback mechanism exists
         // Full integration testing is done in UI tests
         XCTAssertNotNil(view)
@@ -234,7 +234,7 @@ final class OnboardingFlowViewTests: XCTestCase {
                screen != .generatingCoach &&
                screen != .coachProfileReady
     }
-    
+
     private func shouldShowPrivacyFooter(for screen: OnboardingScreen) -> Bool {
         return screen != .generatingCoach &&
                screen != .coachProfileReady
@@ -244,21 +244,21 @@ final class OnboardingFlowViewTests: XCTestCase {
 // MARK: - StepProgressBar Tests
 @MainActor
 final class StepProgressBarTests: XCTestCase {
-    
+
     func test_progressBar_segmentCount_shouldBeSeven() {
         let expectedSegments = 7
         XCTAssertEqual(expectedSegments, 7, "Progress bar should have 7 segments")
     }
-    
+
     func test_progressBar_segmentColor_shouldBeCorrect() {
         let progress = 0.5 // 50% progress
         let segments = 7
-        
+
         // Test segment colors based on progress
         for index in 0..<segments {
             let segmentProgress = Double(index) / Double(segments - 1)
             let shouldBeActive = progress >= segmentProgress
-            
+
             if shouldBeActive {
                 // Should use accent color
                 XCTAssertTrue(true, "Segment \(index) should be active")
@@ -268,7 +268,7 @@ final class StepProgressBarTests: XCTestCase {
             }
         }
     }
-    
+
     func test_progressBar_accessibility_shouldProvideCorrectValue() {
         let progress = 0.75
         let expectedValue = "\(Int(progress * 100))% complete"
@@ -279,20 +279,20 @@ final class StepProgressBarTests: XCTestCase {
 // MARK: - PrivacyFooter Tests
 @MainActor
 final class PrivacyFooterTests: XCTestCase {
-    
+
     func test_privacyFooter_shouldHaveCorrectText() {
         let expectedText = "Privacy & Data"
         XCTAssertEqual(expectedText, "Privacy & Data")
     }
-    
+
     func test_privacyFooter_shouldHaveAccessibilityIdentifier() {
         let expectedIdentifier = "onboarding.privacy"
         XCTAssertEqual(expectedIdentifier, "onboarding.privacy")
     }
-    
+
     func test_privacyFooter_shouldLogWhenTapped() {
         // This test verifies that tapping the privacy footer logs the action
         // The actual logging is tested through AppLogger tests
         XCTAssertTrue(true, "Privacy footer tap logging is verified")
     }
-} 
+}

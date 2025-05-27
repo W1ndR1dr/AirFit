@@ -50,12 +50,9 @@ struct GeneratingCoachView: View {
                 await MainActor.run { currentStep = step }
             }
 
-            do {
-                try await viewModel.completeOnboarding()
-                viewModel.navigateToNextScreen()
-            } catch {
-                // error is handled inside viewModel
-            }
+            // Just navigate to the next screen (CoachProfileReady)
+            // The actual completion will happen when user taps "Begin Coach" button
+            viewModel.navigateToNextScreen()
         }
     }
 }

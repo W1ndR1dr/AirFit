@@ -50,6 +50,7 @@ struct EngagementPreferencesView: View {
                 nextAction: handleNext
             )
         }
+        .accessibilityElement(children: .contain)
         .accessibilityIdentifier("onboarding.engagementPreferences")
     }
 
