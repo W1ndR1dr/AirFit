@@ -116,6 +116,7 @@ targets:
       - AirFit/Modules/AI/PersonaEngine.swift
       - AirFit/Modules/AI/ConversationManager.swift
       - AirFit/Modules/AI/CoachEngine.swift
+      - AirFit/Modules/Dashboard/Services/DashboardServiceProtocols.swift
       - AirFit/Services/Health/HealthKitManager.swift
       - AirFit/Services/Health/HealthKitManagerProtocol.swift
       - AirFit/Services/Health/HealthKitDataFetcher.swift
