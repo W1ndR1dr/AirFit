@@ -2,6 +2,9 @@
 
 ## Sandboxed Environment Notice
 - This agent runs in an isolated container without network access
+- **NO XCODE AVAILABLE**: Cannot run xcodebuild, xcodegen, swiftlint, or any Xcode commands
+- **NO BUILD/TEST CAPABILITY**: Cannot compile, build, or run tests - these will be handled at checkpoints
+- Swift compiler available for syntax validation only
 - All project documentation is available locally in /AirFit/Docs/
 - Research reports and analysis are stored in /AirFit/Docs/Research Reports/
 - New research reports may be added during development
@@ -17,84 +20,44 @@ When external information is needed:
 3. Example filename: `REQUEST_HealthKitAPI.md`
 4. Check for response in: `RESPONSE_[Topic].md`
 
-## Environment Requirements
-- Xcode 16.0+ with iOS 18.0 SDK
-- Swift 6.0+ with strict concurrency
-- SwiftLint 0.54.0+ 
-- macOS 15.0+ (Sequoia)
-- iPhone 16 Pro Simulator with iOS 18.4 (REQUIRED for builds/tests)
+## Environment Limitations (Sandboxed Agent)
+- **NO XCODE**: Xcode is not available in this sandboxed environment
+- **NO BUILD TOOLS**: Cannot run xcodebuild, xcodegen, swiftlint, or simulators
+- **SWIFT ONLY**: Swift compiler available for basic syntax validation
+- **CODE CREATION ONLY**: Focus on writing Swift code, updating project.yml, and documentation
+- **BUILD/TEST AT CHECKPOINTS**: All compilation, testing, and verification handled externally
 
-## Environment Setup Script
-run: |
-  # Install SwiftLint if not present
-  if ! command -v swiftlint &> /dev/null; then
-    brew install swiftlint || mint install realm/SwiftLint
-  fi
-  
-  # Verify Xcode version
-  xcodebuild -version | grep -E "Xcode 16" || echo "ERROR: Xcode 16+ required for iOS 18 SDK"
-  
-  # Verify Swift version
-  swift --version | grep -E "Swift version 6" || echo "ERROR: Swift 6+ required"
-  
-  # Install xcbeautify for readable test output (optional)
-  if ! command -v xcbeautify &> /dev/null; then
-    brew install xcbeautify
-  fi
-  
-  # Verify iOS 18 SDK
-  xcodebuild -showsdks | grep -E "iOS 18" || echo "ERROR: iOS 18 SDK not found"
+## Agent Capabilities (Sandboxed Environment)
+**WHAT YOU CAN DO:**
+- Write Swift code with proper syntax
+- Create and edit files in the project structure
+- Update project.yml file configuration
+- Read and analyze existing code
+- Create comprehensive documentation
+- Design architecture and patterns
 
-## Build Commands
-**IMPORTANT**: Always use iOS 18.4 simulator for builds and tests
-```bash
-swiftlint --strict
-xcodebuild -scheme "AirFit" -destination 'platform=iOS Simulator,name=iPhone 16 Pro,OS=18.4' clean build
-xcodebuild -scheme "AirFit" -destination 'platform=iOS Simulator,name=iPhone 16 Pro,OS=18.4' test
-```
+**WHAT YOU CANNOT DO:**
+- Run xcodebuild, xcodegen, or swiftlint commands
+- Compile or build the project
+- Run tests or simulators
+- Install packages or dependencies
+- Verify builds work (handled at checkpoints)
 
-## Test Commands
-```bash
-# Module 0 - Testing Foundation
-xcodebuild test -scheme "AirFit" -destination 'platform=iOS Simulator,name=iPhone 16 Pro,OS=18.4' -only-testing:AirFitTests/TestingFoundationTests
+## Build & Test Commands (NOT AVAILABLE IN SANDBOX)
+**⚠️ IMPORTANT**: This sandboxed agent CANNOT run these commands. They are provided for reference only.
 
-# Module 1 - Core Setup
-xcodebuild test -scheme "AirFit" -destination 'platform=iOS Simulator,name=iPhone 16 Pro,OS=18.4' -only-testing:AirFitTests/CoreSetupTests
+**Build/test verification happens at checkpoints where a local agent with Xcode will:**
+- Run `swiftlint --strict` for code quality
+- Execute `xcodebuild` commands for compilation
+- Run `xcodegen generate` to update project files
+- Execute all test suites to verify functionality
 
-# Module 2 - Data Layer
-xcodebuild test -scheme "AirFit" -destination 'platform=iOS Simulator,name=iPhone 16 Pro,OS=18.4' -only-testing:AirFitTests/DataLayerTests
-
-# Module 3 - Onboarding
-xcodebuild test -scheme "AirFit" -destination 'platform=iOS Simulator,name=iPhone 16 Pro,OS=18.4' -only-testing:AirFitTests/OnboardingViewModelTests
-xcodebuild test -scheme "AirFit" -destination 'platform=iOS Simulator,name=iPhone 16 Pro,OS=18.4' -only-testing:AirFitUITests/OnboardingFlowUITests
-
-# Module 4 - Dashboard
-xcodebuild test -scheme "AirFit" -destination 'platform=iOS Simulator,name=iPhone 16 Pro,OS=18.4' -only-testing:AirFitTests/DashboardTests
-
-# Module 5 - Meal Logging
-xcodebuild test -scheme "AirFit" -destination 'platform=iOS Simulator,name=iPhone 16 Pro,OS=18.4' -only-testing:AirFitTests/MealLoggingTests
-
-# Module 6 - Progress Tracking
-xcodebuild test -scheme "AirFit" -destination 'platform=iOS Simulator,name=iPhone 16 Pro,OS=18.4' -only-testing:AirFitTests/ProgressTrackingTests
-
-# Module 7 - Settings
-xcodebuild test -scheme "AirFit" -destination 'platform=iOS Simulator,name=iPhone 16 Pro,OS=18.4' -only-testing:AirFitTests/SettingsTests
-
-# Module 8 - Meal Discovery
-xcodebuild test -scheme "AirFit" -destination 'platform=iOS Simulator,name=iPhone 16 Pro,OS=18.4' -only-testing:AirFitTests/MealDiscoveryTests
-
-# Module 9 - AI Coach
-xcodebuild test -scheme "AirFit" -destination 'platform=iOS Simulator,name=iPhone 16 Pro,OS=18.4' -only-testing:AirFitTests/AICoachTests
-
-# Module 10 - Health Integration
-xcodebuild test -scheme "AirFit" -destination 'platform=iOS Simulator,name=iPhone 16 Pro,OS=18.4' -only-testing:AirFitTests/HealthIntegrationTests
-
-# Module 11 - Notifications
-xcodebuild test -scheme "AirFit" -destination 'platform=iOS Simulator,name=iPhone 16 Pro,OS=18.4' -only-testing:AirFitTests/NotificationTests
-
-# Module 12 - Integration
-xcodebuild test -scheme "AirFit" -destination 'platform=iOS Simulator,name=iPhone 16 Pro,OS=18.4' -only-testing:AirFitUITests/IntegrationTests
-```
+**Your job as sandboxed agent:**
+- Write the Swift code
+- Update project.yml with new files
+- Create comprehensive tests (code only)
+- Document your implementation
+- Leave build/test verification for checkpoint validation
 
 ## Project Structure
 ```
@@ -275,56 +238,37 @@ final class OnboardingCoordinator: ObservableObject {
 
 
 
-## Post-Implementation Checklist
+## Post-Implementation Checklist (Sandboxed Agent)
 
-### 1. **File Inclusion Verification** (CRITICAL)
-```bash
-# Check ALL new files are included in project
-find AirFit/Modules/YourModule -name "*.swift" | while read file; do
-  filename=$(basename "$file")
-  count=$(grep -c "$filename" AirFit.xcodeproj/project.pbxproj)
-  echo "$filename: $count"
-  if [ $count -eq 0 ]; then echo "❌ MISSING: $file"; fi
-done
+### 1. **Code Creation Verification** ✅ YOU CAN DO
+- [ ] All Swift files created with proper syntax
+- [ ] All test files written (code only, no execution)
+- [ ] project.yml updated with new file entries
+- [ ] Documentation updated
+- [ ] Code follows Swift 6 and iOS 18 patterns
 
-# Check test files
-find AirFit/AirFitTests/YourModule -name "*.swift" | while read file; do
-  filename=$(basename "$file")
-  count=$(grep -c "$filename" AirFit.xcodeproj/project.pbxproj)
-  echo "$filename: $count"
-  if [ $count -eq 0 ]; then echo "❌ MISSING: $file"; fi
-done
-```
+### 2. **File Structure Verification** ✅ YOU CAN DO
+- [ ] Files placed in correct module directories
+- [ ] Naming conventions followed
+- [ ] Import statements correct
+- [ ] Protocol conformances implemented
 
-### 2. **Build Verification**
-```bash
-# Clean build to verify all files compile
-xcodebuild clean build -scheme "AirFit" -destination 'platform=iOS Simulator,name=iPhone 16 Pro' -quiet
-echo "✅ Build Status: $?"
-```
+### 3. **Checkpoint Handoff** ⚠️ FOR LOCAL AGENT
+**The following will be verified at checkpoint by local agent with Xcode:**
+- [ ] XcodeGen project regeneration
+- [ ] SwiftLint compliance check
+- [ ] Clean build verification
+- [ ] Test suite execution
+- [ ] Performance validation
+- [ ] Git commit and push
 
-### 3. **Test Coverage Verification**
-```bash
-# Run module-specific tests
-xcodebuild test -scheme "AirFit" -destination 'platform=iOS Simulator,name=iPhone 16 Pro' -only-testing:AirFitTests/YourModuleTests
-```
-
-### 4. **Code Quality**
-```bash
-# SwiftLint check
-swiftlint --strict
-```
-
-### 5. **Final Commit**
-```bash
-git add .
-git commit -m "Feat: Add Module X with comprehensive test coverage
-
-- Implemented YourModule with N files
-- Added comprehensive test suite (X tests)
-- Verified XcodeGen file inclusion
-- All builds and tests passing"
-```
+### 4. **Your Deliverables Summary**
+When handing off to checkpoint, provide:
+- List of all files created/modified
+- project.yml changes made
+- Brief description of implementation
+- Any known issues or considerations
+- Test coverage summary (theoretical)
 
 ## XcodeGen File Inclusion Schema
 
@@ -370,29 +314,26 @@ sources:
 **Root Cause**: XcodeGen doesn't properly expand globs in nested module structures  
 **Solution**: Explicitly list ALL files in nested directories
 
-### File Addition Workflow
+### File Addition Workflow (Sandboxed Agent)
 
 #### For Main App Files:
-```bash
-# 1. Create file in appropriate directory
-# 2. Add to project.yml under AirFit target sources
-# 3. Regenerate project
-xcodegen generate
-# 4. Verify inclusion
-grep -c "YourFileName" AirFit.xcodeproj/project.pbxproj
-```
+1. ✅ Create file in appropriate directory
+2. ✅ Add to project.yml under AirFit target sources
+3. ⚠️ **CHECKPOINT**: Regenerate project (`xcodegen generate`)
+4. ⚠️ **CHECKPOINT**: Verify inclusion in project.pbxproj
 
 #### For Test Files:
-```bash
-# 1. Create test file in AirFit/AirFitTests/
-# 2. Add to project.yml under AirFitTests target sources  
-# 3. Regenerate project
-xcodegen generate
-# 4. Verify inclusion
-grep -c "YourTestFile" AirFit.xcodeproj/project.pbxproj
-```
+1. ✅ Create test file in AirFit/AirFitTests/
+2. ✅ Add to project.yml under AirFitTests target sources  
+3. ⚠️ **CHECKPOINT**: Regenerate project (`xcodegen generate`)
+4. ⚠️ **CHECKPOINT**: Verify inclusion in project.pbxproj
 
-### Verification Commands
+**Your Role**: Create files and update project.yml  
+**Checkpoint Role**: Run xcodegen and verify inclusion
+
+### Verification Commands (CHECKPOINT ONLY)
+**⚠️ These commands are NOT available in sandbox - for checkpoint reference only:**
+
 ```bash
 # Check if file is included in project
 grep -c "FileName" AirFit.xcodeproj/project.pbxproj
@@ -403,6 +344,8 @@ grep -c "FileName" AirFit.xcodeproj/project.pbxproj
 # Verify build includes your files
 xcodebuild clean build 2>&1 | grep "YourFileName"
 ```
+
+**Sandboxed Agent**: Focus on creating files and updating project.yml correctly
 
 ### Module File Template
 ```yaml
