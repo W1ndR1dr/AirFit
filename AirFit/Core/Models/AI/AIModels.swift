@@ -78,6 +78,48 @@ struct AIParameterDefinition: Codable, Sendable {
         case enumValues = "enum"
         case minimum, maximum, items
     }
+    
+    // MARK: - Convenience Initializers
+    
+    /// String parameter with enum values
+    init(type: String, description: String, enumValues: [String]) {
+        self.type = type
+        self.description = description
+        self.enumValues = enumValues
+        self.minimum = nil
+        self.maximum = nil
+        self.items = nil
+    }
+    
+    /// Numeric parameter with min/max constraints
+    init(type: String, description: String, minimum: Double? = nil, maximum: Double? = nil) {
+        self.type = type
+        self.description = description
+        self.enumValues = nil
+        self.minimum = minimum
+        self.maximum = maximum
+        self.items = nil
+    }
+    
+    /// Array parameter with item definition
+    init(type: String, description: String, items: AIBox<AIParameterDefinition>) {
+        self.type = type
+        self.description = description
+        self.enumValues = nil
+        self.minimum = nil
+        self.maximum = nil
+        self.items = items
+    }
+    
+    /// Simple parameter (string, boolean, etc.)
+    init(type: String, description: String) {
+        self.type = type
+        self.description = description
+        self.enumValues = nil
+        self.minimum = nil
+        self.maximum = nil
+        self.items = nil
+    }
 }
 
 /// Box type to handle recursive definitions.
