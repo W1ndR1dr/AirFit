@@ -79,6 +79,7 @@
 		8B0D40268EF0D207AD734040 /* WorkoutTemplate.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9665021F32CB629A919F14E2 /* WorkoutTemplate.swift */; };
 		8C505A52BE1FA72500122C61 /* OnboardingServiceTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = A9ECE252B9153A6519353069 /* OnboardingServiceTests.swift */; };
 		8D7B16837E55FA584AEBA391 /* OnboardingViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = D034E754F977D1168023FACC /* OnboardingViewModel.swift */; };
+		8E4E4B24C2992A72D967FC42 /* DashboardViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = FB0C5CFB2B6D26B205D99D92 /* DashboardViewModel.swift */; };
 		92514684DF716E57E8971FA0 /* LifeSnapshotView.swift in Sources */ = {isa = PBXBuildFile; fileRef = CE35AE50F4AFC382F0D35E2E /* LifeSnapshotView.swift */; };
 		948AA201BEE40CAA6B598B4C /* SleepAndBoundariesView.swift in Sources */ = {isa = PBXBuildFile; fileRef = BA09EC9A4C1718C4CA8CB07E /* SleepAndBoundariesView.swift */; };
 		94F14A4579096B0AF49B8C68 /* OnboardingService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 87A2008F2F237E9BB08A1D7B /* OnboardingService.swift */; };
@@ -88,6 +89,7 @@
 		986422811782A39E4B584D48 /* PersonaEngineTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 58296DE7F4726AD43BBD29EA /* PersonaEngineTests.swift */; };
 		98CEA52D85B4B458A1D614CA /* MockOnboardingService.swift in Sources */ = {isa = PBXBuildFile; fileRef = F12B964391AE27C0CBA30019 /* MockOnboardingService.swift */; };
 		9A772945D713C867DC3AD9D2 /* AppState.swift in Sources */ = {isa = PBXBuildFile; fileRef = 87D9DCBAAE9D9E230C5D971C /* AppState.swift */; };
+		9C0C2D0D419AEE0B2EAAE49C /* DashboardServiceProtocols.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6C2FD6DF93BDCECE0011E41A /* DashboardServiceProtocols.swift */; };
 		9CF43B730B8F9D7BBE1549B1 /* AirFitUITestsLaunchTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 470604C2DB06191DC618545C /* AirFitUITestsLaunchTests.swift */; };
 		9ECD86471BE77AEFCC164074 /* HealthKitSleepAnalyzer.swift in Sources */ = {isa = PBXBuildFile; fileRef = C2CC530C34C2DB2CE6C6E77C /* HealthKitSleepAnalyzer.swift */; };
 		9F220856A90622AF0180E2D1 /* AppColors.swift in Sources */ = {isa = PBXBuildFile; fileRef = 61523807ACE0F0192BC7798B /* AppColors.swift */; };
@@ -207,6 +209,7 @@
 		65EF2CDF39696231B08EA46B /* AIAPIServiceProtocol.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AIAPIServiceProtocol.swift; sourceTree = "<group>"; };
 		6AEFADAACBD1C231D7ED8111 /* String+Extensions.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "String+Extensions.swift"; sourceTree = "<group>"; };
 		6B5B44CB905C370996E334AF /* GeneratingCoachView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GeneratingCoachView.swift; sourceTree = "<group>"; };
+		6C2FD6DF93BDCECE0011E41A /* DashboardServiceProtocols.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DashboardServiceProtocols.swift; sourceTree = "<group>"; };
 		6CC4FB439083905900F07712 /* NotificationManagerProtocol.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NotificationManagerProtocol.swift; sourceTree = "<group>"; };
 		6F2DABC5FF1E845ED62D28A0 /* AppConstants.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppConstants.swift; sourceTree = "<group>"; };
 		70B9E096AC933ECEC37D1C05 /* Validators.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Validators.swift; sourceTree = "<group>"; };
@@ -288,6 +291,7 @@
 		F8FE4AA437BF7E8760FDD060 /* FetchDescriptor+Extensions.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "FetchDescriptor+Extensions.swift"; sourceTree = "<group>"; };
 		FA4AE2B55D473F4B1B1B2DA9 /* ConversationManagerPerformanceTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ConversationManagerPerformanceTests.swift; sourceTree = "<group>"; };
 		FAB56C9FE1E6CEEED6C5F853 /* ContextAssembler.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ContextAssembler.swift; sourceTree = "<group>"; };
+		FB0C5CFB2B6D26B205D99D92 /* DashboardViewModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DashboardViewModel.swift; sourceTree = "<group>"; };
 		FDEF46C6D05DEDE5C3992963 /* MockAPIKeyManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MockAPIKeyManager.swift; sourceTree = "<group>"; };
 		FE29E24BE41767275867DD62 /* CoachMessage.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CoachMessage.swift; sourceTree = "<group>"; };
 		FF1C407359CC4940E6D54940 /* Exercise.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Exercise.swift; sourceTree = "<group>"; };
@@ -488,11 +492,13 @@
 				DBA55A4D6F1BB1BBA19AE61A /* Protocols */,
 				9EFA5F3878ACE9D07680808E /* Security */,
 				FB90D6BAA9744B018970C7AC /* Services */,
+				7EBA3C6362126C73E94AEB60 /* Services */,
 				2D987E19E978AA5CC65E9E19 /* Speech */,
 				D5C1503314914D8B9B9A5E8A /* Theme */,
 				1514543086880BC53AB541B6 /* User */,
 				591B8C60EB383F16560782DA /* Utilities */,
 				91440024805E04B92D528559 /* ViewModels */,
+				77A68D8C23F4EF272473A2B7 /* ViewModels */,
 				9F859BC4B26AFC9BE9C6F661 /* Views */,
 				0E6E81B49776213CFB996FB6 /* Views */,
 				8726EB0B227738D2959722FE /* Products */,
@@ -532,6 +538,25 @@
 			path = Data;
 			sourceTree = "<group>";
 		};
+		77A68D8C23F4EF272473A2B7 /* ViewModels */ = {
+			isa = PBXGroup;
+			children = (
+				D034E754F977D1168023FACC /* OnboardingViewModel.swift */,
+			);
+			name = ViewModels;
+			path = AirFit/Modules/Onboarding/ViewModels;
+			sourceTree = "<group>";
+		};
+		7EBA3C6362126C73E94AEB60 /* Services */ = {
+			isa = PBXGroup;
+			children = (
+				87A2008F2F237E9BB08A1D7B /* OnboardingService.swift */,
+				B606821EE3B9B5C216280A55 /* OnboardingServiceProtocol.swift */,
+			);
+			name = Services;
+			path = AirFit/Modules/Onboarding/Services;
+			sourceTree = "<group>";
+		};
 		7EC47958BAA1D02BB0AE38DA /* AirFitTests */ = {
 			isa = PBXGroup;
 			children = (
@@ -568,10 +593,10 @@
 		91440024805E04B92D528559 /* ViewModels */ = {
 			isa = PBXGroup;
 			children = (
-				D034E754F977D1168023FACC /* OnboardingViewModel.swift */,
+				FB0C5CFB2B6D26B205D99D92 /* DashboardViewModel.swift */,
 			);
 			name = ViewModels;
-			path = AirFit/Modules/Onboarding/ViewModels;
+			path = AirFit/Modules/Dashboard/ViewModels;
 			sourceTree = "<group>";
 		};
 		9EFA5F3878ACE9D07680808E /* Security */ = {
@@ -810,11 +835,10 @@
 		FB90D6BAA9744B018970C7AC /* Services */ = {
 			isa = PBXGroup;
 			children = (
-				87A2008F2F237E9BB08A1D7B /* OnboardingService.swift */,
-				B606821EE3B9B5C216280A55 /* OnboardingServiceProtocol.swift */,
+				6C2FD6DF93BDCECE0011E41A /* DashboardServiceProtocols.swift */,
 			);
 			name = Services;
-			path = AirFit/Modules/Onboarding/Services;
+			path = AirFit/Modules/Dashboard/Services;
 			sourceTree = "<group>";
 		};
 		FC7F3621D027D459D2F2CA77 /* Enums */ = {
@@ -1002,6 +1026,8 @@
 				BB09F7D81FC3AAD62E7EB08F /* ConversationManager.swift in Sources */,
 				B3EA25EBA46BB94A7671C722 /* CoreAspirationView.swift in Sources */,
 				7F2C8518EB202D2635C6D72D /* DailyLog.swift in Sources */,
+				9C0C2D0D419AEE0B2EAAE49C /* DashboardServiceProtocols.swift in Sources */,
+				8E4E4B24C2992A72D967FC42 /* DashboardViewModel.swift in Sources */,
 				E69563762FC4C749E9D5197D /* DataManager.swift in Sources */,
 				683FC7A788BF5212A0564391 /* Date+Extensions.swift in Sources */,
 				13F220517908591DDF7FA536 /* DependencyContainer.swift in Sources */,
