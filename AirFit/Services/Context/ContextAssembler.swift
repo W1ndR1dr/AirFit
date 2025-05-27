@@ -18,27 +18,39 @@ final class ContextAssembler {
         async let heartMetrics = fetchHeartHealthMetrics()
         async let bodyMetrics = fetchBodyMetrics()
         async let sleepSession = fetchSleepSession()
-        async let subjectiveData = fetchSubjectiveData(using: modelContext)
 
-        let environment = EnvironmentContext() // Placeholder for future WeatherService
-        let appContext = AppSpecificContext()  // Placeholder for future app specific data
+        // Subjective data does not need to block concurrent HealthKit fetches
+        async let subjective = fetchSubjectiveData(using: modelContext)
 
-        let (activity, heartHealth, body, sleep, subjective) = await (
+        // Mock data until services are implemented
+        let environment = createMockEnvironmentContext()
+        let appContext = await createMockAppContext(using: modelContext)
+
+        // Await all HealthKit calls
+        let (activity, heartHealth, body, sleep, subjectiveData) = await (
             activityMetrics,
             heartMetrics,
             bodyMetrics,
             sleepSession,
-            subjectiveData
+            subjective
+        )
+
+        let trends = calculateTrends(
+            activity: activity,
+            body: body,
+            sleep: sleep,
+            context: modelContext
         )
 
         return HealthContextSnapshot(
-            subjectiveData: subjective,
+            subjectiveData: subjectiveData,
             environment: environment,
             activity: activity ?? ActivityMetrics(),
             sleep: SleepAnalysis(lastNight: sleep),
             heartHealth: heartHealth ?? HeartHealthMetrics(),
             body: body ?? BodyMetrics(),
-            appContext: appContext
+            appContext: appContext,
+            trends: trends
         )
     }
 
@@ -102,5 +114,100 @@ final class ContextAssembler {
             AppLogger.error("Failed to fetch today's DailyLog", error: error, category: .data)
         }
         return SubjectiveData()
+    }
+
+    private func createMockEnvironmentContext() -> EnvironmentContext {
+        EnvironmentContext(
+            weatherCondition: "Clear",
+            temperature: Measurement(value: 21, unit: .celsius),
+            humidity: 55,
+            airQualityIndex: 42,
+            timeOfDay: .init(from: Date())
+        )
+    }
+
+    private func createMockAppContext(using context: ModelContext) async -> AppSpecificContext {
+        var lastMealTime: Date?
+        var lastMealSummary: String?
+        var activeWorkoutName: String?
+        var upcomingWorkout: String?
+
+        do {
+            var mealDescriptor = FetchDescriptor<FoodEntry>(
+                sortBy: [SortDescriptor(\.loggedAt, order: .reverse)]
+            )
+            mealDescriptor.fetchLimit = 1
+            if let meal = try context.fetch(mealDescriptor).first {
+                lastMealTime = meal.loggedAt
+                let itemCount = meal.items.count
+                let mealName = meal.mealTypeEnum?.displayName ?? "Meal"
+                lastMealSummary = "\(mealName), \(itemCount) item\(itemCount == 1 ? "" : "s")"
+            }
+
+            var upcomingDescriptor = FetchDescriptor<Workout>(
+                predicate: #Predicate<Workout> { workout in
+                    workout.completedDate == nil && workout.plannedDate != nil && workout.plannedDate! > Date()
+                },
+                sortBy: [SortDescriptor(\.plannedDate, order: .forward)]
+            )
+            upcomingDescriptor.fetchLimit = 1
+            if let nextWorkout = try context.fetch(upcomingDescriptor).first {
+                upcomingWorkout = nextWorkout.name
+            }
+
+            var activeDescriptor = FetchDescriptor<Workout>(
+                predicate: #Predicate<Workout> { workout in
+                    workout.completedDate == nil && workout.plannedDate != nil && workout.plannedDate! <= Date()
+                },
+                sortBy: [SortDescriptor(\.plannedDate, order: .reverse)]
+            )
+            activeDescriptor.fetchLimit = 1
+            if let active = try context.fetch(activeDescriptor).first {
+                activeWorkoutName = active.name
+            }
+        } catch {
+            AppLogger.error("Failed to assemble app context", error: error, category: .data)
+        }
+
+        return AppSpecificContext(
+            activeWorkoutName: activeWorkoutName,
+            lastMealTime: lastMealTime,
+            lastMealSummary: lastMealSummary,
+            waterIntakeToday: nil,
+            lastCoachInteraction: nil,
+            upcomingWorkout: upcomingWorkout,
+            currentStreak: nil
+        )
+    }
+
+    private func calculateTrends(
+        activity: ActivityMetrics?,
+        body: BodyMetrics?,
+        sleep: SleepAnalysis.SleepSession?,
+        context: ModelContext
+    ) -> HealthTrends {
+        var weeklyChange: Double?
+
+        do {
+            var descriptor = FetchDescriptor<DailyLog>(
+                sortBy: [SortDescriptor(\.date, order: .reverse)]
+            )
+            descriptor.fetchLimit = 14
+            let logs = try context.fetch(descriptor)
+            let recent = logs.prefix(7).compactMap(\.steps)
+            let previous = logs.dropFirst(7).prefix(7).compactMap(\.steps)
+
+            if !recent.isEmpty, !previous.isEmpty {
+                let recentAvg = Double(recent.reduce(0, +)) / Double(recent.count)
+                let previousAvg = Double(previous.reduce(0, +)) / Double(previous.count)
+                if previousAvg > 0 {
+                    weeklyChange = ((recentAvg - previousAvg) / previousAvg) * 100
+                }
+            }
+        } catch {
+            AppLogger.error("Failed to calculate trends", error: error, category: .data)
+        }
+
+        return HealthTrends(weeklyActivityChange: weeklyChange)
     }
 }
