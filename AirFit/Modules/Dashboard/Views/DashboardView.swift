@@ -1,174 +1,271 @@
 import SwiftUI
+import SwiftData
 
-/// Main dashboard view shown after onboarding completion
+/// Main dashboard container view using adaptive grid layout.
 struct DashboardView: View {
-    @Environment(\.modelContext)
-    private var modelContext
-    @State private var user: User?
+    @Environment(\.modelContext) private var modelContext
+    @State private var viewModel: DashboardViewModel
+    @StateObject private var coordinator: DashboardCoordinator
+    @State private var hasAppeared = false
+
+    private let columns: [GridItem] = [
+        GridItem(.adaptive(minimum: 180), spacing: AppSpacing.medium)
+    ]
+
+    // MARK: - Initializers
+    init(viewModel: DashboardViewModel) {
+        _viewModel = State(initialValue: viewModel)
+        _coordinator = StateObject(wrappedValue: DashboardCoordinator())
+    }
+
+    init(user: User) {
+        let context = DependencyContainer.shared.makeModelContext() ?? {
+            let container = try! ModelContainer(
+                for: User.self,
+                configurations: ModelConfiguration(isStoredInMemoryOnly: true)
+            )
+            return ModelContext(container)
+        }()
+        let vm = DashboardViewModel(
+            user: user,
+            modelContext: context,
+            healthKitService: PlaceholderHealthKitService(),
+            aiCoachService: PlaceholderAICoachService(),
+            nutritionService: PlaceholderNutritionService()
+        )
+        _viewModel = State(initialValue: vm)
+        _coordinator = StateObject(wrappedValue: DashboardCoordinator())
+    }
 
     var body: some View {
-        NavigationStack {
+        NavigationStack(path: $coordinator.path) {
             ScrollView {
-                VStack(spacing: AppConstants.Spacing.large) {
-                    // Welcome Header
-                    VStack(spacing: AppConstants.Spacing.medium) {
-                        Text("Welcome to AirFit!")
-                            .font(AppFonts.title)
-                            .foregroundColor(AppColors.textPrimary)
-
-                        if let userName = user?.name {
-                            Text("Hello, \(userName)")
-                                .font(AppFonts.headline)
-                                .foregroundColor(AppColors.textSecondary)
-                        }
-
-                        Text("Your personalized AI coach is ready")
-                            .font(AppFonts.body)
-                            .foregroundColor(AppColors.textTertiary)
-                            .multilineTextAlignment(.center)
-                    }
-                    .padding(.top, AppConstants.Spacing.large)
-
-                    // Quick Stats Card
-                    VStack(spacing: AppConstants.Spacing.medium) {
-                        HStack {
-                            Text("Your Journey")
-                                .font(AppFonts.headline)
-                                .foregroundColor(AppColors.textPrimary)
-                            Spacer()
-                        }
-
-                        HStack(spacing: AppConstants.Spacing.large) {
-                            StatCard(
-                                title: "Days Active",
-                                value: "\(user?.daysActive ?? 0)",
-                                color: AppColors.accentColor
-                            )
-
-                            StatCard(
-                                title: "Profile Complete",
-                                value: "✓",
-                                color: AppColors.successColor
-                            )
-                        }
-                    }
-                    .padding()
-                    .background(AppColors.cardBackground)
-                    .cornerRadius(AppConstants.CornerRadius.medium)
-
-                    // Coming Soon Section
-                    VStack(spacing: AppConstants.Spacing.medium) {
-                        Text("Coming Soon")
-                            .font(AppFonts.headline)
-                            .foregroundColor(AppColors.textPrimary)
-
-                        VStack(spacing: AppConstants.Spacing.small) {
-                            FeatureCard(
-                                icon: "chart.line.uptrend.xyaxis",
-                                title: "Progress Tracking",
-                                description: "Visualize your health journey"
-                            )
-
-                            FeatureCard(
-                                icon: "brain.head.profile",
-                                title: "AI Coach Chat",
-                                description: "Get personalized guidance"
-                            )
-
-                            FeatureCard(
-                                icon: "fork.knife",
-                                title: "Meal Logging",
-                                description: "Track your nutrition effortlessly"
-                            )
-                        }
-                    }
-
-                    Spacer(minLength: AppConstants.Spacing.large)
+                if viewModel.isLoading {
+                    loadingView
+                } else if let error = viewModel.error {
+                    errorView(error)
+                } else {
+                    dashboardContent
                 }
-                .padding(.horizontal)
             }
-            .background(AppColors.backgroundPrimary)
+            .contentMargins(.horizontal, AppSpacing.medium)
             .navigationTitle("Dashboard")
-            .navigationBarTitleDisplayMode(.large)
+            .refreshable { await viewModel.refreshDashboard() }
+            .navigationDestination(for: DashboardDestination.self) { destination in
+                destinationView(for: destination)
+            }
         }
         .task {
-            await loadUser()
+            guard !hasAppeared else { return }
+            hasAppeared = true
+            viewModel.onAppear()
         }
+        .onDisappear { viewModel.onDisappear() }
         .accessibilityIdentifier("dashboard.main")
     }
 
-    // MARK: - Private Methods
-    private func loadUser() async {
-        do {
-            let userDescriptor = FetchDescriptor<User>(
-                sortBy: [SortDescriptor(\.createdAt, order: .reverse)]
-            )
-            let users = try modelContext.fetch(userDescriptor)
-            user = users.first
-        } catch {
-            AppLogger.error("Failed to load user in dashboard", error: error, category: .app)
+    // MARK: - Subviews
+    private var loadingView: some View {
+        VStack(spacing: AppSpacing.large) {
+            ProgressView()
+                .controlSize(.large)
+                .tint(AppColors.accentColor)
+
+            Text("Loading dashboard…")
+                .font(AppFonts.body)
+                .foregroundColor(AppColors.textSecondary)
         }
+        .frame(maxWidth: .infinity, maxHeight: .infinity)
+        .padding(.top, 100)
+        .accessibilityIdentifier("dashboard.loading")
     }
-}
 
-// MARK: - Supporting Views
-private struct StatCard: View {
-    let title: String
-    let value: String
-    let color: Color
+    private func errorView(_ error: Error) -> some View {
+        VStack(spacing: AppSpacing.medium) {
+            Image(systemName: "exclamationmark.triangle")
+                .font(.largeTitle)
+                .foregroundColor(AppColors.errorColor)
 
-    var body: some View {
-        VStack(spacing: AppConstants.Spacing.small) {
-            Text(value)
-                .font(AppFonts.largeTitle)
-                .fontWeight(.bold)
-                .foregroundColor(color)
-
-            Text(title)
-                .font(AppFonts.caption)
+            Text(error.localizedDescription)
+                .font(AppFonts.body)
                 .foregroundColor(AppColors.textSecondary)
                 .multilineTextAlignment(.center)
+
+            Button("Retry") { viewModel.refreshDashboard() }
+                .buttonStyle(.borderedProminent)
         }
-        .frame(maxWidth: .infinity)
-        .padding()
-        .background(AppColors.backgroundSecondary)
-        .cornerRadius(AppConstants.CornerRadius.small)
+        .frame(maxWidth: .infinity, maxHeight: .infinity)
+        .padding(.top, 100)
+        .accessibilityIdentifier("dashboard.error")
+    }
+
+    private var dashboardContent: some View {
+        LazyVGrid(columns: columns, spacing: AppSpacing.medium) {
+            MorningGreetingCard(
+                greeting: viewModel.morningGreeting,
+                context: viewModel.greetingContext,
+                currentEnergy: viewModel.currentEnergyLevel,
+                onEnergyLog: { level in await viewModel.logEnergyLevel(level) }
+            )
+            NutritionCard(summary: viewModel.nutritionSummary, targets: viewModel.nutritionTargets)
+            RecoveryCard(score: viewModel.recoveryScore)
+            PerformanceCard(insight: viewModel.performanceInsight)
+            QuickActionsCard(actions: viewModel.suggestedActions)
+        }
+        .animation(.bouncy, value: viewModel.morningGreeting)
+    }
+
+    @ViewBuilder
+    private func destinationView(for destination: DashboardDestination) -> some View {
+        switch destination {
+        case .placeholder:
+            Text("Destination")
+        }
     }
 }
 
-private struct FeatureCard: View {
-    let icon: String
-    let title: String
-    let description: String
+// MARK: - Preview
+#Preview {
+    let container = try! ModelContainer(for: User.self)
+    let context = container.mainContext
+    let user = User(name: "Preview")
+    context.insert(user)
+    let vm = DashboardViewModel(
+        user: user,
+        modelContext: context,
+        healthKitService: PlaceholderHealthKitService(),
+        aiCoachService: PlaceholderAICoachService(),
+        nutritionService: PlaceholderNutritionService()
+    )
+    return DashboardView(viewModel: vm)
+        .modelContainer(container)
+}
+
+// MARK: - Placeholder Coordinator & Destinations
+@MainActor
+@Observable
+final class DashboardCoordinator {
+    var path = NavigationPath()
+
+    func navigate(to destination: DashboardDestination) {
+        path.append(destination)
+    }
+
+    func navigateBack() {
+        if !path.isEmpty { path.removeLast() }
+    }
+}
+
+enum DashboardDestination: Hashable {
+    case placeholder
+}
+
+// MARK: - Placeholder Services
+actor PlaceholderHealthKitService: HealthKitServiceProtocol {
+    func getCurrentContext() async throws -> HealthContext {
+        HealthContext(
+            lastNightSleepDurationHours: nil,
+            sleepQuality: nil,
+            currentWeatherCondition: nil,
+            currentTemperatureCelsius: nil,
+            yesterdayEnergyLevel: nil,
+            currentHeartRate: nil,
+            hrv: nil,
+            steps: nil
+        )
+    }
+
+    func calculateRecoveryScore(for user: User) async throws -> RecoveryScore {
+        RecoveryScore(score: 0, components: [])
+    }
+
+    func getPerformanceInsight(for user: User, days: Int) async throws -> PerformanceInsight {
+        PerformanceInsight(summary: "", trend: .steady, keyMetric: "", value: 0)
+    }
+}
+
+actor PlaceholderAICoachService: AICoachServiceProtocol {
+    func generateMorningGreeting(for user: User, context: GreetingContext) async throws -> String {
+        "Good morning, \(user.name ?? "there")!"
+    }
+}
+
+actor PlaceholderNutritionService: DashboardNutritionServiceProtocol {
+    func getTodaysSummary(for user: User) async throws -> NutritionSummary {
+        NutritionSummary()
+    }
+
+    func getTargets(from profile: OnboardingProfile) async throws -> NutritionTargets {
+        .default
+    }
+}
+
+// MARK: - Placeholder Card Views
+private struct MorningGreetingCard: View {
+    let greeting: String
+    let context: GreetingContext?
+    let currentEnergy: Int?
+    let onEnergyLog: (Int) async -> Void
 
     var body: some View {
-        HStack(spacing: AppConstants.Spacing.medium) {
-            Image(systemName: icon)
-                .font(.title2)
-                .foregroundColor(AppColors.accentColor)
-                .frame(width: 32, height: 32)
-
-            VStack(alignment: .leading, spacing: AppConstants.Spacing.xsmall) {
-                Text(title)
-                    .font(AppFonts.subheadline)
-                    .fontWeight(.medium)
-                    .foregroundColor(AppColors.textPrimary)
-
-                Text(description)
-                    .font(AppFonts.caption)
-                    .foregroundColor(AppColors.textSecondary)
-            }
-
-            Spacer()
+        VStack(alignment: .leading, spacing: AppSpacing.small) {
+            Text(greeting)
+                .font(AppFonts.title3)
+                .foregroundColor(AppColors.textPrimary)
         }
+        .frame(maxWidth: .infinity, alignment: .leading)
         .padding()
         .background(AppColors.cardBackground)
-        .cornerRadius(AppConstants.CornerRadius.small)
+        .cornerRadius(AppSpacing.medium)
     }
 }
 
-// MARK: - Previews
-#Preview {
-    DashboardView()
-        .modelContainer(for: OnboardingProfile.self)
+private struct NutritionCard: View {
+    let summary: NutritionSummary
+    let targets: NutritionTargets
+
+    var body: some View {
+        Text("Nutrition")
+            .frame(maxWidth: .infinity)
+            .padding()
+            .background(AppColors.cardBackground)
+            .cornerRadius(AppSpacing.medium)
+    }
 }
+
+private struct RecoveryCard: View {
+    let score: RecoveryScore?
+
+    var body: some View {
+        Text("Recovery")
+            .frame(maxWidth: .infinity)
+            .padding()
+            .background(AppColors.cardBackground)
+            .cornerRadius(AppSpacing.medium)
+    }
+}
+
+private struct PerformanceCard: View {
+    let insight: PerformanceInsight?
+
+    var body: some View {
+        Text("Performance")
+            .frame(maxWidth: .infinity)
+            .padding()
+            .background(AppColors.cardBackground)
+            .cornerRadius(AppSpacing.medium)
+    }
+}
+
+private struct QuickActionsCard: View {
+    let actions: [QuickAction]
+
+    var body: some View {
+        Text("Quick Actions")
+            .frame(maxWidth: .infinity)
+            .padding()
+            .background(AppColors.cardBackground)
+            .cornerRadius(AppSpacing.medium)
+    }
+}
+
