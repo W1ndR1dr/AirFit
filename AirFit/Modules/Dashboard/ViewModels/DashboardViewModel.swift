@@ -33,7 +33,7 @@ final class DashboardViewModel {
     private let modelContext: ModelContext
     private let healthKitService: HealthKitServiceProtocol
     private let aiCoachService: AICoachServiceProtocol
-    private let nutritionService: NutritionServiceProtocol
+    private let nutritionService: DashboardNutritionServiceProtocol
 
     // MARK: - Private State
     private var refreshTask: Task<Void, Never>?
@@ -45,7 +45,7 @@ final class DashboardViewModel {
         modelContext: ModelContext,
         healthKitService: HealthKitServiceProtocol,
         aiCoachService: AICoachServiceProtocol,
-        nutritionService: NutritionServiceProtocol
+        nutritionService: DashboardNutritionServiceProtocol
     ) {
         self.user = user
         self.modelContext = modelContext
@@ -81,7 +81,7 @@ final class DashboardViewModel {
             let today = Calendar.current.startOfDay(for: Date())
             var descriptor = FetchDescriptor<DailyLog>()
             descriptor.predicate = #Predicate { log in
-                log.user == user && log.date == today
+                log.date == today
             }
 
             let logs = try modelContext.fetch(descriptor)
@@ -103,7 +103,7 @@ final class DashboardViewModel {
             currentEnergyLevel = level
 
             // Haptic feedback
-            await HapticManager.shared.impact(.light)
+            HapticManager.impact(.light)
 
             // Log analytics
             AppLogger.info("Energy level logged: \(level)", category: .data)
@@ -168,7 +168,7 @@ final class DashboardViewModel {
             let today = Calendar.current.startOfDay(for: Date())
             var descriptor = FetchDescriptor<DailyLog>()
             descriptor.predicate = #Predicate { log in
-                log.user == user && log.date == today
+                log.date == today
             }
 
             let logs = try modelContext.fetch(descriptor)
@@ -222,7 +222,7 @@ final class DashboardViewModel {
             actions.append(.startWorkout)
         }
 
-        if nutritionSummary.waterLiters < 2.0 {
+        if nutritionSummary.waterLiters < 2_0 {
             actions.append(.logWater)
         }
 
@@ -299,7 +299,7 @@ struct RecoveryScore: Equatable, Sendable {
     let score: Int
     let components: [Component]
 
-    struct Component: Sendable {
+    struct Component: Sendable, Equatable {
         let name: String
         let value: Double
         let weight: Double
@@ -358,4 +358,3 @@ enum QuickAction: Identifiable, Sendable {
         }
     }
 }
-

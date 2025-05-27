@@ -14,7 +14,7 @@ protocol AICoachServiceProtocol: Sendable {
 }
 
 /// Supplies nutrition summaries and targets for dashboard display.
-protocol NutritionServiceProtocol: Sendable {
+protocol DashboardNutritionServiceProtocol: Sendable {
     func getTodaysSummary(for user: User) async throws -> NutritionSummary
     func getTargets(from profile: OnboardingProfile) async throws -> NutritionTargets
 }
