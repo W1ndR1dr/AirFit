@@ -137,6 +137,7 @@ targets:
       - AirFit/AirFitTests/Onboarding/OnboardingViewModelTests.swift
       - AirFit/AirFitTests/Onboarding/OnboardingIntegrationTests.swift
       - AirFit/AirFitTests/Onboarding/OnboardingModelsTests.swift
+      - AirFit/AirFitTests/Health/HealthKitManagerTests.swift
     dependencies:
       - target: AirFit
     settings:
