@@ -112,6 +112,7 @@ targets:
     settings:
       PRODUCT_BUNDLE_IDENTIFIER: com.airfit.app
       INFOPLIST_FILE: AirFit/Info.plist
+      CODE_SIGN_ENTITLEMENTS: AirFit/AirFit.entitlements
       SWIFT_VERSION: "6.0"
       ENABLE_STRICT_CONCURRENCY: YES
       SWIFT_STRICT_CONCURRENCY: complete

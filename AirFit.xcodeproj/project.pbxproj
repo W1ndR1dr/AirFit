@@ -882,7 +882,8 @@
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				CODE_SIGN_IDENTITY = "iPhone Developer";
 				ENABLE_STRICT_CONCURRENCY = YES;
-				INFOPLIST_FILE = AirFit/Info.plist;
+                               INFOPLIST_FILE = AirFit/Info.plist;
+                               CODE_SIGN_ENTITLEMENTS = AirFit/AirFit.entitlements;
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",
 					"@executable_path/Frameworks",
@@ -1065,6 +1066,7 @@
 				CODE_SIGN_IDENTITY = "iPhone Developer";
 				ENABLE_STRICT_CONCURRENCY = YES;
 				INFOPLIST_FILE = AirFit/Info.plist;
+                                CODE_SIGN_ENTITLEMENTS = AirFit/AirFit.entitlements;
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",
 					"@executable_path/Frameworks",
