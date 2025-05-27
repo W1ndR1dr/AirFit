@@ -119,6 +119,7 @@ targets:
       - AirFit/Modules/Dashboard/Services/DashboardServiceProtocols.swift
       - AirFit/Modules/Dashboard/ViewModels/DashboardViewModel.swift
       - AirFit/Modules/Dashboard/Views/DashboardView.swift
+      - AirFit/Modules/Dashboard/Views/Cards/MorningGreetingCard.swift
       - AirFit/Services/Health/HealthKitManager.swift
       - AirFit/Services/Health/HealthKitManagerProtocol.swift
       - AirFit/Services/Health/HealthKitDataFetcher.swift
