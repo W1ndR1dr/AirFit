@@ -105,6 +105,7 @@ targets:
       - AirFit/Services/AI/AIAPIServiceProtocol.swift
       - AirFit/Services/AI/AIServiceProtocol.swift
       - AirFit/Services/AI/AIModels.swift
+      - AirFit/Modules/AI/Parsing/LocalCommandParser.swift
       - AirFit/Services/Health/HealthKitManager.swift
       - AirFit/Services/Health/HealthKitManagerProtocol.swift
       - AirFit/Services/Health/HealthKitDataFetcher.swift
@@ -149,6 +150,7 @@ targets:
       - AirFit/AirFitTests/Mocks/MockHealthKitManager.swift
       - AirFit/AirFitTests/Mocks/MockHealthKitPrefillProvider.swift
       - AirFit/AirFitTests/Context/ContextAssemblerTests.swift
+      - AirFit/AirFitTests/AI/LocalCommandParserTests.swift
     dependencies:
       - target: AirFit
     settings:
