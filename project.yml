@@ -102,6 +102,7 @@ targets:
       - AirFit/Services/AI/AIAPIServiceProtocol.swift
       - AirFit/Services/AI/AIServiceProtocol.swift
       - AirFit/Services/AI/AIModels.swift
+      - AirFit/Services/Health/HealthKitManager.swift
       # Application Layer Files (CRITICAL: XcodeGen nesting bug)
       - AirFit/Application/AirFitApp.swift
       - AirFit/Application/MinimalContentView.swift
