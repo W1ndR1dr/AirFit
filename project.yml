@@ -106,6 +106,7 @@ targets:
       - AirFit/Services/AI/AIServiceProtocol.swift
       - AirFit/Services/AI/MockAIService.swift
       - AirFit/Modules/AI/Parsing/LocalCommandParser.swift
+      - AirFit/Modules/AI/PersonaEngine.swift
       - AirFit/Services/Health/HealthKitManager.swift
       - AirFit/Services/Health/HealthKitManagerProtocol.swift
       - AirFit/Services/Health/HealthKitDataFetcher.swift
