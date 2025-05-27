@@ -110,6 +110,12 @@ final class HealthKitManager {
             try await healthStore.requestAuthorization(toShare: writeTypes, read: readTypes)
             authorizationStatus = .authorized
             AppLogger.info("HealthKit authorization granted", category: .health)
+
+            do {
+                try await enableBackgroundDelivery()
+            } catch {
+                AppLogger.error("Failed to enable HealthKit background delivery", error: error, category: .health)
+            }
         } catch {
             authorizationStatus = .denied
             AppLogger.error("HealthKit authorization failed", error: error, category: .health)
