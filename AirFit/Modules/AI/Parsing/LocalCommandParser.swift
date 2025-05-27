@@ -28,7 +28,7 @@ enum LocalCommand: Equatable {
         }
     }
 
-    enum QuickLogType {
+    enum QuickLogType: Equatable {
         case meal(MealType)
         case mood
         case energy
@@ -39,44 +39,11 @@ enum LocalCommand: Equatable {
 @MainActor
 final class LocalCommandParser {
     // MARK: - Properties
-    private let waterPattern: Regex<(Substring, Substring?, Substring?)>
     private let navigationCommands: [String: LocalCommand]
     private let quickLogPatterns: [(pattern: String, command: LocalCommand)]
 
     // MARK: - Initialization
     init() {
-        // Initialize water logging pattern
-        waterPattern = Regex {
-            "log"
-            ZeroOrMore(.whitespace)
-            Optionally {
-                TryCapture {
-                    OneOrMore(.digit)
-                    Optionally {
-                        "."
-                        OneOrMore(.digit)
-                    }
-                } transform: { Double($0) }
-            }
-            ZeroOrMore(.whitespace)
-            Optionally {
-                TryCapture {
-                    ChoiceOf {
-                        "oz"
-                        "ounces"
-                        "ml"
-                        "milliliters"
-                        "l"
-                        "liters"
-                        "cup"
-                        "cups"
-                    }
-                } transform: { String($0) }
-            }
-            ZeroOrMore(.whitespace)
-            "water"
-        }
-        .ignoresCase()
 
         // Navigation shortcuts
         navigationCommands = [
@@ -137,21 +104,37 @@ final class LocalCommandParser {
 
     // MARK: - Private Methods
     private func parseWaterCommand(_ input: String) -> LocalCommand? {
-        guard let match = try? waterPattern.firstMatch(in: input) else {
+        // Check if input contains "water" or water-related terms
+        guard input.contains("water") || input.contains("h2o") || 
+              (input.contains("log") && (input.contains("oz") || input.contains("ml") || input.contains("liter"))) else {
             return nil
         }
-
-        let amount = match.1 ?? 8.0 // Default to 8oz
-        let unitString = match.2?.lowercased() ?? "oz"
-
-        let unit: LocalCommand.WaterUnit = {
-            switch unitString {
-            case "ml", "milliliters": return .milliliters
-            case "l", "liters": return .liters
-            case "cup", "cups": return .cups
-            default: return .ounces
+        
+        // Extract amount using simple pattern matching
+        let components = input.components(separatedBy: .whitespacesAndNewlines)
+        var amount: Double = 8.0 // Default
+        var unit: LocalCommand.WaterUnit = .ounces // Default
+        
+        // Look for numeric values followed by units
+        for i in 0..<components.count {
+            let component = components[i]
+            if let value = Double(component.replacingOccurrences(of: "[^0-9.]", with: "", options: .regularExpression)) {
+                amount = value
+                
+                // Check if next component or current component has unit
+                let unitText = component + (i + 1 < components.count ? components[i + 1] : "")
+                if unitText.contains("ml") || unitText.contains("milliliter") {
+                    unit = .milliliters
+                } else if unitText.contains("oz") || unitText.contains("ounce") {
+                    unit = .ounces
+                } else if (unitText.contains("l") && !unitText.contains("ml")) || unitText.contains("liter") {
+                    unit = .liters
+                } else if unitText.contains("cup") {
+                    unit = .cups
+                }
+                break
             }
-        }()
+        }
 
         return .logWater(amount: amount, unit: unit)
     }

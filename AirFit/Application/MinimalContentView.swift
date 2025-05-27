@@ -11,7 +11,7 @@ struct ContentView: View {
         VStack {
             if showOnboarding {
                 OnboardingFlowView(
-                    aiService: StubAIService(),
+                    aiService: MockAIService(),
                     onboardingService: OnboardingService(modelContext: modelContext),
                     onCompletion: {
                         showOnboarding = false

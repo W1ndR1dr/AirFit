@@ -2,7 +2,7 @@ import Foundation
 
 // MARK: - Core AI Types
 
-enum MessageRole: String, Codable, Sendable {
+enum AIMessageRole: String, Codable, Sendable {
     case system
     case user
     case assistant
@@ -10,20 +10,20 @@ enum MessageRole: String, Codable, Sendable {
     case tool
 }
 
-struct ChatMessage: Codable, Sendable {
+struct AIChatMessage: Codable, Sendable {
     let id: UUID
-    let role: MessageRole
+    let role: AIMessageRole
     let content: String
     let name: String?
-    let functionCall: FunctionCall?
+    let functionCall: AIFunctionCall?
     let timestamp: Date
 
     init(
         id: UUID = UUID(),
-        role: MessageRole,
+        role: AIMessageRole,
         content: String,
         name: String? = nil,
-        functionCall: FunctionCall? = nil,
+        functionCall: AIFunctionCall? = nil,
         timestamp: Date = .init()
     ) {
         self.id = id
@@ -37,35 +37,41 @@ struct ChatMessage: Codable, Sendable {
 
 // MARK: - Function Calling
 
-struct FunctionCall: Codable, Sendable {
+struct AIFunctionCall: Codable, Sendable {
     let name: String
-    let arguments: [String: AnyCodable]
+    let arguments: [String: AIAnyCodable]
 
     init(name: String, arguments: [String: Any] = [:]) {
         self.name = name
-        self.arguments = arguments.mapValues { AnyCodable($0) }
+        self.arguments = arguments.mapValues { AIAnyCodable($0) }
     }
 }
 
-struct FunctionDefinition: Codable, Sendable {
+struct AIFunctionDefinition: Codable, Sendable {
     let name: String
     let description: String
-    let parameters: FunctionParameters
+    let parameters: AIFunctionParameters
 }
 
-struct FunctionParameters: Codable, Sendable {
-    let type: String = "object"
-    let properties: [String: ParameterDefinition]
+struct AIFunctionParameters: Codable, Sendable {
+    let type: String
+    let properties: [String: AIParameterDefinition]
     let required: [String]
+    
+    init(properties: [String: AIParameterDefinition], required: [String] = []) {
+        self.type = "object"
+        self.properties = properties
+        self.required = required
+    }
 }
 
-struct ParameterDefinition: Codable, Sendable {
+struct AIParameterDefinition: Codable, Sendable {
     let type: String
     let description: String
     let enumValues: [String]?
     let minimum: Double?
     let maximum: Double?
-    let items: Box<ParameterDefinition>?
+    let items: AIBox<AIParameterDefinition>?
 
     enum CodingKeys: String, CodingKey {
         case type, description
@@ -75,7 +81,7 @@ struct ParameterDefinition: Codable, Sendable {
 }
 
 /// Box type to handle recursive definitions.
-final class Box<T: Codable>: Codable {
+final class AIBox<T: Codable>: Codable, @unchecked Sendable {
     let value: T
 
     init(_ value: T) {
@@ -96,8 +102,8 @@ final class Box<T: Codable>: Codable {
 struct AIRequest: Sendable {
     let id: UUID = UUID()
     let systemPrompt: String
-    let messages: [ChatMessage]
-    let functions: [FunctionDefinition]?
+    let messages: [AIChatMessage]
+    let functions: [AIFunctionDefinition]?
     let temperature: Double
     let maxTokens: Int?
     let stream: Bool
@@ -105,8 +111,8 @@ struct AIRequest: Sendable {
 
     init(
         systemPrompt: String,
-        messages: [ChatMessage],
-        functions: [FunctionDefinition]? = nil,
+        messages: [AIChatMessage],
+        functions: [AIFunctionDefinition]? = nil,
         temperature: Double = 0.7,
         maxTokens: Int? = nil,
         stream: Bool = true,
@@ -125,12 +131,12 @@ struct AIRequest: Sendable {
 enum AIResponse: Sendable {
     case text(String)
     case textDelta(String)
-    case functionCall(FunctionCall)
+    case functionCall(AIFunctionCall)
     case error(AIError)
-    case done(usage: TokenUsage?)
+    case done(usage: AITokenUsage?)
 }
 
-struct TokenUsage: Codable, Sendable {
+struct AITokenUsage: Codable, Sendable {
     let promptTokens: Int
     let completionTokens: Int
     let totalTokens: Int
@@ -165,9 +171,27 @@ enum AIError: LocalizedError, Sendable {
     }
 }
 
-// MARK: - AnyCodable for flexible JSON handling
+// MARK: - AI Provider Configuration
 
-struct AnyCodable: Codable, @unchecked Sendable {
+enum AIProvider: String, CaseIterable, Sendable {
+    case openAI
+    case gemini
+    case anthropic
+    case openRouter
+
+    var baseURL: String {
+        switch self {
+        case .openAI: return "https://api.openai.com/v1"
+        case .gemini: return "https://generativelanguage.googleapis.com"
+        case .anthropic: return "https://api.anthropic.com/v1"
+        case .openRouter: return "https://openrouter.ai/api/v1"
+        }
+    }
+}
+
+// MARK: - AIAnyCodable for flexible JSON handling
+
+struct AIAnyCodable: Codable, @unchecked Sendable {
     let value: Any
 
     init(_ value: Any) {
@@ -187,9 +211,9 @@ struct AnyCodable: Codable, @unchecked Sendable {
             self.value = double
         } else if let string = try? container.decode(String.self) {
             self.value = string
-        } else if let array = try? container.decode([AnyCodable].self) {
+        } else if let array = try? container.decode([AIAnyCodable].self) {
             self.value = array.map { $0.value }
-        } else if let dictionary = try? container.decode([String: AnyCodable].self) {
+        } else if let dictionary = try? container.decode([String: AIAnyCodable].self) {
             self.value = dictionary.mapValues { $0.value }
         } else {
             throw DecodingError.dataCorruptedError(
@@ -214,9 +238,9 @@ struct AnyCodable: Codable, @unchecked Sendable {
         case let string as String:
             try container.encode(string)
         case let array as [Any]:
-            try container.encode(array.map { AnyCodable($0) })
+            try container.encode(array.map { AIAnyCodable($0) })
         case let dictionary as [String: Any]:
-            try container.encode(dictionary.mapValues { AnyCodable($0) })
+            try container.encode(dictionary.mapValues { AIAnyCodable($0) })
         default:
             throw EncodingError.invalidValue(
                 value,

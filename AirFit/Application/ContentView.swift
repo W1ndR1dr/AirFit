@@ -15,7 +15,7 @@ struct ContentView: View {
                     WelcomeView(appState: appState)
                 } else if appState.shouldShowOnboarding {
                     OnboardingFlowView(
-                        aiService: StubAIService(),
+                        aiService: MockAIService(),
                         onboardingService: OnboardingService(modelContext: modelContext),
                         onCompletion: {
                             Task {

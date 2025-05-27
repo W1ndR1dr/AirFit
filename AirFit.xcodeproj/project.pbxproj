@@ -10,6 +10,7 @@
 		00A5D4994749FD71C0763BE9 /* OnboardingCoordinator.swift in Sources */ = {isa = PBXBuildFile; fileRef = 974C5A402B15EE65D35EC20D /* OnboardingCoordinator.swift */; };
 		02CC39638CE71CD2171E433C /* EngagementPreferencesView.swift in Sources */ = {isa = PBXBuildFile; fileRef = DC865FED24944B52466D8734 /* EngagementPreferencesView.swift */; };
 		030103EC1A1231CE1E26FFFD /* OnboardingFlowView.swift in Sources */ = {isa = PBXBuildFile; fileRef = EFCBA9827BC882C2F5A2829E /* OnboardingFlowView.swift */; };
+		05DB9934AE0191A8863FA69D /* LocalCommandParser.swift in Sources */ = {isa = PBXBuildFile; fileRef = 74552BCF1C4D97F44A822597 /* LocalCommandParser.swift */; };
 		0880B4A8568FB54FB9875EBF /* ContextAssemblerTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = D70D8DAFF79C881B81137BEF /* ContextAssemblerTests.swift */; };
 		0A09E7206FCF689300B5996E /* UserServiceProtocol.swift in Sources */ = {isa = PBXBuildFile; fileRef = 47DF0ACD879A34053338C913 /* UserServiceProtocol.swift */; };
 		0A68CCFBB8CCEB7BE8CF29CD /* KeychainWrapperTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = AE1652EC39D9D3149F92C626 /* KeychainWrapperTests.swift */; };
@@ -31,6 +32,7 @@
 		335BF938E9747E10DAED0388 /* Workout.swift in Sources */ = {isa = PBXBuildFile; fileRef = 77D1C101843D2605AEF2F697 /* Workout.swift */; };
 		39A13E4A67CAD9676781E589 /* OnboardingModelsTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = EAFB53F8C9984C520EACAF25 /* OnboardingModelsTests.swift */; };
 		39B344BD44BE184422233AE6 /* MockWhisperServiceWrapper.swift in Sources */ = {isa = PBXBuildFile; fileRef = 59DBE24F00ADC1B4FED05BED /* MockWhisperServiceWrapper.swift */; };
+		3D13B05E83BE4F7034FC93E0 /* MockAIService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7A6F22B7A83AE6A7A537A6F4 /* MockAIService.swift */; };
 		3D2E1D81D9F02817E441F99A /* OnboardingViewModelTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 047240785614E9D597C3EA58 /* OnboardingViewModelTests.swift */; };
 		43BD3FEB362B191A8E1C5E65 /* HapticManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2A395075857FF4CAA5B63758 /* HapticManager.swift */; };
 		47BDC8D14A5EC0138B58A7CA /* ExerciseTemplate.swift in Sources */ = {isa = PBXBuildFile; fileRef = DE9BB22B72F5B8CD209B6885 /* ExerciseTemplate.swift */; };
@@ -44,6 +46,7 @@
 		562A750E0765612D815CC5E3 /* OnboardingIntegrationTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 62ED040FEF9AEA1BB81BB3A5 /* OnboardingIntegrationTests.swift */; };
 		581145E6FB08633F0159A06B /* ContextAssembler.swift in Sources */ = {isa = PBXBuildFile; fileRef = FAB56C9FE1E6CEEED6C5F853 /* ContextAssembler.swift */; };
 		595E6F437E418A8A20B1D042 /* MotivationalAccentsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = DFAE4F420CC3C82913315240 /* MotivationalAccentsView.swift */; };
+		59A90F3EDC9FEED752B771B8 /* LocalCommandParserTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9F17108AF1B7776C2463CED2 /* LocalCommandParserTests.swift */; };
 		5E98D2A7D2C302AE9B9BE93B /* AppConstants.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6F2DABC5FF1E845ED62D28A0 /* AppConstants.swift */; };
 		5F48759778F86C260723C9AB /* View+Extensions.swift in Sources */ = {isa = PBXBuildFile; fileRef = EFEA624A81E6E9538615BD31 /* View+Extensions.swift */; };
 		637EA2407865D663BF2581E8 /* ViewModelProtocol.swift in Sources */ = {isa = PBXBuildFile; fileRef = F7DF0EB4B3C4B55FC4282A31 /* ViewModelProtocol.swift */; };
@@ -189,8 +192,10 @@
 		70B9E096AC933ECEC37D1C05 /* Validators.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Validators.swift; sourceTree = "<group>"; };
 		710C76B64768139B3842F0F6 /* NetworkClientProtocol.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NetworkClientProtocol.swift; sourceTree = "<group>"; };
 		729887A9C6CC3FEB82040981 /* CoreSetupTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CoreSetupTests.swift; sourceTree = "<group>"; };
+		74552BCF1C4D97F44A822597 /* LocalCommandParser.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LocalCommandParser.swift; sourceTree = "<group>"; };
 		74617997C28C46FE4B23EC11 /* AppFonts.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppFonts.swift; sourceTree = "<group>"; };
 		77D1C101843D2605AEF2F697 /* Workout.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Workout.swift; sourceTree = "<group>"; };
+		7A6F22B7A83AE6A7A537A6F4 /* MockAIService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MockAIService.swift; sourceTree = "<group>"; };
 		8108FD04B1F67D9BF5B776CF /* ChatAttachment.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ChatAttachment.swift; sourceTree = "<group>"; };
 		82C1DBFA6040FEDB310AEF75 /* SetTemplate.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SetTemplate.swift; sourceTree = "<group>"; };
 		87A2008F2F237E9BB08A1D7B /* OnboardingService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OnboardingService.swift; sourceTree = "<group>"; };
@@ -202,6 +207,7 @@
 		9665021F32CB629A919F14E2 /* WorkoutTemplate.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WorkoutTemplate.swift; sourceTree = "<group>"; };
 		972103573FB903D8A5239410 /* APIKeyManagerProtocol.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = APIKeyManagerProtocol.swift; sourceTree = "<group>"; };
 		974C5A402B15EE65D35EC20D /* OnboardingCoordinator.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OnboardingCoordinator.swift; sourceTree = "<group>"; };
+		9F17108AF1B7776C2463CED2 /* LocalCommandParserTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LocalCommandParserTests.swift; sourceTree = "<group>"; };
 		A00014C7394D2647776CC3F2 /* DependencyContainer.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DependencyContainer.swift; sourceTree = "<group>"; };
 		A16DDCDF70B6FC9FB1CB1D01 /* OnboardingProfile.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OnboardingProfile.swift; sourceTree = "<group>"; };
 		A20F0D244DC7736CAB16D57D /* HealthContextSnapshot.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HealthContextSnapshot.swift; sourceTree = "<group>"; };
@@ -286,6 +292,17 @@
 			);
 			name = Views;
 			path = AirFit/Modules/Onboarding/Views;
+			sourceTree = "<group>";
+		};
+		128B41391B550AC2AFCDF8CE /* AI */ = {
+			isa = PBXGroup;
+			children = (
+				65EF2CDF39696231B08EA46B /* AIAPIServiceProtocol.swift */,
+				C7BD8305EABA1E0131CD6D80 /* AIServiceProtocol.swift */,
+				7A6F22B7A83AE6A7A537A6F4 /* MockAIService.swift */,
+			);
+			name = AI;
+			path = AirFit/Services/AI;
 			sourceTree = "<group>";
 		};
 		12A5607F15798C335079A353 /* Extensions */ = {
@@ -407,6 +424,7 @@
 			isa = PBXGroup;
 			children = (
 				F9F30B65E7E1677DAC3B24F7 /* AI */,
+				128B41391B550AC2AFCDF8CE /* AI */,
 				D2AB432B78CE0A77B5E836FF /* AirFit */,
 				7EC47958BAA1D02BB0AE38DA /* AirFitTests */,
 				1DE782A8962B1F7850FB5FA0 /* AirFitUITests */,
@@ -424,6 +442,7 @@
 				D90E0B8D07DE40A9D4E36B57 /* Models */,
 				CB76E5E0C4EFB70A3E82E007 /* Models */,
 				3B63F949146B9E81381E0761 /* Network */,
+				A6A5DF7EF4EFF8EC10AC60D9 /* Parsing */,
 				F12AA7D60796E6067AA6D689 /* Platform */,
 				DBA55A4D6F1BB1BBA19AE61A /* Protocols */,
 				9EFA5F3878ACE9D07680808E /* Security */,
@@ -475,6 +494,7 @@
 		7EC47958BAA1D02BB0AE38DA /* AirFitTests */ = {
 			isa = PBXGroup;
 			children = (
+				D18577F2BF722546160C40AF /* AI */,
 				FBD8EA18E401DA5056ADAEDE /* Context */,
 				1B9A39E3E6A714E3398F99E4 /* Core */,
 				65DC0EE6F2FEEF39AE85BA49 /* Data */,
@@ -533,6 +553,15 @@
 			path = AirFit/Core/Views;
 			sourceTree = "<group>";
 		};
+		A6A5DF7EF4EFF8EC10AC60D9 /* Parsing */ = {
+			isa = PBXGroup;
+			children = (
+				74552BCF1C4D97F44A822597 /* LocalCommandParser.swift */,
+			);
+			name = Parsing;
+			path = AirFit/Modules/AI/Parsing;
+			sourceTree = "<group>";
+		};
 		B7221715B7A19FEB3AF5D8EF /* Onboarding */ = {
 			isa = PBXGroup;
 			children = (
@@ -583,6 +612,14 @@
 				559BD314119BF550C704D11B /* OnboardingPage.swift */,
 			);
 			path = Pages;
+			sourceTree = "<group>";
+		};
+		D18577F2BF722546160C40AF /* AI */ = {
+			isa = PBXGroup;
+			children = (
+				9F17108AF1B7776C2463CED2 /* LocalCommandParserTests.swift */,
+			);
+			path = AI;
 			sourceTree = "<group>";
 		};
 		D2AB432B78CE0A77B5E836FF /* AirFit */ = {
@@ -693,12 +730,10 @@
 		F9F30B65E7E1677DAC3B24F7 /* AI */ = {
 			isa = PBXGroup;
 			children = (
-				65EF2CDF39696231B08EA46B /* AIAPIServiceProtocol.swift */,
 				E85C229B1F841E3355F51518 /* AIModels.swift */,
-				C7BD8305EABA1E0131CD6D80 /* AIServiceProtocol.swift */,
 			);
 			name = AI;
-			path = AirFit/Services/AI;
+			path = AirFit/Core/Models/AI;
 			sourceTree = "<group>";
 		};
 		FB90D6BAA9744B018970C7AC /* Services */ = {
@@ -832,6 +867,7 @@
 				72022CFC0EA7C40016E4AC53 /* FormattersTests.swift in Sources */,
 				9725FC3C59EECD1F8EC73633 /* HealthKitManagerTests.swift in Sources */,
 				0A68CCFBB8CCEB7BE8CF29CD /* KeychainWrapperTests.swift in Sources */,
+				59A90F3EDC9FEED752B771B8 /* LocalCommandParserTests.swift in Sources */,
 				EF6F6D8EF5A638B335822BF5 /* MockAIAPIService.swift in Sources */,
 				BA1CA749BF0CF5D5D9811DFA /* MockAIService.swift in Sources */,
 				13BA4562E25B9FB591868ED0 /* MockAPIKeyManager.swift in Sources */,
@@ -923,8 +959,10 @@
 				5355F46137400D98E760B62F /* HealthKitSyncRecord.swift in Sources */,
 				17B1866E3E441851FD1D789E /* KeychainWrapper.swift in Sources */,
 				92514684DF716E57E8971FA0 /* LifeSnapshotView.swift in Sources */,
+				05DB9934AE0191A8863FA69D /* LocalCommandParser.swift in Sources */,
 				E59C1571ECC1A32F8A932B6C /* MealTemplate.swift in Sources */,
 				6F1CA06C0F16277989F3E348 /* MinimalContentView.swift in Sources */,
+				3D13B05E83BE4F7034FC93E0 /* MockAIService.swift in Sources */,
 				54197DF51E63566DED555395 /* ModelContainer+Testing.swift in Sources */,
 				595E6F437E418A8A20B1D042 /* MotivationalAccentsView.swift in Sources */,
 				D5E89833B4B60106DAAEB794 /* NetworkClient.swift in Sources */,
