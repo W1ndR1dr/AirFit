@@ -4,10 +4,10 @@ import SwiftData
 /// Aggregates health and environmental data into `HealthContextSnapshot` instances.
 @MainActor
 final class ContextAssembler {
-    private let healthKitManager: HealthKitManager
+    private let healthKitManager: HealthKitManaging
     // Future: private let weatherService: WeatherServiceProtocol
 
-    init(healthKitManager: HealthKitManager = .shared) {
+    init(healthKitManager: HealthKitManaging = HealthKitManager.shared) {
         self.healthKitManager = healthKitManager
     }
 

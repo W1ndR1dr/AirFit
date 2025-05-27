@@ -105,6 +105,7 @@ targets:
       - AirFit/Services/AI/AIServiceProtocol.swift
       - AirFit/Services/AI/AIModels.swift
       - AirFit/Services/Health/HealthKitManager.swift
+      - AirFit/Services/Health/HealthKitManagerProtocol.swift
       - AirFit/Services/Context/ContextAssembler.swift
       # Application Layer Files (CRITICAL: XcodeGen nesting bug)
       - AirFit/Application/AirFitApp.swift
@@ -140,6 +141,8 @@ targets:
       - AirFit/AirFitTests/Onboarding/OnboardingIntegrationTests.swift
       - AirFit/AirFitTests/Onboarding/OnboardingModelsTests.swift
       - AirFit/AirFitTests/Health/HealthKitManagerTests.swift
+      - AirFit/AirFitTests/Mocks/MockHealthKitManager.swift
+      - AirFit/AirFitTests/Context/ContextAssemblerTests.swift
     dependencies:
       - target: AirFit
     settings:
