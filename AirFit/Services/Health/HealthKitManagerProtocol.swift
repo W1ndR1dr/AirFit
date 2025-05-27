@@ -1,3 +1,4 @@
+@MainActor
 protocol HealthKitManaging: AnyObject {
     var authorizationStatus: HealthKitManager.AuthorizationStatus { get }
     func refreshAuthorizationStatus()

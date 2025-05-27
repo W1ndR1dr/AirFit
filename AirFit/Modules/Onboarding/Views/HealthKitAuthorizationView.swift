@@ -1,4 +1,5 @@
 import SwiftUI
+import SwiftData
 import Observation
 
 /// Placeholder view for HealthKit authorization during onboarding.
@@ -53,9 +54,34 @@ struct HealthKitAuthorizationView: View {
 }
 
 #Preview {
-    HealthKitAuthorizationView(viewModel: OnboardingViewModel(
-        aiService: MockAIService(),
-        onboardingService: MockOnboardingService(),
-        modelContext: try! ModelContainer(for: OnboardingProfile.self).mainContext
-    ))
+    // Simplified preview without dependencies
+    VStack(spacing: AppSpacing.large) {
+        Spacer()
+        
+        VStack(spacing: AppSpacing.small) {
+            Image(systemName: "heart.fill")
+                .font(.system(size: 60))
+                .foregroundStyle(AppColors.primaryGradient)
+            Text("Connect HealthKit")
+                .font(AppFonts.title2)
+                .foregroundColor(AppColors.textPrimary)
+            Text("Allow AirFit to read your activity, workout and sleep data.")
+                .font(AppFonts.body)
+                .foregroundColor(AppColors.textSecondary)
+                .multilineTextAlignment(.center)
+        }
+        
+        Button("Authorize HealthKit") {
+            // Preview action
+        }
+        .font(AppFonts.bodyBold)
+        .foregroundColor(AppColors.textOnAccent)
+        .frame(maxWidth: .infinity)
+        .padding()
+        .background(AppColors.accentColor)
+        .cornerRadius(AppConstants.Layout.defaultCornerRadius)
+        
+        Spacer()
+    }
+    .padding()
 }

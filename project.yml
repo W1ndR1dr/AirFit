@@ -142,6 +142,7 @@ targets:
       - AirFit/AirFitTests/Onboarding/OnboardingModelsTests.swift
       - AirFit/AirFitTests/Health/HealthKitManagerTests.swift
       - AirFit/AirFitTests/Mocks/MockHealthKitManager.swift
+      - AirFit/AirFitTests/Mocks/MockHealthKitPrefillProvider.swift
       - AirFit/AirFitTests/Context/ContextAssemblerTests.swift
     dependencies:
       - target: AirFit

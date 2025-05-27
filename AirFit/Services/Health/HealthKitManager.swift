@@ -270,29 +270,17 @@ final class HealthKitManager {
             unit: HKUnit.count().unitDivided(by: HKUnit.minute())
         )
 
-        // Await all results
-        let results = await (
-            activeEnergy: activeEnergy,
-            basalEnergy: basalEnergy,
-            steps: steps,
-            distance: distance,
-            flights: flights,
-            exerciseTime: exerciseTime,
-            standHours: standHours,
-            moveTime: moveTime,
-            currentHR: currentHR
-        )
-
+        // Await all results and create ActivityMetrics
         return ActivityMetrics(
-            activeEnergyBurned: results.activeEnergy.map { Measurement(value: $0, unit: UnitEnergy.kilocalories) },
-            basalEnergyBurned: results.basalEnergy.map { Measurement(value: $0, unit: UnitEnergy.kilocalories) },
-            steps: results.steps.map { Int($0) },
-            distance: results.distance.map { Measurement(value: $0, unit: UnitLength.meters) },
-            flightsClimbed: results.flights.map { Int($0) },
-            exerciseMinutes: results.exerciseTime.map { Int($0) },
-            standHours: results.standHours.map { Int($0) },
-            moveMinutes: results.moveTime.map { Int($0) },
-            currentHeartRate: results.currentHR.map { Int($0) },
+            activeEnergyBurned: (try await activeEnergy).map { Measurement(value: $0, unit: UnitEnergy.kilocalories) },
+            basalEnergyBurned: (try await basalEnergy).map { Measurement(value: $0, unit: UnitEnergy.kilocalories) },
+            steps: (try await steps).map { Int($0) },
+            distance: (try await distance).map { Measurement(value: $0, unit: UnitLength.meters) },
+            flightsClimbed: (try await flights).map { Int($0) },
+            exerciseMinutes: (try await exerciseTime).map { Int($0) },
+            standHours: (try await standHours).map { Int($0) },
+            moveMinutes: (try await moveTime).map { Int($0) },
+            currentHeartRate: (try await currentHR).map { Int($0) },
             isWorkoutActive: false, // TODO: Implement workout detection
             workoutType: nil,
             moveProgress: nil, // TODO: Calculate from goals
@@ -328,21 +316,13 @@ final class HealthKitManager {
             unit: HKUnit.count().unitDivided(by: HKUnit.minute())
         )
 
-        let results = await (
-            restingHR: restingHR,
-            hrv: hrv,
-            respiratoryRate: respiratoryRate,
-            vo2Max: vo2Max,
-            recovery: recovery
-        )
-
         return HeartHealthMetrics(
-            restingHeartRate: results.restingHR.map { Int($0) },
-            hrv: results.hrv.map { Measurement(value: $0, unit: UnitDuration.milliseconds) },
-            respiratoryRate: results.respiratoryRate,
-            vo2Max: results.vo2Max,
-            cardioFitness: results.vo2Max.flatMap { HeartHealthMetrics.CardioFitnessLevel.from(vo2Max: $0) },
-            recoveryHeartRate: results.recovery.map { Int($0) },
+            restingHeartRate: (try await restingHR).map { Int($0) },
+            hrv: (try await hrv).map { Measurement(value: $0, unit: UnitDuration.milliseconds) },
+            respiratoryRate: try await respiratoryRate,
+            vo2Max: try await vo2Max,
+            cardioFitness: (try await vo2Max).flatMap { HeartHealthMetrics.CardioFitnessLevel.from(vo2Max: $0) },
+            recoveryHeartRate: (try await recovery).map { Int($0) },
             heartRateRecovery: nil // TODO: Calculate from workout data
         )
     }
@@ -369,18 +349,11 @@ final class HealthKitManager {
             unit: HKUnit.count()
         )
 
-        let results = await (
-            weight: weight,
-            bodyFat: bodyFat,
-            leanMass: leanMass,
-            bmi: bmi
-        )
-
         return BodyMetrics(
-            weight: results.weight.map { Measurement(value: $0, unit: UnitMass.kilograms) },
-            bodyFatPercentage: results.bodyFat.map { $0 * 100 }, // Convert to percentage
-            leanBodyMass: results.leanMass.map { Measurement(value: $0, unit: UnitMass.kilograms) },
-            bmi: results.bmi,
+            weight: (try await weight).map { Measurement(value: $0, unit: UnitMass.kilograms) },
+            bodyFatPercentage: (try await bodyFat).map { $0 * 100 }, // Convert to percentage
+            leanBodyMass: (try await leanMass).map { Measurement(value: $0, unit: UnitMass.kilograms) },
+            bmi: try await bmi,
             weightTrend: nil, // TODO: Calculate trends
             bodyFatTrend: nil
         )
@@ -503,7 +476,7 @@ final class HealthKitManager {
     }
 
     /// Creates a sleep session from sleep samples
-    private func createSleepSession(from samples: [HKCategorySample]) -> SleepAnalysis.SleepSession {
+    nonisolated private func createSleepSession(from samples: [HKCategorySample]) -> SleepAnalysis.SleepSession {
         let bedtime = samples.first?.startDate
         let wakeTime = samples.last?.endDate
 

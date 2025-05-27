@@ -19,20 +19,19 @@ final class ContextAssembler {
         async let bodyMetrics = fetchBodyMetrics()
         async let sleepSession = fetchSleepSession()
 
-        // Subjective data does not need to block concurrent HealthKit fetches
-        async let subjective = fetchSubjectiveData(using: modelContext)
+        // Fetch subjective data synchronously to avoid data races with ModelContext
+        let subjectiveData = await fetchSubjectiveData(using: modelContext)
 
         // Mock data until services are implemented
         let environment = createMockEnvironmentContext()
         let appContext = await createMockAppContext(using: modelContext)
 
         // Await all HealthKit calls
-        let (activity, heartHealth, body, sleep, subjectiveData) = await (
+        let (activity, heartHealth, body, sleep) = await (
             activityMetrics,
             heartMetrics,
             bodyMetrics,
-            sleepSession,
-            subjective
+            sleepSession
         )
 
         let trends = calculateTrends(
@@ -127,6 +126,7 @@ final class ContextAssembler {
     }
 
     private func createMockAppContext(using context: ModelContext) async -> AppSpecificContext {
+        let now = Date()
         var lastMealTime: Date?
         var lastMealSummary: String?
         var activeWorkoutName: String?
@@ -145,8 +145,8 @@ final class ContextAssembler {
             }
 
             var upcomingDescriptor = FetchDescriptor<Workout>(
-                predicate: #Predicate<Workout> { workout in
-                    workout.completedDate == nil && workout.plannedDate != nil && workout.plannedDate! > Date()
+                predicate:                 #Predicate<Workout> { workout in
+                    workout.completedDate == nil && workout.plannedDate != nil && workout.plannedDate! > now
                 },
                 sortBy: [SortDescriptor(\.plannedDate, order: .forward)]
             )
@@ -156,8 +156,8 @@ final class ContextAssembler {
             }
 
             var activeDescriptor = FetchDescriptor<Workout>(
-                predicate: #Predicate<Workout> { workout in
-                    workout.completedDate == nil && workout.plannedDate != nil && workout.plannedDate! <= Date()
+                predicate:                 #Predicate<Workout> { workout in
+                    workout.completedDate == nil && workout.plannedDate != nil && workout.plannedDate! <= now
                 },
                 sortBy: [SortDescriptor(\.plannedDate, order: .reverse)]
             )
