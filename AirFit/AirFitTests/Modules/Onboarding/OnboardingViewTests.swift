@@ -153,9 +153,9 @@ final class OnboardingViewTests: XCTestCase {
 
         // Assert
         let total = viewModel.blend.authoritativeDirect +
-                   viewModel.blend.encouragingEmpathetic +
-                   viewModel.blend.analyticalInsightful +
-                   viewModel.blend.playfullyProvocative
+            viewModel.blend.encouragingEmpathetic +
+            viewModel.blend.analyticalInsightful +
+            viewModel.blend.playfullyProvocative
         XCTAssertEqual(total, 1.0, accuracy: 0.0001, "Blend values should sum to 1.0")
         XCTAssertTrue(viewModel.blend.isValid, "Blend should be valid after normalization")
     }

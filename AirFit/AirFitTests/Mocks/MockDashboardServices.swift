@@ -6,6 +6,7 @@ import SwiftData
 final class MockHealthKitService: HealthKitServiceProtocol, @preconcurrency MockProtocol {
     var invocations: [String: [Any]] = [:]
     var stubbedResults: [String: Any] = [:]
+    let mockLock = NSLock()
 
     var mockContext = HealthContext(
         lastNightSleepDurationHours: nil,
@@ -40,6 +41,7 @@ final class MockHealthKitService: HealthKitServiceProtocol, @preconcurrency Mock
 final class MockAICoachService: AICoachServiceProtocol, @preconcurrency MockProtocol {
     var invocations: [String: [Any]] = [:]
     var stubbedResults: [String: Any] = [:]
+    let mockLock = NSLock()
 
     var mockGreeting: String = "Hello"
 
@@ -53,6 +55,7 @@ final class MockAICoachService: AICoachServiceProtocol, @preconcurrency MockProt
 final class MockNutritionService: DashboardNutritionServiceProtocol, @preconcurrency MockProtocol {
     var invocations: [String: [Any]] = [:]
     var stubbedResults: [String: Any] = [:]
+    let mockLock = NSLock()
 
     var mockSummary = NutritionSummary()
     var mockTargets = NutritionTargets.default

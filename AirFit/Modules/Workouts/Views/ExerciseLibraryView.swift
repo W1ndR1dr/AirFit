@@ -41,7 +41,7 @@ struct ExerciseLibraryView: View {
         if !searchText.isEmpty {
             result = result.filter { exercise in
                 exercise.name.localizedStandardContains(searchText) ||
-                exercise.instructions.contains { $0.localizedStandardContains(searchText) }
+                    exercise.instructions.contains { $0.localizedStandardContains(searchText) }
             }
         }
 
@@ -63,7 +63,9 @@ struct ExerciseLibraryView: View {
             .searchable(text: $searchText, placement: .navigationBarDrawer(displayMode: .always))
             .toolbar {
                 ToolbarItem(placement: .navigationBarTrailing) {
-                    Button(action: { showingFilters.toggle() }) {
+                    Button {
+                        showingFilters.toggle()
+                    } label: {
                         Image(systemName: "line.3.horizontal.decrease.circle")
                             .foregroundStyle(hasActiveFilters ? AppColors.accent : .secondary)
                     }
@@ -90,7 +92,7 @@ struct ExerciseLibraryView: View {
 
     private var hasActiveFilters: Bool {
         selectedCategory != nil || selectedMuscleGroup != nil ||
-        selectedEquipment != nil || selectedDifficulty != nil
+            selectedEquipment != nil || selectedDifficulty != nil
     }
 
     private var loadingView: some View {

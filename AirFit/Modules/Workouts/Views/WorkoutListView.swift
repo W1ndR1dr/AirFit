@@ -55,7 +55,7 @@ struct WorkoutListView: View {
         guard !searchText.isEmpty else { return viewModel.workouts }
         return viewModel.workouts.filter { workout in
             workout.name.localizedCaseInsensitiveContains(searchText) ||
-            workout.workoutTypeEnum?.displayName.localizedCaseInsensitiveContains(searchText) == true
+                workout.workoutTypeEnum?.displayName.localizedCaseInsensitiveContains(searchText) == true
         }
     }
 

@@ -44,7 +44,7 @@ final class NutritionData: @unchecked Sendable {
 
     var isComplete: Bool {
         targetCalories != nil && targetProtein != nil &&
-        targetCarbs != nil && targetFat != nil
+            targetCarbs != nil && targetFat != nil
     }
 
     // MARK: - Initialization

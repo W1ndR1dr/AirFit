@@ -41,8 +41,8 @@ extension FetchDescriptor where T == FoodEntry {
         var descriptor = FetchDescriptor<FoodEntry>()
         descriptor.predicate = #Predicate { entry in
             entry.mealType == mealType.rawValue &&
-            entry.loggedAt >= startOfDay &&
-            entry.loggedAt < endOfDay
+                entry.loggedAt >= startOfDay &&
+                entry.loggedAt < endOfDay
         }
         descriptor.sortBy = [SortDescriptor(\.loggedAt)]
         return descriptor

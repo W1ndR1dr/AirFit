@@ -48,7 +48,7 @@ final class FoodEntry: @unchecked Sendable {
     var isComplete: Bool {
         !items.isEmpty && items.allSatisfy { item in
             item.calories != nil && item.proteinGrams != nil &&
-            item.carbGrams != nil && item.fatGrams != nil
+                item.carbGrams != nil && item.fatGrams != nil
         }
     }
 

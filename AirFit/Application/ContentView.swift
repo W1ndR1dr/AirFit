@@ -92,13 +92,11 @@ private struct WelcomeView: View {
 
             Spacer()
 
-            Button(
-                action: {
-                    Task {
-                        try await appState.createNewUser()
-                    }
+            Button {
+                Task {
+                    try await appState.createNewUser()
                 }
-            ) {
+            } label: {
                 Text("Get Started")
                     .font(AppFonts.headline)
                     .fontWeight(.semibold)

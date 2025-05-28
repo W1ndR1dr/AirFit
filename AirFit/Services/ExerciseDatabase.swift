@@ -5,7 +5,8 @@ import CryptoKit
 // MARK: - Exercise Definition Model
 @Model
 final class ExerciseDefinition: Identifiable, Codable {
-    @Attribute(.unique) var id: String
+    @Attribute(.unique)
+    var id: String
     var name: String
     var category: ExerciseCategory
     var muscleGroups: [MuscleGroup]
@@ -142,7 +143,7 @@ final class ExerciseDatabase: ObservableObject {
 
         let predicate = #Predicate<ExerciseDefinition> { exercise in
             exercise.name.localizedStandardContains(query) ||
-            exercise.instructions.contains { $0.localizedStandardContains(query) }
+                exercise.instructions.contains { $0.localizedStandardContains(query) }
         }
 
         return (try? container.mainContext.fetch(FetchDescriptor(predicate: predicate))) ?? []
@@ -187,6 +188,7 @@ final class ExerciseDatabase: ObservableObject {
     private func initializeDatabase() async {
         do {
             let count = try container.mainContext.fetchCount(FetchDescriptor<ExerciseDefinition>())
+            // swiftlint:disable:next empty_count
             if count == 0 {
                 await seedDatabase()
             } else {
@@ -224,7 +226,7 @@ final class ExerciseDatabase: ObservableObject {
                 loadingProgress = processedCount / totalCount
 
                 // Batch save every 50 exercises for performance
-                if Int(processedCount) % 50 == 0 {
+                if Int(processedCount).isMultiple(of: 50) {
                     try container.mainContext.save()
                 }
             }
@@ -247,7 +249,8 @@ final class ExerciseDatabase: ObservableObject {
 
     private func transformRawExercise(_ raw: RawExerciseData) throws -> ExerciseDefinition {
         // Generate stable ID
-        let idData = "\(raw.name)-\(raw.equipment ?? "none")".data(using: .utf8) ?? Data()
+        let idString = "\(raw.name)-\(raw.equipment ?? "none")"
+        let idData = Data(idString.utf8)
         let hash = SHA256.hash(data: idData)
         let id = hash.compactMap { String(format: "%02x", $0) }.joined().prefix(16).lowercased()
 

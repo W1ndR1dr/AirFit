@@ -56,7 +56,7 @@ extension FunctionRegistry {
 
             // Check required parameters exist
             for requiredParam in function.parameters.required
-                where function.parameters.properties[requiredParam] == nil {
+            where function.parameters.properties[requiredParam] == nil {
                 errors.append("Required parameter '\(requiredParam)' not found in function '\(function.name)'")
             }
         }

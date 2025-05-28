@@ -10,7 +10,7 @@ final class WorkoutSyncService: NSObject {
 
     private let session: WCSession
     private var pendingWorkouts: [WorkoutBuilderData] = []
-    
+
     // Lazy initialization to avoid CloudKit crashes during init
     private lazy var container: CKContainer? = {
         // CloudKit may not be available in simulator or without proper entitlements
@@ -21,7 +21,7 @@ final class WorkoutSyncService: NSObject {
         return CKContainer.default()
     }()
 
-    private override init() {
+    override private init() {
         self.session = WCSession.default
         super.init()
 
@@ -65,7 +65,7 @@ final class WorkoutSyncService: NSObject {
             AppLogger.warning("CloudKit container not available, skipping sync", category: .data)
             return
         }
-        
+
         let record = CKRecord(recordType: "WorkoutSync")
         record["workoutId"] = data.id.uuidString
         record["data"] = try? JSONEncoder().encode(data)

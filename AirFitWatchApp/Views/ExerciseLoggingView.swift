@@ -140,7 +140,7 @@ struct RecentSetsView: View {
 struct ExercisePickerView: View {
     let onExerciseSelected: (ExerciseTemplate) -> Void
     @Environment(\.dismiss) private var dismiss
-    
+
     private let exercises: [ExerciseTemplate] = [
         ExerciseTemplate(name: "Push-ups", muscleGroups: ["Chest", "Triceps"]),
         ExerciseTemplate(name: "Squats", muscleGroups: ["Legs", "Glutes"]),
@@ -149,7 +149,7 @@ struct ExercisePickerView: View {
         ExerciseTemplate(name: "Deadlift", muscleGroups: ["Back", "Legs"]),
         ExerciseTemplate(name: "Overhead Press", muscleGroups: ["Shoulders", "Triceps"])
     ]
-    
+
     var body: some View {
         NavigationStack {
             List(exercises, id: \.name) { exercise in
@@ -183,19 +183,19 @@ struct ExercisePickerView: View {
 struct SetLoggerView: View {
     let onSetLogged: (Int?, Double?, TimeInterval?, Double?) -> Void
     @Environment(\.dismiss) private var dismiss
-    
+
     @State private var reps: Int = 10
     @State private var weight: Double = 20.0
     @State private var duration: TimeInterval = 0
     @State private var rpe: Double = 7.0
-    
+
     var body: some View {
         NavigationStack {
             Form {
                 Section("Reps") {
                     Stepper("\(reps) reps", value: $reps, in: 1...50)
                 }
-                
+
                 Section("Weight") {
                     HStack {
                         Text("\(weight.formatted())kg")
@@ -204,7 +204,7 @@ struct SetLoggerView: View {
                             .labelsHidden()
                     }
                 }
-                
+
                 Section("RPE") {
                     HStack {
                         Text("RPE \(rpe.formatted())")

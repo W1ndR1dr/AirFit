@@ -7,19 +7,19 @@ import Combine
 final class WorkoutAnalysisEngine {
     // MARK: - Dependencies
     private let aiService: AIAPIServiceProtocol
-    
+
     // MARK: - Initialization
     init(aiService: AIAPIServiceProtocol) {
         self.aiService = aiService
     }
-    
+
     // MARK: - Public Methods
-    
+
     /// Generates AI-powered post-workout analysis
     func generatePostWorkoutAnalysis(_ request: PostWorkoutAnalysisRequest) async throws -> String {
         // Build analysis prompt
         let analysisPrompt = buildWorkoutAnalysisPrompt(request)
-        
+
         // Create AI request for analysis
         let aiRequest = AIRequest(
             systemPrompt: "You are a fitness coach providing post-workout analysis. Be encouraging, specific, and actionable.",
@@ -33,14 +33,14 @@ final class WorkoutAnalysisEngine {
             functions: [],
             user: "workout-analysis"
         )
-        
+
         // Get AI response
         var analysisResult = ""
         let responsePublisher = aiService.getStreamingResponse(for: aiRequest)
-        
+
         await withCheckedContinuation { continuation in
             var cancellables = Set<AnyCancellable>()
-            
+
             responsePublisher
                 .receive(on: DispatchQueue.main)
                 .sink(
@@ -58,25 +58,25 @@ final class WorkoutAnalysisEngine {
                 )
                 .store(in: &cancellables)
         }
-        
+
         return analysisResult.isEmpty ? "Great workout! Keep up the excellent work." : analysisResult
     }
-    
+
     // MARK: - Private Methods
-    
+
     private func buildWorkoutAnalysisPrompt(_ request: PostWorkoutAnalysisRequest) -> String {
         let workout = request.workout
         let recentWorkouts = request.recentWorkouts
-        
+
         var prompt = "Analyze this workout:\n\n"
         prompt += "Workout: \(workout.workoutTypeEnum?.displayName ?? workout.workoutType)\n"
         prompt += "Duration: \(workout.formattedDuration ?? "Unknown")\n"
         prompt += "Exercises: \(workout.exercises.count)\n"
-        
+
         if let calories = workout.caloriesBurned, calories > 0 {
             prompt += "Calories: \(Int(calories))\n"
         }
-        
+
         // Add exercise details
         for exercise in workout.exercises {
             prompt += "\n\(exercise.name): \(exercise.sets.count) sets"
@@ -84,7 +84,7 @@ final class WorkoutAnalysisEngine {
                 prompt += ", \(Int(totalVolume))kg total volume"
             }
         }
-        
+
         // Add context from recent workouts
         if !recentWorkouts.isEmpty {
             prompt += "\n\nRecent workout context:\n"
@@ -96,9 +96,9 @@ final class WorkoutAnalysisEngine {
                 prompt += "\n"
             }
         }
-        
+
         prompt += "\nProvide encouraging analysis with specific insights and actionable recommendations."
-        
+
         return prompt
     }
 }
@@ -109,7 +109,7 @@ struct PostWorkoutAnalysisRequest {
     let recentWorkouts: [Workout]
     let userGoals: [String]?
     let recoveryData: RecoveryData?
-    
+
     init(workout: Workout, recentWorkouts: [Workout] = [], userGoals: [String]? = nil, recoveryData: RecoveryData? = nil) {
         self.workout = workout
         self.recentWorkouts = recentWorkouts
@@ -123,4 +123,4 @@ struct RecoveryData {
     let restingHeartRate: Int?
     let hrv: Double?
     let subjectedEnergyLevel: Int? // 1-10 scale
-} 
+}

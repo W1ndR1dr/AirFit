@@ -39,7 +39,7 @@ final class FoodItemTemplate: @unchecked Sendable {
 
     var isComplete: Bool {
         calories != nil && proteinGrams != nil &&
-        carbGrams != nil && fatGrams != nil
+            carbGrams != nil && fatGrams != nil
     }
 
     var formattedQuantity: String? {

@@ -6,14 +6,11 @@ struct DashboardView: View {
     @Environment(\.modelContext)
     private var modelContext
 
-    @State
-    private var viewModel: DashboardViewModel
+    @State private var viewModel: DashboardViewModel
 
-    @StateObject
-    private var coordinator: DashboardCoordinator
+    @StateObject private var coordinator: DashboardCoordinator
 
-    @State
-    private var hasAppeared = false
+    @State private var hasAppeared = false
 
     private let columns: [GridItem] = [
         GridItem(.adaptive(minimum: 180), spacing: AppSpacing.medium)

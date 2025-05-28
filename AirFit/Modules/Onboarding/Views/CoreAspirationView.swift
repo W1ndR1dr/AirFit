@@ -42,9 +42,9 @@ struct CoreAspirationView: View {
                                 }
                             },
                             label: {
-                            Image(systemName: viewModel.isTranscribing ? "stop.circle.fill" : "mic.circle.fill")
-                                .font(.system(size: 28))
-                                .foregroundColor(AppColors.accentColor)
+                                Image(systemName: viewModel.isTranscribing ? "stop.circle.fill" : "mic.circle.fill")
+                                    .font(.system(size: 28))
+                                    .foregroundColor(AppColors.accentColor)
                             }
                         )
                         .accessibilityIdentifier("onboarding.goal.voice")
@@ -72,24 +72,24 @@ struct CoreAspirationView: View {
         Button(
             action: { viewModel.goal.family = family },
             label: {
-            HStack {
-                Text(family.displayName)
-                    .font(AppFonts.body)
-                    .foregroundColor(AppColors.textPrimary)
-                Spacer()
-                if viewModel.goal.family == family {
-                    Image(systemName: "checkmark.circle.fill")
-                        .foregroundColor(AppColors.accentColor)
+                HStack {
+                    Text(family.displayName)
+                        .font(AppFonts.body)
+                        .foregroundColor(AppColors.textPrimary)
+                    Spacer()
+                    if viewModel.goal.family == family {
+                        Image(systemName: "checkmark.circle.fill")
+                            .foregroundColor(AppColors.accentColor)
+                    }
                 }
-            }
-            .padding()
-            .frame(maxWidth: .infinity, alignment: .leading)
-            .background(AppColors.cardBackground)
-            .cornerRadius(AppConstants.Layout.defaultCornerRadius)
-            .overlay(
-                RoundedRectangle(cornerRadius: AppConstants.Layout.defaultCornerRadius)
-                    .stroke(viewModel.goal.family == family ? AppColors.accentColor : Color.clear, lineWidth: 2)
-            )
+                .padding()
+                .frame(maxWidth: .infinity, alignment: .leading)
+                .background(AppColors.cardBackground)
+                .cornerRadius(AppConstants.Layout.defaultCornerRadius)
+                .overlay(
+                    RoundedRectangle(cornerRadius: AppConstants.Layout.defaultCornerRadius)
+                        .stroke(viewModel.goal.family == family ? AppColors.accentColor : Color.clear, lineWidth: 2)
+                )
             }
         )
         .buttonStyle(.plain)

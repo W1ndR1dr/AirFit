@@ -39,4 +39,4 @@ enum WorkoutError: LocalizedError {
         case .syncFailed: return "Failed to sync workout data"
         }
     }
-} 
+}

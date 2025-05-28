@@ -6,6 +6,7 @@ final class MockUserService: UserServiceProtocol, MockProtocol, @unchecked Senda
     private let lock = NSLock()
     private var _invocations: [String: [Any]] = [:]
     private var _stubbedResults: [String: Any] = [:]
+    let mockLock = NSLock()
 
     var invocations: [String: [Any]] {
         get {

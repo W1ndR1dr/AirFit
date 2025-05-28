@@ -38,6 +38,9 @@ final class DashboardViewModel {
     // MARK: - Private State
     private var refreshTask: Task<Void, Never>?
     private var lastGreetingDate: Date?
+    #if DEBUG
+    private var forceGreetingRefresh = false
+    #endif
 
     // MARK: - Initialization
     init(
@@ -66,8 +69,12 @@ final class DashboardViewModel {
     func refreshDashboard() {
         refreshTask?.cancel()
         refreshTask = Task { [weak self] in
-            await self?._loadDashboardData()
+            await self?.loadDashboardData()
         }
+    }
+
+    func loadDashboardData() async {
+        await _loadDashboardData()
     }
 
     func logEnergyLevel(_ level: Int) async {
@@ -117,11 +124,7 @@ final class DashboardViewModel {
     // MARK: - Test Support
     #if DEBUG
     func resetGreetingState() {
-        lastGreetingDate = nil
-    }
-    
-    func loadDashboardData() async {
-        await _loadDashboardData()
+        forceGreetingRefresh = true
     }
     #endif
 
@@ -130,22 +133,25 @@ final class DashboardViewModel {
         isLoading = true
         defer { isLoading = false }
 
-        await withTaskGroup(of: Void.self) { group in
-            group.addTask { await self.loadMorningGreeting() }
-            group.addTask { await self.loadEnergyLevel() }
-            group.addTask { await self.loadNutritionData() }
-            group.addTask { await self.loadHealthInsights() }
-            group.addTask { await self.loadQuickActions(for: Date()) }
-        }
+        // Execute loading operations sequentially to avoid race conditions
+        await loadMorningGreeting()
+        await loadEnergyLevel()
+        await loadNutritionData()
+        await loadHealthInsights()
+        await loadQuickActions(for: Date())
     }
 
     private func loadMorningGreeting() async {
-        let calendar = Calendar.current
+        #if DEBUG
+        // Always execute during testing - no guard
+        #else
+        // Always refresh if no previous greeting date, or if it's a new day
         let shouldRefresh = lastGreetingDate.map { date in
-            !calendar.isDateInToday(date)
+            !Calendar.current.isDateInToday(date)
         } ?? true
 
         guard shouldRefresh else { return }
+        #endif
 
         do {
             let healthContext = try await healthKitService.getCurrentContext()
@@ -195,9 +201,15 @@ final class DashboardViewModel {
             let summary = try await nutritionService.getTodaysSummary(for: user)
             self.nutritionSummary = summary
 
-            if let profile = user.onboardingProfile,
-               let targets = try? await nutritionService.getTargets(from: profile) {
-                self.nutritionTargets = targets
+            // Always try to get targets if profile exists
+            if let profile = user.onboardingProfile {
+                do {
+                    let targets = try await nutritionService.getTargets(from: profile)
+                    self.nutritionTargets = targets
+                } catch {
+                    AppLogger.error("Failed to load nutrition targets", error: error, category: .data)
+                    // Keep default targets on error
+                }
             }
 
         } catch {

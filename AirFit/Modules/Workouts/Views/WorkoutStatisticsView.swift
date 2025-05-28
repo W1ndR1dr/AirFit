@@ -6,16 +6,16 @@ struct WorkoutStatisticsView: View {
     @State var viewModel: WorkoutViewModel
     @State private var selectedTimeRange: TimeRange = .month
     @State private var selectedMetric: MetricType = .frequency
-    
+
     enum TimeRange: String, CaseIterable {
         case week = "Week"
         case month = "Month"
         case quarter = "3 Months"
         case year = "Year"
         case all = "All Time"
-        
+
         var displayName: String { rawValue }
-        
+
         var startDate: Date {
             let calendar = Calendar.current
             let now = Date()
@@ -33,13 +33,13 @@ struct WorkoutStatisticsView: View {
             }
         }
     }
-    
+
     enum MetricType: String, CaseIterable {
         case frequency = "Frequency"
         case volume = "Volume"
         case duration = "Duration"
         case calories = "Calories"
-        
+
         var displayName: String { rawValue }
         var icon: String {
             switch self {
@@ -50,14 +50,14 @@ struct WorkoutStatisticsView: View {
             }
         }
     }
-    
+
     var filteredWorkouts: [Workout] {
         viewModel.workouts.filter { workout in
             let date = workout.completedDate ?? workout.plannedDate ?? Date()
             return date >= selectedTimeRange.startDate
         }
     }
-    
+
     var body: some View {
         ScrollView {
             VStack(spacing: AppSpacing.large) {
@@ -75,19 +75,19 @@ struct WorkoutStatisticsView: View {
                     }
                     .padding(.horizontal)
                 }
-                
+
                 // Summary Cards
                 summaryCardsSection
-                
+
                 // Main Chart
                 mainChartSection
-                
+
                 // Personal Records
                 personalRecordsSection
-                
+
                 // Muscle Group Distribution
                 muscleGroupSection
-                
+
                 // Workout Type Breakdown
                 workoutTypeSection
             }
@@ -101,7 +101,7 @@ struct WorkoutStatisticsView: View {
             }
         }
     }
-    
+
     // MARK: - Sections
     private var summaryCardsSection: some View {
         LazyVGrid(columns: [GridItem(.flexible()), GridItem(.flexible())], spacing: AppSpacing.medium) {
@@ -112,7 +112,7 @@ struct WorkoutStatisticsView: View {
                 icon: "calendar",
                 color: .blue
             )
-            
+
             SummaryCard(
                 title: "Total Duration",
                 value: totalDuration.formattedDuration(),
@@ -120,7 +120,7 @@ struct WorkoutStatisticsView: View {
                 icon: "timer",
                 color: .green
             )
-            
+
             SummaryCard(
                 title: "Calories Burned",
                 value: "\(Int(totalCalories))",
@@ -128,7 +128,7 @@ struct WorkoutStatisticsView: View {
                 icon: "flame.fill",
                 color: .orange
             )
-            
+
             SummaryCard(
                 title: "Avg per Week",
                 value: String(format: "%.1f", averageWorkoutsPerWeek),
@@ -139,7 +139,7 @@ struct WorkoutStatisticsView: View {
         }
         .padding(.horizontal)
     }
-    
+
     private var mainChartSection: some View {
         VStack(alignment: .leading, spacing: AppSpacing.medium) {
             // Metric Selector
@@ -156,13 +156,13 @@ struct WorkoutStatisticsView: View {
                     }
                 }
             }
-            
+
             // Chart
             Card {
                 VStack(alignment: .leading, spacing: AppSpacing.small) {
                     Text(selectedMetric.displayName)
                         .font(.headline)
-                    
+
                     if chartData.isEmpty {
                         Text("No data available")
                             .foregroundStyle(.secondary)
@@ -177,14 +177,14 @@ struct WorkoutStatisticsView: View {
                                     y: .value("Count", dataPoint.value)
                                 )
                                 .foregroundStyle(AppColors.accent.gradient)
-                                
+
                             default:
                                 LineMark(
                                     x: .value("Date", dataPoint.date),
                                     y: .value("Value", dataPoint.value)
                                 )
                                 .foregroundStyle(AppColors.accent)
-                                
+
                                 AreaMark(
                                     x: .value("Date", dataPoint.date),
                                     y: .value("Value", dataPoint.value)
@@ -199,12 +199,12 @@ struct WorkoutStatisticsView: View {
         }
         .padding(.horizontal)
     }
-    
+
     private var personalRecordsSection: some View {
         VStack(alignment: .leading, spacing: AppSpacing.medium) {
             SectionHeader(title: "Personal Records", icon: "trophy.fill")
                 .padding(.horizontal)
-            
+
             VStack(spacing: AppSpacing.small) {
                 if let longestWorkout = filteredWorkouts.max(by: { ($0.duration ?? 0) < ($1.duration ?? 0) }) {
                     PersonalRecordRow(
@@ -216,7 +216,7 @@ struct WorkoutStatisticsView: View {
                         color: .blue
                     )
                 }
-                
+
                 if let mostCalories = filteredWorkouts.max(by: { ($0.caloriesBurned ?? 0) < ($1.caloriesBurned ?? 0) }) {
                     PersonalRecordRow(
                         title: "Most Calories",
@@ -227,7 +227,7 @@ struct WorkoutStatisticsView: View {
                         color: .orange
                     )
                 }
-                
+
                 if let mostExercises = filteredWorkouts.max(by: { $0.exercises.count < $1.exercises.count }) {
                     PersonalRecordRow(
                         title: "Most Exercises",
@@ -242,19 +242,19 @@ struct WorkoutStatisticsView: View {
             .padding(.horizontal)
         }
     }
-    
+
     private var muscleGroupSection: some View {
         VStack(alignment: .leading, spacing: AppSpacing.medium) {
             SectionHeader(title: "Muscle Groups", icon: "figure.strengthtraining.traditional")
                 .padding(.horizontal)
-            
+
             Card {
                 if muscleGroupData.isEmpty {
                     Text("No muscle group data")
                         .foregroundStyle(.secondary)
                         .frame(maxWidth: .infinity)
                 } else {
-                    Chart(Array(muscleGroupData.prefix(8).enumerated()), id: \.offset) { index, item in
+                    Chart(Array(muscleGroupData.prefix(8).enumerated()), id: \.offset) { _, item in
                         BarMark(
                             x: .value("Count", item.count),
                             y: .value("Muscle", item.name)
@@ -272,12 +272,12 @@ struct WorkoutStatisticsView: View {
             .padding(.horizontal)
         }
     }
-    
+
     private var workoutTypeSection: some View {
         VStack(alignment: .leading, spacing: AppSpacing.medium) {
             SectionHeader(title: "Workout Types", icon: "chart.pie.fill")
                 .padding(.horizontal)
-            
+
             Card {
                 if workoutTypeData.isEmpty {
                     Text("No workout type data")
@@ -290,22 +290,22 @@ struct WorkoutStatisticsView: View {
                                 Image(systemName: item.type.systemImage)
                                     .foregroundStyle(item.type.color)
                                     .frame(width: 30)
-                                
+
                                 Text(item.type.displayName)
                                     .font(.subheadline)
-                                
+
                                 Spacer()
-                                
+
                                 Text("\(item.count)")
                                     .font(.subheadline)
                                     .fontWeight(.medium)
-                                
+
                                 Text("\(item.percentage)%")
                                     .font(.caption)
                                     .foregroundStyle(.secondary)
                                     .frame(width: 40, alignment: .trailing)
                             }
-                            
+
                             GeometryReader { geometry in
                                 Rectangle()
                                     .fill(item.type.color.opacity(0.2))
@@ -321,28 +321,28 @@ struct WorkoutStatisticsView: View {
             .padding(.horizontal)
         }
     }
-    
+
     // MARK: - Computed Properties
     private var totalDuration: TimeInterval {
         filteredWorkouts.compactMap(\.duration).reduce(0, +)
     }
-    
+
     private var totalCalories: Double {
         filteredWorkouts.compactMap(\.caloriesBurned).reduce(0, +)
     }
-    
+
     private var averageWorkoutsPerWeek: Double {
         guard !filteredWorkouts.isEmpty else { return 0 }
         let weeks = max(1, Calendar.current.dateComponents([.weekOfYear], from: selectedTimeRange.startDate, to: Date()).weekOfYear ?? 1)
         return Double(filteredWorkouts.count) / Double(weeks)
     }
-    
+
     private var chartData: [ChartDataPoint] {
         let grouped = Dictionary(grouping: filteredWorkouts) { workout in
             let date = workout.completedDate ?? workout.plannedDate ?? Date()
             return Calendar.current.startOfDay(for: date)
         }
-        
+
         return grouped.map { date, workouts in
             let value: Double
             switch selectedMetric {
@@ -357,14 +357,15 @@ struct WorkoutStatisticsView: View {
             case .calories:
                 value = workouts.compactMap(\.caloriesBurned).reduce(0, +)
             }
-            
+
             return ChartDataPoint(date: date, value: value)
-        }.sorted { $0.date < $1.date }
+        }
+        .sorted { $0.date < $1.date }
     }
-    
+
     private var muscleGroupData: [(name: String, count: Int)] {
         var counts: [String: Int] = [:]
-        
+
         for workout in filteredWorkouts {
             for exercise in workout.exercises {
                 for muscleGroup in exercise.muscleGroups {
@@ -372,28 +373,29 @@ struct WorkoutStatisticsView: View {
                 }
             }
         }
-        
+
         return counts.map { (name: $0.key, count: $0.value) }
             .sorted { $0.count > $1.count }
     }
-    
+
     private var workoutTypeData: [(type: WorkoutType, count: Int, percentage: Int)] {
         let counts = Dictionary(grouping: filteredWorkouts) { workout in
             workout.workoutTypeEnum ?? .strength
         }.mapValues { $0.count }
-        
+
         let total = counts.values.reduce(0, +)
-        
+
         return counts.map { type, count in
             let percentage = total > 0 ? Int((Double(count) / Double(total)) * 100) : 0
             return (type: type, count: count, percentage: percentage)
-        }.sorted { $0.count > $1.count }
+        }
+        .sorted { $0.count > $1.count }
     }
-    
+
     private func calculateTrend(for metric: MetricType) -> Double? {
         // Simple trend calculation - compare last period to previous
         guard selectedTimeRange != .all else { return nil }
-        
+
         // This is a simplified trend calculation
         // In production, you'd want more sophisticated analysis
         return Double.random(in: -20...20)
@@ -412,7 +414,7 @@ private struct TimeRangeChip: View {
     let title: String
     let isSelected: Bool
     let action: () -> Void
-    
+
     var body: some View {
         Button(action: action) {
             Text(title)
@@ -432,7 +434,7 @@ private struct MetricChip: View {
     let icon: String
     let isSelected: Bool
     let action: () -> Void
-    
+
     var body: some View {
         Button(action: action) {
             HStack(spacing: AppSpacing.xSmall) {
@@ -456,7 +458,7 @@ private struct SummaryCard: View {
     let trend: Double?
     let icon: String
     let color: Color
-    
+
     var body: some View {
         Card {
             VStack(alignment: .leading, spacing: AppSpacing.small) {
@@ -467,11 +469,11 @@ private struct SummaryCard: View {
                         .font(.caption)
                         .foregroundStyle(.secondary)
                 }
-                
+
                 Text(value)
                     .font(.title2)
                     .fontWeight(.bold)
-                
+
                 if let trend = trend {
                     HStack(spacing: 2) {
                         Image(systemName: trend >= 0 ? "arrow.up.right" : "arrow.down.right")
@@ -494,7 +496,7 @@ private struct PersonalRecordRow: View {
     let date: Date
     let icon: String
     let color: Color
-    
+
     var body: some View {
         Card {
             HStack {
@@ -502,7 +504,7 @@ private struct PersonalRecordRow: View {
                     .font(.title2)
                     .foregroundStyle(color)
                     .frame(width: 40)
-                
+
                 VStack(alignment: .leading, spacing: 2) {
                     Text(title)
                         .font(.caption)
@@ -514,13 +516,13 @@ private struct PersonalRecordRow: View {
                         .foregroundStyle(.secondary)
                         .lineLimit(1)
                 }
-                
+
                 Spacer()
-                
+
                 Text(date.formatted(date: .abbreviated, time: .omitted))
                     .font(.caption)
                     .foregroundStyle(.secondary)
             }
         }
     }
-} 
+}

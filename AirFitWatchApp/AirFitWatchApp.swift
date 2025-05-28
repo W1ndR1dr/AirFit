@@ -7,4 +7,4 @@ struct AirFitWatchApp: App {
             WorkoutStartView()
         }
     }
-} 
+}

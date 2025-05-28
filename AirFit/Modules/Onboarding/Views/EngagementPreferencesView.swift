@@ -63,27 +63,27 @@ struct EngagementPreferencesView: View {
         Button(
             action: { selectPreset(style) },
             label: {
-            HStack {
-                Text(title)
-                    .font(AppFonts.body)
-                    .foregroundColor(AppColors.textPrimary)
-                Spacer()
-                if viewModel.engagementPreferences.trackingStyle == style {
-                    Image(systemName: "checkmark.circle.fill")
-                        .foregroundColor(AppColors.accentColor)
+                HStack {
+                    Text(title)
+                        .font(AppFonts.body)
+                        .foregroundColor(AppColors.textPrimary)
+                    Spacer()
+                    if viewModel.engagementPreferences.trackingStyle == style {
+                        Image(systemName: "checkmark.circle.fill")
+                            .foregroundColor(AppColors.accentColor)
+                    }
                 }
-            }
-            .padding()
-            .frame(maxWidth: .infinity, alignment: .leading)
-            .background(AppColors.cardBackground)
-            .cornerRadius(AppConstants.Layout.defaultCornerRadius)
-            .overlay(
-                RoundedRectangle(cornerRadius: AppConstants.Layout.defaultCornerRadius)
-                    .stroke(
-                        viewModel.engagementPreferences.trackingStyle == style ? AppColors.accentColor : Color.clear,
-                        lineWidth: 2
-                    )
-            )
+                .padding()
+                .frame(maxWidth: .infinity, alignment: .leading)
+                .background(AppColors.cardBackground)
+                .cornerRadius(AppConstants.Layout.defaultCornerRadius)
+                .overlay(
+                    RoundedRectangle(cornerRadius: AppConstants.Layout.defaultCornerRadius)
+                        .stroke(
+                            viewModel.engagementPreferences.trackingStyle == style ? AppColors.accentColor : Color.clear,
+                            lineWidth: 2
+                        )
+                )
             }
         )
         .buttonStyle(.plain)

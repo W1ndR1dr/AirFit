@@ -157,7 +157,7 @@ final class ConversationManagerPerformanceTests: XCTestCase {
 
         print(
             "📊 Performance Test: Stats calculation for 100 messages completed in " +
-            "\(String(format: "%.3f", executionTime * 1_000))ms"
+                "\(String(format: "%.3f", executionTime * 1_000))ms"
         )
 
         // Verify stats accuracy
@@ -197,7 +197,7 @@ final class ConversationManagerPerformanceTests: XCTestCase {
 
         print(
             "📊 Performance Test: Pruned \(totalConversations - 10) conversations in " +
-            "\(String(format: "%.3f", executionTime * 1_000))ms"
+                "\(String(format: "%.3f", executionTime * 1_000))ms"
         )
 
         // Verify correct number of messages remain

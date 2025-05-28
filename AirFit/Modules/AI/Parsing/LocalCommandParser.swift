@@ -81,17 +81,13 @@ final class LocalCommandParser {
         }
 
         // Check navigation commands
-        for (pattern, command) in navigationCommands {
-            if normalizedInput.contains(pattern) {
-                return command
-            }
+        for (pattern, command) in navigationCommands where normalizedInput.contains(pattern) {
+            return command
         }
 
         // Check quick log commands
-        for (pattern, command) in quickLogPatterns {
-            if normalizedInput.contains(pattern) {
-                return command
-            }
+        for (pattern, command) in quickLogPatterns where normalizedInput.contains(pattern) {
+            return command
         }
 
         // Check for tab navigation
@@ -106,7 +102,7 @@ final class LocalCommandParser {
     private func parseWaterCommand(_ input: String) -> LocalCommand? {
         // Check if input contains "water" or water-related terms
         guard input.contains("water") || input.contains("h2o") ||
-              (input.contains("log") && (input.contains("oz") || input.contains("ml") || input.contains("liter"))) else {
+                (input.contains("log") && (input.contains("oz") || input.contains("ml") || input.contains("liter"))) else {
             return nil
         }
 
@@ -147,10 +143,8 @@ final class LocalCommandParser {
             ("setting|preference", .settings)
         ]
 
-        for (pattern, tab) in tabPatterns {
-            if input.range(of: pattern, options: .regularExpression) != nil {
-                return .navigateToTab(tab)
-            }
+        for (pattern, tab) in tabPatterns where input.range(of: pattern, options: .regularExpression) != nil {
+            return .navigateToTab(tab)
         }
 
         return nil

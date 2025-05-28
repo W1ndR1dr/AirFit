@@ -5,6 +5,7 @@ import Foundation
 final class MockOnboardingService: OnboardingServiceProtocol, @preconcurrency MockProtocol {
     var invocations: [String: [Any]] = [:]
     var stubbedResults: [String: Any] = [:]
+    let mockLock = NSLock()
 
     var saveProfileCalled = false
     var saveProfileError: Error?

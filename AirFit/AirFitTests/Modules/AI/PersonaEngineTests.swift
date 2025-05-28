@@ -943,7 +943,7 @@ final class PersonaEngineTests: XCTestCase {
     private func createLongConversationHistory(count: Int) -> [ChatMessage] {
         var messages: [ChatMessage] = []
         for i in 0..<count {
-            let role = i % 2 == 0 ? "user" : "assistant"
+            let role = i.isMultiple(of: 2) ? "user" : "assistant"
             let content = "This is message number \(i + 1) in a long conversation history."
             messages.append(ChatMessage(role: role, content: content))
         }

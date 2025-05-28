@@ -48,7 +48,8 @@ struct ExerciseCard: View {
 
 // MARK: - Exercise Detail Sheet
 struct ExerciseDetailSheet: View {
-    @Environment(\.dismiss) private var dismiss
+    @Environment(\.dismiss)
+    private var dismiss
     let exercise: ExerciseDefinition
     @State private var selectedImageIndex = 0
 
@@ -200,7 +201,8 @@ struct ExerciseDetailSheet: View {
 
 // MARK: - Filter Sheet
 struct FilterSheet: View {
-    @Environment(\.dismiss) private var dismiss
+    @Environment(\.dismiss)
+    private var dismiss
     @Binding var selectedCategory: ExerciseCategory?
     @Binding var selectedMuscleGroup: MuscleGroup?
     @Binding var selectedEquipment: Equipment?
@@ -428,4 +430,4 @@ extension Equipment {
         case .other: return "questionmark.circle"
         }
     }
-} 
+}

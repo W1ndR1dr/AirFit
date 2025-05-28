@@ -14,6 +14,11 @@ final class ContextAssembler {
     /// Creates a `HealthContextSnapshot` using data from HealthKit and SwiftData models.
     /// - Parameter modelContext: The `ModelContext` used to fetch app data.
     func assembleSnapshot(modelContext: ModelContext) async -> HealthContextSnapshot {
+        // Ensure we're on the main actor for SwiftData operations
+        await MainActor.run {
+            // All SwiftData operations must happen synchronously on the main actor
+        }
+        
         async let activityMetrics = fetchActivityMetrics()
         async let heartMetrics = fetchHeartHealthMetrics()
         async let bodyMetrics = fetchBodyMetrics()
@@ -34,7 +39,7 @@ final class ContextAssembler {
             sleepSession
         )
 
-        let trends = calculateTrends(
+        let trends = await calculateTrends(
             activity: activity,
             body: body,
             sleep: sleep,
@@ -191,27 +196,32 @@ final class ContextAssembler {
                 sortBy: [SortDescriptor(\.completedDate, order: .reverse)]
             )
             allWorkoutsDescriptor.fetchLimit = 50 // Reasonable limit
-            
+
             let allWorkouts = try context.fetch(allWorkoutsDescriptor)
-            
+
             // Filter recent completed workouts in memory
-            let recentWorkouts = allWorkouts.filter { workout in
-                guard let completedDate = workout.completedDate else { return false }
-                return completedDate >= sevenDaysAgo && completedDate <= now
-            }.prefix(10)
-            
+            let recentWorkouts = allWorkouts
+                .filter { workout in
+                    guard let completedDate = workout.completedDate else { return false }
+                    return completedDate >= sevenDaysAgo && completedDate <= now
+                }
+                .prefix(10)
+
             // Find active workout (no completed date)
             let activeWorkout = allWorkouts.first { workout in
                 workout.completedDate == nil
             }
-            
+
             // Find upcoming workouts
             let threeDaysFromNow = Calendar.current.date(byAdding: .day, value: 3, to: now) ?? now
-            let upcomingWorkouts = allWorkouts.filter { workout in
-                guard workout.completedDate == nil,
-                      let plannedDate = workout.plannedDate else { return false }
-                return plannedDate > now && plannedDate <= threeDaysFromNow
-            }.sorted { ($0.plannedDate ?? Date()) < ($1.plannedDate ?? Date()) }.prefix(3)
+            let upcomingWorkouts = allWorkouts
+                .filter { workout in
+                    guard workout.completedDate == nil,
+                          let plannedDate = workout.plannedDate else { return false }
+                    return plannedDate > now && plannedDate <= threeDaysFromNow
+                }
+                .sorted { ($0.plannedDate ?? Date()) < ($1.plannedDate ?? Date()) }
+                .prefix(3)
 
             // Calculate workout streak
             let streak = calculateWorkoutStreak(context: context, endDate: now)
@@ -278,13 +288,13 @@ final class ContextAssembler {
             descriptor.fetchLimit = 50
 
             let allWorkouts = try context.fetch(descriptor)
-            
+
             // Filter in memory to avoid predicate issues
             let workouts = allWorkouts.filter { workout in
                 guard let completedDate = workout.completedDate else { return false }
                 return completedDate >= thirtyDaysAgo && completedDate <= endDate
             }
-            
+
             guard !workouts.isEmpty else { return 0 }
 
             var streak = 0
@@ -355,11 +365,15 @@ final class ContextAssembler {
         // Intensity trend analysis
         let intensityTrend: IntensityTrend
         if workouts.count >= 3 {
-            let recentAvgRPE = workouts.prefix(3).flatMap { $0.exercises.flatMap { $0.sets } }
-                .compactMap { $0.rpe }.reduce(0, +) / Double(max(workouts.prefix(3).flatMap { $0.exercises.flatMap { $0.sets } }.count, 1))
+            let recentAvgRPE = workouts.prefix(3)
+                .flatMap { $0.exercises.flatMap { $0.sets } }
+                .compactMap { $0.rpe }
+                .reduce(0, +) / Double(max(workouts.prefix(3).flatMap { $0.exercises.flatMap { $0.sets } }.count, 1))
 
-            let olderAvgRPE = workouts.dropFirst(3).flatMap { $0.exercises.flatMap { $0.sets } }
-                .compactMap { $0.rpe }.reduce(0, +) / Double(max(workouts.dropFirst(3).flatMap { $0.exercises.flatMap { $0.sets } }.count, 1))
+            let olderAvgRPE = workouts.dropFirst(3)
+                .flatMap { $0.exercises.flatMap { $0.sets } }
+                .compactMap { $0.rpe }
+                .reduce(0, +) / Double(max(workouts.dropFirst(3).flatMap { $0.exercises.flatMap { $0.sets } }.count, 1))
 
             if recentAvgRPE > olderAvgRPE + 0.5 {
                 intensityTrend = .increasing
@@ -398,24 +412,32 @@ final class ContextAssembler {
         body: BodyMetrics?,
         sleep: SleepAnalysis.SleepSession?,
         context: ModelContext
-    ) -> HealthTrends {
-        var weeklyChange: Double?
+    ) async -> HealthTrends {
+        // Ensure all SwiftData operations happen on the main actor
+        return await MainActor.run {
+            var weeklyChange: Double?
 
-        do {
             // Defensive programming: Only fetch what we need with proper date bounds
             let fourteenDaysAgo = Calendar.current.date(byAdding: .day, value: -14, to: Date()) ?? Date()
-            
-            // Simplified predicate to avoid complex queries
-            var descriptor = FetchDescriptor<DailyLog>(
+
+            // Create a simple, safe descriptor
+            let descriptor = FetchDescriptor<DailyLog>(
                 sortBy: [SortDescriptor(\.date, order: .reverse)]
             )
-            descriptor.fetchLimit = 14
-            
-            let allLogs = try context.fetch(descriptor)
-            
+
+            // Fetch with error handling
+            let allLogs: [DailyLog]
+            do {
+                allLogs = try context.fetch(descriptor)
+            } catch {
+                AppLogger.error("Failed to fetch DailyLog for trends", error: error, category: .data)
+                return HealthTrends(weeklyActivityChange: nil)
+            }
+
             // Filter in memory to avoid predicate issues
             let logs = allLogs.filter { log in
-                log.date >= fourteenDaysAgo && log.steps != nil
+                guard let steps = log.steps, steps > 0 else { return false }
+                return log.date >= fourteenDaysAgo
             }
 
             // Bulletproof data validation
@@ -452,12 +474,7 @@ final class ContextAssembler {
                 weeklyChange = max(-500.0, min(500.0, change))
             }
 
-        } catch {
-            AppLogger.error("Failed to calculate trends", error: error, category: .data)
-            // Return safe default instead of crashing
-            return HealthTrends(weeklyActivityChange: nil)
+            return HealthTrends(weeklyActivityChange: weeklyChange)
         }
-
-        return HealthTrends(weeklyActivityChange: weeklyChange)
     }
 }

@@ -55,7 +55,7 @@ actor MockWorkoutService: WorkoutServiceProtocol {
         let exerciseDatabase = getExerciseDatabase(equipment: equipment)
         let filteredExercises = exerciseDatabase.filter { exercise in
             targetMuscles.contains("full_body") ||
-            !Set(exercise.muscleGroups).isDisjoint(with: Set(targetMuscles))
+                !Set(exercise.muscleGroups).isDisjoint(with: Set(targetMuscles))
         }
 
         for i in 0..<exerciseCount {
@@ -235,18 +235,16 @@ actor MockNutritionService: NutritionServiceProtocol {
             ("pasta", "Whole Wheat Pasta", 174, 7.5, 37, 0.8)
         ]
 
-        for (pattern, name, calories, protein, carbs, fat) in foodPatterns {
-            if lowercaseInput.contains(pattern) {
-                let quantity = extractQuantity(from: input, for: pattern)
-                items.append(NutritionLogResult.FoodItemInfo(
-                    name: name,
-                    quantity: quantity,
-                    calories: calories,
-                    protein: protein,
-                    carbs: carbs,
-                    fat: fat
-                ))
-            }
+        for (pattern, name, calories, protein, carbs, fat) in foodPatterns where lowercaseInput.contains(pattern) {
+            let quantity = extractQuantity(from: input, for: pattern)
+            items.append(NutritionLogResult.FoodItemInfo(
+                name: name,
+                quantity: quantity,
+                calories: calories,
+                protein: protein,
+                carbs: carbs,
+                fat: fat
+            ))
         }
 
         // If no matches found, create a generic item

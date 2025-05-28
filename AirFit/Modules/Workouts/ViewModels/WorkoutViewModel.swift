@@ -60,7 +60,7 @@ final class WorkoutViewModel {
             AppLogger.error("Failed to load workouts", error: error, category: .data)
         }
     }
-    
+
     // MARK: - Exercise Library
     func loadExerciseLibrary() async {
         // Trigger exercise database initialization if needed
@@ -87,7 +87,9 @@ final class WorkoutViewModel {
         isGeneratingAnalysis = true
         defer { isGeneratingAnalysis = false }
         do {
-            let snapshot = await contextAssembler.assembleSnapshot(modelContext: modelContext)
+            // Assemble context snapshot for AI analysis
+            _ = await contextAssembler.assembleSnapshot(modelContext: modelContext)
+            
             let request = PostWorkoutAnalysisRequest(
                 workout: workout,
                 recentWorkouts: Array(workouts.prefix(5)),
@@ -96,7 +98,7 @@ final class WorkoutViewModel {
             )
             let analysis = try await coachEngine.generatePostWorkoutAnalysis(request)
             aiWorkoutSummary = analysis
-            
+
             // Save analysis to workout
             workout.aiAnalysis = analysis
             try modelContext.save()
@@ -114,7 +116,7 @@ final class WorkoutViewModel {
             let date = workout.completedDate ?? workout.plannedDate ?? .distantPast
             return date >= startDate && date <= endDate
         }
-        
+
         // Calculate muscle group distribution
         var muscleGroupCounts: [String: Int] = [:]
         for workout in recent {
@@ -124,7 +126,7 @@ final class WorkoutViewModel {
                 }
             }
         }
-        
+
         weeklyStats = WeeklyWorkoutStats(
             totalWorkouts: recent.count,
             totalDuration: recent.reduce(0) { $0 + ($1.durationSeconds ?? 0) },

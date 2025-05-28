@@ -104,13 +104,13 @@ struct OnboardingFlowView: View {
     // MARK: - Computed Properties
     private var shouldShowProgressBar: Bool {
         viewModel.currentScreen != .openingScreen &&
-        viewModel.currentScreen != .generatingCoach &&
-        viewModel.currentScreen != .coachProfileReady
+            viewModel.currentScreen != .generatingCoach &&
+            viewModel.currentScreen != .coachProfileReady
     }
 
     private var shouldShowPrivacyFooter: Bool {
         viewModel.currentScreen != .generatingCoach &&
-        viewModel.currentScreen != .coachProfileReady
+            viewModel.currentScreen != .coachProfileReady
     }
 }
 
@@ -148,9 +148,9 @@ private struct PrivacyFooter: View {
                 AppLogger.info("Privacy policy tapped", category: .onboarding)
             },
             label: {
-            Text("Privacy & Data")
-                .font(AppFonts.caption)
-                .foregroundColor(AppColors.textTertiary)
+                Text("Privacy & Data")
+                    .font(AppFonts.caption)
+                    .foregroundColor(AppColors.textTertiary)
             }
         )
         .accessibilityIdentifier("onboarding.privacy")

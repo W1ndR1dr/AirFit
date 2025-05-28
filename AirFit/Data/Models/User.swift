@@ -21,7 +21,7 @@ final class User: @unchecked Sendable {
         Calendar.current.dateComponents([.day], from: createdAt, to: Date()).day ?? 0
     }
 
-        var isInactive: Bool {
+    var isInactive: Bool {
         let daysSinceActive = Calendar.current.dateComponents([.day], from: lastActiveAt, to: Date()).day ?? 0
         return daysSinceActive > 7
     }
@@ -46,7 +46,7 @@ final class User: @unchecked Sendable {
     @Relationship(deleteRule: .cascade, inverse: \CoachMessage.user)
     var coachMessages: [CoachMessage] = []
 
-        @Relationship(deleteRule: .cascade, inverse: \HealthKitSyncRecord.user)
+    @Relationship(deleteRule: .cascade, inverse: \HealthKitSyncRecord.user)
     var healthKitSyncRecords: [HealthKitSyncRecord] = []
 
     @Relationship(deleteRule: .cascade, inverse: \ChatSession.user)

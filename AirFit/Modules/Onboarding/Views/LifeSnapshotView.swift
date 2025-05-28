@@ -91,15 +91,15 @@ struct LifeSnapshotView: View {
         Button(
             action: { viewModel.lifeContext.workoutWindowPreference = option },
             label: {
-            HStack {
-                Image(systemName: workoutOptionIcon(for: option))
-                    .foregroundColor(AppColors.accentColor)
-                Text(option.displayName)
-                    .font(AppFonts.body)
-                    .foregroundColor(AppColors.textPrimary)
-                Spacer()
-            }
-            .padding(.vertical, AppSpacing.xSmall)
+                HStack {
+                    Image(systemName: workoutOptionIcon(for: option))
+                        .foregroundColor(AppColors.accentColor)
+                    Text(option.displayName)
+                        .font(AppFonts.body)
+                        .foregroundColor(AppColors.textPrimary)
+                    Spacer()
+                }
+                .padding(.vertical, AppSpacing.xSmall)
             }
         )
         .buttonStyle(.plain)
@@ -117,13 +117,13 @@ private struct CheckboxToggleStyle: ToggleStyle {
         Button(
             action: { configuration.isOn.toggle() },
             label: {
-            HStack(alignment: .center, spacing: AppSpacing.xSmall) {
-                Image(systemName: configuration.isOn ? "checkmark.square.fill" : "square")
-                    .foregroundColor(AppColors.accentColor)
-                configuration.label
-            }
-            .frame(maxWidth: .infinity, alignment: .leading)
-            .padding(.vertical, AppSpacing.xSmall)
+                HStack(alignment: .center, spacing: AppSpacing.xSmall) {
+                    Image(systemName: configuration.isOn ? "checkmark.square.fill" : "square")
+                        .foregroundColor(AppColors.accentColor)
+                    configuration.label
+                }
+                .frame(maxWidth: .infinity, alignment: .leading)
+                .padding(.vertical, AppSpacing.xSmall)
             }
         )
         .buttonStyle(.plain)

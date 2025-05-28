@@ -93,7 +93,7 @@ final class WatchWorkoutManager: NSObject {
             // Start activity
             let startDate = Date()
             session?.startActivity(with: startDate)
-            
+
             // Begin collection with completion handler
             try await withCheckedThrowingContinuation { (continuation: CheckedContinuation<Void, Error>) in
                 builder?.beginCollection(withStart: startDate) { success, error in
@@ -244,14 +244,14 @@ final class WatchWorkoutManager: NSObject {
         currentWorkoutData.workoutType = Int(selectedActivityType.rawValue)
         currentWorkoutData.startTime = workout.startDate
         currentWorkoutData.endTime = workout.endDate
-        
+
         // Use activeEnergyBurned instead of deprecated totalEnergyBurned
         if let activeEnergy = workout.statistics(for: HKQuantityType(.activeEnergyBurned))?.sumQuantity() {
             currentWorkoutData.totalCalories = activeEnergy.doubleValue(for: .kilocalorie())
         } else {
             currentWorkoutData.totalCalories = 0
         }
-        
+
         currentWorkoutData.totalDistance = workout.totalDistance?.doubleValue(for: .meter()) ?? 0
         currentWorkoutData.duration = workout.duration
 

@@ -2,52 +2,56 @@ import SwiftUI
 import SwiftData
 
 struct WorkoutBuilderView: View {
-    @Environment(\.dismiss) private var dismiss
-    @Environment(\.modelContext) private var modelContext
+    @Environment(\.dismiss)
+    private var dismiss
+    @Environment(\.modelContext)
+    private var modelContext
     @State var viewModel: WorkoutViewModel
-    
+
     @State private var workoutName = ""
     @State private var workoutType: WorkoutType = .strength
     @State private var selectedExercises: [BuilderExercise] = []
     @State private var showingExercisePicker = false
     @State private var notes = ""
     @State private var saveAsTemplate = true
-    
+
     var isValid: Bool {
         !workoutName.isEmpty && !selectedExercises.isEmpty
     }
-    
+
     var body: some View {
         NavigationStack {
             Form {
                 Section {
                     TextField("Workout Name", text: $workoutName)
-                    
+
                     Picker("Type", selection: $workoutType) {
                         ForEach(WorkoutType.allCases, id: \.self) { type in
                             Label(type.displayName, systemImage: type.systemImage)
                                 .tag(type)
                         }
                     }
-                    
+
                     TextField("Notes (optional)", text: $notes, axis: .vertical)
                         .lineLimit(3...6)
                 }
-                
+
                 Section {
                     ForEach($selectedExercises) { $exercise in
                         ExerciseBuilderRow(exercise: $exercise) {
                             removeExercise(exercise)
                         }
                     }
-                    
-                    Button(action: { showingExercisePicker = true }) {
+
+                    Button {
+                        showingExercisePicker = true
+                    } label: {
                         Label("Add Exercise", systemImage: "plus.circle.fill")
                     }
                 } header: {
                     Text("Exercises")
                 }
-                
+
                 Section {
                     Toggle("Save as Template", isOn: $saveAsTemplate)
                         .tint(AppColors.accent)
@@ -59,7 +63,7 @@ struct WorkoutBuilderView: View {
                 ToolbarItem(placement: .cancellationAction) {
                     Button("Cancel") { dismiss() }
                 }
-                
+
                 ToolbarItem(placement: .confirmationAction) {
                     Button("Start") { startWorkout() }
                         .fontWeight(.semibold)
@@ -73,7 +77,7 @@ struct WorkoutBuilderView: View {
             }
         }
     }
-    
+
     private func addExercise(from definition: ExerciseDefinition) {
         let builderExercise = BuilderExercise(
             name: definition.name,
@@ -82,11 +86,11 @@ struct WorkoutBuilderView: View {
         )
         selectedExercises.append(builderExercise)
     }
-    
+
     private func removeExercise(_ exercise: BuilderExercise) {
         selectedExercises.removeAll { $0.id == exercise.id }
     }
-    
+
     private func startWorkout() {
         // Create workout
         let workout = Workout(
@@ -95,7 +99,7 @@ struct WorkoutBuilderView: View {
             plannedDate: Date()
         )
         workout.notes = notes.isEmpty ? nil : notes
-        
+
         // Add exercises
         for builderExercise in selectedExercises {
             let exercise = Exercise(
@@ -103,7 +107,7 @@ struct WorkoutBuilderView: View {
                 muscleGroups: builderExercise.muscleGroups
             )
             exercise.notes = builderExercise.notes
-            
+
             // Add sets
             for (index, builderSet) in builderExercise.sets.enumerated() {
                 let set = ExerciseSet(
@@ -113,12 +117,12 @@ struct WorkoutBuilderView: View {
                 )
                 exercise.sets.append(set)
             }
-            
+
             workout.exercises.append(exercise)
         }
-        
+
         modelContext.insert(workout)
-        
+
         // Save as template if requested
         if saveAsTemplate {
             let template = UserWorkoutTemplate(
@@ -142,12 +146,12 @@ struct WorkoutBuilderView: View {
             )
             modelContext.insert(template)
         }
-        
+
         do {
             try modelContext.save()
             viewModel.activeWorkout = workout
             dismiss()
-            
+
             // Navigate to active workout
             NotificationCenter.default.post(
                 name: .startActiveWorkout,
@@ -178,30 +182,30 @@ struct BuilderSet: Identifiable {
 struct ExerciseBuilderRow: View {
     @Binding var exercise: BuilderExercise
     let onDelete: () -> Void
-    
+
     var body: some View {
         VStack(alignment: .leading, spacing: AppSpacing.small) {
             HStack {
                 VStack(alignment: .leading) {
                     Text(exercise.name)
                         .font(.headline)
-                    
+
                     if !exercise.muscleGroups.isEmpty {
                         Text(exercise.muscleGroups.joined(separator: ", "))
                             .font(.caption)
                             .foregroundStyle(.secondary)
                     }
                 }
-                
+
                 Spacer()
-                
+
                 Button(action: onDelete) {
                     Image(systemName: "trash")
                         .foregroundStyle(.red)
                 }
                 .buttonStyle(.plain)
             }
-            
+
             // Sets
             ForEach($exercise.sets) { $set in
                 HStack {
@@ -209,30 +213,32 @@ struct ExerciseBuilderRow: View {
                         .font(.caption)
                         .foregroundStyle(.secondary)
                         .frame(width: 50)
-                    
+
                     HStack {
                         TextField("Reps", value: $set.targetReps, format: .number)
                             .textFieldStyle(.roundedBorder)
                             .keyboardType(.numberPad)
                             .frame(width: 60)
-                        
+
                         Text("×")
                             .foregroundStyle(.secondary)
-                        
+
                         TextField("Weight", value: $set.targetWeight, format: .number)
                             .textFieldStyle(.roundedBorder)
                             .keyboardType(.decimalPad)
                             .frame(width: 80)
-                        
+
                         Text("kg")
                             .font(.caption)
                             .foregroundStyle(.secondary)
                     }
-                    
+
                     Spacer()
-                    
+
                     if exercise.sets.count > 1 {
-                        Button(action: { exercise.sets.removeAll { $0.id == set.id } }) {
+                        Button {
+                            exercise.sets.removeAll { $0.id == set.id }
+                        } label: {
                             Image(systemName: "minus.circle.fill")
                                 .foregroundStyle(.red)
                         }
@@ -240,8 +246,10 @@ struct ExerciseBuilderRow: View {
                     }
                 }
             }
-            
-            Button(action: { exercise.sets.append(BuilderSet()) }) {
+
+            Button {
+                exercise.sets.append(BuilderSet())
+            } label: {
                 Label("Add Set", systemImage: "plus.circle")
                     .font(.caption)
             }
@@ -253,32 +261,33 @@ struct ExerciseBuilderRow: View {
 
 // MARK: - Exercise Picker
 struct ExercisePickerView: View {
-    @Environment(\.dismiss) private var dismiss
+    @Environment(\.dismiss)
+    private var dismiss
     @State private var searchText = ""
     @State private var exercises: [ExerciseDefinition] = []
     @State private var isLoading = true
-    
+
     let onSelect: (ExerciseDefinition) -> Void
-    
+
     var filteredExercises: [ExerciseDefinition] {
         guard !searchText.isEmpty else { return exercises }
         return exercises.filter { exercise in
             exercise.name.localizedCaseInsensitiveContains(searchText)
         }
     }
-    
+
     var body: some View {
         NavigationStack {
             List(filteredExercises) { exercise in
-                Button(action: {
+                Button {
                     onSelect(exercise)
                     dismiss()
-                }) {
+                } label: {
                     VStack(alignment: .leading, spacing: AppSpacing.xSmall) {
                         Text(exercise.name)
                             .font(.headline)
                             .foregroundStyle(.primary)
-                        
+
                         HStack {
                             Text(exercise.category.displayName)
                                 .font(.caption)
@@ -286,7 +295,7 @@ struct ExercisePickerView: View {
                                 .padding(.vertical, 2)
                                 .background(exercise.category.color.opacity(0.2))
                                 .clipShape(Capsule())
-                            
+
                             Text(exercise.muscleGroups.map(\.displayName).joined(separator: ", "))
                                 .font(.caption)
                                 .foregroundStyle(.secondary)
@@ -317,4 +326,4 @@ struct ExercisePickerView: View {
             }
         }
     }
-} 
+}

@@ -49,8 +49,8 @@ struct CoachProfileReadyView: View {
                                     try await viewModel.completeOnboarding()
                                 } catch {
                                     AppLogger.error("Failed to complete onboarding",
-                                                   error: error,
-                                                   category: .onboarding)
+                                                    error: error,
+                                                    category: .onboarding)
                                 }
                             }
                         },
@@ -104,24 +104,24 @@ struct CoachProfileReadyView: View {
 
         let pairs = [
             StylePair(value: viewModel.blend.authoritativeDirect,
-                     name: "Authoritative & Direct",
-                     descriptor: "clear"),
+                      name: "Authoritative & Direct",
+                      descriptor: "clear"),
             StylePair(value: viewModel.blend.encouragingEmpathetic,
-                     name: "Encouraging & Empathetic",
-                     descriptor: "motivational"),
+                      name: "Encouraging & Empathetic",
+                      descriptor: "motivational"),
             StylePair(value: viewModel.blend.analyticalInsightful,
-                     name: "Analytical & Insightful",
-                     descriptor: "analytical"),
+                      name: "Analytical & Insightful",
+                      descriptor: "analytical"),
             StylePair(value: viewModel.blend.playfullyProvocative,
-                     name: "Playfully Provocative",
-                     descriptor: "playful")
+                      name: "Playfully Provocative",
+                      descriptor: "playful")
         ]
         let sorted = pairs.sorted { $0.value > $1.value }
         let dominant = sorted.first!
         let secondary = sorted.dropFirst().first!
         return "Expect a primarily \(dominant.name) approach, " +
-               "with elements of \(secondary.name). " +
-               "Your coach will be \(dominant.descriptor) and \(secondary.descriptor)."
+            "with elements of \(secondary.name). " +
+            "Your coach will be \(dominant.descriptor) and \(secondary.descriptor)."
     }
 
     private var engagementText: String {
@@ -130,13 +130,13 @@ struct CoachProfileReadyView: View {
         let recovery = viewModel.engagementPreferences.autoRecoveryLogicPreference ?
             "suggested automatically" : "adjusted only when you decide"
         return "Your coach will focus on \(depth) and provide updates \(freq). " +
-               "Workout adaptations will be \(recovery)."
+            "Workout adaptations will be \(recovery)."
     }
 
     private var boundariesText: String {
         "Quiet hours are respected between \(viewModel.sleepWindow.bedTime) - " +
-        "\(viewModel.sleepWindow.wakeTime) (\(viewModel.timezone)). " +
-        "If you're inactive, your coach will \(viewModel.motivationalStyle.absenceResponse.description.lowercased())."
+            "\(viewModel.sleepWindow.wakeTime) (\(viewModel.timezone)). " +
+            "If you're inactive, your coach will \(viewModel.motivationalStyle.absenceResponse.description.lowercased())."
     }
 
     private var celebrationText: String {

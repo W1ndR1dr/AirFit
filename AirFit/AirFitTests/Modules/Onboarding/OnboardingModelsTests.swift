@@ -42,7 +42,7 @@ final class OnboardingModelsTests: XCTestCase {
 
         // Assert
         let total = blend.authoritativeDirect + blend.encouragingEmpathetic +
-                   blend.analyticalInsightful + blend.playfullyProvocative
+            blend.analyticalInsightful + blend.playfullyProvocative
         XCTAssertEqual(total, 1.0, accuracy: 0.0001)
         XCTAssertTrue(blend.isValid)
     }

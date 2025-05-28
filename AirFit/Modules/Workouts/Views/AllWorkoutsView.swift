@@ -6,49 +6,49 @@ struct AllWorkoutsView: View {
     @State private var searchText = ""
     @State private var selectedFilter: WorkoutFilter = .all
     @State private var sortOrder: SortOrder = .dateDescending
-    
+
     enum WorkoutFilter: String, CaseIterable {
         case all = "All"
         case strength = "Strength"
         case cardio = "Cardio"
         case flexibility = "Flexibility"
         case sports = "Sports"
-        
+
         var displayName: String { rawValue }
     }
-    
+
     enum SortOrder: String, CaseIterable {
         case dateDescending = "Newest First"
         case dateAscending = "Oldest First"
         case duration = "Duration"
         case exercises = "Exercise Count"
-        
+
         var displayName: String { rawValue }
     }
-    
+
     var filteredWorkouts: [Workout] {
         let filtered = viewModel.workouts.filter { workout in
             // Search filter
-            let matchesSearch = searchText.isEmpty || 
+            let matchesSearch = searchText.isEmpty ||
                 workout.name.localizedCaseInsensitiveContains(searchText) ||
                 workout.exercises.contains { $0.name.localizedCaseInsensitiveContains(searchText) }
-            
+
             // Type filter
-            let matchesType = selectedFilter == .all || 
+            let matchesType = selectedFilter == .all ||
                 workout.workoutType == selectedFilter.rawValue.lowercased()
-            
+
             return matchesSearch && matchesType
         }
-        
+
         // Sort
         return filtered.sorted(by: { lhs, rhs in
             switch sortOrder {
             case .dateDescending:
-                return (lhs.completedDate ?? lhs.plannedDate ?? Date()) > 
-                       (rhs.completedDate ?? rhs.plannedDate ?? Date())
+                return (lhs.completedDate ?? lhs.plannedDate ?? Date()) >
+                    (rhs.completedDate ?? rhs.plannedDate ?? Date())
             case .dateAscending:
-                return (lhs.completedDate ?? lhs.plannedDate ?? Date()) < 
-                       (rhs.completedDate ?? rhs.plannedDate ?? Date())
+                return (lhs.completedDate ?? lhs.plannedDate ?? Date()) <
+                    (rhs.completedDate ?? rhs.plannedDate ?? Date())
             case .duration:
                 return (lhs.duration ?? 0) > (rhs.duration ?? 0)
             case .exercises:
@@ -56,13 +56,13 @@ struct AllWorkoutsView: View {
             }
         })
     }
-    
+
     var groupedWorkouts: [(String, [Workout])] {
         let grouped = Dictionary(grouping: filteredWorkouts) { workout in
             let date = workout.completedDate ?? workout.plannedDate ?? Date()
             return date.formatted(.dateTime.month(.wide).year())
         }
-        
+
         return grouped.sorted { lhs, rhs in
             // Sort sections by date
             guard let lhsDate = lhs.value.first?.completedDate ?? lhs.value.first?.plannedDate,
@@ -72,7 +72,7 @@ struct AllWorkoutsView: View {
             return lhsDate > rhsDate
         }
     }
-    
+
     var body: some View {
         ScrollView {
             VStack(spacing: 0) {
@@ -81,7 +81,7 @@ struct AllWorkoutsView: View {
                     WorkoutHistoryStats(workouts: filteredWorkouts)
                         .padding()
                 }
-                
+
                 // Filters
                 VStack(spacing: AppSpacing.medium) {
                     // Type Filter
@@ -98,13 +98,13 @@ struct AllWorkoutsView: View {
                         }
                         .padding(.horizontal)
                     }
-                    
+
                     // Sort Options
                     HStack {
                         Text("Sort by:")
                             .font(.caption)
                             .foregroundStyle(.secondary)
-                        
+
                         Menu {
                             ForEach(SortOrder.allCases, id: \.self) { order in
                                 Button(order.displayName) {
@@ -120,12 +120,12 @@ struct AllWorkoutsView: View {
                             }
                             .foregroundStyle(AppColors.accent)
                         }
-                        
+
                         Spacer()
                     }
                     .padding(.horizontal)
                 }
-                
+
                 // Workouts List
                 if groupedWorkouts.isEmpty {
                     EmptyStateView(
@@ -142,7 +142,7 @@ struct AllWorkoutsView: View {
                                     .font(.headline)
                                     .foregroundStyle(.secondary)
                                     .padding(.horizontal)
-                                
+
                                 VStack(spacing: AppSpacing.small) {
                                     ForEach(workouts) { workout in
                                         NavigationLink(value: WorkoutCoordinator.WorkoutDestination.workoutDetail(workout)) {
@@ -173,7 +173,7 @@ struct AllWorkoutsView: View {
 // MARK: - History Stats
 private struct WorkoutHistoryStats: View {
     let workouts: [Workout]
-    
+
     var totalWorkouts: Int { workouts.count }
     var totalDuration: TimeInterval {
         workouts.compactMap(\.duration).reduce(0, +)
@@ -185,14 +185,14 @@ private struct WorkoutHistoryStats: View {
         guard totalWorkouts > 0 else { return 0 }
         return totalDuration / Double(totalWorkouts)
     }
-    
+
     var body: some View {
         Card {
             VStack(spacing: AppSpacing.medium) {
                 Text("All Time Stats")
                     .font(.headline)
                     .frame(maxWidth: .infinity, alignment: .leading)
-                
+
                 LazyVGrid(columns: [GridItem(.flexible()), GridItem(.flexible())], spacing: AppSpacing.medium) {
                     StatCard(value: "\(totalWorkouts)", label: "Workouts", icon: "number", color: .blue)
                     StatCard(value: totalDuration.formattedDuration(), label: "Total Time", icon: "timer", color: .green)
@@ -210,7 +210,7 @@ private struct StatCard: View {
     let label: String
     let icon: String
     let color: Color
-    
+
     var body: some View {
         VStack(spacing: AppSpacing.xSmall) {
             HStack(spacing: AppSpacing.xSmall) {
@@ -232,7 +232,7 @@ private struct FilterChip: View {
     let title: String
     let isSelected: Bool
     let action: () -> Void
-    
+
     var body: some View {
         Button(action: action) {
             Text(title)
@@ -250,17 +250,17 @@ private struct FilterChip: View {
 // MARK: - History Row
 private struct WorkoutHistoryRow: View {
     let workout: Workout
-    
+
     private var dateText: String {
         let date = workout.completedDate ?? workout.plannedDate ?? Date()
         return date.formatted(.dateTime.weekday(.wide).day().month())
     }
-    
+
     private var timeText: String {
         let date = workout.completedDate ?? workout.plannedDate ?? Date()
         return date.formatted(date: .omitted, time: .shortened)
     }
-    
+
     var body: some View {
         Card {
             VStack(alignment: .leading, spacing: AppSpacing.small) {
@@ -268,61 +268,61 @@ private struct WorkoutHistoryRow: View {
                     VStack(alignment: .leading, spacing: 2) {
                         Text(workout.name)
                             .font(.headline)
-                        
+
                         HStack {
                             Image(systemName: workout.workoutTypeEnum?.systemImage ?? "figure.strengthtraining.traditional")
                                 .foregroundStyle(AppColors.accent)
                                 .font(.caption)
-                            
+
                             Text(dateText)
                                 .font(.caption)
                                 .foregroundStyle(.secondary)
-                            
+
                             Text("•")
                                 .foregroundStyle(.tertiary)
-                            
+
                             Text(timeText)
                                 .font(.caption)
                                 .foregroundStyle(.secondary)
                         }
                     }
-                    
+
                     Spacer()
-                    
+
                     if workout.aiAnalysis != nil {
                         Image(systemName: "sparkles")
                             .foregroundStyle(AppColors.accent)
                             .font(.caption)
                     }
-                    
+
                     Image(systemName: "chevron.right")
                         .font(.caption)
                         .foregroundStyle(.quaternary)
                 }
-                
+
                 // Exercise preview
                 if !workout.exercises.isEmpty {
-                    Text(workout.exercises.prefix(3).map(\.name).joined(separator: ", ") + 
-                         (workout.exercises.count > 3 ? " +\(workout.exercises.count - 3) more" : ""))
+                    Text(workout.exercises.prefix(3).map(\.name).joined(separator: ", ") +
+                            (workout.exercises.count > 3 ? " +\(workout.exercises.count - 3) more" : ""))
                         .font(.caption)
                         .foregroundStyle(.secondary)
                         .lineLimit(1)
                 }
-                
+
                 // Stats row
                 HStack(spacing: AppSpacing.large) {
                     Label(workout.formattedDuration ?? "0m", systemImage: "timer")
                         .font(.caption)
                         .foregroundStyle(.secondary)
-                    
+
                     Label("\(workout.exercises.count) exercises", systemImage: "list.bullet")
                         .font(.caption)
                         .foregroundStyle(.secondary)
-                    
+
                     Label("\(workout.totalSets) sets", systemImage: "square.stack.3d.up")
                         .font(.caption)
                         .foregroundStyle(.secondary)
-                    
+
                     if let calories = workout.caloriesBurned, calories > 0 {
                         Label("\(Int(calories)) cal", systemImage: "flame.fill")
                             .font(.caption)
@@ -332,4 +332,4 @@ private struct WorkoutHistoryRow: View {
             }
         }
     }
-} 
+}

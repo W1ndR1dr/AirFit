@@ -2,14 +2,16 @@ import SwiftUI
 import SwiftData
 
 struct TemplatePickerView: View {
-    @Environment(\.dismiss) private var dismiss
-    @Environment(\.modelContext) private var modelContext
+    @Environment(\.dismiss)
+    private var dismiss
+    @Environment(\.modelContext)
+    private var modelContext
     @State var viewModel: WorkoutViewModel
     @State private var selectedTemplate: UserWorkoutTemplate?
     @State private var showingCustomTemplate = false
-    
+
     private let predefinedTemplates = UserWorkoutTemplate.predefinedTemplates
-    
+
     var userTemplates: [UserWorkoutTemplate] {
         do {
             return try modelContext.fetch(
@@ -22,7 +24,7 @@ struct TemplatePickerView: View {
             return []
         }
     }
-    
+
     var body: some View {
         NavigationStack {
             ScrollView {
@@ -30,7 +32,7 @@ struct TemplatePickerView: View {
                     // Quick Start Templates
                     VStack(alignment: .leading, spacing: AppSpacing.medium) {
                         SectionHeader(title: "Quick Start", icon: "bolt.fill")
-                        
+
                         LazyVGrid(columns: [GridItem(.flexible()), GridItem(.flexible())], spacing: AppSpacing.medium) {
                             ForEach(predefinedTemplates) { template in
                                 TemplateCard(template: template) {
@@ -39,12 +41,12 @@ struct TemplatePickerView: View {
                             }
                         }
                     }
-                    
+
                     // User Templates
                     if !userTemplates.isEmpty {
                         VStack(alignment: .leading, spacing: AppSpacing.medium) {
                             SectionHeader(title: "My Templates", icon: "person.fill")
-                            
+
                             ForEach(userTemplates) { template in
                                 UserTemplateRow(template: template) {
                                     startWorkout(with: template)
@@ -52,9 +54,11 @@ struct TemplatePickerView: View {
                             }
                         }
                     }
-                    
+
                     // Create Custom
-                    Button(action: { showingCustomTemplate = true }) {
+                    Button {
+                        showingCustomTemplate = true
+                    } label: {
                         Label("Create Custom Workout", systemImage: "plus.circle.fill")
                             .frame(maxWidth: .infinity)
                     }
@@ -75,18 +79,18 @@ struct TemplatePickerView: View {
             }
         }
     }
-    
+
     private func startWorkout(with template: UserWorkoutTemplate) {
         let workout = template.createWorkout()
         modelContext.insert(workout)
-        
+
         template.lastUsedDate = Date()
-        
+
         do {
             try modelContext.save()
             viewModel.activeWorkout = workout
             dismiss()
-            
+
             // Navigate to active workout tracking
             NotificationCenter.default.post(
                 name: .startActiveWorkout,
@@ -102,7 +106,7 @@ struct TemplatePickerView: View {
 private struct TemplateCard: View {
     let template: UserWorkoutTemplate
     let action: () -> Void
-    
+
     var body: some View {
         Button(action: action) {
             VStack(spacing: AppSpacing.small) {
@@ -110,12 +114,12 @@ private struct TemplateCard: View {
                     .font(.largeTitle)
                     .foregroundStyle(template.accentColor.gradient)
                     .frame(height: 44)
-                
+
                 Text(template.name)
                     .font(.caption)
                     .fontWeight(.medium)
                     .multilineTextAlignment(.center)
-                
+
                 Text("\(template.exercises.count) exercises")
                     .font(.caption2)
                     .foregroundStyle(.secondary)
@@ -133,7 +137,7 @@ private struct TemplateCard: View {
 private struct UserTemplateRow: View {
     let template: UserWorkoutTemplate
     let action: () -> Void
-    
+
     var body: some View {
         Button(action: action) {
             Card {
@@ -141,7 +145,7 @@ private struct UserTemplateRow: View {
                     VStack(alignment: .leading, spacing: AppSpacing.xSmall) {
                         Text(template.name)
                             .font(.headline)
-                        
+
                         HStack(spacing: AppSpacing.medium) {
                             Label("\(template.exercises.count) exercises", systemImage: "list.bullet")
                             if let duration = template.estimatedDuration {
@@ -151,9 +155,9 @@ private struct UserTemplateRow: View {
                         .font(.caption)
                         .foregroundStyle(.secondary)
                     }
-                    
+
                     Spacer()
-                    
+
                     Image(systemName: "chevron.right")
                         .font(.caption)
                         .foregroundStyle(.quaternary)
@@ -176,16 +180,16 @@ final class UserWorkoutTemplate {
     var isUserCreated: Bool
     var lastUsedDate: Date?
     var createdDate: Date
-    
+
     // UI properties
     var iconName: String {
         WorkoutType(rawValue: workoutType)?.systemImage ?? "figure.strengthtraining.traditional"
     }
-    
+
     var accentColor: Color {
         WorkoutType(rawValue: workoutType)?.color ?? .blue
     }
-    
+
     init(
         name: String,
         workoutType: String,
@@ -202,16 +206,16 @@ final class UserWorkoutTemplate {
         self.isUserCreated = isUserCreated
         self.createdDate = Date()
     }
-    
+
     func createWorkout() -> Workout {
         let workout = Workout(
             name: name,
             workoutType: WorkoutType(rawValue: workoutType) ?? .general,
             plannedDate: Date()
         )
-        
+
         workout.notes = notes
-        
+
         // Convert template exercises to workout exercises
         for templateExercise in exercises {
             let exercise = Exercise(
@@ -219,7 +223,7 @@ final class UserWorkoutTemplate {
                 muscleGroups: templateExercise.muscleGroups ?? []
             )
             exercise.notes = templateExercise.notes
-            
+
             // Add planned sets
             for setTemplate in templateExercise.sets {
                 let set = ExerciseSet(
@@ -229,13 +233,13 @@ final class UserWorkoutTemplate {
                 )
                 exercise.sets.append(set)
             }
-            
+
             workout.exercises.append(exercise)
         }
-        
+
         return workout
     }
-    
+
     // Predefined templates
     static var predefinedTemplates: [UserWorkoutTemplate] {
         [
@@ -262,7 +266,7 @@ final class UserWorkoutTemplate {
                 estimatedDuration: 45 * 60,
                 isUserCreated: false
             ),
-            
+
             UserWorkoutTemplate(
                 name: "Pull Day",
                 workoutType: WorkoutType.strength.rawValue,
@@ -286,7 +290,7 @@ final class UserWorkoutTemplate {
                 estimatedDuration: 45 * 60,
                 isUserCreated: false
             ),
-            
+
             UserWorkoutTemplate(
                 name: "Leg Day",
                 workoutType: WorkoutType.strength.rawValue,
@@ -311,7 +315,7 @@ final class UserWorkoutTemplate {
                 estimatedDuration: 60 * 60,
                 isUserCreated: false
             ),
-            
+
             UserWorkoutTemplate(
                 name: "HIIT Circuit",
                 workoutType: WorkoutType.cardio.rawValue,
@@ -335,7 +339,7 @@ final class TemplateExercise {
     var muscleGroups: [String]?
     var notes: String?
     var sets: [TemplateSetData]
-    
+
     init(name: String, muscleGroups: [String]? = nil, notes: String? = nil, sets: [TemplateSetData] = []) {
         self.name = name
         self.muscleGroups = muscleGroups
@@ -350,7 +354,7 @@ struct TemplateSetData: Codable {
     let targetReps: Int?
     let targetWeight: Double?
     let targetDuration: TimeInterval?
-    
+
     init(order: Int, targetReps: Int? = nil, targetWeight: Double? = nil, targetDuration: TimeInterval? = nil) {
         self.order = order
         self.targetReps = targetReps
@@ -362,4 +366,4 @@ struct TemplateSetData: Codable {
 // MARK: - Notification
 extension Notification.Name {
     static let startActiveWorkout = Notification.Name("startActiveWorkout")
-} 
+}

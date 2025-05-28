@@ -72,8 +72,8 @@ final class NetworkClient: NetworkClientProtocol {
             throw error
         } catch {
             AppLogger.error("Upload failed",
-                          error: error,
-                          category: .networking)
+                            error: error,
+                            category: .networking)
             throw NetworkError.networkError(error)
         }
     }
@@ -98,8 +98,8 @@ final class NetworkClient: NetworkClientProtocol {
             throw error
         } catch {
             AppLogger.error("Download failed",
-                          error: error,
-                          category: .networking)
+                            error: error,
+                            category: .networking)
             throw NetworkError.networkError(error)
         }
     }

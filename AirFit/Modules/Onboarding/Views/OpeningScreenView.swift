@@ -44,13 +44,13 @@ struct OpeningScreenView: View {
                         viewModel.navigateToNextScreen()
                     },
                     label: {
-                    Text("Begin")
-                        .font(AppFonts.bodyBold)
-                        .foregroundColor(AppColors.textOnAccent)
-                        .frame(maxWidth: .infinity)
-                        .padding()
-                        .background(AppColors.accentColor)
-                        .cornerRadius(AppConstants.Layout.defaultCornerRadius)
+                        Text("Begin")
+                            .font(AppFonts.bodyBold)
+                            .foregroundColor(AppColors.textOnAccent)
+                            .frame(maxWidth: .infinity)
+                            .padding()
+                            .background(AppColors.accentColor)
+                            .cornerRadius(AppConstants.Layout.defaultCornerRadius)
                     }
                 )
                 .accessibilityIdentifier("onboarding.begin.button")
@@ -60,9 +60,9 @@ struct OpeningScreenView: View {
                         AppLogger.info("Onboarding skipped", category: .onboarding)
                     },
                     label: {
-                    Text("Maybe Later")
-                        .font(AppFonts.body)
-                        .foregroundColor(AppColors.textSecondary)
+                        Text("Maybe Later")
+                            .font(AppFonts.body)
+                            .foregroundColor(AppColors.textSecondary)
                     }
                 )
                 .accessibilityIdentifier("onboarding.skip.button")

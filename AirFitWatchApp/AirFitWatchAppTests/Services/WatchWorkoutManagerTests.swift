@@ -308,4 +308,4 @@ class MockWCSessionProtocol: @unchecked Sendable {
         sentMessages.append(message)
         replyHandler?(["status": "success"])
     }
-} 
+}

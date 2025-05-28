@@ -768,60 +768,60 @@ final class FunctionCallDispatcher: @unchecked Sendable {
 
     private func extractString(from anyCodable: AIAnyCodable?) -> String? {
         guard let anyCodable = anyCodable else { return nil }
-        
+
         // Handle nested AIAnyCodable
         if let nestedAnyCodable = anyCodable.value as? AIAnyCodable {
             return nestedAnyCodable.value as? String
         }
-        
+
         // Handle direct value
         return anyCodable.value as? String
     }
 
     private func extractInt(from anyCodable: AIAnyCodable?) -> Int? {
         guard let anyCodable = anyCodable else { return nil }
-        
+
         // Handle nested AIAnyCodable
         if let nestedAnyCodable = anyCodable.value as? AIAnyCodable {
             return nestedAnyCodable.value as? Int
         }
-        
+
         // Handle direct value
         return anyCodable.value as? Int
     }
 
     private func extractDouble(from anyCodable: AIAnyCodable?) -> Double? {
         guard let anyCodable = anyCodable else { return nil }
-        
+
         // Handle nested AIAnyCodable
         if let nestedAnyCodable = anyCodable.value as? AIAnyCodable {
             return nestedAnyCodable.value as? Double
         }
-        
+
         // Handle direct value
         return anyCodable.value as? Double
     }
 
     private func extractBool(from anyCodable: AIAnyCodable?) -> Bool? {
         guard let anyCodable = anyCodable else { return nil }
-        
+
         // Handle nested AIAnyCodable
         if let nestedAnyCodable = anyCodable.value as? AIAnyCodable {
             return nestedAnyCodable.value as? Bool
         }
-        
+
         // Handle direct value
         return anyCodable.value as? Bool
     }
 
     private func extractStringArray(from anyCodable: AIAnyCodable?) -> [String]? {
         guard let anyCodable = anyCodable else { return nil }
-        
+
         // Handle nested AIAnyCodable
         if let nestedAnyCodable = anyCodable.value as? AIAnyCodable {
             return nestedAnyCodable.value as? [String]
         }
-        
+
         // Handle direct value
         return anyCodable.value as? [String]
     }

@@ -232,13 +232,13 @@ final class OnboardingFlowViewTests: XCTestCase {
     // MARK: - Helper Methods
     private func shouldShowProgressBar(for screen: OnboardingScreen) -> Bool {
         return screen != .openingScreen &&
-               screen != .generatingCoach &&
-               screen != .coachProfileReady
+            screen != .generatingCoach &&
+            screen != .coachProfileReady
     }
 
     private func shouldShowPrivacyFooter(for screen: OnboardingScreen) -> Bool {
         return screen != .generatingCoach &&
-               screen != .coachProfileReady
+            screen != .coachProfileReady
     }
 }
 

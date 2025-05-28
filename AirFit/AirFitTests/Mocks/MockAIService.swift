@@ -5,6 +5,7 @@ import Foundation
 final class MockAIService: AIServiceProtocol, @preconcurrency MockProtocol {
     var invocations: [String: [Any]] = [:]
     var stubbedResults: [String: Any] = [:]
+    let mockLock = NSLock()
 
     var analyzeGoalResult: Result<String, Error> = .failure(MockError.notSet)
     private(set) var analyzeGoalCalled = false

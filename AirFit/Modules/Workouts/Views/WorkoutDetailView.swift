@@ -11,7 +11,8 @@ struct WorkoutDetailView: View {
     @State private var showingTemplateSheet = false
     @State private var showingShareSheet = false
     @State private var shareItem: ShareItem?
-    @Environment(\.modelContext) private var modelContext
+    @Environment(\.modelContext)
+    private var modelContext
 
     var body: some View {
         ScrollView {
@@ -165,7 +166,9 @@ private extension WorkoutDetailView {
 
     var actionsSection: some View {
         VStack(spacing: AppSpacing.small) {
-            Button(action: { showingTemplateSheet = true }) {
+            Button {
+                showingTemplateSheet = true
+            } label: {
                 Label("Save as Template", systemImage: "square.and.arrow.down")
                     .frame(maxWidth: .infinity)
             }
@@ -184,17 +187,17 @@ private extension WorkoutDetailView {
         let shareText = generateShareText()
         shareItem = ShareItem(text: shareText)
     }
-    
+
     func generateShareText() -> String {
         var text = "🏋️ \(workout.name)\n"
         text += "\(workout.workoutTypeEnum?.displayName ?? "Workout") • \(workout.formattedDuration ?? "0m")\n\n"
-        
+
         if let calories = workout.caloriesBurned, calories > 0 {
             text += "🔥 \(Int(calories)) calories burned\n"
         }
-        
+
         text += "💪 \(workout.exercises.count) exercises • \(workout.totalSets) sets\n\n"
-        
+
         // Exercise summary
         text += "Exercises:\n"
         for exercise in workout.exercises {
@@ -209,13 +212,13 @@ private extension WorkoutDetailView {
             }
             text += "\n"
         }
-        
+
         if let analysis = workout.aiAnalysis {
             text += "\n✨ AI Coach: \(analysis.prefix(100))..."
         }
-        
+
         text += "\n\n—\nTracked with AirFit"
-        
+
         return text
     }
 }
@@ -320,11 +323,11 @@ private struct ShareItem: Identifiable {
 // MARK: - Share Sheet
 private struct ShareSheet: UIViewControllerRepresentable {
     let activityItems: [Any]
-    
+
     func makeUIViewController(context: Context) -> UIActivityViewController {
         UIActivityViewController(activityItems: activityItems, applicationActivities: nil)
     }
-    
+
     func updateUIViewController(_ uiViewController: UIActivityViewController, context: Context) {}
 }
 
@@ -332,10 +335,11 @@ private struct ShareSheet: UIViewControllerRepresentable {
 private struct SaveAsTemplateView: View {
     let workout: Workout
     let modelContext: ModelContext
-    @Environment(\.dismiss) private var dismiss
+    @Environment(\.dismiss)
+    private var dismiss
     @State private var templateName: String = ""
     @State private var includeNotes = true
-    
+
     var body: some View {
         NavigationStack {
             Form {
@@ -343,7 +347,7 @@ private struct SaveAsTemplateView: View {
                     TextField("Template Name", text: $templateName)
                     Toggle("Include Notes", isOn: $includeNotes)
                 }
-                
+
                 Section("Exercises") {
                     ForEach(workout.exercises) { exercise in
                         Label(exercise.name, systemImage: "checkmark.circle.fill")
@@ -357,7 +361,7 @@ private struct SaveAsTemplateView: View {
                 ToolbarItem(placement: .cancellationAction) {
                     Button("Cancel") { dismiss() }
                 }
-                
+
                 ToolbarItem(placement: .confirmationAction) {
                     Button("Save") { saveTemplate() }
                         .fontWeight(.semibold)
@@ -369,7 +373,7 @@ private struct SaveAsTemplateView: View {
             templateName = workout.name
         }
     }
-    
+
     private func saveTemplate() {
         let template = UserWorkoutTemplate(
             name: templateName,
@@ -390,9 +394,9 @@ private struct SaveAsTemplateView: View {
             },
             notes: includeNotes ? workout.notes : nil
         )
-        
+
         modelContext.insert(template)
-        
+
         do {
             try modelContext.save()
             dismiss()
@@ -405,8 +409,9 @@ private struct SaveAsTemplateView: View {
 // MARK: - AI Analysis View
 private struct AIAnalysisView: View {
     let analysis: String
-    @Environment(\.dismiss) private var dismiss
-    
+    @Environment(\.dismiss)
+    private var dismiss
+
     var body: some View {
         NavigationStack {
             ScrollView {
@@ -429,8 +434,9 @@ private struct AIAnalysisView: View {
 private struct ExerciseDetailView: View {
     let exercise: Exercise
     let workout: Workout
-    @Environment(\.dismiss) private var dismiss
-    
+    @Environment(\.dismiss)
+    private var dismiss
+
     var body: some View {
         NavigationStack {
             List {
@@ -443,23 +449,23 @@ private struct ExerciseDetailView: View {
                         LabeledContent("Notes", value: notes)
                     }
                 }
-                
+
                 Section("Sets") {
                     ForEach(Array(exercise.sets.enumerated()), id: \.element.id) { index, set in
                         HStack {
                             Text("Set \(index + 1)")
                                 .fontWeight(.medium)
-                            
+
                             Spacer()
-                            
+
                             if let reps = set.completedReps ?? set.targetReps {
                                 Text("\(reps) reps")
                             }
-                            
+
                             if let weight = set.completedWeightKg ?? set.targetWeightKg, weight > 0 {
                                 Text("× \(weight, specifier: "%.1f")kg")
                             }
-                            
+
                             if let rpe = set.rpe {
                                 Text("RPE \(Int(rpe))")
                                     .font(.caption)
@@ -468,14 +474,14 @@ private struct ExerciseDetailView: View {
                         }
                     }
                 }
-                
+
                 Section("Summary") {
                     let totalVolume = exercise.sets.reduce(0) { total, set in
                         let reps = Double(set.completedReps ?? set.targetReps ?? 0)
                         let weight = set.completedWeightKg ?? set.targetWeightKg ?? 0
                         return total + (reps * weight)
                     }
-                    
+
                     LabeledContent("Total Sets", value: "\(exercise.sets.count)")
                     LabeledContent("Total Volume", value: "\(Int(totalVolume))kg")
                 }
@@ -490,4 +496,3 @@ private struct ExerciseDetailView: View {
         }
     }
 }
-

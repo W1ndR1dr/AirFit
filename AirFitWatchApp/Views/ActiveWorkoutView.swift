@@ -111,12 +111,12 @@ struct WorkoutControlsView: View {
         VStack(spacing: 20) {
             // Pause/Resume button
             if workoutManager.workoutState == .running {
-                            Button {
-                workoutManager.pauseWorkout()
-            } label: {
-                Label("Pause", systemImage: "pause.fill")
-                    .frame(maxWidth: .infinity)
-            }
+                Button {
+                    workoutManager.pauseWorkout()
+                } label: {
+                    Label("Pause", systemImage: "pause.fill")
+                        .frame(maxWidth: .infinity)
+                }
                 .buttonStyle(.borderedProminent)
                 .tint(.orange)
             } else if workoutManager.workoutState == .paused {

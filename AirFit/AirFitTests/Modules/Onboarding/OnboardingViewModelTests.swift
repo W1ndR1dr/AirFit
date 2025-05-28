@@ -132,7 +132,7 @@ final class OnboardingViewModelTests: XCTestCase {
 
         // Assert
         let total = sut.blend.authoritativeDirect + sut.blend.encouragingEmpathetic +
-                   sut.blend.analyticalInsightful + sut.blend.playfullyProvocative
+            sut.blend.analyticalInsightful + sut.blend.playfullyProvocative
         XCTAssertEqual(total, 1.0, accuracy: 0.0001)
         XCTAssertTrue(sut.blend.isValid)
     }
