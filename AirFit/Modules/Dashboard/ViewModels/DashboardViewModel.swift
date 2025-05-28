@@ -124,7 +124,7 @@ final class DashboardViewModel {
             group.addTask { await self.loadEnergyLevel() }
             group.addTask { await self.loadNutritionData() }
             group.addTask { await self.loadHealthInsights() }
-            group.addTask { await self.loadQuickActions() }
+            group.addTask { await self.loadQuickActions(for: Date()) }
         }
     }
 
@@ -210,10 +210,10 @@ final class DashboardViewModel {
         }
     }
 
-    private func loadQuickActions() async {
+    func loadQuickActions(for date: Date = Date()) async {
         var actions: [QuickAction] = []
 
-        let hour = Calendar.current.component(.hour, from: Date())
+        let hour = Calendar.current.component(.hour, from: date)
         if (11...13).contains(hour) && nutritionSummary.meals[.lunch] == nil {
             actions.append(.logMeal(type: .lunch))
         }

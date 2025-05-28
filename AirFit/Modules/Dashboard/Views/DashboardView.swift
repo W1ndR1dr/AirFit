@@ -119,8 +119,10 @@ struct DashboardView: View {
             )
             RecoveryCard(recoveryScore: viewModel.recoveryScore)
             PerformanceCard(insight: viewModel.performanceInsight)
-            // QuickActionsCard will be implemented in Wave 4
-            PlaceholderQuickActionsCard(actions: viewModel.suggestedActions)
+            QuickActionsCard(
+                suggestedActions: viewModel.suggestedActions,
+                onActionTap: handleQuickAction
+            )
         }
         .animation(.bouncy, value: viewModel.morningGreeting)
     }
@@ -131,6 +133,10 @@ struct DashboardView: View {
         case .placeholder:
             Text("Destination")
         }
+    }
+
+    private func handleQuickAction(_ action: QuickAction) {
+        coordinator.navigate(to: .placeholder)
     }
 }
 
@@ -210,22 +216,3 @@ actor PlaceholderNutritionService: DashboardNutritionServiceProtocol {
 }
 
 // MARK: - Placeholder Quick Actions Card
-private struct PlaceholderQuickActionsCard: View {
-    let actions: [QuickAction]
-
-    var body: some View {
-        VStack(alignment: .leading, spacing: AppSpacing.small) {
-            Text("Quick Actions")
-                .font(AppFonts.headline)
-                .foregroundColor(AppColors.textPrimary)
-            
-            Text("\(actions.count) actions available")
-                .font(AppFonts.caption)
-                .foregroundColor(AppColors.textSecondary)
-        }
-        .frame(maxWidth: .infinity, alignment: .leading)
-        .padding()
-        .background(AppColors.cardBackground)
-        .cornerRadius(AppConstants.Layout.defaultCornerRadius)
-    }
-}
