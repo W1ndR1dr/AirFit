@@ -114,8 +114,15 @@ final class DashboardViewModel {
         }
     }
 
+    // MARK: - Test Support
+    #if DEBUG
+    func resetGreetingState() {
+        lastGreetingDate = nil
+    }
+    #endif
+
     // MARK: - Private Methods
-    private func loadDashboardData() async {
+    func loadDashboardData() async {
         isLoading = true
         defer { isLoading = false }
 

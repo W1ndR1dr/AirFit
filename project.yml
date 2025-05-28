@@ -134,6 +134,8 @@ targets:
       # Application Layer Files (CRITICAL: XcodeGen nesting bug)
       - AirFit/Application/AirFitApp.swift
       - AirFit/Application/MinimalContentView.swift
+      # Asset Catalog (CRITICAL: Must be explicitly included)
+      - AirFit/Assets.xcassets
       # NOTE: Original ContentView.swift and DashboardView.swift temporarily excluded due to API issues
       # These will be fixed in future modules
     resources:

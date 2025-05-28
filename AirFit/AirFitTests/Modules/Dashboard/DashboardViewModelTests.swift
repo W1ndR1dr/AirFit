@@ -4,26 +4,39 @@ import SwiftData
 
 @MainActor
 final class DashboardViewModelTests: XCTestCase {
-    var sut: DashboardViewModel!
+    var container: ModelContainer!
+    var modelContext: ModelContext!
     var mockHealthKitService: MockHealthKitService!
     var mockAICoachService: MockAICoachService!
     var mockNutritionService: MockNutritionService!
-    var modelContext: ModelContext!
-    var testUser: User!
 
     override func setUp() async throws {
-        let container = try ModelContainer.createTestContainer()
+        container = try ModelContainer.createTestContainer()
         modelContext = container.mainContext
-        testUser = User(name: "Tester")
-        modelContext.insert(testUser)
-        try modelContext.save()
 
         mockHealthKitService = MockHealthKitService()
         mockAICoachService = MockAICoachService()
         mockNutritionService = MockNutritionService()
+    }
 
-        sut = DashboardViewModel(
-            user: testUser,
+    override func tearDown() async throws {
+        container = nil
+        modelContext = nil
+        mockHealthKitService = nil
+        mockAICoachService = nil
+        mockNutritionService = nil
+    }
+
+    private func createTestUser() -> User {
+        let user = User(name: "Tester")
+        modelContext.insert(user)
+        try! modelContext.save()
+        return user
+    }
+
+    private func createSUT(with user: User) -> DashboardViewModel {
+        return DashboardViewModel(
+            user: user,
             modelContext: modelContext,
             healthKitService: mockHealthKitService,
             aiCoachService: mockAICoachService,
@@ -31,7 +44,29 @@ final class DashboardViewModelTests: XCTestCase {
         )
     }
 
+    // MARK: - Async Test Helper
+    private func waitForLoadingToComplete(_ viewModel: DashboardViewModel, timeout: TimeInterval = 2.0) async throws {
+        let startTime = Date()
+        while viewModel.isLoading {
+            if Date().timeIntervalSince(startTime) > timeout {
+                XCTFail("Timeout waiting for loading to complete")
+                return
+            }
+            try await Task.sleep(nanoseconds: 10_000_000) // 10ms
+        }
+    }
+
+    // MARK: - Test Helper to Force Greeting Refresh
+    private func forceGreetingRefresh(_ viewModel: DashboardViewModel) {
+        #if DEBUG
+        viewModel.resetGreetingState()
+        #endif
+    }
+
     func test_initialState_defaults() {
+        let user = createTestUser()
+        let sut = createSUT(with: user)
+        
         XCTAssertTrue(sut.isLoading)
         XCTAssertEqual(sut.morningGreeting, "Good morning!")
         XCTAssertNil(sut.greetingContext)
@@ -39,7 +74,10 @@ final class DashboardViewModelTests: XCTestCase {
         XCTAssertTrue(sut.suggestedActions.isEmpty)
     }
 
-    func test_onAppear_loadsDashboardData() async {
+    func test_loadDashboardData_loadsDashboardData() async throws {
+        let user = createTestUser()
+        let sut = createSUT(with: user)
+        
         // Arrange mock values
         mockHealthKitService.mockContext = HealthContext(
             lastNightSleepDurationHours: 7,
@@ -63,9 +101,11 @@ final class DashboardViewModelTests: XCTestCase {
         mockNutritionService.mockSummary = summary
         mockAICoachService.mockGreeting = "Hi Tester"
 
-        // Act
-        sut.onAppear()
-        try? await Task.sleep(nanoseconds: 100_000_000) // allow tasks
+        // Force greeting refresh for testing
+        forceGreetingRefresh(sut)
+        
+        // Act - Call loadDashboardData directly for deterministic testing
+        await sut.loadDashboardData()
 
         // Assert
         XCTAssertFalse(sut.isLoading)
@@ -78,7 +118,41 @@ final class DashboardViewModelTests: XCTestCase {
         mockNutritionService.verify("getTodaysSummary", called: 1)
     }
 
-    func test_onAppear_aiFailure_usesFallbackGreeting() async {
+    func test_onAppear_triggersDataLoad() async throws {
+        let user = createTestUser()
+        let sut = createSUT(with: user)
+        
+        // Arrange mock values
+        mockHealthKitService.mockContext = HealthContext(
+            lastNightSleepDurationHours: 7,
+            sleepQuality: 4,
+            currentWeatherCondition: "Sunny",
+            currentTemperatureCelsius: 22,
+            yesterdayEnergyLevel: 3,
+            currentHeartRate: 60,
+            hrv: 50,
+            steps: 1_000
+        )
+        var summary = NutritionSummary()
+        summary.calories = 500
+        mockNutritionService.mockSummary = summary
+        mockAICoachService.mockGreeting = "Hi Tester"
+
+        // Act
+        sut.onAppear()
+        
+        // Wait for async loading to complete
+        try await waitForLoadingToComplete(sut)
+
+        // Assert
+        XCTAssertFalse(sut.isLoading)
+        XCTAssertEqual(sut.morningGreeting, "Hi Tester")
+        XCTAssertEqual(sut.nutritionSummary.calories, 500)
+    }
+
+    func test_aiFailure_usesFallbackGreeting() async throws {
+        let user = createTestUser()
+        
         // Arrange failing AI service
         final class FailingAI: AICoachServiceProtocol {
             func generateMorningGreeting(for user: User, context: GreetingContext) async throws -> String {
@@ -86,8 +160,8 @@ final class DashboardViewModelTests: XCTestCase {
                 throw TestError()
             }
         }
-        sut = DashboardViewModel(
-            user: testUser,
+        let sut = DashboardViewModel(
+            user: user,
             modelContext: modelContext,
             healthKitService: mockHealthKitService,
             aiCoachService: FailingAI(),
@@ -96,7 +170,7 @@ final class DashboardViewModelTests: XCTestCase {
 
         // Determine expected fallback
         let hour = Calendar.current.component(.hour, from: Date())
-        let name = testUser.name ?? "there"
+        let name = user.name ?? "there"
         let expected: String
         switch hour {
         case 5..<12:
@@ -109,15 +183,17 @@ final class DashboardViewModelTests: XCTestCase {
             expected = "Hello, \(name)! Still up?"
         }
 
-        // Act
-        sut.onAppear()
-        try? await Task.sleep(nanoseconds: 100_000_000)
+        // Act - Call loadDashboardData directly for deterministic testing
+        await sut.loadDashboardData()
 
         // Assert
         XCTAssertEqual(sut.morningGreeting, expected)
     }
 
     func test_logEnergyLevel_createsNewLog() async throws {
+        let user = createTestUser()
+        let sut = createSUT(with: user)
+        
         // Act
         await sut.logEnergyLevel(4)
 
@@ -130,7 +206,10 @@ final class DashboardViewModelTests: XCTestCase {
     }
 
     func test_logEnergyLevel_updatesExistingLog() async throws {
-        let existing = DailyLog(date: Date(), user: testUser)
+        let user = createTestUser()
+        let sut = createSUT(with: user)
+        
+        let existing = DailyLog(date: Date(), user: user)
         existing.subjectiveEnergyLevel = 2
         modelContext.insert(existing)
         try modelContext.save()
@@ -143,7 +222,10 @@ final class DashboardViewModelTests: XCTestCase {
         XCTAssertEqual(sut.currentEnergyLevel, 5)
     }
 
-    func test_loadNutritionData_withProfile_fetchesTargets() async {
+    func test_loadNutritionData_withProfile_fetchesTargets() async throws {
+        let user = createTestUser()
+        let sut = createSUT(with: user)
+        
         // Arrange
         let blob = UserProfileJsonBlob(
             lifeContext: LifeContext(),
@@ -163,7 +245,7 @@ final class DashboardViewModelTests: XCTestCase {
             communicationPreferencesData: data,
             rawFullProfileData: data
         )
-        testUser.onboardingProfile = profile
+        user.onboardingProfile = profile
         modelContext.insert(profile)
         try modelContext.save()
 
@@ -177,16 +259,20 @@ final class DashboardViewModelTests: XCTestCase {
         )
         mockNutritionService.mockTargets = targets
 
-        // Act
-        sut.onAppear()
-        try? await Task.sleep(nanoseconds: 100_000_000)
+        // Force greeting refresh for testing
+        forceGreetingRefresh(sut)
+        
+        // Act - Call loadDashboardData directly for deterministic testing
+        await sut.loadDashboardData()
 
         // Assert
         XCTAssertEqual(sut.nutritionTargets.calories, 2_500)
         mockNutritionService.verify("getTargets", called: 1)
     }
 
-    func test_loadHealthInsights_errorDoesNotCrash() async {
+    func test_loadHealthInsights_errorDoesNotCrash() async throws {
+        let user = createTestUser()
+        
         final class ErrorHealthService: HealthKitServiceProtocol {
             func getCurrentContext() async throws -> HealthContext {
                 HealthContext(
@@ -208,18 +294,20 @@ final class DashboardViewModelTests: XCTestCase {
                 throw TestError()
             }
         }
-        sut = DashboardViewModel(
-            user: testUser,
+        let sut = DashboardViewModel(
+            user: user,
             modelContext: modelContext,
             healthKitService: ErrorHealthService(),
             aiCoachService: mockAICoachService,
             nutritionService: mockNutritionService
         )
 
-        sut.onAppear()
-        try? await Task.sleep(nanoseconds: 100_000_000)
+        // Act - Call loadDashboardData directly for deterministic testing
+        await sut.loadDashboardData()
 
+        // Assert - Should not crash and should handle errors gracefully
         XCTAssertNil(sut.recoveryScore)
         XCTAssertNil(sut.performanceInsight)
+        XCTAssertFalse(sut.isLoading)
     }
 }
