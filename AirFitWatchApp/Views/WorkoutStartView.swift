@@ -2,7 +2,7 @@ import SwiftUI
 import HealthKit
 
 struct WorkoutStartView: View {
-    @StateObject private var workoutManager = WatchWorkoutManager()
+    @State private var workoutManager = WatchWorkoutManager()
     @State private var selectedActivity: HKWorkoutActivityType = .traditionalStrengthTraining
     @State private var showingActiveWorkout = false
     @State private var isRequestingPermission = false
@@ -128,4 +128,3 @@ private extension HKWorkoutActivityType {
         }
     }
 }
-

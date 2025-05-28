@@ -1,7 +1,7 @@
 import SwiftUI
 
 struct ExerciseLoggingView: View {
-    @ObservedObject var workoutManager: WatchWorkoutManager
+    let workoutManager: WatchWorkoutManager
     @State private var showingExercisePicker = false
     @State private var showingSetLogger = false
 
@@ -17,7 +17,9 @@ struct ExerciseLoggingView: View {
                     CurrentExerciseCard(exercise: exercise)
 
                     // Log set button
-                    Button(action: { showingSetLogger = true }) {
+                    Button {
+                        showingSetLogger = true
+                    } label: {
                         Label("Log Set", systemImage: "plus.circle.fill")
                             .frame(maxWidth: .infinity)
                     }
@@ -37,7 +39,9 @@ struct ExerciseLoggingView: View {
                 }
 
                 // New exercise button
-                Button(action: { showingExercisePicker = true }) {
+                Button {
+                    showingExercisePicker = true
+                } label: {
                     Label("New Exercise", systemImage: "figure.strengthtraining.traditional")
                         .frame(maxWidth: .infinity)
                 }
@@ -131,4 +135,3 @@ struct RecentSetsView: View {
         .clipShape(RoundedRectangle(cornerRadius: 8))
     }
 }
-

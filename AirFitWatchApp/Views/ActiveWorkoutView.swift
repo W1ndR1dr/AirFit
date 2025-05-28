@@ -3,7 +3,7 @@ import HealthKit
 import WatchKit
 
 struct ActiveWorkoutView: View {
-    @ObservedObject var workoutManager: WatchWorkoutManager
+    let workoutManager: WatchWorkoutManager
     @State private var selectedTab = 0
     @Environment(\.dismiss) private var dismiss
 
@@ -32,7 +32,7 @@ struct ActiveWorkoutView: View {
 }
 
 struct WorkoutMetricsView: View {
-    @ObservedObject var workoutManager: WatchWorkoutManager
+    let workoutManager: WatchWorkoutManager
 
     var body: some View {
         VStack(spacing: 16) {
@@ -103,7 +103,7 @@ struct MetricRow: View {
 }
 
 struct WorkoutControlsView: View {
-    @ObservedObject var workoutManager: WatchWorkoutManager
+    let workoutManager: WatchWorkoutManager
     let onEnd: () -> Void
     @State private var showingEndConfirmation = false
 
@@ -111,14 +111,18 @@ struct WorkoutControlsView: View {
         VStack(spacing: 20) {
             // Pause/Resume button
             if workoutManager.workoutState == .running {
-                Button(action: { workoutManager.pauseWorkout() }) {
-                    Label("Pause", systemImage: "pause.fill")
-                        .frame(maxWidth: .infinity)
-                }
+                            Button {
+                workoutManager.pauseWorkout()
+            } label: {
+                Label("Pause", systemImage: "pause.fill")
+                    .frame(maxWidth: .infinity)
+            }
                 .buttonStyle(.borderedProminent)
                 .tint(.orange)
             } else if workoutManager.workoutState == .paused {
-                Button(action: { workoutManager.resumeWorkout() }) {
+                Button {
+                    workoutManager.resumeWorkout()
+                } label: {
                     Label("Resume", systemImage: "play.fill")
                         .frame(maxWidth: .infinity)
                 }
@@ -127,7 +131,9 @@ struct WorkoutControlsView: View {
             }
 
             // End button
-            Button(action: { showingEndConfirmation = true }) {
+            Button {
+                showingEndConfirmation = true
+            } label: {
                 Label("End", systemImage: "stop.fill")
                     .frame(maxWidth: .infinity)
             }

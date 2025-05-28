@@ -7,7 +7,7 @@ extension TimeInterval {
     func formattedDuration(style: DateComponentsFormatter.UnitsStyle = .abbreviated) -> String {
         let formatter = DateComponentsFormatter()
         formatter.unitsStyle = style
-        formatter.allowedUnits = self >= 3600 ? [.hour, .minute, .second] : [.minute, .second]
+        formatter.allowedUnits = self >= 3_600 ? [.hour, .minute, .second] : [.minute, .second]
         formatter.zeroFormattingBehavior = .pad
         return formatter.string(from: self) ?? "0m"
     }

@@ -2,6 +2,7 @@ import Foundation
 import WatchConnectivity
 import CloudKit
 import SwiftData
+import HealthKit
 
 @MainActor
 final class WorkoutSyncService: NSObject {
@@ -32,7 +33,15 @@ final class WorkoutSyncService: NSObject {
 
         do {
             let encoded = try JSONEncoder().encode(data)
-            try await session.sendMessageData(encoded)
+            session.sendMessageData(encoded, replyHandler: nil) { error in
+                Task { @MainActor in
+                    self.pendingWorkouts.append(data)
+                    Task {
+                        await self.syncToCloudKit(data)
+                    }
+                    AppLogger.error("Failed to send workout data", error: error, category: .data)
+                }
+            }
             AppLogger.info("Workout data sent to iPhone", category: .data)
         } catch {
             pendingWorkouts.append(data)
@@ -83,7 +92,7 @@ final class WorkoutSyncService: NSObject {
                 set.completedReps = setData.reps
                 set.completedWeightKg = setData.weightKg
                 set.completedDurationSeconds = setData.duration
-                set.completedDate = setData.completedAt
+                set.completedAt = setData.completedAt
                 exercise.sets.append(set)
             }
 

@@ -3,12 +3,14 @@ options:
   bundleIdPrefix: com.airfit
   deploymentTarget:
     iOS: "18.0"
+    watchOS: "11.0"
   developmentLanguage: en
   xcodeVersion: "16.0"
 
 settings:
   SWIFT_VERSION: "6.0"
   IPHONEOS_DEPLOYMENT_TARGET: "18.0"
+  WATCHOS_DEPLOYMENT_TARGET: "11.0"
   ENABLE_STRICT_CONCURRENCY: YES
   SWIFT_STRICT_CONCURRENCY: complete
 
@@ -75,6 +77,7 @@ targets:
       - AirFit/Core/Enums/GlobalEnums.swift
       - AirFit/Core/Enums/AppError.swift
       - AirFit/Core/Models/HealthContextSnapshot.swift
+      - AirFit/Core/Models/WorkoutBuilderData.swift
       - AirFit/Core/Models/AI/AIModels.swift
       - AirFit/Core/Extensions/String+Extensions.swift
       - AirFit/Core/Extensions/View+Extensions.swift
@@ -214,6 +217,31 @@ targets:
       ENABLE_STRICT_CONCURRENCY: YES
       SWIFT_STRICT_CONCURRENCY: complete
 
+  AirFitWatchApp:
+    type: application
+    platform: watchOS
+    sources:
+      # Watch App Files (CRITICAL: XcodeGen nesting bug)
+      - AirFitWatchApp/Services/WatchWorkoutManager.swift
+      - AirFitWatchApp/Views/WorkoutStartView.swift
+      - AirFitWatchApp/Views/ActiveWorkoutView.swift
+      - AirFitWatchApp/Views/ExerciseLoggingView.swift
+      # Shared Core Files needed by Watch
+      - AirFit/Core/Extensions/Double+Extensions.swift
+      - AirFit/Core/Extensions/TimeInterval+Extensions.swift
+      - AirFit/Core/Models/WorkoutBuilderData.swift
+      - AirFit/Core/Utilities/AppLogger.swift
+      - AirFit/Services/WorkoutSyncService.swift
+    settings:
+      PRODUCT_BUNDLE_IDENTIFIER: com.airfit.watchapp
+      GENERATE_INFOPLIST_FILE: YES
+      SWIFT_VERSION: "6.0"
+      WATCHOS_DEPLOYMENT_TARGET: "11.0"
+      ENABLE_STRICT_CONCURRENCY: YES
+      SWIFT_STRICT_CONCURRENCY: complete
+    dependencies:
+      - target: AirFit
+
 
 
 schemes:
@@ -223,6 +251,7 @@ schemes:
         AirFit: all
         AirFitTests: [test]
         AirFitUITests: [test]
+        AirFitWatchApp: all
     run:
       config: Debug
     test:
@@ -230,6 +259,19 @@ schemes:
       targets:
         - AirFitTests
         - AirFitUITests
+    profile:
+      config: Release
+    analyze:
+      config: Debug
+    archive:
+      config: Release
+
+  AirFitWatchApp:
+    build:
+      targets:
+        AirFitWatchApp: all
+    run:
+      config: Debug
     profile:
       config: Release
     analyze:

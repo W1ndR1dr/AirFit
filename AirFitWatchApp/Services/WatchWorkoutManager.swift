@@ -300,44 +300,7 @@ extension WatchWorkoutManager: HKLiveWorkoutBuilderDelegate {
 }
 
 // MARK: - Supporting Types
-struct WorkoutBuilderData: Codable {
-    var id = UUID()
-    var workoutType: Int = 0
-    var startTime: Date?
-    var endTime: Date?
-    var exercises: [ExerciseBuilderData] = []
-    var totalCalories: Double = 0
-    var totalDistance: Double = 0
-    var duration: TimeInterval = 0
-}
-
-struct ExerciseBuilderData: Codable {
-    let id: UUID
-    let name: String
-    let muscleGroups: [String]
-    let startTime: Date
-    var sets: [SetBuilderData] = []
-}
-
-struct SetBuilderData: Codable {
-    let reps: Int?
-    let weightKg: Double?
-    let duration: TimeInterval?
-    let rpe: Double?
-    let completedAt: Date
-}
-
-enum WorkoutError: LocalizedError {
-    case saveFailed
-    case syncFailed
-
-    var errorDescription: String? {
-        switch self {
-        case .saveFailed: return "Failed to save workout"
-        case .syncFailed: return "Failed to sync workout data"
-        }
-    }
-}
+// WorkoutBuilderData types are now in AirFit/Core/Models/WorkoutBuilderData.swift
 
 // MARK: - Extensions
 private extension WatchWorkoutManager {
