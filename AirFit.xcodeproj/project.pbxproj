@@ -20,7 +20,6 @@
 		0B84A68A3C632F43B24F58FA /* HealthContextSnapshot.swift in Sources */ = {isa = PBXBuildFile; fileRef = A20F0D244DC7736CAB16D57D /* HealthContextSnapshot.swift */; };
 		0D7E182E89919968B3670251 /* WorkoutListView.swift in Sources */ = {isa = PBXBuildFile; fileRef = EAFCB0E59BA93BC4BE68A4D6 /* WorkoutListView.swift */; };
 		0FA588682ACC878EC273B457 /* MockHealthKitManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = B02E24D2448C0526C44DC179 /* MockHealthKitManager.swift */; };
-		104DBE5CC008DEC7DF9E1E12 /* WorkoutSyncService.swift in Sources */ = {isa = PBXBuildFile; fileRef = D6D89032346EBEC5F976CCF2 /* WorkoutSyncService.swift */; };
 		12FFD0E192866E866D8F95B9 /* DashboardView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 659CD35F8BB8E97636643BA6 /* DashboardView.swift */; };
 		135611DC83543AC99BA14179 /* ChatSession.swift in Sources */ = {isa = PBXBuildFile; fileRef = 25D79D0DB9A0B710C72C5C52 /* ChatSession.swift */; };
 		13BA4562E25B9FB591868ED0 /* MockAPIKeyManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = FDEF46C6D05DEDE5C3992963 /* MockAPIKeyManager.swift */; };
@@ -1375,7 +1374,6 @@
 				CA693EF77009B8957922998E /* WatchWorkoutManager.swift in Sources */,
 				E5A11A264AFDFB94B8DFB673 /* WorkoutBuilderData.swift in Sources */,
 				9A54B1A08FBFBE5B1B80530D /* WorkoutStartView.swift in Sources */,
-				104DBE5CC008DEC7DF9E1E12 /* WorkoutSyncService.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};

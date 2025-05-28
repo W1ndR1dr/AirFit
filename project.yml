@@ -241,7 +241,6 @@ targets:
       - AirFit/Core/Extensions/TimeInterval+Extensions.swift
       - AirFit/Core/Models/WorkoutBuilderData.swift
       - AirFit/Core/Utilities/AppLogger.swift
-      - AirFit/Services/WorkoutSyncService.swift
     settings:
       PRODUCT_BUNDLE_IDENTIFIER: com.airfit.watchapp
       GENERATE_INFOPLIST_FILE: YES

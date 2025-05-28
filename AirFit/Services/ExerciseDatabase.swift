@@ -187,7 +187,7 @@ final class ExerciseDatabase: ObservableObject {
     private func initializeDatabase() async {
         do {
             let count = try container.mainContext.fetchCount(FetchDescriptor<ExerciseDefinition>())
-            if isEmpty {
+            if count == 0 {
                 await seedDatabase()
             } else {
                 exercises = try container.mainContext.fetch(FetchDescriptor<ExerciseDefinition>())

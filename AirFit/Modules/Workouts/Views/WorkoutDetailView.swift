@@ -144,7 +144,7 @@ private extension WorkoutDetailView {
 
             VStack(spacing: AppSpacing.small) {
                 ForEach(workout.exercises) { exercise in
-                    ExerciseCard(exercise: exercise) {
+                    WorkoutExerciseCard(exercise: exercise) {
                         selectedExercise = exercise
                     }
                 }
@@ -205,7 +205,7 @@ private struct SummaryStatCard: View {
     }
 }
 
-private struct ExerciseCard: View {
+private struct WorkoutExerciseCard: View {
     let exercise: Exercise
     let action: () -> Void
 
