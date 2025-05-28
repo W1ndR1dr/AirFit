@@ -20,6 +20,7 @@
 		0B84A68A3C632F43B24F58FA /* HealthContextSnapshot.swift in Sources */ = {isa = PBXBuildFile; fileRef = A20F0D244DC7736CAB16D57D /* HealthContextSnapshot.swift */; };
 		0D7E182E89919968B3670251 /* WorkoutListView.swift in Sources */ = {isa = PBXBuildFile; fileRef = EAFCB0E59BA93BC4BE68A4D6 /* WorkoutListView.swift */; };
 		0FA588682ACC878EC273B457 /* MockHealthKitManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = B02E24D2448C0526C44DC179 /* MockHealthKitManager.swift */; };
+		1048A144CB780210EEFF0E8C /* TemplatePickerView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 53467B4F453E5C5FC388CA7F /* TemplatePickerView.swift */; };
 		12FFD0E192866E866D8F95B9 /* DashboardView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 659CD35F8BB8E97636643BA6 /* DashboardView.swift */; };
 		135611DC83543AC99BA14179 /* ChatSession.swift in Sources */ = {isa = PBXBuildFile; fileRef = 25D79D0DB9A0B710C72C5C52 /* ChatSession.swift */; };
 		13BA4562E25B9FB591868ED0 /* MockAPIKeyManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = FDEF46C6D05DEDE5C3992963 /* MockAPIKeyManager.swift */; };
@@ -73,6 +74,7 @@
 		6F1CA06C0F16277989F3E348 /* MinimalContentView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4E32556747C318065DC97F06 /* MinimalContentView.swift */; };
 		707F5E0F6CB1E5C6DC38F425 /* TimeInterval+Extensions.swift in Sources */ = {isa = PBXBuildFile; fileRef = DD495CF6C2C599CC6F8DCFE9 /* TimeInterval+Extensions.swift */; };
 		719C6920E1D3133BCEF4E6D5 /* NutritionData.swift in Sources */ = {isa = PBXBuildFile; fileRef = E586A5E14801F59C1155F26D /* NutritionData.swift */; };
+		71CF95813DAF4EA3E3ECCF86 /* WatchWorkoutManagerTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4C9DC04CA4E49EDAD5401C59 /* WatchWorkoutManagerTests.swift */; };
 		72022CFC0EA7C40016E4AC53 /* FormattersTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5203BD922436244B69A2FA19 /* FormattersTests.swift */; };
 		7215D81179BAF1D6FD44039C /* AppLogger.swift in Sources */ = {isa = PBXBuildFile; fileRef = B439B9C8ABD81D57DC7973B6 /* AppLogger.swift */; };
 		7421F6AAF9A08EF77617FDD6 /* ChatMessage.swift in Sources */ = {isa = PBXBuildFile; fileRef = F0D0F61B6D30B0340D36677E /* ChatMessage.swift */; };
@@ -82,6 +84,7 @@
 		7B306A947EAF20AD70D84843 /* OnboardingIntegrationTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 996628386C6BD335959E5437 /* OnboardingIntegrationTests.swift */; };
 		7F2C8518EB202D2635C6D72D /* DailyLog.swift in Sources */ = {isa = PBXBuildFile; fileRef = B921ADA58682DC0610AAEDC8 /* DailyLog.swift */; };
 		7F61ACE02B163C9EAAB3A8A5 /* WorkoutBuilderData.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5A2DBDD235A3F8A366E0F7F1 /* WorkoutBuilderData.swift */; };
+		7F89009FC81C6A0C3FC2B045 /* WorkoutAnalysisEngine.swift in Sources */ = {isa = PBXBuildFile; fileRef = C7016BA897938EA980E1AB25 /* WorkoutAnalysisEngine.swift */; };
 		804B9546CC31A4C98CE4B3A4 /* ExerciseLibraryComponents.swift in Sources */ = {isa = PBXBuildFile; fileRef = BF7BA67729A0C0CE80B681F7 /* ExerciseLibraryComponents.swift */; };
 		812FD381026B3B638016DF4D /* PersonaEngine.swift in Sources */ = {isa = PBXBuildFile; fileRef = 94C738AC5187CA69036F77F2 /* PersonaEngine.swift */; };
 		823C46AAF59B0FA409C34C01 /* ExerciseLoggingView.swift in Sources */ = {isa = PBXBuildFile; fileRef = BDE947BC1A6DFE7695282A21 /* ExerciseLoggingView.swift */; };
@@ -113,6 +116,7 @@
 		A05DF5960D8EB1FD292AB0BE /* AppLogger.swift in Sources */ = {isa = PBXBuildFile; fileRef = B439B9C8ABD81D57DC7973B6 /* AppLogger.swift */; };
 		A06DFFF36E91A43DE8039E41 /* Formatters.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6289AF07AE9B8354DF019D9C /* Formatters.swift */; };
 		A0E7918A284A0ED9018F69F9 /* ExerciseDatabase.swift in Sources */ = {isa = PBXBuildFile; fileRef = A9C91D85534DC31FE0EF6CF7 /* ExerciseDatabase.swift */; };
+		A3416F8BA66BCD88FD71B962 /* WorkoutBuilderView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7D6CEBDA1A6AE20AF1DE76B1 /* WorkoutBuilderView.swift */; };
 		A3522E4AC756CDE319AF99D4 /* AnalysisFunctions.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7FC6C6DE9C586A7A5A9193E2 /* AnalysisFunctions.swift */; };
 		A4F3691BB9178427F3DF4AAF /* NutritionCard.swift in Sources */ = {isa = PBXBuildFile; fileRef = E5BA2E9D29078B0C0D0B1EF2 /* NutritionCard.swift */; };
 		A5599AE71ECC6C26C74B1448 /* APIKeyManagerProtocol.swift in Sources */ = {isa = PBXBuildFile; fileRef = 972103573FB903D8A5239410 /* APIKeyManagerProtocol.swift */; };
@@ -138,6 +142,7 @@
 		C00B383F8DF615C3A87D51A2 /* AppShadows.swift in Sources */ = {isa = PBXBuildFile; fileRef = 033ADA871A0F00AA1B505BBF /* AppShadows.swift */; };
 		C0C852430C2AC750EB616AB1 /* SetTemplate.swift in Sources */ = {isa = PBXBuildFile; fileRef = 82C1DBFA6040FEDB310AEF75 /* SetTemplate.swift */; };
 		C18E6E358E7544F4797666EB /* CoachEngine.swift in Sources */ = {isa = PBXBuildFile; fileRef = DCB65D3EE5335C1F2D58EE50 /* CoachEngine.swift */; };
+		C1FB48E63BEA73C741A89322 /* WorkoutStatisticsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9F75EB776BD7B9E5F55464F5 /* WorkoutStatisticsView.swift */; };
 		C40ED2AB51E3E010A7602F05 /* WorkoutCoordinatorTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3FC40ED9279B20CA5E31D930 /* WorkoutCoordinatorTests.swift */; };
 		C8165AC3DA80F4A5A9AFA116 /* WorkoutViewModelTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8405AA7EAC8380C449EA05CD /* WorkoutViewModelTests.swift */; };
 		C841139BB7C959DED0876145 /* AppSpacing.swift in Sources */ = {isa = PBXBuildFile; fileRef = F446D5F3B3192B5DE296EBC7 /* AppSpacing.swift */; };
@@ -156,10 +161,12 @@
 		E59C1571ECC1A32F8A932B6C /* MealTemplate.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1E6D564ADEFA29B655709125 /* MealTemplate.swift */; };
 		E5A11A264AFDFB94B8DFB673 /* WorkoutBuilderData.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5A2DBDD235A3F8A366E0F7F1 /* WorkoutBuilderData.swift */; };
 		E663F0705C648411970356A6 /* HealthKitManagerProtocol.swift in Sources */ = {isa = PBXBuildFile; fileRef = CF40B9603DE838113F419E29 /* HealthKitManagerProtocol.swift */; };
+		E670F5A0C308FF9EC69A7152 /* AirFitWatchApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7F97BF0EEF20731DABD00ED4 /* AirFitWatchApp.swift */; };
 		E69563762FC4C749E9D5197D /* DataManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = 59B21A0D7408660AD4DCF1EB /* DataManager.swift */; };
 		E91FBA269604C29051055629 /* DashboardUITests.swift in Sources */ = {isa = PBXBuildFile; fileRef = A98DA20F8943CEC3F87DB543 /* DashboardUITests.swift */; };
 		EA869F9B1CE02FC80FBD51D2 /* NetworkClientProtocol.swift in Sources */ = {isa = PBXBuildFile; fileRef = 710C76B64768139B3842F0F6 /* NetworkClientProtocol.swift */; };
 		EAAFCD64FC55BE77AA9EF247 /* OnboardingModels.swift in Sources */ = {isa = PBXBuildFile; fileRef = 286CFCB240542FB40D25948A /* OnboardingModels.swift */; };
+		EAB51ED06A103272CA602EB4 /* AllWorkoutsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4EE530163A989798551FEC3B /* AllWorkoutsView.swift */; };
 		EBD325CB1AA57D1C0FBCABB4 /* OnboardingServiceProtocol.swift in Sources */ = {isa = PBXBuildFile; fileRef = B606821EE3B9B5C216280A55 /* OnboardingServiceProtocol.swift */; };
 		EDB4854DF9091B23EAF1E943 /* FoodItem.swift in Sources */ = {isa = PBXBuildFile; fileRef = AE6EF64B2175B1AE0EC0371E /* FoodItem.swift */; };
 		EEC5CAE37DED390A21DF35AA /* NotificationManagerProtocol.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6CC4FB439083905900F07712 /* NotificationManagerProtocol.swift */; };
@@ -189,6 +196,13 @@
 			proxyType = 1;
 			remoteGlobalIDString = E069A004596F5A1F5CADCE09;
 			remoteInfo = AirFit;
+		};
+		A22E80D03EE9796D87ED661F /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = 4DE6950C247E7BED46A7B7FC /* Project object */;
+			proxyType = 1;
+			remoteGlobalIDString = 679E595DA4CC2C7E5580B825;
+			remoteInfo = AirFitWatchApp;
 		};
 		DB29FDBE1FBC226AAC4197A5 /* PBXContainerItemProxy */ = {
 			isa = PBXContainerItemProxy;
@@ -240,8 +254,11 @@
 		49DE2D8F78A6879AB1BFBAEB /* AirFitWatchApp.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = AirFitWatchApp.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		4B92AEF243458767CA30BA6E /* AirFitApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AirFitApp.swift; sourceTree = "<group>"; };
 		4BBC393047288B536D59C667 /* ActiveWorkoutView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ActiveWorkoutView.swift; sourceTree = "<group>"; };
+		4C9DC04CA4E49EDAD5401C59 /* WatchWorkoutManagerTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WatchWorkoutManagerTests.swift; sourceTree = "<group>"; };
 		4E32556747C318065DC97F06 /* MinimalContentView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MinimalContentView.swift; sourceTree = "<group>"; };
+		4EE530163A989798551FEC3B /* AllWorkoutsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AllWorkoutsView.swift; sourceTree = "<group>"; };
 		5203BD922436244B69A2FA19 /* FormattersTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FormattersTests.swift; sourceTree = "<group>"; };
+		53467B4F453E5C5FC388CA7F /* TemplatePickerView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TemplatePickerView.swift; sourceTree = "<group>"; };
 		5424473EFB56156C1987DF93 /* CoreAspirationView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CoreAspirationView.swift; sourceTree = "<group>"; };
 		559BD314119BF550C704D11B /* OnboardingPage.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OnboardingPage.swift; sourceTree = "<group>"; };
 		58296DE7F4726AD43BBD29EA /* PersonaEngineTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PersonaEngineTests.swift; sourceTree = "<group>"; };
@@ -277,6 +294,8 @@
 		77DA61671D7B0AF4BE4C6215 /* WorkoutCoordinator.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WorkoutCoordinator.swift; sourceTree = "<group>"; };
 		77FE8390B5C3AD9F84E49B18 /* OnboardingViewModelTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OnboardingViewModelTests.swift; sourceTree = "<group>"; };
 		7A6F22B7A83AE6A7A537A6F4 /* MockAIService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MockAIService.swift; sourceTree = "<group>"; };
+		7D6CEBDA1A6AE20AF1DE76B1 /* WorkoutBuilderView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WorkoutBuilderView.swift; sourceTree = "<group>"; };
+		7F97BF0EEF20731DABD00ED4 /* AirFitWatchApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AirFitWatchApp.swift; sourceTree = "<group>"; };
 		7FC6C6DE9C586A7A5A9193E2 /* AnalysisFunctions.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AnalysisFunctions.swift; sourceTree = "<group>"; };
 		8108FD04B1F67D9BF5B776CF /* ChatAttachment.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ChatAttachment.swift; sourceTree = "<group>"; };
 		827F71BB08777284B9501B62 /* QuickActionsCard.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = QuickActionsCard.swift; sourceTree = "<group>"; };
@@ -294,6 +313,7 @@
 		972103573FB903D8A5239410 /* APIKeyManagerProtocol.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = APIKeyManagerProtocol.swift; sourceTree = "<group>"; };
 		974C5A402B15EE65D35EC20D /* OnboardingCoordinator.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OnboardingCoordinator.swift; sourceTree = "<group>"; };
 		996628386C6BD335959E5437 /* OnboardingIntegrationTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OnboardingIntegrationTests.swift; sourceTree = "<group>"; };
+		9F75EB776BD7B9E5F55464F5 /* WorkoutStatisticsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WorkoutStatisticsView.swift; sourceTree = "<group>"; };
 		9F8A93BEFE768B25CB6DC872 /* CoachEngineTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CoachEngineTests.swift; sourceTree = "<group>"; };
 		A00014C7394D2647776CC3F2 /* DependencyContainer.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DependencyContainer.swift; sourceTree = "<group>"; };
 		A16DDCDF70B6FC9FB1CB1D01 /* OnboardingProfile.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OnboardingProfile.swift; sourceTree = "<group>"; };
@@ -324,6 +344,7 @@
 		C0C1FC092E47241CE247DFA0 /* HealthKitAuthManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HealthKitAuthManager.swift; sourceTree = "<group>"; };
 		C2CC530C34C2DB2CE6C6E77C /* HealthKitSleepAnalyzer.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HealthKitSleepAnalyzer.swift; sourceTree = "<group>"; };
 		C6C31C7FF3B3876DDEF8AF2D /* APIConstants.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = APIConstants.swift; sourceTree = "<group>"; };
+		C7016BA897938EA980E1AB25 /* WorkoutAnalysisEngine.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WorkoutAnalysisEngine.swift; sourceTree = "<group>"; };
 		C7BD8305EABA1E0131CD6D80 /* AIServiceProtocol.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AIServiceProtocol.swift; sourceTree = "<group>"; };
 		CD6FD9680C17A5D174E6415B /* AirFitTests.xctest */ = {isa = PBXFileReference; includeInIndex = 0; lastKnownFileType = wrapper.cfbundle; path = AirFitTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
 		CE35AE50F4AFC382F0D35E2E /* LifeSnapshotView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LifeSnapshotView.swift; sourceTree = "<group>"; };
@@ -359,6 +380,7 @@
 		FA4AE2B55D473F4B1B1B2DA9 /* ConversationManagerPerformanceTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ConversationManagerPerformanceTests.swift; sourceTree = "<group>"; };
 		FAB56C9FE1E6CEEED6C5F853 /* ContextAssembler.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ContextAssembler.swift; sourceTree = "<group>"; };
 		FB0C5CFB2B6D26B205D99D92 /* DashboardViewModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DashboardViewModel.swift; sourceTree = "<group>"; };
+		FBAC0D636BD37D18DB46911A /* AirFitWatchAppTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = AirFitWatchAppTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
 		FC86873D36371527B00B0A75 /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
 		FDEF46C6D05DEDE5C3992963 /* MockAPIKeyManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MockAPIKeyManager.swift; sourceTree = "<group>"; };
 		FE29E24BE41767275867DD62 /* CoachMessage.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CoachMessage.swift; sourceTree = "<group>"; };
@@ -402,6 +424,7 @@
 				DCB65D3EE5335C1F2D58EE50 /* CoachEngine.swift */,
 				29331E04055780CD111D5AAE /* ConversationManager.swift */,
 				94C738AC5187CA69036F77F2 /* PersonaEngine.swift */,
+				C7016BA897938EA980E1AB25 /* WorkoutAnalysisEngine.swift */,
 			);
 			name = AI;
 			path = AirFit/Modules/AI;
@@ -502,10 +525,14 @@
 		3323350CFB9E92C1C9435B07 /* Views */ = {
 			isa = PBXGroup;
 			children = (
+				4EE530163A989798551FEC3B /* AllWorkoutsView.swift */,
 				BF7BA67729A0C0CE80B681F7 /* ExerciseLibraryComponents.swift */,
 				8E9E7BB7A823D9CD9B3E6C2D /* ExerciseLibraryView.swift */,
+				53467B4F453E5C5FC388CA7F /* TemplatePickerView.swift */,
+				7D6CEBDA1A6AE20AF1DE76B1 /* WorkoutBuilderView.swift */,
 				0747599981225AD0D88AB226 /* WorkoutDetailView.swift */,
 				EAFCB0E59BA93BC4BE68A4D6 /* WorkoutListView.swift */,
+				9F75EB776BD7B9E5F55464F5 /* WorkoutStatisticsView.swift */,
 			);
 			name = Views;
 			path = AirFit/Modules/Workouts/Views;
@@ -557,6 +584,7 @@
 				D2AB432B78CE0A77B5E836FF /* AirFit */,
 				7EC47958BAA1D02BB0AE38DA /* AirFitTests */,
 				1DE782A8962B1F7850FB5FA0 /* AirFitUITests */,
+				63E13EE57870B94286834A39 /* AirFitWatchApp */,
 				F75F75196BE34BF9A041C298 /* Application */,
 				646364F5C59528F0FCEB31A5 /* Cards */,
 				862A0F51C0FE2376BEF97354 /* Constants */,
@@ -582,6 +610,7 @@
 				7EBA3C6362126C73E94AEB60 /* Services */,
 				980E88720AA93CB7A5C3F7F9 /* Services */,
 				BC32EDE5C51415DEE87D4468 /* Services */,
+				D3530FF70D5711DD03EA442A /* Services */,
 				2D987E19E978AA5CC65E9E19 /* Speech */,
 				D5C1503314914D8B9B9A5E8A /* Theme */,
 				1514543086880BC53AB541B6 /* User */,
@@ -621,6 +650,14 @@
 			);
 			name = Utilities;
 			path = AirFit/Core/Utilities;
+			sourceTree = "<group>";
+		};
+		63E13EE57870B94286834A39 /* AirFitWatchApp */ = {
+			isa = PBXGroup;
+			children = (
+				7F97BF0EEF20731DABD00ED4 /* AirFitWatchApp.swift */,
+			);
+			path = AirFitWatchApp;
 			sourceTree = "<group>";
 		};
 		646364F5C59528F0FCEB31A5 /* Cards */ = {
@@ -726,6 +763,7 @@
 				CD6FD9680C17A5D174E6415B /* AirFitTests.xctest */,
 				91EDD4EBC959469D1F3E4469 /* AirFitUITests.xctest */,
 				49DE2D8F78A6879AB1BFBAEB /* AirFitWatchApp.app */,
+				FBAC0D636BD37D18DB46911A /* AirFitWatchAppTests.xctest */,
 			);
 			name = Products;
 			sourceTree = "<group>";
@@ -814,10 +852,10 @@
 		BC32EDE5C51415DEE87D4468 /* Services */ = {
 			isa = PBXGroup;
 			children = (
-				6B09CD766CF217C75D4F9263 /* WatchWorkoutManager.swift */,
+				4C9DC04CA4E49EDAD5401C59 /* WatchWorkoutManagerTests.swift */,
 			);
 			name = Services;
-			path = AirFitWatchApp/Services;
+			path = AirFitWatchApp/AirFitWatchAppTests/Services;
 			sourceTree = "<group>";
 		};
 		BD0BBC1D40C9FE6960760A1D /* Base */ = {
@@ -889,6 +927,15 @@
 				FC86873D36371527B00B0A75 /* Assets.xcassets */,
 			);
 			path = AirFit;
+			sourceTree = "<group>";
+		};
+		D3530FF70D5711DD03EA442A /* Services */ = {
+			isa = PBXGroup;
+			children = (
+				6B09CD766CF217C75D4F9263 /* WatchWorkoutManager.swift */,
+			);
+			name = Services;
+			path = AirFitWatchApp/Services;
 			sourceTree = "<group>";
 		};
 		D5C1503314914D8B9B9A5E8A /* Theme */ = {
@@ -1056,6 +1103,24 @@
 /* End PBXGroup section */
 
 /* Begin PBXNativeTarget section */
+		2160FB363FBD481EFF171D00 /* AirFitWatchAppTests */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = 386EEA5CA5AFE0A148E2C213 /* Build configuration list for PBXNativeTarget "AirFitWatchAppTests" */;
+			buildPhases = (
+				9E9B35D22645868A19478879 /* Sources */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+				64F37953868E21E213FCCC41 /* PBXTargetDependency */,
+			);
+			name = AirFitWatchAppTests;
+			packageProductDependencies = (
+			);
+			productName = AirFitWatchAppTests;
+			productReference = FBAC0D636BD37D18DB46911A /* AirFitWatchAppTests.xctest */;
+			productType = "com.apple.product-type.bundle.unit-test";
+		};
 		679E595DA4CC2C7E5580B825 /* AirFitWatchApp */ = {
 			isa = PBXNativeTarget;
 			buildConfigurationList = 78C55826091504D6B9D9B927 /* Build configuration list for PBXNativeTarget "AirFitWatchApp" */;
@@ -1161,6 +1226,7 @@
 				F57BEDD4F62B06132EFF2A85 /* AirFitTests */,
 				A762DF1D62C8A79F562AE276 /* AirFitUITests */,
 				679E595DA4CC2C7E5580B825 /* AirFitWatchApp */,
+				2160FB363FBD481EFF171D00 /* AirFitWatchAppTests */,
 			);
 		};
 /* End PBXProject section */
@@ -1253,6 +1319,7 @@
 				74ED269EDABB7861B0CF377C /* APIConstants.swift in Sources */,
 				A5599AE71ECC6C26C74B1448 /* APIKeyManagerProtocol.swift in Sources */,
 				18B1E337FFA83C1CFC52AE4F /* AirFitApp.swift in Sources */,
+				EAB51ED06A103272CA602EB4 /* AllWorkoutsView.swift in Sources */,
 				A3522E4AC756CDE319AF99D4 /* AnalysisFunctions.swift in Sources */,
 				9F220856A90622AF0180E2D1 /* AppColors.swift in Sources */,
 				5E98D2A7D2C302AE9B9BE93B /* AppConstants.swift in Sources */,
@@ -1343,6 +1410,7 @@
 				C0C852430C2AC750EB616AB1 /* SetTemplate.swift in Sources */,
 				948AA201BEE40CAA6B598B4C /* SleepAndBoundariesView.swift in Sources */,
 				D88D3E0AADBFD1EFFBB5CA72 /* String+Extensions.swift in Sources */,
+				1048A144CB780210EEFF0E8C /* TemplatePickerView.swift in Sources */,
 				F643A778B0973DB1C8E386E1 /* TimeInterval+Extensions.swift in Sources */,
 				84253035393F6C5A14D55949 /* User.swift in Sources */,
 				0A09E7206FCF689300B5996E /* UserServiceProtocol.swift in Sources */,
@@ -1351,11 +1419,14 @@
 				637EA2407865D663BF2581E8 /* ViewModelProtocol.swift in Sources */,
 				273840B895C0AD21B784CA16 /* WhisperServiceWrapperProtocol.swift in Sources */,
 				335BF938E9747E10DAED0388 /* Workout.swift in Sources */,
+				7F89009FC81C6A0C3FC2B045 /* WorkoutAnalysisEngine.swift in Sources */,
 				7F61ACE02B163C9EAAB3A8A5 /* WorkoutBuilderData.swift in Sources */,
+				A3416F8BA66BCD88FD71B962 /* WorkoutBuilderView.swift in Sources */,
 				99609C72CCFD69CFCFC9974E /* WorkoutCoordinator.swift in Sources */,
 				D4853BEB75525E034B867E29 /* WorkoutDetailView.swift in Sources */,
 				4CB88069678779E32CD0DC02 /* WorkoutFunctions.swift in Sources */,
 				0D7E182E89919968B3670251 /* WorkoutListView.swift in Sources */,
+				C1FB48E63BEA73C741A89322 /* WorkoutStatisticsView.swift in Sources */,
 				D2DB6E24084CDC39B2E7A698 /* WorkoutSyncService.swift in Sources */,
 				8B0D40268EF0D207AD734040 /* WorkoutTemplate.swift in Sources */,
 				90958D5378305F5EEDCD4D0B /* WorkoutViewModel.swift in Sources */,
@@ -1367,6 +1438,7 @@
 			buildActionMask = 2147483647;
 			files = (
 				BEF5B0A0A28D1761AE0176E3 /* ActiveWorkoutView.swift in Sources */,
+				E670F5A0C308FF9EC69A7152 /* AirFitWatchApp.swift in Sources */,
 				A05DF5960D8EB1FD292AB0BE /* AppLogger.swift in Sources */,
 				AA00B1D7CE040D6DE90313F6 /* Double+Extensions.swift in Sources */,
 				823C46AAF59B0FA409C34C01 /* ExerciseLoggingView.swift in Sources */,
@@ -1377,9 +1449,22 @@
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
+		9E9B35D22645868A19478879 /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				71CF95813DAF4EA3E3ECCF86 /* WatchWorkoutManagerTests.swift in Sources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
 /* End PBXSourcesBuildPhase section */
 
 /* Begin PBXTargetDependency section */
+		64F37953868E21E213FCCC41 /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			target = 679E595DA4CC2C7E5580B825 /* AirFitWatchApp */;
+			targetProxy = A22E80D03EE9796D87ED661F /* PBXContainerItemProxy */;
+		};
 		8CE2F6C8EB81D11074D296E2 /* PBXTargetDependency */ = {
 			isa = PBXTargetDependency;
 			target = E069A004596F5A1F5CADCE09 /* AirFit */;
@@ -1528,6 +1613,28 @@
 			};
 			name = Release;
 		};
+		685525936E43F7C9512B2E62 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				BUNDLE_LOADER = "$(TEST_HOST)";
+				ENABLE_STRICT_CONCURRENCY = YES;
+				ENABLE_TESTING_SEARCH_PATHS = YES;
+				GENERATE_INFOPLIST_FILE = YES;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+					"@loader_path/Frameworks",
+				);
+				PRODUCT_BUNDLE_IDENTIFIER = com.airfit.watchapp.tests;
+				SDKROOT = watchos;
+				SKIP_INSTALL = YES;
+				SWIFT_STRICT_CONCURRENCY = complete;
+				SWIFT_VERSION = 6.0;
+				TARGETED_DEVICE_FAMILY = 4;
+				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/AirFitWatchApp.app/AirFitWatchApp";
+			};
+			name = Release;
+		};
 		7E3914D07FFE2BB817267B68 /* Release */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
@@ -1673,6 +1780,28 @@
 			};
 			name = Debug;
 		};
+		FBFEED252C74A15F83B6F288 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				BUNDLE_LOADER = "$(TEST_HOST)";
+				ENABLE_STRICT_CONCURRENCY = YES;
+				ENABLE_TESTING_SEARCH_PATHS = YES;
+				GENERATE_INFOPLIST_FILE = YES;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+					"@loader_path/Frameworks",
+				);
+				PRODUCT_BUNDLE_IDENTIFIER = com.airfit.watchapp.tests;
+				SDKROOT = watchos;
+				SKIP_INSTALL = YES;
+				SWIFT_STRICT_CONCURRENCY = complete;
+				SWIFT_VERSION = 6.0;
+				TARGETED_DEVICE_FAMILY = 4;
+				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/AirFitWatchApp.app/AirFitWatchApp";
+			};
+			name = Debug;
+		};
 /* End XCBuildConfiguration section */
 
 /* Begin XCConfigurationList section */
@@ -1681,6 +1810,15 @@
 			buildConfigurations = (
 				A169A66BC5588FF738EE1DF1 /* Debug */,
 				1D71CD6D821D6C6626D4289D /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Debug;
+		};
+		386EEA5CA5AFE0A148E2C213 /* Build configuration list for PBXNativeTarget "AirFitWatchAppTests" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				FBFEED252C74A15F83B6F288 /* Debug */,
+				685525936E43F7C9512B2E62 /* Release */,
 			);
 			defaultConfigurationIsVisible = 0;
 			defaultConfigurationName = Debug;

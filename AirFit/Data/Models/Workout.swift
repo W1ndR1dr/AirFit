@@ -1,5 +1,6 @@
 import SwiftData
 import Foundation
+import SwiftUI
 
 @Model
 final class Workout: @unchecked Sendable {
@@ -21,6 +22,9 @@ final class Workout: @unchecked Sendable {
     // Template Reference
     var templateID: UUID?
 
+    // AI Analysis
+    var aiAnalysis: String?
+
     // MARK: - Relationships
     @Relationship(deleteRule: .cascade, inverse: \Exercise.workout)
     var exercises: [Exercise] = []
@@ -30,6 +34,10 @@ final class Workout: @unchecked Sendable {
     // MARK: - Computed Properties
     var isCompleted: Bool {
         completedDate != nil
+    }
+
+    var duration: TimeInterval? {
+        durationSeconds
     }
 
     var totalSets: Int {
@@ -156,6 +164,19 @@ enum WorkoutType: String, Codable, CaseIterable, Sendable {
         case .hiit: return "flame.fill"
         case .yoga: return "figure.yoga"
         case .pilates: return "figure.pilates"
+        }
+    }
+
+    var color: Color {
+        switch self {
+        case .strength: return .blue
+        case .cardio: return .orange
+        case .flexibility: return .purple
+        case .sports: return .green
+        case .general: return .gray
+        case .hiit: return .red
+        case .yoga: return .indigo
+        case .pilates: return .teal
         }
     }
 }

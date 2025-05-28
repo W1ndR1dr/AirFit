@@ -66,7 +66,7 @@ final class DashboardViewModel {
     func refreshDashboard() {
         refreshTask?.cancel()
         refreshTask = Task { [weak self] in
-            await self?.loadDashboardData()
+            await self?._loadDashboardData()
         }
     }
 
@@ -119,10 +119,14 @@ final class DashboardViewModel {
     func resetGreetingState() {
         lastGreetingDate = nil
     }
+    
+    func loadDashboardData() async {
+        await _loadDashboardData()
+    }
     #endif
 
     // MARK: - Private Methods
-    func loadDashboardData() async {
+    private func _loadDashboardData() async {
         isLoading = true
         defer { isLoading = false }
 

@@ -51,6 +51,13 @@ final class Exercise: @unchecked Sendable {
         }
     }
 
+    var totalVolume: Double? {
+        let volume = sets.reduce(0.0) { total, set in
+            total + ((set.completedWeightKg ?? 0) * Double(set.completedReps ?? 0))
+        }
+        return volume > 0 ? volume : nil
+    }
+
     // MARK: - Initialization
     init(
         id: UUID = UUID(),

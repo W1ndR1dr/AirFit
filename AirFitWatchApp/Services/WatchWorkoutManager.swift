@@ -93,7 +93,19 @@ final class WatchWorkoutManager: NSObject {
             // Start activity
             let startDate = Date()
             session?.startActivity(with: startDate)
-            try await builder?.beginCollection(withStart: startDate)
+            
+            // Begin collection with completion handler
+            try await withCheckedThrowingContinuation { (continuation: CheckedContinuation<Void, Error>) in
+                builder?.beginCollection(withStart: startDate) { success, error in
+                    if let error = error {
+                        continuation.resume(throwing: error)
+                    } else if success {
+                        continuation.resume()
+                    } else {
+                        continuation.resume(throwing: WorkoutError.saveFailed)
+                    }
+                }
+            }
 
             startTime = startDate
             workoutState = .running
@@ -141,9 +153,19 @@ final class WatchWorkoutManager: NSObject {
         elapsedTimer?.invalidate()
 
         do {
-            // End collection
+            // End collection with completion handler
             session?.end()
-            try await builder?.endCollection(withEnd: Date())
+            try await withCheckedThrowingContinuation { (continuation: CheckedContinuation<Void, Error>) in
+                builder?.endCollection(withEnd: Date()) { success, error in
+                    if let error = error {
+                        continuation.resume(throwing: error)
+                    } else if success {
+                        continuation.resume()
+                    } else {
+                        continuation.resume(throwing: WorkoutError.saveFailed)
+                    }
+                }
+            }
 
             // Save workout
             guard let workout = try await builder?.finishWorkout() else {
@@ -209,8 +231,9 @@ final class WatchWorkoutManager: NSObject {
 
     // MARK: - Private Methods
     private func startElapsedTimer() {
-        elapsedTimer = Timer.scheduledTimer(withTimeInterval: 1.0, repeats: true) { _ in
-            if let startTime = self.startTime {
+        elapsedTimer = Timer.scheduledTimer(withTimeInterval: 1.0, repeats: true) { [weak self] _ in
+            Task { @MainActor in
+                guard let self = self, let startTime = self.startTime else { return }
                 self.elapsedTime = Date().timeIntervalSince(startTime)
             }
         }
@@ -218,15 +241,26 @@ final class WatchWorkoutManager: NSObject {
 
     private func processCompletedWorkout(_ workout: HKWorkout) async {
         // Prepare workout data for sync
-        currentWorkoutData.workoutType = selectedActivityType.rawValue
+        currentWorkoutData.workoutType = Int(selectedActivityType.rawValue)
         currentWorkoutData.startTime = workout.startDate
         currentWorkoutData.endTime = workout.endDate
-        currentWorkoutData.totalCalories = workout.totalEnergyBurned?.doubleValue(for: .kilocalorie()) ?? 0
+        
+        // Use activeEnergyBurned instead of deprecated totalEnergyBurned
+        if let activeEnergy = workout.statistics(for: HKQuantityType(.activeEnergyBurned))?.sumQuantity() {
+            currentWorkoutData.totalCalories = activeEnergy.doubleValue(for: .kilocalorie())
+        } else {
+            currentWorkoutData.totalCalories = 0
+        }
+        
         currentWorkoutData.totalDistance = workout.totalDistance?.doubleValue(for: .meter()) ?? 0
         currentWorkoutData.duration = workout.duration
 
-        // Send to iPhone
-        await WorkoutSyncService.shared.sendWorkoutData(currentWorkoutData)
+        // Send to iPhone via notification (simplified sync for now)
+        NotificationCenter.default.post(
+            name: .workoutDataReceived,
+            object: nil,
+            userInfo: ["data": currentWorkoutData]
+        )
     }
 }
 
@@ -317,7 +351,7 @@ private extension WatchWorkoutManager {
     }
 }
 
-private extension HKWorkoutActivityType {
+extension HKWorkoutActivityType {
     var name: String {
         switch self {
         case .traditionalStrengthTraining: return "Strength Training"
@@ -336,4 +370,8 @@ private extension HKWorkoutActivityType {
         // Simplified logic - could be expanded
         return self == .traditionalStrengthTraining || self == .yoga || self == .coreTraining
     }
+}
+
+extension Notification.Name {
+    static let workoutDataReceived = Notification.Name("workoutDataReceived")
 }

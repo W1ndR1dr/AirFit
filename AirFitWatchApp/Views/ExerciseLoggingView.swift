@@ -91,7 +91,7 @@ struct CurrentExerciseCard: View {
             if !exercise.sets.isEmpty {
                 Text("\(exercise.sets.count) sets completed")
                     .font(.caption2)
-                    .foregroundStyle(.accent)
+                    .foregroundStyle(.blue)
             }
         }
         .frame(maxWidth: .infinity, alignment: .leading)
@@ -134,4 +134,106 @@ struct RecentSetsView: View {
         .background(Color.gray.opacity(0.1))
         .clipShape(RoundedRectangle(cornerRadius: 8))
     }
+}
+
+// MARK: - Exercise Picker
+struct ExercisePickerView: View {
+    let onExerciseSelected: (ExerciseTemplate) -> Void
+    @Environment(\.dismiss) private var dismiss
+    
+    private let exercises: [ExerciseTemplate] = [
+        ExerciseTemplate(name: "Push-ups", muscleGroups: ["Chest", "Triceps"]),
+        ExerciseTemplate(name: "Squats", muscleGroups: ["Legs", "Glutes"]),
+        ExerciseTemplate(name: "Pull-ups", muscleGroups: ["Back", "Biceps"]),
+        ExerciseTemplate(name: "Bench Press", muscleGroups: ["Chest", "Triceps"]),
+        ExerciseTemplate(name: "Deadlift", muscleGroups: ["Back", "Legs"]),
+        ExerciseTemplate(name: "Overhead Press", muscleGroups: ["Shoulders", "Triceps"])
+    ]
+    
+    var body: some View {
+        NavigationStack {
+            List(exercises, id: \.name) { exercise in
+                Button {
+                    onExerciseSelected(exercise)
+                } label: {
+                    VStack(alignment: .leading, spacing: 2) {
+                        Text(exercise.name)
+                            .font(.headline)
+                        Text(exercise.muscleGroups.joined(separator: ", "))
+                            .font(.caption)
+                            .foregroundStyle(.secondary)
+                    }
+                }
+                .buttonStyle(.plain)
+            }
+            .navigationTitle("Exercises")
+            .navigationBarTitleDisplayMode(.inline)
+            .toolbar {
+                ToolbarItem(placement: .cancellationAction) {
+                    Button("Cancel") {
+                        dismiss()
+                    }
+                }
+            }
+        }
+    }
+}
+
+// MARK: - Set Logger
+struct SetLoggerView: View {
+    let onSetLogged: (Int?, Double?, TimeInterval?, Double?) -> Void
+    @Environment(\.dismiss) private var dismiss
+    
+    @State private var reps: Int = 10
+    @State private var weight: Double = 20.0
+    @State private var duration: TimeInterval = 0
+    @State private var rpe: Double = 7.0
+    
+    var body: some View {
+        NavigationStack {
+            Form {
+                Section("Reps") {
+                    Stepper("\(reps) reps", value: $reps, in: 1...50)
+                }
+                
+                Section("Weight") {
+                    HStack {
+                        Text("\(weight.formatted())kg")
+                        Spacer()
+                        Stepper("", value: $weight, in: 0...200, step: 2.5)
+                            .labelsHidden()
+                    }
+                }
+                
+                Section("RPE") {
+                    HStack {
+                        Text("RPE \(rpe.formatted())")
+                        Spacer()
+                        Stepper("", value: $rpe, in: 1...10, step: 0.5)
+                            .labelsHidden()
+                    }
+                }
+            }
+            .navigationTitle("Log Set")
+            .navigationBarTitleDisplayMode(.inline)
+            .toolbar {
+                ToolbarItem(placement: .cancellationAction) {
+                    Button("Cancel") {
+                        dismiss()
+                    }
+                }
+                ToolbarItem(placement: .confirmationAction) {
+                    Button("Save") {
+                        onSetLogged(reps, weight, duration, rpe)
+                    }
+                }
+            }
+        }
+    }
+}
+
+// MARK: - Supporting Types
+struct ExerciseTemplate {
+    let name: String
+    let muscleGroups: [String]
 }

@@ -120,6 +120,7 @@ targets:
       - AirFit/Modules/AI/PersonaEngine.swift
       - AirFit/Modules/AI/ConversationManager.swift
       - AirFit/Modules/AI/CoachEngine.swift
+      - AirFit/Modules/AI/WorkoutAnalysisEngine.swift
       - AirFit/Modules/Dashboard/Services/DashboardServiceProtocols.swift
       - AirFit/Modules/Dashboard/ViewModels/DashboardViewModel.swift
       - AirFit/Modules/Dashboard/Views/DashboardView.swift
@@ -143,6 +144,10 @@ targets:
       - AirFit/Modules/Workouts/Views/WorkoutDetailView.swift
       - AirFit/Modules/Workouts/Views/ExerciseLibraryView.swift
       - AirFit/Modules/Workouts/Views/ExerciseLibraryComponents.swift
+      - AirFit/Modules/Workouts/Views/TemplatePickerView.swift
+      - AirFit/Modules/Workouts/Views/WorkoutBuilderView.swift
+      - AirFit/Modules/Workouts/Views/AllWorkoutsView.swift
+      - AirFit/Modules/Workouts/Views/WorkoutStatisticsView.swift
       # Application Layer Files (CRITICAL: XcodeGen nesting bug)
       - AirFit/Application/AirFitApp.swift
       - AirFit/Application/MinimalContentView.swift
@@ -232,6 +237,7 @@ targets:
     platform: watchOS
     sources:
       # Watch App Files (CRITICAL: XcodeGen nesting bug)
+      - AirFitWatchApp/AirFitWatchApp.swift
       - AirFitWatchApp/Services/WatchWorkoutManager.swift
       - AirFitWatchApp/Views/WorkoutStartView.swift
       - AirFitWatchApp/Views/ActiveWorkoutView.swift
@@ -251,7 +257,20 @@ targets:
     dependencies:
       - target: AirFit
 
-
+  AirFitWatchAppTests:
+    type: bundle.unit-test
+    platform: watchOS
+    sources:
+      - AirFitWatchApp/AirFitWatchAppTests/Services/WatchWorkoutManagerTests.swift
+    dependencies:
+      - target: AirFitWatchApp
+    settings:
+      PRODUCT_BUNDLE_IDENTIFIER: com.airfit.watchapp.tests
+      GENERATE_INFOPLIST_FILE: YES
+      SWIFT_VERSION: "6.0"
+      ENABLE_TESTING_SEARCH_PATHS: YES
+      ENABLE_STRICT_CONCURRENCY: YES
+      SWIFT_STRICT_CONCURRENCY: complete
 
 schemes:
   AirFit:
@@ -280,6 +299,8 @@ schemes:
       targets:
         AirFitWatchApp: all
     run:
+      config: Debug
+    test:
       config: Debug
     profile:
       config: Release

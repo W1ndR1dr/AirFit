@@ -106,7 +106,7 @@ struct ActivityRow: View {
             }
             .padding(.vertical, 10)
             .padding(.horizontal, 12)
-            .background(isSelected ? Color.accent : Color.gray.opacity(0.2))
+            .background(isSelected ? Color.blue : Color.gray.opacity(0.2))
             .clipShape(RoundedRectangle(cornerRadius: 10))
         }
         .buttonStyle(.plain)

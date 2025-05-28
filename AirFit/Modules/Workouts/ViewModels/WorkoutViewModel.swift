@@ -11,6 +11,7 @@ final class WorkoutViewModel {
     private(set) var isLoading = false
     private(set) var aiWorkoutSummary: String?
     private(set) var isGeneratingAnalysis = false
+    var activeWorkout: Workout?
 
     // MARK: - Dependencies
     private let modelContext: ModelContext
@@ -59,6 +60,12 @@ final class WorkoutViewModel {
             AppLogger.error("Failed to load workouts", error: error, category: .data)
         }
     }
+    
+    // MARK: - Exercise Library
+    func loadExerciseLibrary() async {
+        // Trigger exercise database initialization if needed
+        _ = try? await ExerciseDatabase.shared.getAllExercises()
+    }
 
     // MARK: - Processing
     func processReceivedWorkout(data: WorkoutBuilderData) async {
@@ -84,9 +91,15 @@ final class WorkoutViewModel {
             let request = PostWorkoutAnalysisRequest(
                 workout: workout,
                 recentWorkouts: Array(workouts.prefix(5)),
-                healthContext: snapshot
+                userGoals: nil,
+                recoveryData: nil
             )
-            aiWorkoutSummary = try await coachEngine.generatePostWorkoutAnalysis(request)
+            let analysis = try await coachEngine.generatePostWorkoutAnalysis(request)
+            aiWorkoutSummary = analysis
+            
+            // Save analysis to workout
+            workout.aiAnalysis = analysis
+            try modelContext.save()
         } catch {
             AppLogger.error("Failed to generate AI analysis", error: error, category: .ai)
         }
@@ -101,10 +114,22 @@ final class WorkoutViewModel {
             let date = workout.completedDate ?? workout.plannedDate ?? .distantPast
             return date >= startDate && date <= endDate
         }
+        
+        // Calculate muscle group distribution
+        var muscleGroupCounts: [String: Int] = [:]
+        for workout in recent {
+            for exercise in workout.exercises {
+                for muscleGroup in exercise.muscleGroups {
+                    muscleGroupCounts[muscleGroup, default: 0] += 1
+                }
+            }
+        }
+        
         weeklyStats = WeeklyWorkoutStats(
             totalWorkouts: recent.count,
             totalDuration: recent.reduce(0) { $0 + ($1.durationSeconds ?? 0) },
-            totalCalories: recent.reduce(0) { $0 + ($1.caloriesBurned ?? 0) }
+            totalCalories: recent.reduce(0) { $0 + ($1.caloriesBurned ?? 0) },
+            muscleGroupDistribution: muscleGroupCounts
         )
     }
 
@@ -127,10 +152,5 @@ struct WeeklyWorkoutStats {
     var totalWorkouts: Int = 0
     var totalDuration: TimeInterval = 0
     var totalCalories: Double = 0
-}
-
-struct PostWorkoutAnalysisRequest {
-    let workout: Workout
-    let recentWorkouts: [Workout]
-    let healthContext: HealthContextSnapshot
+    var muscleGroupDistribution: [String: Int] = [:]
 }

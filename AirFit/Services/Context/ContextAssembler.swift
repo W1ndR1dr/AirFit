@@ -186,53 +186,44 @@ final class ContextAssembler {
         sevenDaysAgo: Date
     ) async -> WorkoutContext {
         do {
-            // Fetch recent completed workouts (last 7 days)
-            var recentDescriptor = FetchDescriptor<Workout>(
-                predicate: #Predicate<Workout> { workout in
-                    workout.completedDate != nil &&
-                    workout.completedDate! >= sevenDaysAgo &&
-                    workout.completedDate! <= now
-                },
+            // Fetch ALL workouts first, then filter in memory to avoid complex predicates
+            var allWorkoutsDescriptor = FetchDescriptor<Workout>(
                 sortBy: [SortDescriptor(\.completedDate, order: .reverse)]
             )
-            recentDescriptor.fetchLimit = 10 // Cap for token efficiency
-            let recentWorkouts = try context.fetch(recentDescriptor)
-
-            // Active workout (in progress) - simplified predicate
-            var activeDescriptor = FetchDescriptor<Workout>(
-                predicate: #Predicate<Workout> { workout in
-                    workout.completedDate == nil
-                },
-                sortBy: [SortDescriptor(\.plannedDate, order: .reverse)]
-            )
-            activeDescriptor.fetchLimit = 1
-            let activeWorkout = try context.fetch(activeDescriptor).first
-
-            // Upcoming planned workouts (next 3 days)
+            allWorkoutsDescriptor.fetchLimit = 50 // Reasonable limit
+            
+            let allWorkouts = try context.fetch(allWorkoutsDescriptor)
+            
+            // Filter recent completed workouts in memory
+            let recentWorkouts = allWorkouts.filter { workout in
+                guard let completedDate = workout.completedDate else { return false }
+                return completedDate >= sevenDaysAgo && completedDate <= now
+            }.prefix(10)
+            
+            // Find active workout (no completed date)
+            let activeWorkout = allWorkouts.first { workout in
+                workout.completedDate == nil
+            }
+            
+            // Find upcoming workouts
             let threeDaysFromNow = Calendar.current.date(byAdding: .day, value: 3, to: now) ?? now
-            var upcomingDescriptor = FetchDescriptor<Workout>(
-                predicate: #Predicate<Workout> { workout in
-                    workout.completedDate == nil &&
-                    workout.plannedDate != nil &&
-                    workout.plannedDate! > now &&
-                    workout.plannedDate! <= threeDaysFromNow
-                },
-                sortBy: [SortDescriptor(\.plannedDate, order: .forward)]
-            )
-            upcomingDescriptor.fetchLimit = 3 // Next 3 planned workouts
-            let upcomingWorkouts = try context.fetch(upcomingDescriptor)
+            let upcomingWorkouts = allWorkouts.filter { workout in
+                guard workout.completedDate == nil,
+                      let plannedDate = workout.plannedDate else { return false }
+                return plannedDate > now && plannedDate <= threeDaysFromNow
+            }.sorted { ($0.plannedDate ?? Date()) < ($1.plannedDate ?? Date()) }.prefix(3)
 
             // Calculate workout streak
             let streak = calculateWorkoutStreak(context: context, endDate: now)
 
             // Analyze recent performance patterns
-            let patterns = analyzeWorkoutPatterns(recentWorkouts)
+            let patterns = analyzeWorkoutPatterns(Array(recentWorkouts))
 
             return WorkoutContext(
                 recentWorkouts: recentWorkouts.map { compressWorkoutForContext($0) },
                 activeWorkout: activeWorkout.map { compressWorkoutForContext($0) },
                 upcomingWorkout: upcomingWorkouts.first.map { compressWorkoutForContext($0) },
-                plannedWorkouts: upcomingWorkouts.dropFirst().map { compressWorkoutForContext($0) },
+                plannedWorkouts: Array(upcomingWorkouts.dropFirst()).map { compressWorkoutForContext($0) },
                 streakDays: streak,
                 weeklyVolume: patterns.weeklyVolume,
                 muscleGroupBalance: patterns.muscleGroupBalance,
@@ -280,16 +271,20 @@ final class ContextAssembler {
         do {
             let thirtyDaysAgo = Calendar.current.date(byAdding: .day, value: -30, to: endDate) ?? endDate
 
-            let descriptor = FetchDescriptor<Workout>(
-                predicate: #Predicate<Workout> { workout in
-                    workout.completedDate != nil &&
-                    workout.completedDate! >= thirtyDaysAgo &&
-                    workout.completedDate! <= endDate
-                },
+            // Fetch all workouts and filter in memory
+            var descriptor = FetchDescriptor<Workout>(
                 sortBy: [SortDescriptor(\.completedDate, order: .reverse)]
             )
+            descriptor.fetchLimit = 50
 
-            let workouts = try context.fetch(descriptor)
+            let allWorkouts = try context.fetch(descriptor)
+            
+            // Filter in memory to avoid predicate issues
+            let workouts = allWorkouts.filter { workout in
+                guard let completedDate = workout.completedDate else { return false }
+                return completedDate >= thirtyDaysAgo && completedDate <= endDate
+            }
+            
             guard !workouts.isEmpty else { return 0 }
 
             var streak = 0
@@ -409,18 +404,19 @@ final class ContextAssembler {
         do {
             // Defensive programming: Only fetch what we need with proper date bounds
             let fourteenDaysAgo = Calendar.current.date(byAdding: .day, value: -14, to: Date()) ?? Date()
-            let predicate = #Predicate<DailyLog> { log in
-                log.date >= fourteenDaysAgo && log.steps != nil
-            }
-
+            
+            // Simplified predicate to avoid complex queries
             var descriptor = FetchDescriptor<DailyLog>(
-                predicate: predicate,
                 sortBy: [SortDescriptor(\.date, order: .reverse)]
             )
             descriptor.fetchLimit = 14
-            descriptor.propertiesToFetch = [\.date, \.steps] // Only fetch required properties
-
-            let logs = try context.fetch(descriptor)
+            
+            let allLogs = try context.fetch(descriptor)
+            
+            // Filter in memory to avoid predicate issues
+            let logs = allLogs.filter { log in
+                log.date >= fourteenDaysAgo && log.steps != nil
+            }
 
             // Bulletproof data validation
             guard logs.count >= 7 else {
