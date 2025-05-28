@@ -103,6 +103,7 @@ targets:
       - AirFit/Core/Views/CommonComponents.swift
       - AirFit/Core/Protocols/ViewModelProtocol.swift
       - AirFit/Core/Services/WhisperModelManager.swift
+      - AirFit/Core/Services/VoiceInputManager.swift
       # Services Layer Files (CRITICAL: XcodeGen nesting bug)
       - AirFit/Services/Security/APIKeyManagerProtocol.swift
       - AirFit/Services/Platform/NotificationManagerProtocol.swift
@@ -207,6 +208,7 @@ targets:
       - AirFit/AirFitTests/Mocks/MockCoachEngine.swift
       - AirFit/AirFitTests/Workouts/WorkoutViewModelTests.swift
       - AirFit/AirFitTests/Workouts/WorkoutCoordinatorTests.swift
+      - AirFit/AirFitTests/Core/VoiceInputManagerTests.swift
     dependencies:
       - target: AirFit
     settings:
