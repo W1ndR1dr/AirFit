@@ -414,3 +414,28 @@ xcodebuild clean build 2>&1 | grep "YourFileName"
 - Food search: <1s response time
 - UI animations: 60fps
 - Memory usage: <100MB typical, <1.8GB with large model
+
+## Module 13 (Chat Interface) Documentation References
+
+### **Current Implementation Target: Module 13**
+The project is currently implementing **Module 13: Chat Interface Module** with comprehensive WhisperKit voice integration.
+
+### **Key Documentation Files:**
+- **`/MODULE13_PROMPT_CHAIN.md`** - Complete implementation prompt chain with all tasks, acceptance criteria, and sequencing
+- **`/AirFit/Docs/Module13.md`** - Detailed technical specifications and requirements
+- **`/AirFit/Docs/Research Reports/MLX Whisper Integration Report.md`** - WhisperKit optimization research
+- **`/AirFit/Docs/Research Reports/Codex Optimization Report.md`** - Agent best practices
+
+### **Task Context:**
+Even if you receive a single task prompt (e.g., "Implement Task 13.1.2"), you should:
+1. **Reference the full prompt chain** in `MODULE13_PROMPT_CHAIN.md` for context
+2. **Check dependencies** and prerequisites from other tasks
+3. **Follow the acceptance criteria** specified in the prompt chain
+4. **Maintain consistency** with the overall module architecture
+5. **Verify file placement** matches the project structure in the prompt chain
+
+### **Implementation Strategy:**
+- Module 13 provides the **foundation voice infrastructure** for the entire app
+- WhisperKit integration is **centralized** in Module 13's VoiceInputManager
+- Module 8 (Food Tracking) will **consume** Module 13's voice services via adapter pattern
+- All voice-related features should be **consistent** across modules
