@@ -204,19 +204,6 @@ struct ChatView: View {
 }
 
 // MARK: - Placeholder Types
-private struct MessageBubbleView: View {
-    let message: ChatMessage
-    let isStreaming: Bool
-    let onAction: (MessageAction) -> Void
-
-    var body: some View {
-        Text(message.content)
-            .frame(maxWidth: .infinity, alignment: message.role == MessageRole.user.rawValue ? .trailing : .leading)
-            .contextMenu {
-                Button("Copy") { onAction(.copy) }
-                Button("Delete") { onAction(.delete) }
-            }
-    }
 }
 
 private struct SuggestionChip: View {
@@ -271,11 +258,4 @@ private struct VoiceSettingsView: View {
 private struct ImagePickerView: View {
     var onPick: (UIImage) -> Void
     var body: some View { Text("Image Picker") }
-}
-
-private enum MessageAction {
-    case copy
-    case delete
-    case regenerate
-    case showDetails
 }
