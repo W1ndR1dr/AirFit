@@ -32,6 +32,10 @@ final class ChatAttachment: @unchecked Sendable {
         AttachmentType(rawValue: type)
     }
 
+    var typeEnum: AttachmentType {
+        AttachmentType(rawValue: type) ?? .data
+    }
+
     var isImage: Bool {
         attachmentType == .image
     }

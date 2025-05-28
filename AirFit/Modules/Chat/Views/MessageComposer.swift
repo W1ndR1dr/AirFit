@@ -36,7 +36,7 @@ struct MessageComposer: View {
                 Button(action: canSend ? onSend : onVoiceToggle) {
                     Image(systemName: canSend ? "arrow.up.circle.fill" : "mic.circle.fill")
                         .font(.title2)
-                        .foregroundStyle(canSend ? .accent : .secondary)
+                        .foregroundStyle(canSend ? AppColors.accent : .secondary)
                         .animation(.easeInOut(duration: 0.2), value: canSend)
                 }
                 .disabled(isRecording && !canSend)
@@ -79,7 +79,7 @@ struct MessageComposer: View {
         }, label: {
             Image(systemName: "plus.circle.fill")
                 .font(.title2)
-                .foregroundStyle(.accent)
+                .foregroundStyle(AppColors.accent)
         })
     }
 
@@ -188,23 +188,18 @@ private struct AttachmentPreview: View {
 }
 
 #if DEBUG
-#Preview {
-    struct Wrapper: View {
-        @State var text = ""
-        @State var attachments: [ChatAttachment] = []
-        var body: some View {
-            MessageComposer(
-                text: $text,
-                attachments: $attachments,
-                isRecording: false,
-                waveform: [],
-                onSend: {},
-                onVoiceToggle: {}
-            )
-        }
-    }
-    return Wrapper()
+struct MessageComposer_Previews: PreviewProvider {
+    static var previews: some View {
+        MessageComposer(
+            text: .constant(""),
+            attachments: .constant([]),
+            isRecording: false,
+            waveform: [],
+            onSend: {},
+            onVoiceToggle: {}
+        )
         .padding()
-        .background(Color.backgroundPrimary)
+        .background(AppColors.backgroundPrimary)
+    }
 }
 #endif

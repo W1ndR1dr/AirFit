@@ -204,7 +204,6 @@ struct ChatView: View {
 }
 
 // MARK: - Placeholder Types
-}
 
 private struct SuggestionChip: View {
     let suggestion: QuickSuggestion

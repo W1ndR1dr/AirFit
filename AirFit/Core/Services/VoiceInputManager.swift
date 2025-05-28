@@ -1,6 +1,6 @@
 import Foundation
 import AVFoundation
-import WhisperKit
+@preconcurrency import WhisperKit
 
 @MainActor
 @Observable
@@ -36,12 +36,6 @@ final class VoiceInputManager: NSObject {
         Task { [weak self] in
             await self?.initializeWhisper()
         }
-    }
-
-    deinit {
-        audioRecorder?.stop()
-        audioEngine.stop()
-        waveformTimer?.invalidate()
     }
 
     // MARK: - Permission
@@ -91,7 +85,9 @@ final class VoiceInputManager: NSObject {
         audioBuffer.removeAll()
         let format = AVAudioFormat(commonFormat: .pcmFormatFloat32, sampleRate: 16_000, channels: 1, interleaved: false)!
         inputNode.installTap(onBus: 0, bufferSize: 8_192, format: format) { [weak self] buffer, _ in
-            self?.processStreamingBuffer(buffer)
+            Task { @MainActor in
+                await self?.processStreamingBuffer(buffer)
+            }
         }
         audioEngine.prepare()
         try audioEngine.start()
@@ -127,7 +123,9 @@ final class VoiceInputManager: NSObject {
             )
         } catch {
             AppLogger.error("Failed to initialize Whisper", error: error, category: .ai)
-            onError?(VoiceInputError.whisperInitializationFailed)
+            await MainActor.run {
+                onError?(VoiceInputError.whisperInitializationFailed)
+            }
         }
     }
 
@@ -169,16 +167,16 @@ final class VoiceInputManager: NSObject {
                 skipSpecialTokens: true,
                 withoutTimestamps: true,
                 wordTimestamps: false,
-                clipTimestamps: "0",
+                clipTimestamps: [0],
                 suppressBlank: true,
                 supressTokens: nil,
                 compressionRatioThreshold: 2.4,
-                logprobThreshold: -1.0,
+                logProbThreshold: -1.0,
                 noSpeechThreshold: 0.6
             )
         )
-        guard let segments = result else { throw VoiceInputError.transcriptionFailed }
-        let text = segments.map { $0.text }.joined(separator: " ")
+        guard !result.isEmpty else { throw VoiceInputError.transcriptionFailed }
+        let text = result.map { $0.text }.joined(separator: " ")
         return postProcessTranscription(text)
     }
 
@@ -189,17 +187,20 @@ final class VoiceInputManager: NSObject {
                 audioArray: audioData,
                 decodeOptions: DecodingOptions(language: "en", temperature: 0.0, withoutTimestamps: true)
             )
-            let text = result.text.trimmingCharacters(in: .whitespacesAndNewlines)
+            guard let firstResult = result.first else { return }
+            let text = firstResult.text.trimmingCharacters(in: .whitespacesAndNewlines)
             guard !text.isEmpty else { return }
             let processed = postProcessTranscription(text)
-            currentTranscription = processed
-            onPartialTranscription?(processed)
+            await MainActor.run {
+                currentTranscription = processed
+                onPartialTranscription?(processed)
+            }
         } catch {
             AppLogger.debug("Streaming chunk error: \(error)", category: .ai)
         }
     }
 
-    private func processStreamingBuffer(_ buffer: AVAudioPCMBuffer) {
+    private func processStreamingBuffer(_ buffer: AVAudioPCMBuffer) async {
         guard let channelData = buffer.floatChannelData else { return }
         let channelDataValue = channelData.pointee
         let frames = Int(buffer.frameLength)
@@ -210,14 +211,16 @@ final class VoiceInputManager: NSObject {
             audioBuffer.removeFirst(16_000)
             Task { await processAudioChunk(chunk) }
         }
-        analyzeAudioBuffer(buffer)
+        await analyzeAudioBuffer(buffer)
     }
 
     // MARK: - Waveform
     private func startWaveformTimer() {
         waveformTimer = Timer.scheduledTimer(withTimeInterval: 0.1, repeats: true) { [weak self] _ in
-            guard let self else { return }
-            self.onWaveformUpdate?(self.waveformBuffer)
+            Task { @MainActor in
+                guard let self else { return }
+                self.onWaveformUpdate?(self.waveformBuffer)
+            }
         }
     }
 
@@ -237,13 +240,15 @@ final class VoiceInputManager: NSObject {
         if waveformBuffer.count > 50 { waveformBuffer.removeFirst() }
     }
 
-    private func analyzeAudioBuffer(_ buffer: AVAudioPCMBuffer) {
+    private func analyzeAudioBuffer(_ buffer: AVAudioPCMBuffer) async {
         guard let channelData = buffer.floatChannelData else { return }
         let data = stride(from: 0, to: Int(buffer.frameLength), by: buffer.stride).map { channelData.pointee[$0] }
         let rms = sqrt(data.map { $0 * $0 }.reduce(0, +) / Float(buffer.frameLength))
         let normalized = min(rms * 10, 1.0)
-        waveformBuffer.append(normalized)
-        if waveformBuffer.count > 50 { waveformBuffer.removeFirst() }
+        await MainActor.run {
+            waveformBuffer.append(normalized)
+            if waveformBuffer.count > 50 { waveformBuffer.removeFirst() }
+        }
     }
 
     // MARK: - Fitness-Specific Post-Processing

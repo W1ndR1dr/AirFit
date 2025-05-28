@@ -1,5 +1,5 @@
 import Foundation
-import WhisperKit
+@preconcurrency import WhisperKit
 
 @MainActor
 @Observable
@@ -155,9 +155,9 @@ final class WhisperModelManager {
                     model: modelId,
                     modelRepo: model.huggingFaceRepo,
                     modelFolder: modelId,
-                    download: true,
                     verbose: false,
-                    logLevel: .error
+                    logLevel: .error,
+                    download: true
                 )
             )
 

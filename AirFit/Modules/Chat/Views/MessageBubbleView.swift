@@ -68,9 +68,9 @@ struct MessageBubbleView: View {
     private var bubbleBackground: some View {
         Group {
             if message.roleEnum == .user {
-                Color.accentColor.opacity(0.2)
+                AppColors.accentColor.opacity(0.2)
             } else {
-                Color.cardBackground
+                AppColors.cardBackground
             }
         }
     }
@@ -286,7 +286,7 @@ struct AttachmentThumbnail: View {
                 .scaledToFit()
                 .frame(width: 50, height: 50)
                 .padding(10)
-                .background(Color.cardBackground)
+                .background(AppColors.cardBackground)
                 .cornerRadius(8)
         }
     }
@@ -309,7 +309,7 @@ struct NavigationLinkCard: View {
                     .foregroundStyle(.secondary)
             }
             .padding()
-            .background(RoundedRectangle(cornerRadius: 12).fill(Color.cardBackground))
+            .background(RoundedRectangle(cornerRadius: 12).fill(AppColors.cardBackground))
         }
     }
 }
@@ -358,7 +358,7 @@ struct ReminderCard: View {
             Spacer()
         }
         .padding()
-        .background(RoundedRectangle(cornerRadius: 12).fill(Color.cardBackground))
+        .background(RoundedRectangle(cornerRadius: 12).fill(AppColors.cardBackground))
     }
 }
 

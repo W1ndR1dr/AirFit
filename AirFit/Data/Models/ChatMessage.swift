@@ -3,6 +3,13 @@ import Foundation
 
 @Model
 final class ChatMessage: @unchecked Sendable {
+    // MARK: - Types
+    enum Role: String, CaseIterable, Sendable {
+        case user = "user"
+        case assistant = "assistant"
+        case system = "system"
+    }
+
     // MARK: - Properties
     var id: UUID
     var timestamp: Date
@@ -17,6 +24,7 @@ final class ChatMessage: @unchecked Sendable {
     var modelUsed: String?
     var tokenCount: Int?
     var processingTimeMs: Int?
+    var metadata: [String: Any]?
 
     // MARK: - Relationships
     var session: ChatSession?
@@ -25,6 +33,10 @@ final class ChatMessage: @unchecked Sendable {
     var attachments: [ChatAttachment] = []
 
     // MARK: - Computed Properties
+    var roleEnum: Role {
+        Role(rawValue: role) ?? .user
+    }
+
     var hasAttachments: Bool {
         !attachments.isEmpty
     }

@@ -1,14 +1,13 @@
 import SwiftUI
-import Observation
+import Combine
 
 @MainActor
-@Observable
-final class ChatCoordinator {
+final class ChatCoordinator: ObservableObject {
     // MARK: - Navigation State
-    var navigationPath = NavigationPath()
-    var activeSheet: ChatSheet?
-    var activePopover: ChatPopover?
-    var scrollToMessageId: String?
+    @Published var navigationPath = NavigationPath()
+    @Published var activeSheet: ChatSheet?
+    @Published var activePopover: ChatPopover?
+    @Published var scrollToMessageId: String?
 
     // MARK: - Sheet Types
     enum ChatSheet: Identifiable {

@@ -1,10 +1,9 @@
 import SwiftUI
 import SwiftData
-import Observation
+import Combine
 
 @MainActor
-@Observable
-final class ChatViewModel {
+final class ChatViewModel: ObservableObject {
     // MARK: - Dependencies
     private let modelContext: ModelContext
     private let user: User
@@ -14,21 +13,21 @@ final class ChatViewModel {
     private let coordinator: ChatCoordinator
 
     // MARK: - Published State
-    private(set) var messages: [ChatMessage] = []
-    private(set) var currentSession: ChatSession?
-    private(set) var isLoading = false
-    private(set) var isStreaming = false
-    private(set) var error: Error?
+    @Published private(set) var messages: [ChatMessage] = []
+    @Published private(set) var currentSession: ChatSession?
+    @Published private(set) var isLoading = false
+    @Published private(set) var isStreaming = false
+    @Published private(set) var error: Error?
 
     // MARK: - Composer State
-    var composerText = ""
-    var isRecording = false
-    var voiceWaveform: [Float] = []
-    var attachments: [ChatAttachment] = []
+    @Published var composerText = ""
+    @Published var isRecording = false
+    @Published var voiceWaveform: [Float] = []
+    @Published var attachments: [ChatAttachment] = []
 
     // MARK: - Suggestions
-    private(set) var quickSuggestions: [QuickSuggestion] = []
-    private(set) var contextualActions: [ContextualAction] = []
+    @Published private(set) var quickSuggestions: [QuickSuggestion] = []
+    @Published private(set) var contextualActions: [ContextualAction] = []
 
     // MARK: - Stream State
     private var streamBuffer = ""
@@ -324,5 +323,21 @@ enum ChatError: LocalizedError {
         case .voiceRecognitionUnavailable:
             return "Voice recognition is not available"
         }
+    }
+}
+
+// MARK: - Placeholder Types
+struct ChatExporter {
+    enum ExportFormat {
+        case markdown
+        case json
+        case pdf
+    }
+    
+    func export(session: ChatSession, messages: [ChatMessage], format: ExportFormat) async throws -> URL {
+        // Placeholder implementation
+        let tempURL = FileManager.default.temporaryDirectory.appendingPathComponent("chat_export.md")
+        try "Chat export placeholder".write(to: tempURL, atomically: true, encoding: .utf8)
+        return tempURL
     }
 }
