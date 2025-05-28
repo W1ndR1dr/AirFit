@@ -18,7 +18,7 @@ final class ExerciseDefinition: Identifiable, Codable {
     var imageNames: [String]
     var force: String?
     var mechanic: String?
-    
+
     init(
         id: String,
         name: String,
@@ -48,14 +48,14 @@ final class ExerciseDefinition: Identifiable, Codable {
         self.force = force
         self.mechanic = mechanic
     }
-    
+
     // MARK: - Codable
     enum CodingKeys: String, CodingKey {
         case id, name, category, muscleGroups, equipment, instructions
         case tips, commonMistakes, difficulty, isCompound, imageNames
         case force, mechanic
     }
-    
+
     init(from decoder: Decoder) throws {
         let container = try decoder.container(keyedBy: CodingKeys.self)
         id = try container.decode(String.self, forKey: .id)
@@ -72,7 +72,7 @@ final class ExerciseDefinition: Identifiable, Codable {
         force = try container.decodeIfPresent(String.self, forKey: .force)
         mechanic = try container.decodeIfPresent(String.self, forKey: .mechanic)
     }
-    
+
     func encode(to encoder: Encoder) throws {
         var container = encoder.container(keyedBy: CodingKeys.self)
         try container.encode(id, forKey: .id)
@@ -110,15 +110,15 @@ private struct RawExerciseData: Codable {
 @MainActor
 final class ExerciseDatabase: ObservableObject {
     static let shared = ExerciseDatabase()
-    
+
     @Published private(set) var isLoading = false
     @Published private(set) var loadingProgress: Double = 0
     @Published private(set) var error: ExerciseDatabaseError?
-    
+
     private let container: ModelContainer
     private var exercises: [ExerciseDefinition] = []
     private let cacheQueue = DispatchQueue(label: "exercise.cache", qos: .utility)
-    
+
     private init() {
         do {
             container = try ModelContainer(for: ExerciseDefinition.self)
@@ -128,7 +128,7 @@ final class ExerciseDatabase: ObservableObject {
             fatalError("Failed to initialize ExerciseDatabase: \(error)")
         }
     }
-    
+
     // MARK: - Public API
     func getAllExercises() async throws -> [ExerciseDefinition] {
         if exercises.isEmpty {
@@ -136,58 +136,58 @@ final class ExerciseDatabase: ObservableObject {
         }
         return exercises
     }
-    
+
     func searchExercises(query: String) async -> [ExerciseDefinition] {
         guard !query.isEmpty else { return exercises }
-        
+
         let predicate = #Predicate<ExerciseDefinition> { exercise in
             exercise.name.localizedStandardContains(query) ||
             exercise.instructions.contains { $0.localizedStandardContains(query) }
         }
-        
+
         return (try? container.mainContext.fetch(FetchDescriptor(predicate: predicate))) ?? []
     }
-    
+
     func getExercisesByMuscleGroup(_ muscleGroup: MuscleGroup) async -> [ExerciseDefinition] {
         let predicate = #Predicate<ExerciseDefinition> { exercise in
             exercise.muscleGroups.contains(muscleGroup)
         }
         return (try? container.mainContext.fetch(FetchDescriptor(predicate: predicate))) ?? []
     }
-    
+
     func getExercisesByCategory(_ category: ExerciseCategory) async -> [ExerciseDefinition] {
         let predicate = #Predicate<ExerciseDefinition> { exercise in
             exercise.category == category
         }
         return (try? container.mainContext.fetch(FetchDescriptor(predicate: predicate))) ?? []
     }
-    
+
     func getExercisesByEquipment(_ equipment: Equipment) async -> [ExerciseDefinition] {
         let predicate = #Predicate<ExerciseDefinition> { exercise in
             exercise.equipment.contains(equipment)
         }
         return (try? container.mainContext.fetch(FetchDescriptor(predicate: predicate))) ?? []
     }
-    
+
     func getExercisesByDifficulty(_ difficulty: Difficulty) async -> [ExerciseDefinition] {
         let predicate = #Predicate<ExerciseDefinition> { exercise in
             exercise.difficulty == difficulty
         }
         return (try? container.mainContext.fetch(FetchDescriptor(predicate: predicate))) ?? []
     }
-    
+
     func getExercise(by id: String) async -> ExerciseDefinition? {
         let predicate = #Predicate<ExerciseDefinition> { exercise in
             exercise.id == id
         }
         return try? container.mainContext.fetch(FetchDescriptor(predicate: predicate)).first
     }
-    
+
     // MARK: - Private Methods
     private func initializeDatabase() async {
         do {
             let count = try container.mainContext.fetchCount(FetchDescriptor<ExerciseDefinition>())
-            if count == 0 {
+            if isEmpty {
                 await seedDatabase()
             } else {
                 exercises = try container.mainContext.fetch(FetchDescriptor<ExerciseDefinition>())
@@ -197,82 +197,82 @@ final class ExerciseDatabase: ObservableObject {
             await handleError(.initializationFailed(error))
         }
     }
-    
+
     private func seedDatabase() async {
         isLoading = true
         loadingProgress = 0
-        
+
         do {
             guard let url = Bundle.main.url(forResource: "exercises", withExtension: "json", subdirectory: "Resources/SeedData") else {
                 throw ExerciseDatabaseError.seedDataNotFound
             }
-            
+
             AppLogger.info("Loading exercise data from bundle", category: .data)
             let data = try Data(contentsOf: url)
             let rawExercises = try JSONDecoder().decode([RawExerciseData].self, from: data)
-            
+
             AppLogger.info("Processing \(rawExercises.count) exercises", category: .data)
-            
+
             let totalCount = Double(rawExercises.count)
             var processedCount = 0.0
-            
+
             for rawExercise in rawExercises {
                 let exercise = try transformRawExercise(rawExercise)
                 container.mainContext.insert(exercise)
-                
+
                 processedCount += 1
                 loadingProgress = processedCount / totalCount
-                
+
                 // Batch save every 50 exercises for performance
                 if Int(processedCount) % 50 == 0 {
                     try container.mainContext.save()
                 }
             }
-            
+
             // Final save
             try container.mainContext.save()
-            
+
             // Load into memory cache
             exercises = try container.mainContext.fetch(FetchDescriptor<ExerciseDefinition>())
-            
+
             AppLogger.info("Successfully seeded ExerciseDatabase with \(exercises.count) exercises", category: .data)
-            
+
         } catch {
             await handleError(.seedingFailed(error))
         }
-        
+
         isLoading = false
         loadingProgress = 1.0
     }
-    
+
     private func transformRawExercise(_ raw: RawExerciseData) throws -> ExerciseDefinition {
         // Generate stable ID
         let idData = "\(raw.name)-\(raw.equipment ?? "none")".data(using: .utf8) ?? Data()
         let hash = SHA256.hash(data: idData)
         let id = hash.compactMap { String(format: "%02x", $0) }.joined().prefix(16).lowercased()
-        
+
         // Map category
         let category = ExerciseCategory.fromRawValue(raw.category)
-        
+
         // Map muscle groups
         let primaryMuscles = raw.primaryMuscles.compactMap(MuscleGroup.fromRawValue)
         let secondaryMuscles = raw.secondaryMuscles.compactMap(MuscleGroup.fromRawValue)
         let allMuscles = Array(Set(primaryMuscles + secondaryMuscles))
-        
+
         // Map equipment
         let equipment = raw.equipment.map { Equipment.fromRawValue($0) } ?? [.bodyweight]
-        
+
         // Map difficulty
         let difficulty = Difficulty.fromRawValue(raw.level)
-        
+
         // Determine if compound
         let isCompound = raw.mechanic?.lowercased() == "compound" || allMuscles.count > 1
-        
+
         // Process image names (remove path, keep filename)
         let imageNames = raw.images.map { imagePath in
             URL(fileURLWithPath: imagePath).lastPathComponent
         }
-        
+
         return ExerciseDefinition(
             id: String(id),
             name: raw.name,
@@ -289,7 +289,7 @@ final class ExerciseDatabase: ObservableObject {
             mechanic: raw.mechanic
         )
     }
-    
+
     private func handleError(_ error: ExerciseDatabaseError) async {
         self.error = error
         isLoading = false
@@ -303,7 +303,7 @@ enum ExerciseDatabaseError: LocalizedError {
     case initializationFailed(Error)
     case seedingFailed(Error)
     case queryFailed(Error)
-    
+
     var errorDescription: String? {
         switch self {
         case .seedDataNotFound:
@@ -386,4 +386,4 @@ extension Difficulty {
         default: return .intermediate
         }
     }
-} 
+}

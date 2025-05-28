@@ -82,7 +82,8 @@ As defined in the Design Spec v1.2:
     *   **Code Style:** Logic should be encapsulated in classes or structs with clear responsibilities. Use protocols to define contracts between components. Emphasize immutability where possible.
 *   **Service Layer:**
     *   Manages all interactions with external systems and platform services.
-    *   Key Components: `HealthKitManager`, `WeatherServiceAPIClient`, `AIServiceProtocol` (multi-provider), `VoiceInputManager` (WhisperKit), `NotificationManager`, `EngagementEngine`.
+    *   Key Components: `HealthKitManager`, `WeatherServiceAPIClient`, `AIServiceProtocol` (multi-provider), `VoiceInputManager` (WhisperKit), `NotificationManager`, `EngagementEngine`, `ExerciseDatabase`.
+    *   **Exercise Database**: Offline-first exercise library powered by Free Exercise DB (Unlicense, 800+ exercises) with SwiftData storage, real-time search, and comprehensive categorization by muscle groups, equipment, and difficulty.
     *   **Code Style:** Each service should implement a clearly defined protocol. Handle errors gracefully using Swift's error handling mechanisms (try/catch, Result types). All network requests must be asynchronous.
 *   **Data Layer (SwiftData):**
     *   The single source of truth for all persisted application data.
