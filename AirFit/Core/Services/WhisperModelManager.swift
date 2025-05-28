@@ -219,10 +219,15 @@ final class WhisperModelManager {
                 return id
             }
         }
-        if deviceMemory >= 8_000_000_000 { return "large-v3" }
-        else if deviceMemory >= 6_000_000_000 { return "medium" }
-        else if deviceMemory >= 4_000_000_000 { return "base" }
-        else { return "tiny" }
+        if deviceMemory >= 8_000_000_000 {
+            return "large-v3"
+        } else if deviceMemory >= 6_000_000_000 {
+            return "medium"
+        } else if deviceMemory >= 4_000_000_000 {
+            return "base"
+        } else {
+            return "tiny"
+        }
     }
 
     // MARK: - Accessors

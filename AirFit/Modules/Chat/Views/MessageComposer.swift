@@ -72,15 +72,15 @@ struct MessageComposer: View {
     }
 
     private var attachmentMenu: some View {
-        Menu {
+        Menu(content: {
             Button(action: { showAttachmentPicker = true }) {
                 Label("Photo", systemImage: "photo")
             }
-        } label: {
+        }, label: {
             Image(systemName: "plus.circle.fill")
                 .font(.title2)
                 .foregroundStyle(.accent)
-        }
+        })
     }
 
     private var textInputView: some View {

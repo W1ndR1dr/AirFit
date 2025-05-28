@@ -90,7 +90,7 @@ final class VoiceInputManager: NSObject {
         if audioEngine.isRunning { audioEngine.stop() }
         audioBuffer.removeAll()
         let format = AVAudioFormat(commonFormat: .pcmFormatFloat32, sampleRate: 16_000, channels: 1, interleaved: false)!
-        inputNode.installTap(onBus: 0, bufferSize: 8192, format: format) { [weak self] buffer, _ in
+        inputNode.installTap(onBus: 0, bufferSize: 8_192, format: format) { [weak self] buffer, _ in
             self?.processStreamingBuffer(buffer)
         }
         audioEngine.prepare()

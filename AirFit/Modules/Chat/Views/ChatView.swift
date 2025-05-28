@@ -44,7 +44,9 @@ struct ChatView: View {
             }
             .navigationTitle("AI Coach")
             .navigationBarTitleDisplayMode(.inline)
-            .toolbar { toolbarContent }
+            .toolbar {
+                toolbarContent
+            }
             .navigationDestination(for: ChatDestination.self) { destination in
                 destinationView(for: destination)
             }
@@ -74,12 +76,7 @@ struct ChatView: View {
                             }
                         )
                         .id(message.id)
-                        .transition(
-                            .asymmetric(
-                                insertion: .push(from: .bottom).combined(with: .opacity),
-                                removal: .push(from: .top).combined(with: .opacity)
-                            )
-                        )
+                        .transition(.opacity)
                     }
 
                     if viewModel.isStreaming {
@@ -123,7 +120,7 @@ struct ChatView: View {
     @ToolbarContentBuilder
     private var toolbarContent: some ToolbarContent {
         ToolbarItem(placement: .navigationBarTrailing) {
-            Menu {
+            Menu(content: {
                 Button(action: { coordinator.showSheet(.sessionHistory) }) {
                     Label("Chat History", systemImage: "clock")
                 }
@@ -141,9 +138,9 @@ struct ChatView: View {
                 Button(action: startNewSession) {
                     Label("New Session", systemImage: "plus.bubble")
                 }
-            } label: {
+            }, label: {
                 Image(systemName: "ellipsis.circle")
-            }
+            })
         }
     }
 
