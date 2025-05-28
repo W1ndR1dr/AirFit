@@ -156,6 +156,7 @@ targets:
       - AirFit/Modules/Chat/ChatCoordinator.swift
       - AirFit/Modules/Chat/ViewModels/ChatViewModel.swift
       - AirFit/Modules/Chat/Views/MessageComposer.swift
+      - AirFit/Modules/Chat/Views/ChatView.swift
       # Application Layer Files (CRITICAL: XcodeGen nesting bug)
       - AirFit/Application/AirFitApp.swift
       - AirFit/Application/MinimalContentView.swift

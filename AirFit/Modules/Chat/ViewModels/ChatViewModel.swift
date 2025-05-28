@@ -234,6 +234,11 @@ final class ChatViewModel {
         }
     }
 
+    func copyMessage(_ message: ChatMessage) {
+        UIPasteboard.general.string = message.content
+        Task { await HapticManager.shared.notification(.success) }
+    }
+
     func regenerateResponse(for message: ChatMessage) async {
         guard message.role == MessageRole.assistant.rawValue,
               let index = messages.firstIndex(where: { $0.id == message.id }),
