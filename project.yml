@@ -81,6 +81,7 @@ targets:
       - AirFit/Core/Extensions/Color+Extensions.swift
       - AirFit/Core/Extensions/Date+Extensions.swift
       - AirFit/Core/Extensions/Double+Extensions.swift
+      - AirFit/Core/Extensions/TimeInterval+Extensions.swift
       - AirFit/Core/Utilities/AppState.swift
       - AirFit/Core/Utilities/DependencyContainer.swift
       - AirFit/Core/Utilities/HapticManager.swift
