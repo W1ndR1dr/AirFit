@@ -123,6 +123,7 @@ targets:
       - AirFit/Modules/Dashboard/Views/Cards/NutritionCard.swift
       - AirFit/Modules/Dashboard/Views/Cards/RecoveryCard.swift
       - AirFit/Modules/Dashboard/Views/Cards/PerformanceCard.swift
+      - AirFit/Modules/Dashboard/Views/Cards/QuickActionsCard.swift
       - AirFit/Services/Health/HealthKitManager.swift
       - AirFit/Services/Health/HealthKitManagerProtocol.swift
       - AirFit/Services/Health/HealthKitDataFetcher.swift
@@ -167,7 +168,9 @@ targets:
       - AirFit/AirFitTests/Health/HealthKitManagerTests.swift
       - AirFit/AirFitTests/Mocks/MockHealthKitManager.swift
       - AirFit/AirFitTests/Mocks/MockHealthKitPrefillProvider.swift
-# Temporarily excluded due to compilation errors
+      - AirFit/AirFitTests/Mocks/MockDashboardServices.swift
+      - AirFit/AirFitTests/Dashboard/DashboardViewModelTests.swift
+      # Temporarily excluded due to compilation errors
       # - AirFit/AirFitTests/Context/ContextAssemblerTests.swift
       - AirFit/AirFitTests/Modules/AI/LocalCommandParserTests.swift
       - AirFit/AirFitTests/Modules/AI/FunctionCallDispatcherTests.swift
