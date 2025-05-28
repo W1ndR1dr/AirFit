@@ -153,6 +153,7 @@ targets:
       - AirFit/Modules/Workouts/Views/WorkoutBuilderView.swift
       - AirFit/Modules/Workouts/Views/AllWorkoutsView.swift
       - AirFit/Modules/Workouts/Views/WorkoutStatisticsView.swift
+      - AirFit/Modules/Chat/ChatCoordinator.swift
       # Application Layer Files (CRITICAL: XcodeGen nesting bug)
       - AirFit/Application/AirFitApp.swift
       - AirFit/Application/MinimalContentView.swift
@@ -208,6 +209,7 @@ targets:
       - AirFit/AirFitTests/Mocks/MockCoachEngine.swift
       - AirFit/AirFitTests/Workouts/WorkoutViewModelTests.swift
       - AirFit/AirFitTests/Workouts/WorkoutCoordinatorTests.swift
+      - AirFit/AirFitTests/Modules/Chat/ChatCoordinatorTests.swift
       - AirFit/AirFitTests/Core/VoiceInputManagerTests.swift
     dependencies:
       - target: AirFit
