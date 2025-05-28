@@ -102,6 +102,7 @@ targets:
       - AirFit/Core/Theme/AppFonts.swift
       - AirFit/Core/Views/CommonComponents.swift
       - AirFit/Core/Protocols/ViewModelProtocol.swift
+      - AirFit/Core/Services/WhisperModelManager.swift
       # Services Layer Files (CRITICAL: XcodeGen nesting bug)
       - AirFit/Services/Security/APIKeyManagerProtocol.swift
       - AirFit/Services/Platform/NotificationManagerProtocol.swift
