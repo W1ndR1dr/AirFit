@@ -170,6 +170,7 @@ targets:
       - AirFit/AirFitTests/Mocks/MockHealthKitPrefillProvider.swift
       - AirFit/AirFitTests/Mocks/MockDashboardServices.swift
       - AirFit/AirFitTests/Dashboard/DashboardViewModelTests.swift
+      - AirFit/AirFitTests/Modules/Dashboard/DashboardViewModelTests.swift
       # Temporarily excluded due to compilation errors
       # - AirFit/AirFitTests/Context/ContextAssemblerTests.swift
       - AirFit/AirFitTests/Modules/AI/LocalCommandParserTests.swift
