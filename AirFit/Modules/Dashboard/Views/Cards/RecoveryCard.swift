@@ -198,5 +198,3 @@ private struct TrendIndicator: View {
             .foregroundColor(color)
     }
 }
-
-

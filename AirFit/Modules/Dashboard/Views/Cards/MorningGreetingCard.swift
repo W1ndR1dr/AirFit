@@ -47,7 +47,9 @@ struct MorningGreetingCard: View {
                         .foregroundColor(AppColors.accentColor)
                     }
                 } else {
-                    Button(action: { showEnergyPicker = true }) {
+                    Button {
+                        showEnergyPicker = true
+                    } label: {
                         Label("Log Energy", systemImage: "bolt.fill")
                             .font(AppFonts.callout)
                             .frame(maxWidth: .infinity)
@@ -84,7 +86,9 @@ struct MorningGreetingCard: View {
         }
         .accessibilityElement(children: .combine)
         .accessibilityLabel("Morning greeting: \(greeting)")
-        .accessibilityHint(currentEnergy == nil ? "Tap to log your energy level" : "Your energy is logged as \(currentEnergy!)")
+        .accessibilityHint(
+            currentEnergy == nil ? "Tap to log your energy level" : "Your energy is logged as \(currentEnergy!)"
+        )
     }
 
     @ViewBuilder

@@ -41,9 +41,11 @@ final class DashboardUITests: XCTestCase {
 
     func test_loadingState_displaysAndDismisses() async throws {
         let loading = app.otherElements["dashboard.loading"]
-        XCTAssertTrue(await loading.waitForExistence(timeout: 2))
+        let loadingExists = await loading.waitForExistence(timeout: 2)
+        XCTAssertTrue(loadingExists)
         let dashboard = app.otherElements["dashboard.main"]
-        XCTAssertTrue(await dashboard.waitForExistence(timeout: 5))
+        let dashboardExists = await dashboard.waitForExistence(timeout: 5)
+        XCTAssertTrue(dashboardExists)
         XCTAssertFalse(loading.exists)
     }
 
@@ -53,19 +55,23 @@ final class DashboardUITests: XCTestCase {
         app.launch()
 
         let errorView = app.otherElements["dashboard.error"]
-        XCTAssertTrue(await errorView.waitForExistence(timeout: 2))
+        let errorExists = await errorView.waitForExistence(timeout: 2)
+        XCTAssertTrue(errorExists)
         app.buttons["Retry"].tap()
         let dashboard = app.otherElements["dashboard.main"]
-        XCTAssertTrue(await dashboard.waitForExistence(timeout: 5))
+        let dashboardExists = await dashboard.waitForExistence(timeout: 5)
+        XCTAssertTrue(dashboardExists)
     }
 
     func test_morningGreeting_logEnergy() async throws {
         let logButton = app.buttons["Log Energy"]
-        XCTAssertTrue(await logButton.waitForExistence(timeout: 2))
+        let logButtonExists = await logButton.waitForExistence(timeout: 2)
+        XCTAssertTrue(logButtonExists)
         logButton.tap()
 
         let levelButton = app.buttons["4"]
-        XCTAssertTrue(await levelButton.waitForExistence(timeout: 2))
+        let levelButtonExists = await levelButton.waitForExistence(timeout: 2)
+        XCTAssertTrue(levelButtonExists)
         levelButton.tap()
 
         XCTAssertTrue(app.buttons["Update"].exists)
@@ -73,14 +79,16 @@ final class DashboardUITests: XCTestCase {
 
     func test_nutritionCard_navigation() async throws {
         let nutrition = app.staticTexts["Nutrition"]
-        XCTAssertTrue(await nutrition.waitForExistence(timeout: 2))
+        let nutritionExists = await nutrition.waitForExistence(timeout: 2)
+        XCTAssertTrue(nutritionExists)
         nutrition.tap()
         XCTAssertTrue(app.staticTexts["Destination"].waitForExistence(timeout: 2))
     }
 
     func test_quickAction_tapNavigates() async throws {
         let quickActions = app.staticTexts["Quick Actions"]
-        XCTAssertTrue(await quickActions.waitForExistence(timeout: 2))
+        let quickActionsExists = await quickActions.waitForExistence(timeout: 2)
+        XCTAssertTrue(quickActionsExists)
 
         let firstAction = app.buttons.matching(identifier: "Quick Actions").firstMatch
         if firstAction.exists { firstAction.tap() }
@@ -90,7 +98,8 @@ final class DashboardUITests: XCTestCase {
 
     func test_backNavigation_returnsToDashboard() async throws {
         let nutrition = app.staticTexts["Nutrition"]
-        XCTAssertTrue(await nutrition.waitForExistence(timeout: 2))
+        let nutritionExists = await nutrition.waitForExistence(timeout: 2)
+        XCTAssertTrue(nutritionExists)
         nutrition.tap()
         XCTAssertTrue(app.staticTexts["Destination"].waitForExistence(timeout: 2))
         app.navigationBars.buttons.firstMatch.tap()

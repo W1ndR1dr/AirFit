@@ -5,7 +5,8 @@ import SwiftData
 struct DashboardView: View {
     @Environment(\.modelContext) private var modelContext
     @State private var viewModel: DashboardViewModel
-    @StateObject private var coordinator: DashboardCoordinator
+    @StateObject 
+    private var coordinator: DashboardCoordinator
     @State private var hasAppeared = false
 
     private let columns: [GridItem] = [

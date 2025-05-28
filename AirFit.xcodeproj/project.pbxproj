@@ -30,6 +30,7 @@
 		19DBBBFD53F4AD2E92C2D325 /* FunctionRegistry.swift in Sources */ = {isa = PBXBuildFile; fileRef = 72878C02DEAC17A3643F87E3 /* FunctionRegistry.swift */; };
 		1BED10DC23A5D3769F808C5C /* CoachProfileReadyView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 141E8F06298B74354B89F360 /* CoachProfileReadyView.swift */; };
 		1D932FAA5B2DD89C24F2DEDB /* FunctionCallDispatcherTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = AD765E53C595E218F64FB03D /* FunctionCallDispatcherTests.swift */; };
+		241FDB8CE5B6763D4A9B235C /* DashboardViewModelTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5C212FB2F19D02079C9B0000 /* DashboardViewModelTests.swift */; };
 		250C0701E0AFAC8795330A0F /* OnboardingNavigationButtons.swift in Sources */ = {isa = PBXBuildFile; fileRef = A8D136BB4E65D019A618AD9A /* OnboardingNavigationButtons.swift */; };
 		25A9F970A06EF47A5331C9D4 /* RecoveryCard.swift in Sources */ = {isa = PBXBuildFile; fileRef = 06B9815ADD21BC0637DB76D0 /* RecoveryCard.swift */; };
 		273840B895C0AD21B784CA16 /* WhisperServiceWrapperProtocol.swift in Sources */ = {isa = PBXBuildFile; fileRef = 49C2F0263A9F5A604508AA41 /* WhisperServiceWrapperProtocol.swift */; };
@@ -37,9 +38,11 @@
 		2E735FD1DD9CD5BD052311DD /* HealthKitDataTypes.swift in Sources */ = {isa = PBXBuildFile; fileRef = A39FEE04B35B5B28B346E543 /* HealthKitDataTypes.swift */; };
 		2F3F836CB571DCB265B1C1EF /* GlobalEnums.swift in Sources */ = {isa = PBXBuildFile; fileRef = 44357F1191D6E3823BF3215D /* GlobalEnums.swift */; };
 		335BF938E9747E10DAED0388 /* Workout.swift in Sources */ = {isa = PBXBuildFile; fileRef = 77D1C101843D2605AEF2F697 /* Workout.swift */; };
+		38D70520A7EAB73C2CB937D4 /* QuickActionsCard.swift in Sources */ = {isa = PBXBuildFile; fileRef = 827F71BB08777284B9501B62 /* QuickActionsCard.swift */; };
 		39B344BD44BE184422233AE6 /* MockWhisperServiceWrapper.swift in Sources */ = {isa = PBXBuildFile; fileRef = 59DBE24F00ADC1B4FED05BED /* MockWhisperServiceWrapper.swift */; };
 		3A9744832C79E01C2687E0F5 /* PerformanceCard.swift in Sources */ = {isa = PBXBuildFile; fileRef = 58A6597F3D8BF2D486CB66A0 /* PerformanceCard.swift */; };
 		3D13B05E83BE4F7034FC93E0 /* MockAIService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7A6F22B7A83AE6A7A537A6F4 /* MockAIService.swift */; };
+		3F1F0B4790E68A85AD75ED2F /* MockDashboardServices.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3D9E1768455705609C1237E4 /* MockDashboardServices.swift */; };
 		43BD3FEB362B191A8E1C5E65 /* HapticManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2A395075857FF4CAA5B63758 /* HapticManager.swift */; };
 		47BDC8D14A5EC0138B58A7CA /* ExerciseTemplate.swift in Sources */ = {isa = PBXBuildFile; fileRef = DE9BB22B72F5B8CD209B6885 /* ExerciseTemplate.swift */; };
 		48D75B79FA50C73F54687A55 /* AppError.swift in Sources */ = {isa = PBXBuildFile; fileRef = A97A0AC75F43AEFC2B62D616 /* AppError.swift */; };
@@ -132,6 +135,7 @@
 		E59C1571ECC1A32F8A932B6C /* MealTemplate.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1E6D564ADEFA29B655709125 /* MealTemplate.swift */; };
 		E663F0705C648411970356A6 /* HealthKitManagerProtocol.swift in Sources */ = {isa = PBXBuildFile; fileRef = CF40B9603DE838113F419E29 /* HealthKitManagerProtocol.swift */; };
 		E69563762FC4C749E9D5197D /* DataManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = 59B21A0D7408660AD4DCF1EB /* DataManager.swift */; };
+		E91FBA269604C29051055629 /* DashboardUITests.swift in Sources */ = {isa = PBXBuildFile; fileRef = A98DA20F8943CEC3F87DB543 /* DashboardUITests.swift */; };
 		EA869F9B1CE02FC80FBD51D2 /* NetworkClientProtocol.swift in Sources */ = {isa = PBXBuildFile; fileRef = 710C76B64768139B3842F0F6 /* NetworkClientProtocol.swift */; };
 		EAAFCD64FC55BE77AA9EF247 /* OnboardingModels.swift in Sources */ = {isa = PBXBuildFile; fileRef = 286CFCB240542FB40D25948A /* OnboardingModels.swift */; };
 		EBD325CB1AA57D1C0FBCABB4 /* OnboardingServiceProtocol.swift in Sources */ = {isa = PBXBuildFile; fileRef = B606821EE3B9B5C216280A55 /* OnboardingServiceProtocol.swift */; };
@@ -191,6 +195,7 @@
 		3320D6A1E8A14D7B7ACDA00A /* FoodEntry.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FoodEntry.swift; sourceTree = "<group>"; };
 		3397EA24B843B14685988724 /* ExtensionsTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ExtensionsTests.swift; sourceTree = "<group>"; };
 		347339B7ED79CFE6EAA815AA /* NetworkClient.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NetworkClient.swift; sourceTree = "<group>"; };
+		3D9E1768455705609C1237E4 /* MockDashboardServices.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MockDashboardServices.swift; sourceTree = "<group>"; };
 		42D03C16671EE238A5038412 /* WorkoutFunctions.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WorkoutFunctions.swift; sourceTree = "<group>"; };
 		44357F1191D6E3823BF3215D /* GlobalEnums.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GlobalEnums.swift; sourceTree = "<group>"; };
 		470604C2DB06191DC618545C /* AirFitUITestsLaunchTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AirFitUITestsLaunchTests.swift; sourceTree = "<group>"; };
@@ -208,6 +213,7 @@
 		594E3D4BD6A3E85B8E8100D1 /* ConversationManagerPersistenceTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ConversationManagerPersistenceTests.swift; sourceTree = "<group>"; };
 		59B21A0D7408660AD4DCF1EB /* DataManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DataManager.swift; sourceTree = "<group>"; };
 		59DBE24F00ADC1B4FED05BED /* MockWhisperServiceWrapper.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MockWhisperServiceWrapper.swift; sourceTree = "<group>"; };
+		5C212FB2F19D02079C9B0000 /* DashboardViewModelTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DashboardViewModelTests.swift; sourceTree = "<group>"; };
 		5D3F036864A47C18DC02E49B /* CoachingStyleView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CoachingStyleView.swift; sourceTree = "<group>"; };
 		5FB3882174755AC703F9A3F7 /* MockServices.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MockServices.swift; sourceTree = "<group>"; };
 		6038A37C6C1CCD16D0389FE0 /* LocalCommandParserTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LocalCommandParserTests.swift; sourceTree = "<group>"; };
@@ -232,6 +238,7 @@
 		7A6F22B7A83AE6A7A537A6F4 /* MockAIService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MockAIService.swift; sourceTree = "<group>"; };
 		7FC6C6DE9C586A7A5A9193E2 /* AnalysisFunctions.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AnalysisFunctions.swift; sourceTree = "<group>"; };
 		8108FD04B1F67D9BF5B776CF /* ChatAttachment.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ChatAttachment.swift; sourceTree = "<group>"; };
+		827F71BB08777284B9501B62 /* QuickActionsCard.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = QuickActionsCard.swift; sourceTree = "<group>"; };
 		82C1DBFA6040FEDB310AEF75 /* SetTemplate.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SetTemplate.swift; sourceTree = "<group>"; };
 		87A2008F2F237E9BB08A1D7B /* OnboardingService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OnboardingService.swift; sourceTree = "<group>"; };
 		87D9DCBAAE9D9E230C5D971C /* AppState.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppState.swift; sourceTree = "<group>"; };
@@ -254,6 +261,7 @@
 		A633FAA6810B7F5ABE1727D0 /* MockHealthKitPrefillProvider.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MockHealthKitPrefillProvider.swift; sourceTree = "<group>"; };
 		A8D136BB4E65D019A618AD9A /* OnboardingNavigationButtons.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OnboardingNavigationButtons.swift; sourceTree = "<group>"; };
 		A97A0AC75F43AEFC2B62D616 /* AppError.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppError.swift; sourceTree = "<group>"; };
+		A98DA20F8943CEC3F87DB543 /* DashboardUITests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DashboardUITests.swift; sourceTree = "<group>"; };
 		A9ECE252B9153A6519353069 /* OnboardingServiceTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OnboardingServiceTests.swift; sourceTree = "<group>"; };
 		AD765E53C595E218F64FB03D /* FunctionCallDispatcherTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FunctionCallDispatcherTests.swift; sourceTree = "<group>"; };
 		AE1652EC39D9D3149F92C626 /* KeychainWrapperTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = KeychainWrapperTests.swift; sourceTree = "<group>"; };
@@ -387,6 +395,7 @@
 			children = (
 				B6622B7DE07EDCB5AD09CAA8 /* AirFitUITests.swift */,
 				470604C2DB06191DC618545C /* AirFitUITestsLaunchTests.swift */,
+				FF334289C248AC58CB52F930 /* Dashboard */,
 				B7221715B7A19FEB3AF5D8EF /* Onboarding */,
 				D97296A70AB1584741483BF4 /* PageObjects */,
 				CF1C1D14267FC994C90D7D18 /* Pages */,
@@ -399,6 +408,7 @@
 			isa = PBXGroup;
 			children = (
 				EED992FD07A123BEC8F99101 /* AI */,
+				E228E2B94461BFD74B395D0A /* Dashboard */,
 				CB3E40B670D22F11CF2FDDC6 /* Onboarding */,
 			);
 			path = Modules;
@@ -433,6 +443,7 @@
 				DE55F7E0B0B4E3C7B4D7F0F1 /* MockAIAPIService.swift */,
 				BAA1DA55E3F7786C2D325616 /* MockAIService.swift */,
 				FDEF46C6D05DEDE5C3992963 /* MockAPIKeyManager.swift */,
+				3D9E1768455705609C1237E4 /* MockDashboardServices.swift */,
 				B02E24D2448C0526C44DC179 /* MockHealthKitManager.swift */,
 				A633FAA6810B7F5ABE1727D0 /* MockHealthKitPrefillProvider.swift */,
 				891926B68D6A0F342D6B777E /* MockNetworkClient.swift */,
@@ -537,6 +548,7 @@
 				6BA4D2A3C552FD6A653D68A2 /* MorningGreetingCard.swift */,
 				E5BA2E9D29078B0C0D0B1EF2 /* NutritionCard.swift */,
 				58A6597F3D8BF2D486CB66A0 /* PerformanceCard.swift */,
+				827F71BB08777284B9501B62 /* QuickActionsCard.swift */,
 				06B9815ADD21BC0637DB76D0 /* RecoveryCard.swift */,
 			);
 			name = Cards;
@@ -802,6 +814,14 @@
 			path = AirFit/Core/Protocols;
 			sourceTree = "<group>";
 		};
+		E228E2B94461BFD74B395D0A /* Dashboard */ = {
+			isa = PBXGroup;
+			children = (
+				5C212FB2F19D02079C9B0000 /* DashboardViewModelTests.swift */,
+			);
+			path = Dashboard;
+			sourceTree = "<group>";
+		};
 		E66564BEE3239B0711D7A1F4 /* AI */ = {
 			isa = PBXGroup;
 			children = (
@@ -882,6 +902,14 @@
 			);
 			name = Enums;
 			path = AirFit/Core/Enums;
+			sourceTree = "<group>";
+		};
+		FF334289C248AC58CB52F930 /* Dashboard */ = {
+			isa = PBXGroup;
+			children = (
+				A98DA20F8943CEC3F87DB543 /* DashboardUITests.swift */,
+			);
+			path = Dashboard;
 			sourceTree = "<group>";
 		};
 /* End PBXGroup section */
@@ -986,6 +1014,7 @@
 				4B80E55BDF80D7760938CBF3 /* ConversationManagerPersistenceTests.swift in Sources */,
 				097934744147F6045ECFDACB /* ConversationManagerTests.swift in Sources */,
 				F2BF377243DA0EDE0DA4E344 /* CoreSetupTests.swift in Sources */,
+				241FDB8CE5B6763D4A9B235C /* DashboardViewModelTests.swift in Sources */,
 				6A4A3F564D956026B836C604 /* ExtensionsTests.swift in Sources */,
 				72022CFC0EA7C40016E4AC53 /* FormattersTests.swift in Sources */,
 				1D932FAA5B2DD89C24F2DEDB /* FunctionCallDispatcherTests.swift in Sources */,
@@ -995,6 +1024,7 @@
 				EF6F6D8EF5A638B335822BF5 /* MockAIAPIService.swift in Sources */,
 				BA1CA749BF0CF5D5D9811DFA /* MockAIService.swift in Sources */,
 				13BA4562E25B9FB591868ED0 /* MockAPIKeyManager.swift in Sources */,
+				3F1F0B4790E68A85AD75ED2F /* MockDashboardServices.swift in Sources */,
 				0FA588682ACC878EC273B457 /* MockHealthKitManager.swift in Sources */,
 				B76BF821E5B2C0502C7FC1B9 /* MockHealthKitPrefillProvider.swift in Sources */,
 				6D4D33A6028EC027744598C4 /* MockNetworkClient.swift in Sources */,
@@ -1021,6 +1051,7 @@
 				FE01DB7CA80318BFCFC566BE /* AirFitUITests.swift in Sources */,
 				9CF43B730B8F9D7BBE1549B1 /* AirFitUITestsLaunchTests.swift in Sources */,
 				19192984E2126C477C9BE209 /* BasePage.swift in Sources */,
+				E91FBA269604C29051055629 /* DashboardUITests.swift in Sources */,
 				B0444CCDC7D51C7FAFB02A9C /* OnboardingFlowPage.swift in Sources */,
 				AA4A7C766BC26F52CE75F08C /* OnboardingFlowUITests.swift in Sources */,
 				63C8A96315F3E3CA012B861A /* OnboardingPage.swift in Sources */,
@@ -1118,6 +1149,7 @@
 				F9B1BE46EF9F7E83248654F9 /* OpeningScreenView.swift in Sources */,
 				3A9744832C79E01C2687E0F5 /* PerformanceCard.swift in Sources */,
 				812FD381026B3B638016DF4D /* PersonaEngine.swift in Sources */,
+				38D70520A7EAB73C2CB937D4 /* QuickActionsCard.swift in Sources */,
 				25A9F970A06EF47A5331C9D4 /* RecoveryCard.swift in Sources */,
 				EFF9759883728621D78A46A3 /* SchemaV1.swift in Sources */,
 				C0C852430C2AC750EB616AB1 /* SetTemplate.swift in Sources */,

@@ -3,7 +3,7 @@ import Foundation
 import SwiftData
 
 @MainActor
-final class MockHealthKitService: HealthKitServiceProtocol, MockProtocol {
+final class MockHealthKitService: HealthKitServiceProtocol, @preconcurrency MockProtocol {
     var invocations: [String: [Any]] = [:]
     var stubbedResults: [String: Any] = [:]
 
@@ -37,7 +37,7 @@ final class MockHealthKitService: HealthKitServiceProtocol, MockProtocol {
 }
 
 @MainActor
-final class MockAICoachService: AICoachServiceProtocol, MockProtocol {
+final class MockAICoachService: AICoachServiceProtocol, @preconcurrency MockProtocol {
     var invocations: [String: [Any]] = [:]
     var stubbedResults: [String: Any] = [:]
 
@@ -50,7 +50,7 @@ final class MockAICoachService: AICoachServiceProtocol, MockProtocol {
 }
 
 @MainActor
-final class MockNutritionService: DashboardNutritionServiceProtocol, MockProtocol {
+final class MockNutritionService: DashboardNutritionServiceProtocol, @preconcurrency MockProtocol {
     var invocations: [String: [Any]] = [:]
     var stubbedResults: [String: Any] = [:]
 

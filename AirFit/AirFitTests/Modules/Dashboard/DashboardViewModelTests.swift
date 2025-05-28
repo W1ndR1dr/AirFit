@@ -12,7 +12,6 @@ final class DashboardViewModelTests: XCTestCase {
     var testUser: User!
 
     override func setUp() async throws {
-        try await super.setUp()
         let container = try ModelContainer.createTestContainer()
         modelContext = container.mainContext
         testUser = User(name: "Tester")
@@ -166,10 +165,16 @@ final class DashboardViewModelTests: XCTestCase {
         )
         testUser.onboardingProfile = profile
         modelContext.insert(profile)
-        try modelContext.save()
+        try! modelContext.save()
 
-        var targets = NutritionTargets.default
-        targets.calories = 2500
+        let targets = NutritionTargets(
+            calories: 2500,
+            protein: NutritionTargets.default.protein,
+            carbs: NutritionTargets.default.carbs,
+            fat: NutritionTargets.default.fat,
+            fiber: NutritionTargets.default.fiber,
+            water: NutritionTargets.default.water
+        )
         mockNutritionService.mockTargets = targets
 
         // Act

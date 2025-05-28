@@ -59,11 +59,10 @@ private struct QuickActionButton: View {
     }
 }
 
-#Preview {
+#Preview(traits: .sizeThatFitsLayout) {
     QuickActionsCard(
         suggestedActions: [.logMeal(type: .lunch), .startWorkout, .logWater],
         onActionTap: { _ in }
     )
     .padding()
-    .previewLayout(.sizeThatFits)
 }
