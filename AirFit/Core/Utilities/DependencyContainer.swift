@@ -1,8 +1,7 @@
 import Foundation
 import SwiftData
 
-@MainActor
-public final class DependencyContainer {
+public final class DependencyContainer: @unchecked Sendable {
     static let shared = DependencyContainer()
 
     // MARK: - Properties
@@ -12,7 +11,7 @@ public final class DependencyContainer {
     private(set) var logger: AppLogger.Type
 
     // MARK: - Initialization
-    private init() {
+    init() {
         self.networkClient = NetworkClient.shared
         self.keychain = KeychainWrapper.shared
         self.logger = AppLogger.self

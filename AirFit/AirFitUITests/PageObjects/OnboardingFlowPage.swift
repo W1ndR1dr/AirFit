@@ -1,12 +1,14 @@
 import XCTest
+import XCUIAutomation
 
-/// Page object representing the onboarding flow.
-struct OnboardingFlowPage {
-    let app: XCUIApplication
+@MainActor
+final class OnboardingFlowPage: BasePage {
 
-    var nextButton: XCUIElement { app.buttons["onboarding_next_button"] }
+    var nextButton: XCUIElement {
+        app.buttons["onboarding.next.button"]
+    }
 
-    func tapNext() {
+    func tapNext() async {
         nextButton.tap()
     }
 }

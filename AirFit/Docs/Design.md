@@ -76,6 +76,7 @@ AirFit delivers a uniquely personal and intelligent fitness coaching experience 
 *   **4.4. Workout Logging (WatchOS-First Focus):**
     *   **Experience Goal:** A highly focused, efficient, and minimally distracting workout logging experience, primarily on Apple Watch.
     *   **UI (WatchOS):** Minimalist display showing current exercise, target metrics, and a large, easily tappable "Log Set" button. Quick adjustments via the Digital Crown. Automatic rest timer initiation.
+    *   **Exercise Library (iOS):** Comprehensive, searchable exercise database with 800+ exercises from Free Exercise DB. Clean card-based layout with real-time search, filtering by muscle group/equipment/difficulty, and detailed exercise instructions with visual cues.
     *   **Post-Workout Analysis (iOS):** On the iOS app, a dedicated `WorkoutSummaryView` will present an AI-generated, persona-driven summary of the completed workout, highlighting achievements, trends, and insights with markdown formatting.
 
 *   **4.5. Nutrition Logging (Voice-First, Flexible):**

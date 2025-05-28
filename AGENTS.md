@@ -2,6 +2,9 @@
 
 ## Sandboxed Environment Notice
 - This agent runs in an isolated container without network access
+- **NO XCODE AVAILABLE**: Cannot run xcodebuild, xcodegen, swiftlint, or any Xcode commands
+- **NO BUILD/TEST CAPABILITY**: Cannot compile, build, or run tests - these will be handled at checkpoints
+- Swift compiler available for syntax validation only
 - All project documentation is available locally in /AirFit/Docs/
 - Research reports and analysis are stored in /AirFit/Docs/Research Reports/
 - New research reports may be added during development
@@ -17,83 +20,55 @@ When external information is needed:
 3. Example filename: `REQUEST_HealthKitAPI.md`
 4. Check for response in: `RESPONSE_[Topic].md`
 
-## Environment Requirements
+## Environment Limitations (Sandboxed Agent)
+- **NO XCODE**: Xcode is not available in this sandboxed environment
+- **NO BUILD TOOLS**: Cannot run xcodebuild, xcodegen, swiftlint, or simulators
+- **SWIFT ONLY**: Swift compiler available for basic syntax validation
+- **CODE CREATION ONLY**: Focus on writing Swift code, updating project.yml, and documentation
+- **BUILD/TEST AT CHECKPOINTS**: All compilation, testing, and verification handled externally
+
+**Local Environment (Cursor/Human):**
 - Xcode 16.0+ with iOS 18.0 SDK
-- Swift 6.0+ with strict concurrency
-- SwiftLint 0.54.0+ 
-- macOS 15.0+ (Sequoia)
-- iPhone 16 Pro Simulator or physical device with iOS 18.0+
+- iOS 18.4 Simulator (iPhone 16 Pro) - REQUIRED for builds/tests
+- watchOS 11.4 Simulator - Available for Apple Watch testing
+- Swift 6.0+ with strict concurrency checking
+- SwiftLint 0.54.0+ for code quality
+- All build/test commands available locally
 
-## Environment Setup Script
-run: |
-  # Install SwiftLint if not present
-  if ! command -v swiftlint &> /dev/null; then
-    brew install swiftlint || mint install realm/SwiftLint
-  fi
-  
-  # Verify Xcode version
-  xcodebuild -version | grep -E "Xcode 16" || echo "ERROR: Xcode 16+ required for iOS 18 SDK"
-  
-  # Verify Swift version
-  swift --version | grep -E "Swift version 6" || echo "ERROR: Swift 6+ required"
-  
-  # Install xcbeautify for readable test output (optional)
-  if ! command -v xcbeautify &> /dev/null; then
-    brew install xcbeautify
-  fi
-  
-  # Verify iOS 18 SDK
-  xcodebuild -showsdks | grep -E "iOS 18" || echo "ERROR: iOS 18 SDK not found"
+## Agent Capabilities (Sandboxed Environment)
+**WHAT YOU CAN DO:**
+- Write Swift code with proper syntax
+- Create and edit files in the project structure
+- Update project.yml file configuration
+- Read and analyze existing code
+- Create comprehensive documentation
+- Design architecture and patterns
+- Validate Swift 6 concurrency patterns
+- Target iOS 18.0+ and watchOS 11.0+ APIs
 
-## Build Commands
-```bash
-swiftlint --strict
-xcodebuild -scheme "AirFit" -destination 'platform=iOS Simulator,name=iPhone 16 Pro,OS=18.0' clean build
-xcodebuild -scheme "AirFit" -destination 'platform=iOS Simulator,name=iPhone 16 Pro,OS=18.0' test
-```
+**WHAT YOU CANNOT DO:**
+- Run xcodebuild, xcodegen, or swiftlint commands
+- Compile or build the project
+- Run tests or simulators
+- Install packages or dependencies
+- Verify builds work (handled at checkpoints)
+- Access network or download dependencies
 
-## Test Commands
-```bash
-# Module 0 - Testing Foundation
-xcodebuild test -scheme "AirFit" -destination 'platform=iOS Simulator,name=iPhone 16 Pro' -only-testing:AirFitTests/TestingFoundationTests
+## Build & Test Commands (NOT AVAILABLE IN SANDBOX)
+**⚠️ IMPORTANT**: This sandboxed agent CANNOT run these commands. They are provided for reference only.
 
-# Module 1 - Core Setup
-xcodebuild test -scheme "AirFit" -destination 'platform=iOS Simulator,name=iPhone 16 Pro' -only-testing:AirFitTests/CoreSetupTests
+**Build/test verification happens at checkpoints where a local agent with Xcode will:**
+- Run `swiftlint --strict` for code quality
+- Execute `xcodebuild` commands for compilation
+- Run `xcodegen generate` to update project files
+- Execute all test suites to verify functionality
 
-# Module 2 - Data Layer
-xcodebuild test -scheme "AirFit" -destination 'platform=iOS Simulator,name=iPhone 16 Pro' -only-testing:AirFitTests/DataLayerTests
-
-# Module 3 - Onboarding
-xcodebuild test -scheme "AirFit" -destination 'platform=iOS Simulator,name=iPhone 16 Pro' -only-testing:AirFitTests/OnboardingViewModelTests
-xcodebuild test -scheme "AirFit" -destination 'platform=iOS Simulator,name=iPhone 16 Pro' -only-testing:AirFitUITests/OnboardingFlowUITests
-
-# Module 4 - Dashboard
-xcodebuild test -scheme "AirFit" -destination 'platform=iOS Simulator,name=iPhone 16 Pro' -only-testing:AirFitTests/DashboardTests
-
-# Module 5 - Meal Logging
-xcodebuild test -scheme "AirFit" -destination 'platform=iOS Simulator,name=iPhone 16 Pro' -only-testing:AirFitTests/MealLoggingTests
-
-# Module 6 - Progress Tracking
-xcodebuild test -scheme "AirFit" -destination 'platform=iOS Simulator,name=iPhone 16 Pro' -only-testing:AirFitTests/ProgressTrackingTests
-
-# Module 7 - Settings
-xcodebuild test -scheme "AirFit" -destination 'platform=iOS Simulator,name=iPhone 16 Pro' -only-testing:AirFitTests/SettingsTests
-
-# Module 8 - Meal Discovery
-xcodebuild test -scheme "AirFit" -destination 'platform=iOS Simulator,name=iPhone 16 Pro' -only-testing:AirFitTests/MealDiscoveryTests
-
-# Module 9 - AI Coach
-xcodebuild test -scheme "AirFit" -destination 'platform=iOS Simulator,name=iPhone 16 Pro' -only-testing:AirFitTests/AICoachTests
-
-# Module 10 - Health Integration
-xcodebuild test -scheme "AirFit" -destination 'platform=iOS Simulator,name=iPhone 16 Pro' -only-testing:AirFitTests/HealthIntegrationTests
-
-# Module 11 - Notifications
-xcodebuild test -scheme "AirFit" -destination 'platform=iOS Simulator,name=iPhone 16 Pro' -only-testing:AirFitTests/NotificationTests
-
-# Module 12 - Integration
-xcodebuild test -scheme "AirFit" -destination 'platform=iOS Simulator,name=iPhone 16 Pro' -only-testing:AirFitUITests/IntegrationTests
-```
+**Your job as sandboxed agent:**
+- Write the Swift code
+- Update project.yml with new files
+- Create comprehensive tests (code only)
+- Document your implementation
+- Leave build/test verification for checkpoint validation
 
 ## Project Structure
 ```
@@ -126,7 +101,7 @@ AirFit/
 - Async/await for all asynchronous operations
 - No completion handlers
 
-## iOS 18 Features
+## iOS 18 Features (Target: iOS 18.4 Simulator)
 - SwiftData with history tracking
 - @NavigationDestination for navigation
 - Swift Charts for data visualization
@@ -134,6 +109,14 @@ AirFit/
 - Control Widget extensions
 - @Previewable macro for previews
 - ScrollView content margins
+- Enhanced Voice Recognition APIs
+- Improved Metal Performance Shaders
+- Advanced SwiftUI animations and transitions
+
+**Testing Environment:**
+- iOS 18.4 Simulator (iPhone 16 Pro) - Primary testing target
+- watchOS 11.4 Simulator - Apple Watch testing
+- All features must be compatible with iOS 18.0+ deployment target
 
 ## Architecture Pattern
 - MVVM-C (Model-View-ViewModel-Coordinator)
@@ -154,18 +137,9 @@ Module/
 └── Tests/              # Unit and UI tests
 ```
 
-## Required Module Structure
-Each module in /AirFit/Modules/ must have:
-- Models/ folder (if module has data models)
-- Views/ folder
-- ViewModels/ folder
-- Services/ folder (if module needs services)
-- Coordinators/ folder (for navigation)
-
-Note: Currently only Dashboard and Settings modules exist.
-Missing modules that need creation:
-- Onboarding, MealLogging, Progress, MealDiscovery, 
-- AICoach, Health, Notifications
+## Module Structure (Follow Schema Below)
+**Completed**: Dashboard, Settings, Onboarding  
+**Missing**: MealLogging, Progress, MealDiscovery, AICoach, Health, Notifications
 
 ## Code Style Format
 ```swift
@@ -240,20 +214,20 @@ final class OnboardingCoordinator: ObservableObject {
 - Feature branches from main
 
 ## Module Order
-1. Module 1: Core Setup
-2. Module 2: Data Layer
-3. Module 0: Testing Foundation (guidelines, mocks, test patterns)
-4. Module 12: Testing & QA Framework (test targets, CI/CD setup)
-5. Module 3: Onboarding
-6. Module 4: Dashboard
-7. Module 5: Meal Logging
-8. Module 6: Progress Tracking
-9. Module 7: Settings
-10. Module 8: Meal Discovery
-11. Module 9: AI Coach
-12. Module 10: Health Integration
-13. Module 11: Notifications
-14. Module 13: Chat Interface (AI Coach Interaction)
+1. Module 0: Testing Foundation (guidelines, mocks, test patterns)
+2. Module 1: Core Setup
+3. Module 2: Data Layer
+4. Module 3: Onboarding
+5. Module 4: HealthKit & Context Aggregation Module
+6. Module 5: AI Persona Engine & CoachEngine
+7. Module 6: Dashboard Module (UI & Logic)
+8. Module 7: Workout Logging Module (iOS & WatchOS)
+9. Module 8: Food Tracking Module (Voice-First AI-Powered Nutrition)
+10. Module 9: Notifications & Engagement Engine
+11. Module 10: Services Layer (API Clients, Multi-Provider AI Support)
+12. Module 11: Settings Module (UI & Logic)
+13. Module 12: Testing & Quality Assurance Framework
+14. Module 13: Chat Interface Module (AI Coach Interaction)
 
 ## Performance Targets
 - App launch: < 1.5s
@@ -281,12 +255,187 @@ final class OnboardingCoordinator: ObservableObject {
 - [ ] Verify module dependencies are complete
 - [ ] Create feature branch from main
 
-## Post-Implementation Checklist
-- [ ] Run swiftlint --fix
-- [ ] Run all tests (unit and UI)
-- [ ] Verify 70% code coverage
-- [ ] Update relevant documentation
-- [ ] Add accessibility identifiers
-- [ ] Test on iPhone 16 Pro simulator
-- [ ] Verify MVVM-C pattern compliance
-- [ ] Commit with descriptive message
+
+
+## Post-Implementation Checklist (Sandboxed Agent)
+
+### 1. **Code Creation Verification** ✅ YOU CAN DO
+- [ ] All Swift files created with proper syntax
+- [ ] All test files written (code only, no execution)
+- [ ] project.yml updated with new file entries
+- [ ] Documentation updated
+- [ ] Code follows Swift 6 and iOS 18 patterns
+
+### 2. **File Structure Verification** ✅ YOU CAN DO
+- [ ] Files placed in correct module directories
+- [ ] Naming conventions followed
+- [ ] Import statements correct
+- [ ] Protocol conformances implemented
+
+### 3. **Checkpoint Handoff** ⚠️ FOR LOCAL AGENT
+**The following will be verified at checkpoint by local agent with Xcode:**
+- [ ] XcodeGen project regeneration
+- [ ] SwiftLint compliance check
+- [ ] Clean build verification
+- [ ] Test suite execution
+- [ ] Performance validation
+- [ ] Git commit and push
+
+### 4. **Your Deliverables Summary**
+When handing off to checkpoint, provide:
+- List of all files created/modified
+- project.yml changes made
+- Brief description of implementation
+- Any known issues or considerations
+- Test coverage summary (theoretical)
+
+## XcodeGen File Inclusion Schema
+
+### CRITICAL: Target-Specific File Assignment
+
+Our `project.yml` defines 3 targets with specific file inclusion rules:
+
+#### 1. **AirFit** (Main App Target)
+```yaml
+sources:
+  - path: AirFit
+    includes: ["**/*.swift"]
+    excludes: ["**/*.md", "**/.*", "AirFitTests/**", "AirFitUITests/**"]
+  # EXPLICIT FILES (due to XcodeGen nesting bug):
+  - AirFit/Modules/{ModuleName}/...
+  - AirFit/Data/Models/...
+  - AirFit/Core/...
+  - AirFit/Services/...
+  - AirFit/Application/...
+```
+
+#### 2. **AirFitTests** (Unit Test Target)
+```yaml
+sources:
+  - path: AirFit/AirFitTests
+    includes: ["**/*.swift"]
+  # EXPLICIT TEST FILES:
+  - AirFit/AirFitTests/Onboarding/OnboardingServiceTests.swift
+  - AirFit/AirFitTests/Onboarding/OnboardingFlowViewTests.swift
+  - AirFit/AirFitTests/Onboarding/OnboardingViewTests.swift
+```
+
+#### 3. **AirFitUITests** (UI Test Target)
+```yaml
+sources:
+  - path: AirFit/AirFitUITests
+    includes: ["**/*.swift"]
+```
+
+### XcodeGen Nesting Bug Workaround
+
+**Problem**: `**/*.swift` glob pattern fails for nested directories like `AirFit/Modules/*/`  
+**Root Cause**: XcodeGen doesn't properly expand globs in nested module structures  
+**Solution**: Explicitly list ALL files in nested directories
+
+### File Addition Workflow (Sandboxed Agent)
+
+#### For Main App Files:
+1. ✅ Create file in appropriate directory
+2. ✅ Add to project.yml under AirFit target sources
+3. ⚠️ **CHECKPOINT**: Regenerate project (`xcodegen generate`)
+4. ⚠️ **CHECKPOINT**: Verify inclusion in project.pbxproj
+
+#### For Test Files:
+1. ✅ Create test file in AirFit/AirFitTests/
+2. ✅ Add to project.yml under AirFitTests target sources  
+3. ⚠️ **CHECKPOINT**: Regenerate project (`xcodegen generate`)
+4. ⚠️ **CHECKPOINT**: Verify inclusion in project.pbxproj
+
+**Your Role**: Create files and update project.yml  
+**Checkpoint Role**: Run xcodegen and verify inclusion
+
+### Verification Commands (CHECKPOINT ONLY)
+**⚠️ These commands are NOT available in sandbox - for checkpoint reference only:**
+
+```bash
+# Check if file is included in project
+grep -c "FileName" AirFit.xcodeproj/project.pbxproj
+
+# If count = 0: File missing, add to project.yml
+# If count > 0: File included successfully
+
+# Verify build includes your files
+xcodebuild clean build 2>&1 | grep "YourFileName"
+```
+
+**Sandboxed Agent**: Focus on creating files and updating project.yml correctly
+
+### Module File Template
+```yaml
+# Add to AirFit target sources in project.yml:
+- AirFit/Modules/{ModuleName}/Models/{ModuleName}Models.swift
+- AirFit/Modules/{ModuleName}/ViewModels/{ModuleName}ViewModel.swift
+- AirFit/Modules/{ModuleName}/Views/{ModuleName}FlowView.swift
+- AirFit/Modules/{ModuleName}/Views/{Feature}View.swift
+- AirFit/Modules/{ModuleName}/Services/{ModuleName}Service.swift
+- AirFit/Modules/{ModuleName}/Services/{ModuleName}ServiceProtocol.swift
+```
+
+### Test File Template
+```yaml
+# Add to AirFitTests target sources in project.yml:
+- AirFit/AirFitTests/{ModuleName}/{ModuleName}ServiceTests.swift
+- AirFit/AirFitTests/{ModuleName}/{ModuleName}ViewModelTests.swift
+- AirFit/AirFitTests/{ModuleName}/{ModuleName}ViewTests.swift
+```
+
+## Module 8 (Food Tracking) Specific Requirements
+
+### WhisperKit Integration
+- **Dependency**: WhisperKit Swift package (https://github.com/argmaxinc/WhisperKit.git)
+- **Version**: 0.9.0 or newer
+- **Model**: Uses MLX-optimized Whisper models (mlx-community/whisper-large-v3-mlx)
+- **Memory**: Large model requires ~1.6GB RAM
+- **Performance**: 2-5s cold start, real-time warm inference
+- **Platform**: iOS 17.0+ required for optimal performance
+
+### VoiceInputManager Dependency
+- **CRITICAL**: Module 8 requires VoiceInputManager from Module 13 (Chat Interface)
+- **Location**: `AirFit/Modules/Chat/Services/VoiceInputManager.swift`
+- **Integration**: Module 8 creates adapter pattern around existing VoiceInputManager
+- **Fallback**: If Module 13 not complete, implement VoiceInputManager first
+
+### Audio Permissions
+```xml
+<!-- Required in Info.plist -->
+<key>NSMicrophoneUsageDescription</key>
+<string>AirFit uses your microphone to log food through voice input for convenient nutrition tracking.</string>
+```
+
+### Performance Targets (Module 8)
+- Voice transcription: <2s latency
+- AI food parsing: <5s response time
+- Food search: <1s response time
+- UI animations: 60fps
+- Memory usage: <100MB typical, <1.8GB with large model
+
+## Module 13 (Chat Interface) Documentation References
+
+### **Current Implementation Target: Module 13**
+The project is currently implementing **Module 13: Chat Interface Module** with comprehensive WhisperKit voice integration.
+
+### **Key Documentation Files:**
+- **`/MODULE13_PROMPT_CHAIN.md`** - Complete implementation prompt chain with all tasks, acceptance criteria, and sequencing
+- **`/AirFit/Docs/Module13.md`** - Detailed technical specifications and requirements
+- **`/AirFit/Docs/Research Reports/MLX Whisper Integration Report.md`** - WhisperKit optimization research
+- **`/AirFit/Docs/Research Reports/Codex Optimization Report.md`** - Agent best practices
+
+### **Task Context:**
+Even if you receive a single task prompt (e.g., "Implement Task 13.1.2"), you should:
+1. **Reference the full prompt chain** in `MODULE13_PROMPT_CHAIN.md` for context
+2. **Check dependencies** and prerequisites from other tasks
+3. **Follow the acceptance criteria** specified in the prompt chain
+4. **Maintain consistency** with the overall module architecture
+5. **Verify file placement** matches the project structure in the prompt chain
+
+### **Implementation Strategy:**
+- Module 13 provides the **foundation voice infrastructure** for the entire app
+- WhisperKit integration is **centralized** in Module 13's VoiceInputManager
+- Module 8 (Food Tracking) will **consume** Module 13's voice services via adapter pattern
+- All voice-related features should be **consistent** across modules

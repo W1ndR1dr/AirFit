@@ -2,7 +2,7 @@
 import Combine
 import Foundation
 
-final class MockWhisperServiceWrapper: WhisperServiceWrapperProtocol {
+final class MockWhisperServiceWrapper: WhisperServiceWrapperProtocol, @unchecked Sendable {
     var isAvailable = CurrentValueSubject<Bool, Never>(true)
     var isTranscribing = CurrentValueSubject<Bool, Never>(false)
 
@@ -25,9 +25,12 @@ final class MockWhisperServiceWrapper: WhisperServiceWrapperProtocol {
 
     func stopTranscription() {
         isTranscribing.send(false)
-        DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) { [self] in
-            currentResultHandler?(.success(mockTranscript))
+        let transcript = mockTranscript
+        if let handler = currentResultHandler {
             currentResultHandler = nil
+            DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
+                handler(.success(transcript))
+            }
         }
     }
 }

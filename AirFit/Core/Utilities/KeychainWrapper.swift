@@ -1,7 +1,7 @@
 import Foundation
 import Security
 
-public final class KeychainWrapper {
+public final class KeychainWrapper: @unchecked Sendable {
     static let shared = KeychainWrapper()
 
     private let service = Bundle.main.bundleIdentifier ?? "com.airfit.app"
@@ -43,7 +43,7 @@ public final class KeychainWrapper {
         let status = SecItemCopyMatching(query as CFDictionary, &dataTypeRef)
 
         guard status == errSecSuccess,
-            let data = dataTypeRef as? Data else {
+              let data = dataTypeRef as? Data else {
             throw KeychainError.itemNotFound
         }
 

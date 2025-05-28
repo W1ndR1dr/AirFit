@@ -6,9 +6,11 @@
 //
 
 import XCTest
+import XCUIAutomation
 
+@MainActor
 final class AirFitUITestsLaunchTests: XCTestCase {
-    override class var runsForEachTargetApplicationUIConfiguration: Bool {
+    override static var runsForEachTargetApplicationUIConfiguration: Bool {
         true
     }
 
@@ -16,8 +18,7 @@ final class AirFitUITestsLaunchTests: XCTestCase {
         continueAfterFailure = false
     }
 
-    @MainActor
-    func testLaunch() throws {
+    func testLaunch() async throws {
         let app = XCUIApplication()
         app.launch()
 

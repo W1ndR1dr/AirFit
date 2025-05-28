@@ -2,68 +2,42 @@
 import Foundation
 
 final class MockNetworkClient: NetworkClientProtocol, @unchecked Sendable {
-    // Stubbed responses
-    private var _mockResponses: [String: Any] = [:]
-    private var _shouldThrowError: Error?
-    private var _capturedRequests: [Endpoint] = []
-    private var _simulatedDelay: TimeInterval = 0
-    private let lock = NSLock()
+    // Stubbed responses using thread-safe wrappers
+    private let _mockResponses = Mutex<[String: Any]>([:])
+    private let _shouldThrowError = Mutex<Error?>(nil)
+    private let _capturedRequests = Mutex<[Endpoint]>([])
+    private let _simulatedDelay = Mutex<TimeInterval>(0)
 
     var mockResponses: [String: Any] {
-        get {
-            lock.lock()
-            defer { lock.unlock() }
-            return _mockResponses
-        }
-        set {
-            lock.lock()
-            defer { lock.unlock() }
-            _mockResponses = newValue
-        }
+        get { _mockResponses.value }
+        set { _mockResponses.value = newValue }
     }
 
     var shouldThrowError: Error? {
-        get {
-            lock.lock()
-            defer { lock.unlock() }
-            return _shouldThrowError
-        }
-        set {
-            lock.lock()
-            defer { lock.unlock() }
-            _shouldThrowError = newValue
-        }
+        get { _shouldThrowError.value }
+        set { _shouldThrowError.value = newValue }
     }
 
     var capturedRequests: [Endpoint] {
-        lock.lock()
-        defer { lock.unlock() }
-        return _capturedRequests
+        _capturedRequests.value
     }
 
     var requestCount: Int { capturedRequests.count }
 
     var simulatedDelay: TimeInterval {
-        get {
-            lock.lock()
-            defer { lock.unlock() }
-            return _simulatedDelay
-        }
-        set {
-            lock.lock()
-            defer { lock.unlock() }
-            _simulatedDelay = newValue
-        }
+        get { _simulatedDelay.value }
+        set { _simulatedDelay.value = newValue }
     }
 
     func request<T: Decodable>(_ endpoint: Endpoint) async throws -> T {
         // Record the request
-        lock.lock()
-        _capturedRequests.append(endpoint)
-        let delay = _simulatedDelay
-        let error = _shouldThrowError
-        let responses = _mockResponses
-        lock.unlock()
+        var currentRequests = _capturedRequests.value
+        currentRequests.append(endpoint)
+        _capturedRequests.value = currentRequests
+
+        let delay = _simulatedDelay.value
+        let error = _shouldThrowError.value
+        let responses = _mockResponses.value
 
         // Simulate network delay if needed
         if delay > 0 {
@@ -84,10 +58,11 @@ final class MockNetworkClient: NetworkClientProtocol, @unchecked Sendable {
     }
 
     func upload(_ data: Data, to endpoint: Endpoint) async throws {
-        lock.lock()
-        _capturedRequests.append(endpoint)
-        let error = _shouldThrowError
-        lock.unlock()
+        var currentRequests = _capturedRequests.value
+        currentRequests.append(endpoint)
+        _capturedRequests.value = currentRequests
+
+        let error = _shouldThrowError.value
 
         if let error = error {
             throw error
@@ -95,12 +70,13 @@ final class MockNetworkClient: NetworkClientProtocol, @unchecked Sendable {
     }
 
     func download(from endpoint: Endpoint) async throws -> Data {
-        lock.lock()
-        _capturedRequests.append(endpoint)
-        let delay = _simulatedDelay
-        let error = _shouldThrowError
-        let responses = _mockResponses
-        lock.unlock()
+        var currentRequests = _capturedRequests.value
+        currentRequests.append(endpoint)
+        _capturedRequests.value = currentRequests
+
+        let delay = _simulatedDelay.value
+        let error = _shouldThrowError.value
+        let responses = _mockResponses.value
 
         if delay > 0 {
             try await Task.sleep(nanoseconds: UInt64(delay * 1_000_000_000))
@@ -121,15 +97,13 @@ final class MockNetworkClient: NetworkClientProtocol, @unchecked Sendable {
     func verify(endpoint: String, calledTimes times: Int) {
         let actualCalls = capturedRequests.filter { $0.path == endpoint }.count
         assert(actualCalls == times,
-                "\(endpoint) was called \(actualCalls) times, expected \(times)")
+               "\(endpoint) was called \(actualCalls) times, expected \(times)")
     }
 
     func reset() {
-        lock.lock()
-        defer { lock.unlock() }
-        _mockResponses.removeAll()
-        _capturedRequests.removeAll()
-        _shouldThrowError = nil
-        _simulatedDelay = 0
+        _mockResponses.value.removeAll()
+        _capturedRequests.value.removeAll()
+        _shouldThrowError.value = nil
+        _simulatedDelay.value = 0
     }
 }

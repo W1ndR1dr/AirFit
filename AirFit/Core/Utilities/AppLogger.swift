@@ -35,7 +35,7 @@ public enum AppLogger {
         line: Int = #line
     ) {
         #if DEBUG
-        log(message, category: category, level: .debug, file: file, function: function, line: line)
+        log(message, category: category, level: .debug, context: LogContext(file: file, function: function, line: line))
         #endif
     }
 
@@ -46,7 +46,7 @@ public enum AppLogger {
         function: String = #function,
         line: Int = #line
     ) {
-        log(message, category: category, level: .info, file: file, function: function, line: line)
+        log(message, category: category, level: .info, context: LogContext(file: file, function: function, line: line))
     }
 
     static func warning(
@@ -56,16 +56,31 @@ public enum AppLogger {
         function: String = #function,
         line: Int = #line
     ) {
-        log(message, category: category, level: .default, file: file, function: function, line: line)
+        log(
+            message,
+            category: category,
+            level: .default,
+            context: LogContext(file: file, function: function, line: line)
+        )
+    }
+
+    struct LogContext {
+        let file: String
+        let function: String
+        let line: Int
+
+        init(file: String = #fileID, function: String = #function, line: Int = #line) {
+            self.file = file
+            self.function = function
+            self.line = line
+        }
     }
 
     static func error(
         _ message: String,
         error: Error? = nil,
         category: Category = .general,
-        file: String = #fileID,
-        function: String = #function,
-        line: Int = #line
+        context: LogContext = LogContext()
     ) {
         var fullMessage = message
         if let error = error {
@@ -74,7 +89,7 @@ public enum AppLogger {
                 fullMessage += "\nUnderlying: \(underlyingError.localizedDescription)"
             }
         }
-        log(fullMessage, category: category, level: .error, file: file, function: function, line: line)
+        log(fullMessage, category: category, level: .error, context: context)
     }
 
     static func fault(
@@ -84,7 +99,7 @@ public enum AppLogger {
         function: String = #function,
         line: Int = #line
     ) {
-        log(message, category: category, level: .fault, file: file, function: function, line: line)
+        log(message, category: category, level: .fault, context: LogContext(file: file, function: function, line: line))
     }
 
     // MARK: - Private Methods
@@ -92,12 +107,10 @@ public enum AppLogger {
         _ message: String,
         category: Category,
         level: OSLogType,
-        file: String,
-        function: String,
-        line: Int
+        context: LogContext
     ) {
-        let fileName = (file as NSString).lastPathComponent
-        let logMessage = "[\(fileName):\(line)] \(function) - \(message)"
+        let fileName = (context.file as NSString).lastPathComponent
+        let logMessage = "[\(fileName):\(context.line)] \(context.function) - \(message)"
 
         os_log("%{public}@", log: category.osLog, type: level, logMessage)
 

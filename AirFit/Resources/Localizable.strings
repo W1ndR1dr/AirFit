@@ -72,6 +72,10 @@
 
 "onboarding.complete.title" = "You're All Set!";
 "onboarding.complete.subtitle" = "Let's start your journey to better health";
+"onboarding.opening.title" = "Design Your Personalized AirFit Coach";
+"onboarding.opening.subtitle" = "A few minutes is all it takes to create a unique coaching experience tailored to you.";
+"onboarding.beginProfileSetup" = "Begin Profile Setup";
+"onboarding.maybeLater" = "Maybe Later";
 
 // MARK: - Dashboard
 "dashboard.greeting.morning" = "Good morning, %@";
@@ -162,6 +166,9 @@
 "error.healthKit.description" = "Grant access in Settings > Privacy > Health";
 "error.camera" = "Camera access required";
 "error.camera.description" = "Grant access in Settings > Privacy > Camera";
+"error.onboarding.noUser" = "No user found for onboarding";
+"error.onboarding.invalidData" = "Invalid profile data";
+"error.onboarding.missingField" = "Missing required field: %@";
 
 // MARK: - Success Messages
 "success.saved" = "Saved successfully";
@@ -210,3 +217,32 @@
 "time.afternoon" = "Afternoon";
 "time.evening" = "Evening";
 "time.night" = "Night"; 
+// MARK: - Onboarding Flow v3
+"onboarding.lifeSnapshot.prompt" = "Understanding your daily rhythm helps your coach provide relevant support. Tap what generally applies:";
+"onboarding.life.deskJob" = "My work is primarily at a desk";
+"onboarding.life.activeWork" = "I'm often on my feet or physically active at work";
+"onboarding.life.travel" = "I travel frequently (for work or leisure)";
+"onboarding.life.familyCare" = "I have children / significant family care responsibilities";
+"onboarding.lifeSnapshot.workoutPrompt" = "My preferred time for workouts is typically:";
+"onboarding.coreAspiration.prompt" = "What is the primary aspiration you want your AirFit Coach to help you achieve?";
+"onboarding.coreAspiration.freeformPrompt" = "Briefly describe this in your own words (optional, but helpful for your coach):";
+"onboarding.coaching.prompt" = "Define your ideal coaching interaction style. Adjust each element to create your preferred blend.";
+"onboarding.engagement.prompt" = "How deeply involved would you like your coach to be in your day-to-day tracking and planning?";
+"onboarding.sleep.prompt" = "To respect your downtime, please indicate your typical sleep schedule. Your coach will avoid sending notifications during these hours.";
+"onboarding.sleep.bedtime" = "Typical Bedtime";
+"onboarding.sleep.waketime" = "Typical Wake Time";
+"onboarding.sleep.rhythmPrompt" = "My sleep rhythm is generally:";
+"onboarding.motivation.prompt" = "A couple of final touches for how your coach acknowledges your efforts and checks in.";
+"onboarding.motivation.celebrationPrompt" = "Celebrating Achievements:";
+"onboarding.motivation.absencePrompt" = "If You're Inactive for a Few Days:";
+"onboarding.generating.title" = "Crafting Your AirFit Coach";
+"onboarding.generating.step1" = "Analyzing your unique preferences…";
+"onboarding.generating.step2" = "Defining your coach's core communication style…";
+"onboarding.generating.step3" = "Aligning with your daily rhythm and schedule…";
+"onboarding.generating.step4" = "Calibrating motivational approach…";
+"onboarding.generating.step5" = "Finalizing your personalized AirFit Coach profile…";
+"onboarding.profileReady.title" = "Your AirFit Coach Profile Is Ready";
+"onboarding.profileReady.intro" = "Meet your personalized AirFit Coach. This profile, based on your choices, will guide every interaction.";
+"onboarding.profileReady.baselineToggle" = "Establish my 14-day baseline before providing in-depth recommendations";
+"onboarding.profileReady.begin" = "Begin with My AirFit Coach";
+"onboarding.profileReady.review" = "Review & Refine Profile";

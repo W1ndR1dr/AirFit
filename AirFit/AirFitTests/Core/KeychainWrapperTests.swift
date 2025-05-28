@@ -2,131 +2,121 @@
 import XCTest
 
 final class KeychainWrapperTests: XCTestCase {
-    var sut: KeychainWrapper!
-    let testKey = "test_key"
-    let testString = "test_value_123"
-    let testData = "test_data".data(using: .utf8) ?? Data()
+    private var sut: KeychainWrapper!
+    private let testKey = "test_key"
 
     override func setUp() {
         super.setUp()
         sut = KeychainWrapper.shared
         // Clean up any existing test data
-        sut.delete(key: testKey)
+        try? sut.delete(key: testKey)
     }
 
     override func tearDown() {
-        sut.delete(key: testKey)
-        sut = nil
+        try? sut.delete(key: testKey)
         super.tearDown()
     }
 
-    // MARK: - Save Tests
-    func test_saveData_givenValidData_shouldReturnTrue() {
-        // Act
-        let result = sut.save(testData, for: testKey)
+    func test_saveData_shouldSucceed() throws {
+        let testData = Data("test data".utf8)
 
-        // Assert
-        XCTAssertTrue(result)
+        try sut.save(testData, forKey: testKey)
+
+        XCTAssertTrue(sut.exists(key: testKey))
     }
 
-    func test_saveString_givenValidString_shouldReturnTrue() {
-        // Act
-        let result = sut.saveString(testString, for: testKey)
+    func test_saveString_shouldSucceed() throws {
+        let testString = "test string"
 
-        // Assert
-        XCTAssertTrue(result)
+        try sut.saveString(testString, forKey: testKey)
+
+        XCTAssertTrue(sut.exists(key: testKey))
     }
 
-    func test_saveCodable_givenValidObject_shouldReturnTrue() {
-        // Arrange
+    func test_saveCodable_shouldSucceed() throws {
         let testObject = TestCodableObject(id: 123, name: "Test")
 
-        // Act
-        let result = sut.saveCodable(testObject, for: testKey)
+        try sut.saveCodable(testObject, forKey: testKey)
 
-        // Assert
-        XCTAssertTrue(result)
+        XCTAssertTrue(sut.exists(key: testKey))
     }
 
-    // MARK: - Retrieve Tests
-    func test_getData_givenSavedData_shouldReturnData() {
-        // Arrange
-        sut.save(testData, for: testKey)
+    func test_loadData_shouldReturnSavedData() throws {
+        let testData = Data("test data".utf8)
+        try sut.save(testData, forKey: testKey)
 
-        // Act
-        let retrievedData = sut.getData(for: testKey)
+        let retrievedData = try sut.load(key: testKey)
 
-        // Assert
         XCTAssertEqual(retrievedData, testData)
     }
 
-    func test_getString_givenSavedString_shouldReturnString() {
-        // Arrange
-        sut.saveString(testString, for: testKey)
+    func test_loadString_shouldReturnSavedString() throws {
+        let testString = "test string"
+        try sut.saveString(testString, forKey: testKey)
 
-        // Act
-        let retrievedString = sut.getString(for: testKey)
+        let retrievedString = try sut.loadString(key: testKey)
 
-        // Assert
         XCTAssertEqual(retrievedString, testString)
     }
 
-    func test_getCodable_givenSavedObject_shouldReturnObject() {
-        // Arrange
+    func test_loadCodable_shouldReturnSavedObject() throws {
         let testObject = TestCodableObject(id: 456, name: "Test Object")
-        sut.saveCodable(testObject, for: testKey)
+        try sut.saveCodable(testObject, forKey: testKey)
 
-        // Act
-        let retrievedObject = sut.getCodable(TestCodableObject.self, for: testKey)
+        let retrievedObject = try sut.loadCodable(TestCodableObject.self, key: testKey)
 
-        // Assert
-        XCTAssertEqual(retrievedObject?.id, testObject.id)
-        XCTAssertEqual(retrievedObject?.name, testObject.name)
+        XCTAssertEqual(retrievedObject.id, testObject.id)
+        XCTAssertEqual(retrievedObject.name, testObject.name)
     }
 
-    func test_getData_givenNonExistentKey_shouldReturnNil() {
-        // Act
-        let data = sut.getData(for: "non_existent_key")
-
-        // Assert
-        XCTAssertNil(data)
+    func test_loadData_withNonExistentKey_shouldThrow() {
+        XCTAssertThrowsError(try sut.load(key: "non_existent_key")) { error in
+            XCTAssertTrue(error is KeychainError)
+        }
     }
 
-    // MARK: - Delete Tests
-    func test_delete_givenExistingKey_shouldReturnTrue() {
-        // Arrange
-        sut.saveString(testString, for: testKey)
+    func test_deleteKey_shouldSucceed() throws {
+        let testString = "test string"
+        try sut.saveString(testString, forKey: testKey)
 
-        // Act
-        let result = sut.delete(key: testKey)
+        try sut.delete(key: testKey)
 
-        // Assert
-        XCTAssertTrue(result)
-        XCTAssertNil(sut.getString(for: testKey))
+        XCTAssertFalse(sut.exists(key: testKey))
     }
 
-    func test_delete_givenNonExistentKey_shouldReturnTrue() {
-        // Act
-        let result = sut.delete(key: "non_existent_key")
-
-        // Assert
-        XCTAssertTrue(result) // Should return true even if key doesn't exist
+    func test_deleteNonExistentKey_shouldSucceed() throws {
+        // Should not throw even if key doesn't exist
+        try sut.delete(key: "non_existent_key")
     }
 
-    // MARK: - Clear All Tests
-    func test_clearAll_shouldRemoveAllItems() {
-        // Arrange
-        sut.saveString("value1", for: "key1")
-        sut.saveString("value2", for: "key2")
-        sut.saveString("value3", for: "key3")
+    func test_exists_withExistingKey_shouldReturnTrue() throws {
+        try sut.saveString("test", forKey: testKey)
 
-        // Act
-        sut.clearAll()
+        XCTAssertTrue(sut.exists(key: testKey))
+    }
 
-        // Assert
-        XCTAssertNil(sut.getString(for: "key1"))
-        XCTAssertNil(sut.getString(for: "key2"))
-        XCTAssertNil(sut.getString(for: "key3"))
+    func test_exists_withNonExistentKey_shouldReturnFalse() {
+        XCTAssertFalse(sut.exists(key: "non_existent_key"))
+    }
+
+    func test_update_existingKey_shouldSucceed() throws {
+        let originalData = Data("original".utf8)
+        let updatedData = Data("updated".utf8)
+
+        try sut.save(originalData, forKey: testKey)
+        try sut.update(updatedData, forKey: testKey)
+
+        let retrievedData = try sut.load(key: testKey)
+        XCTAssertEqual(retrievedData, updatedData)
+    }
+
+    func test_update_nonExistentKey_shouldCreateNew() throws {
+        let testData = Data("test".utf8)
+
+        try sut.update(testData, forKey: testKey)
+
+        let retrievedData = try sut.load(key: testKey)
+        XCTAssertEqual(retrievedData, testData)
     }
 }
 

@@ -13,15 +13,9 @@ Run SwiftLint and the Xcode build from the repository root:
 
 ```bash
 swiftlint
-xcodebuild -scheme AirFit -destination 'platform=iOS Simulator,name=iPhone 15' test
+xcodebuild -scheme AirFit -destination 'platform=iOS Simulator,name=iPhone 16' test
 ```
 
 ## Documentation
 
-See the `Docs/` directory for detailed design and module breakdowns. The main entry points are:
-
-- `Docs/Design.md` – visual and UX guidelines
-- `Docs/ArchitectureOverview.md` – overall app architecture
-- `Docs/Agents.md` – coding conventions and module instructions
-
-The `AGENTS.md` file in the repository root contains build and test commands for Codex agents.
+See the `Docs/` directory for detailed design and module breakdowns. The main entry points

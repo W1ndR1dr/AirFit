@@ -1,34 +1,43 @@
 import XCTest
+import XCUIAutomation
 
+/// Base class for all page objects providing common functionality.
+@MainActor
 class BasePage {
     let app: XCUIApplication
-    let timeout: TimeInterval = 10
+    let timeout: TimeInterval = 10.0
 
-    required init(app: XCUIApplication) {
+    init(app: XCUIApplication) {
         self.app = app
     }
 
-    func waitForElement(_ element: XCUIElement, timeout: TimeInterval? = nil) -> Bool {
-        element.waitForExistence(timeout: timeout ?? self.timeout)
-    }
-
-    func tapElement(_ element: XCUIElement) {
-        XCTAssertTrue(waitForElement(element), "\(element) not found")
+    // MARK: - Common Actions
+    func tapElement(_ element: XCUIElement) async {
+        let exists = await element.waitForExistence(timeout: timeout)
+        XCTAssertTrue(exists)
         element.tap()
     }
 
-    func typeText(in element: XCUIElement, text: String) {
-        XCTAssertTrue(waitForElement(element), "\(element) not found")
+    func typeText(in element: XCUIElement, text: String) async {
+        let exists = await element.waitForExistence(timeout: timeout)
+        XCTAssertTrue(exists)
         element.tap()
         element.typeText(text)
     }
 
-    func verifyElement(exists element: XCUIElement) {
-        XCTAssertTrue(waitForElement(element), "\(element) should exist")
+    func verifyElement(exists element: XCUIElement, timeout: TimeInterval? = nil) async {
+        let waitTime = timeout ?? self.timeout
+        let exists = await element.waitForExistence(timeout: waitTime)
+        XCTAssertTrue(exists)
     }
 
     func verifyElement(notExists element: XCUIElement) {
-        XCTAssertFalse(element.exists, "\(element) should not exist")
+        XCTAssertFalse(element.exists)
+    }
+
+    func waitForElement(_ element: XCUIElement, timeout: TimeInterval? = nil) async -> Bool {
+        let waitTime = timeout ?? self.timeout
+        return await element.waitForExistence(timeout: waitTime)
     }
 
     func swipeUp() {
