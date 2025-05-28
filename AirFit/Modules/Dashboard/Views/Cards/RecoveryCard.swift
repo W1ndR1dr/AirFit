@@ -19,7 +19,11 @@ struct RecoveryCard: View {
     }
 
     private var ringGradient: LinearGradient {
-        LinearGradient(colors: [scoreColor.opacity(0.7), scoreColor], startPoint: .topLeading, endPoint: .bottomTrailing)
+        LinearGradient(
+            colors: [scoreColor.opacity(0.7), scoreColor],
+            startPoint: .topLeading,
+            endPoint: .bottomTrailing
+        )
     }
 
     private struct ChartPoint: Identifiable {
@@ -194,4 +198,5 @@ private struct TrendIndicator: View {
             .foregroundColor(color)
     }
 }
+
 

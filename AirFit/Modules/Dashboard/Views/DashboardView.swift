@@ -20,11 +20,15 @@ struct DashboardView: View {
 
     init(user: User) {
         let context = DependencyContainer.shared.makeModelContext() ?? {
-            let container = try! ModelContainer(
-                for: User.self,
-                configurations: ModelConfiguration(isStoredInMemoryOnly: true)
-            )
-            return ModelContext(container)
+            do {
+                let container = try ModelContainer(
+                    for: User.self,
+                    configurations: ModelConfiguration(isStoredInMemoryOnly: true)
+                )
+                return ModelContext(container)
+            } catch {
+                fatalError("Failed to create ModelContainer: \(error)")
+            }
         }()
         let vm = DashboardViewModel(
             user: user,
@@ -50,7 +54,7 @@ struct DashboardView: View {
             }
             .contentMargins(.horizontal, AppSpacing.medium)
             .navigationTitle("Dashboard")
-            .refreshable { await viewModel.refreshDashboard() }
+            .refreshable { viewModel.refreshDashboard() }
             .navigationDestination(for: DashboardDestination.self) { destination in
                 destinationView(for: destination)
             }
@@ -105,12 +109,18 @@ struct DashboardView: View {
                 greeting: viewModel.morningGreeting,
                 context: viewModel.greetingContext,
                 currentEnergy: viewModel.currentEnergyLevel,
-                onEnergyLog: { level in await viewModel.logEnergyLevel(level) }
+                onEnergyLog: { level in
+                    Task { await viewModel.logEnergyLevel(level) }
+                }
             )
-            NutritionCard(summary: viewModel.nutritionSummary, targets: viewModel.nutritionTargets)
-            RecoveryCard(score: viewModel.recoveryScore)
+            NutritionCard(
+                summary: viewModel.nutritionSummary,
+                targets: viewModel.nutritionTargets
+            )
+            RecoveryCard(recoveryScore: viewModel.recoveryScore)
             PerformanceCard(insight: viewModel.performanceInsight)
-            QuickActionsCard(actions: viewModel.suggestedActions)
+            // QuickActionsCard will be implemented in Wave 4
+            PlaceholderQuickActionsCard(actions: viewModel.suggestedActions)
         }
         .animation(.bouncy, value: viewModel.morningGreeting)
     }
@@ -126,7 +136,7 @@ struct DashboardView: View {
 
 // MARK: - Preview
 #Preview {
-    let container = try! ModelContainer(for: User.self)
+    let container = try! ModelContainer(for: User.self) // swiftlint:disable:this force_try
     let context = container.mainContext
     let user = User(name: "Preview")
     context.insert(user)
@@ -143,9 +153,8 @@ struct DashboardView: View {
 
 // MARK: - Placeholder Coordinator & Destinations
 @MainActor
-@Observable
-final class DashboardCoordinator {
-    var path = NavigationPath()
+final class DashboardCoordinator: ObservableObject {
+    @Published var path = NavigationPath()
 
     func navigate(to destination: DashboardDestination) {
         path.append(destination)
@@ -200,72 +209,23 @@ actor PlaceholderNutritionService: DashboardNutritionServiceProtocol {
     }
 }
 
-// MARK: - Placeholder Card Views
-private struct MorningGreetingCard: View {
-    let greeting: String
-    let context: GreetingContext?
-    let currentEnergy: Int?
-    let onEnergyLog: (Int) async -> Void
+// MARK: - Placeholder Quick Actions Card
+private struct PlaceholderQuickActionsCard: View {
+    let actions: [QuickAction]
 
     var body: some View {
         VStack(alignment: .leading, spacing: AppSpacing.small) {
-            Text(greeting)
-                .font(AppFonts.title3)
+            Text("Quick Actions")
+                .font(AppFonts.headline)
                 .foregroundColor(AppColors.textPrimary)
+            
+            Text("\(actions.count) actions available")
+                .font(AppFonts.caption)
+                .foregroundColor(AppColors.textSecondary)
         }
         .frame(maxWidth: .infinity, alignment: .leading)
         .padding()
         .background(AppColors.cardBackground)
-        .cornerRadius(AppSpacing.medium)
+        .cornerRadius(AppConstants.Layout.defaultCornerRadius)
     }
 }
-
-private struct NutritionCard: View {
-    let summary: NutritionSummary
-    let targets: NutritionTargets
-
-    var body: some View {
-        Text("Nutrition")
-            .frame(maxWidth: .infinity)
-            .padding()
-            .background(AppColors.cardBackground)
-            .cornerRadius(AppSpacing.medium)
-    }
-}
-
-private struct RecoveryCard: View {
-    let score: RecoveryScore?
-
-    var body: some View {
-        Text("Recovery")
-            .frame(maxWidth: .infinity)
-            .padding()
-            .background(AppColors.cardBackground)
-            .cornerRadius(AppSpacing.medium)
-    }
-}
-
-private struct PerformanceCard: View {
-    let insight: PerformanceInsight?
-
-    var body: some View {
-        Text("Performance")
-            .frame(maxWidth: .infinity)
-            .padding()
-            .background(AppColors.cardBackground)
-            .cornerRadius(AppSpacing.medium)
-    }
-}
-
-private struct QuickActionsCard: View {
-    let actions: [QuickAction]
-
-    var body: some View {
-        Text("Quick Actions")
-            .frame(maxWidth: .infinity)
-            .padding()
-            .background(AppColors.cardBackground)
-            .cornerRadius(AppSpacing.medium)
-    }
-}
-

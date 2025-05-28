@@ -3,7 +3,7 @@ import SwiftUI
 struct NutritionCard: View {
     let summary: NutritionSummary
     let targets: NutritionTargets
-    var onTap: (() -> Void)? = nil
+    var onTap: (() -> Void)?
 
     @State private var animateRings = false
 

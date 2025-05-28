@@ -82,7 +82,7 @@ struct PerformanceCard: View {
 
     private var accessibilityDescription: String {
         if let insight {
-            return "Performance trend for \(insight.keyMetric) is \(insight.value, specifier: "%.1f")"
+            return "Performance trend for \(insight.keyMetric) is \(String(format: "%.1f", insight.value))"
         } else {
             return "No performance data"
         }
@@ -132,4 +132,5 @@ private struct TrendIndicator: View {
             .foregroundColor(color)
     }
 }
+
 

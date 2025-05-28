@@ -222,7 +222,7 @@ final class DashboardViewModel {
             actions.append(.startWorkout)
         }
 
-        if nutritionSummary.waterLiters < 2_0 {
+        if nutritionSummary.waterLiters < 2.0 {
             actions.append(.logWater)
         }
 
@@ -276,7 +276,7 @@ struct NutritionTargets: Equatable, Sendable {
     let water: Double
 
     static let `default` = NutritionTargets(
-        calories: 2000,
+        calories: 2_000,
         protein: 150,
         carbs: 250,
         fat: 70,
