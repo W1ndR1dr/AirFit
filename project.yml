@@ -14,7 +14,10 @@ settings:
   ENABLE_STRICT_CONCURRENCY: YES
   SWIFT_STRICT_CONCURRENCY: complete
 
-packages: {}
+packages:
+  WhisperKit:
+    url: https://github.com/argmaxinc/WhisperKit.git
+    from: "0.9.0"
 
 targets:
   AirFit:
@@ -165,7 +168,8 @@ targets:
       SWIFT_VERSION: "6.0"
       ENABLE_STRICT_CONCURRENCY: YES
       SWIFT_STRICT_CONCURRENCY: complete
-    dependencies: []
+    dependencies:
+      - package: WhisperKit
 
   AirFitTests:
     type: bundle.unit-test

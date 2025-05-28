@@ -1,20 +1,21 @@
 **Modular Sub-Document 8: Food Tracking Module (Voice-First AI-Powered Nutrition)**
 
-**Version:** 2.0
+**Version:** 2.1
 **Parent Document:** AirFit App - Master Architecture Specification (v1.2)
 **Prerequisites:**
 - Completion of Module 1: Core Project Setup & Configuration
 - Completion of Module 2: Data Layer (SwiftData Schema & Managers)
 - Completion of Module 5: AI Persona Engine & CoachEngine
 - Completion of Module 4: HealthKit & Context Manager (for calorie tracking)
-**Date:** May 25, 2025
+- **CRITICAL**: Completion of Module 13: Chat Interface Module (provides VoiceInputManager)
+**Date:** December 2024
 **Updated For:** iOS 18+, macOS 15+, Xcode 16+, Swift 6+
 
 **1. Module Overview**
 
 *   **Purpose:** To provide an AI-powered, voice-first food tracking experience that makes nutrition logging effortless through natural language processing, barcode scanning, and intelligent meal suggestions.
 *   **Responsibilities:**
-    *   Voice-based food logging with WhisperKit transcription for superior accuracy
+    *   Voice-based food logging using Module 13's VoiceInputManager foundation
     *   AI-powered food parsing and nutrition analysis
     *   Barcode scanning with nutrition database lookup
     *   Visual meal logging with Vision framework
@@ -33,7 +34,7 @@
     *   `NutritionSearchView.swift` - Food database search
     *   `MacroRingsView.swift` - Macro visualization
     *   `WaterTrackingView.swift` - Water intake logging
-    *   `WhisperKitService.swift` - WhisperKit-based speech recognition
+    *   `FoodVoiceAdapter.swift` - Adapter for Module 13's VoiceInputManager
     *   `NutritionService.swift` - Nutrition data management
     *   `FoodDatabaseService.swift` - Food database integration
 
@@ -44,14 +45,32 @@
     *   Module 2: FoodEntry, FoodItem, CustomFood models
     *   Module 4: HealthKit integration
     *   Module 5: AI parsing capabilities
-    *   AVFoundation for audio recording
+    *   **Module 13: VoiceInputManager and WhisperKit infrastructure**
+    *   AVFoundation for audio recording (via Module 13)
     *   Vision framework for image analysis
-    *   WhisperKit package for voice transcription
+    *   WhisperKit package (already configured in Module 13)
 *   **Outputs:**
     *   Food and water intake data
     *   Nutrition metrics for dashboard
     *   HealthKit nutrition data
     *   Meal history and insights
+
+**3. Voice Infrastructure Strategy**
+
+**IMPORTANT ARCHITECTURAL DECISION:**
+Module 8 leverages the superior voice infrastructure provided by Module 13 rather than implementing its own WhisperKit integration. This approach:
+
+- ✅ Eliminates code duplication
+- ✅ Ensures consistent voice experience across the app
+- ✅ Leverages Module 13's optimized model management
+- ✅ Reduces Module 8 implementation complexity
+- ✅ Provides food-specific transcription enhancements
+
+**Voice Integration Approach:**
+1. **Foundation**: Use Module 13's `VoiceInputManager` as the core service
+2. **Adaptation**: Create `FoodVoiceAdapter` for food-specific optimizations
+3. **Enhancement**: Add food-specific post-processing and UI customizations
+4. **Integration**: Seamless integration with food logging workflows
 
 **3. Detailed Component Specifications & Agent Tasks**
 
@@ -59,178 +78,159 @@
 
 **Task 8.0: Food Tracking Infrastructure**
 
-**Agent Task 8.0.0: Configure WhisperKit for Food Tracking**
-- Package Configuration:
-  - WhisperKit is already configured in Module 13
-  - Share the same model manager across modules for efficiency
-- Model Selection:
-  - Use the same model selection strategy as Module 13
-  - Food-specific post-processing for nutrition terms
-
-**Agent Task 8.0.1: Create WhisperKit Service Protocol**
-- File: `AirFit/Modules/FoodTracking/Services/WhisperKitServiceProtocol.swift`
-- Complete Implementation:
-  ```swift
-  import Foundation
-  
-  protocol WhisperKitServiceProtocol: AnyObject {
-      var isAvailable: Bool { get async }
-      var isTranscribing: Bool { get }
-      
-      func requestPermission() async throws -> Bool
-      func startTranscription() async throws -> AsyncThrowingStream<TranscriptionUpdate, Error>
-      func stopTranscription() async -> String?
-      
-      // Real-time callbacks
-      var onPartialTranscription: ((String) -> Void)? { get set }
-      var onWaveformUpdate: (([Float]) -> Void)? { get set }
-  }
-  
-  struct TranscriptionUpdate {
-      let text: String
-      let isPartial: Bool
-      let isFinal: Bool
-      let confidence: Float
-      let timestamp: Date
-  }
-  
-  enum TranscriptionError: LocalizedError {
-      case notAvailable
-      case permissionDenied
-      case recognitionError(String)
-      
-      var errorDescription: String? {
-          switch self {
-          case .notAvailable:
-              return "Voice transcription is not available"
-          case .permissionDenied:
-              return "Microphone permission was denied"
-          case .recognitionError(let message):
-              return "Recognition error: \(message)"
-          }
-      }
-  }
-  ```
-
-**Agent Task 8.0.2: Create WhisperKit Service Adapter**
-- File: `AirFit/Modules/FoodTracking/Services/WhisperKitServiceAdapter.swift`
+**Agent Task 8.0.1: Create Food Voice Adapter**
+- File: `AirFit/Modules/FoodTracking/Services/FoodVoiceAdapter.swift`
+- **Purpose**: Adapter pattern to wrap Module 13's VoiceInputManager with food-specific enhancements
 - Complete Implementation:
   ```swift
   import Foundation
   import SwiftUI
   
   @MainActor
-  final class WhisperKitServiceAdapter: WhisperKitServiceProtocol {
-      // MARK: - Properties
-      private let voiceInputManager: VoiceInputManager
-      private var transcriptionContinuation: AsyncThrowingStream<TranscriptionUpdate, Error>.Continuation?
-      private var accumulatedText = ""
+  final class FoodVoiceAdapter: ObservableObject {
+      // MARK: - Dependencies
+      private let voiceInputManager: VoiceInputManager // From Module 13
       
-      // MARK: - Protocol Properties
-      var isAvailable: Bool {
-          get async {
-              // Check if microphone permission is available
-              return await voiceInputManager.requestMicrophoneAccess()
-          }
-      }
+      // MARK: - Published State
+      @Published private(set) var isRecording = false
+      @Published private(set) var transcribedText = ""
+      @Published private(set) var voiceWaveform: [Float] = []
+      @Published private(set) var isTranscribing = false
       
-      private(set) var isTranscribing = false
-      
-      var onPartialTranscription: ((String) -> Void)? {
-          get { voiceInputManager.onPartialTranscription }
-          set { voiceInputManager.onPartialTranscription = newValue }
-      }
-      
-      var onWaveformUpdate: (([Float]) -> Void)? {
-          get { voiceInputManager.onWaveformUpdate }
-          set { voiceInputManager.onWaveformUpdate = newValue }
-      }
+      // MARK: - Callbacks
+      var onFoodTranscription: ((String) -> Void)?
+      var onError: ((Error) -> Void)?
       
       // MARK: - Initialization
-      init(voiceInputManager: VoiceInputManager = VoiceInputManager()) {
+      init(voiceInputManager: VoiceInputManager = VoiceInputManager.shared) {
           self.voiceInputManager = voiceInputManager
           setupCallbacks()
       }
       
       private func setupCallbacks() {
-          // Handle transcription updates
+          // Bridge VoiceInputManager callbacks with food-specific processing
           voiceInputManager.onTranscription = { [weak self] text in
               guard let self = self else { return }
               
-              let update = TranscriptionUpdate(
-                  text: text,
-                  isPartial: false,
-                  isFinal: true,
-                  confidence: 0.95,
-                  timestamp: Date()
-              )
-              
-              self.transcriptionContinuation?.yield(update)
-              self.transcriptionContinuation?.finish()
+              // Apply food-specific post-processing
+              let processedText = self.postProcessForFood(text)
+              self.transcribedText = processedText
+              self.onFoodTranscription?(processedText)
           }
           
           voiceInputManager.onPartialTranscription = { [weak self] text in
               guard let self = self else { return }
-              
-              let update = TranscriptionUpdate(
-                  text: text,
-                  isPartial: true,
-                  isFinal: false,
-                  confidence: 0.8,
-                  timestamp: Date()
-              )
-              
-              self.accumulatedText = text
-              self.transcriptionContinuation?.yield(update)
+              self.transcribedText = text
+          }
+          
+          voiceInputManager.onWaveformUpdate = { [weak self] levels in
+              guard let self = self else { return }
+              self.voiceWaveform = levels
           }
           
           voiceInputManager.onError = { [weak self] error in
-              self?.transcriptionContinuation?.finish(throwing: error)
+              guard let self = self else { return }
+              self.onError?(error)
           }
       }
       
-      // MARK: - Protocol Methods
-      func requestPermission() async throws -> Bool {
-          return await voiceInputManager.requestMicrophoneAccess()
-      }
-      
-      func startTranscription() async throws -> AsyncThrowingStream<TranscriptionUpdate, Error> {
-          guard await isAvailable else {
-              throw TranscriptionError.notAvailable
-          }
-          
-          guard !isTranscribing else {
-              throw TranscriptionError.recognitionError("Already transcribing")
-          }
-          
-          isTranscribing = true
-          accumulatedText = ""
-          
-          // Start recording with VoiceInputManager
+      // MARK: - Public Methods
+      func startRecording() async throws {
+          isRecording = true
           try await voiceInputManager.startRecording()
-          
-          // Create async stream
-          return AsyncThrowingStream { continuation in
-              self.transcriptionContinuation = continuation
-              
-              continuation.onTermination = { _ in
-                  Task { await self.stopTranscription() }
-              }
-          }
       }
       
-      func stopTranscription() async -> String? {
-          guard isTranscribing else { return nil }
+      func stopRecording() async -> String? {
+          isRecording = false
+          let result = await voiceInputManager.stopRecording()
+          return result.map { postProcessForFood($0) }
+      }
+      
+      func requestPermission() async throws -> Bool {
+          return try await voiceInputManager.requestPermission()
+      }
+      
+      // MARK: - Food-Specific Post-Processing
+      private func postProcessForFood(_ text: String) -> String {
+          var processed = text.trimmingCharacters(in: .whitespacesAndNewlines)
           
-          isTranscribing = false
+          // Food-specific transcription improvements
+          let foodCorrections: [String: String] = [
+              // Quantity corrections
+              "to eggs": "two eggs",
+              "for slices": "four slices", 
+              "won cup": "one cup",
+              "tree cups": "three cups",
+              "ate ounces": "eight ounces",
+              
+              // Food name corrections
+              "chicken breast": "chicken breast",
+              "sweet potato": "sweet potato",
+              "greek yogurt": "Greek yogurt",
+              "peanut butter": "peanut butter",
+              "olive oil": "olive oil",
+              
+              // Measurement corrections
+              "table spoon": "tablespoon",
+              "tea spoon": "teaspoon",
+              "fluid ounce": "fl oz",
+              "pounds": "lbs"
+          ]
           
-          // Stop recording and get final transcription
-          let finalText = await voiceInputManager.stopRecording()
+          for (pattern, replacement) in foodCorrections {
+              processed = processed.replacingOccurrences(
+                  of: pattern,
+                  with: replacement,
+                  options: [.caseInsensitive]
+              )
+          }
           
-          transcriptionContinuation?.finish()
-          transcriptionContinuation = nil
-          
-          return finalText ?? accumulatedText
+          return processed
+      }
+  }
+  ```
+
+**Agent Task 8.0.2: Create Food Voice Service Protocol**
+- File: `AirFit/Modules/FoodTracking/Services/FoodVoiceServiceProtocol.swift`
+- **Purpose**: Clean protocol abstraction for food-specific voice operations
+- Complete Implementation:
+  ```swift
+  import Foundation
+  
+  protocol FoodVoiceServiceProtocol: AnyObject {
+      var isRecording: Bool { get }
+      var isTranscribing: Bool { get }
+      var transcribedText: String { get }
+      var voiceWaveform: [Float] { get }
+      
+      func requestPermission() async throws -> Bool
+      func startRecording() async throws
+      func stopRecording() async -> String?
+      
+      // Food-specific callbacks
+      var onFoodTranscription: ((String) -> Void)? { get set }
+      var onError: ((Error) -> Void)? { get set }
+  }
+  
+  // MARK: - FoodVoiceAdapter Protocol Conformance
+  extension FoodVoiceAdapter: FoodVoiceServiceProtocol {
+      // Protocol conformance is already implemented in the class
+  }
+  
+  enum FoodVoiceError: LocalizedError {
+      case voiceInputManagerUnavailable
+      case transcriptionFailed
+      case permissionDenied
+      
+      var errorDescription: String? {
+          switch self {
+          case .voiceInputManagerUnavailable:
+              return "Voice input manager from Module 13 is not available"
+          case .transcriptionFailed:
+              return "Failed to transcribe voice input"
+          case .permissionDenied:
+              return "Microphone permission was denied"
+          }
       }
   }
   ```
