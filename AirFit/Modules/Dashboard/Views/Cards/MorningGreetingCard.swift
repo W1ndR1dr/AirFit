@@ -211,7 +211,8 @@ struct EnergyPickerSheet: View {
     let onSelect: (Int) -> Void
 
     @State private var selectedLevel: Int?
-    @Environment(\.dismiss) private var dismiss
+    @Environment(\.dismiss)
+    private var dismiss
 
     var body: some View {
         NavigationStack {

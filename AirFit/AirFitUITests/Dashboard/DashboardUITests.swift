@@ -121,7 +121,12 @@ final class DashboardUITests: XCTestCase {
 
     func test_dynamicType_supportsAccessibility() async throws {
         app.terminate()
-        app.launchArguments = ["--uitesting", "--reset-onboarding", "-UIPreferredContentSizeCategoryName", "UICTContentSizeCategoryAccessibilityXL"]
+        app.launchArguments = [
+            "--uitesting",
+            "--reset-onboarding",
+            "-UIPreferredContentSizeCategoryName",
+            "UICTContentSizeCategoryAccessibilityXL"
+        ]
         app.launch()
         _ = await app.otherElements["dashboard.main"].waitForExistence(timeout: 5)
         XCTAssertTrue(app.otherElements["dashboard.main"].exists)

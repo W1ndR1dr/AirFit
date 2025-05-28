@@ -49,7 +49,7 @@ final class DashboardViewModelTests: XCTestCase {
             yesterdayEnergyLevel: 3,
             currentHeartRate: 60,
             hrv: 50,
-            steps: 1000
+            steps: 1_000
         )
         mockHealthKitService.recoveryResult = RecoveryScore(score: 85, components: [])
         mockHealthKitService.performanceResult = PerformanceInsight(
@@ -157,7 +157,7 @@ final class DashboardViewModelTests: XCTestCase {
         )
         let encoder = JSONEncoder()
         encoder.keyEncodingStrategy = .convertToSnakeCase
-        let data = try! encoder.encode(blob)
+        let data = try encoder.encode(blob)
         let profile = OnboardingProfile(
             personaPromptData: data,
             communicationPreferencesData: data,
@@ -165,10 +165,10 @@ final class DashboardViewModelTests: XCTestCase {
         )
         testUser.onboardingProfile = profile
         modelContext.insert(profile)
-        try! modelContext.save()
+        try modelContext.save()
 
         let targets = NutritionTargets(
-            calories: 2500,
+            calories: 2_500,
             protein: NutritionTargets.default.protein,
             carbs: NutritionTargets.default.carbs,
             fat: NutritionTargets.default.fat,
@@ -182,16 +182,31 @@ final class DashboardViewModelTests: XCTestCase {
         try? await Task.sleep(nanoseconds: 100_000_000)
 
         // Assert
-        XCTAssertEqual(sut.nutritionTargets.calories, 2500)
+        XCTAssertEqual(sut.nutritionTargets.calories, 2_500)
         mockNutritionService.verify("getTargets", called: 1)
     }
 
     func test_loadHealthInsights_errorDoesNotCrash() async {
         final class ErrorHealthService: HealthKitServiceProtocol {
-            func getCurrentContext() async throws -> HealthContext { HealthContext(lastNightSleepDurationHours: nil, sleepQuality: nil, currentWeatherCondition: nil, currentTemperatureCelsius: nil, yesterdayEnergyLevel: nil, currentHeartRate: nil, hrv: nil, steps: nil) }
+            func getCurrentContext() async throws -> HealthContext {
+                HealthContext(
+                    lastNightSleepDurationHours: nil,
+                    sleepQuality: nil,
+                    currentWeatherCondition: nil,
+                    currentTemperatureCelsius: nil,
+                    yesterdayEnergyLevel: nil,
+                    currentHeartRate: nil,
+                    hrv: nil,
+                    steps: nil
+                )
+            }
             struct TestError: Error {}
-            func calculateRecoveryScore(for user: User) async throws -> RecoveryScore { throw TestError() }
-            func getPerformanceInsight(for user: User, days: Int) async throws -> PerformanceInsight { throw TestError() }
+            func calculateRecoveryScore(for user: User) async throws -> RecoveryScore {
+                throw TestError()
+            }
+            func getPerformanceInsight(for user: User, days: Int) async throws -> PerformanceInsight {
+                throw TestError()
+            }
         }
         sut = DashboardViewModel(
             user: testUser,
