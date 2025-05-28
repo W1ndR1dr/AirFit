@@ -154,6 +154,7 @@ targets:
       - AirFit/Modules/Workouts/Views/AllWorkoutsView.swift
       - AirFit/Modules/Workouts/Views/WorkoutStatisticsView.swift
       - AirFit/Modules/Chat/ChatCoordinator.swift
+      - AirFit/Modules/Chat/Services/ChatSuggestionsEngine.swift
       - AirFit/Modules/Chat/ViewModels/ChatViewModel.swift
       - AirFit/Modules/Chat/Views/MessageBubbleView.swift
       - AirFit/Modules/Chat/Views/MessageComposer.swift
@@ -214,6 +215,7 @@ targets:
       - AirFit/AirFitTests/Workouts/WorkoutViewModelTests.swift
       - AirFit/AirFitTests/Workouts/WorkoutCoordinatorTests.swift
       - AirFit/AirFitTests/Modules/Chat/ChatCoordinatorTests.swift
+      - AirFit/AirFitTests/Modules/Chat/ChatSuggestionsEngineTests.swift
       - AirFit/AirFitTests/Core/VoiceInputManagerTests.swift
     dependencies:
       - target: AirFit
