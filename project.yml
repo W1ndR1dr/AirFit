@@ -136,10 +136,12 @@ targets:
       - AirFit/Services/Health/HealthKitExtensions.swift
       - AirFit/Services/Context/ContextAssembler.swift
       - AirFit/Services/WorkoutSyncService.swift
+      - AirFit/Services/ExerciseDatabase.swift
       - AirFit/Modules/Workouts/ViewModels/WorkoutViewModel.swift
       - AirFit/Modules/Workouts/Coordinators/WorkoutCoordinator.swift
       - AirFit/Modules/Workouts/Views/WorkoutListView.swift
       - AirFit/Modules/Workouts/Views/WorkoutDetailView.swift
+      - AirFit/Modules/Workouts/Views/ExerciseLibraryView.swift
       # Application Layer Files (CRITICAL: XcodeGen nesting bug)
       - AirFit/Application/AirFitApp.swift
       - AirFit/Application/MinimalContentView.swift

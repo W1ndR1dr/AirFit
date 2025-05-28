@@ -4,7 +4,7 @@ import Observation
 
 struct WorkoutDetailView: View {
     let workout: Workout
-    @ObservedObject var viewModel: WorkoutViewModel
+    @State var viewModel: WorkoutViewModel
     @State private var showingAIAnalysis = false
     @State private var selectedExercise: Exercise?
 
@@ -46,7 +46,7 @@ private extension WorkoutDetailView {
                 HStack {
                     Image(systemName: workout.workoutTypeEnum?.systemImage ?? "figure.strengthtraining.traditional")
                         .font(.title2)
-                        .foregroundStyle(.accent)
+                        .foregroundStyle(AppColors.accent)
 
                     VStack(alignment: .leading) {
                         Text(workout.workoutTypeEnum?.displayName ?? workout.workoutType)
@@ -126,7 +126,7 @@ private extension WorkoutDetailView {
 
                     Button("Read Full Analysis") { showingAIAnalysis = true }
                         .font(.callout)
-                        .foregroundStyle(.accent)
+                        .foregroundStyle(AppColors.accent)
                 } else {
                     Button("Generate Analysis") {
                         Task { await viewModel.generateAIAnalysis(for: workout) }
@@ -247,7 +247,7 @@ private struct ExerciseCard: View {
                                 x: .value("Set", point.index),
                                 y: .value("Volume", point.volume)
                             )
-                            .foregroundStyle(Color.accent.gradient)
+                            .foregroundStyle(AppColors.accent.gradient)
                         }
                         .chartXAxis(.hidden)
                         .frame(height: 80)
@@ -256,7 +256,7 @@ private struct ExerciseCard: View {
                     HStack {
                         Label("\(Int(totalVolume))kg total", systemImage: "scalemass")
                             .font(.caption)
-                            .foregroundStyle(.accent)
+                            .foregroundStyle(AppColors.accent)
                         Spacer()
                         Image(systemName: "chevron.right")
                             .font(.caption)

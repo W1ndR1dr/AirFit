@@ -1,4 +1,5 @@
 import SwiftUI
+import SwiftData
 import Observation
 
 /// Main list view showing weekly workout summary, recent workouts, and quick actions.
@@ -103,9 +104,9 @@ struct WorkoutListView: View {
     private func destinationView(for destination: WorkoutCoordinator.WorkoutDestination) -> some View {
         switch destination {
         case .workoutDetail(let workout):
-            Text("Workout Detail: \(workout.name)")
+            WorkoutDetailView(workout: workout, viewModel: viewModel)
         case .exerciseLibrary:
-            Text("Exercise Library")
+            ExerciseLibraryView()
         case .allWorkouts:
             Text("All Workouts")
         case .statistics:
@@ -140,7 +141,7 @@ private struct WeeklySummaryCard: View {
                     NavigationLink(value: WorkoutCoordinator.WorkoutDestination.statistics) {
                         Text("View Stats")
                             .font(.subheadline)
-                            .foregroundStyle(.accent)
+                            .foregroundStyle(AppColors.accent)
                     }
                 }
 
@@ -192,7 +193,7 @@ private struct WorkoutRow: View {
                     VStack(alignment: .leading, spacing: AppSpacing.xSmall) {
                         HStack {
                             Image(systemName: workout.workoutTypeEnum?.systemImage ?? "figure.strengthtraining.traditional")
-                                .foregroundStyle(.accent)
+                                .foregroundStyle(AppColors.accent)
                             Text(workout.workoutTypeEnum?.displayName ?? workout.workoutType)
                                 .font(.headline)
                         }
@@ -260,7 +261,7 @@ private struct QuickActionCard: View {
         coachEngine: PreviewCoachEngine(),
         healthKitManager: PreviewHealthKitManager()
     )
-    return WorkoutListView(viewModel: vm)
+    WorkoutListView(viewModel: vm)
         .modelContainer(container)
 }
 
@@ -271,7 +272,8 @@ actor PreviewCoachEngine: CoachEngineProtocol {
     }
 }
 
-actor PreviewHealthKitManager: HealthKitManaging {
+@MainActor
+final class PreviewHealthKitManager: HealthKitManaging {
     var authorizationStatus: HealthKitManager.AuthorizationStatus = .authorized
     func refreshAuthorizationStatus() {}
     func requestAuthorization() async throws {}

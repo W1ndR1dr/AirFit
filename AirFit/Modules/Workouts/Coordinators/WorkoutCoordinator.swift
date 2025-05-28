@@ -5,9 +5,9 @@ import Observation
 @Observable
 final class WorkoutCoordinator {
     // MARK: - Navigation
-    @Published var path = NavigationPath()
+    var path = NavigationPath()
     // MARK: - Sheet Presentation
-    @Published var presentedSheet: WorkoutSheet?
+    var presentedSheet: WorkoutSheet?
 
     // MARK: - Destinations
     enum WorkoutDestination: Hashable {

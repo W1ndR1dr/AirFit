@@ -50,9 +50,6 @@ final class WorkoutViewModel {
         defer { isLoading = false }
         do {
             var descriptor = FetchDescriptor<Workout>(
-                predicate: #Predicate { workout in
-                    workout.user?.id == user.id
-                },
                 sortBy: [SortDescriptor(\.completedDate, order: .reverse)]
             )
             descriptor.fetchLimit = 0
@@ -119,7 +116,7 @@ final class WorkoutViewModel {
 }
 
 // MARK: - Protocols
-protocol CoachEngineProtocol: AnyObject {
+protocol CoachEngineProtocol: AnyObject, Sendable {
     func generatePostWorkoutAnalysis(_ request: PostWorkoutAnalysisRequest) async throws -> String
 }
 

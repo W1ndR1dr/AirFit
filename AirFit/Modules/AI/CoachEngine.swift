@@ -134,6 +134,89 @@ final class CoachEngine {
         }
     }
 
+    /// Generates AI-powered post-workout analysis
+    func generatePostWorkoutAnalysis(_ request: PostWorkoutAnalysisRequest) async throws -> String {
+        do {
+            // Build analysis prompt
+            let analysisPrompt = buildWorkoutAnalysisPrompt(request)
+            
+            // Create AI request for analysis
+            let aiRequest = AIRequest(
+                systemPrompt: "You are a fitness coach providing post-workout analysis. Be encouraging, specific, and actionable.",
+                messages: [
+                    AIChatMessage(
+                        role: .user,
+                        content: analysisPrompt,
+                        timestamp: Date()
+                    )
+                ],
+                functions: [],
+                user: "workout-analysis"
+            )
+            
+            // Get AI response
+            var analysisResult = ""
+            let responsePublisher = aiService.getStreamingResponse(for: aiRequest)
+            
+            await withCheckedContinuation { continuation in
+                var cancellables = Set<AnyCancellable>()
+                
+                responsePublisher
+                    .receive(on: DispatchQueue.main)
+                    .sink(
+                        receiveCompletion: { completion in
+                            continuation.resume()
+                        },
+                        receiveValue: { response in
+                            switch response {
+                            case .text(let text), .textDelta(let text):
+                                analysisResult += text
+                            default:
+                                break
+                            }
+                        }
+                    )
+                    .store(in: &cancellables)
+            }
+            
+            return analysisResult.isEmpty ? "Great workout! Keep up the excellent work." : analysisResult
+            
+        } catch {
+            AppLogger.error("Failed to generate workout analysis", error: error, category: .ai)
+            return "Great workout! Keep up the excellent work."
+        }
+    }
+    
+    private func buildWorkoutAnalysisPrompt(_ request: PostWorkoutAnalysisRequest) -> String {
+        let workout = request.workout
+        let recentWorkouts = request.recentWorkouts
+        
+        var prompt = "Analyze this workout:\n\n"
+        prompt += "Workout: \(workout.workoutTypeEnum?.displayName ?? workout.workoutType)\n"
+        prompt += "Duration: \(workout.formattedDuration ?? "Unknown")\n"
+        prompt += "Exercises: \(workout.exercises.count)\n"
+        
+        if let calories = workout.caloriesBurned, calories > 0 {
+            prompt += "Calories: \(Int(calories))\n"
+        }
+        
+        prompt += "\nExercises performed:\n"
+        for exercise in workout.exercises {
+            prompt += "- \(exercise.name): \(exercise.sets.count) sets\n"
+        }
+        
+        if recentWorkouts.count > 1 {
+            prompt += "\nRecent workout history (\(recentWorkouts.count - 1) previous):\n"
+            for recent in recentWorkouts.dropFirst() {
+                prompt += "- \(recent.workoutTypeEnum?.displayName ?? recent.workoutType): \(recent.formattedDuration ?? "Unknown")\n"
+            }
+        }
+        
+        prompt += "\nProvide encouraging analysis focusing on progress, form tips, and next steps. Keep it under 150 words."
+        
+        return prompt
+    }
+
     // MARK: - Private Methods
 
     private func startProcessing() async {
