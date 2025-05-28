@@ -139,6 +139,7 @@ targets:
       - AirFit/Modules/Workouts/ViewModels/WorkoutViewModel.swift
       - AirFit/Modules/Workouts/Coordinators/WorkoutCoordinator.swift
       - AirFit/Modules/Workouts/Views/WorkoutListView.swift
+      - AirFit/Modules/Workouts/Views/WorkoutDetailView.swift
       # Application Layer Files (CRITICAL: XcodeGen nesting bug)
       - AirFit/Application/AirFitApp.swift
       - AirFit/Application/MinimalContentView.swift
