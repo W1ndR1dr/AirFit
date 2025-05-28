@@ -137,6 +137,7 @@ targets:
       - AirFit/Services/Context/ContextAssembler.swift
       - AirFit/Services/WorkoutSyncService.swift
       - AirFit/Modules/Workouts/ViewModels/WorkoutViewModel.swift
+      - AirFit/Modules/Workouts/Coordinators/WorkoutCoordinator.swift
       # Application Layer Files (CRITICAL: XcodeGen nesting bug)
       - AirFit/Application/AirFitApp.swift
       - AirFit/Application/MinimalContentView.swift
@@ -190,6 +191,7 @@ targets:
       - AirFit/AirFitTests/Services/WorkoutSyncServiceTests.swift
       - AirFit/AirFitTests/Mocks/MockCoachEngine.swift
       - AirFit/AirFitTests/Workouts/WorkoutViewModelTests.swift
+      - AirFit/AirFitTests/Workouts/WorkoutCoordinatorTests.swift
     dependencies:
       - target: AirFit
     settings:
