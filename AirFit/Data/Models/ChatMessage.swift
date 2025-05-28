@@ -20,11 +20,13 @@ final class ChatMessage: @unchecked Sendable {
     var isEdited: Bool
     var editedAt: Date?
 
-    // Metadata
+    // Metadata - individual properties instead of dictionary
     var modelUsed: String?
     var tokenCount: Int?
     var processingTimeMs: Int?
-    var metadata: [String: Any]?
+    var errorMessage: String?
+    var functionCallName: String?
+    var functionCallArgs: String?
 
     // MARK: - Relationships
     var session: ChatSession?
@@ -78,6 +80,23 @@ final class ChatMessage: @unchecked Sendable {
         self.session = session
     }
 
+    // Convenience initializer with role enum
+    init(
+        session: ChatSession,
+        content: String,
+        role: Role,
+        attachments: [ChatAttachment] = []
+    ) {
+        self.id = UUID()
+        self.timestamp = Date()
+        self.role = role.rawValue
+        self.content = content
+        self.isRead = role == .user
+        self.isEdited = false
+        self.session = session
+        self.attachments = attachments
+    }
+
     // MARK: - Methods
     func markAsRead() {
         isRead = true
@@ -98,5 +117,14 @@ final class ChatMessage: @unchecked Sendable {
         self.modelUsed = model
         self.tokenCount = tokens
         self.processingTimeMs = Int(processingTime * 1_000)
+    }
+
+    func recordError(_ error: String) {
+        self.errorMessage = error
+    }
+
+    func recordFunctionCall(name: String, args: String) {
+        self.functionCallName = name
+        self.functionCallArgs = args
     }
 }

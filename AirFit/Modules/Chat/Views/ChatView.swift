@@ -1,5 +1,6 @@
 import SwiftUI
 import SwiftData
+import Combine
 
 struct ChatView: View {
     @StateObject private var viewModel: ChatViewModel
@@ -9,11 +10,15 @@ struct ChatView: View {
 
     init(user: User, modelContext: ModelContext) {
         let coordinator = ChatCoordinator()
+        // Create simple mock services for now
+        let mockCoachEngine = MockCoachEngine()
+        let mockAIService = MockAIService()
+        
         let viewModel = ChatViewModel(
             modelContext: modelContext,
             user: user,
-            coachEngine: CoachEngine.shared,
-            aiService: AIServiceManager.shared,
+            coachEngine: mockCoachEngine,
+            aiService: mockAIService,
             coordinator: coordinator
         )
         _viewModel = StateObject(wrappedValue: viewModel)
@@ -40,7 +45,7 @@ struct ChatView: View {
                 .focused($isComposerFocused)
                 .padding(.horizontal)
                 .padding(.vertical, 8)
-                .background(Color.backgroundPrimary)
+                .background(AppColors.backgroundPrimary)
             }
             .navigationTitle("AI Coach")
             .navigationBarTitleDisplayMode(.inline)
@@ -97,6 +102,7 @@ struct ChatView: View {
                 }
             }
         }
+        .background(AppColors.backgroundSecondary)
     }
 
     // MARK: - Suggestions Bar
@@ -113,7 +119,7 @@ struct ChatView: View {
             .padding(.horizontal)
             .padding(.vertical, AppSpacing.small)
         }
-        .background(Color.backgroundSecondary)
+        .background(AppColors.backgroundSecondary)
     }
 
     // MARK: - Toolbar
@@ -185,7 +191,7 @@ struct ChatView: View {
         case .regenerate:
             Task { await viewModel.regenerateResponse(for: message) }
         case .showDetails:
-            coordinator.navigateTo(.messageDetail(messageId: message.id?.uuidString ?? ""))
+            coordinator.navigateTo(.messageDetail(messageId: message.id.uuidString))
         }
     }
 
@@ -203,6 +209,13 @@ struct ChatView: View {
     }
 }
 
+// MARK: - Mock Services
+private final class MockCoachEngine: CoachEngineProtocol, @unchecked Sendable {
+    func generatePostWorkoutAnalysis(_ request: PostWorkoutAnalysisRequest) async throws -> String {
+        return "Great workout! You completed \(request.workout.exercises.count) exercises. Keep up the excellent work!"
+    }
+}
+
 // MARK: - Placeholder Types
 
 private struct SuggestionChip: View {
@@ -214,7 +227,7 @@ private struct SuggestionChip: View {
             Text(suggestion.text)
                 .padding(.horizontal, 12)
                 .padding(.vertical, 6)
-                .background(Capsule().fill(Color.accentColor.opacity(0.2)))
+                .background(Capsule().fill(AppColors.accent.opacity(0.2)))
         }
     }
 }

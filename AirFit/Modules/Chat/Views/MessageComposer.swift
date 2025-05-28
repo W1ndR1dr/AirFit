@@ -127,7 +127,7 @@ private struct VoiceWaveformView: View {
             HStack(spacing: 2) {
                 ForEach(Array(levels.enumerated()), id: \.offset) { _, level in
                     RoundedRectangle(cornerRadius: 2)
-                        .fill(AppColors.accentColor)
+                        .fill(AppColors.accent)
                         .frame(width: 3, height: CGFloat(level) * geometry.size.height)
                         .animation(.easeInOut(duration: 0.1), value: level)
                 }

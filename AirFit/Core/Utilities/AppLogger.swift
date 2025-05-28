@@ -18,6 +18,7 @@ public enum AppLogger {
         case performance = "Performance"
         case app = "App"
         case storage = "Storage"
+        case chat = "Chat"
 
         var osLog: OSLog {
             OSLog(subsystem: subsystem, category: rawValue)

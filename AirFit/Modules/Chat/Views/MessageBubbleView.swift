@@ -54,10 +54,10 @@ struct MessageBubbleView: View {
             }
 
             // Rich content (charts, buttons, etc)
-            if let metadata = message.metadata,
-               let actionType = metadata["actionType"] as? String {
-                richContentView(for: actionType, metadata: metadata)
-            }
+            // TODO: Implement rich content based on individual metadata properties
+            // if message.functionCallName != nil {
+            //     richContentView(for: message.functionCallName!, metadata: [:])
+            // }
         }
         .padding()
         .background(bubbleBackground)
@@ -68,7 +68,7 @@ struct MessageBubbleView: View {
     private var bubbleBackground: some View {
         Group {
             if message.roleEnum == .user {
-                AppColors.accentColor.opacity(0.2)
+                AppColors.accent.opacity(0.2)
             } else {
                 AppColors.cardBackground
             }
