@@ -143,9 +143,9 @@ final class OnboardingViewModel {
             communicationPreferencesData: data,
             rawFullProfileData: data
         )
-        modelContext.insert(profile)
+        
+        // Let the service handle all SwiftData operations to avoid conflicts
         try await onboardingService.saveProfile(profile)
-        try modelContext.save()
 
         AppLogger.info("Onboarding completed successfully", category: .onboarding)
 

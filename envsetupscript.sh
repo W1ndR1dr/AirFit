@@ -1,8 +1,8 @@
 #!/usr/bin/env bash
 ###############################################################################
 #  OpenAI Codex cloud startup • Swift 6.1 • SwiftLint + SwiftFormat
-#  iOS 18+ • Module 13 Chat Interface • WhisperKit Voice Infrastructure
-#  Optimized for sandboxed Codex agents (no Xcode/build tools)
+#  iOS 18+ • Module 8 Food Tracking • Voice-First AI-Powered Nutrition
+#  Leverages Module 13 WhisperKit infrastructure • Optimized for sandboxed agents
 ###############################################################################
 set -euo pipefail
 
@@ -36,66 +36,20 @@ chmod +x "$BIN_DIR/swiftformat"
 echo "✅  SwiftFormat built and installed."
 
 ###############################################################################
-#  3.  Pre-fetch WhisperKit and related ML dependencies (Module 13 support)
+#  3.  Validate Module 13 WhisperKit infrastructure (Module 8 dependency)
 ###############################################################################
-echo "🎤  Pre-fetching WhisperKit package metadata for Module 13…"
-# Create a temporary Swift package to resolve WhisperKit dependencies
-mkdir -p /tmp/whisperkit-prefetch
-cat > /tmp/whisperkit-prefetch/Package.swift << 'EOF'
-// swift-tools-version: 5.9
-import PackageDescription
+echo "🎤  Validating Module 13 WhisperKit infrastructure for Module 8…"
+# Module 8 leverages Module 13's voice infrastructure via adapter pattern
 
-let package = Package(
-    name: "WhisperKitPrefetch",
-    platforms: [.iOS(.v17)],
-    dependencies: [
-        .package(url: "https://github.com/argmaxinc/WhisperKit.git", from: "0.9.0")
-    ],
-    targets: [
-        .target(name: "WhisperKitPrefetch", dependencies: ["WhisperKit"])
-    ]
-)
-EOF
-
-mkdir -p /tmp/whisperkit-prefetch/Sources/WhisperKitPrefetch
-cat > /tmp/whisperkit-prefetch/Sources/WhisperKitPrefetch/Prefetch.swift << 'EOF'
-import Foundation
-#if canImport(WhisperKit)
-import WhisperKit
-
-// Basic WhisperKit integration test
-@available(iOS 17.0, *)
-public struct WhisperKitTest {
-    public static func validateImport() -> Bool {
-        return true
-    }
-}
-#endif
-EOF
-
-(
-  cd /tmp/whisperkit-prefetch
-  echo "   → Resolving WhisperKit dependencies…"
-  swift package --disable-sandbox resolve || echo "⚠️  WhisperKit resolve failed (expected in sandboxed environment)"
-  echo "   → Testing WhisperKit compilation…"
-  swift build --disable-sandbox || echo "⚠️  WhisperKit build failed (expected in sandboxed environment)"
-)
-echo "✅  WhisperKit metadata cached and validated."
-
-###############################################################################
-#  4.  Validate Swift 6 and iOS 18+ compatibility for Module 13
-###############################################################################
-echo "🔍  Validating Swift 6 and iOS 18+ environment for Module 13…"
-SWIFT_VERSION=$(swift --version | head -n1)
-if echo "$SWIFT_VERSION" | grep -q "Swift version 6"; then
-  echo "✅  Swift 6 detected: $SWIFT_VERSION"
+# Check if WhisperKit package metadata is available from Module 13
+if [[ -d ".build" ]] || [[ -f "Package.resolved" ]]; then
+  echo "✅  WhisperKit package metadata found from Module 13"
 else
-  echo "⚠️  Swift 6 not detected. Current: $SWIFT_VERSION"
-  echo "    Module 13 requires Swift 6 for strict concurrency"
+  echo "ℹ️  WhisperKit will be available via Module 13 VoiceInputManager"
 fi
 
-# Test Swift 6 concurrency patterns for Module 13
-cat > /tmp/swift6_concurrency_test.swift << 'EOF'
+# Validate Swift 6 concurrency for food tracking patterns
+cat > /tmp/food_tracking_concurrency_test.swift << 'EOF'
 import Foundation
 #if canImport(SwiftUI)
 import SwiftUI
@@ -103,74 +57,130 @@ import SwiftUI
 @available(iOS 18.0, *)
 @MainActor
 @Observable
-final class TestChatViewModel {
-    private(set) var messages: [String] = []
+final class TestFoodTrackingViewModel {
+    private(set) var parsedFoods: [String] = []
     private(set) var isRecording = false
+    private(set) var nutritionSummary = NutritionSummary()
     
-    func addMessage(_ message: String) async {
-        messages.append(message)
+    func logFood(_ food: String) async {
+        parsedFoods.append(food)
     }
 }
 
 @available(iOS 18.0, *)
-struct TestChatView: View {
-    @State private var viewModel = TestChatViewModel()
+struct TestFoodLoggingView: View {
+    @State private var viewModel = TestFoodTrackingViewModel()
     
     var body: some View {
-        Text("Chat Interface Test")
-            .task {
-                await viewModel.addMessage("Test")
-            }
-    }
-}
-#endif
-EOF
-
-if swift -frontend -typecheck /tmp/swift6_concurrency_test.swift -target arm64-apple-ios18.0 -strict-concurrency=complete 2>/dev/null; then
-  echo "✅  Swift 6 concurrency patterns validated for Module 13"
-else
-  echo "⚠️  Swift 6 concurrency validation failed - check strict concurrency settings"
-fi
-rm -f /tmp/swift6_concurrency_test.swift
-
-###############################################################################
-#  5.  Test @Observable and iOS 18 SwiftUI features
-###############################################################################
-echo "🧪  Testing iOS 18 SwiftUI features for Module 13…"
-cat > /tmp/ios18_swiftui_test.swift << 'EOF'
-import Foundation
-#if canImport(SwiftUI)
-import SwiftUI
-
-@available(iOS 18.0, *)
-@Observable
-final class TestObservableClass {
-    var value: String = "test"
-}
-
-@available(iOS 18.0, *)
-struct TestNavigationView: View {
-    @State private var path = NavigationPath()
-    @State private var observable = TestObservableClass()
-    
-    var body: some View {
-        NavigationStack(path: $path) {
-            Text(observable.value)
-                .navigationDestination(for: String.self) { _ in
-                    Text("Destination")
+        VStack {
+            Text("Food Tracking Test")
+            Button("Log Food") {
+                Task {
+                    await viewModel.logFood("Apple")
                 }
+            }
         }
     }
 }
+
+struct NutritionSummary: Sendable {
+    var calories: Double = 0
+    var protein: Double = 0
+    var carbs: Double = 0
+    var fat: Double = 0
+}
 #endif
 EOF
 
-if swift -frontend -typecheck /tmp/ios18_swiftui_test.swift -target arm64-apple-ios18.0 2>/dev/null; then
-  echo "✅  iOS 18 @Observable and NavigationStack features validated"
+if swift -frontend -typecheck /tmp/food_tracking_concurrency_test.swift -target arm64-apple-ios18.0 -strict-concurrency=complete 2>/dev/null; then
+  echo "✅  Swift 6 concurrency patterns validated for Module 8"
 else
-  echo "⚠️  iOS 18 SwiftUI features validation failed"
+  echo "⚠️  Swift 6 concurrency validation failed - check strict concurrency settings"
 fi
-rm -f /tmp/ios18_swiftui_test.swift
+rm -f /tmp/food_tracking_concurrency_test.swift
+
+###############################################################################
+#  4.  Test iOS 18 Vision framework for barcode scanning
+###############################################################################
+echo "📷  Testing iOS 18 Vision framework for barcode scanning…"
+cat > /tmp/ios18_vision_test.swift << 'EOF'
+import Foundation
+#if canImport(Vision) && canImport(AVFoundation)
+import Vision
+import AVFoundation
+
+@available(iOS 18.0, *)
+class TestBarcodeScanner {
+    func detectBarcodes() -> Bool {
+        let request = VNDetectBarcodesRequest()
+        request.symbologies = [.ean13, .ean8, .upce, .code128]
+        return true
+    }
+}
+
+@available(iOS 18.0, *)
+struct TestCameraSession {
+    let session = AVCaptureSession()
+    
+    func setupCamera() -> Bool {
+        guard let device = AVCaptureDevice.default(for: .video) else { return false }
+        return true
+    }
+}
+#endif
+EOF
+
+if swift -frontend -typecheck /tmp/ios18_vision_test.swift -target arm64-apple-ios18.0 2>/dev/null; then
+  echo "✅  iOS 18 Vision framework and AVFoundation validated"
+else
+  echo "⚠️  iOS 18 Vision framework validation failed"
+fi
+rm -f /tmp/ios18_vision_test.swift
+
+###############################################################################
+#  5.  Test Swift Charts for nutrition visualization
+###############################################################################
+echo "📊  Testing Swift Charts for nutrition visualization…"
+cat > /tmp/swift_charts_test.swift << 'EOF'
+import Foundation
+#if canImport(SwiftUI) && canImport(Charts)
+import SwiftUI
+import Charts
+
+@available(iOS 18.0, *)
+struct TestMacroRingsView: View {
+    let macros = [
+        MacroData(name: "Protein", value: 25, color: .blue),
+        MacroData(name: "Carbs", value: 45, color: .green),
+        MacroData(name: "Fat", value: 30, color: .orange)
+    ]
+    
+    var body: some View {
+        Chart(macros, id: \.name) { macro in
+            SectorMark(
+                angle: .value("Value", macro.value),
+                innerRadius: .ratio(0.6),
+                angularInset: 2
+            )
+            .foregroundStyle(macro.color)
+        }
+    }
+}
+
+struct MacroData {
+    let name: String
+    let value: Double
+    let color: Color
+}
+#endif
+EOF
+
+if swift -frontend -typecheck /tmp/swift_charts_test.swift -target arm64-apple-ios18.0 2>/dev/null; then
+  echo "✅  Swift Charts for nutrition visualization validated"
+else
+  echo "⚠️  Swift Charts validation failed"
+fi
+rm -f /tmp/swift_charts_test.swift
 
 ###############################################################################
 #  6.  Resolve SwiftPM packages in repo (safe to skip in sandboxed env)
@@ -188,14 +198,15 @@ else
 fi
 
 ###############################################################################
-#  7.  Validate Module 13 prerequisites
+#  7.  Validate Module 8 prerequisites and Module 13 integration
 ###############################################################################
-echo "🔍  Validating Module 13 prerequisites…"
+echo "🔍  Validating Module 8 prerequisites and Module 13 integration…"
 
 # Check if required modules are in place
 REQUIRED_MODULES=(
   "AirFit/Modules/Onboarding"
   "AirFit/Modules/Dashboard" 
+  "AirFit/Modules/Chat"
   "AirFit/Data/Models"
   "AirFit/Services/AI"
   "AirFit/Core"
@@ -205,43 +216,112 @@ for module in "${REQUIRED_MODULES[@]}"; do
   if [[ -d "$module" ]]; then
     echo "✅  $module exists"
   else
-    echo "❌  $module missing - required for Module 13"
+    echo "❌  $module missing - required for Module 8"
   fi
 done
 
-# Check for critical files
-CRITICAL_FILES=(
-  "AirFit/Data/Models/ChatMessage.swift"
-  "AirFit/Data/Models/ChatSession.swift"
-  "AirFit/Services/AI/CoachEngine.swift"
-  "AirFit/Core/Models/AI/AIModels.swift"
+# Check for critical Module 13 dependencies
+MODULE_13_FILES=(
+  "AirFit/Core/Services/VoiceInputManager.swift"
+  "AirFit/Core/Services/WhisperModelManager.swift"
+  "AirFit/Modules/Chat/ChatCoordinator.swift"
 )
 
-for file in "${CRITICAL_FILES[@]}"; do
+echo "🎤  Checking Module 13 voice infrastructure…"
+for file in "${MODULE_13_FILES[@]}"; do
+  if [[ -f "$file" ]]; then
+    echo "✅  $file exists (Module 13 dependency)"
+  else
+    echo "❌  $file missing - CRITICAL for Module 8 voice integration"
+  fi
+done
+
+# Check for food tracking data models
+FOOD_DATA_MODELS=(
+  "AirFit/Data/Models/FoodEntry.swift"
+  "AirFit/Data/Models/FoodItem.swift"
+  "AirFit/Services/AI/CoachEngine.swift"
+)
+
+echo "🍎  Checking food tracking data models…"
+for file in "${FOOD_DATA_MODELS[@]}"; do
   if [[ -f "$file" ]]; then
     echo "✅  $file exists"
   else
-    echo "❌  $file missing - required for Module 13"
+    echo "❌  $file missing - required for Module 8"
   fi
 done
 
 ###############################################################################
-#  8.  Summary banner
+#  8.  Test Module 8 specific integrations
+###############################################################################
+echo "🧪  Testing Module 8 specific integration patterns…"
+
+# Test adapter pattern for Module 13 integration
+cat > /tmp/food_voice_adapter_test.swift << 'EOF'
+import Foundation
+
+// Test adapter pattern for Module 13 VoiceInputManager integration
+protocol VoiceInputManagerProtocol {
+    var isRecording: Bool { get }
+    func startRecording() async throws
+    func stopRecording() async -> String?
+}
+
+@MainActor
+final class FoodVoiceAdapter: ObservableObject {
+    private let voiceInputManager: VoiceInputManagerProtocol
+    
+    @Published private(set) var isRecording = false
+    @Published private(set) var transcribedText = ""
+    
+    init(voiceInputManager: VoiceInputManagerProtocol) {
+        self.voiceInputManager = voiceInputManager
+    }
+    
+    func startFoodRecording() async throws {
+        try await voiceInputManager.startRecording()
+        isRecording = true
+    }
+    
+    func stopFoodRecording() async -> String? {
+        let result = await voiceInputManager.stopRecording()
+        isRecording = false
+        return postProcessForFood(result ?? "")
+    }
+    
+    private func postProcessForFood(_ text: String) -> String {
+        // Food-specific transcription improvements
+        return text.replacingOccurrences(of: "won cup", with: "one cup")
+    }
+}
+EOF
+
+if swift -frontend -typecheck /tmp/food_voice_adapter_test.swift -target arm64-apple-ios18.0 -strict-concurrency=complete 2>/dev/null; then
+  echo "✅  Module 8 adapter pattern for Module 13 integration validated"
+else
+  echo "⚠️  Module 8 adapter pattern validation failed"
+fi
+rm -f /tmp/food_voice_adapter_test.swift
+
+###############################################################################
+#  9.  Summary banner
 ###############################################################################
 echo "---------------------------------------------"
 echo "✅  SwiftLint   : $(swiftlint version)"
 echo "✅  SwiftFormat : $(swiftformat --version)"
 echo "✅  Swift       : $(swift --version | head -n1)"
-echo "🎤  WhisperKit  : Dependencies pre-cached (v0.9.0+)"
-echo "📱  iOS Target  : 18.0+ with @Observable support"
+echo "🎤  Module 13   : Voice infrastructure ready (VoiceInputManager)"
+echo "📱  iOS Target  : 18.0+ with Vision & Charts support"
 echo "🧠  Swift 6     : Strict concurrency validated"
 echo "🏁  Startup script completed  $(date -u +%FT%TZ)"
 echo "---------------------------------------------"
-echo "📋  Environment ready for Module 13 (Chat Interface)"
-echo "    • WhisperKit voice infrastructure prepared"
+echo "📋  Environment ready for Module 8 (Food Tracking)"
+echo "    • Module 13 voice infrastructure available"
 echo "    • Swift 6 @Observable patterns validated"
-echo "    • iOS 18+ NavigationStack features ready"
-echo "    • Strict concurrency compliance verified"
+echo "    • iOS 18+ Vision framework for barcode scanning"
+echo "    • Swift Charts for nutrition visualization"
+echo "    • Adapter pattern for voice integration tested"
 echo ""
 echo "⚠️  SANDBOXED ENVIRONMENT LIMITATIONS:"
 echo "    • NO XCODE: Cannot run xcodebuild, simulators, or tests"
@@ -249,10 +329,18 @@ echo "    • NO XCODEGEN: Cannot regenerate project files"
 echo "    • CODE ONLY: Focus on Swift implementation"
 echo "    • VERIFICATION: All builds/tests done externally"
 echo ""
-echo "🎯  Module 13 Focus Areas:"
-echo "    • VoiceInputManager (core voice infrastructure)"
-echo "    • WhisperModelManager (MLX model management)"
-echo "    • ChatViewModel (@Observable with voice integration)"
-echo "    • Real-time streaming chat UI"
-echo "    • Message persistence with SwiftData"
+echo "🎯  Module 8 Focus Areas:"
+echo "    • FoodVoiceAdapter (Module 13 integration)"
+echo "    • FoodTrackingViewModel (@Observable with voice)"
+echo "    • Voice-first food logging UI"
+echo "    • AI-powered food parsing with CoachEngine"
+echo "    • Barcode scanning with Vision framework"
+echo "    • Macro visualization with Swift Charts"
+echo "    • Water tracking and nutrition insights"
+echo ""
+echo "🔗  Module 13 Dependencies:"
+echo "    • VoiceInputManager: Core voice transcription"
+echo "    • WhisperModelManager: MLX model management"
+echo "    • Voice UI patterns: Consistent experience"
+echo "    • Error handling: Unified voice permissions"
 ###############################################################################

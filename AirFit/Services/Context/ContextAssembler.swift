@@ -14,17 +14,13 @@ final class ContextAssembler {
     /// Creates a `HealthContextSnapshot` using data from HealthKit and SwiftData models.
     /// - Parameter modelContext: The `ModelContext` used to fetch app data.
     func assembleSnapshot(modelContext: ModelContext) async -> HealthContextSnapshot {
-        // Ensure we're on the main actor for SwiftData operations
-        await MainActor.run {
-            // All SwiftData operations must happen synchronously on the main actor
-        }
-        
+        // Fetch all async data concurrently
         async let activityMetrics = fetchActivityMetrics()
         async let heartMetrics = fetchHeartHealthMetrics()
         async let bodyMetrics = fetchBodyMetrics()
         async let sleepSession = fetchSleepSession()
 
-        // Fetch subjective data synchronously to avoid data races with ModelContext
+        // Fetch subjective data safely on main actor
         let subjectiveData = await fetchSubjectiveData(using: modelContext)
 
         // Mock data until services are implemented
@@ -96,28 +92,38 @@ final class ContextAssembler {
     }
 
     private func fetchSubjectiveData(using context: ModelContext) async -> SubjectiveData {
-        let todayStart = Calendar.current.startOfDay(for: Date())
-        let predicate = #Predicate<DailyLog> { log in
-            log.date == todayStart
-        }
-        var descriptor = FetchDescriptor<DailyLog>(predicate: predicate)
-        descriptor.fetchLimit = 1
-
-        do {
-            if let log = try context.fetch(descriptor).first {
-                return SubjectiveData(
-                    energyLevel: log.subjectiveEnergyLevel,
-                    mood: nil, // Mood tracking TBD
-                    stress: log.stressLevel,
-                    motivation: nil,
-                    soreness: nil,
-                    notes: log.notes
+        return await MainActor.run {
+            do {
+                let todayStart = Calendar.current.startOfDay(for: Date())
+                
+                // Use a simpler, safer approach to avoid SwiftData predicate issues
+                let descriptor = FetchDescriptor<DailyLog>(
+                    sortBy: [SortDescriptor(\.date, order: .reverse)]
                 )
+                
+                let allLogs = try context.fetch(descriptor)
+                
+                // Filter in memory to avoid complex predicate issues
+                if let todayLog = allLogs.first(where: { log in
+                    Calendar.current.isDate(log.date, inSameDayAs: todayStart)
+                }) {
+                    return SubjectiveData(
+                        energyLevel: todayLog.subjectiveEnergyLevel,
+                        mood: nil, // Mood tracking TBD
+                        stress: todayLog.stressLevel,
+                        motivation: nil,
+                        soreness: nil,
+                        notes: todayLog.notes
+                    )
+                }
+                
+                return SubjectiveData()
+                
+            } catch {
+                AppLogger.error("Failed to fetch today's DailyLog", error: error, category: .data)
+                return SubjectiveData()
             }
-        } catch {
-            AppLogger.error("Failed to fetch today's DailyLog", error: error, category: .data)
         }
-        return SubjectiveData()
     }
 
     private func createMockEnvironmentContext() -> EnvironmentContext {

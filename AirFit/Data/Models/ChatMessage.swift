@@ -4,10 +4,10 @@ import Foundation
 @Model
 final class ChatMessage: @unchecked Sendable {
     // MARK: - Types
-    enum Role: String, CaseIterable, Sendable {
-        case user = "user"
-        case assistant = "assistant"
-        case system = "system"
+    enum MessageType: String, Codable, CaseIterable {
+        case user
+        case assistant
+        case system
     }
 
     // MARK: - Properties
@@ -35,8 +35,8 @@ final class ChatMessage: @unchecked Sendable {
     var attachments: [ChatAttachment] = []
 
     // MARK: - Computed Properties
-    var roleEnum: Role {
-        Role(rawValue: role) ?? .user
+    var roleEnum: MessageType {
+        MessageType(rawValue: role) ?? .user
     }
 
     var hasAttachments: Bool {
@@ -84,7 +84,7 @@ final class ChatMessage: @unchecked Sendable {
     init(
         session: ChatSession,
         content: String,
-        role: Role,
+        role: MessageType,
         attachments: [ChatAttachment] = []
     ) {
         self.id = UUID()

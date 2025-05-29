@@ -106,7 +106,7 @@ final class TestableVoiceInputManager: NSObject {
         
         mockWhisper = MockWhisperKit()
         if let result = modelManager.getTranscriptionResult() {
-            mockWhisper?.stubTranscriptionResult(result)
+            mockWhisper?.stubTranscriptionResult([MockWhisperKit.TranscriptionResult(text: result)])
         }
     }
 
@@ -521,14 +521,12 @@ final class MockWhisperKit: @unchecked Sendable {
     }
     
     // MARK: - Test Stubbing
-    func stubTranscriptionResult(_ text: String) {
-        transcriptionResult = [TranscriptionResult(text: text)]
-        transcriptionError = nil
+    func stubTranscriptionResult(_ result: [TranscriptionResult]) {
+        transcriptionResult = result
     }
     
     func stubTranscriptionError(_ error: Error) {
         transcriptionError = error
-        transcriptionResult = []
     }
     
     func stubReady(_ ready: Bool) {

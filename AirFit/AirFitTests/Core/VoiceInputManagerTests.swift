@@ -116,11 +116,7 @@ final class VoiceInputManagerTests: XCTestCase {
         let errorSut = TestableVoiceInputManager(modelManager: errorModelManager, audioSession: mockAudioSession)
         
         // Allow initialization to complete
-        do {
-            try await Task.sleep(nanoseconds: 200_000_000) // 0.2 seconds
-        } catch {
-            XCTFail("Unexpected error during sleep: \(error)")
-        }
+        try await Task.sleep(nanoseconds: 200_000_000) // 0.2 seconds
         
         // When/Then
         do {

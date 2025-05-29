@@ -18,7 +18,7 @@ final class OnboardingViewModelTests: XCTestCase {
         modelContainer = try ModelContainer.createTestContainer()
         context = modelContainer.mainContext
         mockAIService = MockAIService()
-        mockOnboardingService = MockOnboardingService()
+        mockOnboardingService = MockOnboardingService(modelContext: context)
         mockHealthProvider = MockHealthKitPrefillProvider()
         sut = OnboardingViewModel(
             aiService: mockAIService,

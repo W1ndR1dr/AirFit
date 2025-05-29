@@ -255,8 +255,6 @@ final class OnboardingCoordinator: ObservableObject {
 - [ ] Verify module dependencies are complete
 - [ ] Create feature branch from main
 
-
-
 ## Post-Implementation Checklist (Sandboxed Agent)
 
 ### 1. **Code Creation Verification** ✅ YOU CAN DO

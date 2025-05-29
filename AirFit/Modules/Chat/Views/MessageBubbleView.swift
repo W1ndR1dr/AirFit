@@ -355,7 +355,7 @@ struct MessageBubbleView: View {
 // MARK: - Supporting Views
 
 struct ChatBubbleShape: Shape {
-    let role: ChatMessage.Role
+    let role: ChatMessage.MessageType
     
     func path(in rect: CGRect) -> Path {
         let radius: CGFloat = 18
@@ -511,7 +511,7 @@ struct ChatQuickAction: Identifiable {
 struct MessageContent: View {
     let text: String
     let isStreaming: Bool
-    let role: ChatMessage.Role
+    let role: ChatMessage.MessageType
 
     @State private var displayedCount: Int = 0
 
