@@ -667,3 +667,29 @@ extension CoachEngine {
         }
     }
 }
+
+// MARK: - Shared Instance
+extension CoachEngine {
+    /// Shared singleton used throughout the app. This uses simple placeholder
+    /// services until full implementations are available.
+    static let shared: CoachEngine = {
+        let container = DependencyContainer.shared
+        let context = container.makeModelContext() ?? {
+            do {
+                return try ModelContainer.createTestContainer().mainContext
+            } catch {
+                fatalError("Failed to create ModelContext: \(error)")
+            }
+        }()
+
+        return CoachEngine(
+            localCommandParser: LocalCommandParser(),
+            functionDispatcher: FunctionCallDispatcher(),
+            personaEngine: PersonaEngine(),
+            conversationManager: ConversationManager(modelContext: context),
+            aiService: PlaceholderAIAPIService(),
+            contextAssembler: ContextAssembler(),
+            modelContext: context
+        )
+    }()
+}
