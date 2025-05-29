@@ -444,3 +444,33 @@ Even if you receive a single task prompt (e.g., "Implement Task 13.1.2"), you sh
 - WhisperKit integration is **centralized** in Module 13's VoiceInputManager
 - Module 8 (Food Tracking) will **consume** Module 13's voice services via adapter pattern
 - All voice-related features should be **consistent** across modules
+
+## Codex Agent Optimization Guidelines
+
+### **Programmatic Verification Commands**
+When working on Module 8, you MUST validate your code using these commands at checkpoints:
+
+```bash
+# Swift syntax validation (available in sandbox)
+swift -frontend -typecheck YourFile.swift -target arm64-apple-ios18.0 -strict-concurrency=complete
+
+# File structure verification
+find AirFit/Modules/FoodTracking -name "*.swift" -type f
+
+# Project.yml validation (check file inclusion)
+grep -c "YourFileName" project.yml
+```
+
+### **Code Quality Standards for Agents**
+- **Atomic Changes**: Each task should address ONE specific feature or fix
+- **Self-Documenting**: Include `///` documentation for all public APIs
+- **Test-Ready**: Write code that can be easily unit tested
+- **Protocol-Oriented**: Use dependency injection via protocols
+- **Error Handling**: Always use `async throws` or `Result<Success, Error>`
+
+### **Module 8 Specific Agent Instructions**
+- **Voice Integration**: ALWAYS use FoodVoiceAdapter, NEVER create new WhisperKit implementations
+- **Adapter Pattern**: Wrap Module 13's VoiceInputManager for food-specific functionality
+- **SwiftData**: Use @Model classes with proper relationships and migrations
+- **Concurrency**: All ViewModels must be @MainActor @Observable
+- **Performance**: Voice transcription <2s, AI parsing <5s, UI 60fps

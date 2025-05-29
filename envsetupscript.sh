@@ -305,7 +305,110 @@ fi
 rm -f /tmp/food_voice_adapter_test.swift
 
 ###############################################################################
-#  9.  Summary banner
+#  9.  Codex Agent Readiness Validation
+###############################################################################
+echo "🤖  Validating Codex agent readiness for Module 8…"
+
+# Create agent validation script
+cat > /tmp/codex_validation.sh << 'EOF'
+#!/bin/bash
+echo "🔍  Codex Agent Environment Validation"
+
+# Check critical files for Module 8
+CRITICAL_FILES=(
+  "AGENTS.md"
+  "MODULE8_PROMPT_CHAIN.md" 
+  "AirFit/Docs/Module8.md"
+  "project.yml"
+  ".cursorrules"
+)
+
+echo "📋  Checking critical documentation files…"
+for file in "${CRITICAL_FILES[@]}"; do
+  if [[ -f "$file" ]]; then
+    echo "✅  $file exists"
+  else
+    echo "❌  $file missing - CRITICAL for Codex agents"
+  fi
+done
+
+# Validate project.yml structure for XcodeGen
+echo "🔧  Validating project.yml structure…"
+if grep -q "AirFit:" project.yml && grep -q "sources:" project.yml; then
+  echo "✅  project.yml has valid XcodeGen structure"
+else
+  echo "❌  project.yml structure invalid"
+fi
+
+# Check Module 13 voice infrastructure
+echo "🎤  Validating Module 13 voice infrastructure…"
+if [[ -f "AirFit/Core/Services/VoiceInputManager.swift" ]]; then
+  echo "✅  VoiceInputManager available for Module 8 adapter pattern"
+else
+  echo "❌  VoiceInputManager missing - Module 8 cannot proceed"
+fi
+
+# Validate Swift 6 patterns in existing code
+echo "🧠  Checking Swift 6 concurrency patterns…"
+if grep -r "@MainActor" AirFit/Modules/ >/dev/null 2>&1; then
+  echo "✅  @MainActor patterns found in existing modules"
+else
+  echo "⚠️  No @MainActor patterns found - ensure Swift 6 compliance"
+fi
+
+if grep -r "@Observable" AirFit/Modules/ >/dev/null 2>&1; then
+  echo "✅  @Observable patterns found in existing modules"
+else
+  echo "⚠️  No @Observable patterns found - ensure Swift 6 compliance"
+fi
+
+echo "🎯  Agent readiness validation complete"
+EOF
+
+chmod +x /tmp/codex_validation.sh
+/tmp/codex_validation.sh
+
+# Create agent task template for Module 8
+cat > /tmp/module8_task_template.md << 'EOF'
+# Module 8 Task Template for Codex Agents
+
+## Pre-Task Checklist
+- [ ] Read @MODULE8_PROMPT_CHAIN.md for task context
+- [ ] Review @Module8.md for technical specifications  
+- [ ] Verify Module 13 VoiceInputManager availability
+- [ ] Check existing FoodEntry/FoodItem models
+
+## Implementation Guidelines
+- Use FoodVoiceAdapter pattern (NO new WhisperKit)
+- Follow @MainActor @Observable patterns
+- Include /// documentation for public APIs
+- Write protocol-oriented, testable code
+- Update project.yml with new files
+
+## Validation Commands
+```bash
+# Syntax check
+swift -frontend -typecheck YourFile.swift -target arm64-apple-ios18.0 -strict-concurrency=complete
+
+# File verification  
+find AirFit/Modules/FoodTracking -name "*.swift" -type f
+
+# Project inclusion check
+grep -c "YourFileName" project.yml
+```
+
+## Post-Task Checklist
+- [ ] All files created with proper syntax
+- [ ] project.yml updated with new files
+- [ ] Documentation includes file locations
+- [ ] Code follows adapter pattern for voice
+- [ ] Ready for checkpoint build verification
+EOF
+
+echo "📝  Created Module 8 task template at /tmp/module8_task_template.md"
+
+###############################################################################
+#  10.  Summary banner
 ###############################################################################
 echo "---------------------------------------------"
 echo "✅  SwiftLint   : $(swiftlint version)"
