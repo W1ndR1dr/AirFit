@@ -341,7 +341,7 @@ Module 8 leverages the superior voice infrastructure provided by Module 13 rathe
       // MARK: - Dependencies
       private let modelContext: ModelContext
       private let user: User
-      private let whisperKitService: WhisperKitServiceProtocol
+      private let foodVoiceAdapter: FoodVoiceAdapter  // Changed from whisperKitService
       private let nutritionService: NutritionServiceProtocol
       private let foodDatabaseService: FoodDatabaseServiceProtocol
       private let coachEngine: CoachEngine
@@ -379,7 +379,7 @@ Module 8 leverages the superior voice infrastructure provided by Module 13 rathe
       init(
           modelContext: ModelContext,
           user: User,
-          whisperKitService: WhisperKitServiceProtocol,
+          foodVoiceAdapter: FoodVoiceAdapter,  // Changed from whisperKitService
           nutritionService: NutritionServiceProtocol,
           foodDatabaseService: FoodDatabaseServiceProtocol,
           coachEngine: CoachEngine,
@@ -387,7 +387,7 @@ Module 8 leverages the superior voice infrastructure provided by Module 13 rathe
       ) {
           self.modelContext = modelContext
           self.user = user
-          self.whisperKitService = whisperKitService
+          self.foodVoiceAdapter = foodVoiceAdapter  // Changed from whisperKitService
           self.nutritionService = nutritionService
           self.foodDatabaseService = foodDatabaseService
           self.coachEngine = coachEngine
@@ -397,17 +397,17 @@ Module 8 leverages the superior voice infrastructure provided by Module 13 rathe
       }
       
       private func setupVoiceCallbacks() {
-          if let whisperService = whisperKitService as? WhisperKitService {
-              whisperService.onWaveformUpdate = { [weak self] levels in
-                  Task { @MainActor in
-                      self?.voiceWaveform = levels
-                  }
+          // Use FoodVoiceAdapter callbacks instead of direct WhisperKit access
+          foodVoiceAdapter.onFoodTranscription = { [weak self] text in
+              Task { @MainActor in
+                  self?.transcribedText = text
+                  await self?.processTranscription()
               }
-              
-              whisperService.onPartialTranscription = { [weak self] text in
-                  Task { @MainActor in
-                      self?.transcribedText = text
-                  }
+          }
+          
+          foodVoiceAdapter.onError = { [weak self] error in
+              Task { @MainActor in
+                  self?.error = error
               }
           }
       }
@@ -453,9 +453,9 @@ Module 8 leverages the superior voice infrastructure provided by Module 13 rathe
       func startVoiceInput() async {
           // Request permission if needed
           do {
-              let hasPermission = try await whisperKitService.requestPermission()
+              let hasPermission = try await foodVoiceAdapter.requestPermission()
               guard hasPermission else {
-                  error = TranscriptionError.permissionDenied
+                  error = FoodVoiceError.permissionDenied
                   return
               }
               
@@ -470,32 +470,17 @@ Module 8 leverages the superior voice infrastructure provided by Module 13 rathe
       func startRecording() async {
           guard !isRecording else { return }
           
-          isRecording = true
-          transcribedText = ""
-          transcriptionConfidence = 0
-          voiceWaveform = []
-          
           do {
-              let transcriptionStream = try await whisperKitService.startTranscription()
+              try await foodVoiceAdapter.startRecording()
+              isRecording = true
+              transcribedText = ""
+              transcriptionConfidence = 0
+              voiceWaveform = []
               
-              for try await update in transcriptionStream {
-                  transcribedText = update.text
-                  transcriptionConfidence = update.confidence
-                  
-                  // Provide real-time feedback
-                  if update.isPartial {
-                      // Show partial transcription in UI
-                      continue
-                  }
-                  
-                  if update.isFinal {
-                      await processTranscription()
-                  }
-              }
           } catch {
               self.error = error
               isRecording = false
-              AppLogger.error("Transcription error", error: error, category: .ui)
+              AppLogger.error("Failed to start recording", error: error, category: .ui)
           }
       }
       
@@ -504,8 +489,8 @@ Module 8 leverages the superior voice infrastructure provided by Module 13 rathe
           
           isRecording = false
           
-          // Get final transcription
-          if let finalText = await whisperKitService.stopTranscription() {
+          // Get final transcription from adapter
+          if let finalText = await foodVoiceAdapter.stopRecording() {
               transcribedText = finalText
               transcriptionConfidence = 1.0
               
@@ -893,10 +878,11 @@ Module 8 leverages the superior voice infrastructure provided by Module 13 rathe
       
       init(user: User, modelContext: ModelContext) {
           let coordinator = FoodTrackingCoordinator()
+          let foodVoiceAdapter = FoodVoiceAdapter()  // Create adapter using Module 13's VoiceInputManager
           let viewModel = FoodTrackingViewModel(
               modelContext: modelContext,
               user: user,
-              whisperService: WhisperService(),
+              foodVoiceAdapter: foodVoiceAdapter,  // Use adapter instead of direct service
               nutritionService: NutritionService(modelContext: modelContext),
               foodDatabaseService: FoodDatabaseService(),
               coachEngine: CoachEngine.shared,
