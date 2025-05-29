@@ -39,7 +39,8 @@ struct ChatExporter {
             content = exportAsText(session: session, messages: messages)
         }
 
-        let fileName = "AirFit_Chat_\(session.title ?? "Export")_\(Date().ISO8601Format()).\(format.fileExtension)"
+        let sessionTitle = session.title ?? "Untitled"
+        let fileName = "AirFit_Chat_\(sessionTitle)_\(Date().ISO8601Format()).\(format.fileExtension)"
         let tempURL = FileManager.default.temporaryDirectory.appendingPathComponent(fileName)
         try content.write(to: tempURL, atomically: true, encoding: .utf8)
         return tempURL
@@ -48,19 +49,20 @@ struct ChatExporter {
     private func exportAsJSON(session: ChatSession, messages: [ChatMessage]) throws -> String {
         let exportData = ChatExportData(
             session: SessionExportData(
-                id: session.id?.uuidString ?? "",
+                id: session.id.uuidString,
                 title: session.title ?? "Untitled",
                 createdAt: session.createdAt.ISO8601Format(),
-                messageCount: session.messageCount
+                messageCount: messages.count
             ),
             messages: messages.map { message in
                 MessageExportData(
-                    id: message.id?.uuidString ?? "",
+                    id: message.id.uuidString,
                     content: message.content,
                     role: message.role,
                     timestamp: message.timestamp.ISO8601Format(),
                     attachments: message.attachments.map { attachment in
                         AttachmentExportData(
+                            id: attachment.id.uuidString,
                             type: attachment.type,
                             mimeType: attachment.mimeType ?? "unknown"
                         )
@@ -68,6 +70,7 @@ struct ChatExporter {
                 )
             }
         )
+        
         let encoder = JSONEncoder()
         encoder.outputFormatting = [.prettyPrinted, .sortedKeys]
         let data = try encoder.encode(exportData)
@@ -75,46 +78,55 @@ struct ChatExporter {
     }
 
     private func exportAsMarkdown(session: ChatSession, messages: [ChatMessage]) -> String {
+        let sessionTitle = session.title ?? "Untitled"
         var markdown = """
         # AirFit Chat Export
 
-        **Session:** \(session.title ?? "Untitled")
+        **Session:** \(sessionTitle)
         **Date:** \(session.createdAt.formatted())
         **Messages:** \(messages.count)
 
         ---
         """
+        
         let formatter = DateFormatter()
         formatter.dateStyle = .none
         formatter.timeStyle = .short
+        
         for message in messages {
             let role = message.role == "user" ? "You" : "AI Coach"
             let time = formatter.string(from: message.timestamp)
             markdown += "\n**\(role)** _(\(time))_\n\(message.content)\n"
+            
             if !message.attachments.isEmpty {
                 markdown += "_[Attachments: \(message.attachments.count)]_\n"
             }
         }
+        
         return markdown
     }
 
     private func exportAsText(session: ChatSession, messages: [ChatMessage]) -> String {
+        let sessionTitle = session.title ?? "Untitled"
         var text = """
         AirFit Chat Export
-        Session: \(session.title ?? "Untitled")
+        Session: \(sessionTitle)
         Date: \(session.createdAt.formatted())
         Messages: \(messages.count)
 
         =====================================
         """
+        
         let formatter = DateFormatter()
         formatter.dateStyle = .none
         formatter.timeStyle = .short
+        
         for message in messages {
             let role = message.role == "user" ? "You" : "AI Coach"
             let time = formatter.string(from: message.timestamp)
             text += "\n[\(time)] \(role):\n\(message.content)\n"
         }
+        
         return text
     }
 }
@@ -141,6 +153,7 @@ private struct MessageExportData: Codable {
 }
 
 private struct AttachmentExportData: Codable {
+    let id: String
     let type: String
     let mimeType: String
 }

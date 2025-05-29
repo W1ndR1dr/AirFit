@@ -2,11 +2,7 @@ import Foundation
 
 // MARK: - Core AI Types
 
-<<<<<<< HEAD
 enum AIMessageRole: String, Codable, Sendable {
-=======
-enum MessageRole: String, Codable, Sendable {
->>>>>>> 8e41ef7 (Feat: Add AI models and function registry)
     case system
     case user
     case assistant
@@ -14,36 +10,20 @@ enum MessageRole: String, Codable, Sendable {
     case tool
 }
 
-<<<<<<< HEAD
 struct AIChatMessage: Codable, Sendable {
     let id: UUID
     let role: AIMessageRole
     let content: String
     let name: String?
     let functionCall: AIFunctionCall?
-=======
-struct ChatMessage: Codable, Sendable {
-    let id: UUID
-    let role: MessageRole
-    let content: String
-    let name: String?
-    let functionCall: FunctionCall?
->>>>>>> 8e41ef7 (Feat: Add AI models and function registry)
     let timestamp: Date
 
     init(
         id: UUID = UUID(),
-<<<<<<< HEAD
         role: AIMessageRole,
         content: String,
         name: String? = nil,
         functionCall: AIFunctionCall? = nil,
-=======
-        role: MessageRole,
-        content: String,
-        name: String? = nil,
-        functionCall: FunctionCall? = nil,
->>>>>>> 8e41ef7 (Feat: Add AI models and function registry)
         timestamp: Date = .init()
     ) {
         self.id = id
@@ -57,7 +37,6 @@ struct ChatMessage: Codable, Sendable {
 
 // MARK: - Function Calling
 
-<<<<<<< HEAD
 struct AIFunctionCall: Codable, Sendable {
     let name: String
     let arguments: [String: AIAnyCodable]
@@ -87,48 +66,18 @@ struct AIFunctionParameters: Codable, Sendable {
 }
 
 struct AIParameterDefinition: Codable, Sendable {
-=======
-struct FunctionCall: Codable, Sendable {
-    let name: String
-    let arguments: [String: AnyCodable]
-
-    init(name: String, arguments: [String: Any] = [:]) {
-        self.name = name
-        self.arguments = arguments.mapValues { AnyCodable($0) }
-    }
-}
-
-struct FunctionDefinition: Codable, Sendable {
-    let name: String
-    let description: String
-    let parameters: FunctionParameters
-}
-
-struct FunctionParameters: Codable, Sendable {
-    let type: String = "object"
-    let properties: [String: ParameterDefinition]
-    let required: [String]
-}
-
-struct ParameterDefinition: Codable, Sendable {
->>>>>>> 8e41ef7 (Feat: Add AI models and function registry)
     let type: String
     let description: String
     let enumValues: [String]?
     let minimum: Double?
     let maximum: Double?
-<<<<<<< HEAD
     let items: AIBox<AIParameterDefinition>?
-=======
-    let items: Box<ParameterDefinition>?
->>>>>>> 8e41ef7 (Feat: Add AI models and function registry)
 
     enum CodingKeys: String, CodingKey {
         case type, description
         case enumValues = "enum"
         case minimum, maximum, items
     }
-<<<<<<< HEAD
 
     // MARK: - Convenience Initializers
 
@@ -175,12 +124,6 @@ struct ParameterDefinition: Codable, Sendable {
 
 /// Box type to handle recursive definitions.
 final class AIBox<T: Codable>: Codable, @unchecked Sendable {
-=======
-}
-
-// Box type to handle recursive definitions
-final class Box<T: Codable>: Codable {
->>>>>>> 8e41ef7 (Feat: Add AI models and function registry)
     let value: T
 
     init(_ value: T) {
@@ -199,17 +142,10 @@ final class Box<T: Codable>: Codable {
 // MARK: - AI Request/Response
 
 struct AIRequest: Sendable {
-<<<<<<< HEAD
     let id = UUID()
     let systemPrompt: String
     let messages: [AIChatMessage]
     let functions: [AIFunctionDefinition]?
-=======
-    let id: UUID = UUID()
-    let systemPrompt: String
-    let messages: [ChatMessage]
-    let functions: [FunctionDefinition]?
->>>>>>> 8e41ef7 (Feat: Add AI models and function registry)
     let temperature: Double
     let maxTokens: Int?
     let stream: Bool
@@ -217,13 +153,8 @@ struct AIRequest: Sendable {
 
     init(
         systemPrompt: String,
-<<<<<<< HEAD
         messages: [AIChatMessage],
         functions: [AIFunctionDefinition]? = nil,
-=======
-        messages: [ChatMessage],
-        functions: [FunctionDefinition]? = nil,
->>>>>>> 8e41ef7 (Feat: Add AI models and function registry)
         temperature: Double = 0.7,
         maxTokens: Int? = nil,
         stream: Bool = true,
@@ -242,21 +173,12 @@ struct AIRequest: Sendable {
 enum AIResponse: Sendable {
     case text(String)
     case textDelta(String)
-<<<<<<< HEAD
     case functionCall(AIFunctionCall)
     case error(AIError)
     case done(usage: AITokenUsage?)
 }
 
 struct AITokenUsage: Codable, Sendable {
-=======
-    case functionCall(FunctionCall)
-    case error(AIError)
-    case done(usage: TokenUsage?)
-}
-
-struct TokenUsage: Codable, Sendable {
->>>>>>> 8e41ef7 (Feat: Add AI models and function registry)
     let promptTokens: Int
     let completionTokens: Int
     let totalTokens: Int
@@ -291,7 +213,6 @@ enum AIError: LocalizedError, Sendable {
     }
 }
 
-<<<<<<< HEAD
 // MARK: - AI Provider Configuration
 
 enum AIProvider: String, CaseIterable, Sendable {
@@ -313,11 +234,6 @@ enum AIProvider: String, CaseIterable, Sendable {
 // MARK: - AIAnyCodable for flexible JSON handling
 
 struct AIAnyCodable: Codable, @unchecked Sendable {
-=======
-// MARK: - AnyCodable for flexible JSON handling
-
-struct AnyCodable: Codable {
->>>>>>> 8e41ef7 (Feat: Add AI models and function registry)
     let value: Any
 
     init(_ value: Any) {
@@ -328,7 +244,6 @@ struct AnyCodable: Codable {
         let container = try decoder.singleValueContainer()
 
         if container.decodeNil() {
-<<<<<<< HEAD
             self.value = NSNull()
         } else if let bool = try? container.decode(Bool.self) {
             self.value = bool
@@ -342,21 +257,6 @@ struct AnyCodable: Codable {
             self.value = array.map { $0.value }
         } else if let dictionary = try? container.decode([String: AIAnyCodable].self) {
             self.value = dictionary.mapValues { $0.value }
-=======
-            value = NSNull()
-        } else if let bool = try? container.decode(Bool.self) {
-            value = bool
-        } else if let int = try? container.decode(Int.self) {
-            value = int
-        } else if let double = try? container.decode(Double.self) {
-            value = double
-        } else if let string = try? container.decode(String.self) {
-            value = string
-        } else if let array = try? container.decode([AnyCodable].self) {
-            value = array.map { $0.value }
-        } else if let dictionary = try? container.decode([String: AnyCodable].self) {
-            value = dictionary.mapValues { $0.value }
->>>>>>> 8e41ef7 (Feat: Add AI models and function registry)
         } else {
             throw DecodingError.dataCorruptedError(
                 in: container,
@@ -380,15 +280,9 @@ struct AnyCodable: Codable {
         case let string as String:
             try container.encode(string)
         case let array as [Any]:
-<<<<<<< HEAD
             try container.encode(array.map { AIAnyCodable($0) })
         case let dictionary as [String: Any]:
             try container.encode(dictionary.mapValues { AIAnyCodable($0) })
-=======
-            try container.encode(array.map { AnyCodable($0) })
-        case let dictionary as [String: Any]:
-            try container.encode(dictionary.mapValues { AnyCodable($0) })
->>>>>>> 8e41ef7 (Feat: Add AI models and function registry)
         default:
             throw EncodingError.invalidValue(
                 value,

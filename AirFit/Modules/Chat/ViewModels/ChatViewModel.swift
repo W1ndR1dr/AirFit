@@ -314,19 +314,3 @@ enum ChatError: LocalizedError {
         }
     }
 }
-
-// MARK: - Placeholder Types
-struct ChatExporter {
-    enum ExportFormat {
-        case markdown
-        case json
-        case pdf
-    }
-    
-    func export(session: ChatSession, messages: [ChatMessage], format: ExportFormat) async throws -> URL {
-        // Placeholder implementation
-        let tempURL = FileManager.default.temporaryDirectory.appendingPathComponent("chat_export.md")
-        try "Chat export placeholder".write(to: tempURL, atomically: true, encoding: .utf8)
-        return tempURL
-    }
-}

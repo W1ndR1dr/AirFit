@@ -2,8 +2,7 @@ import Foundation
 @preconcurrency import WhisperKit
 
 @MainActor
-@Observable
-final class WhisperModelManager {
+final class WhisperModelManager: ObservableObject {
     // MARK: - Singleton
     static let shared = WhisperModelManager()
 
@@ -97,11 +96,11 @@ final class WhisperModelManager {
 
     // MARK: - State
     private let modelStorageURL: URL
-    var availableModels: [WhisperModel] = []
-    var downloadedModels: Set<String> = []
-    var isDownloading: [String: Bool] = [:]
-    var downloadProgress: [String: Double] = [:]
-    var activeModel: String = "base"
+    @Published var availableModels: [WhisperModel] = []
+    @Published var downloadedModels: Set<String> = []
+    @Published var isDownloading: [String: Bool] = [:]
+    @Published var downloadProgress: [String: Double] = [:]
+    @Published var activeModel: String = "base"
 
     // MARK: - Initialization
     private init() {
