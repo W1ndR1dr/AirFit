@@ -666,4 +666,19 @@ extension CoachEngine {
             AppLogger.error("Failed to prune conversations", error: error, category: .ai)
         }
     }
+
+    /// Creates a default instance of ``CoachEngine`` with standard dependencies.
+    /// - Parameter modelContext: The ``ModelContext`` to use for storage.
+    /// - Returns: A fully initialized ``CoachEngine``.
+    static func createDefault(modelContext: ModelContext) -> CoachEngine {
+        CoachEngine(
+            localCommandParser: LocalCommandParser(),
+            functionDispatcher: FunctionCallDispatcher(),
+            personaEngine: PersonaEngine(),
+            conversationManager: ConversationManager(modelContext: modelContext),
+            aiService: StubAIAPIService(),
+            contextAssembler: ContextAssembler(),
+            modelContext: modelContext
+        )
+    }
 }
