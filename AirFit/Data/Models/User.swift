@@ -17,6 +17,18 @@ final class User: @unchecked Sendable {
         preferredUnits == "metric"
     }
 
+    var nutritionPreferences: NutritionPreferences {
+        NutritionPreferences(
+            dietaryRestrictions: [],
+            allergies: [],
+            preferredUnits: preferredUnits,
+            calorieGoal: nil,
+            proteinGoal: nil,
+            carbGoal: nil,
+            fatGoal: nil
+        )
+    }
+
     var daysActive: Int {
         Calendar.current.dateComponents([.day], from: createdAt, to: Date()).day ?? 0
     }
@@ -93,4 +105,13 @@ final class User: @unchecked Sendable {
             .filter { $0.completedDate! > cutoffDate }
             .sorted { $0.completedDate! > $1.completedDate! }
     }
+
+    // MARK: - Test Support
+    #if DEBUG
+    static let example = User(
+        email: "john@example.com",
+        name: "John Doe",
+        preferredUnits: "imperial"
+    )
+    #endif
 }

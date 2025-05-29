@@ -1,9 +1,10 @@
 import SwiftUI
+import SwiftData
 import AVFoundation
 
 /// Full screen voice logging interface with real-time waveform visualisation.
 struct VoiceInputView: View {
-    @ObservedObject var viewModel: FoodTrackingViewModel
+    @State var viewModel: FoodTrackingViewModel
     @Environment(\.dismiss) private var dismiss
     @State private var pulseAnimation = false
     @State private var audioLevel: Float = 0
@@ -284,18 +285,9 @@ private struct VoiceWaveformView: View {
 #if DEBUG
 struct VoiceInputView_Previews: PreviewProvider {
     static var previews: some View {
-        let coordinator = FoodTrackingCoordinator()
-        let adapter = FoodVoiceAdapter()
-        let viewModel = FoodTrackingViewModel(
-            modelContext: try! ModelContext(ModelContainer(for: User.self, configurations: ModelConfiguration(isStoredInMemoryOnly: true))),
-            user: User.example,
-            foodVoiceAdapter: adapter,
-            nutritionService: PlaceholderNutritionService(),
-            foodDatabaseService: PlaceholderFoodDatabaseService(),
-            coachEngine: PlaceholderCoachEngine(),
-            coordinator: coordinator
-        )
-        return VoiceInputView(viewModel: viewModel)
+        // Simplified preview without dependencies
+        Text("VoiceInputView Preview")
+            .navigationTitle("Voice Input")
     }
 }
 #endif

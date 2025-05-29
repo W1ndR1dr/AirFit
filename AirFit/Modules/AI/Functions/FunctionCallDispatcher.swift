@@ -83,7 +83,7 @@ protocol WorkoutServiceProtocol: Sendable {
     ) async throws -> WorkoutPlanResult
 }
 
-protocol NutritionServiceProtocol: Sendable {
+protocol AIFunctionNutritionServiceProtocol: Sendable {
     func parseAndLogMeal(
         _ input: String,
         type: String,
@@ -217,7 +217,7 @@ final class FunctionCallDispatcher: @unchecked Sendable {
 
     // MARK: - Dependencies
     private let workoutService: WorkoutServiceProtocol
-    private let nutritionService: NutritionServiceProtocol
+    private let nutritionService: AIFunctionNutritionServiceProtocol
     private let analyticsService: AnalyticsServiceProtocol
     private let goalService: GoalServiceProtocol
     private let educationService: EducationServiceProtocol
@@ -255,7 +255,7 @@ final class FunctionCallDispatcher: @unchecked Sendable {
     // MARK: - Initialization
     init(
         workoutService: WorkoutServiceProtocol = MockWorkoutService(),
-        nutritionService: NutritionServiceProtocol = MockNutritionService(),
+        nutritionService: AIFunctionNutritionServiceProtocol = MockNutritionService(),
         analyticsService: AnalyticsServiceProtocol = MockAnalyticsService(),
         goalService: GoalServiceProtocol = MockGoalService(),
         educationService: EducationServiceProtocol = MockEducationService()

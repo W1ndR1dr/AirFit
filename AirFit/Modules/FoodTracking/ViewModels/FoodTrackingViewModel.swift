@@ -35,13 +35,28 @@ final class FoodTrackingViewModel {
 
     // Today's data
     private(set) var todaysFoodEntries: [FoodEntry] = []
-    private(set) var todaysNutrition = NutritionSummary()
+    private(set) var todaysNutrition = FoodNutritionSummary()
     private(set) var waterIntakeML: Double = 0
 
     // Search and suggestions
     private(set) var searchResults: [FoodDatabaseItem] = []
     private(set) var recentFoods: [FoodItem] = []
     private(set) var suggestedFoods: [FoodItem] = []
+
+    // Error handling
+    private(set) var currentError: Error?
+    
+    var hasError: Bool {
+        currentError != nil
+    }
+    
+    func clearError() {
+        currentError = nil
+    }
+    
+    private func setError(_ error: Error) {
+        currentError = error
+    }
 
     // MARK: - Initialization
     init(
@@ -107,8 +122,8 @@ final class FoodTrackingViewModel {
             suggestedFoods = try await generateSmartSuggestions()
 
         } catch {
-            self.error = error
-            AppLogger.error("Failed to load today's data", error: error, category: .data)
+            AppLogger.error("Failed to load today's data: \(error)")
+            setError(error)
         }
     }
 
@@ -124,8 +139,8 @@ final class FoodTrackingViewModel {
             coordinator.showSheet(.voiceInput)
 
         } catch {
-            self.error = error
-            AppLogger.error("Failed to start voice input", error: error, category: .ui)
+            AppLogger.error("Failed to start voice input: \(error)")
+            setError(error)
         }
     }
 
@@ -140,9 +155,9 @@ final class FoodTrackingViewModel {
             voiceWaveform = []
 
         } catch {
-            self.error = error
+            setError(error)
             isRecording = false
-            AppLogger.error("Failed to start recording", error: error, category: .ui)
+            AppLogger.error("Failed to start recording: \(error)")
         }
     }
 
@@ -191,12 +206,12 @@ final class FoodTrackingViewModel {
                 coordinator.dismiss()
                 coordinator.showFullScreenCover(.confirmation(parsedItems))
             } else {
-                error = FoodTrackingError.noFoodsDetected
+                setError(FoodTrackingError.noFoodsDetected)
             }
 
         } catch {
-            self.error = error
-            AppLogger.error("Failed to process transcription", error: error, category: .ai)
+            setError(error)
+            AppLogger.error("Failed to process transcription: \(error)")
         }
     }
 
@@ -256,10 +271,10 @@ final class FoodTrackingViewModel {
                 coordinator.dismiss()
                 coordinator.showFullScreenCover(.confirmation(parsedItems))
             } else {
-                error = FoodTrackingError.barcodeNotFound
+                setError(FoodTrackingError.barcodeNotFound)
             }
         } catch {
-            self.error = error
+            setError(error)
         }
     }
 
@@ -348,8 +363,8 @@ final class FoodTrackingViewModel {
             AppLogger.info("Saved \(items.count) food items", category: .data)
 
         } catch {
-            self.error = error
-            AppLogger.error("Failed to save food items", error: error, category: .data)
+            AppLogger.error("Failed to save food entry: \(error)")
+            setError(error)
         }
     }
 
@@ -369,8 +384,8 @@ final class FoodTrackingViewModel {
             HapticManager.impact(.light)
 
         } catch {
-            self.error = error
-            AppLogger.error("Failed to log water", error: error, category: .data)
+            setError(error)
+            AppLogger.error("Failed to log water: \(error)")
         }
     }
 
@@ -408,8 +423,8 @@ final class FoodTrackingViewModel {
             await loadTodaysData()
 
         } catch {
-            self.error = error
-            AppLogger.error("Failed to delete food entry", error: error, category: .data)
+            setError(error)
+            AppLogger.error("Failed to delete food entry: \(error)")
         }
     }
 
@@ -425,9 +440,19 @@ final class FoodTrackingViewModel {
             await loadTodaysData()
 
         } catch {
-            self.error = error
-            AppLogger.error("Failed to duplicate food entry", error: error, category: .data)
+            setError(error)
+            AppLogger.error("Failed to duplicate food entry: \(error)")
         }
+    }
+
+    // MARK: - Public Methods
+    
+    func setSelectedMealType(_ mealType: MealType) {
+        selectedMealType = mealType
+    }
+    
+    func setParsedItems(_ items: [ParsedFoodItem]) {
+        parsedItems = items
     }
 }
 
@@ -450,7 +475,7 @@ struct ParsedFoodItem: Identifiable, Sendable {
     var confidence: Float
 }
 
-struct NutritionSummary: Sendable {
+struct FoodNutritionSummary: Sendable {
     var calories: Double = 0
     var protein: Double = 0
     var carbs: Double = 0

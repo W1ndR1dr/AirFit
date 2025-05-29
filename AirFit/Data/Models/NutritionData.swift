@@ -66,7 +66,7 @@ final class NutritionData: @unchecked Sendable {
 
     // MARK: - Methods
     func updateActuals() {
-        actualCalories = foodEntries.reduce(0) { $0 + $1.totalCalories }
+        actualCalories = foodEntries.reduce(0) { $0 + Double($1.totalCalories) }
         actualProtein = foodEntries.reduce(0) { $0 + $1.totalProtein }
         actualCarbs = foodEntries.reduce(0) { $0 + $1.totalCarbs }
         actualFat = foodEntries.reduce(0) { $0 + $1.totalFat }

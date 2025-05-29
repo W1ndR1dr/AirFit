@@ -4,8 +4,8 @@ import SwiftData
 
 /// Main food logging interface with voice-first workflow and macro visualization.
 struct FoodLoggingView: View {
-    @StateObject private var viewModel: FoodTrackingViewModel
-    @StateObject private var coordinator: FoodTrackingCoordinator
+    @State private var viewModel: FoodTrackingViewModel
+    @State private var coordinator: FoodTrackingCoordinator
     @Environment(\.dismiss) private var dismiss
 
     init(user: User, modelContext: ModelContext) {
@@ -20,8 +20,8 @@ struct FoodLoggingView: View {
             coachEngine: CoachEngine.shared,
             coordinator: coordinator
         )
-        _viewModel = StateObject(wrappedValue: vm)
-        _coordinator = StateObject(wrappedValue: coordinator)
+        self.viewModel = vm
+        self.coordinator = coordinator
     }
 
     var body: some View {
@@ -68,10 +68,10 @@ struct FoodLoggingView: View {
             .refreshable {
                 await viewModel.loadTodaysData()
             }
-            .alert("Error", isPresented: .constant(viewModel.error != nil)) {
-                Button("OK") { viewModel.error = nil }
+            .alert("Error", isPresented: .constant(viewModel.hasError)) {
+                Button("OK") { viewModel.clearError() }
             } message: {
-                if let error = viewModel.error {
+                if let error = viewModel.currentError {
                     Text(error.localizedDescription)
                 }
             }
@@ -113,13 +113,47 @@ struct FoodLoggingView: View {
                     NavigationLink(value: FoodTrackingDestination.insights) {
                         Text("Details")
                             .font(.subheadline)
-                            .foregroundStyle(.accent)
+                            .foregroundStyle(AppColors.accent)
                     }
                 }
-                MacroRingsView(
-                    nutrition: viewModel.todaysNutrition,
-                    style: .compact
-                )
+                VStack {
+                    Text("Macro Rings Placeholder")
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                    HStack {
+                        VStack {
+                            Text("Calories")
+                            Text("\(Int(viewModel.todaysNutrition.calories))")
+                                .font(.title2)
+                                .fontWeight(.bold)
+                        }
+                        Spacer()
+                        VStack {
+                            Text("Protein")
+                            Text("\(Int(viewModel.todaysNutrition.protein))g")
+                                .font(.title2)
+                                .fontWeight(.bold)
+                        }
+                        Spacer()
+                        VStack {
+                            Text("Carbs")
+                            Text("\(Int(viewModel.todaysNutrition.carbs))g")
+                                .font(.title2)
+                                .fontWeight(.bold)
+                        }
+                        Spacer()
+                        VStack {
+                            Text("Fat")
+                            Text("\(Int(viewModel.todaysNutrition.fat))g")
+                                .font(.title2)
+                                .fontWeight(.bold)
+                        }
+                    }
+                }
+                .padding()
+                .background(AppColors.backgroundSecondary)
+                .clipShape(RoundedRectangle(cornerRadius: AppSpacing.small))
+                
                 HStack {
                     Image(systemName: "flame.fill")
                         .foregroundStyle(.orange)
@@ -143,7 +177,7 @@ struct FoodLoggingView: View {
             SectionHeader(title: "Quick Add", icon: "plus.circle.fill")
             ScrollView(.horizontal, showsIndicators: false) {
                 HStack(spacing: AppSpacing.medium) {
-                    QuickActionButton(title: "Voice", icon: "mic.fill", color: .accent) {
+                    QuickActionButton(title: "Voice", icon: "mic.fill", color: AppColors.accent) {
                         Task { await viewModel.startVoiceInput() }
                     }
                     QuickActionButton(title: "Barcode", icon: "barcode.viewfinder", color: .orange) {
@@ -173,7 +207,7 @@ struct FoodLoggingView: View {
                         mealType: mealType,
                         entries: viewModel.todaysFoodEntries.filter { $0.mealType == mealType.rawValue },
                         onAdd: {
-                            viewModel.selectedMealType = mealType
+                            viewModel.setSelectedMealType(mealType)
                             Task { await viewModel.startVoiceInput() }
                         },
                         onTapEntry: { entry in
@@ -230,7 +264,7 @@ struct FoodLoggingView: View {
             fatGrams: food.fatGrams,
             confidence: 1.0
         )
-        viewModel.parsedItems = [parsed]
+        viewModel.setParsedItems([parsed])
         coordinator.showFullScreenCover(.confirmation([parsed]))
     }
 
@@ -239,15 +273,15 @@ struct FoodLoggingView: View {
     private func destinationView(for destination: FoodTrackingDestination) -> some View {
         switch destination {
         case .history:
-            FoodHistoryView(viewModel: viewModel)
+            PlaceholderView(title: "Food History", subtitle: "Coming in Phase 3")
         case .insights:
-            NutritionInsightsView(viewModel: viewModel)
+            PlaceholderView(title: "Nutrition Insights", subtitle: "Coming in Phase 3")
         case .favorites:
-            FavoriteFoodsView(viewModel: viewModel)
+            PlaceholderView(title: "Favorite Foods", subtitle: "Coming in Phase 3")
         case .recipes:
-            RecipesView(viewModel: viewModel)
+            PlaceholderView(title: "Recipes", subtitle: "Coming in Phase 3")
         case .mealPlan:
-            MealPlanView(viewModel: viewModel)
+            PlaceholderView(title: "Meal Plan", subtitle: "Coming in Phase 3")
         }
     }
 
@@ -257,15 +291,15 @@ struct FoodLoggingView: View {
         case .voiceInput:
             VoiceInputView(viewModel: viewModel)
         case .barcodeScanner:
-            BarcodeScannerView(viewModel: viewModel)
+            PlaceholderView(title: "Barcode Scanner", subtitle: "Coming in Phase 4")
         case .foodSearch:
-            NutritionSearchView(viewModel: viewModel)
+            PlaceholderView(title: "Food Search", subtitle: "Coming in Phase 3")
         case .manualEntry:
-            ManualFoodEntryView(viewModel: viewModel)
+            PlaceholderView(title: "Manual Entry", subtitle: "Coming in Phase 3")
         case .waterTracking:
-            WaterTrackingView(viewModel: viewModel)
+            PlaceholderView(title: "Water Tracking", subtitle: "Coming in Phase 3")
         case .mealDetails(let entry):
-            MealDetailsView(entry: entry, viewModel: viewModel)
+            PlaceholderView(title: "Meal Details", subtitle: "Entry: \(entry.mealDisplayName)")
         }
     }
 
@@ -273,9 +307,9 @@ struct FoodLoggingView: View {
     private func fullScreenView(for cover: FoodTrackingCoordinator.FoodTrackingFullScreenCover) -> some View {
         switch cover {
         case .camera:
-            CameraFoodScanView(viewModel: viewModel)
+            PlaceholderView(title: "Camera Food Scan", subtitle: "Coming in Phase 4")
         case .confirmation(let items):
-            FoodConfirmationView(items: items, viewModel: viewModel)
+            PlaceholderView(title: "Food Confirmation", subtitle: "\(items.count) items to confirm")
         }
     }
 }
@@ -328,16 +362,16 @@ private struct MealCard: View {
                     }
                     Button(action: onAdd) {
                         Image(systemName: "plus.circle.fill")
-                            .foregroundStyle(.accent)
+                            .foregroundStyle(AppColors.accent)
                     }
                 }
                 if !entries.isEmpty {
                     Divider()
                     VStack(alignment: .leading, spacing: AppSpacing.xSmall) {
-                        ForEach(entries) { entry in
+                        ForEach(entries, id: \.id) { entry in
                             Button(action: { onTapEntry(entry) }) {
                                 HStack {
-                                    Text(entry.displayName)
+                                    Text(entry.mealDisplayName)
                                         .font(.callout)
                                         .foregroundStyle(.primary)
                                     Spacer()
@@ -381,6 +415,34 @@ private struct SuggestionCard: View {
     }
 }
 
+// MARK: - Placeholder View
+private struct PlaceholderView: View {
+    let title: String
+    let subtitle: String
+    
+    var body: some View {
+        VStack(spacing: AppSpacing.large) {
+            Image(systemName: "fork.knife.circle")
+                .font(.system(size: 60))
+                .foregroundStyle(.secondary)
+            
+            VStack(spacing: AppSpacing.small) {
+                Text(title)
+                    .font(.title2)
+                    .fontWeight(.semibold)
+                
+                Text(subtitle)
+                    .font(.body)
+                    .foregroundStyle(.secondary)
+                    .multilineTextAlignment(.center)
+            }
+        }
+        .padding()
+        .navigationTitle(title)
+        .navigationBarTitleDisplayMode(.large)
+    }
+}
+
 // MARK: - Helper Extensions
 private extension MealType {
     var icon: String {
@@ -409,7 +471,7 @@ private extension FoodItem {
 #Preview {
     let container = try! ModelContainer(for: User.self, configurations: ModelConfiguration(isStoredInMemoryOnly: true))
     let context = container.mainContext
-    let user = User(name: "Preview")
+    let user = User.example
     context.insert(user)
     return FoodLoggingView(user: user, modelContext: context)
         .modelContainer(container)

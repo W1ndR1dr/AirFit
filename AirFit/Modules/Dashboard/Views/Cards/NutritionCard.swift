@@ -200,6 +200,6 @@ private struct AnimatedRing: View {
         summary: NutritionSummary(
             calories: 850, protein: 40, carbs: 120, fat: 25, fiber: 10, waterLiters: 1.2, meals: [:]
         ),
-        targets: .default
+        targets: NutritionTargets.default
     )
 }

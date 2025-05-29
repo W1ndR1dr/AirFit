@@ -82,6 +82,7 @@ targets:
       - AirFit/Core/Models/HealthContextSnapshot.swift
       - AirFit/Core/Models/WorkoutBuilderData.swift
       - AirFit/Core/Models/AI/AIModels.swift
+      - AirFit/Core/Models/NutritionPreferences.swift
       - AirFit/Core/Extensions/String+Extensions.swift
       - AirFit/Core/Extensions/View+Extensions.swift
       - AirFit/Core/Extensions/Color+Extensions.swift
@@ -164,6 +165,8 @@ targets:
       - AirFit/Modules/Chat/Views/ChatView.swift
       - AirFit/Modules/FoodTracking/Services/FoodVoiceAdapter.swift
       - AirFit/Modules/FoodTracking/Services/FoodVoiceServiceProtocol.swift
+      - AirFit/Modules/FoodTracking/Services/NutritionService.swift
+      - AirFit/Modules/FoodTracking/Services/FoodDatabaseService.swift
       - AirFit/Modules/FoodTracking/FoodTrackingCoordinator.swift
       - AirFit/Modules/FoodTracking/ViewModels/FoodTrackingViewModel.swift
       - AirFit/Modules/FoodTracking/Views/VoiceInputView.swift

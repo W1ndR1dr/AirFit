@@ -25,8 +25,8 @@ final class FoodEntry: @unchecked Sendable {
     var user: User?
 
     // MARK: - Computed Properties
-    var totalCalories: Double {
-        items.reduce(0) { $0 + ($1.calories ?? 0) }
+    var totalCalories: Int {
+        Int(items.reduce(0) { $0 + ($1.calories ?? 0) })
     }
 
     var totalProtein: Double {
@@ -49,6 +49,16 @@ final class FoodEntry: @unchecked Sendable {
         !items.isEmpty && items.allSatisfy { item in
             item.calories != nil && item.proteinGrams != nil &&
                 item.carbGrams != nil && item.fatGrams != nil
+        }
+    }
+
+    var mealDisplayName: String {
+        if items.count == 1 {
+            return items.first?.name ?? "Unknown Food"
+        } else if items.count > 1 {
+            return "\(items.count) items"
+        } else {
+            return mealTypeEnum?.displayName ?? "Empty Meal"
         }
     }
 
