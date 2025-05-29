@@ -17,7 +17,7 @@ struct FoodLoggingView: View {
             foodVoiceAdapter: adapter,
             nutritionService: NutritionService(modelContext: modelContext),
             foodDatabaseService: FoodDatabaseService(),
-            coachEngine: CoachEngine.shared,
+            coachEngine: CoachEngine.createDefault(modelContext: modelContext),
             coordinator: coordinator
         )
         self.viewModel = vm

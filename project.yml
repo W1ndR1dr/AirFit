@@ -115,6 +115,7 @@ targets:
       - AirFit/Services/AI/AIAPIServiceProtocol.swift
       - AirFit/Services/AI/AIServiceProtocol.swift
       - AirFit/Services/AI/MockAIService.swift
+      - AirFit/Services/AI/StubAIAPIService.swift
       - AirFit/Modules/AI/Parsing/LocalCommandParser.swift
       - AirFit/Modules/AI/Functions/FunctionRegistry.swift
       - AirFit/Modules/AI/Functions/WorkoutFunctions.swift
