@@ -235,4 +235,17 @@ final class WhisperModelManager {
         let path = modelStorageURL.appendingPathComponent(modelId)
         return FileManager.default.fileExists(atPath: path.path) ? path : nil
     }
+
+    // MARK: - Cache Management
+    func clearUnusedModels() throws {
+        let unused = downloadedModels.filter { $0 != activeModel }
+        for id in unused {
+            try deleteModel(id)
+        }
+        // Remove temporary WhisperKit cache directory
+        if let cacheDir = FileManager.default.urls(for: .cachesDirectory, in: .userDomainMask).first?.appendingPathComponent("WhisperKit"),
+           FileManager.default.fileExists(atPath: cacheDir.path) {
+            try? FileManager.default.removeItem(at: cacheDir)
+        }
+    }
 }

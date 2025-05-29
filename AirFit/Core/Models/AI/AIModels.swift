@@ -2,7 +2,7 @@ import Foundation
 
 // MARK: - Core AI Types
 
-enum AIMessageRole: String, Codable, Sendable {
+enum MessageRole: String, Codable, Sendable {
     case system
     case user
     case assistant
@@ -10,20 +10,20 @@ enum AIMessageRole: String, Codable, Sendable {
     case tool
 }
 
-struct AIChatMessage: Codable, Sendable {
+struct ChatMessage: Codable, Sendable {
     let id: UUID
-    let role: AIMessageRole
+    let role: MessageRole
     let content: String
     let name: String?
-    let functionCall: AIFunctionCall?
+    let functionCall: FunctionCall?
     let timestamp: Date
 
     init(
         id: UUID = UUID(),
-        role: AIMessageRole,
+        role: MessageRole,
         content: String,
         name: String? = nil,
-        functionCall: AIFunctionCall? = nil,
+        functionCall: FunctionCall? = nil,
         timestamp: Date = .init()
     ) {
         self.id = id
@@ -37,93 +37,45 @@ struct AIChatMessage: Codable, Sendable {
 
 // MARK: - Function Calling
 
-struct AIFunctionCall: Codable, Sendable {
+struct FunctionCall: Codable, Sendable {
     let name: String
-    let arguments: [String: AIAnyCodable]
+    let arguments: [String: AnyCodable]
 
     init(name: String, arguments: [String: Any] = [:]) {
         self.name = name
-        self.arguments = arguments.mapValues { AIAnyCodable($0) }
+        self.arguments = arguments.mapValues { AnyCodable($0) }
     }
 }
 
-struct AIFunctionDefinition: Codable, Sendable {
+struct FunctionDefinition: Codable, Sendable {
     let name: String
     let description: String
-    let parameters: AIFunctionParameters
+    let parameters: FunctionParameters
 }
 
-struct AIFunctionParameters: Codable, Sendable {
-    let type: String
-    let properties: [String: AIParameterDefinition]
+struct FunctionParameters: Codable, Sendable {
+    let type: String = "object"
+    let properties: [String: ParameterDefinition]
     let required: [String]
-
-    init(properties: [String: AIParameterDefinition], required: [String] = []) {
-        self.type = "object"
-        self.properties = properties
-        self.required = required
-    }
 }
 
-struct AIParameterDefinition: Codable, Sendable {
+struct ParameterDefinition: Codable, Sendable {
     let type: String
     let description: String
     let enumValues: [String]?
     let minimum: Double?
     let maximum: Double?
-    let items: AIBox<AIParameterDefinition>?
+    let items: Box<ParameterDefinition>?
 
     enum CodingKeys: String, CodingKey {
         case type, description
         case enumValues = "enum"
         case minimum, maximum, items
     }
-
-    // MARK: - Convenience Initializers
-
-    /// String parameter with enum values
-    init(type: String, description: String, enumValues: [String]) {
-        self.type = type
-        self.description = description
-        self.enumValues = enumValues
-        self.minimum = nil
-        self.maximum = nil
-        self.items = nil
-    }
-
-    /// Numeric parameter with min/max constraints
-    init(type: String, description: String, minimum: Double? = nil, maximum: Double? = nil) {
-        self.type = type
-        self.description = description
-        self.enumValues = nil
-        self.minimum = minimum
-        self.maximum = maximum
-        self.items = nil
-    }
-
-    /// Array parameter with item definition
-    init(type: String, description: String, items: AIBox<AIParameterDefinition>) {
-        self.type = type
-        self.description = description
-        self.enumValues = nil
-        self.minimum = nil
-        self.maximum = nil
-        self.items = items
-    }
-
-    /// Simple parameter (string, boolean, etc.)
-    init(type: String, description: String) {
-        self.type = type
-        self.description = description
-        self.enumValues = nil
-        self.minimum = nil
-        self.maximum = nil
-        self.items = nil
-    }
 }
 
-/// Box type to handle recursive definitions.
-final class AIBox<T: Codable>: Codable, @unchecked Sendable {
+// Box type to handle recursive definitions
+final class Box<T: Codable>: Codable {
     let value: T
 
     init(_ value: T) {
@@ -142,10 +94,10 @@ final class AIBox<T: Codable>: Codable, @unchecked Sendable {
 // MARK: - AI Request/Response
 
 struct AIRequest: Sendable {
-    let id = UUID()
+    let id: UUID = UUID()
     let systemPrompt: String
-    let messages: [AIChatMessage]
-    let functions: [AIFunctionDefinition]?
+    let messages: [ChatMessage]
+    let functions: [FunctionDefinition]?
     let temperature: Double
     let maxTokens: Int?
     let stream: Bool
@@ -153,8 +105,8 @@ struct AIRequest: Sendable {
 
     init(
         systemPrompt: String,
-        messages: [AIChatMessage],
-        functions: [AIFunctionDefinition]? = nil,
+        messages: [ChatMessage],
+        functions: [FunctionDefinition]? = nil,
         temperature: Double = 0.7,
         maxTokens: Int? = nil,
         stream: Bool = true,
@@ -173,12 +125,12 @@ struct AIRequest: Sendable {
 enum AIResponse: Sendable {
     case text(String)
     case textDelta(String)
-    case functionCall(AIFunctionCall)
+    case functionCall(FunctionCall)
     case error(AIError)
-    case done(usage: AITokenUsage?)
+    case done(usage: TokenUsage?)
 }
 
-struct AITokenUsage: Codable, Sendable {
+struct TokenUsage: Codable, Sendable {
     let promptTokens: Int
     let completionTokens: Int
     let totalTokens: Int
@@ -213,27 +165,9 @@ enum AIError: LocalizedError, Sendable {
     }
 }
 
-// MARK: - AI Provider Configuration
+// MARK: - AnyCodable for flexible JSON handling
 
-enum AIProvider: String, CaseIterable, Sendable {
-    case openAI
-    case gemini
-    case anthropic
-    case openRouter
-
-    var baseURL: String {
-        switch self {
-        case .openAI: return "https://api.openai.com/v1"
-        case .gemini: return "https://generativelanguage.googleapis.com"
-        case .anthropic: return "https://api.anthropic.com/v1"
-        case .openRouter: return "https://openrouter.ai/api/v1"
-        }
-    }
-}
-
-// MARK: - AIAnyCodable for flexible JSON handling
-
-struct AIAnyCodable: Codable, @unchecked Sendable {
+struct AnyCodable: Codable {
     let value: Any
 
     init(_ value: Any) {
@@ -244,19 +178,19 @@ struct AIAnyCodable: Codable, @unchecked Sendable {
         let container = try decoder.singleValueContainer()
 
         if container.decodeNil() {
-            self.value = NSNull()
+            value = NSNull()
         } else if let bool = try? container.decode(Bool.self) {
-            self.value = bool
+            value = bool
         } else if let int = try? container.decode(Int.self) {
-            self.value = int
+            value = int
         } else if let double = try? container.decode(Double.self) {
-            self.value = double
+            value = double
         } else if let string = try? container.decode(String.self) {
-            self.value = string
-        } else if let array = try? container.decode([AIAnyCodable].self) {
-            self.value = array.map { $0.value }
-        } else if let dictionary = try? container.decode([String: AIAnyCodable].self) {
-            self.value = dictionary.mapValues { $0.value }
+            value = string
+        } else if let array = try? container.decode([AnyCodable].self) {
+            value = array.map { $0.value }
+        } else if let dictionary = try? container.decode([String: AnyCodable].self) {
+            value = dictionary.mapValues { $0.value }
         } else {
             throw DecodingError.dataCorruptedError(
                 in: container,
@@ -280,9 +214,9 @@ struct AIAnyCodable: Codable, @unchecked Sendable {
         case let string as String:
             try container.encode(string)
         case let array as [Any]:
-            try container.encode(array.map { AIAnyCodable($0) })
+            try container.encode(array.map { AnyCodable($0) })
         case let dictionary as [String: Any]:
-            try container.encode(dictionary.mapValues { AIAnyCodable($0) })
+            try container.encode(dictionary.mapValues { AnyCodable($0) })
         default:
             throw EncodingError.invalidValue(
                 value,

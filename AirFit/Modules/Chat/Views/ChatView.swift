@@ -263,9 +263,6 @@ private struct ChatExportView: View {
     var body: some View { Text("Export") }
 }
 
-private struct VoiceSettingsView: View {
-    var body: some View { Text("Voice Settings") }
-}
 
 private struct ImagePickerView: View {
     var onPick: (UIImage) -> Void
