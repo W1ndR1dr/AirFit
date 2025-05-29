@@ -160,6 +160,8 @@ struct ChatView: View {
             ChatSearchView(viewModel: viewModel)
         case .sessionSettings:
             SessionSettingsView(session: viewModel.currentSession)
+        case .progressView:
+            ProgressView("Loading Progress...")
         }
     }
 
@@ -192,6 +194,15 @@ struct ChatView: View {
             Task { await viewModel.regenerateResponse(for: message) }
         case .showDetails:
             coordinator.navigateTo(.messageDetail(messageId: message.id.uuidString))
+        case .scheduleWorkout:
+            // Handle workout scheduling
+            Task { await viewModel.scheduleWorkout(from: message) }
+        case .viewProgress:
+            // Handle progress viewing
+            coordinator.navigateTo(.progressView)
+        case .setReminder:
+            // Handle reminder setting
+            Task { await viewModel.setReminder(from: message) }
         }
     }
 

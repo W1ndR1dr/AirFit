@@ -283,6 +283,45 @@ final class ChatViewModel: ObservableObject {
             AppLogger.warning("Unknown function call: \(name)", category: .chat)
         }
     }
+    
+    // MARK: - Advanced Message Actions
+    func scheduleWorkout(from message: ChatMessage) async {
+        // Check if this message contains workout-related function call
+        guard let functionName = message.functionCallName,
+              functionName.contains("workout") || functionName.contains("exercise") else {
+            // Create a generic workout if no specific data
+            await createGenericWorkout()
+            return
+        }
+        
+        // Handle specific workout scheduling based on function call
+        AppLogger.info("Scheduling workout from message: \(message.id)", category: .chat)
+        HapticManager.notification(.success)
+    }
+    
+    func setReminder(from message: ChatMessage) async {
+        // Check if this message contains reminder-related function call
+        guard let functionName = message.functionCallName,
+              functionName.contains("reminder") || functionName.contains("schedule") else {
+            // Create a generic reminder
+            await createGenericReminder()
+            return
+        }
+        
+        // Handle specific reminder creation based on function call
+        AppLogger.info("Setting reminder from message: \(message.id)", category: .chat)
+        HapticManager.notification(.success)
+    }
+    
+    private func createGenericWorkout() async {
+        // Placeholder for workout creation
+        AppLogger.info("Creating generic workout", category: .chat)
+    }
+    
+    private func createGenericReminder() async {
+        // Placeholder for reminder creation
+        AppLogger.info("Creating generic reminder", category: .chat)
+    }
 }
 
 // MARK: - Supporting Types

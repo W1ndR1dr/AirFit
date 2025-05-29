@@ -69,4 +69,5 @@ enum ChatDestination: Hashable {
     case messageDetail(messageId: String)
     case searchResults
     case sessionSettings
+    case progressView
 }

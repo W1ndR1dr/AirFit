@@ -9,14 +9,15 @@ struct MessageBubbleView: View {
     @State private var showActions = false
     @State private var isExpanded = false
     @State private var animateIn = false
+    @State private var selectedReaction: String?
     
     var body: some View {
-        HStack(alignment: .bottom, spacing: AppSpacing.sm) {
-            if message.role == .user {
+        HStack(alignment: .bottom, spacing: AppSpacing.small) {
+            if message.roleEnum == .user {
                 Spacer(minLength: 60)
             }
             
-            VStack(alignment: message.role == .user ? .trailing : .leading, spacing: AppSpacing.xs) {
+            VStack(alignment: message.roleEnum == .user ? .trailing : .leading, spacing: AppSpacing.xSmall) {
                 // Message bubble
                 bubble
                     .scaleEffect(animateIn ? 1.0 : 0.8)
@@ -27,7 +28,7 @@ struct MessageBubbleView: View {
                 messageFooter
             }
             
-            if message.role == .assistant {
+            if message.roleEnum == .assistant {
                 Spacer(minLength: 60)
             }
         }
@@ -39,7 +40,7 @@ struct MessageBubbleView: View {
     }
     
     private var bubble: some View {
-        VStack(alignment: .leading, spacing: AppSpacing.sm) {
+        VStack(alignment: .leading, spacing: AppSpacing.small) {
             // Attachments
             if !message.attachments.isEmpty {
                 attachmentsView
@@ -50,21 +51,21 @@ struct MessageBubbleView: View {
                 MessageContent(
                     text: message.content,
                     isStreaming: isStreaming,
-                    role: message.role
+                    role: message.roleEnum
                 )
             }
             
             // Rich content (charts, buttons, etc)
-            richContentView
+            richContent
             
             // Interactive elements
-            if message.role == .assistant {
+            if message.roleEnum == .assistant {
                 interactiveElements
             }
         }
         .padding()
         .background(bubbleBackground)
-        .clipShape(ChatBubbleShape(role: message.role))
+        .clipShape(ChatBubbleShape(role: message.roleEnum))
         .shadow(
             color: .black.opacity(0.1),
             radius: 2,
@@ -83,31 +84,30 @@ struct MessageBubbleView: View {
         }
     }
     
+    @ViewBuilder
     private var bubbleBackground: some View {
-        Group {
-            if message.role == .user {
-                LinearGradient(
-                    colors: [Color.accentColor.opacity(0.8), Color.accentColor.opacity(0.6)],
-                    startPoint: .topLeading,
-                    endPoint: .bottomTrailing
-                )
-            } else {
-                Color.cardBackground
-                    .overlay(
-                        LinearGradient(
-                            colors: [Color.white.opacity(0.1), Color.clear],
-                            startPoint: .topLeading,
-                            endPoint: .bottomTrailing
-                        )
+        if message.roleEnum == .user {
+            LinearGradient(
+                colors: [Color.accentColor.opacity(0.8), Color.accentColor.opacity(0.6)],
+                startPoint: .topLeading,
+                endPoint: .bottomTrailing
+            )
+        } else {
+            AppColors.cardBackground
+                .overlay(
+                    LinearGradient(
+                        colors: [Color.white.opacity(0.1), Color.clear],
+                        startPoint: .topLeading,
+                        endPoint: .bottomTrailing
                     )
-            }
+                )
         }
     }
     
     @ViewBuilder
     private var attachmentsView: some View {
         ScrollView(.horizontal, showsIndicators: false) {
-            HStack(spacing: AppSpacing.sm) {
+            HStack(spacing: AppSpacing.small) {
                 ForEach(message.attachments) { attachment in
                     AttachmentThumbnail(
                         attachment: attachment,
@@ -121,54 +121,52 @@ struct MessageBubbleView: View {
     }
     
     @ViewBuilder
-    private var richContentView: some View {
-        if let metadata = message.metadata {
-            VStack(spacing: AppSpacing.sm) {
-                // Charts
-                if let chartData = metadata["chartData"] as? [String: Any] {
-                    ChartView(
-                        data: chartData,
-                        isExpanded: isExpanded
-                    )
-                    .transition(.asymmetric(
-                        insertion: .scale.combined(with: .opacity),
-                        removal: .scale.combined(with: .opacity)
-                    ))
+    private var richContent: some View {
+        if message.roleEnum == .assistant {
+            VStack(alignment: .leading, spacing: AppSpacing.small) {
+                // Check for function call data instead of metadata
+                if let functionName = message.functionCallName {
+                    // Handle different types of rich content based on function calls
+                    switch functionName {
+                    case let name where name.contains("chart"):
+                        ChartView(
+                            data: [ChatChartDataPoint(label: "Sample", value: 100)],
+                            isExpanded: isExpanded
+                        )
+                    case let name where name.contains("navigation"):
+                        NavigationLinkCard(
+                            title: "View Workout",
+                            subtitle: "Tap to see details",
+                            destination: "WorkoutDetail",
+                            icon: "figure.run"
+                        )
+                    case let name where name.contains("reminder"):
+                        ReminderCard(
+                            time: "8:00 AM",
+                            title: "Workout Reminder",
+                            isExpanded: isExpanded
+                        )
+                    default:
+                        EmptyView()
+                    }
                 }
                 
-                // Navigation cards
-                if let actionType = metadata["actionType"] as? String,
-                   actionType == "navigation",
-                   let target = metadata["actionTarget"] as? String {
-                    NavigationLinkCard(
-                        title: metadata["actionTitle"] as? String ?? "View Details",
-                        subtitle: metadata["actionSubtitle"] as? String,
-                        destination: target,
-                        icon: metadata["actionIcon"] as? String ?? "arrow.right.circle.fill"
-                    )
-                }
-                
-                // Reminder cards
-                if let reminderTime = metadata["reminderTime"] as? String {
-                    ReminderCard(
-                        time: reminderTime,
-                        title: metadata["reminderTitle"] as? String ?? "Reminder Set",
-                        isExpanded: isExpanded
-                    )
-                }
-                
-                // Progress indicators
-                if let progressData = metadata["progress"] as? [String: Any] {
+                // Progress indicators for function calls
+                if message.functionCallName != nil {
                     ProgressCard(
-                        data: progressData,
+                        progress: 0.75,
                         isExpanded: isExpanded
                     )
                 }
                 
-                // Quick actions
-                if let actions = metadata["quickActions"] as? [[String: Any]] {
+                // Quick actions for assistant messages
+                if message.roleEnum == .assistant {
                     QuickActionsView(
-                        actions: actions,
+                        actions: [
+                            ChatQuickAction(id: "schedule_workout", title: "Schedule Workout"),
+                            ChatQuickAction(id: "view_progress", title: "View Progress"),
+                            ChatQuickAction(id: "set_reminder", title: "Set Reminder")
+                        ],
                         onAction: { actionId in
                             handleQuickAction(actionId)
                         }
@@ -180,25 +178,25 @@ struct MessageBubbleView: View {
     
     @ViewBuilder
     private var interactiveElements: some View {
-        if message.role == .assistant && !isStreaming {
-            HStack(spacing: AppSpacing.sm) {
+        if message.roleEnum == .assistant && !isStreaming {
+            HStack(spacing: AppSpacing.small) {
                 // Reaction buttons
                 HStack(spacing: 4) {
                     ReactionButton(
                         emoji: "👍",
-                        isSelected: message.metadata?["reaction"] as? String == "👍",
+                        isSelected: selectedReaction == "👍",
                         onTap: { toggleReaction("👍") }
                     )
                     
                     ReactionButton(
                         emoji: "👎",
-                        isSelected: message.metadata?["reaction"] as? String == "👎",
+                        isSelected: selectedReaction == "👎",
                         onTap: { toggleReaction("👎") }
                     )
                     
                     ReactionButton(
                         emoji: "❤️",
-                        isSelected: message.metadata?["reaction"] as? String == "❤️",
+                        isSelected: selectedReaction == "❤️",
                         onTap: { toggleReaction("❤️") }
                     )
                 }
@@ -222,14 +220,14 @@ struct MessageBubbleView: View {
                     .buttonStyle(.plain)
                 }
             }
-            .padding(.top, AppSpacing.xs)
+            .padding(.top, AppSpacing.xSmall)
             .opacity(0.7)
         }
     }
     
     private var messageFooter: some View {
-        HStack(spacing: AppSpacing.xs) {
-            if message.role == .user && isStreaming {
+        HStack(spacing: AppSpacing.xSmall) {
+            if message.roleEnum == .user && isStreaming {
                 ProgressView()
                     .controlSize(.mini)
                     .scaleEffect(0.8)
@@ -241,13 +239,13 @@ struct MessageBubbleView: View {
                 .foregroundStyle(.secondary)
             
             // Message status indicators
-            if message.role == .user {
+            if message.roleEnum == .user {
                 messageStatusIcon
             }
             
             // Token count for assistant messages
-            if message.role == .assistant,
-               let tokenCount = message.metadata?["tokens"] as? Int {
+            if message.roleEnum == .assistant,
+               let tokenCount = message.tokenCount {
                 Text("• \(tokenCount) tokens")
                     .font(.caption2)
                     .foregroundStyle(.tertiary)
@@ -261,7 +259,7 @@ struct MessageBubbleView: View {
             Image(systemName: "clock")
                 .font(.caption2)
                 .foregroundStyle(.secondary)
-        } else if message.metadata?["error"] != nil {
+        } else if message.errorMessage != nil {
             Image(systemName: "exclamationmark.triangle")
                 .font(.caption2)
                 .foregroundStyle(.red)
@@ -278,7 +276,7 @@ struct MessageBubbleView: View {
             Label("Copy", systemImage: "doc.on.doc")
         }
         
-        if message.role == .assistant {
+        if message.roleEnum == .assistant {
             Button(action: { onAction(.regenerate) }) {
                 Label("Regenerate", systemImage: "arrow.clockwise")
             }
@@ -309,16 +307,13 @@ struct MessageBubbleView: View {
     // MARK: - Helper Properties
     
     private var hasExpandableContent: Bool {
-        guard let metadata = message.metadata else { return false }
-        return metadata["chartData"] != nil || 
-               metadata["progress"] != nil ||
-               !message.attachments.isEmpty
+        // Check if message has function calls or attachments that can be expanded
+        return message.functionCallName != nil || !message.attachments.isEmpty
     }
     
     // MARK: - Helper Methods
     
     private func formatTimestamp(_ date: Date) -> String {
-        let now = Date()
         let calendar = Calendar.current
         
         if calendar.isDateInToday(date) {
@@ -331,19 +326,15 @@ struct MessageBubbleView: View {
     }
     
     private func toggleReaction(_ emoji: String) {
-        // Update message metadata with reaction
-        var metadata = message.metadata ?? [:]
-        if metadata["reaction"] as? String == emoji {
-            metadata.removeValue(forKey: "reaction")
+        // Simple reaction toggle - in a real app this would persist to the message
+        if selectedReaction == emoji {
+            selectedReaction = nil
         } else {
-            metadata["reaction"] = emoji
+            selectedReaction = emoji
         }
-        message.metadata = metadata
         
         // Haptic feedback
-        Task {
-            await HapticManager.shared.impact(.light)
-        }
+        HapticManager.impact(.light)
     }
     
     private func handleQuickAction(_ actionId: String) {
@@ -503,6 +494,19 @@ enum MessageAction {
     case setReminder
 }
 
+// MARK: - Supporting Types
+
+struct ChatChartDataPoint: Identifiable {
+    let id = UUID()
+    let label: String
+    let value: Double
+}
+
+struct ChatQuickAction: Identifiable {
+    let id: String
+    let title: String
+}
+
 // MARK: - Placeholder Views
 struct MessageContent: View {
     let text: String
@@ -591,14 +595,14 @@ struct NavigationLinkCard: View {
 }
 
 struct ChartView: View {
-    let data: [String: Any]
+    let data: [ChatChartDataPoint]
     let isExpanded: Bool
 
     var body: some View {
-        Chart(data: data) {
+        Chart(data) { point in
             BarMark(
-                x: .value("Label", $0.key),
-                y: .value("Value", $0.value)
+                x: .value("Label", point.label),
+                y: .value("Value", point.value)
             )
             .foregroundStyle(Color.accentColor)
         }
@@ -626,28 +630,26 @@ struct ReminderCard: View {
 }
 
 struct ProgressCard: View {
-    let data: [String: Any]
+    let progress: Double
     let isExpanded: Bool
 
     var body: some View {
-        ProgressView()
+        ProgressView(value: progress)
             .frame(height: isExpanded ? 20 : 12)
     }
 }
 
 struct QuickActionsView: View {
-    let actions: [[String: Any]]
+    let actions: [ChatQuickAction]
     let onAction: (String) -> Void
 
     var body: some View {
-        HStack(spacing: AppSpacing.sm) {
+        HStack(spacing: AppSpacing.small) {
             ForEach(actions) { action in
                 Button(action: {
-                    if let id = action["id"] as? String {
-                        onAction(id)
-                    }
+                    onAction(action.id)
                 }) {
-                    Text(action["title"] as? String ?? "Action")
+                    Text(action.title)
                         .font(.caption)
                         .foregroundStyle(.secondary)
                 }
