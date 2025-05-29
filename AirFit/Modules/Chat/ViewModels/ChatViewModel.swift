@@ -337,7 +337,7 @@ struct ContextualAction: Identifiable, Sendable {
     let icon: String?
 }
 
-enum ChatError: LocalizedError {
+enum ChatError: LocalizedError, Equatable {
     case noActiveSession
     case exportFailed(String)
     case voiceRecognitionUnavailable

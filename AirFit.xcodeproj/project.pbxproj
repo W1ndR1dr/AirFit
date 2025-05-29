@@ -56,12 +56,14 @@
 		4B80E55BDF80D7760938CBF3 /* ConversationManagerPersistenceTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 594E3D4BD6A3E85B8E8100D1 /* ConversationManagerPersistenceTests.swift */; };
 		4CB88069678779E32CD0DC02 /* WorkoutFunctions.swift in Sources */ = {isa = PBXBuildFile; fileRef = 42D03C16671EE238A5038412 /* WorkoutFunctions.swift */; };
 		4D8CDA080E4F71D309E1F945 /* Color+Extensions.swift in Sources */ = {isa = PBXBuildFile; fileRef = D2E521D3F4705F1FDE3D9525 /* Color+Extensions.swift */; };
+		4FBD73AA678DE97F42678FC2 /* ChatViewModelTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = C4A365E2BED2CA063B590A17 /* ChatViewModelTests.swift */; };
 		517164B5A8A9AD6675407A46 /* MockCoachEngine.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4357650615CC3C75872B769F /* MockCoachEngine.swift */; };
 		525987F5D583EE843EAFE8FD /* OnboardingProfile.swift in Sources */ = {isa = PBXBuildFile; fileRef = A16DDCDF70B6FC9FB1CB1D01 /* OnboardingProfile.swift */; };
 		5355F46137400D98E760B62F /* HealthKitSyncRecord.swift in Sources */ = {isa = PBXBuildFile; fileRef = 08F013D69A5200015702C8E5 /* HealthKitSyncRecord.swift */; };
 		54197DF51E63566DED555395 /* ModelContainer+Testing.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0067FAECC26651021D2E9C76 /* ModelContainer+Testing.swift */; };
 		54AD8DF8B908786730C7D22A /* FoodEntry.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3320D6A1E8A14D7B7ACDA00A /* FoodEntry.swift */; };
 		54E9DED84D717E5132385798 /* Double+Extensions.swift in Sources */ = {isa = PBXBuildFile; fileRef = E6C82CCA4A11E15F93E12709 /* Double+Extensions.swift */; };
+		54F811DF1B7AB3ABEAA2C9FE /* MockVoiceInputManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8FB677866A0FFCF9BC0283D3 /* MockVoiceInputManager.swift */; };
 		5625F5984EA6199ECCC91AD4 /* VoiceInputManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = 64646E9F6F045076E7414740 /* VoiceInputManager.swift */; };
 		562F1206F819F994E34812E3 /* ChatCoordinator.swift in Sources */ = {isa = PBXBuildFile; fileRef = 477A4FFB974EAF6BDC1AFADB /* ChatCoordinator.swift */; };
 		571B7B00CC2EAE7AFF4BE2E6 /* CoachEngineTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9F8A93BEFE768B25CB6DC872 /* CoachEngineTests.swift */; };
@@ -192,6 +194,7 @@
 		F5D203DE42EDF0E9F6ABC4A5 /* AIServiceProtocol.swift in Sources */ = {isa = PBXBuildFile; fileRef = C7BD8305EABA1E0131CD6D80 /* AIServiceProtocol.swift */; };
 		F643A778B0973DB1C8E386E1 /* TimeInterval+Extensions.swift in Sources */ = {isa = PBXBuildFile; fileRef = DD495CF6C2C599CC6F8DCFE9 /* TimeInterval+Extensions.swift */; };
 		F6864B17C32EB00021A6052A /* ExerciseLibraryView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8E9E7BB7A823D9CD9B3E6C2D /* ExerciseLibraryView.swift */; };
+		F6BE676EF915BD130B1C3990 /* MockVoiceServices.swift in Sources */ = {isa = PBXBuildFile; fileRef = B3D21800693C3FC8BDD8D707 /* MockVoiceServices.swift */; };
 		F9B1BE46EF9F7E83248654F9 /* OpeningScreenView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 28EEDA7846997FEF2EBACA72 /* OpeningScreenView.swift */; };
 		FE01DB7CA80318BFCFC566BE /* AirFitUITests.swift in Sources */ = {isa = PBXBuildFile; fileRef = B6622B7DE07EDCB5AD09CAA8 /* AirFitUITests.swift */; };
 		FE599A624CB443B811B35401 /* AIModels.swift in Sources */ = {isa = PBXBuildFile; fileRef = E85C229B1F841E3355F51518 /* AIModels.swift */; };
@@ -331,6 +334,7 @@
 		8DA49F7251DE74DEF60679FC /* SchemaV1.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SchemaV1.swift; sourceTree = "<group>"; };
 		8DE770A3C6328478764CFEA4 /* OnboardingFlowPage.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OnboardingFlowPage.swift; sourceTree = "<group>"; };
 		8E9E7BB7A823D9CD9B3E6C2D /* ExerciseLibraryView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ExerciseLibraryView.swift; sourceTree = "<group>"; };
+		8FB677866A0FFCF9BC0283D3 /* MockVoiceInputManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MockVoiceInputManager.swift; sourceTree = "<group>"; };
 		91EDD4EBC959469D1F3E4469 /* AirFitUITests.xctest */ = {isa = PBXFileReference; includeInIndex = 0; lastKnownFileType = wrapper.cfbundle; path = AirFitUITests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
 		94C738AC5187CA69036F77F2 /* PersonaEngine.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PersonaEngine.swift; sourceTree = "<group>"; };
 		9665021F32CB629A919F14E2 /* WorkoutTemplate.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WorkoutTemplate.swift; sourceTree = "<group>"; };
@@ -357,6 +361,7 @@
 		AE6EF64B2175B1AE0EC0371E /* FoodItem.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FoodItem.swift; sourceTree = "<group>"; };
 		B02E24D2448C0526C44DC179 /* MockHealthKitManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MockHealthKitManager.swift; sourceTree = "<group>"; };
 		B267C146672D344FFF89DD0C /* OnboardingViewTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OnboardingViewTests.swift; sourceTree = "<group>"; };
+		B3D21800693C3FC8BDD8D707 /* MockVoiceServices.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MockVoiceServices.swift; sourceTree = "<group>"; };
 		B439B9C8ABD81D57DC7973B6 /* AppLogger.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppLogger.swift; sourceTree = "<group>"; };
 		B606821EE3B9B5C216280A55 /* OnboardingServiceProtocol.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OnboardingServiceProtocol.swift; sourceTree = "<group>"; };
 		B6622B7DE07EDCB5AD09CAA8 /* AirFitUITests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AirFitUITests.swift; sourceTree = "<group>"; };
@@ -368,6 +373,7 @@
 		BF7BA67729A0C0CE80B681F7 /* ExerciseLibraryComponents.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ExerciseLibraryComponents.swift; sourceTree = "<group>"; };
 		C0C1FC092E47241CE247DFA0 /* HealthKitAuthManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HealthKitAuthManager.swift; sourceTree = "<group>"; };
 		C2CC530C34C2DB2CE6C6E77C /* HealthKitSleepAnalyzer.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HealthKitSleepAnalyzer.swift; sourceTree = "<group>"; };
+		C4A365E2BED2CA063B590A17 /* ChatViewModelTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ChatViewModelTests.swift; sourceTree = "<group>"; };
 		C6C31C7FF3B3876DDEF8AF2D /* APIConstants.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = APIConstants.swift; sourceTree = "<group>"; };
 		C7016BA897938EA980E1AB25 /* WorkoutAnalysisEngine.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WorkoutAnalysisEngine.swift; sourceTree = "<group>"; };
 		C7BD8305EABA1E0131CD6D80 /* AIServiceProtocol.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AIServiceProtocol.swift; sourceTree = "<group>"; };
@@ -583,6 +589,7 @@
 			children = (
 				FC1BEDAD32C7F731C8A4900B /* ChatCoordinatorTests.swift */,
 				AD378A527ABDEB68D92FA7EF /* ChatSuggestionsEngineTests.swift */,
+				C4A365E2BED2CA063B590A17 /* ChatViewModelTests.swift */,
 			);
 			path = Chat;
 			sourceTree = "<group>";
@@ -629,6 +636,8 @@
 				891926B68D6A0F342D6B777E /* MockNetworkClient.swift */,
 				F12B964391AE27C0CBA30019 /* MockOnboardingService.swift */,
 				16EFC55A7ED6CD727608D7ED /* MockUserService.swift */,
+				8FB677866A0FFCF9BC0283D3 /* MockVoiceInputManager.swift */,
+				B3D21800693C3FC8BDD8D707 /* MockVoiceServices.swift */,
 				59DBE24F00ADC1B4FED05BED /* MockWhisperServiceWrapper.swift */,
 				BD0BBC1D40C9FE6960760A1D /* Base */,
 			);
@@ -1370,6 +1379,7 @@
 				87BFEC0811409C8CB39297E7 /* AppConstantsTests.swift in Sources */,
 				D21DF6FB37C65D848033690D /* ChatCoordinatorTests.swift in Sources */,
 				7EAE993533E457ECBC5FEBE3 /* ChatSuggestionsEngineTests.swift in Sources */,
+				4FBD73AA678DE97F42678FC2 /* ChatViewModelTests.swift in Sources */,
 				571B7B00CC2EAE7AFF4BE2E6 /* CoachEngineTests.swift in Sources */,
 				BD5244535EBB66321835C629 /* ConversationManagerPerformanceTests.swift in Sources */,
 				4B80E55BDF80D7760938CBF3 /* ConversationManagerPersistenceTests.swift in Sources */,
@@ -1393,6 +1403,8 @@
 				98CEA52D85B4B458A1D614CA /* MockOnboardingService.swift in Sources */,
 				E1F4BAC99211764ECFCD34FD /* MockProtocol.swift in Sources */,
 				7B16D0DCE57A7A9530A9C030 /* MockUserService.swift in Sources */,
+				54F811DF1B7AB3ABEAA2C9FE /* MockVoiceInputManager.swift in Sources */,
+				F6BE676EF915BD130B1C3990 /* MockVoiceServices.swift in Sources */,
 				39B344BD44BE184422233AE6 /* MockWhisperServiceWrapper.swift in Sources */,
 				DAD726CE6AA94FA972079D47 /* OnboardingFlowViewTests.swift in Sources */,
 				7B306A947EAF20AD70D84843 /* OnboardingIntegrationTests.swift in Sources */,

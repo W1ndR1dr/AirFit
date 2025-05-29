@@ -203,9 +203,8 @@ targets:
       - AirFit/AirFitTests/Mocks/MockHealthKitManager.swift
       - AirFit/AirFitTests/Mocks/MockHealthKitPrefillProvider.swift
       - AirFit/AirFitTests/Mocks/MockDashboardServices.swift
-      - AirFit/AirFitTests/Modules/Dashboard/DashboardViewModelTests.swift
-      # Temporarily excluded due to compilation errors
-      # - AirFit/AirFitTests/Context/ContextAssemblerTests.swift
+      - AirFit/AirFitTests/Mocks/MockVoiceInputManager.swift
+      - AirFit/AirFitTests/Mocks/MockVoiceServices.swift
       - AirFit/AirFitTests/Modules/AI/LocalCommandParserTests.swift
       - AirFit/AirFitTests/Modules/AI/FunctionCallDispatcherTests.swift
       - AirFit/AirFitTests/Modules/AI/CoachEngineTests.swift
@@ -219,7 +218,16 @@ targets:
       - AirFit/AirFitTests/Workouts/WorkoutCoordinatorTests.swift
       - AirFit/AirFitTests/Modules/Chat/ChatCoordinatorTests.swift
       - AirFit/AirFitTests/Modules/Chat/ChatSuggestionsEngineTests.swift
+      - AirFit/AirFitTests/Modules/Chat/ChatViewModelTests.swift
       - AirFit/AirFitTests/Core/VoiceInputManagerTests.swift
+      - AirFit/AirFitTests/Modules/Dashboard/DashboardViewModelTests.swift
+      - AirFit/AirFitTests/Mocks/MockAIService.swift
+      - AirFit/AirFitTests/Mocks/MockNetworkClient.swift
+      - AirFit/AirFitTests/Mocks/MockOnboardingService.swift
+      - AirFit/AirFitTests/Mocks/MockUserService.swift
+      - AirFit/AirFitTests/Mocks/MockWhisperServiceWrapper.swift
+      - AirFit/AirFitTests/Mocks/MockAIAPIService.swift
+      - AirFit/AirFitTests/Mocks/MockAPIKeyManager.swift
     dependencies:
       - target: AirFit
     settings:
