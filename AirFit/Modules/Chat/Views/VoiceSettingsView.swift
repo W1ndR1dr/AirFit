@@ -5,6 +5,8 @@ struct VoiceSettingsView: View {
     @Environment(\.dismiss) private var dismiss
     @State private var downloadError: Error?
     @State private var showDeleteConfirmation: String?
+    @AppStorage("voice.autoSelectModel") private var autoSelectModel = true
+    @AppStorage("voice.downloadCellular") private var downloadCellular = false
 
     var body: some View {
         NavigationStack {
@@ -112,11 +114,16 @@ struct VoiceSettingsView: View {
 
     private var advancedSettingsSection: some View {
         Section {
-            Toggle("Auto-Select Best Model", isOn: .constant(true))
-                .disabled(true)
-            Toggle("Download Over Cellular", isOn: .constant(false))
+            Toggle("Auto-Select Best Model", isOn: $autoSelectModel)
+            Toggle("Download Over Cellular", isOn: $downloadCellular)
             Button("Clear Model Cache", role: .destructive) {
-                // TODO: implement clearing cache
+                Task {
+                    do {
+                        try modelManager.clearUnusedModels()
+                    } catch {
+                        AppLogger.error("Failed to clear model cache", error: error, category: .storage)
+                    }
+                }
             }
         } header: {
             Text("Advanced")
