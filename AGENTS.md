@@ -249,7 +249,7 @@ final class OnboardingCoordinator: ObservableObject {
 
 ## Module 8 (Food Tracking) Documentation References
 - **@MODULE8_PROMPT_CHAIN.md** - Complete implementation prompt chain with all tasks, acceptance criteria, and sequencing for Module 8: Food Tracking (Voice-First AI-Powered Nutrition)
-- **@Module8.md** - Detailed technical specifications, requirements, and architecture for the Food Tracking module
+- **@Module8.md** - Detailed technical specifications, requirements, and architecture for the Food Tracking module (located at `AirFit/Docs/Module8.md`)
 - **Key Integration**: Module 8 leverages Module 13's VoiceInputManager via adapter pattern (FoodVoiceAdapter) - NO new WhisperKit implementation needed
 - **Voice Strategy**: Use existing Module 13 voice infrastructure with food-specific enhancements and post-processing
 - **Dependencies**: Requires completion of Modules 1, 2, 4, 5, and 13 (Chat Interface for voice foundation)
