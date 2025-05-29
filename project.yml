@@ -164,6 +164,7 @@ targets:
       - AirFit/Modules/Chat/Views/ChatView.swift
       - AirFit/Modules/FoodTracking/Services/FoodVoiceAdapter.swift
       - AirFit/Modules/FoodTracking/Services/FoodVoiceServiceProtocol.swift
+      - AirFit/Modules/FoodTracking/FoodTrackingCoordinator.swift
       # Application Layer Files (CRITICAL: XcodeGen nesting bug)
       - AirFit/Application/AirFitApp.swift
       - AirFit/Application/MinimalContentView.swift
