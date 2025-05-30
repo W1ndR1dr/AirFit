@@ -12,7 +12,7 @@ final class FoodTrackingViewModel {
     private let modelContext: ModelContext
     private let user: User
     private let foodVoiceAdapter: FoodVoiceAdapter
-    private let nutritionService: NutritionServiceProtocol
+    private let nutritionService: NutritionServiceProtocol?
     private let foodDatabaseService: FoodDatabaseServiceProtocol
     private let coachEngine: CoachEngine
     private let coordinator: FoodTrackingCoordinator
@@ -102,24 +102,24 @@ final class FoodTrackingViewModel {
         defer { isLoading = false }
 
         do {
-            todaysFoodEntries = try await nutritionService.getFoodEntries(
+            todaysFoodEntries = try await nutritionService?.getFoodEntries(
                 for: user,
                 date: currentDate
-            )
+            ) ?? []
 
-            todaysNutrition = nutritionService.calculateNutritionSummary(
+            todaysNutrition = nutritionService?.calculateNutritionSummary(
                 from: todaysFoodEntries
-            )
+            ) ?? FoodNutritionSummary()
 
-            waterIntakeML = try await nutritionService.getWaterIntake(
+            waterIntakeML = try await nutritionService?.getWaterIntake(
                 for: user,
                 date: currentDate
-            )
+            ) ?? 0
 
-            recentFoods = try await nutritionService.getRecentFoods(
+            recentFoods = try await nutritionService?.getRecentFoods(
                 for: user,
                 limit: 10
-            )
+            ) ?? []
 
             suggestedFoods = try await generateSmartSuggestions()
 
@@ -375,7 +375,7 @@ final class FoodTrackingViewModel {
         do {
             let amountInML = unit.toMilliliters(amount)
 
-            try await nutritionService.logWaterIntake(
+            try await nutritionService?.logWaterIntake(
                 for: user,
                 amountML: amountInML,
                 date: currentDate
@@ -396,11 +396,11 @@ final class FoodTrackingViewModel {
         let hour = Calendar.current.component(.hour, from: currentDate)
         let dayOfWeek = Calendar.current.component(.weekday, from: currentDate)
 
-        let mealHistory = try await nutritionService.getMealHistory(
+        let mealHistory = try await nutritionService?.getMealHistory(
             for: user,
             mealType: selectedMealType,
             daysBack: 30
-        )
+        ) ?? []
 
         let frequentFoods = mealHistory
             .flatMap { $0.items }
