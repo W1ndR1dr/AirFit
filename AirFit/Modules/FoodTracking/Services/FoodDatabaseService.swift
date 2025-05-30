@@ -1,4 +1,5 @@
 import Foundation
+import UIKit
 
 /// Service for food database operations and lookups.
 actor FoodDatabaseService: FoodDatabaseServiceProtocol {
@@ -45,6 +46,16 @@ actor FoodDatabaseService: FoodDatabaseServiceProtocol {
         )
     ]
 
+    // MARK: - FoodDatabaseServiceProtocol
+
+    func searchFoods(query: String) async throws -> [FoodDatabaseItem] {
+        try await searchFoods(query: query, limit: 25)
+    }
+
+    func getFoodDetails(id: String) async throws -> FoodDatabaseItem? {
+        mockDatabase.first { $0.id == id }
+    }
+
     func searchFoods(query: String, limit: Int) async throws -> [FoodDatabaseItem] {
         // Simulate network delay
         try await Task.sleep(nanoseconds: 500_000_000)
@@ -83,6 +94,14 @@ actor FoodDatabaseService: FoodDatabaseServiceProtocol {
 
     func searchCommonFood(_ name: String) async throws -> FoodDatabaseItem? {
         mockDatabase.first { $0.name.lowercased() == name.lowercased() }
+    }
+
+    func analyzePhotoForFoods(_ image: UIImage) async throws -> [FoodDatabaseItem] {
+        // Simulate processing delay
+        try await Task.sleep(nanoseconds: 500_000_000)
+
+        // Mock response returns all known items
+        return mockDatabase
     }
 }
 
