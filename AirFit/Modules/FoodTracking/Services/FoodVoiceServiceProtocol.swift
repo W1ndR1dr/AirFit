@@ -46,12 +46,29 @@ enum FoodVoiceError: LocalizedError {
 
 // MARK: - Nutrition Service Protocol
 protocol NutritionServiceProtocol: Sendable {
+    /// Retrieves all `FoodEntry` objects for the specified date.
     func getFoodEntries(for user: User, date: Date) async throws -> [FoodEntry]
-    func calculateNutritionSummary(from entries: [FoodEntry]) -> FoodNutritionSummary
+
+    /// Calculates a nutrition summary from a set of entries.
+    nonisolated func calculateNutritionSummary(from entries: [FoodEntry]) -> FoodNutritionSummary
+
+    /// Returns the amount of water consumed on a given day in milliliters.
     func getWaterIntake(for user: User, date: Date) async throws -> Double
+
+    /// Retrieves the most recent foods logged by the user.
     func getRecentFoods(for user: User, limit: Int) async throws -> [FoodItem]
+
+    /// Logs water intake for a user at the specified date.
     func logWaterIntake(for user: User, amountML: Double, date: Date) async throws
+
+    /// Returns the meal history for a particular meal type.
     func getMealHistory(for user: User, mealType: MealType, daysBack: Int) async throws -> [FoodEntry]
+
+    /// Nutrition targets derived from the onboarding profile.
+    func getTargets(from profile: OnboardingProfile?) -> NutritionTargets
+
+    /// Convenience helper to generate today's summary.
+    func getTodaysSummary(for user: User) async throws -> FoodNutritionSummary
 }
 
 // MARK: - Food Database Service Protocol
@@ -63,20 +80,33 @@ protocol FoodDatabaseServiceProtocol: Sendable {
 
 // MARK: - Supporting Types
 struct FoodDatabaseItem: Identifiable, Sendable {
+    /// Unique identifier from the food database.
     let id: String
+    /// Food name.
     let name: String
+    /// Optional brand name.
     let brand: String?
-    let defaultQuantity: Double
-    let defaultUnit: String
-    let servingUnit: String
+    /// Calories contained in one serving.
     let caloriesPerServing: Double
+    /// Protein in grams per serving.
     let proteinPerServing: Double
+    /// Carbohydrates in grams per serving.
     let carbsPerServing: Double
+    /// Fat in grams per serving.
     let fatPerServing: Double
-    let calories: Double
-    let protein: Double
-    let carbs: Double
-    let fat: Double
+    /// Nominal serving size amount.
+    let servingSize: Double
+    /// Unit for the serving size.
+    let servingUnit: String
+    /// Default quantity to prefill when adding.
+    let defaultQuantity: Double
+    /// Default unit to prefill when adding.
+    let defaultUnit: String
+
+    /// Human readable serving description.
+    var servingDescription: String {
+        "\(servingSize.formatted()) \(servingUnit)"
+    }
 }
 
 struct NutritionContext: Sendable {
