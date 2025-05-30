@@ -1,4 +1,5 @@
 import SwiftUI
+import SwiftData
 
 /// View allowing users to confirm AI-parsed food items, edit their nutrition values,
 /// adjust portions and save the results.
@@ -309,6 +310,11 @@ private struct ManualFoodEntryView: View {
                     proteinGrams: nil,
                     carbGrams: nil,
                     fatGrams: nil,
+                    fiberGrams: nil,
+                    sugarGrams: nil,
+                    sodiumMilligrams: nil,
+                    barcode: nil,
+                    databaseId: nil,
                     confidence: 1.0
                 )
                 onAdd(item)
@@ -324,17 +330,72 @@ private struct ManualFoodEntryView: View {
     let container = ModelContainer.preview
     let context = container.mainContext
     let user = try! context.fetch(FetchDescriptor<User>()).first!
-    let parsed = ParsedFoodItem(name: "Apple", brand: nil, quantity: 1, unit: "item", calories: 95, proteinGrams: 0.5, carbGrams: 25, fatGrams: 0.3, confidence: 1.0)
+    let parsed = ParsedFoodItem(
+        name: "Apple", 
+        brand: nil, 
+        quantity: 1, 
+        unit: "item", 
+        calories: 95, 
+        proteinGrams: 0.5, 
+        carbGrams: 25, 
+        fatGrams: 0.3, 
+        fiberGrams: nil,
+        sugarGrams: nil,
+        sodiumMilligrams: nil,
+        barcode: nil,
+        databaseId: nil,
+        confidence: 1.0
+    )
     let vm = FoodTrackingViewModel(
         modelContext: context,
         user: user,
         foodVoiceAdapter: FoodVoiceAdapter(),
-        nutritionService: PreviewNutritionService(),
-        foodDatabaseService: PreviewFoodDatabaseService(),
-        coachEngine: PreviewCoachEngine(),
+        nutritionService: MockNutritionService(),
+        foodDatabaseService: MockFoodDatabaseService(),
+        coachEngine: MockCoachEngine(),
         coordinator: FoodTrackingCoordinator()
     )
-    return FoodConfirmationView(items: [parsed], viewModel: vm)
+    FoodConfirmationView(items: [parsed], viewModel: vm)
         .modelContainer(container)
+}
+
+@MainActor
+final class MockNutritionService: NutritionServiceProtocol {
+    func saveFoodEntry(_ entry: FoodEntry) async throws {}
+    func getFoodEntries(for date: Date) async throws -> [FoodEntry] { [] }
+    func deleteFoodEntry(_ entry: FoodEntry) async throws {}
+    func getFoodEntries(for user: User, date: Date) async throws -> [FoodEntry] { [] }
+    nonisolated func calculateNutritionSummary(from entries: [FoodEntry]) -> FoodNutritionSummary { FoodNutritionSummary() }
+    func getWaterIntake(for user: User, date: Date) async throws -> Double { 0 }
+    func getRecentFoods(for user: User, limit: Int) async throws -> [FoodItem] { [] }
+    func logWaterIntake(for user: User, amountML: Double, date: Date) async throws {}
+    func getMealHistory(for user: User, mealType: MealType, daysBack: Int) async throws -> [FoodEntry] { [] }
+    nonisolated func getTargets(from profile: OnboardingProfile?) -> NutritionTargets { .default }
+    func getTodaysSummary(for user: User) async throws -> FoodNutritionSummary { FoodNutritionSummary() }
+}
+
+@MainActor
+final class MockFoodDatabaseService: FoodDatabaseServiceProtocol {
+    func searchFoods(query: String) async throws -> [FoodDatabaseItem] { [] }
+    func getFoodDetails(id: String) async throws -> FoodDatabaseItem? { nil }
+    func searchFoods(query: String, limit: Int) async throws -> [FoodDatabaseItem] { [] }
+    func searchCommonFood(_ name: String) async throws -> FoodDatabaseItem? { nil }
+    func lookupBarcode(_ barcode: String) async throws -> FoodDatabaseItem? { nil }
+    func analyzePhotoForFoods(_ image: UIImage) async throws -> [FoodDatabaseItem] { [] }
+}
+
+@MainActor
+final class MockCoachEngine: FoodCoachEngineProtocol {
+    func processUserMessage(_ message: String, context: HealthContextSnapshot?) async throws -> [String: SendableValue] {
+        ["response": .string("Mock response")]
+    }
+    
+    func executeFunction(_ functionCall: AIFunctionCall, for user: User) async throws -> FunctionExecutionResult {
+        FunctionExecutionResult(success: true, message: "Mock execution", executionTimeMs: 1, functionName: functionCall.name)
+    }
+    
+    func analyzeMealPhoto(image: UIImage, context: NutritionContext?) async throws -> MealPhotoAnalysisResult {
+        MealPhotoAnalysisResult(items: [], confidence: 0.9, processingTime: 0.1)
+    }
 }
 #endif

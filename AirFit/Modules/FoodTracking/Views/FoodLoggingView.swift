@@ -20,9 +20,9 @@ struct FoodLoggingView: View {
             modelContext: modelContext,
             user: user,
             foodVoiceAdapter: adapter,
-            nutritionService: NutritionService(modelContext: modelContext),
-            foodDatabaseService: FoodDatabaseService(),
-            coachEngine: CoachEngine.createDefault(modelContext: modelContext),
+            nutritionService: MockNutritionService(),
+            foodDatabaseService: MockFoodDatabaseService(),
+            coachEngine: MockCoachEngine(),
             coordinator: coordinator
         )
         self.init(viewModel: vm, coordinator: coordinator)
@@ -480,12 +480,12 @@ private extension FoodItem {
         modelContext: context,
         user: user,
         foodVoiceAdapter: FoodVoiceAdapter(),
-        nutritionService: PreviewNutritionService(),
-        foodDatabaseService: PreviewFoodDatabaseService(),
-        coachEngine: PreviewCoachEngine(),
+        nutritionService: MockNutritionService(),
+        foodDatabaseService: MockFoodDatabaseService(),
+        coachEngine: MockCoachEngine(),
         coordinator: FoodTrackingCoordinator()
     )
-    return FoodLoggingView(viewModel: vm)
+    FoodLoggingView(viewModel: vm)
         .modelContainer(container)
 }
 #endif

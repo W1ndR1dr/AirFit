@@ -258,7 +258,7 @@ private struct QuickActionCard: View {
     let vm = WorkoutViewModel(
         modelContext: context,
         user: user,
-        coachEngine: PreviewCoachEngine(),
+        coachEngine: MockCoachEngine(),
         healthKitManager: PreviewHealthKitManager()
     )
     WorkoutListView(viewModel: vm)
@@ -274,4 +274,15 @@ final class PreviewHealthKitManager: HealthKitManaging {
     func fetchHeartHealthMetrics() async throws -> HeartHealthMetrics { HeartHealthMetrics() }
     func fetchLatestBodyMetrics() async throws -> BodyMetrics { BodyMetrics() }
     func fetchLastNightSleep() async throws -> SleepAnalysis.SleepSession? { nil }
+}
+
+@MainActor
+final class MockCoachEngine: CoachEngineProtocol {
+    func processUserMessage(_ message: String, context: HealthContextSnapshot?) async throws -> [String: SendableValue] {
+        ["response": .string("Mock response")]
+    }
+    
+    func executeFunction(_ functionCall: AIFunctionCall, for user: User) async throws -> FunctionExecutionResult {
+        FunctionExecutionResult(success: true, message: "Mock execution", executionTimeMs: 1, functionName: functionCall.name)
+    }
 }
