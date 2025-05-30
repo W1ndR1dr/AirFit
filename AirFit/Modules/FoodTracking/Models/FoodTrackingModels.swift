@@ -66,3 +66,11 @@ struct FoodNutritionSummary: Sendable {
     var fatProgress: Double { fat / fatGoal }
 }
 
+/// Result of analyzing a photo using Vision.
+struct VisionAnalysisResult: Sendable {
+    /// All recognized text fragments in the photo.
+    let recognizedText: [String]
+    /// Overall confidence score for the analysis.
+    let confidence: Float
+}
+
