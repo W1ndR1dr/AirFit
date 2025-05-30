@@ -10,6 +10,34 @@ actor NutritionService: NutritionServiceProtocol {
     init(modelContext: ModelContext) {
         self.modelContext = modelContext
     }
+
+    // MARK: - Basic CRUD
+
+    func saveFoodEntry(_ entry: FoodEntry) async throws {
+        modelContext.insert(entry)
+        try modelContext.save()
+    }
+
+    func getFoodEntries(for date: Date) async throws -> [FoodEntry] {
+        let calendar = Calendar.current
+        let startOfDay = calendar.startOfDay(for: date)
+        let endOfDay = calendar.date(byAdding: .day, value: 1, to: startOfDay) ?? date
+
+        let descriptor = FetchDescriptor<FoodEntry>(
+            predicate: #Predicate<FoodEntry> { entry in
+                entry.loggedAt >= startOfDay &&
+                entry.loggedAt < endOfDay
+            },
+            sortBy: [SortDescriptor(\.loggedAt)]
+        )
+
+        return try modelContext.fetch(descriptor)
+    }
+
+    func deleteFoodEntry(_ entry: FoodEntry) async throws {
+        modelContext.delete(entry)
+        try modelContext.save()
+    }
     
     func getFoodEntries(for user: User, date: Date) async throws -> [FoodEntry] {
         let calendar = Calendar.current
