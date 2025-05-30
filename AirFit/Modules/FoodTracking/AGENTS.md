@@ -21,7 +21,7 @@ AirFit/Modules/FoodTracking/
 │   ├── FoodLoggingView.swift           # Main interface
 │   ├── VoiceInputView.swift            # Voice recording UI
 │   ├── FoodConfirmationView.swift      # AI parsing confirmation
-│   ├── BarcodeScannerView.swift        # Barcode scanning
+│   ├── PhotoInputView.swift            # Photo capture and meal recognition
 │   ├── MacroRingsView.swift            # Swift Charts visualization
 │   ├── WaterTrackingView.swift         # Water intake
 │   └── NutritionSearchView.swift       # Food search

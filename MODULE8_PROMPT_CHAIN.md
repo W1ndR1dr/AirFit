@@ -291,7 +291,7 @@ Module 8 leverages Module 13's superior voice infrastructure to provide effortle
 ---
 
 ### **Task 8.5.2: Create Food Tracking UI Tests**
-**Prompt:** "Create UI tests for food tracking flows covering voice input, barcode scanning, manual entry, and nutrition visualization with comprehensive user journey validation."
+**Prompt:** "Create UI tests for food tracking flows covering voice input, photo capture, manual entry, and nutrition visualization with comprehensive user journey validation."
 
 **File to Create:** `AirFitUITests/FoodTracking/FoodTrackingFlowUITests.swift`
 

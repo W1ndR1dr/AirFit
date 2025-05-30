@@ -143,7 +143,7 @@
   <key>ITSAppUsesNonExemptEncryption</key>
   <false/>
   <key>NSCameraUsageDescription</key>
-  <string>AirFit uses the camera to scan food barcodes and take meal photos.</string>
+  <string>AirFit uses the camera to take meal photos for intelligent food recognition and nutrition tracking.</string>
   <key>NSHealthShareUsageDescription</key>
   <string>AirFit reads health data to provide personalized nutrition recommendations.</string>
   <key>NSHealthUpdateUsageDescription</key>
@@ -452,7 +452,7 @@
           case .healthKitNotAuthorized:
               return "Health access is required for this feature"
           case .cameraNotAuthorized:
-              return "Camera access is required to scan barcodes"
+              return "Camera access is required to take meal photos"
           }
       }
       
