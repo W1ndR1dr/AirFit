@@ -2,7 +2,7 @@ import Foundation
 import HealthKit
 
 // MARK: - Shared Workout Builder Types
-struct WorkoutBuilderData: Codable {
+struct WorkoutBuilderData: Codable, Sendable {
     var id = UUID()
     var workoutType: Int = 0
     var startTime: Date?
@@ -13,7 +13,7 @@ struct WorkoutBuilderData: Codable {
     var duration: TimeInterval = 0
 }
 
-struct ExerciseBuilderData: Codable {
+struct ExerciseBuilderData: Codable, Sendable {
     let id: UUID
     let name: String
     let muscleGroups: [String]
@@ -21,7 +21,7 @@ struct ExerciseBuilderData: Codable {
     var sets: [SetBuilderData] = []
 }
 
-struct SetBuilderData: Codable {
+struct SetBuilderData: Codable, Sendable {
     let reps: Int?
     let weightKg: Double?
     let duration: TimeInterval?
@@ -29,7 +29,7 @@ struct SetBuilderData: Codable {
     let completedAt: Date
 }
 
-enum WorkoutError: LocalizedError {
+enum WorkoutError: LocalizedError, Sendable {
     case saveFailed
     case syncFailed
 

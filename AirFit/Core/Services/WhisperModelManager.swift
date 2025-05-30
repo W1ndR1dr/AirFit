@@ -7,7 +7,7 @@ final class WhisperModelManager: ObservableObject {
     static let shared = WhisperModelManager()
 
     // MARK: - Model Configuration
-    struct WhisperModel: Identifiable {
+    struct WhisperModel: Identifiable, Sendable {
         let id: String
         let displayName: String
         let size: String
@@ -19,7 +19,7 @@ final class WhisperModelManager: ObservableObject {
         let huggingFaceRepo: String
     }
 
-    enum ModelError: LocalizedError {
+    enum ModelError: LocalizedError, Sendable {
         case modelNotFound
         case insufficientStorage
         case downloadFailed(String)

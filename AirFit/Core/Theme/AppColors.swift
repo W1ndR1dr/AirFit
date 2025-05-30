@@ -1,6 +1,6 @@
 import SwiftUI
 
-public struct AppColors {
+public struct AppColors: Sendable {
     // MARK: - Background Colors
     static let backgroundPrimary = Color("BackgroundPrimary")
     static let backgroundSecondary = Color("BackgroundSecondary")
