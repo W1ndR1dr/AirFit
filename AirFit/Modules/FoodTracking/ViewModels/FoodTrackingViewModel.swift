@@ -14,7 +14,7 @@ final class FoodTrackingViewModel {
     private let foodVoiceAdapter: FoodVoiceAdapter
     private let nutritionService: NutritionServiceProtocol?
     private let foodDatabaseService: FoodDatabaseServiceProtocol
-    private let coachEngine: CoachEngine
+    private let coachEngine: FoodCoachEngineProtocol
     private let coordinator: FoodTrackingCoordinator
 
     // MARK: - State
@@ -67,7 +67,7 @@ final class FoodTrackingViewModel {
         foodVoiceAdapter: FoodVoiceAdapter,
         nutritionService: NutritionServiceProtocol,
         foodDatabaseService: FoodDatabaseServiceProtocol,
-        coachEngine: CoachEngine,
+        coachEngine: FoodCoachEngineProtocol,
         coordinator: FoodTrackingCoordinator
     ) {
         self.modelContext = modelContext
@@ -444,6 +444,51 @@ final class FoodTrackingViewModel {
         } catch {
             setError(error)
             AppLogger.error("Failed to duplicate food entry: \(error)")
+        }
+    }
+
+    // MARK: - AI Function Execution
+    /// Executes a CoachEngine function call with a timeout to avoid hanging tasks.
+    private func processAIResult(functionCall: AIFunctionCall) async {
+        do {
+            let result = try await withTimeout(seconds: 8.0) { [self] in
+                try await self.coachEngine.executeFunction(functionCall, for: self.user)
+            }
+            AppLogger.info("AI function \(result.functionName) executed", category: .ai)
+        } catch {
+            setError(error)
+            AppLogger.error("AI function execution failed", error: error, category: .ai)
+        }
+    }
+
+    /// Runs an asynchronous operation with a timeout using `withCheckedContinuation`.
+    private func withTimeout<T>(
+        seconds: TimeInterval,
+        operation: @escaping @Sendable () async throws -> T
+    ) async throws -> T {
+        try await withCheckedThrowingContinuation { continuation in
+            var finished = false
+
+            let timer = Timer.scheduledTimer(withTimeInterval: seconds, repeats: false) { _ in
+                guard !finished else { return }
+                finished = true
+                continuation.resume(throwing: FoodTrackingError.aiProcessingTimeout)
+            }
+
+            Task {
+                do {
+                    let result = try await operation()
+                    guard !finished else { return }
+                    finished = true
+                    timer.invalidate()
+                    continuation.resume(returning: result)
+                } catch {
+                    guard !finished else { return }
+                    finished = true
+                    timer.invalidate()
+                    continuation.resume(throwing: error)
+                }
+            }
         }
     }
 
