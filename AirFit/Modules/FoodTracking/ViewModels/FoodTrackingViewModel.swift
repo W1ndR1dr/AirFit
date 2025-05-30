@@ -475,25 +475,6 @@ struct ParsedFoodItem: Identifiable, Sendable {
     var confidence: Float
 }
 
-struct FoodNutritionSummary: Sendable {
-    var calories: Double = 0
-    var protein: Double = 0
-    var carbs: Double = 0
-    var fat: Double = 0
-    var fiber: Double = 0
-    var sugar: Double = 0
-    var sodium: Double = 0
-
-    var calorieGoal: Double = 2000
-    var proteinGoal: Double = 50
-    var carbGoal: Double = 250
-    var fatGoal: Double = 65
-
-    var calorieProgress: Double { calories / calorieGoal }
-    var proteinProgress: Double { protein / proteinGoal }
-    var carbProgress: Double { carbs / carbGoal }
-    var fatProgress: Double { fat / fatGoal }
-}
 
 enum FoodTrackingError: LocalizedError {
     case noFoodsDetected

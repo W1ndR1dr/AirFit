@@ -168,6 +168,7 @@ targets:
       - AirFit/Modules/FoodTracking/Services/NutritionService.swift
       - AirFit/Modules/FoodTracking/Services/FoodDatabaseService.swift
       - AirFit/Modules/FoodTracking/Models/FoodDatabaseModels.swift
+      - AirFit/Modules/FoodTracking/Models/FoodTrackingModels.swift
       - AirFit/Modules/FoodTracking/FoodTrackingCoordinator.swift
       - AirFit/Modules/FoodTracking/ViewModels/FoodTrackingViewModel.swift
       - AirFit/Modules/FoodTracking/Views/VoiceInputView.swift
