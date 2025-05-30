@@ -299,7 +299,7 @@ struct FoodLoggingView: View {
         case .voiceInput:
             VoiceInputView(viewModel: viewModel)
         case .photoCapture:
-            PlaceholderView(title: "Photo Capture", subtitle: "Coming in Phase 4")
+            PhotoInputView(viewModel: viewModel)
         case .foodSearch:
             PlaceholderView(title: "Food Search", subtitle: "Coming in Phase 3")
         case .manualEntry:
