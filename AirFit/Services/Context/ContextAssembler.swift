@@ -94,7 +94,7 @@ final class ContextAssembler {
     private func fetchSubjectiveData(using context: ModelContext) async -> SubjectiveData {
         return await MainActor.run {
             do {
-                let todayStart = Calendar.current.startOfDay(for: Date())
+        let todayStart = Calendar.current.startOfDay(for: Date())
                 
                 // Use a simpler, safer approach to avoid SwiftData predicate issues
                 let descriptor = FetchDescriptor<DailyLog>(
@@ -107,20 +107,20 @@ final class ContextAssembler {
                 if let todayLog = allLogs.first(where: { log in
                     Calendar.current.isDate(log.date, inSameDayAs: todayStart)
                 }) {
-                    return SubjectiveData(
+                return SubjectiveData(
                         energyLevel: todayLog.subjectiveEnergyLevel,
-                        mood: nil, // Mood tracking TBD
+                    mood: nil, // Mood tracking TBD
                         stress: todayLog.stressLevel,
-                        motivation: nil,
-                        soreness: nil,
+                    motivation: nil,
+                    soreness: nil,
                         notes: todayLog.notes
-                    )
-                }
+                )
+            }
                 
                 return SubjectiveData()
                 
-            } catch {
-                AppLogger.error("Failed to fetch today's DailyLog", error: error, category: .data)
+        } catch {
+            AppLogger.error("Failed to fetch today's DailyLog", error: error, category: .data)
                 return SubjectiveData()
             }
         }

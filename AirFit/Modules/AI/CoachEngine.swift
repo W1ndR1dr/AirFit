@@ -667,3 +667,32 @@ extension CoachEngine {
         }
     }
 }
+
+// MARK: - Factory Methods
+extension CoachEngine {
+    /// Creates a default instance of CoachEngine with minimal dependencies for development.
+    /// Uses inline stub implementations to avoid external dependencies.
+    static func createDefault(modelContext: ModelContext) -> CoachEngine {
+        // Minimal inline stub for AIAPIServiceProtocol
+        final class MinimalAIAPIService: AIAPIServiceProtocol {
+            func configure(provider: AIProvider, apiKey: String, modelIdentifier: String?) {
+                // No-op for development
+            }
+            
+            func getStreamingResponse(for request: AIRequest) -> AnyPublisher<AIResponse, Error> {
+                // Return empty publisher for development
+                Empty(completeImmediately: true).eraseToAnyPublisher()
+            }
+        }
+        
+        return CoachEngine(
+            localCommandParser: LocalCommandParser(),
+            functionDispatcher: FunctionCallDispatcher(),
+            personaEngine: PersonaEngine(),
+            conversationManager: ConversationManager(modelContext: modelContext),
+            aiService: MinimalAIAPIService(),
+            contextAssembler: ContextAssembler(),
+            modelContext: modelContext
+        )
+    }
+}
