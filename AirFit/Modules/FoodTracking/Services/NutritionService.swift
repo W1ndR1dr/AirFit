@@ -181,20 +181,3 @@ actor NutritionService: NutritionServiceProtocol {
 }
 
 // MARK: - Nutrition Targets
-struct NutritionTargets: Sendable {
-    let calories: Double
-    let protein: Double
-    let carbs: Double
-    let fat: Double
-    let fiber: Double
-    let water: Double
-
-    static let `default` = NutritionTargets(
-        calories: 2_000,
-        protein: 50,
-        carbs: 250,
-        fat: 65,
-        fiber: 25,
-        water: 2_000
-    )
-}
