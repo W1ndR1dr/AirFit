@@ -268,9 +268,29 @@ final class OnboardingCoordinator: ObservableObject {
 ## Module 8 (Food Tracking) Documentation References
 - **@MODULE8_PROMPT_CHAIN.md** - Complete implementation prompt chain with all tasks, acceptance criteria, and sequencing for Module 8: Food Tracking (Voice-First AI-Powered Nutrition)
 - **@Module8.md** - Detailed technical specifications, requirements, and architecture for the Food Tracking module (located at `AirFit/Docs/Module8.md`)
+- **@Module8.5.md** - CRITICAL refactoring plan for architectural reconstruction (47 compilation errors, 23 architectural issues)
 - **Key Integration**: Module 8 leverages Module 13's VoiceInputManager via adapter pattern (FoodVoiceAdapter) - NO new WhisperKit implementation needed
 - **Voice Strategy**: Use existing Module 13 voice infrastructure with food-specific enhancements and post-processing
 - **Dependencies**: Requires completion of Modules 1, 2, 4, 5, and 13 (Chat Interface for voice foundation)
+- **REFACTORING REQUIRED**: Module 8.5 must be completed before any further Module 8 development
+
+## Module 8.5: Critical Refactoring Phase
+**Status**: CRITICAL - Production-blocking compilation failures  
+**Quality Assessment**: 30% (Significant architectural debt)  
+**Priority**: P0 - Must fix before any further development  
+
+### **Refactoring Focus Areas**
+1. **Type System Failures**: FoodDatabaseItem (referenced 23x, defined 0x), FoodNutritionSummary (requires 11 params, initialized with 0)
+2. **Protocol Conformance**: CoachEngine doesn't conform to FoodCoachEngineProtocol, missing 8+ service methods
+3. **Swift 6 Compliance**: Non-sendable types crossing actor boundaries, incomplete concurrency isolation
+4. **Model Alignment**: ParsedFoodItem properties don't match usage (fiber vs fiberGrams, etc.)
+
+### **Implementation Phases**
+- **Phase 1**: Foundation Repair (4-5h) - Core type definitions, protocol fixes
+- **Phase 2**: Service Layer (5-6h) - Complete protocol implementations
+- **Phase 3**: ViewModel Fix (3-4h) - Resolve all compilation errors
+- **Phase 4**: Swift 6 (2-3h) - Concurrency compliance
+- **Phase 5**: Integration (2-3h) - Build verification
 
 ## Pre-Implementation Checklist
 - [ ] Read module documentation in /AirFit/Docs/

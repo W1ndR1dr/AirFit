@@ -891,21 +891,24 @@ enum PhotoAnalysisError: LocalizedError {
 
 #if DEBUG
 #Preview("Photo Input View") {
-    let container = try! ModelContainer(for: User.self, configurations: ModelConfiguration(isStoredInMemoryOnly: true))
-    let context = container.mainContext
-    
-    let user = User(
-        id: UUID(),
-        createdAt: Date(),
-        lastActiveAt: Date(),
-        email: "test@example.com",
-        name: "Test User",
-        preferredUnits: "metric"
-    )
-    context.insert(user)
-    
-    NavigationStack {
-        // Create a minimal working view model for preview
+    PreviewContainer()
+}
+
+private struct PreviewContainer: View {
+    var body: some View {
+        let container = try! ModelContainer(for: User.self, configurations: ModelConfiguration(isStoredInMemoryOnly: true))
+        let context = container.mainContext
+        
+        let user = User(
+            id: UUID(),
+            createdAt: Date(),
+            lastActiveAt: Date(),
+            email: "test@example.com",
+            name: "Test User",
+            preferredUnits: "metric"
+        )
+        context.insert(user)
+        
         let coordinator = FoodTrackingCoordinator()
         let viewModel = FoodTrackingViewModel(
             modelContext: context,
@@ -917,9 +920,11 @@ enum PhotoAnalysisError: LocalizedError {
             coordinator: coordinator
         )
         
-        PhotoInputView(viewModel: viewModel)
+        return NavigationStack {
+            PhotoInputView(viewModel: viewModel)
+        }
+        .modelContainer(container)
     }
-    .modelContainer(container)
 }
 
 // MARK: - Preview Services

@@ -392,21 +392,24 @@ struct HydrationTipsView: View {
 
 #if DEBUG
 #Preview("Water Tracking - Default") {
-    let container = try! ModelContainer(for: User.self, configurations: ModelConfiguration(isStoredInMemoryOnly: true))
-    let context = container.mainContext
-    
-    let user = User(
-        id: UUID(),
-        createdAt: Date(),
-        lastActiveAt: Date(),
-        email: "test@example.com",
-        name: "Test User",
-        preferredUnits: "metric"
-    )
-    context.insert(user)
-    
-    NavigationStack {
-        // Create a minimal working view model for preview
+    PreviewContainer()
+}
+
+private struct PreviewContainer: View {
+    var body: some View {
+        let container = try! ModelContainer(for: User.self, configurations: ModelConfiguration(isStoredInMemoryOnly: true))
+        let context = container.mainContext
+        
+        let user = User(
+            id: UUID(),
+            createdAt: Date(),
+            lastActiveAt: Date(),
+            email: "test@example.com",
+            name: "Test User",
+            preferredUnits: "metric"
+        )
+        context.insert(user)
+        
         let coordinator = FoodTrackingCoordinator()
         let viewModel = FoodTrackingViewModel(
             modelContext: context,
@@ -418,9 +421,11 @@ struct HydrationTipsView: View {
             coordinator: coordinator
         )
         
-        WaterTrackingView(viewModel: viewModel)
+        return NavigationStack {
+            WaterTrackingView(viewModel: viewModel)
+        }
+        .modelContainer(container)
     }
-    .modelContainer(container)
 }
 
 // MARK: - Preview Services
