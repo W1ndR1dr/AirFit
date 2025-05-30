@@ -140,3 +140,40 @@ struct MealPhotoAnalysisResult: Sendable {
     let processingTime: TimeInterval
 }
 
+/// Errors that can occur when tracking foods or processing nutrition data.
+enum FoodTrackingError: Error, LocalizedError, Sendable {
+    /// Persistence layer failed to save the logged items.
+    case saveFailed
+    /// Network connectivity prevented the requested operation.
+    case networkError
+    /// Voice recognition failed to produce a valid transcript.
+    case voiceRecognitionFailed
+    /// AI parsing failed with a suggestion for the user.
+    case aiProcessingFailed(suggestion: String)
+    /// AI processing exceeded the allotted time.
+    case aiProcessingTimeout
+    /// No food items were detected from the provided input.
+    case noFoodsDetected
+    /// Photo analysis could not determine any usable results.
+    case photoAnalysisFailed
+
+    var errorDescription: String? {
+        switch self {
+        case .saveFailed:
+            return "Failed to save food entry"
+        case .networkError:
+            return "Network connection error"
+        case .voiceRecognitionFailed:
+            return "Voice recognition failed"
+        case let .aiProcessingFailed(suggestion):
+            return "AI processing failed. \(suggestion)"
+        case .aiProcessingTimeout:
+            return "AI processing timed out"
+        case .noFoodsDetected:
+            return "No food items detected"
+        case .photoAnalysisFailed:
+            return "Photo analysis failed"
+        }
+    }
+}
+
