@@ -165,6 +165,7 @@ targets:
       - AirFit/Modules/Chat/Views/ChatView.swift
       - AirFit/Modules/FoodTracking/Services/FoodVoiceAdapter.swift
       - AirFit/Modules/FoodTracking/Services/FoodVoiceServiceProtocol.swift
+      - AirFit/Modules/FoodTracking/Services/FoodDatabaseServiceProtocol.swift
       - AirFit/Modules/FoodTracking/Services/NutritionServiceProtocol.swift
       - AirFit/Modules/FoodTracking/Services/NutritionService.swift
       - AirFit/Modules/FoodTracking/Services/FoodDatabaseService.swift

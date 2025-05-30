@@ -44,10 +44,4 @@ enum FoodVoiceError: LocalizedError {
     }
 }
 
-// MARK: - Food Database Service Protocol
-protocol FoodDatabaseServiceProtocol: Sendable {
-    func searchCommonFood(_ name: String) async throws -> FoodDatabaseItem?
-    func lookupBarcode(_ barcode: String) async throws -> FoodDatabaseItem?
-    func searchFoods(query: String, limit: Int) async throws -> [FoodDatabaseItem]
-}
 
