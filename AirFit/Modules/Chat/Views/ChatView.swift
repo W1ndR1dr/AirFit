@@ -11,7 +11,7 @@ struct ChatView: View {
     init(user: User, modelContext: ModelContext) {
         let coordinator = ChatCoordinator()
         // Create simple mock services for now
-        let mockCoachEngine = MockCoachEngine()
+        let mockCoachEngine = ChatMockCoachEngine()
         let mockAIService = MockAIService()
         
         let viewModel = ChatViewModel(
@@ -221,7 +221,7 @@ struct ChatView: View {
 }
 
 // MARK: - Mock Services
-private final class MockCoachEngine: CoachEngineProtocol, @unchecked Sendable {
+private final class ChatMockCoachEngine: CoachEngineProtocol, @unchecked Sendable {
     func generatePostWorkoutAnalysis(_ request: PostWorkoutAnalysisRequest) async throws -> String {
         return "Great workout! You completed \(request.workout.exercises.count) exercises. Keep up the excellent work!"
     }
