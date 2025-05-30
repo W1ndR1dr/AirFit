@@ -8,20 +8,28 @@ struct FoodLoggingView: View {
     @State private var coordinator: FoodTrackingCoordinator
     @Environment(\.dismiss) private var dismiss
 
-    init(user: User, modelContext: ModelContext) {
-        let coordinator = FoodTrackingCoordinator()
+    init(
+        modelContext: ModelContext,
+        user: User,
+        coordinator: FoodTrackingCoordinator
+    ) {
         let adapter = FoodVoiceAdapter()
         let vm = FoodTrackingViewModel(
             modelContext: modelContext,
             user: user,
             foodVoiceAdapter: adapter,
-            nutritionService: NutritionService(modelContext: modelContext),
+            nutritionService: nil, // Will be set asynchronously
             foodDatabaseService: FoodDatabaseService(),
             coachEngine: CoachEngine.createDefault(modelContext: modelContext),
             coordinator: coordinator
         )
         self.viewModel = vm
         self.coordinator = coordinator
+        
+        // Set nutrition service asynchronously to avoid actor isolation issues
+        Task { @MainActor in
+            await vm.setNutritionService(NutritionService(modelContext: modelContext))
+        }
     }
 
     var body: some View {
@@ -309,7 +317,7 @@ struct FoodLoggingView: View {
         case .camera:
             PlaceholderView(title: "Camera Food Scan", subtitle: "Coming in Phase 4")
         case .confirmation(let items):
-            PlaceholderView(title: "Food Confirmation", subtitle: "\(items.count) items to confirm")
+            FoodConfirmationView(items: items, viewModel: viewModel)
         }
     }
 }
@@ -473,7 +481,7 @@ private extension FoodItem {
     let context = container.mainContext
     let user = User.example
     context.insert(user)
-    return FoodLoggingView(user: user, modelContext: context)
+    return FoodLoggingView(modelContext: context, user: user, coordinator: FoodTrackingCoordinator())
         .modelContainer(container)
 }
 #endif

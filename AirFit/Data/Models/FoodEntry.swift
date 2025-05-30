@@ -92,6 +92,38 @@ final class FoodEntry: @unchecked Sendable {
         self.parsingConfidence = confidence
         self.parsingTimestamp = Date()
     }
+    
+    func duplicate() -> FoodEntry {
+        let duplicateEntry = FoodEntry(
+            loggedAt: self.loggedAt,
+            mealType: self.mealTypeEnum ?? .snack,
+            rawTranscript: self.rawTranscript,
+            photoData: self.photoData,
+            notes: self.notes,
+            user: self.user
+        )
+        
+        // Duplicate all food items
+        for item in self.items {
+            let duplicateItem = FoodItem(
+                name: item.name,
+                brand: item.brand,
+                quantity: item.quantity,
+                unit: item.unit,
+                calories: item.calories,
+                proteinGrams: item.proteinGrams ?? 0,
+                carbGrams: item.carbGrams ?? 0,
+                fatGrams: item.fatGrams ?? 0
+            )
+            duplicateItem.fiberGrams = item.fiberGrams
+            duplicateItem.sugarGrams = item.sugarGrams
+            duplicateItem.sodiumMg = item.sodiumMg
+            duplicateItem.barcode = item.barcode
+            duplicateEntry.addItem(duplicateItem)
+        }
+        
+        return duplicateEntry
+    }
 }
 
 // MARK: - MealType Enum

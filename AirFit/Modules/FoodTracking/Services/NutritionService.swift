@@ -13,10 +13,11 @@ actor NutritionService: NutritionServiceProtocol {
         let calendar = Calendar.current
         let startOfDay = calendar.startOfDay(for: date)
         let endOfDay = calendar.date(byAdding: .day, value: 1, to: startOfDay) ?? date
+        let userId = user.id
         
         let descriptor = FetchDescriptor<FoodEntry>(
             predicate: #Predicate<FoodEntry> { entry in
-                entry.user?.id == user.id &&
+                entry.user?.id == userId &&
                 entry.loggedAt >= startOfDay &&
                 entry.loggedAt < endOfDay
             },
@@ -51,9 +52,11 @@ actor NutritionService: NutritionServiceProtocol {
     }
     
     func getRecentFoods(for user: User, limit: Int) async throws -> [FoodItem] {
+        let userId = user.id
+        
         let descriptor = FetchDescriptor<FoodEntry>(
             predicate: #Predicate<FoodEntry> { entry in
-                entry.user?.id == user.id
+                entry.user?.id == userId
             },
             sortBy: [SortDescriptor(\.loggedAt, order: .reverse)]
         )
@@ -80,11 +83,13 @@ actor NutritionService: NutritionServiceProtocol {
     func getMealHistory(for user: User, mealType: MealType, daysBack: Int) async throws -> [FoodEntry] {
         let calendar = Calendar.current
         let cutoffDate = calendar.date(byAdding: .day, value: -daysBack, to: Date()) ?? Date()
+        let userId = user.id
+        let mealTypeString = mealType.rawValue
         
         let descriptor = FetchDescriptor<FoodEntry>(
             predicate: #Predicate<FoodEntry> { entry in
-                entry.user?.id == user.id &&
-                entry.mealType == mealType.rawValue &&
+                entry.user?.id == userId &&
+                entry.mealType == mealTypeString &&
                 entry.loggedAt >= cutoffDate
             },
             sortBy: [SortDescriptor(\.loggedAt, order: .reverse)]
