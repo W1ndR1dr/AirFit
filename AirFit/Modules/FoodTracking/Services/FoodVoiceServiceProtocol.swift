@@ -44,33 +44,6 @@ enum FoodVoiceError: LocalizedError {
     }
 }
 
-// MARK: - Nutrition Service Protocol
-protocol NutritionServiceProtocol: Sendable {
-    /// Retrieves all `FoodEntry` objects for the specified date.
-    func getFoodEntries(for user: User, date: Date) async throws -> [FoodEntry]
-
-    /// Calculates a nutrition summary from a set of entries.
-    nonisolated func calculateNutritionSummary(from entries: [FoodEntry]) -> FoodNutritionSummary
-
-    /// Returns the amount of water consumed on a given day in milliliters.
-    func getWaterIntake(for user: User, date: Date) async throws -> Double
-
-    /// Retrieves the most recent foods logged by the user.
-    func getRecentFoods(for user: User, limit: Int) async throws -> [FoodItem]
-
-    /// Logs water intake for a user at the specified date.
-    func logWaterIntake(for user: User, amountML: Double, date: Date) async throws
-
-    /// Returns the meal history for a particular meal type.
-    func getMealHistory(for user: User, mealType: MealType, daysBack: Int) async throws -> [FoodEntry]
-
-    /// Nutrition targets derived from the onboarding profile.
-    func getTargets(from profile: OnboardingProfile?) -> NutritionTargets
-
-    /// Convenience helper to generate today's summary.
-    func getTodaysSummary(for user: User) async throws -> FoodNutritionSummary
-}
-
 // MARK: - Food Database Service Protocol
 protocol FoodDatabaseServiceProtocol: Sendable {
     func searchCommonFood(_ name: String) async throws -> FoodDatabaseItem?
