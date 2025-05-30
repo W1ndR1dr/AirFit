@@ -74,3 +74,46 @@ struct VisionAnalysisResult: Sendable {
     let confidence: Float
 }
 
+/// Raw food item information returned from parsing services.
+/// Properties use explicit units for clarity.
+struct ParsedFoodItem: Identifiable, Sendable {
+    /// Unique identifier for this parsed item.
+    let id = UUID()
+    /// Name of the food item.
+    let name: String
+    /// Optional brand associated with the item.
+    let brand: String?
+    /// Detected quantity of the food item.
+    let quantity: Double
+    /// Unit for the detected quantity.
+    let unit: String
+    /// Estimated calories contained in the quantity.
+    let calories: Double
+    /// Estimated grams of protein.
+    let proteinGrams: Double
+    /// Estimated grams of carbohydrates.
+    let carbGrams: Double
+    /// Estimated grams of fat.
+    let fatGrams: Double
+    /// Estimated grams of fiber.
+    let fiberGrams: Double?
+    /// Estimated grams of sugar.
+    let sugarGrams: Double?
+    /// Estimated milligrams of sodium.
+    let sodiumMilligrams: Double?
+    /// Barcode value if parsed from a scan.
+    let barcode: String?
+    /// Database identifier from external food data sources.
+    let databaseId: String?
+    /// Confidence score from the parser.
+    let confidence: Float
+
+    // MARK: - Backward Compatibility
+    /// Provides the fiber amount for callers using the old `fiber` property.
+    var fiber: Double? { fiberGrams }
+    /// Provides the sugar amount for callers using the old `sugar` property.
+    var sugar: Double? { sugarGrams }
+    /// Provides the sodium amount for callers using the old `sodium` property.
+    var sodium: Double? { sodiumMilligrams }
+}
+

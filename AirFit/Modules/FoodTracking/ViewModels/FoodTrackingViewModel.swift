@@ -456,26 +456,6 @@ final class FoodTrackingViewModel {
     }
 }
 
-// MARK: - Supporting Types
-struct ParsedFoodItem: Identifiable, Sendable {
-    let id = UUID()
-    var name: String
-    var brand: String?
-    var quantity: Double
-    var unit: String
-    var calories: Double
-    var proteinGrams: Double?
-    var carbGrams: Double?
-    var fatGrams: Double?
-    var fiber: Double?
-    var sugar: Double?
-    var sodium: Double?
-    var barcode: String?
-    var databaseId: String?
-    var confidence: Float
-}
-
-
 enum FoodTrackingError: LocalizedError {
     case noFoodsDetected
     case barcodeNotFound
