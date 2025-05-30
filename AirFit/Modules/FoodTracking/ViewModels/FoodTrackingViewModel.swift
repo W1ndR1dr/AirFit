@@ -624,39 +624,36 @@ final class FoodTrackingViewModel {
         return nil
     }
 
-    // MARK: - Barcode Scanning
-    func startBarcodeScanning() {
-        coordinator.showSheet(.barcodeScanner)
+    // MARK: - Photo Capture
+    func startPhotoCapture() {
+        coordinator.showSheet(.photoCapture)
     }
 
-    func processBarcodeResult(_ barcode: String) async {
+    func processPhotoResult(_ image: UIImage) async {
         isLoading = true
         defer { isLoading = false }
 
         do {
-            if let product = try await foodDatabaseService.lookupBarcode(barcode) {
-                let parsedItem = ParsedFoodItem(
-                    name: product.name,
-                    brand: product.brand,
-                    quantity: 1,
-                    unit: product.servingUnit,
-                    calories: product.calories,
-                    proteinGrams: product.protein,
-                    carbGrams: product.carbs,
-                    fatGrams: product.fat,
-                    barcode: barcode,
-                    confidence: 1.0
-                )
-
-                parsedItems = [parsedItem]
+            // Use Vision framework and AI to analyze the meal photo
+            let recognizedItems = try await analyzeMealPhoto(image)
+            
+            if !recognizedItems.isEmpty {
+                parsedItems = recognizedItems
                 coordinator.dismiss()
                 coordinator.showFullScreenCover(.confirmation(parsedItems))
             } else {
-                setError(FoodTrackingError.barcodeNotFound)
+                setError(FoodTrackingError.noFoodsDetected)
             }
         } catch {
             setError(error)
         }
+    }
+    
+    private func analyzeMealPhoto(_ image: UIImage) async throws -> [ParsedFoodItem] {
+        // Use AI to analyze the photo and identify food items
+        // This would integrate with Vision framework and AI analysis
+        // For now, return empty array as placeholder
+        return []
     }
 
     // MARK: - Food Search
@@ -888,7 +885,7 @@ struct FoodNutritionSummary: Sendable {
 
 enum FoodTrackingError: LocalizedError {
     case noFoodsDetected
-    case barcodeNotFound
+    case photoAnalysisFailed
     case saveFailed
     case aiProcessingTimeout
     case aiProcessingFailed(suggestion: String)
@@ -897,8 +894,8 @@ enum FoodTrackingError: LocalizedError {
         switch self {
         case .noFoodsDetected:
             return "No foods detected in your description"
-        case .barcodeNotFound:
-            return "Product not found in database"
+        case .photoAnalysisFailed:
+            return "Unable to analyze the photo. Please try again or add foods manually."
         case .saveFailed:
             return "Failed to save food entry"
         case .aiProcessingTimeout:

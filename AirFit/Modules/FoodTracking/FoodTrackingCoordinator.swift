@@ -12,7 +12,7 @@ final class FoodTrackingCoordinator {
     // MARK: - Sheet Types
     enum FoodTrackingSheet: Identifiable {
         case voiceInput
-        case barcodeScanner
+        case photoCapture
         case foodSearch
         case manualEntry
         case waterTracking
@@ -21,7 +21,7 @@ final class FoodTrackingCoordinator {
         var id: String {
             switch self {
             case .voiceInput: return "voice"
-            case .barcodeScanner: return "barcode"
+            case .photoCapture: return "photo"
             case .foodSearch: return "search"
             case .manualEntry: return "manual"
             case .waterTracking: return "water"

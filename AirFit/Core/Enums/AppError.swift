@@ -27,7 +27,7 @@ public enum AppError: LocalizedError, Sendable {
         case .healthKitNotAuthorized:
             return "Health access is required for this feature"
         case .cameraNotAuthorized:
-            return "Camera access is required to scan barcodes"
+            return "Camera access is required to take meal photos"
         }
     }
 

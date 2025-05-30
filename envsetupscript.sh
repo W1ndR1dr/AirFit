@@ -100,9 +100,9 @@ fi
 rm -f /tmp/food_tracking_concurrency_test.swift
 
 ###############################################################################
-#  4.  Test iOS 18 Vision framework for barcode scanning
+#  4.  Test iOS 18 Vision framework for photo capture and meal recognition
 ###############################################################################
-echo "📷  Testing iOS 18 Vision framework for barcode scanning…"
+echo "📷  Testing iOS 18 Vision framework for photo capture and meal recognition…"
 cat > /tmp/ios18_vision_test.swift << 'EOF'
 import Foundation
 #if canImport(Vision) && canImport(AVFoundation)
@@ -110,10 +110,10 @@ import Vision
 import AVFoundation
 
 @available(iOS 18.0, *)
-class TestBarcodeScanner {
-    func detectBarcodes() -> Bool {
-        let request = VNDetectBarcodesRequest()
-        request.symbologies = [.ean13, .ean8, .upce, .code128]
+class TestPhotoCapture {
+    func analyzeMealPhoto() -> Bool {
+        let request = VNRecognizeTextRequest()
+        request.recognitionLevel = .accurate
         return true
     }
 }
@@ -131,7 +131,7 @@ struct TestCameraSession {
 EOF
 
 if swift -frontend -typecheck /tmp/ios18_vision_test.swift -target arm64-apple-ios18.0 2>/dev/null; then
-  echo "✅  iOS 18 Vision framework and AVFoundation validated"
+  echo "✅  iOS 18 Vision framework and AVFoundation validated for photo capture"
 else
   echo "⚠️  iOS 18 Vision framework validation failed"
 fi
@@ -422,7 +422,7 @@ echo "---------------------------------------------"
 echo "📋  Environment ready for Module 8 (Food Tracking)"
 echo "    • Module 13 voice infrastructure available"
 echo "    • Swift 6 @Observable patterns validated"
-echo "    • iOS 18+ Vision framework for barcode scanning"
+echo "    • iOS 18+ Vision framework for photo capture"
 echo "    • Swift Charts for nutrition visualization"
 echo "    • Adapter pattern for voice integration tested"
 echo ""
@@ -437,7 +437,7 @@ echo "    • FoodVoiceAdapter (Module 13 integration)"
 echo "    • FoodTrackingViewModel (@Observable with voice)"
 echo "    • Voice-first food logging UI"
 echo "    • AI-powered food parsing with CoachEngine"
-echo "    • Barcode scanning with Vision framework"
+echo "    • Photo capture and meal recognition"
 echo "    • Macro visualization with Swift Charts"
 echo "    • Water tracking and nutrition insights"
 echo ""

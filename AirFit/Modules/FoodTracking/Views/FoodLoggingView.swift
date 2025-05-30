@@ -188,8 +188,8 @@ struct FoodLoggingView: View {
                     QuickActionButton(title: "Voice", icon: "mic.fill", color: AppColors.accent) {
                         Task { await viewModel.startVoiceInput() }
                     }
-                    QuickActionButton(title: "Barcode", icon: "barcode.viewfinder", color: .orange) {
-                        viewModel.startBarcodeScanning()
+                    QuickActionButton(title: "Photo", icon: "camera.fill", color: .orange) {
+                        viewModel.startPhotoCapture()
                     }
                     QuickActionButton(title: "Search", icon: "magnifyingglass", color: .green) {
                         coordinator.showSheet(.foodSearch)
@@ -298,8 +298,8 @@ struct FoodLoggingView: View {
         switch sheet {
         case .voiceInput:
             VoiceInputView(viewModel: viewModel)
-        case .barcodeScanner:
-            PlaceholderView(title: "Barcode Scanner", subtitle: "Coming in Phase 4")
+        case .photoCapture:
+            PlaceholderView(title: "Photo Capture", subtitle: "Coming in Phase 4")
         case .foodSearch:
             PlaceholderView(title: "Food Search", subtitle: "Coming in Phase 3")
         case .manualEntry:

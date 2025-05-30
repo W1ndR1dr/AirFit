@@ -68,7 +68,7 @@
 "onboarding.permissions.notifications" = "Notifications";
 "onboarding.permissions.notifications.description" = "Get reminders and meal insights";
 "onboarding.permissions.camera" = "Camera";
-"onboarding.permissions.camera.description" = "Scan barcodes and take meal photos";
+"onboarding.permissions.camera.description" = "Take meal photos for intelligent food recognition";
 
 "onboarding.complete.title" = "You're All Set!";
 "onboarding.complete.subtitle" = "Let's start your journey to better health";
@@ -92,7 +92,7 @@
 
 "dashboard.quickActions.title" = "Quick Actions";
 "dashboard.quickActions.logMeal" = "Log Meal";
-"dashboard.quickActions.scanBarcode" = "Scan Barcode";
+"dashboard.quickActions.photoCapture" = "Photo Capture";
 "dashboard.quickActions.voiceLog" = "Voice Log";
 "dashboard.quickActions.aiAssistant" = "AI Assistant";
 
@@ -111,8 +111,7 @@
 "meal.log.mealType" = "Meal Type";
 "meal.log.time" = "Time";
 "meal.log.notes" = "Notes (optional)";
-"meal.log.photo" = "Add Photo";
-"meal.log.barcode" = "Scan Barcode";
+"meal.log.photo" = "Take Photo";
 "meal.log.voice" = "Voice Input";
 "meal.log.favorites" = "Favorites";
 "meal.log.recent" = "Recent";
