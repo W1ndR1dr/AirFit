@@ -86,77 +86,6 @@ actor PreviewNutritionService: NutritionServiceProtocol {
     }
 }
 
-/// Mock implementation of `FoodDatabaseServiceProtocol` for previews.
-actor PreviewFoodDatabaseService: FoodDatabaseServiceProtocol {
-    private let items: [FoodDatabaseItem] = [
-        FoodDatabaseItem(
-            id: "1",
-            name: "Apple",
-            brand: nil,
-            caloriesPerServing: 95,
-            proteinPerServing: 0.5,
-            carbsPerServing: 25,
-            fatPerServing: 0.3,
-            servingSize: 1,
-            servingUnit: "medium",
-            defaultQuantity: 1,
-            defaultUnit: "medium"
-        ),
-        FoodDatabaseItem(
-            id: "2",
-            name: "Chicken Breast",
-            brand: nil,
-            caloriesPerServing: 165,
-            proteinPerServing: 31,
-            carbsPerServing: 0,
-            fatPerServing: 3.6,
-            servingSize: 100,
-            servingUnit: "g",
-            defaultQuantity: 100,
-            defaultUnit: "g"
-        ),
-        FoodDatabaseItem(
-            id: "3",
-            name: "Greek Yogurt",
-            brand: "Chobani",
-            caloriesPerServing: 100,
-            proteinPerServing: 18,
-            carbsPerServing: 6,
-            fatPerServing: 0,
-            servingSize: 170,
-            servingUnit: "g",
-            defaultQuantity: 1,
-            defaultUnit: "cup"
-        )
-    ]
-
-    func searchFoods(query: String) async throws -> [FoodDatabaseItem] {
-        try await searchFoods(query: query, limit: 25)
-    }
-
-    func getFoodDetails(id: String) async throws -> FoodDatabaseItem? {
-        items.first { $0.id == id }
-    }
-
-    func searchFoods(query: String, limit: Int) async throws -> [FoodDatabaseItem] {
-        let q = query.lowercased()
-        let results = items.filter { $0.name.lowercased().contains(q) || ($0.brand?.lowercased().contains(q) ?? false) }
-        return Array(results.prefix(limit))
-    }
-
-    func searchCommonFood(_ name: String) async throws -> FoodDatabaseItem? {
-        items.first { $0.name.lowercased() == name.lowercased() }
-    }
-
-    func lookupBarcode(_ barcode: String) async throws -> FoodDatabaseItem? {
-        barcode == "123456789" ? items.first : nil
-    }
-
-    func analyzePhotoForFoods(_ image: UIImage) async throws -> [FoodDatabaseItem] {
-        items
-    }
-}
-
 /// Simplified implementation of `FoodCoachEngineProtocol` for previews.
 actor PreviewCoachEngine: FoodCoachEngineProtocol {
     func processUserMessage(_ message: String, context: HealthContextSnapshot?) async throws -> [String: SendableValue] {
@@ -185,11 +114,31 @@ actor PreviewCoachEngine: FoodCoachEngineProtocol {
             fiberGrams: nil,
             sugarGrams: nil,
             sodiumMilligrams: nil,
-            barcode: nil,
             databaseId: nil,
             confidence: 0.9
         )
         return MealPhotoAnalysisResult(items: [item], confidence: 0.9, processingTime: 0.1)
+    }
+    
+    func searchFoods(query: String, limit: Int) async throws -> [ParsedFoodItem] {
+        // Return mock search results for previews
+        return [
+            ParsedFoodItem(
+                name: "Mock \(query)",
+                brand: nil,
+                quantity: 1,
+                unit: "serving",
+                calories: 150,
+                proteinGrams: 10,
+                carbGrams: 20,
+                fatGrams: 5,
+                fiberGrams: 2,
+                sugarGrams: 8,
+                sodiumMilligrams: 300,
+                databaseId: nil,
+                confidence: 0.85
+            )
+        ]
     }
 }
 

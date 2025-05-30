@@ -16,8 +16,8 @@
 *   **Purpose:** To provide an AI-powered, voice-first food tracking experience that makes nutrition logging effortless through natural language processing, intelligent photo recognition, and smart meal suggestions.
 *   **Responsibilities:**
     *   Voice-based food logging using Module 13's VoiceInputManager foundation
-    *   AI-powered food parsing and nutrition analysis
-    *   Photo input with intelligent meal recognition using Vision framework
+    *   AI-powered food parsing and nutrition analysis via CoachEngine
+    *   Photo input with intelligent meal recognition using Vision framework + AI
     *   Visual meal logging with AI-powered food identification
     *   Smart meal suggestions based on history
     *   Macro and micronutrient tracking
@@ -31,12 +31,11 @@
     *   `VoiceInputView.swift` - Voice recording UI with waveform visualization
     *   `FoodConfirmationView.swift` - AI parsing confirmation
     *   `PhotoInputView.swift` - Photo capture and meal recognition interface
-    *   `NutritionSearchView.swift` - Food database search
+    *   `NutritionSearchView.swift` - AI-powered food search
     *   `MacroRingsView.swift` - Macro visualization
     *   `WaterTrackingView.swift` - Water intake logging
     *   `FoodVoiceAdapter.swift` - Adapter for Module 13's VoiceInputManager
     *   `NutritionService.swift` - Nutrition data management
-    *   `FoodDatabaseService.swift` - Food database integration
 
 **2. Dependencies**
 
@@ -44,10 +43,10 @@
     *   Module 1: Core utilities, theme system
     *   Module 2: FoodEntry, FoodItem, CustomFood models
     *   Module 4: HealthKit integration
-    *   Module 5: AI parsing capabilities
+    *   Module 5: AI parsing capabilities via CoachEngine (primary food recognition)
     *   **Module 13: VoiceInputManager and WhisperKit infrastructure**
     *   AVFoundation for audio recording (via Module 13)
-    *   Vision framework for image analysis
+    *   Vision framework for image analysis preprocessing
     *   WhisperKit package (already configured in Module 13)
 *   **Outputs:**
     *   Food and water intake data
@@ -55,22 +54,23 @@
     *   HealthKit nutrition data
     *   Meal history and insights
 
-**3. Voice Infrastructure Strategy**
+**3. AI-First Architecture Strategy**
 
 **IMPORTANT ARCHITECTURAL DECISION:**
-Module 8 leverages the superior voice infrastructure provided by Module 13 rather than implementing its own WhisperKit integration. This approach:
+Module 8 adopts a pure AI-first approach for all food recognition, eliminating traditional food databases in favor of intelligent AI processing via the CoachEngine. This approach:
 
-- ✅ Eliminates code duplication
-- ✅ Ensures consistent voice experience across the app
-- ✅ Leverages Module 13's optimized model management
-- ✅ Reduces Module 8 implementation complexity
-- ✅ Provides food-specific transcription enhancements
+- ✅ Leverages advanced AI for superior food recognition accuracy
+- ✅ Eliminates maintenance of static food databases
+- ✅ Provides real-time nutrition data via AI web search capabilities
+- ✅ Supports any food globally, not just pre-cataloged items
+- ✅ Continuously improves with AI model updates
+- ✅ Reduces architectural complexity by centralizing all food intelligence
 
-**Voice Integration Approach:**
-1. **Foundation**: Use Module 13's `VoiceInputManager` as the core service
-2. **Adaptation**: Create `FoodVoiceAdapter` for food-specific optimizations
-3. **Enhancement**: Add food-specific post-processing and UI customizations
-4. **Integration**: Seamless integration with food logging workflows
+**AI Integration Approach:**
+1. **Voice Input**: WhisperKit transcription → CoachEngine food parsing
+2. **Photo Input**: Vision preprocessing → CoachEngine photo analysis
+3. **Text Search**: User queries → CoachEngine intelligent food lookup
+4. **Nutrition Data**: AI-generated nutrition facts with web-enhanced accuracy
 
 **3. Detailed Component Specifications & Agent Tasks**
 
@@ -678,7 +678,6 @@ Module 8 leverages the superior voice infrastructure provided by Module 13 rathe
                   foodItem.fiberGrams = parsedItem.fiber
                   foodItem.sugarGrams = parsedItem.sugar
                   foodItem.sodiumMg = parsedItem.sodium
-                  foodItem.barcode = parsedItem.barcode
                   
                   foodEntry.items.append(foodItem)
               }
@@ -805,7 +804,6 @@ Module 8 leverages the superior voice infrastructure provided by Module 13 rathe
       var fiber: Double?
       var sugar: Double?
       var sodium: Double?
-      var barcode: String?
       var databaseId: String?
       var confidence: Float
   }
@@ -2655,127 +2653,47 @@ Module 8 leverages the superior voice infrastructure provided by Module 13 rathe
   }
   ```
 
-**Agent Task 8.5.2: Create Food Database Service**
-- File: `AirFit/Modules/FoodTracking/Services/FoodDatabaseService.swift`
+**Agent Task 8.5.2: Enhanced CoachEngine Food Capabilities**
+- **Purpose**: Extend CoachEngine with comprehensive food recognition and analysis capabilities
 - Complete Implementation:
   ```swift
-  import Foundation
-  
-  protocol FoodDatabaseServiceProtocol: Sendable {
-      func searchFoods(query: String, limit: Int) async throws -> [FoodDatabaseItem]
-      func lookupBarcode(_ barcode: String) async throws -> FoodDatabaseItem?
-      func searchCommonFood(_ name: String) async throws -> FoodDatabaseItem?
-      func analyzePhotoForFoods(_ image: UIImage) async throws -> [FoodDatabaseItem]
+  // Extend CoachEngine protocol for food operations
+  extension FoodCoachEngineProtocol {
+      /// Intelligent food search using AI with web-enhanced results
+      func searchFood(_ query: String, context: NutritionContext?) async throws -> FoodSearchResult
+      
+      /// Parse natural language food descriptions into structured data
+      func parseFood(_ input: String, context: NutritionContext?) async throws -> [ParsedFoodItem]
+      
+      /// Analyze meal photos for food identification and nutrition estimation
+      func analyzeMealPhoto(image: UIImage, context: NutritionContext?) async throws -> MealPhotoAnalysisResult
+      
+      /// Generate smart meal suggestions based on user patterns
+      func generateMealSuggestions(for user: User, mealType: MealType, context: NutritionContext?) async throws -> [FoodSuggestion]
   }
   
-  struct FoodDatabaseItem: Identifiable, Sendable {
-      let id: String
+  // Supporting types for AI food operations
+  struct FoodSearchResult: Sendable {
+      let items: [ParsedFoodItem]
+      let suggestions: [String]
+      let confidence: Float
+      let sourceType: FoodSourceType // AI, web search, user history
+  }
+  
+  enum FoodSourceType: String, Sendable {
+      case aiKnowledge = "ai_knowledge"
+      case webSearch = "web_search" 
+      case userHistory = "user_history"
+      case nutritionDatabase = "nutrition_db"
+  }
+  
+  struct FoodSuggestion: Identifiable, Sendable {
+      let id = UUID()
       let name: String
-      let brand: String?
-      let caloriesPerServing: Double
-      let proteinPerServing: Double
-      let carbsPerServing: Double
-      let fatPerServing: Double
-      let servingSize: Double
-      let servingUnit: String
-      let defaultQuantity: Double
-      let defaultUnit: String
-      
-      var servingDescription: String {
-          "\(servingSize.formatted()) \(servingUnit)"
-      }
-  }
-  
-  final class FoodDatabaseService: FoodDatabaseServiceProtocol {
-      // Mock implementation for now
-      private let mockDatabase: [FoodDatabaseItem] = [
-          FoodDatabaseItem(
-              id: "1",
-              name: "Apple",
-              brand: nil,
-              caloriesPerServing: 95,
-              proteinPerServing: 0.5,
-              carbsPerServing: 25,
-              fatPerServing: 0.3,
-              servingSize: 1,
-              servingUnit: "medium",
-              defaultQuantity: 1,
-              defaultUnit: "medium"
-          ),
-          FoodDatabaseItem(
-              id: "2",
-              name: "Chicken Breast",
-              brand: nil,
-              caloriesPerServing: 165,
-              proteinPerServing: 31,
-              carbsPerServing: 0,
-              fatPerServing: 3.6,
-              servingSize: 100,
-              servingUnit: "g",
-              defaultQuantity: 100,
-              defaultUnit: "g"
-          ),
-          FoodDatabaseItem(
-              id: "3",
-              name: "Greek Yogurt",
-              brand: "Chobani",
-              caloriesPerServing: 100,
-              proteinPerServing: 18,
-              carbsPerServing: 6,
-              fatPerServing: 0,
-              servingSize: 170,
-              servingUnit: "g",
-              defaultQuantity: 1,
-              defaultUnit: "cup"
-          )
-      ]
-      
-      func searchFoods(query: String, limit: Int) async throws -> [FoodDatabaseItem] {
-          // Simulate network delay
-          try await Task.sleep(nanoseconds: 500_000_000)
-          
-          let lowercaseQuery = query.lowercased()
-          let results = mockDatabase.filter { item in
-              item.name.lowercased().contains(lowercaseQuery) ||
-              (item.brand?.lowercased().contains(lowercaseQuery) ?? false)
-          }
-          
-          return Array(results.prefix(limit))
-      }
-      
-      func lookupBarcode(_ barcode: String) async throws -> FoodDatabaseItem? {
-          // Simulate network delay
-          try await Task.sleep(nanoseconds: 500_000_000)
-          
-          // Mock barcode lookup
-          if barcode == "123456789" {
-              return FoodDatabaseItem(
-                  id: "barcode_1",
-                  name: "Protein Bar",
-                  brand: "Quest",
-                  caloriesPerServing: 200,
-                  proteinPerServing: 20,
-                  carbsPerServing: 22,
-                  fatPerServing: 8,
-                  servingSize: 1,
-                  servingUnit: "bar",
-                  defaultQuantity: 1,
-                  defaultUnit: "bar"
-              )
-          }
-          
-          return nil
-      }
-      
-      func searchCommonFood(_ name: String) async throws -> FoodDatabaseItem? {
-          return mockDatabase.first { $0.name.lowercased() == name.lowercased() }
-      }
-      
-      func analyzePhotoForFoods(_ image: UIImage) async throws -> [FoodDatabaseItem] {
-          // Implementation for photo analysis
-          // This is a placeholder and should be replaced with actual photo analysis logic
-          return []
-      }
+      let estimatedCalories: Int
+      let estimatedPortionSize: String
+      let confidence: Float
+      let reason: String // "frequently eaten at this time", "matches your goals", etc.
   }
   ```
 
@@ -2790,9 +2708,8 @@ Module 8 leverages the superior voice infrastructure provided by Module 13 rathe
   @MainActor
   final class FoodTrackingViewModelTests: XCTestCase {
       var sut: FoodTrackingViewModel!
-      var mockWhisperService: MockWhisperService!
+      var mockFoodVoiceAdapter: MockFoodVoiceAdapter!
       var mockNutritionService: MockNutritionService!
-      var mockFoodDatabaseService: MockFoodDatabaseService!
       var mockCoachEngine: MockCoachEngine!
       var modelContext: ModelContext!
       var testUser: User!
@@ -2811,18 +2728,16 @@ Module 8 leverages the superior voice infrastructure provided by Module 13 rathe
           try modelContext.save()
           
           // Setup mocks
-          mockWhisperService = MockWhisperService()
+          mockFoodVoiceAdapter = MockFoodVoiceAdapter()
           mockNutritionService = MockNutritionService()
-          mockFoodDatabaseService = MockFoodDatabaseService()
           mockCoachEngine = MockCoachEngine()
           
           // Create SUT
           sut = FoodTrackingViewModel(
               modelContext: modelContext,
               user: testUser,
-              whisperService: mockWhisperService,
+              foodVoiceAdapter: mockFoodVoiceAdapter,
               nutritionService: mockNutritionService,
-              foodDatabaseService: mockFoodDatabaseService,
               coachEngine: mockCoachEngine,
               coordinator: FoodTrackingCoordinator()
           )
@@ -2830,7 +2745,7 @@ Module 8 leverages the superior voice infrastructure provided by Module 13 rathe
       
       func test_startVoiceInput_withPermission_shouldShowVoiceSheet() async throws {
           // Arrange
-          mockWhisperService.hasPermission = true
+          mockFoodVoiceAdapter.hasPermission = true
           
           // Act
           await sut.startVoiceInput()
@@ -2839,30 +2754,102 @@ Module 8 leverages the superior voice infrastructure provided by Module 13 rathe
           XCTAssertEqual(sut.coordinator.activeSheet, .voiceInput)
       }
       
-      func test_processTranscription_withSimpleFood_shouldParseLocally() async {
+      func test_processTranscription_withAIFood_shouldParseViaCoachEngine() async {
           // Arrange
-          sut.transcribedText = "log an apple"
-          mockFoodDatabaseService.mockSearchResult = FoodDatabaseItem(
-              id: "1",
-              name: "Apple",
-              brand: nil,
-              caloriesPerServing: 95,
-              proteinPerServing: 0.5,
-              carbsPerServing: 25,
-              fatPerServing: 0.3,
-              servingSize: 1,
-              servingUnit: "medium",
-              defaultQuantity: 1,
-              defaultUnit: "medium"
-          )
+          sut.transcribedText = "I had a chicken caesar salad with croutons"
+          mockCoachEngine.mockFoodParseResult = [
+              ParsedFoodItem(
+                  name: "Chicken Caesar Salad",
+                  brand: nil,
+                  quantity: 1,
+                  unit: "bowl",
+                  calories: 350,
+                  proteinGrams: 25,
+                  carbGrams: 15,
+                  fatGrams: 20,
+                  fiberGrams: 3,
+                  sugarGrams: 5,
+                  sodiumMilligrams: 800,
+                  databaseId: nil,
+                  confidence: 0.9
+              )
+          ]
           
           // Act
           await sut.processTranscription()
           
           // Assert
           XCTAssertEqual(sut.parsedItems.count, 1)
-          XCTAssertEqual(sut.parsedItems.first?.name, "Apple")
-          XCTAssertEqual(sut.parsedItems.first?.calories, 95)
+          XCTAssertEqual(sut.parsedItems.first?.name, "Chicken Caesar Salad")
+          XCTAssertEqual(sut.parsedItems.first?.calories, 350)
+      }
+      
+      func test_searchFoods_shouldUseCoachEngineAISearch() async {
+          // Arrange
+          let mockSearchResult = FoodSearchResult(
+              items: [
+                  ParsedFoodItem(
+                      name: "Grilled Chicken Breast",
+                      brand: nil,
+                      quantity: 100,
+                      unit: "g",
+                      calories: 165,
+                      proteinGrams: 31,
+                      carbGrams: 0,
+                      fatGrams: 3.6,
+                      fiberGrams: nil,
+                      sugarGrams: nil,
+                      sodiumMilligrams: nil,
+                      databaseId: nil,
+                      confidence: 0.95
+                  )
+              ],
+              suggestions: ["Try adding vegetables", "Consider portion size"],
+              confidence: 0.95,
+              sourceType: .aiKnowledge
+          )
+          mockCoachEngine.mockFoodSearchResult = mockSearchResult
+          
+          // Act
+          await sut.searchFoods("chicken")
+          
+          // Assert
+          XCTAssertEqual(sut.searchResults.count, 1)
+          XCTAssertEqual(sut.searchResults.first?.name, "Grilled Chicken Breast")
+      }
+      
+      func test_processPhotoResult_shouldUseCoachEnginePhotoAnalysis() async {
+          // Arrange
+          let testImage = UIImage()
+          let mockPhotoResult = MealPhotoAnalysisResult(
+              items: [
+                  ParsedFoodItem(
+                      name: "Mixed Green Salad",
+                      brand: nil,
+                      quantity: 150,
+                      unit: "g",
+                      calories: 25,
+                      proteinGrams: 2,
+                      carbGrams: 5,
+                      fatGrams: 0.2,
+                      fiberGrams: 2,
+                      sugarGrams: 3,
+                      sodiumMilligrams: 10,
+                      databaseId: nil,
+                      confidence: 0.85
+                  )
+              ],
+              confidence: 0.85,
+              processingTime: 2.1
+          )
+          mockCoachEngine.mockPhotoAnalysisResult = mockPhotoResult
+          
+          // Act
+          await sut.processPhotoResult(testImage)
+          
+          // Assert
+          XCTAssertEqual(sut.parsedItems.count, 1)
+          XCTAssertEqual(sut.parsedItems.first?.name, "Mixed Green Salad")
       }
       
       func test_confirmAndSaveFoodItems_shouldCreateFoodEntry() async throws {
@@ -2877,6 +2864,10 @@ Module 8 leverages the superior voice infrastructure provided by Module 13 rathe
                   proteinGrams: 10,
                   carbGrams: 20,
                   fatGrams: 5,
+                  fiberGrams: 2,
+                  sugarGrams: 3,
+                  sodiumMilligrams: 150,
+                  databaseId: nil,
                   confidence: 0.9
               )
           ]
@@ -2889,33 +2880,6 @@ Module 8 leverages the superior voice infrastructure provided by Module 13 rathe
           XCTAssertEqual(entries.count, 1)
           XCTAssertEqual(entries.first?.items.count, 1)
           XCTAssertEqual(entries.first?.items.first?.name, "Test Food")
-      }
-      
-      func test_searchFoods_shouldUpdateSearchResults() async {
-          // Arrange
-          let mockResults = [
-              FoodDatabaseItem(
-                  id: "1",
-                  name: "Chicken",
-                  brand: nil,
-                  caloriesPerServing: 165,
-                  proteinPerServing: 31,
-                  carbsPerServing: 0,
-                  fatPerServing: 3.6,
-                  servingSize: 100,
-                  servingUnit: "g",
-                  defaultQuantity: 100,
-                  defaultUnit: "g"
-              )
-          ]
-          mockFoodDatabaseService.searchResults = mockResults
-          
-          // Act
-          await sut.searchFoods("chicken")
-          
-          // Assert
-          XCTAssertEqual(sut.searchResults.count, 1)
-          XCTAssertEqual(sut.searchResults.first?.name, "Chicken")
       }
       
       func test_logWater_shouldUpdateWaterIntake() async {
@@ -2938,7 +2902,7 @@ Module 8 leverages the superior voice infrastructure provided by Module 13 rathe
 
 - ✅ Voice-based food logging with real-time transcription
 - ✅ AI-powered food parsing from natural language
-- ✅ Intelligent photo input for meal recognition
+- ✅ Photo input with AI meal recognition and portion estimation
 - ✅ Visual meal logging with AI-powered food identification
 - ✅ Smart meal suggestions based on history
 - ✅ Macro and micronutrient tracking

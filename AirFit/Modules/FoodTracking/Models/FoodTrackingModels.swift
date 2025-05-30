@@ -76,7 +76,7 @@ struct VisionAnalysisResult: Sendable {
 
 /// Raw food item information returned from parsing services.
 /// Properties use explicit units for clarity.
-struct ParsedFoodItem: Identifiable, Sendable {
+struct ParsedFoodItem: Sendable, Identifiable {
     /// Unique identifier for this parsed item.
     let id = UUID()
     /// Name of the food item.
@@ -88,7 +88,7 @@ struct ParsedFoodItem: Identifiable, Sendable {
     /// Unit for the detected quantity.
     let unit: String
     /// Estimated calories contained in the quantity.
-    let calories: Double
+    let calories: Int
     /// Estimated grams of protein.
     let proteinGrams: Double
     /// Estimated grams of carbohydrates.
@@ -101,8 +101,6 @@ struct ParsedFoodItem: Identifiable, Sendable {
     let sugarGrams: Double?
     /// Estimated milligrams of sodium.
     let sodiumMilligrams: Double?
-    /// Barcode value if parsed from a scan.
-    let barcode: String?
     /// Database identifier from external food data sources.
     let databaseId: String?
     /// Confidence score from the parser.
@@ -145,7 +143,6 @@ enum FoodTrackingError: LocalizedError {
     case transcriptionFailed
     case aiParsingFailed
     case noFoodFound
-    case barcodeNotFound
     case networkError
     case invalidInput
     case permissionDenied
@@ -159,8 +156,6 @@ enum FoodTrackingError: LocalizedError {
             return "Failed to parse food information"
         case .noFoodFound:
             return "No food items detected"
-        case .barcodeNotFound:
-            return "Barcode not found in database"
         case .networkError:
             return "Network connection error"
         case .invalidInput:

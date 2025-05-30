@@ -16,16 +16,15 @@ struct FoodLoggingView: View {
     init(user: User, modelContext: ModelContext) {
         let coordinator = FoodTrackingCoordinator()
         let adapter = FoodVoiceAdapter()
-        let vm = FoodTrackingViewModel(
+        let viewModel = FoodTrackingViewModel(
             modelContext: modelContext,
             user: user,
             foodVoiceAdapter: adapter,
-            nutritionService: MockNutritionService(),
-            foodDatabaseService: MockFoodDatabaseService(),
-            coachEngine: MockCoachEngine(),
+            nutritionService: NutritionService(modelContext: modelContext),
+            coachEngine: CoachEngine.createDefault(modelContext: modelContext),
             coordinator: coordinator
         )
-        self.init(viewModel: vm, coordinator: coordinator)
+        self.init(viewModel: viewModel, coordinator: coordinator)
     }
 
     var body: some View {
@@ -257,24 +256,23 @@ struct FoodLoggingView: View {
     }
 
     private func selectSuggestedFood(_ food: FoodItem) {
-        let parsed = ParsedFoodItem(
+        let parsedItem = ParsedFoodItem(
             name: food.name,
             brand: food.brand,
-            quantity: food.quantity ?? 1.0,
+            quantity: food.quantity ?? 1,
             unit: food.unit ?? "serving",
-            calories: food.calories ?? 0,
+            calories: Int(food.calories ?? 0),
             proteinGrams: food.proteinGrams ?? 0,
             carbGrams: food.carbGrams ?? 0,
             fatGrams: food.fatGrams ?? 0,
             fiberGrams: food.fiberGrams,
             sugarGrams: food.sugarGrams,
             sodiumMilligrams: food.sodiumMg,
-            barcode: food.barcode,
             databaseId: nil,
             confidence: 1.0
         )
-        viewModel.setParsedItems([parsed])
-        coordinator.showFullScreenCover(.confirmation([parsed]))
+        viewModel.setParsedItems([parsedItem])
+        coordinator.showFullScreenCover(.confirmation([parsedItem]))
     }
 
     // MARK: - Navigation Helpers
@@ -485,9 +483,8 @@ private extension FoodItem {
         modelContext: context,
         user: user,
         foodVoiceAdapter: FoodVoiceAdapter(),
-        nutritionService: MockNutritionService(),
-        foodDatabaseService: MockFoodDatabaseService(),
-        coachEngine: MockCoachEngine(),
+        nutritionService: NutritionService(modelContext: context),
+        coachEngine: CoachEngine.createDefault(modelContext: context),
         coordinator: FoodTrackingCoordinator()
     )
     FoodLoggingView(viewModel: vm)

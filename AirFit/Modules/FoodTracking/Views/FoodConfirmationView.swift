@@ -134,19 +134,19 @@ struct FoodConfirmationView: View {
 
     // MARK: - Computed Properties
     private var totalCalories: Double {
-        items.reduce(0) { $0 + $1.calories }
+        Double(items.reduce(0) { $0 + $1.calories })
     }
 
     private var totalProtein: Double {
-        items.reduce(0) { $0 + ($1.proteinGrams ?? 0) }
+        items.reduce(0) { $0 + $1.proteinGrams }
     }
 
     private var totalCarbs: Double {
-        items.reduce(0) { $0 + ($1.carbGrams ?? 0) }
+        items.reduce(0) { $0 + $1.carbGrams }
     }
 
     private var totalFat: Double {
-        items.reduce(0) { $0 + ($1.fatGrams ?? 0) }
+        items.reduce(0) { $0 + $1.fatGrams }
     }
 
     // MARK: - Actions
@@ -219,7 +219,7 @@ private struct FoodItemCard: View {
                 Divider()
 
                 HStack(spacing: AppSpacing.large) {
-                    NutrientLabel(value: item.calories, unit: "cal", color: .orange)
+                    NutrientLabel(value: Double(item.calories), unit: "cal", color: .orange)
                     NutrientLabel(value: item.proteinGrams ?? 0, unit: "g", label: "Protein", color: AppColors.proteinColor)
                     NutrientLabel(value: item.carbGrams ?? 0, unit: "g", label: "Carbs", color: AppColors.carbsColor)
                     NutrientLabel(value: item.fatGrams ?? 0, unit: "g", label: "Fat", color: AppColors.fatColor)
@@ -296,20 +296,19 @@ private struct ManualFoodEntryView: View {
                 .keyboardType(.decimalPad)
             Button("Add") {
                 let item = ParsedFoodItem(
-                    name: name,
-                    brand: nil,
-                    quantity: 1,
+                    name: "Sample Food",
+                    brand: "Sample Brand",
+                    quantity: 1.0,
                     unit: "serving",
-                    calories: calories,
-                    proteinGrams: 0,
-                    carbGrams: 0,
-                    fatGrams: 0,
-                    fiberGrams: nil,
-                    sugarGrams: nil,
-                    sodiumMilligrams: nil,
-                    barcode: nil,
-                    databaseId: nil,
-                    confidence: 1.0
+                    calories: 150,
+                    proteinGrams: 10.0,
+                    carbGrams: 20.0,
+                    fatGrams: 5.0,
+                    fiberGrams: 3.0,
+                    sugarGrams: 8.0,
+                    sodiumMilligrams: 200.0,
+                    databaseId: "sample_1",
+                    confidence: 0.9
                 )
                 onAdd(item)
                 dismiss()
@@ -336,7 +335,6 @@ private struct ManualFoodEntryView: View {
         fiberGrams: nil,
         sugarGrams: nil,
         sodiumMilligrams: nil,
-        barcode: nil,
         databaseId: nil,
         confidence: 1.0
     )
@@ -345,7 +343,6 @@ private struct ManualFoodEntryView: View {
         user: user,
         foodVoiceAdapter: FoodVoiceAdapter(),
         nutritionService: MockNutritionService(),
-        foodDatabaseService: MockFoodDatabaseService(),
         coachEngine: MockCoachEngine(),
         coordinator: FoodTrackingCoordinator()
     )
@@ -369,16 +366,6 @@ final class MockNutritionService: NutritionServiceProtocol {
 }
 
 @MainActor
-final class MockFoodDatabaseService: FoodDatabaseServiceProtocol {
-    func searchFoods(query: String) async throws -> [FoodDatabaseItem] { [] }
-    func getFoodDetails(id: String) async throws -> FoodDatabaseItem? { nil }
-    func searchFoods(query: String, limit: Int) async throws -> [FoodDatabaseItem] { [] }
-    func searchCommonFood(_ name: String) async throws -> FoodDatabaseItem? { nil }
-    func lookupBarcode(_ barcode: String) async throws -> FoodDatabaseItem? { nil }
-    func analyzePhotoForFoods(_ image: UIImage) async throws -> [FoodDatabaseItem] { [] }
-}
-
-@MainActor
 final class MockCoachEngine: FoodCoachEngineProtocol {
     func processUserMessage(_ message: String, context: HealthContextSnapshot?) async throws -> [String: SendableValue] {
         ["response": .string("Mock response")]
@@ -390,6 +377,10 @@ final class MockCoachEngine: FoodCoachEngineProtocol {
     
     func analyzeMealPhoto(image: UIImage, context: NutritionContext?) async throws -> MealPhotoAnalysisResult {
         MealPhotoAnalysisResult(items: [], confidence: 0.9, processingTime: 0.1)
+    }
+    
+    func searchFoods(query: String, limit: Int) async throws -> [ParsedFoodItem] {
+        []
     }
 }
 #endif

@@ -165,12 +165,9 @@ targets:
       - AirFit/Modules/Chat/Views/ChatView.swift
       - AirFit/Modules/FoodTracking/Services/FoodVoiceAdapter.swift
       - AirFit/Modules/FoodTracking/Services/FoodVoiceServiceProtocol.swift
-      - AirFit/Modules/FoodTracking/Services/FoodDatabaseServiceProtocol.swift
       - AirFit/Modules/FoodTracking/Services/NutritionServiceProtocol.swift
       - AirFit/Modules/FoodTracking/Services/NutritionService.swift
-      - AirFit/Modules/FoodTracking/Services/FoodDatabaseService.swift
       - AirFit/Modules/FoodTracking/Services/PreviewServices.swift
-      - AirFit/Modules/FoodTracking/Models/FoodDatabaseModels.swift
       - AirFit/Modules/FoodTracking/Models/FoodTrackingModels.swift
       - AirFit/Modules/FoodTracking/FoodTrackingCoordinator.swift
       - AirFit/Modules/FoodTracking/ViewModels/FoodTrackingViewModel.swift
@@ -195,7 +192,6 @@ targets:
       - AirFit/Modules/FoodTracking/Services/FoodVoiceAdapterProtocol.swift
       - AirFit/Modules/FoodTracking/Services/NutritionService.swift
       - AirFit/Modules/FoodTracking/Services/NutritionServiceProtocol.swift
-      - AirFit/Modules/FoodTracking/Services/FoodDatabaseServiceProtocol.swift
       - AirFit/Modules/FoodTracking/FoodTrackingCoordinator.swift
       # Application Layer Files (CRITICAL: XcodeGen nesting bug)
       - AirFit/Application/AirFitApp.swift

@@ -298,7 +298,9 @@ struct PhotoInputView: View {
                 
                 // Process results
                 await MainActor.run {
-                    viewModel.processPhotoResult(image)
+                    Task {
+                        await viewModel.processPhotoResult(image)
+                    }
                     dismiss()
                 }
                 
@@ -420,14 +422,13 @@ struct PhotoInputView: View {
                 brand: extractString(from: itemDict["brand"]),
                 quantity: extractDouble(from: itemDict["estimatedQuantity"]) ?? 1.0,
                 unit: extractString(from: itemDict["unit"]) ?? "serving",
-                calories: calories,
+                calories: Int(calories),
                 proteinGrams: protein,
                 carbGrams: carbs,
                 fatGrams: fat,
                 fiberGrams: fiber,
                 sugarGrams: sugar,
                 sodiumMilligrams: sodium,
-                barcode: extractString(from: itemDict["barcode"]),
                 databaseId: extractString(from: itemDict["databaseId"]),
                 confidence: confidence
             )
@@ -885,45 +886,7 @@ enum PhotoAnalysisError: LocalizedError {
     }
 }
 
-// MARK: - Preview Services
-#if DEBUG
-@MainActor
-final class PreviewNutritionService: NutritionServiceProtocol {
-    func saveFoodEntry(_ entry: FoodEntry) async throws {}
-    func getFoodEntries(for date: Date) async throws -> [FoodEntry] { [] }
-    func deleteFoodEntry(_ entry: FoodEntry) async throws {}
-    func getFoodEntries(for user: User, date: Date) async throws -> [FoodEntry] { [] }
-    nonisolated func calculateNutritionSummary(from entries: [FoodEntry]) -> FoodNutritionSummary { FoodNutritionSummary() }
-    func getWaterIntake(for user: User, date: Date) async throws -> Double { 0 }
-    func getRecentFoods(for user: User, limit: Int) async throws -> [FoodItem] { [] }
-    func logWaterIntake(for user: User, amountML: Double, date: Date) async throws {}
-    func getMealHistory(for user: User, mealType: MealType, daysBack: Int) async throws -> [FoodEntry] { [] }
-    nonisolated func getTargets(from profile: OnboardingProfile?) -> NutritionTargets { .default }
-    func getTodaysSummary(for user: User) async throws -> FoodNutritionSummary { FoodNutritionSummary() }
-}
-
-@MainActor
-final class PreviewFoodDatabaseService: FoodDatabaseServiceProtocol {
-    func searchFoods(query: String) async throws -> [FoodDatabaseItem] { [] }
-    func getFoodDetails(id: String) async throws -> FoodDatabaseItem? { nil }
-    func searchFoods(query: String, limit: Int) async throws -> [FoodDatabaseItem] { [] }
-    func searchCommonFood(_ name: String) async throws -> FoodDatabaseItem? { nil }
-    func lookupBarcode(_ barcode: String) async throws -> FoodDatabaseItem? { nil }
-    func analyzePhotoForFoods(_ image: UIImage) async throws -> [FoodDatabaseItem] { [] }
-}
-
-@MainActor
-final class PreviewCoachEngine: FoodCoachEngineProtocol {
-    func processUserMessage(_ message: String, context: HealthContextSnapshot?) async throws -> [String: SendableValue] {
-        ["response": SendableValue.string("Mock response")]
-    }
-    
-    func executeFunction(_ functionCall: AIFunctionCall, for user: User) async throws -> FunctionExecutionResult {
-        FunctionExecutionResult(success: true, message: "Mock execution", executionTimeMs: 1, functionName: functionCall.name)
-    }
-    
-    func analyzeMealPhoto(image: UIImage, context: NutritionContext?) async throws -> MealPhotoAnalysisResult {
-        MealPhotoAnalysisResult(items: [], confidence: 1.0, processingTime: 0.1)
-    }
-}
-#endif 
+struct VisionAnalysisResult {
+    let recognizedText: [String]
+    let confidence: Float
+} 

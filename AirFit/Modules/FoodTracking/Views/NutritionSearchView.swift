@@ -184,14 +184,13 @@ struct NutritionSearchView: View {
             brand: food.brand,
             quantity: food.quantity ?? 1,
             unit: food.unit ?? "serving",
-            calories: food.calories ?? 0,
+            calories: Int(food.calories ?? 0),
             proteinGrams: food.proteinGrams ?? 0,
             carbGrams: food.carbGrams ?? 0,
             fatGrams: food.fatGrams ?? 0,
             fiberGrams: food.fiberGrams,
             sugarGrams: food.sugarGrams,
             sodiumMilligrams: food.sodiumMg,
-            barcode: food.barcode,
             databaseId: nil,
             confidence: 1.0
         )
@@ -375,33 +374,36 @@ private struct CategoryChip: View {
 // MARK: - Previews
 #if DEBUG
 #Preview("Default State") {
-    let container = try! ModelContainer(for: User.self, configurations: ModelConfiguration(isStoredInMemoryOnly: true))
-    let context = container.mainContext
-    
-    let user = User(
-        id: UUID(),
-        createdAt: Date(),
-        lastActiveAt: Date(),
-        email: "test@example.com",
-        name: "Test User",
-        preferredUnits: "metric"
-    )
-    context.insert(user)
-    
-    let coordinator = FoodTrackingCoordinator()
-    let viewModel = FoodTrackingViewModel(
-        modelContext: context,
-        user: user,
-        foodVoiceAdapter: FoodVoiceAdapter(),
-        nutritionService: MockNutritionService(),
-        foodDatabaseService: MockFoodDatabaseService(),
-        coachEngine: MockCoachEngine(),
-        coordinator: coordinator
-    )
-    
-    return NavigationStack {
-        NutritionSearchView(viewModel: viewModel)
+    @MainActor func makePreview() -> some View {
+        let container = try! ModelContainer(for: User.self, configurations: ModelConfiguration(isStoredInMemoryOnly: true))
+        let context = container.mainContext
+        
+        let user = User(
+            id: UUID(),
+            createdAt: Date(),
+            lastActiveAt: Date(),
+            email: "test@example.com",
+            name: "Test User",
+            preferredUnits: "metric"
+        )
+        context.insert(user)
+        
+        let coordinator = FoodTrackingCoordinator()
+        let viewModel = FoodTrackingViewModel(
+            modelContext: context,
+            user: user,
+            foodVoiceAdapter: FoodVoiceAdapter(),
+            nutritionService: MockNutritionService(),
+            coachEngine: CoachEngine.createDefault(modelContext: context),
+            coordinator: coordinator
+        )
+        
+        return NavigationStack {
+            NutritionSearchView(viewModel: viewModel)
+        }
+        .modelContainer(container)
     }
-    .modelContainer(container)
+    
+    return makePreview()
 }
 #endif

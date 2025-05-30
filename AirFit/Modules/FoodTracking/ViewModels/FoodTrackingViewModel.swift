@@ -13,7 +13,6 @@ final class FoodTrackingViewModel {
     internal let user: User
     private let foodVoiceAdapter: FoodVoiceAdapter
     private let nutritionService: NutritionServiceProtocol?
-    private let foodDatabaseService: FoodDatabaseServiceProtocol
     internal let coachEngine: FoodCoachEngineProtocol
     private let coordinator: FoodTrackingCoordinator
 
@@ -40,8 +39,8 @@ final class FoodTrackingViewModel {
     private(set) var todaysNutrition = FoodNutritionSummary()
     private(set) var waterIntakeML: Double = 0
 
-    // Search and suggestions
-    private(set) var searchResults: [FoodDatabaseItem] = []
+    // Search and suggestions - now using AI-generated results
+    private(set) var searchResults: [ParsedFoodItem] = []
     private(set) var recentFoods: [FoodItem] = []
     private(set) var suggestedFoods: [FoodItem] = []
 
@@ -66,7 +65,6 @@ final class FoodTrackingViewModel {
         user: User,
         foodVoiceAdapter: FoodVoiceAdapter,
         nutritionService: NutritionServiceProtocol,
-        foodDatabaseService: FoodDatabaseServiceProtocol,
         coachEngine: FoodCoachEngineProtocol,
         coordinator: FoodTrackingCoordinator
     ) {
@@ -74,7 +72,6 @@ final class FoodTrackingViewModel {
         self.user = user
         self.foodVoiceAdapter = foodVoiceAdapter
         self.nutritionService = nutritionService
-        self.foodDatabaseService = foodDatabaseService
         self.coachEngine = coachEngine
         self.coordinator = coordinator
 
@@ -231,7 +228,6 @@ final class FoodTrackingViewModel {
                 fiberGrams: nil,
                 sugarGrams: nil,
                 sodiumMilligrams: nil,
-                barcode: nil,
                 databaseId: nil,
                 confidence: 0.7
             )]
@@ -250,52 +246,37 @@ final class FoodTrackingViewModel {
             fiberGrams: nil,
             sugarGrams: nil,
             sodiumMilligrams: nil,
-            barcode: nil,
             databaseId: nil,
             confidence: 0.5
         )]
     }
 
-    // MARK: - Barcode Scanning
-    func startBarcodeScanning() {
+    // MARK: - Photo Input
+    func startPhotoCapture() {
         coordinator.showSheet(.photoCapture)
     }
 
-    func processBarcodeResult(_ barcode: String) async {
+    func processPhotoResult(_ image: UIImage) async {
         isLoading = true
         defer { isLoading = false }
 
         do {
-            if let product = try await foodDatabaseService.lookupBarcode(barcode) {
-                let parsedItem = ParsedFoodItem(
-                    name: product.name,
-                    brand: product.brand,
-                    quantity: product.defaultQuantity,
-                    unit: product.defaultUnit,
-                    calories: product.caloriesPerServing,
-                    proteinGrams: product.proteinPerServing,
-                    carbGrams: product.carbsPerServing,
-                    fatGrams: product.fatPerServing,
-                    fiberGrams: nil,
-                    sugarGrams: nil,
-                    sodiumMilligrams: nil,
-                    barcode: nil,
-                    databaseId: product.id,
-                    confidence: 1.0
-                )
-
-                parsedItems = [parsedItem]
+            // Use AI to analyze the photo and identify foods via CoachEngine
+            let analysisResult = try await coachEngine.analyzeMealPhoto(image: image, context: nil)
+            
+            if !analysisResult.items.isEmpty {
+                self.parsedItems = analysisResult.items
                 coordinator.dismiss()
                 coordinator.showFullScreenCover(.confirmation(parsedItems))
             } else {
-                setError(FoodTrackingError.barcodeNotFound)
+                setError(FoodTrackingError.noFoodFound)
             }
         } catch {
             setError(error)
         }
     }
 
-    // MARK: - Food Search
+    // MARK: - Food Search via AI
     func searchFoods(_ query: String) async {
         guard !query.isEmpty else {
             searchResults = []
@@ -303,7 +284,8 @@ final class FoodTrackingViewModel {
         }
 
         do {
-            let results = try await foodDatabaseService.searchFoods(
+            // Use CoachEngine for AI-powered food search
+            let results = try await coachEngine.searchFoods(
                 query: query,
                 limit: 20
             )
@@ -314,25 +296,8 @@ final class FoodTrackingViewModel {
         }
     }
 
-    func selectSearchResult(_ item: FoodDatabaseItem) {
-        let parsedItem = ParsedFoodItem(
-            name: item.name,
-            brand: item.brand,
-            quantity: item.defaultQuantity,
-            unit: item.defaultUnit,
-            calories: item.caloriesPerServing,
-            proteinGrams: item.proteinPerServing,
-            carbGrams: item.carbsPerServing,
-            fatGrams: item.fatPerServing,
-            fiberGrams: nil,
-            sugarGrams: nil,
-            sodiumMilligrams: nil,
-            barcode: nil,
-            databaseId: item.id,
-            confidence: 1.0
-        )
-
-        parsedItems = [parsedItem]
+    func selectSearchResult(_ item: ParsedFoodItem) {
+        parsedItems = [item]
         coordinator.dismiss()
         coordinator.showFullScreenCover(.confirmation(parsedItems))
     }
@@ -349,7 +314,7 @@ final class FoodTrackingViewModel {
                     brand: parsedItem.brand,
                     quantity: parsedItem.quantity,
                     unit: parsedItem.unit,
-                    calories: parsedItem.calories,
+                    calories: Double(parsedItem.calories),
                     proteinGrams: parsedItem.proteinGrams,
                     carbGrams: parsedItem.carbGrams,
                     fatGrams: parsedItem.fatGrams
@@ -368,7 +333,7 @@ final class FoodTrackingViewModel {
                     brand: parsedItem.brand,
                     quantity: parsedItem.quantity,
                     unit: parsedItem.unit,
-                    calories: parsedItem.calories,
+                    calories: Double(parsedItem.calories),
                     proteinGrams: parsedItem.proteinGrams ?? 0,
                     carbGrams: parsedItem.carbGrams ?? 0,
                     fatGrams: parsedItem.fatGrams ?? 0
@@ -377,7 +342,6 @@ final class FoodTrackingViewModel {
                 foodItem.fiberGrams = parsedItem.fiber
                 foodItem.sugarGrams = parsedItem.sugar
                 foodItem.sodiumMg = parsedItem.sodium
-                foodItem.barcode = parsedItem.barcode
 
                 entry.items.append(foodItem)
             }
@@ -539,13 +503,6 @@ final class FoodTrackingViewModel {
         parsedItems = items
     }
 
-    // MARK: - Photo Processing
-    func processPhotoResult(_ image: UIImage) {
-        // This method will be called by PhotoInputView after successful analysis
-        // For now, just log that a photo was processed
-        AppLogger.info("Photo processed successfully", category: .ai)
-    }
-
     // MARK: - Local Parsing Fallback
     private func parseWithLocalFallback(_ text: String) async throws -> (items: [ParsedFoodItem], confidence: Float) {
         let items = parseSimpleFood(text)
@@ -574,7 +531,6 @@ final class FoodTrackingViewModel {
                 fiberGrams: nil,
                 sugarGrams: nil,
                 sodiumMilligrams: nil,
-                barcode: nil,
                 databaseId: nil,
                 confidence: 0.7
             )]
@@ -593,7 +549,6 @@ final class FoodTrackingViewModel {
             fiberGrams: nil,
             sugarGrams: nil,
             sodiumMilligrams: nil,
-            barcode: nil,
             databaseId: nil,
             confidence: 0.5
         )]
@@ -629,5 +584,8 @@ protocol FoodCoachEngineProtocol: Sendable {
 
     /// Analyzes a meal photo and returns detected foods and nutrition data.
     func analyzeMealPhoto(image: UIImage, context: NutritionContext?) async throws -> MealPhotoAnalysisResult
+
+    /// Searches for foods based on a query and returns a list of food items.
+    func searchFoods(query: String, limit: Int) async throws -> [ParsedFoodItem]
 }
 

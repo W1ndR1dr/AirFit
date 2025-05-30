@@ -92,8 +92,7 @@ class MockNutritionService: NutritionServiceProtocol {
     }
     
     func getTodaysSummary(for user: User) async throws -> FoodNutritionSummary {
-        if shouldThrowError { throw MockError.serviceError }
-        var summary = nutritionSummaryToReturn
+        var summary = calculateNutritionSummary(from: [])
         summary.calorieGoal = targetsToReturn.calories
         summary.proteinGoal = targetsToReturn.protein
         summary.carbGoal = targetsToReturn.carbs
@@ -105,7 +104,6 @@ class MockNutritionService: NutritionServiceProtocol {
 class MockFoodDatabaseService: FoodDatabaseServiceProtocol {
     var searchResultsToReturn: [FoodDatabaseItem] = []
     var commonFoodToReturn: FoodDatabaseItem?
-    var barcodeLookupResultToReturn: FoodDatabaseItem?
     var analyzePhotoResultToReturn: [FoodDatabaseItem] = []
     var shouldThrowError: Bool = false
 
@@ -119,14 +117,8 @@ class MockFoodDatabaseService: FoodDatabaseServiceProtocol {
         return commonFoodToReturn?.name.lowercased() == name.lowercased() ? commonFoodToReturn : nil
     }
     
-    func lookupBarcode(_ barcode: String) async throws -> FoodDatabaseItem? {
-        if shouldThrowError { throw MockError.serviceError }
-        return barcodeLookupResultToReturn
-    }
-    
-    func analyzePhotoForFoods(_ image: UIImage) async throws -> [FoodDatabaseItem] {
-        if shouldThrowError { throw MockError.serviceError }
-        return analyzePhotoResultToReturn
+    func analyzePhotoForFoods(_ image: UIImage) async throws -> [FoodDatabaseItem]? {
+        return [mockFoodItem]
     }
 }
 
@@ -136,6 +128,8 @@ class MockCoachEngine: CoachEngine {
     var executeFunctionDataToReturn: [String: SendableValue]? = nil
     var analyzeMealPhotoShouldSucceed: Bool = true
     var analyzeMealPhotoItemsToReturn: [ParsedFoodItem] = []
+    var searchFoodsShouldSucceed: Bool = true
+    var searchFoodsResultToReturn: [ParsedFoodItem] = []
     var shouldTimeout: Bool = false
 
     override func executeFunction(_ functionCall: AIFunctionCall, for user: User) async throws -> AIFunctionResult {
@@ -148,6 +142,12 @@ class MockCoachEngine: CoachEngine {
         if shouldTimeout { try await Task.sleep(nanoseconds: 2_000_000_000); throw TimeoutError() }
         if !analyzeMealPhotoShouldSucceed { throw MockError.aiError }
         return MealPhotoAnalysisResult(items: analyzeMealPhotoItemsToReturn)
+    }
+    
+    func searchFoods(query: String, limit: Int) async throws -> [ParsedFoodItem] {
+        if shouldTimeout { try await Task.sleep(nanoseconds: 2_000_000_000); throw TimeoutError() }
+        if !searchFoodsShouldSucceed { throw MockError.aiError }
+        return searchFoodsResultToReturn
     }
     
     // Ensure a way to initialize without full dependencies if needed for tests, or use the static createDefault
@@ -226,7 +226,6 @@ final class FoodTrackingViewModelTests: XCTestCase {
 
     var mockFoodVoiceAdapter: MockFoodVoiceAdapter!
     var mockNutritionService: MockNutritionService!
-    var mockFoodDBService: MockFoodDatabaseService!
     var mockCoachEngine: MockCoachEngine!
     var mockCoordinator: MockFoodTrackingCoordinator!
 
@@ -247,7 +246,6 @@ final class FoodTrackingViewModelTests: XCTestCase {
 
         mockFoodVoiceAdapter = MockFoodVoiceAdapter()
         mockNutritionService = MockNutritionService()
-        mockFoodDBService = MockFoodDatabaseService()
         
         // For CoachEngine, if it has complex init, use a factory or simplify mock
         // Assuming CoachEngine.createDefault can be used or its dependencies can be mocked simply
@@ -264,8 +262,7 @@ final class FoodTrackingViewModelTests: XCTestCase {
             modelContext: modelContext,
             user: testUser,
             foodVoiceAdapter: mockFoodVoiceAdapter,
-            nutritionService: mockNutritionService, // Initially provided
-            foodDatabaseService: mockFoodDBService,
+            nutritionService: mockNutritionService,
             coachEngine: mockCoachEngine,
             coordinator: mockCoordinator
         )
@@ -275,7 +272,6 @@ final class FoodTrackingViewModelTests: XCTestCase {
         sut = nil
         mockCoordinator = nil
         mockCoachEngine = nil
-        mockFoodDBService = nil
         mockNutritionService = nil
         mockFoodVoiceAdapter = nil
         testUser = nil
