@@ -6,7 +6,7 @@ import SwiftData
 
 /// Photo capture interface for intelligent meal recognition and food analysis.
 struct PhotoInputView: View {
-    @ObservedObject var viewModel: FoodTrackingViewModel
+    @State var viewModel: FoodTrackingViewModel
     @Environment(\.dismiss) private var dismiss
     
     @StateObject private var cameraManager = CameraManager()
@@ -896,28 +896,62 @@ enum PhotoAnalysisError: LocalizedError {
     
     let user = User(
         id: UUID(),
-        name: "Test User",
-        email: "test@example.com",
-        dateOfBirth: Date(),
-        gender: .male,
-        heightCm: 175,
-        weightKg: 70,
-        activityLevel: .moderate,
-        fitnessGoals: [.weightLoss],
-        dietaryRestrictions: [],
-        healthConditions: [],
         createdAt: Date(),
-        updatedAt: Date()
+        lastActiveAt: Date(),
+        email: "test@example.com",
+        name: "Test User",
+        preferredUnits: "metric"
     )
     context.insert(user)
     
-    let viewModel = FoodTrackingViewModel(
-        nutritionService: MockNutritionService(),
-        coachEngine: MockCoachEngine(),
-        voiceAdapter: MockFoodVoiceAdapter()
-    )
+    NavigationStack {
+        // Create a minimal working view model for preview
+        let coordinator = FoodTrackingCoordinator()
+        let viewModel = FoodTrackingViewModel(
+            modelContext: context,
+            user: user,
+            foodVoiceAdapter: FoodVoiceAdapter(),
+            nutritionService: PreviewNutritionService(),
+            foodDatabaseService: PreviewFoodDatabaseService(),
+            coachEngine: PreviewCoachEngine(),
+            coordinator: coordinator
+        )
+        
+        PhotoInputView(viewModel: viewModel)
+    }
+    .modelContainer(container)
+}
+
+// MARK: - Preview Services
+private final class PreviewNutritionService: NutritionServiceProtocol {
+    func saveFoodEntry(_ entry: FoodEntry) async throws {}
+    func getFoodEntries(for date: Date) async throws -> [FoodEntry] { return [] }
+    func deleteFoodEntry(_ entry: FoodEntry) async throws {}
+}
+
+private final class PreviewFoodDatabaseService: FoodDatabaseServiceProtocol {
+    func searchFoods(query: String) async throws -> [FoodSearchResult] {
+        return []
+    }
     
-    PhotoInputView(viewModel: viewModel)
-        .modelContainer(container)
+    func getFoodDetails(id: String) async throws -> FoodSearchResult? {
+        return nil
+    }
+}
+
+private final class PreviewCoachEngine: FoodCoachEngineProtocol {
+    func processUserMessage(_ message: String, context: HealthContextSnapshot?) async throws -> [String: SendableValue] {
+        return [:]
+    }
+    
+    func executeFunction(_ functionCall: AIFunctionCall, for user: User) async throws -> FunctionExecutionResult {
+        return FunctionExecutionResult(
+            success: true,
+            message: "Preview function executed",
+            data: [:],
+            executionTimeMs: 100,
+            functionName: functionCall.name
+        )
+    }
 }
 #endif 

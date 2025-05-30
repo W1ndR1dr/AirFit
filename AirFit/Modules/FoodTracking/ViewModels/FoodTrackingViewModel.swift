@@ -2,6 +2,14 @@ import SwiftUI
 import SwiftData
 import Observation
 
+// MARK: - FoodCoachEngineProtocol
+protocol FoodCoachEngineProtocol {
+    func processUserMessage(_ message: String, context: HealthContextSnapshot?) async throws -> [String: SendableValue]
+    func executeFunction(_ functionCall: AIFunctionCall, for user: User) async throws -> FunctionExecutionResult
+}
+
+extension CoachEngine: FoodCoachEngineProtocol {}
+
 /// Central business logic coordinator for food tracking.
 @MainActor
 @Observable
@@ -12,7 +20,7 @@ final class FoodTrackingViewModel {
     private let foodVoiceAdapter: FoodVoiceAdapter
     private var nutritionService: NutritionServiceProtocol?
     private let foodDatabaseService: FoodDatabaseServiceProtocol
-    private let coachEngine: CoachEngine
+    private let coachEngine: FoodCoachEngineProtocol
     let coordinator: FoodTrackingCoordinator // Made public for NutritionSearchView
 
     // MARK: - State
@@ -66,7 +74,7 @@ final class FoodTrackingViewModel {
         foodVoiceAdapter: FoodVoiceAdapter,
         nutritionService: NutritionServiceProtocol?,
         foodDatabaseService: FoodDatabaseServiceProtocol,
-        coachEngine: CoachEngine,
+        coachEngine: FoodCoachEngineProtocol,
         coordinator: FoodTrackingCoordinator
     ) {
         self.modelContext = modelContext
@@ -83,7 +91,7 @@ final class FoodTrackingViewModel {
     // MARK: - Convenience Initializer for Previews/Testing
     convenience init(
         nutritionService: NutritionServiceProtocol,
-        coachEngine: CoachEngine,
+        coachEngine: FoodCoachEngineProtocol,
         voiceAdapter: FoodVoiceAdapter
     ) {
         // Create mock dependencies for previews

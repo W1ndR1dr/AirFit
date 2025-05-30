@@ -1,4 +1,5 @@
 import SwiftUI
+import SwiftData
 
 /// A view for searching food items from a database, displaying recent foods, and browsing categories.
 struct NutritionSearchView: View {
@@ -536,32 +537,66 @@ private struct EmptyStateView: View {
 
 
 // MARK: - Previews
+#if DEBUG
 #Preview("Default State") {
-    let viewModel = FoodTrackingViewModel(
-        nutritionService: MockNutritionService(),
-        coachEngine: MockCoachEngine(),
-        voiceAdapter: MockFoodVoiceAdapter()
+    let container = try! ModelContainer(for: User.self, configurations: ModelConfiguration(isStoredInMemoryOnly: true))
+    let context = container.mainContext
+    
+    let user = User(
+        id: UUID(),
+        createdAt: Date(),
+        lastActiveAt: Date(),
+        email: "test@example.com",
+        name: "Test User",
+        preferredUnits: "metric"
     )
-    NutritionSearchView(viewModel: viewModel)
-        .modelContainer(for: User.self, inMemory: true)
+    context.insert(user)
+    
+    NavigationStack {
+        // Create a minimal working view model for preview
+        let coordinator = FoodTrackingCoordinator()
+        let viewModel = FoodTrackingViewModel(
+            modelContext: context,
+            user: user,
+            foodVoiceAdapter: FoodVoiceAdapter(),
+            nutritionService: nil,
+            foodDatabaseService: PreviewFoodDatabaseService(),
+            coachEngine: PreviewCoachEngine(),
+            coordinator: coordinator
+        )
+        
+        NutritionSearchView(viewModel: viewModel)
+    }
+    .modelContainer(container)
 }
 
-#Preview("With Search Results") {
-    let viewModel = FoodTrackingViewModel(
-        nutritionService: MockNutritionService(),
-        coachEngine: MockCoachEngine(),
-        voiceAdapter: MockFoodVoiceAdapter()
-    )
-    NutritionSearchView(viewModel: viewModel)
-        .modelContainer(for: User.self, inMemory: true)
+// MARK: - Preview Services
+private final class PreviewFoodDatabaseService: FoodDatabaseServiceProtocol {
+    func searchFoods(query: String) async throws -> [FoodSearchResult] {
+        return [
+            FoodSearchResult(name: "Apple", calories: 95, protein: 0.5, carbs: 25, fat: 0.3, servingSize: "1 medium"),
+            FoodSearchResult(name: "Banana", calories: 105, protein: 1.3, carbs: 27, fat: 0.4, servingSize: "1 medium")
+        ]
+    }
+    
+    func getFoodDetails(id: String) async throws -> FoodSearchResult? {
+        return FoodSearchResult(name: "Apple", calories: 95, protein: 0.5, carbs: 25, fat: 0.3, servingSize: "1 medium")
+    }
 }
 
-#Preview("Loading State") {
-    let viewModel = FoodTrackingViewModel(
-        nutritionService: MockNutritionService(),
-        coachEngine: MockCoachEngine(),
-        voiceAdapter: MockFoodVoiceAdapter()
-    )
-    NutritionSearchView(viewModel: viewModel)
-        .modelContainer(for: User.self, inMemory: true)
+private final class PreviewCoachEngine: FoodCoachEngineProtocol {
+    func processUserMessage(_ message: String, context: HealthContextSnapshot?) async throws -> [String: SendableValue] {
+        return [:]
+    }
+    
+    func executeFunction(_ functionCall: AIFunctionCall, for user: User) async throws -> FunctionExecutionResult {
+        return FunctionExecutionResult(
+            success: true,
+            message: "Preview function executed",
+            data: [:],
+            executionTimeMs: 100,
+            functionName: functionCall.name
+        )
+    }
 }
+#endif

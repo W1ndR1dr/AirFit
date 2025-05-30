@@ -1,5 +1,6 @@
 import SwiftUI
 import Charts // For potential future chart-based insights
+import SwiftData
 
 /// A view for logging water intake, tracking hydration goals, and viewing hydration insights.
 struct WaterTrackingView: View {
@@ -8,7 +9,7 @@ struct WaterTrackingView: View {
 
     // State for custom input
     @State private var selectedAmount: Double = 250 // Default quick add selection
-    @State private var selectedUnit: WaterUnit = .ml
+    @State private var selectedUnit: WaterUnit = .milliliters
     @State private var customAmountString: String = ""
     @State private var useCustomAmount: Bool = false
 
@@ -174,11 +175,11 @@ struct WaterTrackingView: View {
                 ForEach(quickAmountsInML, id: \.self) { amount in
                     QuickWaterButton(
                         amount: amount,
-                        unit: .ml, // Quick adds are in mL
-                        isSelected: !useCustomAmount && selectedAmount == amount && selectedUnit == .ml
+                        unit: .milliliters, // Quick adds are in mL
+                        isSelected: !useCustomAmount && selectedAmount == amount && selectedUnit == .milliliters
                     ) {
                         self.selectedAmount = amount
-                        self.selectedUnit = .ml
+                        self.selectedUnit = .milliliters
                         self.useCustomAmount = false
                         self.customAmountString = "" // Clear custom amount
                         HapticManager.selection()
@@ -270,7 +271,7 @@ struct WaterTrackingView: View {
         // Set default selection for quick add if not using custom
         if !useCustomAmount && !quickAmountsInML.contains(selectedAmount) {
             selectedAmount = quickAmountsInML.first ?? 250
-            selectedUnit = .ml
+            selectedUnit = .milliliters
         }
     }
     
@@ -389,32 +390,63 @@ struct HydrationTipsView: View {
     HydrationTipsView()
 }
 
+#if DEBUG
 #Preview("Water Tracking - Default") {
-    let viewModel = FoodTrackingViewModel(
-        nutritionService: MockNutritionService(),
-        coachEngine: MockCoachEngine(),
-        voiceAdapter: MockFoodVoiceAdapter()
+    let container = try! ModelContainer(for: User.self, configurations: ModelConfiguration(isStoredInMemoryOnly: true))
+    let context = container.mainContext
+    
+    let user = User(
+        id: UUID(),
+        createdAt: Date(),
+        lastActiveAt: Date(),
+        email: "test@example.com",
+        name: "Test User",
+        preferredUnits: "metric"
     )
-    WaterTrackingView(viewModel: viewModel)
-        .modelContainer(for: User.self, inMemory: true)
+    context.insert(user)
+    
+    NavigationStack {
+        // Create a minimal working view model for preview
+        let coordinator = FoodTrackingCoordinator()
+        let viewModel = FoodTrackingViewModel(
+            modelContext: context,
+            user: user,
+            foodVoiceAdapter: FoodVoiceAdapter(),
+            nutritionService: nil,
+            foodDatabaseService: PreviewFoodDatabaseService(),
+            coachEngine: PreviewCoachEngine(),
+            coordinator: coordinator
+        )
+        
+        WaterTrackingView(viewModel: viewModel)
+    }
+    .modelContainer(container)
 }
 
-#Preview("Water Tracking - Progress") {
-    let viewModel = FoodTrackingViewModel(
-        nutritionService: MockNutritionService(),
-        coachEngine: MockCoachEngine(),
-        voiceAdapter: MockFoodVoiceAdapter()
-    )
-    WaterTrackingView(viewModel: viewModel)
-        .modelContainer(for: User.self, inMemory: true)
+// MARK: - Preview Services
+private final class PreviewFoodDatabaseService: FoodDatabaseServiceProtocol {
+    func searchFoods(query: String) async throws -> [FoodSearchResult] {
+        return []
+    }
+    
+    func getFoodDetails(id: String) async throws -> FoodSearchResult? {
+        return nil
+    }
 }
 
-#Preview("Water Tracking - Goal Reached") {
-    let viewModel = FoodTrackingViewModel(
-        nutritionService: MockNutritionService(),
-        coachEngine: MockCoachEngine(),
-        voiceAdapter: MockFoodVoiceAdapter()
-    )
-    WaterTrackingView(viewModel: viewModel)
-        .modelContainer(for: User.self, inMemory: true)
+private final class PreviewCoachEngine: FoodCoachEngineProtocol {
+    func processUserMessage(_ message: String, context: HealthContextSnapshot?) async throws -> [String: SendableValue] {
+        return [:]
+    }
+    
+    func executeFunction(_ functionCall: AIFunctionCall, for user: User) async throws -> FunctionExecutionResult {
+        return FunctionExecutionResult(
+            success: true,
+            message: "Preview function executed",
+            data: [:],
+            executionTimeMs: 100,
+            functionName: functionCall.name
+        )
+    }
 }
+#endif

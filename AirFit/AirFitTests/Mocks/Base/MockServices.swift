@@ -1,6 +1,14 @@
 import Foundation
 @testable import AirFit
 
+// MARK: - FoodCoachEngineProtocol for Testing
+protocol FoodCoachEngineProtocol {
+    func processUserMessage(_ message: String, context: HealthContextSnapshot?) async throws -> [String: SendableValue]
+    func executeFunction(_ functionCall: AIFunctionCall, for user: User) async throws -> FunctionExecutionResult
+}
+
+extension CoachEngine: FoodCoachEngineProtocol {}
+
 // MARK: - MockNutritionService
 final class MockNutritionService: NutritionServiceProtocol {
     var shouldThrowError = false
@@ -29,7 +37,7 @@ final class MockNutritionService: NutritionServiceProtocol {
 }
 
 // MARK: - MockCoachEngine
-final class MockCoachEngine: CoachEngineProtocol {
+final class MockCoachEngine: FoodCoachEngineProtocol {
     var shouldTimeout = false
     var mockResponse: [String: SendableValue] = [:]
     
@@ -54,33 +62,43 @@ final class MockCoachEngine: CoachEngineProtocol {
         ] : mockResponse
     }
     
-    func executeFunction(name: String, parameters: [String: SendableValue]) async throws -> [String: SendableValue] {
-        return mockResponse.isEmpty ? [
-            "success": SendableValue.bool(true),
-            "result": SendableValue.string("Function executed successfully")
-        ] : mockResponse
+    func executeFunction(_ functionCall: AIFunctionCall, for user: User) async throws -> FunctionExecutionResult {
+        if shouldTimeout {
+            try await Task.sleep(nanoseconds: 10_000_000_000) // 10 seconds
+        }
+        
+        return FunctionExecutionResult(
+            success: true,
+            message: "Mock function executed successfully",
+            data: mockResponse.isEmpty ? [
+                "success": SendableValue.bool(true),
+                "result": SendableValue.string("Function executed successfully")
+            ] : mockResponse,
+            executionTimeMs: 100,
+            functionName: functionCall.name
+        )
     }
 }
 
 // MARK: - MockFoodVoiceAdapter
-final class MockFoodVoiceAdapter: FoodVoiceAdapterProtocol {
+final class MockFoodVoiceAdapter: FoodVoiceAdapter {
     var shouldFail = false
     var mockTranscription = "I ate an apple"
     
-    func startListening() async throws {
+    override func startListening() async throws {
         if shouldFail {
             throw FoodTrackingError.voiceRecognitionFailed
         }
     }
     
-    func stopListening() async throws -> String {
+    override func stopListening() async throws -> String {
         if shouldFail {
             throw FoodTrackingError.voiceRecognitionFailed
         }
         return mockTranscription
     }
     
-    func isListening() -> Bool {
+    override func isListening() -> Bool {
         return false
     }
 }
