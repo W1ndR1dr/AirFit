@@ -117,3 +117,26 @@ struct ParsedFoodItem: Identifiable, Sendable {
     var sodium: Double? { sodiumMilligrams }
 }
 
+/// Indicates that an asynchronous operation exceeded the allowed duration.
+struct TimeoutError: Error, LocalizedError, Sendable {
+    /// The name of the operation that timed out.
+    let operation: String
+    /// The duration after which the timeout occurred.
+    let timeoutDuration: TimeInterval
+
+    /// Human readable description for display and logging.
+    var errorDescription: String? {
+        "Operation '\(operation)' timed out after \(timeoutDuration) seconds"
+    }
+}
+
+/// Result of analyzing a meal photo using Vision and AI models.
+struct MealPhotoAnalysisResult: Sendable {
+    /// The food items that were detected in the photo.
+    let items: [ParsedFoodItem]
+    /// Overall confidence score for the photo analysis.
+    let confidence: Float
+    /// The amount of time the analysis took to complete.
+    let processingTime: TimeInterval
+}
+
