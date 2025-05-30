@@ -458,22 +458,6 @@ final class FoodTrackingViewModel {
     }
 }
 
-enum FoodTrackingError: LocalizedError {
-    case noFoodsDetected
-    case barcodeNotFound
-    case saveFailed
-
-    var errorDescription: String? {
-        switch self {
-        case .noFoodsDetected:
-            return "No foods detected in your description"
-        case .barcodeNotFound:
-            return "Product not found in database"
-        case .saveFailed:
-            return "Failed to save food entry"
-        }
-    }
-}
 
 enum WaterUnit: String, CaseIterable {
     case ml = "ml"
