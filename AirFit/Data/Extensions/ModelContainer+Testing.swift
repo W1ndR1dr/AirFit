@@ -46,6 +46,9 @@ extension ModelContainer {
 
         // Create test user
         let user = User(
+            id: UUID(),
+            createdAt: Date(),
+            lastActiveAt: Date(),
             email: "test@example.com",
             name: "Test User",
             preferredUnits: "metric"
