@@ -173,6 +173,9 @@ targets:
       - AirFit/Modules/FoodTracking/Views/FoodLoggingView.swift
       - AirFit/Modules/FoodTracking/Views/FoodConfirmationView.swift
       - AirFit/Modules/FoodTracking/Views/PhotoInputView.swift
+      - AirFit/Modules/FoodTracking/Views/MacroRingsView.swift
+      - AirFit/Modules/FoodTracking/Views/WaterTrackingView.swift
+      - AirFit/Modules/FoodTracking/Views/NutritionSearchView.swift
       # Application Layer Files (CRITICAL: XcodeGen nesting bug)
       - AirFit/Application/AirFitApp.swift
       - AirFit/Application/MinimalContentView.swift
@@ -232,6 +235,9 @@ targets:
       - AirFit/AirFitTests/Modules/Chat/ChatViewModelTests.swift
       - AirFit/AirFitTests/Core/VoiceInputManagerTests.swift
       - AirFit/AirFitTests/Modules/Dashboard/DashboardViewModelTests.swift
+      - AirFit/AirFitTests/FoodTracking/FoodTrackingViewModelTests.swift # Added
+      - AirFit/AirFitTests/FoodTracking/FoodVoiceAdapterTests.swift # Existing, ensure it's here
+      # - AirFit/AirFitTests/FoodTracking/NutritionServiceTests.swift # Placeholder if created
       - AirFit/AirFitTests/Mocks/MockAIService.swift
       - AirFit/AirFitTests/Mocks/MockNetworkClient.swift
       - AirFit/AirFitTests/Mocks/MockOnboardingService.swift
@@ -260,6 +266,7 @@ targets:
           - "**/*.md"
       # Explicit UI test files (CRITICAL: XcodeGen nesting bug)
       - AirFit/AirFitUITests/Dashboard/DashboardUITests.swift
+      - AirFit/AirFitUITests/FoodTracking/FoodTrackingFlowUITests.swift # Added
     dependencies:
       - target: AirFit
     settings:
@@ -344,4 +351,4 @@ schemes:
     analyze:
       config: Debug
     archive:
-      config: Release 
+      config: Release

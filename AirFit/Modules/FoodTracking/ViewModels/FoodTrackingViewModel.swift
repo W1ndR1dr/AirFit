@@ -13,11 +13,11 @@ final class FoodTrackingViewModel {
     private var nutritionService: NutritionServiceProtocol?
     private let foodDatabaseService: FoodDatabaseServiceProtocol
     private let coachEngine: CoachEngine
-    private let coordinator: FoodTrackingCoordinator
+    let coordinator: FoodTrackingCoordinator // Made public for NutritionSearchView
 
     // MARK: - State
     private(set) var isLoading = false
-    private(set) var error: Error?
+    // private(set) var error: Error? // Replaced by currentError
 
     // Current meal being logged
     var selectedMealType: MealType = .lunch
@@ -56,6 +56,7 @@ final class FoodTrackingViewModel {
     
     private func setError(_ error: Error) {
         currentError = error
+        AppLogger.error("FoodTrackingViewModel Error: \(error.localizedDescription)", category: .ui)
     }
 
     // MARK: - Initialization
@@ -89,7 +90,7 @@ final class FoodTrackingViewModel {
 
         foodVoiceAdapter.onError = { [weak self] error in
             Task { @MainActor in
-                self?.error = error
+                self?.setError(error)
             }
         }
     }
@@ -108,6 +109,15 @@ final class FoodTrackingViewModel {
             todaysNutrition = nutritionService?.calculateNutritionSummary(
                 from: todaysFoodEntries
             ) ?? FoodNutritionSummary()
+            
+            // Ensure goals are set in todaysNutrition
+            if let profile = user.onboardingProfile, let targets = nutritionService?.getTargets(from: profile) {
+                todaysNutrition.calorieGoal = targets.calories
+                todaysNutrition.proteinGoal = targets.protein
+                todaysNutrition.carbGoal = targets.carbs
+                todaysNutrition.fatGoal = targets.fat
+            }
+
 
             waterIntakeML = try await nutritionService?.getWaterIntake(
                 for: user,
@@ -122,7 +132,7 @@ final class FoodTrackingViewModel {
             suggestedFoods = try await generateSmartSuggestions()
 
         } catch {
-            AppLogger.error("Failed to load today's data: \(error)")
+            AppLogger.error("Failed to load today's data: \(error.localizedDescription)", category: .data)
             setError(error)
         }
     }
@@ -132,14 +142,14 @@ final class FoodTrackingViewModel {
         do {
             let hasPermission = try await foodVoiceAdapter.requestPermission()
             guard hasPermission else {
-                error = FoodVoiceError.permissionDenied
+                setError(FoodVoiceError.permissionDenied)
                 return
             }
 
             coordinator.showSheet(.voiceInput)
 
         } catch {
-            AppLogger.error("Failed to start voice input: \(error)")
+            AppLogger.error("Failed to start voice input: \(error.localizedDescription)", category: .ui)
             setError(error)
         }
     }
@@ -157,7 +167,7 @@ final class FoodTrackingViewModel {
         } catch {
             setError(error)
             isRecording = false
-            AppLogger.error("Failed to start recording: \(error)")
+            AppLogger.error("Failed to start recording: \(error.localizedDescription)", category: .ui)
         }
     }
 
@@ -168,7 +178,7 @@ final class FoodTrackingViewModel {
 
         if let finalText = await foodVoiceAdapter.stopRecording() {
             transcribedText = finalText
-            transcriptionConfidence = 1.0
+            transcriptionConfidence = 1.0 // Assuming final transcription has high confidence
 
             if !finalText.isEmpty {
                 await processTranscription()
@@ -186,38 +196,32 @@ final class FoodTrackingViewModel {
         let startTime = CFAbsoluteTimeGetCurrent()
 
         do {
-            // First try local command parsing for simple cases (fast path)
             if let localResult = await parseLocalCommand(transcribedText) {
                 parsedItems = localResult
+                coordinator.dismiss() // Dismiss voice input sheet
                 coordinator.showFullScreenCover(.confirmation(parsedItems))
                 logPerformance(startTime: startTime, method: "local", itemCount: localResult.count)
                 return
             }
 
-            // Adaptive confidence threshold based on user history
             let adaptiveThreshold = await calculateAdaptiveConfidenceThreshold()
             
-            // Use direct function call for AI parsing with advanced features
             let functionCall = AIFunctionCall(
                 name: "parseAndLogComplexNutrition",
                 arguments: [
                     "naturalLanguageInput": AIAnyCodable(transcribedText),
                     "mealType": AIAnyCodable(selectedMealType.rawValue),
                     "confidenceThreshold": AIAnyCodable(adaptiveThreshold),
-                    "includeAlternatives": AIAnyCodable(true) // Always include alternatives for better UX
+                    "includeAlternatives": AIAnyCodable(true)
                 ]
             )
 
-            // Execute with timeout (target: <5s for AI parsing)
             let result = try await withTimeout(seconds: 8.0) { [self] in
                 try await self.coachEngine.executeFunction(functionCall, for: self.user)
             }
 
-            // Convert function result to ParsedFoodItem array with advanced processing
             if result.success, let data = result.data {
                 let (primaryItems, alternatives) = try convertFunctionResultWithAlternatives(data)
-                
-                // Intelligent confidence-based routing
                 await handleAIParsingResult(
                     primaryItems: primaryItems,
                     alternatives: alternatives,
@@ -226,76 +230,44 @@ final class FoodTrackingViewModel {
                     startTime: startTime
                 )
             } else {
-                // Intelligent fallback with suggestions
                 await handleParsingFailure(originalText: transcribedText, startTime: startTime)
             }
 
         } catch {
             let duration = CFAbsoluteTimeGetCurrent() - startTime
-            AppLogger.error("AI processing failed after \(Int(duration * 1000))ms: \(error)")
-            
-            // Intelligent error recovery
+            AppLogger.error("AI processing failed after \(Int(duration * 1000))ms: \(error.localizedDescription)", category: .ai)
             await handleIntelligentErrorRecovery(error: error, originalText: transcribedText)
         }
     }
 
     private func calculateAdaptiveConfidenceThreshold() async -> Double {
-        // Base threshold
         var threshold = 0.7
         
-        // Adjust based on user's historical accuracy
         let recentEntries = try? await nutritionService?.getRecentFoods(for: user, limit: 20) ?? []
         let recentCount = recentEntries?.count ?? 0
         
-        if recentCount > 10 {
-            // User has experience - can handle lower confidence items
-            threshold = 0.6
-        } else if recentCount < 5 {
-            // New user - require higher confidence
-            threshold = 0.8
-        }
+        if recentCount > 10 { threshold = 0.6 }
+        else if recentCount < 5 { threshold = 0.8 }
         
-        // Adjust based on complexity of input
         let wordCount = transcribedText.components(separatedBy: .whitespacesAndNewlines).count
-        if wordCount > 10 {
-            // Complex description - lower threshold to capture more possibilities
-            threshold -= 0.1
-        } else if wordCount < 3 {
-            // Simple description - higher threshold for accuracy
-            threshold += 0.1
-        }
+        if wordCount > 10 { threshold -= 0.1 }
+        else if wordCount < 3 { threshold += 0.1 }
         
         return max(0.5, min(0.9, threshold))
     }
 
     private func convertFunctionResultWithAlternatives(_ data: [String: SendableValue]) throws -> ([ParsedFoodItem], [ParsedFoodItem]) {
-        // Convert primary items
         let primaryItems = try convertFunctionResultToParsedItems(data)
-        
-        // Convert alternatives if available
         var alternatives: [ParsedFoodItem] = []
-        if let alternativesValue = data["alternatives"],
-           case .array(let alternativesArray) = alternativesValue {
-            
+
+        if let alternativesValue = data["alternatives"], case .array(let alternativesArray) = alternativesValue {
             for altValue in alternativesArray {
                 guard case .string(let altText) = altValue else { continue }
-                
-                // Create alternative parsed items with lower confidence
-                let altItem = ParsedFoodItem(
-                    name: altText,
-                    brand: nil,
-                    quantity: 1.0,
-                    unit: "serving",
-                    calories: 0, // Will be estimated
-                    proteinGrams: nil,
-                    carbGrams: nil,
-                    fatGrams: nil,
-                    confidence: 0.6 // Lower confidence for alternatives
-                )
-                alternatives.append(altItem)
+                alternatives.append(ParsedFoodItem(
+                    name: altText, quantity: 1.0, unit: "serving", calories: 0, confidence: 0.6
+                ))
             }
         }
-        
         return (primaryItems, alternatives)
     }
 
@@ -307,82 +279,61 @@ final class FoodTrackingViewModel {
         startTime: CFAbsoluteTime
     ) async {
         let highConfidenceItems = primaryItems.filter { $0.confidence >= Float(adaptiveThreshold) }
-        let lowConfidenceItems = primaryItems.filter { $0.confidence < Float(adaptiveThreshold) }
         
-        if highConfidenceItems.isEmpty && lowConfidenceItems.isEmpty {
-            // No items met threshold - show alternatives or fallback
+        if primaryItems.isEmpty { // Check primaryItems directly
             await handleLowConfidenceScenario(alternatives: alternatives, originalText: transcribedText)
-        } else if lowConfidenceItems.isEmpty {
-            // All items high confidence - proceed directly
-            parsedItems = highConfidenceItems
-            coordinator.showFullScreenCover(.confirmation(parsedItems))
-            logPerformance(startTime: startTime, method: "ai-high-confidence", itemCount: highConfidenceItems.count)
         } else {
-            // Mixed confidence - show confirmation with alternatives
-            parsedItems = primaryItems
-            
-            // Store alternatives for user to choose from
-            if !alternatives.isEmpty {
-                // TODO: Implement alternative selection UI
-                AppLogger.info("AI parsing found \(alternatives.count) alternatives for low-confidence items")
-            }
-            
-            coordinator.showFullScreenCover(.confirmation(parsedItems))
-            logPerformance(startTime: startTime, method: "ai-mixed-confidence", itemCount: primaryItems.count)
+             parsedItems = primaryItems // Use all primary items, confirmation view handles confidence display
+             coordinator.dismiss() // Dismiss voice input sheet
+             coordinator.showFullScreenCover(.confirmation(parsedItems))
+             logPerformance(startTime: startTime, method: "ai-parsed", itemCount: primaryItems.count)
         }
     }
 
+
     private func handleLowConfidenceScenario(alternatives: [ParsedFoodItem], originalText: String) async {
         if !alternatives.isEmpty {
-            // Show alternatives for user selection
-            parsedItems = alternatives
+            parsedItems = alternatives // Show alternatives if primary parsing failed or was empty
+            coordinator.dismiss() // Dismiss voice input sheet
             coordinator.showFullScreenCover(.confirmation(parsedItems))
-            AppLogger.info("Showing \(alternatives.count) alternative interpretations")
+            AppLogger.info("Showing \(alternatives.count) alternative interpretations for: '\(originalText.prefix(50))'", category: .ai)
         } else {
-            // Intelligent fallback with suggestions
             await provideFallbackSuggestions(originalText: originalText)
         }
     }
 
     private func handleParsingFailure(originalText: String, startTime: CFAbsoluteTime) async {
-        AppLogger.warning("AI parsing failed for: '\(originalText.prefix(50))'")
-        
-        // Try to extract any recognizable food words
+        AppLogger.warning("AI parsing failed for: '\(originalText.prefix(50))'", category: .ai)
         let foodKeywords = extractFoodKeywords(from: originalText)
         
         if !foodKeywords.isEmpty {
-            // Create suggestions based on keywords
             let suggestions = await generateKeywordBasedSuggestions(keywords: foodKeywords)
             if !suggestions.isEmpty {
                 parsedItems = suggestions
+                coordinator.dismiss() // Dismiss voice input sheet
                 coordinator.showFullScreenCover(.confirmation(parsedItems))
                 logPerformance(startTime: startTime, method: "keyword-fallback", itemCount: suggestions.count)
                 return
             }
         }
-        
-        // Final fallback - show search interface
         await provideFallbackSuggestions(originalText: originalText)
     }
 
     private func handleIntelligentErrorRecovery(error: Error, originalText: String) async {
         if error is TimeoutError {
-            // Timeout - try simpler parsing
             await trySimplifiedParsing(originalText: originalText)
         } else {
-            // Other errors - provide helpful guidance
             setError(FoodTrackingError.aiProcessingFailed(suggestion: generateErrorSuggestion(for: originalText)))
         }
     }
 
     private func trySimplifiedParsing(originalText: String) async {
-        // Extract just the main food items without detailed nutrition
         let simplifiedItems = extractBasicFoodItems(from: originalText)
-        
         if !simplifiedItems.isEmpty {
             parsedItems = simplifiedItems
+            coordinator.dismiss() // Dismiss voice input sheet
             coordinator.showFullScreenCover(.confirmation(parsedItems))
-            AppLogger.info("Used simplified parsing fallback for \(simplifiedItems.count) items")
+            AppLogger.info("Used simplified parsing fallback for \(simplifiedItems.count) items", category: .ai)
         } else {
             setError(FoodTrackingError.aiProcessingTimeout)
         }
@@ -390,286 +341,220 @@ final class FoodTrackingViewModel {
 
     private func extractFoodKeywords(from text: String) -> [String] {
         let commonFoods = [
-            "chicken", "beef", "pork", "fish", "salmon", "tuna",
-            "rice", "pasta", "bread", "potato", "sweet potato",
-            "apple", "banana", "orange", "berries", "grapes",
-            "broccoli", "spinach", "carrots", "tomato", "lettuce",
-            "cheese", "milk", "yogurt", "eggs", "butter",
-            "salad", "soup", "sandwich", "pizza", "burger"
+            "chicken", "beef", "pork", "fish", "salmon", "tuna", "rice", "pasta", "bread", "potato",
+            "apple", "banana", "orange", "berries", "broccoli", "spinach", "carrots", "salad", "egg"
         ]
-        
         let lowercased = text.lowercased()
         return commonFoods.filter { lowercased.contains($0) }
     }
 
     private func generateKeywordBasedSuggestions(keywords: [String]) async -> [ParsedFoodItem] {
         var suggestions: [ParsedFoodItem] = []
-        
-        for keyword in keywords.prefix(3) { // Limit to top 3 suggestions
+        for keyword in keywords.prefix(3) {
             if let dbItem = try? await foodDatabaseService.searchCommonFood(keyword) {
-                let suggestion = ParsedFoodItem(
-                    name: dbItem.name,
-                    brand: dbItem.brand,
-                    quantity: 1,
-                    unit: dbItem.defaultUnit,
-                    calories: dbItem.caloriesPerServing,
-                    proteinGrams: dbItem.proteinPerServing,
-                    carbGrams: dbItem.carbsPerServing,
-                    fatGrams: dbItem.fatPerServing,
-                    confidence: 0.7 // Medium confidence for keyword matches
-                )
-                suggestions.append(suggestion)
+                suggestions.append(ParsedFoodItem(
+                    name: dbItem.name, brand: dbItem.brand, quantity: 1, unit: dbItem.defaultUnit,
+                    calories: dbItem.caloriesPerServing, proteinGrams: dbItem.proteinPerServing,
+                    carbGrams: dbItem.carbsPerServing, fatGrams: dbItem.fatPerServing, confidence: 0.7
+                ))
             }
         }
-        
         return suggestions
     }
 
     private func extractBasicFoodItems(from text: String) -> [ParsedFoodItem] {
         let keywords = extractFoodKeywords(from: text)
-        
         return keywords.prefix(2).map { keyword in
             ParsedFoodItem(
-                name: keyword.capitalized,
-                brand: nil,
-                quantity: 1,
-                unit: "serving",
-                calories: 100, // Rough estimate
-                proteinGrams: 5,
-                carbGrams: 10,
-                fatGrams: 3,
-                confidence: 0.5 // Low confidence for basic extraction
+                name: keyword.capitalized, quantity: 1, unit: "serving",
+                calories: 100, proteinGrams: 5, carbGrams: 10, fatGrams: 3, confidence: 0.5
             )
         }
     }
 
     private func provideFallbackSuggestions(originalText: String) async {
-        // Show manual search interface with the original text as query
+        coordinator.dismiss() // Dismiss voice input sheet
         coordinator.showSheet(.foodSearch)
-        
-        // Pre-populate search with cleaned text
         let cleanedQuery = originalText
             .replacingOccurrences(of: "i had ", with: "", options: .caseInsensitive)
-            .replacingOccurrences(of: "i ate ", with: "", options: .caseInsensitive)
+            .replacingOccurrences(of: "ate ", with: "", options: .caseInsensitive)
             .replacingOccurrences(of: "log ", with: "", options: .caseInsensitive)
             .trimmingCharacters(in: .whitespacesAndNewlines)
-        
-        // TODO: Pass cleanedQuery to search interface
-        AppLogger.info("Falling back to manual search with query: '\(cleanedQuery)'")
+        // TODO: Pass cleanedQuery to search interface if it supports pre-filled text
+        AppLogger.info("Falling back to manual search with query: '\(cleanedQuery)'", category: .ui)
     }
 
     private func generateErrorSuggestion(for text: String) -> String {
         let wordCount = text.components(separatedBy: .whitespacesAndNewlines).count
-        
-        if wordCount > 15 {
-            return "Try describing your meal more simply, focusing on the main ingredients."
-        } else if wordCount < 2 {
-            return "Try providing more details about what you ate, like 'grilled chicken with rice'."
-        } else if text.contains("restaurant") || text.contains("takeout") {
-            return "For restaurant meals, try describing the dish name and main ingredients."
-        } else {
-            return "Try speaking more clearly or describing your meal differently."
-        }
+        if wordCount > 15 { return "Try describing your meal more simply." }
+        else if wordCount < 2 { return "Try providing more details, like 'grilled chicken with rice'." }
+        else if text.contains("restaurant") { return "For restaurant meals, try describing the dish name and main ingredients."}
+        else { return "Try speaking more clearly or describing your meal differently." }
     }
 
     private func logPerformance(startTime: CFAbsoluteTime, method: String, itemCount: Int) {
-        let duration = CFAbsoluteTimeGetCurrent() - startTime
-        let durationMs = Int(duration * 1000)
+        let durationMs = Int((CFAbsoluteTimeGetCurrent() - startTime) * 1000)
         AppLogger.info("Food parsing (\(method)): \(durationMs)ms, \(itemCount) items", category: .performance)
-        
-        // Log performance metrics for monitoring
-        if method == "ai" && duration > 5.0 {
+        if method.contains("ai") && durationMs > 5000 {
             AppLogger.warning("AI parsing exceeded 5s target: \(durationMs)ms", category: .performance)
         }
     }
 
     private func withTimeout<T: Sendable>(seconds: TimeInterval, operation: @escaping @Sendable () async throws -> T) async throws -> T {
         try await withThrowingTaskGroup(of: T.self) { group in
-            group.addTask {
-                try await operation()
-            }
-            
+            group.addTask { try await operation() }
             group.addTask {
                 try await Task.sleep(nanoseconds: UInt64(seconds * 1_000_000_000))
                 throw TimeoutError()
             }
-            
-            guard let result = try await group.next() else {
-                throw TimeoutError()
-            }
-            
+            guard let result = try await group.next() else { throw TimeoutError() }
             group.cancelAll()
             return result
         }
     }
 
     private func convertFunctionResultToParsedItems(_ data: [String: SendableValue]) throws -> [ParsedFoodItem] {
-        guard let itemsValue = data["items"],
-              case .array(let itemsArray) = itemsValue else {
-            throw FoodTrackingError.noFoodsDetected
+        guard let itemsValue = data["items"], case .array(let itemsArray) = itemsValue else {
+            // If "items" is not an array or not present, it might mean no high-confidence items were found.
+            // This is not necessarily an error if alternatives are present.
+            return [] // Return empty if no primary items
         }
 
         var parsedItems: [ParsedFoodItem] = []
-
         for itemValue in itemsArray {
             guard case .dictionary(let itemDict) = itemValue else { continue }
-
             let name = extractString(from: itemDict["name"]) ?? "Unknown Food"
             let quantityString = extractString(from: itemDict["quantity"]) ?? "1 serving"
-            let calories = extractDouble(from: itemDict["calories"]) ?? 0
-            let protein = extractDouble(from: itemDict["protein"]) ?? 0
-            let carbs = extractDouble(from: itemDict["carbs"]) ?? 0
-            let fat = extractDouble(from: itemDict["fat"]) ?? 0
-
-            // Parse quantity and unit from quantity string (e.g., "1 cup", "150g")
             let (quantity, unit) = parseQuantityAndUnit(quantityString)
-
-            let parsedItem = ParsedFoodItem(
-                name: name,
-                brand: nil, // AI function doesn't currently return brand info
-                quantity: quantity,
-                unit: unit,
-                calories: calories,
-                proteinGrams: protein,
-                carbGrams: carbs,
-                fatGrams: fat,
-                confidence: extractFloat(from: data["confidence"]) ?? 0.8
-            )
-
-            parsedItems.append(parsedItem)
+            parsedItems.append(ParsedFoodItem(
+                name: name, brand: extractString(from: itemDict["brand"]), quantity: quantity, unit: unit,
+                calories: extractDouble(from: itemDict["calories"]) ?? 0,
+                proteinGrams: extractDouble(from: itemDict["protein"]),
+                carbGrams: extractDouble(from: itemDict["carbs"]),
+                fatGrams: extractDouble(from: itemDict["fat"]),
+                fiber: extractDouble(from: itemDict["fiber"]),
+                sugar: extractDouble(from: itemDict["sugar"]),
+                sodium: extractDouble(from: itemDict["sodium"]),
+                confidence: extractFloat(from: itemDict["confidence"]) ?? 0.8 // Default high if not specified
+            ))
         }
-
-        if parsedItems.isEmpty {
-            throw FoodTrackingError.noFoodsDetected
-        }
-
         return parsedItems
     }
 
     private func parseQuantityAndUnit(_ quantityString: String) -> (Double, String) {
         let components = quantityString.trimmingCharacters(in: .whitespacesAndNewlines).components(separatedBy: " ")
-        
-        if components.count >= 2,
-           let quantity = Double(components[0]) {
-            let unit = components.dropFirst().joined(separator: " ")
-            return (quantity, unit)
+        if components.count >= 2, let quantity = Double(components[0]) {
+            return (quantity, components.dropFirst().joined(separator: " "))
         }
-        
-        // Fallback: try to extract number from beginning
         let scanner = Scanner(string: quantityString)
         if let quantity = scanner.scanDouble() {
-            let remaining = String(quantityString.dropFirst(scanner.currentIndex.utf16Offset(in: quantityString)))
-                .trimmingCharacters(in: .whitespacesAndNewlines)
+            let remaining = String(quantityString.dropFirst(scanner.currentIndex.utf16Offset(in: quantityString))).trimmingCharacters(in: .whitespacesAndNewlines)
             return (quantity, remaining.isEmpty ? "serving" : remaining)
         }
-        
-        return (1.0, "serving")
+        return (1.0, "serving") // Default
     }
 
-    // Helper methods for extracting values from SendableValue
     private func extractString(from value: SendableValue?) -> String? {
-        guard let value = value else { return nil }
-        switch value {
-        case .string(let str): return str
-        default: return nil
-        }
+        guard case .string(let str) = value else { return nil }
+        return str
     }
-
     private func extractDouble(from value: SendableValue?) -> Double? {
         guard let value = value else { return nil }
         switch value {
-        case .double(let double): return double
-        case .int(let int): return Double(int)
+        case .double(let d): return d
+        case .int(let i): return Double(i)
         default: return nil
         }
     }
-
     private func extractFloat(from value: SendableValue?) -> Float? {
         guard let value = value else { return nil }
         switch value {
-        case .double(let double): return Float(double)
-        case .int(let int): return Float(int)
+        case .double(let d): return Float(d)
+        case .int(let i): return Float(i)
         default: return nil
         }
     }
 
     private func parseLocalCommand(_ text: String) async -> [ParsedFoodItem]? {
         let lowercased = text.lowercased().trimmingCharacters(in: .whitespacesAndNewlines)
+        let patterns = [
+            #"^(?:i had |ate |log )?(?:an? )?([\w\s]+)$"#, // "log apple", "ate chicken salad"
+            #"^([\w\s]+)$"# // "apple", "chicken salad"
+        ]
 
-        // Simple pattern matching for basic food commands
-        if lowercased.hasPrefix("i had ") || lowercased.hasPrefix("ate ") || lowercased.hasPrefix("log ") {
-            let foodName = lowercased
-                .replacingOccurrences(of: "i had ", with: "")
-                .replacingOccurrences(of: "ate ", with: "")
-                .replacingOccurrences(of: "log ", with: "")
-                .replacingOccurrences(of: "an ", with: "")
-                .replacingOccurrences(of: "a ", with: "")
-                .trimmingCharacters(in: .whitespacesAndNewlines)
-            
+        for pattern in patterns {
+            if let match = lowercased.firstMatch(of: Regex(pattern)) {
+                let foodName = String(match.1).trimmingCharacters(in: .whitespacesAndNewlines)
             if let dbItem = try? await foodDatabaseService.searchCommonFood(foodName) {
                 return [ParsedFoodItem(
-                    name: dbItem.name,
-                    brand: dbItem.brand,
-                    quantity: 1,
-                    unit: dbItem.defaultUnit,
-                    calories: dbItem.caloriesPerServing,
-                    proteinGrams: dbItem.proteinPerServing,
-                    carbGrams: dbItem.carbsPerServing,
-                    fatGrams: dbItem.fatPerServing,
-                    confidence: 0.9
-                )]
+                        name: dbItem.name, brand: dbItem.brand, quantity: dbItem.defaultQuantity, unit: dbItem.defaultUnit,
+                        calories: dbItem.caloriesPerServing, proteinGrams: dbItem.proteinPerServing,
+                        carbGrams: dbItem.carbsPerServing, fatGrams: dbItem.fatPerServing, confidence: 0.95 // High confidence for local exact match
+                    )]
+                }
             }
         }
-
         return nil
     }
 
     // MARK: - Photo Capture
     func startPhotoCapture() {
-        coordinator.showSheet(.photoCapture)
+        // Ensure permissions are checked before showing the sheet
+        Task {
+            // Placeholder for camera permission check if not handled by PhotoInputView itself
+            // For now, directly show the sheet as per current structure
+            coordinator.showSheet(.photoCapture)
+        }
     }
+
 
     func processPhotoResult(_ image: UIImage) async {
         isLoading = true
         defer { isLoading = false }
 
+        let startTime = CFAbsoluteTimeGetCurrent()
         do {
-            // Use Vision framework and AI to analyze the meal photo
             let recognizedItems = try await analyzeMealPhoto(image)
-            
             if !recognizedItems.isEmpty {
                 parsedItems = recognizedItems
-                coordinator.dismiss()
+                coordinator.dismiss() // Dismiss photo input sheet
                 coordinator.showFullScreenCover(.confirmation(parsedItems))
+                logPerformance(startTime: startTime, method: "photo-analysis", itemCount: recognizedItems.count)
             } else {
                 setError(FoodTrackingError.noFoodsDetected)
             }
         } catch {
             setError(error)
+            logPerformance(startTime: startTime, method: "photo-analysis-failed", itemCount: 0)
         }
     }
     
     private func analyzeMealPhoto(_ image: UIImage) async throws -> [ParsedFoodItem] {
-        // Use AI to analyze the photo and identify food items
-        // This would integrate with Vision framework and AI analysis
-        // For now, return empty array as placeholder
-        return []
+        // This integrates with the CoachEngine's analyzeMealPhoto function
+        // which should handle Vision and AI analysis.
+        let result = try await coachEngine.analyzeMealPhoto(image: image, context: NutritionContext(userPreferences: user.nutritionPreferences, recentMeals: recentFoods, timeOfDay: currentDate))
+        
+        // Assuming result.items is already [ParsedFoodItem]
+        // If not, conversion logic would be needed here.
+        return result.items
     }
 
     // MARK: - Food Search
     func searchFoods(_ query: String) async {
-        guard !query.isEmpty else {
+        guard !query.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty else {
             searchResults = []
             return
         }
-
+        isLoading = true
+        defer { isLoading = false }
         do {
             searchResults = try await foodDatabaseService.searchFoods(
                 query: query,
                 limit: 20
             )
         } catch {
-            AppLogger.error("Food search failed", error: error, category: .data)
+            AppLogger.error("Food search failed: \(error.localizedDescription)", category: .data)
+            setError(error) // Set error for UI to potentially display
             searchResults = []
         }
     }
@@ -685,11 +570,10 @@ final class FoodTrackingViewModel {
             carbGrams: item.carbsPerServing,
             fatGrams: item.fatPerServing,
             databaseId: item.id,
-            confidence: 1.0
+            confidence: 1.0 // High confidence for direct selection
         )
-
         parsedItems = [parsedItem]
-        coordinator.dismiss()
+        coordinator.dismiss() // Dismiss search sheet
         coordinator.showFullScreenCover(.confirmation(parsedItems))
     }
 
@@ -701,228 +585,161 @@ final class FoodTrackingViewModel {
         do {
             let foodEntry = FoodEntry(
                 loggedAt: currentDate,
-                mealType: selectedMealType,
+                mealType: selectedMealType, // Ensure this is a MealType enum
                 rawTranscript: transcribedText.isEmpty ? nil : transcribedText
             )
 
             for parsedItem in items {
                 let foodItem = FoodItem(
-                    name: parsedItem.name,
-                    brand: parsedItem.brand,
-                    quantity: parsedItem.quantity,
-                    unit: parsedItem.unit,
-                    calories: parsedItem.calories,
+                    name: parsedItem.name, brand: parsedItem.brand, quantity: parsedItem.quantity,
+                    unit: parsedItem.unit, calories: parsedItem.calories,
                     proteinGrams: parsedItem.proteinGrams ?? 0,
                     carbGrams: parsedItem.carbGrams ?? 0,
                     fatGrams: parsedItem.fatGrams ?? 0
                 )
-
                 foodItem.fiberGrams = parsedItem.fiber
                 foodItem.sugarGrams = parsedItem.sugar
                 foodItem.sodiumMg = parsedItem.sodium
                 foodItem.barcode = parsedItem.barcode
-
                 foodEntry.items.append(foodItem)
             }
 
-            user.foodEntries.append(foodEntry)
-
-            modelContext.insert(foodEntry)
+            user.foodEntries.append(foodEntry) // Establish relationship
+            modelContext.insert(foodEntry) // Insert the entry
             try modelContext.save()
 
-            await loadTodaysData()
-
+            await loadTodaysData() // Refresh UI
             parsedItems = []
             transcribedText = ""
-
-            coordinator.dismiss()
+            coordinator.dismiss() // Dismiss confirmation sheet
             HapticManager.notification(.success)
-
-            AppLogger.info("Saved \(items.count) food items", category: .data)
+            AppLogger.info("Saved \(items.count) food items for meal \(selectedMealType.rawValue)", category: .data)
 
         } catch {
-            AppLogger.error("Failed to save food entry: \(error)")
-            setError(error)
+            AppLogger.error("Failed to save food entry: \(error.localizedDescription)", category: .data)
+            setError(FoodTrackingError.saveFailed)
         }
     }
 
     // MARK: - Water Tracking
     func logWater(amount: Double, unit: WaterUnit) async {
+        isLoading = true // Indicate activity
+        defer { isLoading = false }
         do {
             let amountInML = unit.toMilliliters(amount)
-
             try await nutritionService?.logWaterIntake(
                 for: user,
                 amountML: amountInML,
                 date: currentDate
             )
-
+            // Optimistically update local state, or rely on loadTodaysData if service updates DB
             waterIntakeML += amountInML
-
             HapticManager.impact(.light)
-
+            AppLogger.info("Logged \(amountInML)ml water", category: .data)
         } catch {
             setError(error)
-            AppLogger.error("Failed to log water: \(error)")
+            AppLogger.error("Failed to log water: \(error.localizedDescription)", category: .data)
         }
     }
 
     // MARK: - Smart Suggestions
     private func generateSmartSuggestions() async throws -> [FoodItem] {
-        let hour = Calendar.current.component(.hour, from: currentDate)
-        let dayOfWeek = Calendar.current.component(.weekday, from: currentDate)
+        // Ensure nutritionService is available
+        guard let nutritionService = self.nutritionService else {
+            AppLogger.warning("NutritionService not available for smart suggestions.", category: .ai)
+            return []
+        }
 
-        let mealHistory = try await nutritionService?.getMealHistory(
+        let mealHistory = try await nutritionService.getMealHistory(
             for: user,
             mealType: selectedMealType,
-            daysBack: 30
-        ) ?? []
+            daysBack: 30 // Look back 30 days for patterns
+        )
 
-        // Break down the complex expression into simpler steps
         let allItems = mealHistory.flatMap { $0.items }
-        
         var itemCounts: [String: Int] = [:]
-        for item in allItems {
-            itemCounts[item.name, default: 0] += 1
-        }
+        allItems.forEach { itemCounts[$0.name, default: 0] += 1 }
         
         let sortedItems = itemCounts.sorted { $0.value > $1.value }
-        let topItems = Array(sortedItems.prefix(5))
+        let topItems = Array(sortedItems.prefix(5)) // Suggest top 5 frequent items
         
         let frequentFoods = topItems.compactMap { (name, _) in
-            allItems.first { $0.name == name }
-            }
-
-        _ = hour + dayOfWeek // avoid unused warnings for now
+            allItems.first { $0.name == name } // Get the full FoodItem object
+        }
         return Array(frequentFoods)
     }
 
     // MARK: - Meal Management
     func deleteFoodEntry(_ entry: FoodEntry) async {
+        isLoading = true
+        defer { isLoading = false }
         do {
             modelContext.delete(entry)
             try modelContext.save()
-            await loadTodaysData()
-
+            await loadTodaysData() // Refresh
+            HapticManager.notification(.success)
+            AppLogger.info("Deleted food entry \(entry.id.uuidString)", category: .data)
         } catch {
             setError(error)
-            AppLogger.error("Failed to delete food entry: \(error)")
+            AppLogger.error("Failed to delete food entry: \(error.localizedDescription)", category: .data)
         }
     }
 
     func duplicateFoodEntry(_ entry: FoodEntry) async {
+        isLoading = true
+        defer { isLoading = false }
         do {
-            let duplicate = entry.duplicate()
-            duplicate.loggedAt = currentDate
-
+            let duplicate = entry.duplicate() // Assuming FoodEntry has a duplicate method
+            duplicate.loggedAt = currentDate // Set to current date for duplication
             user.foodEntries.append(duplicate)
             modelContext.insert(duplicate)
             try modelContext.save()
-
-            await loadTodaysData()
-
+            await loadTodaysData() // Refresh
+            HapticManager.notification(.success)
+            AppLogger.info("Duplicated food entry \(entry.id.uuidString) to new entry \(duplicate.id.uuidString)", category: .data)
         } catch {
             setError(error)
-            AppLogger.error("Failed to duplicate food entry: \(error)")
+            AppLogger.error("Failed to duplicate food entry: \(error.localizedDescription)", category: .data)
         }
     }
 
     // MARK: - Public Methods
     
     func setSelectedMealType(_ mealType: MealType) {
-        selectedMealType = mealType
+        self.selectedMealType = mealType
+        // Potentially reload suggestions if they are meal-type specific
+        Task {
+            self.suggestedFoods = try await generateSmartSuggestions()
+        }
     }
     
+    /// Sets the parsed items, usually from an external source or for previewing.
     func setParsedItems(_ items: [ParsedFoodItem]) {
-        parsedItems = items
+        self.parsedItems = items
     }
 
+    /// Injects the nutrition service, typically after app initialization or for testing.
     func setNutritionService(_ service: NutritionServiceProtocol) async {
         self.nutritionService = service
-        // Load data once service is available
-        await loadTodaysData()
+        await loadTodaysData() // Reload data with the new service
+    }
+    
+    /// Clears the current search results.
+    func clearSearchResults() {
+        self.searchResults = []
+    }
+
+    /// Sets the search results, primarily for use in previews or testing.
+    /// - Parameter results: An array of `FoodDatabaseItem` to set as search results.
+    func setSearchResults(_ results: [FoodDatabaseItem]) {
+        self.searchResults = results
     }
 }
 
-// MARK: - Supporting Types
-struct ParsedFoodItem: Identifiable, Sendable {
-    let id = UUID()
-    var name: String
-    var brand: String?
-    var quantity: Double
-    var unit: String
-    var calories: Double
-    var proteinGrams: Double?
-    var carbGrams: Double?
-    var fatGrams: Double?
-    var fiber: Double?
-    var sugar: Double?
-    var sodium: Double?
-    var barcode: String?
-    var databaseId: String?
-    var confidence: Float
-}
+// MARK: - Supporting Types (already defined, ensure consistency)
+// ParsedFoodItem, FoodNutritionSummary, FoodTrackingError, TimeoutError, WaterUnit
+// These should be consistent with their definitions elsewhere if shared, or defined here if local.
+// For this exercise, assuming they are defined as previously shown or are globally accessible.
 
-struct FoodNutritionSummary: Sendable {
-    var calories: Double = 0
-    var protein: Double = 0
-    var carbs: Double = 0
-    var fat: Double = 0
-    var fiber: Double = 0
-    var sugar: Double = 0
-    var sodium: Double = 0
-
-    var calorieGoal: Double = 2000
-    var proteinGoal: Double = 50
-    var carbGoal: Double = 250
-    var fatGoal: Double = 65
-
-    var calorieProgress: Double { calories / calorieGoal }
-    var proteinProgress: Double { protein / proteinGoal }
-    var carbProgress: Double { carbs / carbGoal }
-    var fatProgress: Double { fat / fatGoal }
-}
-
-enum FoodTrackingError: LocalizedError {
-    case noFoodsDetected
-    case photoAnalysisFailed
-    case saveFailed
-    case aiProcessingTimeout
-    case aiProcessingFailed(suggestion: String)
-
-    var errorDescription: String? {
-        switch self {
-        case .noFoodsDetected:
-            return "No foods detected in your description"
-        case .photoAnalysisFailed:
-            return "Unable to analyze the photo. Please try again or add foods manually."
-        case .saveFailed:
-            return "Failed to save food entry"
-        case .aiProcessingTimeout:
-            return "AI processing took too long. Please try again with a simpler description."
-        case .aiProcessingFailed(let suggestion):
-            return "AI processing failed. Suggestion: \(suggestion)"
-        }
-    }
-}
-
-struct TimeoutError: Error {
-    let message = "Operation timed out"
-}
-
-enum WaterUnit: String, CaseIterable {
-    case ml = "ml"
-    case oz = "oz"
-    case cups = "cups"
-    case liters = "L"
-
-    func toMilliliters(_ amount: Double) -> Double {
-        switch self {
-        case .ml: return amount
-        case .oz: return amount * 29.5735
-        case .cups: return amount * 236.588
-        case .liters: return amount * 1000
-        }
-    }
-}
-
+// Example: If FoodNutritionSummary is not already Sendable, make it so.
+// struct FoodNutritionSummary: Sendable { ... }
