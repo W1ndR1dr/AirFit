@@ -10,6 +10,8 @@ struct FoodConfirmationView: View {
     @State private var editingItem: ParsedFoodItem?
     @State private var showAddItem = false
     @State private var isLoading = false
+    @State private var showAlternatives = false
+    @State private var selectedAlternatives: Set<UUID> = []
     
     init(items: [ParsedFoodItem], viewModel: FoodTrackingViewModel) {
         _items = State(initialValue: items)
@@ -19,38 +21,66 @@ struct FoodConfirmationView: View {
     var body: some View {
         NavigationStack {
             VStack(spacing: 0) {
-                mealTypeHeader
+                // Header with confidence summary
+                confidenceSummaryHeader
                 
                 ScrollView {
-                    VStack(spacing: AppSpacing.medium) {
-                        ForEach($items) { $item in
-                            FoodItemCard(
-                                item: item,
-                                onEdit: { editingItem = item },
-                                onDelete: { deleteItem(item) }
+                    LazyVStack(spacing: 12) {
+                        // Confidence-based grouping
+                        if hasHighConfidenceItems {
+                            confidenceSection(
+                                title: "High Confidence",
+                                items: highConfidenceItems,
+                                color: .green,
+                                icon: "checkmark.circle.fill"
                             )
                         }
                         
-                        Button(action: { showAddItem = true }) {
-                            Label("Add Item", systemImage: "plus.circle.fill")
-                                .frame(maxWidth: .infinity)
-                                .padding()
+                        if hasLowConfidenceItems {
+                            confidenceSection(
+                                title: "Please Review",
+                                items: lowConfidenceItems,
+                                color: .orange,
+                                icon: "exclamationmark.triangle.fill"
+                            )
                         }
-                        .buttonStyle(.bordered)
-                        .padding(.top)
+                        
+                        // Alternative suggestions
+                        if hasAlternativeSuggestions {
+                            alternativesSection
+                        }
+                        
+                        // Nutrition summary with confidence weighting
+                        nutritionSummaryCard
+                        
+                        // Add more items button
+                        addItemButton
                     }
                     .padding()
                 }
-                
-                nutritionSummary
-                actionButtons
             }
-            .background(AppColors.backgroundPrimary)
-            .navigationTitle("Confirm Food")
+            .navigationTitle("Confirm Food Items")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
-                ToolbarItem(placement: .cancellationAction) {
-                    Button("Cancel") { dismiss() }
+                ToolbarItem(placement: .navigationBarLeading) {
+                    Button("Cancel") {
+                        dismiss()
+                    }
+                }
+                
+                ToolbarItem(placement: .navigationBarTrailing) {
+                    Button("Save") {
+                        Task {
+                            await confirmAndSave()
+                        }
+                    }
+                    .disabled(isLoading || confirmedItems.isEmpty)
+                }
+            }
+            .sheet(isPresented: $showAddItem) {
+                ManualFoodEntryView(viewModel: viewModel) { newItem in
+                    items.append(newItem)
+                    showAddItem = false
                 }
             }
             .sheet(item: $editingItem) { item in
@@ -58,170 +88,355 @@ struct FoodConfirmationView: View {
                     if let index = items.firstIndex(where: { $0.id == item.id }) {
                         items[index] = updatedItem
                     }
+                    editingItem = nil
                 }
             }
-            .sheet(isPresented: $showAddItem) {
-                ManualFoodEntryView(viewModel: viewModel) { newItem in
-                    items.append(newItem)
-                }
-            }
-            .disabled(isLoading)
         }
-    }
-    
-    private var mealTypeHeader: some View {
-        HStack {
-            Label(viewModel.selectedMealType.displayName, systemImage: mealTypeIcon)
-                .font(.headline)
-            
-            Spacer()
-            
-            Text(viewModel.currentDate.formatted(date: .abbreviated, time: .omitted))
-                .font(.subheadline)
-                .foregroundStyle(.secondary)
-        }
-        .padding()
-        .background(AppColors.cardBackground)
-    }
-    
-    private var mealTypeIcon: String {
-        switch viewModel.selectedMealType {
-        case .breakfast: return "sunrise.fill"
-        case .lunch: return "sun.max.fill"
-        case .dinner: return "moon.stars.fill"
-        case .snack: return "takeoutbag.and.cup.and.straw.fill"
-        case .preWorkout: return "bolt.fill"
-        case .postWorkout: return "bolt.circle.fill"
-        }
-    }
-    
-    private var nutritionSummary: some View {
-        VStack(spacing: AppSpacing.small) {
-            Divider()
-            
-            HStack {
-                Text("Total")
-                    .font(.headline)
-                
-                Spacer()
-                
-                HStack(spacing: AppSpacing.large) {
-                    NutrientLabel(value: totalCalories, unit: "cal", color: .orange)
-                    NutrientLabel(value: totalProtein, unit: "g", label: "P", color: AppColors.proteinColor)
-                    NutrientLabel(value: totalCarbs, unit: "g", label: "C", color: AppColors.carbsColor)
-                    NutrientLabel(value: totalFat, unit: "g", label: "F", color: AppColors.fatColor)
-                }
-                .font(.callout)
-            }
-            .padding()
-            
-            if !items.isEmpty {
-                nutritionChart
-                    .frame(height: 120)
-                    .padding(.horizontal)
-            }
-        }
-        .background(AppColors.cardBackground)
-    }
-    
-    private var nutritionChart: some View {
-        Chart {
-            SectorMark(
-                angle: .value("Protein", totalProtein * 4),
-                innerRadius: .ratio(0.6),
-                angularInset: 1
-            )
-            .foregroundStyle(AppColors.proteinColor)
-            .opacity(0.8)
-            
-            SectorMark(
-                angle: .value("Carbs", totalCarbs * 4),
-                innerRadius: .ratio(0.6),
-                angularInset: 1
-            )
-            .foregroundStyle(AppColors.carbsColor)
-            .opacity(0.8)
-            
-            SectorMark(
-                angle: .value("Fat", totalFat * 9),
-                innerRadius: .ratio(0.6),
-                angularInset: 1
-            )
-            .foregroundStyle(AppColors.fatColor)
-            .opacity(0.8)
-        }
-        .chartLegend(.hidden)
-        .chartBackground { _ in
-            VStack {
-                Text("\(Int(totalCalories))")
-                    .font(.title2)
-                    .fontWeight(.bold)
-                Text("calories")
-                    .font(.caption)
-                    .foregroundStyle(.secondary)
-            }
-        }
-    }
-    
-    private var actionButtons: some View {
-        HStack(spacing: AppSpacing.medium) {
-            Button(action: { dismiss() }) {
-                Text("Cancel")
-                    .frame(maxWidth: .infinity)
-            }
-            .buttonStyle(.bordered)
-            
-            Button(action: saveItems) {
-                if isLoading {
-                    ProgressView()
-                        .scaleEffect(0.8)
-                } else {
-                    Label("Save", systemImage: "checkmark.circle.fill")
-                }
-            }
-            .frame(maxWidth: .infinity)
-            .buttonStyle(.borderedProminent)
-            .disabled(items.isEmpty || isLoading)
-        }
-        .padding()
-        .background(AppColors.cardBackground)
     }
     
     // MARK: - Computed Properties
-    private var totalCalories: Double {
-        items.reduce(0) { $0 + $1.calories }
+    
+    private var highConfidenceItems: [ParsedFoodItem] {
+        items.filter { $0.confidence >= 0.7 }
     }
     
-    private var totalProtein: Double {
-        items.reduce(0) { $0 + ($1.proteinGrams ?? 0) }
+    private var lowConfidenceItems: [ParsedFoodItem] {
+        items.filter { $0.confidence < 0.7 && $0.confidence >= 0.5 }
     }
     
-    private var totalCarbs: Double {
-        items.reduce(0) { $0 + ($1.carbGrams ?? 0) }
+    private var alternativeSuggestions: [ParsedFoodItem] {
+        items.filter { $0.confidence < 0.5 }
     }
     
-    private var totalFat: Double {
-        items.reduce(0) { $0 + ($1.fatGrams ?? 0) }
+    private var hasHighConfidenceItems: Bool {
+        !highConfidenceItems.isEmpty
+    }
+    
+    private var hasLowConfidenceItems: Bool {
+        !lowConfidenceItems.isEmpty
+    }
+    
+    private var hasAlternativeSuggestions: Bool {
+        !alternativeSuggestions.isEmpty
+    }
+    
+    private var confirmedItems: [ParsedFoodItem] {
+        highConfidenceItems + lowConfidenceItems + alternativeSuggestions.filter { selectedAlternatives.contains($0.id) }
+    }
+    
+    private var totalNutrition: (calories: Double, protein: Double, carbs: Double, fat: Double) {
+        let confirmed = confirmedItems
+        return (
+            calories: confirmed.reduce(0) { $0 + $1.calories },
+            protein: confirmed.reduce(0) { $0 + ($1.proteinGrams ?? 0) },
+            carbs: confirmed.reduce(0) { $0 + ($1.carbGrams ?? 0) },
+            fat: confirmed.reduce(0) { $0 + ($1.fatGrams ?? 0) }
+        )
+    }
+    
+    // MARK: - View Components
+    
+    private var confidenceSummaryHeader: some View {
+        VStack(spacing: 8) {
+            HStack {
+                Image(systemName: "brain.head.profile")
+                    .foregroundStyle(.blue)
+                Text("AI Analysis Results")
+                    .font(.headline)
+                    .fontWeight(.semibold)
+                Spacer()
+                
+                // Overall confidence indicator
+                confidenceBadge(for: overallConfidence)
+            }
+            
+            if hasLowConfidenceItems || hasAlternativeSuggestions {
+                HStack {
+                    Image(systemName: "info.circle.fill")
+                        .foregroundStyle(.blue)
+                        .font(.caption)
+                    Text("Some items need your review. Tap to edit or confirm.")
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                    Spacer()
+                }
+            }
+        }
+        .padding()
+        .background(.ultraThinMaterial)
+    }
+    
+    private var overallConfidence: Float {
+        guard !items.isEmpty else { return 0 }
+        return items.reduce(0) { $0 + $1.confidence } / Float(items.count)
+    }
+    
+    private func confidenceSection(
+        title: String,
+        items: [ParsedFoodItem],
+        color: Color,
+        icon: String
+    ) -> some View {
+        VStack(alignment: .leading, spacing: 12) {
+            HStack {
+                Image(systemName: icon)
+                    .foregroundStyle(color)
+                Text(title)
+                    .font(.headline)
+                    .fontWeight(.semibold)
+                Spacer()
+                Text("\(items.count) item\(items.count == 1 ? "" : "s")")
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+            }
+            
+            ForEach(items) { item in
+                foodItemCard(item, sectionColor: color)
+            }
+        }
+        .padding()
+        .background(color.opacity(0.05))
+        .clipShape(RoundedRectangle(cornerRadius: 12))
+    }
+    
+    private var alternativesSection: some View {
+        VStack(alignment: .leading, spacing: 12) {
+            HStack {
+                Image(systemName: "questionmark.circle.fill")
+                    .foregroundStyle(.purple)
+                Text("Alternative Suggestions")
+                    .font(.headline)
+                    .fontWeight(.semibold)
+                Spacer()
+                Button(showAlternatives ? "Hide" : "Show") {
+                    withAnimation(.easeInOut(duration: 0.3)) {
+                        showAlternatives.toggle()
+                    }
+                }
+                .font(.caption)
+                .foregroundStyle(.blue)
+            }
+            
+            if showAlternatives {
+                Text("These are alternative interpretations. Select any that match what you actually ate.")
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+                
+                ForEach(alternativeSuggestions) { item in
+                    alternativeItemCard(item)
+                }
+            }
+        }
+        .padding()
+        .background(.purple.opacity(0.05))
+        .clipShape(RoundedRectangle(cornerRadius: 12))
+    }
+    
+    private func foodItemCard(_ item: ParsedFoodItem, sectionColor: Color) -> some View {
+        VStack(alignment: .leading, spacing: 8) {
+            HStack {
+                VStack(alignment: .leading, spacing: 4) {
+                    Text(item.name)
+                        .font(.subheadline)
+                        .fontWeight(.medium)
+                    
+                    if let brand = item.brand {
+                        Text(brand)
+                            .font(.caption)
+                            .foregroundStyle(.secondary)
+                    }
+                    
+                    Text("\(item.quantity.formatted(.number.precision(.fractionLength(0...1)))) \(item.unit)")
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                }
+                
+                Spacer()
+                
+                VStack(alignment: .trailing, spacing: 4) {
+                    confidenceBadge(for: item.confidence)
+                    
+                    Text("\(Int(item.calories)) cal")
+                        .font(.caption)
+                        .fontWeight(.medium)
+                }
+            }
+            
+            // Nutrition breakdown
+            if let protein = item.proteinGrams,
+               let carbs = item.carbGrams,
+               let fat = item.fatGrams {
+                HStack(spacing: 16) {
+                    macroIndicator("P", value: protein, color: .blue)
+                    macroIndicator("C", value: carbs, color: .green)
+                    macroIndicator("F", value: fat, color: .orange)
+                    Spacer()
+                }
+            }
+        }
+        .padding()
+        .background(.background)
+        .clipShape(RoundedRectangle(cornerRadius: 8))
+        .contextMenu {
+            Button("Edit Details") {
+                editingItem = item
+            }
+            
+            Button("Remove", role: .destructive) {
+                withAnimation {
+                    items.removeAll { $0.id == item.id }
+                }
+            }
+        }
+    }
+    
+    private func alternativeItemCard(_ item: ParsedFoodItem) -> some View {
+        HStack {
+            Button {
+                withAnimation {
+                    if selectedAlternatives.contains(item.id) {
+                        selectedAlternatives.remove(item.id)
+                    } else {
+                        selectedAlternatives.insert(item.id)
+                    }
+                }
+            } label: {
+                Image(systemName: selectedAlternatives.contains(item.id) ? "checkmark.circle.fill" : "circle")
+                    .foregroundStyle(selectedAlternatives.contains(item.id) ? .blue : .secondary)
+                    .font(.title3)
+            }
+            
+            VStack(alignment: .leading, spacing: 4) {
+                Text(item.name)
+                    .font(.subheadline)
+                    .fontWeight(.medium)
+                
+                Text("Alternative suggestion")
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+            }
+            
+            Spacer()
+            
+            if selectedAlternatives.contains(item.id) {
+                Text("Selected")
+                    .font(.caption)
+                    .foregroundStyle(.blue)
+                    .padding(.horizontal, 8)
+                    .padding(.vertical, 4)
+                    .background(.blue.opacity(0.1))
+                    .clipShape(Capsule())
+            }
+        }
+        .padding()
+        .background(.background)
+        .clipShape(RoundedRectangle(cornerRadius: 8))
+    }
+    
+    private func confidenceBadge(for confidence: Float) -> some View {
+        let (color, text) = confidenceInfo(for: confidence)
+        
+        return Text(text)
+            .font(.caption2)
+            .fontWeight(.semibold)
+            .foregroundStyle(.white)
+            .padding(.horizontal, 6)
+            .padding(.vertical, 2)
+            .background(color)
+            .clipShape(Capsule())
+    }
+    
+    private func confidenceInfo(for confidence: Float) -> (Color, String) {
+        switch confidence {
+        case 0.8...:
+            return (.green, "HIGH")
+        case 0.6..<0.8:
+            return (.orange, "MED")
+        default:
+            return (.red, "LOW")
+        }
+    }
+    
+    private func macroIndicator(_ label: String, value: Double, color: Color) -> some View {
+        VStack(spacing: 2) {
+            Text(label)
+                .font(.caption2)
+                .fontWeight(.semibold)
+                .foregroundStyle(color)
+            Text("\(Int(value))g")
+                .font(.caption2)
+                .foregroundStyle(.secondary)
+        }
     }
     
     // MARK: - Actions
-    private func deleteItem(_ item: ParsedFoodItem) {
-        withAnimation(.easeInOut(duration: 0.3)) {
-            items.removeAll { $0.id == item.id }
-        }
-        HapticManager.impact(.light)
-    }
-    
-    private func saveItems() {
+    private func confirmAndSave() {
         isLoading = true
         
         Task {
-            await viewModel.confirmAndSaveFoodItems(items)
+            await viewModel.confirmAndSaveFoodItems(confirmedItems)
             await MainActor.run {
                 isLoading = false
                 dismiss()
             }
         }
+    }
+    
+    private var nutritionSummaryCard: some View {
+        VStack(spacing: 12) {
+            HStack {
+                Image(systemName: "chart.pie.fill")
+                    .foregroundStyle(.blue)
+                Text("Nutrition Summary")
+                    .font(.headline)
+                    .fontWeight(.semibold)
+                Spacer()
+                Text("\(confirmedItems.count) item\(confirmedItems.count == 1 ? "" : "s")")
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+            }
+            
+            let nutrition = totalNutrition
+            
+            HStack(spacing: 20) {
+                VStack {
+                    Text("\(Int(nutrition.calories))")
+                        .font(.title2)
+                        .fontWeight(.bold)
+                    Text("Calories")
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                }
+                
+                Divider()
+                    .frame(height: 40)
+                
+                HStack(spacing: 16) {
+                    macroIndicator("P", value: nutrition.protein, color: .blue)
+                    macroIndicator("C", value: nutrition.carbs, color: .green)
+                    macroIndicator("F", value: nutrition.fat, color: .orange)
+                }
+                
+                Spacer()
+            }
+        }
+        .padding()
+        .background(.blue.opacity(0.05))
+        .clipShape(RoundedRectangle(cornerRadius: 12))
+    }
+    
+    private var addItemButton: some View {
+        Button {
+            showAddItem = true
+        } label: {
+            HStack {
+                Image(systemName: "plus.circle.fill")
+                Text("Add Another Item")
+            }
+            .frame(maxWidth: .infinity)
+            .padding()
+        }
+        .buttonStyle(.bordered)
     }
 }
 
@@ -342,35 +557,89 @@ struct NutrientLabel: View {
 
 // MARK: - Placeholder Views for Future Implementation
 struct FoodItemEditView: View {
-    let item: ParsedFoodItem
+    @State private var item: ParsedFoodItem
     let onSave: (ParsedFoodItem) -> Void
     @Environment(\.dismiss) private var dismiss
     
+    init(item: ParsedFoodItem, onSave: @escaping (ParsedFoodItem) -> Void) {
+        _item = State(initialValue: item)
+        self.onSave = onSave
+    }
+    
     var body: some View {
         NavigationStack {
-            VStack {
-                Image(systemName: "pencil.circle")
-                    .font(.system(size: 60))
-                    .foregroundStyle(.secondary)
+            Form {
+                Section("Food Details") {
+                    TextField("Name", text: $item.name)
+                    TextField("Brand", text: Binding(
+                        get: { item.brand ?? "" },
+                        set: { item.brand = $0.isEmpty ? nil : $0 }
+                    ))
+                }
                 
-                Text("Food Item Editor")
-                    .font(.title2)
-                    .fontWeight(.semibold)
+                Section("Portion") {
+                    HStack {
+                        TextField("Quantity", value: $item.quantity, format: .number)
+                            .keyboardType(.decimalPad)
+                        TextField("Unit", text: $item.unit)
+                    }
+                }
                 
-                Text("Coming in Phase 3")
-                    .font(.body)
-                    .foregroundStyle(.secondary)
+                Section("Nutrition") {
+                    HStack {
+                        Text("Calories")
+                        Spacer()
+                        TextField("0", value: $item.calories, format: .number)
+                            .keyboardType(.numberPad)
+                            .multilineTextAlignment(.trailing)
+                    }
+                    
+                    HStack {
+                        Text("Protein (g)")
+                        Spacer()
+                        TextField("0", value: Binding(
+                            get: { item.proteinGrams ?? 0 },
+                            set: { item.proteinGrams = $0 }
+                        ), format: .number)
+                        .keyboardType(.decimalPad)
+                        .multilineTextAlignment(.trailing)
+                    }
+                    
+                    HStack {
+                        Text("Carbs (g)")
+                        Spacer()
+                        TextField("0", value: Binding(
+                            get: { item.carbGrams ?? 0 },
+                            set: { item.carbGrams = $0 }
+                        ), format: .number)
+                        .keyboardType(.decimalPad)
+                        .multilineTextAlignment(.trailing)
+                    }
+                    
+                    HStack {
+                        Text("Fat (g)")
+                        Spacer()
+                        TextField("0", value: Binding(
+                            get: { item.fatGrams ?? 0 },
+                            set: { item.fatGrams = $0 }
+                        ), format: .number)
+                        .keyboardType(.decimalPad)
+                        .multilineTextAlignment(.trailing)
+                    }
+                }
             }
-            .navigationTitle("Edit \(item.name)")
+            .navigationTitle("Edit Food Item")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
-                ToolbarItem(placement: .cancellationAction) {
-                    Button("Cancel") { dismiss() }
+                ToolbarItem(placement: .navigationBarLeading) {
+                    Button("Cancel") {
+                        dismiss()
+                    }
                 }
-                ToolbarItem(placement: .confirmationAction) {
+                
+                ToolbarItem(placement: .navigationBarTrailing) {
                     Button("Save") {
                         onSave(item)
-                        dismiss()
                     }
                 }
             }
@@ -400,14 +669,19 @@ struct ManualFoodEntryView: View {
                     .fontWeight(.semibold)
                 
                 Text("Coming in Phase 3")
-                    .font(.body)
+                    .font(.subheadline)
                     .foregroundStyle(.secondary)
+                
+                Spacer()
             }
-            .navigationTitle("Add Food")
+            .padding()
+            .navigationTitle("Add Food Item")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
-                ToolbarItem(placement: .cancellationAction) {
-                    Button("Cancel") { dismiss() }
+                ToolbarItem(placement: .navigationBarLeading) {
+                    Button("Cancel") {
+                        dismiss()
+                    }
                 }
             }
         }
@@ -445,8 +719,10 @@ struct ManualFoodEntryView: View {
     VStack {
         Text("FoodConfirmationView Preview")
             .font(.title)
-        Text("Items: \(mockItems.count)")
-        Text("Total Calories: \(Int(mockItems.reduce(0) { $0 + $1.calories }))")
+        Text("Advanced AI features with confidence indicators")
+            .font(.caption)
+            .foregroundStyle(.secondary)
+        Spacer()
     }
     .padding()
 }

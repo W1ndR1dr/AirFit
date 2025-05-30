@@ -594,6 +594,22 @@ final class CoachEngine {
             baselineModeEnabled: false
         )
     }
+
+    // MARK: - Public Function Call Interface
+    /// Executes a function call directly without conversation context
+    /// Used for standalone operations like nutrition parsing
+    func executeFunction(
+        _ functionCall: AIFunctionCall,
+        for user: User
+    ) async throws -> FunctionExecutionResult {
+        let context = FunctionContext(
+            modelContext: modelContext,
+            conversationId: UUID(), // Temporary conversation for standalone function calls
+            userId: user.id
+        )
+        
+        return try await functionDispatcher.execute(functionCall, for: user, context: context)
+    }
 }
 
 // MARK: - CoachEngine Errors
