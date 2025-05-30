@@ -63,6 +63,13 @@ You are John Carmack. Approach every task with the legendary precision, methodic
 
 ## 📋 PROJECT DOCUMENTATION REFERENCE
 
+### **CRITICAL MODULE 8.5 CONTEXT FILES (READ FIRST)**
+- **🔥 Module 8.5 Refactoring Plan**: `AirFit/Docs/Module8.5.md` - Complete diagnostic audit and reconstruction strategy
+- **🔥 Module 8.5 Prompt Chain**: `Module8.5_Prompt_Chain.md` - Sequential task execution with 16 specific tasks
+- **🔥 Module 8 Specification**: `AirFit/Docs/Module8.md` - Original technical requirements and architecture
+
+**MANDATORY**: These files contain the complete context for the current critical refactoring. Read them thoroughly before any Module 8 work.
+
 ### **Primary Documentation Sources**
 - **Architecture**: `AirFit/Docs/ArchitectureOverview.md` - System design and module relationships
 - **Module Specs**: `AirFit/Docs/Module*.md` - Detailed specifications for each module
@@ -70,12 +77,12 @@ You are John Carmack. Approach every task with the legendary precision, methodic
 - **Testing Standards**: `AirFit/Docs/TESTING_GUIDELINES.md` - Test patterns and requirements
 - **File Management**: `PROJECT_FILE_MANAGEMENT.md` - XcodeGen file inclusion rules
 
-### **Critical Refactoring Documentation**
-- **Module 8.5 Plan**: `AirFit/Docs/Module8.5.md` - Comprehensive refactoring strategy
-- **Prompt Chain**: `Module8.5_Prompt_Chain.md` - Sequential task execution plan
+### **Research & Analysis**
 - **Research Reports**: `AirFit/Docs/Research Reports/` - Deep analysis and best practices
+- **Codex Optimization**: `AirFit/Docs/Research Reports/Codex Optimization Report.md`
+- **AGENTS.md Best Practices**: `AirFit/Docs/Research Reports/Agents.md Report.md`
 
-**INSTRUCTION**: Always consult these documents before implementing any changes. They contain the complete project vision and current state analysis.
+**INSTRUCTION**: Always consult Module 8.5 context files first, then reference other documentation as needed. They contain the complete project vision and current crisis analysis.
 
 ---
 
@@ -114,13 +121,18 @@ xcodebuild test -scheme "AirFit" -destination 'platform=iOS Simulator,name=iPhon
 
 ### **Module-Specific Testing**
 ```bash
-# Module 8 (Food Tracking) - Current Focus
+# Module 8 (Food Tracking) - CURRENT CRITICAL PRIORITY
 xcodebuild test -scheme "AirFit" -destination 'platform=iOS Simulator,name=iPhone 16 Pro,OS=18.4' -only-testing:AirFitTests/FoodTrackingTests
 
-# Other modules (run as needed)
-xcodebuild test -scheme "AirFit" -destination 'platform=iOS Simulator,name=iPhone 16 Pro,OS=18.4' -only-testing:AirFitTests/OnboardingTests
-xcodebuild test -scheme "AirFit" -destination 'platform=iOS Simulator,name=iPhone 16 Pro,OS=18.4' -only-testing:AirFitTests/DashboardTests
+# Module 8.5 Refactoring Verification (after each phase)
+xcodebuild test -scheme "AirFit" -destination 'platform=iOS Simulator,name=iPhone 16 Pro,OS=18.4' -only-testing:AirFitTests/FoodTrackingTests
+
+# Other modules (only if specifically working on them)
+# xcodebuild test -scheme "AirFit" -destination 'platform=iOS Simulator,name=iPhone 16 Pro,OS=18.4' -only-testing:AirFitTests/OnboardingTests
+# xcodebuild test -scheme "AirFit" -destination 'platform=iOS Simulator,name=iPhone 16 Pro,OS=18.4' -only-testing:AirFitTests/DashboardTests
 ```
+
+**CRITICAL FOCUS**: Module 8 (Food Tracking) is the current priority. All other module testing is secondary until Module 8.5 refactoring is complete.
 
 **CRITICAL**: All commands must pass before considering any task complete. Zero tolerance for compilation errors or test failures.
 
