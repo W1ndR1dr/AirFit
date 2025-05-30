@@ -2,6 +2,7 @@ import SwiftUI
 import AVFoundation
 import Vision
 import Photos
+import SwiftData
 
 /// Photo capture interface for intelligent meal recognition and food analysis.
 struct PhotoInputView: View {
@@ -101,6 +102,9 @@ struct PhotoInputView: View {
                                 .animation(.easeOut(duration: 0.3), value: cameraManager.focusScale)
                         }
                     }
+                    .accessibilityLabel("Camera preview")
+                    .accessibilityHint("Live camera feed for food photo capture")
+                    .accessibilityIdentifier("camera_preview")
             } else {
                 CameraPlaceholder {
                     requestCameraPermission()
@@ -120,6 +124,10 @@ struct PhotoInputView: View {
                     .padding(12)
                     .background(.ultraThinMaterial)
                     .clipShape(Circle())
+                    .accessibilityLabel("Flash toggle")
+                    .accessibilityValue(cameraManager.isFlashOn ? "Flash on" : "Flash off")
+                    .accessibilityHint("Tap to toggle camera flash")
+                    .accessibilityIdentifier("flash_button")
             }
             
             Spacer()
@@ -132,6 +140,9 @@ struct PhotoInputView: View {
                     .padding(12)
                     .background(.ultraThinMaterial)
                     .clipShape(Circle())
+                    .accessibilityLabel("Switch camera")
+                    .accessibilityHint("Tap to switch between front and back camera")
+                    .accessibilityIdentifier("camera_switch_button")
             }
         }
     }
@@ -147,6 +158,9 @@ struct PhotoInputView: View {
                     .frame(width: 60, height: 60)
                     .background(.ultraThinMaterial)
                     .clipShape(Circle())
+                    .accessibilityLabel("Photo gallery")
+                    .accessibilityHint("Tap to select a photo from your gallery")
+                    .accessibilityIdentifier("gallery_button")
             }
             
             // Capture button
@@ -160,6 +174,9 @@ struct PhotoInputView: View {
                         .stroke(.black, lineWidth: 4)
                         .frame(width: 70, height: 70)
                 }
+                .accessibilityLabel("Capture photo")
+                .accessibilityHint("Tap to take a photo of your food")
+                .accessibilityIdentifier("capture_button")
             }
             .disabled(!cameraManager.isAuthorized || isAnalyzing)
             .scaleEffect(cameraManager.isCapturing ? 0.9 : 1.0)
@@ -173,6 +190,7 @@ struct PhotoInputView: View {
                     .frame(width: 60, height: 60)
                     .background(.ultraThinMaterial)
                     .clipShape(Circle())
+                .accessibilityLabel("AI analysis toggle")
             }
         }
     }
@@ -210,6 +228,9 @@ struct PhotoInputView: View {
                 Text("\(Int(analysisProgress * 100))%")
                     .font(.caption)
                     .foregroundStyle(.secondary)
+                    .accessibilityLabel("AI analysis progress")
+                    .accessibilityValue("Analyzing photo: \(Int(analysisProgress * 100)) percent complete")
+                    .accessibilityIdentifier("analysis_progress")
             }
             .padding(32)
             .background(.ultraThinMaterial)
@@ -869,25 +890,34 @@ enum PhotoAnalysisError: LocalizedError {
 }
 
 #if DEBUG
-#Preview {
+#Preview("Photo Input View") {
     let container = try! ModelContainer(for: User.self, configurations: ModelConfiguration(isStoredInMemoryOnly: true))
     let context = container.mainContext
-    let user = User.example
+    
+    let user = User(
+        id: UUID(),
+        name: "Test User",
+        email: "test@example.com",
+        dateOfBirth: Date(),
+        gender: .male,
+        heightCm: 175,
+        weightKg: 70,
+        activityLevel: .moderate,
+        fitnessGoals: [.weightLoss],
+        dietaryRestrictions: [],
+        healthConditions: [],
+        createdAt: Date(),
+        updatedAt: Date()
+    )
     context.insert(user)
     
-    let coordinator = FoodTrackingCoordinator()
-    let adapter = FoodVoiceAdapter()
     let viewModel = FoodTrackingViewModel(
-        modelContext: context,
-        user: user,
-        foodVoiceAdapter: adapter,
-        nutritionService: nil,
-        foodDatabaseService: FoodDatabaseService(),
-        coachEngine: CoachEngine.createDefault(modelContext: context),
-        coordinator: coordinator
+        nutritionService: MockNutritionService(),
+        coachEngine: MockCoachEngine(),
+        voiceAdapter: MockFoodVoiceAdapter()
     )
     
-    return PhotoInputView(viewModel: viewModel)
+    PhotoInputView(viewModel: viewModel)
         .modelContainer(container)
 }
 #endif 

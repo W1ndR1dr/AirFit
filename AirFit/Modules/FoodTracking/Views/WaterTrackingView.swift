@@ -3,8 +3,8 @@ import Charts // For potential future chart-based insights
 
 /// A view for logging water intake, tracking hydration goals, and viewing hydration insights.
 struct WaterTrackingView: View {
-    @ObservedObject var viewModel: FoodTrackingViewModel
-    @Environment(\\.dismiss) private var dismiss
+    @Environment(\.dismiss) private var dismiss
+    @State private var viewModel: FoodTrackingViewModel
 
     // State for custom input
     @State private var selectedAmount: Double = 250 // Default quick add selection
@@ -131,7 +131,7 @@ struct WaterTrackingView: View {
 
 
                     Text("\(Int(viewModel.waterIntakeML)) mL")
-                        .font(AppFonts.title1)
+                        .font(AppFonts.title)
                         .fontWeight(.bold)
                         .foregroundColor(AppColors.textPrimary)
                         .contentTransition(.numericText(countsDown: viewModel.waterIntakeML < (Double(Int(viewModel.waterIntakeML)))))
@@ -348,7 +348,7 @@ struct QuickWaterButton: View {
 
 /// A view to display hydration tips.
 struct HydrationTipsView: View {
-    @Environment(\\.dismiss) private var dismiss
+    @Environment(\.dismiss) private var dismiss
     
     private let tips = [
         ("Start Early", "Drink a glass of water when you wake up."),
@@ -385,91 +385,36 @@ struct HydrationTipsView: View {
 
 
 // MARK: - Previews
-#Preview("Water Tracking View - Initial") {
-    let (user, modelContainer) = User.preview
-    let context = modelContainer.mainContext
-    
-    let coordinator = FoodTrackingCoordinator()
-    let foodVoiceAdapter = FoodVoiceAdapter(voiceInputManager: VoiceInputManager.shared) // Ensure VoiceInputManager is available
-    let nutritionService = NutritionService(modelContext: context)
-    let foodDBService = FoodDatabaseService() // Mock or actual
-    let coachEngine = CoachEngine.createDefault(modelContext: context)
-
-
-    let viewModel = FoodTrackingViewModel(
-        modelContext: context,
-        user: user,
-        foodVoiceAdapter: foodVoiceAdapter,
-        nutritionService: nutritionService,
-        foodDatabaseService: foodDBService,
-        coachEngine: coachEngine,
-        coordinator: coordinator
-    )
-    
-    // Simulate some initial water intake for preview
-    Task { await viewModel.logWater(amount: 750, unit: .ml) }
-
-    return WaterTrackingView(viewModel: viewModel)
-        .modelContainer(modelContainer) // Ensure modelContainer is passed for SwiftData
-}
-
-#Preview("Water Tracking View - Goal Reached") {
-    let (user, modelContainer) = User.preview
-    let context = modelContainer.mainContext
-    
-    let coordinator = FoodTrackingCoordinator()
-    let foodVoiceAdapter = FoodVoiceAdapter(voiceInputManager: VoiceInputManager.shared)
-    let nutritionService = NutritionService(modelContext: context)
-    let foodDBService = FoodDatabaseService()
-    let coachEngine = CoachEngine.createDefault(modelContext: context)
-
-    let viewModel = FoodTrackingViewModel(
-        modelContext: context,
-        user: user,
-        foodVoiceAdapter: foodVoiceAdapter,
-        nutritionService: nutritionService,
-        foodDatabaseService: foodDBService,
-        coachEngine: coachEngine,
-        coordinator: coordinator
-    )
-
-    // Simulate goal reached
-    Task {
-        await viewModel.logWater(amount: 2000, unit: .ml)
-    }
-    
-    return WaterTrackingView(viewModel: viewModel)
-        .modelContainer(modelContainer)
-}
-
-#Preview("Water Tracking View - Over Goal") {
-    let (user, modelContainer) = User.preview
-    let context = modelContainer.mainContext
-    
-    let coordinator = FoodTrackingCoordinator()
-    let foodVoiceAdapter = FoodVoiceAdapter(voiceInputManager: VoiceInputManager.shared)
-    let nutritionService = NutritionService(modelContext: context)
-    let foodDBService = FoodDatabaseService()
-    let coachEngine = CoachEngine.createDefault(modelContext: context)
-
-    let viewModel = FoodTrackingViewModel(
-        modelContext: context,
-        user: user,
-        foodVoiceAdapter: foodVoiceAdapter,
-        nutritionService: nutritionService,
-        foodDatabaseService: foodDBService,
-        coachEngine: coachEngine,
-        coordinator: coordinator
-    )
-
-    Task {
-        await viewModel.logWater(amount: 2500, unit: .ml) // Exceed goal
-    }
-    
-    return WaterTrackingView(viewModel: viewModel)
-        .modelContainer(modelContainer)
-}
-
 #Preview("Hydration Tips Sheet") {
     HydrationTipsView()
+}
+
+#Preview("Water Tracking - Default") {
+    let viewModel = FoodTrackingViewModel(
+        nutritionService: MockNutritionService(),
+        coachEngine: MockCoachEngine(),
+        voiceAdapter: MockFoodVoiceAdapter()
+    )
+    WaterTrackingView(viewModel: viewModel)
+        .modelContainer(for: User.self, inMemory: true)
+}
+
+#Preview("Water Tracking - Progress") {
+    let viewModel = FoodTrackingViewModel(
+        nutritionService: MockNutritionService(),
+        coachEngine: MockCoachEngine(),
+        voiceAdapter: MockFoodVoiceAdapter()
+    )
+    WaterTrackingView(viewModel: viewModel)
+        .modelContainer(for: User.self, inMemory: true)
+}
+
+#Preview("Water Tracking - Goal Reached") {
+    let viewModel = FoodTrackingViewModel(
+        nutritionService: MockNutritionService(),
+        coachEngine: MockCoachEngine(),
+        voiceAdapter: MockFoodVoiceAdapter()
+    )
+    WaterTrackingView(viewModel: viewModel)
+        .modelContainer(for: User.self, inMemory: true)
 }

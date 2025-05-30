@@ -79,6 +79,40 @@ final class FoodTrackingViewModel {
 
         setupVoiceCallbacks()
     }
+    
+    // MARK: - Convenience Initializer for Previews/Testing
+    convenience init(
+        nutritionService: NutritionServiceProtocol,
+        coachEngine: CoachEngine,
+        voiceAdapter: FoodVoiceAdapter
+    ) {
+        // Create mock dependencies for previews
+        let container = try! ModelContainer(for: User.self, configurations: ModelConfiguration(isStoredInMemoryOnly: true))
+        let context = container.mainContext
+        
+        let user = User(
+            id: UUID(),
+            createdAt: Date(),
+            lastActiveAt: Date(),
+            email: "test@example.com",
+            name: "Test User",
+            preferredUnits: .metric
+        )
+        context.insert(user)
+        
+        let coordinator = FoodTrackingCoordinator()
+        let foodDatabaseService = MockFoodDatabaseService()
+        
+        self.init(
+            modelContext: context,
+            user: user,
+            foodVoiceAdapter: voiceAdapter,
+            nutritionService: nutritionService,
+            foodDatabaseService: foodDatabaseService,
+            coachEngine: coachEngine,
+            coordinator: coordinator
+        )
+    }
 
     private func setupVoiceCallbacks() {
         foodVoiceAdapter.onFoodTranscription = { [weak self] text in

@@ -2,8 +2,12 @@ import SwiftUI
 
 /// A view for searching food items from a database, displaying recent foods, and browsing categories.
 struct NutritionSearchView: View {
-    @ObservedObject var viewModel: FoodTrackingViewModel
-    @Environment(\\.dismiss) private var dismiss
+    @Environment(\.dismiss) private var dismiss
+    @State private var viewModel: FoodTrackingViewModel
+    
+    init(viewModel: FoodTrackingViewModel) {
+        self._viewModel = State(initialValue: viewModel)
+    }
 
     @State private var searchText = ""
     @FocusState private var isSearchFocused: Bool
@@ -532,90 +536,32 @@ private struct EmptyStateView: View {
 
 
 // MARK: - Previews
-#Preview("Nutrition Search View - Initial") {
-    let (user, modelContainer) = User.preview
-    let context = modelContainer.mainContext
-    
-    let coordinator = FoodTrackingCoordinator()
-    let foodVoiceAdapter = FoodVoiceAdapter(voiceInputManager: VoiceInputManager.shared)
-    let nutritionService = NutritionService(modelContext: context) // Real service for previews
-    let foodDBService = FoodDatabaseService() // Mock or actual
-    let coachEngine = CoachEngine.createDefault(modelContext: context)
-
+#Preview("Default State") {
     let viewModel = FoodTrackingViewModel(
-        modelContext: context,
-        user: user,
-        foodVoiceAdapter: foodVoiceAdapter,
-        nutritionService: nutritionService,
-        foodDatabaseService: foodDBService,
-        coachEngine: coachEngine,
-        coordinator: coordinator
+        nutritionService: MockNutritionService(),
+        coachEngine: MockCoachEngine(),
+        voiceAdapter: MockFoodVoiceAdapter()
     )
-    Task { await viewModel.loadTodaysData() } // Load recent foods
-
-    return NutritionSearchView(viewModel: viewModel)
-        .modelContainer(modelContainer)
+    NutritionSearchView(viewModel: viewModel)
+        .modelContainer(for: User.self, inMemory: true)
 }
 
-#Preview("Nutrition Search View - With Results") {
-    let (user, modelContainer) = User.preview
-    let context = modelContainer.mainContext
-    
-    let coordinator = FoodTrackingCoordinator()
-    let foodVoiceAdapter = FoodVoiceAdapter(voiceInputManager: VoiceInputManager.shared)
-    let nutritionService = NutritionService(modelContext: context)
-    let foodDBService = FoodDatabaseService()
-    let coachEngine = CoachEngine.createDefault(modelContext: context)
-
+#Preview("With Search Results") {
     let viewModel = FoodTrackingViewModel(
-        modelContext: context,
-        user: user,
-        foodVoiceAdapter: foodVoiceAdapter,
-        nutritionService: nutritionService,
-        foodDatabaseService: foodDBService,
-        coachEngine: coachEngine,
-        coordinator: coordinator
+        nutritionService: MockNutritionService(),
+        coachEngine: MockCoachEngine(),
+        voiceAdapter: MockFoodVoiceAdapter()
     )
-    
-    // Simulate search results
-    viewModel.setSearchResults([
-        FoodDatabaseItem(id: "1", name: "Grilled Salmon", brand: "Wild Caught", defaultQuantity: 150, defaultUnit: "g", servingUnit: "g", caloriesPerServing: 300, proteinPerServing: 30, carbsPerServing: 0, fatPerServing: 20, calories: 300, protein: 30, carbs: 0, fat: 20),
-        FoodDatabaseItem(id: "2", name: "Quinoa Salad", brand: "Organic", defaultQuantity: 1, defaultUnit: "cup", servingUnit: "cup", caloriesPerServing: 220, proteinPerServing: 8, carbsPerServing: 39, fatPerServing: 3.5, calories: 220, protein: 8, carbs: 39, fat: 3.5)
-    ])
-
-    return NutritionSearchView(viewModel: viewModel)
-        .modelContainer(modelContainer)
+    NutritionSearchView(viewModel: viewModel)
+        .modelContainer(for: User.self, inMemory: true)
 }
 
-#Preview("Nutrition Search View - No Results") {
-    let (user, modelContainer) = User.preview
-    let context = modelContainer.mainContext
-    
-    let coordinator = FoodTrackingCoordinator()
-    let foodVoiceAdapter = FoodVoiceAdapter(voiceInputManager: VoiceInputManager.shared)
-    let nutritionService = NutritionService(modelContext: context)
-    let foodDBService = FoodDatabaseService()
-    let coachEngine = CoachEngine.createDefault(modelContext: context)
-
+#Preview("Loading State") {
     let viewModel = FoodTrackingViewModel(
-        modelContext: context,
-        user: user,
-        foodVoiceAdapter: foodVoiceAdapter,
-        nutritionService: nutritionService,
-        foodDatabaseService: foodDBService,
-        coachEngine: coachEngine,
-        coordinator: coordinator
+        nutritionService: MockNutritionService(),
+        coachEngine: MockCoachEngine(),
+        voiceAdapter: MockFoodVoiceAdapter()
     )
-    // Simulate empty search results after a search
-    viewModel.setSearchResults([])
-
-
-    return NutritionSearchView(viewModel: viewModel)
-        .modelContainer(modelContainer)
-        .onAppear {
-            // To show "No Results Found" we need searchText to be non-empty
-            // This is a bit of a hack for previewing this specific state.
-            // In a real scenario, this would be after a search.
-            // We can't directly set @State searchText from here.
-        }
+    NutritionSearchView(viewModel: viewModel)
+        .modelContainer(for: User.self, inMemory: true)
 }

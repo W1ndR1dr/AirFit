@@ -19,340 +19,286 @@ struct MacroRingsView: View {
 
     private let ringWidthFull: CGFloat = 16
     private let ringWidthCompact: CGFloat = 8
-    private let animationDuration: Double = 0.8
+    private let ringSpacing: CGFloat = 4
 
     var body: some View {
         Group {
             switch style {
             case .full:
-                fullView
+                fullRingsView
             case .compact:
-                compactView
+                compactRingsView
             }
         }
         .onAppear {
             if animateOnAppear {
-                withAnimation(.easeInOut(duration: animationDuration).delay(0.1)) {
+                withAnimation(.easeInOut(duration: 1.0).delay(0.2)) {
                     animateRings = true
                 }
             } else {
-                // If not animating on appear, show rings at full progress immediately
                 animateRings = true
             }
         }
     }
 
-    // MARK: - Full View
-    private var fullView: some View {
+    // MARK: - Full Rings View
+    private var fullRingsView: some View {
         VStack(spacing: AppSpacing.large) {
-            // Rings
             ZStack {
-                // Protein Ring (Outer)
-                SingleMacroRingView(
-                    progress: animateRings ? nutrition.proteinProgress : 0,
-                    color: AppColors.proteinColor,
-                    gradient: AppColors.proteinGradient,
-                    radius: 90,
-                    lineWidth: ringWidthFull,
-                    animationDuration: animationDuration
-                )
+                // Background rings
+                ForEach(0..<3, id: \.self) { index in
+                    Circle()
+                        .stroke(AppColors.backgroundTertiary, lineWidth: ringWidthFull)
+                        .frame(width: ringDiameter(for: index), height: ringDiameter(for: index))
+                }
 
-                // Carbs Ring (Middle)
-                SingleMacroRingView(
-                    progress: animateRings ? nutrition.carbProgress : 0,
-                    color: AppColors.carbsColor,
-                    gradient: AppColors.carbsGradient,
-                    radius: 70, // 90 - ringWidthFull - spacing
-                    lineWidth: ringWidthFull,
-                    animationDuration: animationDuration
-                )
-
-                // Fat Ring (Inner)
-                SingleMacroRingView(
-                    progress: animateRings ? nutrition.fatProgress : 0,
-                    color: AppColors.fatColor,
-                    gradient: AppColors.fatGradient,
-                    radius: 50, // 70 - ringWidthFull - spacing
-                    lineWidth: ringWidthFull,
-                    animationDuration: animationDuration
-                )
+                // Progress rings
+                ForEach(Array(macroData.enumerated()), id: \.offset) { index, macro in
+                    Circle()
+                        .trim(from: 0, to: animateRings ? macro.progress : 0)
+                        .stroke(
+                            macro.color,
+                            style: StrokeStyle(lineWidth: ringWidthFull, lineCap: .round)
+                        )
+                        .frame(width: ringDiameter(for: index), height: ringDiameter(for: index))
+                        .rotationEffect(.degrees(-90))
+                        .animation(.easeInOut(duration: 1.0).delay(Double(index) * 0.2), value: animateRings)
+                }
 
                 // Center calories
                 VStack(spacing: 2) {
-                    Text(\"\(Int(nutrition.calories))\")
-                        .font(AppFonts.title1)
+                    Text("\(Int(nutrition.calories))")
+                        .font(AppFonts.title)
                         .fontWeight(.bold)
                         .foregroundColor(AppColors.textPrimary)
-                    Text(\"cal\")
+                    Text("cal")
                         .font(AppFonts.caption)
                         .foregroundColor(AppColors.textSecondary)
                 }
             }
-            .frame(height: 200) // Adjusted for larger rings
+            .frame(height: 200)
 
             // Legend
-            HStack(spacing: AppSpacing.medium) { // Adjusted spacing
-                Spacer()
-                MacroLegendItemView(
-                    title: \"Protein\",
-                    currentValue: nutrition.protein,
-                    goalValue: nutrition.proteinGoal,
-                    color: AppColors.proteinColor
+            HStack(spacing: AppSpacing.large) {
+                MacroLegendItem(
+                    title: "Protein",
+                    value: nutrition.protein,
+                    goal: nutrition.proteinGoal,
+                    color: AppColors.proteinColor,
+                    unit: "g"
                 )
-                Spacer()
-                MacroLegendItemView(
-                    title: \"Carbs\",
-                    currentValue: nutrition.carbs,
-                    goalValue: nutrition.carbGoal,
-                    color: AppColors.carbsColor
+                MacroLegendItem(
+                    title: "Carbs",
+                    value: nutrition.carbs,
+                    goal: nutrition.carbGoal,
+                    color: AppColors.carbsColor,
+                    unit: "g"
                 )
-                Spacer()
-                MacroLegendItemView(
-                    title: \"Fat\",
-                    currentValue: nutrition.fat,
-                    goalValue: nutrition.fatGoal,
-                    color: AppColors.fatColor
+                MacroLegendItem(
+                    title: "Fat",
+                    value: nutrition.fat,
+                    goal: nutrition.fatGoal,
+                    color: AppColors.fatColor,
+                    unit: "g"
                 )
-                Spacer()
             }
         }
     }
 
-    // MARK: - Compact View
-    private var compactView: some View {
+    // MARK: - Compact Rings View
+    private var compactRingsView: some View {
         HStack(spacing: AppSpacing.medium) {
-            MiniMacroRingView(
-                progress: animateRings ? nutrition.proteinProgress : 0,
-                color: AppColors.proteinColor,
-                gradient: AppColors.proteinGradient,
-                value: nutrition.protein,
-                label: \"P\",
-                lineWidth: ringWidthCompact,
-                animationDuration: animationDuration
-            )
-            MiniMacroRingView(
-                progress: animateRings ? nutrition.carbProgress : 0,
-                color: AppColors.carbsColor,
-                gradient: AppColors.carbsGradient,
-                value: nutrition.carbs,
-                label: \"C\",
-                lineWidth: ringWidthCompact,
-                animationDuration: animationDuration
-            )
-            MiniMacroRingView(
-                progress: animateRings ? nutrition.fatProgress : 0,
-                color: AppColors.fatColor,
-                gradient: AppColors.fatGradient,
-                value: nutrition.fat,
-                label: \"F\",
-                lineWidth: ringWidthCompact,
-                animationDuration: animationDuration
-            )
-        }
-    }
-}
-
-// MARK: - Helper View: SingleMacroRingView
-private struct SingleMacroRingView: View {
-    let progress: Double // Can be > 1.0 for overage
-    let color: Color
-    let gradient: LinearGradient
-    let radius: CGFloat
-    let lineWidth: CGFloat
-    let animationDuration: Double
-
-    private var displayedProgress: Double {
-        min(progress, 1.0) // Cap at 1.0 for the main ring
-    }
-
-    private var overageProgress: Double {
-        max(0, progress - 1.0) // Progress beyond 1.0
-    }
-
-    var body: some View {
-        ZStack {
-            // Background track
-            Circle()
-                .stroke(color.opacity(0.2), lineWidth: lineWidth)
-                .frame(width: radius * 2, height: radius * 2)
-
-            // Progress ring
-            Circle()
-                .trim(from: 0, to: displayedProgress)
-                .stroke(gradient, style: StrokeStyle(lineWidth: lineWidth, lineCap: .round))
-                .frame(width: radius * 2, height: radius * 2)
-                .rotationEffect(.degrees(-90))
-                .animation(.easeInOut(duration: animationDuration), value: progress) // Animate based on the raw progress
-
-            // Overage indicator ring
-            if overageProgress > 0 {
-                Circle()
-                    .trim(from: 0, to: min(overageProgress, 1.0)) // Overage can also exceed another 100%
-                    .stroke(
-                        color.opacity(0.6), // Slightly different appearance for overage
-                        style: StrokeStyle(lineWidth: lineWidth, lineCap: .round, dash: [5, 3]) // Dashed line for overage
-                    )
-                    .frame(width: radius * 2, height: radius * 2)
-                    .rotationEffect(.degrees(-90))
-                    .animation(.easeInOut(duration: animationDuration).delay(animationDuration * 0.5), value: progress) // Delay overage animation slightly
+            ForEach(Array(macroData.enumerated()), id: \.offset) { index, macro in
+                CompactRingView(
+                    macro: macro,
+                    animate: animateRings,
+                    delay: Double(index) * 0.1
+                )
             }
         }
     }
+
+    // MARK: - Helper Properties
+    private var macroData: [MacroData] {
+        [
+            MacroData(
+                label: "P",
+                value: nutrition.protein,
+                goal: nutrition.proteinGoal,
+                color: AppColors.proteinColor,
+                progress: min(nutrition.protein / nutrition.proteinGoal, 1.0)
+            ),
+            MacroData(
+                label: "C",
+                value: nutrition.carbs,
+                goal: nutrition.carbGoal,
+                color: AppColors.carbsColor,
+                progress: min(nutrition.carbs / nutrition.carbGoal, 1.0)
+            ),
+            MacroData(
+                label: "F",
+                value: nutrition.fat,
+                goal: nutrition.fatGoal,
+                color: AppColors.fatColor,
+                progress: min(nutrition.fat / nutrition.fatGoal, 1.0)
+            )
+        ]
+    }
+
+    private func ringDiameter(for index: Int) -> CGFloat {
+        let baseSize: CGFloat = 120
+        let spacing = ringWidthFull + ringSpacing
+        return baseSize + CGFloat(index) * spacing * 2
+    }
 }
 
-// MARK: - Helper View: MacroLegendItemView
-private struct MacroLegendItemView: View {
+// MARK: - Supporting Views
+struct MacroLegendItem: View {
     let title: String
-    let currentValue: Double
-    let goalValue: Double
+    let value: Double
+    let goal: Double
     let color: Color
+    let unit: String
+
+    private var progress: Double {
+        min(value / goal, 1.0)
+    }
+
+    private var isOverGoal: Bool {
+        value > goal
+    }
 
     var body: some View {
-        VStack(spacing: AppSpacing.xxSmall) {
-            HStack(spacing: AppSpacing.xSmall) {
+        VStack(spacing: AppSpacing.xSmall) {
+            // Progress indicator
+            ZStack {
                 Circle()
-                    .fill(color)
-                    .frame(width: 10, height: 10)
-                Text(title)
+                    .stroke(AppColors.backgroundTertiary, lineWidth: 4)
+                    .frame(width: 40, height: 40)
+
+                Circle()
+                    .trim(from: 0, to: progress)
+                    .stroke(color, style: StrokeStyle(lineWidth: 4, lineCap: .round))
+                    .frame(width: 40, height: 40)
+                    .rotationEffect(.degrees(-90))
+
+                Text(title.prefix(1))
+                    .font(AppFonts.caption)
+                    .fontWeight(.semibold)
+                    .foregroundColor(color)
+            }
+
+            // Values
+            VStack(spacing: 2) {
+                Text("\(Int(value))")
+                    .font(AppFonts.callout)
+                    .fontWeight(.semibold)
+                    .foregroundColor(isOverGoal ? AppColors.errorColor : AppColors.textPrimary)
+
+                Text("/ \(Int(goal))\(unit)")
                     .font(AppFonts.caption)
                     .foregroundColor(AppColors.textSecondary)
             }
-            Text(\"\(Int(currentValue)) / \(Int(goalValue))g\")
-                .font(AppFonts.footnote)
-                .fontWeight(.medium)
-                .foregroundColor(AppColors.textPrimary)
+
+            // Title
+            Text(title)
+                .font(AppFonts.caption)
+                .foregroundColor(AppColors.textSecondary)
         }
+        .accessibilityElement(children: .combine)
+        .accessibilityLabel("\(title): \(Int(value)) of \(Int(goal)) \(unit)")
+        .accessibilityValue("\(Int(progress * 100)) percent complete")
     }
 }
 
-// MARK: - Helper View: MiniMacroRingView
-private struct MiniMacroRingView: View {
-    let progress: Double
-    let color: Color
-    let gradient: LinearGradient
-    let value: Double
-    let label: String
-    let lineWidth: CGFloat
-    let animationDuration: Double
-    
-    private var displayedProgress: Double {
-        min(progress, 1.0)
-    }
+struct CompactRingView: View {
+    let macro: MacroData
+    let animate: Bool
+    let delay: Double
 
-    private var overageProgress: Double {
-        max(0, progress - 1.0)
-    }
+    @State private var animateProgress = false
 
     var body: some View {
         VStack(spacing: AppSpacing.xSmall) {
             ZStack {
                 Circle()
-                    .stroke(color.opacity(0.2), lineWidth: lineWidth)
+                    .stroke(AppColors.backgroundTertiary, lineWidth: 6)
                     .frame(width: 50, height: 50)
 
                 Circle()
-                    .trim(from: 0, to: displayedProgress)
-                    .stroke(gradient, style: StrokeStyle(lineWidth: lineWidth, lineCap: .round))
+                    .trim(from: 0, to: animateProgress ? macro.progress : 0)
+                    .stroke(macro.color, style: StrokeStyle(lineWidth: 6, lineCap: .round))
                     .frame(width: 50, height: 50)
                     .rotationEffect(.degrees(-90))
-                    .animation(.easeInOut(duration: animationDuration), value: progress)
-                
-                if overageProgress > 0 {
-                    Circle()
-                        .trim(from: 0, to: min(overageProgress, 1.0))
-                        .stroke(
-                            color.opacity(0.6),
-                            style: StrokeStyle(lineWidth: lineWidth, lineCap: .round, dash: [3,2])
-                        )
-                        .frame(width: 50, height: 50)
-                        .rotationEffect(.degrees(-90))
-                        .animation(.easeInOut(duration: animationDuration).delay(animationDuration * 0.5), value: progress)
-                }
+                    .animation(.easeInOut(duration: 0.8).delay(delay), value: animateProgress)
 
-                Text(label)
+                Text(macro.label)
                     .font(AppFonts.caption)
-                    .fontWeight(.bold)
-                    .foregroundColor(color)
+                    .fontWeight(.semibold)
+                    .foregroundColor(macro.color)
             }
-            Text(\"\(Int(value))g\")
-                .font(AppFonts.caption2)
+
+            Text("\(Int(macro.value))g")
+                .font(AppFonts.caption)
                 .foregroundColor(AppColors.textSecondary)
         }
+        .onChange(of: animate) { _, newValue in
+            animateProgress = newValue
+        }
+        .accessibilityElement(children: .combine)
+        .accessibilityLabel("\(macro.label): \(Int(macro.value)) grams")
+        .accessibilityValue("\(Int(macro.progress * 100)) percent of goal")
     }
 }
 
-// MARK: - Previews
-#Preview("Full Style - Under Goal") {
+// MARK: - Supporting Types
+struct MacroData {
+    let label: String
+    let value: Double
+    let goal: Double
+    let color: Color
+    let progress: Double
+}
+
+// MARK: - Preview
+#if DEBUG
+#Preview("Full Style") {
     MacroRingsView(
         nutrition: FoodNutritionSummary(
-            calories: 1500, protein: 70, carbs: 180, fat: 50,
-            calorieGoal: 2200, proteinGoal: 120, carbGoal: 280, fatGoal: 70
+            calories: 1850,
+            protein: 120,
+            carbs: 180,
+            fat: 65,
+            fiber: 25,
+            sugar: 45,
+            sodium: 2100,
+            calorieGoal: 2000,
+            proteinGoal: 150,
+            carbGoal: 200,
+            fatGoal: 70
         ),
         style: .full
     )
     .padding()
-    .background(AppColors.backgroundSecondary)
 }
 
-#Preview("Full Style - Over Goal") {
+#Preview("Compact Style") {
     MacroRingsView(
         nutrition: FoodNutritionSummary(
-            calories: 2500, protein: 150, carbs: 300, fat: 80,
-            calorieGoal: 2000, proteinGoal: 100, carbGoal: 250, fatGoal: 60
-        ),
-        style: .full
-    )
-    .padding()
-    .background(AppColors.backgroundSecondary)
-}
-
-#Preview("Full Style - Mixed Progress") {
-    MacroRingsView(
-        nutrition: FoodNutritionSummary(
-            calories: 1800, protein: 110, carbs: 200, fat: 75,
-            calorieGoal: 2000, proteinGoal: 100, carbGoal: 300, fatGoal: 60
-        ),
-        style: .full,
-        animateOnAppear: false // Show immediately for snapshot
-    )
-    .padding()
-    .background(AppColors.backgroundSecondary)
-}
-
-
-#Preview("Compact Style - Under Goal") {
-    MacroRingsView(
-        nutrition: FoodNutritionSummary(
-            calories: 1500, protein: 70, carbs: 180, fat: 50,
-            calorieGoal: 2200, proteinGoal: 120, carbGoal: 280, fatGoal: 70
+            calories: 1850,
+            protein: 120,
+            carbs: 180,
+            fat: 65,
+            fiber: 25,
+            sugar: 45,
+            sodium: 2100,
+            calorieGoal: 2000,
+            proteinGoal: 150,
+            carbGoal: 200,
+            fatGoal: 70
         ),
         style: .compact
     )
     .padding()
-    .background(AppColors.backgroundSecondary)
 }
-
-#Preview("Compact Style - Over Goal") {
-    MacroRingsView(
-        nutrition: FoodNutritionSummary(
-            calories: 2500, protein: 150, carbs: 300, fat: 80,
-            calorieGoal: 2000, proteinGoal: 100, carbGoal: 250, fatGoal: 60
-        ),
-        style: .compact
-    )
-    .padding()
-    .background(AppColors.backgroundSecondary)
-}
-
-#Preview("Compact Style - No Animation") {
-    MacroRingsView(
-        nutrition: FoodNutritionSummary(
-            calories: 1000, protein: 50, carbs: 100, fat: 30,
-            calorieGoal: 2000, proteinGoal: 100, carbGoal: 250, fatGoal: 60
-        ),
-        style: .compact,
-        animateOnAppear: false
-    )
-    .padding()
-    .background(AppColors.backgroundSecondary)
-}
+#endif

@@ -66,6 +66,9 @@ struct FoodConfirmationView: View {
                     Button("Cancel") {
                         dismiss()
                     }
+                    .accessibilityLabel("Cancel food entry")
+                    .accessibilityHint("Tap to discard this food entry")
+                    .accessibilityIdentifier("cancel_button")
                 }
                 
                 ToolbarItem(placement: .navigationBarTrailing) {
@@ -75,6 +78,9 @@ struct FoodConfirmationView: View {
                         }
                     }
                     .disabled(isLoading || confirmedItems.isEmpty)
+                    .accessibilityLabel("Confirm food entry")
+                    .accessibilityHint("Tap to save this food to your log")
+                    .accessibilityIdentifier("confirm_button")
                 }
             }
             .sheet(isPresented: $showAddItem) {
@@ -164,6 +170,8 @@ struct FoodConfirmationView: View {
         }
         .padding()
         .background(.ultraThinMaterial)
+        .accessibilityLabel("Food confirmation")
+        .accessibilityValue("Confirm food items with confidence indicators")
     }
     
     private var overallConfidence: Float {
@@ -197,6 +205,8 @@ struct FoodConfirmationView: View {
         .padding()
         .background(color.opacity(0.05))
         .clipShape(RoundedRectangle(cornerRadius: 12))
+        .accessibilityLabel("\(title) section")
+        .accessibilityValue("\(items.count) food items")
     }
     
     private var alternativesSection: some View {
@@ -214,7 +224,6 @@ struct FoodConfirmationView: View {
                     }
                 }
                 .font(.caption)
-                .foregroundStyle(.blue)
             }
             
             if showAlternatives {
@@ -230,6 +239,8 @@ struct FoodConfirmationView: View {
         .padding()
         .background(.purple.opacity(0.05))
         .clipShape(RoundedRectangle(cornerRadius: 12))
+        .accessibilityLabel("Alternative suggestions section")
+        .accessibilityHint("Tap to view other possible food matches")
     }
     
     private func foodItemCard(_ item: ParsedFoodItem, sectionColor: Color) -> some View {
@@ -239,16 +250,19 @@ struct FoodConfirmationView: View {
                     Text(item.name)
                         .font(.subheadline)
                         .fontWeight(.medium)
+                        .foregroundColor(AppColors.textPrimary)
                     
                     if let brand = item.brand {
                         Text(brand)
                             .font(.caption)
                             .foregroundStyle(.secondary)
+                            .foregroundColor(AppColors.textSecondary)
                     }
                     
                     Text("\(item.quantity.formatted(.number.precision(.fractionLength(0...1)))) \(item.unit)")
                         .font(.caption)
                         .foregroundStyle(.secondary)
+                        .foregroundColor(AppColors.textSecondary)
                 }
                 
                 Spacer()
@@ -259,6 +273,7 @@ struct FoodConfirmationView: View {
                     Text("\(Int(item.calories)) cal")
                         .font(.caption)
                         .fontWeight(.medium)
+                        .foregroundColor(AppColors.textPrimary)
                 }
             }
             
@@ -288,6 +303,8 @@ struct FoodConfirmationView: View {
                 }
             }
         }
+        .accessibilityElement(children: .combine)
+        .accessibilityLabel("\(item.name) food item")
     }
     
     private func alternativeItemCard(_ item: ParsedFoodItem) -> some View {
