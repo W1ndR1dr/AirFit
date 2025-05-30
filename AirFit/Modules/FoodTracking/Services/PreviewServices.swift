@@ -1,0 +1,197 @@
+import Foundation
+import SwiftData
+import UIKit
+
+#if DEBUG
+
+/// Mock implementation of `NutritionServiceProtocol` for SwiftUI previews.
+actor PreviewNutritionService: NutritionServiceProtocol {
+    private var entries: [FoodEntry] = []
+    private var waterLogs: [UUID: [Date: Double]] = [:]
+
+    func saveFoodEntry(_ entry: FoodEntry) async throws {
+        entries.append(entry)
+    }
+
+    func getFoodEntries(for date: Date) async throws -> [FoodEntry] {
+        let startOfDay = Calendar.current.startOfDay(for: date)
+        return entries.filter { Calendar.current.isDate($0.loggedAt, inSameDayAs: startOfDay) }
+    }
+
+    func deleteFoodEntry(_ entry: FoodEntry) async throws {
+        entries.removeAll { $0.id == entry.id }
+    }
+
+    func getFoodEntries(for user: User, date: Date) async throws -> [FoodEntry] {
+        let startOfDay = Calendar.current.startOfDay(for: date)
+        return entries.filter { $0.user?.id == user.id && Calendar.current.isDate($0.loggedAt, inSameDayAs: startOfDay) }
+    }
+
+    nonisolated func calculateNutritionSummary(from entries: [FoodEntry]) -> FoodNutritionSummary {
+        var summary = FoodNutritionSummary()
+        for entry in entries {
+            for item in entry.items {
+                summary.calories += item.calories ?? 0
+                summary.protein += item.proteinGrams ?? 0
+                summary.carbs += item.carbGrams ?? 0
+                summary.fat += item.fatGrams ?? 0
+                summary.fiber += item.fiberGrams ?? 0
+                summary.sugar += item.sugarGrams ?? 0
+                summary.sodium += item.sodiumMg ?? 0
+            }
+        }
+        return summary
+    }
+
+    func getWaterIntake(for user: User, date: Date) async throws -> Double {
+        let day = Calendar.current.startOfDay(for: date)
+        return waterLogs[user.id]?[day] ?? 0
+    }
+
+    func getRecentFoods(for user: User, limit: Int) async throws -> [FoodItem] {
+        let userEntries = entries.filter { $0.user?.id == user.id }
+        let recentItems = userEntries.sorted { $0.loggedAt > $1.loggedAt }.flatMap { $0.items }
+        var unique: [String: FoodItem] = [:]
+        for item in recentItems {
+            if unique[item.name] == nil { unique[item.name] = item }
+            if unique.count >= limit { break }
+        }
+        return Array(unique.values.prefix(limit))
+    }
+
+    func logWaterIntake(for user: User, amountML: Double, date: Date) async throws {
+        let day = Calendar.current.startOfDay(for: date)
+        var logs = waterLogs[user.id] ?? [:]
+        logs[day, default: 0] += amountML
+        waterLogs[user.id] = logs
+    }
+
+    func getMealHistory(for user: User, mealType: MealType, daysBack: Int) async throws -> [FoodEntry] {
+        let cutoff = Calendar.current.date(byAdding: .day, value: -daysBack, to: Date()) ?? Date()
+        return entries.filter { $0.user?.id == user.id && $0.mealType == mealType.rawValue && $0.loggedAt >= cutoff }
+    }
+
+    nonisolated func getTargets(from profile: OnboardingProfile?) -> NutritionTargets {
+        .default
+    }
+
+    func getTodaysSummary(for user: User) async throws -> FoodNutritionSummary {
+        let todays = try await getFoodEntries(for: user, date: Date())
+        var summary = calculateNutritionSummary(from: todays)
+        summary.calorieGoal = NutritionTargets.default.calories
+        summary.proteinGoal = NutritionTargets.default.protein
+        summary.carbGoal = NutritionTargets.default.carbs
+        summary.fatGoal = NutritionTargets.default.fat
+        return summary
+    }
+}
+
+/// Mock implementation of `FoodDatabaseServiceProtocol` for previews.
+actor PreviewFoodDatabaseService: FoodDatabaseServiceProtocol {
+    private let items: [FoodDatabaseItem] = [
+        FoodDatabaseItem(
+            id: "1",
+            name: "Apple",
+            brand: nil,
+            caloriesPerServing: 95,
+            proteinPerServing: 0.5,
+            carbsPerServing: 25,
+            fatPerServing: 0.3,
+            servingSize: 1,
+            servingUnit: "medium",
+            defaultQuantity: 1,
+            defaultUnit: "medium"
+        ),
+        FoodDatabaseItem(
+            id: "2",
+            name: "Chicken Breast",
+            brand: nil,
+            caloriesPerServing: 165,
+            proteinPerServing: 31,
+            carbsPerServing: 0,
+            fatPerServing: 3.6,
+            servingSize: 100,
+            servingUnit: "g",
+            defaultQuantity: 100,
+            defaultUnit: "g"
+        ),
+        FoodDatabaseItem(
+            id: "3",
+            name: "Greek Yogurt",
+            brand: "Chobani",
+            caloriesPerServing: 100,
+            proteinPerServing: 18,
+            carbsPerServing: 6,
+            fatPerServing: 0,
+            servingSize: 170,
+            servingUnit: "g",
+            defaultQuantity: 1,
+            defaultUnit: "cup"
+        )
+    ]
+
+    func searchFoods(query: String) async throws -> [FoodDatabaseItem] {
+        try await searchFoods(query: query, limit: 25)
+    }
+
+    func getFoodDetails(id: String) async throws -> FoodDatabaseItem? {
+        items.first { $0.id == id }
+    }
+
+    func searchFoods(query: String, limit: Int) async throws -> [FoodDatabaseItem] {
+        let q = query.lowercased()
+        let results = items.filter { $0.name.lowercased().contains(q) || ($0.brand?.lowercased().contains(q) ?? false) }
+        return Array(results.prefix(limit))
+    }
+
+    func searchCommonFood(_ name: String) async throws -> FoodDatabaseItem? {
+        items.first { $0.name.lowercased() == name.lowercased() }
+    }
+
+    func lookupBarcode(_ barcode: String) async throws -> FoodDatabaseItem? {
+        barcode == "123456789" ? items.first : nil
+    }
+
+    func analyzePhotoForFoods(_ image: UIImage) async throws -> [FoodDatabaseItem] {
+        items
+    }
+}
+
+/// Simplified implementation of `FoodCoachEngineProtocol` for previews.
+actor PreviewCoachEngine: FoodCoachEngineProtocol {
+    func processUserMessage(_ message: String, context: HealthContextSnapshot?) async throws -> [String: SendableValue] {
+        ["response": .string("Preview response to \(message)")]
+    }
+
+    func executeFunction(_ functionCall: AIFunctionCall, for user: User) async throws -> FunctionExecutionResult {
+        FunctionExecutionResult(
+            success: true,
+            message: "Executed \(functionCall.name)",
+            executionTimeMs: 1,
+            functionName: functionCall.name
+        )
+    }
+
+    func analyzeMealPhoto(image: UIImage, context: NutritionContext?) async throws -> MealPhotoAnalysisResult {
+        let item = ParsedFoodItem(
+            name: "Preview Meal",
+            brand: nil,
+            quantity: 1,
+            unit: "serving",
+            calories: 100,
+            proteinGrams: 5,
+            carbGrams: 15,
+            fatGrams: 2,
+            fiberGrams: nil,
+            sugarGrams: nil,
+            sodiumMilligrams: nil,
+            barcode: nil,
+            databaseId: nil,
+            confidence: 0.9
+        )
+        return MealPhotoAnalysisResult(items: [item], confidence: 0.9, processingTime: 0.1)
+    }
+}
+
+#endif
+

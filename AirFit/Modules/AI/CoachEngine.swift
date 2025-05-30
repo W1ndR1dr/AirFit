@@ -2,6 +2,7 @@ import Foundation
 import SwiftData
 import Observation
 import Combine
+import UIKit
 
 // MARK: - CoachEngine
 @MainActor
@@ -710,5 +711,33 @@ extension CoachEngine {
             contextAssembler: ContextAssembler(),
             modelContext: modelContext
         )
+    }
+}
+
+// MARK: - FoodCoachEngineProtocol Conformance
+extension CoachEngine: FoodCoachEngineProtocol {
+    func processUserMessage(_ message: String, context: HealthContextSnapshot?) async throws -> [String: SendableValue] {
+        // Placeholder implementation leveraging existing pipeline.
+        await processUserMessage(message, for: User())
+        return ["response": .string(currentResponse)]
+    }
+
+    func executeFunction(_ functionCall: AIFunctionCall, for user: User) async throws -> FunctionExecutionResult {
+        return try await functionDispatcher.execute(
+            functionCall,
+            for: user,
+            context: FunctionContext(
+                modelContext: modelContext,
+                conversationId: activeConversationId ?? UUID(),
+                userId: user.id
+            )
+        )
+    }
+
+    func analyzeMealPhoto(image: UIImage, context: NutritionContext?) async throws -> MealPhotoAnalysisResult {
+        let startTime = CFAbsoluteTimeGetCurrent()
+        // Placeholder - full vision and AI analysis to be implemented in future tasks
+        let processingTime = CFAbsoluteTimeGetCurrent() - startTime
+        return MealPhotoAnalysisResult(items: [], confidence: 0, processingTime: processingTime)
     }
 }

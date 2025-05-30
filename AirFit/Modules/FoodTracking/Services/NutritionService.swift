@@ -1,12 +1,42 @@
 import Foundation
 import SwiftData
+import HealthKit
 
 /// Service for nutrition-related operations and calculations.
 actor NutritionService: NutritionServiceProtocol {
     private let modelContext: ModelContext
-    
+    private let healthStore = HKHealthStore()
+
     init(modelContext: ModelContext) {
         self.modelContext = modelContext
+    }
+
+    // MARK: - Basic CRUD
+
+    func saveFoodEntry(_ entry: FoodEntry) async throws {
+        modelContext.insert(entry)
+        try modelContext.save()
+    }
+
+    func getFoodEntries(for date: Date) async throws -> [FoodEntry] {
+        let calendar = Calendar.current
+        let startOfDay = calendar.startOfDay(for: date)
+        let endOfDay = calendar.date(byAdding: .day, value: 1, to: startOfDay) ?? date
+
+        let descriptor = FetchDescriptor<FoodEntry>(
+            predicate: #Predicate<FoodEntry> { entry in
+                entry.loggedAt >= startOfDay &&
+                entry.loggedAt < endOfDay
+            },
+            sortBy: [SortDescriptor(\.loggedAt)]
+        )
+
+        return try modelContext.fetch(descriptor)
+    }
+
+    func deleteFoodEntry(_ entry: FoodEntry) async throws {
+        modelContext.delete(entry)
+        try modelContext.save()
     }
     
     func getFoodEntries(for user: User, date: Date) async throws -> [FoodEntry] {
@@ -46,8 +76,8 @@ actor NutritionService: NutritionServiceProtocol {
     }
     
     func getWaterIntake(for user: User, date: Date) async throws -> Double {
-        // For now, return a placeholder value
-        // In a real implementation, this would fetch from a water tracking model
+        // Placeholder implementation. In a complete app this would fetch from a
+        // dedicated WaterIntake entity.
         return 0
     }
     
@@ -76,8 +106,8 @@ actor NutritionService: NutritionServiceProtocol {
     }
     
     func logWaterIntake(for user: User, amountML: Double, date: Date) async throws {
-        // For now, this is a placeholder
-        // In a real implementation, this would save to a water tracking model
+        // Placeholder implementation. Would create a WaterIntake model and save
+        // a HealthKit sample of type `.dietaryWater`.
     }
     
     func getMealHistory(for user: User, mealType: MealType, daysBack: Int) async throws -> [FoodEntry] {
@@ -97,4 +127,74 @@ actor NutritionService: NutritionServiceProtocol {
         
         return try modelContext.fetch(descriptor)
     }
-} 
+
+    // MARK: - Nutrition Targets
+    nonisolated func getTargets(from profile: OnboardingProfile?) -> NutritionTargets {
+        guard let _ = profile else {
+            return .default
+        }
+
+        // Placeholder implementation - real logic would use profile data.
+        return .default
+    }
+
+    // MARK: - Daily Summary
+    func getTodaysSummary(for user: User) async throws -> FoodNutritionSummary {
+        let entries = try await getFoodEntries(for: user, date: Date())
+        var summary = calculateNutritionSummary(from: entries)
+
+        if let profile = user.onboardingProfile {
+            let targets = getTargets(from: profile)
+            summary.calorieGoal = targets.calories
+            summary.proteinGoal = targets.protein
+            summary.carbGoal = targets.carbs
+            summary.fatGoal = targets.fat
+        }
+
+        return summary
+    }
+
+    // MARK: - HealthKit Sync
+    func syncCaloriesToHealthKit(for user: User, date: Date) async throws {
+        guard HKHealthStore.isHealthDataAvailable(),
+              let energyType = HKQuantityType.quantityType(forIdentifier: .dietaryEnergyConsumed) else {
+            return
+        }
+
+        let status = healthStore.authorizationStatus(for: energyType)
+        guard status == .sharingAuthorized else { return }
+
+        let entries = try await getFoodEntries(for: user, date: date)
+        let summary = calculateNutritionSummary(from: entries)
+        guard summary.calories > 0 else { return }
+
+        let quantity = HKQuantity(unit: .kilocalorie(), doubleValue: summary.calories)
+        let sample = HKQuantitySample(type: energyType, quantity: quantity, start: date, end: date)
+
+        try await withCheckedThrowingContinuation { continuation in
+            healthStore.save(sample) { _, error in
+                if let error { continuation.resume(throwing: error) }
+                else { continuation.resume() }
+            }
+        }
+    }
+}
+
+// MARK: - Nutrition Targets
+struct NutritionTargets: Sendable {
+    let calories: Double
+    let protein: Double
+    let carbs: Double
+    let fat: Double
+    let fiber: Double
+    let water: Double
+
+    static let `default` = NutritionTargets(
+        calories: 2_000,
+        protein: 50,
+        carbs: 250,
+        fat: 65,
+        fiber: 25,
+        water: 2_000
+    )
+}

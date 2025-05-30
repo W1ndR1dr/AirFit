@@ -1,4 +1,5 @@
 import Foundation
+import SwiftData
 
 /// Abstraction for food-specific voice operations.
 @MainActor
@@ -41,4 +42,6 @@ enum FoodVoiceError: LocalizedError {
             return "Microphone permission was denied"
         }
     }
-} 
+}
+
+

@@ -8,28 +8,24 @@ struct FoodLoggingView: View {
     @State private var coordinator: FoodTrackingCoordinator
     @Environment(\.dismiss) private var dismiss
 
-    init(
-        modelContext: ModelContext,
-        user: User,
-        coordinator: FoodTrackingCoordinator
-    ) {
+    init(viewModel: FoodTrackingViewModel, coordinator: FoodTrackingCoordinator = FoodTrackingCoordinator()) {
+        _viewModel = State(initialValue: viewModel)
+        _coordinator = State(initialValue: coordinator)
+    }
+
+    init(user: User, modelContext: ModelContext) {
+        let coordinator = FoodTrackingCoordinator()
         let adapter = FoodVoiceAdapter()
         let vm = FoodTrackingViewModel(
             modelContext: modelContext,
             user: user,
             foodVoiceAdapter: adapter,
-            nutritionService: nil, // Will be set asynchronously
+            nutritionService: NutritionService(modelContext: modelContext),
             foodDatabaseService: FoodDatabaseService(),
             coachEngine: CoachEngine.createDefault(modelContext: modelContext),
             coordinator: coordinator
         )
-        self.viewModel = vm
-        self.coordinator = coordinator
-        
-        // Set nutrition service asynchronously to avoid actor isolation issues
-        Task { @MainActor in
-            await vm.setNutritionService(NutritionService(modelContext: modelContext))
-        }
+        self.init(viewModel: vm, coordinator: coordinator)
     }
 
     var body: some View {
@@ -188,8 +184,8 @@ struct FoodLoggingView: View {
                     QuickActionButton(title: "Voice", icon: "mic.fill", color: AppColors.accent) {
                         Task { await viewModel.startVoiceInput() }
                     }
-                    QuickActionButton(title: "Photo", icon: "camera.fill", color: .orange) {
-                        viewModel.startPhotoCapture()
+                    QuickActionButton(title: "Barcode", icon: "barcode.viewfinder", color: .orange) {
+                        viewModel.startBarcodeScanning()
                     }
                     QuickActionButton(title: "Search", icon: "magnifyingglass", color: .green) {
                         coordinator.showSheet(.foodSearch)
@@ -298,8 +294,8 @@ struct FoodLoggingView: View {
         switch sheet {
         case .voiceInput:
             VoiceInputView(viewModel: viewModel)
-        case .photoCapture:
-            PhotoInputView(viewModel: viewModel)
+        case .barcodeScanner:
+            PlaceholderView(title: "Barcode Scanner", subtitle: "Coming in Phase 4")
         case .foodSearch:
             PlaceholderView(title: "Food Search", subtitle: "Coming in Phase 3")
         case .manualEntry:
@@ -317,7 +313,7 @@ struct FoodLoggingView: View {
         case .camera:
             PlaceholderView(title: "Camera Food Scan", subtitle: "Coming in Phase 4")
         case .confirmation(let items):
-            FoodConfirmationView(items: items, viewModel: viewModel)
+            PlaceholderView(title: "Food Confirmation", subtitle: "\(items.count) items to confirm")
         }
     }
 }
@@ -477,11 +473,19 @@ private extension FoodItem {
 
 #if DEBUG
 #Preview {
-    let container = try! ModelContainer(for: User.self, configurations: ModelConfiguration(isStoredInMemoryOnly: true))
+    let container = ModelContainer.preview
     let context = container.mainContext
-    let user = User.example
-    context.insert(user)
-    return FoodLoggingView(modelContext: context, user: user, coordinator: FoodTrackingCoordinator())
+    let user = try! context.fetch(FetchDescriptor<User>()).first!
+    let vm = FoodTrackingViewModel(
+        modelContext: context,
+        user: user,
+        foodVoiceAdapter: FoodVoiceAdapter(),
+        nutritionService: PreviewNutritionService(),
+        foodDatabaseService: PreviewFoodDatabaseService(),
+        coachEngine: PreviewCoachEngine(),
+        coordinator: FoodTrackingCoordinator()
+    )
+    return FoodLoggingView(viewModel: vm)
         .modelContainer(container)
 }
 #endif

@@ -1,6 +1,6 @@
 import SwiftUI
 
-public enum AppSpacing {
+public enum AppSpacing: Sendable {
     /// 4pt
     static let xxSmall: CGFloat = 4
     /// 8pt

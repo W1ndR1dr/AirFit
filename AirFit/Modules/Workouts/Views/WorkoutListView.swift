@@ -265,13 +265,6 @@ private struct QuickActionCard: View {
         .modelContainer(container)
 }
 
-// MARK: - Preview Helpers
-actor PreviewCoachEngine: CoachEngineProtocol {
-    func generatePostWorkoutAnalysis(_ request: PostWorkoutAnalysisRequest) async throws -> String {
-        "Nice work!"
-    }
-}
-
 @MainActor
 final class PreviewHealthKitManager: HealthKitManaging {
     var authorizationStatus: HealthKitManager.AuthorizationStatus = .authorized
