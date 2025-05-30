@@ -13,12 +13,12 @@
 
 **1. Module Overview**
 
-*   **Purpose:** To provide an AI-powered, voice-first food tracking experience that makes nutrition logging effortless through natural language processing, barcode scanning, and intelligent meal suggestions.
+*   **Purpose:** To provide an AI-powered, voice-first food tracking experience that makes nutrition logging effortless through natural language processing, intelligent photo recognition, and smart meal suggestions.
 *   **Responsibilities:**
     *   Voice-based food logging using Module 13's VoiceInputManager foundation
     *   AI-powered food parsing and nutrition analysis
-    *   Barcode scanning with nutrition database lookup
-    *   Visual meal logging with Vision framework
+    *   Photo input with intelligent meal recognition using Vision framework
+    *   Visual meal logging with AI-powered food identification
     *   Smart meal suggestions based on history
     *   Macro and micronutrient tracking
     *   Integration with HealthKit for calorie syncing
@@ -30,7 +30,7 @@
     *   `FoodLoggingView.swift` - Main food logging interface
     *   `VoiceInputView.swift` - Voice recording UI with waveform visualization
     *   `FoodConfirmationView.swift` - AI parsing confirmation
-    *   `BarcodeScannerView.swift` - Barcode scanning interface
+    *   `PhotoInputView.swift` - Photo capture and meal recognition interface
     *   `NutritionSearchView.swift` - Food database search
     *   `MacroRingsView.swift` - Macro visualization
     *   `WaterTrackingView.swift` - Water intake logging
@@ -253,7 +253,7 @@ Module 8 leverages the superior voice infrastructure provided by Module 13 rathe
       // MARK: - Sheet Types
       enum FoodTrackingSheet: Identifiable {
           case voiceInput
-          case barcodeScanner
+          case photoCapture
           case foodSearch
           case manualEntry
           case waterTracking
@@ -262,7 +262,7 @@ Module 8 leverages the superior voice infrastructure provided by Module 13 rathe
           var id: String {
               switch self {
               case .voiceInput: return "voice"
-              case .barcodeScanner: return "barcode"
+              case .photoCapture: return "photo"
               case .foodSearch: return "search"
               case .manualEntry: return "manual"
               case .waterTracking: return "water"
@@ -572,39 +572,43 @@ Module 8 leverages the superior voice infrastructure provided by Module 13 rathe
           return nil
       }
       
-      // MARK: - Barcode Scanning
-      func startBarcodeScanning() {
-          coordinator.showSheet(.barcodeScanner)
+      // MARK: - Photo Input
+      func startPhotoCapture() {
+          coordinator.showSheet(.photoCapture)
       }
       
-      func processBarcodeResult(_ barcode: String) async {
+      func processPhotoResult(_ image: UIImage) async {
           isLoading = true
           defer { isLoading = false }
           
           do {
-              if let product = try await foodDatabaseService.lookupBarcode(barcode) {
-                  let parsedItem = ParsedFoodItem(
-                      name: product.name,
-                      brand: product.brand,
-                      quantity: 1,
-                      unit: product.servingUnit,
-                      calories: product.calories,
-                      proteinGrams: product.protein,
-                      carbGrams: product.carbs,
-                      fatGrams: product.fat,
-                      barcode: barcode,
-                      confidence: 1.0
-                  )
-                  
-                  parsedItems = [parsedItem]
+              // Use Vision framework and AI to analyze the meal photo
+              let recognizedItems = try await analyzeMealPhoto(image)
+              
+              if !recognizedItems.isEmpty {
+                  parsedItems = recognizedItems
                   coordinator.dismiss()
                   coordinator.showFullScreenCover(.confirmation(parsedItems))
               } else {
-                  error = FoodTrackingError.barcodeNotFound
+                  error = FoodTrackingError.noFoodsDetected
               }
           } catch {
               self.error = error
           }
+      }
+      
+      private func analyzeMealPhoto(_ image: UIImage) async throws -> [ParsedFoodItem] {
+          // Use AI to analyze the photo and identify food items
+          let analysisResult = try await coachEngine.analyzeMealPhoto(
+              image: image,
+              context: NutritionContext(
+                  userPreferences: user.nutritionPreferences,
+                  recentMeals: recentFoods,
+                  timeOfDay: currentDate
+              )
+          )
+          
+          return analysisResult.items
       }
       
       // MARK: - Food Search
@@ -828,15 +832,15 @@ Module 8 leverages the superior voice infrastructure provided by Module 13 rathe
   
   enum FoodTrackingError: LocalizedError {
       case noFoodsDetected
-      case barcodeNotFound
+      case photoAnalysisFailed
       case saveFailed
       
       var errorDescription: String? {
           switch self {
           case .noFoodsDetected:
               return "No foods detected in your description"
-          case .barcodeNotFound:
-              return "Product not found in database"
+          case .photoAnalysisFailed:
+              return "Unable to analyze the photo. Please try again or add foods manually."
           case .saveFailed:
               return "Failed to save food entry"
           }
@@ -1040,11 +1044,11 @@ Module 8 leverages the superior voice infrastructure provided by Module 13 rathe
                       }
                       
                       QuickActionButton(
-                          title: "Barcode",
-                          icon: "barcode.viewfinder",
+                          title: "Photo",
+                          icon: "camera.fill",
                           color: .orange
                       ) {
-                          viewModel.startBarcodeScanning()
+                          viewModel.startPhotoCapture()
                       }
                       
                       QuickActionButton(
@@ -1178,8 +1182,8 @@ Module 8 leverages the superior voice infrastructure provided by Module 13 rathe
           switch sheet {
           case .voiceInput:
               VoiceInputView(viewModel: viewModel)
-          case .barcodeScanner:
-              BarcodeScannerView(viewModel: viewModel)
+          case .photoCapture:
+              PhotoInputView(viewModel: viewModel)
           case .foodSearch:
               NutritionSearchView(viewModel: viewModel)
           case .manualEntry:
@@ -2661,6 +2665,7 @@ Module 8 leverages the superior voice infrastructure provided by Module 13 rathe
       func searchFoods(query: String, limit: Int) async throws -> [FoodDatabaseItem]
       func lookupBarcode(_ barcode: String) async throws -> FoodDatabaseItem?
       func searchCommonFood(_ name: String) async throws -> FoodDatabaseItem?
+      func analyzePhotoForFoods(_ image: UIImage) async throws -> [FoodDatabaseItem]
   }
   
   struct FoodDatabaseItem: Identifiable, Sendable {
@@ -2764,6 +2769,12 @@ Module 8 leverages the superior voice infrastructure provided by Module 13 rathe
       
       func searchCommonFood(_ name: String) async throws -> FoodDatabaseItem? {
           return mockDatabase.first { $0.name.lowercased() == name.lowercased() }
+      }
+      
+      func analyzePhotoForFoods(_ image: UIImage) async throws -> [FoodDatabaseItem] {
+          // Implementation for photo analysis
+          // This is a placeholder and should be replaced with actual photo analysis logic
+          return []
       }
   }
   ```
@@ -2927,8 +2938,9 @@ Module 8 leverages the superior voice infrastructure provided by Module 13 rathe
 
 - ✅ Voice-based food logging with real-time transcription
 - ✅ AI-powered food parsing from natural language
-- ✅ Barcode scanning integration
-- ✅ Food database search functionality
+- ✅ Intelligent photo input for meal recognition
+- ✅ Visual meal logging with AI-powered food identification
+- ✅ Smart meal suggestions based on history
 - ✅ Macro and micronutrient tracking
 - ✅ Water intake logging
 - ✅ Visual nutrition summaries with animated rings

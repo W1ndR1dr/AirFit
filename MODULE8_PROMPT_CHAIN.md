@@ -15,6 +15,7 @@ Based on the successful completion of Module 13 (Chat Interface) and its VoiceIn
 - [x] **Microphone Permission**: Already configured in Info.plist
 - [x] **SwiftData Models**: FoodEntry and FoodItem models exist
 - [x] **AI Infrastructure**: CoachEngine ready for food parsing
+- [x] **Photo Input**: Vision framework integration for meal recognition
 
 ### **Prerequisites Verification** ✅
 - [x] **Module 0-7**: All foundation modules completed and tested
@@ -29,7 +30,7 @@ Based on the successful completion of Module 13 (Chat Interface) and its VoiceIn
 - [x] **WhisperModelManager**: MLX optimization available ✅
 - [x] **FoodTrackingViewModel**: @Observable pattern with voice integration
 - [x] **AI Food Parsing**: CoachEngine nutrition analysis
-- [x] **Barcode Scanning**: Vision framework integration
+- [x] **Photo Recognition**: Vision framework integration for meal analysis
 - [x] **HealthKit Integration**: Calorie syncing capabilities
 
 ---
@@ -51,7 +52,7 @@ Based on the successful completion of Module 13 (Chat Interface) and its VoiceIn
 - **Food Logging Interface:**
   - Voice-first food logging UI
   - AI-powered food parsing and confirmation
-  - Barcode scanning with nutrition database lookup
+  - Photo input with intelligent meal recognition
   - Manual food entry and search
 - **Nutrition Visualization:**
   - Macro rings with Swift Charts
@@ -94,7 +95,7 @@ Module 8 leverages Module 13's superior voice infrastructure to provide effortle
 
 **Key Requirements:**
 - NavigationStack coordination for food flows
-- Sheet presentation for voice input, barcode scanning, manual entry
+- Sheet presentation for voice input, photo capture, manual entry
 - Camera integration for meal photos
 - Deep linking support for food entries
 - State management for complex nutrition workflows
@@ -195,22 +196,23 @@ Module 8 leverages Module 13's superior voice infrastructure to provide effortle
 
 ---
 
-## **Phase 4: Barcode & Visual Recognition (Sequential)**
+## **Phase 4: Photo Input & Visual Recognition (Sequential)**
 
-### **Task 8.3.1: Create Barcode Scanner View**
-**Prompt:** "Implement BarcodeScannerView with AVFoundation camera integration, real-time barcode detection, and nutrition database lookup for instant food logging."
+### **Task 8.3.1: Create Photo Input View**
+**Prompt:** "Implement PhotoInputView with AVFoundation camera integration, intelligent meal recognition using Vision framework, and AI-powered food analysis for instant nutrition logging."
 
-**File to Create:** `AirFit/Modules/FoodTracking/Views/BarcodeScannerView.swift`
+**File to Create:** `AirFit/Modules/FoodTracking/Views/PhotoInputView.swift`
 
 **Key Requirements:**
-- AVFoundation camera integration
-- Real-time barcode detection
-- Nutrition database lookup
-- Product information display
+- AVFoundation camera integration with live preview
+- Photo capture with meal-optimized settings
+- Vision framework integration for food item detection
+- AI-powered meal analysis and nutrition estimation
 - Seamless integration with food confirmation flow
+- Photo storage and meal history integration
 
 **Dependencies:** Task 8.2.2 must be complete
-**Estimated Time:** 70 minutes
+**Estimated Time:** 85 minutes
 
 ---
 
@@ -294,10 +296,21 @@ Module 8 leverages Module 13's superior voice infrastructure to provide effortle
 **File to Create:** `AirFitUITests/FoodTracking/FoodTrackingFlowUITests.swift`
 
 **Key Test Scenarios:**
-1. Voice-to-food logging complete flow
-2. Barcode scanning and confirmation
-3. Manual food entry and search
-4. Macro visualization and water tracking
+1. **Complete Food Logging Flow:**
+   - Voice input → AI parsing → Confirmation → Save
+   - Photo capture → Meal recognition → Confirmation → Save
+   - Manual search → Selection → Confirmation → Save
+
+2. **Performance Validation:**
+   - Voice transcription <2s latency
+   - AI food parsing <5s response time
+   - Nutrition calculations <100ms
+   - UI animations 60fps
+
+3. **Module 13 Integration:**
+   - VoiceInputManager accessibility
+   - WhisperKit model sharing
+   - Consistent voice experience
 
 **Dependencies:** Task 8.5.1 can run in parallel
 **Estimated Time:** 75 minutes
@@ -326,7 +339,7 @@ Module 8 leverages Module 13's superior voice infrastructure to provide effortle
 **Integration Test Scenarios:**
 1. **Complete Food Logging Flow:**
    - Voice input → AI parsing → Confirmation → Save
-   - Barcode scan → Database lookup → Confirmation → Save
+   - Photo capture → Meal recognition → Confirmation → Save
    - Manual search → Selection → Confirmation → Save
 
 2. **Performance Validation:**

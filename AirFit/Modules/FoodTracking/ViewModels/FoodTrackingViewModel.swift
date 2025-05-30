@@ -794,7 +794,7 @@ final class FoodTrackingViewModel {
         
         let frequentFoods = topItems.compactMap { (name, _) in
             allItems.first { $0.name == name }
-        }
+            }
 
         _ = hour + dayOfWeek // avoid unused warnings for now
         return Array(frequentFoods)
