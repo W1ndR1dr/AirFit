@@ -201,9 +201,9 @@ struct WaterTrackingView: View {
                     .keyboardType(.decimalPad)
                     .padding(AppSpacing.medium)
                     .background(AppColors.backgroundSecondary)
-                    .cornerRadius(AppConstants.Layout.defaultCornerRadius.small)
+                    .cornerRadius(AppConstants.Layout.defaultCornerRadius)
                     .overlay(
-                        RoundedRectangle(cornerRadius: AppConstants.Layout.defaultCornerRadius.small)
+                        RoundedRectangle(cornerRadius: AppConstants.Layout.defaultCornerRadius)
                             .stroke(useCustomAmount ? AppColors.accentColor : AppColors.dividerColor, lineWidth: useCustomAmount ? 2 : 1)
                     )
                     .onTapGesture {
@@ -253,7 +253,7 @@ struct WaterTrackingView: View {
                 .padding(AppSpacing.medium)
                 .frame(maxWidth: .infinity, alignment: .leading)
                 .background(AppColors.infoColor.opacity(0.1))
-                .cornerRadius(AppConstants.Layout.defaultCornerRadius.small)
+                .cornerRadius(AppConstants.Layout.defaultCornerRadius)
         }
     }
     
@@ -301,7 +301,7 @@ struct WaterTrackingView: View {
 
         Task {
             await viewModel.logWater(amount: amountToAdd, unit: unitToLog)
-            HapticManager.success()
+            HapticManager.notification(.success)
 
             // Reset custom input field after logging
             if useCustomAmount {
@@ -340,7 +340,7 @@ struct QuickWaterButton: View {
             .frame(maxWidth: .infinity)
             .padding(AppSpacing.medium)
             .background(isSelected ? AppColors.accentColor : AppColors.backgroundSecondary)
-            .cornerRadius(AppConstants.Layout.defaultCornerRadius.medium)
+            .cornerRadius(AppConstants.Layout.defaultCornerRadius)
             .shadow(color: isSelected ? AppColors.accentColor.opacity(0.3) : .clear, radius: 5, y: 3)
             .animation(.spring(response: 0.3, dampingFraction: 0.6), value: isSelected)
         }
@@ -391,67 +391,5 @@ struct HydrationTipsView: View {
 }
 
 #if DEBUG
-#Preview("Water Tracking - Default") {
-    PreviewContainer()
-}
-
-private struct PreviewContainer: View {
-    var body: some View {
-        let container = try! ModelContainer(for: User.self, configurations: ModelConfiguration(isStoredInMemoryOnly: true))
-        let context = container.mainContext
-        
-        let user = User(
-            id: UUID(),
-            createdAt: Date(),
-            lastActiveAt: Date(),
-            email: "test@example.com",
-            name: "Test User",
-            preferredUnits: "metric"
-        )
-        context.insert(user)
-        
-        let coordinator = FoodTrackingCoordinator()
-        let viewModel = FoodTrackingViewModel(
-            modelContext: context,
-            user: user,
-            foodVoiceAdapter: FoodVoiceAdapter(),
-            nutritionService: nil,
-            foodDatabaseService: PreviewFoodDatabaseService(),
-            coachEngine: PreviewCoachEngine(),
-            coordinator: coordinator
-        )
-        
-        return NavigationStack {
-            WaterTrackingView(viewModel: viewModel)
-        }
-        .modelContainer(container)
-    }
-}
-
-// MARK: - Preview Services
-private final class PreviewFoodDatabaseService: FoodDatabaseServiceProtocol {
-    func searchFoods(query: String) async throws -> [FoodSearchResult] {
-        return []
-    }
-    
-    func getFoodDetails(id: String) async throws -> FoodSearchResult? {
-        return nil
-    }
-}
-
-private final class PreviewCoachEngine: FoodCoachEngineProtocol {
-    func processUserMessage(_ message: String, context: HealthContextSnapshot?) async throws -> [String: SendableValue] {
-        return [:]
-    }
-    
-    func executeFunction(_ functionCall: AIFunctionCall, for user: User) async throws -> FunctionExecutionResult {
-        return FunctionExecutionResult(
-            success: true,
-            message: "Preview function executed",
-            data: [:],
-            executionTimeMs: 100,
-            functionName: functionCall.name
-        )
-    }
-}
+// Using preview services from PhotoInputView.swift to avoid duplicates
 #endif

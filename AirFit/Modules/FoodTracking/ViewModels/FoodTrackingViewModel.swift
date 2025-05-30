@@ -512,14 +512,14 @@ final class FoodTrackingViewModel {
 
 
 enum WaterUnit: String, CaseIterable {
-    case ml = "ml"
+    case milliliters = "ml"
     case oz = "oz"
     case cups = "cups"
     case liters = "L"
 
     func toMilliliters(_ amount: Double) -> Double {
         switch self {
-        case .ml: return amount
+        case .milliliters: return amount
         case .oz: return amount * 29.5735
         case .cups: return amount * 236.588
         case .liters: return amount * 1000

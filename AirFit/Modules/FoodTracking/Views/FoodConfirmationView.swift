@@ -5,7 +5,7 @@ import SwiftData
 /// adjust portions and save the results.
 struct FoodConfirmationView: View {
     @State private var items: [ParsedFoodItem]
-    @ObservedObject var viewModel: FoodTrackingViewModel
+    @State var viewModel: FoodTrackingViewModel
     @Environment(\.dismiss) private var dismiss
     @State private var editingItem: ParsedFoodItem?
     @State private var showAddItem = false
@@ -220,15 +220,9 @@ private struct FoodItemCard: View {
 
                 HStack(spacing: AppSpacing.large) {
                     NutrientLabel(value: item.calories, unit: "cal", color: .orange)
-                    if let protein = item.proteinGrams {
-                        NutrientLabel(value: protein, unit: "g", label: "Protein", color: AppColors.proteinColor)
-                    }
-                    if let carbs = item.carbGrams {
-                        NutrientLabel(value: carbs, unit: "g", label: "Carbs", color: AppColors.carbsColor)
-                    }
-                    if let fat = item.fatGrams {
-                        NutrientLabel(value: fat, unit: "g", label: "Fat", color: AppColors.fatColor)
-                    }
+                    NutrientLabel(value: item.proteinGrams ?? 0, unit: "g", label: "Protein", color: AppColors.proteinColor)
+                    NutrientLabel(value: item.carbGrams ?? 0, unit: "g", label: "Carbs", color: AppColors.carbsColor)
+                    NutrientLabel(value: item.fatGrams ?? 0, unit: "g", label: "Fat", color: AppColors.fatColor)
                 }
                 .font(.caption)
             }
@@ -287,7 +281,7 @@ private struct FoodItemEditView: View {
 }
 
 private struct ManualFoodEntryView: View {
-    @ObservedObject var viewModel: FoodTrackingViewModel
+    @State var viewModel: FoodTrackingViewModel
     var onAdd: (ParsedFoodItem) -> Void
     @Environment(\.dismiss) private var dismiss
     @State private var name = ""
@@ -307,9 +301,9 @@ private struct ManualFoodEntryView: View {
                     quantity: 1,
                     unit: "serving",
                     calories: calories,
-                    proteinGrams: nil,
-                    carbGrams: nil,
-                    fatGrams: nil,
+                    proteinGrams: 0,
+                    carbGrams: 0,
+                    fatGrams: 0,
                     fiberGrams: nil,
                     sugarGrams: nil,
                     sodiumMilligrams: nil,
