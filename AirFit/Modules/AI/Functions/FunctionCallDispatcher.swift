@@ -255,7 +255,7 @@ final class FunctionCallDispatcher: @unchecked Sendable {
     // MARK: - Initialization
     init(
         workoutService: WorkoutServiceProtocol = MockWorkoutService(),
-        nutritionService: AIFunctionNutritionServiceProtocol = MockNutritionService(),
+        nutritionService: AIFunctionNutritionServiceProtocol = MockAINutritionService(),
         analyticsService: AnalyticsServiceProtocol = MockAnalyticsService(),
         goalService: GoalServiceProtocol = MockGoalService(),
         educationService: EducationServiceProtocol = MockEducationService()

@@ -1,129 +1,107 @@
 import SwiftUI
 import SwiftData
 
-/// A view for searching food items from a database, displaying recent foods, and browsing categories.
+/// Search interface for finding and selecting foods to log
 struct NutritionSearchView: View {
+    @State var viewModel: FoodTrackingViewModel
     @Environment(\.dismiss) private var dismiss
-    @State private var viewModel: FoodTrackingViewModel
-    
-    init(viewModel: FoodTrackingViewModel) {
-        self._viewModel = State(initialValue: viewModel)
-    }
-
     @State private var searchText = ""
-    @FocusState private var isSearchFocused: Bool
-    
-    // Debounce for search
+    @State private var selectedCategory: FoodCategory?
     @State private var debounceTimer: Timer?
-
-    // Categories - can be dynamic later
+    
     private let foodCategories: [FoodCategory] = [
-        FoodCategory(name: "Fruits", icon: "apple.logo"),
-        FoodCategory(name: "Vegetables", icon: "leaf.fill"),
-        FoodCategory(name: "Proteins", icon: "fish.fill"),
-        FoodCategory(name: "Grains", icon: "wheat"),
-        FoodCategory(name: "Dairy", icon: "milk.jug.fill"),
-        FoodCategory(name: "Snacks", icon: "bolt.heart.fill")
+        FoodCategory(name: "Fruits", icon: "apple"),
+        FoodCategory(name: "Vegetables", icon: "carrot"),
+        FoodCategory(name: "Proteins", icon: "fish"),
+        FoodCategory(name: "Grains", icon: "leaf"),
+        FoodCategory(name: "Dairy", icon: "drop"),
+        FoodCategory(name: "Snacks", icon: "takeoutbag.and.cup.and.straw")
     ]
-    @State private var selectedCategory: FoodCategory? = nil
-
+    
     var body: some View {
         NavigationStack {
             VStack(spacing: 0) {
                 searchBar
-                    .padding(.bottom, AppSpacing.small)
-
-                Divider()
-
+                
                 ScrollView {
-                    LazyVStack(alignment: .leading, spacing: AppSpacing.large) {
+                    LazyVStack(spacing: AppSpacing.medium) {
                         if searchText.isEmpty && selectedCategory == nil {
-                            initialContent // Shows categories, recents, favorites
-                        } else if selectedCategory != nil && searchText.isEmpty {
-                            categoryResultsContent // Shows results for a selected category
-                        }
-                        else {
-                            searchResultsContent // Shows live search results
+                            initialContent
+                        } else if selectedCategory != nil {
+                            categoryResultsContent
+                        } else {
+                            searchResultsContent
                         }
                     }
                     .padding(.vertical)
                 }
             }
             .background(AppColors.backgroundPrimary)
-            .navigationTitle("Search Food")
+            .navigationTitle("Add Food")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) {
                     Button("Cancel") { dismiss() }
                 }
             }
-            .onAppear {
-                isSearchFocused = true
-                if viewModel.recentFoods.isEmpty { // Load recents if not already loaded
-                    Task {
-                        await viewModel.loadTodaysData() // This loads recent foods
-                    }
-                }
-            }
         }
     }
-
+    
     // MARK: - Search Bar
     private var searchBar: some View {
-        HStack(spacing: AppSpacing.small) {
+        HStack {
             Image(systemName: "magnifyingglass")
                 .foregroundColor(AppColors.textSecondary)
-
-            TextField("Search foods, brands...", text: $searchText)
+            
+            TextField("Search foods...", text: $searchText)
                 .textFieldStyle(.plain)
-                .focused($isSearchFocused)
-                .autocorrectionDisabled()
-                .submitLabel(.search)
                 .onSubmit {
-                    triggerSearch(immediately: true)
+                    Task { await performSearch() }
+                }
+                .onChange(of: searchText) { _, newValue in
+                    triggerSearch()
                 }
             
             if !searchText.isEmpty {
                 Button {
                     searchText = ""
-                    viewModel.clearSearchResults() // Assuming a method to clear results in VM
+                    selectedCategory = nil
                 } label: {
                     Image(systemName: "xmark.circle.fill")
-                        .foregroundColor(AppColors.textTertiary)
+                        .foregroundColor(AppColors.textSecondary)
                 }
             }
         }
-        .padding(AppSpacing.medium)
-        .background(AppColors.backgroundSecondary)
-        .cornerRadius(AppConstants.Layout.defaultCornerRadius.medium)
+        .padding()
+        .background(AppColors.cardBackground)
+        .clipShape(RoundedRectangle(cornerRadius: AppSpacing.medium))
         .padding(.horizontal)
-        .onChange(of: searchText) { _, newValue in
-            if selectedCategory != nil && !newValue.isEmpty {
-                // If a category was selected, and user starts typing, clear category selection
-                // to switch to general search.
-                selectedCategory = nil
-            }
-            triggerSearch()
-        }
     }
 
-    // MARK: - Initial Content (No Search Text, No Category Selected)
+    // MARK: - Initial Content
     @ViewBuilder
     private var initialContent: some View {
         CategoriesSection(categories: foodCategories, selectedCategory: $selectedCategory)
             .padding(.horizontal)
         
-        RecentFoodsSection(
-            recentFoods: viewModel.recentFoods,
-            onSelect: selectRecentFood
-        )
-        .padding(.horizontal)
-
-        // Placeholder for Favorites
-        // FavoriteFoodsSection().padding(.horizontal)
+        Text("Recent Foods")
+            .font(.headline)
+            .padding(.horizontal)
         
-        // Placeholder for Popular Searches
-        // PopularSearchesSection().padding(.horizontal)
+        if viewModel.recentFoods.isEmpty {
+            EmptyStateView(
+                icon: "clock.arrow.circlepath",
+                title: "No Recent Foods",
+                message: "Foods you log will appear here for quick re-adding."
+            )
+        } else {
+            ForEach(viewModel.recentFoods.prefix(5), id: \.id) { food in
+                FoodItemRow(food: food) {
+                    selectRecentFood(food)
+                }
+            }
+            .padding(.horizontal)
+        }
     }
     
     // MARK: - Category Results Content
@@ -140,34 +118,23 @@ struct NutritionSearchView: View {
                 }
             }
             .padding(.horizontal)
-            .font(AppFonts.footnote)
-            .foregroundColor(AppColors.textSecondary)
+            .font(.footnote)
+            .foregroundColor(.secondary)
         }
         
-        // Simulate loading for category selection
         if viewModel.isLoading {
             ProgressView()
                 .frame(maxWidth: .infinity, alignment: .center)
                 .padding(.vertical, AppSpacing.xLarge)
-        } else if viewModel.searchResults.isEmpty { // Assuming searchResults is populated by category search
+        } else {
             EmptyStateView(
                 icon: "tray.fill",
-                title: "No Items in \(selectedCategory?.name ?? "Category")",
+                title: "No Items in Category",
                 message: "Try a different category or use the search bar."
             )
             .padding()
-        } else {
-            FoodItemsList(
-                items: viewModel.searchResults.map { FoodListItem.databaseItem($0) },
-                onSelectDatabaseItem: { item in
-                    viewModel.selectSearchResult(item) // This should trigger coordinator
-                    dismiss()
-                }
-            )
-            .padding(.horizontal)
         }
     }
-
 
     // MARK: - Search Results Content
     @ViewBuilder
@@ -176,87 +143,59 @@ struct NutritionSearchView: View {
             ProgressView("Searching...")
                 .frame(maxWidth: .infinity, alignment: .center)
                 .padding(.vertical, AppSpacing.xLarge)
-        } else if viewModel.searchResults.isEmpty && !searchText.isEmpty {
+        } else if !searchText.isEmpty {
             EmptyStateView(
                 icon: "magnifyingglass",
                 title: "No Results Found",
                 message: "Try a different search term or check for typos."
             )
             .padding()
-        } else if !viewModel.searchResults.isEmpty {
-            Text("Search Results (\(viewModel.searchResults.count))")
-                .font(AppFonts.headline)
-                .padding(.horizontal)
-            
-            FoodItemsList(
-                items: viewModel.searchResults.map { FoodListItem.databaseItem($0) },
-                onSelectDatabaseItem: { item in
-                    viewModel.selectSearchResult(item) // This should trigger coordinator
-                    dismiss()
-                }
-            )
-            .padding(.horizontal)
-        } else if !searchText.isEmpty {
-             // Suggestion to type more if search text is short and no results yet
-            Text("Keep typing to see more results...")
-                .font(AppFonts.callout)
-                .foregroundColor(AppColors.textTertiary)
-                .frame(maxWidth: .infinity, alignment: .center)
-                .padding()
         }
     }
     
     // MARK: - Helper Functions
-    private func triggerSearch(immediately: Bool = false) {
+    private func triggerSearch() {
         debounceTimer?.invalidate()
         
         guard !searchText.isEmpty || selectedCategory != nil else {
-            viewModel.clearSearchResults() // Clear results if search text is empty and no category
             return
         }
         
-        if immediately || searchText.count > 2 || selectedCategory != nil { // Start search immediately or after 2 chars
-            performSearch()
+        if searchText.count > 2 || selectedCategory != nil {
+            Task { await performSearch() }
         } else {
             debounceTimer = Timer.scheduledTimer(withTimeInterval: 0.5, repeats: false) { _ in
-                performSearch()
+                Task { await performSearch() }
             }
         }
     }
 
-    private func performSearch() {
-        Task {
-            if let category = selectedCategory, searchText.isEmpty {
-                // Perform category-specific search
-                // Assuming viewModel.searchFoods can handle a category parameter or a specific method exists
-                // For now, we'll just use the searchText as if it was the category name for demo
-                await viewModel.searchFoods(category.name)
-            } else if !searchText.isEmpty {
-                await viewModel.searchFoods(searchText)
-            }
+    private func performSearch() async {
+        if let category = selectedCategory, searchText.isEmpty {
+            await viewModel.searchFoods(category.name)
+        } else if !searchText.isEmpty {
+            await viewModel.searchFoods(searchText)
         }
     }
 
     private func selectRecentFood(_ food: FoodItem) {
-        // Convert FoodItem to ParsedFoodItem and pass to confirmation
         let parsedItem = ParsedFoodItem(
             name: food.name,
             brand: food.brand,
-            quantity: food.quantity,
-            unit: food.unit,
-            calories: food.calories,
-            proteinGrams: food.proteinGrams,
-            carbGrams: food.carbGrams,
-            fatGrams: food.fatGrams,
-            fiber: food.fiberGrams,
-            sugar: food.sugarGrams,
-            sodium: food.sodiumMg,
+            quantity: food.quantity ?? 1,
+            unit: food.unit ?? "serving",
+            calories: food.calories ?? 0,
+            proteinGrams: food.proteinGrams ?? 0,
+            carbGrams: food.carbGrams ?? 0,
+            fatGrams: food.fatGrams ?? 0,
+            fiberGrams: food.fiberGrams,
+            sugarGrams: food.sugarGrams,
+            sodiumMilligrams: food.sodiumMg,
             barcode: food.barcode,
-            databaseId: nil, // FoodItem is from local log, not necessarily a DB ID
-            confidence: 1.0 // High confidence for user's own logged food
+            databaseId: nil,
+            confidence: 1.0
         )
-        viewModel.setParsedItems([parsedItem]) // Update ViewModel
-        viewModel.coordinator.showFullScreenCover(.confirmation([parsedItem]))
+        viewModel.setParsedItems([parsedItem])
         dismiss()
     }
 }
@@ -290,28 +229,6 @@ private struct CategoriesSection: View {
     }
 }
 
-private struct RecentFoodsSection: View {
-    let recentFoods: [FoodItem]
-    let onSelect: (FoodItem) -> Void
-
-    var body: some View {
-        if !recentFoods.isEmpty {
-            VStack(alignment: .leading, spacing: AppSpacing.medium) {
-                Text("Recent Foods")
-                    .font(AppFonts.title3)
-                    .fontWeight(.semibold)
-                
-                FoodItemsList(
-                    items: recentFoods.map { FoodListItem.recentItem($0) },
-                    onSelectRecentItem: onSelect
-                )
-            }
-        } else {
-            EmptyStateView(icon: "clock.arrow.circlepath", title: "No Recent Foods", message: "Foods you log will appear here for quick re-adding.")
-        }
-    }
-}
-
 // MARK: - Reusable Components
 /// Represents an item in the food list, can be either a recent log or a database search result.
 enum FoodListItem: Identifiable {
@@ -341,7 +258,7 @@ enum FoodListItem: Identifiable {
 
     var calories: Double {
         switch self {
-        case .recentItem(let item): return item.calories
+        case .recentItem(let item): return item.calories ?? 0
         case .databaseItem(let item): return item.caloriesPerServing
         }
     }
@@ -370,87 +287,53 @@ enum FoodListItem: Identifiable {
     var servingDescription: String {
         switch self {
         case .recentItem(let item):
-            return "\(item.quantity.formatted(.number.precision(.fractionLength(0...1)))) \(item.unit)"
+            let qty = item.quantity?.formatted(.number.precision(.fractionLength(0...1))) ?? "1"
+            let unit = item.unit ?? "serving"
+            return "\(qty) \(unit)"
         case .databaseItem(let item):
             return "\(item.defaultQuantity.formatted(.number.precision(.fractionLength(0...1)))) \(item.defaultUnit)"
         }
     }
 }
 
-private struct FoodItemsList: View {
-    let items: [FoodListItem]
-    var onSelectRecentItem: ((FoodItem) -> Void)? = nil
-    var onSelectDatabaseItem: ((FoodDatabaseItem) -> Void)? = nil
-
-    var body: some View {
-        VStack(spacing: AppSpacing.small) {
-            ForEach(items) { item in
-                FoodItemRow(item: item) {
-                    switch item {
-                    case .recentItem(let recent):
-                        onSelectRecentItem?(recent)
-                    case .databaseItem(let dbItem):
-                        onSelectDatabaseItem?(dbItem)
-                    }
-                }
-                Divider().padding(.leading, AppSpacing.medium)
-            }
-        }
-    }
-}
-
-
 private struct FoodItemRow: View {
-    let item: FoodListItem
+    let food: FoodItem
     let action: () -> Void
 
     var body: some View {
         Button(action: action) {
             HStack(alignment: .top, spacing: AppSpacing.medium) {
-                // Icon (optional, could be category-based or a generic food icon)
-                Image(systemName: "takeoutbag.and.cup.and.straw.fill") // Placeholder icon
+                Image(systemName: "takeoutbag.and.cup.and.straw.fill")
                     .font(.title2)
-                    .foregroundColor(AppColors.accentColor)
+                    .foregroundColor(AppColors.accent)
                     .frame(width: 30)
 
-                VStack(alignment: .leading, spacing: AppSpacing.xxSmall) {
-                    Text(item.name)
-                        .font(AppFonts.body)
+                VStack(alignment: .leading, spacing: AppSpacing.xSmall) {
+                    Text(food.name)
+                        .font(.body)
                         .fontWeight(.medium)
                         .foregroundColor(AppColors.textPrimary)
                         .lineLimit(2)
 
-                    if let brand = item.brand, !brand.isEmpty {
+                    if let brand = food.brand, !brand.isEmpty {
                         Text(brand)
-                            .font(AppFonts.caption)
+                            .font(.caption)
                             .foregroundColor(AppColors.textSecondary)
                             .lineLimit(1)
                     }
                     
-                    Text(item.servingDescription)
-                        .font(AppFonts.caption)
+                    Text("\(food.quantity?.formatted() ?? "1") \(food.unit ?? "serving")")
+                        .font(.caption)
                         .foregroundColor(AppColors.textTertiary)
                 }
 
                 Spacer()
 
-                VStack(alignment: .trailing, spacing: AppSpacing.xxSmall) {
-                    Text("\(Int(item.calories)) cal")
-                        .font(AppFonts.callout)
+                VStack(alignment: .trailing, spacing: AppSpacing.xSmall) {
+                    Text("\(Int(food.calories ?? 0)) cal")
+                        .font(.callout)
                         .fontWeight(.semibold)
                         .foregroundColor(AppColors.caloriesColor)
-                    
-                    HStack(spacing: AppSpacing.small) {
-                        if let protein = item.protein {
-                            MacroPill(label: "P", value: protein, color: AppColors.proteinColor)
-                        }
-                        if let carbs = item.carbs {
-                            MacroPill(label: "C", value: carbs, color: AppColors.carbsColor)
-                        }
-                        if let fat = item.fat {
-                            MacroPill(label: "F", value: fat, color: AppColors.fatColor)
-                        }
-                    }
                 }
             }
             .padding(.vertical, AppSpacing.small)
@@ -458,29 +341,6 @@ private struct FoodItemRow: View {
         .buttonStyle(.plain)
     }
 }
-
-private struct MacroPill: View {
-    let label: String
-    let value: Double
-    let color: Color
-    
-    var body: some View {
-        HStack(spacing: 2) {
-            Text(label)
-                .font(AppFonts.caption2)
-                .fontWeight(.bold)
-                .foregroundColor(color)
-            Text("\(Int(value))g")
-                .font(AppFonts.caption2)
-                .foregroundColor(AppColors.textSecondary)
-        }
-        .padding(.horizontal, AppSpacing.xSmall)
-        .padding(.vertical, AppSpacing.xxSmall)
-        .background(color.opacity(0.1))
-        .clipShape(Capsule())
-    }
-}
-
 
 struct FoodCategory: Identifiable, Hashable {
     let id = UUID()
@@ -499,109 +359,49 @@ private struct CategoryChip: View {
                 Image(systemName: category.icon)
                 Text(category.name)
             }
-            .font(AppFonts.footnote)
+            .font(.footnote)
             .padding(.horizontal, AppSpacing.medium)
             .padding(.vertical, AppSpacing.xSmall)
-            .foregroundColor(isSelected ? AppColors.textOnAccent : AppColors.accentColor)
-            .background(isSelected ? AppColors.accentColor : AppColors.accentColor.opacity(0.15))
+            .foregroundColor(isSelected ? AppColors.textOnAccent : AppColors.accent)
+            .background(isSelected ? AppColors.accent : AppColors.accent.opacity(0.15))
             .clipShape(Capsule())
         }
     }
 }
 
-// MARK: - Empty State View
-private struct EmptyStateView: View {
-    let icon: String
-    let title: String
-    let message: String
-
-    var body: some View {
-        VStack(spacing: AppSpacing.medium) {
-            Image(systemName: icon)
-                .font(.system(size: 50))
-                .foregroundColor(AppColors.textTertiary)
-            Text(title)
-                .font(AppFonts.title3)
-                .fontWeight(.semibold)
-                .foregroundColor(AppColors.textPrimary)
-            Text(message)
-                .font(AppFonts.body)
-                .foregroundColor(AppColors.textSecondary)
-                .multilineTextAlignment(.center)
-                .padding(.horizontal)
-        }
-        .frame(maxWidth: .infinity, maxHeight: .infinity)
-        .padding(AppSpacing.large)
-    }
-}
+// MARK: - Empty State View - Using CommonComponents.EmptyStateView
 
 
 // MARK: - Previews
 #if DEBUG
 #Preview("Default State") {
-    PreviewContainer()
-}
-
-private struct PreviewContainer: View {
-    var body: some View {
-        let container = try! ModelContainer(for: User.self, configurations: ModelConfiguration(isStoredInMemoryOnly: true))
-        let context = container.mainContext
-        
-        let user = User(
-            id: UUID(),
-            createdAt: Date(),
-            lastActiveAt: Date(),
-            email: "test@example.com",
-            name: "Test User",
-            preferredUnits: "metric"
-        )
-        context.insert(user)
-        
-        let coordinator = FoodTrackingCoordinator()
-        let viewModel = FoodTrackingViewModel(
-            modelContext: context,
-            user: user,
-            foodVoiceAdapter: FoodVoiceAdapter(),
-            nutritionService: nil,
-            foodDatabaseService: PreviewFoodDatabaseService(),
-            coachEngine: PreviewCoachEngine(),
-            coordinator: coordinator
-        )
-        
-        return NavigationStack {
-            NutritionSearchView(viewModel: viewModel)
-        }
-        .modelContainer(container)
-    }
-}
-
-// MARK: - Preview Services
-private final class PreviewFoodDatabaseService: FoodDatabaseServiceProtocol {
-    func searchFoods(query: String) async throws -> [FoodSearchResult] {
-        return [
-            FoodSearchResult(name: "Apple", calories: 95, protein: 0.5, carbs: 25, fat: 0.3, servingSize: "1 medium"),
-            FoodSearchResult(name: "Banana", calories: 105, protein: 1.3, carbs: 27, fat: 0.4, servingSize: "1 medium")
-        ]
-    }
+    let container = try! ModelContainer(for: User.self, configurations: ModelConfiguration(isStoredInMemoryOnly: true))
+    let context = container.mainContext
     
-    func getFoodDetails(id: String) async throws -> FoodSearchResult? {
-        return FoodSearchResult(name: "Apple", calories: 95, protein: 0.5, carbs: 25, fat: 0.3, servingSize: "1 medium")
-    }
-}
-
-private final class PreviewCoachEngine: FoodCoachEngineProtocol {
-    func processUserMessage(_ message: String, context: HealthContextSnapshot?) async throws -> [String: SendableValue] {
-        return [:]
-    }
+    let user = User(
+        id: UUID(),
+        createdAt: Date(),
+        lastActiveAt: Date(),
+        email: "test@example.com",
+        name: "Test User",
+        preferredUnits: "metric"
+    )
+    context.insert(user)
     
-    func executeFunction(_ functionCall: AIFunctionCall, for user: User) async throws -> FunctionExecutionResult {
-        return FunctionExecutionResult(
-            success: true,
-            message: "Preview function executed",
-            data: [:],
-            executionTimeMs: 100,
-            functionName: functionCall.name
-        )
+    let coordinator = FoodTrackingCoordinator()
+    let viewModel = FoodTrackingViewModel(
+        modelContext: context,
+        user: user,
+        foodVoiceAdapter: FoodVoiceAdapter(),
+        nutritionService: MockNutritionService(),
+        foodDatabaseService: MockFoodDatabaseService(),
+        coachEngine: MockCoachEngine(),
+        coordinator: coordinator
+    )
+    
+    return NavigationStack {
+        NutritionSearchView(viewModel: viewModel)
     }
+    .modelContainer(container)
 }
 #endif

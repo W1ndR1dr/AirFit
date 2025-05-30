@@ -181,7 +181,7 @@ actor MockWorkoutService: WorkoutServiceProtocol {
 
 // MARK: - Mock Nutrition Service
 
-actor MockNutritionService: AIFunctionNutritionServiceProtocol {
+actor MockAINutritionService: AIFunctionNutritionServiceProtocol {
 
     func parseAndLogMeal(
         _ input: String,

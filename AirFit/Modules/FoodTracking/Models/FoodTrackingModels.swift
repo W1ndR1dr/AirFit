@@ -177,3 +177,44 @@ enum FoodTrackingError: Error, LocalizedError, Sendable {
     }
 }
 
+// MARK: - Food Database Models
+
+/// Represents a food item from the database with nutritional information
+struct FoodDatabaseItem: Identifiable, Sendable {
+    let id: String
+    let name: String
+    let brand: String?
+    let caloriesPerServing: Double
+    let proteinPerServing: Double
+    let carbsPerServing: Double
+    let fatPerServing: Double
+    let servingSize: Double
+    let servingUnit: String
+    let defaultQuantity: Double
+    let defaultUnit: String
+}
+
+/// Context for nutrition-related operations
+struct NutritionContext: Sendable {
+    let userGoals: NutritionTargets?
+    let recentMeals: [FoodEntry]
+    let currentDate: Date
+    
+    init(userGoals: NutritionTargets? = nil, recentMeals: [FoodEntry] = [], currentDate: Date = Date()) {
+        self.userGoals = userGoals
+        self.recentMeals = recentMeals
+        self.currentDate = currentDate
+    }
+}
+
+/// Search result from food database
+struct FoodSearchResult: Identifiable, Sendable {
+    let id = UUID()
+    let name: String
+    let calories: Double
+    let protein: Double
+    let carbs: Double
+    let fat: Double
+    let servingSize: String
+}
+

@@ -258,7 +258,7 @@ private struct QuickActionCard: View {
     let vm = WorkoutViewModel(
         modelContext: context,
         user: user,
-        coachEngine: MockCoachEngine(),
+        coachEngine: WorkoutMockCoachEngine(),
         healthKitManager: PreviewHealthKitManager()
     )
     WorkoutListView(viewModel: vm)
@@ -277,12 +277,12 @@ final class PreviewHealthKitManager: HealthKitManaging {
 }
 
 @MainActor
-final class MockCoachEngine: CoachEngineProtocol {
+final class WorkoutMockCoachEngine: CoachEngineProtocol {
     func processUserMessage(_ message: String, context: HealthContextSnapshot?) async throws -> [String: SendableValue] {
-        ["response": .string("Mock response")]
+        ["response": SendableValue.string("Mock workout response")]
     }
     
-    func executeFunction(_ functionCall: AIFunctionCall, for user: User) async throws -> FunctionExecutionResult {
-        FunctionExecutionResult(success: true, message: "Mock execution", executionTimeMs: 1, functionName: functionCall.name)
+    func generatePostWorkoutAnalysis(_ request: PostWorkoutAnalysisRequest) async throws -> String {
+        "Mock post-workout analysis"
     }
 }

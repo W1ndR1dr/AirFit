@@ -171,7 +171,7 @@ actor NutritionService: NutritionServiceProtocol {
         let quantity = HKQuantity(unit: .kilocalorie(), doubleValue: summary.calories)
         let sample = HKQuantitySample(type: energyType, quantity: quantity, start: date, end: date)
 
-        try await withCheckedThrowingContinuation { continuation in
+        try await withCheckedThrowingContinuation { (continuation: CheckedContinuation<Void, Error>) in
             healthStore.save(sample) { _, error in
                 if let error { continuation.resume(throwing: error) }
                 else { continuation.resume() }

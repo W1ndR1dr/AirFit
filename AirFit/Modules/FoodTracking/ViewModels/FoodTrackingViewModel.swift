@@ -41,7 +41,7 @@ final class FoodTrackingViewModel {
     private(set) var waterIntakeML: Double = 0
 
     // Search and suggestions
-    private(set) var searchResults: [FoodDatabaseItem] = []
+    private(set) var searchResults: [FoodItem] = []
     private(set) var recentFoods: [FoodItem] = []
     private(set) var suggestedFoods: [FoodItem] = []
 
