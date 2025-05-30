@@ -1,8 +1,9 @@
+@preconcurrency import AVFoundation
 import SwiftUI
-import AVFoundation
+import SwiftData
 import Vision
 import Photos
-import SwiftData
+import UIKit
 
 /// Photo capture interface for intelligent meal recognition and food analysis.
 struct PhotoInputView: View {
@@ -125,7 +126,7 @@ struct PhotoInputView: View {
                     .background(.ultraThinMaterial)
                     .clipShape(Circle())
                     .accessibilityLabel("Flash toggle")
-                    .accessibilityValue(cameraManager.isFlashOn ? "Flash on" : "Flash off")
+                    .accessibilityValue(cameraManager.flashMode == .on ? "Flash on" : "Flash off")
                     .accessibilityHint("Tap to toggle camera flash")
                     .accessibilityIdentifier("flash_button")
             }
@@ -410,6 +411,9 @@ struct PhotoInputView: View {
             let protein = extractDouble(from: itemDict["estimatedProtein"]) ?? 0
             let carbs = extractDouble(from: itemDict["estimatedCarbs"]) ?? 0
             let fat = extractDouble(from: itemDict["estimatedFat"]) ?? 0
+            let fiber = extractDouble(from: itemDict["estimatedFiber"])
+            let sugar = extractDouble(from: itemDict["estimatedSugar"])
+            let sodium = extractDouble(from: itemDict["estimatedSodium"])
             
             let foodItem = ParsedFoodItem(
                 name: name,
@@ -420,6 +424,11 @@ struct PhotoInputView: View {
                 proteinGrams: protein,
                 carbGrams: carbs,
                 fatGrams: fat,
+                fiberGrams: fiber,
+                sugarGrams: sugar,
+                sodiumMilligrams: sodium,
+                barcode: extractString(from: itemDict["barcode"]),
+                databaseId: extractString(from: itemDict["databaseId"]),
                 confidence: confidence
             )
             
@@ -561,15 +570,15 @@ final class CameraManager: NSObject, ObservableObject {
         session.commitConfiguration()
         
         // Start session on background queue
-        Task.detached { [weak self] in
-            self?.session.startRunning()
+        Task.detached { [session] in
+            session.startRunning()
         }
     }
     
     func stopSession() {
         if session.isRunning {
             Task.detached { [weak self] in
-                self?.session.stopRunning()
+                await self?.session.stopRunning()
             }
         }
     }
@@ -585,14 +594,6 @@ final class CameraManager: NSObject, ObservableObject {
             
             let settings = AVCapturePhotoSettings()
             settings.flashMode = flashMode
-            
-            // Enable high resolution capture
-            settings.isHighResolutionPhotoEnabled = true
-            
-            // Configure for food photography
-            if photoOutput.availablePhotoCodecTypes.contains(.hevc) {
-                settings.photoCodecType = .hevc
-            }
             
             photoOutput.capturePhoto(with: settings, delegate: self)
         }
@@ -652,7 +653,7 @@ final class CameraManager: NSObject, ObservableObject {
 }
 
 // MARK: - AVCapturePhotoCaptureDelegate
-extension CameraManager: AVCapturePhotoCaptureDelegate {
+extension CameraManager: @preconcurrency AVCapturePhotoCaptureDelegate {
     func photoOutput(_ output: AVCapturePhotoOutput, didFinishProcessingPhoto photo: AVCapturePhoto, error: Error?) {
         defer { photoContinuation = nil }
         
@@ -858,11 +859,6 @@ struct TipRow: View {
 }
 
 // MARK: - Supporting Types
-struct VisionAnalysisResult {
-    let recognizedText: [String]
-    let confidence: Float
-}
-
 enum PhotoAnalysisError: LocalizedError {
     case invalidImage
     case imageProcessingFailed
@@ -889,74 +885,45 @@ enum PhotoAnalysisError: LocalizedError {
     }
 }
 
-#if DEBUG
-#Preview("Photo Input View") {
-    PreviewContainer()
-}
-
-private struct PreviewContainer: View {
-    var body: some View {
-        let container = try! ModelContainer(for: User.self, configurations: ModelConfiguration(isStoredInMemoryOnly: true))
-        let context = container.mainContext
-        
-        let user = User(
-            id: UUID(),
-            createdAt: Date(),
-            lastActiveAt: Date(),
-            email: "test@example.com",
-            name: "Test User",
-            preferredUnits: "metric"
-        )
-        context.insert(user)
-        
-        let coordinator = FoodTrackingCoordinator()
-        let viewModel = FoodTrackingViewModel(
-            modelContext: context,
-            user: user,
-            foodVoiceAdapter: FoodVoiceAdapter(),
-            nutritionService: PreviewNutritionService(),
-            foodDatabaseService: PreviewFoodDatabaseService(),
-            coachEngine: PreviewCoachEngine(),
-            coordinator: coordinator
-        )
-        
-        return NavigationStack {
-            PhotoInputView(viewModel: viewModel)
-        }
-        .modelContainer(container)
-    }
-}
-
 // MARK: - Preview Services
-private final class PreviewNutritionService: NutritionServiceProtocol {
+#if DEBUG
+@MainActor
+final class PreviewNutritionService: NutritionServiceProtocol {
     func saveFoodEntry(_ entry: FoodEntry) async throws {}
-    func getFoodEntries(for date: Date) async throws -> [FoodEntry] { return [] }
+    func getFoodEntries(for date: Date) async throws -> [FoodEntry] { [] }
     func deleteFoodEntry(_ entry: FoodEntry) async throws {}
+    func getFoodEntries(for user: User, date: Date) async throws -> [FoodEntry] { [] }
+    nonisolated func calculateNutritionSummary(from entries: [FoodEntry]) -> FoodNutritionSummary { FoodNutritionSummary() }
+    func getWaterIntake(for user: User, date: Date) async throws -> Double { 0 }
+    func getRecentFoods(for user: User, limit: Int) async throws -> [FoodItem] { [] }
+    func logWaterIntake(for user: User, amountML: Double, date: Date) async throws {}
+    func getMealHistory(for user: User, mealType: MealType, daysBack: Int) async throws -> [FoodEntry] { [] }
+    nonisolated func getTargets(from profile: OnboardingProfile?) -> NutritionTargets { .default }
+    func getTodaysSummary(for user: User) async throws -> FoodNutritionSummary { FoodNutritionSummary() }
 }
 
-private final class PreviewFoodDatabaseService: FoodDatabaseServiceProtocol {
-    func searchFoods(query: String) async throws -> [FoodSearchResult] {
-        return []
-    }
-    
-    func getFoodDetails(id: String) async throws -> FoodSearchResult? {
-        return nil
-    }
+@MainActor
+final class PreviewFoodDatabaseService: FoodDatabaseServiceProtocol {
+    func searchFoods(query: String) async throws -> [FoodDatabaseItem] { [] }
+    func getFoodDetails(id: String) async throws -> FoodDatabaseItem? { nil }
+    func searchFoods(query: String, limit: Int) async throws -> [FoodDatabaseItem] { [] }
+    func searchCommonFood(_ name: String) async throws -> FoodDatabaseItem? { nil }
+    func lookupBarcode(_ barcode: String) async throws -> FoodDatabaseItem? { nil }
+    func analyzePhotoForFoods(_ image: UIImage) async throws -> [FoodDatabaseItem] { [] }
 }
 
-private final class PreviewCoachEngine: FoodCoachEngineProtocol {
+@MainActor
+final class PreviewCoachEngine: FoodCoachEngineProtocol {
     func processUserMessage(_ message: String, context: HealthContextSnapshot?) async throws -> [String: SendableValue] {
-        return [:]
+        ["response": SendableValue.string("Mock response")]
     }
     
     func executeFunction(_ functionCall: AIFunctionCall, for user: User) async throws -> FunctionExecutionResult {
-        return FunctionExecutionResult(
-            success: true,
-            message: "Preview function executed",
-            data: [:],
-            executionTimeMs: 100,
-            functionName: functionCall.name
-        )
+        FunctionExecutionResult(success: true, message: "Mock execution", executionTimeMs: 1, functionName: functionCall.name)
+    }
+    
+    func analyzeMealPhoto(image: UIImage, context: NutritionContext?) async throws -> MealPhotoAnalysisResult {
+        MealPhotoAnalysisResult(items: [], confidence: 1.0, processingTime: 0.1)
     }
 }
 #endif 

@@ -10,11 +10,11 @@ import UIKit
 final class FoodTrackingViewModel {
     // MARK: - Dependencies
     private let modelContext: ModelContext
-    private let user: User
+    internal let user: User
     private let foodVoiceAdapter: FoodVoiceAdapter
     private let nutritionService: NutritionServiceProtocol?
     private let foodDatabaseService: FoodDatabaseServiceProtocol
-    private let coachEngine: FoodCoachEngineProtocol
+    internal let coachEngine: FoodCoachEngineProtocol
     private let coordinator: FoodTrackingCoordinator
 
     // MARK: - State
@@ -500,6 +500,13 @@ final class FoodTrackingViewModel {
     
     func setParsedItems(_ items: [ParsedFoodItem]) {
         parsedItems = items
+    }
+
+    // MARK: - Photo Processing
+    func processPhotoResult(_ image: UIImage) {
+        // This method will be called by PhotoInputView after successful analysis
+        // For now, just log that a photo was processed
+        AppLogger.info("Photo processed successfully", category: .ai)
     }
 }
 
