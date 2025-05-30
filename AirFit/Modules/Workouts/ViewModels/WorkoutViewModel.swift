@@ -150,7 +150,7 @@ protocol CoachEngineProtocol: AnyObject, Sendable {
 extension CoachEngine: CoachEngineProtocol {}
 
 // MARK: - Supporting Types
-struct WeeklyWorkoutStats {
+struct WeeklyWorkoutStats: Sendable {
     var totalWorkouts: Int = 0
     var totalDuration: TimeInterval = 0
     var totalCalories: Double = 0

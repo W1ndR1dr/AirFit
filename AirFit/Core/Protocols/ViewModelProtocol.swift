@@ -3,7 +3,7 @@ import SwiftUI
 
 /// Base protocol for all ViewModels in the app
 @MainActor
-protocol ViewModelProtocol: AnyObject, Observable {
+protocol ViewModelProtocol: AnyObject, Observable, Sendable {
     /// The current loading state of the view model
     var loadingState: LoadingState { get }
 
@@ -31,7 +31,7 @@ extension ViewModelProtocol {
 
 /// Protocol for ViewModels that handle form validation
 @MainActor
-protocol FormViewModelProtocol: ViewModelProtocol {
+protocol FormViewModelProtocol: ViewModelProtocol, Sendable {
     associatedtype FormData
 
     /// The current form data
@@ -49,7 +49,7 @@ protocol FormViewModelProtocol: ViewModelProtocol {
 
 /// Protocol for ViewModels that handle list data
 @MainActor
-protocol ListViewModelProtocol: ViewModelProtocol {
+protocol ListViewModelProtocol: ViewModelProtocol, Sendable {
     associatedtype Item: Identifiable
 
     /// The list items
@@ -70,7 +70,7 @@ protocol ListViewModelProtocol: ViewModelProtocol {
 
 /// Protocol for ViewModels that handle detail views
 @MainActor
-protocol DetailViewModelProtocol: ViewModelProtocol {
+protocol DetailViewModelProtocol: ViewModelProtocol, Sendable {
     associatedtype Model
 
     /// The detail model

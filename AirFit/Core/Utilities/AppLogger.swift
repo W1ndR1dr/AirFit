@@ -65,7 +65,7 @@ public enum AppLogger {
         )
     }
 
-    struct LogContext {
+    struct LogContext: Sendable {
         let file: String
         let function: String
         let line: Int

@@ -133,14 +133,14 @@ protocol EducationServiceProtocol: Sendable {
 
 // MARK: - Result Types
 
-struct WorkoutPlanResult {
+struct WorkoutPlanResult: Sendable {
     let id: UUID
     let exercises: [ExerciseInfo]
     let estimatedCalories: Int
     let estimatedDuration: Int
     let summary: String
 
-    struct ExerciseInfo {
+    struct ExerciseInfo: Sendable {
         let name: String
         let sets: Int
         let reps: String
@@ -149,7 +149,7 @@ struct WorkoutPlanResult {
     }
 }
 
-struct NutritionLogResult {
+struct NutritionLogResult: Sendable {
     let id: UUID
     let items: [FoodItemInfo]
     let totalCalories: Double
@@ -159,7 +159,7 @@ struct NutritionLogResult {
     let confidence: Double
     let alternatives: [String]?
 
-    struct FoodItemInfo {
+    struct FoodItemInfo: Sendable {
         let name: String
         let quantity: String
         let calories: Double
@@ -169,14 +169,14 @@ struct NutritionLogResult {
     }
 }
 
-struct PerformanceAnalysisResult {
+struct PerformanceAnalysisResult: Sendable {
     let summary: String
     let insights: [String]
     let trends: [TrendInfo]
     let recommendations: [String]
     let dataPoints: Int
 
-    struct TrendInfo {
+    struct TrendInfo: Sendable {
         let metric: String
         let direction: String
         let magnitude: Double
@@ -184,7 +184,7 @@ struct PerformanceAnalysisResult {
     }
 }
 
-struct GoalResult {
+struct GoalResult: Sendable {
     let id: UUID
     let title: String
     let description: String
@@ -193,7 +193,7 @@ struct GoalResult {
     let milestones: [String]
     let smartCriteria: SMARTCriteria
 
-    struct SMARTCriteria {
+    struct SMARTCriteria: Sendable {
         let specific: String
         let measurable: String
         let achievable: String
@@ -202,7 +202,7 @@ struct GoalResult {
     }
 }
 
-struct EducationalContentResult {
+struct EducationalContentResult: Sendable {
     let topic: String
     let content: String
     let keyPoints: [String]
@@ -237,7 +237,7 @@ final class FunctionCallDispatcher: @unchecked Sendable {
     // Function name lookup table for O(1) dispatch
     private let functionDispatchTable: [String: @Sendable (FunctionCallDispatcher, [String: AIAnyCodable], User, FunctionContext) async throws -> (message: String, data: [String: Any])]
 
-    private struct FunctionMetrics {
+    private struct FunctionMetrics: Sendable {
         var totalCalls: Int = 0
         var totalExecutionTime: TimeInterval = 0
         var successCount: Int = 0

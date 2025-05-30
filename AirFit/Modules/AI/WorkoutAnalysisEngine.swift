@@ -104,7 +104,7 @@ final class WorkoutAnalysisEngine {
 }
 
 // MARK: - Supporting Types
-struct PostWorkoutAnalysisRequest {
+struct PostWorkoutAnalysisRequest: Sendable {
     let workout: Workout
     let recentWorkouts: [Workout]
     let userGoals: [String]?
@@ -118,7 +118,7 @@ struct PostWorkoutAnalysisRequest {
     }
 }
 
-struct RecoveryData {
+struct RecoveryData: Sendable {
     let sleepHours: Double?
     let restingHeartRate: Int?
     let hrv: Double?

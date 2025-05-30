@@ -43,7 +43,7 @@ public final class DependencyContainer: @unchecked Sendable {
 // MARK: - Environment Values
 import SwiftUI
 
-private struct DependencyContainerKey: EnvironmentKey {
+private struct DependencyContainerKey: EnvironmentKey, Sendable {
     static let defaultValue = DependencyContainer.shared
 }
 
