@@ -8,6 +8,11 @@ struct FoodLoggingView: View {
     @State private var coordinator: FoodTrackingCoordinator
     @Environment(\.dismiss) private var dismiss
 
+    init(viewModel: FoodTrackingViewModel, coordinator: FoodTrackingCoordinator = FoodTrackingCoordinator()) {
+        _viewModel = State(initialValue: viewModel)
+        _coordinator = State(initialValue: coordinator)
+    }
+
     init(user: User, modelContext: ModelContext) {
         let coordinator = FoodTrackingCoordinator()
         let adapter = FoodVoiceAdapter()
@@ -20,8 +25,7 @@ struct FoodLoggingView: View {
             coachEngine: CoachEngine.createDefault(modelContext: modelContext),
             coordinator: coordinator
         )
-        self.viewModel = vm
-        self.coordinator = coordinator
+        self.init(viewModel: vm, coordinator: coordinator)
     }
 
     var body: some View {
@@ -469,11 +473,19 @@ private extension FoodItem {
 
 #if DEBUG
 #Preview {
-    let container = try! ModelContainer(for: User.self, configurations: ModelConfiguration(isStoredInMemoryOnly: true))
+    let container = ModelContainer.preview
     let context = container.mainContext
-    let user = User.example
-    context.insert(user)
-    return FoodLoggingView(user: user, modelContext: context)
+    let user = try! context.fetch(FetchDescriptor<User>()).first!
+    let vm = FoodTrackingViewModel(
+        modelContext: context,
+        user: user,
+        foodVoiceAdapter: FoodVoiceAdapter(),
+        nutritionService: PreviewNutritionService(),
+        foodDatabaseService: PreviewFoodDatabaseService(),
+        coachEngine: PreviewCoachEngine(),
+        coordinator: FoodTrackingCoordinator()
+    )
+    return FoodLoggingView(viewModel: vm)
         .modelContainer(container)
 }
 #endif

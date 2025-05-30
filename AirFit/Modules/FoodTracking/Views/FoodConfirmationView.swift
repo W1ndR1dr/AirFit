@@ -321,19 +321,17 @@ private struct ManualFoodEntryView: View {
 
 #if DEBUG
 #Preview {
-    // Simple preview with placeholder data
-    let container = try! ModelContainer(for: User.self, configurations: ModelConfiguration(isStoredInMemoryOnly: true))
+    let container = ModelContainer.preview
     let context = container.mainContext
-    let user = User.example
-    context.insert(user)
+    let user = try! context.fetch(FetchDescriptor<User>()).first!
     let parsed = ParsedFoodItem(name: "Apple", brand: nil, quantity: 1, unit: "item", calories: 95, proteinGrams: 0.5, carbGrams: 25, fatGrams: 0.3, confidence: 1.0)
     let vm = FoodTrackingViewModel(
         modelContext: context,
         user: user,
         foodVoiceAdapter: FoodVoiceAdapter(),
-        nutritionService: NutritionService(modelContext: context),
-        foodDatabaseService: FoodDatabaseService(),
-        coachEngine: CoachEngine.createDefault(modelContext: context),
+        nutritionService: PreviewNutritionService(),
+        foodDatabaseService: PreviewFoodDatabaseService(),
+        coachEngine: PreviewCoachEngine(),
         coordinator: FoodTrackingCoordinator()
     )
     return FoodConfirmationView(items: [parsed], viewModel: vm)
