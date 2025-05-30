@@ -136,56 +136,50 @@ final class CoachEngine {
     }
 
     /// Generates AI-powered post-workout analysis
-    func generatePostWorkoutAnalysis(_ request: PostWorkoutAnalysisRequest) async throws -> String {
-        do {
-            // Build analysis prompt
-            let analysisPrompt = buildWorkoutAnalysisPrompt(request)
+    func generatePostWorkoutAnalysis(_ request: PostWorkoutAnalysisRequest) async -> String {
+        // Build analysis prompt
+        let analysisPrompt = buildWorkoutAnalysisPrompt(request)
 
-            // Create AI request for analysis
-            let aiRequest = AIRequest(
-                systemPrompt: "You are a fitness coach providing post-workout analysis. Be encouraging, specific, and actionable.",
-                messages: [
-                    AIChatMessage(
-                        role: .user,
-                        content: analysisPrompt,
-                        timestamp: Date()
-                    )
-                ],
-                functions: [],
-                user: "workout-analysis"
-            )
+        // Create AI request for analysis
+        let aiRequest = AIRequest(
+            systemPrompt: "You are a fitness coach providing post-workout analysis. Be encouraging, specific, and actionable.",
+            messages: [
+                AIChatMessage(
+                    role: .user,
+                    content: analysisPrompt,
+                    timestamp: Date()
+                )
+            ],
+            functions: [],
+            user: "workout-analysis"
+        )
 
-            // Get AI response
-            var analysisResult = ""
-            let responsePublisher = aiService.getStreamingResponse(for: aiRequest)
+        // Get AI response
+        var analysisResult = ""
+        let responsePublisher = aiService.getStreamingResponse(for: aiRequest)
 
-            await withCheckedContinuation { continuation in
-                var cancellables = Set<AnyCancellable>()
+        await withCheckedContinuation { continuation in
+            var cancellables = Set<AnyCancellable>()
 
-                responsePublisher
-                    .receive(on: DispatchQueue.main)
-                    .sink(
-                        receiveCompletion: { _ in
-                            continuation.resume()
-                        },
-                        receiveValue: { response in
-                            switch response {
-                            case .text(let text), .textDelta(let text):
-                                analysisResult += text
-                            default:
-                                break
-                            }
+            responsePublisher
+                .receive(on: DispatchQueue.main)
+                .sink(
+                    receiveCompletion: { _ in
+                        continuation.resume()
+                    },
+                    receiveValue: { response in
+                        switch response {
+                        case .text(let text), .textDelta(let text):
+                            analysisResult += text
+                        default:
+                            break
                         }
-                    )
-                    .store(in: &cancellables)
-            }
-
-            return analysisResult.isEmpty ? "Great workout! Keep up the excellent work." : analysisResult
-
-        } catch {
-            AppLogger.error("Failed to generate workout analysis", error: error, category: .ai)
-            return "Great workout! Keep up the excellent work."
+                    }
+                )
+                .store(in: &cancellables)
         }
+
+        return analysisResult.isEmpty ? "Great workout! Keep up the excellent work." : analysisResult
     }
 
     private func buildWorkoutAnalysisPrompt(_ request: PostWorkoutAnalysisRequest) -> String {
@@ -724,14 +718,17 @@ extension CoachEngine: FoodCoachEngineProtocol {
 
     func analyzeMealPhoto(image: UIImage, context: NutritionContext?) async throws -> MealPhotoAnalysisResult {
         // Create AI function call for meal photo analysis
+        let contextString = context != nil ? "User has \(context!.recentMeals.count) recent meals, date: \(context!.currentDate)" : ""
         let functionCall = AIFunctionCall(
             name: "analyzeMealPhoto",
             arguments: [
                 "imageData": AIAnyCodable("base64_image_data"),
-                "context": AIAnyCodable(context?.description ?? "")
+                "context": AIAnyCodable(contextString)
             ]
         )
         
+        // TODO: This method needs a user parameter to work properly
+        let user = User() // Temporary placeholder
         let result = try await executeFunction(functionCall, for: user)
         
         // Parse the result to extract detected food items
@@ -754,10 +751,195 @@ extension CoachEngine: FoodCoachEngineProtocol {
             ]
         )
         
+        // TODO: This method needs a user parameter to work properly
+        let user = User() // Temporary placeholder
         let result = try await executeFunction(functionCall, for: user)
         
         // Parse the result to extract food items
         // For now, return empty array as placeholder
         return []
+    }
+    
+    func parseNaturalLanguageFood(
+        text: String,
+        mealType: MealType,
+        for user: User
+    ) async throws -> [ParsedFoodItem] {
+        let startTime = CFAbsoluteTimeGetCurrent()
+        
+        let prompt = buildNutritionParsingPrompt(text: text, mealType: mealType, user: user)
+        
+        do {
+            let aiRequest = AIRequest(
+                systemPrompt: "You are a nutrition expert providing accurate food parsing. Return only valid JSON.",
+                messages: [AIChatMessage(role: .user, content: prompt)],
+                temperature: 0.1, // Low temperature for consistent nutrition data
+                maxTokens: 600,
+                user: "nutrition-parsing"
+            )
+            
+            var fullResponse = ""
+            var cancellables = Set<AnyCancellable>()
+            
+            let responsePublisher = aiService.getStreamingResponse(for: aiRequest)
+            
+            await withCheckedContinuation { continuation in
+                responsePublisher
+                    .receive(on: DispatchQueue.main)
+                    .sink(
+                        receiveCompletion: { completion in
+                            continuation.resume()
+                        },
+                        receiveValue: { response in
+                            switch response {
+                            case .text(let text), .textDelta(let text):
+                                fullResponse += text
+                            case .error(let aiError):
+                                AppLogger.error("AI nutrition parsing error", error: aiError, category: .ai)
+                            default:
+                                break
+                            }
+                        }
+                    )
+                    .store(in: &cancellables)
+            }
+            
+            let result = try parseNutritionJSON(fullResponse)
+            let validatedResult = validateNutritionValues(result)
+            
+            let duration = CFAbsoluteTimeGetCurrent() - startTime
+            AppLogger.info(
+                "AI nutrition parsing: \(validatedResult.count) items in \(Int(duration * 1000))ms | Input: '\(text)' | Validation: \(validatedResult.allSatisfy { $0.calories > 0 })",
+                category: .ai
+            )
+            
+            return validatedResult
+            
+        } catch {
+            AppLogger.error("AI nutrition parsing failed", error: error, category: .ai)
+            // Intelligent fallback rather than failing completely
+            return [createFallbackFoodItem(from: text, mealType: mealType)]
+        }
+    }
+    
+    // MARK: - Private Nutrition Parsing Methods
+    
+    private func buildNutritionParsingPrompt(text: String, mealType: MealType, user: User) -> String {
+        return """
+        Parse this food description into accurate nutrition data: "\(text)"
+        Meal type: \(mealType.rawValue)
+        
+        Return ONLY valid JSON with this exact structure:
+        {
+            "items": [
+                {
+                    "name": "food name",
+                    "brand": "brand name or null",
+                    "quantity": 1.5,
+                    "unit": "cups",
+                    "calories": 0,
+                    "proteinGrams": 0.0,
+                    "carbGrams": 0.0,
+                    "fatGrams": 0.0,
+                    "fiberGrams": 0.0,
+                    "sugarGrams": 0.0,
+                    "sodiumMilligrams": 0.0,
+                    "confidence": 0.95
+                }
+            ]
+        }
+        
+        Rules:
+        - Use USDA nutrition database accuracy
+        - If multiple items mentioned, include all
+        - Estimate quantities if not specified  
+        - Return realistic nutrition values (not 100 calories for everything!)
+        - Confidence 0.9+ for common foods, lower for ambiguous items
+        - No explanations or extra text, just JSON
+        """
+    }
+    
+    private func parseNutritionJSON(_ jsonString: String) throws -> [ParsedFoodItem] {
+        guard let data = jsonString.data(using: .utf8),
+              let json = try JSONSerialization.jsonObject(with: data) as? [String: Any],
+              let itemsArray = json["items"] as? [[String: Any]] else {
+            throw FoodTrackingError.invalidNutritionResponse
+        }
+        
+        return try itemsArray.map { itemDict in
+            guard let name = itemDict["name"] as? String,
+                  let quantity = itemDict["quantity"] as? Double,
+                  let unit = itemDict["unit"] as? String,
+                  let calories = itemDict["calories"] as? Int,
+                  let protein = itemDict["proteinGrams"] as? Double,
+                  let carbs = itemDict["carbGrams"] as? Double,
+                  let fat = itemDict["fatGrams"] as? Double else {
+                throw FoodTrackingError.invalidNutritionData
+            }
+            
+            return ParsedFoodItem(
+                name: name,
+                brand: itemDict["brand"] as? String,
+                quantity: quantity,
+                unit: unit,
+                calories: calories,
+                proteinGrams: protein,
+                carbGrams: carbs,
+                fatGrams: fat,
+                fiberGrams: itemDict["fiberGrams"] as? Double,
+                sugarGrams: itemDict["sugarGrams"] as? Double,
+                sodiumMilligrams: itemDict["sodiumMilligrams"] as? Double,
+                databaseId: nil,
+                confidence: Float(itemDict["confidence"] as? Double ?? 0.8)
+            )
+        }
+    }
+    
+    private func validateNutritionValues(_ items: [ParsedFoodItem]) -> [ParsedFoodItem] {
+        return items.compactMap { item in
+            // Reject obviously wrong values
+            guard item.calories > 0 && item.calories < 5000,
+                  item.proteinGrams >= 0 && item.proteinGrams < 300,
+                  item.carbGrams >= 0 && item.carbGrams < 1000,
+                  item.fatGrams >= 0 && item.fatGrams < 500 else {
+                AppLogger.warning("Rejected invalid nutrition values for \(item.name)", category: .ai)
+                return nil
+            }
+            return item
+        }
+    }
+    
+    private func createFallbackFoodItem(from text: String, mealType: MealType) -> ParsedFoodItem {
+        // Extract basic food name from text
+        let foodName = text.components(separatedBy: .whitespacesAndNewlines)
+            .first(where: { $0.count > 2 }) ?? "Unknown Food"
+        
+        // Reasonable default values based on meal type
+        let defaultCalories: Int = {
+            switch mealType {
+            case .breakfast: return 250
+            case .lunch: return 400
+            case .dinner: return 500
+            case .snack: return 150
+            case .preWorkout: return 200
+            case .postWorkout: return 300
+            }
+        }()
+        
+        return ParsedFoodItem(
+            name: foodName,
+            brand: nil,
+            quantity: 1.0,
+            unit: "serving",
+            calories: defaultCalories,
+            proteinGrams: Double(defaultCalories) * 0.15 / 4, // 15% protein
+            carbGrams: Double(defaultCalories) * 0.50 / 4,    // 50% carbs  
+            fatGrams: Double(defaultCalories) * 0.35 / 9,     // 35% fat
+            fiberGrams: 3.0,
+            sugarGrams: nil,
+            sodiumMilligrams: nil,
+            databaseId: nil,
+            confidence: 0.3 // Low confidence indicates fallback
+        )
     }
 }

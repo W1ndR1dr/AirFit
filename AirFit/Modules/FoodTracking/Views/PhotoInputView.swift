@@ -884,9 +884,4 @@ enum PhotoAnalysisError: LocalizedError {
             return "Analysis timed out"
         }
     }
-}
-
-struct VisionAnalysisResult {
-    let recognizedText: [String]
-    let confidence: Float
 } 

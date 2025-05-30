@@ -8,7 +8,7 @@ final class DashboardViewModelTests: XCTestCase {
     var modelContext: ModelContext!
     var mockHealthKitService: MockHealthKitService!
     var mockAICoachService: MockAICoachService!
-    var mockNutritionService: MockNutritionService!
+    var mockNutritionService: MockDashboardNutritionService!
 
     override func setUp() async throws {
         container = try ModelContainer.createTestContainer()
@@ -16,7 +16,7 @@ final class DashboardViewModelTests: XCTestCase {
 
         mockHealthKitService = MockHealthKitService()
         mockAICoachService = MockAICoachService()
-        mockNutritionService = MockNutritionService()
+        mockNutritionService = MockDashboardNutritionService()
     }
 
     override func tearDown() async throws {

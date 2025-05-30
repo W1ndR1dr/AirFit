@@ -147,6 +147,8 @@ enum FoodTrackingError: LocalizedError {
     case invalidInput
     case permissionDenied
     case aiProcessingTimeout
+    case invalidNutritionResponse
+    case invalidNutritionData
     
     var errorDescription: String? {
         switch self {
@@ -164,6 +166,10 @@ enum FoodTrackingError: LocalizedError {
             return "Permission denied"
         case .aiProcessingTimeout:
             return "AI processing timed out"
+        case .invalidNutritionResponse:
+            return "Invalid nutrition data from AI"
+        case .invalidNutritionData:
+            return "Malformed nutrition information"
         }
     }
 }

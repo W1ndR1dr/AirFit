@@ -107,13 +107,13 @@ actor PreviewCoachEngine: FoodCoachEngineProtocol {
             brand: nil,
             quantity: 1,
             unit: "serving",
-            calories: 100,
-            proteinGrams: 5,
-            carbGrams: 15,
-            fatGrams: 2,
-            fiberGrams: nil,
-            sugarGrams: nil,
-            sodiumMilligrams: nil,
+            calories: 280,
+            proteinGrams: 12,
+            carbGrams: 35,
+            fatGrams: 8,
+            fiberGrams: 4,
+            sugarGrams: 6,
+            sodiumMilligrams: 320,
             databaseId: nil,
             confidence: 0.9
         )
@@ -137,6 +137,31 @@ actor PreviewCoachEngine: FoodCoachEngineProtocol {
                 sodiumMilligrams: 300,
                 databaseId: nil,
                 confidence: 0.85
+            )
+        ]
+    }
+    
+    func parseNaturalLanguageFood(
+        text: String,
+        mealType: MealType,
+        for user: User
+    ) async throws -> [ParsedFoodItem] {
+        // Return mock parsed food items for previews
+        return [
+            ParsedFoodItem(
+                name: "Preview \(text)",
+                brand: nil,
+                quantity: 1.0,
+                unit: "serving",
+                calories: 200,
+                proteinGrams: 15,
+                carbGrams: 25,
+                fatGrams: 8,
+                fiberGrams: 3,
+                sugarGrams: 5,
+                sodiumMilligrams: 400,
+                databaseId: nil,
+                confidence: 0.8
             )
         ]
     }

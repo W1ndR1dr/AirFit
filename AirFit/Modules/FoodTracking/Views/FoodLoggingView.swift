@@ -13,15 +13,23 @@ struct FoodLoggingView: View {
         _coordinator = State(initialValue: coordinator)
     }
 
+    @MainActor
     init(user: User, modelContext: ModelContext) {
         let coordinator = FoodTrackingCoordinator()
         let adapter = FoodVoiceAdapter()
+        
+        // Create services within MainActor context to avoid data races
+        // Use nonisolated(unsafe) for modelContext since we know it's safe during initialization
+        nonisolated(unsafe) let unsafeModelContext = modelContext
+        let nutritionService = NutritionService(modelContext: unsafeModelContext)
+        let coachEngine = CoachEngine.createDefault(modelContext: unsafeModelContext)
+        
         let viewModel = FoodTrackingViewModel(
             modelContext: modelContext,
             user: user,
             foodVoiceAdapter: adapter,
-            nutritionService: NutritionService(modelContext: modelContext),
-            coachEngine: CoachEngine.createDefault(modelContext: modelContext),
+            nutritionService: nutritionService,
+            coachEngine: coachEngine,
             coordinator: coordinator
         )
         self.init(viewModel: viewModel, coordinator: coordinator)
@@ -474,20 +482,23 @@ private extension FoodItem {
     }
 }
 
-#if DEBUG
+#if DEBUG && false
 #Preview {
-    let container = ModelContainer.preview
-    let context = container.mainContext
-    let user = try! context.fetch(FetchDescriptor<User>()).first!
-    let vm = FoodTrackingViewModel(
-        modelContext: context,
-        user: user,
-        foodVoiceAdapter: FoodVoiceAdapter(),
-        nutritionService: NutritionService(modelContext: context),
-        coachEngine: CoachEngine.createDefault(modelContext: context),
-        coordinator: FoodTrackingCoordinator()
-    )
+    @Previewable @State var vm: FoodTrackingViewModel = {
+        let container = ModelContainer.preview
+        let context = container.mainContext
+        let user = try! context.fetch(FetchDescriptor<User>()).first!
+        return FoodTrackingViewModel(
+            modelContext: context,
+            user: user,
+            foodVoiceAdapter: FoodVoiceAdapter(),
+            nutritionService: NutritionService(modelContext: context),
+            coachEngine: CoachEngine.createDefault(modelContext: context),
+            coordinator: FoodTrackingCoordinator()
+        )
+    }()
+    
     FoodLoggingView(viewModel: vm)
-        .modelContainer(container)
+        .modelContainer(ModelContainer.preview)
 }
 #endif

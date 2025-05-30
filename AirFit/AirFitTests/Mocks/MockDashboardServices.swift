@@ -52,7 +52,7 @@ final class MockAICoachService: AICoachServiceProtocol, @preconcurrency MockProt
 }
 
 @MainActor
-final class MockNutritionService: DashboardNutritionServiceProtocol, @preconcurrency MockProtocol {
+final class MockDashboardNutritionService: DashboardNutritionServiceProtocol, @preconcurrency MockProtocol {
     var invocations: [String: [Any]] = [:]
     var stubbedResults: [String: Any] = [:]
     let mockLock = NSLock()

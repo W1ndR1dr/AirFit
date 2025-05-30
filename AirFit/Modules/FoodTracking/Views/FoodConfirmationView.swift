@@ -382,5 +382,27 @@ final class MockCoachEngine: FoodCoachEngineProtocol {
     func searchFoods(query: String, limit: Int) async throws -> [ParsedFoodItem] {
         []
     }
+    
+    func parseNaturalLanguageFood(
+        text: String,
+        mealType: MealType,
+        for user: User
+    ) async throws -> [ParsedFoodItem] {
+        [ParsedFoodItem(
+            name: text.components(separatedBy: .whitespacesAndNewlines).first ?? "Mock Food",
+            brand: nil,
+            quantity: 1.0,
+            unit: "serving",
+            calories: 150,
+            proteinGrams: 10.0,
+            carbGrams: 20.0,
+            fatGrams: 5.0,
+            fiberGrams: 3.0,
+            sugarGrams: 8.0,
+            sodiumMilligrams: 200.0,
+            databaseId: nil,
+            confidence: 0.8
+        )]
+    }
 }
 #endif

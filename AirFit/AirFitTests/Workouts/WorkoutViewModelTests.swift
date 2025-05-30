@@ -7,7 +7,7 @@ final class WorkoutViewModelTests: XCTestCase {
     var container: ModelContainer!
     var context: ModelContext!
     var user: User!
-    var mockCoach: MockCoachEngine!
+    var mockCoach: MockWorkoutCoachEngine!
     var mockHealth: MockHealthKitManager!
     var sut: WorkoutViewModel!
 
@@ -17,11 +17,8 @@ final class WorkoutViewModelTests: XCTestCase {
         user = User(name: "Tester")
         context.insert(user)
         try context.save()
-        mockCoach = MockCoachEngine()
+        mockCoach = MockWorkoutCoachEngine()
         mockHealth = MockHealthKitManager()
-        
-        // Reset ALL mock state for each test to prevent interference
-        mockCoach.reset()
         
         sut = WorkoutViewModel(
             modelContext: context,
@@ -574,4 +571,26 @@ final class WorkoutViewModelTests: XCTestCase {
         // If we reach here without crash, the observer was properly removed
         XCTAssertTrue(true)
     }
+}
+
+// MARK: - Test Mock
+@MainActor
+final class MockWorkoutCoachEngine: CoachEngineProtocol {
+    var mockAnalysis: String = "Mock analysis"
+    var didGenerateAnalysis: Bool = false
+    var shouldThrowError: Bool = false
+    
+    func processUserMessage(_ message: String, context: HealthContextSnapshot?) async throws -> [String: SendableValue] {
+        ["response": SendableValue.string("Mock workout response")]
+    }
+    
+    func generatePostWorkoutAnalysis(_ request: PostWorkoutAnalysisRequest) async throws -> String {
+        didGenerateAnalysis = true
+        if shouldThrowError {
+            throw TestError()
+        }
+        return mockAnalysis
+    }
+    
+    struct TestError: Error {}
 }
