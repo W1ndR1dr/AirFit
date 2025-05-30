@@ -1,6 +1,8 @@
 import SwiftUI
 import SwiftData
 import Observation
+import Foundation
+import UIKit
 
 /// Central business logic coordinator for food tracking.
 @MainActor
@@ -487,5 +489,19 @@ enum WaterUnit: String, CaseIterable {
         case .liters: return amount * 1000
         }
     }
+}
+
+// MARK: - Protocols
+
+/// Interface for AI-powered nutrition coaching features.
+protocol FoodCoachEngineProtocol: Sendable {
+    /// Processes a free-form user message related to nutrition.
+    func processUserMessage(_ message: String, context: HealthContextSnapshot?) async throws -> [String: SendableValue]
+
+    /// Executes a high-value function call on behalf of the user.
+    func executeFunction(_ functionCall: AIFunctionCall, for user: User) async throws -> FunctionExecutionResult
+
+    /// Analyzes a meal photo and returns detected foods and nutrition data.
+    func analyzeMealPhoto(image: UIImage, context: NutritionContext?) async throws -> MealPhotoAnalysisResult
 }
 
