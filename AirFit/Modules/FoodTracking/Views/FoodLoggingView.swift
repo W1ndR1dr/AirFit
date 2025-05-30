@@ -184,8 +184,8 @@ struct FoodLoggingView: View {
                     QuickActionButton(title: "Voice", icon: "mic.fill", color: AppColors.accent) {
                         Task { await viewModel.startVoiceInput() }
                     }
-                    QuickActionButton(title: "Barcode", icon: "barcode.viewfinder", color: .orange) {
-                        viewModel.startBarcodeScanning()
+                    QuickActionButton(title: "Photo", icon: "camera.fill", color: .orange) {
+                        coordinator.showSheet(.photoCapture)
                     }
                     QuickActionButton(title: "Search", icon: "magnifyingglass", color: .green) {
                         coordinator.showSheet(.foodSearch)
@@ -260,12 +260,17 @@ struct FoodLoggingView: View {
         let parsed = ParsedFoodItem(
             name: food.name,
             brand: food.brand,
-            quantity: food.quantity ?? 1,
+            quantity: food.quantity ?? 1.0,
             unit: food.unit ?? "serving",
             calories: food.calories ?? 0,
-            proteinGrams: food.proteinGrams,
-            carbGrams: food.carbGrams,
-            fatGrams: food.fatGrams,
+            proteinGrams: food.proteinGrams ?? 0,
+            carbGrams: food.carbGrams ?? 0,
+            fatGrams: food.fatGrams ?? 0,
+            fiberGrams: food.fiberGrams,
+            sugarGrams: food.sugarGrams,
+            sodiumMilligrams: food.sodiumMg,
+            barcode: food.barcode,
+            databaseId: nil,
             confidence: 1.0
         )
         viewModel.setParsedItems([parsed])
@@ -294,8 +299,8 @@ struct FoodLoggingView: View {
         switch sheet {
         case .voiceInput:
             VoiceInputView(viewModel: viewModel)
-        case .barcodeScanner:
-            PlaceholderView(title: "Barcode Scanner", subtitle: "Coming in Phase 4")
+        case .photoCapture:
+            PhotoInputView(viewModel: viewModel)
         case .foodSearch:
             PlaceholderView(title: "Food Search", subtitle: "Coming in Phase 3")
         case .manualEntry:
