@@ -170,6 +170,7 @@ targets:
       - AirFit/Modules/FoodTracking/FoodTrackingCoordinator.swift
       - AirFit/Modules/FoodTracking/ViewModels/FoodTrackingViewModel.swift
       - AirFit/Modules/FoodTracking/Views/VoiceInputView.swift
+      - AirFit/Modules/FoodTracking/Views/FoodConfirmationView.swift
       - AirFit/Modules/FoodTracking/Views/FoodLoggingView.swift
       # Application Layer Files (CRITICAL: XcodeGen nesting bug)
       - AirFit/Application/AirFitApp.swift
