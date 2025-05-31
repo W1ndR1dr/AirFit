@@ -79,6 +79,7 @@ targets:
       - AirFit/Core/Constants/AppConstants.swift
       - AirFit/Core/Enums/GlobalEnums.swift
       - AirFit/Core/Enums/AppError.swift
+      - AirFit/Core/Enums/MessageType.swift
       - AirFit/Core/Models/HealthContextSnapshot.swift
       - AirFit/Core/Models/WorkoutBuilderData.swift
       - AirFit/Core/Models/AI/AIModels.swift
@@ -243,6 +244,7 @@ targets:
       - AirFit/AirFitTests/Modules/AI/ConversationManagerTests.swift
       - AirFit/AirFitTests/Modules/AI/ConversationManagerPersistenceTests.swift
       - AirFit/AirFitTests/Modules/AI/ConversationManagerPerformanceTests.swift
+      - AirFit/AirFitTests/Modules/AI/MessageClassificationTests.swift
       - AirFit/AirFitTests/Services/WorkoutSyncServiceTests.swift
       - AirFit/AirFitTests/Workouts/WorkoutViewModelTests.swift
       - AirFit/AirFitTests/Workouts/WorkoutCoordinatorTests.swift

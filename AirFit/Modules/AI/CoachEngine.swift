@@ -70,23 +70,31 @@ final class CoachEngine {
                 activeConversationId = conversationId
             }
 
-            // Save user message first
-            _ = try await conversationManager.saveUserMessage(
+            // Step 1: Classify the message for optimization
+            let messageType = classifyMessage(text)
+            AppLogger.debug("Message classified as \(messageType.rawValue): '\(text.prefix(50))...'", category: .ai)
+
+            // Step 2: Save user message with classification
+            let savedMessage = try await conversationManager.saveUserMessage(
                 text,
                 for: user,
                 conversationId: conversationId
             )
+            
+            // Update message with classification
+            savedMessage.messageType = messageType
+            try modelContext.save()
 
-            AppLogger.info("Processing user message: \(text.prefix(50))...", category: .ai)
+            AppLogger.info("Processing user message (\(messageType.rawValue)): \(text.prefix(50))...", category: .ai)
 
-            // Step 1: Check for local commands first (instant response)
+            // Step 3: Check for local commands first (instant response)
             if let localResponse = await checkLocalCommand(text, for: user) {
                 await handleLocalCommandResponse(localResponse, for: user, conversationId: conversationId)
                 return
             }
 
-            // Step 2: Process through AI pipeline
-            await processAIResponse(text, for: user, conversationId: conversationId)
+            // Step 4: Process through AI pipeline with optimized history
+            await processAIResponse(text, for: user, conversationId: conversationId, messageType: messageType)
 
         } catch {
             await handleError(error)
@@ -128,7 +136,7 @@ final class CoachEngine {
             currentResponse = ""
             streamingTokens = []
 
-            await processAIResponse(lastUserMessage.content, for: user, conversationId: conversationId)
+            await processAIResponse(lastUserMessage.content, for: user, conversationId: conversationId, messageType: .conversation)
 
         } catch {
             await handleError(error)
@@ -214,6 +222,58 @@ final class CoachEngine {
 
     // MARK: - Private Methods
 
+    /// Classifies user messages to optimize conversation history and token usage
+    /// Commands need minimal context, conversations need full history
+    private func classifyMessage(_ text: String) -> MessageType {
+        let trimmedText = text.trimmingCharacters(in: .whitespacesAndNewlines)
+        let lowercased = trimmedText.lowercased()
+        
+        // Very short messages are likely commands
+        if trimmedText.count < 20 {
+            AppLogger.debug("Classified as command: short message (\(trimmedText.count) chars)", category: .ai)
+            return .command
+        }
+        
+        // Check for command indicators at start of message
+        let commandStarters = ["log ", "add ", "track ", "record ", "show ", "open ", "start "]
+        for starter in commandStarters {
+            if lowercased.hasPrefix(starter) {
+                AppLogger.debug("Classified as command: starts with '\(starter)'", category: .ai)
+                return .command
+            }
+        }
+        
+        // Check for nutrition/fitness keywords combined with short length
+        let nutritionKeywords = ["calories", "protein", "carbs", "fat", "water", "steps", "workout"]
+        let hasNutritionKeyword = nutritionKeywords.contains { lowercased.contains($0) }
+        
+        if hasNutritionKeyword && trimmedText.count < 50 {
+            AppLogger.debug("Classified as command: nutrition keyword + short length", category: .ai)
+            return .command
+        }
+        
+        // Check for typical command patterns
+        let commandPatterns = [
+            "\\d+\\s*(calories|cal|protein|carbs|fat|water|ml|oz|steps|lbs|kg)",
+            "^(yes|no|ok|thanks|got it)$",
+            "^\\d+\\s*\\w*\\s*\\w+$" // Numbers with units like "500 calories" or "2 apples"
+        ]
+        
+        for pattern in commandPatterns {
+            if let regex = try? NSRegularExpression(pattern: pattern, options: .caseInsensitive) {
+                let range = NSRange(trimmedText.startIndex..<trimmedText.endIndex, in: trimmedText)
+                if regex.firstMatch(in: trimmedText, options: [], range: range) != nil {
+                    AppLogger.debug("Classified as command: matches pattern '\(pattern)'", category: .ai)
+                    return .command
+                }
+            }
+        }
+        
+        // Default to conversation for complex, longer messages
+        AppLogger.debug("Classified as conversation: complex message requiring full context", category: .ai)
+        return .conversation
+    }
+
     private func startProcessing() async {
         isProcessing = true
         error = nil
@@ -268,7 +328,8 @@ final class CoachEngine {
     private func processAIResponse(
         _ text: String,
         for user: User,
-        conversationId: UUID
+        conversationId: UUID,
+        messageType: MessageType
     ) async {
         let startTime = CFAbsoluteTimeGetCurrent()
 
@@ -276,11 +337,17 @@ final class CoachEngine {
             // Step 1: Assemble health context
             let healthContext = await contextAssembler.assembleSnapshot(modelContext: modelContext)
 
-            // Step 2: Get conversation history
+            // Step 2: Get conversation history with optimized limit based on message type
+            let historyLimit = messageType.contextLimit
             let conversationHistory = try await conversationManager.getRecentMessages(
                 for: user,
                 conversationId: conversationId,
-                limit: 20
+                limit: historyLimit
+            )
+
+            AppLogger.debug(
+                "Using \(historyLimit) message history limit for \(messageType.rawValue) (retrieved \(conversationHistory.count) messages)",
+                category: .ai
             )
 
             // Step 3: Build persona-aware system prompt

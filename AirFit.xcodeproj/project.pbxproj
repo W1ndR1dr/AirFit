@@ -26,6 +26,7 @@
 		0D7E182E89919968B3670251 /* WorkoutListView.swift in Sources */ = {isa = PBXBuildFile; fileRef = EAFCB0E59BA93BC4BE68A4D6 /* WorkoutListView.swift */; };
 		0FA588682ACC878EC273B457 /* MockHealthKitManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = B02E24D2448C0526C44DC179 /* MockHealthKitManager.swift */; };
 		1048A144CB780210EEFF0E8C /* TemplatePickerView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 53467B4F453E5C5FC388CA7F /* TemplatePickerView.swift */; };
+		12B6FF12DF2A8AFB4B69E978 /* NutritionParsingIntegrationTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = E8C6B938D9B63FE7D9951C2F /* NutritionParsingIntegrationTests.swift */; };
 		12FFD0E192866E866D8F95B9 /* DashboardView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 659CD35F8BB8E97636643BA6 /* DashboardView.swift */; };
 		135611DC83543AC99BA14179 /* ChatSession.swift in Sources */ = {isa = PBXBuildFile; fileRef = 25D79D0DB9A0B710C72C5C52 /* ChatSession.swift */; };
 		13F220517908591DDF7FA536 /* DependencyContainer.swift in Sources */ = {isa = PBXBuildFile; fileRef = A00014C7394D2647776CC3F2 /* DependencyContainer.swift */; };
@@ -37,6 +38,7 @@
 		19DBBBFD53F4AD2E92C2D325 /* FunctionRegistry.swift in Sources */ = {isa = PBXBuildFile; fileRef = 72878C02DEAC17A3643F87E3 /* FunctionRegistry.swift */; };
 		1BED10DC23A5D3769F808C5C /* CoachProfileReadyView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 141E8F06298B74354B89F360 /* CoachProfileReadyView.swift */; };
 		1D932FAA5B2DD89C24F2DEDB /* FunctionCallDispatcherTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = AD765E53C595E218F64FB03D /* FunctionCallDispatcherTests.swift */; };
+		1DC0FBC08FC93E234AEAE414 /* MessageType.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1097A3AE7B375A2FE4A04F86 /* MessageType.swift */; };
 		1F31EDB6C4250A13D777A5BA /* NutritionParsingRegressionTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 42D8AA51E395E25961C063FB /* NutritionParsingRegressionTests.swift */; };
 		227F610ED1F6F102D7768727 /* AINutritionParsingTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 24562FBA0CCC7392CCD9F960 /* AINutritionParsingTests.swift */; };
 		241FDB8CE5B6763D4A9B235C /* DashboardViewModelTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5C212FB2F19D02079C9B0000 /* DashboardViewModelTests.swift */; };
@@ -194,6 +196,7 @@
 		DE51C17FA67A8A9595D02D24 /* CoachingStyleView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5D3F036864A47C18DC02E49B /* CoachingStyleView.swift */; };
 		DEFAE890F98400920E7B1394 /* NutritionFunctions.swift in Sources */ = {isa = PBXBuildFile; fileRef = CE792B0257E9B33707CB7B5F /* NutritionFunctions.swift */; };
 		E0F8DB986B0A9D68F4FA16DC /* OnboardingModelsTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 165513E132D7A2DEBDB1FB4F /* OnboardingModelsTests.swift */; };
+		E0F9CBB7EACD2EBD445573FF /* MessageClassificationTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = F2786BF5B755ECCF5643313B /* MessageClassificationTests.swift */; };
 		E1F4BAC99211764ECFCD34FD /* MockProtocol.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2B05825440FF4C2E15A4AAB8 /* MockProtocol.swift */; };
 		E59C1571ECC1A32F8A932B6C /* MealTemplate.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1E6D564ADEFA29B655709125 /* MealTemplate.swift */; };
 		E5A11A264AFDFB94B8DFB673 /* WorkoutBuilderData.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5A2DBDD235A3F8A366E0F7F1 /* WorkoutBuilderData.swift */; };
@@ -270,6 +273,7 @@
 		0947853FE5E37C9578CBF611 /* MessageBubbleView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MessageBubbleView.swift; sourceTree = "<group>"; };
 		0BBBC2C4D8C7D444E830427C /* HealthKitExtensions.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HealthKitExtensions.swift; sourceTree = "<group>"; };
 		0D1B0E4B3B17435F0248EC2C /* FoodVoiceServiceProtocol.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FoodVoiceServiceProtocol.swift; sourceTree = "<group>"; };
+		1097A3AE7B375A2FE4A04F86 /* MessageType.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MessageType.swift; sourceTree = "<group>"; };
 		1185899EEA8707E94651F350 /* KeychainWrapper.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = KeychainWrapper.swift; sourceTree = "<group>"; };
 		141E8F06298B74354B89F360 /* CoachProfileReadyView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CoachProfileReadyView.swift; sourceTree = "<group>"; };
 		165513E132D7A2DEBDB1FB4F /* OnboardingModelsTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OnboardingModelsTests.swift; sourceTree = "<group>"; };
@@ -442,6 +446,7 @@
 		E5BA2E9D29078B0C0D0B1EF2 /* NutritionCard.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NutritionCard.swift; sourceTree = "<group>"; };
 		E6C82CCA4A11E15F93E12709 /* Double+Extensions.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "Double+Extensions.swift"; sourceTree = "<group>"; };
 		E85C229B1F841E3355F51518 /* AIModels.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AIModels.swift; sourceTree = "<group>"; };
+		E8C6B938D9B63FE7D9951C2F /* NutritionParsingIntegrationTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NutritionParsingIntegrationTests.swift; sourceTree = "<group>"; };
 		E955287288FFEBE068ACE35D /* VoiceInputManagerTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = VoiceInputManagerTests.swift; sourceTree = "<group>"; };
 		EA2A995A0A83C1F7CCC586D2 /* NutritionServiceProtocol.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NutritionServiceProtocol.swift; sourceTree = "<group>"; };
 		EAFCB0E59BA93BC4BE68A4D6 /* WorkoutListView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WorkoutListView.swift; sourceTree = "<group>"; };
@@ -451,6 +456,7 @@
 		EFEA624A81E6E9538615BD31 /* View+Extensions.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "View+Extensions.swift"; sourceTree = "<group>"; };
 		F0D0F61B6D30B0340D36677E /* ChatMessage.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ChatMessage.swift; sourceTree = "<group>"; };
 		F12B964391AE27C0CBA30019 /* MockOnboardingService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MockOnboardingService.swift; sourceTree = "<group>"; };
+		F2786BF5B755ECCF5643313B /* MessageClassificationTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MessageClassificationTests.swift; sourceTree = "<group>"; };
 		F2A784C92B4D41F0C252AE3F /* HealthKitManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HealthKitManager.swift; sourceTree = "<group>"; };
 		F38BE41240143AD36C0C4637 /* ChatViewModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ChatViewModel.swift; sourceTree = "<group>"; };
 		F446D5F3B3192B5DE296EBC7 /* AppSpacing.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppSpacing.swift; sourceTree = "<group>"; };
@@ -899,6 +905,7 @@
 				65DC0EE6F2FEEF39AE85BA49 /* Data */,
 				28FD0C7E72A3C3BB39222380 /* FoodTracking */,
 				3F83AADE4F6FC1D9EFBB2429 /* Health */,
+				C1F4C0DC060A5369389B921E /* Integration */,
 				373A6654C70336CB2804E82B /* Mocks */,
 				24244774CA153256951E03DF /* Modules */,
 				759FEE731840BABDF41FC303 /* Performance */,
@@ -1091,6 +1098,14 @@
 			path = Base;
 			sourceTree = "<group>";
 		};
+		C1F4C0DC060A5369389B921E /* Integration */ = {
+			isa = PBXGroup;
+			children = (
+				E8C6B938D9B63FE7D9951C2F /* NutritionParsingIntegrationTests.swift */,
+			);
+			path = Integration;
+			sourceTree = "<group>";
+		};
 		C49D8A6E29CB0C312B86C370 /* Services */ = {
 			isa = PBXGroup;
 			children = (
@@ -1267,6 +1282,7 @@
 				0020B576B5B5BF046FCFF867 /* ConversationManagerTests.swift */,
 				AD765E53C595E218F64FB03D /* FunctionCallDispatcherTests.swift */,
 				6038A37C6C1CCD16D0389FE0 /* LocalCommandParserTests.swift */,
+				F2786BF5B755ECCF5643313B /* MessageClassificationTests.swift */,
 				58296DE7F4726AD43BBD29EA /* PersonaEngineTests.swift */,
 			);
 			path = AI;
@@ -1333,6 +1349,7 @@
 			children = (
 				A97A0AC75F43AEFC2B62D616 /* AppError.swift */,
 				44357F1191D6E3823BF3215D /* GlobalEnums.swift */,
+				1097A3AE7B375A2FE4A04F86 /* MessageType.swift */,
 			);
 			name = Enums;
 			path = AirFit/Core/Enums;
@@ -1527,6 +1544,7 @@
 				9725FC3C59EECD1F8EC73633 /* HealthKitManagerTests.swift in Sources */,
 				0A68CCFBB8CCEB7BE8CF29CD /* KeychainWrapperTests.swift in Sources */,
 				0228FBC3BF78B13015DE3512 /* LocalCommandParserTests.swift in Sources */,
+				E0F9CBB7EACD2EBD445573FF /* MessageClassificationTests.swift in Sources */,
 				EF6F6D8EF5A638B335822BF5 /* MockAIAPIService.swift in Sources */,
 				BA1CA749BF0CF5D5D9811DFA /* MockAIService.swift in Sources */,
 				3F1F0B4790E68A85AD75ED2F /* MockDashboardServices.swift in Sources */,
@@ -1540,6 +1558,7 @@
 				39B344BD44BE184422233AE6 /* MockWhisperServiceWrapper.swift in Sources */,
 				AFE8D8F4404F161219323F35 /* NutritionParsingExtensiveTests.swift in Sources */,
 				BC7C8848602C286560E43ED3 /* NutritionParsingFinalIntegrationTests.swift in Sources */,
+				12B6FF12DF2A8AFB4B69E978 /* NutritionParsingIntegrationTests.swift in Sources */,
 				6E1836D0E76F5107842277E9 /* NutritionParsingPerformanceTests.swift in Sources */,
 				1F31EDB6C4250A13D777A5BA /* NutritionParsingRegressionTests.swift in Sources */,
 				DAD726CE6AA94FA972079D47 /* OnboardingFlowViewTests.swift in Sources */,
@@ -1661,6 +1680,7 @@
 				E59C1571ECC1A32F8A932B6C /* MealTemplate.swift in Sources */,
 				75478E1BEC2DABEE87BD89F5 /* MessageBubbleView.swift in Sources */,
 				08E21AF1A4A16A26C4714811 /* MessageComposer.swift in Sources */,
+				1DC0FBC08FC93E234AEAE414 /* MessageType.swift in Sources */,
 				6F1CA06C0F16277989F3E348 /* MinimalContentView.swift in Sources */,
 				3D13B05E83BE4F7034FC93E0 /* MockAIService.swift in Sources */,
 				5EE5919E8054885C9C4AE3BB /* MockServices.swift in Sources */,

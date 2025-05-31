@@ -3,13 +3,37 @@ import Foundation
 
 @Model
 final class CoachMessage: @unchecked Sendable {
+    // MARK: - Database Performance Optimization
+    // CRITICAL: iOS 18 SwiftData indexing for query performance
+    // Individual indexes for timestamp (sorting), role (filtering), conversationID (conversation queries)
+    // Composite index for the most common query pattern: (user+conversation+timestamp)
+    #Index<CoachMessage>([\.timestamp], [\.role], [\.conversationID], [\.messageTypeRawValue], [\.conversationID, \.timestamp])
+    
     // MARK: - Properties
     var id: UUID
+    
+    // Indexed for all temporal queries and sorting operations
     var timestamp: Date
+    
+    // Indexed for filtering user vs assistant messages
     var role: String
+    
     @Attribute(.externalStorage)
     var content: String
+    
+    // Indexed for conversation-specific queries
     var conversationID: UUID?
+    
+    // FUTURE: Message type classification for performance optimization
+    // Commands need minimal history (5 messages), conversations need full history (20 messages)
+    // Using raw value storage for SwiftData compatibility with enum indexing
+    private var messageTypeRawValue: String = MessageType.conversation.rawValue
+    
+    // MARK: - Message Type Accessor
+    var messageType: MessageType {
+        get { MessageType(rawValue: messageTypeRawValue) ?? .conversation }
+        set { messageTypeRawValue = newValue.rawValue }
+    }
 
     // AI Metadata
     var modelUsed: String?
@@ -29,11 +53,17 @@ final class CoachMessage: @unchecked Sendable {
     var wasHelpful: Bool?
 
     // MARK: - Relationships
+    // User relationship enables composite index optimization for (user.id, conversationID, timestamp)
     var user: User?
 
     // MARK: - Computed Properties
     var messageRole: MessageRole? {
         MessageRole(rawValue: role)
+    }
+    
+    // FUTURE: Convenience property for message classification
+    var isCommand: Bool {
+        messageType == .command
     }
 
     var functionCall: FunctionCall? {
@@ -68,7 +98,8 @@ final class CoachMessage: @unchecked Sendable {
         role: MessageRole,
         content: String,
         conversationID: UUID? = nil,
-        user: User? = nil
+        user: User? = nil,
+        messageType: MessageType = .conversation
     ) {
         self.id = id
         self.timestamp = timestamp
@@ -76,6 +107,7 @@ final class CoachMessage: @unchecked Sendable {
         self.content = content
         self.conversationID = conversationID
         self.user = user
+        self.messageTypeRawValue = messageType.rawValue
     }
 
     // MARK: - Methods

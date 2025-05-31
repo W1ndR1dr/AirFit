@@ -105,26 +105,36 @@ final class ConversationManager {
     // MARK: - Message Retrieval
 
     /// Retrieves recent messages for AI service compatibility
+    /// PERFORMANCE OPTIMIZED: Uses SwiftData predicate instead of fetch-all-then-filter
     func getRecentMessages(
         for user: User,
         conversationId: UUID,
         limit: Int = 20
     ) async throws -> [AIChatMessage] {
-        // Fetch all messages for the user first, then filter in memory
-        var descriptor = FetchDescriptor<CoachMessage>()
-        descriptor.sortBy = [SortDescriptor(\.timestamp, order: .reverse)]
+        let startTime = CFAbsoluteTimeGetCurrent()
+        
+        // Use SwiftData predicate with conversation filtering first, then filter by user
+        var descriptor = FetchDescriptor<CoachMessage>(
+            predicate: #Predicate<CoachMessage> { message in
+                message.conversationID == conversationId
+            },
+            sortBy: [SortDescriptor(\.timestamp, order: .reverse)]
+        )
+        descriptor.fetchLimit = limit * 2 // Get extra to account for user filtering
 
         let allMessages = try modelContext.fetch(descriptor)
+        
+        // Filter by user in memory (should be very few messages per conversation)
+        let messages = Array(allMessages.filter { $0.user?.id == user.id }.prefix(limit))
+        
+        let queryTime = CFAbsoluteTimeGetCurrent() - startTime
+        AppLogger.debug(
+            "Query completed in \(Int(queryTime * 1_000))ms for \(messages.count) messages",
+            category: .ai
+        )
 
-        // Filter for the specific user and conversation
-        let filteredMessages = allMessages
-            .filter { message in
-                message.user?.id == user.id && message.conversationID == conversationId
-            }
-            .prefix(limit)
-
-        // Convert to AIChatMessage for AI service compatibility
-        let aiMessages = Array(filteredMessages.reversed()).compactMap { message -> AIChatMessage? in
+        // Convert to AIChatMessage for AI service compatibility (return in chronological order)
+        let aiMessages = Array(messages.reversed()).compactMap { message -> AIChatMessage? in
             guard let role = AIMessageRole(rawValue: message.role) else {
                 AppLogger.warning("Invalid message role: \(message.role)", category: .ai)
                 return nil
@@ -143,24 +153,37 @@ final class ConversationManager {
         }
 
         AppLogger.debug(
-            "Retrieved \(aiMessages.count) messages for conversation \(conversationId)",
+            "Retrieved \(aiMessages.count) messages for conversation \(conversationId) in \(Int(queryTime * 1_000))ms",
             category: .ai
         )
         return aiMessages
     }
 
     /// Gets conversation statistics
+    /// PERFORMANCE OPTIMIZED: Uses SwiftData predicate for targeted queries
     func getConversationStats(
         for user: User,
         conversationId: UUID
     ) async throws -> ConversationStats {
-        let descriptor = FetchDescriptor<CoachMessage>()
-        let allMessages = try modelContext.fetch(descriptor)
+        let startTime = CFAbsoluteTimeGetCurrent()
+        
+        // Use SwiftData predicate targeting specific conversation, then filter by user
+        let descriptor = FetchDescriptor<CoachMessage>(
+            predicate: #Predicate<CoachMessage> { message in
+                message.conversationID == conversationId
+            }
+        )
 
-        // Filter for the specific user and conversation
-        let messages = allMessages.filter { message in
-            message.user?.id == user.id && message.conversationID == conversationId
-        }
+        let allMessages = try modelContext.fetch(descriptor)
+        
+        // Filter by user in memory (conversations are typically small)
+        let messages = allMessages.filter { $0.user?.id == user.id }
+        
+        let queryTime = CFAbsoluteTimeGetCurrent() - startTime
+        AppLogger.debug(
+            "Stats query completed in \(Int(queryTime * 1_000))ms for \(messages.count) messages",
+            category: .ai
+        )
 
         let userMessages = messages.filter { $0.role == MessageRole.user.rawValue }
         let assistantMessages = messages.filter { $0.role == MessageRole.assistant.rawValue }
@@ -181,71 +204,67 @@ final class ConversationManager {
     // MARK: - Conversation Management
 
     /// Prunes old conversations to prevent memory bloat
+    /// PERFORMANCE OPTIMIZED: Uses targeted queries instead of fetch-all-then-filter
     func pruneOldConversations(
         for user: User,
         keepLast: Int = 5
     ) async throws {
-        // Get all messages for the user
-        var descriptor = FetchDescriptor<CoachMessage>()
-        descriptor.sortBy = [SortDescriptor(\.timestamp, order: .reverse)]
+        let startTime = CFAbsoluteTimeGetCurrent()
+        
+        // Get conversation IDs efficiently using our optimized method
+        let conversationIds = try await getConversationIds(for: user)
+        let idsToDelete = Array(conversationIds.dropFirst(keepLast))
 
-        let allMessages = try modelContext.fetch(descriptor)
-
-        // Filter for the specific user with non-nil conversation IDs
-        let userMessages = allMessages.filter { message in
-            message.user?.id == user.id && message.conversationID != nil
-        }
-
-        let conversationIds = Array(Set(userMessages.compactMap { $0.conversationID }))
-
-        // Group messages by conversation and find the most recent message in each
-        let conversationDates = conversationIds.compactMap { conversationId -> (UUID, Date)? in
-            let conversationMessages = userMessages.filter { $0.conversationID == conversationId }
-            guard let latestMessage = conversationMessages.max(by: { $0.timestamp < $1.timestamp }) else {
-                return nil
-            }
-            return (conversationId, latestMessage.timestamp)
-        }
-
-        // Sort by date and keep only the most recent conversations
-        let sortedConversations = conversationDates.sorted { $0.1 > $1.1 }
-        let conversationsToDelete = sortedConversations.dropFirst(keepLast).map { $0.0 }
-
-        if conversationsToDelete.isEmpty {
+        if idsToDelete.isEmpty {
             AppLogger.info("No conversations to prune for user \(user.id)", category: .ai)
             return
         }
 
-        // Delete messages from old conversations
-        let messagesToDelete = userMessages.filter { message in
-            guard let conversationId = message.conversationID else { return false }
-            return conversationsToDelete.contains(conversationId)
-        }
-
-        for message in messagesToDelete {
-            modelContext.delete(message)
+        var totalMessagesDeleted = 0
+        
+        // Delete messages from old conversations using targeted queries
+        for conversationId in idsToDelete {
+            let descriptor = FetchDescriptor<CoachMessage>(
+                predicate: #Predicate<CoachMessage> { message in
+                    message.conversationID == conversationId
+                }
+            )
+            
+            let allMessages = try modelContext.fetch(descriptor)
+            let messages = allMessages.filter { $0.user?.id == user.id }
+            
+            for message in messages {
+                modelContext.delete(message)
+            }
+            totalMessagesDeleted += messages.count
         }
 
         try modelContext.save()
 
+        let totalTime = CFAbsoluteTimeGetCurrent() - startTime
         AppLogger.info(
-            "Pruned \(conversationsToDelete.count) old conversations (\(messagesToDelete.count) messages) for user \(user.id)",
+            "Pruned \(idsToDelete.count) conversations (\(totalMessagesDeleted) messages) for user \(user.id) in \(Int(totalTime * 1_000))ms",
             category: .ai
         )
     }
 
     /// Deletes a specific conversation
+    /// PERFORMANCE OPTIMIZED: Uses SwiftData predicate for targeted deletion
     func deleteConversation(
         for user: User,
         conversationId: UUID
     ) async throws {
-        let descriptor = FetchDescriptor<CoachMessage>()
-        let allMessages = try modelContext.fetch(descriptor)
+        let startTime = CFAbsoluteTimeGetCurrent()
+        
+        // Use SwiftData predicate for conversation targeting
+        let descriptor = FetchDescriptor<CoachMessage>(
+            predicate: #Predicate<CoachMessage> { message in
+                message.conversationID == conversationId
+            }
+        )
 
-        // Filter for the specific user and conversation
-        let messages = allMessages.filter { message in
-            message.user?.id == user.id && message.conversationID == conversationId
-        }
+        let allMessages = try modelContext.fetch(descriptor)
+        let messages = allMessages.filter { $0.user?.id == user.id }
 
         for message in messages {
             modelContext.delete(message)
@@ -253,42 +272,74 @@ final class ConversationManager {
 
         try modelContext.save()
 
-        AppLogger.info("Deleted conversation \(conversationId) for user \(user.id)", category: .ai)
+        let totalTime = CFAbsoluteTimeGetCurrent() - startTime
+        AppLogger.info(
+            "Deleted conversation \(conversationId) (\(messages.count) messages) for user \(user.id) in \(Int(totalTime * 1_000))ms",
+            category: .ai
+        )
     }
 
     /// Gets all conversation IDs for a user
+    /// PERFORMANCE OPTIMIZED: Uses SwiftData predicate with sorting instead of memory operations
     func getConversationIds(for user: User) async throws -> [UUID] {
-        let descriptor = FetchDescriptor<CoachMessage>()
+        let startTime = CFAbsoluteTimeGetCurrent()
+        
+        // Use SwiftData predicate to get messages with conversation IDs
+        let descriptor = FetchDescriptor<CoachMessage>(
+            predicate: #Predicate<CoachMessage> { message in
+                message.conversationID != nil
+            },
+            sortBy: [SortDescriptor(\.timestamp, order: .reverse)]
+        )
+
         let allMessages = try modelContext.fetch(descriptor)
+        
+        // Filter by user and extract conversation IDs
+        let userMessages = allMessages.filter { $0.user?.id == user.id }
+        
+        let queryTime = CFAbsoluteTimeGetCurrent() - startTime
+        AppLogger.debug(
+            "Conversation IDs query completed in \(Int(queryTime * 1_000))ms for \(userMessages.count) messages",
+            category: .ai
+        )
 
-        // Filter for the specific user with non-nil conversation IDs
-        let messages = allMessages.filter { message in
-            message.user?.id == user.id && message.conversationID != nil
+        // Extract unique conversation IDs while preserving sort order (most recent first)
+        var seenIds = Set<UUID>()
+        let sortedIds = userMessages.compactMap { message -> UUID? in
+            guard let conversationId = message.conversationID,
+                  !seenIds.contains(conversationId) else { return nil }
+            seenIds.insert(conversationId)
+            return conversationId
         }
 
-        let conversationIds = Set(messages.compactMap { $0.conversationID })
-
-        return Array(conversationIds).sorted { id1, id2 in
-            // Sort by most recent message in each conversation
-            let date1 = messages.filter { $0.conversationID == id1 }.max { $0.timestamp < $1.timestamp }?.timestamp ?? Date.distantPast
-            let date2 = messages.filter { $0.conversationID == id2 }.max { $0.timestamp < $1.timestamp }?.timestamp ?? Date.distantPast
-            return date1 > date2
-        }
+        return sortedIds
     }
 
     /// Archives old messages while keeping conversation metadata
+    /// PERFORMANCE OPTIMIZED: Uses date-based predicate instead of fetch-all-then-filter
     func archiveOldMessages(
         for user: User,
         olderThan days: Int = 30
     ) async throws {
+        let startTime = CFAbsoluteTimeGetCurrent()
         let cutoffDate = Calendar.current.date(byAdding: .day, value: -days, to: Date()) ?? Date()
 
-        let descriptor = FetchDescriptor<CoachMessage>()
-        let allMessages = try modelContext.fetch(descriptor)
+        // Use SwiftData predicate for date filtering
+        let descriptor = FetchDescriptor<CoachMessage>(
+            predicate: #Predicate<CoachMessage> { message in
+                message.timestamp < cutoffDate
+            },
+            sortBy: [SortDescriptor(\.timestamp, order: .reverse)]
+        )
 
-        // Filter for the specific user and old messages
-        let oldMessages = allMessages.filter { message in
-            message.user?.id == user.id && message.timestamp < cutoffDate
+        let allOldMessages = try modelContext.fetch(descriptor)
+        
+        // Filter by user in memory
+        let oldMessages = allOldMessages.filter { $0.user?.id == user.id }
+
+        if oldMessages.isEmpty {
+            AppLogger.info("No old messages to archive for user \(user.id)", category: .ai)
+            return
         }
 
         // Keep only the last message from each conversation for context
@@ -310,8 +361,9 @@ final class ConversationManager {
 
         try modelContext.save()
 
+        let totalTime = CFAbsoluteTimeGetCurrent() - startTime
         AppLogger.info(
-            "Archived \(messagesToDelete.count) old messages for user \(user.id)",
+            "Archived \(messagesToDelete.count) old messages for user \(user.id) in \(Int(totalTime * 1_000))ms",
             category: .ai
         )
     }
