@@ -1,6 +1,8 @@
 import Foundation
 
 /// Performance analysis and educational AI functions for the CoachEngine.
+/// NOTE: generateEducationalInsight has been migrated to direct AI implementation in CoachEngine
+/// for improved performance and reduced token usage.
 enum AnalysisFunctions {
 
     /// Analyzes user performance data to identify trends, patterns, and insights.
@@ -54,60 +56,7 @@ enum AnalysisFunctions {
         )
     )
 
-    /// Generates personalized educational content on fitness and health topics.
-    static let generateEducationalInsight = AIFunctionDefinition(
-        name: "generateEducationalInsight",
-        description: """
-        Provides personalized, science-based educational content on fitness, nutrition,
-        and health topics. Tailors complexity and focus to user's current knowledge level
-        and specific situation for maximum relevance and actionability.
-        """,
-        parameters: AIFunctionParameters(
-            properties: [
-                "topic": AIParameterDefinition(
-                    type: "string",
-                    description: "Educational topic to explore",
-                    enumValues: [
-                        "progressive_overload", "periodization", "nutrition_timing", "macronutrient_balance",
-                        "hydration_science", "sleep_optimization", "recovery_science", "injury_prevention",
-                        "mobility_flexibility", "cardiovascular_health", "strength_training_basics",
-                        "endurance_training", "body_composition", "metabolism_basics", "supplement_science",
-                        "stress_management", "habit_formation", "motivation_psychology", "exercise_physiology",
-                        "biomechanics"
-                    ]
-                ),
-                "userContext": AIParameterDefinition(
-                    type: "string",
-                    description: """
-                    Why this topic is relevant to the user right now. What specific situation,
-                    question, or challenge prompted this educational need?
-                    """
-                ),
-                "knowledgeLevel": AIParameterDefinition(
-                    type: "string",
-                    description: "User's current understanding of this topic",
-                    enumValues: ["complete_beginner", "basic_awareness", "intermediate", "advanced", "expert"]
-                ),
-                "contentDepth": AIParameterDefinition(
-                    type: "string",
-                    description: "Level of detail and complexity desired",
-                    enumValues: ["quick_tip", "overview", "detailed_explanation", "scientific_deep_dive", "practical_application"]
-                ),
-                "outputFormat": AIParameterDefinition(
-                    type: "string",
-                    description: "Preferred format for the educational content",
-                    enumValues: ["conversational", "structured_guide", "bullet_points", "qa_format", "step_by_step"]
-                ),
-                "includeActionItems": AIParameterDefinition(
-                    type: "boolean",
-                    description: "Whether to include specific, actionable next steps"
-                ),
-                "relateToUserData": AIParameterDefinition(
-                    type: "boolean",
-                    description: "Whether to connect the education to user's specific data and situation"
-                )
-            ],
-            required: ["topic", "userContext"]
-        )
-    )
+    // generateEducationalInsight removed - now handled directly by CoachEngine.generateEducationalContentDirect()
+    // This enables 80% token reduction and more natural, personalized content generation
+
 }

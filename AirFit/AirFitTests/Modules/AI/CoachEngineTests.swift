@@ -129,13 +129,103 @@ final class CoachEngineTests: XCTestCase {
         XCTAssertFalse(sut.isProcessing)
     }
 
+    // MARK: - Direct AI Methods Tests (Phase 3 Implementation)
+
+    @MainActor
+    func test_parseAndLogNutritionDirect_basicFood_success() async throws {
+        // Given
+        let foodText = "2 slices whole wheat bread with peanut butter"
+
+        // When
+        let result = try await sut.parseAndLogNutritionDirect(
+            foodText: foodText,
+            for: testUser,
+            conversationId: UUID()
+        )
+
+        // Then
+        XCTAssertGreaterThan(result.items.count, 0, "Should parse at least one item")
+        XCTAssertGreaterThan(result.totalCalories, 100, "Should have realistic calories")
+        XCTAssertLessThan(result.totalCalories, 1000, "Should not have excessive calories")
+        XCTAssertGreaterThan(result.confidence, 0.5, "Should have reasonable confidence")
+        XCTAssertEqual(result.parseStrategy, .directAI, "Should use direct AI strategy")
+        XCTAssertGreaterThan(result.tokenCount, 0, "Should track token usage")
+        XCTAssertGreaterThan(result.processingTimeMs, 0, "Should track processing time")
+    }
+
+    @MainActor
+    func test_parseAndLogNutritionDirect_emptyInput_throwsError() async throws {
+        // Given
+        let invalidInput = ""
+
+        // When/Then
+        do {
+            _ = try await sut.parseAndLogNutritionDirect(
+                foodText: invalidInput,
+                for: testUser,
+                conversationId: UUID()
+            )
+            XCTFail("Should throw error for empty input")
+        } catch {
+            XCTAssertTrue(error is CoachEngineError, "Should throw CoachEngineError")
+        }
+    }
+
+    @MainActor
+    func test_generateEducationalContentDirect_basicTopic_success() async throws {
+        // Given
+        let topic = "progressive_overload"
+        let userContext = "I'm not seeing strength gains anymore"
+
+        // When
+        let result = try await sut.generateEducationalContentDirect(
+            topic: topic,
+            userContext: userContext,
+            for: testUser
+        )
+
+        // Then
+        XCTAssertEqual(result.topic, topic, "Should preserve topic")
+        XCTAssertGreaterThan(result.content.count, 100, "Should generate meaningful content")
+        XCTAssertLessThan(result.content.count, 2000, "Should not be excessively long")
+        XCTAssertGreaterThan(result.tokenCount, 0, "Should track token usage")
+        XCTAssertGreaterThan(result.personalizationLevel, 0.1, "Should have some personalization")
+        XCTAssertNotEqual(result.contentType, .general, "Should classify content type appropriately")
+    }
+
+    @MainActor
+    func test_generateEducationalContentDirect_exerciseTopic_classifiesCorrectly() async throws {
+        // Given
+        let topic = "deadlift_form"
+        let userContext = "I want to improve my deadlift technique"
+
+        // When
+        let result = try await sut.generateEducationalContentDirect(
+            topic: topic,
+            userContext: userContext,
+            for: testUser
+        )
+
+        // Then
+        XCTAssertEqual(result.contentType, .exercise, "Should classify as exercise content")
+        XCTAssertTrue(
+            result.content.localizedCaseInsensitiveContains("deadlift") ||
+            result.content.localizedCaseInsensitiveContains("form"),
+            "Content should relate to the topic"
+        )
+    }
+
     // MARK: - Helper Methods for Testing
 
     @MainActor
     private func createTestableCoachEngine() -> CoachEngine {
         // Create real implementations for integration testing
         let realLocalCommandParser = LocalCommandParser()
-        let realFunctionDispatcher = FunctionCallDispatcher()
+        let realFunctionDispatcher = FunctionCallDispatcher(
+            workoutService: MockWorkoutService(),
+            analyticsService: MockAnalyticsService(),
+            goalService: MockGoalService()
+        )
         let realPersonaEngine = PersonaEngine()
         let realConversationManager = ConversationManager(modelContext: modelContext)
         let realContextAssembler = ContextAssembler()
