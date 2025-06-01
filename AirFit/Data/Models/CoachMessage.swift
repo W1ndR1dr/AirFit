@@ -5,9 +5,9 @@ import Foundation
 final class CoachMessage: @unchecked Sendable {
     // MARK: - Database Performance Optimization
     // CRITICAL: iOS 18 SwiftData indexing for query performance
-    // Individual indexes for timestamp (sorting), role (filtering), conversationID (conversation queries)
-    // Composite index for the most common query pattern: (user+conversation+timestamp)
-    #Index<CoachMessage>([\.timestamp], [\.role], [\.conversationID], [\.messageTypeRawValue], [\.conversationID, \.timestamp])
+    // PHASE 2 FIX: Direct userID property for efficient database filtering
+    // Composite indexes for the most common query patterns: (userID+conversationID+timestamp)
+    #Index<CoachMessage>([\.userID], [\.timestamp], [\.role], [\.conversationID], [\.messageTypeRawValue], [\.userID, \.conversationID], [\.userID, \.conversationID, \.timestamp])
     
     // MARK: - Properties
     var id: UUID
@@ -20,6 +20,10 @@ final class CoachMessage: @unchecked Sendable {
     
     @Attribute(.externalStorage)
     var content: String
+    
+    // PHASE 2 FIX: Direct userID for efficient SwiftData predicate filtering
+    // This eliminates the need for relationship-based filtering in predicates
+    var userID: UUID
     
     // Indexed for conversation-specific queries
     var conversationID: UUID?
@@ -98,7 +102,7 @@ final class CoachMessage: @unchecked Sendable {
         role: MessageRole,
         content: String,
         conversationID: UUID? = nil,
-        user: User? = nil,
+        user: User,
         messageType: MessageType = .conversation
     ) {
         self.id = id
@@ -106,6 +110,7 @@ final class CoachMessage: @unchecked Sendable {
         self.role = role.rawValue
         self.content = content
         self.conversationID = conversationID
+        self.userID = user.id
         self.user = user
         self.messageTypeRawValue = messageType.rawValue
     }

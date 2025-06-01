@@ -96,32 +96,8 @@ struct CoachProfileReadyView: View {
     }
 
     private var styleText: String {
-        struct StylePair {
-            let value: Double
-            let name: String
-            let descriptor: String
-        }
-
-        let pairs = [
-            StylePair(value: viewModel.blend.authoritativeDirect,
-                      name: "Authoritative & Direct",
-                      descriptor: "clear"),
-            StylePair(value: viewModel.blend.encouragingEmpathetic,
-                      name: "Encouraging & Empathetic",
-                      descriptor: "motivational"),
-            StylePair(value: viewModel.blend.analyticalInsightful,
-                      name: "Analytical & Insightful",
-                      descriptor: "analytical"),
-            StylePair(value: viewModel.blend.playfullyProvocative,
-                      name: "Playfully Provocative",
-                      descriptor: "playful")
-        ]
-        let sorted = pairs.sorted { $0.value > $1.value }
-        let dominant = sorted.first!
-        let secondary = sorted.dropFirst().first!
-        return "Expect a primarily \(dominant.name) approach, " +
-            "with elements of \(secondary.name). " +
-            "Your coach will be \(dominant.descriptor) and \(secondary.descriptor)."
+        let persona = viewModel.selectedPersonaMode
+        return "Your coach will embody the \(persona.displayName) persona. \(persona.description)"
     }
 
     private var engagementText: String {

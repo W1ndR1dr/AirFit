@@ -1,25 +1,20 @@
 import SwiftUI
 import Observation
+import SwiftData
 
-// MARK: - CoachingStyleView (Phase 4 Refactored)
-struct CoachingStyleView: View {
+// MARK: - PersonaSelectionView
+struct PersonaSelectionView: View {
     @Bindable var viewModel: OnboardingViewModel
 
     var body: some View {
         VStack(spacing: AppSpacing.large) {
             ScrollView {
                 VStack(alignment: .leading, spacing: AppSpacing.large) {
-                    VStack(alignment: .leading, spacing: AppSpacing.medium) {
-                        Text(LocalizedStringKey("onboarding.coaching.title"))
-                            .font(AppFonts.headline)
-                            .foregroundColor(AppColors.textPrimary)
-                        
-                        Text(LocalizedStringKey("onboarding.coaching.prompt"))
-                            .font(AppFonts.body)
-                            .foregroundColor(AppColors.textSecondary)
-                    }
-                    .padding(.horizontal, AppSpacing.large)
-                    .accessibilityIdentifier("onboarding.coaching.header")
+                    Text(LocalizedStringKey("onboarding.persona.prompt"))
+                        .font(AppFonts.body)
+                        .foregroundColor(AppColors.textPrimary)
+                        .padding(.horizontal, AppSpacing.large)
+                        .accessibilityIdentifier("onboarding.persona.prompt")
 
                     LazyVGrid(columns: [
                         GridItem(.flexible()),
@@ -37,11 +32,6 @@ struct CoachingStyleView: View {
                         }
                     }
                     .padding(.horizontal, AppSpacing.large)
-                    
-                    if viewModel.selectedPersonaMode != .supportiveCoach {
-                        PersonaPreviewCard(selectedPersona: viewModel.selectedPersonaMode)
-                            .padding(.horizontal, AppSpacing.large)
-                    }
                 }
             }
 
@@ -54,7 +44,7 @@ struct CoachingStyleView: View {
             )
         }
         .accessibilityElement(children: .contain)
-        .accessibilityIdentifier("onboarding.coachingStyle")
+        .accessibilityIdentifier("onboarding.personaSelection")
     }
 }
 
@@ -85,12 +75,10 @@ private struct PersonaOptionCard: View {
                     .font(AppFonts.caption)
                     .foregroundColor(AppColors.textSecondary)
                     .multilineTextAlignment(.leading)
-                    .lineLimit(nil)
-                    .fixedSize(horizontal: false, vertical: true)
+                    .lineLimit(3)
             }
             .padding(AppSpacing.medium)
             .frame(maxWidth: .infinity, alignment: .leading)
-            .frame(minHeight: 120)
             .background(
                 RoundedRectangle(cornerRadius: AppConstants.Layout.defaultCornerRadius)
                     .fill(isSelected ? AppColors.accentColor.opacity(0.1) : AppColors.cardBackground)
@@ -101,35 +89,6 @@ private struct PersonaOptionCard: View {
             )
         }
         .buttonStyle(PlainButtonStyle())
-    }
-}
-
-// MARK: - PersonaPreviewCard
-private struct PersonaPreviewCard: View {
-    let selectedPersona: PersonaMode
-    
-    var body: some View {
-        VStack(alignment: .leading, spacing: AppSpacing.small) {
-            HStack {
-                Image(systemName: "quote.bubble.fill")
-                    .foregroundColor(AppColors.accentColor)
-                Text("Preview: \(selectedPersona.displayName)")
-                    .font(AppFonts.captionBold)
-                    .foregroundColor(AppColors.textPrimary)
-                Spacer()
-            }
-            
-            Text(selectedPersona.description)
-                .font(AppFonts.caption)
-                .foregroundColor(AppColors.textSecondary)
-                .multilineTextAlignment(.leading)
-        }
-        .padding(AppSpacing.medium)
-        .background(
-            RoundedRectangle(cornerRadius: AppConstants.Layout.defaultCornerRadius)
-                .fill(AppColors.accentColor.opacity(0.05))
-                .stroke(AppColors.accentColor.opacity(0.3), lineWidth: 1)
-        )
     }
 }
 
@@ -165,3 +124,18 @@ private struct NavigationButtons: View {
         .padding(.horizontal, AppSpacing.large)
     }
 }
+
+// MARK: - Preview
+#Preview {
+    PersonaSelectionView(viewModel: {
+        let tempContainer = try! ModelContainer(
+            for: OnboardingProfile.self,
+            configurations: ModelConfiguration(isStoredInMemoryOnly: true)
+        )
+        return OnboardingViewModel(
+            aiService: MockAIService(),
+            onboardingService: OnboardingService(modelContext: tempContainer.mainContext),
+            modelContext: tempContainer.mainContext
+        )
+    }())
+} 

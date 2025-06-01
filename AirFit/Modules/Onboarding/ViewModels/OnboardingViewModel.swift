@@ -148,12 +148,8 @@ final class OnboardingViewModel {
         try await onboardingService.saveProfile(profile)
 
         AppLogger.info(
-            "Onboarding completed successfully with persona: \(selectedPersonaMode.displayName)", 
-            category: .onboarding,
-            metadata: [
-                "persona_mode": selectedPersonaMode.rawValue,
-                "goal_family": goal.family.rawValue
-            ]
+            "Onboarding completed successfully with persona: \(selectedPersonaMode.displayName) (mode: \(selectedPersonaMode.rawValue), goal: \(goal.family.rawValue))", 
+            category: .onboarding
         )
 
         // Notify completion
@@ -170,6 +166,18 @@ final class OnboardingViewModel {
     /// Check if user has made persona selection
     var hasSelectedPersona: Bool {
         return true  // PersonaMode always has a valid default
+    }
+
+    /// Validate persona selection (replaces validateBlend)
+    func validatePersonaSelection() {
+        // PersonaMode enum ensures valid selection by design
+        // No validation needed - type safety handles this
+        AppLogger.info("Persona validated: \(selectedPersonaMode.displayName)", category: .onboarding)
+    }
+
+    // Legacy method name for UI compatibility during transition
+    func validateBlend() {
+        validatePersonaSelection()
     }
 
     // MARK: - Private Helpers

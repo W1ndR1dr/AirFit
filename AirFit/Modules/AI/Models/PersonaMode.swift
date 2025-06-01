@@ -81,7 +81,7 @@ public enum PersonaMode: String, Codable, CaseIterable, Sendable {
     /// Context-aware instructions that adapt based on user state
     /// This replaces the imperceptible mathematical micro-adjustments (±0.05-0.20)
     /// with intelligent, readable context adaptations
-    public func adaptedInstructions(for healthContext: HealthContextSnapshot) -> String {
+    func adaptedInstructions(for healthContext: HealthContextSnapshot) -> String {
         let baseInstructions = self.coreInstructions
         let contextAdaptations = buildContextAdaptations(healthContext)
 
@@ -143,7 +143,7 @@ public enum PersonaMode: String, Codable, CaseIterable, Sendable {
         // Sleep quality adaptations (replaces adjustForSleepQuality micro-tweaks)
         if let sleepQuality = context.sleep.lastNight?.quality {
             switch sleepQuality {
-            case .poor, .terrible:
+            case .poor:
                 adaptations.append("- User had poor sleep. Focus on recovery and avoid pushing too hard today.")
             case .excellent:
                 adaptations.append("- User had excellent sleep. They're likely ready for more challenging recommendations.")

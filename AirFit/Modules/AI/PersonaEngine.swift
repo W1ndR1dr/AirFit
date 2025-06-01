@@ -57,13 +57,8 @@ final class PersonaEngine {
         let estimatedTokens = prompt.count / 4 // Rough estimate: 4 chars per token
 
         AppLogger.info(
-            "Built optimized persona prompt: \(estimatedTokens) tokens in \(Int(duration * 1_000))ms",
-            category: .ai,
-            metadata: [
-                "persona_mode": personaMode.rawValue,
-                "estimated_tokens": estimatedTokens,
-                "duration_ms": Int(duration * 1_000)
-            ]
+            "Built optimized persona prompt: \(estimatedTokens) tokens in \(Int(duration * 1_000))ms (mode: \(personaMode.rawValue))",
+            category: .ai
         )
 
         // Warning if over target (should be <600 tokens with new system)
@@ -87,7 +82,7 @@ final class PersonaEngine {
     ) throws -> String {
         
         // Migrate Blend to PersonaMode
-        let personaMode = PersonaMigrationUtility.migrateBlendToPersonaMode(userProfile.blend)
+        let personaMode = PersonaMigrationUtility.migrateBlendToPersonaMode(userProfile.blend ?? Blend())
         
         // Build user context string
         let userGoal = userProfile.goal.rawText.isEmpty ? userProfile.goal.family.displayName : userProfile.goal.rawText

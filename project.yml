@@ -46,6 +46,7 @@ targets:
       - AirFit/Modules/Onboarding/Views/SleepAndBoundariesView.swift
       - AirFit/Modules/Onboarding/Views/HealthKitAuthorizationView.swift
       - AirFit/Modules/Onboarding/Views/CoachingStyleView.swift
+      - AirFit/Modules/Onboarding/Views/PersonaSelectionView.swift  # Phase 4: New persona selection UI
       - AirFit/Modules/Onboarding/Services/OnboardingService.swift
       - AirFit/Modules/Onboarding/Services/OnboardingServiceProtocol.swift
       - AirFit/Modules/Onboarding/Coordinators/OnboardingCoordinator.swift
@@ -252,6 +253,7 @@ targets:
       - AirFit/AirFitTests/Modules/AI/ConversationManagerPersistenceTests.swift
       - AirFit/AirFitTests/Modules/AI/ConversationManagerPerformanceTests.swift
       - AirFit/AirFitTests/Modules/AI/MessageClassificationTests.swift
+      - AirFit/AirFitTests/Modules/AI/Phase2ValidationTests.swift  # Phase 2: Database optimization validation
       - AirFit/AirFitTests/AI/ContextAnalyzerTests.swift
       - AirFit/AirFitTests/Performance/DirectAIPerformanceTests.swift
       - AirFit/AirFitTests/Services/WorkoutSyncServiceTests.swift
