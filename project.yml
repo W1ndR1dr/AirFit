@@ -83,6 +83,8 @@ targets:
       - AirFit/Core/Models/HealthContextSnapshot.swift
       - AirFit/Core/Models/WorkoutBuilderData.swift
       - AirFit/Core/Models/AI/AIModels.swift
+      - AirFit/Modules/AI/Models/DirectAIModels.swift
+      - AirFit/Modules/AI/Models/NutritionParseResult.swift
       - AirFit/Core/Models/NutritionPreferences.swift
       - AirFit/Core/Extensions/String+Extensions.swift
       - AirFit/Core/Extensions/View+Extensions.swift
@@ -98,6 +100,7 @@ targets:
       - AirFit/Core/Utilities/Formatters.swift
       - AirFit/Core/Utilities/Validators.swift
       - AirFit/Core/Utilities/HealthKitAuthManager.swift
+      - AirFit/Core/Utilities/PersonaMigrationUtility.swift  # Phase 4: Blend to PersonaMode migration
       - AirFit/Core/Theme/AppShadows.swift
       - AirFit/Core/Theme/AppSpacing.swift
       - AirFit/Core/Theme/AppColors.swift
@@ -125,9 +128,12 @@ targets:
       - AirFit/Modules/AI/Functions/FunctionCallDispatcher.swift
       - AirFit/Modules/AI/Functions/MockServices.swift
       - AirFit/Modules/AI/PersonaEngine.swift
+      - AirFit/Modules/AI/Models/PersonaMode.swift  # Phase 4: Discrete persona modes
       - AirFit/Modules/AI/ConversationManager.swift
       - AirFit/Modules/AI/CoachEngine.swift
+      - AirFit/Modules/AI/ContextAnalyzer.swift
       - AirFit/Modules/AI/WorkoutAnalysisEngine.swift
+      - AirFit/Modules/AI/Configuration/RoutingConfiguration.swift
       - AirFit/Modules/Dashboard/Services/DashboardServiceProtocols.swift
       - AirFit/Modules/Dashboard/ViewModels/DashboardViewModel.swift
       - AirFit/Modules/Dashboard/Views/DashboardView.swift
@@ -241,10 +247,13 @@ targets:
       - AirFit/AirFitTests/Modules/AI/FunctionCallDispatcherTests.swift
       - AirFit/AirFitTests/Modules/AI/CoachEngineTests.swift
       - AirFit/AirFitTests/Modules/AI/PersonaEngineTests.swift
+      - AirFit/AirFitTests/Modules/AI/PersonaEnginePerformanceTests.swift  # Phase 4: Performance validation
       - AirFit/AirFitTests/Modules/AI/ConversationManagerTests.swift
       - AirFit/AirFitTests/Modules/AI/ConversationManagerPersistenceTests.swift
       - AirFit/AirFitTests/Modules/AI/ConversationManagerPerformanceTests.swift
       - AirFit/AirFitTests/Modules/AI/MessageClassificationTests.swift
+      - AirFit/AirFitTests/AI/ContextAnalyzerTests.swift
+      - AirFit/AirFitTests/Performance/DirectAIPerformanceTests.swift
       - AirFit/AirFitTests/Services/WorkoutSyncServiceTests.swift
       - AirFit/AirFitTests/Workouts/WorkoutViewModelTests.swift
       - AirFit/AirFitTests/Workouts/WorkoutCoordinatorTests.swift

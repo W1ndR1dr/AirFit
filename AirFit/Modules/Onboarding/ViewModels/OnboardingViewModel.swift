@@ -17,10 +17,10 @@ final class OnboardingViewModel {
     private(set) var isLoading = false
     var error: Error?
 
-    // MARK: - Collected Data (matches OnboardingFlow.md structure)
+    // MARK: - Collected Data (Phase 4 Refactored - uses PersonaMode)
     var lifeContext = LifeContext()
     var goal = Goal()
-    var blend = Blend()
+    var selectedPersonaMode: PersonaMode = .supportiveCoach  // Phase 4: Discrete persona selection
     var engagementPreferences = EngagementPreferences()
     var sleepWindow = SleepWindow()
     var motivationalStyle = MotivationalStyle()
@@ -147,14 +147,29 @@ final class OnboardingViewModel {
         // Let the service handle all SwiftData operations to avoid conflicts
         try await onboardingService.saveProfile(profile)
 
-        AppLogger.info("Onboarding completed successfully", category: .onboarding)
+        AppLogger.info(
+            "Onboarding completed successfully with persona: \(selectedPersonaMode.displayName)", 
+            category: .onboarding,
+            metadata: [
+                "persona_mode": selectedPersonaMode.rawValue,
+                "goal_family": goal.family.rawValue
+            ]
+        )
 
         // Notify completion
         onCompletionCallback?()
     }
 
-    func validateBlend() {
-        blend.normalize()
+    // MARK: - Persona Selection Helpers (Phase 4)
+    
+    /// Preview text for selected persona mode
+    var personaPreviewText: String {
+        return selectedPersonaMode.description
+    }
+    
+    /// Check if user has made persona selection
+    var hasSelectedPersona: Bool {
+        return true  // PersonaMode always has a valid default
     }
 
     // MARK: - Private Helpers
@@ -171,15 +186,15 @@ final class OnboardingViewModel {
     }
 
     private func buildUserProfile() -> UserProfileJsonBlob {
-        UserProfileJsonBlob(
+        // Phase 4: Use new PersonaMode-based initializer
+        return PersonaMigrationUtility.createNewProfile(
             lifeContext: lifeContext,
             goal: goal,
-            blend: blend,
+            selectedPersonaMode: selectedPersonaMode,
             engagementPreferences: engagementPreferences,
             sleepWindow: sleepWindow,
             motivationalStyle: motivationalStyle,
-            timezone: timezone,
-            baselineModeEnabled: baselineModeEnabled
+            timezone: timezone
         )
     }
 
@@ -190,3 +205,16 @@ final class OnboardingViewModel {
         return String(format: "%02d:%02d", hour, minute)
     }
 }
+
+// MARK: - Phase 4 Refactor Complete
+//
+// ✅ ELIMINATED:
+// - blend: Blend property (replaced with selectedPersonaMode: PersonaMode)  
+// - validateBlend() method (no longer needed with discrete personas)
+// - Complex blend calculation and normalization logic
+//
+// ✅ REPLACED WITH:
+// - selectedPersonaMode: PersonaMode with clear, discrete options
+// - PersonaMode.allCases for simple UI iteration
+// - PersonaMigrationUtility.createNewProfile() for clean profile creation
+// - Built-in validation through enum type safety

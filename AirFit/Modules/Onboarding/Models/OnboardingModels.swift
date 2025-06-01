@@ -1,5 +1,7 @@
 import Foundation
 
+// Phase 4 Refactor: Clean v1 implementation with PersonaMode
+
 // MARK: - Navigation (9 screens per OnboardingFlow.md v3.2)
 enum OnboardingScreen: String, CaseIterable, Sendable {
     case openingScreen = "opening"
@@ -36,7 +38,7 @@ enum OnboardingScreen: String, CaseIterable, Sendable {
     }
 }
 
-// MARK: - Life Context (matches OnboardingFlow.md JSON structure)
+// MARK: - Life Context
 struct LifeContext: Codable, Sendable {
     var isDeskJob = false
     var isPhysicallyActiveWork = false
@@ -74,7 +76,7 @@ struct LifeContext: Codable, Sendable {
     }
 }
 
-// MARK: - Goal (matches OnboardingFlow.md structure)
+// MARK: - Goal
 struct Goal: Codable, Sendable {
     var family: GoalFamily = .healthWellbeing
     var rawText: String = ""
@@ -98,28 +100,7 @@ struct Goal: Codable, Sendable {
     }
 }
 
-// MARK: - Blend (matches OnboardingFlow.md structure)
-struct Blend: Codable, Sendable {
-    var authoritativeDirect: Double = 0.25
-    var encouragingEmpathetic: Double = 0.25
-    var analyticalInsightful: Double = 0.25
-    var playfullyProvocative: Double = 0.25
-
-    var isValid: Bool {
-        abs((authoritativeDirect + encouragingEmpathetic + analyticalInsightful + playfullyProvocative) - 1.0) < 0.01
-    }
-
-    mutating func normalize() {
-        let total = authoritativeDirect + encouragingEmpathetic + analyticalInsightful + playfullyProvocative
-        guard total > 0 else { return }
-        authoritativeDirect /= total
-        encouragingEmpathetic /= total
-        analyticalInsightful /= total
-        playfullyProvocative /= total
-    }
-}
-
-// MARK: - Engagement Preferences (matches OnboardingFlow.md structure)
+// MARK: - Engagement Preferences
 struct EngagementPreferences: Codable, Sendable {
     var trackingStyle: TrackingStyle = .dataDrivenPartnership
     var informationDepth: InformationDepth = .keyMetrics
@@ -188,7 +169,7 @@ struct EngagementPreferences: Codable, Sendable {
     }
 }
 
-// MARK: - Sleep Window (matches OnboardingFlow.md structure)
+// MARK: - Sleep Window
 struct SleepWindow: Codable, Sendable {
     var bedTime: String = "22:30"  // "HH:mm" format
     var wakeTime: String = "06:30" // "HH:mm" format
@@ -209,7 +190,7 @@ struct SleepWindow: Codable, Sendable {
     }
 }
 
-// MARK: - Motivational Style (matches OnboardingFlow.md structure)
+// MARK: - Motivational Style
 struct MotivationalStyle: Codable, Sendable {
     var celebrationStyle: CelebrationStyle = .subtleAffirming
     var absenceResponse: AbsenceResponse = .gentleNudge
@@ -253,17 +234,42 @@ struct MotivationalStyle: Codable, Sendable {
     }
 }
 
-// MARK: - USER_PROFILE_JSON_BLOB (matches SystemPrompt.md structure)
+// MARK: - USER_PROFILE_JSON_BLOB (Phase 4 Refactored)
 struct UserProfileJsonBlob: Codable, Sendable {
     let lifeContext: LifeContext
     let goal: Goal
-    let blend: Blend
+    let personaMode: PersonaMode  // Phase 4: Discrete persona modes
     let engagementPreferences: EngagementPreferences
     let sleepWindow: SleepWindow
     let motivationalStyle: MotivationalStyle
     let timezone: String
     let baselineModeEnabled: Bool
+    
+    // Legacy support for migration
+    let blend: Blend?
 
+    init(
+        lifeContext: LifeContext,
+        goal: Goal,
+        personaMode: PersonaMode,
+        engagementPreferences: EngagementPreferences,
+        sleepWindow: SleepWindow,
+        motivationalStyle: MotivationalStyle,
+        timezone: String = TimeZone.current.identifier,
+        baselineModeEnabled: Bool = true
+    ) {
+        self.lifeContext = lifeContext
+        self.goal = goal
+        self.personaMode = personaMode
+        self.engagementPreferences = engagementPreferences
+        self.sleepWindow = sleepWindow
+        self.motivationalStyle = motivationalStyle
+        self.timezone = timezone
+        self.baselineModeEnabled = baselineModeEnabled
+        self.blend = nil  // New profiles don't need legacy blend
+    }
+    
+    // Legacy initializer for migration support
     init(
         lifeContext: LifeContext,
         goal: Goal,
@@ -277,6 +283,7 @@ struct UserProfileJsonBlob: Codable, Sendable {
         self.lifeContext = lifeContext
         self.goal = goal
         self.blend = blend
+        self.personaMode = PersonaMigrationUtility.migrateBlendToPersonaMode(blend)
         self.engagementPreferences = engagementPreferences
         self.sleepWindow = sleepWindow
         self.motivationalStyle = motivationalStyle
@@ -284,3 +291,24 @@ struct UserProfileJsonBlob: Codable, Sendable {
         self.baselineModeEnabled = baselineModeEnabled
     }
 }
+
+// MARK: - Blend (Legacy - kept for backward compatibility during migration)
+struct Blend: Codable, Sendable {
+    var authoritativeDirect: Double = 0.25
+    var encouragingEmpathetic: Double = 0.35
+    var analyticalInsightful: Double = 0.30
+    var playfullyProvocative: Double = 0.10
+    
+    mutating func normalize() {
+        let total = authoritativeDirect + encouragingEmpathetic + analyticalInsightful + playfullyProvocative
+        guard total > 0 else { return }
+        
+        authoritativeDirect /= total
+        encouragingEmpathetic /= total
+        analyticalInsightful /= total
+        playfullyProvocative /= total
+    }
+}
+
+// MARK: - Migration Support
+// PersonaMigrationUtility moved to Core/Utilities/PersonaMigrationUtility.swift
