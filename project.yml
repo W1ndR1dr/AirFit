@@ -149,6 +149,7 @@ targets:
       - AirFit/Services/AI/LLMProviders/LLMModels.swift
       - AirFit/Services/AI/LLMProviders/AnthropicProvider.swift
       - AirFit/Services/AI/LLMProviders/OpenAIProvider.swift
+      - AirFit/Services/AI/LLMProviders/GeminiProvider.swift
       - AirFit/Services/AI/LLMOrchestrator.swift
       - AirFit/Modules/AI/Parsing/LocalCommandParser.swift
       - AirFit/Modules/AI/Functions/FunctionRegistry.swift

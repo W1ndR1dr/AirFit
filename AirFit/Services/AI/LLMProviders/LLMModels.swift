@@ -13,9 +13,10 @@ enum LLMModel {
     case gpt4
     case gpt35Turbo
     
-    // Google
+    // Google Gemini
+    case gemini15Pro
+    case gemini15Flash
     case geminiPro
-    case geminiProVision
     
     var identifier: String {
         switch self {
@@ -26,8 +27,9 @@ enum LLMModel {
         case .gpt4Turbo: return "gpt-4-turbo-preview"
         case .gpt4: return "gpt-4"
         case .gpt35Turbo: return "gpt-3.5-turbo"
-        case .geminiPro: return "gemini-pro"
-        case .geminiProVision: return "gemini-pro-vision"
+        case .gemini15Pro: return "gemini-1.5-pro"
+        case .gemini15Flash: return "gemini-1.5-flash"
+        case .geminiPro: return "gemini-1.0-pro"
         }
     }
     
@@ -37,7 +39,7 @@ enum LLMModel {
             return .anthropic
         case .gpt4Turbo, .gpt4, .gpt35Turbo:
             return .openai
-        case .geminiPro, .geminiProVision:
+        case .gemini15Pro, .gemini15Flash, .geminiPro:
             return .google
         }
     }
@@ -54,7 +56,11 @@ enum LLMModel {
             return 8_192
         case .gpt35Turbo:
             return 16_384
-        case .geminiPro, .geminiProVision:
+        case .gemini15Pro:
+            return 2_097_152  // 2M tokens
+        case .gemini15Flash:
+            return 1_048_576  // 1M tokens
+        case .geminiPro:
             return 32_768
         }
     }
@@ -76,9 +82,11 @@ enum LLMModel {
             return (0.03, 0.06)
         case .gpt35Turbo:
             return (0.0005, 0.0015)
+        case .gemini15Pro:
+            return (0.00125, 0.00375)
+        case .gemini15Flash:
+            return (0.00015, 0.0006)
         case .geminiPro:
-            return (0.0005, 0.0015)
-        case .geminiProVision:
             return (0.0005, 0.0015)
         }
     }
@@ -96,19 +104,19 @@ enum AITask {
         switch self {
         case .personalityExtraction:
             // Balance of quality and speed
-            return [.claude3Sonnet, .gpt4Turbo, .geminiPro]
+            return [.claude3Sonnet, .gpt4Turbo, .gemini15Flash]
         case .personaSynthesis:
             // Highest quality for creative generation
-            return [.claude3Opus, .gpt4Turbo, .claude3Sonnet]
+            return [.claude3Opus, .gemini15Pro, .gpt4Turbo]
         case .conversationAnalysis:
             // Fast and accurate
-            return [.claude3Haiku, .gpt35Turbo, .geminiPro]
+            return [.gemini15Flash, .claude3Haiku, .gpt35Turbo]
         case .coaching:
             // High quality conversational
-            return [.claude3Sonnet, .gpt4, .claude3Opus]
+            return [.claude3Sonnet, .gemini15Pro, .gpt4]
         case .quickResponse:
             // Speed matters most
-            return [.claude3Haiku, .gpt35Turbo, .geminiPro]
+            return [.gemini15Flash, .claude3Haiku, .gpt35Turbo]
         }
     }
 }

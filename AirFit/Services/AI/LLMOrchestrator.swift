@@ -104,7 +104,12 @@ final class LLMOrchestrator: ObservableObject {
             }
         }
         
-        // Google provider would be added here
+        // Setup Google Gemini
+        if let geminiKey = await apiKeyManager.getAPIKey(for: "gemini") {
+            let provider = GeminiProvider(apiKey: geminiKey)
+            providers[.google] = provider
+            availableProviders.insert(.google)
+        }
     }
     
     private func executeWithFallback(

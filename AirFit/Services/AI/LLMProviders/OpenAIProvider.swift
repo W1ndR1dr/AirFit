@@ -67,8 +67,16 @@ actor OpenAIProvider: LLMProvider {
         AsyncThrowingStream { continuation in
             Task {
                 do {
-                    var streamRequest = request
-                    streamRequest.stream = true
+                    let streamRequest = LLMRequest(
+                        messages: request.messages,
+                        model: request.model,
+                        temperature: request.temperature,
+                        maxTokens: request.maxTokens,
+                        systemPrompt: request.systemPrompt,
+                        responseFormat: request.responseFormat,
+                        stream: true,
+                        metadata: request.metadata
+                    )
                     
                     let openAIRequest = try buildOpenAIRequest(from: streamRequest)
                     let baseURL = config.baseURL ?? URL(string: "https://api.openai.com")!

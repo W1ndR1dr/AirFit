@@ -67,8 +67,16 @@ actor AnthropicProvider: LLMProvider {
         AsyncThrowingStream { continuation in
             Task {
                 do {
-                    var streamRequest = request
-                    streamRequest.stream = true
+                    let streamRequest = LLMRequest(
+                        messages: request.messages,
+                        model: request.model,
+                        temperature: request.temperature,
+                        maxTokens: request.maxTokens,
+                        systemPrompt: request.systemPrompt,
+                        responseFormat: request.responseFormat,
+                        stream: true,
+                        metadata: request.metadata
+                    )
                     
                     let anthropicRequest = try buildAnthropicRequest(from: streamRequest)
                     let url = URL(string: "https://api.anthropic.com/v1/messages")!
