@@ -5,7 +5,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 ## Project Overview
 **AirFit** - Voice-first AI-powered fitness & nutrition tracking app for iOS 18.0+ using SwiftUI, SwiftData, and multi-LLM AI integration. Chat-based interface with dynamic AI coach personas generated during onboarding.
 
-**Status**: Modules 0-8.5 complete, architecture tuneup COMPLETED ✅. Ready for modules 9-12 implementation.
+**Status**: Modules 0-10 COMPLETE ✅. Currently implementing Module 9 & 11 in parallel.
 
 ## Build & Run Commands
 ```bash
@@ -20,9 +20,6 @@ xcodebuild clean build -scheme "AirFit" -destination 'platform=iOS Simulator,nam
 swift test                                           # All tests
 swift test --filter AirFitTests.ModuleName          # Module-specific tests
 xcodebuild test -scheme "AirFit" -destination 'platform=iOS Simulator,name=iPhone 16 Pro,OS=18.4'
-
-# Architecture validation (tuneup completed ✅)
-bash Scripts/validate-tuneup.sh  # Shows all phases complete
 ```
 
 ## Architecture & Structure
@@ -48,18 +45,23 @@ AirFit/
 3. Verify the file appears in Xcode project navigator
 
 ## Key Documents
-- **Module Specs**: `Docs/Module9.md` through `Module12.md` - Implementation requirements
+- **Module Specs**: `Docs/Module9.md` and `Docs/Module11.md` - Current implementation targets
+- **Module 12**: `Docs/Module12.md` - Final integration and testing phase
 - **Architecture**: `Docs/ArchitectureAnalysis.md` - Comprehensive codebase analysis
-- **AI Refactor**: `Docs/AI Refactor/STATUS_AND_VISION.md` - Phase 4 completion status
-- **Tuneup Complete**: `Docs/Tuneup.md` - Architecture fixes COMPLETED ✅
+- **Agent Communication**: `claude2claude.md` - Inter-agent coordination for parallel work
 
 ## Module Implementation Sequence
-**Recommended order after tuneup completion:**
-1. **Module 10**: Services Layer (API Clients & AI Router) - Foundation for other modules
-2. **Module 9 & 11** (Parallel): 
+**Current Implementation Status:**
+1. **✅ Module 10**: Services Layer (API Clients & AI Router) - COMPLETE 
+2. **🚧 Module 9 & 11** (Parallel - Current Focus): 
    - Module 9: Notifications & Engagement Engine
    - Module 11: Settings Module (UI & Logic)
-3. **Module 12**: Testing & Quality Assurance Framework
+3. **📋 Module 12**: Testing & Quality Assurance Framework (Next)
+
+## Parallel Development Coordination
+- **Agent Communication**: Use `claude2claude.md` for coordination when needed
+- **Independence**: Modules 9 & 11 can be developed independently without conflicts
+- **Shared Dependencies**: Both modules depend on Module 10 services (already complete)
 
 ## Development Standards
 - **Performance Targets**: <1.5s app launch, 120fps transitions, <150MB memory, <3s persona generation
