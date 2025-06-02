@@ -65,6 +65,7 @@ targets:
       - AirFit/Modules/Onboarding/Views/UnifiedOnboardingView.swift
       - AirFit/Modules/Onboarding/Views/OnboardingStateView.swift
       - AirFit/Modules/Onboarding/Views/OptimizedGeneratingPersonaView.swift
+      - AirFit/Modules/Onboarding/Views/OnboardingErrorBoundary.swift
       - AirFit/Modules/Onboarding/Services/OnboardingService.swift
       - AirFit/Modules/Onboarding/Services/OnboardingServiceProtocol.swift
       - AirFit/Modules/Onboarding/Services/ConversationFlowManager.swift
@@ -76,6 +77,7 @@ targets:
       - AirFit/Modules/Onboarding/Services/OnboardingRecovery.swift
       - AirFit/Modules/Onboarding/Services/OnboardingProgressManager.swift
       - AirFit/Modules/Onboarding/Services/PersonaService.swift
+      - AirFit/Modules/Onboarding/Services/OfflinePersonaGenerator.swift
       - AirFit/Modules/Onboarding/Coordinators/OnboardingCoordinator.swift
       - AirFit/Modules/Onboarding/Coordinators/OnboardingFlowCoordinator.swift
       - AirFit/Modules/Onboarding/ConversationCoordinator.swift
@@ -132,11 +134,15 @@ targets:
       - AirFit/Core/Utilities/Validators.swift
       - AirFit/Core/Utilities/HealthKitAuthManager.swift
       - AirFit/Core/Utilities/PersonaMigrationUtility.swift  # Phase 4: Blend to PersonaMode migration
+      - AirFit/Core/Utilities/NetworkReachability.swift  # Phase 4: Network monitoring
+      - AirFit/Core/Utilities/NetworkReachability.swift  # Batch 4.3: Network monitoring
       - AirFit/Core/Theme/AppShadows.swift
       - AirFit/Core/Theme/AppSpacing.swift
       - AirFit/Core/Theme/AppColors.swift
       - AirFit/Core/Theme/AppFonts.swift
       - AirFit/Core/Views/CommonComponents.swift
+      - AirFit/Core/Views/ErrorPresentationView.swift  # Phase 4: Error handling UI
+      - AirFit/Core/Views/ErrorPresentationView.swift  # Batch 4.3: Error presentation
       - AirFit/Core/Protocols/ViewModelProtocol.swift
       - AirFit/Core/Services/WhisperModelManager.swift
       - AirFit/Core/Services/VoiceInputManager.swift
@@ -174,6 +180,7 @@ targets:
       - AirFit/Modules/AI/WorkoutAnalysisEngine.swift
       - AirFit/Modules/AI/PersonaSynthesis/PersonaSynthesizer.swift
       - AirFit/Modules/AI/PersonaSynthesis/OptimizedPersonaSynthesizer.swift
+      - AirFit/Modules/AI/PersonaSynthesis/FallbackPersonaGenerator.swift  # Phase 4: Error recovery
       - AirFit/Modules/AI/PersonaSynthesis/PreviewGenerator.swift
       - AirFit/Modules/AI/Models/PersonaModels.swift
       - AirFit/Modules/AI/Configuration/RoutingConfiguration.swift
@@ -323,6 +330,7 @@ targets:
       - AirFit/AirFitTests/Integration/PersonaSystemIntegrationTests.swift
       - AirFit/AirFitTests/Integration/OnboardingFlowTests.swift
       - AirFit/AirFitTests/Integration/PersonaGenerationTests.swift
+      - AirFit/AirFitTests/Integration/OnboardingErrorRecoveryTests.swift  # Phase 4: Error handling tests
       # Phase 3 Performance Tests
       - AirFit/AirFitTests/Performance/PersonaGenerationStressTests.swift
       - AirFit/AirFitTests/Mocks/MockAIService.swift

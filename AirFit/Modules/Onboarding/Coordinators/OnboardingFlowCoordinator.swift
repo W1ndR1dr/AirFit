@@ -25,6 +25,14 @@ final class OnboardingFlowCoordinator {
     private let cache = OnboardingCache()
     private var memoryWarningObserver: NSObjectProtocol?
     
+    // Error recovery
+    private lazy var recovery = OnboardingRecovery(cache: cache, modelContext: modelContext)
+    private let reachability = NetworkReachability.shared
+    
+    // Recovery state
+    var isRecovering = false
+    var recoveryMessage: String?
+    
     init(
         conversationManager: ConversationFlowManager,
         personaService: PersonaService,
@@ -38,6 +46,9 @@ final class OnboardingFlowCoordinator {
         
         // Setup memory monitoring
         setupMemoryMonitoring()
+        
+        // Monitor network connectivity
+        setupNetworkMonitoring()
     }
     
     deinit {
@@ -58,11 +69,26 @@ final class OnboardingFlowCoordinator {
         progress = 0.1
         
         do {
+            // Check network before starting
+            guard await reachability.isConnected else {
+                handleError(NetworkError.offline)
+                return
+            }
+            
             // Start new conversation session
             let userId = await userService.getCurrentUserId()
             conversationSession = try await conversationManager.startNewSession(userId: userId)
+            
+            // Save initial state for recovery
+            await recovery.saveRecoveryState(
+                userId: userId,
+                conversationData: nil,
+                insights: nil,
+                currentStep: currentView.rawValue,
+                responses: []
+            )
         } catch {
-            handleError(error)
+            await handleError(error)
         }
     }
     
@@ -77,6 +103,21 @@ final class OnboardingFlowCoordinator {
         progress = 0.7
         
         do {
+            // Save state before generation
+            if let userId = session.userId {
+                await recovery.saveRecoveryState(
+                    userId: userId,
+                    conversationData: ConversationData(
+                        userName: "User",
+                        primaryGoal: "fitness",
+                        responses: [:]
+                    ),
+                    insights: nil,
+                    currentStep: currentView.rawValue,
+                    responses: session.responses
+                )
+            }
+            
             // Mark session as complete
             session.completedAt = Date()
             
@@ -88,7 +129,7 @@ final class OnboardingFlowCoordinator {
             progress = 0.9
             
         } catch {
-            handleError(error)
+            await handleError(error)
         }
         
         isLoading = false
@@ -166,12 +207,87 @@ final class OnboardingFlowCoordinator {
     
     // MARK: - Error Handling
     
-    private func handleError(_ error: Error) {
+    private func handleError(_ error: Error) async {
         self.error = error
         HapticManager.error()
         
-        // Log error for debugging
-        print("Onboarding error: \(error.localizedDescription)")
+        // Log error
+        AppLogger.onboarding.error("Onboarding error: \(error)")
+        
+        // Check if we should attempt recovery
+        guard let userId = await userService.getCurrentUserId() else {
+            return
+        }
+        
+        isRecovering = true
+        let result = await recovery.attemptRecovery(
+            from: error,
+            userId: userId,
+            currentState: currentView
+        )
+        
+        await handleRecoveryResult(result, originalError: error)
+        isRecovering = false
+    }
+    
+    private func handleRecoveryResult(_ result: RecoveryResult, originalError: Error) async {
+        switch result {
+        case .retry(let delay):
+            recoveryMessage = "Retrying in \(Int(delay)) seconds..."
+            try? await Task.sleep(nanoseconds: UInt64(delay * 1_000_000_000))
+            recoveryMessage = nil
+            await retryLastAction()
+            
+        case .resume(let fromView):
+            recoveryMessage = "Resuming from \(fromView.title)..."
+            currentView = fromView
+            recoveryMessage = nil
+            
+        case .restart:
+            recoveryMessage = "Restarting onboarding..."
+            start()
+            recoveryMessage = nil
+            
+        case .abort(let reason):
+            self.error = OnboardingError.recoveryFailed(reason)
+            recoveryMessage = nil
+            
+        case .waitForConnection(let resumeFrom):
+            recoveryMessage = "Waiting for network connection..."
+            // Monitor network and resume when connected
+            Task {
+                await reachability.waitForConnection()
+                currentView = resumeFrom
+                recoveryMessage = nil
+                await retryLastAction()
+            }
+            
+        case .useAlternative(let approach):
+            await handleAlternativeApproach(approach)
+        }
+    }
+    
+    private func handleAlternativeApproach(_ approach: AlternativeApproach) async {
+        switch approach {
+        case .simplifiedGeneration:
+            recoveryMessage = "Using simplified generation..."
+            // Use simpler persona generation
+            await completeConversation()
+            
+        case .differentModel:
+            recoveryMessage = "Trying different AI model..."
+            // Retry with different model
+            await completeConversation()
+            
+        case .cachedResponse:
+            recoveryMessage = "Using cached response..."
+            // Try to use cached data
+            if let userId = await userService.getCurrentUserId(),
+               let cached = await cache.restoreSession(userId: userId) {
+                currentView = OnboardingView(rawValue: cached.currentStep) ?? .conversation
+            }
+        }
+        recoveryMessage = nil
     }
     
     func clearError() {
@@ -205,6 +321,18 @@ final class OnboardingFlowCoordinator {
         ) { [weak self] _ in
             Task { @MainActor in
                 self?.handleMemoryWarning()
+            }
+        }
+    }
+    
+    private func setupNetworkMonitoring() {
+        // Start monitoring network changes
+        Task {
+            for await status in reachability.statusPublisher.values {
+                if !status.isConnected && isLoading {
+                    // Network lost during operation
+                    await handleError(NetworkError.offline)
+                }
             }
         }
     }
@@ -245,6 +373,7 @@ final class OnboardingFlowCoordinator {
         if let userId = userService.getCurrentUser()?.id {
             Task {
                 await cache.clearSession(userId: userId)
+                await recovery.clearRecoveryState(userId: userId)
             }
         }
     }
@@ -298,6 +427,7 @@ enum OnboardingError: LocalizedError {
     case personaGenerationFailed(String)
     case saveFailed(String)
     case networkError(Error)
+    case recoveryFailed(String)
     
     var errorDescription: String? {
         switch self {
@@ -311,6 +441,8 @@ enum OnboardingError: LocalizedError {
             return "Failed to save your settings: \(detail)"
         case .networkError(let error):
             return "Network error: \(error.localizedDescription)"
+        case .recoveryFailed(let reason):
+            return "Recovery failed: \(reason)"
         }
     }
     
@@ -326,6 +458,8 @@ enum OnboardingError: LocalizedError {
             return "Check your connection and try again"
         case .networkError:
             return "Check your internet connection and retry"
+        case .recoveryFailed:
+            return "Please try again or contact support"
         }
     }
 }
