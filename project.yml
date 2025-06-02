@@ -36,7 +36,9 @@ targets:
       - AirFit/Modules/Onboarding/Models/ConversationModels.swift
       - AirFit/Modules/Onboarding/Models/PersonalityInsights.swift
       - AirFit/Modules/Onboarding/ViewModels/OnboardingViewModel.swift
+      - AirFit/Modules/Onboarding/ViewModels/ConversationViewModel.swift
       - AirFit/Modules/Onboarding/Views/OnboardingFlowView.swift
+      - AirFit/Modules/Onboarding/Views/ConversationView.swift
       - AirFit/Modules/Onboarding/Views/LifeSnapshotView.swift
       - AirFit/Modules/Onboarding/Views/OpeningScreenView.swift
       - AirFit/Modules/Onboarding/Views/CoachProfileReadyView.swift
@@ -49,6 +51,13 @@ targets:
       - AirFit/Modules/Onboarding/Views/HealthKitAuthorizationView.swift
       - AirFit/Modules/Onboarding/Views/CoachingStyleView.swift
       - AirFit/Modules/Onboarding/Views/PersonaSelectionView.swift  # Phase 4: New persona selection UI
+      - AirFit/Modules/Onboarding/Views/ConversationalInputView.swift
+      - AirFit/Modules/Onboarding/Views/InputModalities/TextInputView.swift
+      - AirFit/Modules/Onboarding/Views/InputModalities/VoiceInputView.swift
+      - AirFit/Modules/Onboarding/Views/InputModalities/VoiceVisualizer.swift
+      - AirFit/Modules/Onboarding/Views/InputModalities/ChoiceCardsView.swift
+      - AirFit/Modules/Onboarding/Views/InputModalities/ContextualSlider.swift
+      - AirFit/Modules/Onboarding/Views/ConversationProgress.swift
       - AirFit/Modules/Onboarding/Services/OnboardingService.swift
       - AirFit/Modules/Onboarding/Services/OnboardingServiceProtocol.swift
       - AirFit/Modules/Onboarding/Services/ConversationFlowManager.swift
@@ -56,6 +65,8 @@ targets:
       - AirFit/Modules/Onboarding/Services/ConversationPersistence.swift
       - AirFit/Modules/Onboarding/Services/ConversationAnalytics.swift
       - AirFit/Modules/Onboarding/Coordinators/OnboardingCoordinator.swift
+      - AirFit/Modules/Onboarding/ConversationCoordinator.swift
+      - AirFit/Modules/Onboarding/Data/ConversationFlowData.swift
       # Data Layer Models (CRITICAL: XcodeGen nesting bug)
       - AirFit/Data/Models/OnboardingProfile.swift
       - AirFit/Data/Models/User.swift
