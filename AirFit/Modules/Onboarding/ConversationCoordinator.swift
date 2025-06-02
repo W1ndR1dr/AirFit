@@ -3,29 +3,51 @@ import SwiftData
 
 @MainActor
 final class ConversationCoordinator: ObservableObject {
+    enum CoordinatorView {
+        case conversation(ConversationView)
+        case synthesis(PersonaSynthesisView)
+    }
+    
     @Published var isActive = false
-    @Published var currentView: ConversationView?
+    @Published var currentView: CoordinatorView?
     
     private let modelContext: ModelContext
     private let userId: UUID
+    private let apiKeyManager: APIKeyManagerProtocol
     private let onCompletion: (PersonaProfile) -> Void
+    
+    private var insights: PersonalityInsights?
+    private var conversationData: ConversationData?
     
     init(
         modelContext: ModelContext,
         userId: UUID,
+        apiKeyManager: APIKeyManagerProtocol,
         onCompletion: @escaping (PersonaProfile) -> Void
     ) {
         self.modelContext = modelContext
         self.userId = userId
+        self.apiKeyManager = apiKeyManager
         self.onCompletion = onCompletion
     }
     
     func start() {
         isActive = true
-        currentView = createConversationView()
+        currentView = .conversation(createConversationView())
     }
     
-    func handleCompletion(personaProfile: PersonaProfile) {
+    func handleConversationComplete(insights: PersonalityInsights, data: ConversationData) {
+        self.insights = insights
+        self.conversationData = data
+        
+        // Transition to synthesis
+        let synthesisView = createSynthesisView(insights: insights, data: data)
+        withAnimation(.easeInOut(duration: 0.3)) {
+            currentView = .synthesis(synthesisView)
+        }
+    }
+    
+    func handleSynthesisComplete(personaProfile: PersonaProfile) {
         isActive = false
         onCompletion(personaProfile)
     }
@@ -46,30 +68,56 @@ final class ConversationCoordinator: ObservableObject {
         )
         
         viewModel.onCompletion = { [weak self] insights in
-            // In Phase 2, this will generate a full PersonaProfile via AI
-            // For now, create a basic profile
-            let profile = PersonaProfile(
-                name: "Coach",
-                archetype: "Balanced Guide",
-                personalityPrompt: "A supportive fitness coach",
-                voiceCharacteristics: VoiceCharacteristics(
-                    pace: .moderate,
-                    energy: .balanced,
-                    warmth: .friendly
-                ),
-                interactionStyle: InteractionStyle(
-                    greetingStyle: "Hey there!",
-                    signoffStyle: "Keep pushing forward!",
-                    encouragementPhrases: ["You've got this!", "Great work!", "Keep it up!"],
-                    correctionStyle: "Let's adjust that slightly",
-                    humorLevel: .occasional
-                ),
-                sourceInsights: insights
-            )
+            guard let self = self,
+                  let session = flowManager.session else { return }
             
-            self?.handleCompletion(personaProfile: profile)
+            // Extract conversation data
+            let data = self.extractConversationData(from: session)
+            self.handleConversationComplete(insights: insights, data: data)
         }
         
         return ConversationView(viewModel: viewModel)
+    }
+    
+    private func createSynthesisView(insights: PersonalityInsights, data: ConversationData) -> PersonaSynthesisView {
+        let llmOrchestrator = LLMOrchestrator(apiKeyManager: apiKeyManager)
+        let synthesizer = PersonaSynthesizer(llm: llmOrchestrator)
+        
+        return PersonaSynthesisView(
+            synthesizer: synthesizer,
+            insights: insights,
+            conversationData: data,
+            onCompletion: { [weak self] persona in
+                self?.handleSynthesisComplete(personaProfile: persona)
+            }
+        )
+    }
+    
+    private func extractConversationData(from session: ConversationSession) -> ConversationData {
+        var responses: [String: Any] = [:]
+        
+        // Extract responses by node ID
+        for response in session.responses {
+            if let responseValue = try? JSONDecoder().decode(ResponseValue.self, from: response.responseData) {
+                switch responseValue {
+                case .text(let text):
+                    responses[response.nodeId] = text
+                case .choice(let choice):
+                    responses[response.nodeId] = choice
+                case .multiChoice(let choices):
+                    responses[response.nodeId] = choices
+                case .slider(let value):
+                    responses[response.nodeId] = value
+                case .voice(let transcription, _):
+                    responses[response.nodeId] = transcription
+                }
+            }
+        }
+        
+        return ConversationData(
+            userName: responses["opening"] as? String ?? "Friend",
+            primaryGoal: responses["goals-primary"] as? String ?? "Get fit",
+            responses: responses
+        )
     }
 }

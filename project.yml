@@ -58,6 +58,8 @@ targets:
       - AirFit/Modules/Onboarding/Views/InputModalities/ChoiceCardsView.swift
       - AirFit/Modules/Onboarding/Views/InputModalities/ContextualSlider.swift
       - AirFit/Modules/Onboarding/Views/ConversationProgress.swift
+      - AirFit/Modules/Onboarding/Views/PersonaSynthesisView.swift
+      - AirFit/Modules/Onboarding/Views/PersonaPreviewCard.swift
       - AirFit/Modules/Onboarding/Services/OnboardingService.swift
       - AirFit/Modules/Onboarding/Services/OnboardingServiceProtocol.swift
       - AirFit/Modules/Onboarding/Services/ConversationFlowManager.swift
@@ -137,6 +139,11 @@ targets:
       - AirFit/Services/AI/AIAPIServiceProtocol.swift
       - AirFit/Services/AI/AIServiceProtocol.swift
       - AirFit/Services/AI/MockAIService.swift
+      - AirFit/Services/AI/LLMProviders/LLMProvider.swift
+      - AirFit/Services/AI/LLMProviders/LLMModels.swift
+      - AirFit/Services/AI/LLMProviders/AnthropicProvider.swift
+      - AirFit/Services/AI/LLMProviders/OpenAIProvider.swift
+      - AirFit/Services/AI/LLMOrchestrator.swift
       - AirFit/Modules/AI/Parsing/LocalCommandParser.swift
       - AirFit/Modules/AI/Functions/FunctionRegistry.swift
       - AirFit/Modules/AI/Functions/WorkoutFunctions.swift
@@ -151,6 +158,8 @@ targets:
       - AirFit/Modules/AI/CoachEngine.swift
       - AirFit/Modules/AI/ContextAnalyzer.swift
       - AirFit/Modules/AI/WorkoutAnalysisEngine.swift
+      - AirFit/Modules/AI/PersonaSynthesis/PersonaSynthesizer.swift
+      - AirFit/Modules/AI/PersonaSynthesis/PreviewGenerator.swift
       - AirFit/Modules/AI/Configuration/RoutingConfiguration.swift
       - AirFit/Modules/Dashboard/Services/DashboardServiceProtocols.swift
       - AirFit/Modules/Dashboard/ViewModels/DashboardViewModel.swift
