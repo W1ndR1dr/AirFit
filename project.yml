@@ -33,6 +33,8 @@ targets:
           - "AirFitTests/**"
           - "AirFitUITests/**"
       - AirFit/Modules/Onboarding/Models/OnboardingModels.swift
+      - AirFit/Modules/Onboarding/Models/ConversationModels.swift
+      - AirFit/Modules/Onboarding/Models/PersonalityInsights.swift
       - AirFit/Modules/Onboarding/ViewModels/OnboardingViewModel.swift
       - AirFit/Modules/Onboarding/Views/OnboardingFlowView.swift
       - AirFit/Modules/Onboarding/Views/LifeSnapshotView.swift
@@ -49,6 +51,10 @@ targets:
       - AirFit/Modules/Onboarding/Views/PersonaSelectionView.swift  # Phase 4: New persona selection UI
       - AirFit/Modules/Onboarding/Services/OnboardingService.swift
       - AirFit/Modules/Onboarding/Services/OnboardingServiceProtocol.swift
+      - AirFit/Modules/Onboarding/Services/ConversationFlowManager.swift
+      - AirFit/Modules/Onboarding/Services/ResponseAnalyzer.swift
+      - AirFit/Modules/Onboarding/Services/ConversationPersistence.swift
+      - AirFit/Modules/Onboarding/Services/ConversationAnalytics.swift
       - AirFit/Modules/Onboarding/Coordinators/OnboardingCoordinator.swift
       # Data Layer Models (CRITICAL: XcodeGen nesting bug)
       - AirFit/Data/Models/OnboardingProfile.swift

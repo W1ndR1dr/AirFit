@@ -1,20 +1,24 @@
 **Modular Sub-Document 11: Settings Module (UI & Logic)**
 
-**Version:** 2.0
+**Version:** 2.1
 **Parent Document:** AirFit App - Master Architecture Specification (v1.2)
 **Prerequisites:**
 - Completion of Module 1: Core Project Setup & Configuration
 - Completion of Module 2: Data Layer (SwiftData Schema & Managers)
 - Completion of Module 9: Notifications & Engagement Engine
 - Completion of Module 10: Services Layer - AI API Client
+- **IMPORTANT**: Persona Refactor (Phases 1-4) implementation for synthesized coach personas
 **Date:** May 25, 2025
 **Updated For:** iOS 18+, macOS 15+, Xcode 16+, Swift 6+
+**Last Updated:** January 2025 - Removed 4-persona system, added synthesized persona support
 
 **1. Module Overview**
 
 *   **Purpose:** To provide users with a premium, intuitive settings experience for complete control over their AI coach, privacy, data management, and app preferences using iOS 18's latest design patterns and security features.
 *   **Responsibilities:**
-    *   AI coach persona customization with live preview
+    *   AI coach persona viewing and refinement for synthesized 2000+ token personas
+    *   Natural language persona adjustments
+    *   Persona evolution tracking and insights
     *   Secure API key management with biometric protection
     *   Multi-provider LLM configuration
     *   Granular notification preferences
@@ -180,6 +184,11 @@
       var selectedModel: String
       var availableProviders: [AIProvider] = []
       var installedAPIKeys: Set<AIProvider> = []
+      
+      // Synthesized Persona (NEW)
+      var coachPersona: CoachPersona?
+      var personaEvolution: PersonaEvolutionTracker
+      var personaUniquenessScore: Double = 0.0
       
       // Communication Preferences
       var notificationPreferences: NotificationPreferences
@@ -463,6 +472,57 @@
           // Load from user's export history
           return user.dataExports.sorted { $0.date > $1.date }
       }
+      
+      // MARK: - Persona Methods (NEW)
+      func loadCoachPersona() async throws {
+          // Load synthesized persona from user's coach configuration
+          if let personaData = user.coachPersonaData {
+              coachPersona = try JSONDecoder().decode(CoachPersona.self, from: personaData)
+              personaUniquenessScore = coachPersona?.uniquenessScore ?? 0
+          }
+          
+          // Load evolution tracker
+          personaEvolution = PersonaEvolutionTracker(user: user)
+      }
+      
+      func generatePersonaPreview(scenario: PreviewScenario) async throws -> String {
+          guard let persona = coachPersona else {
+              throw SettingsError.personaNotConfigured
+          }
+          
+          // Use AI service to generate preview with persona
+          let request = PersonaPreviewRequest(
+              persona: persona,
+              scenario: scenario,
+              userContext: user.currentContext
+          )
+          
+          return try await aiService.generatePersonaPreview(request)
+      }
+      
+      func applyNaturalLanguageAdjustment(_ adjustmentText: String) async throws {
+          guard let currentPersona = coachPersona else {
+              throw SettingsError.personaNotConfigured
+          }
+          
+          // Process adjustment through AI
+          let adjustedPersona = try await aiService.adjustPersona(
+              current: currentPersona,
+              adjustment: adjustmentText
+          )
+          
+          // Save updated persona
+          coachPersona = adjustedPersona
+          user.coachPersonaData = try JSONEncoder().encode(adjustedPersona)
+          try modelContext.save()
+          
+          // Track evolution
+          await personaEvolution.recordAdjustment(
+              type: .naturalLanguage,
+              description: adjustmentText,
+              impact: adjustedPersona.calculateDifference(from: currentPersona)
+          )
+      }
   }
   
   // MARK: - Supporting Types
@@ -472,6 +532,8 @@
       case apiKeyTestFailed
       case biometricsNotAvailable
       case exportFailed(String)
+      case personaNotConfigured
+      case personaAdjustmentFailed(String)
       
       var errorDescription: String? {
           switch self {
@@ -485,6 +547,10 @@
               return "Biometric authentication is not available on this device"
           case .exportFailed(let reason):
               return "Export failed: \(reason)"
+          case .personaNotConfigured:
+              return "Coach persona not configured. Please complete onboarding."
+          case .personaAdjustmentFailed(let reason):
+              return "Failed to adjust persona: \(reason)"
           }
       }
   }
@@ -826,6 +892,7 @@
 
 **Agent Task 11.2.1: Create AI Persona Settings**
 - File: `AirFit/Modules/Settings/Views/AIPersonaSettingsView.swift`
+- **NOTE**: This view supports the new conversational persona synthesis system with 2000+ token personas
 - Implementation:
   ```swift
   import SwiftUI
@@ -835,12 +902,14 @@
       @ObservedObject var viewModel: SettingsViewModel
       @State private var showPersonaRefinement = false
       @State private var previewText = "Let's crush today's workout! I see you're feeling energized - perfect timing for that strength session we planned."
+      @State private var isGeneratingPreview = false
       
       var body: some View {
           ScrollView {
               VStack(spacing: AppSpacing.xl) {
                   personaOverview
-                  coachingStyleChart
+                  personaTraits
+                  evolutionInsights
                   communicationPreferences
                   personaActions
               }
@@ -849,99 +918,173 @@
           .navigationTitle("AI Coach Persona")
           .navigationBarTitleDisplayMode(.large)
           .sheet(isPresented: $showPersonaRefinement) {
-              PersonaRefinementFlow(user: viewModel.user)
+              // Shows conversational refinement flow for synthesized personas
+              ConversationalPersonaRefinement(
+                  user: viewModel.user,
+                  currentPersona: viewModel.coachPersona
+              )
           }
       }
       
       private var personaOverview: some View {
           VStack(alignment: .leading, spacing: AppSpacing.md) {
-              SectionHeader(title: "Current Persona", icon: "person.fill")
+              SectionHeader(title: "Your Coach", icon: "person.fill")
               
               Card {
                   VStack(alignment: .leading, spacing: AppSpacing.md) {
-                      // Coaching blend summary
-                      if let profile = viewModel.user.onboardingProfile?.personaProfile {
-                          PersonaBlendView(blend: profile.coachingStyle.blend ?? StyleBlend())
+                      // Coach Identity
+                      if let persona = viewModel.coachPersona {
+                          HStack(alignment: .top) {
+                              VStack(alignment: .leading, spacing: AppSpacing.xs) {
+                                  Text(persona.identity.name)
+                                      .font(.title2.bold())
+                                  
+                                  Text(persona.identity.archetype)
+                                      .font(.subheadline)
+                                      .foregroundStyle(.secondary)
+                                  
+                                  // Uniqueness Score
+                                  HStack(spacing: AppSpacing.xs) {
+                                      Image(systemName: "sparkles")
+                                          .font(.caption)
+                                      Text("Uniqueness: \(Int(persona.uniquenessScore * 100))%")
+                                          .font(.caption)
+                                  }
+                                  .foregroundStyle(.accent)
+                              }
+                              
+                              Spacer()
+                              
+                              // Coach Avatar
+                              Circle()
+                                  .fill(LinearGradient(
+                                      colors: persona.identity.gradientColors,
+                                      startPoint: .topLeading,
+                                      endPoint: .bottomTrailing
+                                  ))
+                                  .frame(width: 80, height: 80)
+                                  .overlay {
+                                      Text(persona.identity.initials)
+                                          .font(.title.bold())
+                                          .foregroundStyle(.white)
+                                  }
+                          }
+                          
+                          Divider()
+                          
+                          // Core Philosophy
+                          VStack(alignment: .leading, spacing: AppSpacing.sm) {
+                              Label("Core Philosophy", systemImage: "quote.bubble")
+                                  .font(.subheadline)
+                                  .foregroundStyle(.secondary)
+                              
+                              Text(persona.coachingPhilosophy.core)
+                                  .font(.callout)
+                                  .italic()
+                          }
                       }
                       
                       Divider()
                       
-                      // Preview
+                      // Live Preview
                       VStack(alignment: .leading, spacing: AppSpacing.sm) {
-                          Label("Preview", systemImage: "quote.bubble")
-                              .font(.subheadline)
-                              .foregroundStyle(.secondary)
+                          HStack {
+                              Label("Live Preview", systemImage: "waveform")
+                                  .font(.subheadline)
+                                  .foregroundStyle(.secondary)
+                              
+                              Spacer()
+                              
+                              if isGeneratingPreview {
+                                  ProgressView()
+                                      .controlSize(.small)
+                              }
+                          }
                           
                           Text(previewText)
                               .font(.callout)
-                              .italic()
                               .padding()
                               .background(Color.secondaryBackground)
                               .clipShape(RoundedRectangle(cornerRadius: AppSpacing.radiusMd))
+                              .overlay {
+                                  RoundedRectangle(cornerRadius: AppSpacing.radiusMd)
+                                      .strokeBorder(Color.accent.opacity(0.3), lineWidth: 1)
+                              }
                       }
                   }
               }
           }
       }
       
-      private var coachingStyleChart: some View {
+      private var personaTraits: some View {
           VStack(alignment: .leading, spacing: AppSpacing.md) {
-              SectionHeader(title: "Coaching Style Blend", icon: "chart.pie.fill")
+              SectionHeader(title: "Personality Traits", icon: "brain")
               
               Card {
-                  if let blend = viewModel.user.onboardingProfile?.personaProfile?.coachingStyle.blend {
-                      Chart {
-                          if let authoritative = blend.authoritativeDirect {
-                              SectorMark(
-                                  angle: .value("Style", authoritative),
-                                  innerRadius: .ratio(0.5),
-                                  angularInset: 2
-                              )
-                              .foregroundStyle(Color.red.gradient)
-                              .annotation(position: .overlay) {
-                                  Text("\(Int(authoritative))%")
-                                      .font(.caption2)
-                                      .bold()
+                  if let persona = viewModel.coachPersona {
+                      LazyVGrid(columns: [
+                          GridItem(.flexible()),
+                          GridItem(.flexible())
+                      ], spacing: AppSpacing.md) {
+                          ForEach(persona.personality.dominantTraits, id: \.name) { trait in
+                              TraitCard(trait: trait)
+                          }
+                      }
+                  }
+              }
+          }
+      }
+      
+      private var evolutionInsights: some View {
+          VStack(alignment: .leading, spacing: AppSpacing.md) {
+              SectionHeader(title: "Persona Evolution", icon: "chart.line.uptrend.xyaxis")
+              
+              Card {
+                  VStack(spacing: AppSpacing.md) {
+                      // Evolution Status
+                      HStack {
+                          VStack(alignment: .leading, spacing: AppSpacing.xs) {
+                              Text("Adaptation Level")
+                                  .font(.subheadline)
+                                  .foregroundStyle(.secondary)
+                              
+                              Text("\(viewModel.personaEvolution.adaptationLevel)/5")
+                                  .font(.title3.bold())
+                          }
+                          
+                          Spacer()
+                          
+                          VStack(alignment: .trailing, spacing: AppSpacing.xs) {
+                              Text("Last Updated")
+                                  .font(.subheadline)
+                                  .foregroundStyle(.secondary)
+                              
+                              Text(viewModel.personaEvolution.lastUpdateDate.formatted(.relative(presentation: .named)))
+                                  .font(.caption)
+                          }
+                      }
+                      
+                      Divider()
+                      
+                      // Recent Adaptations
+                      VStack(alignment: .leading, spacing: AppSpacing.sm) {
+                          Text("Recent Adaptations")
+                              .font(.subheadline)
+                              .foregroundStyle(.secondary)
+                          
+                          ForEach(viewModel.personaEvolution.recentAdaptations, id: \.id) { adaptation in
+                              HStack(spacing: AppSpacing.sm) {
+                                  Image(systemName: adaptation.icon)
+                                      .font(.caption)
+                                      .foregroundStyle(.accent)
+                                  
+                                  Text(adaptation.description)
+                                      .font(.caption)
+                                  
+                                  Spacer()
                               }
                           }
-                          
-                          if let encouraging = blend.encouragingEmpathetic {
-                              SectorMark(
-                                  angle: .value("Style", encouraging),
-                                  innerRadius: .ratio(0.5),
-                                  angularInset: 2
-                              )
-                              .foregroundStyle(Color.green.gradient)
-                          }
-                          
-                          if let analytical = blend.analyticalInsightful {
-                              SectorMark(
-                                  angle: .value("Style", analytical),
-                                  innerRadius: .ratio(0.5),
-                                  angularInset: 2
-                              )
-                              .foregroundStyle(Color.blue.gradient)
-                          }
-                          
-                          if let playful = blend.playfullyProvocative {
-                              SectorMark(
-                                  angle: .value("Style", playful),
-                                  innerRadius: .ratio(0.5),
-                                  angularInset: 2
-                              )
-                              .foregroundStyle(Color.purple.gradient)
-                          }
                       }
-                      .frame(height: 200)
-                      
-                      // Legend
-                      VStack(alignment: .leading, spacing: AppSpacing.xs) {
-                          StyleLegendItem(color: .red, title: "Authoritative & Direct")
-                          StyleLegendItem(color: .green, title: "Encouraging & Empathetic")
-                          StyleLegendItem(color: .blue, title: "Analytical & Insightful")
-                          StyleLegendItem(color: .purple, title: "Playfully Provocative")
-                      }
-                      .padding(.top)
                   }
               }
           }
@@ -953,29 +1096,29 @@
               
               Card {
                   VStack(spacing: AppSpacing.md) {
-                      if let prefs = viewModel.user.onboardingProfile?.communicationPreferences {
-                          PreferenceRow(
-                              title: "Update Frequency",
-                              value: prefs.updateFrequency ?? "Moderate",
-                              icon: "clock"
+                      if let persona = viewModel.coachPersona {
+                          CommunicationRow(
+                              title: "Tone",
+                              value: persona.communicationStyle.tone.displayName,
+                              icon: "speaker.wave.2"
                           )
                           
-                          PreferenceRow(
-                              title: "Celebration Style",
-                              value: prefs.celebrationStyle ?? "Balanced",
-                              icon: "party.popper"
+                          CommunicationRow(
+                              title: "Energy Level",
+                              value: persona.communicationStyle.energyLevel.displayName,
+                              icon: "bolt"
                           )
                           
-                          PreferenceRow(
-                              title: "Absence Response",
-                              value: prefs.absenceResponse ?? "Gentle nudge",
-                              icon: "bell.slash"
+                          CommunicationRow(
+                              title: "Detail Level",
+                              value: persona.communicationStyle.detailLevel.displayName,
+                              icon: "doc.text"
                           )
                           
-                          PreferenceRow(
-                              title: "Language Style",
-                              value: prefs.languageComplexity ?? "Conversational",
-                              icon: "text.quote"
+                          CommunicationRow(
+                              title: "Humor Style",
+                              value: persona.communicationStyle.humorStyle.displayName,
+                              icon: "face.smiling"
                           )
                       }
                   }
@@ -986,7 +1129,7 @@
       private var personaActions: some View {
           VStack(spacing: AppSpacing.md) {
               Button(action: { showPersonaRefinement = true }) {
-                  Label("Refine Coach Persona", systemImage: "wand.and.stars")
+                  Label("Refine Through Conversation", systemImage: "bubble.left.and.bubble.right")
                       .frame(maxWidth: .infinity)
               }
               .buttonStyle(.primaryProminent)
@@ -996,86 +1139,73 @@
                       .frame(maxWidth: .infinity)
               }
               .buttonStyle(.secondary)
+              .disabled(isGeneratingPreview)
+              
+              // Natural Language Adjustment
+              NavigationLink(destination: NaturalLanguagePersonaAdjustment(viewModel: viewModel)) {
+                  Label("Adjust with Natural Language", systemImage: "text.quote")
+                      .frame(maxWidth: .infinity)
+              }
+              .buttonStyle(.bordered)
           }
       }
       
       private func generateNewPreview() {
-          // Simulate generating a new preview based on persona
-          let previews = [
-              "Great job today! Your consistency is really showing in your performance metrics.",
-              "Time to push those limits! I've noticed you're ready for the next level.",
-              "Remember, recovery is just as important as training. How are you feeling today?",
-              "Your heart rate data shows excellent cardiovascular improvements. Keep it up!",
-              "I see you missed yesterday's workout. No worries - let's make today count!"
-          ]
+          guard let persona = viewModel.coachPersona else { return }
           
-          withAnimation {
-              previewText = previews.randomElement() ?? previewText
+          isGeneratingPreview = true
+          
+          Task {
+              do {
+                  // Generate preview using actual coach persona
+                  let preview = try await viewModel.generatePersonaPreview(
+                      scenario: PreviewScenario.randomScenario()
+                  )
+                  
+                  await MainActor.run {
+                      withAnimation {
+                          previewText = preview
+                      }
+                      isGeneratingPreview = false
+                      HapticManager.impact(.light)
+                  }
+              } catch {
+                  await MainActor.run {
+                      isGeneratingPreview = false
+                  }
+              }
           }
-          
-          HapticManager.impact(.light)
       }
   }
   
   // MARK: - Supporting Views
-  struct PersonaBlendView: View {
-      let blend: StyleBlend
+  struct TraitCard: View {
+      let trait: PersonalityTrait
       
       var body: some View {
-          HStack(spacing: AppSpacing.sm) {
-              if let primary = primaryStyle {
-                  Tag(primary.name, color: primary.color)
+          VStack(alignment: .leading, spacing: AppSpacing.xs) {
+              HStack {
+                  Image(systemName: trait.icon)
+                      .font(.caption)
+                      .foregroundStyle(.accent)
+                  
+                  Text(trait.name)
+                      .font(.subheadline.bold())
               }
               
-              if let secondary = secondaryStyle {
-                  Tag(secondary.name, color: secondary.color, style: .secondary)
-              }
-          }
-      }
-      
-      private var primaryStyle: (name: String, color: Color)? {
-          let styles = [
-              (blend.authoritativeDirect ?? 0, "Authoritative", Color.red),
-              (blend.encouragingEmpathetic ?? 0, "Encouraging", Color.green),
-              (blend.analyticalInsightful ?? 0, "Analytical", Color.blue),
-              (blend.playfullyProvocative ?? 0, "Playful", Color.purple)
-          ].sorted { $0.0 > $1.0 }
-          
-          guard let first = styles.first, first.0 > 0 else { return nil }
-          return (first.1, first.2)
-      }
-      
-      private var secondaryStyle: (name: String, color: Color)? {
-          let styles = [
-              (blend.authoritativeDirect ?? 0, "Authoritative", Color.red),
-              (blend.encouragingEmpathetic ?? 0, "Encouraging", Color.green),
-              (blend.analyticalInsightful ?? 0, "Analytical", Color.blue),
-              (blend.playfullyProvocative ?? 0, "Playful", Color.purple)
-          ].sorted { $0.0 > $1.0 }
-          
-          guard styles.count > 1, styles[1].0 > 20 else { return nil }
-          return (styles[1].1, styles[1].2)
-      }
-  }
-  
-  struct StyleLegendItem: View {
-      let color: Color
-      let title: String
-      
-      var body: some View {
-          HStack(spacing: AppSpacing.xs) {
-              Circle()
-                  .fill(color.gradient)
-                  .frame(width: 12, height: 12)
-              
-              Text(title)
-                  .font(.caption)
+              Text(trait.description)
+                  .font(.caption2)
                   .foregroundStyle(.secondary)
+                  .lineLimit(2)
           }
+          .padding(AppSpacing.sm)
+          .frame(maxWidth: .infinity, alignment: .leading)
+          .background(Color.secondaryBackground)
+          .clipShape(RoundedRectangle(cornerRadius: AppSpacing.radiusSm))
       }
   }
   
-  struct PreferenceRow: View {
+  struct CommunicationRow: View {
       let title: String
       let value: String
       let icon: String
@@ -1089,6 +1219,94 @@
               
               Text(value)
                   .foregroundStyle(.secondary)
+                  .fontWeight(.medium)
+          }
+      }
+  }
+  
+  // MARK: - Natural Language Adjustment View
+  struct NaturalLanguagePersonaAdjustment: View {
+      @ObservedObject var viewModel: SettingsViewModel
+      @State private var adjustmentText = ""
+      @State private var isProcessing = false
+      @FocusState private var isTextFieldFocused: Bool
+      
+      var body: some View {
+          VStack(spacing: AppSpacing.xl) {
+              // Instructions
+              Card {
+                  VStack(alignment: .leading, spacing: AppSpacing.sm) {
+                      Label("Natural Language Adjustments", systemImage: "text.quote")
+                          .font(.headline)
+                      
+                      Text("Describe how you'd like your coach to change. For example:")
+                          .font(.callout)
+                          .foregroundStyle(.secondary)
+                      
+                      VStack(alignment: .leading, spacing: AppSpacing.xs) {
+                          Text("• \"Be more encouraging and less intense\"")
+                          Text("• \"Use more data and analytics in your feedback\"")
+                          Text("• \"Add more humor but keep it professional\"")
+                      }
+                      .font(.caption)
+                      .foregroundStyle(.secondary)
+                  }
+              }
+              
+              // Input Field
+              Card {
+                  VStack(alignment: .leading, spacing: AppSpacing.sm) {
+                      Text("Your Adjustment")
+                          .font(.subheadline.bold())
+                      
+                      TextField("Describe the change...", text: $adjustmentText, axis: .vertical)
+                          .textFieldStyle(.plain)
+                          .lineLimit(3...6)
+                          .focused($isTextFieldFocused)
+                  }
+              }
+              
+              // Apply Button
+              Button(action: applyAdjustment) {
+                  if isProcessing {
+                      ProgressView()
+                          .controlSize(.small)
+                  } else {
+                      Label("Apply Adjustment", systemImage: "wand.and.stars")
+                  }
+              }
+              .frame(maxWidth: .infinity)
+              .buttonStyle(.primaryProminent)
+              .disabled(adjustmentText.isEmpty || isProcessing)
+              
+              Spacer()
+          }
+          .padding()
+          .navigationTitle("Adjust Persona")
+          .navigationBarTitleDisplayMode(.inline)
+          .onAppear {
+              isTextFieldFocused = true
+          }
+      }
+      
+      private func applyAdjustment() {
+          isProcessing = true
+          
+          Task {
+              do {
+                  try await viewModel.applyNaturalLanguageAdjustment(adjustmentText)
+                  
+                  await MainActor.run {
+                      isProcessing = false
+                      adjustmentText = ""
+                      HapticManager.success()
+                  }
+              } catch {
+                  await MainActor.run {
+                      isProcessing = false
+                      // Show error
+                  }
+              }
           }
       }
   }

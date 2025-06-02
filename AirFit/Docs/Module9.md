@@ -6,6 +6,7 @@
     *   Completion of Modular Sub-Document 1: Core Project Setup & Configuration.
     *   Completion of Modular Sub-Document 2: Data Layer (SwiftData Schema & Managers) – `User`, `OnboardingProfile` (to access `communicationPreferencesData` which includes `absence_response`).
     *   Completion of Modular Sub-Document 5: AI Persona Engine & CoachEngine – for generating persona-driven notification content.
+    *   **Note**: After Persona Refactor completion, the CoachEngine will provide significantly richer, more personalized notification content using synthesized 2000+ token personas.
 **Date:** May 25, 2025
 **Updated For:** iOS 18+, macOS 15+, Xcode 16+, Swift 6+
 
@@ -639,6 +640,8 @@
               }
               
               // Generate personalized message using AI
+              // TODO: After Persona Refactor, messages will be far more nuanced
+              // using the user's unique synthesized coach persona
               let message = try await generateReEngagementMessage(for: user)
               
               // Schedule notification
