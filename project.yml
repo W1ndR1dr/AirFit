@@ -98,6 +98,8 @@ targets:
       - AirFit/Data/Models/ChatMessage.swift
       - AirFit/Data/Models/ChatAttachment.swift
       - AirFit/Data/Models/Exercise.swift
+      - AirFit/Data/Models/ConversationResponse.swift
+      - AirFit/Data/Models/ConversationSession.swift
       - AirFit/Data/Models/ExerciseTemplate.swift
       - AirFit/Data/Models/ExerciseSet.swift
       - AirFit/Data/Models/NutritionData.swift
@@ -211,6 +213,21 @@ targets:
       - AirFit/Services/Monitoring/ProductionMonitor.swift
       - AirFit/Services/Cache/OnboardingCache.swift
       - AirFit/Services/Network/RequestOptimizer.swift
+      - AirFit/Services/Network/NetworkManager.swift
+      - AirFit/Services/ServiceProtocols.swift
+      - AirFit/Services/ServiceConfiguration.swift
+      - AirFit/Services/ServiceRegistry.swift
+      - AirFit/Services/Security/KeychainHelper.swift
+      - AirFit/Services/AI/EnhancedAIAPIService.swift
+      - AirFit/Services/WeatherService.swift
+      - AirFit/Services/MockServices/MockNetworkManager.swift
+      - AirFit/Services/MockServices/MockAIAPIService.swift
+      - AirFit/Services/MockServices/MockWeatherService.swift
+      - AirFit/Services/MockServices/MockAPIKeyManager.swift
+      - AirFit/Services/AI/AIResponseParser.swift
+      - AirFit/Services/AI/AIRequestBuilder.swift
+      - AirFit/Core/Extensions/URLRequest+Extensions.swift
+      - AirFit/Core/Extensions/AIProvider+Extensions.swift
       - AirFit/Modules/Workouts/ViewModels/WorkoutViewModel.swift
       - AirFit/Modules/Workouts/Coordinators/WorkoutCoordinator.swift
       - AirFit/Modules/Workouts/Views/WorkoutListView.swift
@@ -297,6 +314,13 @@ targets:
       - AirFit/AirFitTests/Modules/Onboarding/OnboardingModelsTests.swift
       - AirFit/AirFitTests/Health/HealthKitManagerTests.swift
       - AirFit/AirFitTests/Mocks/MockHealthKitManager.swift
+      - AirFit/AirFitTests/Services/NetworkManagerTests.swift
+      - AirFit/AirFitTests/Services/ServiceProtocolsTests.swift
+      - AirFit/AirFitTests/Services/WeatherServiceTests.swift
+      - AirFit/AirFitTests/Services/MockServicesTests.swift
+      - AirFit/AirFitTests/Services/TestDataGenerators.swift
+      - AirFit/AirFitTests/Services/ServicePerformanceTests.swift
+      - AirFit/AirFitTests/Services/ServiceIntegrationTests.swift
       - AirFit/AirFitTests/Mocks/MockHealthKitPrefillProvider.swift
       - AirFit/AirFitTests/Mocks/MockDashboardServices.swift
       - AirFit/AirFitTests/Mocks/MockVoiceInputManager.swift

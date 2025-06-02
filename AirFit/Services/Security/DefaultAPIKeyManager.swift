@@ -1,7 +1,7 @@
 import Foundation
 
 /// Default implementation of APIKeyManagerProtocol using Keychain
-final class DefaultAPIKeyManager: APIKeyManagerProtocol {
+final class DefaultAPIKeyManager: APIKeyManagerProtocol, APIKeyManagementProtocol {
     private let keychain: KeychainWrapper
     private let keychainPrefix = "com.airfit.apikey."
     
@@ -63,6 +63,33 @@ final class DefaultAPIKeyManager: APIKeyManagerProtocol {
         try keychain.delete(forKey: key)
         
         AppLogger.info("Deleted API key for provider: \(provider)", category: .security)
+    }
+    
+    // MARK: - APIKeyManagementProtocol Methods
+    
+    func saveAPIKey(_ key: String, for provider: AIProvider) async throws {
+        try saveAPIKey(key, forProvider: provider)
+    }
+    
+    func getAPIKey(for provider: AIProvider) async throws -> String {
+        guard let apiKey = getAPIKey(forProvider: provider) else {
+            throw ServiceError.authenticationFailed("No API key found for \(provider.rawValue)")
+        }
+        return apiKey
+    }
+    
+    func deleteAPIKey(for provider: AIProvider) async throws {
+        try deleteAPIKey(forProvider: provider)
+    }
+    
+    func hasAPIKey(for provider: AIProvider) async -> Bool {
+        getAPIKey(forProvider: provider) != nil
+    }
+    
+    func getAllConfiguredProviders() async -> [AIProvider] {
+        return AIProvider.allCases.filter { provider in
+            await hasAPIKey(for: provider)
+        }
     }
     
     // MARK: - Private Methods
