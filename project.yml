@@ -60,12 +60,18 @@ targets:
       - AirFit/Modules/Onboarding/Views/ConversationProgress.swift
       - AirFit/Modules/Onboarding/Views/PersonaSynthesisView.swift
       - AirFit/Modules/Onboarding/Views/PersonaPreviewCard.swift
+      - AirFit/Modules/Onboarding/Views/UnifiedOnboardingView.swift
+      - AirFit/Modules/Onboarding/Views/OnboardingStateView.swift
       - AirFit/Modules/Onboarding/Services/OnboardingService.swift
       - AirFit/Modules/Onboarding/Services/OnboardingServiceProtocol.swift
       - AirFit/Modules/Onboarding/Services/ConversationFlowManager.swift
       - AirFit/Modules/Onboarding/Services/ResponseAnalyzer.swift
       - AirFit/Modules/Onboarding/Services/ConversationPersistence.swift
       - AirFit/Modules/Onboarding/Services/ConversationAnalytics.swift
+      - AirFit/Modules/Onboarding/Services/OnboardingOrchestrator.swift
+      - AirFit/Modules/Onboarding/Services/OnboardingState.swift
+      - AirFit/Modules/Onboarding/Services/OnboardingRecovery.swift
+      - AirFit/Modules/Onboarding/Services/OnboardingProgressManager.swift
       - AirFit/Modules/Onboarding/Coordinators/OnboardingCoordinator.swift
       - AirFit/Modules/Onboarding/ConversationCoordinator.swift
       - AirFit/Modules/Onboarding/Data/ConversationFlowData.swift
@@ -205,10 +211,8 @@ targets:
       - AirFit/Modules/FoodTracking/Models/FoodTrackingModels.swift
       - AirFit/Modules/FoodTracking/FoodTrackingCoordinator.swift
       - AirFit/Modules/FoodTracking/ViewModels/FoodTrackingViewModel.swift
-      - AirFit/Modules/FoodTracking/Views/VoiceInputView.swift
       - AirFit/Modules/FoodTracking/Views/FoodConfirmationView.swift
       - AirFit/Modules/FoodTracking/Views/FoodLoggingView.swift
-      - AirFit/Modules/FoodTracking/Views/FoodConfirmationView.swift
       - AirFit/Modules/FoodTracking/Views/PhotoInputView.swift
       - AirFit/Modules/FoodTracking/Views/MacroRingsView.swift
       - AirFit/Modules/FoodTracking/Views/WaterTrackingView.swift
