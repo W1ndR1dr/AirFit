@@ -300,7 +300,7 @@ struct AdaptationRule: Codable, Sendable {
 struct PersonaMetadata: Codable, Sendable {
     let createdAt: Date
     let version: String
-    let sourceInsights: PersonalityInsights
+    let sourceInsights: ConversationPersonalityInsights
     let generationDuration: TimeInterval
     let tokenCount: Int
     let previewReady: Bool

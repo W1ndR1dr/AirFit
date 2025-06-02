@@ -428,6 +428,9 @@ enum OnboardingError: LocalizedError {
     case saveFailed(String)
     case networkError(Error)
     case recoveryFailed(String)
+    case noUserFound
+    case invalidProfileData
+    case missingRequiredField(String)
     
     var errorDescription: String? {
         switch self {
@@ -443,6 +446,12 @@ enum OnboardingError: LocalizedError {
             return "Network error: \(error.localizedDescription)"
         case .recoveryFailed(let reason):
             return "Recovery failed: \(reason)"
+        case .noUserFound:
+            return "No user found for onboarding"
+        case .invalidProfileData:
+            return "Invalid profile data"
+        case .missingRequiredField(let field):
+            return "Missing required field: \(field)"
         }
     }
     
@@ -460,6 +469,12 @@ enum OnboardingError: LocalizedError {
             return "Check your internet connection and retry"
         case .recoveryFailed:
             return "Please try again or contact support"
+        case .noUserFound:
+            return "Please ensure you're logged in and try again"
+        case .invalidProfileData:
+            return "Please restart the onboarding process"
+        case .missingRequiredField:
+            return "Please fill in all required information"
         }
     }
 }

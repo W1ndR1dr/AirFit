@@ -465,6 +465,38 @@ struct FlowLayout: Layout {
 
 // MARK: - Preview
 
+private struct PreviewUserService: UserServiceProtocol {
+    func getCurrentUser() async -> User? {
+        nil
+    }
+    
+    func updateUser(_ user: User) async throws {
+        // No-op for preview
+    }
+    
+    func createUser(name: String, email: String?) async throws -> User {
+        User(name: name, email: email)
+    }
+}
+
+private struct PreviewAPIKeyManager: APIKeyManagerProtocol {
+    func getAPIKey(for service: String) async -> String? {
+        return "preview-key"
+    }
+    
+    func setAPIKey(_ key: String, for service: String) async throws {
+        // No-op for preview
+    }
+    
+    func removeAPIKey(for service: String) async throws {
+        // No-op for preview
+    }
+    
+    func hasAPIKey(for service: String) async -> Bool {
+        return true
+    }
+}
+
 #Preview {
     NavigationStack {
         PersonaPreviewView(
@@ -496,24 +528,15 @@ struct FlowLayout: Layout {
                 metadata: PersonaMetadata(
                     createdAt: Date(),
                     version: "1.0",
-                    sourceInsights: PersonalityInsights(
-                        traits: [:],
-                        motivationalDrivers: [],
-                        communicationProfile: CommunicationProfile(
-                            preferredTone: .casual,
-                            detailLevel: .moderate,
-                            feedbackStyle: .positive,
-                            interactionFrequency: .regular
-                        ),
-                        stressResponses: [:],
-                        timePreferences: TimePreferences(),
-                        coachingPreferences: CoachingPreferences(
-                            preferredIntensity: .moderate,
-                            accountabilityLevel: .high,
-                            motivationStyle: .positive,
-                            feedbackTiming: .immediate
-                        ),
-                        inferredDemographics: nil,
+                    sourceInsights: ConversationPersonalityInsights(
+                        dominantTraits: ["energetic", "supportive"],
+                        communicationStyle: .conversational,
+                        motivationType: .achievement,
+                        energyLevel: .high,
+                        preferredComplexity: .moderate,
+                        emotionalTone: ["positive", "encouraging"],
+                        stressResponse: .needsSupport,
+                        preferredTimes: ["morning", "evening"],
                         extractedAt: Date()
                     ),
                     generationDuration: 3.5,
@@ -522,13 +545,19 @@ struct FlowLayout: Layout {
                 )
             ),
             coordinator: OnboardingFlowCoordinator(
-                conversationManager: ConversationFlowManager(),
-                personaService: PersonaService(
-                    personaSynthesizer: PersonaSynthesizer(llmOrchestrator: LLMOrchestrator()),
-                    llmOrchestrator: LLMOrchestrator(),
+                conversationManager: ConversationFlowManager(
+                    flowDefinition: [:],
                     modelContext: DataManager.previewContainer.mainContext
                 ),
-                userService: MockUserService(),
+                personaService: PersonaService(
+                    personaSynthesizer: OptimizedPersonaSynthesizer(
+                        llmOrchestrator: LLMOrchestrator(apiKeyManager: PreviewAPIKeyManager()),
+                        cache: AIResponseCache()
+                    ),
+                    llmOrchestrator: LLMOrchestrator(apiKeyManager: PreviewAPIKeyManager()),
+                    modelContext: DataManager.previewContainer.mainContext
+                ),
+                userService: PreviewUserService(),
                 modelContext: DataManager.previewContainer.mainContext
             )
         )

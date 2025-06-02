@@ -59,7 +59,7 @@ final class LLMOrchestrator: ObservableObject {
             Task {
                 do {
                     let provider = try await selectProvider(for: request.model, task: task)
-                    let stream = provider.stream(request)
+                    let stream = await provider.stream(request)
                     
                     for try await chunk in stream {
                         continuation.yield(chunk)
@@ -167,8 +167,16 @@ final class LLMOrchestrator: ObservableObject {
                 task: task,
                 excluding: attemptedProviders
             ) {
-                var fallbackRequest = request
-                fallbackRequest.model = fallbackModel.identifier
+                let fallbackRequest = LLMRequest(
+                    messages: request.messages,
+                    model: fallbackModel.identifier,
+                    temperature: request.temperature,
+                    maxTokens: request.maxTokens,
+                    systemPrompt: request.systemPrompt,
+                    responseFormat: request.responseFormat,
+                    stream: request.stream,
+                    metadata: request.metadata
+                )
                 
                 var newAttempted = attemptedProviders
                 newAttempted.insert(LLMModel(rawValue: request.model)?.provider ?? .anthropic)
@@ -338,7 +346,7 @@ extension LLMModel: CaseIterable {
         [
             .claude3Opus, .claude3Sonnet, .claude3Haiku, .claude2,
             .gpt4Turbo, .gpt4, .gpt35Turbo,
-            .geminiPro, .geminiProVision
+            .gemini15Pro, .gemini15Flash, .geminiPro
         ]
     }
 }

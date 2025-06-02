@@ -14,15 +14,23 @@ struct ContentView: View {
                 } else if appState.shouldCreateUser {
                     WelcomeView(appState: appState)
                 } else if appState.shouldShowOnboarding {
-                    OnboardingFlowView(
-                        aiService: MockAIService(),
-                        onboardingService: OnboardingService(modelContext: modelContext),
-                        onCompletion: {
-                            Task {
-                                await appState.completeOnboarding()
+                    if let aiService = DependencyContainer.shared.aiService {
+                        OnboardingFlowView(
+                            aiService: aiService,
+                            onboardingService: OnboardingService(modelContext: modelContext),
+                            onCompletion: {
+                                Task {
+                                    await appState.completeOnboarding()
+                                }
                             }
-                        }
-                    )
+                        )
+                    } else {
+                        Text("AI Service not configured")
+                            .font(AppFonts.headline)
+                            .foregroundColor(AppColors.errorColor)
+                            .frame(maxWidth: .infinity, maxHeight: .infinity)
+                            .background(AppColors.backgroundPrimary)
+                    }
                 } else if appState.shouldShowDashboard {
                     DashboardView()
                 } else {

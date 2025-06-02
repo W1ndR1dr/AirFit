@@ -55,7 +55,9 @@ final class NetworkReachability: ObservableObject {
     }
     
     deinit {
-        stopMonitoring()
+        Task { @MainActor in
+            stopMonitoring()
+        }
     }
     
     // MARK: - Public Methods
@@ -99,7 +101,7 @@ final class NetworkReachability: ObservableObject {
         
         while !isConnected {
             if Date().timeIntervalSince(startTime) > timeout {
-                throw NetworkError.timeout
+                throw ReachabilityError.timeout
             }
             try await Task.sleep(nanoseconds: 100_000_000) // 0.1 seconds
         }
@@ -191,7 +193,7 @@ extension NetworkReachability {
 
 // MARK: - Network Error
 
-enum NetworkError: LocalizedError {
+enum ReachabilityError: LocalizedError {
     case noConnection
     case timeout
     case hostUnreachable(String)

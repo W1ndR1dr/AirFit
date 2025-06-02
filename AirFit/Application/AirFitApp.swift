@@ -13,7 +13,10 @@ struct AirFitApp: App {
             DailyLog.self,
             CoachMessage.self,
             HealthKitSyncRecord.self,
-            ChatSession.self
+            ChatSession.self,
+            ChatMessage.self,
+            ConversationSession.self,
+            ConversationResponse.self
         ])
 
         let modelConfiguration = ModelConfiguration(
@@ -22,7 +25,10 @@ struct AirFitApp: App {
         )
 
         do {
-            return try ModelContainer(for: schema, configurations: [modelConfiguration])
+            let container = try ModelContainer(for: schema, configurations: [modelConfiguration])
+            // Configure dependency container
+            DependencyContainer.shared.configure(with: container)
+            return container
         } catch {
             fatalError("Could not create ModelContainer: \(error)")
         }

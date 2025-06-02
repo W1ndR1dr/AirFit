@@ -10,13 +10,21 @@ struct ContentView: View {
     var body: some View {
         VStack {
             if showOnboarding {
-                OnboardingFlowView(
-                    aiService: MockAIService(),
-                    onboardingService: OnboardingService(modelContext: modelContext),
-                    onCompletion: {
-                        showOnboarding = false
-                    }
-                )
+                if let aiService = DependencyContainer.shared.aiService {
+                    OnboardingFlowView(
+                        aiService: aiService,
+                        onboardingService: OnboardingService(modelContext: modelContext),
+                        onCompletion: {
+                            showOnboarding = false
+                        }
+                    )
+                } else {
+                    Text("AI Service not configured")
+                        .font(AppFonts.headline)
+                        .foregroundColor(AppColors.errorColor)
+                        .frame(maxWidth: .infinity, maxHeight: .infinity)
+                        .background(AppColors.backgroundPrimary)
+                }
             } else {
                 VStack(spacing: AppSpacing.large) {
                     Text("Onboarding Complete!")

@@ -73,19 +73,4 @@ final class OnboardingService: OnboardingServiceProtocol, @unchecked Sendable {
 }
 
 // MARK: - Onboarding Errors
-enum OnboardingError: LocalizedError {
-    case noUserFound
-    case invalidProfileData
-    case missingRequiredField(String)
-
-    var errorDescription: String? {
-        switch self {
-        case .noUserFound:
-            return NSLocalizedString("error.onboarding.noUser", comment: "No user found for onboarding")
-        case .invalidProfileData:
-            return NSLocalizedString("error.onboarding.invalidData", comment: "Invalid profile data")
-        case .missingRequiredField(let field):
-            return NSLocalizedString("error.onboarding.missingField", comment: "Missing required field: \(field)")
-        }
-    }
-}
+// Note: OnboardingError is defined in OnboardingFlowCoordinator.swift

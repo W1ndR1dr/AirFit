@@ -21,7 +21,7 @@ actor OptimizedPersonaSynthesizer {
     /// Generate persona in <3s typical case
     func synthesizePersona(
         from conversationData: ConversationData,
-        insights: PersonalityInsights
+        insights: ConversationPersonalityInsights
     ) async throws -> PersonaProfile {
         let startTime = CFAbsoluteTimeGetCurrent()
         
@@ -66,7 +66,7 @@ actor OptimizedPersonaSynthesizer {
     
     // MARK: - Local Generation (0ms)
     
-    private func selectVoiceCharacteristics(insights: PersonalityInsights) -> VoiceCharacteristics {
+    private func selectVoiceCharacteristics(insights: ConversationPersonalityInsights) -> VoiceCharacteristics {
         // Direct mapping, no LLM needed
         if insights.energyLevel == .high && insights.emotionalTone.contains("supportive") {
             return voiceTemplates["high-energy"]!
@@ -76,7 +76,7 @@ actor OptimizedPersonaSynthesizer {
         return voiceTemplates["balanced"]!
     }
     
-    private func selectArchetype(insights: PersonalityInsights) -> String {
+    private func selectArchetype(insights: ConversationPersonalityInsights) -> String {
         // Direct archetype mapping
         switch (insights.motivationType, insights.dominantTraits.first ?? "") {
         case (.achievement, _): return "The Achievement Coach"
@@ -86,7 +86,7 @@ actor OptimizedPersonaSynthesizer {
         }
     }
     
-    private func generateAdaptationRules(insights: PersonalityInsights) -> [AdaptationRule] {
+    private func generateAdaptationRules(insights: ConversationPersonalityInsights) -> [AdaptationRule] {
         // Pre-computed rules based on insights
         var rules: [AdaptationRule] = []
         
@@ -122,7 +122,7 @@ actor OptimizedPersonaSynthesizer {
     
     private func generateAllCreativeContent(
         conversationData: ConversationData,
-        insights: PersonalityInsights,
+        insights: ConversationPersonalityInsights,
         baseArchetype: String
     ) async throws -> CreativeContent {
         // Ultra-optimized prompt that generates everything in one shot
@@ -207,7 +207,7 @@ actor OptimizedPersonaSynthesizer {
 extension OptimizedPersonaSynthesizer {
     /// Generate multiple personas in parallel for testing
     func batchSynthesize(
-        conversations: [(ConversationData, PersonalityInsights)]
+        conversations: [(ConversationData, ConversationPersonalityInsights)]
     ) async throws -> [PersonaProfile] {
         await withTaskGroup(of: PersonaProfile?.self) { group in
             for (data, insights) in conversations {

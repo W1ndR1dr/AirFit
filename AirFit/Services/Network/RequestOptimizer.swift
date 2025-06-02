@@ -1,4 +1,6 @@
 import Foundation
+import Network
+import Combine
 
 /// Network request optimizer - batching, retry, and offline handling
 actor RequestOptimizer {
@@ -38,8 +40,9 @@ actor RequestOptimizer {
     /// Execute request with optimization
     func execute(_ request: URLRequest) async throws -> Data {
         // Check if we're offline
-        if !NetworkMonitor.shared.isConnected {
-            throw NetworkError.offline
+        let isConnected = await NetworkMonitor.shared.isConnected
+        if !isConnected {
+            throw RequestOptimizerError.offline
         }
         
         // Check for duplicate in-flight requests
@@ -48,7 +51,7 @@ actor RequestOptimizer {
             // Dedupe - wait for existing request
             return try await withCheckedThrowingContinuation { continuation in
                 // This would need proper handling in production
-                continuation.resume(throwing: NetworkError.duplicate)
+                continuation.resume(throwing: RequestOptimizerError.duplicate)
             }
         }
         
@@ -122,15 +125,15 @@ actor RequestOptimizer {
             let (data, response) = try await URLSession.shared.data(for: request)
             
             guard let httpResponse = response as? HTTPURLResponse else {
-                throw NetworkError.invalidResponse
+                throw RequestOptimizerError.invalidResponse
             }
             
             if httpResponse.statusCode == 429 { // Rate limited
-                throw NetworkError.rateLimited(retryAfter: httpResponse.value(forHTTPHeaderField: "Retry-After"))
+                throw RequestOptimizerError.rateLimited(retryAfter: httpResponse.value(forHTTPHeaderField: "Retry-After"))
             }
             
             guard (200...299).contains(httpResponse.statusCode) else {
-                throw NetworkError.httpError(statusCode: httpResponse.statusCode)
+                throw RequestOptimizerError.httpError(statusCode: httpResponse.statusCode, data: data)
             }
             
             return data
@@ -149,11 +152,11 @@ actor RequestOptimizer {
     private func shouldRetry(error: Error, retryCount: Int) -> Bool {
         guard retryCount < 3 else { return false }
         
-        if let networkError = error as? NetworkError {
+        if let networkError = error as? RequestOptimizerError {
             switch networkError {
             case .timeout, .connectionLost, .rateLimited:
                 return true
-            case .httpError(let code) where code >= 500:
+            case .httpError(let code, _) where code >= 500:
                 return true
             default:
                 return false
@@ -193,7 +196,8 @@ actor RequestOptimizer {
 
 // MARK: - Network Monitor
 
-class NetworkMonitor {
+@MainActor
+class NetworkMonitor: ObservableObject {
     static let shared = NetworkMonitor()
     
     @Published private(set) var isConnected = true
@@ -213,13 +217,13 @@ class NetworkMonitor {
 
 // MARK: - Network Errors
 
-enum NetworkError: LocalizedError {
+enum RequestOptimizerError: LocalizedError {
     case offline
     case timeout
     case connectionLost
     case duplicate
     case invalidResponse
-    case httpError(statusCode: Int)
+    case httpError(statusCode: Int, data: Data)
     case rateLimited(retryAfter: String?)
     
     var errorDescription: String? {
@@ -234,7 +238,7 @@ enum NetworkError: LocalizedError {
             return "Request already in progress"
         case .invalidResponse:
             return "Invalid server response"
-        case .httpError(let code):
+        case .httpError(let code, _):
             return "Server error: \(code)"
         case .rateLimited(let retryAfter):
             return "Rate limited. Retry after: \(retryAfter ?? "unknown")"

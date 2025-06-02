@@ -12,7 +12,7 @@ protocol LLMProvider: Actor {
 }
 
 // MARK: - Provider Identifier
-struct LLMProviderIdentifier: Hashable {
+struct LLMProviderIdentifier: Hashable, Sendable {
     let name: String
     let version: String
     
@@ -22,7 +22,7 @@ struct LLMProviderIdentifier: Hashable {
 }
 
 // MARK: - Capabilities
-struct LLMCapabilities {
+struct LLMCapabilities: Sendable {
     let maxContextTokens: Int
     let supportsJSON: Bool
     let supportsStreaming: Bool
@@ -32,7 +32,7 @@ struct LLMCapabilities {
 }
 
 // MARK: - Request/Response Models
-struct LLMRequest {
+struct LLMRequest: Sendable {
     let messages: [LLMMessage]
     let model: String
     let temperature: Double
@@ -40,34 +40,34 @@ struct LLMRequest {
     let systemPrompt: String?
     let responseFormat: ResponseFormat?
     let stream: Bool
-    let metadata: [String: Any]
+    let metadata: [String: String]
     
-    enum ResponseFormat {
+    enum ResponseFormat: Sendable {
         case text
         case json(schema: String? = nil)
     }
 }
 
-struct LLMMessage {
+struct LLMMessage: Sendable {
     let role: Role
     let content: String
     let name: String?
     
-    enum Role: String {
+    enum Role: String, Sendable {
         case system
         case user
         case assistant
     }
 }
 
-struct LLMResponse {
+struct LLMResponse: Sendable {
     let content: String
     let model: String
     let usage: TokenUsage
     let finishReason: FinishReason
-    let metadata: [String: Any]
+    let metadata: [String: String]
     
-    struct TokenUsage: Codable {
+    struct TokenUsage: Codable, Sendable {
         let promptTokens: Int
         let completionTokens: Int
         var totalTokens: Int { promptTokens + completionTokens }
@@ -79,7 +79,7 @@ struct LLMResponse {
         }
     }
     
-    enum FinishReason: String, Codable {
+    enum FinishReason: String, Codable, Sendable {
         case stop
         case length
         case contentFilter = "content_filter"
@@ -87,14 +87,14 @@ struct LLMResponse {
     }
 }
 
-struct LLMStreamChunk {
+struct LLMStreamChunk: Sendable {
     let delta: String
     let isFinished: Bool
     let usage: LLMResponse.TokenUsage?
 }
 
 // MARK: - Errors
-enum LLMError: LocalizedError {
+enum LLMError: LocalizedError, Sendable {
     case invalidAPIKey
     case rateLimitExceeded(retryAfter: TimeInterval?)
     case contextLengthExceeded(max: Int, requested: Int)

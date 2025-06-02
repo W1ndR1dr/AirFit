@@ -1,14 +1,17 @@
 import Foundation
 import SwiftData
 
+// Note: Using PersonalityInsights from AI/Models/ConversationPersonalityInsights.swift
+// instead of Onboarding/Models/PersonalityInsights.swift for persona synthesis
+
 actor PersonaService {
-    private let personaSynthesizer: PersonaSynthesizer
+    private let personaSynthesizer: OptimizedPersonaSynthesizer
     private let llmOrchestrator: LLMOrchestrator
     private let modelContext: ModelContext
     private let cache: AIResponseCache
     
     init(
-        personaSynthesizer: PersonaSynthesizer,
+        personaSynthesizer: OptimizedPersonaSynthesizer,
         llmOrchestrator: LLMOrchestrator,
         modelContext: ModelContext,
         cache: AIResponseCache? = nil
@@ -105,7 +108,7 @@ actor PersonaService {
     
     // MARK: - Private Methods
     
-    private func extractPersonalityInsights(from responses: [ConversationResponse]) async throws -> PersonalityInsights {
+    private func extractPersonalityInsights(from responses: [ConversationResponse]) async throws -> ConversationPersonalityInsights {
         // Convert responses to readable format
         var responseTexts: [String] = []
         for response in responses {
@@ -161,7 +164,7 @@ actor PersonaService {
         return try parsePersonalityInsights(from: response)
     }
     
-    private func parsePersonalityInsights(from response: LLMResponse) throws -> PersonalityInsights {
+    private func parsePersonalityInsights(from response: LLMResponse) throws -> ConversationPersonalityInsights {
         guard let content = response.content,
               let data = content.data(using: .utf8) else {
             throw PersonaError.parsingFailed("Invalid response content")
@@ -180,14 +183,14 @@ actor PersonaService {
         
         let decoded = try JSONDecoder().decode(InsightsResponse.self, from: data)
         
-        return PersonalityInsights(
+        return ConversationPersonalityInsights(
             dominantTraits: decoded.dominantTraits,
-            communicationStyle: CommunicationStyle(rawValue: decoded.communicationStyle) ?? .conversational,
-            motivationType: MotivationType(rawValue: decoded.motivationType) ?? .balanced,
-            energyLevel: EnergyLevel(rawValue: decoded.energyLevel) ?? .moderate,
-            preferredComplexity: Complexity(rawValue: decoded.preferredComplexity) ?? .moderate,
+            communicationStyle: ConversationCommunicationStyle(rawValue: decoded.communicationStyle) ?? .conversational,
+            motivationType: ConversationMotivationType(rawValue: decoded.motivationType) ?? .balanced,
+            energyLevel: ConversationEnergyLevel(rawValue: decoded.energyLevel) ?? .moderate,
+            preferredComplexity: ConversationComplexity(rawValue: decoded.preferredComplexity) ?? .moderate,
             emotionalTone: decoded.emotionalTone,
-            stressResponse: StressResponse(rawValue: decoded.stressResponse) ?? .needsSupport,
+            stressResponse: ConversationStressResponse(rawValue: decoded.stressResponse) ?? .needsSupport,
             preferredTimes: decoded.preferredTimes,
             extractedAt: Date()
         )

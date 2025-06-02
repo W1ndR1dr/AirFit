@@ -349,7 +349,7 @@ extension LLMResponse: Codable {
         
         // Decode metadata as [String: String] for simplicity
         if let metadataDict = try? container.decode([String: String].self, forKey: .metadata) {
-            metadata = metadataDict.reduce(into: [:]) { $0[$1.key] = $1.value }
+            metadata = metadataDict
         } else {
             metadata = [:]
         }
@@ -363,11 +363,12 @@ extension LLMResponse: Codable {
         try container.encode(finishReason, forKey: .finishReason)
         
         // Encode metadata as [String: String]
-        let stringMetadata = metadata.reduce(into: [:]) { result, pair in
-            if let stringValue = pair.value as? String {
-                result[pair.key] = stringValue
+        var stringMetadata: [String: String] = [:]
+        for (key, value) in metadata {
+            if let stringValue = value as? String {
+                stringMetadata[key] = stringValue
             } else {
-                result[pair.key] = String(describing: pair.value)
+                stringMetadata[key] = String(describing: value)
             }
         }
         try container.encode(stringMetadata, forKey: .metadata)

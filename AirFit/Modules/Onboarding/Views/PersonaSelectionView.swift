@@ -126,6 +126,39 @@ private struct NavigationButtons: View {
 }
 
 // MARK: - Preview
+
+private struct PreviewAPIKeyManager: APIKeyManagerProtocol {
+    func getAPIKey(for service: String) async -> String? {
+        return "preview-key"
+    }
+    
+    func setAPIKey(_ key: String, for service: String) async throws {
+        // No-op for preview
+    }
+    
+    func removeAPIKey(for service: String) async throws {
+        // No-op for preview
+    }
+    
+    func hasAPIKey(for service: String) async -> Bool {
+        return true
+    }
+}
+
+private struct PreviewUserService: UserServiceProtocol {
+    func getCurrentUser() async -> User? {
+        nil
+    }
+    
+    func updateUser(_ user: User) async throws {
+        // No-op for preview
+    }
+    
+    func createUser(name: String, email: String?) async throws -> User {
+        User(name: name, email: email)
+    }
+}
+
 #Preview {
     PersonaSelectionView(viewModel: {
         let tempContainer = try! ModelContainer(
@@ -135,7 +168,9 @@ private struct NavigationButtons: View {
         return OnboardingViewModel(
             aiService: MockAIService(),
             onboardingService: OnboardingService(modelContext: tempContainer.mainContext),
-            modelContext: tempContainer.mainContext
+            modelContext: tempContainer.mainContext,
+            apiKeyManager: PreviewAPIKeyManager(),
+            userService: PreviewUserService()
         )
     }())
 } 

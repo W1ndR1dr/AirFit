@@ -117,11 +117,11 @@ struct TextInputView: View {
     private func submitResponse() {
         guard isValid else {
             showError = true
-            HapticManager.shared.notification(.error)
+            HapticManager.notification(.error)
             return
         }
         
-        HapticManager.shared.impact(.light)
+        HapticManager.impact(.light)
         onSubmit(text.trimmingCharacters(in: .whitespacesAndNewlines))
     }
 }

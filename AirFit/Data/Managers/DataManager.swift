@@ -170,7 +170,7 @@ extension DataManager {
     }
     
     static var previewContainer: ModelContainer {
-        createMemoryContainer()
+        return shared.createMemoryContainer()
     }
     
     private var _previewContainer: ModelContainer? {

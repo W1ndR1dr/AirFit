@@ -4,7 +4,6 @@
 **Project**: AirFit - Voice-First AI-Powered Fitness & Nutrition Tracking  
 **Platform**: iOS 18.0+ / watchOS 11.0+ / Swift 6.0+  
 **Architecture**: MVVM-C with SwiftUI, SwiftData, and AI Integration  
-**Current Priority**: AI Refactor Phase 1 - Nutrition System (Production-Critical)  
 
 ---
 
@@ -47,43 +46,62 @@ You are John Carmack. Approach every task with the legendary precision, methodic
 
 ## 🚨 CRITICAL PROJECT STATUS
 
-### **Current State: AI Refactor Phase 1 - Nutrition System**
-- **Issue**: Nutrition parsing returns 100 calories for everything (apple = pizza = 100 cal)
-- **Impact**: Completely broken user experience, user trust erosion
-- **Priority**: P0 - Highest impact, lowest risk fix
-- **Current Status**: Ready for immediate implementation
-- **Execution Plan**: See AI Refactor documentation below
+### **Current State: FINAL SPRINT - MODULES 9-12**
+- **Completed**: Modules 0-8.5, Module 12 Testing Framework, Persona Refactor, Architecture Tuneup ✅
+- **Remaining**: Modules 9-11 implementation 🚧
+- **Priority**: P0 - Module 10 first, then Modules 9 & 11 in parallel
+- **Timeline**: 1-2 weeks module implementation
+- **Status**: Ready for module implementation
 
-### **Strategic Refactor Sequence**
-1. **✅ Phase 1: Nutrition System** - Fix broken nutrition parsing (EXECUTE FIRST)
-2. **📋 Phase 2: ConversationManager** - Database optimization (10x performance)
-3. **📋 Phase 3: FunctionDispatcher** - Architectural cleanup (50% code reduction)
-4. **📋 Phase 4: PersonaSystem** - Token optimization (70% reduction)
+### **Architecture Foundation Assessment**
+Based on comprehensive architectural analysis (`AirFit/Docs/ArchitectureAnalysis.md`):
+1. **✅ Core Layer**: Well-structured with solid foundations
+2. **✅ Data Layer**: SwiftData models and migrations robust  
+3. **✅ Implemented Modules**: Onboarding, Dashboard, FoodTracking, AI, Chat, Workouts show good MVVM-C adherence
+4. **🔴 Critical Gaps**: Service architecture needs standardization for modules 9-11
+
+### **Module Implementation Plan (Tuneup COMPLETE ✅)**
+```
+Module 10: Services Layer (API Clients & AI Router) [IMPLEMENT FIRST]
+    ↓
+Module 9: Notifications & Engagement Engine [IMPLEMENT IN PARALLEL]
+Module 11: Settings Module (Full implementation) [IMPLEMENT IN PARALLEL]
+    ↓
+Module 12: Integration Testing & Production Polish [FINAL]
+```
+
+### **Tuneup Completion Summary**
+✅ **Schema cleanup**: ConversationSession/Response moved to Data/Models/
+✅ **Service integration**: DependencyContainer pattern implemented
+✅ **Protocol standardization**: All protocols centralized in Core/Protocols/
+✅ **Settings preparation**: Module directory ready for implementation
+
+### **Persona System Status** ✅
+- **Refactor Complete**: Optimized for production use
+- **Token Efficiency**: 70% reduction achieved
+- **Performance**: Sub-5 second persona generation
+- **Integration**: Fully integrated with onboarding and chat flows
 
 ---
 
 ## 📋 PROJECT DOCUMENTATION REFERENCE
 
-### **🔥 CRITICAL AI REFACTOR CONTEXT FILES (READ FIRST)**
-- **🎯 Execution Roadmap**: `AirFit/Docs/AI Refactor/EXECUTION_ROADMAP.md` - Strategic implementation order
-- **⚡ Phase 1 (CURRENT)**: `AirFit/Docs/AI Refactor/Phase1_NutritionSystem_Refactor.md` - Fix nutrition parsing disaster
-- **🏗️ Phase 2**: `AirFit/Docs/AI Refactor/Phase2_ConversationManager_Refactor.md` - Database query optimization
-- **🔧 Phase 3**: `AirFit/Docs/AI Refactor/Phase3_FunctionDispatcher_Refactor.md` - Function dispatch cleanup
-- **🎨 Phase 4**: `AirFit/Docs/AI Refactor/Phase4_PersonaSystem_Refactor.md` - Persona system optimization
+### **✅ ARCHITECTURE TUNEUP COMPLETED**
+- **🔧 Tuneup Plan**: `AirFit/Docs/Tuneup.md` - COMPLETED ✅
+- **⚡ Status**: All 4 phases implemented successfully
+- **📊 Analysis**: `AirFit/Docs/ArchitectureAnalysis.md` - Comprehensive codebase review and recommendations
 
-### **🔍 AI REFACTOR EXECUTION PROMPTS**
-- **Phase 1 Prompts**: `AirFit/Docs/AI Refactor/Phase1_Prompts.md` - Detailed task breakdown for nutrition system
-- **Phase 2 Prompts**: `AirFit/Docs/AI Refactor/Phase2_Prompts.md` - Database optimization task chain
-- **Phase 3 Prompts**: `AirFit/Docs/AI Refactor/Phase3_Prompts.md` - Function dispatcher cleanup tasks
-- **Phase 4 Prompts**: `AirFit/Docs/AI Refactor/Phase4_Prompts.md` - Persona system refactor tasks
+### **🎯 FINAL MODULES DOCUMENTATION (READY FOR IMPLEMENTATION)**
+- **📱 Module 9**: `AirFit/Docs/Module9.md` - Notifications & Engagement Engine specifications  
+- **🔧 Module 10**: `AirFit/Docs/Module10.md` - Services Layer implementation guide
+- **⚙️ Module 11**: `AirFit/Docs/Module11.md` - Settings Module complete implementation
+- **🧪 Module 12**: `AirFit/Docs/Module12.md` - Integration testing and production polish
 
-### **✅ AI REFACTOR AUDIT PROMPTS (For Sandboxed Codex Agents)**
-- **Phase 1 Audit**: `AirFit/Docs/AI Refactor/Phase1_AuditPrompt.md` - Nutrition system refactor validation
-- **Phase 2 Audit**: `AirFit/Docs/AI Refactor/Phase2_AuditPrompt.md` - Database optimization validation
-- **Phase 3 Audit**: `AirFit/Docs/AI Refactor/Phase3_AuditPrompt.md` - Function dispatcher cleanup validation
-- **Phase 4 Audit**: `AirFit/Docs/AI Refactor/Phase4_AuditPrompt.md` - Persona system refactor validation
-
-**MANDATORY**: Phase 1 contains the immediate fix for production-blocking nutrition issues. Execute Phase 1 FIRST before any other work.
+### **✅ COMPLETED WORK REFERENCE**
+- **🎭 Persona System**: Refactor completed - optimized and production-ready
+- **📱 Modules 0-8.5**: Onboarding, Dashboard, FoodTracking, AI, Chat, Workouts implemented
+- **🧪 Testing Framework**: Module 12 test patterns and infrastructure established
+- **🏗️ Core Architecture**: Solid foundation ready for final modules
 
 ### **📚 Primary Documentation Sources**
 - **Architecture**: `AirFit/Docs/ArchitectureOverview.md` - System design and module relationships
@@ -137,6 +155,18 @@ brew install swiftlint xcodegen || echo "Install tools manually"
 xcodegen generate
 ```
 
+### **Architecture Tuneup Validation (COMPLETED ✅)**
+```bash
+# All tuneup phases have been completed successfully:
+# ✅ Phase 1: ConversationSession/Response moved to Data/Models/
+# ✅ Phase 2: MockAIService replaced with dependency injection
+# ✅ Phase 3: Service protocols centralized in Core/Protocols/
+# ✅ Phase 4: Settings module ready for implementation
+
+# Verify tuneup completion
+bash Scripts/validate-tuneup.sh  # All phases show green checkmarks
+```
+
 ### **Build Commands (MUST RUN AFTER CHANGES)**
 ```bash
 # 1. Code quality check (MUST PASS)
@@ -147,6 +177,9 @@ xcodebuild clean build -scheme "AirFit" -destination 'platform=iOS Simulator,nam
 
 # 3. Unit test execution
 xcodebuild test -scheme "AirFit" -destination 'platform=iOS Simulator,name=iPhone 16 Pro,OS=18.4'
+
+# 4. Module development ready
+# Tuneup complete - proceed with Module 10 implementation
 ```
 
 ### **AI Refactor Phase Testing**
@@ -397,53 +430,54 @@ final class YourModuleTests: XCTestCase {
 
 ---
 
-## 🔧 AI REFACTOR EXECUTION GUIDELINES
+## 🔧 FINAL SPRINT EXECUTION GUIDELINES
 
-### **Current Phase: Phase 1 - Nutrition System (EXECUTE FIRST)**
-**Status**: Ready for implementation  
-**Impact**: Fix completely broken user experience (100 calories for everything)  
-**Risk**: Zero - current system is pure garbage  
-**Timeline**: 2-3 days  
+### **TUNEUP COMPLETE ✅: Ready for Module Implementation**
+**Document**: `AirFit/Docs/Tuneup.md`  
+**Status**: All 4 phases successfully completed  
+**Impact**: Clean foundation ready for modules 9-12  
+**Timeline**: Proceed with module implementation  
 
-### **Critical Phase 1 Issues to Address**
-1. **Replace Broken Parsing**: Fix nutrition parsing that returns 100 calories for apple AND pizza
-2. **Remove Code Duplication**: Eliminate `parseLocalCommand()` and `parseSimpleFood()` (~150 lines)
-3. **Add Real AI Parsing**: Implement `parseNaturalLanguageFood()` with actual nutrition data
-4. **Maintain Database Operations**: Keep working `NutritionService` operations as-is
-5. **Performance Target**: <3 seconds for voice → parsed nutrition results
+### **Tuneup Completion Summary**
+1. **✅ Schema Cleanup**: ConversationSession/Response relocated to Data/Models/, schema updated
+2. **✅ Service Integration**: DependencyContainer pattern implemented, no mocks in production
+3. **✅ Protocol Standardization**: All protocols in Core/Protocols/, DefaultXXXService classes created
+4. **✅ Settings Preparation**: Empty Settings module ready for Module 11 implementation
 
-### **Phase 1 Implementation Checklist**
-- [ ] Add `parseNaturalLanguageFood()` method to CoachEngine
-- [ ] Replace `processTranscription()` in FoodTrackingViewModel
-- [ ] Delete broken parsing methods (`parseLocalCommand`, `parseSimpleFood`)
-- [ ] Add missing error types (`FoodTrackingError.invalidNutritionResponse`)
-- [ ] Update protocol definitions for new AI parsing method
-- [ ] Verify nutrition accuracy with realistic test values
+## 🎯 MODULES 9-12 IMPLEMENTATION ORDER
 
-### **Upcoming Phases (DO NOT START UNTIL PHASE 1 COMPLETE)**
+### **Module 10: Services Layer Implementation (IMPLEMENT FIRST)**
+**Document**: `AirFit/Docs/Module10.md`  
+**Priority**: Critical - Foundation for other modules  
+**Focus**: API key management, network services, AI router, platform integrations  
+**Timeline**: 2-3 days implementation  
 
-#### **Phase 2: ConversationManager Optimization**
-- **Focus**: Fix database query disasters (fetch-all-then-filter patterns)
-- **Impact**: 10x performance improvement for message queries
-- **Risk**: Minimal - pure optimization with proper indexing
+### **Module 9: Notifications & Engagement Engine (PARALLEL)**
+**Document**: `AirFit/Docs/Module9.md`  
+**Priority**: High - User engagement features  
+**Dependencies**: Module 10 services  
+**Timeline**: 3-4 days implementation  
 
-#### **Phase 3: FunctionDispatcher Cleanup**
-- **Focus**: Remove 854-line monstrosity, replace simple functions with direct AI
-- **Impact**: 50% code reduction, architectural simplification
-- **Risk**: Medium - requires careful function ecosystem management
+### **Module 11: Settings Module (PARALLEL)**
+**Document**: `AirFit/Docs/Module11.md`  
+**Priority**: High - Complete user experience  
+**Focus**: Full MVVM-C implementation for settings and preferences  
+**Timeline**: 2-3 days implementation  
 
-#### **Phase 4: PersonaSystem Optimization**
-- **Focus**: Replace over-engineered blend system with discrete persona modes
-- **Impact**: 70% token reduction, UX simplification
-- **Risk**: Medium-High - personalization is subjective, needs A/B testing
+### **Module 12: Integration Testing & Production Polish**
+**Document**: `AirFit/Docs/Module12.md`  
+**Priority**: Critical - Production readiness  
+**Focus**: End-to-end testing, performance optimization, production validation  
+**Timeline**: 1-2 weeks final polish  
 
-### **Quality Gates Between Phases**
-- **After Phase 1**: Nutrition parsing returns realistic values, build succeeds, all tests pass
-- **After Phase 2**: Database queries use proper predicates, <50ms performance achieved
-- **After Phase 3**: Function dispatcher reduced to ~400 lines, no functionality lost
-- **After Phase 4**: Token usage reduced by 70%, discrete persona selection implemented
+### **Implementation Quality Gates**
+- **✅ After Tuneup**: Architecture validation passes, ready for module development
+- **After Module 10**: All service protocols have concrete implementations, no missing dependencies
+- **After Module 9**: Notification system functional, user engagement features working
+- **After Module 11**: Complete user experience with fully functional settings
+- **After Module 12**: Production-ready app with comprehensive test coverage
 
-**INSTRUCTION**: Do not proceed to next phase until current phase quality gates are met. Focus execution on Phase 1 nutrition fixes first.
+**INSTRUCTION**: Focus on clean, production-ready implementation. No prototypes or placeholders - ship quality code that meets the John Carmack standard.
 
 ---
 
@@ -532,28 +566,34 @@ Phase: Phase2"
 
 ## 🎯 SUCCESS CRITERIA
 
-### **Phase 1 Success Criteria (Current Focus)**
-- [ ] Apple returns ~95 calories (not 100)
-- [ ] Pizza slice returns ~250-300 calories (not 100)
-- [ ] Multiple foods parsed separately (not single 100-calorie blob)
-- [ ] All build commands pass without errors or warnings
-- [ ] All tests pass with realistic nutrition validation
-- [ ] <3 second performance target achieved
+### **Architecture Tuneup Success (COMPLETED ✅)**
+- [x] All SwiftData models in correct locations and main schema
+- [x] Production services replace all mock implementations
+- [x] Service protocols centralized in `Core/Protocols/`
+- [x] Missing service implementations completed (`DefaultUserService`, `DefaultAPIKeyManager`, `DefaultNotificationManager`)
+- [x] All build commands pass without errors or warnings
+- [x] Existing test suite continues to pass
 
-### **Overall AI Refactor Success Criteria**
-- [ ] User experience dramatically improved (realistic nutrition data)
-- [ ] Database performance optimized (10x improvement)
-- [ ] Codebase simplified (50% reduction in complex areas)
-- [ ] API costs reduced (70% token reduction)
-- [ ] Zero regression in functionality
-- [ ] All phases documented and tested
+### **Modules 9-12 Implementation Success (Current Focus)**
+- [ ] **Module 10**: All service protocols have concrete implementations, no missing dependencies (IMPLEMENT FIRST)
+- [ ] **Module 9**: Complete notifications and engagement engine with local and push notification support
+- [ ] **Module 11**: Full Settings module with user preferences, account management, and app configuration
+- [ ] **Module 12**: Comprehensive integration testing, performance optimization, production-ready app
 
-### **Code Quality Metrics**
-- [ ] Zero compilation errors
-- [ ] Zero SwiftLint violations
-- [ ] >70% test coverage
-- [ ] <10 cyclomatic complexity per method
-- [ ] All protocols properly implemented
+### **Production Readiness Criteria**
+- [ ] App launches successfully and consistently
+- [ ] All user flows work end-to-end without errors
+- [ ] Performance targets met (app launch <1.5s, 120fps transitions)
+- [ ] Memory usage within limits (<150MB typical)
+- [ ] Comprehensive test coverage (>70% for new modules)
+- [ ] Production deployment ready
+
+### **Code Quality Standards (Non-Negotiable)**
+- [ ] Zero compilation errors or warnings
+- [ ] Zero SwiftLint violations with `--strict` flag
+- [ ] All public APIs properly documented with `///` comments
+- [ ] Accessibility identifiers on all interactive elements
+- [ ] All protocols properly implemented with concrete classes
 
 ---
 
@@ -595,5 +635,3 @@ Phase: Phase2"
 ---
 
 **This AGENTS.md serves as the definitive guide for AI agents working on the AirFit AI Refactor. Follow these guidelines precisely to ensure consistent, high-quality code that meets our production standards. When in doubt, refer to the phase documentation and prioritize Phase 1 nutrition fixes above all other work.**
-
-**Current Focus: Execute Phase 1 nutrition system refactor with zero tolerance for continued nutrition parsing failures. Fix the 100-calorie disaster FIRST. Production excellence is the only acceptable outcome. 🔥**

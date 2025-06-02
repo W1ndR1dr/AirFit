@@ -184,16 +184,54 @@ struct StepProgressRow: View {
 
 // MARK: - Preview
 
+private struct PreviewUserService: UserServiceProtocol {
+    func getCurrentUser() async -> User? {
+        nil
+    }
+    
+    func updateUser(_ user: User) async throws {
+        // No-op for preview
+    }
+    
+    func createUser(name: String, email: String?) async throws -> User {
+        User(name: name, email: email)
+    }
+}
+
+private struct PreviewAPIKeyManager: APIKeyManagerProtocol {
+    func getAPIKey(for service: String) async -> String? {
+        return "preview-key"
+    }
+    
+    func setAPIKey(_ key: String, for service: String) async throws {
+        // No-op for preview
+    }
+    
+    func removeAPIKey(for service: String) async throws {
+        // No-op for preview
+    }
+    
+    func hasAPIKey(for service: String) async -> Bool {
+        return true
+    }
+}
+
 #Preview {
     OptimizedGeneratingPersonaView(
         coordinator: OnboardingFlowCoordinator(
-            conversationManager: ConversationFlowManager(),
-            personaService: PersonaService(
-                personaSynthesizer: PersonaSynthesizer(llmOrchestrator: LLMOrchestrator()),
-                llmOrchestrator: LLMOrchestrator(),
+            conversationManager: ConversationFlowManager(
+                flowDefinition: [:],
                 modelContext: DataManager.previewContainer.mainContext
             ),
-            userService: MockUserService(),
+            personaService: PersonaService(
+                personaSynthesizer: OptimizedPersonaSynthesizer(
+                    llmOrchestrator: LLMOrchestrator(apiKeyManager: PreviewAPIKeyManager()),
+                    cache: AIResponseCache()
+                ),
+                llmOrchestrator: LLMOrchestrator(apiKeyManager: PreviewAPIKeyManager()),
+                modelContext: DataManager.previewContainer.mainContext
+            ),
+            userService: PreviewUserService(),
             modelContext: DataManager.previewContainer.mainContext
         )
     )

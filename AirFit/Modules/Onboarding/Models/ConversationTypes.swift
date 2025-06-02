@@ -1,5 +1,4 @@
 import Foundation
-import SwiftData
 
 // MARK: - Core Models
 struct ConversationNode: Codable, Sendable, Identifiable {
@@ -94,50 +93,6 @@ struct ValidationRules: Codable, Sendable {
     }
 }
 
-// MARK: - Conversation State
-@Model
-final class ConversationSession {
-    var id: UUID
-    var userId: UUID
-    var startedAt: Date
-    var completedAt: Date?
-    var currentNodeId: String
-    var responses: [ConversationResponse]
-    var extractedInsights: Data?
-    var completionPercentage: Double
-    
-    init(userId: UUID = UUID()) {
-        self.id = UUID()
-        self.userId = userId
-        self.startedAt = Date()
-        self.currentNodeId = "opening"
-        self.responses = []
-        self.completionPercentage = 0
-    }
-}
-
-@Model
-final class ConversationResponse {
-    var nodeId: String
-    var responseType: String
-    var responseData: Data
-    var timestamp: Date
-    var processingTime: TimeInterval
-    
-    init(nodeId: String, responseType: String, responseData: Data) {
-        self.nodeId = nodeId
-        self.responseType = responseType
-        self.responseData = responseData
-        self.timestamp = Date()
-        self.processingTime = 0
-    }
-}
-
 // MARK: - Response Types
-enum ResponseValue: Codable, Sendable {
-    case text(String)
-    case choice(String)
-    case multiChoice([String])
-    case slider(Double)
-    case voice(transcription: String, audioData: Data)
-}
+// Note: ConversationSession and ConversationResponse models have been moved to Data/Models/
+// Note: ResponseValue is defined in ConversationResponse.swift

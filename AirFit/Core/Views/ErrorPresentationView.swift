@@ -121,12 +121,12 @@ struct ErrorPresentationView: View {
                     Button("Dismiss") {
                         dismissAction()
                     }
-                    .buttonStyle(.secondary)
+                    .buttonStyle(.bordered)
                 }
                 
                 if retryAction != nil {
                     retryButton
-                        .buttonStyle(.primary)
+                        .buttonStyle(.borderedProminent)
                 }
             }
             .padding(.horizontal, AppSpacing.medium)
@@ -135,7 +135,7 @@ struct ErrorPresentationView: View {
         .frame(maxWidth: 350)
         .background(style.backgroundColor)
         .cornerRadius(AppSpacing.medium)
-        .shadow(style: .elevated)
+        .shadow(radius: AppSpacing.small)
     }
     
     private var fullScreenView: some View {
@@ -169,7 +169,7 @@ struct ErrorPresentationView: View {
             VStack(spacing: AppSpacing.medium) {
                 if retryAction != nil {
                     retryButton
-                        .buttonStyle(.primary)
+                        .buttonStyle(.borderedProminent)
                         .controlSize(.large)
                 }
                 
@@ -177,7 +177,7 @@ struct ErrorPresentationView: View {
                     Button("Go Back") {
                         dismissAction()
                     }
-                    .buttonStyle(.secondary)
+                    .buttonStyle(.bordered)
                     .controlSize(.large)
                 }
             }
@@ -214,7 +214,7 @@ struct ErrorPresentationView: View {
         .padding(AppSpacing.medium)
         .background(style.backgroundColor)
         .cornerRadius(AppSpacing.medium)
-        .shadow(style: .subtle)
+        .shadow(radius: 2)
         .transition(.move(edge: .top).combined(with: .opacity))
     }
     
@@ -244,8 +244,6 @@ struct ErrorPresentationView: View {
     private var errorTitle: String {
         if let localizedError = error as? LocalizedError {
             return localizedError.errorDescription ?? "Something went wrong"
-        } else if let appError = error as? AppError {
-            return appError.userFriendlyMessage
         } else {
             return "An error occurred"
         }
@@ -262,15 +260,13 @@ struct ErrorPresentationView: View {
     }
     
     private var errorIcon: String {
-        if error is NetworkError {
-            return "wifi.exclamationmark"
-        } else if let appError = error as? AppError {
+        if let appError = error as? AppError {
             switch appError {
             case .networkError:
                 return "wifi.exclamationmark"
-            case .authenticationError:
+            case .unauthorized:
                 return "person.crop.circle.badge.exclamationmark"
-            case .dataError:
+            case .decodingError:
                 return "externaldrive.badge.exclamationmark"
             case .validationError:
                 return "exclamationmark.triangle"
@@ -278,6 +274,10 @@ struct ErrorPresentationView: View {
                 return "server.rack"
             case .unknown:
                 return "exclamationmark.circle"
+            case .healthKitNotAuthorized:
+                return "heart.text.square"
+            case .cameraNotAuthorized:
+                return "camera.badge.exclamationmark"
             }
         } else {
             return "exclamationmark.circle"
@@ -351,37 +351,18 @@ extension View {
 // MARK: - AppError Extension
 
 extension AppError {
-    var userFriendlyMessage: String {
-        switch self {
-        case .networkError(let message):
-            return message ?? "Network connection error"
-        case .authenticationError(let message):
-            return message ?? "Authentication failed"
-        case .dataError(let message):
-            return message ?? "Data error occurred"
-        case .validationError(let message):
-            return message ?? "Invalid input"
-        case .serverError(let code, let message):
-            return message ?? "Server error (\(code))"
-        case .unknown(let message):
-            return message ?? "An unexpected error occurred"
-        }
-    }
-    
-    var recoverySuggestion: String? {
+    var icon: String {
         switch self {
         case .networkError:
-            return "Please check your internet connection and try again."
-        case .authenticationError:
-            return "Please sign in again to continue."
-        case .dataError:
-            return "There was an issue with your data. Please try again."
+            return "wifi.exclamationmark"
+        case .unauthorized:
+            return "lock.circle"
         case .validationError:
-            return "Please check your input and try again."
+            return "exclamationmark.triangle"
         case .serverError:
-            return "The server is experiencing issues. Please try again later."
-        case .unknown:
-            return "Please try again. If the issue persists, contact support."
+            return "exclamationmark.icloud"
+        default:
+            return "exclamationmark.circle"
         }
     }
 }
@@ -394,14 +375,14 @@ struct ErrorPresentationView_Previews: PreviewProvider {
         VStack(spacing: 20) {
             // Inline style
             ErrorPresentationView(
-                error: NetworkError.noConnection,
+                error: NetworkError.networkError(NSError(domain: "Network", code: -1)),
                 style: .inline,
                 retryAction: { }
             )
             
             // Card style
             ErrorPresentationView(
-                error: AppError.networkError("Unable to connect to server"),
+                error: AppError.networkError(underlying: NSError(domain: "Network", code: -1, userInfo: [NSLocalizedDescriptionKey: "Unable to connect to server"])),
                 style: .card,
                 retryAction: { },
                 dismissAction: { }
@@ -409,7 +390,7 @@ struct ErrorPresentationView_Previews: PreviewProvider {
             
             // Toast style
             ErrorPresentationView(
-                error: AppError.validationError("Invalid email format"),
+                error: AppError.validationError(message: "Invalid email format"),
                 style: .toast,
                 dismissAction: { }
             )
@@ -419,7 +400,7 @@ struct ErrorPresentationView_Previews: PreviewProvider {
         
         // Full screen style
         ErrorPresentationView(
-            error: AppError.serverError(500, "Internal server error"),
+            error: AppError.serverError(code: 500, message: "Internal server error"),
             style: .fullScreen,
             retryAction: { },
             dismissAction: { }

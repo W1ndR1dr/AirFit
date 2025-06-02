@@ -30,21 +30,25 @@ public enum AppError: LocalizedError, Sendable {
             return "Camera access is required to take meal photos"
         }
     }
-
+    
     public var recoverySuggestion: String? {
         switch self {
         case .networkError:
             return "Please check your internet connection and try again"
         case .decodingError:
             return "Please try updating the app"
+        case .validationError:
+            return nil
         case .unauthorized:
             return "Tap here to log in"
+        case .serverError:
+            return "Please try again later"
+        case .unknown:
+            return nil
         case .healthKitNotAuthorized:
             return "Grant access in Settings > Privacy > Health"
         case .cameraNotAuthorized:
             return "Grant access in Settings > Privacy > Camera"
-        default:
-            return nil
         }
     }
 }

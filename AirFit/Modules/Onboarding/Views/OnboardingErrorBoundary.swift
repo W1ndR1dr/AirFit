@@ -305,7 +305,7 @@ private struct DetailRow: View {
 // MARK: - Protocol for recoverable errors
 
 protocol RecoverableError: LocalizedError {
-    var recoverySuggestion: String? { get }
+    // LocalizedError already provides recoverySuggestion
 }
 
 // Make our error types conform to RecoverableError

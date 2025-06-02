@@ -291,17 +291,4 @@ actor FallbackPersonaGenerator {
     }
 }
 
-// MARK: - Adaptation Rule Types
-
-struct AdaptationRule: Codable, Sendable {
-    enum Condition: String, Codable, Sendable {
-        case timeOfDay
-        case streak
-        case recentActivity
-        case mood
-    }
-    
-    let condition: Condition
-    let parameter: String
-    let adjustment: String
-}
+// Note: AdaptationRule is defined in PersonaModels.swift

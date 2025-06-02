@@ -33,7 +33,7 @@ targets:
           - "AirFitTests/**"
           - "AirFitUITests/**"
       - AirFit/Modules/Onboarding/Models/OnboardingModels.swift
-      - AirFit/Modules/Onboarding/Models/ConversationModels.swift
+      - AirFit/Modules/Onboarding/Models/ConversationTypes.swift
       - AirFit/Modules/Onboarding/Models/PersonalityInsights.swift
       - AirFit/Modules/Onboarding/ViewModels/OnboardingViewModel.swift
       - AirFit/Modules/Onboarding/ViewModels/ConversationViewModel.swift
@@ -102,6 +102,8 @@ targets:
       - AirFit/Data/Models/ExerciseSet.swift
       - AirFit/Data/Models/NutritionData.swift
       - AirFit/Data/Models/ChatSession.swift
+      - AirFit/Data/Models/ConversationSession.swift
+      - AirFit/Data/Models/ConversationResponse.swift
       - AirFit/Data/Models/SetTemplate.swift
       # Data Layer Extensions & Managers (CRITICAL: XcodeGen nesting bug)
       - AirFit/Data/Extensions/FetchDescriptor+Extensions.swift
@@ -148,14 +150,17 @@ targets:
       - AirFit/Core/Services/WhisperModelManager.swift
       - AirFit/Core/Services/VoiceInputManager.swift
       # Services Layer Files (CRITICAL: XcodeGen nesting bug)
-      - AirFit/Services/Security/APIKeyManagerProtocol.swift
-      - AirFit/Services/Platform/NotificationManagerProtocol.swift
+      - AirFit/Core/Protocols/APIKeyManagerProtocol.swift
+      - AirFit/Services/Security/DefaultAPIKeyManager.swift
+      - AirFit/Core/Protocols/NotificationManagerProtocol.swift
+      - AirFit/Services/Platform/DefaultNotificationManager.swift
       - AirFit/Services/Network/NetworkClient.swift
-      - AirFit/Services/Network/NetworkClientProtocol.swift
-      - AirFit/Services/User/UserServiceProtocol.swift
+      - AirFit/Core/Protocols/NetworkClientProtocol.swift
+      - AirFit/Core/Protocols/UserServiceProtocol.swift
+      - AirFit/Services/User/DefaultUserService.swift
       - AirFit/Services/Speech/WhisperServiceWrapperProtocol.swift
       - AirFit/Services/AI/AIAPIServiceProtocol.swift
-      - AirFit/Services/AI/AIServiceProtocol.swift
+      - AirFit/Core/Protocols/AIServiceProtocol.swift
       - AirFit/Services/AI/MockAIService.swift
       - AirFit/Services/AI/LLMProviders/LLMProvider.swift
       - AirFit/Services/AI/LLMProviders/LLMModels.swift
@@ -184,6 +189,7 @@ targets:
       - AirFit/Modules/AI/PersonaSynthesis/FallbackPersonaGenerator.swift  # Phase 4: Error recovery
       - AirFit/Modules/AI/PersonaSynthesis/PreviewGenerator.swift
       - AirFit/Modules/AI/Models/PersonaModels.swift
+      - AirFit/Modules/AI/Models/ConversationPersonalityInsights.swift
       - AirFit/Modules/AI/Configuration/RoutingConfiguration.swift
       - AirFit/Modules/Dashboard/Services/DashboardServiceProtocols.swift
       - AirFit/Modules/Dashboard/ViewModels/DashboardViewModel.swift

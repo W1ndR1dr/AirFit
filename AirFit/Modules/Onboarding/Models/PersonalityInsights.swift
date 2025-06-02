@@ -1,7 +1,7 @@
 import Foundation
 
 // MARK: - Personality Insights
-struct PersonalityInsights: Codable, Sendable {
+struct PersonalityInsights: Sendable {
     var traits: [PersonalityDimension: Double]
     var communicationStyle: CommunicationProfile
     var motivationalDrivers: Set<MotivationalDriver>
@@ -16,6 +16,68 @@ struct PersonalityInsights: Codable, Sendable {
         self.stressResponses = [:]
         self.confidenceScores = [:]
         self.lastUpdated = Date()
+    }
+}
+
+extension PersonalityInsights: Codable {
+    enum CodingKeys: String, CodingKey {
+        case traits, communicationStyle, motivationalDrivers, stressResponses, confidenceScores, lastUpdated
+    }
+    
+    init(from decoder: Decoder) throws {
+        let container = try decoder.container(keyedBy: CodingKeys.self)
+        
+        // Decode traits as [String: Double] then convert
+        let traitsDict = try container.decode([String: Double].self, forKey: .traits)
+        self.traits = Dictionary(uniqueKeysWithValues: traitsDict.compactMap { key, value in
+            guard let dimension = PersonalityDimension(rawValue: key) else { return nil }
+            return (dimension, value)
+        })
+        
+        self.communicationStyle = try container.decode(CommunicationProfile.self, forKey: .communicationStyle)
+        
+        // Decode Set as Array then convert
+        let driversArray = try container.decode([MotivationalDriver].self, forKey: .motivationalDrivers)
+        self.motivationalDrivers = Set(driversArray)
+        
+        // Decode stress responses as [String: CopingStyle] then convert
+        let stressDict = try container.decode([String: CopingStyle].self, forKey: .stressResponses)
+        self.stressResponses = Dictionary(uniqueKeysWithValues: stressDict.compactMap { key, value in
+            guard let trigger = StressTrigger(rawValue: key) else { return nil }
+            return (trigger, value)
+        })
+        
+        // Decode confidence scores as [String: Double] then convert
+        let scoresDict = try container.decode([String: Double].self, forKey: .confidenceScores)
+        self.confidenceScores = Dictionary(uniqueKeysWithValues: scoresDict.compactMap { key, value in
+            guard let dimension = PersonalityDimension(rawValue: key) else { return nil }
+            return (dimension, value)
+        })
+        
+        self.lastUpdated = try container.decode(Date.self, forKey: .lastUpdated)
+    }
+    
+    func encode(to encoder: Encoder) throws {
+        var container = encoder.container(keyedBy: CodingKeys.self)
+        
+        // Convert traits to [String: Double]
+        let traitsDict = Dictionary(uniqueKeysWithValues: traits.map { ($0.key.rawValue, $0.value) })
+        try container.encode(traitsDict, forKey: .traits)
+        
+        try container.encode(communicationStyle, forKey: .communicationStyle)
+        
+        // Convert Set to Array
+        try container.encode(Array(motivationalDrivers), forKey: .motivationalDrivers)
+        
+        // Convert stress responses to [String: CopingStyle]
+        let stressDict = Dictionary(uniqueKeysWithValues: stressResponses.map { ($0.key.rawValue, $0.value) })
+        try container.encode(stressDict, forKey: .stressResponses)
+        
+        // Convert confidence scores to [String: Double]
+        let scoresDict = Dictionary(uniqueKeysWithValues: confidenceScores.map { ($0.key.rawValue, $0.value) })
+        try container.encode(scoresDict, forKey: .confidenceScores)
+        
+        try container.encode(lastUpdated, forKey: .lastUpdated)
     }
 }
 
@@ -96,13 +158,13 @@ enum CopingStyle: String, Codable {
 }
 
 // MARK: - Persona Profile (Generated from Insights)
-struct PersonaProfile: Codable, Sendable {
+struct GeneratedPersonaProfile: Codable, Sendable {
     let id: UUID
     let name: String
     let archetype: String
     let personalityPrompt: String
-    let voiceCharacteristics: VoiceCharacteristics
-    let interactionStyle: InteractionStyle
+    let voiceCharacteristics: GeneratedVoiceCharacteristics
+    let interactionStyle: GeneratedInteractionStyle
     let createdAt: Date
     let sourceInsights: PersonalityInsights
     
@@ -110,8 +172,8 @@ struct PersonaProfile: Codable, Sendable {
         name: String,
         archetype: String,
         personalityPrompt: String,
-        voiceCharacteristics: VoiceCharacteristics,
-        interactionStyle: InteractionStyle,
+        voiceCharacteristics: GeneratedVoiceCharacteristics,
+        interactionStyle: GeneratedInteractionStyle,
         sourceInsights: PersonalityInsights
     ) {
         self.id = UUID()
@@ -125,7 +187,7 @@ struct PersonaProfile: Codable, Sendable {
     }
 }
 
-struct VoiceCharacteristics: Codable, Sendable {
+struct GeneratedVoiceCharacteristics: Codable, Sendable {
     let pace: VoicePace
     let energy: VoiceEnergy
     let warmth: VoiceWarmth
@@ -149,7 +211,7 @@ struct VoiceCharacteristics: Codable, Sendable {
     }
 }
 
-struct InteractionStyle: Codable, Sendable {
+struct GeneratedInteractionStyle: Codable, Sendable {
     let greetingStyle: String
     let signoffStyle: String
     let encouragementPhrases: [String]

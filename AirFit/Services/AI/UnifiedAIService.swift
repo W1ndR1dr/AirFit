@@ -13,7 +13,7 @@ final class UnifiedAIService: AIAPIServiceProtocol {
     @Published private(set) var totalCost: Double = 0
     
     private var currentProvider: AIProvider = .anthropic
-    private var fallbackProviders: [AIProvider] = [.openAI, .googleGemini]
+    private var fallbackProviders: [AIProvider] = [.openAI, .gemini]
     
     init(apiKeyManager: APIKeyManagerProtocol) async {
         self.apiKeyManager = apiKeyManager
@@ -57,34 +57,36 @@ final class UnifiedAIService: AIAPIServiceProtocol {
     
     // MARK: - AIAPIServiceProtocol Implementation
     
-    func configure(provider: AIProvider, apiKey: String, modelIdentifier: String?) {
-        self.currentProvider = provider
+    nonisolated func configure(provider: AIProvider, apiKey: String, modelIdentifier: String?) {
+        Task { @MainActor in
+            self.currentProvider = provider
+        }
         // API keys are managed by APIKeyManager, this is for protocol compliance
     }
     
-    func getStreamingResponse(for request: AIRequest) -> AnyPublisher<AIResponse, Error> {
+    nonisolated func getStreamingResponse(for request: AIRequest) -> AnyPublisher<AIResponse, Error> {
         let subject = PassthroughSubject<AIResponse, Error>()
         
         Task {
             do {
                 // Try cache first if not streaming functions
-                if request.availableFunctions == nil, let cached = await checkCache(for: request) {
+                if request.functions == nil, let cached = await checkCache(for: request) {
                     subject.send(.text(cached))
-                    subject.send(.done)
+                    subject.send(.done(usage: nil))
                     subject.send(completion: .finished)
                     return
                 }
                 
                 // Get appropriate provider
-                guard let provider = selectProvider(for: request) else {
-                    throw AIError.noAvailableProvider
+                guard let provider = await selectProvider(for: request) else {
+                    throw AIError.networkError("No available AI provider")
                 }
                 
                 // Convert to provider request
                 let llmRequest = convertToLLMRequest(request, provider: provider)
                 
                 // Stream response
-                let stream = provider.stream(llmRequest)
+                let stream = await provider.stream(llmRequest)
                 var fullResponse = ""
                 
                 for try await chunk in stream {
@@ -95,28 +97,32 @@ final class UnifiedAIService: AIAPIServiceProtocol {
                     
                     if chunk.isFinished {
                         // Cache successful response
-                        if request.availableFunctions == nil {
+                        if request.functions == nil {
                             await cacheResponse(fullResponse, for: request)
                         }
                         
                         // Track usage
+                        var aiUsage: AITokenUsage? = nil
                         if let usage = chunk.usage {
-                            let cost = usage.cost(at: provider.costPerKToken)
-                            totalCost += cost
-                            subject.send(.usage(TokenUsage(
+                            let cost = usage.cost(at: await provider.costPerKToken)
+                            Task { @MainActor in
+                                totalCost += cost
+                            }
+                            // Include usage in done message
+                            aiUsage = AITokenUsage(
                                 promptTokens: usage.promptTokens,
                                 completionTokens: usage.completionTokens,
-                                totalCost: cost
-                            )))
+                                totalTokens: usage.promptTokens + usage.completionTokens
+                            )
                         }
                         
-                        subject.send(.done)
+                        subject.send(.done(usage: aiUsage))
                     }
                 }
                 
                 subject.send(completion: .finished)
             } catch {
-                subject.send(.error(error))
+                subject.send(.error(error as? AIError ?? AIError.networkError(error.localizedDescription)))
                 subject.send(completion: .failure(error))
             }
         }
@@ -129,7 +135,7 @@ final class UnifiedAIService: AIAPIServiceProtocol {
     /// Complete a request with automatic provider selection and fallback
     func complete(_ request: AIRequest) async throws -> String {
         // Check cache
-        if request.availableFunctions == nil, let cached = await checkCache(for: request) {
+        if request.functions == nil, let cached = await checkCache(for: request) {
             return cached
         }
         
@@ -150,7 +156,7 @@ final class UnifiedAIService: AIAPIServiceProtocol {
                 totalCost += cost
                 
                 // Cache response
-                if request.availableFunctions == nil {
+                if request.functions == nil {
                     await cacheResponse(response.content, for: request)
                 }
                 
@@ -162,7 +168,7 @@ final class UnifiedAIService: AIAPIServiceProtocol {
             }
         }
         
-        throw lastError ?? AIError.noAvailableProvider
+        throw lastError ?? AIError.networkError("No available AI provider")
     }
     
     /// Stream a response with function calling support
@@ -170,12 +176,12 @@ final class UnifiedAIService: AIAPIServiceProtocol {
         AsyncThrowingStream { continuation in
             Task {
                 do {
-                    guard let provider = selectProvider(for: request) else {
-                        throw AIError.noAvailableProvider
+                    guard let provider = await selectProvider(for: request) else {
+                        throw AIError.networkError("No available AI provider")
                     }
                     
                     let llmRequest = convertToLLMRequest(request, provider: provider)
-                    let stream = provider.stream(llmRequest)
+                    let stream = await provider.stream(llmRequest)
                     
                     for try await chunk in stream {
                         if !chunk.delta.isEmpty {
@@ -183,16 +189,19 @@ final class UnifiedAIService: AIAPIServiceProtocol {
                         }
                         
                         if chunk.isFinished {
+                            var aiUsage: AITokenUsage? = nil
                             if let usage = chunk.usage {
-                                let cost = usage.cost(at: provider.costPerKToken)
+                                let cost = usage.cost(at: await provider.costPerKToken)
+                                Task { @MainActor in
                                 totalCost += cost
-                                continuation.yield(.usage(TokenUsage(
+                            }
+                                aiUsage = AITokenUsage(
                                     promptTokens: usage.promptTokens,
                                     completionTokens: usage.completionTokens,
-                                    totalCost: cost
-                                )))
+                                    totalTokens: usage.promptTokens + usage.completionTokens
+                                )
                             }
-                            continuation.yield(.done)
+                            continuation.yield(.done(usage: aiUsage))
                         }
                     }
                     
@@ -230,7 +239,7 @@ final class UnifiedAIService: AIAPIServiceProtocol {
         var messages: [LLMMessage] = []
         
         // Add conversation history
-        for message in request.conversationHistory {
+        for message in request.messages {
             messages.append(LLMMessage(
                 role: mapRole(message.role),
                 content: message.content,
@@ -257,13 +266,13 @@ final class UnifiedAIService: AIAPIServiceProtocol {
             responseFormat: nil,
             stream: true,
             metadata: [
-                "hasAvailableFunctions": request.availableFunctions != nil,
-                "conversationLength": request.conversationHistory.count
+                "hasFunctions": request.functions != nil,
+                "messageCount": request.messages.count
             ]
         )
     }
     
-    private func mapRole(_ role: MessageRole) -> LLMMessage.Role {
+    private func mapRole(_ role: AIMessageRole) -> LLMMessage.Role {
         switch role {
         case .system: return .system
         case .user: return .user
@@ -277,8 +286,8 @@ final class UnifiedAIService: AIAPIServiceProtocol {
     
     private func selectModel(for request: AIRequest, provider: any LLMProvider) -> String {
         // Smart model selection based on task complexity
-        let hasLongContext = request.conversationHistory.count > 10
-        let hasFunctions = request.availableFunctions != nil
+        let hasLongContext = request.messages.count > 10
+        let hasFunctions = request.functions != nil
         let needsHighCapability = hasFunctions || hasLongContext
         
         switch provider.identifier {
@@ -296,7 +305,7 @@ final class UnifiedAIService: AIAPIServiceProtocol {
     private func checkCache(for request: AIRequest) async -> String? {
         // Create cache key from request
         let cacheRequest = LLMRequest(
-            messages: request.conversationHistory.map { msg in
+            messages: request.messages.map { msg in
                 LLMMessage(role: mapRole(msg.role), content: msg.content, name: nil)
             } + [LLMMessage(role: .user, content: request.userMessage.content, name: nil)],
             model: "", // Model doesn't matter for cache key
@@ -317,7 +326,7 @@ final class UnifiedAIService: AIAPIServiceProtocol {
     
     private func cacheResponse(_ response: String, for request: AIRequest) async {
         let cacheRequest = LLMRequest(
-            messages: request.conversationHistory.map { msg in
+            messages: request.messages.map { msg in
                 LLMMessage(role: mapRole(msg.role), content: msg.content, name: nil)
             } + [LLMMessage(role: .user, content: request.userMessage.content, name: nil)],
             model: "", // Model doesn't matter for cache
