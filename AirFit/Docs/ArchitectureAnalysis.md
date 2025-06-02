@@ -734,6 +734,44 @@ This module is for "Voice-First AI-Powered Nutrition" and has its own `AGENTS.md
     *   Consider creating a `Models/` directory for view-state structs if they grow or are shared across multiple chat views.
     *   Address potential SwiftData fetch performance for chat history as data scales.
 
+### 7.30. `AirFit/Modules/Workouts/`
+
+*   **Directory Structure:** Contains `ViewModels/`, `Views/`, and `Coordinators/`. Missing `Models/` and `Services/` subdirectories from the standard module template.
+*   **Files Reviewed (Selected):**
+    *   `ViewModels/WorkoutViewModel.swift`
+    *   `Coordinators/WorkoutCoordinator.swift`
+*   **Analysis:**
+    *   **`WorkoutCoordinator.swift`**: A `@MainActor @Observable` class that manages navigation for the Workouts module using `NavigationPath` and sheet presentation. Well-implemented and correctly placed.
+    *   **`ViewModels/WorkoutViewModel.swift`**: The primary `@MainActor @Observable` ViewModel. Manages display of workouts, calculates weekly stats (`WeeklyWorkoutStats` struct defined locally), processes workouts received via `WorkoutSyncService` (through `NotificationCenter`), and triggers AI post-workout analysis via a `CoachEngineProtocol`.
+        *   **Local `CoachEngineProtocol`:** Defines a narrow, local protocol for `CoachEngine` and extends the main `CoachEngine` (from `Modules/AI/`) to conform. This is a specific decoupling choice; a public protocol from `Modules/AI/` might be more standard.
+        *   **Dependency:** Relies on `PostWorkoutAnalysisRequest` struct, whose definition was not found in this module (likely in `Modules/AI/Models/`).
+        *   **Missing `Models/` Directory:** The `WeeklyWorkoutStats` struct is defined in the ViewModel file. **Recommendation:** Create `AirFit/Modules/Workouts/Models/` and move such view-specific model structs there.
+    *   **Missing Module-Specific Services:** No `Services/` subdirectory. If complex workout-specific business logic (e.g., workout planning, advanced stats) evolves, a dedicated module service would be appropriate.
+*   **Conclusion:**
+    *   The Workouts module has a functional ViewModel and a well-defined Coordinator.
+    *   **Key Actions/Considerations:**
+        1.  Organize view-specific model structs (like `WeeklyWorkoutStats`) into a `Models/` subdirectory.
+        2.  Ensure the `PostWorkoutAnalysisRequest` struct dependency is clearly defined and accessible.
+        3.  Evaluate the local `CoachEngineProtocol` pattern versus using a more comprehensive public protocol from the AI module.
+        4.  Consider adding a module-specific service if business logic complexity increases.
+
+### 7.31. `AirFit/Modules/Settings/`
+
+*   **Directory Structure:** Contains `ViewModels/`, `Views/`, and `Services/` subdirectories. Missing `Models/` and `Coordinators/` subdirectories from the standard module template.
+*   **AGENTS.md Status:** Listed as "Completed" in the main `AGENTS.md` file.
+*   **File Review:**
+    *   `AirFit/Modules/Settings/ViewModels/`: Directory is empty.
+    *   `AirFit/Modules/Settings/Views/`: Directory is empty.
+    *   `AirFit/Modules/Settings/Services/`: Directory is empty.
+*   **Analysis & Conclusion:**
+    *   Despite being marked as "Completed", the `AirFit/Modules/Settings/` directory is currently a skeleton structure with no code files in its `Views/`, `ViewModels/`, or `Services/` subdirectories. No module-specific `Models/` or `Coordinators/` directories were found at the module root either.
+    *   This indicates a significant discrepancy. Either the module was not implemented as documented, its files are misplaced, or they were inadvertently removed.
+    *   As such, there is no current implementation within this module path to analyze for adherence to MVVM-C or other architectural guidelines.
+*   **Critical Action Required:**
+    1.  **Verify Status & Locate Files:** The actual status of the Settings module must be determined. If implemented, its constituent files (Views, ViewModels, Services, Models, Coordinators) must be located and moved into the correct subdirectories within `AirFit/Modules/Settings/`.
+    2.  **Implement if Missing:** If the module has not been implemented, it needs to be developed according to the project's defined architectural patterns.
+    *   This module is critical for user account management, preferences, and other essential settings, and its absence or misplacement is a major issue.
+
 ## 8. Overall Summary and Next Steps for Analysis
 
 The AirFit project's architecture, as defined in `AGENTS.md` and observed in the codebase so far, demonstrates a strong commitment to modularity and separation of concerns, primarily following an MVVM-C pattern. The `Core` directory structure is generally sound, housing foundational elements like shareable models, constants, enums, extensions, and core protocols.

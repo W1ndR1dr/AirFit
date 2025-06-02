@@ -373,6 +373,3 @@ extension LLMResponse: Codable {
         try container.encode(stringMetadata, forKey: .metadata)
     }
 }
-
-extension LLMResponse.TokenUsage: Codable {}
-extension LLMResponse.FinishReason: Codable {}

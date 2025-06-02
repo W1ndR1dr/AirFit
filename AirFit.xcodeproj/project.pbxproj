@@ -184,6 +184,7 @@
 		9ECD86471BE77AEFCC164074 /* HealthKitSleepAnalyzer.swift in Sources */ = {isa = PBXBuildFile; fileRef = C2CC530C34C2DB2CE6C6E77C /* HealthKitSleepAnalyzer.swift */; };
 		9F220856A90622AF0180E2D1 /* AppColors.swift in Sources */ = {isa = PBXBuildFile; fileRef = 61523807ACE0F0192BC7798B /* AppColors.swift */; };
 		9F3DCB8A5AECC8CFDE01FC93 /* AIResponseCache.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0CA0E11E2AB23391F0F6659F /* AIResponseCache.swift */; };
+		9F66A96906B730856D7BDEF3 /* MockLLMOrchestrator.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5F6159FB6CB95ADFA707F880 /* MockLLMOrchestrator.swift */; };
 		A05DF5960D8EB1FD292AB0BE /* AppLogger.swift in Sources */ = {isa = PBXBuildFile; fileRef = B439B9C8ABD81D57DC7973B6 /* AppLogger.swift */; };
 		A06DFFF36E91A43DE8039E41 /* Formatters.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6289AF07AE9B8354DF019D9C /* Formatters.swift */; };
 		A08834AAD86BF4619A6DD20C /* NutritionSearchView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 06C59C77B1B942FCFFB438E0 /* NutritionSearchView.swift */; };
@@ -422,6 +423,7 @@
 		5D3F036864A47C18DC02E49B /* CoachingStyleView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CoachingStyleView.swift; sourceTree = "<group>"; };
 		5E2D17759F5EBB5F2A849F59 /* ContextAnalyzer.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ContextAnalyzer.swift; sourceTree = "<group>"; };
 		5EDA54B8A950BDAB2809EFBF /* PersonalityInsights.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PersonalityInsights.swift; sourceTree = "<group>"; };
+		5F6159FB6CB95ADFA707F880 /* MockLLMOrchestrator.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MockLLMOrchestrator.swift; sourceTree = "<group>"; };
 		5F927A7788581BC39ACC46B1 /* FoodTrackingViewModelTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FoodTrackingViewModelTests.swift; sourceTree = "<group>"; };
 		6038A37C6C1CCD16D0389FE0 /* LocalCommandParserTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LocalCommandParserTests.swift; sourceTree = "<group>"; };
 		61523807ACE0F0192BC7798B /* AppColors.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppColors.swift; sourceTree = "<group>"; };
@@ -882,6 +884,7 @@
 				3D9E1768455705609C1237E4 /* MockDashboardServices.swift */,
 				B02E24D2448C0526C44DC179 /* MockHealthKitManager.swift */,
 				A633FAA6810B7F5ABE1727D0 /* MockHealthKitPrefillProvider.swift */,
+				5F6159FB6CB95ADFA707F880 /* MockLLMOrchestrator.swift */,
 				F12B964391AE27C0CBA30019 /* MockOnboardingService.swift */,
 				16EFC55A7ED6CD727608D7ED /* MockUserService.swift */,
 				8FB677866A0FFCF9BC0283D3 /* MockVoiceInputManager.swift */,
@@ -1846,6 +1849,7 @@
 				3F1F0B4790E68A85AD75ED2F /* MockDashboardServices.swift in Sources */,
 				0FA588682ACC878EC273B457 /* MockHealthKitManager.swift in Sources */,
 				B76BF821E5B2C0502C7FC1B9 /* MockHealthKitPrefillProvider.swift in Sources */,
+				9F66A96906B730856D7BDEF3 /* MockLLMOrchestrator.swift in Sources */,
 				98CEA52D85B4B458A1D614CA /* MockOnboardingService.swift in Sources */,
 				E1F4BAC99211764ECFCD34FD /* MockProtocol.swift in Sources */,
 				7B16D0DCE57A7A9530A9C030 /* MockUserService.swift in Sources */,

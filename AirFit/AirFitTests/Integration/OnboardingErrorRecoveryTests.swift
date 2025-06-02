@@ -198,29 +198,3 @@ final class OnboardingErrorRecoveryTests: XCTestCase {
     }
 }
 
-// MARK: - Mock LLMOrchestrator
-
-private class MockLLMOrchestrator: LLMOrchestrator {
-    init() {
-        super.init(apiKeyManager: MockAPIKeyManager())
-    }
-    
-    override func complete(_ request: LLMRequest) async throws -> LLMResponse {
-        // Return mock response
-        return LLMResponse(
-            content: "{}",
-            model: request.model ?? "mock",
-            usage: LLMUsage(promptTokens: 0, completionTokens: 0, totalTokens: 0),
-            cost: 0
-        )
-    }
-}
-
-private class MockAPIKeyManager: APIKeyManagerProtocol {
-    func saveAPIKey(_ apiKey: String, forProvider provider: AIProvider) throws { }
-    func getAPIKey(forProvider provider: AIProvider) -> String? { "mock-key" }
-    func deleteAPIKey(forProvider provider: AIProvider) throws { }
-    func getAPIKey(for provider: String) async -> String? { "mock-key" }
-    func saveAPIKey(_ apiKey: String, for provider: String) async throws { }
-    func deleteAPIKey(for provider: String) async throws { }
-}

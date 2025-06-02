@@ -48,7 +48,6 @@ actor GeminiProvider: LLMProvider {
         }
         
         guard (200...299).contains(httpResponse.statusCode) else {
-            let errorText = String(data: data, encoding: .utf8) ?? "Unknown error"
             try handleGeminiError(data, statusCode: httpResponse.statusCode)
         }
         
@@ -78,7 +77,7 @@ actor GeminiProvider: LLMProvider {
                     
                     var buffer = ""
                     for try await byte in asyncBytes {
-                        let char = Character(UnicodeScalar(byte)!)
+                        let char = Character(UnicodeScalar(byte))
                         buffer.append(char)
                         
                         if buffer.hasSuffix("\n\n") {

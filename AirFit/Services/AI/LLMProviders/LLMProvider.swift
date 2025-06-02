@@ -67,7 +67,7 @@ struct LLMResponse {
     let finishReason: FinishReason
     let metadata: [String: Any]
     
-    struct TokenUsage {
+    struct TokenUsage: Codable {
         let promptTokens: Int
         let completionTokens: Int
         var totalTokens: Int { promptTokens + completionTokens }
@@ -79,7 +79,7 @@ struct LLMResponse {
         }
     }
     
-    enum FinishReason: String {
+    enum FinishReason: String, Codable {
         case stop
         case length
         case contentFilter = "content_filter"

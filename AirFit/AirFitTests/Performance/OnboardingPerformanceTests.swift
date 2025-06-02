@@ -17,8 +17,7 @@ final class OnboardingPerformanceTests: XCTestCase {
         
         cache = AIResponseCache()
         
-        let apiKeyManager = MockAPIKeyManager()
-        let llmOrchestrator = LLMOrchestrator(apiKeyManager: apiKeyManager)
+        let llmOrchestrator = MockLLMOrchestrator()
         let optimizedSynthesizer = OptimizedPersonaSynthesizer(
             llmOrchestrator: llmOrchestrator,
             cache: cache
@@ -293,12 +292,3 @@ final class OnboardingPerformanceTests: XCTestCase {
     }
 }
 
-// Mock API Key Manager
-private class MockAPIKeyManager: APIKeyManagerProtocol {
-    func saveAPIKey(_ apiKey: String, forProvider provider: AIProvider) throws { }
-    func getAPIKey(forProvider provider: AIProvider) -> String? { "mock-key" }
-    func deleteAPIKey(forProvider provider: AIProvider) throws { }
-    func getAPIKey(for provider: String) async -> String? { "mock-key" }
-    func saveAPIKey(_ apiKey: String, for provider: String) async throws { }
-    func deleteAPIKey(for provider: String) async throws { }
-}

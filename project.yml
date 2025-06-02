@@ -339,6 +339,7 @@ targets:
       - AirFit/AirFitTests/Mocks/MockWhisperServiceWrapper.swift
       - AirFit/AirFitTests/Mocks/MockAIAPIService.swift
       - AirFit/AirFitTests/Mocks/MockAIFunctionServices.swift
+      - AirFit/AirFitTests/Mocks/MockLLMOrchestrator.swift
     dependencies:
       - target: AirFit
     settings:

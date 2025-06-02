@@ -13,15 +13,17 @@ final class AIAPIService: AIAPIServiceProtocol {
         self.llmOrchestrator = llmOrchestrator
     }
     
-    func configure(provider: AIProvider, apiKey: String, modelIdentifier: String?) {
-        self.currentProvider = provider
-        self.currentModel = modelIdentifier ?? provider.defaultModel
+    nonisolated func configure(provider: AIProvider, apiKey: String, modelIdentifier: String?) {
+        Task { @MainActor in
+            self.currentProvider = provider
+            self.currentModel = modelIdentifier ?? provider.rawValue
+        }
         
         // Note: API keys are already configured in LLMOrchestrator through APIKeyManager
         // This method exists for protocol compliance but doesn't need to do anything
     }
     
-    func getStreamingResponse(for request: AIRequest) -> AnyPublisher<AIResponse, Error> {
+    nonisolated func getStreamingResponse(for request: AIRequest) -> AnyPublisher<AIResponse, Error> {
         // Convert AIRequest to LLMRequest
         let llmRequest = convertToLLMRequest(request)
         
@@ -30,7 +32,7 @@ final class AIAPIService: AIAPIServiceProtocol {
         
         Task {
             do {
-                let stream = llmOrchestrator.stream(llmRequest)
+                let stream = try await llmOrchestrator.stream(prompt: llmRequest)
                 
                 for try await chunk in stream {
                     let aiResponse = convertToAIResponse(chunk)
