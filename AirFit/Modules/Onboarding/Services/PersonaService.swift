@@ -5,15 +5,18 @@ actor PersonaService {
     private let personaSynthesizer: PersonaSynthesizer
     private let llmOrchestrator: LLMOrchestrator
     private let modelContext: ModelContext
+    private let cache: AIResponseCache
     
     init(
         personaSynthesizer: PersonaSynthesizer,
         llmOrchestrator: LLMOrchestrator,
-        modelContext: ModelContext
+        modelContext: ModelContext,
+        cache: AIResponseCache? = nil
     ) {
         self.personaSynthesizer = personaSynthesizer
         self.llmOrchestrator = llmOrchestrator
         self.modelContext = modelContext
+        self.cache = cache ?? AIResponseCache()
     }
     
     func generatePersona(from session: ConversationSession) async throws -> PersonaProfile {

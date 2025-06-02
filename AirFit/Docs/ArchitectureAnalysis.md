@@ -433,6 +433,163 @@ This section will be updated with findings from a more granular, file-by-file re
     *   It demonstrates good use of concurrency and handles complex domain logic for workout analysis and trend calculation.
     *   The primary areas for future work involve replacing mock data and continually managing the complexity of the assembly logic.
 
+### 7.18. `AirFit/Services/Health/`
+
+*   **Files Reviewed:**
+    *   `HealthKitManagerProtocol.swift` (defines `HealthKitManaging`)
+    *   `HealthKitManager.swift` (concrete implementation)
+    *   `HealthKitDataFetcher.swift`
+    *   `HealthKitSleepAnalyzer.swift`
+    *   `HealthKitDataTypes.swift`
+    *   `HealthKitExtensions.swift`
+*   **General Architecture:**
+    *   The HealthKit service is structured with `HealthKitManager` as the main facade, conforming to the `HealthKitManaging` protocol.
+    *   `HealthKitManager` delegates specific tasks to helper classes: `HealthKitDataFetcher` (for fetching various quantity types and enabling background delivery) and `HealthKitSleepAnalyzer` (for processing sleep samples).
+    *   `HealthKitDataTypes.swift` centralizes the `HKSampleType`s the app reads and writes, used for requesting authorization.
+    *   All key classes are marked `@MainActor`, and asynchronous operations correctly use `async/await`, including `async let` for concurrent fetches and `withCheckedThrowingContinuation` for adapting older HealthKit APIs.
+    *   A specific `HealthKitError` enum is defined for error handling.
+*   **Strengths:**
+    *   Good separation of concerns within the HealthKit service.
+    *   Clear protocol (`HealthKitManaging`) for dependency injection (e.g., used by `ContextAssembler`).
+    *   Robust data fetching and processing for activity, heart, body, and sleep metrics.
+    *   Handles HealthKit authorization and background delivery setup.
+*   **Potential Issues & Recommendations:**
+    *   **Protocol Placement (`HealthKitManagerProtocol.swift`):** The `HealthKitManaging` protocol is used by services outside this `Health/` subdirectory (e.g., `ContextAssembler`). **Recommendation:** Consider moving `HealthKitManagerProtocol.swift` to `AirFit/Core/Protocols/` to better reflect its role as a core service interface.
+    *   **Extension Placement (`HealthKitExtensions.swift`):** The extension on `HeartHealthMetrics.CardioFitnessLevel` (a Core model type) is currently in `HealthKitExtensions.swift`. **Recommendation:** Consider moving this extension to `AirFit/Core/Extensions/` (e.g., into a file like `HealthContextSnapshot+Extensions.swift` or a new file dedicated to `HeartHealthMetrics` extensions if more arise) for better consistency in how Core types are extended.
+*   **Conclusion:**
+    *   The `AirFit/Services/Health/` directory contains a well-architected and robust service for HealthKit integration.
+    *   The implementation follows modern Swift concurrency practices and demonstrates good separation of responsibilities.
+    *   The main recommendations relate to standardizing the placement of shared protocols and Core type extensions.
+
+### 7.19. `AirFit/Services/Network/`
+
+*   **Files Reviewed:**
+    *   `NetworkClientProtocol.swift` (defines `NetworkClientProtocol`, `Endpoint`, `HTTPMethod`, `NetworkError`)
+    *   `NetworkClient.swift` (concrete implementation)
+*   **General Architecture:**
+    *   The network layer is defined by `NetworkClientProtocol`, a `Sendable` protocol for performing generic network requests, uploads, and downloads using an `Endpoint` struct to define request parameters.
+    *   `NetworkClient` is a `final class` singleton implementing this protocol, using `URLSession` for network operations.
+    *   It includes configured `JSONDecoder` and `JSONEncoder` (ISO8601 dates, snake_case key conversion).
+    *   Provides comprehensive error handling via a `NetworkError` enum.
+    *   Offers convenience methods (e.g., `get`, `post`, `put`, `delete`) for common RESTful operations.
+*   **Strengths:**
+    *   Clear, `Sendable`, and `async/await`-based protocol for network interactions.
+    *   Well-defined `Endpoint` struct for request encapsulation.
+    *   Robust `NetworkClient` implementation with sensible defaults and good error handling.
+    *   Convenience methods enhance usability.
+*   **Potential Issues & Recommendations:**
+    *   **Protocol Placement (`NetworkClientProtocol.swift`):** The `NetworkClientProtocol` and its supporting types (`Endpoint`, `HTTPMethod`, `NetworkError`) are used for app-wide dependency injection (e.g., via `DependencyContainer`). **Recommendation:** Move `NetworkClientProtocol.swift` to `AirFit/Core/Protocols/` to establish it as a core, shared interface.
+*   **Conclusion:**
+    *   The `AirFit/Services/Network/` directory provides a solid and well-implemented network service layer.
+    *   The design promotes testability (injectable `URLSession`) and ease of use.
+    *   The primary recommendation is to relocate the protocol file to the Core layer to better reflect its architectural role.
+
+### 7.20. `AirFit/Services/User/`
+
+*   **Files Reviewed:**
+    *   `UserServiceProtocol.swift` (defines `UserServiceProtocol` and `ProfileUpdate` struct)
+*   **General Architecture:**
+    *   `UserServiceProtocol.swift` defines a `Sendable` protocol for managing user lifecycle, profile updates, onboarding status, and user-specific settings (like coach persona). It includes `async throws` methods for most operations.
+    *   The `ProfileUpdate` struct is a simple `Sendable` DTO for profile changes.
+*   **Potential Issues & Recommendations:**
+    *   **Missing Production Implementation:** A grep search revealed only a `MockUserService` for testing. No production implementation of `UserServiceProtocol` (e.g., `DefaultUserService`) was found within `AirFit/Services/User/` or easily elsewhere. This is a critical gap. User management logic appears partially handled in `AppState`, but a dedicated service implementing this protocol is expected in this directory.
+        *   **Recommendation:** Implement a concrete `DefaultUserService` class within `AirFit/Services/User/` that conforms to `UserServiceProtocol`. This service would likely interact with SwiftData (via `ModelContext`) and potentially `AppState` for current user information.
+    *   **Protocol Placement (`UserServiceProtocol.swift`):** The `UserServiceProtocol` is a fundamental service interface likely needed across many parts of the application for dependency injection. **Recommendation:** Move `UserServiceProtocol.swift` to `AirFit/Core/Protocols/`.
+*   **Conclusion:**
+    *   The `UserServiceProtocol` defines a crucial and well-structured interface for user management.
+    *   The most significant finding is the **absence of a production implementation** for this protocol within the designated service directory. This needs to be addressed by creating a `DefaultUserService`.
+    *   The protocol itself should be relocated to the Core layer for broader accessibility.
+
+### 7.21. `AirFit/Services/Speech/`
+
+*   **Files Reviewed:**
+    *   `WhisperServiceWrapperProtocol.swift` (defines `WhisperServiceWrapperProtocol` and `TranscriptionError` enum)
+*   **General Architecture:**
+    *   `WhisperServiceWrapperProtocol.swift` defines an interface for a speech-to-text service.
+    *   The protocol uses Combine (`CurrentValueSubject`) for state publishing and completion handlers for asynchronous operations (`requestPermission`, `startTranscription`).
+*   **Potential Issues & Recommendations:**
+    *   **Misplaced Concrete Services:** The actual concrete speech services (`WhisperModelManager`, `VoiceInputManager`) were previously identified in `AirFit/Core/Services/` (see Section 7.7). **Recommendation:** These should be moved to `AirFit/Services/Speech/` as their primary location.
+    *   **Concurrency Model Mismatch:** The `WhisperServiceWrapperProtocol` uses Combine and completion handlers, which is inconsistent with the `AGENTS.md` guideline preferring `async/await` and no completion handlers. The existing `VoiceInputManager` (once moved) already uses a more modern `async/await` pattern for its internal operations and callbacks.
+        *   **Recommendation:** Evaluate the usage of `WhisperServiceWrapperProtocol`. If client code depends on this Combine-based interface, `VoiceInputManager` might need an adapter. However, if possible, refactor client code to use an `async/await`-based interface directly from `VoiceInputManager` (or a new `async/await` protocol). This would align better with project standards. The existing `WhisperServiceWrapperProtocol` might then be deprecated or refactored.
+    *   **Protocol Placement:** If a speech service protocol (either current or a revised `async/await` version) is intended for general use via dependency injection, it should be moved to `AirFit/Core/Protocols/`.
+*   **Conclusion:**
+    *   The `AirFit/Services/Speech/` directory is currently underdeveloped, primarily containing a protocol that uses an older concurrency model.
+    *   The main actions are to relocate the existing concrete speech implementations (`WhisperModelManager`, `VoiceInputManager`) into this directory and then harmonize the service interface with the project's `async/await` concurrency guidelines.
+
+### 7.22. `AirFit/Services/Platform/`
+
+*   **Files Reviewed:**
+    *   `NotificationManagerProtocol.swift`
+*   **General Architecture:**
+    *   `NotificationManagerProtocol.swift` defines an interface for managing local user notifications (requesting permission, getting settings, scheduling a specific notification type).
+*   **Potential Issues & Recommendations:**
+    *   **Missing Production Implementation:** No concrete implementation of `NotificationManagerProtocol` (e.g., `DefaultNotificationManager`) was found in this directory.
+        *   **Recommendation:** A concrete implementation needs to be provided. Its location would depend on whether this is a simple, app-wide utility (fitting here) or part of the more comprehensive "Notifications & Engagement Engine" module mentioned in `AGENTS.md`.
+    *   **Concurrency Model Mismatch:** The protocol uses completion handlers for asynchronous operations, which is inconsistent with the `AGENTS.md` guideline to use `async/await`.
+        *   **Recommendation:** Refactor the protocol and its eventual implementation to use `async/await` (e.g., `func requestNotificationPermission() async throws -> Bool`).
+    *   **Protocol Placement:** If this protocol (once updated to `async/await`) is intended for general use across modules, it should be moved to `AirFit/Core/Protocols/`.
+    *   **Scope of "Platform" Services:** The purpose of the `AirFit/Services/Platform/` directory could be better defined. If it's for abstracting OS-level features, a basic notification manager fits. However, if complex notification logic resides in a dedicated module, this top-level service might be minimal or redundant.
+*   **Conclusion:**
+    *   The `AirFit/Services/Platform/` directory currently only contains a protocol for notification management that uses an outdated concurrency model and lacks a concrete implementation in this location.
+    *   Key actions are to implement the service, update its interface to `async/await`, and clarify its role in relation to the dedicated Notifications module.
+
+### 7.23. `AirFit/Services/Security/`
+
+*   **Files Reviewed:**
+    *   `APIKeyManagerProtocol.swift`
+*   **General Architecture:**
+    *   `APIKeyManagerProtocol.swift` defines an interface for securely managing API keys.
+    *   The protocol includes two sets of methods: older, synchronous methods using an `AIProvider` enum, and newer, `async` methods using string identifiers for providers. This suggests an ongoing refactor or transition.
+*   **Potential Issues & Recommendations:**
+    *   **Missing Production Implementation:** No concrete implementation of `APIKeyManagerProtocol` (e.g., `DefaultAPIKeyManager`) was found in this directory. This is a critical component, especially for AI services that rely on it.
+        *   **Recommendation:** Implement a concrete `DefaultAPIKeyManager` class within `AirFit/Services/Security/`. This implementation should use `KeychainWrapper` (from `Core/Utilities/`) for secure storage.
+    *   **Protocol Placement (`APIKeyManagerProtocol.swift`):** This protocol defines a fundamental security service interface.
+        *   **Recommendation:** Move `APIKeyManagerProtocol.swift` to `AirFit/Core/Protocols/`.
+    *   **Legacy API:** The presence of older synchronous methods alongside newer `async` methods indicates a transition. 
+        *   **Recommendation:** Plan to migrate all clients to the `async` API and eventually deprecate/remove the legacy methods from the protocol and its implementation.
+*   **Conclusion:**
+    *   The `APIKeyManagerProtocol` correctly abstracts the critical function of API key management.
+    *   A concrete, secure implementation is missing from this directory and needs to be created.
+    *   The protocol itself should be relocated to Core, and the API should be standardized on the `async/await` versions.
+
+### 7.24. Other Top-Level Services in `AirFit/Services/`
+
+This section covers services placed directly in `AirFit/Services/` rather than in specific subdirectories.
+
+#### 7.24.1. `AirFit/Services/WorkoutSyncService.swift`
+
+*   **File Reviewed:** `WorkoutSyncService.swift`
+*   **Analysis:**
+    *   **Purpose & Functionality:** Defines a `@MainActor final class WorkoutSyncService: NSObject` (singleton) for synchronizing workout data between devices (primarily watchOS and iOS) using WatchConnectivity (`WCSession`) and CloudKit (`CKContainer`) as a fallback.
+    *   **Key Operations:** Sends `WorkoutBuilderData` from watch to phone, processes received data on the phone by converting it to SwiftData models (`Workout`, `Exercise`, `ExerciseSet`) and saving to a provided `ModelContext`. Uses `NotificationCenter` on iOS to broadcast received data.
+    *   **Placement:** As a service for a specific cross-cutting concern (workout data synchronization across multiple platforms/transports), its placement directly in `AirFit/Services/` is acceptable. It doesn't neatly fit pre-existing categories like Network or Health, though it uses elements of both.
+*   **Potential Enhancements/Considerations:**
+    *   **Persistent Queue:** The `pendingWorkouts` queue is in-memory; a persistent queue would be more resilient.
+    *   **CloudKit Robustness:** CloudKit error handling and conflict resolution could be enhanced for production.
+    *   **Data Processing Flow:** Clarify if the service itself always processes/saves to SwiftData upon receipt on iOS, or if it primarily relies on observers of its `NotificationCenter` post.
+    *   **Protocol:** Consider defining a `WorkoutSyncServiceProtocol` for better testability and dependency injection if used by multiple components.
+*   **Conclusion:**
+    *   Provides essential functionality for multi-device workout data synchronization.
+    *   The use of WatchConnectivity and CloudKit fallback is a good strategy.
+    *   Areas for improvement include queue persistence and advanced CloudKit handling.
+
+#### 7.24.2. `AirFit/Services/ExerciseDatabase.swift`
+
+*   **File Reviewed:** `ExerciseDatabase.swift` (defines `@Model class ExerciseDefinition` and `@MainActor class ExerciseDatabase: ObservableObject`)
+*   **Analysis:**
+    *   **Purpose & Functionality:** Manages a library of `ExerciseDefinition`s (detailed exercise information like name, category, muscles, instructions, images).
+        *   `ExerciseDefinition`: A SwiftData `@Model` class, making the exercise library persistent.
+        *   `ExerciseDatabase`: A singleton `ObservableObject` that initializes its own dedicated `ModelContainer` for `ExerciseDefinition`s. It handles seeding this database from a bundled JSON file (`Resources/SeedData/exercises.json`) on first launch and provides various `async` methods to query these definitions (get all, search, filter by muscle/category/equipment/difficulty).
+    *   **Seeding Mechanism:** Includes logic to parse raw JSON data, transform it into `ExerciseDefinition` models (including generating stable IDs via hashing), and save it to its SwiftData store.
+    *   **Enum Mapping Extensions:** Contains `static func fromRawValue(_:)` extensions on Core enums (`ExerciseCategory`, `MuscleGroup`, `Equipment`, `Difficulty`) to map string values from the seed JSON. **Recommendation:** If these mapping functions are broadly useful, consider moving them to `AirFit/Core/Extensions/`.
+    *   **Placement:** As a self-contained service providing a queryable library of exercise reference data, its placement as a top-level file in `AirFit/Services/` is acceptable due to its unique role.
+*   **Potential Enhancements/Considerations:**
+    *   **Database Updates:** The current system focuses on initial seeding. A mechanism for updating the exercise database post-initialization (e.g., from a new seed file or API) would be needed for long-term maintenance.
+*   **Conclusion:**
+    *   `ExerciseDatabase.swift` provides a robust and well-implemented service for an offline, persistent library of exercise definitions.
+    *   The use of a separate `ModelContainer` for this reference data is a valid architectural choice.
+    *   The primary minor refinement suggestion is the placement of the Core enum mapping extensions.
+
 ## 8. Overall Summary and Next Steps for Analysis
 
 The AirFit project's architecture, as defined in `AGENTS.md` and observed in the codebase so far, demonstrates a strong commitment to modularity and separation of concerns, primarily following an MVVM-C pattern. The `Core` directory structure is generally sound, housing foundational elements like shareable models, constants, enums, extensions, and core protocols.

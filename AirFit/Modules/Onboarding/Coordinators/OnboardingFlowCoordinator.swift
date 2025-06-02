@@ -1,5 +1,6 @@
 import SwiftUI
 import SwiftData
+import UIKit
 
 @MainActor
 @Observable
@@ -20,6 +21,10 @@ final class OnboardingFlowCoordinator {
     private(set) var conversationSession: ConversationSession?
     private(set) var generatedPersona: PersonaProfile?
     
+    // Performance optimization
+    private let cache = OnboardingCache()
+    private var memoryWarningObserver: NSObjectProtocol?
+    
     init(
         conversationManager: ConversationFlowManager,
         personaService: PersonaService,
@@ -30,6 +35,15 @@ final class OnboardingFlowCoordinator {
         self.personaService = personaService
         self.userService = userService
         self.modelContext = modelContext
+        
+        // Setup memory monitoring
+        setupMemoryMonitoring()
+    }
+    
+    deinit {
+        if let observer = memoryWarningObserver {
+            NotificationCenter.default.removeObserver(observer)
+        }
     }
     
     // MARK: - Navigation
@@ -178,6 +192,60 @@ final class OnboardingFlowCoordinator {
             }
         default:
             break
+        }
+    }
+    
+    // MARK: - Memory Management
+    
+    private func setupMemoryMonitoring() {
+        memoryWarningObserver = NotificationCenter.default.addObserver(
+            forName: UIApplication.didReceiveMemoryWarningNotification,
+            object: nil,
+            queue: .main
+        ) { [weak self] _ in
+            Task { @MainActor in
+                self?.handleMemoryWarning()
+            }
+        }
+    }
+    
+    private func handleMemoryWarning() {
+        // Clear any cached data that can be regenerated
+        print("Memory warning - clearing onboarding caches")
+        
+        // Save current state to disk before clearing
+        if let session = conversationSession,
+           let userId = session.userId {
+            Task {
+                await cache.saveSession(
+                    userId: userId,
+                    conversationData: ConversationData(
+                        userName: "User",
+                        primaryGoal: "fitness",
+                        responses: [:]
+                    ),
+                    insights: nil,
+                    currentStep: currentView.rawValue,
+                    responses: session.responses
+                )
+            }
+        }
+        
+        // Clear non-essential memory
+        if currentView != .conversation {
+            conversationSession = nil
+        }
+    }
+    
+    func cleanup() {
+        // Called when onboarding completes
+        conversationSession = nil
+        generatedPersona = nil
+        
+        if let userId = userService.getCurrentUser()?.id {
+            Task {
+                await cache.clearSession(userId: userId)
+            }
         }
     }
 }
