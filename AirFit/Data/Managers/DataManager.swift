@@ -143,3 +143,62 @@ extension ModelContext {
         return try fetchCount(descriptor)
     }
 }
+
+// MARK: - Preview Support
+#if DEBUG
+extension DataManager {
+    static var preview: DataManager {
+        let manager = DataManager()
+        // Create in-memory container for previews
+        let schema = Schema([
+            User.self,
+            OnboardingProfile.self,
+            FoodEntry.self,
+            Workout.self,
+            DailyLog.self,
+            CoachMessage.self,
+            ChatSession.self,
+            ConversationSession.self,
+            ConversationResponse.self
+        ])
+        
+        let configuration = ModelConfiguration(isStoredInMemoryOnly: true)
+        if let container = try? ModelContainer(for: schema, configurations: [configuration]) {
+            manager._previewContainer = container
+        }
+        return manager
+    }
+    
+    static var previewContainer: ModelContainer {
+        createMemoryContainer()
+    }
+    
+    private var _previewContainer: ModelContainer? {
+        get { nil }
+        set { }
+    }
+    
+    var modelContext: ModelContext {
+        _previewContainer?.mainContext ?? ModelContainer.createMemoryContainer().mainContext
+    }
+}
+
+extension ModelContainer {
+    static func createMemoryContainer() -> ModelContainer {
+        let schema = Schema([
+            User.self,
+            OnboardingProfile.self,
+            FoodEntry.self,
+            Workout.self,
+            DailyLog.self,
+            CoachMessage.self,
+            ChatSession.self,
+            ConversationSession.self,
+            ConversationResponse.self
+        ])
+        
+        let configuration = ModelConfiguration(isStoredInMemoryOnly: true)
+        return try! ModelContainer(for: schema, configurations: [configuration])
+    }
+}
+#endif

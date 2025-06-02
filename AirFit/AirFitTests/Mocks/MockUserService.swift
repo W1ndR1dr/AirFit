@@ -59,9 +59,28 @@ final class MockUserService: UserServiceProtocol, MockProtocol, @unchecked Senda
         recordInvocation(#function)
         return getCurrentUserResult
     }
+    
+    func getCurrentUserId() async -> UUID? {
+        recordInvocation(#function)
+        return getCurrentUserResult?.id
+    }
 
     func deleteUser(_ user: User) async throws {
         recordInvocation(#function, arguments: user)
+    }
+    
+    func completeOnboarding() async throws {
+        recordInvocation(#function)
+        if case .failure(let error) = updateProfileResult {
+            throw error
+        }
+    }
+    
+    func setCoachPersona(_ persona: CoachPersona) async throws {
+        recordInvocation(#function, arguments: persona)
+        if case .failure(let error) = updateProfileResult {
+            throw error
+        }
     }
 }
 

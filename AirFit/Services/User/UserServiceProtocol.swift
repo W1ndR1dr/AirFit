@@ -13,5 +13,8 @@ protocol UserServiceProtocol: AnyObject, Sendable {
     func createUser(from profile: OnboardingProfile) async throws -> User
     func updateProfile(_ updates: ProfileUpdate) async throws
     func getCurrentUser() -> User?
+    func getCurrentUserId() async -> UUID?
     func deleteUser(_ user: User) async throws
+    func completeOnboarding() async throws
+    func setCoachPersona(_ persona: CoachPersona) async throws
 }

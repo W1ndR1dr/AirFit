@@ -134,16 +134,11 @@ actor PersonaSynthesizer {
         
         // Use Haiku for speed (good enough for this task)
         let response = try await llmOrchestrator.complete(
-            LLMRequest(
-                messages: [LLMMessage(role: .user, content: prompt, name: nil)],
-                model: "claude-3-haiku-20240307",
-                temperature: 0.8,
-                maxTokens: 800,
-                systemPrompt: nil,
-                responseFormat: .json(),
-                stream: false,
-                metadata: ["task": "identity_and_style"]
-            )
+            prompt: prompt,
+            task: .personaSynthesis,
+            model: .claude3Haiku,
+            temperature: 0.8,
+            maxTokens: 800
         )
         
         let json = try JSONSerialization.jsonObject(with: response.content.data(using: .utf8)!) as! [String: Any]
@@ -222,16 +217,11 @@ actor PersonaSynthesizer {
         """
         
         let response = try await llmOrchestrator.complete(
-            LLMRequest(
-                messages: [LLMMessage(role: .user, content: refinementPrompt, name: nil)],
-                model: "claude-3-haiku-20240307",
-                temperature: 0.3,
-                maxTokens: 500,
-                systemPrompt: nil,
-                responseFormat: nil,
-                stream: false,
-                metadata: ["task": "prompt_refinement"]
-            )
+            prompt: refinementPrompt,
+            task: .personaSynthesis,
+            model: .claude3Haiku,
+            temperature: 0.3,
+            maxTokens: 500
         )
         
         return response.content

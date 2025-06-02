@@ -60,6 +60,8 @@ targets:
       - AirFit/Modules/Onboarding/Views/ConversationProgress.swift
       - AirFit/Modules/Onboarding/Views/PersonaSynthesisView.swift
       - AirFit/Modules/Onboarding/Views/PersonaPreviewCard.swift
+      - AirFit/Modules/Onboarding/Views/PersonaPreviewView.swift
+      - AirFit/Modules/Onboarding/Views/OnboardingContainerView.swift
       - AirFit/Modules/Onboarding/Views/UnifiedOnboardingView.swift
       - AirFit/Modules/Onboarding/Views/OnboardingStateView.swift
       - AirFit/Modules/Onboarding/Services/OnboardingService.swift
@@ -72,7 +74,9 @@ targets:
       - AirFit/Modules/Onboarding/Services/OnboardingState.swift
       - AirFit/Modules/Onboarding/Services/OnboardingRecovery.swift
       - AirFit/Modules/Onboarding/Services/OnboardingProgressManager.swift
+      - AirFit/Modules/Onboarding/Services/PersonaService.swift
       - AirFit/Modules/Onboarding/Coordinators/OnboardingCoordinator.swift
+      - AirFit/Modules/Onboarding/Coordinators/OnboardingFlowCoordinator.swift
       - AirFit/Modules/Onboarding/ConversationCoordinator.swift
       - AirFit/Modules/Onboarding/Data/ConversationFlowData.swift
       # Data Layer Models (CRITICAL: XcodeGen nesting bug)
@@ -169,6 +173,7 @@ targets:
       - AirFit/Modules/AI/WorkoutAnalysisEngine.swift
       - AirFit/Modules/AI/PersonaSynthesis/PersonaSynthesizer.swift
       - AirFit/Modules/AI/PersonaSynthesis/PreviewGenerator.swift
+      - AirFit/Modules/AI/Models/PersonaModels.swift
       - AirFit/Modules/AI/Configuration/RoutingConfiguration.swift
       - AirFit/Modules/Dashboard/Services/DashboardServiceProtocols.swift
       - AirFit/Modules/Dashboard/ViewModels/DashboardViewModel.swift
@@ -312,6 +317,8 @@ targets:
       - AirFit/AirFitTests/FoodTracking/NutritionParsingFinalIntegrationTests.swift
       - AirFit/AirFitTests/Integration/NutritionParsingIntegrationTests.swift
       - AirFit/AirFitTests/Integration/PersonaSystemIntegrationTests.swift
+      - AirFit/AirFitTests/Integration/OnboardingFlowTests.swift
+      - AirFit/AirFitTests/Integration/PersonaGenerationTests.swift
       # Phase 3 Performance Tests
       - AirFit/AirFitTests/Performance/PersonaGenerationStressTests.swift
       - AirFit/AirFitTests/Mocks/MockAIService.swift
