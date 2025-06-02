@@ -66,6 +66,7 @@ targets:
       - AirFit/Modules/Onboarding/Views/OnboardingStateView.swift
       - AirFit/Modules/Onboarding/Views/OptimizedGeneratingPersonaView.swift
       - AirFit/Modules/Onboarding/Views/OnboardingErrorBoundary.swift
+      - AirFit/Modules/Onboarding/Views/FinalOnboardingFlow.swift
       - AirFit/Modules/Onboarding/Services/OnboardingService.swift
       - AirFit/Modules/Onboarding/Services/OnboardingServiceProtocol.swift
       - AirFit/Modules/Onboarding/Services/ConversationFlowManager.swift
