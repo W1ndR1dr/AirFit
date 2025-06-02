@@ -61,7 +61,11 @@ private struct QuickActionButton: View {
 
 #Preview(traits: .sizeThatFitsLayout) {
     QuickActionsCard(
-        suggestedActions: [.logMeal(type: .lunch), .startWorkout, .logWater],
+        suggestedActions: [
+            QuickAction(title: "Start Workout", subtitle: "Let's get moving!", systemImage: "figure.run", color: "blue", action: .startWorkout),
+            QuickAction(title: "Log Water", subtitle: "Stay hydrated", systemImage: "drop.fill", color: "cyan", action: .logWater),
+            QuickAction(title: "Check In", subtitle: "How are you feeling?", systemImage: "checkmark.circle", color: "green", action: .checkIn)
+        ],
         onActionTap: { _ in }
     )
     .padding()

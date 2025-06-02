@@ -2,6 +2,29 @@ import Foundation
 
 // MARK: - Core AI Types
 
+// AI Model information
+struct AIModel: Sendable, Codable {
+    let id: String
+    let name: String
+    let provider: AIProvider
+    let contextWindow: Int
+    let costPerThousandTokens: (input: Double, output: Double)
+    
+    init(
+        id: String,
+        name: String,
+        provider: AIProvider,
+        contextWindow: Int,
+        costPerThousandTokens: (input: Double, output: Double)
+    ) {
+        self.id = id
+        self.name = name
+        self.provider = provider
+        self.contextWindow = contextWindow
+        self.costPerThousandTokens = costPerThousandTokens
+    }
+}
+
 enum AIMessageRole: String, Codable, Sendable {
     case system
     case user

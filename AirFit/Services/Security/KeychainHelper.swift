@@ -31,13 +31,13 @@ final class KeychainHelper: @unchecked Sendable {
         let status = SecItemAdd(query as CFDictionary, nil)
         
         guard status == errSecSuccess else {
-            throw KeychainError.unhandledError(status: status)
+            throw KeychainHelperError.unhandledError(status: status)
         }
     }
     
     func save(_ string: String, for key: String, accessibility: KeychainAccessibility = .whenUnlockedThisDeviceOnly) throws {
         guard let data = string.data(using: .utf8) else {
-            throw KeychainError.encodingError
+            throw KeychainHelperError.encodingError
         }
         try save(data, for: key, accessibility: accessibility)
     }
@@ -57,13 +57,13 @@ final class KeychainHelper: @unchecked Sendable {
         
         guard status == errSecSuccess else {
             if status == errSecItemNotFound {
-                throw KeychainError.itemNotFound
+                throw KeychainHelperError.itemNotFound
             }
-            throw KeychainError.unhandledError(status: status)
+            throw KeychainHelperError.unhandledError(status: status)
         }
         
         guard let data = result as? Data else {
-            throw KeychainError.unexpectedItemData
+            throw KeychainHelperError.unexpectedItemData
         }
         
         return data
@@ -72,7 +72,7 @@ final class KeychainHelper: @unchecked Sendable {
     func getString(for key: String) throws -> String {
         let data = try getData(for: key)
         guard let string = String(data: data, encoding: .utf8) else {
-            throw KeychainError.decodingError
+            throw KeychainHelperError.decodingError
         }
         return string
     }
@@ -87,7 +87,7 @@ final class KeychainHelper: @unchecked Sendable {
         let status = SecItemDelete(query as CFDictionary)
         
         guard status == errSecSuccess || status == errSecItemNotFound else {
-            throw KeychainError.unhandledError(status: status)
+            throw KeychainHelperError.unhandledError(status: status)
         }
     }
     
@@ -103,7 +103,7 @@ final class KeychainHelper: @unchecked Sendable {
         let status = SecItemDelete(query as CFDictionary)
         
         guard status == errSecSuccess || status == errSecItemNotFound else {
-            throw KeychainError.unhandledError(status: status)
+            throw KeychainHelperError.unhandledError(status: status)
         }
     }
     
@@ -131,7 +131,7 @@ final class KeychainHelper: @unchecked Sendable {
             if status == errSecItemNotFound {
                 return []
             }
-            throw KeychainError.unhandledError(status: status)
+            throw KeychainHelperError.unhandledError(status: status)
         }
         
         guard let items = result as? [[CFString: Any]] else {
@@ -211,7 +211,7 @@ enum KeychainAccessibility: RawRepresentable {
 }
 
 // MARK: - Keychain Errors
-enum KeychainError: LocalizedError {
+enum KeychainHelperError: LocalizedError {
     case itemNotFound
     case duplicateItem
     case invalidItemFormat

@@ -3,7 +3,7 @@ import Foundation
 @MainActor
 final class LLMOrchestrator: ObservableObject {
     private var providers: [LLMProviderIdentifier: any LLMProvider] = [:]
-    private let apiKeyManager: APIKeyManagerProtocol
+    private let apiKeyManager: APIKeyManagementProtocol
     private let cache = AIResponseCache()
     
     @Published private(set) var availableProviders: Set<LLMProviderIdentifier> = []
@@ -12,7 +12,7 @@ final class LLMOrchestrator: ObservableObject {
     private var usageHistory: [UsageRecord] = []
     private var cacheEnabled = true
     
-    init(apiKeyManager: APIKeyManagerProtocol) {
+    init(apiKeyManager: APIKeyManagementProtocol) {
         self.apiKeyManager = apiKeyManager
         Task {
             await setupProviders()

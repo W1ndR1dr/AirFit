@@ -299,13 +299,10 @@ struct EnergyOption: View {
     MorningGreetingCard(
         greeting: "Good morning, Alex! Ready to conquer the day?",
         context: GreetingContext(
-            userName: "Alex",
             sleepHours: 7.5,
-            sleepQuality: 4,
-            weather: "Sunny",
-            temperature: 23,
-            dayOfWeek: "Monday",
-            energyYesterday: 4
+            weather: "Sunny, 23°C",
+            todaysSchedule: "Morning run at 7am",
+            recentAchievements: ["5 day streak!"]
         ),
         currentEnergy: 3,
         onEnergyLog: { _ in }

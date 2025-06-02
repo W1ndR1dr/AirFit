@@ -76,44 +76,7 @@ enum SendableValue: Sendable {
     }
 }
 
-// MARK: - Service Protocols (Mock Implementations)
-
-protocol WorkoutServiceProtocol: Sendable {
-    func generatePlan(
-        for user: User,
-        goal: String,
-        duration: Int,
-        intensity: String,
-        targetMuscles: [String],
-        equipment: [String],
-        constraints: String?,
-        style: String
-    ) async throws -> WorkoutPlanResult
-}
-
-protocol AnalyticsServiceProtocol: Sendable {
-    func analyzePerformance(
-        query: String,
-        metrics: [String],
-        days: Int,
-        depth: String,
-        includeRecommendations: Bool,
-        for user: User
-    ) async throws -> PerformanceAnalysisResult
-}
-
-protocol GoalServiceProtocol: Sendable {
-    func createOrRefineGoal(
-        current: String?,
-        aspirations: String,
-        timeframe: String?,
-        fitnessLevel: String?,
-        constraints: [String],
-        motivations: [String],
-        goalType: String?,
-        for user: User
-    ) async throws -> GoalResult
-}
+// MARK: - Service Protocols are defined in ServiceProtocols.swift
 
 // MARK: - Result Types
 

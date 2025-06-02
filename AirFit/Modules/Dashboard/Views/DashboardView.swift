@@ -34,12 +34,31 @@ struct DashboardView: View {
                 fatalError("Failed to create ModelContainer: \(error)")
             }
         }()
+        // Create concrete service implementations
+        let healthKitManager = HealthKitManager()
+        let contextAssembler = ContextAssembler(
+            healthKitManager: healthKitManager,
+            modelContext: context
+        )
+        let healthKitService = DefaultHealthKitService(
+            healthKitManager: healthKitManager,
+            contextAssembler: contextAssembler
+        )
+        
+        let coachEngine = CoachEngine(
+            aiService: DependencyContainer.shared.aiService ?? SimpleMockAIService(),
+            modelContext: context
+        )
+        let aiCoachService = DefaultAICoachService(coachEngine: coachEngine)
+        
+        let nutritionService = DefaultDashboardNutritionService(modelContext: context)
+        
         let vm = DashboardViewModel(
             user: user,
             modelContext: context,
-            healthKitService: PlaceholderHealthKitService(),
-            aiCoachService: PlaceholderAICoachService(),
-            nutritionService: PlaceholderNutritionService()
+            healthKitService: healthKitService,
+            aiCoachService: aiCoachService,
+            nutritionService: nutritionService
         )
         _viewModel = State(initialValue: vm)
         _coordinator = StateObject(wrappedValue: DashboardCoordinator())

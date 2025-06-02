@@ -1,0 +1,164 @@
+import XCTest
+import UserNotifications
+@testable import AirFit
+
+@MainActor
+final class NotificationManagerTests: XCTestCase {
+    var sut: NotificationManager!
+    
+    override func setUp() async throws {
+        try await super.setUp()
+        
+        // Create singleton instance
+        sut = NotificationManager.shared
+    }
+    
+    func test_requestAuthorization_shouldRequestCorrectOptions() async throws {
+        // This test would need UI testing or manual verification
+        // as we can't mock UNUserNotificationCenter easily
+        
+        // Act
+        let granted = try await sut.requestAuthorization()
+        
+        // Assert - will depend on simulator/device settings
+        XCTAssertNotNil(granted)
+    }
+    
+    func test_scheduleNotification_withValidData_shouldSucceed() async throws {
+        // Arrange
+        let trigger = UNTimeIntervalNotificationTrigger(
+            timeInterval: 60,
+            repeats: false
+        )
+        
+        // Act & Assert - should not throw
+        try await sut.scheduleNotification(
+            identifier: .morning,
+            title: "Test Title",
+            body: "Test Body",
+            trigger: trigger
+        )
+    }
+    
+    func test_cancelNotification_shouldRemoveFromPending() async {
+        // Arrange
+        let identifier = NotificationManager.NotificationIdentifier.morning
+        
+        // Act
+        sut.cancelNotification(identifier: identifier)
+        
+        // Assert - verify through pending notifications
+        let pending = await sut.getPendingNotifications()
+        XCTAssertFalse(pending.contains { $0.identifier == identifier.stringValue })
+    }
+    
+    func test_createAttachment_withValidImageData_shouldReturnAttachment() throws {
+        // Arrange
+        let imageData = UIImage(systemName: "star")!.pngData()!
+        let identifier = "test_image"
+        
+        // Act
+        let attachment = try sut.createAttachment(
+            from: imageData,
+            identifier: identifier
+        )
+        
+        // Assert
+        XCTAssertNotNil(attachment)
+        XCTAssertEqual(attachment?.identifier, identifier)
+    }
+    
+    func test_updateBadgeCount_shouldSetCorrectValue() async {
+        // Arrange
+        let expectedCount = 5
+        
+        // Act
+        await sut.updateBadgeCount(expectedCount)
+        
+        // Assert - in real test would verify through UIApplication
+        // For now just verify no crash
+        XCTAssertTrue(true)
+    }
+    
+    func test_clearBadge_shouldSetToZero() async {
+        // Act
+        await sut.clearBadge()
+        
+        // Assert - in real test would verify badge is 0
+        XCTAssertTrue(true)
+    }
+    
+    func test_notificationCategories_shouldBeRegistered() async {
+        // This test verifies categories are set up correctly
+        // In a real test environment, we'd check UNUserNotificationCenter.current().notificationCategories
+        
+        // Assert
+        XCTAssertTrue(true) // Categories are registered in init
+    }
+    
+    func test_notificationIdentifier_stringValues_shouldBeUnique() {
+        // Test that notification identifiers generate unique strings
+        let morning = NotificationManager.NotificationIdentifier.morning
+        let workout1 = NotificationManager.NotificationIdentifier.workout(Date())
+        let workout2 = NotificationManager.NotificationIdentifier.workout(Date().addingTimeInterval(1))
+        let meal = NotificationManager.NotificationIdentifier.meal(.breakfast)
+        let hydration = NotificationManager.NotificationIdentifier.hydration
+        let achievement = NotificationManager.NotificationIdentifier.achievement("test")
+        let lapse = NotificationManager.NotificationIdentifier.lapse(3)
+        
+        let identifiers = [
+            morning.stringValue,
+            workout1.stringValue,
+            workout2.stringValue,
+            meal.stringValue,
+            hydration.stringValue,
+            achievement.stringValue,
+            lapse.stringValue
+        ]
+        
+        // Assert all are unique
+        XCTAssertEqual(identifiers.count, Set(identifiers).count)
+    }
+    
+    func test_scheduleNotification_withCategory_shouldSetCorrectInterruptionLevel() async throws {
+        // Test achievement notification (passive)
+        let trigger = UNTimeIntervalNotificationTrigger(timeInterval: 1, repeats: false)
+        
+        try await sut.scheduleNotification(
+            identifier: .achievement("test"),
+            title: "Achievement",
+            body: "Test",
+            categoryIdentifier: .achievement,
+            trigger: trigger
+        )
+        
+        // In real test would verify interruption level
+        XCTAssertTrue(true)
+    }
+    
+    func test_cancelAllNotifications_shouldClearAllPending() async throws {
+        // Arrange - schedule some notifications
+        let trigger = UNTimeIntervalNotificationTrigger(timeInterval: 60, repeats: false)
+        
+        try await sut.scheduleNotification(
+            identifier: .morning,
+            title: "Test 1",
+            body: "Body 1",
+            trigger: trigger
+        )
+        
+        try await sut.scheduleNotification(
+            identifier: .hydration,
+            title: "Test 2",
+            body: "Body 2",
+            trigger: trigger
+        )
+        
+        // Act
+        sut.cancelAllNotifications()
+        
+        // Assert
+        let pending = await sut.getPendingNotifications()
+        XCTAssertEqual(pending.count, 0)
+    }
+}

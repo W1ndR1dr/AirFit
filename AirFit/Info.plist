@@ -74,5 +74,18 @@
 	<string>AirFit uses the camera to take photos of your meals for nutrition tracking.</string>
 	<key>NSPhotoLibraryUsageDescription</key>
 	<string>AirFit needs access to your photo library to save and retrieve meal photos.</string>
+	<key>BGTaskSchedulerPermittedIdentifiers</key>
+	<array>
+		<string>com.airfit.lapseDetection</string>
+		<string>com.airfit.engagementAnalysis</string>
+	</array>
+	<key>NSSupportsLiveActivities</key>
+	<true/>
+	<key>UIBackgroundModes</key>
+	<array>
+		<string>fetch</string>
+		<string>processing</string>
+		<string>remote-notification</string>
+	</array>
 </dict>
 </plist>

@@ -12,7 +12,7 @@ public final class DependencyContainer: @unchecked Sendable {
     private(set) var aiService: AIServiceProtocol?
     private(set) var userService: UserServiceProtocol?
     private(set) var apiKeyManager: APIKeyManagerProtocol?
-    private(set) var notificationManager: NotificationManagerProtocol?
+    private(set) var notificationManager: NotificationManager?
 
     // MARK: - Initialization
     init() {
@@ -22,7 +22,7 @@ public final class DependencyContainer: @unchecked Sendable {
         
         // Initialize services that don't depend on ModelContext
         self.apiKeyManager = DefaultAPIKeyManager(keychain: keychain)
-        self.notificationManager = DefaultNotificationManager()
+        self.notificationManager = NotificationManager.shared
     }
 
     // MARK: - Configuration
@@ -33,9 +33,25 @@ public final class DependencyContainer: @unchecked Sendable {
         let modelContext = ModelContext(modelContainer)
         self.userService = DefaultUserService(modelContext: modelContext)
         
-        // Configure AI service (using MockAIService until Module 10 provides real implementation)
+        // Configure AI service with ProductionAIService
         Task {
-            self.aiService = await MockAIService()
+            if let keyManager = self.apiKeyManager {
+                // Create and configure the production AI service
+                let productionService = await ProductionAIService(apiKeyManager: keyManager)
+                
+                // Try to configure the service
+                do {
+                    try await productionService.configure()
+                    self.aiService = productionService
+                    AppLogger.info("Production AI service configured successfully", category: .app)
+                } catch {
+                    AppLogger.warning("Failed to configure production AI service: \(error). Using mock service.", category: .app)
+                    self.aiService = SimpleMockAIService()
+                }
+            } else {
+                AppLogger.warning("No API key manager available, using mock AI service", category: .app)
+                self.aiService = await MockAIService()
+            }
         }
         
         AppLogger.info("Dependency container configured", category: .app)

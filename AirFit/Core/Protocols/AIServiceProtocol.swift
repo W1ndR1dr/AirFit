@@ -1,7 +1,23 @@
 import Foundation
 
-/// Interface for AI powered features used throughout the app.
-protocol AIServiceProtocol: Sendable {
-    /// Analyze a free form goal description and return insights.
-    func analyzeGoal(_ goalText: String) async throws -> String
+// MARK: - AI Service Protocol
+@MainActor
+protocol AIServiceProtocol: ServiceProtocol {
+    var isConfigured: Bool { get }
+    var activeProvider: AIProvider { get }
+    var availableModels: [AIModel] { get }
+    
+    func configure(
+        provider: AIProvider,
+        apiKey: String,
+        model: String?
+    ) async throws
+    
+    func sendRequest(_ request: AIRequest) -> AsyncThrowingStream<AIResponse, Error>
+    
+    func validateConfiguration() async throws -> Bool
+    
+    func checkHealth() async -> ServiceHealth
+    
+    func estimateTokenCount(for text: String) -> Int
 }

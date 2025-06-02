@@ -198,7 +198,19 @@ private struct AnimatedRing: View {
 #Preview {
     NutritionCard(
         summary: NutritionSummary(
-            calories: 850, protein: 40, carbs: 120, fat: 25, fiber: 10, waterLiters: 1.2, meals: [:]
+            calories: 850,
+            caloriesTarget: 2000,
+            protein: 40,
+            proteinTarget: 150,
+            carbs: 120,
+            carbsTarget: 250,
+            fat: 25,
+            fatTarget: 65,
+            fiber: 10,
+            fiberTarget: 25,
+            water: 1.2,
+            waterTarget: 2.5,
+            mealCount: 2
         ),
         targets: NutritionTargets.default
     )

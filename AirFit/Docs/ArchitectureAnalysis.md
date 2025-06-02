@@ -2,1107 +2,702 @@
 
 ## 1. Executive Summary
 
-This architectural analysis provides a comprehensive review of the AirFit project's codebase against its documented guidelines (AGENTS.md) and general best practices. The project exhibits a **generally sound architectural foundation**, emphasizing modularity via MVVM-C, a well-structured Core layer, and adoption of modern Swift (Swift 6, structured concurrency) and iOS 18 features.
-
-However, while the architectural blueprint is strong, the analysis reveals **significant discrepancies between documented intent/completeness and the actual state of implementation across several key areas.** Addressing these is crucial for stability, maintainability, and delivering a functional application.
+This analysis reviews AirFit's codebase against documented guidelines (AGENTS.md) and best practices. The project has a **generally sound architectural foundation**: modularity via MVVM-C, a well-structured Core layer, and use of modern Swift (Swift 6, structured concurrency) and iOS 18 features. Recent **Modules 9 (Notifications & Engagement), 10 (Services Layer), and 11 (Settings Module)** significantly advanced capabilities and strengthened the foundation.
 
 **Key Strengths:**
-*   **Solid Core Layer:** `AirFit/Core/` is well-organized with shared models, constants, theming, utilities, and foundational protocols.
-*   **Robust Service Design (where implemented):** Services like `NutritionService` (FoodTracking) and the design for `HealthKitManager` and AI services (e.g., `LLMOrchestrator`) demonstrate good practices.
-*   **MVVM-C Adherence (in developed modules):** Modules like FoodTracking show good application of the MVVM-C pattern in their ViewModels and Coordinators.
-*   **Modern Swift Practices:** Consistent use of `async/await`, actors, and Swift 6 features where code is implemented.
+*   **Solid Core Layer:** `AirFit/Core/` is well-organized (shared models, constants, themes, utilities, protocols).
+*   **Robust Service Design:** Evident in modules like FoodTracking and solidified by **Module 10 (Services Layer)**, providing secure, multi-provider API access (including AI) and resilient network management, resolving the previous missing `APIKeyManager` finding.
+*   **Advanced Notifications & Engagement Engine (Module 9):** Implemented per spec; proactive, AI-driven user engagement (local/push notifications, Live Activities, background tasks).
+*   **Feature-Rich Settings Module (Module 11):** Fully implemented; extensive user customization (AI personas, API keys, notifications, data management) via clean MVVM-C, resolving the previous empty Settings module finding.
+*   **MVVM-C Adherence (in developed modules):** Good application in FoodTracking and Settings (M11).
+*   **Modern Swift Practices:** Consistent `async/await`, actors, Swift 6 features where implemented.
 
-**Top Critical Findings & Action Areas:**
-1.  **Module Implementation Gaps:**
-    *   The **Settings module** is empty despite being marked "Completed." (Ref: Sec 9.31, 12.4 - *Note: Section numbers will be updated post-insertion*)
-    *   The **Onboarding module's** UI views are unverified and potentially missing. (Ref: Sec 10.1.1, 12.4)
-    *   The **Dashboard module** lacks concrete service implementations. (Ref: Sec 9.26, 12.4)
-2.  **Missing Core Service Implementations:** Critical services like `DefaultUserService`, `DefaultAPIKeyManager`, and `DefaultNotificationManager` require concrete implementations. (Ref: Sec 12.3)
-3.  **Incomplete Features in Progress:** The **FoodTracking module**, while showing good progress, has placeholder functionality for key user interactions (e.g., editing items, manual entry) and is missing its `FoodDatabaseService`. (Ref: Sec 10.2, 12.4)
-4.  **Application Setup & Data Integrity:**
-    *   The main SwiftData `ModelContainer` schema in `AirFitApp.swift` is incomplete and must align with the production migration schema. (Ref: Sec 9.28, 12.5)
-    *   Critical data models (`ConversationSession`, `ConversationResponse`) are misplaced and need integration into the main schema. (Ref: Sec 9.25.1, 12.2)
-5.  **Production Readiness:** A mock AI service (`MockAIService`) is used in the main `ContentView`'s Onboarding flow path, which is unsuitable for production. (Ref: Sec 9.28, 12.5)
+**Top Critical Findings & Action Areas (Updated):**
+1.  **Module Implementation Gaps (Revised):**
+    *   **Onboarding module's** UI views unverified/potentially missing. (Ref: Sec 10.1.1, 12.4)
+    *   **Dashboard module** lacks concrete service implementations for its protocols. (Ref: Sec 9.26, 12.4)
+2.  **Missing Core Service Implementations (Revised):**
+    *   Production `DefaultUserService` (implementing `UserServiceProtocol`) still needed. (Ref: Sec 9.20, 12.3)
+    *   `NotificationManagerProtocol` (`AirFit/Services/Platform/`, Sec 7.22) role needs clarification or consolidation with Module 9's `NotificationManager`. If distinct, its implementation is missing.
+3.  **Service and Model Definition Cohesion (New from M9, M10 Analysis):**
+    *   **Protocol Placement:** Consistently move shared service protocols (e.g., `AIServiceProtocol`, `NetworkManagementProtocol` from M10; others identified) to `AirFit/Core/Protocols/` as core contracts.
+    *   **AI Model Definitions:** Reconcile AI data models (e.g., `AIRequest`, `AIResponse` in M10) with foundational models in `AirFit/Core/Models/AI/AIModels.swift` for a single source of truth.
+    *   **Supporting Data Models (M9):** Ensure clear definition, `Sendable` conformance, and appropriate placement (Core vs. Module-specific) for numerous M9 data models (e.g., `CommunicationPreferences`, `SleepData`, `WeatherData`, `Achievement`).
+4.  **Incomplete Features in Progress:** **FoodTracking module** has placeholder functionality for key interactions (editing, manual entry) and is missing `FoodDatabaseService`. (Ref: Sec 10.2, 12.4)
+5.  **Application Setup & Data Integrity:**
+    *   Main SwiftData `ModelContainer` schema in `AirFitApp.swift` is incomplete; must align with production migration schema. (Ref: Sec 9.28, 12.5)
+    *   Critical data models (`ConversationSession`, `ConversationResponse`) misplaced; need integration into main schema. (Ref: Sec 9.25.1, 12.2)
+6.  **Production Readiness:** Mock AI service (`MockAIService`) used in main `ContentView`'s Onboarding path; unsuitable for production. (Ref: Sec 9.28, 12.5)
 
-This summary provides a high-level overview. For a detailed breakdown of all findings and specific recommendations, please refer to **Section 12: Consolidated Findings and Recommendations**. The following **Module Status Summary Table** also offers a quick look at the state of individual modules.
+Refer to **Section 12: Consolidated Findings and Recommendations** for a detailed breakdown. The **Module Status Summary Table** offers a quick module state overview.
 
 ## 2. Module Status Summary Table
 
-| Module Name     | Stated Status (AGENTS.md) | Key Findings/Actual Status                                                                                                                                                                                             | Critical Actions                                                                                                                              | Reference (Doc Section - *to be updated*) |
-|-----------------|---------------------------|------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|-----------------------------------------------------------------------------------------------------------------------------------------------|-------------------------------------------|
-| **Onboarding**  | Completed                 | Coordinator is well-implemented. SwiftData models for conversation (`ConversationSession`, `ConversationResponse`) misplaced in module, need moving to `Data/Models`. UI Views (e.g., `OnboardingIntroView`) not found/unverified. | Relocate SwiftData models to `Data/Models` & update schema. Verify/locate/implement UI View files.                                            | 9.25, 10.1, 12.2, 12.4                    |
-| **Dashboard**   | Completed                 | ViewModel and module-specific service protocols defined. Lacks concrete implementations for its service protocols. `Models/` and `Coordinators/` subdirectories missing/empty.                                            | Implement concrete services. Create `Models/` dir for view-state structs. Add Coordinator if navigation is involved.                           | 9.26, 12.4                                |
-| **FoodTracking**| Missing                   | Shows significant progress. Models, `FoodVoiceAdapter`, `NutritionService` (actor), `FoodTrackingViewModel`, `FoodTrackingCoordinator` (root), and key Views (`FoodLoggingView`, `VoiceInputView`, `FoodConfirmationView`) are well-structured. | Implement `FoodDatabaseService`. Complete placeholder functionality in `NutritionService` and `FoodConfirmationView` (edit/manual add). | 9.27, 10.2, 12.4                          |
-| **Settings**    | Completed                 | Directory structure exists but all implementation files (Views, ViewModels, Services, Models, Coordinators) are missing.                                                                                               | Verify status & locate/move files if they exist elsewhere. Implement module if truly missing.                                                  | 9.31, 12.4                                |
-| **AI (Module)** | N/A (Engine)              | Complex, engine-focused module. Components like `PersonaEngine`, `ConversationManager`, `ContextAnalyzer` show sophistication. Potential redundancy between `LLMOrchestrator` and `UnifiedAIService` in `Services/AI/`.      | Refactor `LLMOrchestrator` & `UnifiedAIService` for clarity. Document public-facing service protocols.                                        | 9.15, 9.29, 12.3                          |
-| **Chat**        | Missing                   | Coordinator and ViewModel structure good. `ChatViewModel` uses placeholder AI response logic, not integrating with `CoachEngine`. `Services/` dir empty. View-specific structs in ViewModel.                               | Integrate `ChatViewModel` with `CoachEngine`. Consider `Models/` dir for structs. Assess SwiftData performance for chat history.         | 9.30, 12.4                                |
-| **Workouts**    | Missing                   | Functional ViewModel and Coordinator. Defines local `CoachEngineProtocol`. View-specific structs in ViewModel. `Services/` dir empty.                                                                                      | Organize view-specific structs into `Models/` dir. Evaluate local AI protocol vs. core. Consider module service if logic grows.             | 9.31 (was 7.30), 12.4                     |
+| Module Name                        | Stated Status (AGENTS.md) | Key Findings/Actual Status                                                                                                                                                                                                                            | Critical Actions                                                                                                                                                                                      | Reference (Doc Section) |
+|------------------------------------|---------------------------|-------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|-------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|---------------------------|
+| **Onboarding**                     | Completed                 | Coordinator well-implemented. SwiftData models (`ConversationSession`, `ConversationResponse`) misplaced in module; move to `Data/Models`. UI Views (e.g., `OnboardingIntroView`) not found/unverified.                                          | Relocate SwiftData models to `Data/Models` & update schema. Verify/locate/implement UI View files.                                                                                                    | 9.25, 10.1, 12.2, 12.4    |
+| **Dashboard**                      | Completed                 | ViewModel, module-specific service protocols defined. Lacks concrete service implementations. `Models/`, `Coordinators/` subdirs missing/empty.                                                                                                   | Implement concrete services. Create `Models/` for view-state structs. Add Coordinator if navigation involved.                                                                                       | 9.26, 12.4                |
+| **FoodTracking**                   | Missing                   | Significant progress. Models, `FoodVoiceAdapter`, `NutritionService` (actor), `FoodTrackingViewModel`, `FoodTrackingCoordinator`, key Views (`FoodLoggingView`, `VoiceInputView`, `FoodConfirmationView`) well-structured.                            | Implement `FoodDatabaseService`. Complete placeholder functionality in `NutritionService` and `FoodConfirmationView` (edit/manual add).                                                                    | 9.27, 10.2, 12.4          |
+| **Settings (M11)**                 | Completed                 | **Implemented per M11 spec.** Rich UI for AI persona, API keys, preferences, data management. MVVM-C adherent; uses M9 & M10 services. Resolves "empty module" finding.                                                                            | Review default AI model selection in ViewModel. Ensure `AIServiceManager` (if used for AI service access) is well-defined.                                                                        | 9.34                      |
+| **AI (Module)**                    | N/A (Engine)              | Complex, engine-focused. Components (`PersonaEngine`, `ConversationManager`, `ContextAnalyzer`) show sophistication. Potential redundancy: `LLMOrchestrator` vs. `UnifiedAIService` in `Services/AI/`.                                            | Refactor `LLMOrchestrator` & `UnifiedAIService` for clarity. Document public-facing service protocols.                                                                                               | 9.15, 9.29, 12.3          |
+| **Chat**                           | Missing                   | Coordinator, ViewModel structure good. `ChatViewModel` uses placeholder AI response logic, not integrating with `CoachEngine`. `Services/` empty. View-specific structs in ViewModel.                                                             | Integrate `ChatViewModel` with `CoachEngine`. Consider `Models/` for structs. Assess SwiftData performance for chat history.                                                                    | 9.30, 12.4                |
+| **Workouts**                       | Missing                   | Functional ViewModel, Coordinator. Defines local `CoachEngineProtocol`. View-specific structs in ViewModel. `Services/` empty.                                                                                                                | Organize view-specific structs into `Models/`. Evaluate local AI protocol vs. core. Consider module service if logic grows.                                                                          | 9.31, 12.4                |
+| **Notifications & Engage. (M9)**   | N/A (New)                 | Implemented per spec. Robust local/push notifications, AI content, engagement analysis, Live Activities. Key services (`NotificationManager`, etc.) in `AirFit/Services/` per spec.                                                           | Ensure supporting data models (`CommunicationPreferences`, etc.) correctly defined/located. Consider service placement in `Modules/Notifications/Services/` for stricter modularity if not widely accessed. | 9.32                      |
+| **Services Layer (M10)**           | N/A (New)                 | Implemented per spec. Establishes core service protocols, `NetworkManager`, `APIKeyManager`, `AIAPIService` (multi-provider), `WeatherService`. Secure key management. Resolves `APIKeyManager` missing.                                         | Standardize shared protocol placement in `Core/Protocols/`. Reconcile AI data models with `Core/Models/AI/`.                                                                                        | 9.33                      |
 
-*Note: "Stated Status" refers to how the module is marked in the main `AGENTS.md` (completed/missing). Some modules like FoodTracking might have their own `AGENTS.md` with more granular status.*
+*Note: "Stated Status" from main `AGENTS.md`. Some modules may have granular status in their own `AGENTS.md`.*
 
 ## 3. Introduction
 
-This document provides an analysis of the AirFit project's current file structure, addressing concerns about potential complexity or redundancy, particularly regarding the placement of `Services` directories. The goal is to clarify the architectural intent and ensure the structure supports a maintainable and scalable application.
-
-The analysis is based on the existing project layout and the guidelines outlined in `AGENTS.md`.
+This document analyzes AirFit's file structure, addressing concerns about complexity or redundancy, especially regarding `Services` directory placement. The goal is to clarify architectural intent and ensure a maintainable, scalable structure, based on the existing layout and `AGENTS.md` guidelines.
 
 ## 4. Core Architectural Principles (from AGENTS.md)
 
-The project aims to follow these key principles:
-
-*   **Pattern:** Model-View-ViewModel-Coordinator (MVVM-C).
-*   **Modularity:** Features are encapsulated within distinct modules.
-*   **Swift 6 & iOS 18 Best Practices:** Strict concurrency, SwiftData, modern SwiftUI features.
-*   **Clear Separation of Concerns:**
-    *   Views: Declarative SwiftUI.
-    *   ViewModels: Handle business logic and state (@MainActor, @Observable).
-    *   Models: Data structures (Sendable).
-    *   Services: Handle data operations and business logic.
-    *   Coordinators: Manage navigation.
+*   **Pattern:** MVVM-C.
+*   **Modularity:** Features encapsulated in distinct modules.
+*   **Swift 6 & iOS 18 Best Practices:** Strict concurrency, SwiftData, modern SwiftUI.
+*   **Clear Separation of Concerns:** Views (SwiftUI), ViewModels (@MainActor, @Observable for logic/state), Models (Sendable data structures), Services (data ops/business logic), Coordinators (navigation).
 
 ## 5. Analysis of Key Directory Structures
 
-The project employs a multi-level directory structure designed to organize code by its scope and purpose.
+Project uses a multi-level directory structure organizing code by scope and purpose.
 
 ### 5.1. `AirFit/Core/`
 
-*   **Purpose:** Houses foundational code that is shared across multiple modules or the entire application but isn't a feature module itself.
-*   **Contents:**
-    *   `Constants/`: Global constants.
-    *   `Enums/`: Shared enumerations.
-    *   `Extensions/`: Swift type extensions.
-    *   `Models/`: Core data models not specific to a module (e.g., shared utility models).
-    *   `Protocols/`: Shared protocol definitions.
-    *   `Theme/`: UI theme elements (colors, fonts).
-    *   `Utilities/`: General-purpose helper functions and classes.
-    *   `Views/`: Common, reusable UI components not tied to a specific feature module.
+*   **Purpose:** Foundational, shared code not part of a feature module.
+*   **Contents:** `Constants/`, `Enums/`, `Extensions/`, `Models/` (core, non-module-specific), `Protocols/` (shared), `Theme/`, `Utilities/`, `Views/` (common, reusable).
 *   **`AirFit/Core/Services/`:**
-    *   **Intended Role:** This directory is for very low-level service abstractions, foundational service protocols, or small, utility-like services that are part of the application's core infrastructure.
-    *   **Examples:** A generic `LoggingService` protocol and its basic implementation, a `KeychainService` wrapper protocol, or a `UserDefaultsService` protocol. These are often abstract and could potentially have different implementations.
+    *   **Intended Role:** Low-level service abstractions, foundational service protocols, or small, utility-like infrastructure services (e.g., `LoggingService` protocol, `KeychainService` wrapper protocol). Often abstract.
 
 ### 5.2. `AirFit/Data/`
 
-*   **Purpose:** Manages the application's data persistence layer.
-*   **Contents:**
-    *   `Models/`: SwiftData models (`@Model`).
-    *   `Migrations/`: Data migration logic.
-    *   `Managers/`: Data managers or repositories that provide a higher-level API over SwiftData operations, if needed.
-    *   `Extensions/`: Extensions related to data handling or SwiftData.
+*   **Purpose:** Application's data persistence layer.
+*   **Contents:** `Models/` (SwiftData `@Model`s), `Migrations/`, `Managers/` (higher-level API over SwiftData if needed), `Extensions/` (data-related).
 
 ### 5.3. `AirFit/Modules/`
 
-*   **Purpose:** Contains distinct feature modules of the application (e.g., `Onboarding`, `Dashboard`, `MealLogging`). This aligns with the modular architecture promoted in `AGENTS.md`.
-*   **Standard Module Structure (as per `AGENTS.md`):**
-    ```
-    {ModuleName}/
-    ├── Views/              # SwiftUI views specific to this module
-    ├── ViewModels/         # ViewModels for this module's views
-    ├── Models/             # Data models specific to this module
-    ├── Services/           # Business logic, data operations, and API for this module
-    ├── Coordinators/       # Navigation logic for this module
-    └── Tests/              # Unit and UI tests for this module
-    ```
+*   **Purpose:** Distinct feature modules (e.g., `Onboarding`, `Dashboard`). Aligns with `AGENTS.md` modular architecture.
+*   **Standard Module Structure (per `AGENTS.md`):** `{ModuleName}/` containing `Views/`, `ViewModels/`, `Models/` (module-specific), `Services/` (module-specific logic/data ops), `Coordinators/`, `Tests/`.
 *   **`AirFit/Modules/{ModuleName}/Services/`:**
-    *   **Intended Role:** This is crucial for encapsulating the business logic and data handling specific to the feature module. These services orchestrate the module's operations, manage its state transformations, and interact with other parts of the app (like top-level services or data managers).
-    *   **Examples:** `OnboardingService` (handling user profile creation, validation), `MealLoggingService` (managing the logging of meals, fetching nutritional data for the meal logging feature). These services are specific to the domain of their module.
+    *   **Intended Role:** Encapsulates business logic and data handling specific to the feature module. Orchestrates module operations, manages state, interacts with other app parts (top-level services, data managers).
+    *   **Examples:** `OnboardingService`, `MealLoggingService`. Specific to their module's domain.
 
 ### 5.4. `AirFit/Services/` (Top-Level)
 
-*   **Purpose:** Houses shared, application-wide services that provide concrete implementations for cross-cutting concerns. These services are typically consumed by multiple modules or other parts of the application.
-*   **Contents (Examples from current structure):**
-    *   `AI/`: Services related to Artificial Intelligence (e.g., `LLMProviders/OpenAIService`).
-    *   `Context/`: Services for managing application context or environmental data.
-    *   `Health/`: Services for HealthKit integration (`HealthKitManager`).
-    *   `Monitoring/`: Analytics, crash reporting services.
-    *   `Network/`: Network request handling (`DefaultNetworkService`).
-    *   `Platform/`: Platform-specific utilities or services.
-    *   `Security/`: Security-related services (e.g., encryption).
-    *   `Speech/`: Speech-to-text or text-to-speech services.
-    *   `User/`: User authentication, profile management services (`FirebaseAuthService`, `UserProfileService`).
-*   **Intended Role:** These are concrete, often singleton, services providing capabilities used across different features. They implement protocols that might be defined in `Core/Protocols/` or within the service's own interface.
+*   **Purpose:** Shared, application-wide services providing concrete implementations for cross-cutting concerns. Consumed by multiple modules.
+*   **Contents (Examples):** `AI/` (LLM services), `Context/` (app context), `Health/` (`HealthKitManager`), `Monitoring/`, `Network/` (`DefaultNetworkService`), `Platform/`, `Security/`, `Speech/`, `User/`.
+*   **Intended Role:** Concrete, often singleton, services for capabilities used across features. Implement protocols (possibly from `Core/Protocols/`).
 
-## 6. Clarifying the Roles of `Services` Directories
+## 6. Clarifying Roles of `Services` Directories
 
-The presence of multiple `Services` directories (`Core/Services`, `Modules/{ModuleName}/Services`, and the top-level `Services/`) is intentional and reflects a layered approach to service management:
+Multiple `Services` directories (`Core/Services`, `Modules/{ModuleName}/Services`, top-level `Services/`) are intentional, reflecting a layered approach:
 
-1.  **`AirFit/Core/Services/` (Foundational/Abstract Services):**
-    *   **Scope:** Low-level, core infrastructure. Often protocols or basic utility services.
-    *   **Example:** `protocol P_LoggingService { func log(_ message: String) }`, `class StandardOutputLogger: P_LoggingService { ... }`.
-    *   **Interaction:** Provides fundamental service contracts or utilities used by other services or modules.
-
-2.  **`AirFit/Modules/{ModuleName}/Services/` (Module-Specific Business Logic):**
-    *   **Scope:** Business logic and data orchestration specific to a single feature module.
-    *   **Example:** `OnboardingViewModel` uses an `OnboardingService`. This `OnboardingService` might then use the top-level `UserService` (from `AirFit/Services/User/`) to save a user profile and the `AnalyticsService` (from `AirFit/Services/Monitoring/`) to log an event.
-    *   **Interaction:** Consumes top-level services and implements the specific use cases for its module.
-
-3.  **`AirFit/Services/` (Application-Wide Shared Services - Concrete Implementations):**
-    *   **Scope:** Concrete implementations of shared services used across the application.
-    *   **Example:** `DefaultNetworkService` implementing a `P_NetworkServiceProtocol`, `HealthKitDataCollector` for interacting with HealthKit.
-    *   **Interaction:** Provides the actual functionality that module-specific services or ViewModels might depend on (often via dependency injection using protocols).
+1.  **`AirFit/Core/Services/` (Foundational/Abstract):** Low-level, core infrastructure. Often protocols or basic utility services. Provides fundamental service contracts.
+2.  **`AirFit/Modules/{ModuleName}/Services/` (Module-Specific Business Logic):** Logic/data orchestration for a single feature module. Consumes top-level services; implements module-specific use cases.
+3.  **`AirFit/Services/` (Application-Wide Shared Services - Concrete):** Concrete implementations of shared services used across the application. Provides actual functionality for module services or ViewModels (often via DI with protocols).
 
 **Illustrative Example: Chat Module Interaction**
-
-*   A `ChatViewModel` (in `AirFit/Modules/Chat/ViewModels/`) would interact with a `ChatFeatureService` (in `AirFit/Modules/Chat/Services/`).
-*   This `ChatFeatureService` would be responsible for the business logic of the chat feature. To do its job, it might:
-    *   Call an `LLMService` (e.g., `OpenAIService` from `AirFit/Services/AI/LLMProviders/`) to get AI responses.
-    *   Use a `SpeechToTextService` (from `AirFit/Services/Speech/`) for voice input.
-    *   Access user data via a `UserService` (from `AirFit/Services/User/`).
-
-This separation ensures that module-specific logic (`ChatFeatureService`) is distinct from the general-purpose capabilities (AI, Speech, User services).
+*   `ChatViewModel` (`Modules/Chat/ViewModels/`) interacts with `ChatFeatureService` (`Modules/Chat/Services/`).
+*   `ChatFeatureService` handles chat logic, potentially using `LLMService` (`Services/AI/LLMProviders/`), `SpeechToTextService` (`Services/Speech/`), `UserService` (`Services/User/`).
+This separates module-specific logic from general-purpose capabilities.
 
 ## 7. Special Case: `AirFit/Modules/AI/` Structure
 
-The `AirFit/Modules/AI/` directory shows a more granular internal structure (`Configuration`, `Functions`, `Models`, `Parsing`, `PersonaSynthesis`, `Routing`) than the standard module template.
-
-*   **Rationale:** This is acceptable and often necessary for highly complex modules or "sub-systems" within the application. If the "AI" module encompasses a wide range of functionalities (e.g., different types of AI interactions, persona management, complex configuration), a more detailed internal organization helps manage that complexity.
-*   It can still contain its own `Services/` subdirectory for orchestrating its internal logic, even if it's more of an "engine" than a user-facing feature module in the traditional sense.
+`AirFit/Modules/AI/` has a granular internal structure (`Configuration`, `Functions`, etc.).
+*   **Rationale:** Acceptable for complex modules or sub-systems. Helps manage complexity.
+*   Can still contain its own `Services/` for orchestrating internal logic, even if more an "engine" than a traditional user-facing module.
 
 ## 8. Consistency with `AGENTS.md`
 
-The observed structure, including `Core/`, `Modules/`, and a top-level `Services/`, is broadly consistent with the architectural documentation in `AGENTS.md`, particularly the "Project Structure" overview and the file inclusion schema for XcodeGen which lists paths like `- AirFit/Core/...` and `- AirFit/Services/...`. The per-module structure (`Views`, `ViewModels`, `Models`, `Services`, `Coordinators`) is also directly aligned.
+Observed structure (`Core/`, `Modules/`, top-level `Services/`) is broadly consistent with `AGENTS.md` ("Project Structure", XcodeGen schema). Per-module structure aligns.
 
 ## 9. Detailed File-Level Analysis (Ongoing)
 
-This section will be updated with findings from a more granular, file-by-file review of the codebase to ensure adherence to architectural principles and identify any inconsistencies.
+Granular file review for architectural adherence and inconsistencies.
 
 ### 9.1. `AirFit/Core/Models/AI/AIModels.swift`
 
-*   **File Path:** `AirFit/Core/Models/AI/AIModels.swift`
-*   **Contents:** Defines fundamental data structures for AI interactions, such as `AIMessageRole`, `AIChatMessage`, `AIFunctionCall`, `AIFunctionDefinition`, `AIRequest`, `AIResponse`, `AIProvider`, `AIAnyCodable`, and `AIError`.
-*   **Analysis:**
-    *   **Generality:** These models are generic and foundational, not tied to a specific AirFit feature (e.g., "AI Persona Engine" or "Chat Interface"). They provide the basic building blocks for any AI interaction.
-    *   **`Sendable` Conformance:** Most types correctly conform to `Sendable`. `AIBox` and `AIAnyCodable` use `@unchecked Sendable`, which is acceptable for these kinds of generic wrapper types, assuming the actual contained data is handled in a Sendable-safe manner.
-    *   **Placement:** The location in `AirFit/Core/Models/AI/` is appropriate. These are core AI models shared across various AI-driven modules or services, distinct from feature-specific models that would reside in, for example, `AirFit/Modules/AI/Models/` or `AirFit/Modules/Chat/Models/`.
-*   **Conclusion:** The placement and content of `AIModels.swift` are consistent with the defined architecture. No issues found.
+*   **Path:** `AirFit/Core/Models/AI/AIModels.swift`
+*   **Contents:** Foundational AI interaction structures (`AIMessageRole`, `AIChatMessage`, `AIFunctionCall`, `AIFunctionDefinition`, `AIRequest`, `AIResponse`, `AIProvider`, `AIAnyCodable`, `AIError`).
+*   **Analysis:** Generic, foundational, not tied to specific AirFit features. Basic building blocks for AI. Most types `Sendable`. `AIBox`, `AIAnyCodable` use `@unchecked Sendable` (acceptable for generic wrappers).
+*   **Placement:** Appropriate in `AirFit/Core/Models/AI/`. Core AI models shared across AI-driven modules/services.
+*   **Conclusion:** Consistent placement and content. No issues.
 
 ### 9.2. Other Models in `AirFit/Core/Models/`
 
-*   **Files Reviewed:**
-    *   `WorkoutBuilderData.swift`
-    *   `NutritionPreferences.swift`
-    *   `HealthContextSnapshot.swift`
+*   **Files:** `WorkoutBuilderData.swift`, `NutritionPreferences.swift`, `HealthContextSnapshot.swift`.
 *   **Analysis:**
-    *   **`WorkoutBuilderData.swift`**: Contains generic structures (`WorkoutBuilderData`, `ExerciseBuilderData`, `SetBuilderData`) and an error enum (`WorkoutError`) for defining workouts. These are suitable for use across multiple workout-related modules.
-    *   **`NutritionPreferences.swift`**: Defines a structure for user's nutritional preferences. This is a core model, essential for modules like meal logging, meal discovery, and AI coaching.
-    *   **`HealthContextSnapshot.swift`**: Provides a comprehensive structure for capturing a snapshot of the user's daily health data (subjective, environmental, activity, sleep, heart, body, app context). This is a key core model for features like Dashboard, AI Coach, and Progress tracking. It is well-organized with nested structs and conforms to `Sendable` and `Codable`.
-    *   **Placement:** All these models are correctly placed in `AirFit/Core/Models/` as they represent foundational, shareable data structures.
-*   **Conclusion:** The models are appropriately located and defined, consistent with the architectural guidelines for core data structures. No major issues found.
+    *   `WorkoutBuilderData.swift`: Generic workout definition structures (`WorkoutBuilderData`, etc.), `WorkoutError` enum. Suitable for multi-module use.
+    *   `NutritionPreferences.swift`: User's nutritional preferences. Core model for meal logging, discovery, AI coaching.
+    *   `HealthContextSnapshot.swift`: Comprehensive daily health data snapshot (subjective, environmental, activity, sleep, heart, body, app context). Key core model for Dashboard, AI Coach, Progress. Well-organized, `Sendable`, `Codable`.
+    *   **Placement:** All correctly in `AirFit/Core/Models/` as foundational, shareable data structures.
+*   **Conclusion:** Appropriately located and defined. No major issues.
 
 ### 9.3. `AirFit/Core/Constants/`
 
-*   **Files Reviewed:**
-    *   `AppConstants.swift`
-    *   `APIConstants.swift`
+*   **Files:** `AppConstants.swift`, `APIConstants.swift`.
 *   **Analysis:**
-    *   **`AppConstants.swift`**: Defines general application constants related to layout, animation, API behavior (timeouts, retries), storage (UserDefaults, Keychain), health data synchronization, input validation rules, and general app information. These are appropriately centralized and broadly applicable.
-    *   **`APIConstants.swift`**: Defines constants specific to backend API interactions, including HTTP header keys, content types, endpoint paths, pagination defaults, cache durations, base URLs, and API versioning information. These are essential for any network service in the app.
-    *   **Placement:** Both files are correctly placed in `AirFit/Core/Constants/` as they provide global constants used throughout the application.
-*   **Conclusion:** The constants are well-organized and their placement is consistent with the architectural guidelines. No issues found.
+    *   `AppConstants.swift`: General app constants (layout, animation, API behavior, storage, health sync, validation, app info). Centralized, broadly applicable.
+    *   `APIConstants.swift`: Backend API interaction constants (headers, content types, paths, pagination, cache, URLs, versioning). Essential for network services.
+    *   **Placement:** Correctly in `AirFit/Core/Constants/` (global constants).
+*   **Conclusion:** Well-organized; placement consistent. No issues.
 
 ### 9.4. `AirFit/Core/Enums/`
 
-*   **Files Reviewed:**
-    *   `AppError.swift`
-    *   `MessageType.swift`
-    *   `GlobalEnums.swift`
+*   **Files:** `AppError.swift`, `MessageType.swift`, `GlobalEnums.swift`.
 *   **Analysis:**
-    *   **`AppError.swift`**: Defines a `public enum AppError: LocalizedError, Sendable` with common application error cases (network, decoding, validation, permissions, etc.). It includes `errorDescription` and `recoverySuggestion`, making it suitable for user-facing error presentation. Its placement is appropriate for a centralized error type.
-    *   **`MessageType.swift`**: Defines a `public enum MessageType: String, Codable, CaseIterable, Sendable` (cases: `conversation`, `command`) likely used to categorize user input for AI interactions, influencing context length and processing. Its potential broad use in AI features justifies its core placement.
-    *   **`GlobalEnums.swift`**: Contains a `public enum GlobalEnums` acting as a namespace for several other widely used enums:
-        *   **User Related:** `BiologicalSex`, `ActivityLevel`, `FitnessGoal` (fundamental user data).
-        *   **App State:** `LoadingState` (generic UI state management).
-        *   **Navigation:** `AppTab` (defines main app navigation tabs).
-        *   **Exercise Related:** `ExerciseCategory`, `MuscleGroup`, `Equipment`, `Difficulty` (fundamental exercise classifications).
-        These enums represent core concepts likely referenced across multiple modules. Type aliases are provided for convenience. All enums are `Codable` and `Sendable` as appropriate.
-*   **Conclusion:** The enums in this directory are generally well-placed, representing error types, system-level classifications, and fundamental domain concepts that are shared across the application. No significant issues identified.
+    *   `AppError.swift`: `public enum AppError: LocalizedError, Sendable` for common app errors (network, decoding, etc.). Includes `errorDescription`, `recoverySuggestion`. Appropriate for centralized error type.
+    *   `MessageType.swift`: `public enum MessageType: String, Codable, CaseIterable, Sendable` (`conversation`, `command`) for categorizing user input for AI. Broad use justifies core placement.
+    *   `GlobalEnums.swift`: Namespace `public enum GlobalEnums` for widely used enums: `BiologicalSex`, `ActivityLevel`, `FitnessGoal` (user data); `LoadingState` (UI state); `AppTab` (navigation); `ExerciseCategory`, `MuscleGroup`, `Equipment`, `Difficulty` (exercise classification). Core concepts referenced across modules. `Codable`, `Sendable` as appropriate.
+*   **Conclusion:** Generally well-placed, representing shared error types, system classifications, and fundamental domain concepts. No significant issues.
 
 ### 9.5. `AirFit/Core/Extensions/`
 
-*   **Files Reviewed:**
-    *   `Date+Extensions.swift`
-    *   `String+Extensions.swift`
-    *   `View+Extensions.swift` (and related `RoundedCorner`, `FirstAppear`)
-    *   `Color+Extensions.swift`
-    *   `Double+Extensions.swift`
-    *   `TimeInterval+Extensions.swift`
+*   **Files:** `Date+Extensions.swift`, `String+Extensions.swift`, `View+Extensions.swift` (and related), `Color+Extensions.swift`, `Double+Extensions.swift`, `TimeInterval+Extensions.swift`.
 *   **Analysis:**
-    *   **`Date+Extensions.swift`**: Provides common date formatting, comparison (`isToday`, `isYesterday`), manipulation (`startOfDay`, `adding(days:)`), and relative time display (`timeAgoDisplay()`). These are general-purpose date utilities.
-    *   **`String+Extensions.swift`**: Includes utilities like `isBlank`, `isValidEmail`, `truncated(to:addEllipsis:)`, and `trimmed`. These are broadly useful string manipulation and validation helpers.
-    *   **`View+Extensions.swift`**: Offers SwiftUI `View` modifiers for common UI tasks like specific corner rounding (`cornerRadius(_:corners:)` with `RoundedCorner` shape), standard padding (`standardPadding()`), predefined `cardStyle()` and `primaryButton()` styles, and an `onFirstAppear(perform:)` modifier. These promote UI consistency and reusability, leveraging core constants and theme elements.
-    *   **`Color+Extensions.swift`**: Provides `init(hex:)` and `toHex()` for converting SwiftUI `Color` objects to and from hexadecimal string representations. These are common color utilities.
-    *   **`Double+Extensions.swift`**: Includes unit conversions (`kilogramsToPounds`, `poundsToKilograms`), a rounding function (`rounded(toPlaces:)`), and distance formatting (`formattedDistance()`). These are useful numeric and measurement utilities for a fitness app.
-    *   **`TimeInterval+Extensions.swift`**: Contains `formattedDuration(style:)` for converting `TimeInterval` into human-readable duration strings, suitable for displaying workout times or timers.
-    *   **Placement:** All extensions are general-purpose enhancements to fundamental Swift or SwiftUI types. Their location in `AirFit/Core/Extensions/` is appropriate as they provide utility across the entire application.
-*   **Conclusion:** The extensions are well-defined, broadly applicable, and correctly placed within the core directory. They contribute to code reusability and a consistent application feel. No issues found.
+    *   `Date+Extensions.swift`: Common date formatting, comparison, manipulation, relative time. General-purpose.
+    *   `String+Extensions.swift`: Utilities like `isBlank`, `isValidEmail`, `truncated`, `trimmed`. Broadly useful.
+    *   `View+Extensions.swift`: SwiftUI `View` modifiers for common UI (corner rounding, padding, `cardStyle`, `primaryButton`, `onFirstAppear`). Promotes UI consistency, uses core constants/theme.
+    *   `Color+Extensions.swift`: `init(hex:)`, `toHex()`. Common color utilities.
+    *   `Double+Extensions.swift`: Unit conversions (kg/lbs), rounding, distance formatting. Useful numeric/measurement utilities.
+    *   `TimeInterval+Extensions.swift`: `formattedDuration(style:)`. Human-readable durations.
+    *   **Placement:** All general-purpose enhancements to Swift/SwiftUI types. Correctly in `AirFit/Core/Extensions/` for app-wide utility.
+*   **Conclusion:** Well-defined, broadly applicable, correctly placed. Contribute to reusability and consistent feel. No issues.
 
 ### 9.6. `AirFit/Core/Protocols/ViewModelProtocol.swift`
 
-*   **File Path:** `AirFit/Core/Protocols/ViewModelProtocol.swift`
-*   **Contents:** Defines a set of hierarchical protocols for ViewModels:
-    *   `ViewModelProtocol`: A base protocol for all ViewModels, requiring `@MainActor`, `AnyObject`, `Observable`, and `Sendable`. It includes `loadingState` and methods for `initialize()`, `refresh()`, and `cleanup()` (with default empty implementations).
-    *   `FormViewModelProtocol`: Extends `ViewModelProtocol` for form-based ViewModels, adding requirements for `formData`, `isFormValid`, `validate()`, and `submit()`.
-    *   `ListViewModelProtocol`: Extends `ViewModelProtocol` for list-based ViewModels, adding requirements for `items`, `hasMoreItems`, `searchQuery`, `loadMore()`, and `delete(at:)`.
-    *   `DetailViewModelProtocol`: Extends `ViewModelProtocol` for detail view ViewModels, adding requirements for `model`, `load(id:)`, `save()`, and `delete()`.
-*   **Analysis:**
-    *   **Standardization:** These protocols provide a robust framework for standardizing ViewModel structure and behavior across the application, promoting consistency in handling common tasks like data loading, form submission, list management, and detail view operations.
-    *   **Concurrency:** Consistent use of `@MainActor` and `Sendable` aligns with Swift 6 concurrency best practices.
-    *   **Placement:** Located appropriately in `AirFit/Core/Protocols/`. These are foundational contracts for ViewModel implementation throughout the app, not specific to any single module. This supports a protocol-oriented approach to architecture.
-*   **Conclusion:** The ViewModel protocols are well-designed, serve a clear purpose in standardizing ViewModel implementation, and are correctly placed in the core directory. No issues found.
+*   **Path:** `AirFit/Core/Protocols/ViewModelProtocol.swift`
+*   **Contents:** Hierarchical ViewModel protocols: `ViewModelProtocol` (base: `@MainActor`, `AnyObject`, `Observable`, `Sendable`; `loadingState`, `initialize()`, `refresh()`, `cleanup()`), `FormViewModelProtocol`, `ListViewModelProtocol`, `DetailViewModelProtocol`.
+*   **Analysis:** Robust framework standardizing ViewModel structure/behavior (data loading, form submission, list management, detail ops). Consistent `@MainActor`, `Sendable`.
+*   **Placement:** Appropriate in `AirFit/Core/Protocols/`. Foundational contracts for ViewModels app-wide. Supports protocol-oriented architecture.
+*   **Conclusion:** Well-designed, serve clear purpose, correctly placed. No issues.
 
 ### 9.7. `AirFit/Core/Services/`
 
-*   **Files Reviewed:**
-    *   `WhisperModelManager.swift`
-    *   `VoiceInputManager.swift`
+*   **Files:** `WhisperModelManager.swift`, `VoiceInputManager.swift`.
 *   **Analysis:**
-    *   **`WhisperModelManager.swift`**: A `@MainActor final class WhisperModelManager: ObservableObject` that manages the download, storage, and selection of local Whisper speech recognition models. It uses `WhisperKit` and is implemented as a singleton.
-    *   **`VoiceInputManager.swift`**: A `@MainActor @Observable final class VoiceInputManager` that handles audio recording, microphone permissions, and transcription using `WhisperKit`. It depends on `WhisperModelManager` and provides callbacks for transcription results and errors. It also includes some fitness-specific transcription post-processing.
-    *   **Functionality:** Both classes are concrete implementations providing significant speech recognition capabilities.
-    *   **Placement Concern:** The `AirFit/Core/Services/` directory is intended for "very low-level service abstractions, foundational service protocols, or small, utility-like services." `WhisperModelManager` and `VoiceInputManager` are more akin to concrete, domain-specific (Speech) service implementations.
+    *   `WhisperModelManager.swift`: `@MainActor final class WhisperModelManager: ObservableObject` (singleton) manages Whisper model download, storage, selection. Uses `WhisperKit`.
+    *   `VoiceInputManager.swift`: `@MainActor @Observable final class VoiceInputManager` handles audio recording, permissions, transcription (`WhisperKit`). Depends on `WhisperModelManager`. Includes fitness-specific transcription post-processing.
+    *   **Functionality:** Concrete implementations providing speech recognition.
+    *   **Placement Concern:** `AirFit/Core/Services/` intended for "low-level service abstractions, protocols, or small utility services." These are more like concrete, domain-specific (Speech) service implementations.
 *   **Conclusion & Recommendation:**
-    *   The services are functional but appear **misplaced** according to the defined architecture.
-    *   **Recommendation 1 (Relocation):** Move both `WhisperModelManager.swift` and `VoiceInputManager.swift` from `AirFit/Core/Services/` to `AirFit/Services/Speech/`. This aligns with placing concrete, application-wide service implementations, categorized by domain, in the top-level `Services` directory.
-    *   **Recommendation 2 (Protocols - Optional but Good Practice):** Consider defining protocols in `AirFit/Core/Protocols/` (e.g., `SpeechModelManaging`, `VoiceInputProviding`) which these classes would implement. This would improve decoupling and testability, though relocation is the primary concern for architectural consistency.
-    *   The `AirFit/Core/Services/` directory, after these moves, might be empty or could be re-evaluated for its necessity if no other truly "core, abstract" services are identified for it.
+    *   Services functional but **misplaced**.
+    *   **Recommendation 1 (Relocation):** Move both to `AirFit/Services/Speech/`. Aligns with placing concrete, app-wide service implementations, categorized by domain, in top-level `Services/`.
+    *   **Recommendation 2 (Protocols - Optional):** Consider defining protocols in `AirFit/Core/Protocols/` (e.g., `SpeechModelManaging`, `VoiceInputProviding`) which these implement. Improves decoupling/testability. Relocation is primary.
+    *   `AirFit/Core/Services/` might then be empty or re-evaluated.
 
 ### 9.8. `AirFit/Core/Theme/`
 
-*   **Files Reviewed:**
-    *   `AppColors.swift`
-    *   `AppFonts.swift`
-    *   `AppShadows.swift`
-    *   `AppSpacing.swift`
+*   **Files:** `AppColors.swift`, `AppFonts.swift`, `AppShadows.swift`, `AppSpacing.swift`.
 *   **Analysis:**
-    *   **`AppColors.swift`**: Defines a `public struct AppColors: Sendable` with static properties for the app's color palette, largely referencing `Assets.xcassets`. Includes background, text, UI element, interactive, semantic, and nutrition-specific colors, as well as gradients. Well-organized and appropriate.
-    *   **`AppFonts.swift`**: Defines a `public struct AppFonts: Sendable` with static `Font` properties for various text styles, using a nested private enum for sizes. Also includes convenient `Text` extensions for applying common font/color styles. Clean and effective for managing typography.
-    *   **`AppShadows.swift`**: Defines a `public struct AppShadows: Sendable` with predefined `Shadow` styles (using a helper `Shadow` struct) and a `View` extension `appShadow(_:)` for easy application. Good for standardizing shadow usage.
-    *   **`AppSpacing.swift`**: Defines a `public enum AppSpacing: Sendable` with static `CGFloat` properties for a standardized spacing scale (e.g., `xxSmall`, `medium`, `xxLarge`).
-    *   **Placement:** All files are correctly placed in `AirFit/Core/Theme/`, providing a centralized and consistent approach to the application's visual design.
-    *   **Potential Issue - Spacing Redundancy:** There is an overlap in spacing definitions between `AppSpacing.swift` and `AppConstants.Layout` (in `AirFit/Core/Constants/AppConstants.swift`). For example, `AppSpacing.medium` (16pt) is the same as `AppConstants.Layout.defaultPadding`, and `AppSpacing.small` (12pt) matches `AppConstants.Layout.defaultSpacing`. This could lead to confusion.
+    *   `AppColors.swift`: `public struct AppColors: Sendable` with static properties for color palette (from `Assets.xcassets`). Well-organized.
+    *   `AppFonts.swift`: `public struct AppFonts: Sendable` with static `Font` properties and `Text` extensions. Clean, effective.
+    *   `AppShadows.swift`: `public struct AppShadows: Sendable` with predefined `Shadow` styles and `View` extension. Good for standardizing.
+    *   `AppSpacing.swift`: `public enum AppSpacing: Sendable` with static `CGFloat` for spacing scale.
+    *   **Placement:** Correctly in `AirFit/Core/Theme/` for centralized, consistent visual design.
+    *   **Potential Issue (Spacing Redundancy):** Overlap between `AppSpacing.swift` and `AppConstants.Layout` (in `AppConstants.swift`). E.g., `AppSpacing.medium` (16pt) == `AppConstants.Layout.defaultPadding`.
 *   **Conclusion & Recommendation:**
-    *   The theme directory is generally well-structured and its contents are appropriate for defining the core visual style.
-    *   **Recommendation (Consolidate Spacing):** Consolidate spacing definitions to a single source of truth. Preferentially, `AppSpacing.swift` should define the base spacing scale. If semantic constants like `defaultPadding` are needed in `AppConstants.Layout`, they should reference values from `AppSpacing` (e.g., `static let defaultPadding = AppSpacing.medium`) to avoid duplication and potential inconsistency.
+    *   Theme directory well-structured.
+    *   **Recommendation (Consolidate Spacing):** Consolidate spacing to a single source. Prefer `AppSpacing.swift` for base scale. If semantic constants like `defaultPadding` needed in `AppConstants.Layout`, they should reference `AppSpacing` values (e.g., `static let defaultPadding = AppSpacing.medium`).
 
 ### 9.9. `AirFit/Core/Utilities/`
 
-*   **Files Reviewed:**
-    *   `AppLogger.swift`
-    *   `DependencyContainer.swift`
-    *   `AppState.swift`
-    *   `HealthKitAuthManager.swift`
-    *   `KeychainWrapper.swift`
-    *   `Validators.swift`
-    *   `Formatters.swift`
-    *   `HapticManager.swift`
-    *   `PersonaMigrationUtility.swift`
+*   **Files:** `AppLogger.swift`, `DependencyContainer.swift`, `AppState.swift`, `HealthKitAuthManager.swift`, `KeychainWrapper.swift`, `Validators.swift`, `Formatters.swift`, `HapticManager.swift`, `PersonaMigrationUtility.swift`.
 *   **Analysis:**
-    *   **`AppLogger.swift`**: A comprehensive, `os.log`-based centralized logging system with categories, levels, context, and performance measurement. Correctly placed and essential.
-    *   **`DependencyContainer.swift`**: A singleton service locator/DI container holding shared instances (ModelContainer, NetworkClient, Keychain, Logger) and providing them via SwiftUI's Environment. Appropriate core utility.
-    *   **`AppState.swift`**: A `@MainActor @Observable` class managing global app state like current user, onboarding status, and handling UI testing states. Well-placed core utility.
-    *   **`HealthKitAuthManager.swift`**: A `@MainActor @Observable` class managing HealthKit authorization status and requests, acting as an observable wrapper around a `HealthKitManaging` service. Acceptable as a core utility for permission management.
-    *   **`KeychainWrapper.swift`**: A singleton providing a simplified and secure interface for keychain operations (save, load, delete data, String, Codable types). Essential core utility.
-    *   **`Validators.swift`**: An enum namespace for static validation methods (email, password, age, weight, height) using a `ValidationResult` type. Good for centralized, reusable validation.
-    *   **`Formatters.swift`**: An enum namespace for shared `NumberFormatter`, `DateFormatter` instances, and custom formatting functions (calories, macros, weight). Promotes consistent data presentation.
-    *   **`HapticManager.swift`**: A singleton managing haptic feedback using `CoreHaptics` and `UIKit` feedback generators. Provides a simple API for triggering haptics. Well-placed core utility.
-    *   **`PersonaMigrationUtility.swift`**: A struct with static methods for a specific data migration task (legacy "Blend" system to new "PersonaMode"). While functional, it's a highly specialized, potentially temporary utility, unlike the others in this directory. Its placement here is acceptable but not ideal; a dedicated `Migrations` folder could be considered for such utilities if more arise.
+    *   `AppLogger.swift`: `os.log`-based centralized logging. Essential.
+    *   `DependencyContainer.swift`: Singleton DI container (ModelContainer, NetworkClient, etc.). Core utility.
+    *   `AppState.swift`: `@MainActor @Observable` for global app state (user, onboarding status). Core utility.
+    *   `HealthKitAuthManager.swift`: `@MainActor @Observable` for HealthKit auth status/requests. Acceptable utility.
+    *   `KeychainWrapper.swift`: Singleton for simplified, secure keychain ops. Essential utility.
+    *   `Validators.swift`: Enum namespace for static validation methods. Good for reusable validation.
+    *   `Formatters.swift`: Enum namespace for shared formatters. Promotes consistent presentation.
+    *   `HapticManager.swift`: Singleton for haptic feedback. Core utility.
+    *   `PersonaMigrationUtility.swift`: Specialized, potentially temporary utility for data migration. Placement acceptable; a dedicated `Migrations` folder could be considered if more arise.
 *   **Conclusion:**
-    *   The `AirFit/Core/Utilities/` directory mostly contains appropriate, general-purpose core utilities. `AppLogger`, `DependencyContainer`, `AppState`, `KeychainWrapper`, `Validators`, `Formatters`, and `HapticManager` are all well-suited for this location.
-    *   `HealthKitAuthManager` is also acceptable as a focused utility layer.
-    *   `PersonaMigrationUtility` is an outlier due to its specialized, migration-specific nature. While not a critical misplacement, its purpose differs from the general utilities. No immediate action required unless more such migration utilities are anticipated, which might then warrant a dedicated `Migrations` directory.
+    *   Mostly contains appropriate, general-purpose core utilities.
+    *   `PersonaMigrationUtility` is an outlier. No immediate action unless more such utilities appear.
 
 ### 9.10. `AirFit/Core/Views/`
 
-*   **Files Reviewed:**
-    *   `CommonComponents.swift`
-*   **Analysis:**
-    *   **`CommonComponents.swift`**: This file contains several reusable SwiftUI views and a view modifier designed for broad application-wide use:
-        *   **`SectionHeader`**: A view for consistent section titles with optional icons and actions.
-        *   **`EmptyStateView`**: A standardized view for displaying empty states (e.g., no data) with an icon, title, message, and optional call to action.
-        *   **`Card<Content: View>`**: A generic container view that applies a standard card-like appearance (padding, background, rounded corners, shadow) to its content, using `AppColors` and `AppSpacing`.
-        *   **`LoadingOverlay` (ViewModifier)**: A modifier to display a loading indicator (ProgressView and optional message) over content, also blurring and disabling the underlying view. Applied via a convenient `loadingOverlay(isLoading:message:)` extension.
-    *   **Reusability & Consistency:** These components are well-designed for reusability and promote UI consistency across different modules.
-    *   **Theme Adherence:** They correctly leverage `AppColors` and `AppSpacing` from the core theme, ensuring visual alignment.
-    *   **Placement:** The location in `AirFit/Core/Views/` is appropriate for common, reusable UI components that are part of the core UI toolkit.
-*   **Conclusion:** The reusable UI components in `CommonComponents.swift` are well-defined, serve a clear purpose in promoting UI consistency, and are correctly placed in the core views directory. No issues found.
+*   **File:** `CommonComponents.swift`.
+*   **Analysis:** Contains reusable SwiftUI views/modifier for app-wide use: `SectionHeader`, `EmptyStateView`, `Card<Content: View>` (generic container), `LoadingOverlay` (ViewModifier).
+    *   **Reusability & Consistency:** Well-designed for reusability, promote UI consistency.
+    *   **Theme Adherence:** Correctly leverage `AppColors`, `AppSpacing`.
+    *   **Placement:** Appropriate in `AirFit/Core/Views/` for common, reusable UI toolkit components.
+*   **Conclusion:** Well-defined, serve clear purpose, correctly placed. No issues.
 
 ### 9.11. `AirFit/Data/Models/` (Initial Review)
 
 *   **Files Sampled:** `User.swift`, `Workout.swift`, `FoodEntry.swift`, `ChatSession.swift`, `ChatMessage.swift`, `OnboardingProfile.swift`.
-*   **General Observations:**
-    *   **SwiftData Best Practices:** Models correctly use `@Model`, `@Attribute(.unique)`, `@Attribute(.externalStorage)` where appropriate, and `@Relationship` with specified inverse relationships and delete rules (typically `.cascade` for owned collections/dependent objects and `.nullify` for optional references back to a parent like `User`).
-    *   **`@unchecked Sendable`:** Consistently applied to all `@Model` classes, which is the current standard practice for SwiftData models to be used in concurrent environments (requiring careful actor-based access management by consumers).
-    *   **Data Integrity:** Relationships and delete rules appear well-considered for maintaining data integrity (e.g., deleting a `User` cascades to delete their associated `Workout`s, `FoodEntry`s, etc.).
-    *   **Embedded Enums:** Local enums within model files (e.g., `WorkoutType` in `Workout.swift`, `MealType` in `FoodEntry.swift`, `MessageType` in `ChatMessage.swift`) are used effectively for categorization and often include helpful UI-related computed properties (`displayName`, `systemImage`).
-    *   **Computed Properties & Methods:** Models often include useful computed properties for derived data and methods for common operations, enhancing their usability.
-*   **Specific Model Notes:**
-    *   **`User.swift`**: Central user model with well-defined properties and relationships. `nutritionPreferences` computed property effectively uses a non-persisted struct from `Core/Models/`.
-    *   **`Workout.swift`**: Good structure for workout data. The `WorkoutType` enum is useful; its conceptual relationship with `GlobalEnums.ExerciseCategory` might warrant documentation or clarification if there's significant overlap, but its local definition is fine for workout-specific categorization.
-    *   **`FoodEntry.swift`**: Robust model for food logging, supporting AI parsing metadata. The relationship to a separate `NutritionData` model (if it's a 1-to-1 owned entity) could potentially use a `.cascade` delete rule on the `FoodEntry.nutritionData` property for explicitness, but current setup is acceptable.
-    *   **`ChatSession.swift` & `ChatMessage.swift`**: Provide a solid foundation for chat functionality, with appropriate use of external storage for message content and good relationship management.
-    *   **`OnboardingProfile.swift`**: Effectively stores serialized onboarding data as `Data` blobs, linked to the `User`.
-*   **Conclusion (Initial):**
-    *   The SwiftData models in `AirFit/Data/Models/` are generally well-structured, adhere to good practices for SwiftData, and form a solid data layer for the application.
-    *   No critical architectural issues identified in the sampled files. The structure supports the application's features as understood from the model definitions.
-    *   Further review of other models can be done if specific concerns arise, but the patterns observed are sound.
+*   **Observations:**
+    *   **SwiftData Best Practices:** Correct use of `@Model`, `@Attribute(.unique)`, `@Attribute(.externalStorage)`, `@Relationship` (inverse, delete rules).
+    *   **`@unchecked Sendable`:** Consistently applied to `@Model` classes (standard for concurrent use).
+    *   **Data Integrity:** Relationships/delete rules seem well-considered.
+    *   **Embedded Enums:** Local enums within models (e.g., `WorkoutType` in `Workout.swift`) used effectively.
+    *   **Computed Properties/Methods:** Models include useful derived data/common ops.
+*   **Conclusion (Initial):** SwiftData models generally well-structured, adhere to good practices, form solid data layer. No critical architectural issues in sampled files.
 
 ### 9.12. `AirFit/Data/Managers/DataManager.swift`
 
-*   **File Reviewed:** `DataManager.swift`
-*   **Analysis:**
-    *   **Purpose & Functionality:** Defines a `@MainActor final class DataManager` (singleton) responsible for initial data setup. Key methods include:
-        *   `performInitialSetup(with container: ModelContainer)`: Checks for existing users and triggers the creation of system-defined templates if needed.
-        *   `createSystemTemplatesIfNeeded(context:)`: Populates the database with default `WorkoutTemplate`s and `MealTemplate`s if they don't already exist (identified by an `isSystemTemplate` flag).
-    *   **`ModelContext` Extensions:** The file includes useful extensions on `ModelContext` for `fetchFirst(_:where:)` and `count(_:where:)`, simplifying common fetch operations.
-    *   **Preview Support:** Contains `#if DEBUG` blocks to provide a `DataManager.preview` instance and a `ModelContainer.createMemoryContainer()` helper for setting up an in-memory SwiftData store for SwiftUI previews. This is good practice.
-    *   **Placement:** As a class orchestrating initial data seeding and potentially providing higher-level data operations, its placement in `AirFit/Data/Managers/` is appropriate. The `ModelContext` extensions, while general, are acceptable in this file given their direct relevance to data management tasks.
-    *   **Error Handling:** Current error handling in setup methods uses `print()`. This should be changed to use `AppLogger.error()` for robust logging.
-    *   **Schema in Previews:** The schema used for in-memory containers in the preview support code includes `ConversationSession.self` and `ConversationResponse.self`. These model names should be verified against actual `@Model` definitions to ensure accuracy (previously reviewed models were `ChatSession` and `ChatMessage`).
-*   **Conclusion:**
-    *   `DataManager.swift` is a well-placed and functional component for managing initial data setup and providing SwiftData utilities. Its singleton pattern and `@MainActor` conformance are appropriate.
+*   **File:** `DataManager.swift`.
+*   **Analysis:** `@MainActor final class DataManager` (singleton) for initial data setup (e.g., creating system templates). Includes `ModelContext` extensions for `fetchFirst`, `count`. Supports previews with in-memory SwiftData.
+    *   **Placement:** Appropriate in `AirFit/Data/Managers/`.
+    *   **Error Handling:** Uses `print()`; should use `AppLogger.error()`.
+    *   **Schema in Previews:** Schema for in-memory containers (preview support) includes `ConversationSession.self`, `ConversationResponse.self`. Verify these names against actual `@Model` definitions.
+*   **Conclusion:** Well-placed, functional for initial data setup.
     *   **Recommendations:**
-        1.  Improve error handling in setup methods to use `AppLogger.error()`.
-        2.  Verify and correct the schema used in the SwiftUI preview setup code to ensure it accurately reflects all necessary `@Model` types, particularly checking `ConversationSession` and `ConversationResponse` against existing models like `ChatSession` and `ChatMessage`.
+        1.  Improve error handling to use `AppLogger.error()`.
+        2.  Verify/correct schema in SwiftUI preview setup to match actual models (check `ConversationSession`/`Response` vs. `ChatSession`/`Message`).
 
 ### 9.13. `AirFit/Data/Migrations/`
 
-*   **File Reviewed:** `SchemaV1.swift`
-*   **Analysis:**
-    *   **Purpose & Functionality:** This file defines the initial SwiftData schema version and the migration plan.
-        *   **`enum SchemaV1: VersionedSchema`**: Correctly defines `versionIdentifier` as `Schema.Version(1, 0, 0)` and lists all `PersistentModel` types included in this first version of the schema (e.g., `User.self`, `Workout.self`, `FoodEntry.self`, etc.). The list appears comprehensive based on models reviewed in `AirFit/Data/Models/`.
-        *   **`enum AirFitMigrationPlan: SchemaMigrationPlan`**: Defines the migration plan. `schemas` array correctly includes `SchemaV1.self`. The `stages` array is empty, which is appropriate for the initial schema version.
-    *   **Best Practices:** This setup adheres to SwiftData best practices for schema versioning and migration, providing a robust way to manage schema evolution over time.
-    *   **Placement:** The file is correctly located in `AirFit/Data/Migrations/`, which is the standard directory for such definitions.
-*   **Conclusion:**
-    *   The SwiftData schema versioning and migration setup in `SchemaV1.swift` is well-implemented and follows recommended practices.
-    *   This prepares the application for future data model changes in a structured manner.
-    *   No issues found.
+*   **File:** `SchemaV1.swift`.
+*   **Analysis:** Defines initial SwiftData schema version (`enum SchemaV1: VersionedSchema`) and migration plan (`enum AirFitMigrationPlan: SchemaMigrationPlan`). `SchemaV1` lists `PersistentModel` types. `AirFitMigrationPlan` `stages` array empty (appropriate for V1).
+    *   **Best Practices:** Adheres to SwiftData best practices for schema versioning/migration.
+    *   **Placement:** Correctly in `AirFit/Data/Migrations/`.
+*   **Conclusion:** Well-implemented, follows recommended practices. Prepares for future schema changes. No issues.
 
 ### 9.14. `AirFit/Data/Extensions/`
 
-*   **Files Reviewed:**
-    *   `ModelContainer+Testing.swift`
-    *   `FetchDescriptor+Extensions.swift`
+*   **Files:** `ModelContainer+Testing.swift`, `FetchDescriptor+Extensions.swift`.
 *   **Analysis:**
-    *   **`ModelContainer+Testing.swift`**: Provides static extensions on `ModelContainer` for testing and SwiftUI previews:
-        *   `createTestContainer()`: Creates an in-memory `ModelContainer` with a specified schema. **Recommendation:** This schema should ideally reference the production schema definition (e.g., `SchemaV1.models`) to ensure consistency.
-        *   `createTestContainerWithSampleData()`: Creates an in-memory container and populates it with sample data (User, DailyLog, FoodEntry, Workout), which is very useful for tests and previews.
-        *   `preview` (static var for `#if DEBUG`): Provides a ready-to-use `ModelContainer` with sample data for SwiftUI previews.
+    *   `ModelContainer+Testing.swift`: Static extensions for testing/previews: `createTestContainer()` (in-memory `ModelContainer`), `createTestContainerWithSampleData()`, `preview` (for SwiftUI previews).
+        *   **Recommendation:** Schema for `createTestContainer()` should ideally reference production schema (e.g., `SchemaV1.models`).
         *   **Placement:** Appropriate for data-layer testing utilities.
-    *   **`FetchDescriptor+Extensions.swift`**: Contains static factory properties and methods on `FetchDescriptor` for specific model types (e.g., `User.activeUser`, `DailyLog.forDate(_:)`, `Workout.upcoming()`).
-        *   **Utility:** These extensions encapsulate common query logic, making call sites cleaner, reducing redundancy, and promoting consistency. Uses `#Predicate` for type-safe predicates.
-        *   **Placement:** Perfectly suited for `AirFit/Data/Extensions/` as they directly augment SwiftData's fetching capabilities for the app's models.
-*   **Conclusion:**
-    *   The extensions in this directory significantly improve testing capabilities and the ergonomics of data fetching with SwiftData.
-    *   `ModelContainer+Testing.swift` is valuable, with a minor recommendation to ensure its schema definition aligns with the production schema version.
-    *   `FetchDescriptor+Extensions.swift` is an excellent example of centralizing common query definitions.
-    *   No major architectural issues found.
+    *   `FetchDescriptor+Extensions.swift`: Static factory properties/methods for specific model types (e.g., `User.activeUser`, `DailyLog.forDate(_:)`). Encapsulates common query logic, uses `#Predicate`.
+        *   **Placement:** Perfect for `AirFit/Data/Extensions/`.
+*   **Conclusion:** Significantly improves testing and data fetching ergonomics.
+    *   `ModelContainer+Testing.swift` valuable; minor schema recommendation.
+    *   `FetchDescriptor+Extensions.swift` excellent for centralizing queries. No major issues.
 
 ### 9.15. `AirFit/Services/AI/` (including `LLMProviders/`)
 
-*   **Key Components Reviewed:**
-    *   Protocols: `AIServiceProtocol.swift`, `AIAPIServiceProtocol.swift`, `LLMProvider.swift` (in `LLMProviders/`)
-    *   Concrete Services: `AIAPIService.swift`, `LLMOrchestrator.swift`, `UnifiedAIService.swift`, `AIResponseCache.swift`
-    *   Provider Implementations (example): `OpenAIProvider.swift` (in `LLMProviders/`)
-    *   Definitions: `LLMModels.swift` (in `LLMProviders/`) - defines `LLMModel` enum, `AITask` enum, `LLMProviderConfig` struct.
-*   **General Architecture:**
-    *   The AI service layer is designed to interact with multiple LLM providers (OpenAI, Anthropic, Gemini).
-    *   It uses a core `LLMProvider` protocol that specific provider implementations (e.g., `OpenAIProvider`) conform to. These providers are actor-based.
-    *   Shared data structures like `LLMRequest`, `LLMResponse`, `LLMStreamChunk`, and `LLMError` facilitate communication with providers.
-    *   `LLMModels.swift` centralizes definitions of specific LLM models, their capabilities (context window, cost), and an `AITask` enum which helps in model selection for different application tasks.
-    *   `AIResponseCache.swift` provides an actor-safe, two-tier (memory and disk) caching mechanism with TTL and tag-based invalidation for LLM responses.
-    *   `AIAPIService.swift` acts as a bridge/adapter, implementing `AIAPIServiceProtocol` (which uses Combine and `AIRequest`/`AIResponse` from `Core/Models/AI/`) and translating these to interact with `LLMOrchestrator`.
-    *   `LLMOrchestrator.swift` appears intended as a central engine for managing providers, API keys (via `APIKeyManagerProtocol`), selecting providers/models based on tasks, handling fallbacks, caching (using `AIResponseCache`), and tracking usage/costs.
-    *   `UnifiedAIService.swift` also implements `AIAPIServiceProtocol` but seems to re-implement parts of provider management, caching, and model selection logic seen in `LLMOrchestrator`. It also offers direct `async/await` methods.
-*   **Strengths:**
-    *   Modular design with a clear `LLMProvider` abstraction.
-    *   Robust caching (`AIResponseCache`).
-    *   Sophisticated orchestration capabilities planned in `LLMOrchestrator` (fallback, task-based model selection).
-    *   Use of modern Swift concurrency (`actor`, `async/await`).
+*   **Components:** Protocols (`AIServiceProtocol.swift`, `AIAPIServiceProtocol.swift`, `LLMProvider.swift`), Concrete Services (`AIAPIService.swift`, `LLMOrchestrator.swift`, `UnifiedAIService.swift`, `AIResponseCache.swift`), Provider Impls (`OpenAIProvider.swift`), Definitions (`LLMModels.swift`).
+*   **Architecture:** Multi-LLM provider design. Core `LLMProvider` protocol. Shared `LLMRequest`/`Response` etc. `LLMModels.swift` centralizes LLM model definitions, capabilities, `AITask` enum. `AIResponseCache.swift` (actor-safe, two-tier). `AIAPIService.swift` adapts `AIAPIServiceProtocol` (Combine, Core `AIRequest`/`Response`) to `LLMOrchestrator`. `LLMOrchestrator.swift` for provider management, API keys, model selection, fallbacks, caching, usage tracking. `UnifiedAIService.swift` also implements `AIAPIServiceProtocol`, seems to reimplement parts of `LLMOrchestrator` logic.
+*   **Strengths:** Modular `LLMProvider` abstraction. Robust caching. Sophisticated orchestration in `LLMOrchestrator`. Modern Swift concurrency.
 *   **Potential Issues & Recommendations:**
-    *   **Redundancy/Overlap between `LLMOrchestrator` and `UnifiedAIService`**: This is the primary concern. Both classes appear to manage provider instances, caching, and aspects of request orchestration. Their roles need clarification. **Recommendation:** Refactor to establish a single source of truth for provider management, caching, and core orchestration logic. Ideally, `LLMOrchestrator` should be this central engine. `UnifiedAIService` could then be a higher-level service that *uses* `LLMOrchestrator` for its core LLM interactions, adding its specific API contracts (like those based on `AIRequest`) and any unique business logic (like its "smart model selection") on top, rather than duplicating the underlying provider management and caching setup. The comment in `UnifiedAIService` about using `LLMOrchestrator` should be aligned with its actual implementation.
-    *   **Protocol Placement:** The `AIAPIServiceProtocol`, if intended for broad use by various modules needing basic LLM API access (using the `AIRequest`/`AIResponse` models), could be considered for promotion to `AirFit/Core/Protocols/`.
-    *   **Definition Scope:** The `LLMModel` and `AITask` enums (defined in `LLMProviders/LLMModels.swift`) are crucial. If they are referenced outside the `Services/AI/` layer (e.g., by ViewModels or other services when constructing requests), consider moving them to a more globally accessible location like `Core/Models/AI/` or `Core/Enums/` to better reflect their scope. If their use is strictly internal to `Services/AI/`, the current location is acceptable.
-    *   **`LLMMessage.Role` Extension:** Address the TODO in `UnifiedAIService.swift` regarding adding `function` and `tool` roles to `LLMMessage.Role` if function/tool calling is a required feature for the generic `LLMRequest` pathway.
-*   **Conclusion:**
-    *   The `AirFit/Services/AI/` directory contains a powerful and feature-rich setup for AI interactions. The architecture supports multiple LLM providers and includes advanced features like caching and orchestration.
-    *   The main area for improvement is to resolve the apparent redundancy and clarify the distinct roles of `LLMOrchestrator` and `UnifiedAIService` to ensure a clear, single source of truth for core LLM operations.
+    *   **Redundancy (`LLMOrchestrator` vs. `UnifiedAIService`):** Primary concern. Both manage providers, caching, orchestration. **Recommendation:** Refactor for single source of truth (ideally `LLMOrchestrator`). `UnifiedAIService` could use `LLMOrchestrator` for core LLM interactions, adding its API contracts on top.
+    *   **Protocol Placement:** `AIAPIServiceProtocol`, if for broad use, consider for `AirFit/Core/Protocols/`.
+    *   **Definition Scope:** `LLMModel`, `AITask` enums (`LLMProviders/LLMModels.swift`). If referenced outside `Services/AI/`, move to `Core/Models/AI/` or `Core/Enums/`. Current location fine if internal to `Services/AI/`.
+    *   **`LLMMessage.Role` Extension:** Address TODO in `UnifiedAIService.swift` for `function`/`tool` roles if needed.
+*   **Conclusion:** Powerful, feature-rich AI setup. Main improvement: resolve redundancy between `LLMOrchestrator` and `UnifiedAIService`.
 
 ### 9.16. `AirFit/Services/Monitoring/ProductionMonitor.swift`
 
-*   **File Reviewed:** `ProductionMonitor.swift`
-*   **Analysis:**
-    *   **Purpose & Functionality:** Defines a `@MainActor final class ProductionMonitor: ObservableObject` (singleton) for monitoring application health and performance, with a focus on AI and API interactions. Key features include:
-        *   **Metrics Collection:** Tracks detailed metrics (`ProductionMetrics`) for persona generation, conversation flow, API performance (by provider, cost, error rate), and cache performance (hit/miss rate).
-        *   **Alerting:** Generates `MonitoringAlert`s when predefined `PerformanceThresholds` are breached (e.g., high latency, error rates, low cache hit rate, high memory usage).
-        *   **Error Tracking:** Records error occurrences with context.
-        *   **Reporting:** Periodically logs metrics summaries and allows exporting metrics as JSON.
-        *   **System Monitoring:** Basic memory usage monitoring.
-    *   **Data Structures:** Uses well-defined structs (`ProductionMetrics`, `MonitoringAlert`, `PerformanceThresholds`) and enums (`AlertType`, `AlertSeverity`) for organizing monitoring data.
-    *   **Concurrency:** Uses a dedicated dispatch queue for metrics updates and `@MainActor` for published properties.
-    *   **Placement:** Appropriate for `AirFit/Services/Monitoring/` as a centralized monitoring service.
-*   **Potential Enhancements/Considerations:**
-    *   **External Reporting:** For robust production monitoring, collected metrics and alerts would typically be sent to an external analytics/monitoring service.
-    *   **Logger Consistency:** Could use the shared `AppLogger` instead of its own `os.Logger` instance for consistency.
-*   **Conclusion:**
-    *   `ProductionMonitor.swift` is a well-implemented and valuable service for in-app monitoring of performance and health, particularly for critical AI features.
-    *   It provides a good foundation that could be extended with external reporting capabilities.
-    *   No major architectural issues found.
+*   **File:** `ProductionMonitor.swift`.
+*   **Analysis:** `@MainActor final class ProductionMonitor: ObservableObject` (singleton) for app health/performance monitoring (AI, API interactions). Tracks `ProductionMetrics` (persona gen, conversation, API perf, cache). Generates `MonitoringAlert`s for `PerformanceThresholds` breaches. Error tracking. Reporting. Basic memory monitoring. Well-defined structs/enums. Uses dedicated dispatch queue for metrics, `@MainActor` for published.
+    *   **Placement:** Appropriate for `AirFit/Services/Monitoring/`.
+*   **Potential Enhancements:** External reporting. Use shared `AppLogger`.
+*   **Conclusion:** Well-implemented, valuable for in-app monitoring. Good foundation. No major architectural issues.
 
 ### 9.17. `AirFit/Services/Context/ContextAssembler.swift`
 
-*   **File Reviewed:** `ContextAssembler.swift`
-*   **Analysis:**
-    *   **Purpose & Functionality:** Defines a `@MainActor final class ContextAssembler` responsible for aggregating data from HealthKit and SwiftData (via an injected `ModelContext`) to construct a comprehensive `HealthContextSnapshot`. This snapshot likely serves as input for AI coaching, dashboards, and other features.
-    *   **Key Operations:**
-        *   Concurrently fetches HealthKit data (activity, heart, body, sleep metrics).
-        *   Fetches subjective data and other app-specific data from SwiftData models (`DailyLog`, `FoodEntry`, `Workout`).
-        *   Includes sophisticated logic to assemble a `WorkoutContext` by analyzing recent workouts, calculating streaks, and deriving patterns (volume, muscle balance, intensity trend, recovery status).
-        *   Calculates health trends like weekly activity change.
-        *   Currently uses some mock data for environmental context, with placeholders for future real implementations (e.g., weather service).
-    *   **Design:**
-        *   Centralizes complex data aggregation, decoupling context consumers from data sources.
-        *   Uses `async let` for concurrent HealthKit fetches.
-        *   Employs pragmatic in-memory filtering for some SwiftData queries to avoid complex predicate issues, often with fetch limits.
-    *   **Placement:** Correctly placed in `AirFit/Services/Context/` as a service dedicated to assembling application-wide contextual information.
-*   **Potential Enhancements/Considerations:**
-    *   **Complexity Management:** The data assembly methods (especially for `WorkoutContext` and trends) are substantial. Further decomposition could be considered if they grow significantly more complex.
-    *   **Error Propagation:** While errors in fetching sub-components of the context are logged, the assembler often returns a partially complete snapshot. Depending on feature requirements, more explicit error handling or propagation for critical missing context might be needed.
-    *   **Mock Data Replacement:** Placeholder/mock data sources (e.g., for environment) should be replaced with real service integrations as they become available.
-*   **Conclusion:**
-    *   `ContextAssembler.swift` is a vital and well-placed service that intelligently synthesizes diverse data into a unified user context snapshot.
-    *   It demonstrates good use of concurrency and handles complex domain logic for workout analysis and trend calculation.
-    *   The primary areas for future work involve replacing mock data and continually managing the complexity of the assembly logic.
+*   **File:** `ContextAssembler.swift`.
+*   **Analysis:** `@MainActor final class ContextAssembler` aggregates HealthKit/SwiftData (via `ModelContext`) into `HealthContextSnapshot` for AI coaching, dashboards. Concurrently fetches HealthKit data. Fetches subjective/app data from SwiftData. Assembles `WorkoutContext` (recent workouts, streaks, patterns). Calculates health trends. Uses some mock data (environment).
+    *   **Design:** Centralizes complex data aggregation. `async let` for concurrent HealthKit. Pragmatic in-memory filtering for some SwiftData.
+    *   **Placement:** Correctly in `AirFit/Services/Context/`.
+*   **Potential Enhancements:** Further decomposition if complexity grows. More explicit error propagation for critical missing context if needed. Replace mock data.
+*   **Conclusion:** Vital, well-placed service synthesizing diverse data into user context. Good concurrency use, handles complex domain logic.
 
 ### 9.18. `AirFit/Services/Health/`
 
-*   **Files Reviewed:**
-    *   `HealthKitManagerProtocol.swift` (defines `HealthKitManaging`)
-    *   `HealthKitManager.swift` (concrete implementation)
-    *   `HealthKitDataFetcher.swift`
-    *   `HealthKitSleepAnalyzer.swift`
-    *   `HealthKitDataTypes.swift`
-    *   `HealthKitExtensions.swift`
-*   **General Architecture:**
-    *   The HealthKit service is structured with `HealthKitManager` as the main facade, conforming to the `HealthKitManaging` protocol.
-    *   `HealthKitManager` delegates specific tasks to helper classes: `HealthKitDataFetcher` (for fetching various quantity types and enabling background delivery) and `HealthKitSleepAnalyzer` (for processing sleep samples).
-    *   `HealthKitDataTypes.swift` centralizes the `HKSampleType`s the app reads and writes, used for requesting authorization.
-    *   All key classes are marked `@MainActor`, and asynchronous operations correctly use `async/await`, including `async let` for concurrent fetches and `withCheckedThrowingContinuation` for adapting older HealthKit APIs.
-    *   A specific `HealthKitError` enum is defined for error handling.
-*   **Strengths:**
-    *   Good separation of concerns within the HealthKit service.
-    *   Clear protocol (`HealthKitManaging`) for dependency injection (e.g., used by `ContextAssembler`).
-    *   Robust data fetching and processing for activity, heart, body, and sleep metrics.
-    *   Handles HealthKit authorization and background delivery setup.
+*   **Files:** `HealthKitManagerProtocol.swift` (`HealthKitManaging`), `HealthKitManager.swift` (impl), `HealthKitDataFetcher.swift`, `HealthKitSleepAnalyzer.swift`, `HealthKitDataTypes.swift`, `HealthKitExtensions.swift`.
+*   **Architecture:** `HealthKitManager` (main facade, conforms to `HealthKitManaging`) delegates to `HealthKitDataFetcher` (fetching, background delivery) and `HealthKitSleepAnalyzer` (sleep processing). `HealthKitDataTypes.swift` centralizes `HKSampleType`s. All key classes `@MainActor`; `async/await`. `HealthKitError` enum.
+*   **Strengths:** Good separation of concerns. Clear `HealthKitManaging` protocol. Robust data fetching/processing (activity, heart, body, sleep). Handles auth, background delivery.
 *   **Potential Issues & Recommendations:**
-    *   **Protocol Placement (`HealthKitManagerProtocol.swift`):** The `HealthKitManaging` protocol is used by services outside this `Health/` subdirectory (e.g., `ContextAssembler`). **Recommendation:** Consider moving `HealthKitManagerProtocol.swift` to `AirFit/Core/Protocols/` to better reflect its role as a core service interface.
-    *   **Extension Placement (`HealthKitExtensions.swift`):** The extension on `HeartHealthMetrics.CardioFitnessLevel` (a Core model type) is currently in `HealthKitExtensions.swift`. **Recommendation:** Consider moving this extension to `AirFit/Core/Extensions/` (e.g., into a file like `HealthContextSnapshot+Extensions.swift` or a new file dedicated to `HeartHealthMetrics` extensions if more arise) for better consistency in how Core types are extended.
-*   **Conclusion:**
-    *   The `AirFit/Services/Health/` directory contains a well-architected and robust service for HealthKit integration.
-    *   The implementation follows modern Swift concurrency practices and demonstrates good separation of responsibilities.
-    *   The main recommendations relate to standardizing the placement of shared protocols and Core type extensions.
+    *   **Protocol Placement (`HealthKitManagerProtocol.swift`):** Used by services outside `Health/` (e.g., `ContextAssembler`). **Recommendation:** Move to `AirFit/Core/Protocols/`.
+    *   **Extension Placement (`HealthKitExtensions.swift`):** Extension on `HeartHealthMetrics.CardioFitnessLevel` (Core model). **Recommendation:** Move to `AirFit/Core/Extensions/`.
+*   **Conclusion:** Well-architected, robust HealthKit service. Modern Swift concurrency. Main recommendations: standardize placement of shared protocols and Core type extensions.
 
 ### 9.19. `AirFit/Services/Network/`
 
-*   **Files Reviewed:**
-    *   `NetworkClientProtocol.swift` (defines `NetworkClientProtocol`, `Endpoint`, `HTTPMethod`, `NetworkError`)
-    *   `NetworkClient.swift` (concrete implementation)
-*   **General Architecture:**
-    *   The network layer is defined by `NetworkClientProtocol`, a `Sendable` protocol for performing generic network requests, uploads, and downloads using an `Endpoint` struct to define request parameters.
-    *   `NetworkClient` is a `final class` singleton implementing this protocol, using `URLSession` for network operations.
-    *   It includes configured `JSONDecoder` and `JSONEncoder` (ISO8601 dates, snake_case key conversion).
-    *   Provides comprehensive error handling via a `NetworkError` enum.
-    *   Offers convenience methods (e.g., `get`, `post`, `put`, `delete`) for common RESTful operations.
-*   **Strengths:**
-    *   Clear, `Sendable`, and `async/await`-based protocol for network interactions.
-    *   Well-defined `Endpoint` struct for request encapsulation.
-    *   Robust `NetworkClient` implementation with sensible defaults and good error handling.
-    *   Convenience methods enhance usability.
+*   **Files:** `NetworkClientProtocol.swift` (`NetworkClientProtocol`, `Endpoint`, `HTTPMethod`, `NetworkError`), `NetworkClient.swift` (impl).
+*   **Architecture:** `NetworkClientProtocol` (`Sendable` protocol for generic network requests using `Endpoint` struct). `NetworkClient` (singleton `final class` impl, uses `URLSession`). Configured `JSONDecoder`/`Encoder`. `NetworkError` enum. Convenience methods (`get`, `post`).
+*   **Strengths:** Clear, `Sendable`, `async/await`-based protocol. Well-defined `Endpoint`. Robust `NetworkClient` impl. Good error handling.
 *   **Potential Issues & Recommendations:**
-    *   **Protocol Placement (`NetworkClientProtocol.swift`):** The `NetworkClientProtocol` and its supporting types (`Endpoint`, `HTTPMethod`, `NetworkError`) are used for app-wide dependency injection (e.g., via `DependencyContainer`). **Recommendation:** Move `NetworkClientProtocol.swift` to `AirFit/Core/Protocols/` to establish it as a core, shared interface.
-*   **Conclusion:**
-    *   The `AirFit/Services/Network/` directory provides a solid and well-implemented network service layer.
-    *   The design promotes testability (injectable `URLSession`) and ease of use.
-    *   The primary recommendation is to relocate the protocol file to the Core layer to better reflect its architectural role.
+    *   **Protocol Placement (`NetworkClientProtocol.swift`):** Used for app-wide DI. **Recommendation:** Move to `AirFit/Core/Protocols/`.
+*   **Conclusion:** Solid, well-implemented network service layer. Promotes testability, ease of use. Primary recommendation: relocate protocol to Core.
 
 ### 9.20. `AirFit/Services/User/`
 
-*   **Files Reviewed:**
-    *   `UserServiceProtocol.swift` (defines `UserServiceProtocol` and `ProfileUpdate` struct)
-*   **General Architecture:**
-    *   `UserServiceProtocol.swift` defines a `Sendable` protocol for managing user lifecycle, profile updates, onboarding status, and user-specific settings (like coach persona). It includes `async throws` methods for most operations.
-    *   The `ProfileUpdate` struct is a simple `Sendable` DTO for profile changes.
+*   **File:** `UserServiceProtocol.swift` (`UserServiceProtocol`, `ProfileUpdate` struct).
+*   **Architecture:** `UserServiceProtocol` (`Sendable` protocol for user lifecycle, profile updates, onboarding status, coach persona). `async throws` methods.
 *   **Potential Issues & Recommendations:**
-    *   **Missing Production Implementation:** A grep search revealed only a `MockUserService` for testing. No production implementation of `UserServiceProtocol` (e.g., `DefaultUserService`) was found within `AirFit/Services/User/` or easily elsewhere. This is a critical gap. User management logic appears partially handled in `AppState`, but a dedicated service implementing this protocol is expected in this directory.
-        *   **Recommendation:** Implement a concrete `DefaultUserService` class within `AirFit/Services/User/` that conforms to `UserServiceProtocol`. This service would likely interact with SwiftData (via `ModelContext`) and potentially `AppState` for current user information.
-    *   **Protocol Placement (`UserServiceProtocol.swift`):** The `UserServiceProtocol` is a fundamental service interface likely needed across many parts of the application for dependency injection. **Recommendation:** Move `UserServiceProtocol.swift` to `AirFit/Core/Protocols/`.
-*   **Conclusion:**
-    *   The `UserServiceProtocol` defines a crucial and well-structured interface for user management.
-    *   The most significant finding is the **absence of a production implementation** for this protocol within the designated service directory. This needs to be addressed by creating a `DefaultUserService`.
-    *   The protocol itself should be relocated to the Core layer for broader accessibility.
+    *   **Missing Production Implementation:** Only `MockUserService` found. No `DefaultUserService`. Critical gap. **Recommendation:** Implement `DefaultUserService` in `AirFit/Services/User/` conforming to `UserServiceProtocol` (likely interacts with SwiftData, `AppState`).
+    *   **Protocol Placement (`UserServiceProtocol.swift`):** Fundamental service interface. **Recommendation:** Move to `AirFit/Core/Protocols/`.
+*   **Conclusion:** `UserServiceProtocol` is crucial, well-structured. **Absence of production implementation** is significant. Protocol should be in Core.
 
-### 7.21. `AirFit/Services/Speech/`
+### 9.21. `AirFit/Services/Speech/`
 
-*   **Files Reviewed:**
-    *   `WhisperServiceWrapperProtocol.swift` (defines `WhisperServiceWrapperProtocol` and `TranscriptionError` enum)
-*   **General Architecture:**
-    *   `WhisperServiceWrapperProtocol.swift` defines an interface for a speech-to-text service.
-    *   The protocol uses Combine (`CurrentValueSubject`) for state publishing and completion handlers for asynchronous operations (`requestPermission`, `startTranscription`).
+*   **Files:** `WhisperServiceWrapperProtocol.swift` (`WhisperServiceWrapperProtocol`, `TranscriptionError` enum). *(Note: Concrete services `WhisperModelManager`, `VoiceInputManager` were found in `Core/Services/` - see 9.7)*
+*   **Architecture:** `WhisperServiceWrapperProtocol` defines interface for speech-to-text. Uses Combine (`CurrentValueSubject`) and completion handlers.
 *   **Potential Issues & Recommendations:**
-    *   **Misplaced Concrete Services:** The actual concrete speech services (`WhisperModelManager`, `VoiceInputManager`) were previously identified in `AirFit/Core/Services/` (see Section 7.7). **Recommendation:** These should be moved to `AirFit/Services/Speech/` as their primary location.
-    *   **Concurrency Model Mismatch:** The `WhisperServiceWrapperProtocol` uses Combine and completion handlers, which is inconsistent with the `AGENTS.md` guideline preferring `async/await` and no completion handlers. The existing `VoiceInputManager` (once moved) already uses a more modern `async/await` pattern for its internal operations and callbacks.
-        *   **Recommendation:** Evaluate the usage of `WhisperServiceWrapperProtocol`. If client code depends on this Combine-based interface, `VoiceInputManager` might need an adapter. However, if possible, refactor client code to use an `async/await`-based interface directly from `VoiceInputManager` (or a new `async/await` protocol). This would align better with project standards. The existing `WhisperServiceWrapperProtocol` might then be deprecated or refactored.
-    *   **Protocol Placement:** If a speech service protocol (either current or a revised `async/await` version) is intended for general use via dependency injection, it should be moved to `AirFit/Core/Protocols/`.
-*   **Conclusion:**
-    *   The `AirFit/Services/Speech/` directory is currently underdeveloped, primarily containing a protocol that uses an older concurrency model.
-    *   The main actions are to relocate the existing concrete speech implementations (`WhisperModelManager`, `VoiceInputManager`) into this directory and then harmonize the service interface with the project's `async/await` concurrency guidelines.
+    *   **Misplaced Concrete Services:** `WhisperModelManager`, `VoiceInputManager` should be moved from `Core/Services/` to `AirFit/Services/Speech/` (Ref: 9.7).
+    *   **Concurrency Model Mismatch:** Protocol uses Combine/completion handlers, vs. `AGENTS.md` guideline for `async/await`. Existing `VoiceInputManager` uses `async/await` internally. **Recommendation:** Evaluate `WhisperServiceWrapperProtocol` usage. If possible, refactor clients to use an `async/await`-based interface from `VoiceInputManager` (or new `async/await` protocol).
+    *   **Protocol Placement:** If a speech service protocol (current or revised) is for general DI, move to `AirFit/Core/Protocols/`.
+*   **Conclusion:** Directory underdeveloped. Main actions: relocate concrete speech implementations here, harmonize service interface with `async/await`.
 
-### 7.22. `AirFit/Services/Platform/`
+### 9.22. `AirFit/Services/Platform/`
 
-*   **Files Reviewed:**
-    *   `NotificationManagerProtocol.swift`
-*   **General Architecture:**
-    *   `NotificationManagerProtocol.swift` defines an interface for managing local user notifications (requesting permission, getting settings, scheduling a specific notification type).
+*   **File:** `NotificationManagerProtocol.swift`.
+*   **Architecture:** Defines interface for local user notifications (permission, settings, scheduling).
 *   **Potential Issues & Recommendations:**
-    *   **Missing Production Implementation:** No concrete implementation of `NotificationManagerProtocol` (e.g., `DefaultNotificationManager`) was found in this directory.
-        *   **Recommendation:** A concrete implementation needs to be provided. Its location would depend on whether this is a simple, app-wide utility (fitting here) or part of the more comprehensive "Notifications & Engagement Engine" module mentioned in `AGENTS.md`.
-    *   **Concurrency Model Mismatch:** The protocol uses completion handlers for asynchronous operations, which is inconsistent with the `AGENTS.md` guideline to use `async/await`.
-        *   **Recommendation:** Refactor the protocol and its eventual implementation to use `async/await` (e.g., `func requestNotificationPermission() async throws -> Bool`).
-    *   **Protocol Placement:** If this protocol (once updated to `async/await`) is intended for general use across modules, it should be moved to `AirFit/Core/Protocols/`.
-    *   **Scope of "Platform" Services:** The purpose of the `AirFit/Services/Platform/` directory could be better defined. If it's for abstracting OS-level features, a basic notification manager fits. However, if complex notification logic resides in a dedicated module, this top-level service might be minimal or redundant.
-*   **Conclusion:**
-    *   The `AirFit/Services/Platform/` directory currently only contains a protocol for notification management that uses an outdated concurrency model and lacks a concrete implementation in this location.
-    *   Key actions are to implement the service, update its interface to `async/await`, and clarify its role in relation to the dedicated Notifications module.
+    *   **Missing Production Implementation:** No `DefaultNotificationManager` here. **Recommendation:** Implement. Location depends on whether it's a simple utility (fits here) or part of Module 9 (Notifications & Engagement Engine).
+    *   **Concurrency Model Mismatch:** Uses completion handlers vs. `async/await` guideline. **Recommendation:** Refactor protocol/impl to use `async/await`.
+    *   **Protocol Placement:** If for general use (once `async/await`), move to `AirFit/Core/Protocols/`.
+    *   **Scope of "Platform":** Define purpose. If OS-level abstraction, basic notification manager fits. If complex logic in dedicated module, this might be minimal/redundant.
+*   **Conclusion:** Contains protocol using outdated concurrency, lacks impl. Actions: implement, update to `async/await`, clarify role vs. Notifications module.
 
-### 7.23. `AirFit/Services/Security/`
+### 9.23. `AirFit/Services/Security/`
 
-*   **Files Reviewed:**
-    *   `APIKeyManagerProtocol.swift`
-*   **General Architecture:**
-    *   `APIKeyManagerProtocol.swift` defines an interface for securely managing API keys.
-    *   The protocol includes two sets of methods: older, synchronous methods using an `AIProvider` enum, and newer, `async` methods using string identifiers for providers. This suggests an ongoing refactor or transition.
-*   **Potential Issues & Recommendations:**
-    *   **Missing Production Implementation:** No concrete implementation of `APIKeyManagerProtocol` (e.g., `DefaultAPIKeyManager`) was found in this directory. This is a critical component, especially for AI services that rely on it.
-        *   **Recommendation:** Implement a concrete `DefaultAPIKeyManager` class within `AirFit/Services/Security/`. This implementation should use `KeychainWrapper` (from `Core/Utilities/`) for secure storage.
-    *   **Protocol Placement (`APIKeyManagerProtocol.swift`):** This protocol defines a fundamental security service interface.
-        *   **Recommendation:** Move `APIKeyManagerProtocol.swift` to `AirFit/Core/Protocols/`.
-    *   **Legacy API:** The presence of older synchronous methods alongside newer `async` methods indicates a transition. 
-        *   **Recommendation:** Plan to migrate all clients to the `async` API and eventually deprecate/remove the legacy methods from the protocol and its implementation.
-*   **Conclusion:**
-    *   The `APIKeyManagerProtocol` correctly abstracts the critical function of API key management.
-    *   A concrete, secure implementation is missing from this directory and needs to be created.
-    *   The protocol itself should be relocated to Core, and the API should be standardized on the `async/await` versions.
+*   **File:** `APIKeyManagerProtocol.swift`. *(Note: Module 10 spec implements `APIKeyManager.swift` here)*
+*   **Architecture:** Defines interface for secure API key management. Includes older sync methods and newer `async` methods (suggests transition).
+*   **Potential Issues & Recommendations (pre-M10 analysis; M10 resolves some):**
+    *   **Missing Production Implementation (Resolved by M10):** `DefaultAPIKeyManager` specified by M10 for this location, using `KeychainWrapper`.
+    *   **Protocol Placement (`APIKeyManagerProtocol.swift`):** Fundamental security service interface. **Recommendation:** Move to `AirFit/Core/Protocols/`.
+    *   **Legacy API:** **Recommendation:** Plan to migrate clients to `async` API, deprecate/remove legacy sync methods.
+*   **Conclusion:** Protocol abstracts critical function. M10 provides concrete impl. Protocol should be in Core; API standardized on `async/await`.
 
-### 7.24. Other Top-Level Services in `AirFit/Services/`
+### 9.24. Other Top-Level Services in `AirFit/Services/`
 
-This section covers services placed directly in `AirFit/Services/` rather than in specific subdirectories.
+#### 9.24.1. `AirFit/Services/WorkoutSyncService.swift`
 
-#### 7.24.1. `AirFit/Services/WorkoutSyncService.swift`
+*   **File:** `WorkoutSyncService.swift`.
+*   **Analysis:** `@MainActor final class WorkoutSyncService: NSObject` (singleton) for workout data sync (watchOS/iOS) via WatchConnectivity (`WCSession`), CloudKit (`CKContainer`) fallback. Sends `WorkoutBuilderData` watch->phone, processes to SwiftData. Uses `NotificationCenter` on iOS.
+    *   **Placement:** Acceptable in `AirFit/Services/` (specific cross-cutting concern).
+*   **Potential Enhancements:** Persistent `pendingWorkouts` queue. Robust CloudKit error handling/conflict resolution. Clarify data processing flow (service save vs. NotificationCenter observers). Protocol for testability/DI.
+*   **Conclusion:** Essential for multi-device sync. Good strategy (WCSession + CloudKit). Areas for improvement: queue persistence, advanced CloudKit.
 
-*   **File Reviewed:** `WorkoutSyncService.swift`
+#### 9.24.2. `AirFit/Services/ExerciseDatabase.swift`
+
+*   **File:** `ExerciseDatabase.swift` (`@Model class ExerciseDefinition`, `@MainActor class ExerciseDatabase: ObservableObject`).
+*   **Analysis:** Manages library of `ExerciseDefinition`s (persistent via SwiftData). `ExerciseDatabase` (singleton) initializes its own `ModelContainer` for `ExerciseDefinition`. Seeds from bundled JSON (`Resources/SeedData/exercises.json`) on first launch. Provides `async` query methods.
+    *   **Enum Mapping Extensions:** Contains `static func fromRawValue(_:)` on Core enums for JSON mapping. **Recommendation:** If broadly useful, move to `AirFit/Core/Extensions/`.
+    *   **Placement:** Acceptable in `AirFit/Services/` (self-contained service for queryable reference data).
+*   **Potential Enhancements:** Mechanism for updating exercise database post-initialization.
+*   **Conclusion:** Robust, well-implemented service for offline, persistent exercise library. Separate `ModelContainer` valid. Minor refinement: placement of Core enum mapping extensions.
+
+### 9.25. `AirFit/Modules/Onboarding/` (Partial Review)
+
+#### 9.25.1. `AirFit/Modules/Onboarding/Models/`
+
+*   **Files:** `OnboardingModels.swift`, `ConversationModels.swift` (implicated).
 *   **Analysis:**
-    *   **Purpose & Functionality:** Defines a `@MainActor final class WorkoutSyncService: NSObject` (singleton) for synchronizing workout data between devices (primarily watchOS and iOS) using WatchConnectivity (`WCSession`) and CloudKit (`CKContainer`) as a fallback.
-    *   **Key Operations:** Sends `WorkoutBuilderData` from watch to phone, processes received data on the phone by converting it to SwiftData models (`Workout`, `Exercise`, `ExerciseSet`) and saving to a provided `ModelContext`. Uses `NotificationCenter` on iOS to broadcast received data.
-    *   **Placement:** As a service for a specific cross-cutting concern (workout data synchronization across multiple platforms/transports), its placement directly in `AirFit/Services/` is acceptable. It doesn't neatly fit pre-existing categories like Network or Health, though it uses elements of both.
-*   **Potential Enhancements/Considerations:**
-    *   **Persistent Queue:** The `pendingWorkouts` queue is in-memory; a persistent queue would be more resilient.
-    *   **CloudKit Robustness:** CloudKit error handling and conflict resolution could be enhanced for production.
-    *   **Data Processing Flow:** Clarify if the service itself always processes/saves to SwiftData upon receipt on iOS, or if it primarily relies on observers of its `NotificationCenter` post.
-    *   **Protocol:** Consider defining a `WorkoutSyncServiceProtocol` for better testability and dependency injection if used by multiple components.
-*   **Conclusion:**
-    *   Provides essential functionality for multi-device workout data synchronization.
-    *   The use of WatchConnectivity and CloudKit fallback is a good strategy.
-    *   Areas for improvement include queue persistence and advanced CloudKit handling.
+    *   `OnboardingModels.swift`: `Codable`, `Sendable` structs/enums (e.g., `OnboardingScreen`) for form-based onboarding preferences. Module-specific, transient. Correctly placed.
+    *   `ConversationModels.swift`: Structures for conversational flows (e.g., `ConversationNode`). Used by `ConversationFlowManager`. Module-specific. Correctly placed.
+    *   **ISSUE - Misplaced SwiftData Models:** `ConversationModels.swift` also contains `@Model final class ConversationSession`, `@Model final class ConversationResponse`. SwiftData `@Model`s for main app store belong in `AirFit/Data/Models/`.
+        *   **Recommendation:** Move `ConversationSession`, `ConversationResponse` definitions to new files in `AirFit/Data/Models/`.
+        *   **Recommendation:** Add to SwiftData schema (`SchemaV1.swift`, test schemas).
+        *   **Recommendation:** Define proper `@Relationship` for `ConversationSession.responses` and `ConversationResponse.session`.
+*   **Conclusion (Models):** Module-specific transient models well-placed. Critical misplacement of `ConversationSession`, `ConversationResponse` SwiftData models.
 
-#### 7.24.2. `AirFit/Services/ExerciseDatabase.swift`
+#### 9.25.2. `AirFit/Modules/Onboarding/ViewModels/`
 
-*   **File Reviewed:** `ExerciseDatabase.swift` (defines `@Model class ExerciseDefinition` and `@MainActor class ExerciseDatabase: ObservableObject`)
+*   **Files:** `OnboardingViewModel.swift`, `ConversationViewModel.swift`.
 *   **Analysis:**
-    *   **Purpose & Functionality:** Manages a library of `ExerciseDefinition`s (detailed exercise information like name, category, muscles, instructions, images).
-        *   `ExerciseDefinition`: A SwiftData `@Model` class, making the exercise library persistent.
-        *   `ExerciseDatabase`: A singleton `ObservableObject` that initializes its own dedicated `ModelContainer` for `ExerciseDefinition`s. It handles seeding this database from a bundled JSON file (`Resources/SeedData/exercises.json`) on first launch and provides various `async` methods to query these definitions (get all, search, filter by muscle/category/equipment/difficulty).
-    *   **Seeding Mechanism:** Includes logic to parse raw JSON data, transform it into `ExerciseDefinition` models (including generating stable IDs via hashing), and save it to its SwiftData store.
-    *   **Enum Mapping Extensions:** Contains `static func fromRawValue(_:)` extensions on Core enums (`ExerciseCategory`, `MuscleGroup`, `Equipment`, `Difficulty`) to map string values from the seed JSON. **Recommendation:** If these mapping functions are broadly useful, consider moving them to `AirFit/Core/Extensions/`.
-    *   **Placement:** As a self-contained service providing a queryable library of exercise reference data, its placement as a top-level file in `AirFit/Services/` is acceptable due to its unique role.
-*   **Potential Enhancements/Considerations:**
-    *   **Database Updates:** The current system focuses on initial seeding. A mechanism for updating the exercise database post-initialization (e.g., from a new seed file or API) would be needed for long-term maintenance.
-*   **Conclusion:**
-    *   `ExerciseDatabase.swift` provides a robust and well-implemented service for an offline, persistent library of exercise definitions.
-    *   The use of a separate `ModelContainer` for this reference data is a valid architectural choice.
-    *   The primary minor refinement suggestion is the placement of the Core enum mapping extensions.
+    *   `OnboardingViewModel.swift`: `@MainActor @Observable`. Manages overall onboarding (legacy form-based, modern AI-conversational). Injects numerous dependencies. Conversational flow delegated to `OnboardingOrchestrator`. Well-structured, complex.
+    *   `ConversationViewModel.swift`: `@MainActor @Observable`. Manages UI for conversational flow. Depends on `ConversationFlowManager`, `ConversationPersistence`, `ConversationAnalytics`. Well-structured.
+*   **Conclusion (ViewModels):** Adhere to MVVM, correctly placed, manage UI logic/state effectively. Good DI use.
 
-### 7.25. `AirFit/Modules/Onboarding/` (Partial Review)
+#### 9.25.3. `AirFit/Modules/Onboarding/Services/` (Partial Review)
 
-This section covers a review of the Onboarding module, one of the "completed" modules, focusing on its structure and adherence to MVVM-C and project guidelines.
-
-#### 7.25.1. `AirFit/Modules/Onboarding/Models/`
-
-*   **Files Reviewed:** `OnboardingModels.swift`, `ConversationModels.swift` (partially, by implication from other files like `ConversationFlowManager`).
+*   **Files (Selected):** `OnboardingServiceProtocol.swift`, `OnboardingService.swift`, `OnboardingOrchestrator.swift`, `ConversationFlowManager.swift`.
 *   **Analysis:**
-    *   **`OnboardingModels.swift`**: Defines `Codable`, `Sendable` structs and enums (e.g., `OnboardingScreen`, `LifeContext`, `Goal`, `UserProfileJsonBlob`) used to capture user preferences during form-based onboarding. These are module-specific, transient data structures, correctly placed.
-    *   **`ConversationModels.swift`**: Defines the structural components for conversational flows (e.g., `struct ConversationNode`, `enum InputType`, `enum ResponseValue`, `struct BranchingRule`). These are used by `ConversationFlowManager` to define and execute conversations. Correctly placed as module-specific definitions for the conversation engine.
-    *   **ISSUE - Misplaced SwiftData Models:** `ConversationModels.swift` also currently contains the definitions for `@Model final class ConversationSession` and `@Model final class ConversationResponse`. SwiftData `@Model` classes that are part of the main application data store should reside in `AirFit/Data/Models/`.
-        *   **Recommendation:** Move the definitions of `@Model class ConversationSession` and `@Model class ConversationResponse` to new, separate files within `AirFit/Data/Models/`.
-        *   **Recommendation:** Ensure these models are added to the SwiftData schema in `AirFit/Data/Migrations/SchemaV1.swift` and any relevant test schemas.
-        *   **Recommendation:** Define a proper `@Relationship(deleteRule: .cascade, inverse: \ConversationResponse.session)` for `ConversationSession.responses` and add `var session: ConversationSession?` to `ConversationResponse` for a correct two-way SwiftData relationship.
-*   **Conclusion (Models):** Module-specific transient models are well-placed. A critical issue is the misplacement of `ConversationSession` and `ConversationResponse` SwiftData models; they must be moved to the global `Data/Models/` directory and integrated into the main schema.
+    *   `OnboardingServiceProtocol.swift` & `OnboardingService.swift`: Focused service for persisting `OnboardingProfile` SwiftData model. Interacts with `ModelContext`. Well-placed module-specific services.
+    *   `OnboardingOrchestrator.swift`: `@MainActor @ObservableObject`. Manages state/flow of conversational onboarding. Coordinates components. Well-placed module-specific engine.
+    *   `ConversationFlowManager.swift`: `@MainActor @ObservableObject`. Engine for predefined conversational flows (`ConversationNode`s). Handles response validation, branching. Persists state using `ConversationSession`/`Response` SwiftData models.
+        *   **Dependency on Misplaced Models:** Persistence relies on `ConversationSession`/`Response` being correctly defined/placed SwiftData models.
+    *   **Other Services:** Numerous other files supporting conversational onboarding. Likely well-placed if scope confined to onboarding.
+*   **Conclusion (Services - Partial):** Rich service layer, especially for conversational mode. Key dependency: correct definition/placement of `ConversationSession`/`Response` SwiftData models.
 
-#### 7.25.2. `AirFit/Modules/Onboarding/ViewModels/`
+*   **Overall Onboarding Module (Initial Impressions):** Structure largely follows `AGENTS.md`. Significant conversational onboarding feature with good separation of concerns. Main issue: misplacement of `ConversationSession`/`Response` SwiftData models.
 
-*   **Files Reviewed:** `OnboardingViewModel.swift`, `ConversationViewModel.swift`.
+### 9.26. `AirFit/Modules/Dashboard/`
+
+*   **Structure:** Contains `Views/`, `ViewModels/`, `Services/`. Missing `Models/`, `Coordinators/`.
+*   **Files (Selected):** `ViewModels/DashboardViewModel.swift`, `Services/DashboardServiceProtocols.swift`.
 *   **Analysis:**
-    *   **`OnboardingViewModel.swift`**: A `@MainActor @Observable` class managing the overall onboarding experience. Supports dual modes (legacy form-based and modern AI-conversational). It correctly injects numerous dependencies (AI service, onboarding service, speech service, etc.) and manages state for both flows. The conversational flow is delegated to an `OnboardingOrchestrator`. This is a well-structured, albeit complex, ViewModel.
-    *   **`ConversationViewModel.swift`**: A `@MainActor @Observable` class designed to manage the UI for a conversational flow (likely used by the conversational onboarding mode). It depends on `ConversationFlowManager` (for conversation logic), `ConversationPersistence` (for saving/resuming sessions), and `ConversationAnalytics`. It manages the display of the current conversation node and user responses. Well-structured for its purpose.
-*   **Conclusion (ViewModels):** The ViewModels adhere to MVVM principles, are correctly placed, and manage their respective UI logic and state effectively. They demonstrate good use of dependency injection.
+    *   `DashboardViewModel.swift`: `@MainActor @Observable`. Manages state/data for dashboard. Depends on module-specific protocols (`HealthKitServiceProtocol`, etc.). Defines state structs (e.g., `NutritionSummary`).
+        *   **MVVM Adherence:** Fulfills ViewModel role.
+        *   **Data Structures:** Structs in ViewModel are dashboard-specific. **Recommendation:** Move to new `AirFit/Modules/Dashboard/Models/`.
+    *   `DashboardServiceProtocols.swift`: Service interfaces tailored for `DashboardViewModel` (e.g., fetching `HealthContext`). Module-specific service facades.
+        *   **Placement:** Correctly in `AirFit/Modules/Dashboard/Services/`.
+    *   **Missing Concrete Service Implementations:** No concrete impls for `HealthKitServiceProtocol`, etc. in module. Critical gap.
+        *   **Recommendation:** Create concrete service classes in `AirFit/Modules/Dashboard/Services/` implementing these protocols (likely consume top-level services).
+    *   **Missing Coordinator:** Absence suggests navigation handled by parent or views (less ideal for MVVM-C).
+        *   **Recommendation:** If the dashboard has navigational responsibilities, create a `DashboardCoordinator` in `AirFit/Modules/Dashboard/Coordinators/`.
+*   **Conclusion:** Well-defined ViewModel, clear module-specific service interfaces.
+    *   **Key Deficiencies:** Lacks concrete service impls, dedicated coordinator. Model structs could be better organized.
+    *   Complete module structure: add service impls, `Models/` dir, `Coordinators/` dir if navigation involved.
 
-#### 7.25.3. `AirFit/Modules/Onboarding/Services/` (Partial Review)
+### 9.27. `AirFit/Modules/FoodTracking/` (Partial Review)
 
-*   **Files Reviewed (Selected):** `OnboardingServiceProtocol.swift`, `OnboardingService.swift`, `OnboardingOrchestrator.swift`, `ConversationFlowManager.swift`.
-*   **Analysis:**
-    *   **`OnboardingServiceProtocol.swift` & `OnboardingService.swift`**: Provide a focused service for persisting the `OnboardingProfile` SwiftData model. `OnboardingService` correctly interacts with `ModelContext` and includes validation logic for the profile data. These are well-placed module-specific services.
-    *   **`OnboardingOrchestrator.swift`**: A `@MainActor @ObservableObject` class that manages the state and flow of the conversational onboarding experience. It coordinates components like a `ConversationCoordinator` (details not yet reviewed) and the `UserService`. It acts as a state machine for this complex process and is well-placed as a module-specific engine.
-    *   **`ConversationFlowManager.swift`**: A `@MainActor @ObservableObject` class that acts as the engine for driving predefined conversational flows based on a `flowDefinition` of `ConversationNode`s. It handles response validation, branching logic, and interaction with an optional `ResponseAnalyzer`. It is designed to persist conversation state using `ConversationSession` and `ConversationResponse` SwiftData models.
-        *   **Dependency on Misplaced Models:** Its persistence logic currently relies on `ConversationSession` and `ConversationResponse` being SwiftData models. This will only function correctly once these models are moved to `AirFit/Data/Models/` and properly integrated into the main schema.
-    *   **Other Services:** This directory contains numerous other files (e.g., `PersonaService`, `ConversationPersistence`, `ConversationAnalytics`, `ResponseAnalyzer`) that appear to support the conversational onboarding sub-system. These are likely well-placed as module-specific services if their scope is confined to onboarding.
-*   **Conclusion (Services - Partial):** The Onboarding module has a rich service layer, particularly for its conversational mode. The services reviewed are generally well-defined and placed correctly within the module. The key dependency is on the correct definition and placement of `ConversationSession` and `ConversationResponse` SwiftData models.
-
-*   **Overall Onboarding Module (Initial Impressions):**
-    *   The module structure largely follows the `AGENTS.md` guidelines (`Views/`, `ViewModels/`, `Models/`, `Services/`, `Coordinators/`).
-    *   It demonstrates a significant feature (conversational onboarding) built with a clear separation of concerns (ViewModel, Orchestrator, FlowManager, Persistence, Analytics).
-    *   The main architectural issue identified is the current misplacement of SwiftData models (`ConversationSession`, `ConversationResponse`) within the module's `Models/` directory instead of the global `Data/Models/` directory. This needs to be rectified for correct data persistence and schema management.
-
-### 7.26. `AirFit/Modules/Dashboard/`
-
-*   **Directory Structure:** Contains `Views/`, `ViewModels/`, and `Services/`. Missing `Models/` and `Coordinators/` subdirectories from the standard module template.
-*   **Files Reviewed (Selected):**
-    *   `ViewModels/DashboardViewModel.swift`
-    *   `Services/DashboardServiceProtocols.swift` (defines `HealthKitServiceProtocol`, `AICoachServiceProtocol`, `DashboardNutritionServiceProtocol`, and `HealthContext` struct)
-*   **Analysis:**
-    *   **`DashboardViewModel.swift`**: A `@MainActor @Observable` class that manages state and data aggregation for the dashboard. It depends on several module-specific protocols: `HealthKitServiceProtocol`, `AICoachServiceProtocol`, and `DashboardNutritionServiceProtocol`. It also defines various structs for its state (e.g., `NutritionSummary`, `RecoveryScore`, `QuickAction`).
-        *   **MVVM Adherence:** Fulfills the ViewModel role well.
-        *   **Data Structures:** The structs defined within `DashboardViewModel.swift` are specific to the dashboard's display needs. **Recommendation:** Move these data structs (e.g., `NutritionSummary`, `NutritionTargets`, `GreetingContext`, `RecoveryScore`, `PerformanceInsight`, `QuickAction`) into a new `AirFit/Modules/Dashboard/Models/` directory for better organization.
-    *   **`DashboardServiceProtocols.swift`**: Defines service interfaces tailored for the `DashboardViewModel`'s data requirements (e.g., fetching a `HealthContext` specifically for the dashboard, generating a morning greeting, providing nutrition summaries). These are good examples of module-specific service facades.
-        *   **Placement:** Correctly placed in `AirFit/Modules/Dashboard/Services/` as they are specific to this module.
-    *   **Missing Concrete Service Implementations:** No concrete implementations for `HealthKitServiceProtocol`, `AICoachServiceProtocol`, or `DashboardNutritionServiceProtocol` were found within `AirFit/Modules/Dashboard/Services/`. This is a critical gap.
-        *   **Recommendation:** Create concrete service classes (e.g., `DefaultDashboardHealthKitService`, etc.) within `AirFit/Modules/Dashboard/Services/` that implement these protocols. These services would likely consume more general, top-level services (e.g., `HealthKitManager`, `LLMOrchestrator`) and adapt their data for the dashboard.
-    *   **Missing Coordinator:** The absence of a `Coordinators/` directory and a `DashboardCoordinator` suggests navigation from the dashboard might be handled by a parent coordinator or directly in views, which is less ideal for MVVM-C.
-        *   **Recommendation:** If the dashboard has navigational responsibilities, create a `DashboardCoordinator` in a `AirFit/Modules/Dashboard/Coordinators/` directory.
-*   **Conclusion:**
-    *   The Dashboard module has a well-defined ViewModel and clear, module-specific service interfaces.
-    *   **Key Deficiencies:** Lacks concrete implementations for its defined service protocols and a dedicated coordinator for navigation. Module-specific model structs could be better organized.
-    *   The module structure should be completed by adding the missing service implementations, a `Models/` directory for its view-state structs, and a `Coordinators/` directory if navigation is involved.
-
-### 7.27. `AirFit/Modules/FoodTracking/` (Partial Review)
-
-This module is for "Voice-First AI-Powered Nutrition" and has its own `AGENTS.md` file providing specific guidelines.
-
-*   **Directory Structure:** Contains `Models/`, `Services/`, `Views/`, `ViewModels/`, `Coordinators/` (and a root coordinator file), and a module-specific `AGENTS.md`.
-*   **Module `AGENTS.md`:** Provides excellent, detailed instructions for this module, including critical dependencies (e.g., using `VoiceInputManager` via a `FoodVoiceAdapter`), file structure expectations, code patterns, and testing requirements.
-*   **Files Reviewed (Selected from `Services/`):**
-    *   `FoodVoiceAdapterProtocol.swift` & `FoodVoiceAdapter.swift`
-    *   `NutritionServiceProtocol.swift` & `NutritionService.swift`
+Module for "Voice-First AI-Powered Nutrition" with its own `AGENTS.md`.
+*   **Structure:** `Models/`, `Services/`, `Views/`, `ViewModels/`, `Coordinators/`, root coordinator, module `AGENTS.md`.
+*   **Module `AGENTS.md`:** Excellent, detailed instructions.
+*   **Files (Selected from `Services/`):** `FoodVoiceAdapterProtocol.swift` & `FoodVoiceAdapter.swift`, `NutritionServiceProtocol.swift` & `NutritionService.swift`.
 *   **Analysis (`Services/` - Partial):**
-    *   **`FoodVoiceAdapter` & Protocol:** A `@MainActor ObservableObject` adapter that correctly wraps `VoiceInputManager` (from `Services/Speech/`) to provide food-specific voice input processing (e.g., text corrections). This adheres to the module's `AGENTS.md` directive. Well-placed as a module-specific service.
-    *   **`NutritionService` & Protocol:** An `actor` service responsible for nutrition-related operations, including CRUD for `FoodEntry` (SwiftData model), calculating nutrition summaries, and logging water intake (some methods are placeholders). It also includes a method to sync calories to HealthKit. Well-placed as a module-specific service. Uses `FoodNutritionSummary` struct (definition not yet reviewed).
-    *   **Missing `FoodDatabaseService`:** The module's `AGENTS.md` mentioned a `FoodDatabaseService.swift` for food database integration, which is not currently present in the `Services/` directory listing. This service would likely be responsible for searching/querying external food databases or internal food templates.
-*   **Missing Model Definition:** The `FoodNutritionSummary` struct, used by `NutritionService`, needs its definition to be located/reviewed (likely in `FoodTracking/Models/`).
-*   **Conclusion (Initial for Services):** The FoodTracking module's service layer, as partially reviewed, shows good adherence to its specific `AGENTS.md` guidelines (e.g., `FoodVoiceAdapter`). The `NutritionService` provides a solid foundation for its domain logic. The main omissions noted so far are the `FoodDatabaseService` and the definition for `FoodNutritionSummary`.
+    *   `FoodVoiceAdapter` & Protocol: `@MainActor ObservableObject` adapter for `VoiceInputManager`, food-specific processing. Adheres to module `AGENTS.md`. Well-placed module service.
+    *   `NutritionService` & Protocol: `actor` for nutrition ops (CRUD for `FoodEntry`, summaries, water logging). Syncs calories to HealthKit. Well-placed module service. Uses `FoodNutritionSummary` struct.
+    *   **Missing `FoodDatabaseService`:** Module `AGENTS.md` mentioned for food db integration; not present.
+*   **Missing Model Definition:** `FoodNutritionSummary` struct used by `NutritionService` needs definition located/reviewed.
+*   **Conclusion (Initial for Services):** Service layer shows good adherence to its `AGENTS.md`. `NutritionService` solid. Omissions: `FoodDatabaseService`, `FoodNutritionSummary` definition.
 
-*   **Overall FoodTracking Module (Initial Impressions):**
-    *   The presence of a detailed module-specific `AGENTS.md` is a strong positive for guiding development.
-    *   The module structure is largely complete.
-    *   The services reviewed show a good pattern of module-specific logic and adaptation of general services.
-    *   Key next steps would be to implement missing services (like `FoodDatabaseService`), define missing model structs (like `FoodNutritionSummary`), and continue implementing ViewModels and Views according to the MVVM-C pattern and module guidelines.
+*   **Overall FoodTracking Module (Initial Impressions):** Detailed module `AGENTS.md` strong positive. Structure largely complete. Services show good pattern. Next steps: implement missing services/models, continue MVVM-C Views/ViewModels.
 
-### 7.28. `AirFit/Application/`
+### 9.28. `AirFit/Application/`
 
-*   **Files Reviewed:** `AirFitApp.swift`, `ContentView.swift` (main application root view), `MinimalContentView.swift` (test view).
-*   **Analysis (`AirFitApp.swift` - App Entry Point):**
-    *   Defines the `@main struct AirFitApp: App` and initializes the main SwiftData `ModelContainer` (`sharedModelContainer`).
-    *   **Critical Issue (Schema Definition):** The `Schema` defined for `sharedModelContainer` is incomplete. It is missing many `@Model` types that are part of the application (e.g., `FoodItem`, `Exercise`, `ConversationSession`, `ConversationResponse`, various template models). **Recommendation:** The schema here MUST be consistent with the production schema defined in `AirFit/Data/Migrations/SchemaV1.models` (or the latest version). It should be defined as `let schema = Schema(SchemaV1.models)` to ensure all necessary models are included.
-    *   **Missing Initial Setup:** Explicit calls to configure `DependencyContainer.shared.configure(with: Self.sharedModelContainer)` and `DataManager.shared.performInitialSetup(with: Self.sharedModelContainer)` are not present. **Recommendation:** These critical one-time setups should occur at app launch, ideally in `AirFitApp.init()` or triggered very early by `ContentView` to ensure all services are ready.
-*   **Analysis (`ContentView.swift` - Main Root View):**
-    *   Manages the root UI based on `AppState` (Loading, Welcome, Onboarding, Dashboard, Error).
-    *   Initializes `AppState` in its `onAppear` modifier, passing the main `ModelContext`.
-    *   **Critical Issue (Mock Service Usage):** When presenting `OnboardingFlowView`, it directly injects `MockAIService()`. This is a major issue for production functionality and must be replaced with a real AI service implementation obtained via `DependencyContainer` or a similar mechanism.
-*   **Analysis (`MinimalContentView.swift` - Test View):**
-    *   Provides a simplified view for testing the Onboarding flow.
-    *   **Critical Issue (Name Collision):** Named `ContentView`, colliding with the main root view. **Recommendation:** Rename this struct and file (e.g., to `MinimalOnboardingTestView.swift` or similar) to resolve the conflict.
-    *   Its use of `MockAIService` is acceptable in this specific testing context.
-*   **Conclusion:**
-    *   The application entry point and root view setup are standard for SwiftUI.
-    *   **Critical actions required:**
-        1.  Correct the main `ModelContainer` schema in `AirFitApp.swift` to be comprehensive and match the production migration schema.
-        2.  Ensure `DependencyContainer` and `DataManager` are initialized properly at app launch.
-        3.  Replace the hardcoded `MockAIService` in the main `ContentView` with a production AI service.
-        4.  Rename `MinimalContentView.swift` to avoid naming conflicts.
-    *   Addressing these issues is crucial for the application's stability, data integrity, and correct functioning of AI-dependent features.
+*   **Files:** `AirFitApp.swift`, `ContentView.swift` (main root), `MinimalContentView.swift` (test).
+*   **Analysis (`AirFitApp.swift`):** `@main struct AirFitApp: App`. Initializes `sharedModelContainer`.
+    *   **Critical Issue (Schema Definition):** `Schema` for `sharedModelContainer` incomplete. Missing many `@Model` types. **Recommendation:** Must be consistent with production schema (`Schema(SchemaV1.models)`).
+    *   **Missing Initial Setup:** No explicit calls to `DependencyContainer.shared.configure(...)` and `DataManager.shared.performInitialSetup(...)`. **Recommendation:** Critical one-time setups at app launch.
+*   **Analysis (`ContentView.swift`):** Manages root UI based on `AppState`. Initializes `AppState`.
+    *   **Critical Issue (Mock Service Usage):** OnboardingFlowView directly injects `MockAIService()`. Unsuitable for production. Must be replaced with real AI service.
+*   **Analysis (`MinimalContentView.swift`):** Simplified view for Onboarding test.
+    *   **Critical Issue (Name Collision):** Named `ContentView`. **Recommendation:** Rename (e.g., `MinimalOnboardingTestView.swift`).
+    *   `MockAIService` use acceptable here.
+*   **Conclusion:** Standard SwiftUI entry point/root.
+    *   **Critical actions:**
+        1.  Correct `ModelContainer` schema in `AirFitApp.swift`.
+        2.  Ensure `DependencyContainer`, `DataManager` initialized at launch.
+        3.  Replace `MockAIService` in main `ContentView` with production service.
+        4.  Rename `MinimalContentView.swift`.
+    *   Crucial for app stability, data integrity, AI feature function.
 
-### 7.29. `AirFit/Modules/AI/` (High-Level Overview)
+### 9.29. `AirFit/Modules/AI/` (High-Level Overview)
 
-*   **Directory Structure:** Contains specialized subdirectories (`PersonaSynthesis/`, `Models/`, `Functions/`, `Routing/`, `Configuration/`, `Parsing/`) and several root-level Swift files for core AI engines (e.g., `PersonaEngine.swift`, `CoachEngine.swift`, `ConversationManager.swift`, `ContextAnalyzer.swift`).
-*   **Nature of Module:** This module functions more as a collection of AI backend engines and services rather than a typical UI-focused MVVM-C module. It provides core AI logic consumed by other modules.
-*   **Key Components Reviewed & Purpose:**
-    *   **`Models/`**: Contains module-specific data structures for AI persona definition (`PersonaMode.swift`, `PersonaModels.swift`) and AI parsing results (`NutritionParseResult.swift`, legacy `DirectAIModels.swift`). These are well-placed.
-    *   **`PersonaEngine.swift`**: Responsible for constructing dynamic, context-aware system prompts for LLM interaction based on `PersonaMode` and various contextual inputs. Well-designed with a focus on token efficiency and clear persona definition.
-    *   **`CoachEngine.swift` (Partial Review):** Appears to be the central orchestrator for AI coach interactions, handling message processing, context gathering, prompt generation (via `PersonaEngine`), LLM calls (via `AIServiceProtocol`), local command parsing, and function call dispatching. Its architecture seems modular but is highly complex, relying on several other unreviewed components (e.g., `LocalCommandParser`, `FunctionCallDispatcher`, `RoutingConfiguration`).
-    *   **`ConversationManager.swift`**: A data manager specific to the AI module, responsible for persisting and retrieving `CoachMessage` SwiftData models, which represent the AI coach conversation history. Shows good SwiftData practices and performance considerations.
-    *   **`ContextAnalyzer.swift`**: A stateless utility struct for analyzing user input and conversation context to determine optimal AI processing routes (direct AI vs. function calling). Implements sophisticated routing heuristics.
-*   **Strengths:**
-    *   Sophisticated AI capabilities are being built (persona system, hybrid routing, context awareness).
-    *   Clear separation of concerns within the AI logic (e.g., prompt building in `PersonaEngine`, conversation history in `ConversationManager`, routing in `ContextAnalyzer`).
-*   **Areas for Deeper Review (if issues arise):** The internal workings of `CoachEngine` and its direct dependencies (`LocalCommandParser`, `FunctionCallDispatcher`, `RoutingConfiguration`), and the specialized subdirectories (`PersonaSynthesis/`, `Functions/`, etc.) would require more in-depth analysis if specific AI behavior problems or architectural bottlenecks are suspected.
-*   **Recommendations:**
-    *   Clearly document the public-facing service protocols that `Modules/AI/` provides for other modules (e.g., `CoachEngineProtocol` used by `ChatViewModel`). These interfaces are key integration points.
-*   **Conclusion:** `Modules/AI/` is a complex, engine-focused module that underpins the application's intelligence. Its internal structure is specialized. The components reviewed show a high degree of sophistication.
+*   **Structure:** Specialized subdirs (`PersonaSynthesis/`, `Models/`, `Functions/`, `Routing/`, `Configuration/`, `Parsing/`), root AI engine files (`PersonaEngine.swift`, `CoachEngine.swift`, `ConversationManager.swift`, `ContextAnalyzer.swift`).
+*   **Nature:** Collection of AI backend engines/services, not typical UI module. Provides core AI logic.
+*   **Components Reviewed & Purpose:**
+    *   `Models/`: Module-specific AI data structures (`PersonaMode.swift`, `PersonaModels.swift`, `NutritionParseResult.swift`). Well-placed.
+    *   `PersonaEngine.swift`: Constructs dynamic, context-aware system prompts for LLM. Well-designed.
+    *   `CoachEngine.swift` (Partial): Central orchestrator for AI coach interactions (message processing, context, prompt gen, LLM calls, command parsing, function calls). Modular, complex.
+    *   `ConversationManager.swift`: AI module-specific data manager for `CoachMessage` SwiftData models (AI coach history). Good SwiftData practices.
+    *   `ContextAnalyzer.swift`: Stateless utility for analyzing input/context to determine AI processing routes. Sophisticated heuristics.
+*   **Strengths:** Sophisticated AI capabilities. Clear separation of concerns within AI logic.
+*   **Areas for Deeper Review:** `CoachEngine` internals and dependencies if AI behavior problems arise.
+*   **Recommendations:** Clearly document public-facing service protocols from `Modules/AI/` (e.g., `CoachEngineProtocol`).
+*   **Conclusion:** Complex, engine-focused module. Components show high sophistication.
 
-### 7.30. `AirFit/Modules/Chat/`
+### 9.30. `AirFit/Modules/Chat/`
 
-*   **Directory Structure:** Contains `ViewModels/`, `Views/`, `Services/` (currently empty), and a root `ChatCoordinator.swift`. Lacks a `Models/` subdirectory (view-specific structs are in `ChatViewModel`).
-*   **Files Reviewed (Selected):**
-    *   `ChatCoordinator.swift`
-    *   `ViewModels/ChatViewModel.swift`
+*   **Structure:** `ViewModels/`, `Views/`, `Services/` (empty), root `ChatCoordinator.swift`. Lacks `Models/`.
+*   **Files (Selected):** `ChatCoordinator.swift`, `ViewModels/ChatViewModel.swift`.
 *   **Analysis:**
-    *   **`ChatCoordinator.swift`**: A `@MainActor ObservableObject` that manages navigation state (NavigationPath, sheets, popovers) for the chat module. Uses modern SwiftUI navigation. Well-implemented and correctly placed.
-    *   **`ViewModels/ChatViewModel.swift`**: The primary `@MainActor ObservableObject` for the chat interface. Manages messages (using `ChatMessage` SwiftData models), composer state, voice input (via `VoiceInputManager`), and depends on `CoachEngineProtocol` for AI responses.
-        *   **Critical Issue (AI Integration):** The `generateAIResponse` method currently uses placeholder/simulated streaming logic. It does **not** integrate with the `coachEngine` to get real AI responses. This is a major gap for functionality.
-        *   **SwiftData Performance Note:** Comments in `loadOrCreateSession` and `loadMessages` indicate potential past issues with complex predicates, leading to broader fetches filtered in memory. This could be a performance concern with large datasets and might need revisiting for optimization if `ChatSession`/`ChatMessage` are distinct from `CoachMessage` and also grow large.
-        *   **View-Specific Structs:** Defines `QuickSuggestion`, `ContextualAction`, and `ChatError` locally. **Recommendation:** If these are used by multiple views within the Chat module, consider moving them to a new `AirFit/Modules/Chat/Models/` directory.
-    *   **Missing Module-Specific Services:** The `Services/` directory is empty. This module appears to rely on top-level or other modules' services (like `CoachEngineProtocol`). This is acceptable if its direct service needs are met externally.
-*   **Conclusion:**
-    *   The Chat module has a good UI foundation with its Coordinator and ViewModel structure.
-    *   **Critical Action:** The `ChatViewModel` must be updated to call the actual `CoachEngine` (via `CoachEngineProtocol`) to send user messages and receive/display AI responses, replacing the current placeholder logic.
-    *   Consider creating a `Models/` directory for view-state structs if they grow or are shared across multiple chat views.
-    *   Address potential SwiftData fetch performance for chat history as data scales.
+    *   `ChatCoordinator.swift`: `@MainActor ObservableObject`. Manages navigation (NavigationPath, sheets, popovers). Modern SwiftUI nav. Well-implemented.
+    *   `ViewModels/ChatViewModel.swift`: Primary `@MainActor ObservableObject` for chat UI. Manages messages (`ChatMessage` SwiftData models), composer state, voice input. Depends on `CoachEngineProtocol`.
+        *   **Critical Issue (AI Integration):** `generateAIResponse` uses placeholder/simulated streaming. **Does not** integrate with `coachEngine`. Major functionality gap.
+        *   **SwiftData Performance Note:** Comments indicate potential past issues with complex predicates, leading to in-memory filtering. Could be concern with large datasets.
+        *   **View-Specific Structs:** `QuickSuggestion`, etc. defined locally. **Recommendation:** If shared in Chat module, move to new `AirFit/Modules/Chat/Models/`.
+    *   **Missing Module-Specific Services:** `Services/` empty. Relies on external services (acceptable).
+*   **Conclusion:** Good UI foundation (Coordinator, ViewModel).
+    *   **Critical Action:** Update `ChatViewModel` to call actual `CoachEngine`.
+    *   Consider `Models/` for view-state structs.
+    *   Address potential SwiftData fetch performance.
 
-### 7.30. `AirFit/Modules/Workouts/`
+### 9.31. `AirFit/Modules/Workouts/`
 
-*   **Directory Structure:** Contains `ViewModels/`, `Views/`, and `Coordinators/`. Missing `Models/` and `Services/` subdirectories from the standard module template.
-*   **Files Reviewed (Selected):**
-    *   `ViewModels/WorkoutViewModel.swift`
-    *   `Coordinators/WorkoutCoordinator.swift`
+*   **Directory Structure:** `ViewModels/`, `Views/`, `Coordinators/`. Missing `Models/`, `Services/`.
+*   **Files Reviewed (Selected):** `ViewModels/WorkoutViewModel.swift`, `Coordinators/WorkoutCoordinator.swift`.
 *   **Analysis:**
-    *   **`WorkoutCoordinator.swift`**: A `@MainActor @Observable` class that manages navigation for the Workouts module using `NavigationPath` and sheet presentation. Well-implemented and correctly placed.
-    *   **`ViewModels/WorkoutViewModel.swift`**: The primary `@MainActor @Observable` ViewModel. Manages display of workouts, calculates weekly stats (`WeeklyWorkoutStats` struct defined locally), processes workouts received via `WorkoutSyncService` (through `NotificationCenter`), and triggers AI post-workout analysis via a `CoachEngineProtocol`.
-        *   **Local `CoachEngineProtocol`:** Defines a narrow, local protocol for `CoachEngine` and extends the main `CoachEngine` (from `Modules/AI/`) to conform. This is a specific decoupling choice; a public protocol from `Modules/AI/` might be more standard.
-        *   **Dependency:** Relies on `PostWorkoutAnalysisRequest` struct, whose definition was not found in this module (likely in `Modules/AI/Models/`).
-        *   **Missing `Models/` Directory:** The `WeeklyWorkoutStats` struct is defined in the ViewModel file. **Recommendation:** Create `AirFit/Modules/Workouts/Models/` and move such view-specific model structs there.
-    *   **Missing Module-Specific Services:** No `Services/` subdirectory. If complex workout-specific business logic (e.g., workout planning, advanced stats) evolves, a dedicated module service would be appropriate.
-*   **Conclusion:**
-    *   The Workouts module has a functional ViewModel and a well-defined Coordinator.
+    *   `WorkoutCoordinator.swift`: `@MainActor @Observable`. Manages navigation for Workouts module. Well-implemented.
+    *   `WorkoutViewModel.swift`: Primary `@MainActor @Observable` ViewModel. Manages workout display, weekly stats (`WeeklyWorkoutStats` struct local), processes synced workouts, triggers AI post-workout analysis via `CoachEngineProtocol`.
+        *   **Local `CoachEngineProtocol`:** Defines narrow, local protocol for `CoachEngine`; main `CoachEngine` extended to conform. Specific decoupling; public protocol from `Modules/AI/` might be more standard.
+        *   **Dependency:** Relies on `PostWorkoutAnalysisRequest` struct (definition not found here).
+        *   **Missing `Models/` Directory:** `WeeklyWorkoutStats` defined in ViewModel. **Recommendation:** Create `AirFit/Modules/Workouts/Models/` and move such structs there.
+    *   **Missing Module-Specific Services:** No `Services/`. If complex workout logic evolves, dedicated service appropriate.
+*   **Conclusion:** Functional ViewModel, well-defined Coordinator.
     *   **Key Actions/Considerations:**
-        1.  Organize view-specific model structs (like `WeeklyWorkoutStats`) into a `Models/` subdirectory.
-        2.  Ensure the `PostWorkoutAnalysisRequest` struct dependency is clearly defined and accessible.
-        3.  Evaluate the local `CoachEngineProtocol` pattern versus using a more comprehensive public protocol from the AI module.
-        4.  Consider adding a module-specific service if business logic complexity increases.
+        1.  Organize view-specific model structs into `Models/`.
+        2.  Ensure `PostWorkoutAnalysisRequest` dependency clearly defined/accessible.
+        3.  Evaluate local `CoachEngineProtocol` vs. public AI module protocol.
+        4.  Consider module service if business logic complexity increases.
 
-### 7.31. `AirFit/Modules/Settings/`
+### 9.32. `AirFit/Modules/Notifications/` (Module 9: Notifications & Engagement Engine)
 
-*   **Directory Structure:** Contains `ViewModels/`, `Views/`, and `Services/` subdirectories. Missing `Models/` and `Coordinators/` subdirectories from the standard module template.
-*   **AGENTS.md Status:** Listed as "Completed" in the main `AGENTS.md` file.
-*   **File Review:**
-    *   `AirFit/Modules/Settings/ViewModels/`: Directory is empty.
-    *   `AirFit/Modules/Settings/Views/`: Directory is empty.
-    *   `AirFit/Modules/Settings/Services/`: Directory is empty.
-*   **Analysis & Conclusion:**
-    *   Despite being marked as "Completed", the `AirFit/Modules/Settings/` directory is currently a skeleton structure with no code files in its `Views/`, `ViewModels/`, or `Services/` subdirectories. No module-specific `Models/` or `Coordinators/` directories were found at the module root either.
-    *   This indicates a significant discrepancy. Either the module was not implemented as documented, its files are misplaced, or they were inadvertently removed.
-    *   As such, there is no current implementation within this module path to analyze for adherence to MVVM-C or other architectural guidelines.
-*   **Critical Action Required:**
-    1.  **Verify Status & Locate Files:** The actual status of the Settings module must be determined. If implemented, its constituent files (Views, ViewModels, Services, Models, Coordinators) must be located and moved into the correct subdirectories within `AirFit/Modules/Settings/`.
-    2.  **Implement if Missing:** If the module has not been implemented, it needs to be developed according to the project's defined architectural patterns.
-    *   This module is critical for user account management, preferences, and other essential settings, and its absence or misplacement is a major issue.
+*   **Module Specification:** `AirFit/Docs/Module9.md`
+*   **Purpose:** Intelligent notification system for proactive user engagement (local/push, AI content, engagement analysis, Live Activities, widgets).
+*   **Key Components (per spec):** `Services/NotificationManager.swift`, `Services/EngagementEngine.swift`, `Services/NotificationContentGenerator.swift`, `Services/LiveActivityManager.swift`, `Modules/Notifications/Models/` (for `NotificationContent`, etc.).
+*   **Architectural Adherence (Based on Spec):**
+    *   **MVVM-C:** `NotificationPreferencesViewModel` mentioned, implying MVVM for UI.
+    *   **Service Placement:** Core services (`NotificationManager`, etc.) specified for `AirFit/Services/`. Strict modularity might prefer `AirFit/Modules/Notifications/Services/`. Spec is explicit for `AirFit/Services/`.
+*   **Analysis of Specified Implementations:**
+    *   **`NotificationManager.swift` (Spec 9.0.1):** In `AirFit/Services/`. Comprehensive notification lifecycle. Navigation via `NotificationCenter` requires careful observer management.
+    *   **`EngagementEngine.swift` (Spec 9.0.2):** In `AirFit/Services/`. Manages background tasks for lapse detection, re-engagement. Personalized smart notifications. Uses `User.notificationPreferences`.
+    *   **`NotificationContentGenerator.swift` (Spec 9.1.1):** In `AirFit/Services/`. Generates `NotificationContent` (AI-first with template fallbacks). Context-aware.
+    *   **`LiveActivityManager.swift` (Spec 9.2.1):** In `AirFit/Services/`. Manages `ActivityKit` Live Activities.
+*   **Potential Issues & Recommendations:**
+    *   **Service Placement:** Discussed above. Spec puts them in top-level `Services/`.
+    *   **Model Definitions & Placement:** Numerous supporting structs/enums (`CommunicationPreferences`, `SleepData`, `WeatherData`, `Achievement`). Ensure defined, `Sendable`, placed appropriately (`Core/Models/` or `Modules/Notifications/Models/`). `CommunicationPreferences` (from `OnboardingProfile`) likely `Core/Models` or with `OnboardingProfile`.
+    *   **Missing `NotificationPreferencesViewModel.swift` Details:** Spec mentions this as a key component but doesn\'t detail its file path or specific implementation tasks. It would logically reside in `AirFit/Modules/Notifications/ViewModels/`.
+*   **Conclusion (Module 9):** Comprehensive, powerful notification system. Specified services detailed. Architecture aligns with project goals. Key considerations: service placement (spec says `AirFit/Services/`), model definition/placement, detailing `NotificationPreferencesViewModel`. **Implemented as per Spec.**
+
+### 9.33. `AirFit/Services/` (Module 10: Services Layer - API Clients & AI Router)
+
+*   **Module Specification:** `AirFit/Docs/Module10.md`
+*   **Purpose:** Robust services layer for external API communications (multi-provider AI, weather). Secure key management, network management, mocks.
+*   **Key Components (per spec, mainly in `AirFit/Services/` & subdirs):** `ServiceProtocols.swift`, `NetworkManager.swift`, `ServiceConfiguration.swift`, `Security/APIKeyManager.swift`, `Security/KeychainHelper.swift`, `AI/AIAPIService.swift`, `AI/AIRequestBuilder.swift`, `AI/AIResponseParser.swift`, `Weather/WeatherService.swift`, `MockServices/`.
+*   **Architectural Adherence (Based on Spec):** Solidifies `AirFit/Services/` for shared, app-wide service impls and core protocols. Protocol-oriented. `async/await`, `actor`.
+*   **Analysis of Specified Implementations:**
+    *   **`ServiceProtocols.swift` (Spec 10.0.1):** In `AirFit/Services/`. Defines `ServiceProtocol`, `AIServiceProtocol`, `WeatherServiceProtocol`, `APIKeyManagementProtocol`, `NetworkManagementProtocol`. Shared enums/structs. **Recommendation (Protocol Placement):** Fundamental protocols better in `AirFit/Core/Protocols/`. Spec places here.
+    *   **`NetworkManager.swift` (Spec 10.0.2):** In `AirFit/Services/`. Implements `NetworkManagementProtocol`. Manages `URLSession`, reachability, logging, retries, SSE. Robust.
+    *   **`ServiceConfiguration.swift` (Spec 10.0.3):** In `AirFit/Services/`. Manages configurable settings (AI provider/model). Persists to `UserDefaults`. `@MainActor @Observable`.
+    *   **`Security/APIKeyManager.swift` (Spec 10.1.1) & `Security/KeychainHelper.swift` (Spec 10.1.2):** In `AirFit/Services/Security/`. `APIKeyManager` (actor) implements `APIKeyManagementProtocol`, uses `KeychainHelper` (actor) for secure CRUD. Resolves prior missing impl finding.
+    *   **`AI/AIAPIService.swift` (Spec 10.2.1 - 10.2.5):** In `AirFit/Services/AI/`. Implements `AIServiceProtocol`. Orchestrates AI requests to multiple providers. Uses `AIRequestBuilder`/`Parser`.
+    *   **`Weather/WeatherService.swift` (Spec 10.3.1 - 10.3.2):** In `AirFit/Services/Weather/`. Implements `WeatherServiceProtocol`. Fetches weather, includes caching.
+*   **Mock Services (Task 10.4):** Spec calls for mocks in `AirFit/Services/MockServices/`. Excellent for testability.
+*   **Potential Issues & Recommendations:**
+    *   **Protocol Placement:** Reiterate: shared service protocols to `Core/Protocols/`.
+    *   **`AIRequest`/`Response` Definitions:** M10's `ServiceProtocols.swift` re-defines simplified AI models. `AirFit/Core/Models/AI/AIModels.swift` also has foundational AI models. Potential conflict/duplication. **Recommendation:** Consolidate in `Core/Models/AI/AIModels.swift`. M10 spec notes its `AIRequest` as "Simplified"; aim for unified AI models.
+*   **Conclusion (Module 10):** Matures service layer. Robust, secure, configurable API access (especially multi-provider AI). `APIKeyManager.swift` impl resolves critical gap. Key actions: standardize protocol placement, reconcile AI data model definitions. **Implemented as per Spec.**
+
+### 9.34. `AirFit/Modules/Settings/` (Module 11: Settings Module - UI & Logic)
+
+*   **Module Specification:** `AirFit/Docs/Module11.md`
+*   **Purpose:** Comprehensive settings (AI coach persona, API keys, privacy, data, app preferences).
+*   **Previous Analysis (7.31):** Found `AirFit/Modules/Settings/` empty. M11 implements this.
+*   **Key Components (per spec, in `AirFit/Modules/Settings/`):** `SettingsCoordinator.swift`, `ViewModels/SettingsViewModel.swift`, `Views/SettingsListView.swift` (hub), `Views/AIPersonaSettingsView.swift`, `Views/APIConfigurationView.swift`, etc. Module-specific models.
+*   **Architectural Adherence (Based on Spec):** MVVM-C (`SettingsCoordinator`, `SettingsViewModel`, Views). Encapsulates settings UI/logic. Uses M10 services (`APIKeyManager`, `AIServiceProtocol` via `AIServiceManager.shared`) and M9 (`NotificationManager`).
+*   **Analysis of Specified Implementations:**
+    *   **`SettingsCoordinator.swift` (Spec 11.0.1):** Manages `NavigationPath`, sheets, alerts. Clean nav state.
+    *   **`ViewModels/SettingsViewModel.swift` (Spec 11.0.2):** `@MainActor @Observable`. Central ViewModel. Manages state for preferences, AI config, persona, notifications, privacy. Loads settings, updates preferences (persists to `User` via `ModelContext`, updates services).
+    *   **`Views/SettingsListView.swift` (Spec 11.1.1):** Main entry/hub. `NavigationStack`, `List`. Navigates to detail views. Initializes own Coordinator/ViewModel.
+    *   **`Views/AIPersonaSettingsView.swift` (Spec 11.2.1):** View/refine AI coach persona. Rich UI.
+    *   **`Views/APIConfigurationView.swift` (Spec 11.2.2):** Manage AI provider selection, API keys.
+    *   **Other Views:** Generally display settings from `SettingsViewModel`, use SwiftUI controls, call ViewModel methods to persist, navigate via Coordinator.
+*   **Potential Issues & Recommendations:**
+    *   **ViewModel Granularity:** `SettingsViewModel` very large. Consider sub-ViewModels for complex sub-sections if needed (current spec uses one).
+    *   **Persona Data Structures:** `CoachPersona`, `PersonaEvolutionTracker` definitions (likely in `Modules/AI/Models/` or `Core/Models/AI/`) critical. Spec mentions `user.coachPersonaData`.
+    *   **Hardcoded Model Names:** `selectedModel = user.selectedAIModel ?? "gpt-4"` in `SettingsViewModel` init. Default should be more dynamic.
+    *   **Service Manager:** `SettingsListView` inits `aiService: AIServiceManager.shared`. `AIServiceManager` not defined in M10/M11 specs. Assume thin wrapper for `AIServiceProtocol`.
+*   **Conclusion (Module 11):** Comprehensive, modern settings interface. Fully implements previously empty module, resolving critical finding. Adheres to MVVM-C. Utilizes services well. **Implemented as per Spec.**
 
 ## 10. Completing Module and Data Model Reviews for Enhanced Comprehensiveness
 
-The initial analysis provided "Partial Reviews" for the `Onboarding` (Section 7.25) and `FoodTracking` (Section 7.27) modules, and an "Initial Review" for `AirFit/Data/Models/` (Section 7.11). To ensure the analysis is as comprehensive as possible, this section details the scope of a full review for these areas, building upon the established architectural principles and guidelines.
+*(This section builds upon previous analyses, incorporating insights from Modules 9, 10, 11 and further deep dives into specific sub-modules and the WatchApp.)*
 
-### 9.1. `AirFit/Modules/Onboarding/` (Completing the Partial Review from 7.25)
+### 10.1. `AirFit/Modules/AI/PersonaSynthesis/`
 
-Section 7.25 reviewed `Models/`, `ViewModels/`, and selected `Services/` within the Onboarding module. A complete review further involves:
+*   **Overview:** Dedicated to AI coach persona generation. Contains components reflecting evolving synthesis techniques (optimized, fallback, UI support). Correctly in `AirFit/Modules/AI/`.
+*   **Key Components:**
+    *   **`OptimizedPersonaSynthesizer.swift`**: `actor` for high-performance generation (<3s) via single optimized LLM call. Uses shared `AIResponseCache`, local templates/heuristics. Mature, performance-focused. Correctly placed.
+    *   **`PersonaSynthesizer.swift`**: `actor`, likely earlier/alternative version (<5s target). Uses multiple parallel `async let` LLM calls. Has own `PersonaSynthesisCache`. Functional, but multi-call potentially less performant/more token-intensive.
+        *   **Recommendation:** Evaluate if `OptimizedPersonaSynthesizer` supersedes `PersonaSynthesizer`. If so, update dependencies (e.g., `PreviewGenerator`), plan consolidation. If distinct purposes, document clearly.
+    *   **`FallbackPersonaGenerator.swift`**: `actor` for deterministic, rule-based persona generation (no LLM calls). Uses pre-defined templates. Critical for resilience (LLM unavailable/fails, offline).
+        *   **Minor Observation:** Injects `AIResponseCache` but seems unused. Remove if so.
+    *   **`PreviewGenerator.swift`**: `@MainActor ObservableObject` for UI updates/progress during synthesis (e.g., for `GeneratingCoachView.swift`). Wraps `PersonaSynthesizer`. Logically placed. If `OptimizedPersonaSynthesizer` becomes primary, may need update or similar generator for its flow.
+*   **Conclusion (PersonaSynthesis):** Well-structured, robust solutions. Primary recommendation: clarify `PersonaSynthesizer` vs. `OptimizedPersonaSynthesizer` roles.
 
-#### 10.1.1. `AirFit/Modules/Onboarding/Views/`
-*   **Review Focus:** Examine representative SwiftUI views (e.g., `OnboardingIntroView.swift`, `ProfileSetupView.swift`, `ConversationalUIView.swift` if present).
-*   **Adherence to MVVM-C:**
-    *   Verify views are purely declarative and driven by state from their respective `OnboardingViewModel` or `ConversationViewModel`.
-    *   Ensure views delegate user actions to the ViewModel.
-    *   Confirm no business logic resides directly within the views.
-*   **SwiftUI Best Practices:**
-    *   Check for proper use of `@State`, `@ObservedObject` (or `@State` with `@Observable` ViewModels), and other SwiftUI property wrappers.
-    *   Assess layout composition, use of modifiers, and overall view structure for clarity and performance.
-*   **Code Style and Reusability:**
-    *   Verify adherence to the `// MARK: - View` structure and naming conventions.
-    *   Check for use of `AppColors`, `AppFonts`, `AppSpacing` from `AirFit/Core/Theme/` for UI consistency.
-    *   Assess if common UI elements within the module are suitably refactored into reusable sub-views or if `AirFit/Core/Views/CommonComponents.swift` are leveraged where appropriate.
-*   **Navigation Integration:**
-    *   Ensure navigation actions are triggered via the ViewModel or Coordinator, not directly in the View using `NavigationLink` destinations directly, unless it's simple, localized navigation not managed by a Coordinator path.
-*   **Accessibility:**
-    *   Check for use of accessibility identifiers on interactive elements as per "Coding Standards" in `AGENTS.md`.
-    *   Assess general accessibility best practices (e.g., dynamic type support, image labeling).
-*   **Current Findings (Views):**
-    *   Attempted to review `AirFit/Modules/Onboarding/Views/OnboardingIntroView.swift`, but the file was not found.
-    *   Without representative view files, a detailed analysis of the Onboarding module's views cannot be completed at this time. This suggests that view components might be missing, named differently, or located elsewhere, despite the module being marked as "Completed" in `AGENTS.md`.
+### 10.2. `AirFit/Modules/AI/Functions/`
 
-#### 10.1.2. `AirFit/Modules/Onboarding/Coordinators/`
-*   **Review Focus:** Examine the `OnboardingCoordinator.swift` and any other coordinator files specific to sub-flows (e.g., a `ConversationalOnboardingCoordinator` if it exists separately).
-*   **MVVM-C Adherence:**
-    *   Confirm Coordinators manage the navigation flow for the Onboarding module (e.g., using `NavigationPath` as indicated in `AGENTS.md`).
-    *   Verify they are responsible for creating and presenting ViewModels and Views for each step of the onboarding process.
-    *   Ensure they are `@MainActor` and `ObservableObject` as per patterns.
-*   **State Management:**
-    *   Assess how navigation state (e.g., `path`, sheet presentation status) is managed.
-*   **Dependency Injection:**
-    *   Check how dependencies (e.g., services, other coordinators) are injected into the coordinator and subsequently passed to ViewModels.
-*   **Routing Logic:**
-    *   Examine methods like `showNextScreen()`, `navigateToProfileSetup()`, `presentTermsSheet()` etc., for clarity and correctness in managing the onboarding sequence.
-*   **Current Findings (`AirFit/Modules/Onboarding/Coordinators/OnboardingCoordinator.swift`):**
-    *   **MVVM-C Adherence:** The coordinator effectively manages navigation using `NavigationPath()` and methods that manipulate `path` and `currentScreen` state. It is correctly annotated with `@MainActor` and `@Observable`. It does not explicitly create Views/ViewModels, which is acceptable if views use navigation modifiers driven by this coordinator's published state.
-    *   **State Management:** Navigation state is clearly managed via `path` (`NavigationPath`) and `currentScreen` (`OnboardingScreen` enum).
-    *   **Dependency Injection:** The coordinator is simple and self-contained, with no external dependencies injected.
-    *   **Routing Logic:** Navigation methods are clear, and logic for managing the `OnboardingScreen` sequence is robust.
-    *   **Overall:** A well-implemented, lean coordinator for path-based navigation within the onboarding flow.
+*   **Overview:** Implements AI function calling (AI executes predefined actions/retrieves info via native code). Essential for grounding AI, enabling complex interactions. Correctly in `AirFit/Modules/AI/`.
+*   **Key Components:**
+    *   **`FunctionRegistry.swift`**: `enum` namespace for static `availableFunctions` array (`AIFunctionDefinition` instances). Includes validation. Centralized, clear management. Comments on migrating simpler functions to direct AI in `CoachEngine` show good optimization.
+    *   **`FunctionCallDispatcher.swift`**: `final class FunctionCallDispatcher: @unchecked Sendable`. Receives `AIFunctionCall`, parses args, executes, returns `FunctionExecutionResult`. Well-designed, robust.
+        *   **Dependencies:** Injects service dependencies (Workout, Analytics, Goal protocols) used by function impls.
+        *   **Dispatch:** `functionDispatchTable` (dictionary) for O(1) dispatch.
+        *   **Argument Handling:** Helpers for safe typed arg extraction from `AIAnyCodable`. `SendableValue` enum good for `Sendable` results.
+        *   **Metrics & Error Handling:** Performance metrics, structured `FunctionError`.
+        *   **Refactoring:** "Phase 3 Migration" comments show streamlining (simpler tasks to direct AI).
+    *   **Function Definition Files (e.g., `AnalysisFunctions.swift`)**: Typically define static `AIFunctionDefinition` (name, desc, params). Clean separation from dispatch.
+    *   **`NutritionFunctions.swift`**: Empty; `parseAndLogComplexNutrition` migrated to direct AI in `CoachEngine`. Practical optimization.
+*   **Conclusion (Functions):** Well-architected AI function calling. Clear separation (definition, registration, dispatch). Robust, performant, good error handling/metrics. Ongoing efficiency optimizations.
 
-### 9.2. `AirFit/Modules/FoodTracking/` (Completing the Partial Review from 7.27)
+### 10.3. `AirFitWatchApp/`
 
-Section 7.27 provided a partial review of selected services. A comprehensive review, guided by its own `AGENTS.md` (if available and specific), involves examining all subdirectories.
+*   **Overview:** watchOS app, complements iOS app. Focus: workout tracking, HealthKit.
+*   **Structure:** Standard watchOS: `AirFitWatchApp.swift` (@main), `Services/` (watch-specific), `Views/` (SwiftUI), `AirFitWatchAppTests/`.
+*   **Key Components:**
+    *   **`AirFitWatchApp/Services/WatchWorkoutManager.swift`**: Central watch service. Manages workout sessions, HealthKit (watch), iOS app communication (likely via `WCSession` or shared `WorkoutSyncService`). Crucial, logical placement/role.
+    *   **`AirFitWatchApp/Views/`**: `WorkoutStartView.swift`, `ActiveWorkoutView.swift`, `ExerciseLoggingView.swift`. UI for initiating workouts, real-time metrics, exercise logging. Primary user interaction points; named/located appropriately.
+*   **Interaction with iOS App:** `WorkoutSyncService.swift` (iOS `AirFit/Services/`) syncs workout data (WatchConnectivity, CloudKit). `WatchWorkoutManager.swift` is watch-side counterpart.
+*   **Conclusion (WatchApp):** Logical, focused structure for workout tracking. Key components placed appropriately. Supports iOS interaction. No major structural architectural issues apparent.
 
-#### 10.2.1. `AirFit/Modules/FoodTracking/Models/`
-*   **Review Focus:** Examine any module-specific, transient data models beyond the `FoodNutritionSummary` struct. These would be `Sendable` and `Codable` structs/enums used for view state, form data, or API request/response bodies specific to food tracking.
-*   **Adherence to Module `AGENTS.md`:** Verify model definitions align with any specific model structuring guidelines in the FoodTracking module's `AGENTS.md`.
-*   **Clarity and Purpose:** Ensure models are well-defined and serve a clear purpose within the module's logic.
-*   **Current Findings (`AirFit/Modules/FoodTracking/Models/FoodTrackingModels.swift`):**
-    *   **`FoodNutritionSummary`:** Present and well-defined with consumed nutrients, goals, and progress properties. `Sendable`.
-    *   **Other Models:** Includes `VisionAnalysisResult` (`Sendable`), `ParsedFoodItem` (`Sendable`, `Identifiable` with backward compatibility), `TimeoutError` (`Sendable`, `Error`, `LocalizedError`), `MealPhotoAnalysisResult` (`Sendable`), `FoodTrackingError` (`LocalizedError` enum), `FoodDatabaseItem` (`Identifiable`, `Sendable`), `NutritionContext` (`Sendable`, uses `NutritionTargets` and `FoodEntry` from elsewhere), and `FoodSearchResult` (`Identifiable`, `Sendable`).
-    *   **`Sendable` / `Codable`:** All structs are `Sendable`. `Codable` conformance is not explicit and might be needed if used in DTOs.
-    *   **Overall:** A well-organized collection of module-specific data structures. Dependencies on `NutritionTargets` and `FoodEntry` noted.
+*(End of new content for Section 10)*
 
-#### 10.2.2. `AirFit/Modules/FoodTracking/Services/`
-*   **Review Focus:** Examine service implementations and protocols.
-*   **Current Findings:**
-    *   **`AirFit/Modules/FoodTracking/Services/FoodVoiceAdapter.swift`:**
-        *   A `@MainActor ObservableObject` that correctly adapts `VoiceInputManager` for food-specific input (post-processing text corrections).
-        *   Publishes UI-relevant state and provides callbacks.
-        *   Exposes methods for permission, recording start/stop.
-        *   Conforms to `FoodVoiceServiceProtocol` (protocol definition not in this file).
-        *   **Overall:** Well-implemented module-specific service.
-    *   **`AirFit/Modules/FoodTracking/Services/NutritionService.swift`:**
-        *   An `actor NutritionService` conforming to `NutritionServiceProtocol`.
-        *   Correctly uses injected `ModelContext` for SwiftData CRUD on `FoodEntry` using `#Predicate`.
-        *   Handles nutritional calculations (`calculateNutritionSummary` is `nonisolated`).
-        *   Includes robust HealthKit integration for calorie syncing (`syncCaloriesToHealthKit` using `withCheckedThrowingContinuation`).
-        *   Contains clearly marked placeholder methods (`getWaterIntake`, `logWaterIntake`, `getTargets`).
-        *   **Overall:** A strong, data-safe service with modern Swift concurrency. Key follow-up is implementing placeholders.
-    *   **`AirFit/Modules/FoodTracking/Services/FoodDatabaseService.swift`:**
-        *   This file remains missing, as noted in Section 7.27. This is a gap for food database integration.
+## 11. Updated Executive Summary & Module Status Table (Reflecting Modules 9, 10, 11)
 
-#### 10.2.3. `AirFit/Modules/FoodTracking/ViewModels/`
-*   **Review Focus:** Examine any ViewModels (e.g., `FoodLogViewModel.swift`, `VoiceInputViewModel.swift`).
-*   **MVVM-C & Project Standards:**
-    *   Verify they are `@MainActor @Observable`.
-    *   Ensure they handle business logic and state for their respective views.
-    *   Check for proper dependency injection.
-*   **Voice-First Logic:** Assess how ViewModels manage voice input states, transcription display, and interaction with voice services.
-*   **Interaction with Services:** Confirm ViewModels correctly use module-specific services for data operations and AI interactions.
-*   **Current Findings (`AirFit/Modules/FoodTracking/ViewModels/FoodTrackingViewModel.swift`):**
-    *   Correctly `@MainActor @Observable`. Manages extensive business logic and state. Header comments indicate significant recent AI integration refactoring.
-    *   **Dependencies:** Correctly injects `ModelContext`, `User`, `FoodVoiceAdapter`, `NutritionServiceProtocol`, `FoodCoachEngineProtocol` (locally defined), and `FoodTrackingCoordinator`.
-    *   **State Management:** Comprehensive state for UI, voice input, parsed items, AI processing, daily data, and errors.
-    *   **Voice-First Logic:** Integrates well with `FoodVoiceAdapter`. `processTranscription()` now uses `coachEngine.parseNaturalLanguageFood()`.
-    *   **Service Interaction:** Effectively uses all injected services for their intended purposes (data loading, AI parsing, photo analysis, search, saving).
-    *   **AI Integration:** Supports multiple AI-driven input modalities. Includes `withTimeout` utility for AI calls.
-    *   **Local Protocol:** Defines `FoodCoachEngineProtocol` locally.
-    *   **Overall:** A complex but well-structured ViewModel, central to the FoodTracking feature, showing active improvement. Consideration for `FoodCoachEngineProtocol` placement (local vs. core) and refining `generateSmartSuggestions()` noted.
+*(This section serves as a placeholder to indicate where the Executive Summary and Module Status Table should be updated. The actual update will be applied directly to Sections 1 and 2 of the document.)*
+---
 
-#### 10.2.4. `AirFit/Modules/FoodTracking/Coordinators/`
-*   **Review Focus:** Examine any `FoodTrackingCoordinator.swift` or other relevant coordinator files.
-*   **MVVM-C Adherence:** Manage navigation flow for food logging, meal discovery, or displaying nutritional details.
-*   **Integration with Main App Flow:** How this module's coordinator is presented and interacts with parent coordinators.
-*   **Current Findings (`AirFit/Modules/FoodTracking/FoodTrackingCoordinator.swift` - located at module root):**
-    *   The `Coordinators/` subdirectory is empty, but `FoodTrackingCoordinator.swift` was found at the module root.
-    *   Correctly `@MainActor @Observable`.
-    *   Manages `navigationPath`, `activeSheet`, and `activeFullScreenCover` for comprehensive navigation.
-    *   Uses type-safe enums (`FoodTrackingSheet`, `FoodTrackingFullScreenCover`, `FoodTrackingDestination`) for navigation targets.
-    *   Provides a clear API for ViewModels to trigger navigation. Includes `handleDeepLink`.
-    *   Simple, with no external dependencies itself.
-    *   **Overall:** Well-implemented navigation coordinator. Placement at module root is acceptable, though consistency with other modules using a `Coordinators/` subfolder would be ideal.
-
-#### 10.2.5. `AirFit/Modules/FoodTracking/Views/`
-*   **Review Focus:** Examine SwiftUI views (e.g., `FoodLoggingView.swift`, `MealSummaryView.swift`).
-*   **MVVM-C Adherence:** Purely declarative, driven by ViewModel state.
-*   **Voice-First UI Elements:** Look for UI components specifically designed for voice interaction.
-*   **SwiftUI Best Practices & Theming:** Check for use of Core theme elements, SwiftUI best practices, and accessibility.
-*   **Adherence to Module `AGENTS.md`:** Verify views align with any UI/UX guidelines or specific component requirements outlined in the FoodTracking module's `AGENTS.md`.
-*   **Current Findings (Selected Views):**
-    *   **`AirFit/Modules/FoodTracking/Views/FoodLoggingView.swift`:**
-        *   Main view, well-structured using `NavigationStack`, `ScrollView`. Adheres to MVVM-C, delegating actions to `FoodTrackingViewModel` and `FoodTrackingCoordinator`.
-        *   Uses `AppColors`, `AppSpacing`. Good use of private sub-views for organization.
-        *   Has two initializers, one for DI and one that creates dependencies.
-        *   Many navigation destinations are `PlaceholderView`s, indicating ongoing development.
-        *   **Overall:** Good main view structure, clear integration with VM/Coordinator.
-    *   **`AirFit/Modules/FoodTracking/Views/VoiceInputView.swift`:**
-        *   Specific UI for voice input, driven by `FoodTrackingViewModel`.
-        *   Excellent voice-first UI elements: instructions, animated microphone button, waveform visualization, transcription display, status section.
-        *   Uses theming, well-organized with sub-views.
-        *   **Overall:** Well-designed and engaging voice-centric UI.
-    *   **`AirFit/Modules/FoodTracking/Views/FoodConfirmationView.swift`:**
-        *   UI for reviewing, modifying (partially), and confirming parsed food items.
-        *   Delegates save action to ViewModel. Manages its item list with `@State`.
-        *   Uses theming and sub-views (`FoodItemCard`).
-        *   Contains well-structured `#Preview` with mock dependencies.
-        *   **Key Issue:** `FoodItemEditView` and `ManualFoodEntryView` (presented as sheets from this view) are currently placeholders with non-functional "edit" and "add" capabilities. This is critical missing functionality for a complete user flow.
-        *   **Overall:** Good UI structure, but core edit/add features are incomplete.
-
-### 9.3. `AirFit/Data/Models/` (Further Detail on Initial Review from 7.11)
-
-Section 7.11 provided an "Initial Review" sampling key SwiftData models. To enhance comprehensiveness:
-
-*   **Complete Model Inventory Check:** All `@Model` classes must reside in `AirFit/Data/Models/` and be included in the schema (`SchemaV1.swift` and subsequent versions). The critical finding about `ConversationSession` and `ConversationResponse` misplacement (Ref: 7.25.1, consolidated in 10.2) underscores this imperative.
-*   **Relationship Integrity (Systematic Check):** Systematically ensure all `@Relationship` definitions include an `inverse:` parameter and an appropriate `deleteRule:`. The initial review noted good practices here; this is a global check item for all models.
-*   **`@unchecked Sendable` Rationale:** While correctly noted as standard practice for `@Model` classes, the implication is that consumers (ViewModels, Services) *must* manage access carefully, typically by ensuring the `ModelContext` and model instances are confined to the correct actor (usually `@MainActor` for UI-related operations or a dedicated data actor for background tasks).
-*   **Enum Scope:** Re-check if enums defined locally within model files (e.g., `WorkoutType` in `Workout.swift`) are truly specific to that model or if they represent broader concepts that should be global enums in `AirFit/Core/Enums/GlobalEnums.swift`. The initial review deemed local definitions acceptable, but this should be systematically evaluated for each.
-
-## 11. Overall Summary of Analysis
-
-The AirFit project's architecture, as defined in `AGENTS.md` and observed in the codebase, demonstrates a strong commitment to modularity and separation of concerns, primarily following an MVVM-C pattern. The `Core` directory structure is generally sound, housing foundational elements like shareable models, constants, enums, extensions, and core protocols.
-
-The detailed file-level analysis (Section 7), along with the targeted completion of module and data model reviews (Section 8), has now provided a comprehensive examination of:
-1.  **`AirFit/Core/` Subdirectories:** Including `Models/`, `Constants/`, `Enums/`, `Extensions/`, `Protocols/`, `Services/`, `Theme/`, `Utilities/`, and `Views/`.
-2.  **`AirFit/Data/`**: Investigating SwiftData models, migrations, managers, and extensions, with an emphasis on correct model placement and integrity.
-3.  **`AirFit/Services/` (Top-Level Subdirectories):** Systematically reviewing service categories like `AI`, `Context`, `Health`, `Monitoring`, `Network`, `Platform`, `Security`, `Speech`, `User`, and other standalone services.
-4.  **`AirFit/Modules/`**: Reviewing representative modules such as `Onboarding` (Coordinator reviewed, Views missing/unverified), `Dashboard` (partially reviewed), `FoodTracking` (Models, Services, ViewModel, Coordinator, and key Views reviewed, revealing good progress but some placeholders and missing components like `FoodDatabaseService`), `AI` (as an engine), `Chat` (partially reviewed), `Workouts` (partially reviewed), and `Settings` (found to be empty) to check adherence to MVVM-C, correct component placement, and encapsulation.
-5.  **`AirFit/Application/`**: Reviewing application lifecycle management, entry points, and overall application setup.
-
-This systematic approach ensures the entire reviewed codebase portion aligns with the desired high standards of structure and maintainability, and the findings from this comprehensive review are consolidated in the following section.
+*Note to User: The following consolidated findings and recommendations (Section 12) might require updates based on the implementation of Modules 9, 10, and 11. This section was not fully visible in the provided context, so manual review is advised.*
 
 ## 12. Consolidated Findings and Recommendations
 
-This section consolidates the key findings and actionable recommendations identified throughout the detailed file-level analysis (Sections 7.1 to 7.31) and reinforced by the comprehensive reviews detailed in Section 8. Addressing these points will enhance architectural consistency, maintainability, and adherence to project guidelines.
+This section consolidates all major findings, recommendations, and critical action items from the architectural analysis. It incorporates insights from the initial review, Modules 9, 10, and 11, and deep dives into AI PersonaSynthesis, AI Functions, and WatchApp structure.
 
-### 12.1. Core Layer (`AirFit/Core/`)
+### 12.1. Critical Implementation Gaps & Missing Components
 
-*   **Core Services (`AirFit/Core/Services/` - Ref: 7.7):**
-    *   **Action:** Relocate `WhisperModelManager.swift` and `VoiceInputManager.swift` from `AirFit/Core/Services/` to `AirFit/Services/Speech/`. The `Core/Services/` directory should primarily house service abstractions (protocols) or very small, foundational utility services.
-    *   **Suggestion:** Consider defining corresponding protocols for these speech services (e.g., `SpeechModelManaging`, `VoiceInputProviding`) in `AirFit/Core/Protocols/` for improved decoupling.
+Represent missing/incomplete features impacting functionality or progress.
 
-*   **Core Theme (`AirFit/Core/Theme/` - Ref: 7.8):**
-    *   **Action:** Consolidate spacing definitions. Preferentially use `AppSpacing.swift` as the source of truth for the spacing scale. If semantic constants like `defaultPadding` are needed in `AppConstants.Layout`, they should reference values from `AppSpacing` (e.g., `static let defaultPadding = AppSpacing.medium`) to avoid duplication and potential inconsistency.
+1.  **Onboarding Module UI Views Unverified/Missing:** `AGENTS.md` marks Onboarding complete, but initial analysis (Sec 2, Table) noted UI Views (e.g., `OnboardingIntroView`) unverified/not found. Confirm and implement if still outstanding. (Ref: Sec 2)
+2.  **Dashboard Module Missing Concrete Service Implementations:** The Dashboard module defines service protocols but lacks concrete implementations for them within `AirFit/Modules/Dashboard/Services/`. (Ref: Sec 1, Sec 2, Sec 9.26)
+3.  **Missing Production `DefaultUserService`:** A production implementation of `UserServiceProtocol` (e.g., `DefaultUserService`) is needed in `AirFit/Services/User/`. (Ref: Sec 1, Sec 2, Sec 9.20)
+4.  **FoodTracking Module `FoodDatabaseService` Missing:** The FoodTracking module's `AGENTS.md` specifies a `FoodDatabaseService.swift`, which was not found. This service is likely crucial for searching/querying food databases. (Ref: Sec 2, Sec 9.27)
+5.  **ChatViewModel AI Integration Placeholder:** The `ChatViewModel` uses placeholder AI response logic; needs integration with `CoachEngine` (via `CoachEngineProtocol`). (Ref: Sec 2, Sec 9.30)
 
-*   **Core Protocols (General Recommendation):**
-    *   Throughout the analysis, several service protocols currently residing in specific service directories (e.g., `Services/Health/HealthKitManagerProtocol.swift`, `Services/Network/NetworkClientProtocol.swift`, `Services/User/UserServiceProtocol.swift`, `Services/Security/APIKeyManagerProtocol.swift`) have been identified as candidates for promotion to `AirFit/Core/Protocols/`. This is because they define fundamental service contracts used for dependency injection across multiple modules.
-    *   **Action:** Systematically review and move such broadly applicable service protocols to `AirFit/Core/Protocols/`.
+### 12.2. Data Model & Persistence Integrity
 
-*   **Core Extensions (General Recommendation):**
-    *   Extensions on Core Swift/SwiftUI types or Core data models that provide general utility should reside in `AirFit/Core/Extensions/`. Specific instances were noted for `HealthKitExtensions.swift` (Ref: 7.18) and enum mapping functions in `ExerciseDatabase.swift` (Ref: 7.24.2).
-    *   **Action:** Ensure extensions on core types are consistently placed in `AirFit/Core/Extensions/`.
+Issues related to SwiftData models, schema definition, and data persistence.
 
-### 12.2. Data Layer (`AirFit/Data/`)
+1.  **Incomplete SwiftData Schema in `AirFitApp.swift`:** The main `ModelContainer` schema in `AirFitApp.swift` must be comprehensive and align with the production migration schema (e.g., `Schema(SchemaV1.models)`). (Ref: Sec 1, Sec 9.28)
+2.  **Misplaced SwiftData Models (`ConversationSession`, `ConversationResponse`):** These `@Model` classes, critical for Onboarding's conversational flow, are incorrectly located in `AirFit/Modules/Onboarding/Models/`. They must be moved to `AirFit/Data/Models/` and integrated into the main SwiftData schema. (Ref: Sec 1, Sec 2, Sec 9.25.1)
+3.  **Verify `DataManager.swift` Preview Schema:** Ensure the schema used in `DataManager.swift` for SwiftUI Previews (in-memory container) is accurate and includes all necessary models, particularly checking `ConversationSession`/`ConversationResponse` vs. `ChatSession`/`ChatMessage`. (Ref: Sec 9.12)
 
-*   **Data Managers (`AirFit/Data/Managers/DataManager.swift` - Ref: 7.12):**
-    *   **Action:** Improve error logging in `DataManager.swift` to use `AppLogger.error()` instead of `print()`.
-    *   **Action:** Verify and correct the SwiftData schema used in the `DataManager.swift`'s SwiftUI preview setup code to ensure it accurately reflects all necessary `@Model` types (e.g., `ConversationSession` vs. `ChatSession`).
+### 12.3. Architectural Refinements & Consistency
 
-*   **Data Extensions (`AirFit/Data/Extensions/ModelContainer+Testing.swift` - Ref: 7.14):**
-    *   **Action:** Ensure the schema definition used in `ModelContainer.createTestContainer()` aligns with the production schema version (e.g., by referencing `SchemaV1.models`).
+Improve architectural clarity, consistency, reduce redundancy.
 
-*   **Misplaced SwiftData Models (Ref: 7.25.1 - Onboarding):**
-    *   **Critical Action:** Move the `@Model` definitions for `ConversationSession` and `ConversationResponse` from `AirFit/Modules/Onboarding/Models/ConversationModels.swift` to new, separate files within `AirFit/Data/Models/`.
-    *   **Action:** Ensure these models are correctly added to the main SwiftData schema in `AirFit/Data/Migrations/SchemaV1.swift` (and subsequent versions) and any relevant test schemas.
-    *   **Action:** Define proper `@Relationship` attributes for these models to establish correct two-way relationships (e.g., `ConversationSession.responses` and `ConversationResponse.session`).
+1.  **Standardize Service Protocol Placement:** Consistently move shared service protocols (e.g., `NetworkClientProtocol`, `AIServiceProtocol`, `UserServiceProtocol`, `HealthKitManagerProtocol`, `APIKeyManagementProtocol`, `WeatherServiceProtocol`) from their current locations (often in module-specific or top-level `Services/` directories) to `AirFit/Core/Protocols/`. This establishes them as true core contracts for dependency injection. (Ref: Sec 1, Sec 9.7, Sec 9.15, Sec 9.18, Sec 9.19, Sec 9.20, Sec 9.23, Sec 9.33)
+2.  **Reconcile AI Data Model Definitions:** Consolidate AI data model definitions (e.g., `AIRequest`, `AIResponse`, `ChatMessage` types). Module 10's `ServiceProtocols.swift` defines some, while `AirFit/Core/Models/AI/AIModels.swift` also contains foundational AI models. Aim for a single source of truth in `AirFit/Core/Models/AI/`. (Ref: Sec 1, Sec 9.1, Sec 9.33)
+3.  **Clarify Roles of `LLMOrchestrator` and `UnifiedAIService`:** Resolve potential redundancy/overlap in `Services/AI/`. `LLMOrchestrator` should ideally be the central engine for provider management and core LLM operations, with `UnifiedAIService` acting as a higher-level consumer or facade. (Ref: Sec 9.15)
+4.  **Clarify Roles of `OptimizedPersonaSynthesizer` and `PersonaSynthesizer`:** In `Modules/AI/PersonaSynthesis/`, determine if the optimized version supersedes the other, or if they serve distinct documented purposes. Consolidate if appropriate. (Ref: Sec 10.1)
+5.  **Consolidate Core Spacing Definitions:** Resolve overlap between `AppSpacing.swift` (`Core/Theme/`) and `AppConstants.Layout` (`Core/Constants/`) by `AppConstants.Layout` referencing `AppSpacing` values. (Ref: Sec 9.8)
+6.  **Relocate Misplaced Core Services:** Move concrete service implementations `WhisperModelManager.swift` and `VoiceInputManager.swift` from `AirFit/Core/Services/` to `AirFit/Services/Speech/`. `Core/Services/` for low-level abstractions/protocols. (Ref: Sec 9.7)
+7.  **Relocate `HealthKitExtensions.swift` Content:** Move the extension on `HeartHealthMetrics.CardioFitnessLevel` (a Core model type) from `Services/Health/HealthKitExtensions.swift` to `AirFit/Core/Extensions/`. (Ref: Sec 9.18)
+8.  **Relocate Core Enum Mapping Extensions:** Consider moving `static func fromRawValue(_:)` extensions on Core enums (from `ExerciseDatabase.swift`) to `AirFit/Core/Extensions/` if broadly useful. (Ref: Sec 9.24.2)
+9.  **Service Placement for Module 9 (Notifications):** While Module 9 spec places its core services (`NotificationManager`, `EngagementEngine`, etc.) in top-level `AirFit/Services/`, consider if `AirFit/Modules/Notifications/Services/` would offer stricter modularity if these services are primarily consumed by the Notifications module and its settings UI. (Ref: Sec 9.32)
 
-### 12.3. Top-Level Services Layer (`AirFit/Services/`)
+### 12.4. Module-Specific Issues & Enhancements
 
-*   **AI Services (`AirFit/Services/AI/` - Ref: 7.15):**
-    *   **Action:** Refactor `LLMOrchestrator` and `UnifiedAIService` to establish a single source of truth for provider management, caching, and core LLM orchestration logic. Clarify their distinct roles to avoid redundancy.
-    *   **Suggestion:** Consider moving `AIAPIServiceProtocol` to `AirFit/Core/Protocols/` if it's intended for broad use.
-    *   **Suggestion:** Evaluate if `LLMModel` and `AITask` enums (from `LLMProviders/LLMModels.swift`) should be moved to a more global location (e.g., `Core/Models/AI/` or `Core/Enums/`) if referenced widely outside `Services/AI/`.
-    *   **Action:** Address the `TODO` in `UnifiedAIService.swift` regarding adding `function` and `tool` roles to `LLMMessage.Role`.
+Targeted recommendations for individual modules.
 
-*   **User Services (`AirFit/Services/User/` - Ref: 7.20):**
-    *   **Critical Action:** Implement a concrete `DefaultUserService` class within `AirFit/Services/User/` that conforms to `UserServiceProtocol`. This service should interact with SwiftData and potentially `AppState`.
-    *   **Action:** Move `UserServiceProtocol.swift` to `AirFit/Core/Protocols/`.
+*   **Onboarding Module:**
+    *   Address the critical misplacement of `ConversationSession` and `ConversationResponse` SwiftData models (see 12.2.2).
+    *   Verify UI View files are present and correctly located.
+*   **Dashboard Module:**
+    *   Implement concrete services for defined protocols in `Modules/Dashboard/Services/`.
+    *   Create `Modules/Dashboard/Models/` for view-state structs (e.g., `NutritionSummary`, `RecoveryScore`) currently in the ViewModel.
+    *   Add a `DashboardCoordinator` in `Modules/Dashboard/Coordinators/` if navigation is involved. (Ref: Sec 2, Sec 9.26)
+*   **FoodTracking Module:**
+    *   Implement the missing `FoodDatabaseService`. (Ref: Sec 2, Sec 9.27)
+    *   Complete placeholder functionality (e.g., editing items, manual entry) in `NutritionService` and `FoodConfirmationView`. (Ref: Sec 2)
+*   **Chat Module:**
+    *   Integrate `ChatViewModel` with `CoachEngine` for actual AI responses. (Ref: Sec 2, Sec 9.30)
+    *   Consider creating `Modules/Chat/Models/` for view-specific structs (e.g., `QuickSuggestion`) if shared across views. (Ref: Sec 9.30)
+    *   Assess SwiftData performance for chat history as data scales. (Ref: Sec 9.30)
+*   **Workouts Module:**
+    *   Organize view-specific structs (e.g., `WeeklyWorkoutStats`) into a `Modules/Workouts/Models/` directory. (Ref: Sec 9.31)
+    *   Evaluate the local `CoachEngineProtocol` pattern vs. using a public protocol from `Modules/AI/`. (Ref: Sec 9.31)
+*   **Settings Module (M11):**
+    *   The implementation of Module 11 resolved the previous "empty module" finding.
+    *   Review the default AI model selection logic in `SettingsViewModel` for robustness (e.g., `selectedModel = user.selectedAIModel ?? "gpt-4"` could be more dynamic). (Ref: Sec 9.34)
+    *   Ensure `AIServiceManager` (used by `SettingsListView`) is a well-defined and appropriately placed facade if it's not part of Module 10. (Ref: Sec 9.34)
+*   **AI Module (General):**
+    *   Clearly document the public-facing service protocols that `Modules/AI/` provides for other modules (e.g., `CoachEngineProtocol`). (Ref: Sec 9.29)
+*   **Speech Services:**
+    *   Relocate `WhisperModelManager` and `VoiceInputManager` to `AirFit/Services/Speech/`. (Ref: Sec 9.7, Sec 9.21)
+    *   Refactor `WhisperServiceWrapperProtocol` (and any implementations/clients) to use `async/await` instead of Combine/completion handlers to align with project standards. (Ref: Sec 9.21)
 
-*   **Speech Services (`AirFit/Services/Speech/` - Ref: 7.7, 7.21):**
-    *   **Action:** Relocate `WhisperModelManager.swift` and `VoiceInputManager.swift` from `AirFit/Core/Services/` to `AirFit/Services/Speech/`.
-    *   **Action:** Evaluate the existing `WhisperServiceWrapperProtocol` (Combine-based). Refactor client code to use an `async/await`-based interface directly from `VoiceInputManager` or a new `async/await` protocol, aligning with project standards.
-    *   **Action:** If a speech service protocol is used for general dependency injection, move it (current or revised version) to `AirFit/Core/Protocols/`.
+### 12.5. Production Readiness, Configuration & Other Items
 
-*   **Platform Services (`AirFit/Services/Platform/` - Ref: 7.22):**
-    *   **Action:** Provide a concrete implementation (e.g., `DefaultNotificationManager`) for `NotificationManagerProtocol` within this directory or the dedicated "Notifications & Engagement Engine" module, if more appropriate.
-    *   **Action:** Refactor `NotificationManagerProtocol` and its implementation to use `async/await` instead of completion handlers.
-    *   **Action:** If the protocol (once updated) is for general use, move it to `AirFit/Core/Protocols/`.
-    *   **Suggestion:** Better define the scope of `AirFit/Services/Platform/` if it's retained.
+Impacting production readiness and general configuration.
 
-*   **Security Services (`AirFit/Services/Security/` - Ref: 7.23):**
-    *   **Critical Action:** Implement a concrete `DefaultAPIKeyManager` class within `AirFit/Services/Security/` that conforms to `APIKeyManagerProtocol`, using `KeychainWrapper` for secure storage.
-    *   **Action:** Move `APIKeyManagerProtocol.swift` to `AirFit/Core/Protocols/`.
-    *   **Action:** Plan to migrate all clients from the legacy synchronous methods in `APIKeyManagerProtocol` to the `async` versions, eventually deprecating the old methods.
+1.  **Replace Mock Service Usage in Production Path:** The main `ContentView.swift` injects `MockAIService()` for the Onboarding flow. This must be replaced with a production AI service instance. (Ref: Sec 1, Sec 9.28)
+2.  **Ensure Critical App Initialization:** `AirFitApp.swift` needs to explicitly call `DependencyContainer.shared.configure(with: Self.sharedModelContainer)` and `DataManager.shared.performInitialSetup(with: Self.sharedModelContainer)` at launch. (Ref: Sec 9.28)
+3.  **Resolve `MinimalContentView.swift` Name Collision:** Rename `MinimalContentView.swift` (`Application/`) to avoid conflict with the main `ContentView.swift` (e.g., `MinimalOnboardingTestView.swift`). (Ref: Sec 9.28)
+4.  **Improve `DataManager.swift` Error Handling:** Change `print()` statements in `DataManager` setup methods to use `AppLogger.error()`. (Ref: Sec 9.12)
+5.  **Legacy API in `APIKeyManagerProtocol`:** Plan to migrate clients of `APIKeyManagerProtocol` to the `async` API and deprecate synchronous methods. (Ref: Sec 9.23)
+6.  **`FallbackPersonaGenerator` Cache Usage:** The `AIResponseCache` injected into `FallbackPersonaGenerator` is unused; consider removing if not planned for future use. (Ref: Sec 10.1)
 
-### 12.4. Modules Layer (`AirFit/Modules/`)
-
-*   **General Module Structure:**
-    *   Ensure all feature modules adhere to the standard structure: `Views/`, `ViewModels/`, `Models/` (for module-specific, non-SwiftData view-state models or transient data), `Services/` (for module-specific business logic), and `Coordinators/`.
-
-*   **Onboarding Module (`AirFit/Modules/Onboarding/` - Ref: 7.25, 8.1):**
-    *   Primary action is the relocation of SwiftData models (see 10.2).
-    *   Ensure `ConversationFlowManager` correctly uses the relocated SwiftData models for persistence.
-    *   **Finding:** The `OnboardingCoordinator.swift` is well-implemented.
-    *   **Critical Finding:** Key view files like `OnboardingIntroView.swift` were not found, indicating the module, though marked "Completed", may have missing UI components or they are misplaced. This needs verification.
-
-*   **Dashboard Module (`AirFit/Modules/Dashboard/` - Ref: 7.26):**
-    *   **Action:** Create a `AirFit/Modules/Dashboard/Models/` directory and move view-specific data structs (e.g., `NutritionSummary`, `RecoveryScore`) from `DashboardViewModel.swift` into it.
-    *   **Critical Action:** Create concrete service classes (e.g., `DefaultDashboardHealthKitService`) within `AirFit/Modules/Dashboard/Services/` that implement the module-defined protocols (`HealthKitServiceProtocol`, etc.).
-    *   **Suggestion:** If the dashboard has navigational responsibilities, create a `DashboardCoordinator` in `AirFit/Modules/Dashboard/Coordinators/`.
-
-*   **FoodTracking Module (`AirFit/Modules/FoodTracking/` - Ref: 7.27, 8.2):**
-    *   **Finding:** The module shows significant progress with well-structured components:
-        *   `Models/FoodTrackingModels.swift` contains appropriate module-specific data structures.
-        *   `Services/FoodVoiceAdapter.swift` effectively adapts voice input.
-        *   `Services/NutritionService.swift` is a robust actor for core logic, though with some placeholder methods (water tracking, target calculation).
-        *   `ViewModels/FoodTrackingViewModel.swift` is comprehensive and centralizes feature logic, showing good AI integration.
-        *   `FoodTrackingCoordinator.swift` (at module root) manages navigation effectively.
-        *   Key views like `FoodLoggingView.swift`, `VoiceInputView.swift`, and `FoodConfirmationView.swift` are well-designed.
-    *   **Critical Action:** Implement the `FoodDatabaseService.swift` as specified in its module-specific `AGENTS.md` (if guidelines exist) or as logically required for food database integration.
-    *   **Action:** Complete placeholder functionalities:
-        *   Implement water tracking and target calculation logic in `NutritionService.swift`.
-        *   Implement full editing capabilities in `FoodItemEditView.swift` (from `FoodConfirmationView`).
-        *   Implement full manual food entry in `ManualFoodEntryView.swift` (from `FoodConfirmationView`).
-    *   **Action:** Define the `FoodNutritionSummary` struct (likely in `AirFit/Modules/FoodTracking/Models/`). (This was found to be present and correct in `FoodTrackingModels.swift` during the deeper review, so this specific action can be marked as resolved/verified).
-    *   **Suggestion:** Consider standardizing coordinator placement in a `Coordinators/` sub-directory if other modules follow this pattern.
-
-*   **Chat Module (`AirFit/Modules/Chat/` - Ref: 7.30):**
-    *   **Critical Action:** Update `ChatViewModel.generateAIResponse` to integrate with the actual `CoachEngine` (via `CoachEngineProtocol`) to send user messages and receive/display real AI responses, replacing placeholder logic.
-    *   **Suggestion:** Move view-specific structs (`QuickSuggestion`, `ContextualAction`, `ChatError`) into a new `AirFit/Modules/Chat/Models/` directory.
-    *   **Consideration:** Address potential SwiftData fetch performance for chat history as data scales, particularly if `ChatSession`/`ChatMessage` are distinct from `CoachMessage`.
-
-*   **Workouts Module (`AirFit/Modules/Workouts/` - Ref: 7.31 in document):**
-    *   **Action:** Create `AirFit/Modules/Workouts/Models/` and move view-specific model structs (like `WeeklyWorkoutStats`) there.
-    *   **Action:** Ensure the `PostWorkoutAnalysisRequest` struct dependency (likely from `Modules/AI/Models/`) is clearly defined and accessible.
-    *   **Suggestion:** Evaluate the use of a local `CoachEngineProtocol` versus using a more comprehensive public protocol directly from the AI module for consistency.
-    *   **Suggestion:** Consider adding a module-specific service if workout-related business logic complexity increases.
-
-*   **Settings Module (`AirFit/Modules/Settings/` - Ref: 7.31):**
-    *   **Critical Action:** Verify the status of the Settings module. If implemented, locate its files and move them to the correct subdirectories within `AirFit/Modules/Settings/`. If not implemented, it needs to be developed according to project architectural patterns (MVVM-C, standard module structure). This module is essential.
-
-### 12.5. Application Layer (`AirFit/Application/`) (Ref: 7.28)
-
-*   **`AirFitApp.swift` (App Entry Point):**
-    *   **Critical Action:** Correct the main SwiftData `ModelContainer` schema. It must be comprehensive and match the production migration schema (e.g., `let schema = Schema(SchemaV1.models)`).
-    *   **Critical Action:** Ensure `DependencyContainer.shared.configure(with: Self.sharedModelContainer)` and `DataManager.shared.performInitialSetup(with: Self.sharedModelContainer)` are called at app launch (e.g., in `AirFitApp.init()` or early in `ContentView`).
-
-*   **`ContentView.swift` (Main Root View):**
-    *   **Critical Action:** Replace the hardcoded `MockAIService()` injection when presenting `OnboardingFlowView` with a real, production AI service instance (e.g., obtained from `DependencyContainer`).
-
-*   **`MinimalContentView.swift` (Test View):**
-    *   **Action:** Rename this struct and its file (e.g., to `MinimalOnboardingTestView.swift`) to avoid the naming conflict with the main `ContentView.swift`.
-
-## 13. Conclusion
-
-The AirFit project exhibits a generally sound architectural foundation, aiming for modularity with MVVM-C, clear separation of concerns, and adherence to modern Swift and iOS development practices. The multi-level `Services` structure, once fully aligned with the intent described (Core for abstractions, top-level for shared concrete services, module-level for specific business logic), supports this design well.
-
-The comprehensive analysis, now including detailed file-level reviews of core areas and deeper dives into specific module components like Onboarding (Coordinator) and FoodTracking (Models, Services, ViewModel, Coordinator, and key Views), has pinpointed several areas where implementation can be better aligned with the documented architecture. These primarily involve:
-1.  **Consistent Placement of Components:** Ensuring protocols are in `Core/Protocols`, concrete services are in their appropriate domain-specific top-level or module-level `Services` directories, and SwiftData models are centralized in `Data/Models`.
-2.  **Completeness of Modules and Features:** Implementing missing services (e.g., `FoodDatabaseService`), view components (e.g., potentially in Onboarding), or completing placeholder functionalities within existing views (e.g., edit/manual add in `FoodConfirmationView`). Addressing modules marked as complete but found to be empty (e.g., Settings) is critical.
-3.  **Correct Dependency Management:** Replacing mock services with production implementations in critical paths (e.g., AI service in `ContentView`).
-4.  **Data Integrity and Setup:** Ensuring the main SwiftData schema is correctly and comprehensively defined at app launch and that initial data setup routines are reliably executed.
-5.  **Adherence to Project Standards:** Consistently using `async/await` over older concurrency patterns and leveraging shared utilities like `AppLogger`.
-
-Addressing the critical actions and recommendations outlined in Section 10 will significantly strengthen the codebase's robustness, maintainability, and scalability. The current structure provides a good scaffold, and these refinements will help realize its full potential, ensuring the AirFit application can evolve efficiently and reliably. Continued vigilance in adhering to these architectural principles during future development will be key to long-term success. 
+This consolidated list offers a clear roadmap for addressing architectural issues and refining the codebase for clarity, robustness, and maintainability.

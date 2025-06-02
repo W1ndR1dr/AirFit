@@ -3,6 +3,7 @@ import SwiftData
 import Observation
 import Combine
 
+
 // MARK: - HealthKit Prefill Protocol
 protocol HealthKitPrefillProviding: AnyObject, Sendable {
     func fetchTypicalSleepWindow() async throws -> (bed: Date, wake: Date)?
@@ -67,7 +68,7 @@ final class OnboardingViewModel {
         aiService: AIServiceProtocol,
         onboardingService: OnboardingServiceProtocol,
         modelContext: ModelContext,
-        apiKeyManager: APIKeyManagerProtocol,
+        apiKeyManager: APIKeyManagementProtocol,
         userService: UserServiceProtocol,
         speechService: WhisperServiceWrapperProtocol? = nil,
         healthPrefillProvider: HealthKitPrefillProviding? = nil,
