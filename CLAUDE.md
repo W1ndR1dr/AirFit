@@ -5,7 +5,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 ## Project Overview
 **AirFit** - Voice-first AI-powered fitness & nutrition tracking app for iOS 18.0+ using SwiftUI, SwiftData, and multi-LLM AI integration. Chat-based interface with dynamic AI coach personas generated during onboarding.
 
-**Status**: Modules 0-10 COMPLETE ✅. Currently implementing Module 9 & 11 in parallel.
+**Status**: Modules 0-11 COMPLETE ✅. Currently implementing Module 12 - Final Integration & Production Polish.
 
 ## Build & Run Commands
 ```bash
@@ -45,23 +45,25 @@ AirFit/
 3. Verify the file appears in Xcode project navigator
 
 ## Key Documents
-- **Module Specs**: `Docs/Module9.md` and `Docs/Module11.md` - Current implementation targets
-- **Module 12**: `Docs/Module12.md` - Final integration and testing phase
-- **Architecture**: `Docs/ArchitectureAnalysis.md` - Comprehensive codebase analysis
-- **Agent Communication**: `claude2claude.md` - Inter-agent coordination for parallel work
+- **Module 12**: `Docs/Module12.md` - Final integration, testing, and production polish
+- **Architecture Analysis**: `Docs/ArchitectureAnalysis.md` - Comprehensive codebase analysis and recommendations
+- **Architecture Overview**: `Docs/ArchitectureOverview.md` - System design and module relationships
+- **Testing Guidelines**: `Docs/TESTING_GUIDELINES.md` - End-to-end testing standards
 
 ## Module Implementation Sequence
-**Current Implementation Status:**
-1. **✅ Module 10**: Services Layer (API Clients & AI Router) - COMPLETE 
-2. **🚧 Module 9 & 11** (Parallel - Current Focus): 
-   - Module 9: Notifications & Engagement Engine
-   - Module 11: Settings Module (UI & Logic)
-3. **📋 Module 12**: Testing & Quality Assurance Framework (Next)
+**Final Implementation Status:**
+1. **✅ Modules 0-11**: All core functionality complete - Foundation, UI, Services, Notifications, Settings
+2. **🚧 Module 12** (Current Focus): Final Integration & Production Polish
+   - End-to-end testing and validation
+   - Performance optimization and tuning
+   - Code organization and cleanup
+   - Production readiness verification
 
-## Parallel Development Coordination
-- **Agent Communication**: Use `claude2claude.md` for coordination when needed
-- **Independence**: Modules 9 & 11 can be developed independently without conflicts
-- **Shared Dependencies**: Both modules depend on Module 10 services (already complete)
+## Module 12 Focus Areas
+- **Integration Testing**: Comprehensive end-to-end user flows
+- **Architecture Validation**: Ensure consistency with `ArchitectureAnalysis.md` recommendations
+- **Performance Optimization**: Meet all performance targets (<1.5s launch, 120fps, <150MB)
+- **Production Polish**: Final code cleanup, documentation, and deployment readiness
 
 ## Development Standards
 - **Performance Targets**: <1.5s app launch, 120fps transitions, <150MB memory, <3s persona generation
