@@ -4,11 +4,13 @@ import Foundation
 final class LLMOrchestrator: ObservableObject {
     private var providers: [LLMProviderIdentifier: any LLMProvider] = [:]
     private let apiKeyManager: APIKeyManagerProtocol
+    private let cache = AIResponseCache()
     
     @Published private(set) var availableProviders: Set<LLMProviderIdentifier> = []
     @Published private(set) var totalCost: Double = 0
     
     private var usageHistory: [UsageRecord] = []
+    private var cacheEnabled = true
     
     init(apiKeyManager: APIKeyManagerProtocol) {
         self.apiKeyManager = apiKeyManager
@@ -31,7 +33,8 @@ final class LLMOrchestrator: ObservableObject {
             model: model ?? task.recommendedModels.first!,
             temperature: temperature,
             maxTokens: maxTokens,
-            stream: false
+            stream: false,
+            task: task
         )
         
         return try await executeWithFallback(request: request, task: task)
@@ -48,7 +51,8 @@ final class LLMOrchestrator: ObservableObject {
             model: model ?? task.recommendedModels.first!,
             temperature: temperature,
             maxTokens: nil,
-            stream: true
+            stream: true,
+            task: task
         )
         
         return AsyncThrowingStream { continuation in
@@ -117,6 +121,14 @@ final class LLMOrchestrator: ObservableObject {
         task: AITask,
         attemptedProviders: Set<LLMProviderIdentifier> = []
     ) async throws -> LLMResponse {
+        // Check cache first if enabled
+        if cacheEnabled {
+            if let cachedResponse = await cache.get(request: request) {
+                AppLogger.debug("Cache hit for LLM request", category: .ai)
+                return cachedResponse
+            }
+        }
+        
         do {
             let provider = try await selectProvider(
                 for: request.model,
@@ -136,6 +148,13 @@ final class LLMOrchestrator: ObservableObject {
                 duration: duration,
                 success: true
             )
+            
+            // Cache the response if caching is enabled
+            if cacheEnabled {
+                // Determine TTL based on task type
+                let ttl = determineCacheTTL(for: task, request: request)
+                await cache.set(request: request, response: response, ttl: ttl)
+            }
             
             return response
         } catch {
@@ -207,7 +226,8 @@ final class LLMOrchestrator: ObservableObject {
         model: LLMModel,
         temperature: Double,
         maxTokens: Int?,
-        stream: Bool
+        stream: Bool,
+        task: AITask
     ) -> LLMRequest {
         LLMRequest(
             messages: [LLMMessage(role: .user, content: prompt, name: nil)],
@@ -217,7 +237,7 @@ final class LLMOrchestrator: ObservableObject {
             systemPrompt: nil,
             responseFormat: nil,
             stream: stream,
-            metadata: ["task": String(describing: model)]
+            metadata: ["task": String(describing: task)]
         )
     }
     
@@ -253,6 +273,50 @@ final class LLMOrchestrator: ObservableObject {
     private func estimateTokenCount(_ text: String) -> Int {
         // Rough estimation: ~4 characters per token
         return text.count / 4
+    }
+    
+    private func determineCacheTTL(for task: AITask, request: LLMRequest) -> TimeInterval {
+        // Determine cache TTL based on task type and other factors
+        switch task {
+        case .personalityExtraction:
+            // Personality extraction results should be cached for consistency
+            return 3600 * 6 // 6 hours
+        case .personaSynthesis:
+            // Persona synthesis is expensive and results are stable
+            return 3600 * 24 // 24 hours
+        case .conversationAnalysis:
+            // Conversation analysis can be cached moderately
+            return 3600 * 4 // 4 hours
+        case .coaching:
+            // Coach responses should be fresh and personalized
+            return 3600 // 1 hour
+        case .quickResponse:
+            // Quick responses should be somewhat fresh
+            return 1800 // 30 minutes
+        }
+    }
+    
+    // MARK: - Cache Control Methods
+    
+    func setCacheEnabled(_ enabled: Bool) {
+        cacheEnabled = enabled
+        if !enabled {
+            Task {
+                await cache.clear()
+            }
+        }
+    }
+    
+    func clearCache() async {
+        await cache.clear()
+    }
+    
+    func invalidateCache(tag: String) async {
+        await cache.invalidate(tag: tag)
+    }
+    
+    func getCacheStatistics() async -> CacheStatistics {
+        await cache.getStatistics()
     }
 }
 

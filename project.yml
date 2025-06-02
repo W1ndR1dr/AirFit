@@ -151,6 +151,9 @@ targets:
       - AirFit/Services/AI/LLMProviders/OpenAIProvider.swift
       - AirFit/Services/AI/LLMProviders/GeminiProvider.swift
       - AirFit/Services/AI/LLMOrchestrator.swift
+      - AirFit/Services/AI/AIResponseCache.swift
+      - AirFit/Services/AI/AIAPIService.swift
+      - AirFit/Services/AI/UnifiedAIService.swift
       - AirFit/Modules/AI/Parsing/LocalCommandParser.swift
       - AirFit/Modules/AI/Functions/FunctionRegistry.swift
       - AirFit/Modules/AI/Functions/WorkoutFunctions.swift
@@ -158,7 +161,6 @@ targets:
       - AirFit/Modules/AI/Functions/AnalysisFunctions.swift
       - AirFit/Modules/AI/Functions/GoalFunctions.swift
       - AirFit/Modules/AI/Functions/FunctionCallDispatcher.swift
-      - AirFit/Modules/AI/Functions/MockServices.swift
       - AirFit/Modules/AI/PersonaEngine.swift
       - AirFit/Modules/AI/Models/PersonaMode.swift  # Phase 4: Discrete persona modes
       - AirFit/Modules/AI/ConversationManager.swift
@@ -185,6 +187,7 @@ targets:
       - AirFit/Services/Context/ContextAssembler.swift
       - AirFit/Services/WorkoutSyncService.swift
       - AirFit/Services/ExerciseDatabase.swift
+      - AirFit/Services/Monitoring/ProductionMonitor.swift
       - AirFit/Modules/Workouts/ViewModels/WorkoutViewModel.swift
       - AirFit/Modules/Workouts/Coordinators/WorkoutCoordinator.swift
       - AirFit/Modules/Workouts/Views/WorkoutListView.swift
@@ -308,10 +311,14 @@ targets:
       # TASK 8 FINAL INTEGRATION TEST FILE (CRITICAL: Phase 1 Task 8 - Final Validation)
       - AirFit/AirFitTests/FoodTracking/NutritionParsingFinalIntegrationTests.swift
       - AirFit/AirFitTests/Integration/NutritionParsingIntegrationTests.swift
+      - AirFit/AirFitTests/Integration/PersonaSystemIntegrationTests.swift
+      # Phase 3 Performance Tests
+      - AirFit/AirFitTests/Performance/PersonaGenerationStressTests.swift
       - AirFit/AirFitTests/Mocks/MockAIService.swift
       - AirFit/AirFitTests/Mocks/MockOnboardingService.swift
       - AirFit/AirFitTests/Mocks/MockWhisperServiceWrapper.swift
       - AirFit/AirFitTests/Mocks/MockAIAPIService.swift
+      - AirFit/AirFitTests/Mocks/MockAIFunctionServices.swift
     dependencies:
       - target: AirFit
     settings:
