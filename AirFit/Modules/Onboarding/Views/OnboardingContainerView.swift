@@ -119,7 +119,7 @@ private struct WelcomeView: View {
             // Logo or illustration
             Image(systemName: "figure.run.circle.fill")
                 .font(.system(size: 120))
-                .foregroundStyle(.accentColor)
+                .foregroundStyle(AppColors.accent)
                 .symbolEffect(.pulse)
             
             VStack(spacing: 16) {

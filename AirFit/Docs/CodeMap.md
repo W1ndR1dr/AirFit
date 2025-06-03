@@ -187,16 +187,30 @@
 │   │   │   │   └── AIModels.swift
 │   │   │   ├── HealthContextSnapshot.swift
 │   │   │   ├── NutritionPreferences.swift
+│   │   │   ├── ServiceTypes.swift
 │   │   │   └── WorkoutBuilderData.swift
 │   │   ├── Protocols
+│   │   │   ├── AIAPIServiceProtocol.swift
 │   │   │   ├── AIServiceProtocol.swift
+│   │   │   ├── AnalyticsServiceProtocol.swift
+│   │   │   ├── APIKeyManagementProtocol.swift
 │   │   │   ├── APIKeyManagerProtocol.swift
+│   │   │   ├── DashboardServiceProtocols.swift
+│   │   │   ├── FoodVoiceAdapterProtocol.swift
+│   │   │   ├── FoodVoiceServiceProtocol.swift
+│   │   │   ├── GoalServiceProtocol.swift
+│   │   │   ├── HealthKitManagerProtocol.swift
+│   │   │   ├── LLMProvider.swift
 │   │   │   ├── NetworkClientProtocol.swift
+│   │   │   ├── NetworkManagementProtocol.swift
+│   │   │   ├── NutritionServiceProtocol.swift
+│   │   │   ├── OnboardingServiceProtocol.swift
+│   │   │   ├── ServiceProtocol.swift
 │   │   │   ├── UserServiceProtocol.swift
-│   │   │   └── ViewModelProtocol.swift
-│   │   ├── Services
-│   │   │   ├── VoiceInputManager.swift
-│   │   │   └── WhisperModelManager.swift
+│   │   │   ├── ViewModelProtocol.swift
+│   │   │   ├── WeatherServiceProtocol.swift
+│   │   │   ├── WhisperServiceWrapperProtocol.swift
+│   │   │   └── WorkoutServiceProtocol.swift
 │   │   ├── Theme
 │   │   │   ├── AppColors.swift
 │   │   │   ├── AppFonts.swift
@@ -247,10 +261,6 @@
 │   │       ├── Workout.swift
 │   │       └── WorkoutTemplate.swift
 │   ├── Docs
-│   │   ├── Completed
-│   │   │   ├── HealthKitIntegration.md
-│   │   │   ├── OnboardingFlow.md
-│   │   │   └── SystemPrompt.md
 │   │   ├── IGNORE
 │   │   │   ├── Archive
 │   │   │   │   ├── Persona Refactor Tasks.md
@@ -260,8 +270,10 @@
 │   │   │       ├── API_INTEGRATION_ANALYSIS.md
 │   │   │       ├── CODEBASE_CONTEXT.md
 │   │   │       ├── COMMON_COMMANDS.md
+│   │   │       ├── HealthKitIntegration.md
 │   │   │       ├── IMPLEMENTATION_CHECKLIST.md
 │   │   │       ├── Module10_Compatibility_Analysis.md
+│   │   │       ├── OnboardingFlow.md
 │   │   │       ├── PERSONA_REFACTOR_EXECUTION_GUIDE.md
 │   │   │       ├── Phase1_ConversationalFoundation.md
 │   │   │       ├── Phase2_PersonaSynthesis.md
@@ -272,15 +284,20 @@
 │   │   │       ├── Phase4_Implementation_Summary.md
 │   │   │       ├── README.md
 │   │   │       ├── START_HERE.md
-│   │   │       └── STATUS_AND_VISION.md
+│   │   │       ├── STATUS_AND_VISION.md
+│   │   │       ├── SystemPrompt.md
+│   │   │       └── Tuneup.md
 │   │   ├── Research Reports
 │   │   │   ├── Agents.md Report.md
 │   │   │   ├── API Integration Report.md
+│   │   │   ├── Architecture Cleanup Summary.md
 │   │   │   ├── Claude Config Report.md
 │   │   │   ├── Codex Optimization Report.md
 │   │   │   └── MLX Whisper Integration Report.md
+│   │   ├── Architecture Update Report.md
 │   │   ├── ArchitectureAnalysis.md
 │   │   ├── ArchitectureOverview.md
+│   │   ├── CodeMap.md
 │   │   ├── Design.md
 │   │   ├── Module0.md
 │   │   ├── Module1.md
@@ -297,8 +314,7 @@
 │   │   ├── Module11.md
 │   │   ├── Module12.md
 │   │   ├── Module13.md
-│   │   ├── TESTING_GUIDELINES.md
-│   │   └── Tuneup.md
+│   │   └── TESTING_GUIDELINES.md
 │   ├── Modules
 │   │   ├── AI
 │   │   │   ├── Configuration
@@ -329,21 +345,28 @@
 │   │   │   ├── PersonaEngine.swift
 │   │   │   └── WorkoutAnalysisEngine.swift
 │   │   ├── Chat
+│   │   │   ├── Coordinators
+│   │   │   │   └── ChatCoordinator.swift
 │   │   │   ├── Services
 │   │   │   │   ├── ChatExporter.swift
 │   │   │   │   ├── ChatHistoryManager.swift
 │   │   │   │   └── ChatSuggestionsEngine.swift
 │   │   │   ├── ViewModels
 │   │   │   │   └── ChatViewModel.swift
-│   │   │   ├── Views
-│   │   │   │   ├── ChatView.swift
-│   │   │   │   ├── MessageBubbleView.swift
-│   │   │   │   ├── MessageComposer.swift
-│   │   │   │   └── VoiceSettingsView.swift
-│   │   │   └── ChatCoordinator.swift
+│   │   │   └── Views
+│   │   │       ├── ChatView.swift
+│   │   │       ├── MessageBubbleView.swift
+│   │   │       ├── MessageComposer.swift
+│   │   │       └── VoiceSettingsView.swift
 │   │   ├── Dashboard
+│   │   │   ├── Coordinators
+│   │   │   │   └── DashboardCoordinator.swift
+│   │   │   ├── Models
+│   │   │   │   └── DashboardModels.swift
 │   │   │   ├── Services
-│   │   │   │   └── DashboardServiceProtocols.swift
+│   │   │   │   ├── DefaultAICoachService.swift
+│   │   │   │   ├── DefaultDashboardNutritionService.swift
+│   │   │   │   └── DefaultHealthKitService.swift
 │   │   │   ├── ViewModels
 │   │   │   │   └── DashboardViewModel.swift
 │   │   │   └── Views
@@ -355,27 +378,27 @@
 │   │   │       │   └── RecoveryCard.swift
 │   │   │       └── DashboardView.swift
 │   │   ├── FoodTracking
+│   │   │   ├── Coordinators
+│   │   │   │   └── FoodTrackingCoordinator.swift
 │   │   │   ├── Models
 │   │   │   │   └── FoodTrackingModels.swift
 │   │   │   ├── Services
 │   │   │   │   ├── FoodVoiceAdapter.swift
-│   │   │   │   ├── FoodVoiceAdapterProtocol.swift
-│   │   │   │   ├── FoodVoiceServiceProtocol.swift
 │   │   │   │   ├── NutritionService.swift
-│   │   │   │   ├── NutritionServiceProtocol.swift
 │   │   │   │   └── PreviewServices.swift
 │   │   │   ├── ViewModels
 │   │   │   │   └── FoodTrackingViewModel.swift
-│   │   │   ├── Views
-│   │   │   │   ├── FoodConfirmationView.swift
-│   │   │   │   ├── FoodLoggingView.swift
-│   │   │   │   ├── MacroRingsView.swift
-│   │   │   │   ├── NutritionSearchView.swift
-│   │   │   │   ├── PhotoInputView.swift
-│   │   │   │   ├── VoiceInputView.swift
-│   │   │   │   └── WaterTrackingView.swift
-│   │   │   └── FoodTrackingCoordinator.swift
+│   │   │   └── Views
+│   │   │       ├── FoodConfirmationView.swift
+│   │   │       ├── FoodLoggingView.swift
+│   │   │       ├── MacroRingsView.swift
+│   │   │       ├── NutritionSearchView.swift
+│   │   │       ├── PhotoInputView.swift
+│   │   │       ├── VoiceInputView.swift
+│   │   │       └── WaterTrackingView.swift
 │   │   ├── Notifications
+│   │   │   ├── Coordinators
+│   │   │   │   └── NotificationsCoordinator.swift
 │   │   │   ├── Managers
 │   │   │   │   ├── LiveActivityManager.swift
 │   │   │   │   └── NotificationManager.swift
@@ -384,11 +407,10 @@
 │   │   │   ├── Services
 │   │   │   │   ├── EngagementEngine.swift
 │   │   │   │   └── NotificationContentGenerator.swift
-│   │   │   ├── NotificationsCoordinator.swift
 │   │   │   └── README.md
 │   │   ├── Onboarding
 │   │   │   ├── Coordinators
-│   │   │   │   ├── .gitkeep
+│   │   │   │   ├── ConversationCoordinator.swift
 │   │   │   │   ├── OnboardingCoordinator.swift
 │   │   │   │   └── OnboardingFlowCoordinator.swift
 │   │   │   ├── Data
@@ -398,7 +420,6 @@
 │   │   │   │   ├── OnboardingModels.swift
 │   │   │   │   └── PersonalityInsights.swift
 │   │   │   ├── Services
-│   │   │   │   ├── .gitkeep
 │   │   │   │   ├── ConversationAnalytics.swift
 │   │   │   │   ├── ConversationFlowManager.swift
 │   │   │   │   ├── ConversationPersistence.swift
@@ -407,50 +428,47 @@
 │   │   │   │   ├── OnboardingProgressManager.swift
 │   │   │   │   ├── OnboardingRecovery.swift
 │   │   │   │   ├── OnboardingService.swift
-│   │   │   │   ├── OnboardingServiceProtocol.swift
 │   │   │   │   ├── OnboardingState.swift
 │   │   │   │   ├── PersonaService.swift
 │   │   │   │   └── ResponseAnalyzer.swift
 │   │   │   ├── ViewModels
-│   │   │   │   ├── .gitkeep
 │   │   │   │   ├── ConversationViewModel.swift
 │   │   │   │   └── OnboardingViewModel.swift
-│   │   │   ├── Views
-│   │   │   │   ├── InputModalities
-│   │   │   │   │   ├── ChoiceCardsView.swift
-│   │   │   │   │   ├── ContextualSlider.swift
-│   │   │   │   │   ├── TextInputView.swift
-│   │   │   │   │   ├── VoiceInputView.swift
-│   │   │   │   │   └── VoiceVisualizer.swift
-│   │   │   │   ├── .gitkeep
-│   │   │   │   ├── CoachingStyleView.swift
-│   │   │   │   ├── CoachProfileReadyView.swift
-│   │   │   │   ├── ConversationalInputView.swift
-│   │   │   │   ├── ConversationProgress.swift
-│   │   │   │   ├── ConversationView.swift
-│   │   │   │   ├── CoreAspirationView.swift
-│   │   │   │   ├── EngagementPreferencesView.swift
-│   │   │   │   ├── FinalOnboardingFlow.swift
-│   │   │   │   ├── GeneratingCoachView.swift
-│   │   │   │   ├── HealthKitAuthorizationView.swift
-│   │   │   │   ├── LifeSnapshotView.swift
-│   │   │   │   ├── MotivationalAccentsView.swift
-│   │   │   │   ├── OnboardingContainerView.swift
-│   │   │   │   ├── OnboardingErrorBoundary.swift
-│   │   │   │   ├── OnboardingFlowView.swift
-│   │   │   │   ├── OnboardingNavigationButtons.swift
-│   │   │   │   ├── OnboardingStateView.swift
-│   │   │   │   ├── OpeningScreenView.swift
-│   │   │   │   ├── OptimizedGeneratingPersonaView.swift
-│   │   │   │   ├── PersonaPreviewCard.swift
-│   │   │   │   ├── PersonaPreviewView.swift
-│   │   │   │   ├── PersonaSelectionView.swift
-│   │   │   │   ├── PersonaSynthesisView.swift
-│   │   │   │   ├── SleepAndBoundariesView.swift
-│   │   │   │   └── UnifiedOnboardingView.swift
-│   │   │   ├── ConversationCoordinator.swift
-│   │   │   └── OnboardingFlowCoordinator.swift
+│   │   │   └── Views
+│   │   │       ├── InputModalities
+│   │   │       │   ├── ChoiceCardsView.swift
+│   │   │       │   ├── ContextualSlider.swift
+│   │   │       │   ├── TextInputView.swift
+│   │   │       │   ├── VoiceInputView.swift
+│   │   │       │   └── VoiceVisualizer.swift
+│   │   │       ├── CoachingStyleView.swift
+│   │   │       ├── CoachProfileReadyView.swift
+│   │   │       ├── ConversationalInputView.swift
+│   │   │       ├── ConversationProgress.swift
+│   │   │       ├── ConversationView.swift
+│   │   │       ├── CoreAspirationView.swift
+│   │   │       ├── EngagementPreferencesView.swift
+│   │   │       ├── FinalOnboardingFlow.swift
+│   │   │       ├── GeneratingCoachView.swift
+│   │   │       ├── HealthKitAuthorizationView.swift
+│   │   │       ├── LifeSnapshotView.swift
+│   │   │       ├── MotivationalAccentsView.swift
+│   │   │       ├── OnboardingContainerView.swift
+│   │   │       ├── OnboardingErrorBoundary.swift
+│   │   │       ├── OnboardingFlowView.swift
+│   │   │       ├── OnboardingNavigationButtons.swift
+│   │   │       ├── OnboardingStateView.swift
+│   │   │       ├── OpeningScreenView.swift
+│   │   │       ├── OptimizedGeneratingPersonaView.swift
+│   │   │       ├── PersonaPreviewCard.swift
+│   │   │       ├── PersonaPreviewView.swift
+│   │   │       ├── PersonaSelectionView.swift
+│   │   │       ├── PersonaSynthesisView.swift
+│   │   │       ├── SleepAndBoundariesView.swift
+│   │   │       └── UnifiedOnboardingView.swift
 │   │   ├── Settings
+│   │   │   ├── Coordinators
+│   │   │   │   └── SettingsCoordinator.swift
 │   │   │   ├── Models
 │   │   │   │   ├── AIProviderExtensions.swift
 │   │   │   │   ├── PersonaSettingsModels.swift
@@ -474,8 +492,7 @@
 │   │   │   │   ├── PrivacySecurityView.swift
 │   │   │   │   ├── SettingsListView.swift
 │   │   │   │   └── UnitsSettingsView.swift
-│   │   │   ├── README.md
-│   │   │   └── SettingsCoordinator.swift
+│   │   │   └── README.md
 │   │   └── Workouts
 │   │       ├── Coordinators
 │   │       │   └── WorkoutCoordinator.swift
@@ -503,16 +520,16 @@
 │   │   │   │   ├── AnthropicProvider.swift
 │   │   │   │   ├── GeminiProvider.swift
 │   │   │   │   ├── LLMModels.swift
-│   │   │   │   ├── LLMProvider.swift
 │   │   │   │   └── OpenAIProvider.swift
 │   │   │   ├── AIAPIService.swift
-│   │   │   ├── AIAPIServiceProtocol.swift
 │   │   │   ├── AIRequestBuilder.swift
 │   │   │   ├── AIResponseCache.swift
 │   │   │   ├── AIResponseParser.swift
 │   │   │   ├── EnhancedAIAPIService.swift
 │   │   │   ├── LLMOrchestrator.swift
 │   │   │   ├── MockAIService.swift
+│   │   │   ├── ProductionAIService.swift
+│   │   │   ├── SimpleMockAIService.swift
 │   │   │   └── UnifiedAIService.swift
 │   │   ├── Cache
 │   │   │   └── OnboardingCache.swift
@@ -523,7 +540,6 @@
 │   │   │   ├── HealthKitDataTypes.swift
 │   │   │   ├── HealthKitExtensions.swift
 │   │   │   ├── HealthKitManager.swift
-│   │   │   ├── HealthKitManagerProtocol.swift
 │   │   │   └── HealthKitSleepAnalyzer.swift
 │   │   ├── MockServices
 │   │   │   ├── MockAIAPIService.swift
@@ -540,12 +556,12 @@
 │   │   │   ├── DefaultAPIKeyManager.swift
 │   │   │   └── KeychainHelper.swift
 │   │   ├── Speech
-│   │   │   └── WhisperServiceWrapperProtocol.swift
+│   │   │   ├── VoiceInputManager.swift
+│   │   │   └── WhisperModelManager.swift
 │   │   ├── User
 │   │   │   └── DefaultUserService.swift
 │   │   ├── ExerciseDatabase.swift
 │   │   ├── ServiceConfiguration.swift
-│   │   ├── ServiceProtocols.swift
 │   │   ├── ServiceRegistry.swift
 │   │   ├── WeatherService.swift
 │   │   └── WorkoutSyncService.swift
@@ -578,12 +594,11 @@
 ├── .gitignore
 ├── AGENTS.md
 ├── CLAUDE.md
-├── claude2claude.md
 ├── envsetupscript.sh
+├── Manual.md
 ├── package.json
 ├── PROJECT_FILE_MANAGEMENT.md
-├── project.yml
-└── usermanual.md
+└── project.yml
 
 </file_map>
 

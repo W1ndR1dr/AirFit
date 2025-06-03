@@ -1,13 +1,14 @@
 import SwiftUI
 
 struct DataManagementView: View {
-    @ObservedObject var viewModel: SettingsViewModel
+    @Bindable var viewModel: SettingsViewModel
     @State private var showExportProgress = false
     @State private var exportURL: URL?
+    @State private var showShareSheet = false
     
     var body: some View {
         ScrollView {
-            VStack(spacing: AppSpacing.xl) {
+            VStack(spacing: AppSpacing.xLarge) {
                 exportSection
                 exportHistory
                 deleteSection
@@ -19,17 +20,19 @@ struct DataManagementView: View {
         .sheet(isPresented: $showExportProgress) {
             DataExportProgressSheet(viewModel: viewModel, exportURL: $exportURL)
         }
-        .sheet(item: $exportURL) { url in
-            ShareSheet(items: [url])
+        .sheet(isPresented: $showShareSheet) {
+            if let url = exportURL {
+                ShareSheet(items: [url])
+            }
         }
     }
     
     private var exportSection: some View {
-        VStack(alignment: .leading, spacing: AppSpacing.md) {
+        VStack(alignment: .leading, spacing: AppSpacing.medium) {
             SectionHeader(title: "Export Your Data", icon: "square.and.arrow.up")
             
             Card {
-                VStack(alignment: .leading, spacing: AppSpacing.md) {
+                VStack(alignment: .leading, spacing: AppSpacing.medium) {
                     Text("Export all your AirFit data including workouts, meals, and health metrics in a portable JSON format.")
                         .font(.callout)
                         .foregroundStyle(.secondary)
@@ -45,7 +48,7 @@ struct DataManagementView: View {
     }
     
     private var exportHistory: some View {
-        VStack(alignment: .leading, spacing: AppSpacing.md) {
+        VStack(alignment: .leading, spacing: AppSpacing.medium) {
             SectionHeader(title: "Export History", icon: "clock.arrow.circlepath")
             
             if viewModel.exportHistory.isEmpty {
@@ -59,7 +62,7 @@ struct DataManagementView: View {
                 ForEach(viewModel.exportHistory) { export in
                     Card {
                         HStack {
-                            VStack(alignment: .leading, spacing: AppSpacing.xs) {
+                            VStack(alignment: .leading, spacing: AppSpacing.xSmall) {
                                 Text(export.date.formatted(date: .abbreviated, time: .shortened))
                                     .font(.callout)
                                 
@@ -80,13 +83,13 @@ struct DataManagementView: View {
     }
     
     private var deleteSection: some View {
-        VStack(alignment: .leading, spacing: AppSpacing.md) {
+        VStack(alignment: .leading, spacing: AppSpacing.medium) {
             SectionHeader(title: "Delete Data", icon: "trash")
             
-            Card(style: .destructive) {
-                VStack(alignment: .leading, spacing: AppSpacing.md) {
+            Card {
+                VStack(alignment: .leading, spacing: AppSpacing.medium) {
                     Label {
-                        VStack(alignment: .leading, spacing: AppSpacing.xs) {
+                        VStack(alignment: .leading, spacing: AppSpacing.xSmall) {
                             Text("Delete All Data")
                                 .font(.headline)
                                 .foregroundStyle(.red)
@@ -120,7 +123,8 @@ struct DataManagementView: View {
                 await MainActor.run {
                     showExportProgress = false
                     exportURL = url
-                    HapticManager.success()
+                    showShareSheet = true
+                    HapticManager.notification(.success)
                 }
             } catch {
                 await MainActor.run {
@@ -142,7 +146,7 @@ struct DataManagementView: View {
 
 // MARK: - Data Export Progress Sheet
 struct DataExportProgressSheet: View {
-    @ObservedObject var viewModel: SettingsViewModel
+    @Bindable var viewModel: SettingsViewModel
     @Binding var exportURL: URL?
     @Environment(\.dismiss) private var dismiss
     @State private var progress: Double = 0

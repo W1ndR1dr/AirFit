@@ -143,4 +143,3 @@ final class WorkoutViewModel {
 }
 
 // MARK: - Protocol Extension
-extension CoachEngine: CoachEngineProtocol {}

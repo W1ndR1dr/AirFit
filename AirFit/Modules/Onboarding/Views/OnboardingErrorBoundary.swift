@@ -3,7 +3,7 @@ import SwiftUI
 /// Error boundary view for onboarding flow - handles all error states gracefully
 struct OnboardingErrorBoundary<Content: View>: View {
     @ViewBuilder let content: () -> Content
-    @ObservedObject var coordinator: OnboardingFlowCoordinator
+    @Bindable var coordinator: OnboardingFlowCoordinator
     @State private var showingFullError = false
     
     var body: some View {
@@ -172,7 +172,7 @@ private struct ErrorOverlay: View {
             withAnimation(.spring()) {
                 showingAnimation = true
             }
-            HapticManager.error()
+            HapticManager.notification(.error)
         }
     }
     
@@ -311,5 +311,4 @@ protocol RecoverableError: LocalizedError {
 // Make our error types conform to RecoverableError
 extension NetworkError: RecoverableError { }
 extension PersonaError: RecoverableError { }
-extension ValidationError: RecoverableError { }
 extension OnboardingError: RecoverableError { }

@@ -278,8 +278,8 @@ final class PreviewHealthKitManager: HealthKitManaging {
 
 @MainActor
 final class WorkoutMockCoachEngine: CoachEngineProtocol {
-    func processUserMessage(_ message: String, context: HealthContextSnapshot?) async throws -> [String: SendableValue] {
-        ["response": SendableValue.string("Mock workout response")]
+    func processUserMessage(_ text: String, for user: User) async {
+        // Mock implementation - no-op
     }
     
     func generatePostWorkoutAnalysis(_ request: PostWorkoutAnalysisRequest) async throws -> String {
