@@ -78,7 +78,6 @@ targets:
       - AirFit/Modules/Onboarding/Services/OnboardingRecovery.swift
       - AirFit/Modules/Onboarding/Services/OnboardingProgressManager.swift
       - AirFit/Modules/Onboarding/Services/PersonaService.swift
-      - AirFit/Modules/Onboarding/Services/OfflinePersonaGenerator.swift
       - AirFit/Modules/Onboarding/Coordinators/OnboardingCoordinator.swift
       - AirFit/Modules/Onboarding/Coordinators/OnboardingFlowCoordinator.swift
       - AirFit/Modules/Onboarding/Coordinators/ConversationCoordinator.swift
@@ -242,6 +241,7 @@ targets:
       - AirFit/Core/Extensions/AIProvider+Extensions.swift
       - AirFit/Modules/Workouts/ViewModels/WorkoutViewModel.swift
       - AirFit/Modules/Workouts/Coordinators/WorkoutCoordinator.swift
+      - AirFit/Modules/Workouts/Models/WorkoutModels.swift
       - AirFit/Modules/Workouts/Views/WorkoutListView.swift
       - AirFit/Modules/Workouts/Views/WorkoutDetailView.swift
       - AirFit/Modules/Workouts/Views/ExerciseLibraryView.swift
@@ -251,6 +251,7 @@ targets:
       - AirFit/Modules/Workouts/Views/AllWorkoutsView.swift
       - AirFit/Modules/Workouts/Views/WorkoutStatisticsView.swift
       - AirFit/Modules/Chat/Coordinators/ChatCoordinator.swift
+      - AirFit/Modules/Chat/Models/ChatModels.swift
       - AirFit/Modules/Chat/Services/ChatSuggestionsEngine.swift
       - AirFit/Modules/Chat/Services/ChatExporter.swift
       - AirFit/Modules/Chat/Services/ChatHistoryManager.swift

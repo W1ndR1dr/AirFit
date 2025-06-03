@@ -14,7 +14,9 @@ struct NutritionSummary: Sendable {
     let fiberTarget: Double
     let water: Double
     let waterTarget: Double
+    let waterLiters: Double
     let mealCount: Int
+    let meals: [FoodEntry]
     
     init(
         calories: Double = 0,
@@ -29,7 +31,9 @@ struct NutritionSummary: Sendable {
         fiberTarget: Double = 25,
         water: Double = 0,
         waterTarget: Double = 64,
-        mealCount: Int = 0
+        waterLiters: Double = 0,
+        mealCount: Int = 0,
+        meals: [FoodEntry] = []
     ) {
         self.calories = calories
         self.caloriesTarget = caloriesTarget
@@ -43,7 +47,9 @@ struct NutritionSummary: Sendable {
         self.fiberTarget = fiberTarget
         self.water = water
         self.waterTarget = waterTarget
+        self.waterLiters = waterLiters
         self.mealCount = mealCount
+        self.meals = meals
     }
 }
 
@@ -68,20 +74,35 @@ struct NutritionTargets: Sendable {
 
 // MARK: - Greeting Context
 struct GreetingContext: Sendable {
+    let userName: String
     let sleepHours: Double?
+    let sleepQuality: String?
     let weather: String?
+    let temperature: Double?
     let todaysSchedule: String?
+    let energyYesterday: String?
+    let dayOfWeek: String
     let recentAchievements: [String]
     
     init(
+        userName: String = "",
         sleepHours: Double? = nil,
+        sleepQuality: String? = nil,
         weather: String? = nil,
+        temperature: Double? = nil,
         todaysSchedule: String? = nil,
+        energyYesterday: String? = nil,
+        dayOfWeek: String = "",
         recentAchievements: [String] = []
     ) {
+        self.userName = userName
         self.sleepHours = sleepHours
+        self.sleepQuality = sleepQuality
         self.weather = weather
+        self.temperature = temperature
         self.todaysSchedule = todaysSchedule
+        self.energyYesterday = energyYesterday
+        self.dayOfWeek = dayOfWeek
         self.recentAchievements = recentAchievements
     }
 }
@@ -139,7 +160,7 @@ struct QuickAction: Sendable, Identifiable {
     let action: QuickActionType
     
     enum QuickActionType: Sendable {
-        case logMeal
+        case logMeal(type: MealType)
         case startWorkout
         case logWater
         case checkIn

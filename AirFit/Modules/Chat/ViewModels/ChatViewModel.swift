@@ -342,32 +342,3 @@ final class ChatViewModel: ObservableObject {
     }
 }
 
-// MARK: - Supporting Types
-struct QuickSuggestion: Identifiable, Sendable {
-    let id = UUID()
-    let text: String
-    let autoSend: Bool
-}
-
-struct ContextualAction: Identifiable, Sendable {
-    let id = UUID()
-    let title: String
-    let icon: String?
-}
-
-enum ChatError: LocalizedError, Equatable, Sendable {
-    case noActiveSession
-    case exportFailed(String)
-    case voiceRecognitionUnavailable
-
-    var errorDescription: String? {
-        switch self {
-        case .noActiveSession:
-            return "No active chat session"
-        case .exportFailed(let reason):
-            return "Export failed: \(reason)"
-        case .voiceRecognitionUnavailable:
-            return "Voice recognition is not available"
-        }
-    }
-}

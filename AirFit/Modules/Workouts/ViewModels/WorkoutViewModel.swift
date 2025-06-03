@@ -142,17 +142,5 @@ final class WorkoutViewModel {
     }
 }
 
-// MARK: - Protocols
-protocol CoachEngineProtocol: AnyObject, Sendable {
-    func generatePostWorkoutAnalysis(_ request: PostWorkoutAnalysisRequest) async throws -> String
-}
-
+// MARK: - Protocol Extension
 extension CoachEngine: CoachEngineProtocol {}
-
-// MARK: - Supporting Types
-struct WeeklyWorkoutStats: Sendable {
-    var totalWorkouts: Int = 0
-    var totalDuration: TimeInterval = 0
-    var totalCalories: Double = 0
-    var muscleGroupDistribution: [String: Int] = [:]
-}

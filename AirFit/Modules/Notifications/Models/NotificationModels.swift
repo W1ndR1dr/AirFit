@@ -137,16 +137,11 @@ struct SleepData {
     let duration: TimeInterval
 }
 
-struct WeatherData {
-    enum Condition {
-        case sunny, cloudy, rainy, snowy
-    }
-    let condition: Condition
-    let temperature: Double
-}
 
-enum MotivationalStyle: String {
-    case encouraging, challenging, supportive
+enum MotivationalStyle: String, Sendable {
+    case encouraging
+    case challenging
+    case supportive
 }
 
 struct NutritionGoals {

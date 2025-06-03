@@ -4,11 +4,10 @@ import SwiftData
 /// Protocol for analytics and tracking operations
 protocol AnalyticsServiceProtocol: AnyObject {
     func trackEvent(_ event: AnalyticsEvent) async
-    func trackScreen(_ screen: String, properties: [String: Any]?) async
-    func setUserProperties(_ properties: [String: Any]) async
+    func trackScreen(_ screen: String, properties: [String: String]?) async
+    func setUserProperties(_ properties: [String: String]) async
     func trackWorkoutCompleted(_ workout: Workout) async
     func trackMealLogged(_ meal: FoodEntry) async
-    func trackGoalProgress(_ goal: Goal, progress: Double) async
     func getInsights(for user: User) async throws -> UserInsights
 }
 
@@ -16,7 +15,7 @@ protocol AnalyticsServiceProtocol: AnyObject {
 
 struct AnalyticsEvent: Sendable {
     let name: String
-    let properties: [String: Any]
+    let properties: [String: String]
     let timestamp: Date
 }
 
@@ -26,7 +25,7 @@ struct UserInsights: Sendable {
     let caloriesTrend: Trend
     let macroBalance: MacroBalance
     let streakDays: Int
-    let achievements: [Achievement]
+    let achievements: [UserAchievement]
 }
 
 struct Trend: Sendable {
@@ -46,7 +45,7 @@ struct MacroBalance: Sendable {
     let fatPercentage: Double
 }
 
-struct Achievement: Sendable {
+struct UserAchievement: Sendable {
     let id: String
     let title: String
     let description: String

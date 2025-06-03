@@ -140,18 +140,3 @@ actor OnboardingCache {
     }
 }
 
-// MARK: - ConversationData Codable
-
-extension ConversationData: Codable {
-    // Already implemented in PersonaModels.swift
-}
-
-// MARK: - PersonalityInsights Codable
-
-extension PersonalityInsights: Codable {
-    enum CodingKeys: String, CodingKey {
-        case traits, motivationalDrivers, communicationProfile
-        case stressResponses, timePreferences, coachingPreferences
-        case inferredDemographics, extractedAt
-    }
-}
