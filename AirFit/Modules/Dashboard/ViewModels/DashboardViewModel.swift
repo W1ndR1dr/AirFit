@@ -158,11 +158,11 @@ final class DashboardViewModel {
             let context = GreetingContext(
                 userName: user.name ?? "there",
                 sleepHours: healthContext.lastNightSleepDurationHours,
-                sleepQuality: healthContext.sleepQuality,
+                sleepQuality: healthContext.sleepQuality.map { String($0) },
                 weather: healthContext.currentWeatherCondition,
                 temperature: healthContext.currentTemperatureCelsius,
-                dayOfWeek: Date().formatted(.dateTime.weekday(.wide)),
-                energyYesterday: healthContext.yesterdayEnergyLevel
+                energyYesterday: healthContext.yesterdayEnergyLevel.map { String($0) },
+                dayOfWeek: Date().formatted(.dateTime.weekday(.wide))
             )
 
             let greeting = try await aiCoachService.generateMorningGreeting(
@@ -237,16 +237,35 @@ final class DashboardViewModel {
         var actions: [QuickAction] = []
 
         let hour = Calendar.current.component(.hour, from: date)
-        if (11...13).contains(hour) && nutritionSummary.meals[.lunch] == nil {
-            actions.append(.logMeal(type: .lunch))
+        // Add lunch logging if it's lunch time
+        if (11...13).contains(hour) {
+            actions.append(QuickAction(
+                title: "Log Lunch",
+                subtitle: "Track your midday meal",
+                systemImage: "sun.max.fill",
+                color: "orange",
+                action: .logMeal(type: .lunch)
+            ))
         }
 
         if !hasWorkoutToday() {
-            actions.append(.startWorkout)
+            actions.append(QuickAction(
+                title: "Start Workout",
+                subtitle: "Begin your training session",
+                systemImage: "figure.strengthtraining.traditional",
+                color: "blue",
+                action: .startWorkout
+            ))
         }
 
         if nutritionSummary.waterLiters < 2.0 {
-            actions.append(.logWater)
+            actions.append(QuickAction(
+                title: "Log Water",
+                subtitle: "Track your hydration",
+                systemImage: "drop.fill",
+                color: "cyan",
+                action: .logWater
+            ))
         }
 
         self.suggestedActions = actions

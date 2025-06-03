@@ -48,7 +48,7 @@ struct ConversationQuestion: Codable, Sendable {
     let voicePrompt: String?
 }
 
-indirect enum InputType: Codable, Sendable {
+indirect enum InputType: Codable, Sendable, Equatable {
     case text(minLength: Int, maxLength: Int, placeholder: String)
     case voice(maxDuration: TimeInterval)
     case singleChoice(options: [ChoiceOption])

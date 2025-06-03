@@ -78,8 +78,8 @@ actor MockAPIKeyManager: APIKeyManagementProtocol {
     }
 }
 
-/// Mock implementation that also conforms to legacy APIKeyManagerProtocol
-final class MockFullAPIKeyManager: APIKeyManagerProtocol, APIKeyManagementProtocol {
+/// Mock implementation for APIKeyManagerProtocol 
+final class MockFullAPIKeyManager: APIKeyManagerProtocol, @unchecked Sendable {
     
     private let mockManager = MockAPIKeyManager()
     
@@ -105,35 +105,13 @@ final class MockFullAPIKeyManager: APIKeyManagerProtocol, APIKeyManagementProtoc
         await mockManager.getAllConfiguredProviders()
     }
     
-    // MARK: - APIKeyManagementProtocol
-    
-    func saveAPIKey(_ key: String, for provider: AIProvider) async throws {
-        try await mockManager.saveAPIKey(key, for: provider)
-    }
-    
-    func getAPIKey(for provider: AIProvider) async throws -> String {
-        try await mockManager.getAPIKey(for: provider)
-    }
-    
-    func deleteAPIKey(for provider: AIProvider) async throws {
-        try await mockManager.deleteAPIKey(for: provider)
-    }
-    
-    func hasAPIKey(for provider: AIProvider) async -> Bool {
-        await mockManager.hasAPIKey(for: provider)
-    }
-    
-    func getAllConfiguredProviders() async -> [AIProvider] {
-        await mockManager.getAllConfiguredProviders()
-    }
-    
     // MARK: - Test Helpers
     
-    func reset() {
-        mockManager.reset()
+    func reset() async {
+        await mockManager.reset()
     }
     
-    func setMockAPIKey(_ key: String, for provider: AIProvider) {
-        mockManager.setMockAPIKey(key, for: provider)
+    func setMockAPIKey(_ key: String, for provider: AIProvider) async {
+        await mockManager.setMockAPIKey(key, for: provider)
     }
 }

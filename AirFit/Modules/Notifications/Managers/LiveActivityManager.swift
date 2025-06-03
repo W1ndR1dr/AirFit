@@ -166,8 +166,21 @@ final class LiveActivityManager {
         guard let activity = mealTrackingActivity else { return }
         mealTrackingActivity = nil
         
-        // Use the newer API that doesn't require Sendable
-        await activity.end(dismissalPolicy: .immediate)
+        let finalState = MealTrackingActivityAttributes.ContentState(
+            itemsLogged: activity.content.state.itemsLogged,
+            totalCalories: activity.content.state.totalCalories,
+            totalProtein: activity.content.state.totalProtein,
+            lastFoodItem: "Meal Complete! 🍽️"
+        )
+        
+        let content = ActivityContent(
+            state: finalState,
+            staleDate: nil
+        )
+        
+        Task {
+            await activity.end(content, dismissalPolicy: .immediate)
+        }
         
         AppLogger.info("Ended meal tracking live activity", category: .ui)
     }

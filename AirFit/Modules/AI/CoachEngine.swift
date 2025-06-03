@@ -1931,12 +1931,31 @@ extension CoachEngine {
             }
         }
         
+        // Simple inline mocks for development
+        final class DevWorkoutService: WorkoutServiceProtocol {
+            func generatePlan(for user: User, goal: String, duration: Int, intensity: String, targetMuscles: [String], equipment: [String], constraints: String?, style: String) async throws -> WorkoutPlanResult {
+                return WorkoutPlanResult(id: UUID(), exercises: [], estimatedCalories: 300, estimatedDuration: duration, summary: "Dev workout plan")
+            }
+        }
+        
+        final class DevAnalyticsService: AnalyticsServiceProtocol {
+            func analyzePerformance(query: String, metrics: [String], days: Int, depth: String, includeRecommendations: Bool, for user: User) async throws -> PerformanceAnalysisResult {
+                return PerformanceAnalysisResult(summary: "Dev analysis", insights: [], trends: [], recommendations: [], dataPoints: 0)
+            }
+        }
+        
+        final class DevGoalService: GoalServiceProtocol {
+            func createOrRefineGoal(current: String?, aspirations: String, timeframe: String?, fitnessLevel: String?, constraints: [String], motivations: [String], goalType: String?, for user: User) async throws -> GoalResult {
+                return GoalResult(id: UUID(), title: "Dev Goal", description: "Dev goal description", targetDate: nil, metrics: [], milestones: [], smartCriteria: GoalResult.SMARTCriteria(specific: "", measurable: "", achievable: "", relevant: "", timeBound: ""))
+            }
+        }
+        
         return CoachEngine(
             localCommandParser: LocalCommandParser(),
             functionDispatcher: FunctionCallDispatcher(
-                workoutService: MockWorkoutService(),
-                analyticsService: MockAnalyticsService(),
-                goalService: MockGoalService()
+                workoutService: DevWorkoutService(),
+                analyticsService: DevAnalyticsService(),
+                goalService: DevGoalService()
             ),
             personaEngine: PersonaEngine(),
             conversationManager: ConversationManager(modelContext: modelContext),
@@ -1944,6 +1963,14 @@ extension CoachEngine {
             contextAssembler: ContextAssembler(),
             modelContext: modelContext
         )
+    }
+}
+
+// MARK: - CoachEngineProtocol Conformance
+extension CoachEngine: CoachEngineProtocol {
+    func generatePostWorkoutAnalysis(_ request: PostWorkoutAnalysisRequest) async throws -> String {
+        // TODO: Implement post-workout analysis
+        return "Great workout! Keep up the excellent work."
     }
 }
 

@@ -85,17 +85,17 @@ struct ChoiceCardsView: View {
             selectedIds = [optionId]
         }
         
-        HapticManager.shared.impact(.light)
+        HapticManager.impact(.light)
     }
     
     private func submitChoices() {
         guard isValid else {
             showError = true
-            HapticManager.shared.notification(.error)
+            HapticManager.notification(.error)
             return
         }
         
-        HapticManager.shared.impact(.medium)
+        HapticManager.impact(.medium)
         onSubmit(Array(selectedIds))
     }
 }

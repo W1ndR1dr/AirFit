@@ -86,7 +86,7 @@ struct ChatView: View {
 
                     if viewModel.isStreaming {
                         HStack {
-                            TypingIndicator()
+                            ChatTypingIndicator()
                             Spacer()
                         }
                         .padding(.leading, AppSpacing.medium)
@@ -243,7 +243,7 @@ private struct SuggestionChip: View {
     }
 }
 
-private struct TypingIndicator: View {
+private struct ChatTypingIndicator: View {
     var body: some View {
         ProgressView()
     }

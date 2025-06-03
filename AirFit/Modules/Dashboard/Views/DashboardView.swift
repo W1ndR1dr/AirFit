@@ -35,20 +35,16 @@ struct DashboardView: View {
             }
         }()
         // Create concrete service implementations
-        let healthKitManager = HealthKitManager()
+        let healthKitManager = HealthKitManager.shared
         let contextAssembler = ContextAssembler(
-            healthKitManager: healthKitManager,
-            modelContext: context
+            healthKitManager: healthKitManager
         )
         let healthKitService = DefaultHealthKitService(
             healthKitManager: healthKitManager,
             contextAssembler: contextAssembler
         )
         
-        let coachEngine = CoachEngine(
-            aiService: DependencyContainer.shared.aiService ?? SimpleMockAIService(),
-            modelContext: context
-        )
+        let coachEngine = CoachEngine.createDefault(modelContext: context)
         let aiCoachService = DefaultAICoachService(coachEngine: coachEngine)
         
         let nutritionService = DefaultDashboardNutritionService(modelContext: context)
@@ -159,7 +155,7 @@ struct DashboardView: View {
     }
 
     private func handleQuickAction(_ action: QuickAction) {
-        coordinator.navigate(to: .placeholder)
+        coordinator.navigate(to: .nutritionDetail)
     }
 }
 
@@ -180,20 +176,7 @@ struct DashboardView: View {
         .modelContainer(container)
 }
 
-// MARK: - Placeholder Coordinator & Destinations
-@MainActor
-final class DashboardCoordinator: ObservableObject {
-    @Published var path = NavigationPath()
-
-    func navigate(to destination: DashboardDestination) {
-        path.append(destination)
-    }
-
-    func navigateBack() {
-        if !path.isEmpty { path.removeLast() }
-    }
-}
-
+// MARK: - Placeholder Destination
 enum DashboardDestination: Hashable {
     case placeholder
 }
@@ -214,11 +197,11 @@ actor PlaceholderHealthKitService: HealthKitServiceProtocol {
     }
 
     func calculateRecoveryScore(for user: User) async throws -> RecoveryScore {
-        RecoveryScore(score: 0, components: [])
+        RecoveryScore(score: 0, status: .moderate, factors: [])
     }
 
     func getPerformanceInsight(for user: User, days: Int) async throws -> PerformanceInsight {
-        PerformanceInsight(summary: "", trend: .steady, keyMetric: "", value: 0)
+        PerformanceInsight(trend: .stable, metric: "", value: "", insight: "")
     }
 }
 

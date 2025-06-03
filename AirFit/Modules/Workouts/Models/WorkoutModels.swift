@@ -12,4 +12,5 @@ struct WeeklyWorkoutStats: Sendable {
 // MARK: - Coach Engine Protocol
 protocol CoachEngineProtocol: AnyObject, Sendable {
     func generatePostWorkoutAnalysis(_ request: PostWorkoutAnalysisRequest) async throws -> String
+    func processUserMessage(_ text: String, for user: User) async
 }
