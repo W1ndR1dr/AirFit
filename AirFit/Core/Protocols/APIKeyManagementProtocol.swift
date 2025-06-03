@@ -21,3 +21,12 @@ protocol APIKeyManagementProtocol: AnyObject, Sendable {
     
     func getAllConfiguredProviders() async -> [AIProvider]
 }
+
+// MARK: - API Key Manager Protocol
+protocol APIKeyManagerProtocol: AnyObject, Sendable {
+    func setAPIKey(_ key: String, for provider: AIProvider) async throws
+    func getAPIKey(for provider: AIProvider) async throws -> String?
+    func removeAPIKey(for provider: AIProvider) async throws
+    func hasAPIKey(for provider: AIProvider) async -> Bool
+    func getAllConfiguredProviders() async -> [AIProvider]
+}

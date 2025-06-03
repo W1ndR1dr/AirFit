@@ -243,7 +243,7 @@ enum AIError: LocalizedError, Sendable {
 
 // MARK: - AI Provider Configuration
 
-enum AIProvider: String, CaseIterable, Sendable {
+enum AIProvider: String, CaseIterable, Sendable, Codable {
     case openAI
     case gemini
     case anthropic

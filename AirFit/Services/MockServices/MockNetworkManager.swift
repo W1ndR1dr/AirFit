@@ -17,7 +17,7 @@ final class MockNetworkManager: NetworkManagementProtocol {
     
     // MARK: - NetworkManagementProtocol
     
-    func performRequest<T: Decodable>(
+    func performRequest<T: Decodable & Sendable>(
         _ request: URLRequest,
         expecting type: T.Type
     ) async throws -> T {
@@ -134,17 +134,14 @@ final class MockNetworkManager: NetworkManagementProtocol {
     
     func buildRequest(
         url: URL,
-        method: String = "GET",
-        headers: [String: String]? = nil,
-        body: Data? = nil,
-        timeout: TimeInterval = 30
+        method: String,
+        headers: [String: String]
     ) -> URLRequest {
         var request = URLRequest(url: url)
         request.httpMethod = method
-        request.timeoutInterval = timeout
-        request.httpBody = body
+        request.timeoutInterval = 30
         
-        headers?.forEach { key, value in
+        headers.forEach { key, value in
             request.setValue(value, forHTTPHeaderField: key)
         }
         

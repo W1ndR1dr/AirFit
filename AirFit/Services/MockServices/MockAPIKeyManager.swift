@@ -1,7 +1,7 @@
 import Foundation
 
 /// Mock implementation of APIKeyManagementProtocol for testing
-final class MockAPIKeyManager: APIKeyManagementProtocol {
+actor MockAPIKeyManager: APIKeyManagementProtocol {
     
     // MARK: - Properties
     private var apiKeys: [String: String] = [:]
@@ -83,45 +83,26 @@ final class MockFullAPIKeyManager: APIKeyManagerProtocol, APIKeyManagementProtoc
     
     private let mockManager = MockAPIKeyManager()
     
-    // MARK: - Legacy APIKeyManagerProtocol
+    // MARK: - APIKeyManagerProtocol
     
-    func saveAPIKey(_ apiKey: String, forProvider provider: AIProvider) throws {
-        Task { @MainActor in
-            try await mockManager.saveAPIKey(apiKey, for: provider)
-        }
+    func setAPIKey(_ key: String, for provider: AIProvider) async throws {
+        try await mockManager.saveAPIKey(key, for: provider)
     }
     
-    func getAPIKey(forProvider provider: AIProvider) -> String? {
-        var result: String?
-        Task { @MainActor in
-            result = try? await mockManager.getAPIKey(for: provider)
-        }
-        return result
+    func getAPIKey(for provider: AIProvider) async throws -> String? {
+        try? await mockManager.getAPIKey(for: provider)
     }
     
-    func deleteAPIKey(forProvider provider: AIProvider) throws {
-        Task { @MainActor in
-            try await mockManager.deleteAPIKey(for: provider)
-        }
+    func removeAPIKey(for provider: AIProvider) async throws {
+        try await mockManager.deleteAPIKey(for: provider)
     }
     
-    func getAPIKey(for provider: String) async -> String? {
-        guard let aiProvider = AIProvider(rawValue: provider) else { return nil }
-        return try? await mockManager.getAPIKey(for: aiProvider)
+    func hasAPIKey(for provider: AIProvider) async -> Bool {
+        await mockManager.hasAPIKey(for: provider)
     }
     
-    func saveAPIKey(_ apiKey: String, for provider: String) async throws {
-        guard let aiProvider = AIProvider(rawValue: provider) else {
-            throw ServiceError.invalidConfiguration("Unknown provider: \(provider)")
-        }
-        try await mockManager.saveAPIKey(apiKey, for: aiProvider)
-    }
-    
-    func deleteAPIKey(for provider: String) async throws {
-        guard let aiProvider = AIProvider(rawValue: provider) else {
-            throw ServiceError.invalidConfiguration("Unknown provider: \(provider)")
-        }
-        try await mockManager.deleteAPIKey(for: aiProvider)
+    func getAllConfiguredProviders() async -> [AIProvider] {
+        await mockManager.getAllConfiguredProviders()
     }
     
     // MARK: - APIKeyManagementProtocol

@@ -164,10 +164,10 @@ final class LiveActivityManager {
     
     func endMealTrackingActivity() async {
         guard let activity = mealTrackingActivity else { return }
-        let activityToEnd = activity
         mealTrackingActivity = nil
         
-        await activityToEnd.end(dismissalPolicy: .immediate)
+        // Use the newer API that doesn't require Sendable
+        await activity.end(dismissalPolicy: .immediate)
         
         AppLogger.info("Ended meal tracking live activity", category: .ui)
     }

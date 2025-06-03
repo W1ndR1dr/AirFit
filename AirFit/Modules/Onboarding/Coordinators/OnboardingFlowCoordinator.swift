@@ -26,7 +26,7 @@ final class OnboardingFlowCoordinator {
     private var memoryWarningObserver: NSObjectProtocol?
     
     // Error recovery
-    private lazy var recovery = OnboardingRecovery(cache: cache, modelContext: modelContext)
+    private let recovery: OnboardingRecovery
     private let reachability = NetworkReachability.shared
     
     // Recovery state
@@ -43,6 +43,7 @@ final class OnboardingFlowCoordinator {
         self.personaService = personaService
         self.userService = userService
         self.modelContext = modelContext
+        self.recovery = OnboardingRecovery(modelContext: modelContext)
         
         // Setup memory monitoring
         setupMemoryMonitoring()
