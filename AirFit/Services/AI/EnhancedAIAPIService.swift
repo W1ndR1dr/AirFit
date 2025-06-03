@@ -520,9 +520,4 @@ private struct GeminiResponse: Decodable {
     let candidates: [Candidate]?
 }
 
-// MARK: - AIModel Helper
-struct AIModel: Identifiable, Sendable {
-    let id: String
-    let name: String
-    let contextWindow: Int
-}
+// Note: AIModel is now defined in Core/Models/AI/AIModels.swift

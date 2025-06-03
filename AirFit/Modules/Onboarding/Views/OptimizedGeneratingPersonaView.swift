@@ -198,21 +198,25 @@ private struct PreviewUserService: UserServiceProtocol {
     }
 }
 
-private struct PreviewAPIKeyManager: APIKeyManagerProtocol {
-    func getAPIKey(for service: String) async -> String? {
+private struct PreviewAPIKeyManager: APIKeyManagementProtocol {
+    func getAPIKey(for provider: AIProvider) async throws -> String {
         return "preview-key"
     }
     
-    func setAPIKey(_ key: String, for service: String) async throws {
+    func saveAPIKey(_ key: String, for provider: AIProvider) async throws {
         // No-op for preview
     }
     
-    func removeAPIKey(for service: String) async throws {
+    func deleteAPIKey(for provider: AIProvider) async throws {
         // No-op for preview
     }
     
-    func hasAPIKey(for service: String) async -> Bool {
+    func hasAPIKey(for provider: AIProvider) async -> Bool {
         return true
+    }
+    
+    func getAllConfiguredProviders() async -> [AIProvider] {
+        return [.openAI, .anthropic, .google]
     }
 }
 

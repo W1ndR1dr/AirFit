@@ -40,7 +40,7 @@ enum AppearanceMode: String, Codable, CaseIterable {
 // MARK: - NotificationPreferences is defined in Modules/Notifications/Models/NotificationModels.swift
 
 // MARK: - Quiet Hours
-struct QuietHours: Codable {
+struct QuietHours: Codable, Equatable {
     var enabled: Bool = false
     var startTime: Date
     var endTime: Date

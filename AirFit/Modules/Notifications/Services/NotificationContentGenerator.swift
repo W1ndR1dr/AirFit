@@ -44,12 +44,13 @@ final class NotificationContentGenerator {
         for user: User,
         workout: WorkoutTemplate?
     ) async throws -> NotificationContent {
+        let motivationalStyle = await extractMotivationalStyle(from: user) ?? MotivationalStyle()
         let context = WorkoutReminderContext(
             userName: user.name ?? "there",
             workoutType: workout?.name ?? "workout",
             lastWorkoutDays: user.daysSinceLastWorkout,
             streak: user.workoutStreak,
-            motivationalStyle: user.onboardingProfile?.motivationalStyle ?? .encouraging
+            motivationalStyle: motivationalStyle
         )
         
         do {
@@ -143,6 +144,7 @@ final class NotificationContentGenerator {
         let weather = try? await fetchCurrentWeather()
         let todaysWorkout = user.plannedWorkoutForToday
         let currentStreak = user.overallStreak
+        let motivationalStyle = await extractMotivationalStyle(from: user) ?? MotivationalStyle()
         
         return MorningContext(
             userName: user.name ?? "there",
@@ -152,17 +154,18 @@ final class NotificationContentGenerator {
             plannedWorkout: todaysWorkout,
             currentStreak: currentStreak,
             dayOfWeek: Calendar.current.component(.weekday, from: Date()),
-            motivationalStyle: user.onboardingProfile?.motivationalStyle ?? .encouraging
+            motivationalStyle: motivationalStyle
         )
     }
     
     // MARK: - Helper Methods
     private func selectMorningImage(context: MorningContext) -> String {
         if let weather = context.weather {
+            // Map weather condition string to appropriate image
             switch weather.condition {
-            case .sunny: return "morning_sunny"
-            case .cloudy: return "morning_cloudy"
-            case .rainy: return "morning_rainy"
+            case .clear: return "morning_sunny"
+            case .cloudy, .partlyCloudy: return "morning_cloudy"
+            case .rain: return "morning_rainy"
             default: return "morning_default"
             }
         }
@@ -187,8 +190,29 @@ final class NotificationContentGenerator {
         return nil
     }
     
-    private func fetchCurrentWeather() async throws -> WeatherData? {
+    private func fetchCurrentWeather() async throws -> ServiceWeatherData? {
         // Would integrate with weather service
+        return nil
+    }
+    
+    // MARK: - Helper to extract MotivationalStyle from OnboardingProfile
+    private func extractMotivationalStyle(from user: User) async -> MotivationalStyle? {
+        guard let profile = user.onboardingProfile,
+              profile.communicationPreferencesData.count > 0 else {
+            return nil
+        }
+        
+        // Decode the communication preferences to get motivational style
+        let decoder = JSONDecoder()
+        if let userProfile = try? decoder.decode(UserProfileJsonBlob.self, from: profile.rawFullProfileData) {
+            return userProfile.motivationalStyle
+        } else if let commPrefs = try? decoder.decode(CommunicationPreferences.self, from: profile.communicationPreferencesData) {
+            // Fallback: create a default motivational style based on communication preferences
+            return MotivationalStyle(
+                celebrationStyle: .subtleAffirming,
+                absenceResponse: commPrefs.absenceResponse == "light_nudge" ? .gentleNudge : .respectSpace
+            )
+        }
         return nil
     }
 }

@@ -156,4 +156,15 @@ enum MealType: String, Codable, CaseIterable, Sendable {
         case .postWorkout: return DateComponents(hour: 19, minute: 0)
         }
     }
+    
+    var emoji: String {
+        switch self {
+        case .breakfast: return "🍳"
+        case .lunch: return "🥗"
+        case .dinner: return "🍽️"
+        case .snack: return "🍎"
+        case .preWorkout: return "⚡"
+        case .postWorkout: return "💪"
+        }
+    }
 }

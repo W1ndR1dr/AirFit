@@ -45,7 +45,7 @@ struct WorkoutDetailView: View {
             SaveAsTemplateView(workout: workout, modelContext: modelContext)
         }
         .sheet(item: $shareItem) { item in
-            ShareSheet(activityItems: [item.text])
+            WorkoutShareSheet(activityItems: [item.text])
         }
     }
 }
@@ -321,7 +321,7 @@ private struct ShareItem: Identifiable {
 }
 
 // MARK: - Share Sheet
-private struct ShareSheet: UIViewControllerRepresentable {
+private struct WorkoutShareSheet: UIViewControllerRepresentable {
     let activityItems: [Any]
 
     func makeUIViewController(context: Context) -> UIActivityViewController {

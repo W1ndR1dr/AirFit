@@ -126,15 +126,17 @@ struct VoiceInputView: View {
         
         // Start duration timer
         timer = Timer.scheduledTimer(withTimeInterval: 0.1, repeats: true) { _ in
-            recordingDuration += 0.1
-            
-            // Auto-stop at max duration
-            if recordingDuration >= maxDuration {
-                stopRecording()
+            Task { @MainActor in
+                recordingDuration += 0.1
+                
+                // Auto-stop at max duration
+                if recordingDuration >= maxDuration {
+                    stopRecording()
+                }
             }
         }
         
-        HapticManager.shared.impact(.medium)
+        HapticManager.impact(.medium)
     }
     
     private func stopRecording() {
@@ -149,7 +151,7 @@ struct VoiceInputView: View {
                 transcription = "This is where your transcribed speech would appear"
                 showTranscription = true
                 
-                HapticManager.shared.notification(.success)
+                HapticManager.notification(.success)
             }
         }
     }
@@ -158,7 +160,7 @@ struct VoiceInputView: View {
         guard !transcription.isEmpty,
               let audioData = voiceRecorder.lastRecordingData else { return }
         
-        HapticManager.shared.impact(.light)
+        HapticManager.impact(.light)
         onSubmit(transcription, audioData)
     }
 }
@@ -199,10 +201,13 @@ class VoiceRecorder: ObservableObject {
             isRecording = true
             
             // Start monitoring audio levels
-            levelTimer = Timer.scheduledTimer(withTimeInterval: 0.05, repeats: true) { _ in
-                self.audioRecorder?.updateMeters()
-                let level = self.audioRecorder?.averagePower(forChannel: 0) ?? -160
-                self.audioLevel = max(0, 1 + level / 160)
+            levelTimer = Timer.scheduledTimer(withTimeInterval: 0.05, repeats: true) { [weak self] _ in
+                Task { @MainActor in
+                    guard let self = self else { return }
+                    self.audioRecorder?.updateMeters()
+                    let level = self.audioRecorder?.averagePower(forChannel: 0) ?? -160
+                    self.audioLevel = max(0, 1 + level / 160)
+                }
             }
         } catch {
             print("Failed to start recording: \(error)")

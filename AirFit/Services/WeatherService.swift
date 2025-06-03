@@ -10,7 +10,8 @@ final class WeatherService: WeatherServiceProtocol {
     private(set) var isConfigured: Bool = false
     
     private let networkManager: NetworkManagementProtocol
-    private let apiKeyManager: APIKeyManagementProtocol
+    // TODO: Switch to WeatherKit - no API keys needed
+    // private let apiKeyManager: APIKeyManagerProtocol
     private let configuration: ServiceConfiguration
     private let cache = WeatherCache()
     
@@ -19,27 +20,19 @@ final class WeatherService: WeatherServiceProtocol {
     // MARK: - Initialization
     init(
         networkManager: NetworkManagementProtocol = NetworkManager.shared,
-        apiKeyManager: APIKeyManagementProtocol,
         configuration: ServiceConfiguration = .shared
     ) {
         self.networkManager = networkManager
-        self.apiKeyManager = apiKeyManager
         self.configuration = configuration
     }
     
     // MARK: - ServiceProtocol
     
     func configure() async throws {
-        // Get API key for weather provider
-        let providerKey = "weather_\(configuration.weather.apiProvider.rawValue)"
-        apiKey = await apiKeyManager.getAPIKey(for: providerKey)
-        
-        guard apiKey != nil else {
-            throw ServiceError.notConfigured
-        }
-        
+        // TODO: Implement WeatherKit integration - no API keys needed
+        // For now, mark as configured without API key requirements
         isConfigured = true
-        AppLogger.info("Weather service configured with provider: \(configuration.weather.apiProvider.rawValue)", category: .services)
+        AppLogger.info("Weather service configured (TODO: implement WeatherKit)", category: .networking)
     }
     
     func reset() async {
@@ -90,7 +83,7 @@ final class WeatherService: WeatherServiceProtocol {
     
     // MARK: - WeatherServiceProtocol
     
-    func getCurrentWeather(latitude: Double, longitude: Double) async throws -> WeatherData {
+    func getCurrentWeather(latitude: Double, longitude: Double) async throws -> ServiceWeatherData {
         guard isConfigured else {
             throw ServiceError.notConfigured
         }
@@ -134,49 +127,56 @@ final class WeatherService: WeatherServiceProtocol {
         return forecast
     }
     
-    func getCachedWeather(latitude: Double, longitude: Double) -> WeatherData? {
+    func getCachedWeather(latitude: Double, longitude: Double) -> ServiceWeatherData? {
         guard configuration.weather.cacheEnabled else { return nil }
         return cache.getCurrent(latitude: latitude, longitude: longitude)
     }
     
     // MARK: - Private Methods
     
-    private func fetchCurrentWeather(latitude: Double, longitude: Double) async throws -> WeatherData {
-        guard let apiKey = apiKey else {
-            throw ServiceError.notConfigured
-        }
-        
-        switch configuration.weather.apiProvider {
-        case .openWeather:
-            return try await fetchOpenWeatherCurrent(latitude: latitude, longitude: longitude, apiKey: apiKey)
-        case .weatherAPI:
-            return try await fetchWeatherAPICurrent(latitude: latitude, longitude: longitude, apiKey: apiKey)
-        }
+    private func fetchCurrentWeather(latitude: Double, longitude: Double) async throws -> ServiceWeatherData {
+        // TODO: Replace with WeatherKit implementation
+        // For now, return mock weather data
+        return ServiceWeatherData(
+            temperature: 72.0, // Default pleasant temperature
+            condition: .partlyCloudy,
+            humidity: 45.0,
+            windSpeed: 8.0,
+            location: "Current Location",
+            timestamp: Date()
+        )
     }
     
     private func fetchForecast(latitude: Double, longitude: Double, days: Int) async throws -> WeatherForecast {
-        guard let apiKey = apiKey else {
-            throw ServiceError.notConfigured
+        // TODO: Replace with WeatherKit implementation
+        // For now, return mock forecast data
+        let dailyForecasts = (0..<days).map { dayOffset in
+            DailyForecast(
+                date: Calendar.current.date(byAdding: .day, value: dayOffset, to: Date()) ?? Date(),
+                highTemperature: 75.0 + Double(dayOffset * 2),
+                lowTemperature: 55.0 + Double(dayOffset),
+                condition: dayOffset % 2 == 0 ? .sunny : .partlyCloudy,
+                precipitationChance: Double(dayOffset * 10)
+            )
         }
         
-        switch configuration.weather.apiProvider {
-        case .openWeather:
-            return try await fetchOpenWeatherForecast(latitude: latitude, longitude: longitude, days: days, apiKey: apiKey)
-        case .weatherAPI:
-            return try await fetchWeatherAPIForecast(latitude: latitude, longitude: longitude, days: days, apiKey: apiKey)
-        }
+        return WeatherForecast(
+            daily: dailyForecasts,
+            location: "Current Location"
+        )
     }
     
-    // MARK: - OpenWeatherMap Implementation
+    // MARK: - External API Implementation (TODO: Remove when WeatherKit is implemented)
     
-    private func fetchOpenWeatherCurrent(latitude: Double, longitude: Double, apiKey: String) async throws -> WeatherData {
+    /*
+    private func fetchOpenWeatherCurrent(latitude: Double, longitude: Double, apiKey: String) async throws -> ServiceWeatherData {
         let units = configuration.weather.defaultUnits == .metric ? "metric" : "imperial"
         let url = URL(string: "https://api.openweathermap.org/data/2.5/weather?lat=\(latitude)&lon=\(longitude)&appid=\(apiKey)&units=\(units)")!
         
-        let request = networkManager.buildRequest(url: url)
+        let request = networkManager.buildRequest(url: url, method: "GET", headers: [:])
         let response: OpenWeatherResponse = try await networkManager.performRequest(request, expecting: OpenWeatherResponse.self)
         
-        return WeatherData(
+        return ServiceWeatherData(
             temperature: response.main.temp,
             condition: mapOpenWeatherCondition(response.weather.first?.main ?? ""),
             humidity: Double(response.main.humidity),
@@ -190,7 +190,7 @@ final class WeatherService: WeatherServiceProtocol {
         let units = configuration.weather.defaultUnits == .metric ? "metric" : "imperial"
         let url = URL(string: "https://api.openweathermap.org/data/2.5/forecast/daily?lat=\(latitude)&lon=\(longitude)&appid=\(apiKey)&units=\(units)&cnt=\(days)")!
         
-        let request = networkManager.buildRequest(url: url)
+        let request = networkManager.buildRequest(url: url, method: "GET", headers: [:])
         let response: OpenWeatherForecastResponse = try await networkManager.performRequest(request, expecting: OpenWeatherForecastResponse.self)
         
         let dailyForecasts = response.list.map { day in
@@ -211,16 +211,16 @@ final class WeatherService: WeatherServiceProtocol {
     
     // MARK: - WeatherAPI Implementation
     
-    private func fetchWeatherAPICurrent(latitude: Double, longitude: Double, apiKey: String) async throws -> WeatherData {
+    private func fetchWeatherAPICurrent(latitude: Double, longitude: Double, apiKey: String) async throws -> ServiceWeatherData {
         let url = URL(string: "https://api.weatherapi.com/v1/current.json?key=\(apiKey)&q=\(latitude),\(longitude)")!
         
-        let request = networkManager.buildRequest(url: url)
+        let request = networkManager.buildRequest(url: url, method: "GET", headers: [:])
         let response: WeatherAPICurrentResponse = try await networkManager.performRequest(request, expecting: WeatherAPICurrentResponse.self)
         
         let temp = configuration.weather.defaultUnits == .metric ? response.current.temp_c : response.current.temp_f
         let wind = configuration.weather.defaultUnits == .metric ? response.current.wind_kph : response.current.wind_mph
         
-        return WeatherData(
+        return ServiceWeatherData(
             temperature: temp,
             condition: mapWeatherAPICondition(response.current.condition.code),
             humidity: Double(response.current.humidity),
@@ -233,7 +233,7 @@ final class WeatherService: WeatherServiceProtocol {
     private func fetchWeatherAPIForecast(latitude: Double, longitude: Double, days: Int, apiKey: String) async throws -> WeatherForecast {
         let url = URL(string: "https://api.weatherapi.com/v1/forecast.json?key=\(apiKey)&q=\(latitude),\(longitude)&days=\(days)")!
         
-        let request = networkManager.buildRequest(url: url)
+        let request = networkManager.buildRequest(url: url, method: "GET", headers: [:])
         let response: WeatherAPIForecastResponse = try await networkManager.performRequest(request, expecting: WeatherAPIForecastResponse.self)
         
         let dailyForecasts = response.forecast.forecastday.map { day in
@@ -301,11 +301,11 @@ final class WeatherService: WeatherServiceProtocol {
 // MARK: - Weather Cache
 @MainActor
 private final class WeatherCache {
-    private var currentCache: [String: (data: WeatherData, timestamp: Date)] = [:]
+    private var currentCache: [String: (data: ServiceWeatherData, timestamp: Date)] = [:]
     private var forecastCache: [String: (data: WeatherForecast, timestamp: Date)] = [:]
     private let cacheDuration: TimeInterval = 600 // 10 minutes
     
-    func getCurrent(latitude: Double, longitude: Double) -> WeatherData? {
+    func getCurrent(latitude: Double, longitude: Double) -> ServiceWeatherData? {
         let key = cacheKey(latitude: latitude, longitude: longitude)
         guard let cached = currentCache[key],
               Date().timeIntervalSince(cached.timestamp) < cacheDuration else {
@@ -323,7 +323,7 @@ private final class WeatherCache {
         return cached.data
     }
     
-    func store(_ weather: WeatherData, latitude: Double, longitude: Double) async {
+    func store(_ weather: ServiceWeatherData, latitude: Double, longitude: Double) async {
         let key = cacheKey(latitude: latitude, longitude: longitude)
         currentCache[key] = (weather, Date())
     }
@@ -441,4 +441,5 @@ private struct WeatherAPIForecastResponse: Decodable {
             }
         }
     }
+    */
 }

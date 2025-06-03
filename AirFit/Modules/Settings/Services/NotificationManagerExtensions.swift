@@ -1,5 +1,5 @@
 import Foundation
-import UserNotifications
+@preconcurrency import UserNotifications
 
 // MARK: - NotificationManager Extensions for Settings
 extension NotificationManager {

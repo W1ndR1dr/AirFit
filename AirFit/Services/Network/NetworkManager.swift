@@ -23,6 +23,23 @@ final class NetworkManager: NetworkManagementProtocol, ObservableObject {
     
     // MARK: - NetworkManagementProtocol
     
+    func buildRequest(url: URL, method: String = "GET", headers: [String: String] = [:]) -> URLRequest {
+        var request = URLRequest(url: url)
+        request.httpMethod = method
+        request.timeoutInterval = 30
+        
+        // Default headers
+        request.setValue("application/json", forHTTPHeaderField: "Content-Type")
+        request.setValue("application/json", forHTTPHeaderField: "Accept")
+        
+        // Custom headers
+        for (key, value) in headers {
+            request.setValue(value, forHTTPHeaderField: key)
+        }
+        
+        return request
+    }
+    
     func performRequest<T: Decodable>(
         _ request: URLRequest,
         expecting: T.Type

@@ -1,7 +1,8 @@
 import Foundation
 
 /// Mock AI service for testing and development
-actor MockAIService: AIServiceProtocol {
+@MainActor
+final class MockAIService: AIServiceProtocol {
     private var responses: [String: String] = [:]
     private var shouldThrowError = false
     private var delay: TimeInterval = 0.5

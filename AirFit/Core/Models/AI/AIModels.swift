@@ -8,14 +8,19 @@ struct AIModel: Sendable, Codable {
     let name: String
     let provider: AIProvider
     let contextWindow: Int
-    let costPerThousandTokens: (input: Double, output: Double)
+    let costPerThousandTokens: TokenCost
+    
+    struct TokenCost: Sendable, Codable {
+        let input: Double
+        let output: Double
+    }
     
     init(
         id: String,
         name: String,
         provider: AIProvider,
         contextWindow: Int,
-        costPerThousandTokens: (input: Double, output: Double)
+        costPerThousandTokens: TokenCost
     ) {
         self.id = id
         self.name = name

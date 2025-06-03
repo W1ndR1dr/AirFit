@@ -71,7 +71,9 @@ final class LiveActivityManager {
             staleDate: Date().addingTimeInterval(5 * 60) // 5 minutes
         )
         
-        await activity.update(content)
+        Task {
+            await activity.update(content)
+        }
     }
     
     func endWorkoutActivity() async {
@@ -89,7 +91,9 @@ final class LiveActivityManager {
             staleDate: nil
         )
         
-        await activity.end(content, dismissalPolicy: .after(Date().addingTimeInterval(30)))
+        Task {
+            await activity.end(content, dismissalPolicy: .after(Date().addingTimeInterval(30)))
+        }
         workoutActivity = nil
         
         AppLogger.info("Ended workout live activity", category: .ui)
@@ -153,14 +157,17 @@ final class LiveActivityManager {
             staleDate: Date().addingTimeInterval(30 * 60)
         )
         
-        await activity.update(content)
+        Task {
+            await activity.update(content)
+        }
     }
     
     func endMealTrackingActivity() async {
         guard let activity = mealTrackingActivity else { return }
-        
-        await activity.end(dismissalPolicy: .immediate)
+        let activityToEnd = activity
         mealTrackingActivity = nil
+        
+        await activityToEnd.end(dismissalPolicy: .immediate)
         
         AppLogger.info("Ended meal tracking live activity", category: .ui)
     }

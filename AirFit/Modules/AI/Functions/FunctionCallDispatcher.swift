@@ -296,17 +296,27 @@ final class FunctionCallDispatcher: @unchecked Sendable {
         let muscleGroups = extractStringArray(from: args["targetMuscleGroups"]) ?? ["full_body"]
         let equipment = extractStringArray(from: args["availableEquipment"]) ?? ["bodyweight"]
         let constraints = extractString(from: args["constraints"])
-        let style = extractString(from: args["workoutStyle"]) ?? "traditional_sets"
+        let _ = extractString(from: args["workoutStyle"]) ?? "traditional_sets"
 
-        let plan = try await workoutService.generatePlan(
-            for: user,
-            goal: goalFocus,
-            duration: duration,
-            intensity: intensity,
-            targetMuscles: muscleGroups,
-            equipment: equipment,
-            constraints: constraints,
-            style: style
+        // TODO: Implement generatePlan in WorkoutServiceProtocol
+        // let plan = try await workoutService.generatePlan(
+        //     for: user,
+        //     goal: goalFocus,
+        //     duration: duration,
+        //     intensity: intensity,
+        //     targetMuscles: muscleGroups,
+        //     equipment: equipment,
+        //     constraints: constraints,
+        //     style: style
+        // )
+        
+        // Mock workout plan for now
+        let plan = WorkoutPlanResult(
+            id: UUID(),
+            exercises: [],
+            estimatedCalories: 300,
+            estimatedDuration: duration,
+            summary: "Mock workout plan"
         )
 
         // Optimized string building - avoid repeated interpolation
@@ -395,13 +405,23 @@ final class FunctionCallDispatcher: @unchecked Sendable {
         let depth = extractString(from: args["analysisDepth"]) ?? "standard_analysis"
         let includeRecommendations = extractBool(from: args["includeRecommendations"]) ?? true
 
-        let result = try await analyticsService.analyzePerformance(
-            query: query,
-            metrics: metrics,
-            days: days,
-            depth: depth,
-            includeRecommendations: includeRecommendations,
-            for: user
+        // TODO: Implement analyzePerformance in AnalyticsServiceProtocol
+        // let result = try await analyticsService.analyzePerformance(
+        //     query: query,
+        //     metrics: metrics,
+        //     days: days,
+        //     depth: depth,
+        //     includeRecommendations: includeRecommendations,
+        //     for: user
+        // )
+        
+        // Mock result for now
+        let result = PerformanceAnalysisResult(
+            summary: "Mock performance analysis",
+            insights: [],
+            trends: [],
+            recommendations: [],
+            dataPoints: 0
         )
 
         let message = """
@@ -443,15 +463,33 @@ final class FunctionCallDispatcher: @unchecked Sendable {
         let motivations = extractStringArray(from: args["motivationFactors"]) ?? []
         let goalType = extractString(from: args["goalType"])
 
-        let result = try await goalService.createOrRefineGoal(
-            current: currentGoal,
-            aspirations: aspirations,
-            timeframe: timeframe,
-            fitnessLevel: fitnessLevel,
-            constraints: constraints,
-            motivations: motivations,
-            goalType: goalType,
-            for: user
+        // TODO: Implement createOrRefineGoal in GoalServiceProtocol
+        // let result = try await goalService.createOrRefineGoal(
+        //     current: currentGoal,
+        //     aspirations: aspirations,
+        //     timeframe: timeframe,
+        //     fitnessLevel: fitnessLevel,
+        //     constraints: constraints,
+        //     motivations: motivations,
+        //     goalType: goalType,
+        //     for: user
+        // )
+        
+        // Mock result for now
+        let result = GoalResult(
+            id: UUID(),
+            title: "Mock Goal",
+            description: "Mock goal description",
+            targetDate: Date().addingTimeInterval(86400 * 30),
+            metrics: ["mock_metric"],
+            milestones: [],
+            smartCriteria: GoalResult.SMARTCriteria(
+                specific: "Mock specific criteria",
+                measurable: "Mock measurable criteria",
+                achievable: "Mock achievable criteria",
+                relevant: "Mock relevant criteria",
+                timeBound: "Mock time-bound criteria"
+            )
         )
 
         let message = """

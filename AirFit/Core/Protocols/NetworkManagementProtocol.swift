@@ -1,11 +1,12 @@
 import Foundation
 
 // MARK: - Network Management Protocol
+@MainActor
 protocol NetworkManagementProtocol: AnyObject {
     var isReachable: Bool { get }
     var currentNetworkType: NetworkType { get }
     
-    func performRequest<T: Decodable>(
+    func performRequest<T: Decodable & Sendable>(
         _ request: URLRequest,
         expecting: T.Type
     ) async throws -> T
@@ -22,6 +23,12 @@ protocol NetworkManagementProtocol: AnyObject {
         _ data: Data,
         to url: URL
     ) async throws -> URLResponse
+    
+    func buildRequest(
+        url: URL,
+        method: String,
+        headers: [String: String]
+    ) -> URLRequest
 }
 
 // MARK: - Network Type

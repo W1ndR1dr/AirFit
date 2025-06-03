@@ -304,6 +304,7 @@ targets:
       - AirFit/Modules/FoodTracking/Views/NutritionSearchView.swift
       - AirFit/Modules/FoodTracking/Views/WaterTrackingView.swift
       - AirFit/Modules/FoodTracking/Views/MacroRingsView.swift
+      - AirFit/Modules/FoodTracking/Views/FoodVoiceInputView.swift
       - AirFit/Modules/FoodTracking/Services/FoodVoiceAdapter.swift
       - AirFit/Core/Protocols/FoodVoiceAdapterProtocol.swift
       - AirFit/Modules/FoodTracking/Services/NutritionService.swift

@@ -152,8 +152,8 @@ extension User {
             context += " Current mood: \(mood)."
         }
         
-        if let energy = todayLog?.energyLevel {
-            context += " Energy level: \(energy)/10."
+        if let energy = todayLog?.subjectiveEnergyLevel {
+            context += " Energy level: \(energy)/5."
         }
         
         return context

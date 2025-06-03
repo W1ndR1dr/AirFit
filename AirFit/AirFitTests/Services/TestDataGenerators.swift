@@ -66,7 +66,7 @@ enum TestDataGenerators {
             responses.append(.textDelta(currentChunk))
         }
         
-        responses.append(.done(usage: AIUsage(
+        responses.append(.done(usage: AITokenUsage(
             promptTokens: text.count / 4,
             completionTokens: text.count / 4,
             totalTokens: text.count / 2
@@ -84,7 +84,7 @@ enum TestDataGenerators {
         
         return [
             .functionCall(name: functionName, arguments: jsonString),
-            .done(usage: AIUsage(promptTokens: 50, completionTokens: 25, totalTokens: 75))
+            .done(usage: AITokenUsage(promptTokens: 50, completionTokens: 25, totalTokens: 75))
         ]
     }
     

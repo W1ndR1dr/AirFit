@@ -56,7 +56,7 @@ final class OnboardingViewModel {
     private let speechService: WhisperServiceWrapperProtocol?
     private let healthPrefillProvider: HealthKitPrefillProviding?
     private let healthKitAuthManager: HealthKitAuthManager
-    private let apiKeyManager: APIKeyManagerProtocol
+    private let apiKeyManager: APIKeyManagementProtocol
     private let userService: UserServiceProtocol
     private let analytics: ConversationAnalytics
 

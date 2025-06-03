@@ -1,7 +1,7 @@
 import Foundation
 
 // MARK: - API Key Management Protocol
-protocol APIKeyManagementProtocol: AnyObject {
+protocol APIKeyManagementProtocol: AnyObject, Sendable {
     func saveAPIKey(
         _ key: String,
         for provider: AIProvider

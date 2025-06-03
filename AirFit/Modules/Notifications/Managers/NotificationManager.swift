@@ -1,4 +1,4 @@
-import UserNotifications
+@preconcurrency import UserNotifications
 import UIKit
 
 @MainActor
@@ -62,7 +62,9 @@ final class NotificationManager: NSObject, @unchecked Sendable {
     }
     
     private func registerForRemoteNotifications() async {
-        await UIApplication.shared.registerForRemoteNotifications()
+        await MainActor.run {
+            UIApplication.shared.registerForRemoteNotifications()
+        }
     }
     
     // MARK: - Category Setup
@@ -235,7 +237,9 @@ final class NotificationManager: NSObject, @unchecked Sendable {
     
     // MARK: - Badge Management
     func updateBadgeCount(_ count: Int) async {
-        await UIApplication.shared.setApplicationBadgeNumber(count)
+        await MainActor.run {
+            UIApplication.shared.applicationIconBadgeNumber = count
+        }
     }
     
     func clearBadge() async {

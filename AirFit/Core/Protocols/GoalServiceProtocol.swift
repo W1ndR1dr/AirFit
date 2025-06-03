@@ -6,28 +6,28 @@ protocol GoalServiceProtocol: AnyObject {
     func createGoal(
         _ goalData: GoalCreationData,
         for user: User
-    ) async throws -> Goal
+    ) async throws -> ServiceGoal
     
     func updateGoal(
-        _ goal: Goal,
+        _ goal: ServiceGoal,
         updates: GoalUpdate
     ) async throws
     
-    func deleteGoal(_ goal: Goal) async throws
+    func deleteGoal(_ goal: ServiceGoal) async throws
     
-    func getActiveGoals(for user: User) async throws -> [Goal]
+    func getActiveGoals(for user: User) async throws -> [ServiceGoal]
     
     func trackProgress(
-        for goal: Goal,
+        for goal: ServiceGoal,
         value: Double
     ) async throws
     
-    func checkGoalCompletion(_ goal: Goal) async -> Bool
+    func checkGoalCompletion(_ goal: ServiceGoal) async -> Bool
 }
 
 // MARK: - Supporting Types
 
-struct Goal: Sendable, Identifiable {
+struct ServiceGoal: Sendable, Identifiable {
     let id: UUID
     let type: GoalType
     let target: Double

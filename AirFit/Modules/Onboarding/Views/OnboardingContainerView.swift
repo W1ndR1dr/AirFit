@@ -2,7 +2,7 @@ import SwiftUI
 import SwiftData
 
 struct OnboardingContainerView: View {
-    @StateObject private var coordinator: OnboardingFlowCoordinator
+    @State private var coordinator: OnboardingFlowCoordinator
     @State private var showingError = false
     @Environment(\.dismiss) private var dismiss
     
@@ -58,7 +58,7 @@ struct OnboardingContainerView: View {
                     ))
                     
                 case .complete:
-                    CompletionView(coordinator: coordinator)
+                    ContainerCompletionView(coordinator: coordinator)
                         .transition(.asymmetric(
                             insertion: .move(edge: .bottom).combined(with: .opacity),
                             removal: .opacity
@@ -69,14 +69,14 @@ struct OnboardingContainerView: View {
             
             // Loading overlay
             if coordinator.isLoading {
-                LoadingOverlay()
+                ContainerLoadingOverlay()
                     .transition(.opacity)
                     .zIndex(10)
             }
             
             // Progress indicator
             VStack {
-                OnboardingProgressBar(progress: coordinator.progress)
+                ContainerProgressBar(progress: coordinator.progress)
                     .padding(.horizontal)
                     .padding(.top, 8)
                 Spacer()
@@ -267,7 +267,7 @@ private struct ProgressMessage: View {
     }
 }
 
-private struct CompletionView: View {
+private struct ContainerCompletionView: View {
     let coordinator: OnboardingFlowCoordinator
     @Environment(\.dismiss) private var dismiss
     
@@ -314,7 +314,7 @@ private struct CompletionView: View {
 
 // MARK: - Supporting Views
 
-private struct LoadingOverlay: View {
+private struct ContainerLoadingOverlay: View {
     var body: some View {
         ZStack {
             Color.black.opacity(0.3)
@@ -332,7 +332,7 @@ private struct LoadingOverlay: View {
     }
 }
 
-private struct OnboardingProgressBar: View {
+private struct ContainerProgressBar: View {
     let progress: Double
     
     var body: some View {
@@ -364,7 +364,7 @@ private struct OnboardingProgressBar: View {
 
 // MARK: - Preview Support
 
-private struct PreviewUserService: UserServiceProtocol {
+private class PreviewUserService: UserServiceProtocol {
     func getCurrentUser() async -> User? {
         nil
     }
@@ -374,25 +374,29 @@ private struct PreviewUserService: UserServiceProtocol {
     }
     
     func createUser(name: String, email: String?) async throws -> User {
-        User(name: name, email: email)
+        User(email: email, name: name)
     }
 }
 
-private struct PreviewAPIKeyManager: APIKeyManagerProtocol {
-    func getAPIKey(for service: String) async -> String? {
+private struct PreviewAPIKeyManager: APIKeyManagementProtocol {
+    func getAPIKey(for provider: AIProvider) async throws -> String {
         return "preview-key"
     }
     
-    func setAPIKey(_ key: String, for service: String) async throws {
+    func saveAPIKey(_ key: String, for provider: AIProvider) async throws {
         // No-op for preview
     }
     
-    func removeAPIKey(for service: String) async throws {
+    func deleteAPIKey(for provider: AIProvider) async throws {
         // No-op for preview
     }
     
-    func hasAPIKey(for service: String) async -> Bool {
+    func hasAPIKey(for provider: AIProvider) async -> Bool {
         return true
+    }
+    
+    func getAllConfiguredProviders() async -> [AIProvider] {
+        return [.openAI, .anthropic, .google]
     }
 }
 

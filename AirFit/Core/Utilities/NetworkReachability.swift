@@ -55,9 +55,7 @@ final class NetworkReachability: ObservableObject {
     }
     
     deinit {
-        Task { @MainActor in
-            stopMonitoring()
-        }
+        monitor.cancel()
     }
     
     // MARK: - Public Methods
@@ -144,13 +142,13 @@ final class NetworkReachability: ObservableObject {
     }
     
     private func logConnectionChange() {
-        AppLogger.network.info("""
+        AppLogger.info("""
             Network status changed:
             - Connected: \(isConnected)
             - Type: \(connectionType.displayName)
             - Expensive: \(isExpensive)
             - Constrained: \(isConstrained)
-            """)
+            """, category: .network)
     }
 }
 
@@ -244,7 +242,7 @@ extension NetworkReachability {
     }
     
     /// Convenience method for retry logic
-    func performWithConnectivity<T>(
+    func performWithConnectivity<T: Sendable>(
         timeout: TimeInterval = 30,
         operation: () async throws -> T
     ) async throws -> T {

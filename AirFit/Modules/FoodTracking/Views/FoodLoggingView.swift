@@ -304,7 +304,7 @@ struct FoodLoggingView: View {
     private func sheetView(for sheet: FoodTrackingCoordinator.FoodTrackingSheet) -> some View {
         switch sheet {
         case .voiceInput:
-            VoiceInputView(viewModel: viewModel)
+            FoodVoiceInputView(viewModel: viewModel)
         case .photoCapture:
             PhotoInputView(viewModel: viewModel)
         case .foodSearch:

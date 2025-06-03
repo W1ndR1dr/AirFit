@@ -441,9 +441,7 @@ extension User {
         set { _ = newValue } // Placeholder
     }
     
-    var notificationPreferences: NotificationPreferences? {
-        nil // Placeholder - would need to add this relationship to User model
-    }
+    // notificationPreferences is defined in UserSettingsExtensions.swift
 }
 
 // MARK: - CoachEngine Extensions

@@ -92,7 +92,7 @@ final class SimpleMockAIService: AIServiceProtocol {
                     continuation.yield(.text(responseText))
                 }
                 
-                continuation.yield(.done(usage: AIUsage(promptTokens: 10, completionTokens: 20, totalTokens: 30)))
+                continuation.yield(.done(usage: AITokenUsage(promptTokens: 10, completionTokens: 20, totalTokens: 30)))
                 continuation.finish()
             }
         }

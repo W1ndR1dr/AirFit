@@ -6,7 +6,7 @@ protocol WeatherServiceProtocol: ServiceProtocol {
     func getCurrentWeather(
         latitude: Double,
         longitude: Double
-    ) async throws -> WeatherData
+    ) async throws -> ServiceWeatherData
     
     func getForecast(
         latitude: Double,
@@ -17,24 +17,12 @@ protocol WeatherServiceProtocol: ServiceProtocol {
     func getCachedWeather(
         latitude: Double,
         longitude: Double
-    ) -> WeatherData?
+    ) -> ServiceWeatherData?
 }
 
 // MARK: - Weather Data Types
-struct WeatherData: Sendable, Codable {
-    let temperature: Double
-    let condition: String
-    let humidity: Int
-    let windSpeed: Double
-    let uvIndex: Int?
-    let timestamp: Date
-}
-
-struct WeatherForecast: Sendable, Codable {
-    let days: [WeatherDay]
-    let location: String
-    let timestamp: Date
-}
+// ServiceWeatherData is defined in ServiceTypes.swift
+// WeatherForecast is defined in ServiceTypes.swift
 
 struct WeatherDay: Sendable, Codable {
     let date: Date

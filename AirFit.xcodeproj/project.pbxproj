@@ -345,6 +345,7 @@
 		EB04AB87062564F94DC4B87F /* OptimizedPersonaSynthesizer.swift in Sources */ = {isa = PBXBuildFile; fileRef = C2C538055E14E7AFFE5E7BC3 /* OptimizedPersonaSynthesizer.swift */; };
 		EDB4854DF9091B23EAF1E943 /* FoodItem.swift in Sources */ = {isa = PBXBuildFile; fileRef = AE6EF64B2175B1AE0EC0371E /* FoodItem.swift */; };
 		EF6F6D8EF5A638B335822BF5 /* MockAIAPIService.swift in Sources */ = {isa = PBXBuildFile; fileRef = DE55F7E0B0B4E3C7B4D7F0F1 /* MockAIAPIService.swift */; };
+		EFDDE9DC1F8D808416271D56 /* FoodVoiceInputView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 84B76DA6D0EBCE3B842577A7 /* FoodVoiceInputView.swift */; };
 		EFF9759883728621D78A46A3 /* SchemaV1.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8DA49F7251DE74DEF60679FC /* SchemaV1.swift */; };
 		F023FA64E1313FD8523A0E88 /* OnboardingContainerView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 281EE2CEA2BC303E4245FFB1 /* OnboardingContainerView.swift */; };
 		F03F3F0E59A7306E2680E9B7 /* SettingsViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 612A49D01E95322C6683BCC5 /* SettingsViewModel.swift */; };
@@ -566,6 +567,7 @@
 		83B7CB1BE77677C68D4347D9 /* ErrorPresentationView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ErrorPresentationView.swift; sourceTree = "<group>"; };
 		8405AA7EAC8380C449EA05CD /* WorkoutViewModelTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WorkoutViewModelTests.swift; sourceTree = "<group>"; };
 		842655020A0D575E0ED083E2 /* OnboardingStateView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OnboardingStateView.swift; sourceTree = "<group>"; };
+		84B76DA6D0EBCE3B842577A7 /* FoodVoiceInputView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FoodVoiceInputView.swift; sourceTree = "<group>"; };
 		87A2008F2F237E9BB08A1D7B /* OnboardingService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OnboardingService.swift; sourceTree = "<group>"; };
 		87D9DCBAAE9D9E230C5D971C /* AppState.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppState.swift; sourceTree = "<group>"; };
 		8825A8884FF2749995A8333C /* NotificationManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NotificationManager.swift; sourceTree = "<group>"; };
@@ -996,6 +998,7 @@
 			children = (
 				2622F7A2486FABBC83FCFAFA /* FoodConfirmationView.swift */,
 				4C9E6C3B9E65E2C38BBAE5C5 /* FoodLoggingView.swift */,
+				84B76DA6D0EBCE3B842577A7 /* FoodVoiceInputView.swift */,
 				33B4515503E54581CD898210 /* MacroRingsView.swift */,
 				06C59C77B1B942FCFFB438E0 /* NutritionSearchView.swift */,
 				E0271A83EF8D093A23DC13E9 /* PhotoInputView.swift */,
@@ -2361,6 +2364,7 @@
 				3042BE44B3EB7593FF7B16F7 /* FoodTrackingViewModel.swift in Sources */,
 				97941E63E1FE040CC9392B32 /* FoodVoiceAdapter.swift in Sources */,
 				CC5C3218475DD988AD2C6815 /* FoodVoiceAdapterProtocol.swift in Sources */,
+				EFDDE9DC1F8D808416271D56 /* FoodVoiceInputView.swift in Sources */,
 				4ABCD3CEB34943FDC7BE566F /* FoodVoiceServiceProtocol.swift in Sources */,
 				A06DFFF36E91A43DE8039E41 /* Formatters.swift in Sources */,
 				A7F05082D91A89DDFBC3419C /* FunctionCallDispatcher.swift in Sources */,

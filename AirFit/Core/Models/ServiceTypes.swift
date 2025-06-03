@@ -48,7 +48,7 @@ enum ServiceError: LocalizedError {
 
 // MARK: - Weather Types
 
-struct WeatherData: Sendable {
+struct ServiceWeatherData: Sendable {
     let temperature: Double
     let condition: WeatherCondition
     let humidity: Double

@@ -87,7 +87,7 @@ final class LLMOrchestrator: ObservableObject {
     
     private func setupProviders() async {
         // Setup Anthropic
-        if let anthropicKey = await apiKeyManager.getAPIKey(for: "anthropic") {
+        if let anthropicKey = try? await apiKeyManager.getAPIKey(for: .anthropic) {
             let config = LLMProviderConfig(apiKey: anthropicKey)
             let provider = AnthropicProvider(config: config)
             
@@ -98,7 +98,7 @@ final class LLMOrchestrator: ObservableObject {
         }
         
         // Setup OpenAI
-        if let openAIKey = await apiKeyManager.getAPIKey(for: "openai") {
+        if let openAIKey = try? await apiKeyManager.getAPIKey(for: .openAI) {
             let config = LLMProviderConfig(apiKey: openAIKey)
             let provider = OpenAIProvider(config: config)
             
@@ -109,7 +109,7 @@ final class LLMOrchestrator: ObservableObject {
         }
         
         // Setup Google Gemini
-        if let geminiKey = await apiKeyManager.getAPIKey(for: "gemini") {
+        if let geminiKey = try? await apiKeyManager.getAPIKey(for: .gemini) {
             let provider = GeminiProvider(apiKey: geminiKey)
             providers[.google] = provider
             availableProviders.insert(.google)

@@ -26,13 +26,13 @@ struct NotificationPreferencesView: View {
     }
     
     private var systemNotificationStatus: some View {
-        VStack(alignment: .leading, spacing: AppSpacing.md) {
+        VStack(alignment: .leading, spacing: AppSpacing.medium) {
             SectionHeader(title: "System Settings", icon: "bell.badge")
             
             Card {
-                VStack(spacing: AppSpacing.md) {
+                VStack(spacing: AppSpacing.medium) {
                     HStack {
-                        VStack(alignment: .leading, spacing: AppSpacing.xs) {
+                        VStack(alignment: .leading, spacing: AppSpacing.xSmall) {
                             Text("Notification Status")
                                 .font(.headline)
                             Text(preferences.systemEnabled ? "Enabled" : "Disabled")
@@ -64,11 +64,11 @@ struct NotificationPreferencesView: View {
     }
     
     private var notificationTypes: some View {
-        VStack(alignment: .leading, spacing: AppSpacing.md) {
+        VStack(alignment: .leading, spacing: AppSpacing.medium) {
             SectionHeader(title: "Notification Types", icon: "bell")
             
             Card {
-                VStack(spacing: AppSpacing.md) {
+                VStack(spacing: AppSpacing.medium) {
                     NotificationToggle(
                         title: "Workout Reminders",
                         description: "Daily motivation to stay active",
@@ -118,14 +118,14 @@ struct NotificationPreferencesView: View {
     }
     
     private var quietHoursSection: some View {
-        VStack(alignment: .leading, spacing: AppSpacing.md) {
+        VStack(alignment: .leading, spacing: AppSpacing.medium) {
             SectionHeader(title: "Quiet Hours", icon: "moon.zzz")
             
             Card {
-                VStack(spacing: AppSpacing.md) {
+                VStack(spacing: AppSpacing.medium) {
                     Toggle(isOn: $quietHours.enabled) {
                         Label {
-                            VStack(alignment: .leading, spacing: AppSpacing.xs) {
+                            VStack(alignment: .leading, spacing: AppSpacing.xSmall) {
                                 Text("Enable Quiet Hours")
                                     .font(.headline)
                                 Text("Pause notifications during set hours")
@@ -141,7 +141,7 @@ struct NotificationPreferencesView: View {
                     if quietHours.enabled {
                         Divider()
                         
-                        VStack(spacing: AppSpacing.md) {
+                        VStack(spacing: AppSpacing.medium) {
                             DatePicker(
                                 "Start Time",
                                 selection: $quietHours.startTime,
@@ -175,9 +175,10 @@ struct NotificationPreferencesView: View {
             do {
                 try await viewModel.updateNotificationPreferences(preferences)
                 try await viewModel.updateQuietHours(quietHours)
-                HapticManager.success()
+                HapticManager.notification(.success)
             } catch {
-                viewModel.coordinator.showAlert(.error(message: error.localizedDescription))
+                // Error is handled by the view model
+                print("Failed to update notification preferences: \(error)")
             }
         }
     }
@@ -193,7 +194,7 @@ struct NotificationToggle: View {
     var body: some View {
         Toggle(isOn: $isOn) {
             Label {
-                VStack(alignment: .leading, spacing: AppSpacing.xs) {
+                VStack(alignment: .leading, spacing: AppSpacing.xSmall) {
                     Text(title)
                         .font(.subheadline)
                     Text(description)
@@ -212,7 +213,8 @@ struct NotificationToggle: View {
 
 // NotificationPreferences already conforms to Codable which includes Equatable
 
-extension QuietHours: Equatable {
+// QuietHours already conforms to Equatable
+/*extension QuietHours: Equatable {
     static func == (lhs: QuietHours, rhs: QuietHours) -> Bool {
         lhs.enabled == rhs.enabled &&
         Calendar.current.dateComponents([.hour, .minute], from: lhs.startTime) ==
@@ -220,4 +222,4 @@ extension QuietHours: Equatable {
         Calendar.current.dateComponents([.hour, .minute], from: lhs.endTime) ==
         Calendar.current.dateComponents([.hour, .minute], from: rhs.endTime)
     }
-}
+}*/

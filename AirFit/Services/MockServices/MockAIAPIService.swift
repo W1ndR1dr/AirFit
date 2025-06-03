@@ -22,8 +22,20 @@ final class MockAIAPIService: AIServiceProtocol {
     // MARK: - Initialization
     init() {
         availableModels = [
-            AIModel(id: "mock-model-1", name: "Mock Model 1", contextWindow: 4096),
-            AIModel(id: "mock-model-2", name: "Mock Model 2", contextWindow: 8192)
+            AIModel(
+                id: "mock-model-1", 
+                name: "Mock Model 1", 
+                provider: .openAI, 
+                contextWindow: 4096,
+                costPerThousandTokens: AIModel.TokenCost(input: 0.001, output: 0.002)
+            ),
+            AIModel(
+                id: "mock-model-2", 
+                name: "Mock Model 2", 
+                provider: .anthropic, 
+                contextWindow: 8192,
+                costPerThousandTokens: AIModel.TokenCost(input: 0.002, output: 0.004)
+            )
         ]
     }
     
@@ -123,12 +135,14 @@ final class MockAIAPIService: AIServiceProtocol {
                     // Check for function call
                     if request.functions != nil {
                         continuation.yield(.functionCall(
-                            name: "mockFunction",
-                            arguments: "{\"key\": \"value\"}"
+                            AIFunctionCall(
+                                name: "mockFunction",
+                                arguments: ["key": "value"]
+                            )
                         ))
                     }
                     
-                    continuation.yield(.done(usage: AIUsage(
+                    continuation.yield(.done(usage: AITokenUsage(
                         promptTokens: 10,
                         completionTokens: 20,
                         totalTokens: 30
@@ -142,7 +156,7 @@ final class MockAIAPIService: AIServiceProtocol {
                         try? await Task.sleep(nanoseconds: 10_000_000) // 10ms
                     }
                     
-                    continuation.yield(.done(usage: AIUsage(
+                    continuation.yield(.done(usage: AITokenUsage(
                         promptTokens: 15,
                         completionTokens: 25,
                         totalTokens: 40

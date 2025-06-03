@@ -65,7 +65,7 @@ struct CommunicationPreferences: Codable {
 }
 
 // MARK: - Notification Preferences
-struct NotificationPreferences: Codable {
+struct NotificationPreferences: Codable, Equatable {
     var systemEnabled: Bool = true
     var morningGreeting = true
     var morningTime = Date()
@@ -85,7 +85,7 @@ enum HydrationFrequency: String, CaseIterable, Codable {
     case triDaily = "tri_daily"
 }
 
-struct WorkoutSchedule: Codable {
+struct WorkoutSchedule: Codable, Equatable {
     let type: String
     let scheduledDate: Date
     let dateComponents: DateComponents
@@ -96,7 +96,7 @@ struct MorningContext {
     let userName: String
     let sleepQuality: SleepQuality?
     let sleepDuration: TimeInterval?
-    let weather: WeatherData?
+    let weather: ServiceWeatherData?
     let plannedWorkout: WorkoutTemplate?
     let currentStreak: Int
     let dayOfWeek: Int
@@ -135,13 +135,6 @@ enum SleepQuality {
 struct SleepData {
     let quality: SleepQuality
     let duration: TimeInterval
-}
-
-
-enum MotivationalStyle: String, Sendable {
-    case encouraging
-    case challenging
-    case supportive
 }
 
 struct NutritionGoals {

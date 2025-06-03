@@ -3,7 +3,7 @@ import SwiftData
 import AVFoundation
 
 /// Full screen voice logging interface with real-time waveform visualisation.
-struct VoiceInputView: View {
+struct FoodVoiceInputView: View {
     @State var viewModel: FoodTrackingViewModel
     @Environment(\.dismiss) private var dismiss
     @State private var pulseAnimation = false

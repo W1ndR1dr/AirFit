@@ -1,7 +1,7 @@
 import SwiftUI
 
 struct UnitsSettingsView: View {
-    @ObservedObject var viewModel: SettingsViewModel
+    var viewModel: SettingsViewModel
     @Environment(\.dismiss) private var dismiss
     @State private var selectedUnits: MeasurementSystem
     
@@ -12,7 +12,7 @@ struct UnitsSettingsView: View {
     
     var body: some View {
         ScrollView {
-            VStack(spacing: AppSpacing.xl) {
+            VStack(spacing: AppSpacing.xLarge) {
                 unitSelection
                 examples
                 saveButton
@@ -24,7 +24,7 @@ struct UnitsSettingsView: View {
     }
     
     private var unitSelection: some View {
-        VStack(alignment: .leading, spacing: AppSpacing.md) {
+        VStack(alignment: .leading, spacing: AppSpacing.medium) {
             SectionHeader(title: "Measurement System", icon: "ruler")
             
             Card {
@@ -50,11 +50,11 @@ struct UnitsSettingsView: View {
     }
     
     private var examples: some View {
-        VStack(alignment: .leading, spacing: AppSpacing.md) {
+        VStack(alignment: .leading, spacing: AppSpacing.medium) {
             SectionHeader(title: "Examples", icon: "info.circle")
             
             Card {
-                VStack(spacing: AppSpacing.md) {
+                VStack(spacing: AppSpacing.medium) {
                     ExampleRow(
                         label: "Weight",
                         imperial: "150 lbs",
@@ -105,7 +105,7 @@ struct UnitsSettingsView: View {
     private func saveUnits() {
         Task {
             try await viewModel.updateUnits(selectedUnits)
-            HapticManager.success()
+            HapticManager.notification(.success)
             dismiss()
         }
     }
@@ -120,7 +120,7 @@ struct UnitSystemRow: View {
     var body: some View {
         Button(action: onSelect) {
             HStack {
-                VStack(alignment: .leading, spacing: AppSpacing.xs) {
+                VStack(alignment: .leading, spacing: AppSpacing.xSmall) {
                     Text(system.displayName)
                         .font(.headline)
                     
@@ -133,13 +133,13 @@ struct UnitSystemRow: View {
                 
                 if isSelected {
                     Image(systemName: "checkmark.circle.fill")
-                        .foregroundStyle(.accentColor)
+                        .foregroundStyle(Color.accentColor)
                 } else {
                     Image(systemName: "circle")
                         .foregroundStyle(.quaternary)
                 }
             }
-            .padding(.vertical, AppSpacing.sm)
+            .padding(.vertical, AppSpacing.small)
         }
         .buttonStyle(.plain)
     }
