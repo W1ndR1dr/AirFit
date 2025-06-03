@@ -2,6 +2,9 @@
 /Users/Brian/Coding Projects/AirFit
 ├── .claude
 │   └── settings.local.json
+├── .github
+│   └── workflows
+│       └── test.yml
 ├── AirFit
 │   ├── AirFitTests
 │   │   ├── AI
@@ -40,7 +43,9 @@
 │   │   │   ├── MockAIAPIService.swift
 │   │   │   ├── MockAIFunctionServices.swift
 │   │   │   ├── MockAIService.swift
+│   │   │   ├── MockAnalyticsService.swift
 │   │   │   ├── MockDashboardServices.swift
+│   │   │   ├── MockFoodVoiceAdapter.swift
 │   │   │   ├── MockHealthKitManager.swift
 │   │   │   ├── MockHealthKitPrefillProvider.swift
 │   │   │   ├── MockLLMOrchestrator.swift
@@ -72,6 +77,7 @@
 │   │   │   │   ├── EngagementEngineTests.swift
 │   │   │   │   └── NotificationManagerTests.swift
 │   │   │   ├── Onboarding
+│   │   │   │   ├── ConversationViewModelTests.swift
 │   │   │   │   ├── OnboardingFlowViewTests.swift
 │   │   │   │   ├── OnboardingIntegrationTests.swift
 │   │   │   │   ├── OnboardingModelsTests.swift
@@ -89,6 +95,7 @@
 │   │   │   ├── OnboardingPerformanceTests.swift
 │   │   │   └── PersonaGenerationStressTests.swift
 │   │   ├── Services
+│   │   │   ├── GeminiProviderTests.swift
 │   │   │   ├── MockServicesTests.swift
 │   │   │   ├── NetworkManagerTests.swift
 │   │   │   ├── ServiceIntegrationTests.swift
@@ -261,36 +268,38 @@
 │   │       ├── Workout.swift
 │   │       └── WorkoutTemplate.swift
 │   ├── Docs
-│   │   ├── IGNORE
-│   │   │   ├── Archive
-│   │   │   │   ├── Persona Refactor Tasks.md
-│   │   │   │   ├── Persona Refactor.md
-│   │   │   │   └── PersonaRefactorContext.md
-│   │   │   └── Completed
-│   │   │       ├── API_INTEGRATION_ANALYSIS.md
-│   │   │       ├── CODEBASE_CONTEXT.md
-│   │   │       ├── COMMON_COMMANDS.md
-│   │   │       ├── HealthKitIntegration.md
-│   │   │       ├── IMPLEMENTATION_CHECKLIST.md
-│   │   │       ├── Module10_Compatibility_Analysis.md
-│   │   │       ├── OnboardingFlow.md
-│   │   │       ├── PERSONA_REFACTOR_EXECUTION_GUIDE.md
-│   │   │       ├── Phase1_ConversationalFoundation.md
-│   │   │       ├── Phase2_PersonaSynthesis.md
-│   │   │       ├── Phase3_Integration_Complete.md
-│   │   │       ├── Phase3_IntegrationTesting.md
-│   │   │       ├── Phase4_Batch4.1_Complete.md
-│   │   │       ├── Phase4_FinalImplementation.md
-│   │   │       ├── Phase4_Implementation_Summary.md
-│   │   │       ├── README.md
-│   │   │       ├── START_HERE.md
-│   │   │       ├── STATUS_AND_VISION.md
-│   │   │       ├── SystemPrompt.md
-│   │   │       └── Tuneup.md
+│   │   ├── Archive
+│   │   │   ├── Completed
+│   │   │   │   ├── API_INTEGRATION_ANALYSIS.md
+│   │   │   │   ├── CODEBASE_CONTEXT.md
+│   │   │   │   ├── COMMON_COMMANDS.md
+│   │   │   │   ├── Gemini integration guide.md
+│   │   │   │   ├── HealthKitIntegration.md
+│   │   │   │   ├── IMPLEMENTATION_CHECKLIST.md
+│   │   │   │   ├── Module10_Compatibility_Analysis.md
+│   │   │   │   ├── OnboardingFlow.md
+│   │   │   │   ├── PERSONA_REFACTOR_EXECUTION_GUIDE.md
+│   │   │   │   ├── Phase1_ConversationalFoundation.md
+│   │   │   │   ├── Phase2_PersonaSynthesis.md
+│   │   │   │   ├── Phase3_Integration_Complete.md
+│   │   │   │   ├── Phase3_IntegrationTesting.md
+│   │   │   │   ├── Phase4_Batch4.1_Complete.md
+│   │   │   │   ├── Phase4_FinalImplementation.md
+│   │   │   │   ├── Phase4_Implementation_Summary.md
+│   │   │   │   ├── README.md
+│   │   │   │   ├── START_HERE.md
+│   │   │   │   ├── STATUS_AND_VISION.md
+│   │   │   │   ├── SystemPrompt.md
+│   │   │   │   └── Tuneup.md
+│   │   │   ├── API_FEATURES_GUIDE.md
+│   │   │   ├── Persona Refactor Tasks.md
+│   │   │   ├── Persona Refactor.md
+│   │   │   └── PersonaRefactorContext.md
 │   │   ├── Research Reports
 │   │   │   ├── Agents.md Report.md
 │   │   │   ├── API Integration Report.md
 │   │   │   ├── Architecture Cleanup Summary.md
+│   │   │   ├── Architecture Tightening Report.md
 │   │   │   ├── Claude Config Report.md
 │   │   │   ├── Codex Optimization Report.md
 │   │   │   └── MLX Whisper Integration Report.md
@@ -313,8 +322,7 @@
 │   │   ├── Module10.md
 │   │   ├── Module11.md
 │   │   ├── Module12.md
-│   │   ├── Module13.md
-│   │   └── TESTING_GUIDELINES.md
+│   │   └── Module13.md
 │   ├── Modules
 │   │   ├── AI
 │   │   │   ├── Configuration
@@ -347,6 +355,8 @@
 │   │   ├── Chat
 │   │   │   ├── Coordinators
 │   │   │   │   └── ChatCoordinator.swift
+│   │   │   ├── Models
+│   │   │   │   └── ChatModels.swift
 │   │   │   ├── Services
 │   │   │   │   ├── ChatExporter.swift
 │   │   │   │   ├── ChatHistoryManager.swift
@@ -391,10 +401,10 @@
 │   │   │   └── Views
 │   │   │       ├── FoodConfirmationView.swift
 │   │   │       ├── FoodLoggingView.swift
+│   │   │       ├── FoodVoiceInputView.swift
 │   │   │       ├── MacroRingsView.swift
 │   │   │       ├── NutritionSearchView.swift
 │   │   │       ├── PhotoInputView.swift
-│   │   │       ├── VoiceInputView.swift
 │   │   │       └── WaterTrackingView.swift
 │   │   ├── Notifications
 │   │   │   ├── Coordinators
@@ -404,10 +414,9 @@
 │   │   │   │   └── NotificationManager.swift
 │   │   │   ├── Models
 │   │   │   │   └── NotificationModels.swift
-│   │   │   ├── Services
-│   │   │   │   ├── EngagementEngine.swift
-│   │   │   │   └── NotificationContentGenerator.swift
-│   │   │   └── README.md
+│   │   │   └── Services
+│   │   │       ├── EngagementEngine.swift
+│   │   │       └── NotificationContentGenerator.swift
 │   │   ├── Onboarding
 │   │   │   ├── Coordinators
 │   │   │   │   ├── ConversationCoordinator.swift
@@ -423,7 +432,6 @@
 │   │   │   │   ├── ConversationAnalytics.swift
 │   │   │   │   ├── ConversationFlowManager.swift
 │   │   │   │   ├── ConversationPersistence.swift
-│   │   │   │   ├── OfflinePersonaGenerator.swift
 │   │   │   │   ├── OnboardingOrchestrator.swift
 │   │   │   │   ├── OnboardingProgressManager.swift
 │   │   │   │   ├── OnboardingRecovery.swift
@@ -480,22 +488,23 @@
 │   │   │   │   └── UserDataExporter.swift
 │   │   │   ├── ViewModels
 │   │   │   │   └── SettingsViewModel.swift
-│   │   │   ├── Views
-│   │   │   │   ├── Components
-│   │   │   │   │   └── SettingsComponents.swift
-│   │   │   │   ├── AIPersonaSettingsView.swift
-│   │   │   │   ├── APIConfigurationView.swift
-│   │   │   │   ├── APIKeyEntryView.swift
-│   │   │   │   ├── AppearanceSettingsView.swift
-│   │   │   │   ├── DataManagementView.swift
-│   │   │   │   ├── NotificationPreferencesView.swift
-│   │   │   │   ├── PrivacySecurityView.swift
-│   │   │   │   ├── SettingsListView.swift
-│   │   │   │   └── UnitsSettingsView.swift
-│   │   │   └── README.md
+│   │   │   └── Views
+│   │   │       ├── Components
+│   │   │       │   └── SettingsComponents.swift
+│   │   │       ├── AIPersonaSettingsView.swift
+│   │   │       ├── APIConfigurationView.swift
+│   │   │       ├── APIKeyEntryView.swift
+│   │   │       ├── AppearanceSettingsView.swift
+│   │   │       ├── DataManagementView.swift
+│   │   │       ├── NotificationPreferencesView.swift
+│   │   │       ├── PrivacySecurityView.swift
+│   │   │       ├── SettingsListView.swift
+│   │   │       └── UnitsSettingsView.swift
 │   │   └── Workouts
 │   │       ├── Coordinators
 │   │       │   └── WorkoutCoordinator.swift
+│   │       ├── Models
+│   │       │   └── WorkoutModels.swift
 │   │       ├── ViewModels
 │   │       │   └── WorkoutViewModel.swift
 │   │       └── Views
@@ -593,12 +602,15 @@
 ├── .cursorrules
 ├── .gitignore
 ├── AGENTS.md
+├── AirFit.xctestplan
+├── BUILDPROGRESS.md
 ├── CLAUDE.md
 ├── envsetupscript.sh
 ├── Manual.md
 ├── package.json
 ├── PROJECT_FILE_MANAGEMENT.md
-└── project.yml
+├── project.yml
+└── TESTING_GUIDELINES.md
 
 </file_map>
 

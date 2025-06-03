@@ -363,6 +363,7 @@ targets:
       - AirFit/AirFitTests/Services/TestDataGenerators.swift
       - AirFit/AirFitTests/Services/ServicePerformanceTests.swift
       - AirFit/AirFitTests/Services/ServiceIntegrationTests.swift
+      - AirFit/AirFitTests/Services/GeminiProviderTests.swift
       - AirFit/AirFitTests/Mocks/MockHealthKitPrefillProvider.swift
       - AirFit/AirFitTests/Mocks/MockDashboardServices.swift
       - AirFit/AirFitTests/Mocks/MockVoiceInputManager.swift

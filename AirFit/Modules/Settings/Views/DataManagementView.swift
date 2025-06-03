@@ -7,7 +7,7 @@ struct DataManagementView: View {
     @State private var showShareSheet = false
     
     var body: some View {
-        ScrollView {
+        ScrollView(.vertical, showsIndicators: true) {
             VStack(spacing: AppSpacing.xLarge) {
                 exportSection
                 exportHistory
@@ -129,14 +129,14 @@ struct DataManagementView: View {
             } catch {
                 await MainActor.run {
                     showExportProgress = false
-                    viewModel.coordinator.showAlert(.error(message: error.localizedDescription))
+                    viewModel.showAlert(.error(message: error.localizedDescription))
                 }
             }
         }
     }
     
     private func confirmDelete() {
-        viewModel.coordinator.showAlert(.confirmDelete {
+        viewModel.showAlert(.confirmDelete {
             Task {
                 try await viewModel.deleteAllData()
             }
@@ -154,7 +154,7 @@ struct DataExportProgressSheet: View {
     
     var body: some View {
         NavigationStack {
-            VStack(spacing: AppSpacing.xxl) {
+            VStack(spacing: AppSpacing.xxLarge) {
                 Spacer()
                 
                 // Progress indicator
@@ -179,7 +179,7 @@ struct DataExportProgressSheet: View {
                     }
                 }
                 
-                VStack(spacing: AppSpacing.sm) {
+                VStack(spacing: AppSpacing.small) {
                     Text("Exporting Your Data")
                         .font(.headline)
                     

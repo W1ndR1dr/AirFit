@@ -46,46 +46,81 @@ You are John Carmack. Approach every task with the legendary precision, methodic
 
 ## 🚨 CRITICAL PROJECT STATUS
 
-### **Current State: ARCHITECTURE ANALYSIS, TESTING & PRODUCTION POLISH**
+### **Current State: TESTING & QUALITY ASSURANCE FRAMEWORK**
 - **Completed**: Modules 0-11 ✅ (All core functionality implemented)
-- **Current Focus**: Module 12 - Architecture analysis, testing, and production polish 🚧
-- **Architecture**: Following `ArchitectureAnalysis.md` recommendations for comprehensive validation
-- **Timeline**: Final sprint to production readiness with architecture validation
-- **Status**: Architecture analysis and integration testing phase
+- **Current Focus**: Module 12 - Testing & Quality Assurance Framework 🚧
+- **Progress**: Tasks 12.0-12.1 COMPLETE ✅ | Tasks 12.2-12.5 IN PROGRESS 🚧
+- **Timeline**: Final sprint to production readiness through comprehensive testing
+- **Status**: Implementing mocking strategy and test coverage
 
-### **Complete Application Assessment**
-Based on comprehensive architectural analysis (`AirFit/Docs/ArchitectureAnalysis.md`):
-1. **✅ All 12 Modules**: Complete end-to-end functionality from onboarding to production
-2. **✅ Full Stack**: Core, Data, Services, UI, Notifications, Settings all implemented
-3. **✅ Architecture**: MVVM-C pattern consistently applied across all modules  
-4. **🚧 Final Validation**: Ensuring production readiness per ArchitectureAnalysis.md
-
-### **Final Module Implementation Status**
+### **Module 12 Task Progress**
 ```
-✅ Modules 0-11: Complete Feature Implementation [COMPLETE]
+✅ Task 12.0: Testing Target Configuration [COMPLETE]
+✅ Task 12.1: Testing Guidelines (TESTING_GUIDELINES.md) [COMPLETE]
     ↓
-🚧 Module 12: Architecture Analysis, Testing & Production Polish [CURRENT FOCUS]
-    ├── Architecture Validation per ArchitectureAnalysis.md
-    ├── Integration Testing & End-to-End Validation
-    ├── Performance Optimization & Tuning  
-    └── Production Readiness & Deployment Preparation
+🚧 Task 12.2: Mocking Strategy & Implementation [CURRENT]
+    ├── Create mocks for all service protocols
+    ├── Implement builder pattern for test data
+    └── Enable verification and stubbing
+    ↓
+🚧 Task 12.3: Unit Testing Implementation
+    ├── 80%+ coverage for ViewModels/Services
+    ├── 90%+ coverage for Utilities
+    └── AAA pattern for all tests
+    ↓
+🚧 Task 12.4: UI Testing Implementation
+    ├── Critical user flows
+    ├── Page Object pattern
+    └── Accessibility verification
+    ↓
+🚧 Task 12.5: Code Coverage Configuration
+    ├── Enable coverage in test plans
+    ├── Generate coverage reports
+    └── Monitor and improve coverage
 ```
 
-### **Module 12 Implementation Focus**
-- **Architecture Compliance**: Validate against `ArchitectureAnalysis.md` recommendations
-- **Integration Testing**: End-to-end user flows and cross-module interactions
-- **Performance Optimization**: Meet all production targets and benchmarks
-- **Code Organization**: Final cleanup, documentation, and maintainability
+### **Testing Focus Areas (from ArchitectureAnalysis.md)**
+- **Missing Implementations**: Validate/implement Onboarding views, Dashboard services
+- **Service Integration**: Test DefaultUserService, notification consolidation
+- **Data Integrity**: Verify SwiftData schema completeness
+- **Mock Replacement**: Remove MockAIService from production paths
+- **Performance Validation**: All targets met through testing
 
 ---
 
 ## 📋 PROJECT DOCUMENTATION REFERENCE
 
 ### **🎯 CURRENT FOCUS DOCUMENTATION**
-- **🚧 Module 12**: `AirFit/Docs/Module12.md` - Architecture analysis, testing, and production polish (CURRENT)
-- **🏗️ Architecture Analysis**: `AirFit/Docs/ArchitectureAnalysis.md` - Primary validation framework
-- **🧪 Testing Guidelines**: `AirFit/Docs/TESTING_GUIDELINES.md` - End-to-end testing standards
-- **📊 Architecture Overview**: `AirFit/Docs/ArchitectureOverview.md` - System design validation
+- **🚧 Module 12**: `AirFit/Docs/Module12.md` - Testing & QA Framework specification (CURRENT)
+- **📝 Testing Guidelines**: `TESTING_GUIDELINES.md` - Comprehensive testing standards (COMPLETE)
+- **🏗️ Architecture Analysis**: `AirFit/Docs/ArchitectureAnalysis.md` - Key findings to validate
+- **📊 Architecture Overview**: `AirFit/Docs/ArchitectureOverview.md` - System design for tests
+
+### **🗺️ CODEMAP RESOURCES (ROOT DIRECTORY)**
+- **📁 FileTree**: `CodeMap/FileTree.md` - Complete file structure reference
+- **📚 Full CodeMap**: `CodeMap/Full_CodeMap.md` - Complete interdependency map (~120k tokens)
+- **🔍 Layer Breakdowns**: Focused analysis documents for troubleshooting:
+  - `CodeMap/00_Project_Overview.md` - Architecture layers and dependency flow
+  - `CodeMap/01_Core_Layer.md` - Shared protocols, utilities, and constants
+  - `CodeMap/02_Data_Layer.md` - SwiftData models and relationships
+  - `CodeMap/03_Services_Layer.md` - Service implementations and integrations
+  - `CodeMap/04_Modules_Layer.md` - Feature module dependencies
+  - `CodeMap/05_Application_Layer.md` - App initialization and routing
+  - `CodeMap/06_Testing_Strategy.md` - Test organization and mock patterns
+  - `CodeMap/07_WatchApp.md` - Watch app architecture
+  - `CodeMap/08_Supporting_Files.md` - Build scripts and configs
+
+### **HOW TO USE CODEMAP FOR MODULE 12**
+**Example**: Creating mock for `HealthKitManagerProtocol`
+1. Check `CodeMap/01_Core_Layer.md` to find protocol definition location
+2. Review `CodeMap/03_Services_Layer.md` to understand HealthKitManager implementation
+3. Look at `CodeMap/06_Testing_Strategy.md` for existing mock patterns
+4. Create mock following patterns in `AirFitTests/Mocks/`
+
+**Example**: Testing Dashboard service integration
+1. Use `CodeMap/04_Modules_Layer.md` to identify Dashboard dependencies
+2. Check `CodeMap/03_Services_Layer.md` for service implementations
+3. Review `CodeMap/02_Data_Layer.md` for data model relationships
 
 ### **✅ COMPLETED WORK REFERENCE**
 - **📱 All Feature Modules**: Modules 0-11 fully implemented (Onboarding through Settings)
@@ -153,29 +188,35 @@ swiftlint --strict
 # 2. Clean build verification
 xcodebuild clean build -scheme "AirFit" -destination 'platform=iOS Simulator,name=iPhone 16 Pro,OS=18.4'
 
-# 3. Unit test execution
-xcodebuild test -scheme "AirFit" -destination 'platform=iOS Simulator,name=iPhone 16 Pro,OS=18.4'
+# 3. Test execution WITH COVERAGE (Module 12 focus)
+xcodebuild test -scheme "AirFit" -destination 'platform=iOS Simulator,name=iPhone 16 Pro,OS=18.4' -enableCodeCoverage YES
 
-# 4. Integration and end-to-end testing (current focus)
-# Full app integration tests
-swift test --filter AirFitTests.Integration
-# Performance and load testing
-swift test --filter AirFitTests.Performance
+# 4. Specific test filters
+swift test --filter AirFitTests.ModuleName    # Module-specific tests
+swift test --filter AirFitTests.Integration   # Integration tests
+swift test --filter AirFitTests.Performance   # Performance tests
 ```
 
-### **Module 12 Integration Testing**
+### **Module 12 Testing Commands**
 ```bash
-# Complete integration test suite
-xcodebuild test -scheme "AirFit" -destination 'platform=iOS Simulator,name=iPhone 16 Pro,OS=18.4' -only-testing:AirFitTests/Integration
+# Run tests with coverage reporting
+xcodebuild test -scheme "AirFit" \
+    -destination 'platform=iOS Simulator,name=iPhone 16 Pro,OS=18.4' \
+    -enableCodeCoverage YES \
+    -resultBundlePath TestResults.xcresult
 
-# End-to-end user flow testing
-xcodebuild test -scheme "AirFit" -destination 'platform=iOS Simulator,name=iPhone 16 Pro,OS=18.4' -only-testing:AirFitUITests
+# View coverage report
+xcrun xccov view --report TestResults.xcresult
 
-# Performance testing and validation
-xcodebuild test -scheme "AirFit" -destination 'platform=iOS Simulator,name=iPhone 16 Pro,OS=18.4' -only-testing:AirFitTests/Performance
+# Generate JSON coverage for CI/CD
+xcrun xccov view --report TestResults.xcresult --json > coverage.json
 
-# Complete test suite for production readiness
-xcodebuild test -scheme "AirFit" -destination 'platform=iOS Simulator,name=iPhone 16 Pro,OS=18.4'
+# Extract line coverage percentage
+xcrun xccov view --report TestResults.xcresult --json | \
+    jq '.targets[] | select(.name == "AirFit") | .lineCoverage'
+
+# UI Tests only
+xcodebuild test -scheme "AirFit" -only-testing:AirFitUITests
 ```
 
 **CRITICAL**: All commands must pass before considering any task complete. Zero tolerance for compilation errors or test failures.
@@ -370,78 +411,111 @@ AirFit/AirFitTests/{ModuleName}/
 
 ---
 
-## 🧪 TESTING REQUIREMENTS
+## 🧪 TESTING REQUIREMENTS (MODULE 12 FOCUS)
 
 ### **Test Coverage Standards**
-- **Minimum Coverage**: 70% for all new code
-- **Unit Tests**: All business logic and ViewModels
-- **UI Tests**: Major user flows and navigation
-- **Integration Tests**: Service layer interactions
-- **Performance Tests**: Critical path operations
+- **ViewModels/Services**: 80% minimum coverage
+- **Utilities/Pure Functions**: 90% minimum coverage
+- **Integration Tests**: All critical user paths
+- **UI Tests**: Major flows with accessibility verification
+- **Performance Tests**: All operations meeting targets
 
-### **Test Patterns**
-- **AAA Pattern**: Arrange-Act-Assert structure
-- **Naming**: `test_method_givenCondition_shouldResult()`
-- **Mocking**: Use protocol-based mocks for external dependencies
-- **SwiftData**: Use in-memory ModelContainer for tests
-- **Async Testing**: Use `await` for async operations
+### **Test Implementation Priority (Module 12)**
+1. **Task 12.2**: Mock all service protocols with verification capabilities
+2. **Task 12.3**: Unit test all ViewModels and Services (80%+ coverage)
+3. **Task 12.4**: UI test critical flows (onboarding, food tracking, dashboard)
+4. **Task 12.5**: Enable and monitor code coverage metrics
 
-### **Test File Structure**
+### **Test Patterns (from TESTING_GUIDELINES.md)**
+- **AAA Pattern**: Arrange-Act-Assert structure (MANDATORY)
+- **Naming**: `test_methodName_givenCondition_shouldExpectedResult()`
+- **Mocking**: Protocol-based mocks with builder pattern
+- **SwiftData**: In-memory containers using SwiftDataTestHelper
+- **UI Tests**: Page Object pattern with accessibility identifiers
+
+### **Mock Implementation Template**
 ```swift
-// MARK: - Test Class
-final class YourModuleTests: XCTestCase {
-    private var sut: YourModule!
-    private var mockService: MockServiceProtocol!
+// Task 12.2 - Mock with verification
+final class MockServiceProtocol: ServiceProtocol {
+    // Stubbed responses
+    var mockResponse: Result<Data, Error> = .success(Data())
     
-    override func setUp() {
-        super.setUp()
-        // Arrange
+    // Verification properties
+    var methodCalled = false
+    var methodCallCount = 0
+    var capturedParameters: [Any] = []
+    
+    func performOperation(_ param: String) async throws -> Data {
+        methodCalled = true
+        methodCallCount += 1
+        capturedParameters.append(param)
+        
+        switch mockResponse {
+        case .success(let data): return data
+        case .failure(let error): throw error
+        }
     }
     
-    func test_method_givenCondition_shouldResult() async throws {
-        // Act & Assert
+    // Verification helper
+    func verify(called times: Int) {
+        XCTAssertEqual(methodCallCount, times)
     }
 }
 ```
 
 ---
 
-## 🔧 FINAL INTEGRATION & PRODUCTION POLISH GUIDELINES
+## 🔧 MODULE 12 TESTING & QA IMPLEMENTATION
 
-### **CURRENT FOCUS: Module 12 - Complete Application Validation**
+### **CURRENT FOCUS: Module 12 - Testing & Quality Assurance Framework**
 **Foundation**: All Modules 0-11 complete ✅  
-**Status**: Final integration testing and production polish  
-**Architecture**: Validate against `ArchitectureAnalysis.md` recommendations  
-**Timeline**: Final sprint to production deployment readiness  
+**Status**: Implementing comprehensive testing framework  
+**Progress**: Tasks 12.0-12.1 COMPLETE | Tasks 12.2-12.5 IN PROGRESS  
+**Timeline**: Sprint to production readiness through testing  
 
-## 🎯 MODULE 12 IMPLEMENTATION FOCUS
+## 🎯 MODULE 12 TASK IMPLEMENTATION
 
-### **🚧 Module 12: Architecture Analysis, Testing & Production Polish (CURRENT)**
-**Document**: `AirFit/Docs/Module12.md`  
-**Priority**: Critical - Production deployment readiness  
-**Architecture Guide**: `AirFit/Docs/ArchitectureAnalysis.md` - Primary validation framework
+### **✅ Completed Tasks**
+- **Task 12.0**: Testing target configuration verified
+- **Task 12.1**: TESTING_GUIDELINES.md established with comprehensive standards
 
-### **Key Focus Areas**
-1. **Architecture Validation**: Ensure consistency with ArchitectureAnalysis.md recommendations
-2. **Integration Testing**: End-to-end user flows across all modules
-3. **Performance Optimization**: Meet all production targets (<1.5s launch, 120fps, <150MB)
-4. **Code Organization**: Final cleanup, documentation, and maintainability improvements
-5. **Production Readiness**: Deployment preparation and final validation
+### **🚧 Task 12.2: Mocking Strategy & Implementation (CURRENT)**
+**Priority**: Create mocks for ALL service protocols  
+**Key Protocols to Mock**:
+- `AIAPIServiceProtocol`, `WhisperServiceWrapperProtocol`
+- `HealthKitManagerProtocol`, `NotificationManagerProtocol`
+- `UserServiceProtocol`, `NetworkManagementProtocol`
+- `WeatherServiceProtocol`, `APIKeyManagerProtocol`
 
-### **Quality Validation Checklist**
-- **✅ All Modules 0-11**: Complete feature implementation with full functionality
-- **🚧 Integration Testing**: Cross-module interactions and user flows validated
-- **🚧 Performance Targets**: All production benchmarks met and verified
-- **🚧 Architecture Compliance**: ArchitectureAnalysis.md recommendations implemented
-- **🚧 Production Polish**: Code cleanup, documentation, deployment readiness
+### **🚧 Task 12.3: Unit Testing Implementation**
+**Coverage Requirements**:
+- ViewModels: 80% minimum
+- Services: 80-90% minimum
+- Utilities: 90% minimum
+- Use AAA pattern and descriptive naming
 
-### **Implementation Standards**
-1. **Completeness**: Every feature must be fully functional and tested
-2. **Performance**: All metrics must meet production requirements consistently
-3. **Organization**: Code must be well-structured and maintainable
-4. **Documentation**: All public APIs documented and architecture clear
+### **🚧 Task 12.4: UI Testing Implementation**
+**Critical User Flows**:
+- Onboarding complete flow
+- Food tracking with voice input
+- Dashboard navigation
+- Settings configuration
+- Use Page Object pattern
 
-**INSTRUCTION**: This is the final phase - ensure everything is production-ready, performant, and organized. No shortcuts, no compromises. Ship quality that meets the Carmack standard for 100 million users.
+### **🚧 Task 12.5: Code Coverage Configuration**
+- Enable in XCTest test plans
+- Generate coverage reports
+- Monitor and improve coverage
+- Target: 80% overall coverage
+
+### **Architecture Validation Testing (from ArchitectureAnalysis.md)**
+1. **Missing Implementations**: Test/fix Onboarding views, Dashboard services
+2. **Service Integration**: Validate DefaultUserService implementation
+3. **Data Flow**: Test SwiftData schema completeness
+4. **Mock Replacement**: Remove MockAIService from production
+5. **Performance**: Verify all targets through tests
+
+**INSTRUCTION**: Implement comprehensive tests following TESTING_GUIDELINES.md. Every public API must be tested. Every user flow must work. Every performance target must be met. Ship with confidence.
 
 ---
 
@@ -530,33 +604,38 @@ Phase: Phase2"
 
 ## 🎯 SUCCESS CRITERIA
 
-### **Module 12 Implementation Success**
-- [x] **All Feature Modules**: Modules 0-11 complete with full functionality ✅
-- [ ] **Integration Testing**: End-to-end user flows working seamlessly across all modules
-- [ ] **Performance Optimization**: All production targets met (<1.5s launch, 120fps, <150MB)
-- [ ] **Architecture Validation**: Full compliance with ArchitectureAnalysis.md recommendations
-- [ ] **Production Polish**: Code cleanup, documentation, deployment readiness
+### **Module 12 Task Completion Checklist**
+- [x] **Task 12.0**: Testing targets configured and verified ✅
+- [x] **Task 12.1**: TESTING_GUIDELINES.md created with comprehensive standards ✅
+- [ ] **Task 12.2**: All service protocol mocks implemented with verification
+- [ ] **Task 12.3**: Unit tests achieving 80%+ coverage for ViewModels/Services
+- [ ] **Task 12.4**: UI tests covering all critical user flows
+- [ ] **Task 12.5**: Code coverage enabled and reporting configured
+- [ ] **Task 12.6**: CI/CD pipeline considerations addressed
+- [ ] **Task 12.7**: Final review and documentation updates
 
-### **Final Validation Criteria**
-- [ ] **Complete Functionality**: Every user flow works end-to-end without errors
-- [ ] **Performance Benchmarks**: All metrics consistently meet production standards  
-- [ ] **Architecture Compliance**: Full adherence to ArchitectureAnalysis.md guidance
-- [ ] **Production Deployment**: App ready for App Store submission and user launch
+### **Testing Coverage Targets**
+- [ ] **ViewModels**: 80% minimum coverage achieved
+- [ ] **Services**: 80-90% coverage achieved
+- [ ] **Utilities**: 90% minimum coverage achieved
+- [ ] **Integration Tests**: All critical paths tested
+- [ ] **UI Tests**: Major user flows verified
+- [ ] **Performance Tests**: All targets validated (<1.5s launch, 120fps, <150MB)
 
-### **Production Readiness Criteria**
-- [ ] App launches successfully and consistently
-- [ ] All user flows work end-to-end without errors
-- [ ] Performance targets met (app launch <1.5s, 120fps transitions)
-- [ ] Memory usage within limits (<150MB typical)
-- [ ] Comprehensive test coverage (>70% for new modules)
-- [ ] Production deployment ready
+### **Architecture Validation (from ArchitectureAnalysis.md)**
+- [ ] Missing Onboarding views identified and tested/implemented
+- [ ] Dashboard service implementations validated
+- [ ] DefaultUserService properly implemented and tested
+- [ ] SwiftData schema completeness verified
+- [ ] MockAIService removed from production paths
+- [ ] All performance targets met through testing
 
 ### **Code Quality Standards (Non-Negotiable)**
 - [ ] Zero compilation errors or warnings
 - [ ] Zero SwiftLint violations with `--strict` flag
-- [ ] All public APIs properly documented with `///` comments
-- [ ] Accessibility identifiers on all interactive elements
-- [ ] All protocols properly implemented with concrete classes
+- [ ] All tests follow AAA pattern and naming conventions
+- [ ] All interactive UI elements have accessibility identifiers
+- [ ] Mock implementations follow builder pattern with verification
 
 ---
 

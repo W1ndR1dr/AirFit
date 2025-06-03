@@ -21,7 +21,9 @@ struct OnboardingFlowView: View {
             _viewModel = State(initialValue: OnboardingViewModel(
                 aiService: aiService,
                 onboardingService: onboardingService,
-                modelContext: tempContainer.mainContext
+                modelContext: tempContainer.mainContext,
+                apiKeyManager: DefaultAPIKeyManager(keychain: KeychainWrapper.shared),
+                userService: DefaultUserService(modelContext: tempContainer.mainContext)
             ))
         } catch {
             // Fallback to in-memory container if persistent storage fails
@@ -33,7 +35,9 @@ struct OnboardingFlowView: View {
                 _viewModel = State(initialValue: OnboardingViewModel(
                     aiService: aiService,
                     onboardingService: onboardingService,
-                    modelContext: inMemoryContainer.mainContext
+                    modelContext: inMemoryContainer.mainContext,
+                    apiKeyManager: DefaultAPIKeyManager(keychain: KeychainWrapper.shared),
+                    userService: DefaultUserService(modelContext: inMemoryContainer.mainContext)
                 ))
             } catch {
                 // Final fallback - this should never happen but prevents crashes

@@ -3,7 +3,7 @@ import SwiftData
 
 /// Final polished onboarding flow view - production ready
 struct FinalOnboardingFlow: View {
-    @StateObject private var coordinator: OnboardingFlowCoordinator
+    @State private var coordinator: OnboardingFlowCoordinator
     @Environment(\.modelContext) private var modelContext
     @State private var showingExitConfirmation = false
     
@@ -12,8 +12,8 @@ struct FinalOnboardingFlow: View {
         modelContext: ModelContext
     ) {
         let cache = AIResponseCache()
-        let apiKeyManager = DependencyContainer.shared.apiKeyManager
-        let llmOrchestrator = LLMOrchestrator(apiKeyManager: apiKeyManager)
+        let apiKeyManager = DependencyContainer.shared.apiKeyManager!
+        let llmOrchestrator = LLMOrchestrator(apiKeyManager: apiKeyManager as! APIKeyManagementProtocol)
         
         // Use optimized synthesizer
         let optimizedSynthesizer = OptimizedPersonaSynthesizer(
@@ -21,27 +21,28 @@ struct FinalOnboardingFlow: View {
             cache: cache
         )
         
-        let personaSynthesizer = PersonaSynthesizer(llmOrchestrator: llmOrchestrator)
-        
         let personaService = PersonaService(
-            personaSynthesizer: personaSynthesizer,
+            personaSynthesizer: optimizedSynthesizer,
             llmOrchestrator: llmOrchestrator,
             modelContext: modelContext,
             cache: cache
         )
         
-        let coordinator = OnboardingFlowCoordinator(
-            conversationManager: ConversationFlowManager(),
+        let conversationManager = ConversationFlowManager(
+            flowDefinition: ConversationFlowData.defaultFlow(),
+            modelContext: modelContext
+        )
+        
+        self.coordinator = OnboardingFlowCoordinator(
+            conversationManager: conversationManager,
             personaService: personaService,
             userService: userService,
             modelContext: modelContext
         )
-        
-        _coordinator = StateObject(wrappedValue: coordinator)
     }
     
     var body: some View {
-        OnboardingErrorBoundary(coordinator: coordinator) {
+        OnboardingErrorBoundary(content: {
             NavigationStack {
                 ZStack {
                     // Background gradient
@@ -54,7 +55,7 @@ struct FinalOnboardingFlow: View {
                             removal: .move(edge: .leading).combined(with: .opacity)
                         ))
                 }
-                .navigationBarHidden(coordinator.currentView == .welcome)
+                .toolbar(coordinator.currentView == .welcome ? .hidden : .visible, for: .navigationBar)
                 .toolbar {
                     if coordinator.currentView != .welcome && coordinator.currentView != .complete {
                         ToolbarItem(placement: .navigationBarLeading) {
@@ -79,7 +80,7 @@ struct FinalOnboardingFlow: View {
             } message: {
                 Text("You can complete setup later from Settings")
             }
-        }
+        }, coordinator: coordinator)
         .onAppear {
             coordinator.start()
         }
@@ -98,8 +99,7 @@ struct FinalOnboardingFlow: View {
             
         case .generatingPersona:
             OptimizedGeneratingPersonaView(
-                progress: coordinator.progress,
-                message: coordinator.recoveryMessage
+                coordinator: coordinator
             )
             .id("generating")
             
@@ -107,27 +107,13 @@ struct FinalOnboardingFlow: View {
             if let persona = coordinator.generatedPersona {
                 PersonaPreviewView(
                     persona: persona,
-                    onAccept: {
-                        Task {
-                            await coordinator.acceptPersona()
-                        }
-                    },
-                    onAdjust: { adjustment in
-                        Task {
-                            await coordinator.adjustPersona(adjustment)
-                        }
-                    },
-                    onRegenerate: {
-                        Task {
-                            await coordinator.regeneratePersona()
-                        }
-                    }
+                    coordinator: coordinator
                 )
                 .id("preview")
             }
             
         case .complete:
-            CompletionView(coordinator: coordinator)
+            OnboardingCompletionView(coordinator: coordinator)
                 .id("complete")
         }
     }
@@ -148,7 +134,7 @@ struct FinalOnboardingFlow: View {
 // MARK: - Welcome View
 
 private struct WelcomeView: View {
-    @ObservedObject var coordinator: OnboardingFlowCoordinator
+    @Bindable var coordinator: OnboardingFlowCoordinator
     @State private var animationPhase = 0
     
     var body: some View {
@@ -238,7 +224,7 @@ private struct WelcomeView: View {
 // MARK: - Conversation Flow View
 
 private struct ConversationFlowView: View {
-    @ObservedObject var coordinator: OnboardingFlowCoordinator
+    @Bindable var coordinator: OnboardingFlowCoordinator
     
     var body: some View {
         VStack(spacing: 0) {
@@ -284,8 +270,8 @@ private struct ConversationFlowView: View {
 
 // MARK: - Completion View
 
-private struct CompletionView: View {
-    @ObservedObject var coordinator: OnboardingFlowCoordinator
+private struct OnboardingCompletionView: View {
+    @Bindable var coordinator: OnboardingFlowCoordinator
     @State private var showingContent = false
     
     var body: some View {

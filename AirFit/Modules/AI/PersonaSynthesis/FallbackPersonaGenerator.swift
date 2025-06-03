@@ -62,7 +62,7 @@ actor FallbackPersonaGenerator {
             metadata: PersonaMetadata(
                 createdAt: Date(),
                 version: "1.0",
-                sourceInsights: "fallback-generation",
+                sourceInsights: createFallbackInsights(),
                 generationDuration: 0.1,
                 tokenCount: 500,
                 previewReady: true
@@ -150,21 +150,21 @@ actor FallbackPersonaGenerator {
         switch motivationStyle {
         case "challenging":
             energy = .high
-            warmth = .professional
+            warmth = .neutral
         case "supportive":
             energy = .moderate
             warmth = .warm
         default:
-            energy = .balanced
+            energy = .moderate
             warmth = .friendly
         }
         
         return VoiceCharacteristics(
             energy: energy,
-            pace: .moderate,
+            pace: .measured,
             warmth: warmth,
-            vocabulary: .accessible,
-            sentenceStructure: .conversational
+            vocabulary: .moderate,
+            sentenceStructure: .moderate
         )
     }
     
@@ -177,11 +177,11 @@ actor FallbackPersonaGenerator {
         let encouragements = generateEncouragements(motivationStyle: motivationStyle)
         
         return InteractionStyle(
-            greetingStyle: greetings,
-            closingStyle: ["Keep it up!", "You've got this!", "See you next time!"],
+            greetingStyle: greetings.first ?? "Hello!",
+            closingStyle: "Keep it up!",
             encouragementPhrases: encouragements,
-            acknowledgmentStyle: ["Great job!", "Well done!", "Excellent work!"],
-            correctionApproach: .gentle,
+            acknowledgmentStyle: "Great job!",
+            correctionApproach: "Gentle guidance",
             humorLevel: .light,
             formalityLevel: .casual,
             responseLength: .moderate
@@ -268,26 +268,40 @@ actor FallbackPersonaGenerator {
     private func generateAdaptationRules() -> [AdaptationRule] {
         [
             AdaptationRule(
-                condition: .timeOfDay,
-                parameter: "morning",
+                trigger: .timeOfDay,
+                condition: "morning",
                 adjustment: "Use energizing language and focus on starting the day strong"
             ),
             AdaptationRule(
-                condition: .timeOfDay,
-                parameter: "evening",
+                trigger: .timeOfDay,
+                condition: "evening",
                 adjustment: "Use calming language and focus on unwinding through movement"
             ),
             AdaptationRule(
-                condition: .streak,
-                parameter: "high",
+                trigger: .progress,
+                condition: "high",
                 adjustment: "Celebrate consistency and encourage maintaining momentum"
             ),
             AdaptationRule(
-                condition: .recentActivity,
-                parameter: "low",
+                trigger: .mood,
+                condition: "low",
                 adjustment: "Be extra encouraging and focus on small wins"
             )
         ]
+    }
+    
+    private func createFallbackInsights() -> ConversationPersonalityInsights {
+        ConversationPersonalityInsights(
+            dominantTraits: ["supportive", "balanced", "encouraging"],
+            communicationStyle: .conversational,
+            motivationType: .health,
+            energyLevel: .moderate,
+            preferredComplexity: .moderate,
+            emotionalTone: ["friendly", "optimistic"],
+            stressResponse: .wantsEncouragement,
+            preferredTimes: ["morning", "evening"],
+            extractedAt: Date()
+        )
     }
 }
 

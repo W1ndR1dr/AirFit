@@ -222,6 +222,20 @@ actor AIRequestBuilder {
             ]]
         }
         
+        // Add grounding (Google Search) if requested
+        if request.enableGrounding == true {
+            var tools = body["tools"] as? [[String: Any]] ?? []
+            tools.append([
+                "googleSearchRetrieval": [
+                    "dynamicRetrievalConfig": [
+                        "mode": "MODE_DYNAMIC",
+                        "dynamicThreshold": 0.3
+                    ]
+                ]
+            ])
+            body["tools"] = tools
+        }
+        
         return body
     }
 }

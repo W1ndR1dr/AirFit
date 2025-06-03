@@ -10,9 +10,32 @@ final class OnboardingProfile: @unchecked Sendable {
     var communicationPreferencesData: Data
     @Attribute(.externalStorage)
     var rawFullProfileData: Data
+    
+    // Additional properties for DefaultUserService
+    var name: String?
+    var email: String?
+    var isComplete: Bool = false
+    
+    // Persona data (stored as JSON)
+    var personaData: Data?
 
     // MARK: - Relationships
     var user: User?
+    
+    // MARK: - Computed Properties
+    var persona: PersonaProfile? {
+        get {
+            guard let data = personaData else { return nil }
+            return try? JSONDecoder().decode(PersonaProfile.self, from: data)
+        }
+        set {
+            if let newValue = newValue {
+                personaData = try? JSONEncoder().encode(newValue)
+            } else {
+                personaData = nil
+            }
+        }
+    }
 
     // MARK: - Initialization
     init(

@@ -3,17 +3,20 @@ import Foundation
 actor GeminiProvider: LLMProvider {
     let identifier = LLMProviderIdentifier.google
     let capabilities = LLMCapabilities(
-        maxContextTokens: 32768,
+        maxContextTokens: 2_097_152,  // 2M tokens for Gemini 1.5 Pro, 1M for 2.5 Flash
         supportsJSON: true,
         supportsStreaming: true,
         supportsSystemPrompt: true,
-        supportsFunctionCalling: false,
-        supportsVision: false
+        supportsFunctionCalling: true,  // Supports function declarations
+        supportsVision: true  // Multimodal support
     )
     let costPerKToken: (input: Double, output: Double) = (0.0005, 0.0015)
     
     private let apiKey: String
     private let baseURL = "https://generativelanguage.googleapis.com/v1beta"
+    private var retryCount = 0
+    private let maxRetries = 3
+    private let baseDelay: TimeInterval = 1.0
     private let session = URLSession.shared
     
     init(apiKey: String) {
@@ -32,27 +35,42 @@ actor GeminiProvider: LLMProvider {
     }
     
     func complete(_ request: LLMRequest) async throws -> LLMResponse {
-        let geminiRequest = try buildGeminiRequest(request)
-        let requestData = try JSONEncoder().encode(geminiRequest)
-        
-        let url = URL(string: "\(baseURL)/models/\(request.model):generateContent?key=\(apiKey)")!
-        var urlRequest = URLRequest(url: url)
-        urlRequest.httpMethod = "POST"
-        urlRequest.setValue("application/json", forHTTPHeaderField: "Content-Type")
-        urlRequest.httpBody = requestData
-        
-        let (data, response) = try await session.data(for: urlRequest)
-        
-        guard let httpResponse = response as? HTTPURLResponse else {
-            throw LLMError.invalidResponse("Invalid HTTP response")
+        return try await executeWithRetry(request: request, isStreaming: false)
+    }
+    
+    private func executeWithRetry(request: LLMRequest, isStreaming: Bool, attemptNumber: Int = 0) async throws -> LLMResponse {
+        do {
+            let geminiRequest = try buildGeminiRequest(request)
+            let requestData = try JSONEncoder().encode(geminiRequest)
+            
+            let endpoint = isStreaming ? "streamGenerateContent" : "generateContent"
+            let url = URL(string: "\(baseURL)/models/\(request.model):\(endpoint)?key=\(apiKey)")!
+            var urlRequest = URLRequest(url: url)
+            urlRequest.httpMethod = "POST"
+            urlRequest.setValue("application/json", forHTTPHeaderField: "Content-Type")
+            urlRequest.httpBody = requestData
+            
+            let (data, response) = try await session.data(for: urlRequest)
+            
+            guard let httpResponse = response as? HTTPURLResponse else {
+                throw LLMError.invalidResponse("Invalid HTTP response")
+            }
+            
+            guard (200...299).contains(httpResponse.statusCode) else {
+                try handleGeminiError(data, statusCode: httpResponse.statusCode)
+            }
+            
+            let geminiResponse = try JSONDecoder().decode(GeminiResponse.self, from: data)
+            return try convertToLLMResponse(geminiResponse, for: request)
+        } catch let error as LLMError {
+            // Handle rate limiting with exponential backoff
+            if case .rateLimitExceeded = error, attemptNumber < maxRetries {
+                let delay = baseDelay * pow(2.0, Double(attemptNumber))
+                try await Task.sleep(nanoseconds: UInt64(delay * 1_000_000_000))
+                return try await executeWithRetry(request: request, isStreaming: isStreaming, attemptNumber: attemptNumber + 1)
+            }
+            throw error
         }
-        
-        guard (200...299).contains(httpResponse.statusCode) else {
-            try handleGeminiError(data, statusCode: httpResponse.statusCode)
-        }
-        
-        let geminiResponse = try JSONDecoder().decode(GeminiResponse.self, from: data)
-        return try convertToLLMResponse(geminiResponse, for: request)
     }
     
     func stream(_ request: LLMRequest) -> AsyncThrowingStream<LLMStreamChunk, Error> {
@@ -62,7 +80,7 @@ actor GeminiProvider: LLMProvider {
                     let geminiRequest = try buildGeminiStreamRequest(request)
                     let requestData = try JSONEncoder().encode(geminiRequest)
                     
-                    let url = URL(string: "\(baseURL)/models/\(request.model):streamGenerateContent?alt=sse&key=\(apiKey)")!
+                    let url = URL(string: "\(baseURL)/models/\(request.model):streamGenerateContent?key=\(apiKey)&alt=sse")!
                     var urlRequest = URLRequest(url: url)
                     urlRequest.httpMethod = "POST"
                     urlRequest.setValue("application/json", forHTTPHeaderField: "Content-Type")
@@ -82,19 +100,17 @@ actor GeminiProvider: LLMProvider {
                         
                         if buffer.hasSuffix("\n\n") {
                             let lines = buffer.components(separatedBy: "\n").filter { !$0.isEmpty }
-                            for line in lines {
-                                if line.hasPrefix("data: ") {
-                                    let jsonString = String(line.dropFirst(6))
-                                    if jsonString != "[DONE]" {
-                                        do {
-                                            let data = jsonString.data(using: .utf8)!
-                                            let streamResponse = try JSONDecoder().decode(GeminiStreamResponse.self, from: data)
-                                            let chunk = try convertToStreamChunk(streamResponse)
-                                            continuation.yield(chunk)
-                                        } catch {
-                                            // Skip malformed chunks
-                                            continue
-                                        }
+                            for line in lines where line.hasPrefix("data: ") {
+                                let jsonString = String(line.dropFirst(6))
+                                if jsonString != "[DONE]" {
+                                    do {
+                                        let data = jsonString.data(using: .utf8)!
+                                        let streamResponse = try JSONDecoder().decode(GeminiStreamResponse.self, from: data)
+                                        let chunk = try convertToStreamChunk(streamResponse)
+                                        continuation.yield(chunk)
+                                    } catch {
+                                        // Skip malformed chunks
+                                        continue
                                     }
                                 }
                             }
@@ -115,20 +131,39 @@ actor GeminiProvider: LLMProvider {
     private func buildGeminiRequest(_ request: LLMRequest) throws -> GeminiRequest {
         let contents = try convertMessagesToContents(request.messages)
         
+        // Build tools array if JSON mode is requested
+        var tools: [GeminiTool]?
+        if case .json(let schema) = request.responseFormat {
+            if let jsonSchema = schema {
+                tools = [GeminiTool.structuredOutput(schema: jsonSchema)]
+            } else {
+                // Default JSON schema if none provided
+                tools = [GeminiTool.structuredOutput(schema: """
+                {
+                    "type": "object",
+                    "properties": {},
+                    "additionalProperties": true
+                }
+                """)]
+            }
+        }
+        
         return GeminiRequest(
             contents: contents,
             generationConfig: GeminiGenerationConfig(
                 temperature: request.temperature,
                 maxOutputTokens: request.maxTokens ?? 2048,
                 topP: 1.0, // Default top-P since it's not in LLMRequest
-                candidateCount: 1
+                candidateCount: 1,
+                thinkingBudgetTokens: request.thinkingBudgetTokens
             ),
             safetySettings: [
                 GeminiSafetySetting(category: "HARM_CATEGORY_HARASSMENT", threshold: "BLOCK_MEDIUM_AND_ABOVE"),
                 GeminiSafetySetting(category: "HARM_CATEGORY_HATE_SPEECH", threshold: "BLOCK_MEDIUM_AND_ABOVE"),
                 GeminiSafetySetting(category: "HARM_CATEGORY_SEXUALLY_EXPLICIT", threshold: "BLOCK_MEDIUM_AND_ABOVE"),
                 GeminiSafetySetting(category: "HARM_CATEGORY_DANGEROUS_CONTENT", threshold: "BLOCK_MEDIUM_AND_ABOVE")
-            ]
+            ],
+            tools: tools
         )
     }
     
@@ -141,9 +176,28 @@ actor GeminiProvider: LLMProvider {
     private func convertMessagesToContents(_ messages: [LLMMessage]) throws -> [GeminiContent] {
         return messages.map { message in
             let role = message.role == .assistant ? "model" : "user"
+            var parts: [GeminiPart] = []
+            
+            // Add text content
+            if !message.content.isEmpty {
+                parts.append(GeminiPart(text: message.content))
+            }
+            
+            // Add attachments if present
+            if let attachments = message.attachments {
+                for attachment in attachments {
+                    let base64Data = attachment.data.base64EncodedString()
+                    let inlineData = GeminiInlineData(
+                        mimeType: attachment.mimeType,
+                        data: base64Data
+                    )
+                    parts.append(GeminiPart(inlineData: inlineData))
+                }
+            }
+            
             return GeminiContent(
                 role: role,
-                parts: [GeminiPart(text: message.content)]
+                parts: parts
             )
         }
     }
@@ -209,6 +263,7 @@ struct GeminiRequest: Codable {
     let contents: [GeminiContent]
     let generationConfig: GeminiGenerationConfig
     let safetySettings: [GeminiSafetySetting]
+    let tools: [GeminiTool]? // For structured output and function calling
 }
 
 struct GeminiContent: Codable {
@@ -217,7 +272,23 @@ struct GeminiContent: Codable {
 }
 
 struct GeminiPart: Codable {
-    let text: String
+    let text: String?
+    let inlineData: GeminiInlineData?
+    
+    init(text: String) {
+        self.text = text
+        self.inlineData = nil
+    }
+    
+    init(inlineData: GeminiInlineData) {
+        self.text = nil
+        self.inlineData = inlineData
+    }
+}
+
+struct GeminiInlineData: Codable {
+    let mimeType: String
+    let data: String // Base64 encoded
 }
 
 struct GeminiGenerationConfig: Codable {
@@ -225,6 +296,7 @@ struct GeminiGenerationConfig: Codable {
     let maxOutputTokens: Int
     let topP: Double
     let candidateCount: Int
+    let thinkingBudgetTokens: Int? // For Gemini 2.5 Flash thinking mode
 }
 
 struct GeminiSafetySetting: Codable {
@@ -259,13 +331,49 @@ struct GeminiSafetyRating: Codable {
     let probability: String
 }
 
+// MARK: - Tool Support for Structured Output
+
+struct GeminiTool: Codable {
+    let type: String // "codeExecution" or "structuredOutput"
+    let codeExecution: GeminiCodeExecution?
+    let structuredOutput: GeminiStructuredOutput?
+    
+    static func codeExecution() -> GeminiTool {
+        GeminiTool(
+            type: "codeExecution",
+            codeExecution: GeminiCodeExecution(),
+            structuredOutput: nil
+        )
+    }
+    
+    static func structuredOutput(schema: String) -> GeminiTool {
+        GeminiTool(
+            type: "structuredOutput",
+            codeExecution: nil,
+            structuredOutput: GeminiStructuredOutput(schema: schema)
+        )
+    }
+}
+
+struct GeminiCodeExecution: Codable {
+    // Empty for now, as per the guide
+}
+
+struct GeminiStructuredOutput: Codable {
+    let schema: String // JSON schema as string
+}
+
 // MARK: - Gemini Model Configurations
 
 extension GeminiProvider {
     static var supportedModels: [String] {
         [
-            "gemini-1.5-pro",
-            "gemini-1.5-flash",
+            "gemini-2.5-flash-preview-05-20",
+            "gemini-2.5-flash-thinking-preview-05-20",
+            "gemini-2.0-flash-thinking-exp",
+            "gemini-2.0-flash-exp",
+            "gemini-1.5-pro-002",
+            "gemini-1.5-flash-002",
             "gemini-1.0-pro"
         ]
     }
@@ -280,14 +388,17 @@ extension GeminiProvider {
             
             switch statusCode {
             case 400:
-                if message.contains("API key") {
+                if message.contains("API key") || message.contains("Invalid API key") {
                     throw LLMError.invalidAPIKey
+                } else if message.contains("safety") {
+                    throw LLMError.contentFilter
                 } else {
                     throw LLMError.invalidResponse(message)
                 }
-            case 401:
+            case 401, 403:
                 throw LLMError.invalidAPIKey
             case 429:
+                // Extract retry-after if available from headers
                 throw LLMError.rateLimitExceeded(retryAfter: nil)
             case 500...599:
                 throw LLMError.serverError(statusCode: statusCode, message: message)
@@ -295,8 +406,17 @@ extension GeminiProvider {
                 throw LLMError.invalidResponse("HTTP \(statusCode): \(message)")
             }
         } else {
+            // Try to parse as plain text error
             let errorText = String(data: data, encoding: .utf8) ?? "Unknown error"
-            throw LLMError.invalidResponse("HTTP \(statusCode): \(errorText)")
+            
+            switch statusCode {
+            case 429:
+                throw LLMError.rateLimitExceeded(retryAfter: nil)
+            case 500...599:
+                throw LLMError.serverError(statusCode: statusCode, message: errorText)
+            default:
+                throw LLMError.invalidResponse("HTTP \(statusCode): \(errorText)")
+            }
         }
     }
 }

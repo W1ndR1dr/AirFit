@@ -182,7 +182,7 @@ private struct ErrorOverlay: View {
             return Image(systemName: "wifi.exclamationmark")
         case is PersonaError:
             return Image(systemName: "person.crop.circle.badge.exclamationmark")
-        case is ValidationError:
+        case is OnboardingError:
             return Image(systemName: "exclamationmark.triangle")
         default:
             return Image(systemName: "exclamationmark.circle")
@@ -193,7 +193,7 @@ private struct ErrorOverlay: View {
         switch error {
         case is NetworkError:
             return AppColors.warningColor
-        case is ValidationError:
+        case is OnboardingError:
             return AppColors.infoColor
         default:
             return AppColors.errorColor
@@ -206,7 +206,7 @@ private struct ErrorOverlay: View {
             return "Connection Issue"
         case is PersonaError:
             return "Generation Failed"
-        case is ValidationError:
+        case is OnboardingError:
             return "Input Required"
         case is OnboardingError:
             return "Onboarding Error"
@@ -234,20 +234,20 @@ private struct ErrorDetailsView: View {
             ScrollView {
                 VStack(alignment: .leading, spacing: AppSpacing.large) {
                     // Error type
-                    DetailRow(
+                    ErrorDetailRow(
                         title: "Error Type",
                         value: String(describing: type(of: error ?? NSError()))
                     )
                     
                     // Description
-                    DetailRow(
+                    ErrorDetailRow(
                         title: "Description",
                         value: error?.localizedDescription ?? "Unknown error"
                     )
                     
                     // Recovery suggestion
                     if let suggestion = (error as? RecoverableError)?.recoverySuggestion {
-                        DetailRow(
+                        ErrorDetailRow(
                             title: "Recovery Suggestion",
                             value: suggestion
                         )
@@ -284,7 +284,7 @@ private struct ErrorDetailsView: View {
     }
 }
 
-private struct DetailRow: View {
+private struct ErrorDetailRow: View {
     let title: String
     let value: String
     

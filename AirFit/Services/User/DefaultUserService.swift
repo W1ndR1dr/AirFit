@@ -96,16 +96,35 @@ final class DefaultUserService: UserServiceProtocol {
         
         // Store persona data
         user.onboardingProfile?.persona = PersonaProfile(
-            name: persona.name,
-            tagline: persona.tagline,
-            personality: persona.personality,
-            communicationStyle: persona.communicationStyle,
-            specialties: persona.specialties ?? [],
-            backgroundStory: persona.backgroundStory ?? ""
+            id: persona.id,
+            name: persona.identity.name,
+            archetype: persona.identity.archetype,
+            systemPrompt: persona.systemPrompt,
+            coreValues: persona.identity.coreValues,
+            backgroundStory: persona.identity.backgroundStory,
+            voiceCharacteristics: persona.communication,
+            interactionStyle: InteractionStyle(
+                greetingStyle: persona.behaviors.greetingStyle,
+                closingStyle: "Talk soon!",
+                encouragementPhrases: [persona.behaviors.encouragementStyle],
+                acknowledgmentStyle: persona.behaviors.feedbackStyle,
+                correctionApproach: "Gentle guidance",
+                humorLevel: .light,
+                formalityLevel: .balanced,
+                responseLength: .moderate
+            ),
+            adaptationRules: persona.behaviors.adaptations,
+            metadata: PersonaMetadata(
+                createdAt: persona.generatedAt,
+                version: "1.0",
+                sourceInsights: persona.profile,
+                generationMethod: .conversational,
+                uniquenessScore: 0.8
+            )
         )
         
         try modelContext.save()
         
-        AppLogger.info("Set coach persona: \(persona.name)", category: .app)
+        AppLogger.info("Set coach persona: \(persona.identity.name)", category: .app)
     }
 }

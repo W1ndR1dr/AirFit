@@ -247,5 +247,58 @@ final class HealthKitManager {
 
         return try await sleepAnalyzer.analyzeSleepSamples(from: startDate, to: endDate)
     }
+    
+    /// Fetches workout data within date range
+    func getWorkoutData(from startDate: Date, to endDate: Date) async -> [WorkoutData] {
+        // Create predicate for date range
+        let predicate = HKQuery.predicateForSamples(withStart: startDate, end: endDate, options: .strictStartDate)
+        
+        // Create query
+        let sortDescriptor = NSSortDescriptor(key: HKSampleSortIdentifierStartDate, ascending: false)
+        
+        // Use HKWorkoutType
+        let workoutType = HKObjectType.workoutType()
+        
+        // Execute query with async/await
+        return await withCheckedContinuation { continuation in
+                let query = HKSampleQuery(
+                    sampleType: workoutType,
+                    predicate: predicate,
+                    limit: HKObjectQueryNoLimit,
+                    sortDescriptors: [sortDescriptor]
+                ) { (_, samples, error) in
+                    if let error = error {
+                        AppLogger.error("Failed to fetch workouts", error: error, category: .health)
+                        continuation.resume(returning: [])
+                        return
+                    }
+                    
+                    let workouts = (samples as? [HKWorkout] ?? []).map { workout in
+                        WorkoutData(
+                            id: workout.uuid,
+                            duration: workout.duration,
+                            totalCalories: workout.totalEnergyBurned?.doubleValue(for: .kilocalorie()),
+                            workoutType: workout.workoutActivityType,
+                            startDate: workout.startDate,
+                            endDate: workout.endDate
+                        )
+                    }
+                    
+                    continuation.resume(returning: workouts)
+                }
+                
+                healthStore.execute(query)
+            }
+    }
 
+}
+
+// MARK: - Workout Data Model
+struct WorkoutData {
+    let id: UUID
+    let duration: TimeInterval
+    let totalCalories: Double?
+    let workoutType: HKWorkoutActivityType
+    let startDate: Date
+    let endDate: Date
 }

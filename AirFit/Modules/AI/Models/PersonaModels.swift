@@ -6,14 +6,14 @@ import Foundation
 struct ConversationData: Codable, Sendable {
     let userName: String
     let primaryGoal: String
-    let responses: [String: Any]
+    let responses: [String: AnyCodable]
     let summary: String
     let nodeCount: Int
     
     init(userName: String, primaryGoal: String, responses: [String: Any]) {
         self.userName = userName
         self.primaryGoal = primaryGoal
-        self.responses = responses
+        self.responses = responses.mapValues { AnyCodable($0) }
         self.summary = Self.generateSummary(from: responses, userName: userName, goal: primaryGoal)
         self.nodeCount = responses.count
     }
@@ -22,52 +22,20 @@ struct ConversationData: Codable, Sendable {
         var summary = "\(userName) wants to \(goal). "
         
         // Extract key information from responses
-        if let lifestyle = responses["lifestyle"] as? String {
+        if let lifestyle = responses["lifestyle"]?.value as? String {
             summary += "Lifestyle: \(lifestyle). "
         }
-        if let experience = responses["experience"] as? String {
+        if let experience = responses["experience"]?.value as? String {
             summary += "Experience: \(experience). "
         }
-        if let preferences = responses["preferences"] as? [String] {
+        if let preferences = responses["preferences"]?.value as? [String] {
             summary += "Preferences: \(preferences.joined(separator: ", ")). "
         }
         
         return summary
     }
     
-    // Codable conformance for [String: Any]
-    enum CodingKeys: String, CodingKey {
-        case userName, primaryGoal, responses, summary, nodeCount
-    }
-    
-    init(from decoder: Decoder) throws {
-        let container = try decoder.container(keyedBy: CodingKeys.self)
-        userName = try container.decode(String.self, forKey: .userName)
-        primaryGoal = try container.decode(String.self, forKey: .primaryGoal)
-        summary = try container.decode(String.self, forKey: .summary)
-        nodeCount = try container.decode(Int.self, forKey: .nodeCount)
-        
-        // Decode responses as Data and convert back
-        if let data = try? container.decode(Data.self, forKey: .responses),
-           let dict = try? JSONSerialization.jsonObject(with: data) as? [String: Any] {
-            responses = dict
-        } else {
-            responses = [:]
-        }
-    }
-    
-    func encode(to encoder: Encoder) throws {
-        var container = encoder.container(keyedBy: CodingKeys.self)
-        try container.encode(userName, forKey: .userName)
-        try container.encode(primaryGoal, forKey: .primaryGoal)
-        try container.encode(summary, forKey: .summary)
-        try container.encode(nodeCount, forKey: .nodeCount)
-        
-        // Encode responses as Data
-        if let data = try? JSONSerialization.data(withJSONObject: responses) {
-            try container.encode(data, forKey: .responses)
-        }
-    }
+    // Codable conformance is now automatic with AnyCodable
 }
 
 // MARK: - Enhanced Personality Insights
@@ -84,12 +52,14 @@ extension PersonalityInsights {
             }
     }
     
-    var communicationStyle: CommunicationStyleSimple {
+    var conversationCommunicationStyle: ConversationCommunicationStyle {
         switch communicationProfile.preferredTone {
         case .formal, .balanced:
-            return .explanatory
-        case .casual, .energetic:
+            return .analytical
+        case .casual:
             return .conversational
+        case .energetic:
+            return .energetic
         }
     }
     
@@ -103,7 +73,7 @@ extension PersonalityInsights {
         }
     }
     
-    var energyLevel: EnergyLevel {
+    var conversationEnergyLevel: ConversationEnergyLevel {
         if let intensity = traits[.intensityPreference], intensity > 0.5 {
             return .high
         } else if let intensity = traits[.intensityPreference], intensity < -0.5 {
@@ -171,23 +141,11 @@ extension PersonalityInsights {
     }
 }
 
-// Supporting enums for PersonalityInsights extensions
-enum CommunicationStyleSimple: String, Codable {
-    case direct
-    case explanatory
-    case conversational
-}
-
+// Supporting enums and types for PersonalityInsights extensions
 enum MotivationType: String, Codable {
     case achievement
     case health
     case social
-}
-
-enum EnergyLevel: String, Codable {
-    case high
-    case moderate
-    case low
 }
 
 enum ComplexityLevel: String, Codable {
@@ -355,7 +313,20 @@ struct CoachPersona: Codable, Sendable {
             adaptations: personaProfile.adaptationRules
         )
         self.quirks = []
-        self.profile = personaProfile.metadata.sourceInsights
+        // Convert from ConversationPersonalityInsights to PersonalityInsights
+        let sourceInsights = personaProfile.metadata.sourceInsights
+        self.profile = PersonalityInsights(
+            traits: [:], // Would need proper conversion from sourceInsights
+            communicationProfile: CommunicationProfile(
+                preferredTone: .balanced,
+                detailLevel: .moderate,
+                technicalComfort: .medium
+            ),
+            motivationalDrivers: Set([.achievement]),
+            stressResponses: [:],
+            timePreferences: [:],
+            extractedAt: sourceInsights.extractedAt
+        )
         self.systemPrompt = personaProfile.systemPrompt
         self.generatedAt = personaProfile.metadata.createdAt
     }

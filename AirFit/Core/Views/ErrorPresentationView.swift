@@ -278,6 +278,8 @@ struct ErrorPresentationView: View {
                 return "heart.text.square"
             case .cameraNotAuthorized:
                 return "camera.badge.exclamationmark"
+            case .userNotFound:
+                return "person.crop.circle.badge.questionmark"
             }
         } else {
             return "exclamationmark.circle"
@@ -296,7 +298,7 @@ extension View {
     ) -> some View {
         self.overlay(
             Group {
-                if let error = error.wrappedValue {
+                if let errorValue = error.wrappedValue {
                     Color.black.opacity(0.4)
                         .ignoresSafeArea()
                         .onTapGesture {
@@ -304,7 +306,7 @@ extension View {
                         }
                     
                     ErrorPresentationView(
-                        error: error,
+                        error: errorValue,
                         style: style,
                         retryAction: retryAction,
                         dismissAction: {
@@ -325,9 +327,9 @@ extension View {
     ) -> some View {
         self.overlay(
             VStack {
-                if let error = error.wrappedValue {
+                if let errorValue = error.wrappedValue {
                     ErrorPresentationView(
-                        error: error,
+                        error: errorValue,
                         style: .toast,
                         dismissAction: {
                             error.wrappedValue = nil

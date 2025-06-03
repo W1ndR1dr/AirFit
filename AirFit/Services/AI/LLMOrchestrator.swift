@@ -175,7 +175,8 @@ final class LLMOrchestrator: ObservableObject {
                     systemPrompt: request.systemPrompt,
                     responseFormat: request.responseFormat,
                     stream: request.stream,
-                    metadata: request.metadata
+                    metadata: request.metadata,
+                    thinkingBudgetTokens: request.thinkingBudgetTokens
                 )
                 
                 var newAttempted = attemptedProviders
@@ -237,15 +238,32 @@ final class LLMOrchestrator: ObservableObject {
         stream: Bool,
         task: AITask
     ) -> LLMRequest {
-        LLMRequest(
-            messages: [LLMMessage(role: .user, content: prompt, name: nil)],
+        // Determine thinking budget for Gemini 2.5 Flash thinking model
+        let thinkingBudget: Int? = {
+            if model == .gemini25FlashThinking {
+                // Start with low budget and tune based on task
+                switch task {
+                case .personaSynthesis:
+                    return 8192 // Higher budget for complex creative tasks
+                case .personalityExtraction, .conversationAnalysis:
+                    return 4096 // Medium budget for analysis
+                case .coaching, .quickResponse:
+                    return 1024 // Lower budget for quick responses
+                }
+            }
+            return nil
+        }()
+        
+        return LLMRequest(
+            messages: [LLMMessage(role: .user, content: prompt, name: nil, attachments: nil)],
             model: model.identifier,
             temperature: temperature,
             maxTokens: maxTokens,
             systemPrompt: nil,
             responseFormat: nil,
             stream: stream,
-            metadata: ["task": String(describing: task)]
+            metadata: ["task": String(describing: task)],
+            thinkingBudgetTokens: thinkingBudget
         )
     }
     

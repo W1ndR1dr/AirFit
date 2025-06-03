@@ -51,6 +51,15 @@ struct APIConfigurationView: View {
                         icon: "brain"
                     )
                     
+                    if let pricing = viewModel.selectedProvider.pricing(for: viewModel.selectedModel) {
+                        ConfigRow(
+                            title: "Pricing (per 1M tokens)",
+                            value: pricing.input == 0 && pricing.output == 0 ? "Free" : String(format: "$%.2f in / $%.2f out", pricing.input, pricing.output),
+                            icon: "dollarsign.circle",
+                            valueColor: pricing.input == 0 ? .green : .primary
+                        )
+                    }
+                    
                     ConfigRow(
                         title: "Status",
                         value: viewModel.installedAPIKeys.contains(viewModel.selectedProvider) ? "Active" : "No API Key",
@@ -208,6 +217,7 @@ struct ProviderRow: View {
                             ModelChip(
                                 model: model,
                                 isSelected: selectedModel == model,
+                                provider: provider,
                                 onSelect: {
                                     selectedModel = model
                                     HapticManager.selection()
@@ -218,6 +228,68 @@ struct ProviderRow: View {
                 }
             }
             .padding(.top, AppSpacing.sm)
+            
+            // Show model details when selected
+            if let selectedModelDetails = models.first(where: { $0 == selectedModel }) {
+                ModelDetailsCard(model: selectedModelDetails, provider: provider)
+                    .padding(.top, AppSpacing.sm)
+            }
+        }
+    }
+}
+
+struct ModelDetailsCard: View {
+    let model: String
+    let provider: AIProvider
+    
+    private var modelEnum: LLMModel? {
+        LLMModel.allCases.first { $0.identifier == model }
+    }
+    
+    var body: some View {
+        if let modelEnum = modelEnum {
+            VStack(alignment: .leading, spacing: AppSpacing.sm) {
+                Text("Model Details")
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+                
+                VStack(alignment: .leading, spacing: AppSpacing.xs) {
+                    DetailRow(label: "Context Window", value: formatTokenCount(modelEnum.contextWindow))
+                    DetailRow(label: "Description", value: modelEnum.description)
+                    
+                    if !modelEnum.specialFeatures.isEmpty {
+                        DetailRow(label: "Features", value: modelEnum.specialFeatures.joined(separator: ", "))
+                    }
+                }
+                .font(.caption)
+                .padding(AppSpacing.sm)
+                .background(Color.secondaryBackground)
+                .clipShape(RoundedRectangle(cornerRadius: AppSpacing.radiusXs))
+            }
+        }
+    }
+    
+    private func formatTokenCount(_ count: Int) -> String {
+        if count >= 1_000_000 {
+            return "\(count / 1_000_000)M tokens"
+        } else if count >= 1_000 {
+            return "\(count / 1_000)K tokens"
+        } else {
+            return "\(count) tokens"
+        }
+    }
+}
+
+struct DetailRow: View {
+    let label: String
+    let value: String
+    
+    var body: some View {
+        VStack(alignment: .leading, spacing: 2) {
+            Text(label)
+                .foregroundStyle(.secondary)
+            Text(value)
+                .foregroundStyle(.primary)
         }
     }
 }
@@ -225,17 +297,61 @@ struct ProviderRow: View {
 struct ModelChip: View {
     let model: String
     let isSelected: Bool
+    let provider: AIProvider
     let onSelect: () -> Void
+    
+    private var pricing: (input: Double, output: Double)? {
+        provider.pricing(for: model)
+    }
+    
+    private var displayName: String {
+        // Extract display name from model identifier
+        switch model {
+        case "gpt-4o": return "GPT-4o"
+        case "gpt-4o-mini": return "GPT-4o Mini"
+        case "gpt-4-turbo-2024-04-09": return "GPT-4 Turbo"
+        case "gpt-4": return "GPT-4"
+        case "gpt-3.5-turbo": return "GPT-3.5 Turbo"
+        case "claude-3-5-sonnet-20241022": return "Claude 3.5 Sonnet"
+        case "claude-3-opus-20240229": return "Claude 3 Opus"
+        case "claude-3-sonnet-20240229": return "Claude 3 Sonnet"
+        case "claude-3-5-haiku-20241022": return "Claude 3.5 Haiku"
+        case "claude-3-haiku-20240307": return "Claude 3 Haiku"
+        case "gemini-2.0-flash-thinking-exp": return "Gemini 2.0 Flash Thinking"
+        case "gemini-2.0-flash-exp": return "Gemini 2.0 Flash"
+        case "gemini-1.5-pro-002": return "Gemini 1.5 Pro"
+        case "gemini-1.5-flash-002": return "Gemini 1.5 Flash"
+        case "gemini-1.0-pro": return "Gemini 1.0 Pro"
+        default: return model
+        }
+    }
+    
+    private var priceString: String? {
+        guard let pricing = pricing else { return nil }
+        if pricing.input == 0 && pricing.output == 0 {
+            return "Free"
+        }
+        return String(format: "$%.2f/$%.2f", pricing.input, pricing.output)
+    }
     
     var body: some View {
         Button(action: onSelect) {
-            Text(model)
-                .font(.caption)
-                .padding(.horizontal, AppSpacing.md)
-                .padding(.vertical, AppSpacing.xs)
-                .background(isSelected ? Color.accentColor : Color.secondaryBackground)
-                .foregroundStyle(isSelected ? .white : .primary)
-                .clipShape(Capsule())
+            VStack(alignment: .leading, spacing: 2) {
+                Text(displayName)
+                    .font(.caption)
+                    .fontWeight(isSelected ? .medium : .regular)
+                
+                if let priceString = priceString {
+                    Text(priceString)
+                        .font(.system(size: 10))
+                        .foregroundStyle(isSelected ? .white.opacity(0.8) : .secondary)
+                }
+            }
+            .padding(.horizontal, AppSpacing.md)
+            .padding(.vertical, AppSpacing.xs)
+            .background(isSelected ? Color.accentColor : Color.secondaryBackground)
+            .foregroundStyle(isSelected ? .white : .primary)
+            .clipShape(RoundedRectangle(cornerRadius: AppSpacing.radiusSm))
         }
         .buttonStyle(.plain)
     }

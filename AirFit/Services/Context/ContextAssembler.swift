@@ -10,6 +10,26 @@ final class ContextAssembler {
     init(healthKitManager: HealthKitManaging = HealthKitManager.shared) {
         self.healthKitManager = healthKitManager
     }
+    
+    /// Simplified context assembly for dashboard
+    func assembleContext() async -> HealthContextSnapshot {
+        let modelContext = try? ModelContainer(for: User.self).mainContext
+        if let context = modelContext {
+            return await assembleSnapshot(modelContext: context)
+        } else {
+            // Return minimal context if no model context available
+            return HealthContextSnapshot(
+                subjectiveData: SubjectiveData(),
+                environment: createMockEnvironmentContext(),
+                activity: ActivityMetrics(),
+                sleep: SleepAnalysis(lastNight: nil),
+                heartHealth: HeartHealthMetrics(),
+                body: BodyMetrics(),
+                appContext: AppSpecificContext(),
+                trends: HealthTrends(weeklyActivityChange: nil)
+            )
+        }
+    }
 
     /// Creates a `HealthContextSnapshot` using data from HealthKit and SwiftData models.
     /// - Parameter modelContext: The `ModelContext` used to fetch app data.

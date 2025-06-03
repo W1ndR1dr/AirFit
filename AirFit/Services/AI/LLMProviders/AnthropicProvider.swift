@@ -11,7 +11,7 @@ actor AnthropicProvider: LLMProvider {
         supportsJSON: true,
         supportsStreaming: true,
         supportsSystemPrompt: true,
-        supportsFunctionCalling: false,
+        supportsFunctionCalling: true,  // Now supported in beta
         supportsVision: true
     )
     

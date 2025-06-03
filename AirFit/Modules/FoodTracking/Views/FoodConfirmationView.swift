@@ -220,9 +220,9 @@ private struct FoodItemCard: View {
 
                 HStack(spacing: AppSpacing.large) {
                     NutrientLabel(value: Double(item.calories), unit: "cal", color: .orange)
-                    NutrientLabel(value: item.proteinGrams ?? 0, unit: "g", label: "Protein", color: AppColors.proteinColor)
-                    NutrientLabel(value: item.carbGrams ?? 0, unit: "g", label: "Carbs", color: AppColors.carbsColor)
-                    NutrientLabel(value: item.fatGrams ?? 0, unit: "g", label: "Fat", color: AppColors.fatColor)
+                    NutrientLabel(value: item.proteinGrams, unit: "g", label: "Protein", color: AppColors.proteinColor)
+                    NutrientLabel(value: item.carbGrams, unit: "g", label: "Carbs", color: AppColors.carbsColor)
+                    NutrientLabel(value: item.fatGrams, unit: "g", label: "Fat", color: AppColors.fatColor)
                 }
                 .font(.caption)
             }

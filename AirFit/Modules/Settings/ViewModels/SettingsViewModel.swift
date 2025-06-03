@@ -17,6 +17,11 @@ final class SettingsViewModel {
     private(set) var isLoading = false
     private(set) var error: Error?
     
+    // MARK: - Coordinator Access
+    func showAlert(_ alert: SettingsCoordinator.SettingsAlert) {
+        coordinator.showAlert(alert)
+    }
+    
     // User Preferences
     var preferredUnits: MeasurementSystem
     var appearanceMode: AppearanceMode

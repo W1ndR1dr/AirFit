@@ -36,9 +36,9 @@ extension AIProvider {
         case .openAI:
             return "gpt-4o-mini"
         case .anthropic:
-            return "claude-3-sonnet-20240229"
+            return "claude-3-5-sonnet-20241022"
         case .googleGemini:
-            return "gemini-pro"
+            return "gemini-1.5-flash-002"
         case .openRouter:
             return "openai/gpt-4o-mini"
         }
@@ -51,33 +51,35 @@ extension AIProvider {
             return [
                 "gpt-4o",
                 "gpt-4o-mini",
-                "gpt-4-turbo",
-                "gpt-3.5-turbo",
-                "gpt-3.5-turbo-16k"
+                "gpt-4-turbo-2024-04-09",
+                "gpt-4",
+                "gpt-3.5-turbo"
             ]
         case .anthropic:
             return [
+                "claude-3-5-sonnet-20241022",
                 "claude-3-opus-20240229",
                 "claude-3-sonnet-20240229",
-                "claude-3-haiku-20240307",
-                "claude-2.1",
-                "claude-instant-1.2"
+                "claude-3-5-haiku-20241022",
+                "claude-3-haiku-20240307"
             ]
         case .googleGemini:
             return [
-                "gemini-pro",
-                "gemini-pro-vision",
-                "gemini-ultra"
+                "gemini-2.0-flash-thinking-exp",
+                "gemini-2.0-flash-exp",
+                "gemini-1.5-pro-002",
+                "gemini-1.5-flash-002",
+                "gemini-1.0-pro"
             ]
         case .openRouter:
             return [
                 "openai/gpt-4o",
                 "openai/gpt-4o-mini",
+                "anthropic/claude-3.5-sonnet",
                 "anthropic/claude-3-opus",
-                "anthropic/claude-3-sonnet",
-                "google/gemini-pro",
-                "meta-llama/llama-3-70b-instruct",
-                "mistralai/mixtral-8x7b-instruct"
+                "google/gemini-pro-1.5",
+                "meta-llama/llama-3.1-405b-instruct",
+                "mistralai/mistral-large"
             ]
         }
     }
@@ -166,6 +168,10 @@ extension AIProvider {
                 return (input: 5.0, output: 15.0)
             case "gpt-4o-mini":
                 return (input: 0.15, output: 0.6)
+            case "gpt-4-turbo-2024-04-09":
+                return (input: 10.0, output: 30.0)
+            case "gpt-4":
+                return (input: 30.0, output: 60.0)
             case "gpt-3.5-turbo":
                 return (input: 0.5, output: 1.5)
             default:
@@ -173,10 +179,14 @@ extension AIProvider {
             }
         case .anthropic:
             switch model {
+            case "claude-3-5-sonnet-20241022":
+                return (input: 3.0, output: 15.0)
             case "claude-3-opus-20240229":
                 return (input: 15.0, output: 75.0)
             case "claude-3-sonnet-20240229":
                 return (input: 3.0, output: 15.0)
+            case "claude-3-5-haiku-20241022":
+                return (input: 1.0, output: 5.0)
             case "claude-3-haiku-20240307":
                 return (input: 0.25, output: 1.25)
             default:
@@ -184,7 +194,13 @@ extension AIProvider {
             }
         case .googleGemini:
             switch model {
-            case "gemini-pro":
+            case "gemini-2.0-flash-thinking-exp", "gemini-2.0-flash-exp":
+                return (input: 0.0, output: 0.0) // Free during experimental phase
+            case "gemini-1.5-pro-002":
+                return (input: 1.25, output: 5.0)
+            case "gemini-1.5-flash-002":
+                return (input: 0.075, output: 0.3)
+            case "gemini-1.0-pro":
                 return (input: 0.5, output: 1.5)
             default:
                 return nil

@@ -9,6 +9,7 @@ public enum AppError: LocalizedError, Sendable {
     case unknown(message: String)
     case healthKitNotAuthorized
     case cameraNotAuthorized
+    case userNotFound
 
     public var errorDescription: String? {
         switch self {
@@ -28,6 +29,8 @@ public enum AppError: LocalizedError, Sendable {
             return "Health access is required for this feature"
         case .cameraNotAuthorized:
             return "Camera access is required to take meal photos"
+        case .userNotFound:
+            return "User profile not found"
         }
     }
     
@@ -49,6 +52,8 @@ public enum AppError: LocalizedError, Sendable {
             return "Grant access in Settings > Privacy > Health"
         case .cameraNotAuthorized:
             return "Grant access in Settings > Privacy > Camera"
+        case .userNotFound:
+            return "Please complete the setup process"
         }
     }
 }

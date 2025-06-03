@@ -1,7 +1,7 @@
 import SwiftUI
 
 struct PrivacySecurityView: View {
-    var viewModel: SettingsViewModel
+    @Bindable var viewModel: SettingsViewModel
     @State private var showPrivacyPolicy = false
     @State private var showTermsOfService = false
     
@@ -26,14 +26,14 @@ struct PrivacySecurityView: View {
     }
     
     private var biometricSection: some View {
-        VStack(alignment: .leading, spacing: AppSpacing.md) {
+        VStack(alignment: .leading, spacing: AppSpacing.medium) {
             SectionHeader(title: "Biometric Security", icon: "faceid")
             
             Card {
-                VStack(spacing: AppSpacing.md) {
+                VStack(spacing: AppSpacing.medium) {
                     Toggle(isOn: $viewModel.biometricLockEnabled) {
                         Label {
-                            VStack(alignment: .leading, spacing: AppSpacing.xs) {
+                            VStack(alignment: .leading, spacing: AppSpacing.xSmall) {
                                 Text("Require Face ID")
                                     .font(.headline)
                                 Text("Add an extra layer of security")
@@ -50,12 +50,12 @@ struct PrivacySecurityView: View {
                             do {
                                 try await viewModel.updateBiometricLock(newValue)
                                 if newValue {
-                                    HapticManager.success()
+                                    HapticManager.notification(.success)
                                 }
                             } catch {
                                 // Revert toggle
                                 viewModel.biometricLockEnabled = !newValue
-                                viewModel.coordinator.showAlert(.error(message: error.localizedDescription))
+                                viewModel.showAlert(.error(message: error.localizedDescription))
                             }
                         }
                     }
@@ -79,11 +79,11 @@ struct PrivacySecurityView: View {
     }
     
     private var dataPrivacySection: some View {
-        VStack(alignment: .leading, spacing: AppSpacing.md) {
+        VStack(alignment: .leading, spacing: AppSpacing.medium) {
             SectionHeader(title: "Data Privacy", icon: "lock.shield")
             
             Card {
-                VStack(spacing: AppSpacing.md) {
+                VStack(spacing: AppSpacing.medium) {
                     PrivacyRow(
                         title: "Health Data",
                         description: "Your health data is stored locally and never shared",
@@ -123,14 +123,14 @@ struct PrivacySecurityView: View {
     }
     
     private var analyticsSection: some View {
-        VStack(alignment: .leading, spacing: AppSpacing.md) {
+        VStack(alignment: .leading, spacing: AppSpacing.medium) {
             SectionHeader(title: "Analytics & Improvements", icon: "chart.bar.xaxis")
             
             Card {
-                VStack(spacing: AppSpacing.md) {
+                VStack(spacing: AppSpacing.medium) {
                     Toggle(isOn: $viewModel.analyticsEnabled) {
                         Label {
-                            VStack(alignment: .leading, spacing: AppSpacing.xs) {
+                            VStack(alignment: .leading, spacing: AppSpacing.xSmall) {
                                 Text("Share Analytics")
                                     .font(.headline)
                                 Text("Help improve AirFit by sharing anonymous usage data")
@@ -151,12 +151,12 @@ struct PrivacySecurityView: View {
                     if viewModel.analyticsEnabled {
                         Divider()
                         
-                        VStack(alignment: .leading, spacing: AppSpacing.sm) {
+                        VStack(alignment: .leading, spacing: AppSpacing.small) {
                             Label("What we collect:", systemImage: "info.circle")
                                 .font(.caption.bold())
                                 .foregroundStyle(.secondary)
                             
-                            VStack(alignment: .leading, spacing: AppSpacing.xs) {
+                            VStack(alignment: .leading, spacing: AppSpacing.xSmall) {
                                 Text("• App crashes and errors")
                                 Text("• Feature usage statistics")
                                 Text("• Performance metrics")
@@ -167,9 +167,9 @@ struct PrivacySecurityView: View {
                             Label("What we don't collect:", systemImage: "xmark.circle")
                                 .font(.caption.bold())
                                 .foregroundStyle(.secondary)
-                                .padding(.top, AppSpacing.xs)
+                                .padding(.top, AppSpacing.xSmall)
                             
-                            VStack(alignment: .leading, spacing: AppSpacing.xs) {
+                            VStack(alignment: .leading, spacing: AppSpacing.xSmall) {
                                 Text("• Personal health data")
                                 Text("• AI conversation content")
                                 Text("• Location information")
@@ -184,7 +184,7 @@ struct PrivacySecurityView: View {
     }
     
     private var legalSection: some View {
-        VStack(alignment: .leading, spacing: AppSpacing.md) {
+        VStack(alignment: .leading, spacing: AppSpacing.medium) {
             SectionHeader(title: "Legal", icon: "doc.text")
             
             Card {
@@ -197,7 +197,7 @@ struct PrivacySecurityView: View {
                                 .font(.caption)
                                 .foregroundStyle(.tertiary)
                         }
-                        .padding(.vertical, AppSpacing.sm)
+                        .padding(.vertical, AppSpacing.small)
                     }
                     .buttonStyle(.plain)
                     
@@ -211,7 +211,7 @@ struct PrivacySecurityView: View {
                                 .font(.caption)
                                 .foregroundStyle(.tertiary)
                         }
-                        .padding(.vertical, AppSpacing.sm)
+                        .padding(.vertical, AppSpacing.small)
                     }
                     .buttonStyle(.plain)
                 }
@@ -247,13 +247,13 @@ struct PrivacyRow: View {
     }
     
     var body: some View {
-        HStack(alignment: .top, spacing: AppSpacing.md) {
+        HStack(alignment: .top, spacing: AppSpacing.medium) {
             Image(systemName: icon)
                 .font(.title3)
                 .foregroundStyle(.tint)
                 .frame(width: 28)
             
-            VStack(alignment: .leading, spacing: AppSpacing.xs) {
+            VStack(alignment: .leading, spacing: AppSpacing.xSmall) {
                 Text(title)
                     .font(.subheadline.bold())
                 

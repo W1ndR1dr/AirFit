@@ -25,21 +25,21 @@ final class ProductionAIService: AIServiceProtocol {
                 name: "Claude 3 Sonnet",
                 provider: .anthropic,
                 contextWindow: 200_000,
-                costPerThousandTokens: (input: 0.003, output: 0.015)
+                costPerThousandTokens: AIModel.TokenCost(input: 0.003, output: 0.015)
             ),
             AIModel(
                 id: "gpt-4-turbo-preview",
                 name: "GPT-4 Turbo",
                 provider: .openAI,
                 contextWindow: 128_000,
-                costPerThousandTokens: (input: 0.01, output: 0.03)
+                costPerThousandTokens: AIModel.TokenCost(input: 0.01, output: 0.03)
             ),
             AIModel(
                 id: "gemini-1.5-pro",
                 name: "Gemini 1.5 Pro",
                 provider: .gemini,
                 contextWindow: 2_097_152,
-                costPerThousandTokens: (input: 0.00125, output: 0.00375)
+                costPerThousandTokens: AIModel.TokenCost(input: 0.00125, output: 0.00375)
             )
         ]
     }
@@ -65,7 +65,7 @@ final class ProductionAIService: AIServiceProtocol {
         }
         
         isConfigured = true
-        AppLogger.info("Production AI Service configured with provider: \(activeProvider.rawValue)", category: .services)
+        AppLogger.info("Production AI Service configured with provider: \(activeProvider.rawValue)", category: .ai)
     }
     
     func reset() async {
@@ -96,7 +96,7 @@ final class ProductionAIService: AIServiceProtocol {
     // MARK: - AIServiceProtocol
     func configure(provider: AIProvider, apiKey: String, model: String?) async throws {
         // Save the API key
-        try await apiKeyManager.saveAPIKey(apiKey, for: provider)
+        try await apiKeyManager.setAPIKey(apiKey, for: provider)
         
         // Update active provider
         activeProvider = provider
@@ -119,17 +119,19 @@ final class ProductionAIService: AIServiceProtocol {
                     }
                     
                     let aiRequest = AIRequest(
-                        messages: messages,
-                        model: request.model ?? availableModels.first?.id ?? "claude-3-sonnet-20240229",
                         systemPrompt: request.systemPrompt,
-                        maxTokens: request.maxTokens,
+                        messages: messages,
+                        functions: request.functions,
                         temperature: request.temperature,
+                        maxTokens: request.maxTokens,
                         stream: request.stream,
-                        functions: request.functions
+                        user: "user"
                     )
                     
-                    // Send through unified service
-                    for try await response in unifiedService.sendRequest(aiRequest) {
+                    // Send through unified service using Combine publisher
+                    let publisher = unifiedService.getStreamingResponse(for: aiRequest)
+                    
+                    for try await response in publisher.values {
                         continuation.yield(response)
                     }
                     
@@ -173,13 +175,13 @@ final class ProductionAIService: AIServiceProtocol {
         """
         
         let request = AIRequest(
-            messages: [AIMessage(role: .user, content: goalText, name: nil)],
-            model: nil,
             systemPrompt: systemPrompt,
-            maxTokens: 150,
+            messages: [AIChatMessage(role: .user, content: goalText, name: nil)],
+            functions: nil,
             temperature: 0.7,
+            maxTokens: 150,
             stream: false,
-            functions: nil
+            user: "user"
         )
         
         var responseText = ""

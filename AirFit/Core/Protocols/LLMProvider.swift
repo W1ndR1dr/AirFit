@@ -41,6 +41,7 @@ struct LLMRequest: Sendable {
     let responseFormat: ResponseFormat?
     let stream: Bool
     let metadata: [String: String]
+    let thinkingBudgetTokens: Int? // For Gemini 2.5 Flash thinking mode
     
     enum ResponseFormat: Sendable {
         case text
@@ -52,11 +53,25 @@ struct LLMMessage: Sendable {
     let role: Role
     let content: String
     let name: String?
+    let attachments: [MessageAttachment]? // For multimodal content
     
     enum Role: String, Sendable {
         case system
         case user
         case assistant
+    }
+    
+    struct MessageAttachment: Sendable {
+        let type: AttachmentType
+        let data: Data
+        let mimeType: String
+        
+        enum AttachmentType: String, Sendable {
+            case image
+            case audio
+            case video
+            case document
+        }
     }
 }
 
@@ -104,6 +119,7 @@ enum LLMError: LocalizedError, Sendable {
     case timeout
     case cancelled
     case unsupportedFeature(String)
+    case contentFilter
     
     var errorDescription: String? {
         switch self {
@@ -128,6 +144,8 @@ enum LLMError: LocalizedError, Sendable {
             return "Request cancelled"
         case .unsupportedFeature(let feature):
             return "\(feature) is not supported by this provider"
+        case .contentFilter:
+            return "Content was filtered due to safety settings"
         }
     }
 }

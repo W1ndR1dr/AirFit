@@ -1,4 +1,5 @@
 import SwiftUI
+import SwiftData
 
 struct PersonaPreviewView: View {
     let persona: PersonaProfile
@@ -71,7 +72,7 @@ struct PersonaPreviewView: View {
                     Circle()
                         .fill(
                             LinearGradient(
-                                colors: [.accent, .purple],
+                                colors: [AppColors.accentColor, AppColors.accentSecondary],
                                 startPoint: .topLeading,
                                 endPoint: .bottomTrailing
                             )
@@ -93,7 +94,7 @@ struct PersonaPreviewView: View {
                     .padding(.vertical, 8)
                     .background(
                         Capsule()
-                            .fill(Color.accent.opacity(0.9))
+                            .fill(AppColors.accentColor.opacity(0.9))
                     )
                 
                 Spacer()
@@ -140,7 +141,7 @@ struct PersonaPreviewView: View {
         .padding(24)
         .background(
             RoundedRectangle(cornerRadius: 20)
-                .fill(Color("CardBackground"))
+                .fill(AppColors.cardBackground)
                 .shadow(color: .black.opacity(0.05), radius: 10, y: 5)
         )
     }
@@ -181,7 +182,7 @@ struct PersonaPreviewView: View {
                 .foregroundColor(.white)
                 .frame(maxWidth: .infinity)
                 .padding()
-                .background(Color.accentColor)
+                .background(AppColors.accentColor)
                 .cornerRadius(16)
             }
             
@@ -195,12 +196,12 @@ struct PersonaPreviewView: View {
                         Text("Adjust")
                     }
                     .font(.subheadline)
-                    .foregroundColor(.accent)
+                    .foregroundColor(AppColors.accentColor)
                     .frame(maxWidth: .infinity)
                     .padding()
                     .background(
                         RoundedRectangle(cornerRadius: 12)
-                            .stroke(Color.accent, lineWidth: 1.5)
+                            .stroke(AppColors.accentColor, lineWidth: 1.5)
                     )
                 }
                 
@@ -215,12 +216,12 @@ struct PersonaPreviewView: View {
                         Text("Regenerate")
                     }
                     .font(.subheadline)
-                    .foregroundColor(.secondary)
+                    .foregroundColor(AppColors.textSecondary)
                     .frame(maxWidth: .infinity)
                     .padding()
                     .background(
                         RoundedRectangle(cornerRadius: 12)
-                            .stroke(Color.secondary.opacity(0.3), lineWidth: 1)
+                            .stroke(AppColors.textSecondary.opacity(0.3), lineWidth: 1)
                     )
                 }
             }
@@ -296,7 +297,7 @@ struct PersonaAdjustmentSheet: View {
                             .padding(12)
                             .background(
                                 RoundedRectangle(cornerRadius: 8)
-                                    .fill(Color.secondary.opacity(0.1))
+                                    .fill(AppColors.textSecondary.opacity(0.1))
                             )
                         }
                         .buttonStyle(.plain)
@@ -326,7 +327,7 @@ struct PersonaAdjustmentSheet: View {
                         .foregroundColor(.white)
                         .frame(maxWidth: .infinity)
                         .padding()
-                        .background(Color.accentColor)
+                        .background(AppColors.accentColor)
                         .cornerRadius(12)
                 }
                 .disabled(adjustmentText.isEmpty)
@@ -356,7 +357,7 @@ struct TraitChip: View {
             .padding(.vertical, 6)
             .background(
                 Capsule()
-                    .fill(Color.accent.opacity(0.1))
+                    .fill(AppColors.accentColor.opacity(0.1))
             )
     }
 }
@@ -384,7 +385,7 @@ struct StyleIndicator: View {
         .padding(.vertical, 8)
         .background(
             RoundedRectangle(cornerRadius: 8)
-                .fill(Color.secondary.opacity(0.05))
+                .fill(AppColors.textSecondary.opacity(0.05))
         )
     }
 }
@@ -403,7 +404,7 @@ struct MessageBubble: View {
                 .padding(12)
                 .background(
                     RoundedRectangle(cornerRadius: 16)
-                        .fill(isFromCoach ? Color.secondary.opacity(0.1) : Color.accentColor)
+                        .fill(isFromCoach ? AppColors.textSecondary.opacity(0.1) : AppColors.accentColor)
                 )
             
             if isFromCoach { Spacer() }
@@ -466,7 +467,11 @@ struct FlowLayout: Layout {
 // MARK: - Preview
 
 private struct PreviewUserService: UserServiceProtocol {
-    func getCurrentUser() async -> User? {
+    func getCurrentUser() -> User? {
+        nil
+    }
+    
+    func getCurrentUserId() async -> UUID? {
         nil
     }
     
@@ -476,6 +481,14 @@ private struct PreviewUserService: UserServiceProtocol {
     
     func createUser(name: String, email: String?) async throws -> User {
         User(name: name, email: email)
+    }
+    
+    func completeOnboarding() async throws {
+        // No-op for preview
+    }
+    
+    func setCoachPersona(_ persona: CoachPersona) async throws {
+        // No-op for preview
     }
 }
 
@@ -550,7 +563,7 @@ private struct PreviewAPIKeyManager: APIKeyManagementProtocol {
             ),
             coordinator: OnboardingFlowCoordinator(
                 conversationManager: ConversationFlowManager(
-                    flowDefinition: [:],
+                    flowDefinition: ConversationFlowData.defaultFlow(),
                     modelContext: DataManager.previewContainer.mainContext
                 ),
                 personaService: PersonaService(

@@ -170,7 +170,13 @@ extension DataManager {
     }
     
     static var previewContainer: ModelContainer {
-        return shared.createMemoryContainer()
+        // Create in-memory container
+        do {
+            let configuration = ModelConfiguration(isStoredInMemoryOnly: true)
+            return try ModelContainer(for: User.self, OnboardingProfile.self, configurations: configuration)
+        } catch {
+            fatalError("Failed to create preview container: \(error)")
+        }
     }
     
     private var _previewContainer: ModelContainer? {

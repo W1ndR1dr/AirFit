@@ -45,21 +45,26 @@ final class PreviewGenerator: ObservableObject {
             updateStage(.analyzingPersonality)
             try await Task.sleep(nanoseconds: 500_000_000) // 0.5s for effect
             
+            // Create initial preview during analysis
             preview = PersonaPreview(
-                stage: .analyzingPersonality,
-                name: nil,
-                archetype: nil,
-                traits: extractTopTraits(from: insights),
-                previewMessage: nil
+                name: "Analyzing...",
+                archetype: "Discovering your ideal coach type",
+                sampleGreeting: "Getting to know you...",
+                voiceDescription: "Understanding your preferences"
             )
             
             // Stage 2: Creating identity
             updateStage(.creatingIdentity)
             
-            // Simulate streaming effect
+            // Simulate streaming effect with preview updates
             let placeholderNames = ["Creating", "Creating your", "Creating your unique", "Creating your unique coach..."]
             for (index, text) in placeholderNames.enumerated() {
-                preview?.previewMessage = text
+                preview = PersonaPreview(
+                    name: text,
+                    archetype: "Crafting personality...",
+                    sampleGreeting: "Preparing to meet you...",
+                    voiceDescription: "Building communication style"
+                )
                 progress = 0.2 + (Double(index) / Double(placeholderNames.count)) * 0.2
                 try await Task.sleep(nanoseconds: 200_000_000)
             }
@@ -69,17 +74,17 @@ final class PreviewGenerator: ObservableObject {
             
             // Generate actual persona
             let persona = try await synthesizer.synthesizePersona(
-                from: insights,
-                conversationData: conversationData
+                from: conversationData,
+                insights: insights
             )
             
             // Update preview with real data
+            // Update preview with real data
             preview = PersonaPreview(
-                stage: .buildingPersonality,
                 name: persona.name,
                 archetype: persona.archetype,
-                traits: extractTopTraits(from: insights),
-                previewMessage: generatePreviewMessage(for: persona)
+                sampleGreeting: generateSampleGreeting(for: persona),
+                voiceDescription: generateVoiceDescription(for: persona)
             )
             progress = 0.7
             
@@ -91,8 +96,13 @@ final class PreviewGenerator: ObservableObject {
             updateStage(.complete(persona))
             progress = 1.0
             
-            // Generate final preview message
-            preview?.previewMessage = generateFinalMessage(for: persona)
+            // Update final preview
+            preview = PersonaPreview(
+                name: persona.name,
+                archetype: persona.archetype,
+                sampleGreeting: generateFinalGreeting(for: persona),
+                voiceDescription: generateFinalVoiceDescription(for: persona)
+            )
             
         } catch {
             if error is CancellationError {
@@ -153,7 +163,7 @@ final class PreviewGenerator: ObservableObject {
         }
     }
     
-    private func generatePreviewMessage(for persona: PersonaProfile) -> String {
+    private func generateSampleGreeting(for persona: PersonaProfile) -> String {
         let greetings = [
             "Meet \(persona.name), your \(persona.archetype) coach!",
             "\(persona.name) is ready to guide your fitness journey!",
@@ -163,8 +173,18 @@ final class PreviewGenerator: ObservableObject {
         return greetings.randomElement() ?? "Your coach is ready!"
     }
     
-    private func generateFinalMessage(for persona: PersonaProfile) -> String {
+    private func generateVoiceDescription(for persona: PersonaProfile) -> String {
+        let energy = persona.voiceCharacteristics.energy.rawValue
+        let warmth = persona.voiceCharacteristics.warmth.rawValue
+        return "\(energy.capitalized) energy with \(warmth) tone"
+    }
+    
+    private func generateFinalGreeting(for persona: PersonaProfile) -> String {
         return "\(persona.interactionStyle.greetingStyle) I'm \(persona.name), and I'm excited to help you reach your goals!"
+    }
+    
+    private func generateFinalVoiceDescription(for persona: PersonaProfile) -> String {
+        return persona.interactionStyle.greetingStyle
     }
 }
 
@@ -229,10 +249,4 @@ enum SynthesisStage: Equatable {
     }
 }
 
-struct PersonaPreview {
-    var stage: SynthesisStage
-    var name: String?
-    var archetype: String?
-    var traits: [String]
-    var previewMessage: String?
-}
+// PersonaPreview is defined in PersonaSynthesizer.swift

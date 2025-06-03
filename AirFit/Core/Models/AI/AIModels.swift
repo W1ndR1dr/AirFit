@@ -178,6 +178,11 @@ struct AIRequest: Sendable {
     let maxTokens: Int?
     let stream: Bool
     let user: String
+    
+    // Provider-specific features
+    let enableGrounding: Bool  // Google Gemini grounding
+    let cacheKey: String?      // Anthropic context caching
+    let audioData: Data?       // OpenAI audio input
 
     init(
         systemPrompt: String,
@@ -186,7 +191,10 @@ struct AIRequest: Sendable {
         temperature: Double = 0.7,
         maxTokens: Int? = nil,
         stream: Bool = true,
-        user: String
+        user: String,
+        enableGrounding: Bool = false,
+        cacheKey: String? = nil,
+        audioData: Data? = nil
     ) {
         self.systemPrompt = systemPrompt
         self.messages = messages
@@ -195,6 +203,9 @@ struct AIRequest: Sendable {
         self.maxTokens = maxTokens
         self.stream = stream
         self.user = user
+        self.enableGrounding = enableGrounding
+        self.cacheKey = cacheKey
+        self.audioData = audioData
     }
 }
 
