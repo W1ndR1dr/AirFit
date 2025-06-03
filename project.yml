@@ -68,7 +68,7 @@ targets:
       - AirFit/Modules/Onboarding/Views/OnboardingErrorBoundary.swift
       - AirFit/Modules/Onboarding/Views/FinalOnboardingFlow.swift
       - AirFit/Modules/Onboarding/Services/OnboardingService.swift
-      - AirFit/Modules/Onboarding/Services/OnboardingServiceProtocol.swift
+      - AirFit/Core/Protocols/OnboardingServiceProtocol.swift
       - AirFit/Modules/Onboarding/Services/ConversationFlowManager.swift
       - AirFit/Modules/Onboarding/Services/ResponseAnalyzer.swift
       - AirFit/Modules/Onboarding/Services/ConversationPersistence.swift
@@ -81,7 +81,7 @@ targets:
       - AirFit/Modules/Onboarding/Services/OfflinePersonaGenerator.swift
       - AirFit/Modules/Onboarding/Coordinators/OnboardingCoordinator.swift
       - AirFit/Modules/Onboarding/Coordinators/OnboardingFlowCoordinator.swift
-      - AirFit/Modules/Onboarding/ConversationCoordinator.swift
+      - AirFit/Modules/Onboarding/Coordinators/ConversationCoordinator.swift
       - AirFit/Modules/Onboarding/Data/ConversationFlowData.swift
       # Data Layer Models (CRITICAL: XcodeGen nesting bug)
       - AirFit/Data/Models/OnboardingProfile.swift
@@ -154,6 +154,10 @@ targets:
       - AirFit/Core/Protocols/APIKeyManagementProtocol.swift
       - AirFit/Core/Protocols/NetworkManagementProtocol.swift
       - AirFit/Core/Protocols/WeatherServiceProtocol.swift
+      - AirFit/Core/Protocols/WorkoutServiceProtocol.swift
+      - AirFit/Core/Protocols/AnalyticsServiceProtocol.swift
+      - AirFit/Core/Protocols/GoalServiceProtocol.swift
+      - AirFit/Core/Models/ServiceTypes.swift
       - AirFit/Services/Speech/WhisperModelManager.swift
       - AirFit/Services/Speech/VoiceInputManager.swift
       # Services Layer Files (CRITICAL: XcodeGen nesting bug)
@@ -162,12 +166,12 @@ targets:
       - AirFit/Core/Protocols/NetworkClientProtocol.swift
       - AirFit/Core/Protocols/UserServiceProtocol.swift
       - AirFit/Services/User/DefaultUserService.swift
-      - AirFit/Services/Speech/WhisperServiceWrapperProtocol.swift
-      - AirFit/Services/AI/AIAPIServiceProtocol.swift
+      - AirFit/Core/Protocols/WhisperServiceWrapperProtocol.swift
+      - AirFit/Core/Protocols/AIAPIServiceProtocol.swift
       - AirFit/Services/AI/MockAIService.swift
       - AirFit/Services/AI/ProductionAIService.swift
       - AirFit/Services/AI/SimpleMockAIService.swift
-      - AirFit/Services/AI/LLMProviders/LLMProvider.swift
+      - AirFit/Core/Protocols/LLMProvider.swift
       - AirFit/Services/AI/LLMProviders/LLMModels.swift
       - AirFit/Services/AI/LLMProviders/AnthropicProvider.swift
       - AirFit/Services/AI/LLMProviders/OpenAIProvider.swift
@@ -196,7 +200,7 @@ targets:
       - AirFit/Modules/AI/Models/PersonaModels.swift
       - AirFit/Modules/AI/Models/ConversationPersonalityInsights.swift
       - AirFit/Modules/AI/Configuration/RoutingConfiguration.swift
-      - AirFit/Modules/Dashboard/Services/DashboardServiceProtocols.swift
+      - AirFit/Core/Protocols/DashboardServiceProtocols.swift
       - AirFit/Modules/Dashboard/Services/DefaultHealthKitService.swift
       - AirFit/Modules/Dashboard/Services/DefaultAICoachService.swift
       - AirFit/Modules/Dashboard/Services/DefaultDashboardNutritionService.swift
@@ -222,7 +226,7 @@ targets:
       - AirFit/Services/Cache/OnboardingCache.swift
       - AirFit/Services/Network/RequestOptimizer.swift
       - AirFit/Services/Network/NetworkManager.swift
-      - AirFit/Services/ServiceProtocols.swift
+      # ServiceProtocols.swift removed - protocols moved to Core/Protocols
       - AirFit/Services/ServiceConfiguration.swift
       - AirFit/Services/ServiceRegistry.swift
       - AirFit/Services/Security/KeychainHelper.swift
@@ -246,7 +250,7 @@ targets:
       - AirFit/Modules/Workouts/Views/WorkoutBuilderView.swift
       - AirFit/Modules/Workouts/Views/AllWorkoutsView.swift
       - AirFit/Modules/Workouts/Views/WorkoutStatisticsView.swift
-      - AirFit/Modules/Chat/ChatCoordinator.swift
+      - AirFit/Modules/Chat/Coordinators/ChatCoordinator.swift
       - AirFit/Modules/Chat/Services/ChatSuggestionsEngine.swift
       - AirFit/Modules/Chat/Services/ChatExporter.swift
       - AirFit/Modules/Chat/Services/ChatHistoryManager.swift
@@ -256,7 +260,7 @@ targets:
       - AirFit/Modules/Chat/Views/VoiceSettingsView.swift
       - AirFit/Modules/Chat/Views/ChatView.swift
       # Settings Module Files (Module 11 - CRITICAL: XcodeGen nesting bug)
-      - AirFit/Modules/Settings/SettingsCoordinator.swift
+      - AirFit/Modules/Settings/Coordinators/SettingsCoordinator.swift
       - AirFit/Modules/Settings/Models/SettingsModels.swift
       - AirFit/Modules/Settings/Models/AIProviderExtensions.swift
       - AirFit/Modules/Settings/Models/PersonaSettingsModels.swift
@@ -277,12 +281,12 @@ targets:
       - AirFit/Modules/Settings/Views/AppearanceSettingsView.swift
       - AirFit/Core/Constants/AppConstants+Settings.swift
       - AirFit/Modules/FoodTracking/Services/FoodVoiceAdapter.swift
-      - AirFit/Modules/FoodTracking/Services/FoodVoiceServiceProtocol.swift
-      - AirFit/Modules/FoodTracking/Services/NutritionServiceProtocol.swift
+      - AirFit/Core/Protocols/FoodVoiceServiceProtocol.swift
+      - AirFit/Core/Protocols/NutritionServiceProtocol.swift
       - AirFit/Modules/FoodTracking/Services/NutritionService.swift
       - AirFit/Modules/FoodTracking/Services/PreviewServices.swift
       - AirFit/Modules/FoodTracking/Models/FoodTrackingModels.swift
-      - AirFit/Modules/FoodTracking/FoodTrackingCoordinator.swift
+      - AirFit/Modules/FoodTracking/Coordinators/FoodTrackingCoordinator.swift
       - AirFit/Modules/FoodTracking/ViewModels/FoodTrackingViewModel.swift
       - AirFit/Modules/FoodTracking/Views/FoodConfirmationView.swift
       - AirFit/Modules/FoodTracking/Views/FoodLoggingView.swift
@@ -300,12 +304,12 @@ targets:
       - AirFit/Modules/FoodTracking/Views/WaterTrackingView.swift
       - AirFit/Modules/FoodTracking/Views/MacroRingsView.swift
       - AirFit/Modules/FoodTracking/Services/FoodVoiceAdapter.swift
-      - AirFit/Modules/FoodTracking/Services/FoodVoiceAdapterProtocol.swift
+      - AirFit/Core/Protocols/FoodVoiceAdapterProtocol.swift
       - AirFit/Modules/FoodTracking/Services/NutritionService.swift
-      - AirFit/Modules/FoodTracking/Services/NutritionServiceProtocol.swift
-      - AirFit/Modules/FoodTracking/FoodTrackingCoordinator.swift
+      - AirFit/Core/Protocols/NutritionServiceProtocol.swift
+      - AirFit/Modules/FoodTracking/Coordinators/FoodTrackingCoordinator.swift
       # Notifications Module Files (Module 9 - CRITICAL: XcodeGen nesting bug)
-      - AirFit/Modules/Notifications/NotificationsCoordinator.swift
+      - AirFit/Modules/Notifications/Coordinators/NotificationsCoordinator.swift
       - AirFit/Modules/Notifications/Managers/NotificationManager.swift
       - AirFit/Modules/Notifications/Managers/LiveActivityManager.swift
       - AirFit/Modules/Notifications/Services/EngagementEngine.swift
@@ -351,7 +355,7 @@ targets:
       - AirFit/AirFitTests/Health/HealthKitManagerTests.swift
       - AirFit/AirFitTests/Mocks/MockHealthKitManager.swift
       - AirFit/AirFitTests/Services/NetworkManagerTests.swift
-      - AirFit/AirFitTests/Services/ServiceProtocolsTests.swift
+      # ServiceProtocolsTests.swift removed - protocols moved to Core/Protocols
       - AirFit/AirFitTests/Services/WeatherServiceTests.swift
       - AirFit/AirFitTests/Services/MockServicesTests.swift
       - AirFit/AirFitTests/Services/TestDataGenerators.swift

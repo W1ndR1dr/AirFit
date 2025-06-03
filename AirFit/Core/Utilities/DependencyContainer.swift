@@ -50,7 +50,7 @@ public final class DependencyContainer: @unchecked Sendable {
                 }
             } else {
                 AppLogger.warning("No API key manager available, using mock AI service", category: .app)
-                self.aiService = await MockAIService()
+                self.aiService = SimpleMockAIService()
             }
         }
         

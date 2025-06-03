@@ -127,16 +127,34 @@ final class ChatViewModel: ObservableObject {
         modelContext.insert(assistantMessage)
         messages.append(assistantMessage)
 
-        // Simplified AI response generation for now
+        // Process message through actual CoachEngine
         streamTask = Task {
             do {
-                // Simulate streaming response
-                let response = "I understand you're asking about: \(userInput). Let me help you with that."
-                for char in response {
-                    guard !Task.isCancelled else { break }
-                    streamBuffer += String(char)
-                    assistantMessage.content = streamBuffer
-                    try await Task.sleep(nanoseconds: 50_000_000) // 50ms delay
+                // Process the message through CoachEngine
+                await coachEngine.processUserMessage(userInput, for: user)
+                
+                // The CoachEngine will handle saving the response through ConversationManager
+                // We need to fetch the latest assistant message from the conversation
+                let descriptor = FetchDescriptor<ChatMessage>(
+                    predicate: #Predicate { message in
+                        message.session == currentSession &&
+                        message.role == .assistant
+                    },
+                    sortBy: [SortDescriptor(\.timestamp, order: .reverse)]
+                )
+                
+                // Wait a moment for the CoachEngine to save its response
+                try await Task.sleep(nanoseconds: 500_000_000) // 500ms
+                
+                // Fetch the assistant's response
+                if let latestMessages = try? modelContext.fetch(descriptor),
+                   let latestAssistantMessage = latestMessages.first {
+                    // Update our local assistant message with the actual response
+                    assistantMessage.content = latestAssistantMessage.content
+                    streamBuffer = latestAssistantMessage.content
+                } else {
+                    // Fallback if we can't find the response
+                    assistantMessage.content = "I've processed your request. Please check the conversation history."
                 }
                 
                 try? modelContext.save()
