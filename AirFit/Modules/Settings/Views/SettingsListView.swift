@@ -1,6 +1,12 @@
 import SwiftUI
 import SwiftData
 
+// MARK: - Identifiable URL Wrapper
+struct IdentifiableURL: Identifiable {
+    let id = UUID()
+    let url: URL
+}
+
 struct SettingsListView: View {
     @Environment(\.dismiss) private var dismiss
     @Environment(\.modelContext) private var modelContext
@@ -288,7 +294,7 @@ struct SettingsListView: View {
     private func sheetView(for sheet: SettingsCoordinator.SettingsSheet) -> some View {
         switch sheet {
         case .personaRefinement:
-            PersonaRefinementFlow(user: viewModel.user)
+            PersonaRefinementFlow(user: viewModel.currentUser)
         case .apiKeyEntry(let provider):
             APIKeyEntryView(provider: provider, viewModel: viewModel)
         case .dataExport:
@@ -344,7 +350,7 @@ struct PersonaRefinementFlow: View {
             VStack(spacing: 0) {
                 // Progress indicator
                 ProgressView(value: Double(currentStep + 1), total: 3)
-                    .tint(.accent)
+                    .tint(Color.accentColor)
                     .padding(.horizontal)
                 
                 ScrollView {
@@ -408,7 +414,7 @@ struct PersonaRefinementFlow: View {
         VStack(spacing: AppSpacing.xl) {
             Image(systemName: "sparkles.rectangle.stack")
                 .font(.system(size: 60))
-                .foregroundStyle(.accent)
+                .foregroundStyle(Color.accentColor)
             
             Text("Let's Refine Your Coach")
                 .font(.title2.bold())
@@ -672,7 +678,7 @@ struct DataExportProgressView: View {
                             
                             Circle()
                                 .trim(from: 0, to: exportProgress)
-                                .stroke(Color.accent, style: StrokeStyle(lineWidth: 8, lineCap: .round))
+                                .stroke(Color.accentColor, style: StrokeStyle(lineWidth: 8, lineCap: .round))
                                 .frame(width: 120, height: 120)
                                 .rotationEffect(.degrees(-90))
                                 .animation(.easeInOut, value: exportProgress)
@@ -823,7 +829,7 @@ struct DeleteAccountView: View {
                     .padding(.top)
                     
                     // What will be deleted
-                    Card(style: .destructive) {
+                    Card {
                         VStack(alignment: .leading, spacing: AppSpacing.md) {
                             Label("What will be deleted:", systemImage: "trash")
                                 .font(.headline)
@@ -949,7 +955,7 @@ struct DeleteAccountView: View {
             } catch {
                 await MainActor.run {
                     isDeleting = false
-                    viewModel.coordinator.showAlert(.error(message: "Failed to delete account: \(error.localizedDescription)"))
+                    viewModel.showAlert(.error(message: "Failed to delete account: \(error.localizedDescription)"))
                 }
             }
         }
@@ -1067,7 +1073,7 @@ struct FeatureRow: View {
         HStack(spacing: AppSpacing.md) {
             Image(systemName: icon)
                 .font(.title3)
-                .foregroundStyle(.accent)
+                .foregroundStyle(Color.accentColor)
                 .frame(width: 32)
             
             VStack(alignment: .leading, spacing: 2) {
@@ -1154,7 +1160,7 @@ struct DebugSettingsView: View {
     @State private var showClearCacheAlert = false
     @State private var showResetOnboardingAlert = false
     @State private var showExportLogsSheet = false
-    @State private var exportedLogsURL: URL?
+    @State private var exportedLogsURL: IdentifiableURL?
     @State private var isProcessing = false
     @State private var statusMessage = ""
     
@@ -1236,8 +1242,8 @@ struct DebugSettingsView: View {
         } message: {
             Text("This will reset your onboarding status and coach persona. You'll need to go through setup again.")
         }
-        .sheet(item: $exportedLogsURL) { url in
-            SettingsShareSheet(items: [url])
+        .sheet(item: $exportedLogsURL) { identifiableURL in
+            SettingsShareSheet(items: [identifiableURL.url])
         }
     }
     
@@ -1302,7 +1308,15 @@ struct DebugSettingsView: View {
         statusMessage = "Exporting logs..."
         
         Task {
-            let logContent = AppLogger.exportLogs()
+            // For now, create a placeholder log file since AppLogger.exportLogs() returns nil
+            let logContent = """
+            AirFit Debug Log Export
+            Date: \(Date())
+            
+            Log export functionality not yet implemented.
+            This is a placeholder file.
+            """
+            
             let fileName = "airfit_debug_logs_\(Date().timeIntervalSince1970).txt"
             let tempURL = FileManager.default.temporaryDirectory.appendingPathComponent(fileName)
             
@@ -1310,7 +1324,7 @@ struct DebugSettingsView: View {
             
             await MainActor.run {
                 isProcessing = false
-                exportedLogsURL = tempURL
+                exportedLogsURL = IdentifiableURL(url: tempURL)
                 statusMessage = "Logs exported"
                 HapticManager.success()
             }

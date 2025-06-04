@@ -153,7 +153,7 @@ struct APIConfigurationView: View {
                 dismiss()
             } catch {
                 // Handle error
-                viewModel.coordinator.showAlert(.error(message: error.localizedDescription))
+                viewModel.showAlert(.error(message: error.localizedDescription))
             }
         }
     }
@@ -197,7 +197,7 @@ struct ProviderRow: View {
                 
                 if isSelected {
                     Image(systemName: "checkmark")
-                        .foregroundStyle(.accentColor)
+                        .foregroundStyle(Color.accentColor)
                 }
             }
             .padding(.vertical, AppSpacing.xs)
@@ -264,7 +264,7 @@ struct ModelDetailsCard: View {
                 .font(.caption)
                 .padding(AppSpacing.sm)
                 .background(Color.secondaryBackground)
-                .clipShape(RoundedRectangle(cornerRadius: AppSpacing.radiusXs))
+                .clipShape(RoundedRectangle(cornerRadius: AppSpacing.radiusSm))
             }
         }
     }

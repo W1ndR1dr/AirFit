@@ -115,9 +115,10 @@ final class ConversationManager {
         
         // PHASE 2 FIX: Filter by BOTH userID AND conversationID in database predicate
         // This eliminates memory filtering and achieves 10x performance improvement
+        let userId = user.id // Capture user ID outside predicate
         var descriptor = FetchDescriptor<CoachMessage>(
             predicate: #Predicate<CoachMessage> { message in
-                message.userID == user.id && message.conversationID == conversationId
+                message.userID == userId && message.conversationID == conversationId
             },
             sortBy: [SortDescriptor(\.timestamp, order: .reverse)]
         )
@@ -166,9 +167,10 @@ final class ConversationManager {
         let startTime = CFAbsoluteTimeGetCurrent()
         
         // PHASE 2 FIX: Filter by BOTH userID AND conversationID in database predicate
+        let userId = user.id // Capture user ID outside predicate
         let descriptor = FetchDescriptor<CoachMessage>(
             predicate: #Predicate<CoachMessage> { message in
-                message.userID == user.id && message.conversationID == conversationId
+                message.userID == userId && message.conversationID == conversationId
             }
         )
 
@@ -218,10 +220,11 @@ final class ConversationManager {
         var totalMessagesDeleted = 0
         
         // PHASE 2 FIX: Delete messages using userID + conversationID predicate filtering
+        let userId = user.id // Capture user ID outside predicate
         for conversationId in idsToDelete {
             let descriptor = FetchDescriptor<CoachMessage>(
                 predicate: #Predicate<CoachMessage> { message in
-                    message.userID == user.id && message.conversationID == conversationId
+                    message.userID == userId && message.conversationID == conversationId
                 }
             )
             
@@ -251,9 +254,10 @@ final class ConversationManager {
         let startTime = CFAbsoluteTimeGetCurrent()
         
         // PHASE 2 FIX: Filter by BOTH userID AND conversationID in database predicate
+        let userId = user.id // Capture user ID outside predicate
         let descriptor = FetchDescriptor<CoachMessage>(
             predicate: #Predicate<CoachMessage> { message in
-                message.userID == user.id && message.conversationID == conversationId
+                message.userID == userId && message.conversationID == conversationId
             }
         )
 
@@ -278,9 +282,10 @@ final class ConversationManager {
         let startTime = CFAbsoluteTimeGetCurrent()
         
         // PHASE 2 FIX: Filter by userID AND non-null conversationID in database predicate
+        let userId = user.id // Capture user ID outside predicate
         let descriptor = FetchDescriptor<CoachMessage>(
             predicate: #Predicate<CoachMessage> { message in
-                message.userID == user.id && message.conversationID != nil
+                message.userID == userId && message.conversationID != nil
             },
             sortBy: [SortDescriptor(\.timestamp, order: .reverse)]
         )
@@ -313,11 +318,12 @@ final class ConversationManager {
     ) async throws {
         let startTime = CFAbsoluteTimeGetCurrent()
         let cutoffDate = Calendar.current.date(byAdding: .day, value: -days, to: Date()) ?? Date()
+        let userId = user.id // Capture user ID outside predicate
 
         // PHASE 2 FIX: Filter by BOTH userID AND date in database predicate
         let descriptor = FetchDescriptor<CoachMessage>(
             predicate: #Predicate<CoachMessage> { message in
-                message.userID == user.id && message.timestamp < cutoffDate
+                message.userID == userId && message.timestamp < cutoffDate
             },
             sortBy: [SortDescriptor(\.timestamp, order: .reverse)]
         )

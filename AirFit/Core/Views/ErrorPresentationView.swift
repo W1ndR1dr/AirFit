@@ -280,6 +280,8 @@ struct ErrorPresentationView: View {
                 return "camera.badge.exclamationmark"
             case .userNotFound:
                 return "person.crop.circle.badge.questionmark"
+            case .unsupportedProvider:
+                return "cpu.badge.exclamationmark"
             }
         } else {
             return "exclamationmark.circle"

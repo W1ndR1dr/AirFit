@@ -9,6 +9,8 @@ final class ConversationResponse {
     var responseData: Data
     var timestamp: Date
     var isValid: Bool
+    var responseType: String = ""
+    var processingTime: TimeInterval = 0.0
     @Relationship(inverse: \ConversationSession.responses) var session: ConversationSession?
     
     init(

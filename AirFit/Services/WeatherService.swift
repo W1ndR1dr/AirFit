@@ -121,7 +121,7 @@ final class WeatherService: WeatherServiceProtocol {
         
         // Cache the result
         if configuration.weather.cacheEnabled {
-            await cache.store(weather, latitude: latitude, longitude: longitude)
+            cache.set(weather, for: "\(latitude),\(longitude)")
         }
         
         return weather
@@ -133,25 +133,21 @@ final class WeatherService: WeatherServiceProtocol {
         }
         
         // Check cache first
-        if configuration.weather.cacheEnabled,
-           let cached = await cache.getForecast(latitude: latitude, longitude: longitude, days: days) {
-            return cached
-        }
+        // TODO: Implement forecast caching
+        // For now, always fetch fresh forecast data
         
         // Fetch from API
         let forecast = try await fetchForecast(latitude: latitude, longitude: longitude, days: days)
         
         // Cache the result
-        if configuration.weather.cacheEnabled {
-            await cache.store(forecast, latitude: latitude, longitude: longitude, days: days)
-        }
+        // TODO: Implement forecast caching
         
         return forecast
     }
     
     func getCachedWeather(latitude: Double, longitude: Double) -> ServiceWeatherData? {
         guard configuration.weather.cacheEnabled else { return nil }
-        return cache.getCurrent(latitude: latitude, longitude: longitude)
+        return cache.get(for: "\(latitude),\(longitude)")
     }
     
     // MARK: - Private Methods
@@ -172,14 +168,19 @@ final class WeatherService: WeatherServiceProtocol {
     private func fetchForecast(latitude: Double, longitude: Double, days: Int) async throws -> WeatherForecast {
         // TODO: Replace with WeatherKit implementation
         // For now, return mock forecast data
-        let dailyForecasts = (0..<days).map { dayOffset in
-            DailyForecast(
-                date: Calendar.current.date(byAdding: .day, value: dayOffset, to: Date()) ?? Date(),
+        var dailyForecasts: [DailyForecast] = []
+        let today = Date()
+        
+        for dayOffset in 0..<days {
+            let forecastDate = Calendar.current.date(byAdding: .day, value: dayOffset, to: today) ?? today
+            let forecast = DailyForecast(
+                date: forecastDate,
                 highTemperature: 75.0 + Double(dayOffset * 2),
                 lowTemperature: 55.0 + Double(dayOffset),
-                condition: dayOffset % 2 == 0 ? .sunny : .partlyCloudy,
+                condition: dayOffset % 2 == 0 ? .clear : .partlyCloudy,
                 precipitationChance: Double(dayOffset * 10)
             )
+            dailyForecasts.append(forecast)
         }
         
         return WeatherForecast(

@@ -23,7 +23,7 @@ struct AIPersonaSettingsView: View {
         .sheet(isPresented: $showPersonaRefinement) {
             // Shows conversational refinement flow for synthesized personas
             ConversationalPersonaRefinement(
-                user: viewModel.user,
+                user: viewModel.currentUser,
                 currentPersona: viewModel.coachPersona
             )
         }
@@ -53,7 +53,7 @@ struct AIPersonaSettingsView: View {
                                     Text("Uniqueness: \(Int(persona.uniquenessScore * 100))%")
                                         .font(.caption)
                                 }
-                                .foregroundStyle(.accent)
+                                .foregroundStyle(Color.accentColor)
                             }
                             
                             Spacer()
@@ -125,11 +125,11 @@ struct AIPersonaSettingsView: View {
                             Text(previewText)
                                 .font(.callout)
                                 .padding()
-                                .background(Color.secondaryBackground)
+                                .background(AppColors.backgroundSecondary)
                                 .clipShape(RoundedRectangle(cornerRadius: AppSpacing.radiusMd))
                                 .overlay {
                                     RoundedRectangle(cornerRadius: AppSpacing.radiusMd)
-                                        .strokeBorder(Color.accent.opacity(0.3), lineWidth: 1)
+                                        .strokeBorder(Color.accentColor.opacity(0.3), lineWidth: 1)
                                 }
                         }
                     }
@@ -209,7 +209,7 @@ struct AIPersonaSettingsView: View {
                                 HStack(spacing: AppSpacing.sm) {
                                     Image(systemName: adaptation.icon)
                                         .font(.caption)
-                                        .foregroundStyle(.accent)
+                                        .foregroundStyle(Color.accentColor)
                                     
                                     Text(adaptation.description)
                                         .font(.caption)
@@ -255,7 +255,7 @@ struct AIPersonaSettingsView: View {
                         
                         CommunicationRow(
                             title: "Humor Style",
-                            value: persona.communicationStyle.humorStyle.displayName,
+                            value: String(describing: persona.communicationStyle.humorStyle),
                             icon: "face.smiling"
                         )
                     } else {
@@ -334,7 +334,7 @@ struct TraitCard: View {
             HStack {
                 Image(systemName: trait.icon)
                     .font(.caption)
-                    .foregroundStyle(.accent)
+                    .foregroundStyle(Color.accentColor)
                 
                 Text(trait.name)
                     .font(.subheadline.bold())
@@ -454,7 +454,7 @@ struct NaturalLanguagePersonaAdjustment: View {
                 await MainActor.run {
                     isProcessing = false
                     // Show error alert
-                    viewModel.coordinator.showAlert(.error(message: error.localizedDescription))
+                    viewModel.showAlert(.error(message: error.localizedDescription))
                 }
             }
         }
@@ -540,7 +540,7 @@ struct ConversationalPersonaRefinement: View {
                                         .font(.caption)
                                         .padding(.horizontal, AppSpacing.md)
                                         .padding(.vertical, AppSpacing.sm)
-                                        .background(Color.secondaryBackground)
+                                        .background(AppColors.backgroundSecondary)
                                         .clipShape(Capsule())
                                 }
                             }
@@ -565,7 +565,7 @@ struct ConversationalPersonaRefinement: View {
                     Button(action: { sendMessage(inputText) }) {
                         Image(systemName: "arrow.up.circle.fill")
                             .font(.title2)
-                            .foregroundStyle(inputText.isEmpty ? .secondary : .accent)
+                            .foregroundStyle(inputText.isEmpty ? Color.secondary : Color.accentColor)
                     }
                     .disabled(inputText.isEmpty)
                 }
@@ -674,7 +674,7 @@ struct RefinementMessageBubble: View {
                     .padding(.horizontal, AppSpacing.md)
                     .padding(.vertical, AppSpacing.sm)
                     .background(
-                        message.isUser ? Color.accent : Color.secondaryBackground
+                        message.isUser ? Color.accentColor : AppColors.backgroundSecondary
                     )
                     .clipShape(
                         RoundedRectangle(cornerRadius: AppSpacing.radiusMd)

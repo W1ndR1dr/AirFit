@@ -10,15 +10,23 @@ struct ChatView: View {
 
     init(user: User, modelContext: ModelContext) {
         let coordinator = ChatCoordinator()
-        // Create simple mock services for now
-        let mockCoachEngine = ChatMockCoachEngine()
-        let mockAIService = MockAIService()
+        
+        // Use production services from DependencyContainer
+        // Note: DependencyContainer.shared.aiService is already initialized
+        guard let aiService = DependencyContainer.shared.aiService else {
+            AppLogger.error("AI service not available in DependencyContainer", category: .chat)
+            // This shouldn't happen in production as DependencyContainer always provides a service
+            fatalError("AI service must be configured before using ChatView")
+        }
+        
+        // TODO: Replace with production CoachEngine once available
+        let coachEngine = ChatMockCoachEngine()
         
         let viewModel = ChatViewModel(
             modelContext: modelContext,
             user: user,
-            coachEngine: mockCoachEngine,
-            aiService: mockAIService,
+            coachEngine: coachEngine,
+            aiService: aiService,
             coordinator: coordinator
         )
         _viewModel = StateObject(wrappedValue: viewModel)

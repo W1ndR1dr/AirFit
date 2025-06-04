@@ -35,7 +35,11 @@ final class ConversationFlowManager: ObservableObject {
     
     func resumeSession(_ existingSession: ConversationSession) async {
         session = existingSession
-        await navigateToNode(nodeId: existingSession.currentNodeId)
+        if let currentNodeId = existingSession.currentNodeId {
+            await navigateToNode(nodeId: currentNodeId)
+        } else {
+            await navigateToNode(nodeId: "opening")
+        }
     }
     
     func submitResponse(_ response: ResponseValue) async throws {
@@ -53,8 +57,8 @@ final class ConversationFlowManager: ObservableObject {
         // Store response
         let responseData = try JSONEncoder().encode(response)
         let conversationResponse = ConversationResponse(
+            sessionId: session.id,
             nodeId: currentNode.id.uuidString,
-            responseType: String(describing: response),
             responseData: responseData
         )
         

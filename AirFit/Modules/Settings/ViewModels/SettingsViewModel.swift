@@ -17,6 +17,9 @@ final class SettingsViewModel {
     private(set) var isLoading = false
     private(set) var error: Error?
     
+    // MARK: - Public Access
+    var currentUser: User { user }
+    
     // MARK: - Coordinator Access
     func showAlert(_ alert: SettingsCoordinator.SettingsAlert) {
         coordinator.showAlert(alert)
@@ -87,11 +90,13 @@ final class SettingsViewModel {
             availableProviders = AIProvider.allCases
             
             // Check which providers have API keys
-            installedAPIKeys = Set(
-                await availableProviders.asyncCompactMap { provider in
-                    await hasAPIKey(for: provider) ? provider : nil
+            var keysFound: [AIProvider] = []
+            for provider in availableProviders {
+                if await hasAPIKey(for: provider) {
+                    keysFound.append(provider)
                 }
-            )
+            }
+            installedAPIKeys = Set(keysFound)
             
             // Load notification status
             let authStatus = await notificationManager.getAuthorizationStatus()
@@ -104,7 +109,7 @@ final class SettingsViewModel {
             
         } catch {
             self.error = error
-            AppLogger.error("Failed to load settings", error: error, category: .settings)
+            AppLogger.error("Failed to load settings", error: error, category: .general)
         }
     }
     
@@ -129,13 +134,17 @@ final class SettingsViewModel {
         
         // Update app appearance
         await MainActor.run {
+            let scenes = UIApplication.shared.connectedScenes
+            let windowScene = scenes.first as? UIWindowScene
+            let window = windowScene?.windows.first
+            
             switch mode {
             case .light:
-                UIApplication.shared.windows.first?.overrideUserInterfaceStyle = .light
+                window?.overrideUserInterfaceStyle = .light
             case .dark:
-                UIApplication.shared.windows.first?.overrideUserInterfaceStyle = .dark
+                window?.overrideUserInterfaceStyle = .dark
             case .system:
-                UIApplication.shared.windows.first?.overrideUserInterfaceStyle = .unspecified
+                window?.overrideUserInterfaceStyle = .unspecified
             }
         }
     }
@@ -168,9 +177,9 @@ final class SettingsViewModel {
         
         // Configure AI service
         let apiKey = try await getAPIKey(for: provider)
-        aiService.configure(provider: provider, apiKey: apiKey, modelIdentifier: model)
+        try await aiService.configure(provider: provider, apiKey: apiKey, model: model)
         
-        AppLogger.info("AI provider updated to \(provider.displayName)", category: .settings)
+        AppLogger.info("AI provider updated to \(provider.displayName)", category: .general)
     }
     
     func saveAPIKey(_ key: String, for provider: AIProvider) async throws {
@@ -186,17 +195,17 @@ final class SettingsViewModel {
         }
         
         // Save to keychain
-        try await apiKeyManager.saveAPIKey(key, for: provider.rawValue)
+        try await apiKeyManager.setAPIKey(key, for: provider)
         installedAPIKeys.insert(provider)
         
         // If this is the selected provider, reconfigure
         if provider == selectedProvider {
-            aiService.configure(provider: provider, apiKey: key, modelIdentifier: selectedModel)
+            try await aiService.configure(provider: provider, apiKey: key, model: selectedModel)
         }
     }
     
     func deleteAPIKey(for provider: AIProvider) async throws {
-        try await apiKeyManager.deleteAPIKey(for: provider.rawValue)
+        try await apiKeyManager.removeAPIKey(for: provider)
         installedAPIKeys.remove(provider)
         
         // If deleting current provider's key, switch to another
@@ -284,16 +293,16 @@ final class SettingsViewModel {
         // 3. Resetting user defaults
         // 4. Signing out
         
-        AppLogger.info("User data deletion requested", category: .settings)
+        AppLogger.info("User data deletion requested", category: .general)
     }
     
     // MARK: - Helper Methods
     private func hasAPIKey(for provider: AIProvider) async -> Bool {
-        return await apiKeyManager.getAPIKey(for: provider.rawValue) != nil
+        return await apiKeyManager.hasAPIKey(for: provider)
     }
     
     private func getAPIKey(for provider: AIProvider) async throws -> String {
-        guard let key = await apiKeyManager.getAPIKey(for: provider.rawValue) else {
+        guard let key = try await apiKeyManager.getAPIKey(for: provider) else {
             throw SettingsError.missingAPIKey(provider)
         }
         return key
@@ -326,11 +335,15 @@ final class SettingsViewModel {
         )
         
         // Configure service temporarily
-        aiService.configure(provider: provider, apiKey: key, modelIdentifier: provider.defaultModel)
+        try await aiService.configure(provider: provider, apiKey: key, model: provider.defaultModel)
         
         // Try to get a response
         do {
-            _ = try await aiService.getResponse(for: testRequest)
+            // Test the request
+            for try await _ in aiService.sendRequest(testRequest) {
+                // Just need to see if it works
+                break
+            }
             return true
         } catch {
             return false
@@ -368,9 +381,21 @@ final class SettingsViewModel {
             user: user.id.uuidString
         )
         
-        let response = try await aiService.getResponse(for: request)
-        if case .text(let preview) = response {
-            return preview
+        // Get response from AI service
+        var responseText = ""
+        for try await chunk in aiService.sendRequest(request) {
+            switch chunk {
+            case .text(let text):
+                responseText = text
+            case .textDelta(let delta):
+                responseText += delta
+            default:
+                break
+            }
+        }
+        let response = responseText
+        if !response.isEmpty {
+            return response
         }
         
         return "Let's make today count! Ready to push your limits?"
@@ -401,11 +426,23 @@ final class SettingsViewModel {
             user: user.id.uuidString
         )
         
-        let response = try await aiService.getResponse(for: request)
+        // Get response from AI service
+        var responseText = ""
+        for try await chunk in aiService.sendRequest(request) {
+            switch chunk {
+            case .text(let text):
+                responseText = text
+            case .textDelta(let delta):
+                responseText += delta
+            default:
+                break
+            }
+        }
+        let response = responseText
         
         // Parse and save the adjusted persona
-        if case .text(let adjustedJSON) = response,
-           let adjustedData = adjustedJSON.data(using: .utf8),
+        if !response.isEmpty,
+           let adjustedData = response.data(using: .utf8),
            let adjustedPersona = try? JSONDecoder().decode(CoachPersona.self, from: adjustedData) {
             
             coachPersona = adjustedPersona

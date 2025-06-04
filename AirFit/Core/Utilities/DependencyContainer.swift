@@ -40,9 +40,16 @@ public final class DependencyContainer: @unchecked Sendable {
         // Configure AI service with ProductionAIService
         Task {
             if let keyManager = self.apiKeyManager {
+                // Safe cast with fallback
+                guard let apiKeyManagement = keyManager as? APIKeyManagementProtocol else {
+                    AppLogger.error("API key manager doesn't conform to required protocol", category: .app)
+                    self.aiService = await OfflineAIService()
+                    return
+                }
+                
                 // Create and configure the production AI service
                 let orchestrator = await MainActor.run {
-                    LLMOrchestrator(apiKeyManager: keyManager as! APIKeyManagementProtocol)
+                    LLMOrchestrator(apiKeyManager: apiKeyManagement)
                 }
                 let productionService = await ProductionAIService(llmOrchestrator: orchestrator)
                 
@@ -52,12 +59,12 @@ public final class DependencyContainer: @unchecked Sendable {
                     self.aiService = productionService
                     AppLogger.info("Production AI service configured successfully", category: .app)
                 } catch {
-                    AppLogger.warning("Failed to configure production AI service: \(error). Using mock service.", category: .app)
-                    self.aiService = await MainActor.run { SimpleMockAIService() }
+                    AppLogger.warning("Failed to configure production AI service: \(error). Using offline service.", category: .app)
+                    self.aiService = await OfflineAIService()
                 }
             } else {
-                AppLogger.warning("No API key manager available, using mock AI service", category: .app)
-                self.aiService = await MainActor.run { SimpleMockAIService() }
+                AppLogger.warning("No API key manager available, using offline AI service", category: .app)
+                self.aiService = await OfflineAIService()
             }
         }
         

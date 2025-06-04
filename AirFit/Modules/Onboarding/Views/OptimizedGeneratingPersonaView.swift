@@ -39,7 +39,7 @@ struct OptimizedGeneratingPersonaView: View {
                 // Center icon
                 Image(systemName: steps[min(currentStep, steps.count - 1)].icon)
                     .font(.system(size: 60))
-                    .foregroundStyle(.accentColor)
+                    .foregroundStyle(Color.accentColor)
                     .symbolEffect(.variableColor.iterative.reversing)
             }
             
@@ -139,7 +139,7 @@ struct StepProgressRow: View {
             ZStack {
                 Circle()
                     .stroke(
-                        isComplete ? Color.green : (isActive ? Color.accent : Color.secondary.opacity(0.3)),
+                        isComplete ? Color.green : (isActive ? Color.accentColor : Color.secondary.opacity(0.3)),
                         lineWidth: 2
                     )
                     .frame(width: 32, height: 32)
@@ -151,7 +151,7 @@ struct StepProgressRow: View {
                 } else {
                     Image(systemName: icon)
                         .font(.caption)
-                        .foregroundStyle(isActive ? .accent : .secondary)
+                        .foregroundStyle(isActive ? Color.accentColor : Color.secondary)
                 }
             }
             
@@ -163,7 +163,7 @@ struct StepProgressRow: View {
                 
                 if isActive && progress > 0 {
                     ProgressView(value: progress)
-                        .tint(.accent)
+                        .tint(Color.accentColor)
                         .scaleEffect(x: 1, y: 0.5)
                 }
             }
@@ -232,7 +232,7 @@ private final class PreviewAPIKeyManager: APIKeyManagementProtocol, @unchecked S
     }
     
     func getAllConfiguredProviders() async -> [AIProvider] {
-        return [.openAI, .anthropic, .google]
+        return [.openAI, .anthropic, .gemini]
     }
 }
 

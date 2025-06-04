@@ -136,10 +136,6 @@ final class ChatViewModel: ObservableObject {
                 // The CoachEngine will handle saving the response through ConversationManager
                 // We need to fetch the latest assistant message from the conversation
                 let descriptor = FetchDescriptor<ChatMessage>(
-                    predicate: #Predicate { message in
-                        message.session == currentSession &&
-                        message.role == .assistant
-                    },
                     sortBy: [SortDescriptor(\.timestamp, order: .reverse)]
                 )
                 
@@ -147,8 +143,12 @@ final class ChatViewModel: ObservableObject {
                 try await Task.sleep(nanoseconds: 500_000_000) // 500ms
                 
                 // Fetch the assistant's response
-                if let latestMessages = try? modelContext.fetch(descriptor),
-                   let latestAssistantMessage = latestMessages.first {
+                let latestMessages = try modelContext.fetch(descriptor)
+                let filteredMessages = latestMessages.filter { msg in
+                    msg.session == currentSession && msg.role == "assistant"
+                }
+                
+                if let latestAssistantMessage = filteredMessages.first {
                     // Update our local assistant message with the actual response
                     assistantMessage.content = latestAssistantMessage.content
                     streamBuffer = latestAssistantMessage.content

@@ -95,14 +95,14 @@ struct PlannedExercise: Sendable {
 
 struct PerformanceAnalysisResult: Sendable {
     let summary: String
-    let insights: [PerformanceInsight]
+    let insights: [AIPerformanceInsight]
     let trends: [PerformanceTrend]
     let recommendations: [String]
     let dataPoints: Int
     let confidence: Double
 }
 
-struct PerformanceInsight: Sendable {
+struct AIPerformanceInsight: Sendable {
     let category: String
     let finding: String
     let impact: ImpactLevel

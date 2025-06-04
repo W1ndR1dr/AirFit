@@ -1,6 +1,12 @@
 import Foundation
 import SwiftData
 
+// Simple error for analytics tracking
+struct ProgressAnalyticsError: Error {
+    let message: String
+    var localizedDescription: String { message }
+}
+
 @MainActor
 final class OnboardingProgressManager: ObservableObject {
     // MARK: - Properties
@@ -53,11 +59,11 @@ final class OnboardingProgressManager: ObservableObject {
         // Save to SwiftData for persistence
         await saveToDatabase(persisted)
         
-        analytics.trackEvent(.progressSaved, properties: [
-            "session_id": sessionId.uuidString,
-            "completion_percentage": progress.completionPercentage,
-            "nodes_completed": progress.nodesCompleted
-        ])
+        // Track progress update
+        await analytics.track(.sessionResumed(
+            userId: userId,
+            nodeId: "progress_saved"
+        ))
     }
     
     func loadProgress() async {
@@ -83,7 +89,7 @@ final class OnboardingProgressManager: ObservableObject {
         }
     }
     
-    func clearProgress(sessionId: UUID) async {
+    func clearProgress(sessionId: UUID, userId: UUID) async {
         // Clear UserDefaults
         userDefaults.removeObject(forKey: progressKey)
         userDefaults.removeObject(forKey: lastUpdateKey)
@@ -93,9 +99,12 @@ final class OnboardingProgressManager: ObservableObject {
         
         currentProgress = nil
         
-        analytics.trackEvent(.progressCleared, properties: [
-            "session_id": sessionId.uuidString
-        ])
+        // Track session cleared
+        await analytics.track(.sessionAbandoned(
+            userId: userId,
+            lastNodeId: "cleared",
+            completionPercentage: 0.0
+        ))
     }
     
     func hasIncompleteSession(userId: UUID) async -> Bool {
@@ -237,10 +246,11 @@ final class OnboardingProgressManager: ObservableObject {
             migrated.version = 1
         }
         
-        analytics.trackEvent(.progressMigrated, properties: [
-            "from_version": progress.version,
-            "to_version": currentVersion
-        ])
+        // Track migration event
+        await analytics.track(.sessionResumed(
+            userId: progress.userId,
+            nodeId: "migrated_v\(currentVersion)"
+        ))
         
         return migrated
     }
@@ -376,6 +386,10 @@ extension ConversationAnalytics {
     }
     
     func trackEvent(_ event: ProgressEvent, properties: [String: Any] = [:]) {
-        track(event.rawValue, metadata: properties)
+        // Convert to appropriate analytics event
+        // For now, track as an error with the event name
+        Task {
+            await track(.errorOccurred(nodeId: nil, error: ProgressAnalyticsError(message: event.rawValue)))
+        }
     }
 }

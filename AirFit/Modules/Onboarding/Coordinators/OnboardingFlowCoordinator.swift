@@ -213,8 +213,8 @@ final class OnboardingFlowCoordinator {
     
     private func handleRecoveryResult(_ result: Any, originalError: Error) async {
         // Since RecoveryResult type is not defined, we'll handle recovery simply
-        if result is Bool {
-            if result as! Bool {
+        if let boolResult = result as? Bool {
+            if boolResult {
                 // Recovery succeeded - retry
                 recoveryMessage = "Retrying..."
                 await retryLastAction()
@@ -308,16 +308,14 @@ final class OnboardingFlowCoordinator {
         }
     }
     
-    func cleanup() {
+    func cleanup() async {
         // Called when onboarding completes
         conversationSession = nil
         generatedPersona = nil
         
-        if let userId = userService.getCurrentUser()?.id {
-            Task {
-                await cache.clearSession(userId: userId)
-                await recovery.clearRecoveryState(sessionId: userId.uuidString)
-            }
+        if let userId = await userService.getCurrentUser()?.id {
+            await cache.clearSession(userId: userId)
+            await recovery.clearRecoveryState(sessionId: userId.uuidString)
         }
     }
 }
@@ -374,6 +372,7 @@ enum OnboardingError: LocalizedError {
     case noUserFound
     case invalidProfileData
     case missingRequiredField(String)
+    case conversationStartFailed(Error)
     
     var errorDescription: String? {
         switch self {
@@ -395,6 +394,8 @@ enum OnboardingError: LocalizedError {
             return "Invalid profile data"
         case .missingRequiredField(let field):
             return "Missing required field: \(field)"
+        case .conversationStartFailed(let error):
+            return "Failed to start conversation: \(error.localizedDescription)"
         }
     }
     
@@ -418,6 +419,8 @@ enum OnboardingError: LocalizedError {
             return "Please restart the onboarding process"
         case .missingRequiredField:
             return "Please fill in all required information"
+        case .conversationStartFailed:
+            return "Please restart the onboarding process"
         }
     }
 }

@@ -104,7 +104,10 @@ actor GeminiProvider: LLMProvider {
                                 let jsonString = String(line.dropFirst(6))
                                 if jsonString != "[DONE]" {
                                     do {
-                                        let data = jsonString.data(using: .utf8)!
+                                        guard let data = jsonString.data(using: .utf8) else {
+                                            // Skip if unable to convert to data
+                                            continue
+                                        }
                                         let streamResponse = try JSONDecoder().decode(GeminiProviderStreamResponse.self, from: data)
                                         let chunk = try convertToStreamChunk(streamResponse)
                                         continuation.yield(chunk)

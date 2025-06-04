@@ -10,6 +10,7 @@ public enum AppError: LocalizedError, Sendable {
     case healthKitNotAuthorized
     case cameraNotAuthorized
     case userNotFound
+    case unsupportedProvider
 
     public var errorDescription: String? {
         switch self {
@@ -31,6 +32,8 @@ public enum AppError: LocalizedError, Sendable {
             return "Camera access is required to take meal photos"
         case .userNotFound:
             return "User profile not found"
+        case .unsupportedProvider:
+            return "This AI provider is not supported"
         }
     }
     
@@ -54,6 +57,8 @@ public enum AppError: LocalizedError, Sendable {
             return "Grant access in Settings > Privacy > Camera"
         case .userNotFound:
             return "Please complete the setup process"
+        case .unsupportedProvider:
+            return "Please check your AI provider configuration"
         }
     }
 }

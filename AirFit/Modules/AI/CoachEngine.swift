@@ -2,7 +2,6 @@ import Foundation
 import SwiftData
 import Observation
 import UIKit
-import Combine
 
 // MARK: - Direct AI Error Types
 enum DirectAIError: Error, LocalizedError {
@@ -822,72 +821,49 @@ final class CoachEngine {
         
         do {
             var firstTokenReceived = false
-            var cancellables = Set<AnyCancellable>()
 
-            // Create streaming response publisher
-            let responsePublisher = aiService.getStreamingResponse(for: request)
+            // Create streaming response
+            let responseStream = aiService.sendRequest(request)
 
-            // Process streaming response using async/await with Combine
-            await withCheckedContinuation { continuation in
-                responsePublisher
-                    .receive(on: DispatchQueue.main)
-                    .sink(
-                        receiveCompletion: { completion in
-                            switch completion {
-                            case .finished:
-                                AppLogger.info("Stream completed", category: .ai)
-                                success = true
-                                continuation.resume()
-                            case .failure(let error):
-                                AppLogger.error("Stream failed", error: error, category: .ai)
-                                Task { await self.handleError(error) }
-                                continuation.resume()
-                            }
-                        },
-                        receiveValue: { [weak self] response in
-                            guard let self = self else { return }
+            // Process streaming response
+            for try await response in responseStream {
+                switch response {
+                case .text(let text):
+                    if !firstTokenReceived {
+                        let timeToFirstToken = CFAbsoluteTimeGetCurrent() - startTime
+                        AppLogger.info("First token received in \(Int(timeToFirstToken * 1_000))ms", category: .ai)
+                        firstTokenReceived = true
+                    }
 
-                            Task { @MainActor in
-                                switch response {
-                                case .text(let text):
-                                    if !firstTokenReceived {
-                                        let timeToFirstToken = CFAbsoluteTimeGetCurrent() - startTime
-                                        AppLogger.info("First token received in \(Int(timeToFirstToken * 1_000))ms", category: .ai)
-                                        firstTokenReceived = true
-                                    }
+                    fullResponse += text
+                    self.streamingTokens.append(text)
+                    self.currentResponse = fullResponse
 
-                                    fullResponse += text
-                                    self.streamingTokens.append(text)
-                                    self.currentResponse = fullResponse
+                case .textDelta(let text):
+                    if !firstTokenReceived {
+                        let timeToFirstToken = CFAbsoluteTimeGetCurrent() - startTime
+                        AppLogger.info("First token received in \(Int(timeToFirstToken * 1_000))ms", category: .ai)
+                        firstTokenReceived = true
+                    }
 
-                                case .textDelta(let text):
-                                    if !firstTokenReceived {
-                                        let timeToFirstToken = CFAbsoluteTimeGetCurrent() - startTime
-                                        AppLogger.info("First token received in \(Int(timeToFirstToken * 1_000))ms", category: .ai)
-                                        firstTokenReceived = true
-                                    }
+                    fullResponse += text
+                    self.streamingTokens.append(text)
+                    self.currentResponse = fullResponse
 
-                                    fullResponse += text
-                                    self.streamingTokens.append(text)
-                                    self.currentResponse = fullResponse
+                case .functionCall(let functionCall):
+                    functionCallDetected = functionCall
+                    self.lastFunctionCall = functionCall.name
+                    AppLogger.info("Function call detected: \(functionCall.name)", category: .ai)
 
-                                case .functionCall(let functionCall):
-                                    functionCallDetected = functionCall
-                                    self.lastFunctionCall = functionCall.name
-                                    AppLogger.info("Function call detected: \(functionCall.name)", category: .ai)
+                case .done(let usage):
+                    tokenUsage = usage?.totalTokens ?? 0
+                    AppLogger.info("Stream completed with usage: \(tokenUsage) tokens", category: .ai)
+                    success = true
 
-                                case .done(let usage):
-                                    tokenUsage = usage?.totalTokens ?? 0
-                                    AppLogger.info("Stream completed with usage: \(tokenUsage) tokens", category: .ai)
-
-                                case .error(let aiError):
-                                    AppLogger.error("AI service error", error: aiError, category: .ai)
-                                    Task { await self.handleError(aiError) }
-                                }
-                            }
-                        }
-                    )
-                    .store(in: &cancellables)
+                case .error(let aiError):
+                    AppLogger.error("AI service error", error: aiError, category: .ai)
+                    throw aiError
+                }
             }
 
             // Save AI response
@@ -950,70 +926,47 @@ final class CoachEngine {
             var fullResponse = ""
             var functionCallDetected: AIFunctionCall?
             var firstTokenReceived = false
-            var cancellables = Set<AnyCancellable>()
 
-            // Create streaming response publisher
-            let responsePublisher = aiService.getStreamingResponse(for: request)
+            // Create streaming response
+            let responseStream = aiService.sendRequest(request)
 
-            // Process streaming response using async/await with Combine
-            await withCheckedContinuation { continuation in
-                responsePublisher
-                    .receive(on: DispatchQueue.main)
-                    .sink(
-                        receiveCompletion: { completion in
-                            switch completion {
-                            case .finished:
-                                AppLogger.info("Stream completed", category: .ai)
-                                continuation.resume()
-                            case .failure(let error):
-                                AppLogger.error("Stream failed", error: error, category: .ai)
-                                Task { await self.handleError(error) }
-                                continuation.resume()
-                            }
-                        },
-                        receiveValue: { [weak self] response in
-                            guard let self = self else { return }
+            // Process streaming response using async/await
+            for try await response in responseStream {
+                switch response {
+                case .text(let text):
+                    if !firstTokenReceived {
+                        let timeToFirstToken = CFAbsoluteTimeGetCurrent() - startTime
+                        AppLogger.info("First token received in \(Int(timeToFirstToken * 1_000))ms", category: .ai)
+                        firstTokenReceived = true
+                    }
 
-                            Task { @MainActor in
-                                switch response {
-                                case .text(let text):
-                                    if !firstTokenReceived {
-                                        let timeToFirstToken = CFAbsoluteTimeGetCurrent() - startTime
-                                        AppLogger.info("First token received in \(Int(timeToFirstToken * 1_000))ms", category: .ai)
-                                        firstTokenReceived = true
-                                    }
+                    fullResponse += text
+                    self.streamingTokens.append(text)
+                    self.currentResponse = fullResponse
 
-                                    fullResponse += text
-                                    self.streamingTokens.append(text)
-                                    self.currentResponse = fullResponse
+                case .textDelta(let text):
+                    if !firstTokenReceived {
+                        let timeToFirstToken = CFAbsoluteTimeGetCurrent() - startTime
+                        AppLogger.info("First token received in \(Int(timeToFirstToken * 1_000))ms", category: .ai)
+                        firstTokenReceived = true
+                    }
 
-                                case .textDelta(let text):
-                                    if !firstTokenReceived {
-                                        let timeToFirstToken = CFAbsoluteTimeGetCurrent() - startTime
-                                        AppLogger.info("First token received in \(Int(timeToFirstToken * 1_000))ms", category: .ai)
-                                        firstTokenReceived = true
-                                    }
+                    fullResponse += text
+                    self.streamingTokens.append(text)
+                    self.currentResponse = fullResponse
 
-                                    fullResponse += text
-                                    self.streamingTokens.append(text)
-                                    self.currentResponse = fullResponse
+                case .functionCall(let functionCall):
+                    functionCallDetected = functionCall
+                    self.lastFunctionCall = functionCall.name
+                    AppLogger.info("Function call detected: \(functionCall.name)", category: .ai)
 
-                                case .functionCall(let functionCall):
-                                    functionCallDetected = functionCall
-                                    self.lastFunctionCall = functionCall.name
-                                    AppLogger.info("Function call detected: \(functionCall.name)", category: .ai)
+                case .done(let usage):
+                    AppLogger.info("Stream completed with usage: \(usage?.totalTokens ?? 0) tokens", category: .ai)
 
-                                case .done(let usage):
-                                    AppLogger.info("Stream completed with usage: \(usage?.totalTokens ?? 0) tokens", category: .ai)
-
-                                case .error(let aiError):
-                                    AppLogger.error("AI service error", error: aiError, category: .ai)
-                                    Task { await self.handleError(aiError) }
-                                }
-                            }
-                        }
-                    )
-                    .store(in: &cancellables)
+                case .error(let aiError):
+                    AppLogger.error("AI service error", error: aiError, category: .ai)
+                    throw aiError
+                }
             }
 
             // Step 6: Save AI response
@@ -1570,29 +1523,25 @@ final class CoachEngine {
     
     private func executeStreamingAIRequest(_ request: AIRequest) async throws -> String {
         var fullResponse = ""
-        var cancellables = Set<AnyCancellable>()
+        let responseStream = aiService.sendRequest(request)
         
-        let responsePublisher = aiService.getStreamingResponse(for: request)
-        
-        await withCheckedContinuation { continuation in
-            responsePublisher
-                .receive(on: DispatchQueue.main)
-                .sink(
-                    receiveCompletion: { completion in
-                        continuation.resume()
-                    },
-                    receiveValue: { response in
-                        switch response {
-                        case .text(let text), .textDelta(let text):
-                            fullResponse += text
-                        case .error(let aiError):
-                            AppLogger.error("AI streaming error", error: aiError, category: .ai)
-                        default:
-                            break
-                        }
-                    }
-                )
-                .store(in: &cancellables)
+        do {
+            for try await response in responseStream {
+                switch response {
+                case .text(let text), .textDelta(let text):
+                    fullResponse += text
+                case .error(let aiError):
+                    AppLogger.error("AI streaming error", error: aiError, category: .ai)
+                    throw aiError
+                case .done:
+                    break
+                default:
+                    break
+                }
+            }
+        } catch {
+            AppLogger.error("AI streaming failed", error: error, category: .ai)
+            throw error
         }
         
         guard !fullResponse.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty else {
@@ -2063,29 +2012,25 @@ extension CoachEngine: FoodCoachEngineProtocol {
             )
             
             var fullResponse = ""
-            var cancellables = Set<AnyCancellable>()
+            let responseStream = aiService.sendRequest(aiRequest)
             
-            let responsePublisher = aiService.getStreamingResponse(for: aiRequest)
-            
-            await withCheckedContinuation { continuation in
-                responsePublisher
-                    .receive(on: DispatchQueue.main)
-                    .sink(
-                        receiveCompletion: { completion in
-                            continuation.resume()
-                        },
-                        receiveValue: { response in
-                            switch response {
-                            case .text(let text), .textDelta(let text):
-                                fullResponse += text
-                            case .error(let aiError):
-                                AppLogger.error("AI nutrition parsing error", error: aiError, category: .ai)
-                            default:
-                                break
-                            }
-                        }
-                    )
-                    .store(in: &cancellables)
+            do {
+                for try await response in responseStream {
+                    switch response {
+                    case .text(let text), .textDelta(let text):
+                        fullResponse += text
+                    case .error(let aiError):
+                        AppLogger.error("AI nutrition parsing error", error: aiError, category: .ai)
+                        throw aiError
+                    case .done:
+                        break
+                    default:
+                        break
+                    }
+                }
+            } catch {
+                AppLogger.error("AI nutrition parsing failed", error: error, category: .ai)
+                throw error
             }
             
             let result = try parseNutritionJSON(fullResponse)
@@ -2234,7 +2179,7 @@ extension CoachEngine: FoodCoachEngineProtocol {
 private final class PreviewAIWorkoutService: AIWorkoutServiceProtocol {
     // Base protocol requirements
     func startWorkout(type: WorkoutType, user: User) async throws -> Workout {
-        Workout(type: type, user: user, startDate: Date())
+        Workout(name: type.displayName, workoutType: type, plannedDate: Date(), user: user)
     }
     func pauseWorkout(_ workout: Workout) async throws {}
     func resumeWorkout(_ workout: Workout) async throws {}
@@ -2274,8 +2219,8 @@ private final class PreviewAIAnalyticsService: AIAnalyticsServiceProtocol {
         UserInsights(
             workoutFrequency: 3.5,
             averageWorkoutDuration: 3600,
-            caloriesTrend: .increasing(percentage: 5),
-            macroBalance: MacroBalance(protein: 0.3, carbs: 0.4, fat: 0.3),
+            caloriesTrend: Trend(direction: .up, changePercentage: 5),
+            macroBalance: MacroBalance(proteinPercentage: 0.3, carbsPercentage: 0.4, fatPercentage: 0.3),
             streakDays: 7,
             achievements: []
         )
@@ -2309,14 +2254,12 @@ private final class PreviewAIGoalService: AIGoalServiceProtocol {
     func createGoal(_ goalData: GoalCreationData, for user: User) async throws -> ServiceGoal {
         ServiceGoal(
             id: UUID(),
-            title: goalData.title,
-            description: goalData.description,
-            targetValue: goalData.targetValue,
+            type: goalData.type,
+            target: goalData.target,
             currentValue: 0,
-            unit: goalData.unit,
-            targetDate: goalData.targetDate,
-            createdDate: Date(),
-            type: .fitness
+            deadline: goalData.deadline,
+            createdAt: Date(),
+            updatedAt: Date()
         )
     }
     func updateGoal(_ goal: ServiceGoal, updates: GoalUpdate) async throws {}

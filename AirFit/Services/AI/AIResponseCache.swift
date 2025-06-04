@@ -190,7 +190,9 @@ actor AIResponseCache {
         ]
         
         let keyString = keyComponents.joined(separator: "##")
-        hasher.update(data: keyString.data(using: .utf8)!)
+        if let keyData = keyString.data(using: .utf8) {
+            hasher.update(data: keyData)
+        }
         
         let digest = hasher.finalize()
         return digest.map { String(format: "%02x", $0) }.joined()
@@ -203,7 +205,7 @@ actor AIResponseCache {
         tags.insert("model:\(request.model)")
         
         // Add task type from metadata
-        if let task = request.metadata["task"] as? String {
+        if let task = request.metadata["task"] {
             tags.insert("task:\(task)")
         }
         
@@ -365,11 +367,7 @@ extension LLMResponse: Codable {
         // Encode metadata as [String: String]
         var stringMetadata: [String: String] = [:]
         for (key, value) in metadata {
-            if let stringValue = value as? String {
-                stringMetadata[key] = stringValue
-            } else {
-                stringMetadata[key] = String(describing: value)
-            }
+            stringMetadata[key] = value
         }
         try container.encode(stringMetadata, forKey: .metadata)
     }

@@ -98,7 +98,7 @@ struct ContextualSlider: View {
                                         let newValue = min + (gesture.location.x / geometry.size.width) * (max - min)
                                         value = round(newValue / step) * step
                                         value = Swift.min(Swift.max(value, min), max)
-                                        HapticManager.shared.impact(.light)
+                                        HapticManager.impact(.light)
                                     }
                                     .onEnded { _ in
                                         isDragging = false

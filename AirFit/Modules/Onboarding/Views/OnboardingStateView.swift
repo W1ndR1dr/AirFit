@@ -374,7 +374,7 @@ struct PersonaCard: View {
             
             // Traits
             HStack(spacing: 8) {
-                ForEach(persona.sourceInsights.traits.prefix(3).map(\.key.rawValue), id: \.self) { trait in
+                ForEach(persona.metadata.sourceInsights.dominantTraits.prefix(3), id: \.self) { trait in
                     TraitBadge(trait: trait)
                 }
             }

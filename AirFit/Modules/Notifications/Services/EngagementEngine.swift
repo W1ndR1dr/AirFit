@@ -30,7 +30,12 @@ final class EngagementEngine {
             using: nil
         ) { task in
             Task {
-                await self.handleLapseDetection(task: task as! BGProcessingTask)
+                guard let processingTask = task as? BGProcessingTask else {
+                    AppLogger.error("Unexpected task type for lapse detection", category: .notifications)
+                    task.setTaskCompleted(success: false)
+                    return
+                }
+                await self.handleLapseDetection(task: processingTask)
             }
         }
         
@@ -39,7 +44,12 @@ final class EngagementEngine {
             using: nil
         ) { task in
             Task {
-                await self.handleEngagementAnalysis(task: task as! BGProcessingTask)
+                guard let processingTask = task as? BGProcessingTask else {
+                    AppLogger.error("Unexpected task type for engagement analysis", category: .notifications)
+                    task.setTaskCompleted(success: false)
+                    return
+                }
+                await self.handleEngagementAnalysis(task: processingTask)
             }
         }
     }

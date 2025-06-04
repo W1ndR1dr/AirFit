@@ -28,4 +28,10 @@ final class ConversationSession {
         self.isComplete = isComplete
         self.responses = responses
     }
+    
+    // Additional properties used by the conversation flow
+    var extractedInsights: Data?
+    var responseType: String = ""
+    var processingTime: TimeInterval = 0.0
+    var completionPercentage: Double = 0.0
 }

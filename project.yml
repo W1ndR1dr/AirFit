@@ -150,6 +150,7 @@ targets:
       - AirFit/Core/Protocols/ViewModelProtocol.swift
       - AirFit/Core/Protocols/ServiceProtocol.swift
       - AirFit/Core/Protocols/AIServiceProtocol.swift
+      - AirFit/Core/Protocols/AIServiceProtocolExtensions.swift
       - AirFit/Core/Protocols/APIKeyManagementProtocol.swift
       - AirFit/Core/Protocols/NetworkManagementProtocol.swift
       - AirFit/Core/Protocols/WeatherServiceProtocol.swift
@@ -168,6 +169,7 @@ targets:
       - AirFit/Core/Protocols/WhisperServiceWrapperProtocol.swift
       - AirFit/Services/AI/ProductionAIService.swift
       - AirFit/Services/AI/SimpleMockAIService.swift
+      - AirFit/Services/AI/OfflineAIService.swift
       - AirFit/Core/Protocols/LLMProvider.swift
       - AirFit/Services/AI/LLMProviders/LLMModels.swift
       - AirFit/Services/AI/LLMProviders/AnthropicProvider.swift

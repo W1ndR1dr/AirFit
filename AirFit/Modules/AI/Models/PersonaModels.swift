@@ -1,5 +1,24 @@
 import Foundation
 
+// MARK: - Error Types
+
+enum PersonaError: LocalizedError {
+    case invalidResponse(String)
+    case missingField(String)
+    case invalidFormat(String, expected: String)
+    
+    var errorDescription: String? {
+        switch self {
+        case .invalidResponse(let message):
+            return "Invalid AI response: \(message)"
+        case .missingField(let field):
+            return "Missing required field: \(field)"
+        case .invalidFormat(let field, let expected):
+            return "Invalid format for \(field). Expected: \(expected)"
+        }
+    }
+}
+
 // MARK: - Conversation Data Models
 
 /// Raw conversation data from the onboarding flow

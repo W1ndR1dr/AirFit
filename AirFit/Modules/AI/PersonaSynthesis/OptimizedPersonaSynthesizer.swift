@@ -152,31 +152,50 @@ actor OptimizedPersonaSynthesizer {
         
         // Create request with caching
         let request = LLMRequest(
-            messages: [LLMMessage(role: .user, content: prompt)],
+            messages: [LLMMessage(
+                role: .user,
+                content: prompt,
+                name: nil,
+                attachments: nil
+            )],
             model: "claude-3-haiku-20240307", // Fast model
             temperature: 0.7,
             maxTokens: 600,
-            responseFormat: .json,
-            tags: ["persona-synthesis", "onboarding"]
+            systemPrompt: nil,
+            responseFormat: .json(),
+            stream: false,
+            metadata: ["task": "persona-synthesis", "context": "onboarding"],
+            thinkingBudgetTokens: nil
         )
         
         // Check cache first
         if let cached = await cache.get(request: request) {
-            return try parseCreativeContent(from: cached.content!)
+            return try parseCreativeContent(from: cached.content)
         }
         
         // Generate new
-        let response = try await llmOrchestrator.complete(request)
+        let response = try await llmOrchestrator.complete(
+            prompt: prompt,
+            task: .personaSynthesis,
+            model: .claude3Haiku,
+            temperature: 0.7,
+            maxTokens: 600
+        )
         
         // Cache for future
         await cache.set(request: request, response: response, ttl: 3600)
         
-        return try parseCreativeContent(from: response.content!)
+        return try parseCreativeContent(from: response.content)
     }
     
     private func parseCreativeContent(from json: String) throws -> CreativeContent {
-        let data = json.data(using: .utf8)!
-        let parsed = try JSONSerialization.jsonObject(with: data) as! [String: Any]
+        guard let data = json.data(using: .utf8) else {
+            throw PersonaError.invalidResponse("Unable to convert response to data")
+        }
+        
+        guard let parsed = try JSONSerialization.jsonObject(with: data) as? [String: Any] else {
+            throw PersonaError.invalidResponse("Response is not a valid JSON object")
+        }
         
         return CreativeContent(
             name: parsed["name"] as? String ?? "Coach",

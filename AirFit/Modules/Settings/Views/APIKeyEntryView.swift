@@ -140,7 +140,7 @@ struct APIKeyEntryView: View {
             } catch {
                 await MainActor.run {
                     isValidating = false
-                    viewModel.coordinator.showAlert(.apiKeyInvalid)
+                    viewModel.showAlert(.apiKeyInvalid)
                 }
             }
         }

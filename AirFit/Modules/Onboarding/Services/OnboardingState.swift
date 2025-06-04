@@ -19,12 +19,10 @@ extension ConversationAnalytics {
         case stateTransition = "state_transition"
     }
     
-    func trackEvent(_ event: OnboardingEvent, properties: [String: Any] = [:]) {
+    func trackEvent(_ event: OnboardingEvent, properties: [String: Any] = [:]) async {
         // TODO: Implement proper event tracking integration
         // For now, we'll create a simple log entry
-        Task {
-            await track(.errorOccurred(nodeId: nil, error: SimpleAnalyticsError(message: event.rawValue)))
-        }
+        await track(.errorOccurred(nodeId: nil, error: SimpleAnalyticsError(message: event.rawValue)))
     }
 }
 

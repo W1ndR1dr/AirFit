@@ -1,6 +1,9 @@
 import SwiftData
 import Foundation
 
+// Import AI service protocol extensions
+// Note: These protocols are defined in Core/Protocols/AIServiceProtocolExtensions.swift
+
 // MARK: - Function Context & Results
 
 // MARK: - Phase 3 Migration Notes
@@ -79,55 +82,8 @@ enum SendableValue: Sendable {
 // MARK: - Service Protocols are defined in ServiceProtocols.swift
 
 // MARK: - Result Types
-
-struct WorkoutPlanResult: Sendable {
-    let id: UUID
-    let exercises: [ExerciseInfo]
-    let estimatedCalories: Int
-    let estimatedDuration: Int
-    let summary: String
-
-    struct ExerciseInfo: Sendable {
-        let name: String
-        let sets: Int
-        let reps: String
-        let restSeconds: Int
-        let muscleGroups: [String]
-    }
-}
-
-struct PerformanceAnalysisResult: Sendable {
-    let summary: String
-    let insights: [String]
-    let trends: [TrendInfo]
-    let recommendations: [String]
-    let dataPoints: Int
-
-    struct TrendInfo: Sendable {
-        let metric: String
-        let direction: String
-        let magnitude: Double
-        let significance: String
-    }
-}
-
-struct GoalResult: Sendable {
-    let id: UUID
-    let title: String
-    let description: String
-    let targetDate: Date?
-    let metrics: [String]
-    let milestones: [String]
-    let smartCriteria: SMARTCriteria
-
-    struct SMARTCriteria: Sendable {
-        let specific: String
-        let measurable: String
-        let achievable: String
-        let relevant: String
-        let timeBound: String
-    }
-}
+// Note: WorkoutPlanResult, PerformanceAnalysisResult, and GoalResult are defined in
+// Core/Protocols/AIServiceProtocolExtensions.swift to avoid duplication
 
 // MARK: - Function Call Dispatcher
 
@@ -296,7 +252,7 @@ final class FunctionCallDispatcher: @unchecked Sendable {
         let muscleGroups = extractStringArray(from: args["targetMuscleGroups"]) ?? ["full_body"]
         let equipment = extractStringArray(from: args["availableEquipment"]) ?? ["bodyweight"]
         let constraints = extractString(from: args["constraints"])
-        let _ = extractString(from: args["workoutStyle"]) ?? "traditional_sets"
+        let style = extractString(from: args["workoutStyle"]) ?? "traditional_sets"
 
         // Now properly implemented in AIWorkoutServiceProtocol
         let plan = try await workoutService.generatePlan(
@@ -327,7 +283,8 @@ final class FunctionCallDispatcher: @unchecked Sendable {
                 "sets": exercise.sets,
                 "reps": exercise.reps,
                 "restSeconds": exercise.restSeconds,
-                "muscleGroups": exercise.muscleGroups
+                "notes": exercise.notes ?? "",
+                "alternatives": exercise.alternatives
             ])
         }
 
@@ -412,7 +369,8 @@ final class FunctionCallDispatcher: @unchecked Sendable {
             insights: [],
             trends: [],
             recommendations: [],
-            dataPoints: 0
+            dataPoints: 0,
+            confidence: 0.8
         )
 
         let message = """
@@ -429,9 +387,9 @@ final class FunctionCallDispatcher: @unchecked Sendable {
             "trends": result.trends.map { trend in
                 [
                     "metric": trend.metric,
-                    "direction": trend.direction,
+                    "direction": trend.direction.rawValue,
                     "magnitude": trend.magnitude,
-                    "significance": trend.significance
+                    "timeframe": trend.timeframe
                 ]
             },
             "recommendations": result.recommendations
@@ -472,8 +430,22 @@ final class FunctionCallDispatcher: @unchecked Sendable {
             title: "Mock Goal",
             description: "Mock goal description",
             targetDate: Date().addingTimeInterval(86400 * 30),
-            metrics: ["mock_metric"],
-            milestones: [],
+            metrics: [
+                GoalMetric(
+                    name: "Weight Loss",
+                    currentValue: 0,
+                    targetValue: 10,
+                    unit: "lbs"
+                )
+            ],
+            milestones: [
+                GoalMilestone(
+                    title: "First Week Complete",
+                    targetDate: Date().addingTimeInterval(86400 * 7),
+                    criteria: "Complete all workouts",
+                    reward: "New workout playlist"
+                )
+            ],
             smartCriteria: GoalResult.SMARTCriteria(
                 specific: "Mock specific criteria",
                 measurable: "Mock measurable criteria",

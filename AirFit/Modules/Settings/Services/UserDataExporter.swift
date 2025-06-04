@@ -2,7 +2,8 @@ import Foundation
 import SwiftData
 
 /// Service for exporting user data
-actor UserDataExporter {
+@MainActor
+final class UserDataExporter {
     private let modelContext: ModelContext
     
     init(modelContext: ModelContext) {

@@ -24,7 +24,7 @@ actor AIRequestBuilder {
             request.setValue(apiKey, forHTTPHeaderField: "x-api-key")
             request.setValue("2023-06-01", forHTTPHeaderField: "anthropic-version")
             
-        case .googleGemini:
+        case .gemini:
             request.setValue(apiKey, forHTTPHeaderField: "X-Goog-Api-Key")
         }
         
@@ -48,8 +48,8 @@ actor AIRequestBuilder {
         case .anthropic:
             return provider.baseURL.appendingPathComponent("messages")
             
-        case .googleGemini:
-            var url = provider.baseURL
+        case .gemini:
+            let url = provider.baseURL
                 .appendingPathComponent("v1beta")
                 .appendingPathComponent("models")
                 .appendingPathComponent("\(model):streamGenerateContent")
@@ -77,7 +77,7 @@ actor AIRequestBuilder {
         case .anthropic:
             return buildAnthropicRequestBody(request: request, model: model)
             
-        case .googleGemini:
+        case .gemini:
             return buildGeminiRequestBody(request: request, model: model)
         }
     }
@@ -104,7 +104,7 @@ actor AIRequestBuilder {
             "model": model,
             "messages": messages,
             "stream": request.stream,
-            "temperature": request.temperature ?? 0.7,
+            "temperature": request.temperature,
             "max_tokens": request.maxTokens ?? 2048
         ]
         
@@ -152,13 +152,12 @@ actor AIRequestBuilder {
             "max_tokens": request.maxTokens ?? 2048
         ]
         
-        if let system = systemPrompt ?? request.systemPrompt {
-            body["system"] = system
+        let systemToUse = systemPrompt ?? request.systemPrompt
+        if !systemToUse.isEmpty {
+            body["system"] = systemToUse
         }
         
-        if let temperature = request.temperature {
-            body["temperature"] = temperature
-        }
+        body["temperature"] = request.temperature
         
         // Add tools if available
         if let functions = request.functions {
@@ -196,16 +195,17 @@ actor AIRequestBuilder {
         var body: [String: Any] = [
             "contents": contents,
             "generationConfig": [
-                "temperature": request.temperature ?? 0.7,
+                "temperature": request.temperature,
                 "maxOutputTokens": request.maxTokens ?? 2048,
                 "topP": 0.95,
                 "topK": 20
             ]
         ]
         
-        if let system = systemInstruction ?? request.systemPrompt {
+        let systemToUse = systemInstruction ?? request.systemPrompt
+        if !systemToUse.isEmpty {
             body["systemInstruction"] = [
-                "parts": [["text": system]]
+                "parts": [["text": systemToUse]]
             ]
         }
         

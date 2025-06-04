@@ -9,7 +9,7 @@ extension AIProvider {
             return URL(string: "https://api.openai.com/v1")!
         case .anthropic:
             return URL(string: "https://api.anthropic.com/v1")!
-        case .googleGemini:
+        case .gemini:
             return URL(string: "https://generativelanguage.googleapis.com")!
         case .openRouter:
             return URL(string: "https://openrouter.ai/api/v1")!
@@ -23,7 +23,7 @@ extension AIProvider {
             return "OpenAI"
         case .anthropic:
             return "Anthropic"
-        case .googleGemini:
+        case .gemini:
             return "Google Gemini"
         case .openRouter:
             return "OpenRouter"
@@ -37,7 +37,7 @@ extension AIProvider {
             return "gpt-4o-mini"
         case .anthropic:
             return "claude-3-5-sonnet-20241022"
-        case .googleGemini:
+        case .gemini:
             return "gemini-1.5-flash-002"
         case .openRouter:
             return "openai/gpt-4o-mini"
@@ -63,7 +63,7 @@ extension AIProvider {
                 "claude-3-5-haiku-20241022",
                 "claude-3-haiku-20240307"
             ]
-        case .googleGemini:
+        case .gemini:
             return [
                 "gemini-2.0-flash-thinking-exp",
                 "gemini-2.0-flash-exp",
@@ -91,7 +91,7 @@ extension AIProvider {
             return 128_000 // GPT-4o-mini
         case .anthropic:
             return 200_000 // Claude 3 Sonnet
-        case .googleGemini:
+        case .gemini:
             return 30_720 // Gemini Pro
         case .openRouter:
             return 128_000 // GPT-4o-mini via OpenRouter
@@ -101,7 +101,7 @@ extension AIProvider {
     /// Whether the provider supports function calling
     var supportsFunctionCalling: Bool {
         switch self {
-        case .openAI, .anthropic, .googleGemini:
+        case .openAI, .anthropic, .gemini:
             return true
         case .openRouter:
             return true // Depends on underlying model
@@ -111,7 +111,7 @@ extension AIProvider {
     /// Whether the provider supports vision/image inputs
     var supportsVision: Bool {
         switch self {
-        case .openAI, .anthropic, .googleGemini:
+        case .openAI, .anthropic, .gemini:
             return true
         case .openRouter:
             return true // Depends on underlying model
@@ -125,7 +125,7 @@ extension AIProvider {
             return 3 // GPT-4 free tier
         case .anthropic:
             return 5 // Claude free tier
-        case .googleGemini:
+        case .gemini:
             return 60 // Gemini free tier
         case .openRouter:
             return nil // Varies by model
@@ -142,7 +142,7 @@ extension AIProvider {
                 "x-api-key": apiKey,
                 "anthropic-version": "2023-06-01"
             ]
-        case .googleGemini:
+        case .gemini:
             return ["x-goog-api-key": apiKey]
         }
     }
@@ -154,7 +154,7 @@ extension AIProvider {
             return "chat/completions"
         case .anthropic:
             return "messages"
-        case .googleGemini:
+        case .gemini:
             return "v1beta/models/\(model):streamGenerateContent"
         }
     }
@@ -192,7 +192,7 @@ extension AIProvider {
             default:
                 return nil
             }
-        case .googleGemini:
+        case .gemini:
             switch model {
             case "gemini-2.0-flash-thinking-exp", "gemini-2.0-flash-exp":
                 return (input: 0.0, output: 0.0) // Free during experimental phase
@@ -240,7 +240,7 @@ extension AIProvider {
             default:
                 return nil
             }
-        case .googleGemini:
+        case .gemini:
             switch code {
             case "API_KEY_INVALID":
                 return "Invalid Google Gemini API key. Please check your key in Settings."

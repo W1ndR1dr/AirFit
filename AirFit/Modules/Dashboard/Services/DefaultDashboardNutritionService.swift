@@ -37,17 +37,17 @@ actor DefaultDashboardNutritionService: DashboardNutritionServiceProtocol {
         var water = 0.0
         
         for entry in entries {
-            if let nutrition = entry.nutritionData {
-                calories += nutrition.calories
-                protein += nutrition.protein
-                carbs += nutrition.carbohydrates
-                fat += nutrition.fat
-                fiber += nutrition.fiber ?? 0
-            }
+            calories += Double(entry.totalCalories)
+            protein += entry.totalProtein
+            carbs += entry.totalCarbs
+            fat += entry.totalFat
             
-            // Check if this is a water entry
-            if entry.name.lowercased().contains("water") {
-                water += entry.quantity * 8 // Assume 8 oz per unit for water
+            // Check for water entries in food items
+            for item in entry.items {
+                if item.name.lowercased().contains("water") {
+                    water += (item.quantity ?? 1.0) * 8 // Assume 8 oz per unit for water
+                }
+                fiber += item.fiberGrams ?? 0
             }
         }
         
@@ -73,44 +73,36 @@ actor DefaultDashboardNutritionService: DashboardNutritionServiceProtocol {
     
     func getTargets(from profile: OnboardingProfile) async throws -> NutritionTargets {
         // Calculate nutrition targets based on profile
-        let userProfile = profile.formData ?? UserProfileJsonBlob()
+        let userProfile: UserProfileJsonBlob
+        do {
+            userProfile = try JSONDecoder().decode(UserProfileJsonBlob.self, from: profile.rawFullProfileData)
+        } catch {
+            // Use default profile if decoding fails
+            return NutritionTargets.default
+        }
         
         // Base calorie calculation
         var baseCalories = 2000.0 // Default
         
-        // Adjust based on sex
-        if userProfile.biologicalSex == .male {
-            baseCalories = 2500.0
-        } else if userProfile.biologicalSex == .female {
-            baseCalories = 2000.0
-        }
+        // Use default calories for now - biologicalSex not in LifeContext
+        // TODO: Add biologicalSex to LifeContext or UserProfile if needed
+        baseCalories = 2200.0 // Average between typical male/female values
         
-        // Adjust based on activity level
-        switch userProfile.activityLevel {
-        case .sedentary:
-            baseCalories *= 0.9
-        case .lightlyActive:
-            baseCalories *= 1.0
-        case .moderatelyActive:
-            baseCalories *= 1.1
-        case .veryActive:
+        // Adjust based on physical activity
+        if userProfile.lifeContext.isPhysicallyActiveWork {
             baseCalories *= 1.2
-        case .extremelyActive:
-            baseCalories *= 1.3
-        case .none:
-            break
         }
         
-        // Adjust based on goals
-        switch userProfile.goals.first {
-        case .loseWeight:
-            baseCalories *= 0.85 // 15% deficit
-        case .buildMuscle:
-            baseCalories *= 1.1 // 10% surplus
-        case .maintainWeight, .improveHealth, .increaseEndurance, .buildStrength:
-            break // No adjustment
-        case .none:
-            break
+        // Adjust based on goal family
+        switch userProfile.goal.family {
+        case .strengthTone:
+            baseCalories *= 1.1 // 10% surplus for muscle building
+        case .endurance:
+            baseCalories *= 1.05 // 5% surplus for endurance training
+        case .performance:
+            baseCalories *= 1.05 // 5% surplus for performance
+        case .healthWellbeing, .recoveryRehab:
+            break // No adjustment - maintenance calories
         }
         
         // Calculate macros (default balanced approach)

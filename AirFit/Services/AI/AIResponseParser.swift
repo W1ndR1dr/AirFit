@@ -18,7 +18,7 @@ actor AIResponseParser {
         case .anthropic:
             return try parseAnthropicStream(data)
             
-        case .googleGemini:
+        case .gemini:
             return try parseGeminiStream(data)
         }
     }
@@ -70,10 +70,13 @@ actor AIResponseParser {
                     if let function = toolCall.function,
                        let name = function.name,
                        let arguments = function.arguments {
-                        results.append(.functionCall(
-                            name: name,
-                            arguments: arguments
-                        ))
+                        // Parse arguments to create AIFunctionCall
+                        if let argsData = arguments.data(using: .utf8),
+                           let argsDict = try? JSONSerialization.jsonObject(with: argsData) as? [String: Any] {
+                            results.append(.functionCall(AIFunctionCall(name: name, arguments: argsDict)))
+                        } else {
+                            results.append(.functionCall(AIFunctionCall(name: name, arguments: [:])))
+                        }
                     }
                 }
             }
@@ -194,10 +197,14 @@ actor AIResponseParser {
                 
                 // Function call
                 if let functionCall = part.functionCall {
-                    results.append(.functionCall(
-                        name: functionCall.name,
-                        arguments: functionCall.args ?? "{}"
-                    ))
+                    // Parse arguments to create AIFunctionCall
+                    if let args = functionCall.args,
+                       let argsData = args.data(using: .utf8),
+                       let argsDict = try? JSONSerialization.jsonObject(with: argsData) as? [String: Any] {
+                        results.append(.functionCall(AIFunctionCall(name: functionCall.name, arguments: argsDict)))
+                    } else {
+                        results.append(.functionCall(AIFunctionCall(name: functionCall.name, arguments: [:])))
+                    }
                 }
             }
             

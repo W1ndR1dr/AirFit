@@ -12,8 +12,38 @@ struct FinalOnboardingFlow: View {
         modelContext: ModelContext
     ) {
         let cache = AIResponseCache()
-        let apiKeyManager = DependencyContainer.shared.apiKeyManager!
-        let llmOrchestrator = LLMOrchestrator(apiKeyManager: apiKeyManager as! APIKeyManagementProtocol)
+        
+        // Safe initialization with proper error handling
+        guard let apiKeyManager = DependencyContainer.shared.apiKeyManager,
+              let apiKeyManagement = apiKeyManager as? APIKeyManagementProtocol else {
+            AppLogger.error("Failed to initialize onboarding: API key manager unavailable", category: .onboarding)
+            // Initialize with default values - onboarding will show error state
+            let defaultLLMOrchestrator = LLMOrchestrator(apiKeyManager: DefaultAPIKeyManager())
+            let defaultSynthesizer = OptimizedPersonaSynthesizer(
+                llmOrchestrator: defaultLLMOrchestrator,
+                cache: cache
+            )
+            let defaultPersonaService = PersonaService(
+                personaSynthesizer: defaultSynthesizer,
+                llmOrchestrator: defaultLLMOrchestrator,
+                modelContext: modelContext,
+                cache: cache
+            )
+            // Create a basic conversation manager for error case
+            let defaultConversationManager = ConversationFlowManager(
+                flowDefinition: [:], // Empty flow for error case
+                modelContext: modelContext
+            )
+            _coordinator = State(initialValue: OnboardingFlowCoordinator(
+                conversationManager: defaultConversationManager,
+                personaService: defaultPersonaService,
+                userService: userService,
+                modelContext: modelContext
+            ))
+            return
+        }
+        
+        let llmOrchestrator = LLMOrchestrator(apiKeyManager: apiKeyManagement)
         
         // Use optimized synthesizer
         let optimizedSynthesizer = OptimizedPersonaSynthesizer(
@@ -330,7 +360,9 @@ private struct OnboardingCompletionView: View {
             }
             
             // Cleanup
-            coordinator.cleanup()
+            Task {
+                await coordinator.cleanup()
+            }
         }
     }
 }

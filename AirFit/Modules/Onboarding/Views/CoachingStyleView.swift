@@ -39,8 +39,13 @@ struct CoachingStyleView: View {
                     .padding(.horizontal, AppSpacing.large)
                     
                     if viewModel.selectedPersonaMode != .supportiveCoach {
-                        PersonaPreviewCard(selectedPersona: viewModel.selectedPersonaMode)
-                            .padding(.horizontal, AppSpacing.large)
+                        PersonaPreviewCard(preview: PersonaPreview(
+                            name: viewModel.selectedPersonaMode.displayName,
+                            archetype: getArchetype(for: viewModel.selectedPersonaMode),
+                            sampleGreeting: getSampleGreeting(for: viewModel.selectedPersonaMode),
+                            voiceDescription: getVoiceDescription(for: viewModel.selectedPersonaMode)
+                        ))
+                        .padding(.horizontal, AppSpacing.large)
                     }
                 }
             }
@@ -163,5 +168,46 @@ private struct NavigationButtons: View {
             .accessibilityIdentifier("onboarding.next.button")
         }
         .padding(.horizontal, AppSpacing.large)
+    }
+}
+
+// MARK: - Helper Functions
+
+private func getArchetype(for mode: PersonaMode) -> String {
+    switch mode {
+    case .supportiveCoach:
+        return "The Empathetic Mentor"
+    case .directTrainer:
+        return "The Results-Driven Coach"
+    case .analyticalAdvisor:
+        return "The Data-Driven Expert"
+    case .motivationalBuddy:
+        return "The Energetic Companion"
+    }
+}
+
+private func getSampleGreeting(for mode: PersonaMode) -> String {
+    switch mode {
+    case .supportiveCoach:
+        return "Good morning! How are you feeling today? Let's work together to make today a great one, no matter where you're starting from."
+    case .directTrainer:
+        return "Morning! Time to get to work. Let's review your goals and plan today's actions for maximum impact."
+    case .analyticalAdvisor:
+        return "Good morning! Based on your recent metrics, I've identified some optimization opportunities for today's routine."
+    case .motivationalBuddy:
+        return "Hey there superstar! 🌟 Ready to crush some goals today? Let's make fitness fun and exciting!"
+    }
+}
+
+private func getVoiceDescription(for mode: PersonaMode) -> String {
+    switch mode {
+    case .supportiveCoach:
+        return "Warm and understanding, speaks with patience and genuine care"
+    case .directTrainer:
+        return "Clear and confident, focused on actionable guidance"
+    case .analyticalAdvisor:
+        return "Thoughtful and precise, explains the reasoning behind recommendations"
+    case .motivationalBuddy:
+        return "Upbeat and playful, brings enthusiasm to every interaction"
     }
 }

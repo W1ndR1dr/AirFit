@@ -41,6 +41,20 @@ final class HapticManager {
             shared.selectionFeedback.selectionChanged()
         }
     }
+    
+    /// Play success haptic feedback (notification style)
+    static func success() {
+        Task { @MainActor in
+            shared.notificationFeedback.notificationOccurred(.success)
+        }
+    }
+    
+    /// Play error haptic feedback (notification style)
+    static func error() {
+        Task { @MainActor in
+            shared.notificationFeedback.notificationOccurred(.error)
+        }
+    }
 
     // MARK: - Private Methods
 

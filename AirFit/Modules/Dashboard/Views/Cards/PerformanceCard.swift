@@ -11,7 +11,8 @@ struct PerformanceCard: View {
     }
 
     private var history: [ChartPoint] {
-        guard let value = insight?.value else { return [] }
+        guard let valueString = insight?.value,
+              let value = Double(valueString) else { return [] }
         return (0..<7).map { ChartPoint(index: $0, value: value * (1.0 - Double(6 - $0) * 0.05)) }
     }
 
@@ -20,17 +21,17 @@ struct PerformanceCard: View {
             header
 
             if let insight {
-                Text(insight.summary)
+                Text(insight.insight)
                     .font(AppFonts.body)
                     .foregroundColor(AppColors.textPrimary)
                     .fixedSize(horizontal: false, vertical: true)
 
                 HStack {
-                    Text(insight.keyMetric)
+                    Text(insight.metric)
                         .font(AppFonts.caption)
                         .foregroundColor(AppColors.textSecondary)
                     Spacer()
-                    Text("\(insight.value, specifier: "%.1f")")
+                    Text(insight.value)
                         .font(AppFonts.headline)
                         .foregroundColor(AppColors.accentColor)
                 }
@@ -82,7 +83,7 @@ struct PerformanceCard: View {
 
     private var accessibilityDescription: String {
         if let insight {
-            return "Performance trend for \(insight.keyMetric) is \(String(format: "%.1f", insight.value))"
+            return "Performance trend for \(insight.metric) is \(insight.value)"
         } else {
             return "No performance data"
         }
@@ -93,34 +94,22 @@ private struct TrendIndicator: View {
     let trend: Any
 
     private var icon: String {
-        if let recoveryTrend = trend as? RecoveryScore.Trend {
-            switch recoveryTrend {
-            case .improving: return "arrow.up.circle.fill"
-            case .steady: return "minus.circle.fill"
-            case .declining: return "arrow.down.circle.fill"
-            }
-        } else if let performanceTrend = trend as? PerformanceInsight.Trend {
+        if let performanceTrend = trend as? PerformanceInsight.Trend {
             switch performanceTrend {
-            case .up: return "arrow.up.circle.fill"
-            case .steady: return "minus.circle.fill"
-            case .down: return "arrow.down.circle.fill"
+            case .improving: return "arrow.up.circle.fill"
+            case .stable: return "minus.circle.fill"
+            case .declining: return "arrow.down.circle.fill"
             }
         }
         return "minus.circle.fill"
     }
 
     private var color: Color {
-        if let recoveryTrend = trend as? RecoveryScore.Trend {
-            switch recoveryTrend {
-            case .improving: return .green
-            case .steady: return .yellow
-            case .declining: return .orange
-            }
-        } else if let performanceTrend = trend as? PerformanceInsight.Trend {
+        if let performanceTrend = trend as? PerformanceInsight.Trend {
             switch performanceTrend {
-            case .up: return .green
-            case .steady: return .yellow
-            case .down: return .orange
+            case .improving: return .green
+            case .stable: return .yellow
+            case .declining: return .orange
             }
         }
         return .gray

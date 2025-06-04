@@ -1,7 +1,29 @@
 import Foundation
 import SwiftData
 
-actor OnboardingRecovery {
+// Simple error for analytics tracking
+struct RecoveryAnalyticsSimpleError: Error {
+    let message: String
+    var localizedDescription: String { message }
+}
+
+// MARK: - Recovery Analytics Error
+enum RecoveryAnalyticsError: LocalizedError {
+    case recoveryStarted(strategy: String)
+    case recoveryCompleted(strategy: String)
+    
+    var errorDescription: String? {
+        switch self {
+        case .recoveryStarted(let strategy):
+            return "Recovery started with strategy: \(strategy)"
+        case .recoveryCompleted(let strategy):
+            return "Recovery completed with strategy: \(strategy)"
+        }
+    }
+}
+
+@MainActor
+final class OnboardingRecovery {
     // MARK: - Properties
     private let modelContext: ModelContext
     private let analytics: ConversationAnalytics
@@ -50,11 +72,11 @@ actor OnboardingRecovery {
         }
     }
     
-    func recordError(_ error: OnboardingOrchestratorError, sessionId: String) {
+    func recordError(_ error: OnboardingOrchestratorError, sessionId: String) async {
         lastError[sessionId] = error
         retryAttempts[sessionId] = (retryAttempts[sessionId] ?? 0) + 1
         
-        analytics.trackEvent(.onboardingError, properties: [
+        await analytics.trackEvent(.onboardingError, properties: [
             "error_type": error.errorCode,
             "session_id": sessionId,
             "retry_attempt": retryAttempts[sessionId] ?? 0
@@ -130,19 +152,21 @@ actor OnboardingRecovery {
     }
     
     func executeRecoveryPlan(_ plan: RecoveryPlan, sessionId: String) async throws {
-        analytics.trackEvent(.recoveryStarted, properties: [
-            "strategy": plan.strategy.rawValue,
-            "session_id": sessionId
-        ])
+        // Track recovery start - using error event as there's no specific recovery event
+        await analytics.track(.errorOccurred(
+            nodeId: sessionId,
+            error: RecoveryAnalyticsError.recoveryStarted(strategy: plan.strategy.rawValue)
+        ))
         
         for action in plan.actions {
             try await executeRecoveryAction(action, sessionId: sessionId)
         }
         
-        analytics.trackEvent(.recoveryCompleted, properties: [
-            "strategy": plan.strategy.rawValue,
-            "session_id": sessionId
-        ])
+        // Track recovery completion
+        await analytics.track(.errorOccurred(
+            nodeId: sessionId,
+            error: RecoveryAnalyticsError.recoveryCompleted(strategy: plan.strategy.rawValue)
+        ))
     }
     
     // MARK: - Session Recovery
@@ -150,25 +174,29 @@ actor OnboardingRecovery {
     func findRecoverableSession(userId: UUID) async throws -> RecoverableSession? {
         let cutoffDate = Date().addingTimeInterval(-sessionTimeout)
         
-        // Query for incomplete sessions
+        // Query for incomplete sessions - simplified predicate
+        let targetUserId = userId
+        let targetCutoffDate = cutoffDate
+        
         let descriptor = FetchDescriptor<ConversationSession>(
-            predicate: #Predicate { session in
-                session.userId == userId &&
-                session.completedAt == nil &&
-                session.createdAt > cutoffDate
+            predicate: #Predicate<ConversationSession> { session in
+                session.userId == targetUserId && session.completedAt == nil
             },
-            sortBy: [SortDescriptor(\.createdAt, order: .reverse)]
+            sortBy: [SortDescriptor(\.startedAt, order: .reverse)]
         )
         
         let sessions = try modelContext.fetch(descriptor)
         
-        guard let latestSession = sessions.first else {
+        // Filter by date in memory to avoid complex predicate
+        let validSessions = sessions.filter { $0.startedAt > targetCutoffDate }
+        
+        guard let latestSession = validSessions.first else {
             return nil
         }
         
         // Check if session is recoverable
         let responses = latestSession.responses.count
-        let lastResponseTime = latestSession.responses.last?.timestamp ?? latestSession.createdAt
+        let lastResponseTime = latestSession.responses.last?.timestamp ?? latestSession.startedAt
         let timeSinceLastResponse = Date().timeIntervalSince(lastResponseTime)
         
         if timeSinceLastResponse > sessionTimeout {
@@ -186,9 +214,11 @@ actor OnboardingRecovery {
     }
     
     func resumeSession(_ session: RecoverableSession) async throws -> ConversationSession {
+        // Use the session ID to fetch
+        let targetId = session.sessionId
         let descriptor = FetchDescriptor<ConversationSession>(
-            predicate: #Predicate { s in
-                s.id == session.sessionId
+            predicate: #Predicate<ConversationSession> { conversationSession in
+                conversationSession.id == targetId
             }
         )
         
@@ -197,11 +227,10 @@ actor OnboardingRecovery {
             throw OnboardingError.conversationStartFailed(RecoveryError.sessionNotFound)
         }
         
-        analytics.trackEvent(.sessionResumed, properties: [
-            "session_id": session.sessionId.uuidString,
-            "responses_count": session.responses,
-            "progress": session.progress
-        ])
+        // Track event asynchronously without blocking
+        Task {
+            await analytics.track(.errorOccurred(nodeId: nil, error: RecoveryAnalyticsSimpleError(message: "session_resumed")))
+        }
         
         return conversationSession
     }
@@ -354,6 +383,10 @@ extension ConversationAnalytics {
     }
     
     func trackEvent(_ event: RecoveryEvent, properties: [String: Any] = [:]) {
-        track(event.rawValue, metadata: properties)
+        // Convert to appropriate analytics event
+        // For now, track as an error with the event name
+        Task {
+            await track(.errorOccurred(nodeId: nil, error: RecoveryAnalyticsSimpleError(message: event.rawValue)))
+        }
     }
 }

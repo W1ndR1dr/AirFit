@@ -80,6 +80,7 @@
 		2F32C341D327782C9F893C75 /* MockNotificationManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = EDA2FEE60168083D61035789 /* MockNotificationManager.swift */; };
 		2F3F836CB571DCB265B1C1EF /* GlobalEnums.swift in Sources */ = {isa = PBXBuildFile; fileRef = 44357F1191D6E3823BF3215D /* GlobalEnums.swift */; };
 		3042BE44B3EB7593FF7B16F7 /* FoodTrackingViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = EED17196724F046F2A9FF1DB /* FoodTrackingViewModel.swift */; };
+		30A8CA488D39C1443DA40854 /* OfflineAIService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 787EB7F0E9DC15DE797E5483 /* OfflineAIService.swift */; };
 		31A5B65406D952AC02863129 /* AIResponseParser.swift in Sources */ = {isa = PBXBuildFile; fileRef = EB2F4C4C216C290BAB1A1D60 /* AIResponseParser.swift */; };
 		334B5599EFDD6E9A7EFF72A9 /* MockService.swift in Sources */ = {isa = PBXBuildFile; fileRef = ECF3B21CF2E4CED804A723F8 /* MockService.swift */; };
 		335BF938E9747E10DAED0388 /* Workout.swift in Sources */ = {isa = PBXBuildFile; fileRef = 77D1C101843D2605AEF2F697 /* Workout.swift */; };
@@ -204,6 +205,7 @@
 		87E07F9A83E5D34B7BD468AF /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = FC86873D36371527B00B0A75 /* Assets.xcassets */; };
 		890D4353A79C4EB939C85983 /* PreviewServices.swift in Sources */ = {isa = PBXBuildFile; fileRef = C08F6502429A217229D58C27 /* PreviewServices.swift */; };
 		89276BFA1CBC51A79E61F0E9 /* LLMProvider.swift in Sources */ = {isa = PBXBuildFile; fileRef = D642A7F8B38336F0620E1A1C /* LLMProvider.swift */; };
+		898EC373842CCC6EBE68B92F /* AIServiceProtocolExtensions.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1BB464B870E85CE3D64E050A /* AIServiceProtocolExtensions.swift */; };
 		8A03F4CA6098CD9FF07FFF52 /* FoodTrackingViewModelAIIntegrationTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8B679CCEF4062D16F5881176 /* FoodTrackingViewModelAIIntegrationTests.swift */; };
 		8A06DA4D85CE29FC5DCE56B2 /* NetworkManagementProtocol.swift in Sources */ = {isa = PBXBuildFile; fileRef = 985AD97472BBE64F2A4DAD22 /* NetworkManagementProtocol.swift */; };
 		8B0D40268EF0D207AD734040 /* WorkoutTemplate.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9665021F32CB629A919F14E2 /* WorkoutTemplate.swift */; };
@@ -436,6 +438,7 @@
 		165513E132D7A2DEBDB1FB4F /* OnboardingModelsTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OnboardingModelsTests.swift; sourceTree = "<group>"; };
 		16EFC55A7ED6CD727608D7ED /* MockUserService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MockUserService.swift; sourceTree = "<group>"; };
 		1907975EC611556358976432 /* LLMModels.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LLMModels.swift; sourceTree = "<group>"; };
+		1BB464B870E85CE3D64E050A /* AIServiceProtocolExtensions.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AIServiceProtocolExtensions.swift; sourceTree = "<group>"; };
 		1CC61B6E4103072DED3F4F97 /* URLRequest+Extensions.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "URLRequest+Extensions.swift"; sourceTree = "<group>"; };
 		1D66245C19BEB005057EEF80 /* FinalOnboardingFlow.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FinalOnboardingFlow.swift; sourceTree = "<group>"; };
 		1DCFB57A57CA99421B5548DA /* OnboardingRecovery.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OnboardingRecovery.swift; sourceTree = "<group>"; };
@@ -564,6 +567,7 @@
 		77D1C101843D2605AEF2F697 /* Workout.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Workout.swift; sourceTree = "<group>"; };
 		77DA61671D7B0AF4BE4C6215 /* WorkoutCoordinator.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WorkoutCoordinator.swift; sourceTree = "<group>"; };
 		77FE8390B5C3AD9F84E49B18 /* OnboardingViewModelTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OnboardingViewModelTests.swift; sourceTree = "<group>"; };
+		787EB7F0E9DC15DE797E5483 /* OfflineAIService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OfflineAIService.swift; sourceTree = "<group>"; };
 		79A5059878CF9EA5D2643652 /* SettingsModels.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SettingsModels.swift; sourceTree = "<group>"; };
 		7D6CEBDA1A6AE20AF1DE76B1 /* WorkoutBuilderView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WorkoutBuilderView.swift; sourceTree = "<group>"; };
 		7F97BF0EEF20731DABD00ED4 /* AirFitWatchApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AirFitWatchApp.swift; sourceTree = "<group>"; };
@@ -1819,6 +1823,7 @@
 			isa = PBXGroup;
 			children = (
 				3BF5280F5534F84E7D7CBD7D /* AIServiceProtocol.swift */,
+				1BB464B870E85CE3D64E050A /* AIServiceProtocolExtensions.swift */,
 				BEB87B830A5DCE9484A2F4B3 /* AnalyticsServiceProtocol.swift */,
 				EBA943A96E4F7038F483A7AB /* APIKeyManagementProtocol.swift */,
 				94D8BB71A38678163BC105B4 /* DashboardServiceProtocols.swift */,
@@ -1887,6 +1892,7 @@
 				0CA0E11E2AB23391F0F6659F /* AIResponseCache.swift */,
 				EB2F4C4C216C290BAB1A1D60 /* AIResponseParser.swift */,
 				E27973E1347FC77F6E9C535C /* LLMOrchestrator.swift */,
+				787EB7F0E9DC15DE797E5483 /* OfflineAIService.swift */,
 				AFF206800AA2873F92A53B20 /* ProductionAIService.swift */,
 				A14193E870ADBDAD0B0B9632 /* SimpleMockAIService.swift */,
 			);
@@ -2291,6 +2297,7 @@
 				9F3DCB8A5AECC8CFDE01FC93 /* AIResponseCache.swift in Sources */,
 				31A5B65406D952AC02863129 /* AIResponseParser.swift in Sources */,
 				EA36E39AF9BAF0B3FEF5689A /* AIServiceProtocol.swift in Sources */,
+				898EC373842CCC6EBE68B92F /* AIServiceProtocolExtensions.swift in Sources */,
 				A4B7B5598153CE8A56AA1460 /* APIConfigurationView.swift in Sources */,
 				74ED269EDABB7861B0CF377C /* APIConstants.swift in Sources */,
 				3F282C00937D9D0F58512D5C /* APIKeyEntryView.swift in Sources */,
@@ -2442,6 +2449,7 @@
 				A08834AAD86BF4619A6DD20C /* NutritionSearchView.swift in Sources */,
 				B11C4A60E9EED921EC21E640 /* NutritionService.swift in Sources */,
 				B6B52FA97C7410C74F225184 /* NutritionServiceProtocol.swift in Sources */,
+				30A8CA488D39C1443DA40854 /* OfflineAIService.swift in Sources */,
 				3CFBA277A8E756AC35C94052 /* OnboardingCache.swift in Sources */,
 				F023FA64E1313FD8523A0E88 /* OnboardingContainerView.swift in Sources */,
 				00A5D4994749FD71C0763BE9 /* OnboardingCoordinator.swift in Sources */,

@@ -166,7 +166,7 @@ final class PersonaService {
     private func parsePersonalityInsights(from response: LLMResponse) throws -> ConversationPersonalityInsights {
         let content = response.content
         guard let data = content.data(using: .utf8) else {
-            throw PersonaError.parsingFailed("Invalid response content")
+            throw PersonaError.invalidResponse("Invalid response content")
         }
         
         struct InsightsResponse: Codable {
@@ -198,7 +198,7 @@ final class PersonaService {
     private func parseAdjustedPersona(from response: LLMResponse, original: PersonaProfile) throws -> PersonaProfile {
         let content = response.content
         guard let data = content.data(using: .utf8) else {
-            throw PersonaError.parsingFailed("Invalid response content")
+            throw PersonaError.invalidResponse("Invalid response content")
         }
         
         struct AdjustmentResponse: Codable {
@@ -268,22 +268,7 @@ final class PersonaService {
 
 // MARK: - Error Types
 
-enum PersonaError: LocalizedError {
-    case parsingFailed(String)
-    case generationFailed(String)
-    case saveFailed(String)
-    
-    var errorDescription: String? {
-        switch self {
-        case .parsingFailed(let detail):
-            return "Failed to parse response: \(detail)"
-        case .generationFailed(let detail):
-            return "Failed to generate persona: \(detail)"
-        case .saveFailed(let detail):
-            return "Failed to save persona: \(detail)"
-        }
-    }
-}
+// PersonaError is now defined in PersonaModels.swift
 
 // MARK: - Helper Methods
 
@@ -341,12 +326,8 @@ extension PersonaService {
 // MARK: - ConversationSession Extension
 
 extension ConversationSession {
-    var completionPercentage: Int {
-        guard responses.count > 0 else { return 0 }
-        // Estimate based on typical flow having ~10-12 questions
-        let estimatedTotal = 12
-        return min(100, Int((Double(responses.count) / Double(estimatedTotal)) * 100))
-    }
+    // Note: completionPercentage is now a stored property in the model
+    // to support assignment in ConversationFlowManager
     
     var sessionId: UUID {
         return id

@@ -115,6 +115,14 @@ enum DetailLevel: String, Codable {
     case minimal
     case moderate
     case comprehensive
+    
+    var displayName: String {
+        switch self {
+        case .minimal: return "Minimal"
+        case .moderate: return "Moderate"
+        case .comprehensive: return "Comprehensive"
+        }
+    }
 }
 
 enum EncouragementStyle: String, Codable {

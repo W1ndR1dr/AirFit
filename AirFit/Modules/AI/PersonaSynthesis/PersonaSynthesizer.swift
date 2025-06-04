@@ -92,6 +92,20 @@ actor PersonaSynthesizer {
         return persona
     }
     
+    // MARK: - Safe JSON Parsing
+    
+    private func safeJSONParse(_ content: String) throws -> [String: Any] {
+        guard let data = content.data(using: .utf8) else {
+            throw PersonaError.invalidResponse("Unable to convert response to data")
+        }
+        
+        guard let json = try JSONSerialization.jsonObject(with: data) as? [String: Any] else {
+            throw PersonaError.invalidResponse("Response is not a valid JSON object")
+        }
+        
+        return json
+    }
+    
     // MARK: - Optimized Generation Methods
     
     /// Generate identity and interaction style in a single LLM call
@@ -141,10 +155,17 @@ actor PersonaSynthesizer {
             maxTokens: 800
         )
         
-        let json = try JSONSerialization.jsonObject(with: response.content.data(using: .utf8)!) as! [String: Any]
+        let json = try safeJSONParse(response.content)
         
-        let identity = try parseIdentity(from: json["identity"] as! [String: Any])
-        let style = try parseInteractionStyle(from: json["interactionStyle"] as! [String: Any])
+        guard let identityData = json["identity"] as? [String: Any] else {
+            throw PersonaError.missingField("identity")
+        }
+        let identity = try parseIdentity(from: identityData)
+        
+        guard let styleData = json["interactionStyle"] as? [String: Any] else {
+            throw PersonaError.missingField("interactionStyle")
+        }
+        let style = try parseInteractionStyle(from: styleData)
         
         return (identity, style)
     }

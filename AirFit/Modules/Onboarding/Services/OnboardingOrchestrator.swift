@@ -41,10 +41,7 @@ final class OnboardingOrchestrator: ObservableObject {
         progress.startTime = Date()
         progress.conversationStarted = true
         
-        analytics.trackEvent(.onboardingStarted, properties: [
-            "user_id": userId.uuidString,
-            "timestamp": Date().timeIntervalSince1970
-        ])
+        await analytics.track(.sessionStarted(userId: userId))
         
         // Create conversation coordinator
         conversationCoordinator = ConversationCoordinator(
@@ -61,14 +58,19 @@ final class OnboardingOrchestrator: ObservableObject {
         conversationCoordinator?.start()
     }
     
-    func pauseOnboarding() {
+    func pauseOnboarding() async {
         guard case .conversationInProgress = state else { return }
         
         state = .paused
-        analytics.trackEvent(.onboardingPaused, properties: [
-            "progress": progress.completionPercentage,
-            "duration": progress.duration
-        ])
+        // Track pause as abandonment with current progress
+        if let user = try? await userService.getCurrentUser() {
+            let userId = user.id
+            await analytics.track(.sessionAbandoned(
+                userId: userId,
+                lastNodeId: "unknown",
+                completionPercentage: progress.completionPercentage
+            ))
+        }
     }
     
     func resumeOnboarding() async throws {
@@ -77,7 +79,11 @@ final class OnboardingOrchestrator: ObservableObject {
         }
         
         state = .conversationInProgress
-        analytics.trackEvent(.onboardingResumed)
+        // Track resume
+        if let user = try? await userService.getCurrentUser() {
+            let userId = user.id
+            await analytics.track(.sessionResumed(userId: userId, nodeId: "unknown"))
+        }
         
         // Resume conversation if needed
         if conversationCoordinator?.isActive == false {
@@ -85,14 +91,19 @@ final class OnboardingOrchestrator: ObservableObject {
         }
     }
     
-    func cancelOnboarding() {
+    func cancelOnboarding() async {
         let previousState = state
         state = .cancelled
         
-        analytics.trackEvent(.onboardingCancelled, properties: [
-            "from_state": String(describing: previousState),
-            "progress": progress.completionPercentage
-        ])
+        // Track cancellation
+        if let user = try? await userService.getCurrentUser() {
+            let userId = user.id
+            await analytics.track(.sessionAbandoned(
+                userId: userId,
+                lastNodeId: "cancelled",
+                completionPercentage: progress.completionPercentage
+            ))
+        }
         
         // Clean up
         conversationCoordinator?.isActive = false
@@ -114,7 +125,7 @@ final class OnboardingOrchestrator: ObservableObject {
             try await userService.markOnboardingComplete()
             
             // Track completion
-            analytics.trackEvent(.onboardingCompleted, properties: [
+            await analytics.trackEvent(.onboardingCompleted, properties: [
                 "duration": progress.duration,
                 "persona_id": persona.id.uuidString,
                 "persona_name": persona.name,
@@ -125,7 +136,7 @@ final class OnboardingOrchestrator: ObservableObject {
             progress.completionTime = Date()
             
         } catch {
-            handleError(.saveFailed(error))
+            await handleError(.saveFailed(error))
             throw error
         }
     }
@@ -147,7 +158,7 @@ final class OnboardingOrchestrator: ObservableObject {
             state = .reviewingPersona(adjustedPersona)
             generatedPersona = adjustedPersona
             
-            analytics.trackEvent(.personaAdjusted, properties: [
+            await analytics.trackEvent(.personaAdjusted, properties: [
                 "adjustment_type": adjustments.type.rawValue,
                 "adjustment_count": progress.adjustmentCount + 1
             ])
@@ -155,7 +166,7 @@ final class OnboardingOrchestrator: ObservableObject {
             progress.adjustmentCount += 1
             
         } catch {
-            handleError(.adjustmentFailed(error))
+            await handleError(.adjustmentFailed(error))
             throw error
         }
     }
@@ -168,9 +179,9 @@ final class OnboardingOrchestrator: ObservableObject {
         
         state = .reviewingPersona(persona)
         
-        analytics.trackEvent(.personaGenerated, properties: [
+        await analytics.trackEvent(.personaGenerated, properties: [
             "generation_time": Date().timeIntervalSince(progress.startTime),
-            "persona_traits": persona.sourceInsights.traits.count
+            "persona_traits": persona.metadata.sourceInsights.dominantTraits.count
         ])
     }
     
@@ -183,11 +194,11 @@ final class OnboardingOrchestrator: ObservableObject {
         return persona
     }
     
-    private func handleError(_ error: OnboardingOrchestratorError) {
+    private func handleError(_ error: OnboardingOrchestratorError) async {
         self.error = error
         state = .error(error)
         
-        analytics.trackEvent(.onboardingError, properties: [
+        await analytics.trackEvent(.onboardingError, properties: [
             "error_type": error.errorCode,
             "error_message": error.localizedDescription,
             "state": String(describing: state)

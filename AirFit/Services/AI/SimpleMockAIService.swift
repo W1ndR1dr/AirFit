@@ -30,7 +30,7 @@ final class SimpleMockAIService: AIServiceProtocol {
                 name: "Mock Model",
                 provider: .openAI,
                 contextWindow: 4096,
-                costPerThousandTokens: (input: 0.0, output: 0.0)
+                costPerThousandTokens: AIModel.TokenCost(input: 0.0, output: 0.0)
             )
         ]
     }
@@ -114,13 +114,13 @@ final class SimpleMockAIService: AIServiceProtocol {
     
     func analyzeGoal(_ goalText: String) async throws -> String {
         let request = AIRequest(
-            messages: [AIMessage(role: .user, content: goalText, name: nil)],
-            model: "mock-model",
-            systemPrompt: nil,
-            maxTokens: 150,
+            systemPrompt: "",
+            messages: [AIChatMessage(role: .user, content: goalText)],
+            functions: nil,
             temperature: 0.7,
+            maxTokens: 150,
             stream: false,
-            functions: nil
+            user: "mock-user"
         )
         
         var responseText = ""
