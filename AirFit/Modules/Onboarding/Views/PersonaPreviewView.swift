@@ -37,7 +37,7 @@ struct PersonaPreviewView: View {
         }
         .navigationBarHidden(true)
         .sheet(isPresented: $showingAdjustmentSheet) {
-            PersonaAdjustmentSheet(
+            PreviewPersonaAdjustmentSheet(
                 adjustmentText: $adjustmentText,
                 onSubmit: {
                     Task {
@@ -154,7 +154,7 @@ struct PersonaPreviewView: View {
             // Message carousel
             TabView(selection: $selectedSampleIndex) {
                 ForEach(0..<generateSampleMessages().count, id: \.self) { index in
-                    MessageBubble(
+                    PreviewMessageBubble(
                         message: generateSampleMessages()[index],
                         isFromCoach: true
                     )
@@ -261,7 +261,7 @@ struct PersonaPreviewView: View {
 
 // MARK: - Supporting Views
 
-struct PersonaAdjustmentSheet: View {
+struct PreviewPersonaAdjustmentSheet: View {
     @Binding var adjustmentText: String
     let onSubmit: () -> Void
     @Environment(\.dismiss) private var dismiss
@@ -390,7 +390,7 @@ struct StyleIndicator: View {
     }
 }
 
-struct MessageBubble: View {
+struct PreviewMessageBubble: View {
     let message: String
     let isFromCoach: Bool
     
@@ -466,7 +466,7 @@ struct FlowLayout: Layout {
 
 // MARK: - Preview
 
-private struct PreviewUserService: UserServiceProtocol {
+private final class PreviewUserService: UserServiceProtocol {
     func getCurrentUser() -> User? {
         nil
     }
@@ -475,12 +475,12 @@ private struct PreviewUserService: UserServiceProtocol {
         nil
     }
     
-    func updateUser(_ user: User) async throws {
-        // No-op for preview
+    func createUser(from profile: OnboardingProfile) async throws -> User {
+        User(email: profile.email, name: profile.name)
     }
     
-    func createUser(name: String, email: String?) async throws -> User {
-        User(name: name, email: email)
+    func updateProfile(_ updates: ProfileUpdate) async throws {
+        // No-op for preview
     }
     
     func completeOnboarding() async throws {
@@ -490,9 +490,13 @@ private struct PreviewUserService: UserServiceProtocol {
     func setCoachPersona(_ persona: CoachPersona) async throws {
         // No-op for preview
     }
+    
+    func deleteUser(_ user: User) async throws {
+        // No-op for preview
+    }
 }
 
-private struct PreviewAPIKeyManager: APIKeyManagementProtocol {
+private final class PreviewAPIKeyManager: APIKeyManagementProtocol {
     func getAPIKey(for provider: AIProvider) async throws -> String {
         return "preview-key"
     }
@@ -510,7 +514,7 @@ private struct PreviewAPIKeyManager: APIKeyManagementProtocol {
     }
     
     func getAllConfiguredProviders() async -> [AIProvider] {
-        return [.openAI, .anthropic, .google]
+        return [.openAI, .anthropic, .gemini]
     }
 }
 

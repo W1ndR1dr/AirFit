@@ -48,7 +48,7 @@ struct ConversationQuestion: Codable, Sendable {
     let voicePrompt: String?
 }
 
-indirect enum InputType: Codable, Sendable, Equatable {
+indirect enum InputType: Codable, Sendable {
     case text(minLength: Int, maxLength: Int, placeholder: String)
     case voice(maxDuration: TimeInterval)
     case singleChoice(options: [ChoiceOption])
@@ -57,14 +57,35 @@ indirect enum InputType: Codable, Sendable, Equatable {
     case hybrid(primary: InputType, secondary: InputType)
 }
 
-struct ChoiceOption: Codable, Sendable, Identifiable {
+extension InputType: Equatable {
+    static func == (lhs: InputType, rhs: InputType) -> Bool {
+        switch (lhs, rhs) {
+        case let (.text(minL, maxL, placeholderL), .text(minR, maxR, placeholderR)):
+            return minL == minR && maxL == maxR && placeholderL == placeholderR
+        case let (.voice(maxDurationL), .voice(maxDurationR)):
+            return maxDurationL == maxDurationR
+        case let (.singleChoice(optionsL), .singleChoice(optionsR)):
+            return optionsL == optionsR
+        case let (.multiChoice(optionsL, minL, maxL), .multiChoice(optionsR, minR, maxR)):
+            return optionsL == optionsR && minL == minR && maxL == maxR
+        case let (.slider(minL, maxL, stepL, labelsL), .slider(minR, maxR, stepR, labelsR)):
+            return minL == minR && maxL == maxR && stepL == stepR && labelsL == labelsR
+        case let (.hybrid(primaryL, secondaryL), .hybrid(primaryR, secondaryR)):
+            return primaryL == primaryR && secondaryL == secondaryR
+        default:
+            return false
+        }
+    }
+}
+
+struct ChoiceOption: Codable, Sendable, Identifiable, Equatable {
     let id: String
     let text: String
     let emoji: String?
     let traits: [String: Double]
 }
 
-struct SliderLabels: Codable, Sendable {
+struct SliderLabels: Codable, Sendable, Equatable {
     let min: String
     let max: String
     let center: String?

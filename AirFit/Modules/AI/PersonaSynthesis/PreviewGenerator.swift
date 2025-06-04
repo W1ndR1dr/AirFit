@@ -72,10 +72,23 @@ final class PreviewGenerator: ObservableObject {
             // Stage 3: Building personality
             updateStage(.buildingPersonality)
             
+            // Convert PersonalityInsights to ConversationPersonalityInsights
+            let conversationInsights = ConversationPersonalityInsights(
+                dominantTraits: insights.dominantTraits,
+                communicationStyle: insights.conversationCommunicationStyle,
+                motivationType: convertMotivationType(insights.motivationType),
+                energyLevel: insights.conversationEnergyLevel,
+                preferredComplexity: convertComplexity(insights.preferredComplexity),
+                emotionalTone: insights.emotionalTone,
+                stressResponse: convertStressResponse(insights.stressResponse),
+                preferredTimes: insights.preferredTimes,
+                extractedAt: Date()
+            )
+            
             // Generate actual persona
             let persona = try await synthesizer.synthesizePersona(
                 from: conversationData,
-                insights: insights
+                insights: conversationInsights
             )
             
             // Update preview with real data
@@ -185,6 +198,41 @@ final class PreviewGenerator: ObservableObject {
     
     private func generateFinalVoiceDescription(for persona: PersonaProfile) -> String {
         return persona.interactionStyle.greetingStyle
+    }
+    
+    // MARK: - Mapping Functions
+    
+    private func convertMotivationType(_ motivation: MotivationType) -> ConversationMotivationType {
+        switch motivation {
+        case .achievement:
+            return .achievement
+        case .health:
+            return .health
+        case .social:
+            return .social
+        }
+    }
+    
+    private func convertComplexity(_ complexity: ComplexityLevel) -> ConversationComplexity {
+        switch complexity {
+        case .simple:
+            return .simple
+        case .moderate:
+            return .moderate
+        case .detailed:
+            return .detailed
+        }
+    }
+    
+    private func convertStressResponse(_ response: StressResponseType) -> ConversationStressResponse {
+        switch response {
+        case .needsSupport:
+            return .needsSupport
+        case .needsDirection:
+            return .prefersDirectness
+        case .independent:
+            return .requiresBreakdown
+        }
     }
 }
 

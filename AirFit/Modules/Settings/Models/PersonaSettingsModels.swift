@@ -47,7 +47,7 @@ struct PersonalityTrait: Identifiable {
 extension CoachPersona {
     /// Extract dominant traits for settings display
     var dominantTraits: [PersonalityTrait] {
-        guard let insights = profile else { return [] }
+        let insights = profile
         
         return insights.traits
             .sorted { $0.value > $1.value }
@@ -69,8 +69,8 @@ extension CoachPersona {
     /// Generate gradient colors based on personality
     var gradientColors: [Color] {
         // Use personality traits to determine color scheme
-        let baseHue = (profile?.traits[.intensityPreference] ?? 0.5) * 360
-        let saturation = (profile?.traits[.emotionalSupport] ?? 0.5) * 0.5 + 0.5
+        let baseHue = (profile.traits[.intensityPreference] ?? 0.5) * 360
+        let saturation = (profile.traits[.emotionalSupport] ?? 0.5) * 0.5 + 0.5
         
         return [
             Color(hue: baseHue / 360, saturation: saturation, brightness: 0.9),
@@ -81,7 +81,7 @@ extension CoachPersona {
     /// Calculate uniqueness score (0-1)
     var uniquenessScore: Double {
         // Calculate based on variance from average values
-        guard let insights = profile else { return 0.5 }
+        let insights = profile
         
         let traitVariances = insights.traits.values.map { abs($0 - 0.5) }
         let avgVariance = traitVariances.reduce(0, +) / Double(traitVariances.count)
@@ -92,8 +92,8 @@ extension CoachPersona {
     
     /// Calculate difference from another persona
     func calculateDifference(from other: CoachPersona) -> Double {
-        guard let myTraits = profile?.traits,
-              let otherTraits = other.profile?.traits else { return 0 }
+        let myTraits = profile.traits
+        let otherTraits = other.profile.traits
         
         var totalDiff = 0.0
         for (dimension, myValue) in myTraits {

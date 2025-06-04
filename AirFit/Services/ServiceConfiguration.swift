@@ -140,69 +140,6 @@ struct ServiceConfiguration: Sendable {
     }
 }
 
-// MARK: - Service Registry
-@MainActor
-final class ServiceRegistry {
-    static let shared = ServiceRegistry()
-    
-    private var services: [String: any ServiceProtocol] = [:]
-    private let lock = NSLock()
-    
-    private init() {}
-    
-    // MARK: - Registration
-    func register<T: ServiceProtocol>(_ service: T, for type: T.Type) {
-        let key = String(describing: type)
-        lock.lock()
-        defer { lock.unlock() }
-        
-        services[key] = service
-        AppLogger.debug("Registered service: \(key)", category: .services)
-    }
-    
-    func unregister<T: ServiceProtocol>(_ type: T.Type) {
-        let key = String(describing: type)
-        lock.lock()
-        defer { lock.unlock() }
-        
-        services.removeValue(forKey: key)
-        AppLogger.debug("Unregistered service: \(key)", category: .services)
-    }
-    
-    // MARK: - Retrieval
-    func get<T: ServiceProtocol>(_ type: T.Type) -> T? {
-        let key = String(describing: type)
-        lock.lock()
-        defer { lock.unlock() }
-        
-        return services[key] as? T
-    }
-    
-    func require<T: ServiceProtocol>(_ type: T.Type) -> T {
-        guard let service = get(type) else {
-            fatalError("Required service \(type) is not registered")
-        }
-        return service
-    }
-    
-    // MARK: - Health Check
-    func healthCheck() async -> [String: ServiceHealth] {
-        var results: [String: ServiceHealth] = [:]
-        
-        for (key, service) in services {
-            results[key] = await service.healthCheck()
-        }
-        
-        return results
-    }
-    
-    // MARK: - Reset
-    func resetAll() async {
-        for service in services.values {
-            await service.reset()
-        }
-    }
-}
 
 // MARK: - Service Locator Pattern Helper
 protocol ServiceLocator {
@@ -210,18 +147,22 @@ protocol ServiceLocator {
 }
 
 extension ServiceLocator {
+    @MainActor
     static var serviceRegistry: ServiceRegistry {
         ServiceRegistry.shared
     }
     
+    @MainActor
     static func registerService<T: ServiceProtocol>(_ service: T, for type: T.Type) {
         serviceRegistry.register(service, for: type)
     }
     
+    @MainActor
     static func getService<T: ServiceProtocol>(_ type: T.Type) -> T? {
         serviceRegistry.get(type)
     }
     
+    @MainActor
     static func requireService<T: ServiceProtocol>(_ type: T.Type) -> T {
         serviceRegistry.require(type)
     }

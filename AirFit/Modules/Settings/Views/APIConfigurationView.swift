@@ -1,7 +1,7 @@
 import SwiftUI
 
 struct APIConfigurationView: View {
-    @ObservedObject var viewModel: SettingsViewModel
+    @Bindable var viewModel: SettingsViewModel
     @Environment(\.dismiss) private var dismiss
     @State private var selectedProvider: AIProvider
     @State private var selectedModel: String

@@ -47,6 +47,14 @@ enum LLMModel: CaseIterable {
         }
     }
     
+    init?(rawValue: String) {
+        if let model = LLMModel.allCases.first(where: { $0.identifier == rawValue }) {
+            self = model
+        } else {
+            return nil
+        }
+    }
+    
     var provider: LLMProviderIdentifier {
         switch self {
         case .claude35Sonnet, .claude3Opus, .claude3Sonnet, .claude35Haiku, .claude3Haiku:
@@ -192,30 +200,6 @@ enum LLMModel: CaseIterable {
         }
     }
     
-    static var allCases: [LLMModel] {
-        return [
-            // Anthropic
-            .claude35Sonnet,
-            .claude3Opus,
-            .claude3Sonnet,
-            .claude35Haiku,
-            .claude3Haiku,
-            // OpenAI
-            .gpt4o,
-            .gpt4oMini,
-            .gpt4Turbo,
-            .gpt4,
-            .gpt35Turbo,
-            // Google Gemini
-            .gemini25Flash,
-            .gemini25FlashThinking,
-            .gemini20FlashThinking,
-            .gemini20Flash,
-            .gemini15Pro,
-            .gemini15Flash,
-            .gemini10Pro
-        ]
-    }
 }
 
 // MARK: - Task-Based Model Selection

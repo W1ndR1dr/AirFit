@@ -3,7 +3,7 @@ import Foundation
 @MainActor
 final class LLMOrchestrator: ObservableObject {
     private var providers: [LLMProviderIdentifier: any LLMProvider] = [:]
-    private let apiKeyManager: APIKeyManagementProtocol
+    let apiKeyManager: APIKeyManagementProtocol
     private let cache = AIResponseCache()
     
     @Published private(set) var availableProviders: Set<LLMProviderIdentifier> = []
@@ -357,30 +357,3 @@ private struct UsageRecord {
     let timestamp: Date
 }
 
-// MARK: - LLMModel Extension
-
-extension LLMModel: CaseIterable {
-    static var allCases: [LLMModel] {
-        [
-            .claude3Opus, .claude3Sonnet, .claude3Haiku, .claude2,
-            .gpt4Turbo, .gpt4, .gpt35Turbo,
-            .gemini15Pro, .gemini15Flash, .geminiPro
-        ]
-    }
-}
-
-extension LLMModel: RawRepresentable {
-    typealias RawValue = String
-    
-    init?(rawValue: String) {
-        if let model = LLMModel.allCases.first(where: { $0.identifier == rawValue }) {
-            self = model
-        } else {
-            return nil
-        }
-    }
-    
-    var rawValue: String {
-        identifier
-    }
-}

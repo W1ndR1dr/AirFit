@@ -2,6 +2,20 @@
 
 This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
 
+<<<User interaction preference>>>
+: I don't want a sycophant. I want a collaborator. Tell me if I'm wrong. We can each capitalize upon our strengths for the most productive possible interaction. You are limited in context window, but are an expert coder, especially if you think of yourself as such. In fact, if you put yourself in the right frame of mind, you are probably one of the best coders in the world. In this repository, you are the best iOS coder in the entire world.  I, on the other hand, do not know how to code at all. However, I am a thoughtful LLM user and have much better sense of global memory than you do, although not as granular for specific code things. What this means is that I have a better ability to orchestrate the entire life cycle of the project, but not in the granular setting. Your context limitation is your Achilles heel, and I try to help you work around this by guiding you to create little memory banks in the form of markdown files.
+<<</User interaction preference>>>
+
+<<<TOOLS>>>Unique tools that you have by way of collaboration with me include
+1: Deep research. 
+  I can spin up an OpenAI or Anthropic deep research thread and get you highly detailed research, which I can put anywhere you want me to in the form of a markdown file within the codebase. If you come to a point where you think this might be useful, simply request I do so, and I will get you all of the information you need to have the context to make you the number one coder in the world.
+2: MCP
+  I can give you access to any MCP server that exists.
+3: Internet access and/or asking the user to perform agentic actions on your behalf, which you do not have direct access to. You wouldn't want to ask me to write code or design an app architecture, but you very well may ask me to do something like look for a tool that might help you accomplish your goals. LLMs thrive when there is a feedback loop between you creating content and then having exposure to your results so that you can validate and iterate to perfection.
+4: Codex agents: I can spin up to five simultaneous OpenAI Codex agents, which are highly capable agents capable of doing parallelied, albeit sandbox tasks on your behalf, create pull requests, which can then be merged into our working GitHub branch.
+<<</TOOLS>>>
+
+
 ## Project Overview
 **AirFit** - Voice-first AI-powered fitness & nutrition tracking app for iOS 18.0+ using SwiftUI, SwiftData, and multi-LLM AI integration. Chat-based interface with dynamic AI coach personas generated during onboarding.
 
@@ -46,12 +60,13 @@ xcrun xccov view --report coverage.xcresult --json > coverage.json
 
 ### Directory Structure
 ```
+# ⚠️ IMPORTANT: All paths below are relative to /AirFit/ subfolder, NOT project root!
 AirFit/
 ├── Core/           # Shared utilities, constants, themes, common views
 ├── Data/           # SwiftData models and persistence layer
 ├── Modules/        # Feature modules (each with Views/, ViewModels/, Services/, Coordinators/)
 ├── Services/       # Business logic, AI integration, network, health data
-├── Docs/           # Architecture documentation and module specs
+├── Docs/           # Architecture documentation (/AirFit/Docs/, NOT /Docs/)
 ├── AirFitTests/    # Test suite
 │   ├── Mocks/      # Mock implementations
 │   ├── Integration/# End-to-end tests
@@ -107,6 +122,21 @@ CodeMap/            # Project mapping (root directory)
 - **Service integration**: `03_Services_Layer.md` details service responsibilities
 - **Module dependencies**: `04_Modules_Layer.md` shows inter-module connections
 
+## Architecture Cleanup Documentation
+**Location**: `Cleanup/` folder - Contains comprehensive cleanup plan and implementation phases
+
+**🚨 CRITICAL**: Start with `Cleanup/PRESERVATION_GUIDE.md` to understand what code to preserve:
+- ✅ Persona Synthesis System (<3s generation - our crown jewel!)
+- ✅ Modern AI Integration (LLMOrchestrator, providers)
+- ✅ Onboarding Conversation Flow (months of UX work)
+- ✅ Function Calling System (clean dispatcher pattern)
+
+**Then read**:
+- **Overview**: `Cleanup/README.md` - Cleanup documentation index
+- **Analysis**: Deep architecture analysis, dependency mapping, AI service categorization
+- **Implementation**: Phase 1-4 cleanup guides covering critical fixes to DI overhaul
+- **Status**: Phase 1 mostly complete, Phase 2 partially complete
+
 ## Module 12 Implementation Tasks
 1. **✅ Task 12.0-12.1**: Testing infrastructure setup complete
 2. **🚧 Task 12.2**: Create comprehensive mocks for all service protocols
@@ -125,11 +155,12 @@ CodeMap/            # Project mapping (root directory)
 - **Performance**: <1.5s launch, 120fps transitions, <150MB memory, <3s persona generation
 
 ## Development Standards
+- **Naming Conventions**: Follow `Docs/NAMING_STANDARDS.md` for all files and code
 - **Test Coverage**: 80% minimum for ViewModels/Services, 90% for Utilities
 - **Performance Targets**: <1.5s app launch, 120fps transitions, <150MB memory, <3s persona generation
 - **Error Handling**: Use `async throws` or `Result<Success, Error>`, test all error paths
-- **Documentation**: `///` docs for public APIs, descriptive test names
-- **Accessibility**: Include identifiers on all interactive elements for UI testing
+- **Documentation**: `///` docs for public APIs, descriptive test names, ALL_CAPS_WITH_UNDERSCORES for docs
+- **Accessibility**: Include identifiers on all interactive elements for UI testing (pattern: `module.component.element`)
 
 ## Testing Best Practices
 - **Pattern**: AAA (Arrange-Act-Assert) for all tests
@@ -145,3 +176,18 @@ CodeMap/            # Project mapping (root directory)
 - **LLM Providers**: Unified service with fallback support, response caching, cost tracking
 - **Persona System**: Multi-phase synthesis with offline fallback, <3s generation requirement
 - **Function Calling**: Dispatcher pattern for AI-triggered actions (nutrition, workouts, goals)
+
+## Common Pitfalls to Avoid
+- **Documentation Sprawl**: Don't create README_NEW.md or PLAN_REVISED.md - update originals and archive old versions
+- **Duplicate Protocols**: Check if a protocol already exists before creating APIKeyManagerProtocol2
+- **Force Casts**: Always use safe casting, especially with JSON parsing from AI responses
+- **Naming Drift**: Follow NAMING_STANDARDS.md to prevent Module8.5.md situations
+- **Test-Code Sync**: Update tests immediately when refactoring to avoid broken test suites
+- **Context Overload**: Break large tasks into focused sessions to work within LLM context limits
+- **Wrong Directory**: Always verify full paths - Docs/ means /AirFit/Docs/, not root /Docs/
+
+## Before Creating Any File
+1. **Check if directory exists**: Use `ls` or `find` to verify the path
+2. **Use full paths**: Start with `/Users/Brian/Coding Projects/AirFit/AirFit/` for app files
+3. **Verify parent folder**: Don't create new root-level directories
+4. **Follow structure**: Place files according to the directory structure above

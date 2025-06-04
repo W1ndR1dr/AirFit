@@ -259,15 +259,6 @@ enum AIProvider: String, CaseIterable, Sendable, Codable {
     case gemini
     case anthropic
     case openRouter
-
-    var baseURL: String {
-        switch self {
-        case .openAI: return "https://api.openai.com/v1"
-        case .gemini: return "https://generativelanguage.googleapis.com"
-        case .anthropic: return "https://api.anthropic.com/v1"
-        case .openRouter: return "https://openrouter.ai/api/v1"
-        }
-    }
 }
 
 // MARK: - AIAnyCodable for flexible JSON handling

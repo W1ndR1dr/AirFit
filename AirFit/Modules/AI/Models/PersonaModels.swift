@@ -22,13 +22,13 @@ struct ConversationData: Codable, Sendable {
         var summary = "\(userName) wants to \(goal). "
         
         // Extract key information from responses
-        if let lifestyle = responses["lifestyle"]?.value as? String {
+        if let lifestyle = responses["lifestyle"] as? String {
             summary += "Lifestyle: \(lifestyle). "
         }
-        if let experience = responses["experience"]?.value as? String {
+        if let experience = responses["experience"] as? String {
             summary += "Experience: \(experience). "
         }
-        if let preferences = responses["preferences"]?.value as? [String] {
+        if let preferences = responses["preferences"] as? [String] {
             summary += "Preferences: \(preferences.joined(separator: ", ")). "
         }
         
@@ -53,7 +53,7 @@ extension PersonalityInsights {
     }
     
     var conversationCommunicationStyle: ConversationCommunicationStyle {
-        switch communicationProfile.preferredTone {
+        switch communicationStyle.preferredTone {
         case .formal, .balanced:
             return .analytical
         case .casual:
@@ -87,14 +87,14 @@ extension PersonalityInsights {
         if let support = traits[.emotionalSupport], support > 0.5 {
             tones.append("supportive")
         }
-        if communicationProfile.preferredTone == .formal {
+        if communicationStyle.preferredTone == .formal {
             tones.append("professional")
         }
         return tones
     }
     
     var preferredComplexity: ComplexityLevel {
-        switch communicationProfile.detailLevel {
+        switch communicationStyle.detailLevel {
         case .minimal:
             return .simple
         case .moderate:
@@ -315,18 +315,15 @@ struct CoachPersona: Codable, Sendable {
         self.quirks = []
         // Convert from ConversationPersonalityInsights to PersonalityInsights
         let sourceInsights = personaProfile.metadata.sourceInsights
-        self.profile = PersonalityInsights(
-            traits: [:], // Would need proper conversion from sourceInsights
-            communicationProfile: CommunicationProfile(
-                preferredTone: .balanced,
-                detailLevel: .moderate,
-                technicalComfort: .medium
-            ),
-            motivationalDrivers: Set([.achievement]),
-            stressResponses: [:],
-            timePreferences: [:],
-            extractedAt: sourceInsights.extractedAt
-        )
+        var insights = PersonalityInsights()
+        insights.traits = [:] // Would need proper conversion from sourceInsights
+        insights.communicationStyle = CommunicationProfile()
+        insights.communicationStyle.preferredTone = .balanced
+        insights.communicationStyle.detailLevel = .moderate
+        insights.motivationalDrivers = Set([.achievement])
+        insights.stressResponses = [:]
+        insights.lastUpdated = sourceInsights.extractedAt
+        self.profile = insights
         self.systemPrompt = personaProfile.systemPrompt
         self.generatedAt = personaProfile.metadata.createdAt
     }

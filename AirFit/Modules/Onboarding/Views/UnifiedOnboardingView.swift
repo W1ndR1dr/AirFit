@@ -2,19 +2,19 @@ import SwiftUI
 import SwiftData
 
 struct UnifiedOnboardingView: View {
-    @StateObject private var viewModel: OnboardingViewModel
+    @State private var viewModel: OnboardingViewModel?
     @Environment(\.modelContext) private var modelContext
     @Environment(\.dismiss) private var dismiss
     
     // Dependencies
-    let apiKeyManager: APIKeyManagerProtocol
+    let apiKeyManager: APIKeyManagementProtocol
     let userService: UserServiceProtocol
     let aiService: AIServiceProtocol
     let onboardingService: OnboardingServiceProtocol
     let onCompletion: () -> Void
     
     init(
-        apiKeyManager: APIKeyManagerProtocol,
+        apiKeyManager: APIKeyManagementProtocol,
         userService: UserServiceProtocol,
         aiService: AIServiceProtocol,
         onboardingService: OnboardingServiceProtocol,
@@ -25,22 +25,6 @@ struct UnifiedOnboardingView: View {
         self.aiService = aiService
         self.onboardingService = onboardingService
         self.onCompletion = onCompletion
-        
-        // Initialize view model based on A/B test or user preference
-        let mode: OnboardingViewModel.OnboardingMode = {
-            // TODO: Check A/B test assignment when framework is ready
-            // For now, default to conversational mode
-            return .conversational
-        }()
-        
-        self._viewModel = StateObject(wrappedValue: OnboardingViewModel(
-            aiService: aiService,
-            onboardingService: onboardingService,
-            modelContext: modelContext,
-            apiKeyManager: apiKeyManager,
-            userService: userService,
-            mode: mode
-        ))
     }
     
     var body: some View {
@@ -57,17 +41,22 @@ struct UnifiedOnboardingView: View {
             .ignoresSafeArea()
             
             // Content based on mode
-            Group {
-                switch viewModel.mode {
-                case .conversational:
-                    conversationalFlowView
-                case .legacy:
-                    legacyFlowView
+            if let viewModel = viewModel {
+                Group {
+                    switch viewModel.mode {
+                    case .conversational:
+                        conversationalFlowView
+                    case .legacy:
+                        legacyFlowView
+                    }
                 }
+            } else {
+                ProgressView("Loading...")
+                    .progressViewStyle(.circular)
             }
             
             // Mode switcher (for testing/debugging)
-            if ProcessInfo.processInfo.environment["SHOW_MODE_SWITCHER"] == "1" {
+            if let viewModel = viewModel, ProcessInfo.processInfo.environment["SHOW_MODE_SWITCHER"] == "1" {
                 VStack {
                     HStack {
                         Spacer()
@@ -79,28 +68,37 @@ struct UnifiedOnboardingView: View {
             }
         }
         .onAppear {
-            viewModel.onCompletionCallback = onCompletion
+            if viewModel == nil {
+                viewModel = OnboardingViewModel(
+                    aiService: aiService,
+                    onboardingService: onboardingService,
+                    modelContext: modelContext,
+                    apiKeyManager: apiKeyManager,
+                    userService: userService
+                )
+            }
+            viewModel?.onCompletionCallback = onCompletion
         }
-        .alert("Error", isPresented: .constant(viewModel.error != nil)) {
+        .alert("Error", isPresented: .constant(viewModel?.error != nil)) {
             Button("OK") {
-                viewModel.error = nil
+                viewModel?.error = nil
             }
         } message: {
-            Text(viewModel.error?.localizedDescription ?? "An error occurred")
+            Text(viewModel?.error?.localizedDescription ?? "An error occurred")
         }
     }
     
     // MARK: - Conversational Flow
     @ViewBuilder
     private var conversationalFlowView: some View {
-        switch viewModel.orchestratorState {
+        switch viewModel?.orchestratorState ?? .notStarted {
         case .notStarted:
             ConversationalWelcomeView(
                 onStart: {
                     Task {
                         // Get current user ID (would come from user service)
                         let userId = UUID() // Placeholder
-                        try await viewModel.startConversationalOnboarding(userId: userId)
+                        try await viewModel?.startConversationalOnboarding(userId: userId)
                     }
                 }
             )
@@ -109,8 +107,10 @@ struct UnifiedOnboardingView: View {
             // The conversation view is embedded within the orchestrator
             // Show progress or loading state
             VStack {
-                OnboardingProgressBar(progress: viewModel.orchestratorProgress)
-                    .padding()
+                if let viewModel = viewModel {
+                    OnboardingProgressBar(progress: viewModel.orchestratorProgress)
+                        .padding()
+                }
                 Spacer()
                 ProgressView("Loading conversation...")
                     .progressViewStyle(.circular)
@@ -126,12 +126,12 @@ struct UnifiedOnboardingView: View {
                 persona: persona,
                 onAccept: {
                     Task {
-                        try await viewModel.completeConversationalOnboarding()
+                        try await viewModel?.completeConversationalOnboarding()
                     }
                 },
                 onAdjust: { adjustments in
                     Task {
-                        try await viewModel.adjustPersona(adjustments)
+                        try await viewModel?.adjustPersona(adjustments)
                     }
                 }
             )
@@ -150,7 +150,7 @@ struct UnifiedOnboardingView: View {
             PausedView(
                 onResume: {
                     Task {
-                        try await viewModel.resumeConversation()
+                        try await viewModel?.resumeConversation()
                     }
                 },
                 onRestart: {
@@ -161,10 +161,10 @@ struct UnifiedOnboardingView: View {
         case .cancelled:
             CancelledView(
                 onRestart: {
-                    viewModel.switchToConversationalMode()
+                    viewModel?.switchToConversationalMode()
                 },
                 onSwitchToLegacy: {
-                    viewModel.switchToLegacyMode()
+                    viewModel?.switchToLegacyMode()
                 }
             )
             
@@ -175,7 +175,7 @@ struct UnifiedOnboardingView: View {
                     // Retry logic based on error type
                 },
                 onSwitchToLegacy: {
-                    viewModel.switchToLegacyMode()
+                    viewModel?.switchToLegacyMode()
                 }
             )
         }
@@ -184,20 +184,24 @@ struct UnifiedOnboardingView: View {
     // MARK: - Legacy Flow
     @ViewBuilder
     private var legacyFlowView: some View {
-        OnboardingFlowView(viewModel: viewModel)
+        OnboardingFlowView(
+            aiService: aiService,
+            onboardingService: onboardingService,
+            onCompletion: onCompletion
+        )
     }
     
     // MARK: - Mode Switcher
     private var modeSwitcher: some View {
         Menu {
             Button("Conversational") {
-                viewModel.switchToConversationalMode()
+                viewModel?.switchToConversationalMode()
             }
             Button("Legacy Forms") {
-                viewModel.switchToLegacyMode()
+                viewModel?.switchToLegacyMode()
             }
         } label: {
-            Label("Mode: \(viewModel.mode == .conversational ? "Chat" : "Forms")", systemImage: "gearshape")
+            Label("Mode: \(viewModel?.mode == .conversational ? "Chat" : "Forms")", systemImage: "gearshape")
                 .font(.caption)
                 .padding(8)
                 .background(Color.secondary.opacity(0.2))

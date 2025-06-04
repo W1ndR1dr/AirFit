@@ -1,6 +1,7 @@
 import Foundation
 import SwiftData
 import BackgroundTasks
+import UserNotifications
 
 @MainActor
 final class EngagementEngine {
@@ -230,9 +231,9 @@ final class EngagementEngine {
         let context = ReEngagementContext(
             userName: user.name ?? "there",
             daysSinceLastActive: user.daysSinceLastActive,
-            primaryGoal: user.onboardingProfile?.primaryGoal,
+            primaryGoal: nil, // TODO: Extract from persona or conversation data
             previousEngagementAttempts: user.reEngagementAttempts,
-            lastWorkoutType: user.workouts.last?.type.name,
+            lastWorkoutType: user.workouts.last?.workoutType,
             personalityTraits: user.onboardingProfile?.persona
         )
         
@@ -248,31 +249,26 @@ final class EngagementEngine {
     
     // MARK: - Smart Notification Scheduling
     func scheduleSmartNotifications(for user: User) async {
-        do {
-            let preferences = user.notificationPreferences ?? NotificationPreferences()
-            
-            // Morning greeting
-            if preferences.morningGreeting {
-                await scheduleMorningGreeting(for: user, time: preferences.morningTime)
-            }
-            
-            // Workout reminders
-            if preferences.workoutReminders {
-                await scheduleWorkoutReminders(for: user, schedule: preferences.workoutSchedule)
-            }
-            
-            // Meal reminders
-            if preferences.mealReminders {
-                await scheduleMealReminders(for: user)
-            }
-            
-            // Hydration reminders
-            if preferences.hydrationReminders {
-                await scheduleHydrationReminders(frequency: preferences.hydrationFrequency)
-            }
-            
-        } catch {
-            AppLogger.error("Failed to schedule smart notifications", error: error, category: .general)
+        let preferences = user.notificationPreferences ?? NotificationPreferences()
+        
+        // Morning greeting
+        if preferences.morningGreeting {
+            await scheduleMorningGreeting(for: user, time: preferences.morningTime)
+        }
+        
+        // Workout reminders
+        if preferences.workoutReminders {
+            await scheduleWorkoutReminders(for: user, schedule: preferences.workoutSchedule)
+        }
+        
+        // Meal reminders
+        if preferences.mealReminders {
+            await scheduleMealReminders(for: user)
+        }
+        
+        // Hydration reminders
+        if preferences.hydrationReminders {
+            await scheduleHydrationReminders(frequency: preferences.hydrationFrequency)
         }
     }
     

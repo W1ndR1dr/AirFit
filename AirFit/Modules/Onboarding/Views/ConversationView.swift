@@ -133,7 +133,7 @@ struct ConversationView: View {
 }
 
 // MARK: - Loading Overlay
-struct LoadingOverlay: View {
+private struct ConversationLoadingOverlay: View {
     @State private var rotation: Double = 0
     
     var body: some View {

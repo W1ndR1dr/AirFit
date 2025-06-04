@@ -1,4 +1,5 @@
 import Foundation
+import UIKit
 
 extension URLRequest {
     
@@ -110,7 +111,7 @@ extension URLRequest {
         let appVersion = AppConstants.appVersion
         let buildNumber = AppConstants.buildNumber
         let osVersion = ProcessInfo.processInfo.operatingSystemVersionString
-        let deviceModel = UIDevice.current.model
+        let deviceModel = "iOS Device" // Generic model string to avoid MainActor isolation
         
         return "AirFit/\(appVersion) (Build \(buildNumber); \(deviceModel); \(osVersion))"
     }

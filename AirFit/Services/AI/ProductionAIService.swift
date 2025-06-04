@@ -10,13 +10,23 @@ final class ProductionAIService: AIServiceProtocol {
     private(set) var activeProvider: AIProvider = .anthropic
     private(set) var availableModels: [AIModel] = []
     
-    private let unifiedService: UnifiedAIService
-    private let apiKeyManager: APIKeyManagerProtocol
+    private let orchestrator: LLMOrchestrator
+    private let apiKeyManager: APIKeyManagementProtocol
+    private let cache: AIResponseCache
+    private var currentModel: String = LLMModel.claude3Sonnet.identifier
+    
+    // Cost tracking
+    @Published private(set) var totalCost: Double = 0
+    
+    // Fallback providers
+    private var fallbackProviders: [AIProvider] = [.openAI, .gemini, .anthropic]
+    private var cacheEnabled = true
     
     // MARK: - Initialization
-    init(apiKeyManager: APIKeyManagerProtocol) async {
-        self.apiKeyManager = apiKeyManager
-        self.unifiedService = await UnifiedAIService(apiKeyManager: apiKeyManager)
+    init(llmOrchestrator: LLMOrchestrator) {
+        self.orchestrator = llmOrchestrator
+        self.apiKeyManager = llmOrchestrator.apiKeyManager
+        self.cache = AIResponseCache()
         
         // Initialize available models
         self.availableModels = [
@@ -55,13 +65,16 @@ final class ProductionAIService: AIServiceProtocol {
             throw ServiceError.notConfigured
         }
         
-        // Set active provider based on available keys
+        // Set active provider and model based on available keys
         if hasAnthropicKey {
             activeProvider = .anthropic
+            currentModel = LLMModel.claude3Sonnet.identifier
         } else if hasOpenAIKey {
             activeProvider = .openAI
+            currentModel = LLMModel.gpt4Turbo.identifier
         } else if hasGeminiKey {
             activeProvider = .gemini
+            currentModel = LLMModel.gemini15Pro.identifier
         }
         
         isConfigured = true
@@ -96,7 +109,7 @@ final class ProductionAIService: AIServiceProtocol {
     // MARK: - AIServiceProtocol
     func configure(provider: AIProvider, apiKey: String, model: String?) async throws {
         // Save the API key
-        try await apiKeyManager.setAPIKey(apiKey, for: provider)
+        try await apiKeyManager.saveAPIKey(apiKey, for: provider)
         
         // Update active provider
         activeProvider = provider
@@ -109,30 +122,88 @@ final class ProductionAIService: AIServiceProtocol {
         AsyncThrowingStream { continuation in
             Task {
                 do {
-                    // Convert AIRequest to format expected by UnifiedAIService
-                    let messages = request.messages.map { msg in
-                        AIChatMessage(
-                            role: msg.role,
+                    guard isConfigured else {
+                        throw ServiceError.notConfigured
+                    }
+                    
+                    // Convert AIRequest messages to LLMMessage format
+                    let llmMessages = request.messages.map { msg in
+                        LLMMessage(
+                            role: LLMMessage.Role(rawValue: msg.role.rawValue) ?? .user,
                             content: msg.content,
-                            name: msg.name
+                            name: msg.name,
+                            attachments: nil
                         )
                     }
                     
-                    let aiRequest = AIRequest(
-                        systemPrompt: request.systemPrompt,
-                        messages: messages,
-                        functions: request.functions,
+                    // Create LLMRequest
+                    _ = LLMRequest(
+                        messages: llmMessages,
+                        model: currentModel,
                         temperature: request.temperature,
                         maxTokens: request.maxTokens,
+                        systemPrompt: request.systemPrompt,
+                        responseFormat: nil,
                         stream: request.stream,
-                        user: "user"
+                        metadata: [:],
+                        thinkingBudgetTokens: nil
                     )
                     
-                    // Send through unified service using Combine publisher
-                    let publisher = unifiedService.getStreamingResponse(for: aiRequest)
+                    // Build prompt from messages
+                    var prompt = ""
+                    if !request.systemPrompt.isEmpty {
+                        prompt += "System: \(request.systemPrompt)\n\n"
+                    }
+                    for message in request.messages {
+                        prompt += "\(message.role.rawValue.capitalized): \(message.content)\n"
+                    }
                     
-                    for try await response in publisher.values {
-                        continuation.yield(response)
+                    if request.stream {
+                        // Stream responses (no caching for streams)
+                        let stream = orchestrator.stream(
+                            prompt: prompt,
+                            task: .coaching,
+                            temperature: request.temperature
+                        )
+                        
+                        var fullResponse = ""
+                        for try await chunk in stream {
+                            fullResponse += chunk.delta
+                            continuation.yield(.textDelta(chunk.delta))
+                            
+                            if chunk.isFinished {
+                                let usage = AITokenUsage(
+                                    promptTokens: chunk.usage?.promptTokens ?? 0,
+                                    completionTokens: chunk.usage?.completionTokens ?? 0,
+                                    totalTokens: chunk.usage?.totalTokens ?? 0
+                                )
+                                
+                                // Update cost tracking
+                                if let model = LLMModel(rawValue: currentModel) {
+                                    let cost = Double(usage.promptTokens) / 1000.0 * model.cost.input +
+                                               Double(usage.completionTokens) / 1000.0 * model.cost.output
+                                    totalCost += cost
+                                }
+                                
+                                continuation.yield(.done(usage: usage))
+                            }
+                        }
+                    } else {
+                        // Single response
+                        let llmResponse = try await orchestrator.complete(
+                            prompt: prompt,
+                            task: .coaching,
+                            temperature: request.temperature,
+                            maxTokens: request.maxTokens
+                        )
+                        continuation.yield(.text(llmResponse.content))
+                        
+                        let usage = AITokenUsage(
+                            promptTokens: llmResponse.usage.promptTokens,
+                            completionTokens: llmResponse.usage.completionTokens,
+                            totalTokens: llmResponse.usage.totalTokens
+                        )
+                        continuation.yield(.done(usage: usage))
                     }
                     
                     continuation.finish()
@@ -197,5 +268,40 @@ final class ProductionAIService: AIServiceProtocol {
         }
         
         return responseText.isEmpty ? "I'll help you achieve your fitness goals! Let's create a personalized plan together." : responseText
+    }
+    
+    // MARK: - Cache Control
+    
+    func setCacheEnabled(_ enabled: Bool) {
+        cacheEnabled = enabled
+    }
+    
+    func clearCache() async {
+        await cache.clear()
+    }
+    
+    func getCacheStatistics() async -> (hits: Int, misses: Int, size: Int) {
+        let stats = await cache.getStatistics()
+        return (hits: stats.hitCount, misses: stats.missCount, size: stats.memorySizeBytes)
+    }
+    
+    // MARK: - Cost Tracking
+    
+    func resetCostTracking() {
+        totalCost = 0
+    }
+    
+    func getCostBreakdown() -> [(provider: AIProvider, cost: Double)] {
+        // Simple breakdown - in future could track per provider
+        return [(activeProvider, totalCost)]
+    }
+    
+    // MARK: - Private Helpers
+    
+    private func generateCacheKey(for request: AIRequest) -> String {
+        let content = request.messages.map { $0.content }.joined(separator: "|")
+        let systemPromptPart = request.systemPrompt ?? ""
+        let key = "\(systemPromptPart)-\(content)-\(request.temperature)"
+        return key.data(using: .utf8)?.base64EncodedString() ?? key
     }
 }

@@ -21,8 +21,10 @@ public final class DependencyContainer: @unchecked Sendable {
         self.logger = AppLogger.self
         
         // Initialize services that don't depend on ModelContext
-        self.apiKeyManager = DefaultAPIKeyManager(keychain: keychain)
-        self.notificationManager = NotificationManager.shared
+        Task { @MainActor in
+            self.apiKeyManager = DefaultAPIKeyManager(keychain: keychain)
+            self.notificationManager = NotificationManager.shared
+        }
     }
 
     // MARK: - Configuration
@@ -31,13 +33,18 @@ public final class DependencyContainer: @unchecked Sendable {
         
         // Initialize services that depend on ModelContext
         let modelContext = ModelContext(modelContainer)
-        self.userService = DefaultUserService(modelContext: modelContext)
+        Task { @MainActor in
+            self.userService = DefaultUserService(modelContext: modelContext)
+        }
         
         // Configure AI service with ProductionAIService
         Task {
             if let keyManager = self.apiKeyManager {
                 // Create and configure the production AI service
-                let productionService = await ProductionAIService(apiKeyManager: keyManager)
+                let orchestrator = await MainActor.run {
+                    LLMOrchestrator(apiKeyManager: keyManager as! APIKeyManagementProtocol)
+                }
+                let productionService = await ProductionAIService(llmOrchestrator: orchestrator)
                 
                 // Try to configure the service
                 do {
@@ -46,11 +53,11 @@ public final class DependencyContainer: @unchecked Sendable {
                     AppLogger.info("Production AI service configured successfully", category: .app)
                 } catch {
                     AppLogger.warning("Failed to configure production AI service: \(error). Using mock service.", category: .app)
-                    self.aiService = SimpleMockAIService()
+                    self.aiService = await MainActor.run { SimpleMockAIService() }
                 }
             } else {
                 AppLogger.warning("No API key manager available, using mock AI service", category: .app)
-                self.aiService = SimpleMockAIService()
+                self.aiService = await MainActor.run { SimpleMockAIService() }
             }
         }
         

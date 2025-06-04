@@ -1,8 +1,8 @@
 import Foundation
 import SwiftData
 import Observation
-import Combine
 import UIKit
+import Combine
 
 // MARK: - Direct AI Error Types
 enum DirectAIError: Error, LocalizedError {
@@ -126,7 +126,7 @@ final class CoachEngine {
     private let functionDispatcher: FunctionCallDispatcher
     private let personaEngine: PersonaEngine
     private let conversationManager: ConversationManager
-    private let aiService: AIAPIServiceProtocol
+    private let aiService: AIServiceProtocol
     private let contextAssembler: ContextAssembler
     private let modelContext: ModelContext
     private let routingConfiguration: RoutingConfiguration
@@ -142,7 +142,7 @@ final class CoachEngine {
         functionDispatcher: FunctionCallDispatcher,
         personaEngine: PersonaEngine,
         conversationManager: ConversationManager,
-        aiService: AIAPIServiceProtocol,
+        aiService: AIServiceProtocol,
         contextAssembler: ContextAssembler,
         modelContext: ModelContext,
         routingConfiguration: RoutingConfiguration = RoutingConfiguration.shared
@@ -160,6 +160,26 @@ final class CoachEngine {
         self.activeConversationId = UUID()
     }
 
+    // MARK: - Private Helpers
+    
+    /// Helper to collect all text from an AI response stream
+    private func collectAIResponse(from request: AIRequest) async -> String {
+        var result = ""
+        do {
+            for try await response in aiService.sendRequest(request) {
+                switch response {
+                case .text(let text), .textDelta(let text):
+                    result += text
+                default:
+                    break
+                }
+            }
+        } catch {
+            AppLogger.error("Failed to get AI response: \(error)", category: .ai)
+        }
+        return result
+    }
+    
     // MARK: - Public Methods
 
     /// Processes a user message through the complete AI coaching pipeline
@@ -271,30 +291,7 @@ final class CoachEngine {
         )
 
         // Get AI response
-        var analysisResult = ""
-        let responsePublisher = aiService.getStreamingResponse(for: aiRequest)
-
-        await withCheckedContinuation { continuation in
-            var cancellables = Set<AnyCancellable>()
-
-            responsePublisher
-                .receive(on: DispatchQueue.main)
-                .sink(
-                    receiveCompletion: { _ in
-                        continuation.resume()
-                    },
-                    receiveValue: { response in
-                        switch response {
-                        case .text(let text), .textDelta(let text):
-                            analysisResult += text
-                        default:
-                            break
-                        }
-                    }
-                )
-                .store(in: &cancellables)
-        }
-
+        let analysisResult = await collectAIResponse(from: aiRequest)
         return analysisResult.isEmpty ? "Great workout! Keep up the excellent work." : analysisResult
     }
 
@@ -1919,43 +1916,67 @@ extension CoachEngine {
     /// Creates a default instance of CoachEngine with minimal dependencies for development.
     /// Uses inline stub implementations to avoid external dependencies.
     static func createDefault(modelContext: ModelContext) -> CoachEngine {
-        // Minimal inline stub for AIAPIServiceProtocol
-        final class MinimalAIAPIService: AIAPIServiceProtocol {
-            func configure(provider: AIProvider, apiKey: String, modelIdentifier: String?) {
+        // Minimal inline stub for AIServiceProtocol
+        @MainActor
+        final class MinimalAIAPIService: AIServiceProtocol {
+            var serviceIdentifier = "minimal-ai-service"
+            var isConfigured = true
+            var activeProvider: AIProvider = .anthropic
+            var availableModels: [AIModel] = []
+            
+            func configure() async throws {
                 // No-op for development
             }
             
-            func getStreamingResponse(for request: AIRequest) -> AnyPublisher<AIResponse, Error> {
-                // Return empty publisher for development
-                Empty(completeImmediately: true).eraseToAnyPublisher()
+            func reset() async {
+                // No-op for development
+            }
+            
+            func healthCheck() async -> ServiceHealth {
+                ServiceHealth(
+                    status: .healthy,
+                    lastCheckTime: Date(),
+                    responseTime: nil,
+                    errorMessage: nil,
+                    metadata: [:]
+                )
+            }
+            
+            func configure(provider: AIProvider, apiKey: String, model: String?) async throws {
+                // No-op for development
+            }
+            
+            func sendRequest(_ request: AIRequest) -> AsyncThrowingStream<AIResponse, Error> {
+                AsyncThrowingStream { continuation in
+                    continuation.yield(.textDelta("Mock response"))
+                    continuation.finish()
+                }
+            }
+            
+            func validateConfiguration() async throws -> Bool {
+                return true
+            }
+            
+            func checkHealth() async -> ServiceHealth {
+                return await healthCheck()
+            }
+            
+            func estimateTokenCount(for text: String) -> Int {
+                return text.count / 4
             }
         }
         
-        // Simple inline mocks for development
-        final class DevWorkoutService: WorkoutServiceProtocol {
-            func generatePlan(for user: User, goal: String, duration: Int, intensity: String, targetMuscles: [String], equipment: [String], constraints: String?, style: String) async throws -> WorkoutPlanResult {
-                return WorkoutPlanResult(id: UUID(), exercises: [], estimatedCalories: 300, estimatedDuration: duration, summary: "Dev workout plan")
-            }
-        }
-        
-        final class DevAnalyticsService: AnalyticsServiceProtocol {
-            func analyzePerformance(query: String, metrics: [String], days: Int, depth: String, includeRecommendations: Bool, for user: User) async throws -> PerformanceAnalysisResult {
-                return PerformanceAnalysisResult(summary: "Dev analysis", insights: [], trends: [], recommendations: [], dataPoints: 0)
-            }
-        }
-        
-        final class DevGoalService: GoalServiceProtocol {
-            func createOrRefineGoal(current: String?, aspirations: String, timeframe: String?, fitnessLevel: String?, constraints: [String], motivations: [String], goalType: String?, for user: User) async throws -> GoalResult {
-                return GoalResult(id: UUID(), title: "Dev Goal", description: "Dev goal description", targetDate: nil, metrics: [], milestones: [], smartCriteria: GoalResult.SMARTCriteria(specific: "", measurable: "", achievable: "", relevant: "", timeBound: ""))
-            }
-        }
+        // Create minimal preview services that conform to AI protocols
+        let previewWorkoutService = PreviewAIWorkoutService()
+        let previewAnalyticsService = PreviewAIAnalyticsService()
+        let previewGoalService = PreviewAIGoalService()
         
         return CoachEngine(
             localCommandParser: LocalCommandParser(),
             functionDispatcher: FunctionCallDispatcher(
-                workoutService: DevWorkoutService(),
-                analyticsService: DevAnalyticsService(),
-                goalService: DevGoalService()
+                workoutService: previewWorkoutService,
+                analyticsService: previewAnalyticsService,
+                goalService: previewGoalService
             ),
             personaEngine: PersonaEngine(),
             conversationManager: ConversationManager(modelContext: modelContext),
@@ -1968,10 +1989,7 @@ extension CoachEngine {
 
 // MARK: - CoachEngineProtocol Conformance
 extension CoachEngine: CoachEngineProtocol {
-    func generatePostWorkoutAnalysis(_ request: PostWorkoutAnalysisRequest) async throws -> String {
-        // TODO: Implement post-workout analysis
-        return "Great workout! Keep up the excellent work."
-    }
+    // generatePostWorkoutAnalysis is already implemented above
 }
 
 // MARK: - FoodCoachEngineProtocol Conformance
@@ -2207,5 +2225,126 @@ extension CoachEngine: FoodCoachEngineProtocol {
             databaseId: nil,
             confidence: 0.3 // Low confidence indicates fallback
         )
+    }
+}
+
+// MARK: - Preview Service Implementations
+
+/// Minimal preview implementation of AI workout service
+private final class PreviewAIWorkoutService: AIWorkoutServiceProtocol {
+    // Base protocol requirements
+    func startWorkout(type: WorkoutType, user: User) async throws -> Workout {
+        Workout(type: type, user: user, startDate: Date())
+    }
+    func pauseWorkout(_ workout: Workout) async throws {}
+    func resumeWorkout(_ workout: Workout) async throws {}
+    func endWorkout(_ workout: Workout) async throws {}
+    func logExercise(_ exercise: Exercise, in workout: Workout) async throws {}
+    func getWorkoutHistory(for user: User, limit: Int) async throws -> [Workout] { [] }
+    func getWorkoutTemplates() async throws -> [WorkoutTemplate] { [] }
+    func saveWorkoutTemplate(_ template: WorkoutTemplate) async throws {}
+    
+    // AI protocol requirements
+    func generatePlan(for user: User, goal: String, duration: Int, intensity: String, targetMuscles: [String], equipment: [String], constraints: String?, style: String) async throws -> WorkoutPlanResult {
+        WorkoutPlanResult(
+            id: UUID(),
+            exercises: [],
+            estimatedCalories: 300,
+            estimatedDuration: duration,
+            summary: "Preview workout plan",
+            difficulty: .intermediate,
+            focusAreas: targetMuscles
+        )
+    }
+    
+    func adaptPlan(_ plan: WorkoutPlanResult, feedback: String, adjustments: [String: Any]) async throws -> WorkoutPlanResult {
+        plan
+    }
+}
+
+/// Minimal preview implementation of AI analytics service
+private final class PreviewAIAnalyticsService: AIAnalyticsServiceProtocol {
+    // Base protocol requirements
+    func trackEvent(_ event: AnalyticsEvent) async {}
+    func trackScreen(_ screen: String, properties: [String: String]?) async {}
+    func setUserProperties(_ properties: [String: String]) async {}
+    func trackWorkoutCompleted(_ workout: Workout) async {}
+    func trackMealLogged(_ meal: FoodEntry) async {}
+    func getInsights(for user: User) async throws -> UserInsights {
+        UserInsights(
+            workoutFrequency: 3.5,
+            averageWorkoutDuration: 3600,
+            caloriesTrend: .increasing(percentage: 5),
+            macroBalance: MacroBalance(protein: 0.3, carbs: 0.4, fat: 0.3),
+            streakDays: 7,
+            achievements: []
+        )
+    }
+    
+    // AI protocol requirements
+    func analyzePerformance(query: String, metrics: [String], days: Int, depth: String, includeRecommendations: Bool, for user: User) async throws -> PerformanceAnalysisResult {
+        PerformanceAnalysisResult(
+            summary: "Preview analysis",
+            insights: [],
+            trends: [],
+            recommendations: [],
+            dataPoints: 0,
+            confidence: 0.5
+        )
+    }
+    
+    func generatePredictiveInsights(for user: User, timeframe: Int) async throws -> PredictiveInsights {
+        PredictiveInsights(
+            projections: [:],
+            risks: [],
+            opportunities: [],
+            confidence: 0.5
+        )
+    }
+}
+
+/// Minimal preview implementation of AI goal service
+private final class PreviewAIGoalService: AIGoalServiceProtocol {
+    // Base protocol requirements
+    func createGoal(_ goalData: GoalCreationData, for user: User) async throws -> ServiceGoal {
+        ServiceGoal(
+            id: UUID(),
+            title: goalData.title,
+            description: goalData.description,
+            targetValue: goalData.targetValue,
+            currentValue: 0,
+            unit: goalData.unit,
+            targetDate: goalData.targetDate,
+            createdDate: Date(),
+            type: .fitness
+        )
+    }
+    func updateGoal(_ goal: ServiceGoal, updates: GoalUpdate) async throws {}
+    func deleteGoal(_ goal: ServiceGoal) async throws {}
+    func getActiveGoals(for user: User) async throws -> [ServiceGoal] { [] }
+    func trackProgress(for goal: ServiceGoal, value: Double) async throws {}
+    func checkGoalCompletion(_ goal: ServiceGoal) async -> Bool { false }
+    
+    // AI protocol requirements
+    func createOrRefineGoal(current: String?, aspirations: String, timeframe: String?, fitnessLevel: String?, constraints: [String], motivations: [String], goalType: String?, for user: User) async throws -> GoalResult {
+        GoalResult(
+            id: UUID(),
+            title: "Preview Goal",
+            description: aspirations,
+            targetDate: nil,
+            metrics: [],
+            milestones: [],
+            smartCriteria: GoalResult.SMARTCriteria(
+                specific: aspirations,
+                measurable: "Track progress",
+                achievable: "Yes",
+                relevant: "Aligned with goals",
+                timeBound: timeframe ?? "Flexible"
+            )
+        )
+    }
+    
+    func suggestGoalAdjustments(for goal: ServiceGoal, user: User) async throws -> [GoalAdjustment] {
+        []
     }
 }

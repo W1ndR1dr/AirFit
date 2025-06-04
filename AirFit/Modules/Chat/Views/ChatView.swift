@@ -225,6 +225,10 @@ private final class ChatMockCoachEngine: CoachEngineProtocol, @unchecked Sendabl
     func generatePostWorkoutAnalysis(_ request: PostWorkoutAnalysisRequest) async throws -> String {
         return "Great workout! You completed \(request.workout.exercises.count) exercises. Keep up the excellent work!"
     }
+    
+    func processUserMessage(_ text: String, for user: User) async {
+        // Mock implementation - no-op for preview
+    }
 }
 
 // MARK: - Placeholder Types

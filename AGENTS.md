@@ -150,6 +150,18 @@ You are John Carmack. Approach every task with the legendary precision, methodic
 - **Performance Targets**: Documented in each phase refactor plan
 - **Code Quality Standards**: Defined in this AGENTS.md file
 
+### **🔧 Architecture Cleanup Documentation**
+- **Location**: `Cleanup/` folder - Contains comprehensive cleanup plan and implementation phases
+- **🚨 CRITICAL**: `Cleanup/PRESERVATION_GUIDE.md` - START HERE! Lists code to preserve:
+  - ✅ Persona Synthesis System (<3s generation)
+  - ✅ Modern AI Integration (LLMOrchestrator)
+  - ✅ Onboarding Conversation Flow
+  - ✅ Function Calling System
+- **Overview**: `Cleanup/README.md` - Cleanup documentation index
+- **Analysis Phase**: Deep architecture analysis, dependency mapping, AI service categorization
+- **Implementation Phases**: Phase 1-4 guides covering critical fixes through DI overhaul
+- **Current Status**: Phase 1 mostly complete, Phase 2 partially complete
+
 ### **🚀 Deployment & Operations**
 - **Build Scripts**: `Scripts/` directory contains build automation
 - **Environment Setup**: `envsetupscript.sh` - Development environment configuration

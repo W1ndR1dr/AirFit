@@ -589,7 +589,7 @@ struct RefinementOptionCard: View {
 
 // MARK: - Data Export Progress View
 struct DataExportProgressView: View {
-    @ObservedObject var viewModel: SettingsViewModel
+    @Bindable var viewModel: SettingsViewModel
     @Environment(\.dismiss) private var dismiss
     @State private var exportProgress: Double = 0
     @State private var currentStatus = "Preparing export..."
@@ -660,7 +660,7 @@ struct DataExportProgressView: View {
                     }
                     .padding()
                     .sheet(isPresented: $showShareSheet) {
-                        ShareSheet(items: [url])
+                        SettingsShareSheet(items: [url])
                     }
                 } else {
                     // Progress state
@@ -794,7 +794,7 @@ struct ExportStep: Identifiable {
 
 // MARK: - Delete Account View
 struct DeleteAccountView: View {
-    @ObservedObject var viewModel: SettingsViewModel
+    @Bindable var viewModel: SettingsViewModel
     @Environment(\.dismiss) private var dismiss
     @State private var confirmationText = ""
     @State private var isDeleting = false
@@ -1237,7 +1237,7 @@ struct DebugSettingsView: View {
             Text("This will reset your onboarding status and coach persona. You'll need to go through setup again.")
         }
         .sheet(item: $exportedLogsURL) { url in
-            ShareSheet(items: [url])
+            SettingsShareSheet(items: [url])
         }
     }
     
@@ -1368,7 +1368,7 @@ struct FeatureFlagsView: View {
 }
 
 // MARK: - Share Sheet
-struct ShareSheet: UIViewControllerRepresentable {
+private struct SettingsShareSheet: UIViewControllerRepresentable {
     let items: [Any]
     
     func makeUIViewController(context: Context) -> UIActivityViewController {

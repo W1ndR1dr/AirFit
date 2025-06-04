@@ -1,12 +1,54 @@
 import Foundation
 
 /// Default implementation of APIKeyManagerProtocol using Keychain
-final class DefaultAPIKeyManager: APIKeyManagerProtocol, APIKeyManagementProtocol, @unchecked Sendable {
+@MainActor
+final class DefaultAPIKeyManager: APIKeyManagerProtocol, APIKeyManagementProtocol, ServiceProtocol, @unchecked Sendable {
     private let keychain: KeychainWrapper
     private let keychainPrefix = "com.airfit.apikey."
     
+    // MARK: - ServiceProtocol
+    private(set) var isConfigured: Bool = false
+    let serviceIdentifier = "api-key-manager"
+    
     init(keychain: KeychainWrapper = .shared) {
         self.keychain = keychain
+    }
+    
+    // MARK: - ServiceProtocol
+    
+    func configure() async throws {
+        // Nothing specific to configure for keychain access
+        isConfigured = true
+        AppLogger.info("APIKeyManager configured", category: .security)
+    }
+    
+    func reset() async {
+        // Do not clear API keys on reset
+        AppLogger.info("APIKeyManager reset", category: .security)
+    }
+    
+    func healthCheck() async -> ServiceHealth {
+        // Check if we can access keychain
+        let canAccessKeychain = await Task { () -> Bool in
+            do {
+                // Try to access a dummy key to verify keychain access
+                _ = try keychain.get(forKey: "health_check_dummy")
+                return true
+            } catch {
+                // Expected error for non-existent key, but confirms keychain is accessible
+                return true
+            }
+        }.value
+        
+        return ServiceHealth(
+            status: canAccessKeychain ? .healthy : .unhealthy,
+            lastCheckTime: Date(),
+            responseTime: nil,
+            errorMessage: canAccessKeychain ? nil : "Cannot access keychain",
+            metadata: [
+                "configuredProviders": "\(await getAllConfiguredProviders().count)"
+            ]
+        )
     }
     
     // MARK: - Legacy Synchronous Methods
@@ -90,6 +132,20 @@ final class DefaultAPIKeyManager: APIKeyManagerProtocol, APIKeyManagementProtoco
         return AIProvider.allCases.filter { provider in
             await hasAPIKey(for: provider)
         }
+    }
+    
+    // MARK: - APIKeyManagerProtocol Methods
+    
+    func setAPIKey(_ key: String, for provider: AIProvider) async throws {
+        try saveAPIKey(key, forProvider: provider)
+    }
+    
+    func getAPIKey(for provider: AIProvider) async throws -> String? {
+        return getAPIKey(forProvider: provider)
+    }
+    
+    func removeAPIKey(for provider: AIProvider) async throws {
+        try deleteAPIKey(forProvider: provider)
     }
     
     // MARK: - Private Methods

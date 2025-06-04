@@ -289,7 +289,7 @@ private struct AnthropicError: Decodable {
 }
 
 // Gemini
-private struct GeminiStreamResponse: Decodable {
+struct GeminiStreamResponse: Decodable {
     let candidates: [Candidate]
     
     struct Candidate: Decodable {

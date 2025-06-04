@@ -13,7 +13,7 @@ actor PersonaSynthesizer {
     /// Synthesize persona with <5s performance target
     func synthesizePersona(
         from conversationData: ConversationData,
-        insights: PersonalityInsights
+        insights: ConversationPersonalityInsights
     ) async throws -> PersonaProfile {
         let startTime = CFAbsoluteTimeGetCurrent()
         
@@ -97,7 +97,7 @@ actor PersonaSynthesizer {
     /// Generate identity and interaction style in a single LLM call
     private func generateIdentityAndStyle(
         conversationData: ConversationData,
-        insights: PersonalityInsights
+        insights: ConversationPersonalityInsights
     ) async throws -> (PersonaIdentity, InteractionStyle) {
         let prompt = """
         Generate a unique AI fitness coach persona based on this conversation data.
@@ -150,7 +150,7 @@ actor PersonaSynthesizer {
     }
     
     /// Generate voice characteristics locally (instant)
-    private func generateVoiceCharacteristics(insights: PersonalityInsights) -> VoiceCharacteristics {
+    private func generateVoiceCharacteristics(insights: ConversationPersonalityInsights) -> VoiceCharacteristics {
         // Map insights to voice characteristics algorithmically
         let energy: VoiceCharacteristics.Energy = {
             switch insights.energyLevel {
@@ -163,8 +163,10 @@ actor PersonaSynthesizer {
         let pace: VoiceCharacteristics.Pace = {
             switch insights.communicationStyle {
             case .direct: return .brisk
-            case .explanatory: return .measured
+            case .analytical: return .measured
             case .conversational: return .natural
+            case .supportive: return .measured
+            case .energetic: return .brisk
             }
         }()
         
@@ -187,7 +189,7 @@ actor PersonaSynthesizer {
     private func generateOptimizedSystemPrompt(
         identity: PersonaIdentity,
         voiceCharacteristics: VoiceCharacteristics,
-        insights: PersonalityInsights
+        insights: ConversationPersonalityInsights
     ) async throws -> String {
         // Use direct template with minimal LLM processing
         let template = """
@@ -229,7 +231,7 @@ actor PersonaSynthesizer {
     
     // MARK: - Helper Methods
     
-    private func generateCacheKey(conversationData: ConversationData, insights: PersonalityInsights) -> String {
+    private func generateCacheKey(conversationData: ConversationData, insights: ConversationPersonalityInsights) -> String {
         // Create deterministic cache key from inputs
         let traits = insights.dominantTraits.sorted().joined(separator: ",")
         let style = insights.communicationStyle.rawValue
@@ -250,7 +252,7 @@ actor PersonaSynthesizer {
         )
     }
     
-    private func generateAdaptationRules(insights: PersonalityInsights) -> [AdaptationRule] {
+    private func generateAdaptationRules(insights: ConversationPersonalityInsights) -> [AdaptationRule] {
         var rules: [AdaptationRule] = []
         
         // Time-based adaptations

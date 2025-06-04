@@ -5,43 +5,12 @@ import SwiftUI
 extension AIProvider: Identifiable {
     var id: String { rawValue }
     
-    var displayName: String {
-        switch self {
-        case .openAI: return "OpenAI"
-        case .anthropic: return "Anthropic"
-        case .gemini: return "Google Gemini"
-        case .openRouter: return "OpenRouter"
-        }
-    }
-    
     var icon: String {
         switch self {
         case .openAI: return "cpu"
         case .anthropic: return "brain"
         case .gemini: return "sparkles"
         case .openRouter: return "arrow.triangle.branch"
-        }
-    }
-    
-    var availableModels: [String] {
-        switch self {
-        case .openAI:
-            return ["gpt-4o", "gpt-4o-mini", "gpt-4-turbo-2024-04-09", "gpt-4", "gpt-3.5-turbo"]
-        case .anthropic:
-            return ["claude-3-5-sonnet-20241022", "claude-3-opus-20240229", "claude-3-sonnet-20240229", "claude-3-5-haiku-20241022", "claude-3-haiku-20240307"]
-        case .gemini:
-            return ["gemini-2.0-flash-thinking-exp", "gemini-2.0-flash-exp", "gemini-1.5-pro-002", "gemini-1.5-flash-002", "gemini-1.0-pro"]
-        case .openRouter:
-            return ["anthropic/claude-3-5-sonnet", "openai/gpt-4o", "google/gemini-pro"]
-        }
-    }
-    
-    var defaultModel: String {
-        switch self {
-        case .openAI: return "gpt-4o"
-        case .anthropic: return "claude-3-5-sonnet-20241022"
-        case .gemini: return "gemini-1.5-flash-002"
-        case .openRouter: return "anthropic/claude-3-5-sonnet"
         }
     }
     

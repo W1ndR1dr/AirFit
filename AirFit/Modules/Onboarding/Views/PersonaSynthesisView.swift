@@ -209,36 +209,23 @@ struct SynthesisProgressView: View {
                       return false
                   }
               }) else {
-            return stage == .complete(PersonaProfile(
-                name: "",
-                archetype: "",
-                personalityPrompt: "",
-                voiceCharacteristics: VoiceCharacteristics(pace: .moderate, energy: .balanced, warmth: .friendly),
-                interactionStyle: InteractionStyle(
-                    greetingStyle: "",
-                    signoffStyle: "",
-                    encouragementPhrases: [],
-                    correctionStyle: "",
-                    humorLevel: .occasional
-                ),
-                sourceInsights: insights
-            ))
+            // If we can't find the stage indices, check if we're complete
+            if case .complete = stage {
+                return true
+            }
+            return false
         }
         
-        return checkIndex < currentIndex || stage == .complete(PersonaProfile(
-            name: "",
-            archetype: "",
-            personalityPrompt: "",
-            voiceCharacteristics: VoiceCharacteristics(pace: .moderate, energy: .balanced, warmth: .friendly),
-            interactionStyle: InteractionStyle(
-                greetingStyle: "",
-                signoffStyle: "",
-                encouragementPhrases: [],
-                correctionStyle: "",
-                humorLevel: .occasional
-            ),
-            sourceInsights: insights
-        ))
+        // Check if we've passed this stage or if we're complete
+        if checkIndex < currentIndex {
+            return true
+        }
+        
+        if case .complete = stage {
+            return true
+        }
+        
+        return false
     }
     
     private func connectorProgress(for index: Int) -> Double {

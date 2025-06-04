@@ -75,7 +75,8 @@ actor OpenAIProvider: LLMProvider {
                         systemPrompt: request.systemPrompt,
                         responseFormat: request.responseFormat,
                         stream: true,
-                        metadata: request.metadata
+                        metadata: request.metadata,
+                        thinkingBudgetTokens: request.thinkingBudgetTokens
                     )
                     
                     let openAIRequest = try buildOpenAIRequest(from: streamRequest)
@@ -129,14 +130,15 @@ actor OpenAIProvider: LLMProvider {
     
     func validateAPIKey(_ key: String) async throws -> Bool {
         let testRequest = LLMRequest(
-            messages: [LLMMessage(role: .user, content: "Hi", name: nil)],
+            messages: [LLMMessage(role: .user, content: "Hi", name: nil, attachments: nil)],
             model: LLMModel.gpt35Turbo.identifier,
             temperature: 0,
             maxTokens: 1,
             systemPrompt: nil,
             responseFormat: nil,
             stream: false,
-            metadata: [:]
+            metadata: [:],
+            thinkingBudgetTokens: nil
         )
         
         do {

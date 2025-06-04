@@ -104,8 +104,8 @@ private struct PersonaOptionCard: View {
     }
 }
 
-// MARK: - PersonaPreviewCard
-private struct PersonaPreviewCard: View {
+// MARK: - PersonaStylePreviewCard
+private struct PersonaStylePreviewCard: View {
     let selectedPersona: PersonaMode
     
     var body: some View {

@@ -105,7 +105,7 @@ actor GeminiProvider: LLMProvider {
                                 if jsonString != "[DONE]" {
                                     do {
                                         let data = jsonString.data(using: .utf8)!
-                                        let streamResponse = try JSONDecoder().decode(GeminiStreamResponse.self, from: data)
+                                        let streamResponse = try JSONDecoder().decode(GeminiProviderStreamResponse.self, from: data)
                                         let chunk = try convertToStreamChunk(streamResponse)
                                         continuation.yield(chunk)
                                     } catch {
@@ -222,7 +222,7 @@ actor GeminiProvider: LLMProvider {
         )
     }
     
-    private func convertToStreamChunk(_ response: GeminiStreamResponse) throws -> LLMStreamChunk {
+    private func convertToStreamChunk(_ response: GeminiProviderStreamResponse) throws -> LLMStreamChunk {
         guard let candidate = response.candidates?.first,
               let content = candidate.content.parts.first?.text else {
             return LLMStreamChunk(
@@ -309,7 +309,7 @@ struct GeminiResponse: Codable {
     let usageMetadata: GeminiUsageMetadata?
 }
 
-struct GeminiStreamResponse: Codable {
+struct GeminiProviderStreamResponse: Codable {
     let candidates: [GeminiCandidate]?
 }
 

@@ -7,65 +7,50 @@ struct PersonaPreviewCard: View {
     var body: some View {
         VStack(alignment: .leading, spacing: 20) {
             // Header
-            if let name = preview.name, let archetype = preview.archetype {
-                VStack(alignment: .leading, spacing: 4) {
-                    Text(name)
-                        .font(.title2)
-                        .fontWeight(.bold)
-                        .foregroundColor(.primary)
-                    
-                    Text(archetype)
-                        .font(.subheadline)
-                        .foregroundColor(.secondary)
-                }
+            VStack(alignment: .leading, spacing: 4) {
+                Text(preview.name)
+                    .font(.title2)
+                    .fontWeight(.bold)
+                    .foregroundColor(.primary)
+                
+                Text(preview.archetype)
+                    .font(.subheadline)
+                    .foregroundColor(.secondary)
+            }
+            .opacity(showContent ? 1 : 0)
+            .offset(y: showContent ? 0 : 20)
+            .animation(.spring(response: 0.5).delay(0.1), value: showContent)
+            
+            // Voice description
+            VStack(alignment: .leading, spacing: 12) {
+                Text("Communication Style")
+                    .font(.caption)
+                    .foregroundColor(.secondary)
+                    .textCase(.uppercase)
+                
+                Text(preview.voiceDescription)
+                    .font(.subheadline)
+                    .foregroundColor(.primary)
+                    .opacity(showContent ? 1 : 0)
+                    .animation(.spring(response: 0.5).delay(0.2), value: showContent)
+            }
+            
+            // Sample greeting
+            Text(preview.sampleGreeting)
+                .font(.body)
+                .foregroundColor(.primary)
+                .multilineTextAlignment(.leading)
+                .fixedSize(horizontal: false, vertical: true)
+                .padding(.top, 8)
                 .opacity(showContent ? 1 : 0)
                 .offset(y: showContent ? 0 : 20)
-                .animation(.spring(response: 0.5).delay(0.1), value: showContent)
-            }
-            
-            // Traits
-            if !preview.traits.isEmpty {
-                VStack(alignment: .leading, spacing: 12) {
-                    Text("Key Traits")
-                        .font(.caption)
-                        .foregroundColor(.secondary)
-                        .textCase(.uppercase)
-                    
-                    HStack(spacing: 8) {
-                        ForEach(preview.traits, id: \.self) { trait in
-                            TraitChip(trait: trait)
-                                .opacity(showContent ? 1 : 0)
-                                .scaleEffect(showContent ? 1 : 0.8)
-                                .animation(
-                                    .spring(response: 0.4)
-                                        .delay(Double(preview.traits.firstIndex(of: trait) ?? 0) * 0.1 + 0.2),
-                                    value: showContent
-                                )
-                        }
-                    }
-                }
-            }
-            
-            // Preview message
-            if let message = preview.previewMessage {
-                Text(message)
-                    .font(.body)
-                    .foregroundColor(.primary)
-                    .multilineTextAlignment(.leading)
-                    .fixedSize(horizontal: false, vertical: true)
-                    .padding(.top, 8)
-                    .opacity(showContent ? 1 : 0)
-                    .offset(y: showContent ? 0 : 20)
-                    .animation(.spring(response: 0.5).delay(0.3), value: showContent)
-            }
+                .animation(.spring(response: 0.5).delay(0.3), value: showContent)
             
             // Visual element
-            if preview.stage == .buildingPersonality || preview.stage == .finalizing {
-                PersonaVisualization()
-                    .opacity(showContent ? 1 : 0)
-                    .scaleEffect(showContent ? 1 : 0.8)
-                    .animation(.spring(response: 0.6).delay(0.4), value: showContent)
-            }
+            PersonaVisualization()
+                .opacity(showContent ? 1 : 0)
+                .scaleEffect(showContent ? 1 : 0.8)
+                .animation(.spring(response: 0.6).delay(0.4), value: showContent)
         }
         .padding(24)
         .frame(maxWidth: .infinity, alignment: .leading)
@@ -79,7 +64,7 @@ struct PersonaPreviewCard: View {
                 showContent = true
             }
         }
-        .onChange(of: preview.stage) { _, _ in
+        .onChange(of: preview.archetype) { _, _ in
             showContent = false
             DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
                 withAnimation {
@@ -90,7 +75,7 @@ struct PersonaPreviewCard: View {
     }
 }
 
-struct TraitChip: View {
+struct PreviewTraitChip: View {
     let trait: String
     
     var body: some View {

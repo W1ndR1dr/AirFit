@@ -149,8 +149,8 @@ extension ServiceRegistry {
     
     /// Convenience method to register common services
     func registerDefaultServices(
-        networkManager: NetworkManagementProtocol,
-        apiKeyManager: APIKeyManagementProtocol,
+        networkManager: NetworkManagementProtocol & ServiceProtocol,
+        apiKeyManager: APIKeyManagementProtocol & ServiceProtocol,
         aiService: AIServiceProtocol?,
         weatherService: WeatherServiceProtocol?
     ) {
@@ -170,6 +170,7 @@ extension ServiceRegistry {
 // MARK: - Property Wrapper for Service Injection
 
 @propertyWrapper
+@MainActor
 struct Injected<Service> {
     private let type: Service.Type
     
@@ -209,11 +210,8 @@ struct ServiceBootstrapper {
         
         // Initialize AI service if keys are available
         if await apiKeyManager.getAllConfiguredProviders().count > 0 {
-            let aiService = EnhancedAIAPIService(
-                networkManager: networkManager,
-                apiKeyManager: apiKeyManager,
-                llmOrchestrator: LLMOrchestrator(apiKeyManager: apiKeyManager)
-            )
+            let llmOrchestrator = LLMOrchestrator(apiKeyManager: apiKeyManager)
+            let aiService = ProductionAIService(llmOrchestrator: llmOrchestrator)
             
             try await aiService.configure()
             registry.register(aiService, for: AIServiceProtocol.self)
@@ -221,8 +219,7 @@ struct ServiceBootstrapper {
         
         // Initialize weather service
         let weatherService = WeatherService(
-            networkManager: networkManager,
-            apiKeyManager: apiKeyManager
+            networkManager: networkManager
         )
         
         try await weatherService.configure()

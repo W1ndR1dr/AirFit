@@ -83,23 +83,25 @@ struct RecoveryCard: View {
                 .font(AppFonts.headline)
                 .foregroundColor(AppColors.textPrimary)
             Spacer()
-            if let trend = recoveryScore?.trend {
-                TrendIndicator(trend: trend)
-            }
+            Text("\(recoveryScore?.score ?? 0)")
+                .font(AppFonts.title3)
+                .foregroundColor(recoveryScore?.status.color == "green" ? AppColors.successColor : 
+                                recoveryScore?.status.color == "yellow" ? AppColors.warningColor : 
+                                AppColors.errorColor)
         }
     }
 
     private var componentsView: some View {
         VStack(alignment: .leading, spacing: AppSpacing.small) {
-            ForEach(recoveryScore?.components.prefix(3) ?? [], id: \.name) { component in
+            ForEach(recoveryScore?.factors ?? [], id: \.self) { factor in
                 HStack {
-                    Text(component.name)
+                    Image(systemName: "checkmark.circle.fill")
+                        .foregroundColor(AppColors.successColor)
+                        .font(.caption)
+                    Text(factor)
                         .font(AppFonts.caption)
                         .foregroundColor(AppColors.textSecondary)
                     Spacer()
-                    ProgressView(value: component.value)
-                        .progressViewStyle(LinearProgressViewStyle(tint: AppColors.accentColor))
-                        .frame(width: 60)
                 }
             }
         }
@@ -159,34 +161,22 @@ private struct TrendIndicator: View {
     let trend: Any
 
     private var icon: String {
-        if let recoveryTrend = trend as? RecoveryScore.Trend {
-            switch recoveryTrend {
-            case .improving: return "arrow.up.circle.fill"
-            case .steady: return "minus.circle.fill"
-            case .declining: return "arrow.down.circle.fill"
-            }
-        } else if let performanceTrend = trend as? PerformanceInsight.Trend {
+        if let performanceTrend = trend as? PerformanceInsight.Trend {
             switch performanceTrend {
-            case .up: return "arrow.up.circle.fill"
-            case .steady: return "minus.circle.fill"
-            case .down: return "arrow.down.circle.fill"
+            case .improving: return "arrow.up.circle.fill"
+            case .stable: return "minus.circle.fill"
+            case .declining: return "arrow.down.circle.fill"
             }
         }
         return "minus.circle.fill"
     }
 
     private var color: Color {
-        if let recoveryTrend = trend as? RecoveryScore.Trend {
-            switch recoveryTrend {
-            case .improving: return .green
-            case .steady: return .yellow
-            case .declining: return .orange
-            }
-        } else if let performanceTrend = trend as? PerformanceInsight.Trend {
+        if let performanceTrend = trend as? PerformanceInsight.Trend {
             switch performanceTrend {
-            case .up: return .green
-            case .steady: return .yellow
-            case .down: return .orange
+            case .improving: return .green
+            case .stable: return .yellow
+            case .declining: return .orange
             }
         }
         return .gray

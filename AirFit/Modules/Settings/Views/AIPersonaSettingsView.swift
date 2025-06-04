@@ -2,7 +2,7 @@ import SwiftUI
 import Charts
 
 struct AIPersonaSettingsView: View {
-    @ObservedObject var viewModel: SettingsViewModel
+    @Bindable var viewModel: SettingsViewModel
     @State private var showPersonaRefinement = false
     @State private var previewText = "Let's crush today's workout! I see you're feeling energized - perfect timing for that strength session we planned."
     @State private var isGeneratingPreview = false
@@ -373,7 +373,7 @@ struct CommunicationRow: View {
 
 // MARK: - Natural Language Adjustment View
 struct NaturalLanguagePersonaAdjustment: View {
-    @ObservedObject var viewModel: SettingsViewModel
+    @Bindable var viewModel: SettingsViewModel
     @State private var adjustmentText = ""
     @State private var isProcessing = false
     @FocusState private var isTextFieldFocused: Bool

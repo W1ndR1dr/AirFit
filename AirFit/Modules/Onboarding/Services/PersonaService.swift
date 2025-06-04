@@ -4,7 +4,8 @@ import SwiftData
 // Note: Using PersonalityInsights from AI/Models/ConversationPersonalityInsights.swift
 // instead of Onboarding/Models/PersonalityInsights.swift for persona synthesis
 
-actor PersonaService {
+@MainActor
+final class PersonaService {
     private let personaSynthesizer: OptimizedPersonaSynthesizer
     private let llmOrchestrator: LLMOrchestrator
     private let modelContext: ModelContext
@@ -61,45 +62,48 @@ actor PersonaService {
         Return updated persona details.
         """
         
-        let request = LLMRequest(
-            messages: [
-                LLMMessage(role: .system, content: "You are an AI persona adjustment specialist."),
-                LLMMessage(role: .user, content: adjustmentPrompt)
-            ],
-            model: "claude-3-haiku-20240307",
+        let response = try await llmOrchestrator.complete(
+            prompt: adjustmentPrompt,
+            task: .personaSynthesis,
+            model: .claude3Haiku,
             temperature: 0.7,
-            responseFormat: .json
+            maxTokens: 2000
         )
-        
-        let response = try await llmOrchestrator.complete(request)
         
         // Parse adjusted persona from response
         return try parseAdjustedPersona(from: response, original: persona)
     }
     
     func savePersona(_ persona: PersonaProfile, for userId: UUID) async throws {
-        // Create or update OnboardingProfile
-        let descriptor = FetchDescriptor<OnboardingProfile>(
-            predicate: #Predicate { profile in
-                profile.userId == userId
+        // First get the user
+        let userDescriptor = FetchDescriptor<User>(
+            predicate: #Predicate { user in
+                user.id == userId
             }
         )
+        let users = try modelContext.fetch(userDescriptor)
+        guard let user = users.first else {
+            throw AppError.userNotFound
+        }
         
-        let profiles = try modelContext.fetch(descriptor)
-        
-        if let existingProfile = profiles.first {
+        // Get the user's onboarding profile
+        if let existingProfile = user.onboardingProfile {
             // Update existing profile
-            existingProfile.personaName = persona.name
+            existingProfile.name = persona.name
             existingProfile.personaData = try JSONEncoder().encode(persona)
-            existingProfile.updatedAt = Date()
+            // Update timestamp handled by SwiftData
         } else {
             // Create new profile
             let profile = OnboardingProfile(
-                userId: userId,
-                completedAt: Date(),
-                personaName: persona.name
+                personaPromptData: Data(),
+                communicationPreferencesData: Data(),
+                rawFullProfileData: Data(),
+                user: user
             )
+            profile.name = persona.name
             profile.personaData = try JSONEncoder().encode(persona)
+            profile.isComplete = true
+            user.onboardingProfile = profile
             modelContext.insert(profile)
         }
         
@@ -148,25 +152,20 @@ actor PersonaService {
         Return as structured JSON.
         """
         
-        let request = LLMRequest(
-            messages: [
-                LLMMessage(role: .system, content: "You are a personality analysis expert."),
-                LLMMessage(role: .user, content: analysisPrompt)
-            ],
-            model: "claude-3-haiku-20240307",
-            temperature: 0.5,
-            responseFormat: .json
+        let response = try await llmOrchestrator.complete(
+            prompt: analysisPrompt,
+            task: .personaSynthesis,
+            model: .claude3Haiku,
+            temperature: 0.5
         )
-        
-        let response = try await llmOrchestrator.complete(request)
         
         // Parse insights from response
         return try parsePersonalityInsights(from: response)
     }
     
     private func parsePersonalityInsights(from response: LLMResponse) throws -> ConversationPersonalityInsights {
-        guard let content = response.content,
-              let data = content.data(using: .utf8) else {
+        let content = response.content
+        guard let data = content.data(using: .utf8) else {
             throw PersonaError.parsingFailed("Invalid response content")
         }
         
@@ -197,8 +196,8 @@ actor PersonaService {
     }
     
     private func parseAdjustedPersona(from response: LLMResponse, original: PersonaProfile) throws -> PersonaProfile {
-        guard let content = response.content,
-              let data = content.data(using: .utf8) else {
+        let content = response.content
+        guard let data = content.data(using: .utf8) else {
             throw PersonaError.parsingFailed("Invalid response content")
         }
         

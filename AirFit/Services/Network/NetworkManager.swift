@@ -3,11 +3,15 @@ import Network
 import Combine
 
 @MainActor
-final class NetworkManager: NetworkManagementProtocol, ObservableObject {
+final class NetworkManager: NetworkManagementProtocol, ServiceProtocol, ObservableObject {
     static let shared = NetworkManager()
     
     @Published private(set) var isReachable: Bool = true
     @Published private(set) var currentNetworkType: NetworkType = .unknown
+    
+    // MARK: - ServiceProtocol
+    private(set) var isConfigured: Bool = false
+    let serviceIdentifier = "network-manager"
     
     private let session: URLSession
     private let monitor: NWPathMonitor
@@ -19,6 +23,32 @@ final class NetworkManager: NetworkManagementProtocol, ObservableObject {
         self.monitor = NWPathMonitor()
         
         setupNetworkMonitoring()
+    }
+    
+    // MARK: - ServiceProtocol
+    
+    func configure() async throws {
+        // Network monitoring is already set up in init
+        isConfigured = true
+        AppLogger.info("NetworkManager configured", category: .networking)
+    }
+    
+    func reset() async {
+        // Nothing to reset for network manager
+        AppLogger.info("NetworkManager reset", category: .networking)
+    }
+    
+    func healthCheck() async -> ServiceHealth {
+        ServiceHealth(
+            status: isReachable ? .healthy : .unhealthy,
+            lastCheckTime: Date(),
+            responseTime: nil,
+            errorMessage: isReachable ? nil : "Network unreachable",
+            metadata: [
+                "networkType": currentNetworkType.rawValue,
+                "isReachable": "\(isReachable)"
+            ]
+        )
     }
     
     // MARK: - NetworkManagementProtocol

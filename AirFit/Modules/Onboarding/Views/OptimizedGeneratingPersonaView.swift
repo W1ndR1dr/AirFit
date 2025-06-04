@@ -26,7 +26,7 @@ struct OptimizedGeneratingPersonaView: View {
                 Circle()
                     .fill(
                         RadialGradient(
-                            gradient: Gradient(colors: [.accent.opacity(0.3), .clear]),
+                            gradient: Gradient(colors: [.accentColor.opacity(0.3), .clear]),
                             center: .center,
                             startRadius: 50,
                             endRadius: 150
@@ -39,7 +39,7 @@ struct OptimizedGeneratingPersonaView: View {
                 // Center icon
                 Image(systemName: steps[min(currentStep, steps.count - 1)].icon)
                     .font(.system(size: 60))
-                    .foregroundStyle(.accent)
+                    .foregroundStyle(.accentColor)
                     .symbolEffect(.variableColor.iterative.reversing)
             }
             
@@ -184,21 +184,37 @@ struct StepProgressRow: View {
 
 // MARK: - Preview
 
-private struct PreviewUserService: UserServiceProtocol {
+private final class PreviewUserService: UserServiceProtocol {
+    func createUser(from profile: OnboardingProfile) async throws -> User {
+        User(name: profile.name ?? "Preview User")
+    }
+    
+    func updateProfile(_ updates: ProfileUpdate) async throws {
+        // No-op for preview
+    }
+    
     func getCurrentUser() async -> User? {
         nil
     }
     
-    func updateUser(_ user: User) async throws {
+    func getCurrentUserId() async -> UUID? {
+        nil
+    }
+    
+    func deleteUser(_ user: User) async throws {
         // No-op for preview
     }
     
-    func createUser(name: String, email: String?) async throws -> User {
-        User(name: name, email: email)
+    func completeOnboarding() async throws {
+        // No-op for preview
+    }
+    
+    func setCoachPersona(_ persona: CoachPersona) async throws {
+        // No-op for preview
     }
 }
 
-private struct PreviewAPIKeyManager: APIKeyManagementProtocol {
+private final class PreviewAPIKeyManager: APIKeyManagementProtocol, @unchecked Sendable {
     func getAPIKey(for provider: AIProvider) async throws -> String {
         return "preview-key"
     }

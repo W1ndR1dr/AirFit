@@ -12,7 +12,7 @@ struct ProfileUpdate: Sendable {
 protocol UserServiceProtocol: AnyObject, Sendable {
     func createUser(from profile: OnboardingProfile) async throws -> User
     func updateProfile(_ updates: ProfileUpdate) async throws
-    func getCurrentUser() -> User?
+    func getCurrentUser() async -> User?
     func getCurrentUserId() async -> UUID?
     func deleteUser(_ user: User) async throws
     func completeOnboarding() async throws

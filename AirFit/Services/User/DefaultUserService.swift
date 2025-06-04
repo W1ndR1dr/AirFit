@@ -22,12 +22,12 @@ final class DefaultUserService: UserServiceProtocol {
         modelContext.insert(user)
         try modelContext.save()
         
-        AppLogger.info("Created new user: \(user.name)", category: .data)
+        AppLogger.info("Created new user: \(user.name ?? "Unknown")", category: .data)
         return user
     }
     
     func updateProfile(_ updates: ProfileUpdate) async throws {
-        guard let user = getCurrentUser() else {
+        guard let user = await getCurrentUser() else {
             throw AppError.userNotFound
         }
         
@@ -50,7 +50,7 @@ final class DefaultUserService: UserServiceProtocol {
         AppLogger.info("Updated user profile", category: .data)
     }
     
-    func getCurrentUser() -> User? {
+    func getCurrentUser() async -> User? {
         let descriptor = FetchDescriptor<User>(
             sortBy: [SortDescriptor(\.createdDate, order: .reverse)]
         )
@@ -65,18 +65,18 @@ final class DefaultUserService: UserServiceProtocol {
     }
     
     func getCurrentUserId() async -> UUID? {
-        getCurrentUser()?.id
+        await getCurrentUser()?.id
     }
     
     func deleteUser(_ user: User) async throws {
         modelContext.delete(user)
         try modelContext.save()
         
-        AppLogger.info("Deleted user: \(user.name)", category: .data)
+        AppLogger.info("Deleted user: \(user.name ?? "Unknown")", category: .data)
     }
     
     func completeOnboarding() async throws {
-        guard let user = getCurrentUser() else {
+        guard let user = await getCurrentUser() else {
             throw AppError.userNotFound
         }
         
@@ -86,11 +86,11 @@ final class DefaultUserService: UserServiceProtocol {
         
         try modelContext.save()
         
-        AppLogger.info("Completed onboarding for user: \(user.name)", category: .app)
+        AppLogger.info("Completed onboarding for user: \(user.name ?? "Unknown")", category: .app)
     }
     
     func setCoachPersona(_ persona: CoachPersona) async throws {
-        guard let user = getCurrentUser() else {
+        guard let user = await getCurrentUser() else {
             throw AppError.userNotFound
         }
         
@@ -117,9 +117,20 @@ final class DefaultUserService: UserServiceProtocol {
             metadata: PersonaMetadata(
                 createdAt: persona.generatedAt,
                 version: "1.0",
-                sourceInsights: persona.profile,
-                generationMethod: .conversational,
-                uniquenessScore: 0.8
+                sourceInsights: ConversationPersonalityInsights(
+                    dominantTraits: ["supportive", "encouraging"],
+                    communicationStyle: .supportive,
+                    motivationType: .balanced,
+                    energyLevel: .moderate,
+                    preferredComplexity: .moderate,
+                    emotionalTone: ["positive", "warm"],
+                    stressResponse: .wantsEncouragement,
+                    preferredTimes: ["morning", "evening"],
+                    extractedAt: persona.generatedAt
+                ),
+                generationDuration: 2.5,
+                tokenCount: 1000,
+                previewReady: true
             )
         )
         

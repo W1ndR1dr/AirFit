@@ -1,6 +1,28 @@
 import Foundation
 import CoreLocation
 
+// MARK: - Weather Cache
+private final class WeatherCache: @unchecked Sendable {
+    private var cache: [String: (weather: ServiceWeatherData, timestamp: Date)] = [:]
+    private let cacheExpiration: TimeInterval = 900 // 15 minutes
+    
+    func get(for location: String) -> ServiceWeatherData? {
+        guard let cached = cache[location],
+              Date().timeIntervalSince(cached.timestamp) < cacheExpiration else {
+            return nil
+        }
+        return cached.weather
+    }
+    
+    func set(_ weather: ServiceWeatherData, for location: String) {
+        cache[location] = (weather, Date())
+    }
+    
+    func clear() async {
+        cache.removeAll()
+    }
+}
+
 /// Weather service implementation supporting multiple providers
 @MainActor
 final class WeatherService: WeatherServiceProtocol {

@@ -195,7 +195,9 @@ final class ProductionMonitor: ObservableObject {
     private func startMonitoring() {
         // Periodic metrics reporting
         metricsTimer = Timer.scheduledTimer(withTimeInterval: 300, repeats: true) { [weak self] _ in
-            self?.reportMetrics()
+            Task { @MainActor in
+                self?.reportMetrics()
+            }
         }
         
         // Monitor system resources

@@ -127,7 +127,7 @@ private struct NavigationButtons: View {
 
 // MARK: - Preview
 
-private struct PreviewAPIKeyManager: APIKeyManagementProtocol {
+private final class PreviewAPIKeyManager: APIKeyManagementProtocol {
     func getAPIKey(for provider: AIProvider) async throws -> String {
         return "preview-key"
     }
@@ -149,17 +149,33 @@ private struct PreviewAPIKeyManager: APIKeyManagementProtocol {
     }
 }
 
-private struct PreviewUserService: UserServiceProtocol {
-    func getCurrentUser() async -> User? {
+private final class PreviewUserService: UserServiceProtocol {
+    func getCurrentUser() -> User? {
         nil
     }
     
-    func updateUser(_ user: User) async throws {
+    func createUser(from profile: OnboardingProfile) async throws -> User {
+        User(email: profile.email, name: profile.name)
+    }
+    
+    func updateProfile(_ updates: ProfileUpdate) async throws {
         // No-op for preview
     }
     
-    func createUser(name: String, email: String?) async throws -> User {
-        User(name: name, email: email)
+    func getCurrentUserId() async -> UUID? {
+        nil
+    }
+    
+    func completeOnboarding() async throws {
+        // No-op for preview
+    }
+    
+    func setCoachPersona(_ persona: CoachPersona) async throws {
+        // No-op for preview
+    }
+    
+    func deleteUser(_ user: User) async throws {
+        // No-op for preview
     }
 }
 
@@ -170,7 +186,7 @@ private struct PreviewUserService: UserServiceProtocol {
             configurations: ModelConfiguration(isStoredInMemoryOnly: true)
         )
         return OnboardingViewModel(
-            aiService: MockAIService(),
+            aiService: SimpleMockAIService(),
             onboardingService: OnboardingService(modelContext: tempContainer.mainContext),
             modelContext: tempContainer.mainContext,
             apiKeyManager: PreviewAPIKeyManager(),

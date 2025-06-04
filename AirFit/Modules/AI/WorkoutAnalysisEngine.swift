@@ -1,15 +1,14 @@
 import Foundation
 import SwiftData
-import Combine
 
 // MARK: - Workout Analysis Engine
 @MainActor
 final class WorkoutAnalysisEngine {
     // MARK: - Dependencies
-    private let aiService: AIAPIServiceProtocol
+    private let aiService: AIServiceProtocol
 
     // MARK: - Initialization
-    init(aiService: AIAPIServiceProtocol) {
+    init(aiService: AIServiceProtocol) {
         self.aiService = aiService
     }
 
@@ -36,27 +35,18 @@ final class WorkoutAnalysisEngine {
 
         // Get AI response
         var analysisResult = ""
-        let responsePublisher = aiService.getStreamingResponse(for: aiRequest)
-
-        await withCheckedContinuation { continuation in
-            var cancellables = Set<AnyCancellable>()
-
-            responsePublisher
-                .receive(on: DispatchQueue.main)
-                .sink(
-                    receiveCompletion: { _ in
-                        continuation.resume()
-                    },
-                    receiveValue: { response in
-                        switch response {
-                        case .text(let text), .textDelta(let text):
-                            analysisResult += text
-                        default:
-                            break
-                        }
-                    }
-                )
-                .store(in: &cancellables)
+        
+        do {
+            for try await response in aiService.sendRequest(aiRequest) {
+                switch response {
+                case .text(let text), .textDelta(let text):
+                    analysisResult += text
+                default:
+                    break
+                }
+            }
+        } catch {
+            AppLogger.error("Failed to analyze workout: \(error)", category: .ai)
         }
 
         return analysisResult.isEmpty ? "Great workout! Keep up the excellent work." : analysisResult

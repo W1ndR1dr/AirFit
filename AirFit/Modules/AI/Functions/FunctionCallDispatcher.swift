@@ -134,9 +134,9 @@ struct GoalResult: Sendable {
 final class FunctionCallDispatcher: @unchecked Sendable {
 
     // MARK: - Dependencies
-    private let workoutService: WorkoutServiceProtocol
-    private let analyticsService: AnalyticsServiceProtocol
-    private let goalService: GoalServiceProtocol
+    private let workoutService: AIWorkoutServiceProtocol
+    private let analyticsService: AIAnalyticsServiceProtocol
+    private let goalService: AIGoalServiceProtocol
     // Removed nutritionService and educationService - functions migrated to direct AI implementation
 
     // MARK: - Performance Tracking (Optimized)
@@ -171,9 +171,9 @@ final class FunctionCallDispatcher: @unchecked Sendable {
 
     // MARK: - Initialization
     init(
-        workoutService: WorkoutServiceProtocol,
-        analyticsService: AnalyticsServiceProtocol,
-        goalService: GoalServiceProtocol
+        workoutService: AIWorkoutServiceProtocol,
+        analyticsService: AIAnalyticsServiceProtocol,
+        goalService: AIGoalServiceProtocol
     ) {
         self.workoutService = workoutService
         self.analyticsService = analyticsService
@@ -298,25 +298,16 @@ final class FunctionCallDispatcher: @unchecked Sendable {
         let constraints = extractString(from: args["constraints"])
         let _ = extractString(from: args["workoutStyle"]) ?? "traditional_sets"
 
-        // TODO: Implement generatePlan in WorkoutServiceProtocol
-        // let plan = try await workoutService.generatePlan(
-        //     for: user,
-        //     goal: goalFocus,
-        //     duration: duration,
-        //     intensity: intensity,
-        //     targetMuscles: muscleGroups,
-        //     equipment: equipment,
-        //     constraints: constraints,
-        //     style: style
-        // )
-        
-        // Mock workout plan for now
-        let plan = WorkoutPlanResult(
-            id: UUID(),
-            exercises: [],
-            estimatedCalories: 300,
-            estimatedDuration: duration,
-            summary: "Mock workout plan"
+        // Now properly implemented in AIWorkoutServiceProtocol
+        let plan = try await workoutService.generatePlan(
+            for: user,
+            goal: goalFocus,
+            duration: duration,
+            intensity: intensity,
+            targetMuscles: muscleGroups,
+            equipment: equipment,
+            constraints: constraints,
+            style: style
         )
 
         // Optimized string building - avoid repeated interpolation
