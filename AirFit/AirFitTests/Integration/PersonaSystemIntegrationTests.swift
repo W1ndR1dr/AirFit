@@ -10,7 +10,7 @@ final class PersonaSystemIntegrationTests: XCTestCase {
     var orchestrator: OnboardingOrchestrator!
     var coachEngine: CoachEngine!
     var unifiedAIService: UnifiedAIService!
-    var monitor: ProductionMonitor!
+    var monitor: MonitoringService!
     
     override func setUp() async throws {
         try await super.setUp()
@@ -50,7 +50,7 @@ final class PersonaSystemIntegrationTests: XCTestCase {
             modelContext: modelContext
         )
         
-        monitor = ProductionMonitor.shared
+        monitor = MonitoringService.shared
     }
     
     override func tearDown() async throws {

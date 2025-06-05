@@ -63,9 +63,10 @@
 
 ---
 
-**Task 12.2: Mocking Strategy & Implementation**
+**Task 12.2: Mocking Strategy & Implementation with DI**
     *   **Agent Task 12.2.1:**
-        *   Instruction: "For each major service protocol defined in previous modules (e.g., `AIAPIServiceProtocol`, `WhisperServiceWrapperProtocol`, `NotificationManagerProtocol` (if made a protocol), `HealthKitManagerProtocol` (if made a protocol), `APIKeyManagerProtocol` (if made a protocol)), create a corresponding mock implementation class in the relevant test target (e.g., `AirFitTests/Mocks/`)."
+        *   Instruction: "For each major service protocol defined in previous modules (e.g., `AIServiceProtocol`, `WhisperServiceWrapperProtocol`, `NotificationManagerProtocol`, `HealthKitManagerProtocol`, `APIKeyManagerProtocol`), create a corresponding mock implementation class in the relevant test target (e.g., `AirFitTests/Mocks/`)."
+        *   **DI Integration:** All mocks should be registered in test containers using `DIBootstrapper.createTestContainer()` pattern.
         *   Details:
             *   Mock classes should conform to the protocol.
             *   Allow configuration of return values for methods (e.g., `mockAIAPIService.mockedResponse = .success(.textChunk("Test"))`).
@@ -196,7 +197,37 @@
                 // Add more tests for other methods and edge cases
             }
             ```
-        *   Acceptance Criteria: Unit tests for `OnboardingViewModel` are created, covering key logic paths and using mocks for external dependencies. Tests pass. *(Vibe-Coder Note: Setting up in-memory SwiftData for tests is key here. The agent needs to handle this correctly.)*
+        *   **Modern DI Testing Pattern:**
+            ```swift
+            // Using DIContainer for test setup
+            @MainActor
+            class OnboardingViewModelTestsWithDI: XCTestCase {
+                var container: DIContainer!
+                var factory: DIViewModelFactory!
+                
+                override func setUp() async throws {
+                    try await super.setUp()
+                    // Create test container with all mocks pre-registered
+                    container = try await DIBootstrapper.createTestContainer()
+                    factory = DIViewModelFactory(container: container)
+                }
+                
+                func testOnboardingWithMockedServices() async throws {
+                    // Arrange - Configure mocks
+                    let mockAIService = try container.resolve(AIServiceProtocol.self) as! MockAIService
+                    mockAIService.mockedResponse = .success(.text("Test response"))
+                    
+                    // Act - Create ViewModel via factory
+                    let viewModel = try await factory.makeOnboardingViewModel()
+                    await viewModel.processCoreAspiration()
+                    
+                    // Assert
+                    XCTAssertEqual(viewModel.personaInsights?.count, 1)
+                    XCTAssertTrue(mockAIService.generateResponseCalled)
+                }
+            }
+            ```
+        *   Acceptance Criteria: Unit tests for `OnboardingViewModel` are created, covering key logic paths and using mocks for external dependencies. Tests pass. Modern DI pattern is used for test isolation.
 
 ---
 

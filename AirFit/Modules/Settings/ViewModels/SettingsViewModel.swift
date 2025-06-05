@@ -8,7 +8,7 @@ final class SettingsViewModel: ErrorHandling {
     // MARK: - Dependencies
     private let modelContext: ModelContext
     private let user: User
-    private let apiKeyManager: APIKeyManagerProtocol
+    private let apiKeyManager: APIKeyManagementProtocol
     private let aiService: AIServiceProtocol
     private let notificationManager: NotificationManager
     private let coordinator: SettingsCoordinator
@@ -55,7 +55,7 @@ final class SettingsViewModel: ErrorHandling {
     init(
         modelContext: ModelContext,
         user: User,
-        apiKeyManager: APIKeyManagerProtocol,
+        apiKeyManager: APIKeyManagementProtocol,
         aiService: AIServiceProtocol,
         notificationManager: NotificationManager,
         coordinator: SettingsCoordinator
@@ -196,7 +196,7 @@ final class SettingsViewModel: ErrorHandling {
         }
         
         // Save to keychain
-        try await apiKeyManager.setAPIKey(key, for: provider)
+        try await apiKeyManager.saveAPIKey(key, for: provider)
         installedAPIKeys.insert(provider)
         
         // If this is the selected provider, reconfigure
@@ -206,7 +206,7 @@ final class SettingsViewModel: ErrorHandling {
     }
     
     func deleteAPIKey(for provider: AIProvider) async throws {
-        try await apiKeyManager.removeAPIKey(for: provider)
+        try await apiKeyManager.deleteAPIKey(for: provider)
         installedAPIKeys.remove(provider)
         
         // If deleting current provider's key, switch to another
@@ -303,10 +303,7 @@ final class SettingsViewModel: ErrorHandling {
     }
     
     private func getAPIKey(for provider: AIProvider) async throws -> String {
-        guard let key = try await apiKeyManager.getAPIKey(for: provider) else {
-            throw SettingsError.missingAPIKey(provider)
-        }
-        return key
+        return try await apiKeyManager.getAPIKey(for: provider)
     }
     
     private func isValidAPIKey(_ key: String, for provider: AIProvider) -> Bool {

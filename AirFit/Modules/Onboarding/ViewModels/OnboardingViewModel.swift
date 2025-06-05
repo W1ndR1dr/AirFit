@@ -99,12 +99,9 @@ final class OnboardingViewModel: ErrorHandling {
     
     // MARK: - Orchestrator Setup
     private func setupOrchestrator() {
-        // Create adapter to bridge APIKeyManagementProtocol to APIKeyManagerProtocol
-        let apiKeyManagerAdapter = APIKeyManagementToManagerAdapter(management: apiKeyManager)
-        
         orchestrator = OnboardingOrchestrator(
             modelContext: modelContext,
-            apiKeyManager: apiKeyManagerAdapter,
+            apiKeyManager: apiKeyManager,
             userService: userService,
             analytics: analytics
         )
@@ -347,114 +344,3 @@ final class OnboardingViewModel: ErrorHandling {
 // - PersonaMode.allCases for simple UI iteration
 // - PersonaMigrationUtility.createNewProfile() for clean profile creation
 // - Built-in validation through enum type safety
-
-// MARK: - API Key Management Adapter
-
-/// Adapter to bridge APIKeyManagementProtocol to APIKeyManagerProtocol
-private final class APIKeyManagementToManagerAdapter: APIKeyManagerProtocol, @unchecked Sendable {
-    private let management: APIKeyManagementProtocol
-    
-    init(management: APIKeyManagementProtocol) {
-        self.management = management
-    }
-    
-    // Legacy synchronous methods
-    func saveAPIKey(_ apiKey: String, forProvider provider: AIProvider) throws {
-        // Run async method synchronously
-        let semaphore = DispatchSemaphore(value: 0)
-        var error: Error?
-        
-        Task {
-            do {
-                try await management.saveAPIKey(apiKey, for: provider)
-            } catch let e {
-                error = e
-            }
-            semaphore.signal()
-        }
-        
-        semaphore.wait()
-        if let error = error {
-            throw error
-        }
-    }
-    
-    func getAPIKey(forProvider provider: AIProvider) -> String? {
-        // Run async method synchronously
-        let semaphore = DispatchSemaphore(value: 0)
-        var result: String?
-        
-        Task {
-            do {
-                result = try await management.getAPIKey(for: provider)
-            } catch {
-                result = nil
-            }
-            semaphore.signal()
-        }
-        
-        semaphore.wait()
-        return result
-    }
-    
-    func deleteAPIKey(forProvider provider: AIProvider) throws {
-        // Run async method synchronously
-        let semaphore = DispatchSemaphore(value: 0)
-        var error: Error?
-        
-        Task {
-            do {
-                try await management.deleteAPIKey(for: provider)
-            } catch let e {
-                error = e
-            }
-            semaphore.signal()
-        }
-        
-        semaphore.wait()
-        if let error = error {
-            throw error
-        }
-    }
-    
-    // Modern async methods using string-based provider identification
-    func getAPIKey(for provider: String) async -> String? {
-        guard let aiProvider = AIProvider(rawValue: provider) else { return nil }
-        return try? await management.getAPIKey(for: aiProvider)
-    }
-    
-    func saveAPIKey(_ apiKey: String, for provider: String) async throws {
-        guard let aiProvider = AIProvider(rawValue: provider) else {
-            throw AppError.unsupportedProvider
-        }
-        try await management.saveAPIKey(apiKey, for: aiProvider)
-    }
-    
-    func deleteAPIKey(for provider: String) async throws {
-        guard let aiProvider = AIProvider(rawValue: provider) else {
-            throw AppError.unsupportedProvider
-        }
-        try await management.deleteAPIKey(for: aiProvider)
-    }
-    
-    // Required by protocol from APIKeyManagementProtocol.swift
-    func setAPIKey(_ key: String, for provider: AIProvider) async throws {
-        try await management.saveAPIKey(key, for: provider)
-    }
-    
-    func getAPIKey(for provider: AIProvider) async throws -> String? {
-        return try await management.getAPIKey(for: provider)
-    }
-    
-    func removeAPIKey(for provider: AIProvider) async throws {
-        try await management.deleteAPIKey(for: provider)
-    }
-    
-    func hasAPIKey(for provider: AIProvider) async -> Bool {
-        return await management.hasAPIKey(for: provider)
-    }
-    
-    func getAllConfiguredProviders() async -> [AIProvider] {
-        return await management.getAllConfiguredProviders()
-    }
-}

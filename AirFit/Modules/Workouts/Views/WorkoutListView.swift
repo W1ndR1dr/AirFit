@@ -2,6 +2,27 @@ import SwiftUI
 import SwiftData
 import Observation
 
+// MARK: - Workout View with DI
+struct WorkoutView: View {
+    let user: User
+    @State private var viewModel: WorkoutViewModel?
+    @Environment(\.diContainer) private var container
+    
+    var body: some View {
+        Group {
+            if let viewModel = viewModel {
+                WorkoutListView(viewModel: viewModel)
+            } else {
+                ProgressView()
+                    .task {
+                        let factory = DIViewModelFactory(container: container)
+                        viewModel = try? await factory.makeWorkoutViewModel(user: user)
+                    }
+            }
+        }
+    }
+}
+
 /// Main list view showing weekly workout summary, recent workouts, and quick actions.
 struct WorkoutListView: View {
     // MARK: - State

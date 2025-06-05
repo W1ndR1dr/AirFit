@@ -996,12 +996,6 @@ final class FoodTrackingViewModelTests: XCTestCase {
 }
 
 // Minimal Mocks for CoachEngine dependencies if not testing CoachEngine itself deeply
-class MockAPIKeyManager: APIKeyManagerProtocol {
-    func getKey(for service: APIServiceType) -> String? { return "mock_key" }
-    func setKey(_ key: String, for service: APIServiceType) {}
-    func deleteKey(for service: APIServiceType) {}
-    func deleteAllKeys() {}
-}
 
 class MockNetworkClient: NetworkClientProtocol {
     func post<T: Decodable>(url: URL, body: some Encodable, headers: [String : String]) async throws -> T {

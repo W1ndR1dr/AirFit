@@ -4,27 +4,23 @@ import SwiftData
 
 @MainActor
 final class DashboardViewModelTests: XCTestCase {
-    var container: ModelContainer!
+    var diContainer: DIContainer!
+    var factory: DIViewModelFactory!
+    var modelContainer: ModelContainer!
     var modelContext: ModelContext!
-    var mockHealthKitService: MockHealthKitService!
-    var mockAICoachService: MockAICoachService!
-    var mockNutritionService: MockDashboardNutritionService!
 
     override func setUp() async throws {
-        container = try ModelContainer.createTestContainer()
-        modelContext = container.mainContext
-
-        mockHealthKitService = MockHealthKitService()
-        mockAICoachService = MockAICoachService()
-        mockNutritionService = MockDashboardNutritionService()
+        diContainer = try await DITestHelper.createTestContainer()
+        factory = DIViewModelFactory(container: diContainer)
+        modelContainer = try await diContainer.resolve(ModelContainer.self)
+        modelContext = modelContainer.mainContext
     }
 
     override func tearDown() async throws {
-        container = nil
+        diContainer = nil
+        factory = nil
+        modelContainer = nil
         modelContext = nil
-        mockHealthKitService = nil
-        mockAICoachService = nil
-        mockNutritionService = nil
     }
 
     private func createTestUser() -> User {
@@ -38,14 +34,8 @@ final class DashboardViewModelTests: XCTestCase {
         return user
     }
 
-    private func createSUT(with user: User) -> DashboardViewModel {
-        return DashboardViewModel(
-            user: user,
-            modelContext: modelContext,
-            healthKitService: mockHealthKitService,
-            aiCoachService: mockAICoachService,
-            nutritionService: mockNutritionService
-        )
+    private func createSUT(with user: User) async throws -> DashboardViewModel {
+        return try await factory.makeDashboardViewModel(user: user)
     }
 
     // MARK: - Async Test Helper
@@ -67,9 +57,9 @@ final class DashboardViewModelTests: XCTestCase {
         #endif
     }
 
-    func test_initialState_defaults() {
+    func test_initialState_defaults() async throws {
         let user = createTestUser()
-        let sut = createSUT(with: user)
+        let sut = try await createSUT(with: user)
 
         XCTAssertTrue(sut.isLoading)
         XCTAssertEqual(sut.morningGreeting, "Good morning!")
@@ -80,7 +70,11 @@ final class DashboardViewModelTests: XCTestCase {
 
     func test_loadDashboardData_loadsDashboardData() async throws {
         let user = createTestUser()
-        let sut = createSUT(with: user)
+        let sut = try await createSUT(with: user)
+        
+        // Get mocks from container
+        let mockHealthKitService = try await diContainer.resolve(HealthKitService.self) as! MockHealthKitService
+        let mockNutritionService = try await diContainer.resolve(DashboardNutritionService.self) as! MockDashboardNutritionService
 
         // Arrange mock values
         mockHealthKitService.mockContext = HealthContext(

@@ -10,7 +10,7 @@ final class PersonaGenerationStressTests: XCTestCase {
     var synthesizer: PersonaSynthesizer!
     var llmOrchestrator: LLMOrchestrator!
     var modelContext: ModelContext!
-    var monitor: ProductionMonitor!
+    var monitor: MonitoringService!
     
     override func setUp() async throws {
         try await super.setUp()
@@ -23,7 +23,7 @@ final class PersonaGenerationStressTests: XCTestCase {
         let apiKeyManager = MockAPIKeyManager()
         llmOrchestrator = LLMOrchestrator(apiKeyManager: apiKeyManager)
         synthesizer = PersonaSynthesizer(llmOrchestrator: llmOrchestrator)
-        monitor = ProductionMonitor.shared
+        monitor = MonitoringService.shared
         
         // Initialize orchestrator
         let conversationManager = ConversationManager(modelContext: modelContext)
@@ -327,22 +327,3 @@ final class PersonaGenerationStressTests: XCTestCase {
     }
 }
 
-// MARK: - Mock API Key Manager
-
-class MockAPIKeyManager: APIKeyManagerProtocol {
-    func getAPIKey(for service: String) async -> String? {
-        return "mock-api-key-\(service)"
-    }
-    
-    func setAPIKey(_ key: String, for service: String) async throws {
-        // Mock implementation
-    }
-    
-    func deleteAPIKey(for service: String) async throws {
-        // Mock implementation
-    }
-    
-    func hasAPIKey(for service: String) async -> Bool {
-        return true
-    }
-}

@@ -10,7 +10,7 @@ final class OnboardingOrchestrator: ObservableObject {
     
     // MARK: - Dependencies
     private let modelContext: ModelContext
-    private let apiKeyManager: APIKeyManagerProtocol
+    private let apiKeyManager: APIKeyManagementProtocol
     private let userService: UserServiceProtocol
     private let analytics: ConversationAnalytics
     
@@ -21,7 +21,7 @@ final class OnboardingOrchestrator: ObservableObject {
     // MARK: - Initialization
     init(
         modelContext: ModelContext,
-        apiKeyManager: APIKeyManagerProtocol,
+        apiKeyManager: APIKeyManagementProtocol,
         userService: UserServiceProtocol,
         analytics: ConversationAnalytics = ConversationAnalytics()
     ) {

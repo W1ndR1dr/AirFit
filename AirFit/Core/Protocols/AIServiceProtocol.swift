@@ -2,7 +2,7 @@ import Foundation
 
 // MARK: - AI Service Protocol
 @MainActor
-protocol AIServiceProtocol: ServiceProtocol {
+protocol AIServiceProtocol: ServiceProtocol, Sendable {
     var isConfigured: Bool { get }
     var activeProvider: AIProvider { get }
     var availableModels: [AIModel] { get }

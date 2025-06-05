@@ -90,6 +90,26 @@ As defined in the Design Spec v1.2:
     *   Includes SwiftData Models (as defined in v1.1 and updated for Persona Blueprint Flow v3.1), and potentially manager classes for complex queries or data migrations if needed.
     *   **Code Style:** Model definitions should be clear and directly reflect the schema. Use `@Attribute` and `@Relationship` property wrappers as intended.
 
+**3.1 Dependency Injection Architecture**
+
+AirFit uses a modern, lightweight dependency injection system that aligns with Swift and SwiftUI patterns:
+
+*   **DIContainer**: Central service registry supporting async resolution and lifetime management
+*   **DIBootstrapper**: Configuration for production, test, and preview containers
+*   **DIViewModelFactory**: Async factory for creating ViewModels with proper dependencies
+*   **.withViewModel Pattern**: SwiftUI view modifier for clean async ViewModel creation
+
+**Key Principles:**
+*   Constructor injection for all ViewModels and services
+*   No global singletons in business logic (except approved system resources)
+*   Test containers for isolated testing
+*   User-scoped services created via factories
+
+**Service Lifetimes:**
+*   **Singleton**: App-lifetime services (APIKeyManager, NetworkClient, LLMOrchestrator)
+*   **Transient**: Per-use instances (ViewModels, module services)
+*   **User-Scoped**: Created by factories for specific users (CoachEngine, PersonaEngine)
+
 **4. Core Modules & Their Interactions (High-Level Overview)**
 
 *(Each of these would become a detailed sub-document with specific tasks)*
@@ -98,6 +118,7 @@ As defined in the Design Spec v1.2:
     *   Establishes comprehensive testing patterns and requirements.
     *   Defines test-first development approach for all subsequent modules.
     *   Creates testing utilities and mock service protocols.
+    *   Includes DI test container patterns for isolated testing.
 
 *   **B. Module 1: Core Project Setup & Configuration (Sequential - Foundational)**
     *   Initialize Git repository.
@@ -205,10 +226,17 @@ As defined in the Design Spec v1.2:
 *   **Project Structure:**
     *   Organize files by feature/module first, then by type (e.g., `AirFit/Modules/Onboarding/Views/WelcomeView.swift`, `AirFit/Modules/Onboarding/ViewModels/OnboardingViewModel.swift`).
     *   Shared utilities in a `Shared` or `Common` group.
+*   **Dependency Injection Patterns:**
+    *   Use constructor injection for all dependencies in ViewModels and services
+    *   ViewModels should accept protocol types, not concrete implementations
+    *   Views use `.withViewModel { factory in ... }` pattern for async ViewModel creation
+    *   Test code uses `DIBootstrapper.createTestContainer()` for isolated testing
 *   **Agent Instructions for Code Generation:**
     *   "Generate Swift code for a SwiftUI view named `[ViewName]` with the following elements and functionality..."
     *   "Implement a service class `[ServiceName]` conforming to `[ProtocolName]` with methods to..."
+    *   "Create ViewModels with constructor injection of all dependencies via protocols"
     *   "Write unit tests for `[ClassName.methodName]` covering the following scenarios..."
+    *   "Use DIContainer for test setup instead of singleton access"
     *   "Ensure all generated code adheres to the project's SwiftLint configuration."
 
 **7. Sequencing and Parallelization Strategy for AI Agents**

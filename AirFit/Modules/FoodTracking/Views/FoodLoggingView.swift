@@ -2,6 +2,27 @@ import SwiftUI
 import Charts
 import SwiftData
 
+// MARK: - Food Tracking View with DI
+struct FoodTrackingView: View {
+    let user: User
+    @State private var viewModel: FoodTrackingViewModel?
+    @Environment(\.diContainer) private var container
+    
+    var body: some View {
+        Group {
+            if let viewModel = viewModel {
+                FoodLoggingView(viewModel: viewModel)
+            } else {
+                ProgressView()
+                    .task {
+                        let factory = DIViewModelFactory(container: container)
+                        viewModel = try? await factory.makeFoodTrackingViewModel(user: user)
+                    }
+            }
+        }
+    }
+}
+
 /// Main food logging interface with voice-first workflow and macro visualization.
 struct FoodLoggingView: View {
     @State private var viewModel: FoodTrackingViewModel

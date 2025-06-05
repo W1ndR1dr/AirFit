@@ -1,8 +1,8 @@
 import Foundation
 
-/// Implementation of APIKeyManagerProtocol using Keychain
+/// Implementation of APIKeyManagementProtocol using Keychain
 @MainActor
-final class APIKeyManager: APIKeyManagerProtocol, APIKeyManagementProtocol, ServiceProtocol, @unchecked Sendable {
+final class APIKeyManager: APIKeyManagementProtocol, ServiceProtocol, @unchecked Sendable {
     private let keychain: KeychainWrapper
     private let keychainPrefix = "com.airfit.apikey."
     
@@ -29,16 +29,19 @@ final class APIKeyManager: APIKeyManagerProtocol, APIKeyManagementProtocol, Serv
     
     func healthCheck() async -> ServiceHealth {
         // Check if we can access keychain
-        let canAccessKeychain = await Task { () -> Bool in
-            do {
-                // Try to access a dummy key to verify keychain access
-                _ = try keychain.load(key: "health_check_dummy")
-                return true
-            } catch {
-                // Expected error for non-existent key, but confirms keychain is accessible
-                return true
+        let canAccessKeychain = await withCheckedContinuation { continuation in
+            Task { @MainActor in
+                let testKey = "com.airfit.health.check"
+                do {
+                    try keychain.save("test".data(using: .utf8)!, forKey: testKey)
+                    _ = try keychain.load(key: testKey)
+                    try keychain.delete(key: testKey)
+                    continuation.resume(returning: true)
+                } catch {
+                    continuation.resume(returning: false)
+                }
             }
-        }.value
+        }
         
         return ServiceHealth(
             status: canAccessKeychain ? .healthy : .unhealthy,
@@ -51,85 +54,47 @@ final class APIKeyManager: APIKeyManagerProtocol, APIKeyManagementProtocol, Serv
         )
     }
     
-    // MARK: - Legacy Synchronous Methods
+    // MARK: - APIKeyManagementProtocol
     
-    func saveAPIKey(_ apiKey: String, forProvider provider: AIProvider) throws {
-        let key = keychainKey(for: provider.rawValue)
-        let data = apiKey.data(using: .utf8) ?? Data()
-        try keychain.save(data, forKey: key)
+    func saveAPIKey(_ key: String, for provider: AIProvider) async throws {
+        let keychainKey = self.keychainKey(for: provider.rawValue)
+        let data = key.data(using: .utf8) ?? Data()
+        try keychain.save(data, forKey: keychainKey)
         
         AppLogger.info("Saved API key for provider: \(provider.rawValue)", category: .security)
     }
     
-    func getAPIKey(forProvider provider: AIProvider) -> String? {
-        let key = keychainKey(for: provider.rawValue)
+    func getAPIKey(for provider: AIProvider) async throws -> String {
+        let keychainKey = self.keychainKey(for: provider.rawValue)
         
         do {
-            let data = try keychain.load(key: key)
-            let apiKey = String(data: data, encoding: .utf8)
+            let data = try keychain.load(key: keychainKey)
+            guard let apiKey = String(data: data, encoding: .utf8) else {
+                throw ServiceError.invalidResponse("Invalid API key data")
+            }
             return apiKey
         } catch {
             AppLogger.error("Failed to get API key for provider: \(provider.rawValue)", error: error, category: .security)
-            return nil
+            throw ServiceError.authenticationFailed("No API key found for \(provider.rawValue)")
         }
     }
     
-    func deleteAPIKey(forProvider provider: AIProvider) throws {
-        let key = keychainKey(for: provider.rawValue)
-        try keychain.delete(key: key)
+    func deleteAPIKey(for provider: AIProvider) async throws {
+        let keychainKey = self.keychainKey(for: provider.rawValue)
+        try keychain.delete(key: keychainKey)
         
         AppLogger.info("Deleted API key for provider: \(provider.rawValue)", category: .security)
     }
     
-    // MARK: - Modern Async Methods
-    
-    func getAPIKey(for provider: String) async -> String? {
-        let key = keychainKey(for: provider)
+    func hasAPIKey(for provider: AIProvider) async -> Bool {
+        let keychainKey = self.keychainKey(for: provider.rawValue)
         
         do {
-            let data = try keychain.load(key: key)
-            let apiKey = String(data: data, encoding: .utf8)
-            return apiKey
+            _ = try keychain.load(key: keychainKey)
+            return true
         } catch {
-            AppLogger.error("Failed to get API key for provider: \(provider)", error: error, category: .security)
-            return nil
+            return false
         }
-    }
-    
-    func saveAPIKey(_ apiKey: String, for provider: String) async throws {
-        let key = keychainKey(for: provider)
-        let data = apiKey.data(using: .utf8) ?? Data()
-        try keychain.save(data, forKey: key)
-        
-        AppLogger.info("Saved API key for provider: \(provider)", category: .security)
-    }
-    
-    func deleteAPIKey(for provider: String) async throws {
-        let key = keychainKey(for: provider)
-        try keychain.delete(key: key)
-        
-        AppLogger.info("Deleted API key for provider: \(provider)", category: .security)
-    }
-    
-    // MARK: - APIKeyManagementProtocol Methods
-    
-    func saveAPIKey(_ key: String, for provider: AIProvider) async throws {
-        try saveAPIKey(key, forProvider: provider)
-    }
-    
-    func getAPIKey(for provider: AIProvider) async throws -> String {
-        guard let apiKey = getAPIKey(forProvider: provider) else {
-            throw ServiceError.authenticationFailed("No API key found for \(provider.rawValue)")
-        }
-        return apiKey
-    }
-    
-    func deleteAPIKey(for provider: AIProvider) async throws {
-        try deleteAPIKey(forProvider: provider)
-    }
-    
-    func hasAPIKey(for provider: AIProvider) async -> Bool {
-        getAPIKey(forProvider: provider) != nil
     }
     
     func getAllConfiguredProviders() async -> [AIProvider] {
@@ -140,20 +105,6 @@ final class APIKeyManager: APIKeyManagerProtocol, APIKeyManagementProtocol, Serv
             }
         }
         return configuredProviders
-    }
-    
-    // MARK: - APIKeyManagerProtocol Methods
-    
-    func setAPIKey(_ key: String, for provider: AIProvider) async throws {
-        try saveAPIKey(key, forProvider: provider)
-    }
-    
-    func getAPIKey(for provider: AIProvider) async throws -> String? {
-        return getAPIKey(forProvider: provider)
-    }
-    
-    func removeAPIKey(for provider: AIProvider) async throws {
-        try deleteAPIKey(forProvider: provider)
     }
     
     // MARK: - Private Methods

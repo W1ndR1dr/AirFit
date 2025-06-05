@@ -1,0 +1,173 @@
+import Foundation
+import SwiftData
+import SwiftUI
+
+/// Factory for creating ViewModels with proper dependency injection
+@MainActor
+public final class DIViewModelFactory {
+    private let container: DIContainer
+    
+    public init(container: DIContainer) {
+        self.container = container
+    }
+    
+    // MARK: - Dashboard
+    
+    func makeDashboardViewModel(user: User) async throws -> DashboardViewModel {
+        let modelContainer = try await container.resolve(ModelContainer.self)
+        let healthKitService = try await container.resolve(HealthKitService.self)
+        let nutritionService = try await container.resolve(DashboardNutritionService.self)
+        
+        // Create user-specific CoachEngine and AICoachService
+        let coachEngine = try await makeCoachEngine(for: user)
+        let aiCoachService = AICoachService(coachEngine: coachEngine)
+        
+        return DashboardViewModel(
+            user: user,
+            modelContext: modelContainer.mainContext,
+            healthKitService: healthKitService,
+            aiCoachService: aiCoachService,
+            nutritionService: nutritionService
+        )
+    }
+    
+    // MARK: - Settings
+    
+    func makeSettingsViewModel(user: User) async throws -> SettingsViewModel {
+        let modelContainer = try await container.resolve(ModelContainer.self)
+        let apiKeyManager = try await container.resolve(APIKeyManagementProtocol.self)
+        let aiService = try await container.resolve(AIServiceProtocol.self)
+        let notificationManager = try await container.resolve(NotificationManager.self)
+        let coordinator = SettingsCoordinator()
+        
+        return SettingsViewModel(
+            modelContext: modelContainer.mainContext,
+            user: user,
+            apiKeyManager: apiKeyManager,
+            aiService: aiService,
+            notificationManager: notificationManager,
+            coordinator: coordinator
+        )
+    }
+    
+    // MARK: - Workouts
+    
+    func makeWorkoutViewModel(user: User) async throws -> WorkoutViewModel {
+        let modelContainer = try await container.resolve(ModelContainer.self)
+        let healthKitManager = try await container.resolve(HealthKitManager.self)
+        
+        // Create user-specific CoachEngine
+        let coachEngine = try await makeCoachEngine(for: user)
+        
+        return WorkoutViewModel(
+            modelContext: modelContainer.mainContext,
+            user: user,
+            coachEngine: coachEngine,
+            healthKitManager: healthKitManager
+        )
+    }
+    
+    // MARK: - Chat
+    
+    func makeChatViewModel(user: User) async throws -> ChatViewModel {
+        let modelContainer = try await container.resolve(ModelContainer.self)
+        let aiService = try await container.resolve(AIServiceProtocol.self, name: "adaptive")
+        
+        // Create user-specific CoachEngine
+        let coachEngine = try await makeCoachEngine(for: user)
+        
+        return ChatViewModel(
+            modelContext: modelContainer.mainContext,
+            user: user,
+            coachEngine: coachEngine,
+            aiService: aiService,
+            coordinator: ChatCoordinator()
+        )
+    }
+    
+    // MARK: - Food Tracking
+    
+    func makeFoodTrackingViewModel(user: User) async throws -> FoodTrackingViewModel {
+        let modelContainer = try await container.resolve(ModelContainer.self)
+        let voiceInputManager = try await container.resolve(VoiceInputManager.self)
+        let nutritionService = try await container.resolve(NutritionServiceProtocol.self)
+        let coordinator = FoodTrackingCoordinator()
+        
+        // Create food voice adapter
+        let foodVoiceAdapter = FoodVoiceAdapter(voiceInputManager: voiceInputManager)
+        
+        // Create coach engine
+        let coachEngine = try await makeCoachEngine(for: user)
+        
+        return FoodTrackingViewModel(
+            modelContext: modelContainer.mainContext,
+            user: user,
+            foodVoiceAdapter: foodVoiceAdapter,
+            nutritionService: nutritionService,
+            coachEngine: coachEngine,
+            coordinator: coordinator
+        )
+    }
+    
+    
+    // MARK: - Onboarding
+    
+    func makeOnboardingViewModel() async throws -> OnboardingViewModel {
+        let modelContainer = try await container.resolve(ModelContainer.self)
+        let userService = try await container.resolve(UserServiceProtocol.self)
+        let apiKeyManager = try await container.resolve(APIKeyManagementProtocol.self)
+        let aiService = try await container.resolve(AIServiceProtocol.self)
+        
+        // Create onboarding service
+        let onboardingService = OnboardingService(
+            modelContext: modelContainer.mainContext
+        )
+        
+        // Create HealthKit auth manager
+        let healthKitAuthManager = HealthKitAuthManager()
+        
+        return OnboardingViewModel(
+            aiService: aiService,
+            onboardingService: onboardingService,
+            modelContext: modelContainer.mainContext,
+            apiKeyManager: apiKeyManager,
+            userService: userService,
+            healthKitAuthManager: healthKitAuthManager
+        )
+    }
+    
+    // MARK: - Private Helpers
+    
+    private func makeCoachEngine(for user: User) async throws -> CoachEngine {
+        let modelContainer = try await container.resolve(ModelContainer.self)
+        let aiService = try await container.resolve(AIServiceProtocol.self)
+        let llmOrchestrator = try await container.resolve(LLMOrchestrator.self)
+        let modelContext = modelContainer.mainContext
+        
+        // Create required components
+        let localCommandParser = LocalCommandParser()
+        
+        // TODO: Create proper AI service implementations for FunctionCallDispatcher
+        // For now, skip FunctionCallDispatcher until AI services are properly implemented
+        // let functionDispatcher = FunctionCallDispatcher(...)
+        
+        let personaEngine = PersonaEngine()
+        let conversationManager = ConversationManager(modelContext: modelContext)
+        let contextAssembler = try await container.resolve(ContextAssembler.self)
+        
+        // Create a minimal CoachEngine without FunctionCallDispatcher for now
+        // This will need to be updated once AI services are properly implemented
+        fatalError("CoachEngine requires FunctionCallDispatcher - AI services need to be implemented")
+    }
+    
+    private func makeConversationManager(for user: User) async throws -> ConversationManager {
+        let modelContainer = try await container.resolve(ModelContainer.self)
+        return ConversationManager(modelContext: modelContainer.mainContext)
+    }
+}
+
+// MARK: - SwiftUI View Extension
+
+// Note: The withViewModel helper was removed because @Observable types 
+// don't conform to ObservableObject. Views should manually create their
+// ViewModels using the DIViewModelFactory from the environment container.

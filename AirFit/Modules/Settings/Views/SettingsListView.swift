@@ -7,27 +7,39 @@ struct IdentifiableURL: Identifiable {
     let url: URL
 }
 
+// MARK: - Settings View with DI
+struct SettingsView: View {
+    let user: User
+    @State private var viewModel: SettingsViewModel?
+    @Environment(\.diContainer) private var container
+    
+    var body: some View {
+        Group {
+            if let viewModel = viewModel {
+                SettingsListView(viewModel: viewModel, user: user)
+            } else {
+                ProgressView()
+                    .task {
+                        let factory = DIViewModelFactory(container: container)
+                        viewModel = try? await factory.makeSettingsViewModel(user: user)
+                    }
+            }
+        }
+    }
+}
+
+// MARK: - Settings List Content
 struct SettingsListView: View {
     @Environment(\.dismiss) private var dismiss
     @Environment(\.modelContext) private var modelContext
-    @State private var viewModel: SettingsViewModel
+    @State var viewModel: SettingsViewModel
     @State private var coordinator: SettingsCoordinator
+    let user: User
     
-    init(user: User) {
-        let coordinator = SettingsCoordinator()
-        let dependencies = DependencyContainer.shared
-        
-        let viewModel = SettingsViewModel(
-            modelContext: dependencies.makeModelContext()!,
-            user: user,
-            apiKeyManager: dependencies.apiKeyManager!,
-            aiService: dependencies.aiService!,
-            notificationManager: dependencies.notificationManager!,
-            coordinator: coordinator
-        )
-        
-        _viewModel = State(initialValue: viewModel)
-        _coordinator = State(initialValue: coordinator)
+    init(viewModel: SettingsViewModel, user: User) {
+        self._viewModel = State(initialValue: viewModel)
+        self.user = user
+        self._coordinator = State(initialValue: SettingsCoordinator())
     }
     
     var body: some View {

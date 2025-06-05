@@ -56,32 +56,3 @@ class MockLLMOrchestrator: LLMOrchestrator {
         }
     }
 }
-
-/// Mock API Key Manager for testing
-class MockAPIKeyManager: APIKeyManagerProtocol {
-    private var keys: [String: String] = [:]
-    
-    func saveAPIKey(_ apiKey: String, forProvider provider: AIProvider) throws {
-        keys[provider.rawValue] = apiKey
-    }
-    
-    func getAPIKey(forProvider provider: AIProvider) -> String? {
-        keys[provider.rawValue] ?? "mock-api-key"
-    }
-    
-    func deleteAPIKey(forProvider provider: AIProvider) throws {
-        keys.removeValue(forKey: provider.rawValue)
-    }
-    
-    func getAPIKey(for provider: String) async -> String? {
-        keys[provider] ?? "mock-api-key"
-    }
-    
-    func saveAPIKey(_ apiKey: String, for provider: String) async throws {
-        keys[provider] = apiKey
-    }
-    
-    func deleteAPIKey(for provider: String) async throws {
-        keys.removeValue(forKey: provider)
-    }
-}

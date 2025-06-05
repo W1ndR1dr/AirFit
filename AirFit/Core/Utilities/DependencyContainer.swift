@@ -11,7 +11,7 @@ public final class DependencyContainer: @unchecked Sendable {
     private(set) var logger: AppLogger.Type
     private(set) var aiService: AIServiceProtocol?
     private(set) var userService: UserServiceProtocol?
-    private(set) var apiKeyManager: APIKeyManagerProtocol?
+    private(set) var apiKeyManager: APIKeyManagementProtocol?
     private(set) var notificationManager: NotificationManager?
 
     // MARK: - Initialization
@@ -44,7 +44,7 @@ public final class DependencyContainer: @unchecked Sendable {
             self.userService = UserService(modelContext: modelContext)
         }
         
-        // Configure AI service with ProductionAIService
+        // Configure AI service with AIService
         Task { @MainActor in
             if let keyManager = self.apiKeyManager {
                 // Safe cast with fallback
@@ -58,7 +58,7 @@ public final class DependencyContainer: @unchecked Sendable {
                 let orchestrator = await MainActor.run {
                     LLMOrchestrator(apiKeyManager: apiKeyManagement)
                 }
-                let productionService = await ProductionAIService(llmOrchestrator: orchestrator)
+                let productionService = await AIService(llmOrchestrator: orchestrator)
                 
                 // Try to configure the service
                 do {

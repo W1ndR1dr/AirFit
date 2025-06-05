@@ -267,32 +267,6 @@ final class OnboardingFlowTests: XCTestCase {
 
 // MARK: - Mock Services
 
-private class MockAPIKeyManager: APIKeyManagerProtocol {
-    func saveAPIKey(_ apiKey: String, forProvider provider: AIProvider) throws {
-        // Mock implementation
-    }
-    
-    func getAPIKey(forProvider provider: AIProvider) -> String? {
-        return "mock-api-key"
-    }
-    
-    func deleteAPIKey(forProvider provider: AIProvider) throws {
-        // Mock implementation
-    }
-    
-    func getAPIKey(for provider: String) async -> String? {
-        return "mock-api-key"
-    }
-    
-    func saveAPIKey(_ apiKey: String, for provider: String) async throws {
-        // Mock implementation
-    }
-    
-    func deleteAPIKey(for provider: String) async throws {
-        // Mock implementation
-    }
-}
-
 extension ConversationFlowManager {
     var shouldFailNextRequest: Bool {
         get { false }

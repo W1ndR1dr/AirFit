@@ -48,8 +48,8 @@ final class MockAPIKeyManagement: APIKeyManagementProtocol, MockProtocol {
     }
 }
 
-// MARK: - MockAPIKeyManagerProtocol (Legacy)
-final class MockAPIKeyManager: APIKeyManagerProtocol, MockProtocol {
+// MARK: - MockAPIKeyManager
+final class MockAPIKeyManager: APIKeyManagementProtocol, MockProtocol {
     var invocations: [String: [Any]] = [:]
     var stubbedResults: [String: Any] = [:]
     let mockLock = NSLock()
@@ -96,45 +96,5 @@ final class MockAPIKeyManager: APIKeyManagerProtocol, MockProtocol {
     func getAllConfiguredProviders() async -> [AIProvider] {
         recordInvocation("getAllConfiguredProviders", arguments: nil)
         return stubbedGetAllConfiguredProvidersResult
-    }
-    
-    // Legacy synchronous methods from APIKeyManagerProtocol in APIKeyManagerProtocol.swift
-    func saveAPIKey(_ apiKey: String, forProvider provider: AIProvider) throws {
-        recordInvocation("saveAPIKey_sync", arguments: apiKey, provider)
-        if let error = stubbedSaveAPIKeyError {
-            throw error
-        }
-    }
-    
-    func getAPIKey(forProvider provider: AIProvider) -> String? {
-        recordInvocation("getAPIKey_sync", arguments: provider)
-        return stubbedGetAPIKeyResult
-    }
-    
-    func deleteAPIKey(forProvider provider: AIProvider) throws {
-        recordInvocation("deleteAPIKey_sync", arguments: provider)
-        if let error = stubbedDeleteAPIKeyError {
-            throw error
-        }
-    }
-    
-    // Modern async methods using string-based provider identification
-    func getAPIKey(for provider: String) async -> String? {
-        recordInvocation("getAPIKey_string", arguments: provider)
-        return stubbedGetAPIKeyResult
-    }
-    
-    func saveAPIKey(_ apiKey: String, for provider: String) async throws {
-        recordInvocation("saveAPIKey_string", arguments: apiKey, provider)
-        if let error = stubbedSaveAPIKeyError {
-            throw error
-        }
-    }
-    
-    func deleteAPIKey(for provider: String) async throws {
-        recordInvocation("deleteAPIKey_string", arguments: provider)
-        if let error = stubbedDeleteAPIKeyError {
-            throw error
-        }
     }
 }

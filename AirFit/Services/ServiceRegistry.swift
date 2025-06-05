@@ -211,7 +211,7 @@ struct ServiceBootstrapper {
         // Initialize AI service if keys are available
         if await apiKeyManager.getAllConfiguredProviders().count > 0 {
             let llmOrchestrator = LLMOrchestrator(apiKeyManager: apiKeyManager)
-            let aiService = ProductionAIService(llmOrchestrator: llmOrchestrator)
+            let aiService = AIService(llmOrchestrator: llmOrchestrator)
             
             try await aiService.configure()
             registry.register(aiService, for: AIServiceProtocol.self)

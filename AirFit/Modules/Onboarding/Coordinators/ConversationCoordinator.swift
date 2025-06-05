@@ -13,7 +13,7 @@ final class ConversationCoordinator: ObservableObject {
     
     private let modelContext: ModelContext
     private let userId: UUID
-    private let apiKeyManager: APIKeyManagerProtocol
+    private let apiKeyManager: APIKeyManagementProtocol
     private let onCompletion: (PersonaProfile) -> Void
     
     private var insights: PersonalityInsights?
@@ -22,7 +22,7 @@ final class ConversationCoordinator: ObservableObject {
     init(
         modelContext: ModelContext,
         userId: UUID,
-        apiKeyManager: APIKeyManagerProtocol,
+        apiKeyManager: APIKeyManagementProtocol,
         onCompletion: @escaping (PersonaProfile) -> Void
     ) {
         self.modelContext = modelContext
@@ -126,26 +126,22 @@ final class ConversationCoordinator: ObservableObject {
 // MARK: - API Key Adapter
 @MainActor
 private final class APIKeyManagerToManagementAdapter: APIKeyManagementProtocol {
-    private let wrapped: APIKeyManagerProtocol
+    private let wrapped: APIKeyManagementProtocol
     
-    init(_ wrapped: APIKeyManagerProtocol) {
+    init(_ wrapped: APIKeyManagementProtocol) {
         self.wrapped = wrapped
     }
     
     func saveAPIKey(_ key: String, for provider: AIProvider) async throws {
-        try await wrapped.setAPIKey(key, for: provider)
+        try await wrapped.saveAPIKey(key, for: provider)
     }
     
     func getAPIKey(for provider: AIProvider) async throws -> String {
-        // Note: wrapped.getAPIKey returns optional, but APIKeyManagementProtocol expects non-optional
-        guard let key = try await wrapped.getAPIKey(for: provider) else {
-            throw APIKeyError.keyNotFound(provider: provider.rawValue)
-        }
-        return key
+        return try await wrapped.getAPIKey(for: provider)
     }
     
     func deleteAPIKey(for provider: AIProvider) async throws {
-        try await wrapped.removeAPIKey(for: provider)
+        try await wrapped.deleteAPIKey(for: provider)
     }
     
     func hasAPIKey(for provider: AIProvider) async -> Bool {

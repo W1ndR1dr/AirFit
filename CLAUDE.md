@@ -299,6 +299,39 @@ When in doubt, examine existing patterns in the codebase and follow them ruthles
 - **Wrong Directory**: Always verify full paths - Docs/ means /AirFit/Docs/, not root /Docs/
 - **Redundant Naming**: Don't use "Default" prefix for concrete implementations (e.g., use `UserService` not `DefaultUserService` for `UserServiceProtocol`)
 
+## Dependency Injection System (Phase 5 - In Progress)
+**Status**: Core DI system implemented, starting gradual migration
+
+**Completed**:
+- `DIContainer.swift` - Modern DI container with lifetime scopes
+- `DIBootstrapper.swift` - Service registration and configuration
+- `DIViewModelFactory.swift` - Clean ViewModel creation
+- `DI_MIGRATION_PLAN.md` - Complete migration strategy
+
+**Keep as Singletons** (Don't add to DI):
+- KeychainWrapper.shared - system resource wrapper
+- AppLogger.shared - stateless logging utility
+- HapticManager.shared - UI feedback utility
+- WhisperKit models - heavy ML resources
+- RoutingConfiguration.shared - app-wide config
+
+**DI Quick Patterns**:
+```swift
+// View with DI
+DashboardContent()
+    .withViewModel { factory in
+        try await factory.makeDashboardViewModel(user: user)
+    }
+
+// Test with DI
+let container = DIBootstrapper.createTestContainer()
+let factory = DIViewModelFactory(container: container)
+```
+
+**Migration Order**: Dashboard → Settings → Workouts → Notifications → Chat → FoodTracking → AI/Onboarding
+
+See `Docs/Cleanup/Active/DI_MIGRATION_PLAN.md` for complete details.
+
 ## Before Creating Any File
 1. **Check if directory exists**: Use `ls` or `find` to verify the path
 2. **Use full paths**: Start with `/Users/Brian/Coding Projects/AirFit/AirFit/` for app files

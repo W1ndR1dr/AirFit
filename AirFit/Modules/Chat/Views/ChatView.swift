@@ -2,35 +2,38 @@ import SwiftUI
 import SwiftData
 import Combine
 
+// MARK: - Chat Container with DI
+struct Chat: View {
+    let user: User
+    @State private var viewModel: ChatViewModel?
+    @Environment(\.diContainer) private var container
+    
+    var body: some View {
+        Group {
+            if let viewModel = viewModel {
+                ChatView(viewModel: viewModel, user: user)
+            } else {
+                ProgressView()
+                    .task {
+                        let factory = DIViewModelFactory(container: container)
+                        viewModel = try? await factory.makeChatViewModel(user: user)
+                    }
+            }
+        }
+    }
+}
+
 struct ChatView: View {
     @StateObject private var viewModel: ChatViewModel
     @StateObject private var coordinator: ChatCoordinator
     @FocusState private var isComposerFocused: Bool
     @State private var scrollProxy: ScrollViewProxy?
+    let user: User
 
-    init(user: User, modelContext: ModelContext) {
-        let coordinator = ChatCoordinator()
-        
-        // Use production services from DependencyContainer
-        // Note: DependencyContainer.shared.aiService is already initialized
-        guard let aiService = DependencyContainer.shared.aiService else {
-            AppLogger.error("AI service not available in DependencyContainer", category: .chat)
-            // This shouldn't happen in production as DependencyContainer always provides a service
-            fatalError("AI service must be configured before using ChatView")
-        }
-        
-        // TODO: Replace with production CoachEngine once available
-        let coachEngine = ChatMockCoachEngine()
-        
-        let viewModel = ChatViewModel(
-            modelContext: modelContext,
-            user: user,
-            coachEngine: coachEngine,
-            aiService: aiService,
-            coordinator: coordinator
-        )
-        _viewModel = StateObject(wrappedValue: viewModel)
-        _coordinator = StateObject(wrappedValue: coordinator)
+    init(viewModel: ChatViewModel, user: User) {
+        self._viewModel = StateObject(wrappedValue: viewModel)
+        self._coordinator = StateObject(wrappedValue: ChatCoordinator())
+        self.user = user
     }
 
     var body: some View {

@@ -25,8 +25,8 @@ struct ContentView: View {
                             }
                         }
                     )
-                } else if appState.shouldShowDashboard {
-                    DashboardView()
+                } else if appState.shouldShowDashboard, let user = appState.currentUser {
+                    DashboardView(user: user)
                 } else {
                     ErrorView(
                         error: appState.error,

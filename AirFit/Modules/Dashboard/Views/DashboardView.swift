@@ -1,64 +1,22 @@
 import SwiftUI
 import SwiftData
 
-/// Main dashboard container view using adaptive grid layout.
-struct DashboardView: View {
+/// Dashboard content view that displays the actual dashboard UI
+struct DashboardContent: View {
     @Environment(\.modelContext)
     private var modelContext
 
-    @State private var viewModel: DashboardViewModel
+    let viewModel: DashboardViewModel
 
-    @StateObject private var coordinator: DashboardCoordinator
+    @StateObject private var coordinator = DashboardCoordinator()
 
     @State private var hasAppeared = false
+    
+    let user: User
 
     private let columns: [GridItem] = [
         GridItem(.adaptive(minimum: 180), spacing: AppSpacing.medium)
     ]
-
-    // MARK: - Initializers
-    init(viewModel: DashboardViewModel) {
-        _viewModel = State(initialValue: viewModel)
-        _coordinator = StateObject(wrappedValue: DashboardCoordinator())
-    }
-
-    init(user: User) {
-        let context = DependencyContainer.shared.makeModelContext() ?? {
-            do {
-                let container = try ModelContainer(
-                    for: User.self,
-                    configurations: ModelConfiguration(isStoredInMemoryOnly: true)
-                )
-                return ModelContext(container)
-            } catch {
-                fatalError("Failed to create ModelContainer: \(error)")
-            }
-        }()
-        // Create concrete service implementations
-        let healthKitManager = HealthKitManager.shared
-        let contextAssembler = ContextAssembler(
-            healthKitManager: healthKitManager
-        )
-        let healthKitService = HealthKitService(
-            healthKitManager: healthKitManager,
-            contextAssembler: contextAssembler
-        )
-        
-        let coachEngine = CoachEngine.createDefault(modelContext: context)
-        let aiCoachService = AICoachService(coachEngine: coachEngine)
-        
-        let nutritionService = DashboardNutritionService(modelContext: context)
-        
-        let vm = DashboardViewModel(
-            user: user,
-            modelContext: context,
-            healthKitService: healthKitService,
-            aiCoachService: aiCoachService,
-            nutritionService: nutritionService
-        )
-        _viewModel = State(initialValue: vm)
-        _coordinator = StateObject(wrappedValue: DashboardCoordinator())
-    }
 
     var body: some View {
         NavigationStack(path: $coordinator.path) {
@@ -162,17 +120,11 @@ struct DashboardView: View {
 // MARK: - Preview
 #Preview {
     let container = try! ModelContainer(for: User.self) // swiftlint:disable:this force_try
-    let context = container.mainContext
     let user = User(name: "Preview")
-    context.insert(user)
-    let vm = DashboardViewModel(
-        user: user,
-        modelContext: context,
-        healthKitService: PlaceholderHealthKitService(),
-        aiCoachService: PlaceholderAICoachService(),
-        nutritionService: PlaceholderNutritionService()
-    )
-    return DashboardView(viewModel: vm)
+    container.mainContext.insert(user)
+    
+    return DashboardView(user: user)
+        .withDIContainer(DIContainer()) // Empty container for preview
         .modelContainer(container)
 }
 
@@ -218,6 +170,27 @@ actor PlaceholderNutritionService: DashboardNutritionServiceProtocol {
 
     func getTargets(from profile: OnboardingProfile) async throws -> NutritionTargets {
         .default
+    }
+}
+
+// MARK: - Main Dashboard View with DI
+struct DashboardView: View {
+    let user: User
+    @State private var viewModel: DashboardViewModel?
+    @Environment(\.diContainer) private var container
+    
+    var body: some View {
+        Group {
+            if let viewModel = viewModel {
+                DashboardContent(viewModel: viewModel, user: user)
+            } else {
+                ProgressView()
+                    .task {
+                        let factory = DIViewModelFactory(container: container)
+                        viewModel = try? await factory.makeDashboardViewModel(user: user)
+                    }
+            }
+        }
     }
 }
 

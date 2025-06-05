@@ -93,6 +93,42 @@ final class NutritionCalculatorTests: XCTestCase {
         XCTAssertEqual(calories, 780, accuracy: 0.01)
     }
 }
+
+// Modern DI Pattern for Service/ViewModel Tests
+@MainActor
+final class DashboardViewModelTestsWithDI: XCTestCase {
+    var container: DIContainer!
+    var factory: DIViewModelFactory!
+    var sut: DashboardViewModel!
+    
+    override func setUp() async throws {
+        try await super.setUp()
+        // Use test container with all mocks pre-registered
+        container = try await DIBootstrapper.createTestContainer()
+        factory = DIViewModelFactory(container: container)
+    }
+    
+    override func tearDown() async throws {
+        sut = nil
+        factory = nil
+        container = nil
+        try await super.tearDown()
+    }
+    
+    func test_refreshData_withMockedServices_updatesCorrectly() async throws {
+        // Arrange - Configure mocks
+        let mockHealthKit = try container.resolve(HealthKitManagerProtocol.self) as! MockHealthKitManager
+        mockHealthKit.mockSleepData = [/* test data */]
+        
+        // Act - Create ViewModel via factory
+        sut = try await factory.makeDashboardViewModel()
+        await sut.refresh()
+        
+        // Assert
+        XCTAssertEqual(sut.sleepHours, 8.0)
+        XCTAssertTrue(mockHealthKit.fetchSleepDataCalled)
+    }
+}
 ```
 
 ### Integration Tests
@@ -321,9 +357,61 @@ func test_login_givenInvalidCredentials_shouldShowErrorAlert() async {
 }
 ```
 
-## 6. Mocking Strategy
+## 6. Dependency Injection in Tests
 
-Use protocol-based mocking for all external dependencies to ensure tests are fast, reliable, and deterministic.
+AirFit uses a modern dependency injection system (DIContainer) to ensure complete test isolation. All tests should use the DI pattern to inject mocks and control dependencies.
+
+### DI Test Setup Pattern
+```swift
+@MainActor
+class SomeViewModelTests: XCTestCase {
+    var container: DIContainer!
+    var factory: DIViewModelFactory!
+    
+    override func setUp() async throws {
+        try await super.setUp()
+        container = try await DIBootstrapper.createTestContainer()
+        factory = DIViewModelFactory(container: container)
+    }
+    
+    override func tearDown() async throws {
+        container = nil
+        factory = nil
+        try await super.tearDown()
+    }
+}
+```
+
+### Configuring Mocks in DI
+```swift
+func test_someFeature_withMockedDependencies() async throws {
+    // Configure mocks before creating SUT
+    let mockAI = try container.resolve(AIServiceProtocol.self) as! MockAIService
+    mockAI.generateResponseResult = .success("Test response")
+    
+    let mockUser = try container.resolve(UserServiceProtocol.self) as! MockUserService
+    mockUser.currentUser = User(name: "Test User")
+    
+    // Create SUT via factory - it will get the configured mocks
+    let viewModel = try await factory.makeSomeViewModel()
+    
+    // Test the feature
+    await viewModel.doSomething()
+    
+    // Verify interactions
+    XCTAssertTrue(mockAI.generateResponseCalled)
+}
+```
+
+### Benefits of DI Testing
+- **Complete Isolation**: Each test gets its own container with fresh mocks
+- **No Singleton Pollution**: Tests can run in parallel without interference
+- **Easy Mock Configuration**: Configure all mocks before creating the SUT
+- **Consistent Pattern**: Same pattern works for all ViewModels and services
+
+## 7. Mocking Strategy
+
+Use protocol-based mocking for all external dependencies to ensure tests are fast, reliable, and deterministic. All mocks should be registered in the test DI container.
 
 ### Protocol Definition
 ```swift
@@ -463,6 +551,54 @@ extension MockAIService: MockProtocol {
     }
 }
 ```
+
+### Dependency Injection Testing
+
+AirFit uses a custom DI container for clean, isolated testing:
+
+```swift
+@MainActor
+final class DashboardViewModelTests: XCTestCase {
+    var container: DIContainer!
+    var factory: DIViewModelFactory!
+    
+    override func setUp() async throws {
+        try await super.setUp()
+        
+        // Create test container with mocks
+        container = await DIBootstrapper.createTestContainer()
+        factory = DIViewModelFactory(container: container)
+        
+        // Register test-specific mocks if needed
+        container.register(WeatherServiceProtocol.self) { _ in
+            let mock = MockWeatherService()
+            mock.getCurrentWeatherResult = .success(WeatherData.mock)
+            return mock
+        }
+    }
+    
+    func test_loadDashboard_withValidData_shouldUpdateState() async throws {
+        // Arrange
+        let user = User.mock
+        
+        // Act - ViewModel created with all dependencies injected
+        let viewModel = try await factory.makeDashboardViewModel(user: user)
+        await viewModel.loadDashboard()
+        
+        // Assert
+        XCTAssertFalse(viewModel.isLoading)
+        XCTAssertNotNil(viewModel.weatherData)
+        XCTAssertEqual(viewModel.nutritionData.calories, 1500)
+    }
+}
+```
+
+**Key DI Testing Patterns:**
+1. Use `DIBootstrapper.createTestContainer()` for isolated test containers
+2. Override specific services with custom mocks when needed
+3. Use `DIViewModelFactory` to create ViewModels with proper dependencies
+4. No cleanup needed - each test gets a fresh container
+5. Avoid accessing singletons directly in tests
 
 ## 7. SwiftData Testing
 
