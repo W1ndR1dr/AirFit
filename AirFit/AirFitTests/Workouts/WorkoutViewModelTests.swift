@@ -579,9 +579,10 @@ final class MockWorkoutCoachEngine: CoachEngineProtocol {
     var mockAnalysis: String = "Mock analysis"
     var didGenerateAnalysis: Bool = false
     var shouldThrowError: Bool = false
+    var processUserMessageCalled: Bool = false
     
-    func processUserMessage(_ message: String, context: HealthContextSnapshot?) async throws -> [String: SendableValue] {
-        ["response": SendableValue.string("Mock workout response")]
+    func processUserMessage(_ text: String, for user: User) async {
+        processUserMessageCalled = true
     }
     
     func generatePostWorkoutAnalysis(_ request: PostWorkoutAnalysisRequest) async throws -> String {

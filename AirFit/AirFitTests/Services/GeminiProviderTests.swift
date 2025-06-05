@@ -19,10 +19,10 @@ final class GeminiProviderTests: XCTestCase {
     
     func testThinkingBudgetInRequest() async {
         // Test that thinking budget is properly set for Gemini 2.5 Flash Thinking
-        let orchestrator = LLMOrchestrator(apiKeyManager: LocalMockAPIKeyManager())
+        let orchestrator = await LLMOrchestrator(apiKeyManager: LocalMockAPIKeyManager())
         
         // Test persona synthesis task (should get 8192 thinking budget)
-        let request = orchestrator.buildRequest(
+        let request = await orchestrator.buildRequest(
             prompt: "Test prompt",
             model: .gemini25FlashThinking,
             temperature: 0.7,
@@ -59,10 +59,11 @@ final class GeminiProviderTests: XCTestCase {
         let provider = GeminiProvider(apiKey: "test-key")
         
         // Test capabilities
-        XCTAssertTrue(await provider.capabilities.supportsVision)
-        XCTAssertTrue(await provider.capabilities.supportsJSON)
-        XCTAssertTrue(await provider.capabilities.supportsFunctionCalling)
-        XCTAssertTrue(await provider.capabilities.supportsStreaming)
+        let capabilities = await provider.capabilities
+        XCTAssertTrue(capabilities.supportsVision)
+        XCTAssertTrue(capabilities.supportsJSON)
+        XCTAssertTrue(capabilities.supportsFunctionCalling)
+        XCTAssertTrue(capabilities.supportsStreaming)
         
         // Test supported models
         XCTAssertTrue(GeminiProvider.supportedModels.contains("gemini-2.5-flash-preview-05-20"))
@@ -141,7 +142,8 @@ extension LLMOrchestrator {
 }
 
 // Simple mock for testing - using a different name to avoid conflicts
-private struct LocalMockAPIKeyManager: APIKeyManagementProtocol {
+@MainActor
+private final class LocalMockAPIKeyManager: APIKeyManagementProtocol {
     func saveAPIKey(_ key: String, for provider: AIProvider) async throws {
         // No-op for testing
     }

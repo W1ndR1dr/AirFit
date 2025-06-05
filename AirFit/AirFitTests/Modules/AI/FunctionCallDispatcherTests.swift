@@ -29,11 +29,11 @@ final class FunctionCallDispatcherTests: XCTestCase {
             userId: testUser.id
         )
 
-        // Initialize dispatcher with explicit mock services (defaults removed in Phase 3)
+        // Initialize dispatcher with AI-specific mock services
         dispatcher = FunctionCallDispatcher(
-            workoutService: MockWorkoutService(),
-            analyticsService: MockAnalyticsService(),
-            goalService: MockGoalService()
+            workoutService: MockAIWorkoutService(),
+            analyticsService: MockAIAnalyticsService(),
+            goalService: MockAIGoalService()
         )
     }
 

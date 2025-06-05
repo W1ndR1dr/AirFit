@@ -20,13 +20,8 @@ final class AINutritionParsingIntegrationTests: XCTestCase {
         
         // Create test user
         testUser = User(
-            name: "Test User",
             email: "test@example.com",
-            dateOfBirth: Date(),
-            heightCm: 175,
-            weightKg: 70,
-            activityLevel: .moderate,
-            primaryGoal: .maintainWeight
+            name: "Test User"
         )
         modelContext.insert(testUser)
         try modelContext.save()

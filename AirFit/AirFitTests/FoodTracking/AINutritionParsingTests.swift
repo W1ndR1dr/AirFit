@@ -24,13 +24,29 @@ final class AINutritionParsingTests: XCTestCase {
             name: "Test User"
         )
         
-        let onboardingProfile = OnboardingProfile(
-            userId: testUser.id,
-            goal: OnboardingProfile.Goal.maintainWeight,
-            activityLevel: OnboardingProfile.ActivityLevel.moderate,
-            primaryGoal: OnboardingProfile.Goal.maintainWeight
+        // Create onboarding profile with test data
+        let profileData = UserProfileJsonBlob(
+            lifeContext: LifeContext(),
+            goal: Goal(family: .healthWellbeing, rawText: "Maintain weight"),
+            blend: Blend(),
+            engagementPreferences: EngagementPreferences(),
+            sleepWindow: SleepWindow(),
+            motivationalStyle: MotivationalStyle()
         )
+        let encoder = JSONEncoder()
+        encoder.keyEncodingStrategy = .convertToSnakeCase
+        let data = try encoder.encode(profileData)
+        
+        let onboardingProfile = OnboardingProfile(
+            personaPromptData: data,
+            communicationPreferencesData: data,
+            rawFullProfileData: data,
+            user: testUser
+        )
+        testUser.onboardingProfile = onboardingProfile
+        
         modelContext.insert(testUser)
+        modelContext.insert(onboardingProfile)
         try modelContext.save()
         
         // Create mock coach engine
@@ -344,7 +360,7 @@ final class AINutritionParsingTests: XCTestCase {
         
         // Act
         let result = try await coachEngine.parseNaturalLanguageFood(
-            "mystery food",
+            text: "mystery food",
             mealType: MealType.lunch,
             for: testUser
         )
@@ -360,7 +376,7 @@ final class AINutritionParsingTests: XCTestCase {
         
         // Act
         let result = try await coachEngine.parseNaturalLanguageFood(
-            "unknown dinner",
+            text: "unknown dinner",
             mealType: MealType.dinner,
             for: testUser
         )
@@ -373,13 +389,13 @@ final class AINutritionParsingTests: XCTestCase {
     func test_parseNaturalLanguageFood_withMultipleFoods_shouldReturnMultipleItems() async throws {
         // Arrange
         coachEngine.mockParseResult = [
-            ParsedFoodItem(name: "Apple", brand: nil, quantity: 1, unit: "medium", calories: 95, proteinGrams: 0.5, carbGrams: 25, fatGrams: 0.3, confidence: 0.9),
-            ParsedFoodItem(name: "Banana", brand: nil, quantity: 1, unit: "medium", calories: 105, proteinGrams: 1.3, carbGrams: 27, fatGrams: 0.4, confidence: 0.8)
+            ParsedFoodItem(name: "Apple", brand: nil, quantity: 1, unit: "medium", calories: 95, proteinGrams: 0.5, carbGrams: 25, fatGrams: 0.3, fiberGrams: 4, sugarGrams: 19, sodiumMilligrams: 1, databaseId: nil, confidence: 0.9),
+            ParsedFoodItem(name: "Banana", brand: nil, quantity: 1, unit: "medium", calories: 105, proteinGrams: 1.3, carbGrams: 27, fatGrams: 0.4, fiberGrams: 3, sugarGrams: 12, sodiumMilligrams: 1, databaseId: nil, confidence: 0.8)
         ]
         
         // Act
         let result = try await coachEngine.parseNaturalLanguageFood(
-            "apple and banana",
+            text: "apple and banana",
             mealType: MealType.lunch,
             for: testUser
         )
@@ -396,7 +412,7 @@ final class AINutritionParsingTests: XCTestCase {
         
         // Act
         let result = try await coachEngine.parseNaturalLanguageFood(
-            "unknown snack",
+            text: "unknown snack",
             mealType: MealType.snack,
             for: testUser
         )
@@ -412,7 +428,7 @@ final class AINutritionParsingTests: XCTestCase {
         
         // Act
         let result = try await coachEngine.parseNaturalLanguageFood(
-            "unknown breakfast",
+            text: "unknown breakfast",
             mealType: MealType.breakfast,
             for: testUser
         )
@@ -429,7 +445,7 @@ final class AINutritionParsingTests: XCTestCase {
         
         // Act
         let result = try await coachEngine.parseNaturalLanguageFood(
-            "chicken breast with rice",
+            text: "chicken breast with rice",
             mealType: MealType.dinner,
             for: testUser
         )
@@ -443,14 +459,14 @@ final class AINutritionParsingTests: XCTestCase {
     func test_parseNaturalLanguageFood_withComplexMeal_shouldParseCorrectly() async throws {
         // Arrange
         coachEngine.mockParseResult = [
-            ParsedFoodItem(name: "Grilled Chicken", brand: nil, quantity: 6, unit: "oz", calories: 280, proteinGrams: 52, carbGrams: 0, fatGrams: 6, confidence: 0.95),
-            ParsedFoodItem(name: "Brown Rice", brand: nil, quantity: 1, unit: "cup", calories: 220, proteinGrams: 5, carbGrams: 45, fatGrams: 2, confidence: 0.9),
-            ParsedFoodItem(name: "Steamed Broccoli", brand: nil, quantity: 1, unit: "cup", calories: 25, proteinGrams: 3, carbGrams: 5, fatGrams: 0, confidence: 0.85)
+            ParsedFoodItem(name: "Grilled Chicken", brand: nil, quantity: 6, unit: "oz", calories: 280, proteinGrams: 52, carbGrams: 0, fatGrams: 6, fiberGrams: 0, sugarGrams: 0, sodiumMilligrams: 400, databaseId: nil, confidence: 0.95),
+            ParsedFoodItem(name: "Brown Rice", brand: nil, quantity: 1, unit: "cup", calories: 220, proteinGrams: 5, carbGrams: 45, fatGrams: 2, fiberGrams: 4, sugarGrams: 1, sodiumMilligrams: 10, databaseId: nil, confidence: 0.9),
+            ParsedFoodItem(name: "Steamed Broccoli", brand: nil, quantity: 1, unit: "cup", calories: 25, proteinGrams: 3, carbGrams: 5, fatGrams: 0, fiberGrams: 2, sugarGrams: 2, sodiumMilligrams: 30, databaseId: nil, confidence: 0.85)
         ]
         
         // Act
         let result = try await coachEngine.parseNaturalLanguageFood(
-            "6 oz grilled chicken with 1 cup brown rice and steamed broccoli",
+            text: "6 oz grilled chicken with 1 cup brown rice and steamed broccoli",
             mealType: MealType.lunch,
             for: testUser
         )
@@ -468,7 +484,7 @@ final class AINutritionParsingTests: XCTestCase {
         
         // Act
         let result = try await coachEngine.parseNaturalLanguageFood(
-            "apple",
+            text: "apple",
             mealType: MealType.snack,
             for: testUser
         )
@@ -534,7 +550,7 @@ final class MockFoodCoachEngine: FoodCoachEngineProtocol {
 
         if shouldThrowError {
             // Return fallback calories based on meal type
-            let fallbackCalories: Double
+            let fallbackCalories: Int
             switch mealType {
             case .breakfast:
                 fallbackCalories = 250
@@ -559,6 +575,10 @@ final class MockFoodCoachEngine: FoodCoachEngineProtocol {
                 proteinGrams: 10,
                 carbGrams: 30,
                 fatGrams: 5,
+                fiberGrams: 2,
+                sugarGrams: 5,
+                sodiumMilligrams: 200,
+                databaseId: nil,
                 confidence: 0.1
             )]
         }
@@ -588,6 +608,8 @@ final class MockFoodCoachEngine: FoodCoachEngineProtocol {
             case .lunch: return 400
             case .dinner: return 500
             case .snack: return 150
+            case .preWorkout: return 200
+            case .postWorkout: return 300
             }
         }()
 
@@ -619,4 +641,4 @@ final class MockFoodCoachEngine: FoodCoachEngineProtocol {
             return item
         }
     }
-} 
+}
