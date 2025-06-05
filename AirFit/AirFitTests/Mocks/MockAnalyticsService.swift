@@ -4,7 +4,12 @@ import SwiftData
 
 /// Mock implementation of AnalyticsServiceProtocol for testing
 @MainActor
-final class MockAnalyticsService: AnalyticsServiceProtocol, MockProtocol {
+final class MockAnalyticsService: AnalyticsServiceProtocol, @preconcurrency MockProtocol {
+    // MARK: - MockProtocol
+    var invocations: [String: [Any]] = [:]
+    var stubbedResults: [String: Any] = [:]
+    let mockLock = NSLock()
+    
     // MARK: - Tracking Properties
     
     var trackedEvents: [AnalyticsEvent] = []
@@ -65,7 +70,8 @@ final class MockAnalyticsService: AnalyticsServiceProtocol, MockProtocol {
         getInsightsCallCount += 1
         
         if shouldThrowError {
-            throw AppError.networkError("Mock analytics error")
+            struct MockError: Error {}
+            throw AppError.networkError(underlying: MockError())
         }
         
         return mockInsights

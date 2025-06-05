@@ -6,7 +6,6 @@ import Combine
 final class CoachEngineTests: XCTestCase {
     // MARK: - Properties
     var sut: CoachEngine!
-    var mockAIService: MockAIAPIService!
     var modelContext: ModelContext!
     var testUser: User!
 
@@ -35,9 +34,6 @@ final class CoachEngineTests: XCTestCase {
         modelContext.insert(testUser)
         try modelContext.save()
 
-        // Initialize mocks
-        mockAIService = MockAIAPIService()
-
         // Create system under test - integration testing with real components
         sut = createTestableCoachEngine()
     }
@@ -45,7 +41,6 @@ final class CoachEngineTests: XCTestCase {
     @MainActor
     override func tearDown() async throws {
         sut = nil
-        mockAIService = nil
         modelContext = nil
         testUser = nil
     }

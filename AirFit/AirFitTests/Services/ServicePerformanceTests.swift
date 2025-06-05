@@ -164,7 +164,7 @@ final class ServicePerformanceTests: XCTestCase {
         
         // Register multiple services
         let services: [(any ServiceProtocol, Any.Type)] = [
-            (MockAIAPIService(), AIServiceProtocol.self),
+            (MockAIService(), AIServiceProtocol.self),
             (MockWeatherService(), WeatherServiceProtocol.self),
             (MockNetworkManager(), NetworkManagementProtocol.self)
         ]

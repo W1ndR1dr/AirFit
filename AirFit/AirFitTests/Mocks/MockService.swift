@@ -4,8 +4,8 @@ import Foundation
 // MARK: - MockService (Generic ServiceProtocol Implementation)
 @MainActor
 final class MockService: ServiceProtocol, MockProtocol {
-    var invocations: [String: [Any]] = [:]
-    var stubbedResults: [String: Any] = [:]
+    nonisolated(unsafe) var invocations: [String: [Any]] = [:]
+    nonisolated(unsafe) var stubbedResults: [String: Any] = [:]
     let mockLock = NSLock()
     
     // ServiceProtocol conformance
@@ -27,7 +27,7 @@ final class MockService: ServiceProtocol, MockProtocol {
     }
     
     func configure() async throws {
-        recordInvocation("configure", arguments: nil)
+        recordInvocation("configure")
         
         if let error = stubbedConfigureError {
             isConfigured = false
@@ -38,12 +38,12 @@ final class MockService: ServiceProtocol, MockProtocol {
     }
     
     func reset() async {
-        recordInvocation("reset", arguments: nil)
+        recordInvocation("reset")
         isConfigured = false
     }
     
     func healthCheck() async -> ServiceHealth {
-        recordInvocation("healthCheck", arguments: nil)
+        recordInvocation("healthCheck")
         return stubbedHealthCheckResult
     }
     

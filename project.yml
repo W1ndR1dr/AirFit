@@ -327,7 +327,7 @@ targets:
       - AirFit/Modules/Notifications/Models/NotificationModels.swift
       # Application Layer Files (CRITICAL: XcodeGen nesting bug)
       - AirFit/Application/AirFitApp.swift
-      - AirFit/Application/MinimalContentView.swift
+      - AirFit/Application/ContentView.swift
       # Asset Catalog (CRITICAL: Must be explicitly included)
       - AirFit/Assets.xcassets
       # NOTE: Original ContentView.swift and DashboardView.swift temporarily excluded due to API issues

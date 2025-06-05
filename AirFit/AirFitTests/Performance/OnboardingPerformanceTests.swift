@@ -3,276 +3,268 @@ import SwiftData
 @testable import AirFit
 
 /// Performance tests for onboarding - Carmack style validation
+@MainActor
 final class OnboardingPerformanceTests: XCTestCase {
     
-    var coordinator: OnboardingFlowCoordinator!
-    var cache: AIResponseCache!
+    var viewModel: OnboardingViewModel!
+    var modelContainer: ModelContainer!
     var modelContext: ModelContext!
+    var mockAIService: MockAIService!
+    var mockAPIKeyManager: MockAPIKeyManager!
+    var mockUserService: MockUserService!
+    var onboardingService: OnboardingService!
     
     override func setUp() async throws {
-        try await super.setUp()
-        
-        let container = try ModelContainer.createTestContainer()
-        modelContext = container.mainContext
-        
-        cache = AIResponseCache()
-        
-        let llmOrchestrator = MockLLMOrchestrator()
-        let optimizedSynthesizer = OptimizedPersonaSynthesizer(
-            llmOrchestrator: llmOrchestrator,
-            cache: cache
-        )
-        
-        // Use regular PersonaSynthesizer wrapper
-        let synthesizer = PersonaSynthesizer(llmOrchestrator: llmOrchestrator)
-        
-        let personaService = PersonaService(
-            personaSynthesizer: synthesizer,
-            llmOrchestrator: llmOrchestrator,
-            modelContext: modelContext,
-            cache: cache
-        )
-        
-        coordinator = OnboardingFlowCoordinator(
-            conversationManager: ConversationFlowManager(),
-            personaService: personaService,
-            userService: MockUserService(),
-            modelContext: modelContext
-        )
-    }
-    
-    // MARK: - Persona Generation Performance
-    
-    func testPersonaGenerationUnder3Seconds() async throws {
-        // Setup conversation
-        await coordinator.beginConversation()
-        
-        guard let session = coordinator.conversationSession else {
-            XCTFail("No session created")
-            return
+        await MainActor.run {
+            super.setUp()
         }
         
-        // Add realistic responses
-        session.responses = createRealisticResponses()
-        try modelContext.save()
+        modelContainer = try ModelContainer.createTestContainer()
+        modelContext = modelContainer.mainContext
         
-        // Measure generation time
-        let startTime = CFAbsoluteTimeGetCurrent()
-        await coordinator.completeConversation()
-        let duration = CFAbsoluteTimeGetCurrent() - startTime
+        mockAIService = MockAIService()
+        mockAPIKeyManager = MockAPIKeyManager()
+        mockUserService = MockUserService()
+        onboardingService = OnboardingService(modelContext: modelContext)
         
-        XCTAssertNotNil(coordinator.generatedPersona)
-        XCTAssertLessThan(duration, 3.0, "Persona generation took \(String(format: "%.2f", duration))s - target is <3s")
+        viewModel = OnboardingViewModel(
+            aiService: mockAIService,
+            onboardingService: onboardingService,
+            modelContext: modelContext,
+            apiKeyManager: mockAPIKeyManager,
+            userService: mockUserService,
+            mode: .legacy // Use legacy mode for performance tests
+        )
     }
     
-    func testCachedPersonaGenerationUnder100ms() async throws {
-        // First generation
-        await setupAndGeneratePersona()
+    override func tearDown() async throws {
+        viewModel = nil
+        onboardingService = nil
+        mockUserService = nil
+        mockAPIKeyManager = nil
+        mockAIService = nil
+        modelContext = nil
+        modelContainer = nil
+        await MainActor.run {
+            super.tearDown()
+        }
+    }
+    
+    // MARK: - Screen Transition Performance
+    
+    func test_screenTransition_shouldBeUnder100ms() async throws {
+        // Arrange - set up profile data to enable navigation
+        setupCompleteProfile()
         
-        // Clear persona but keep cache
-        coordinator.generatedPersona = nil
-        
-        // Second generation (should hit cache)
+        // Measure screen transition time
         let startTime = CFAbsoluteTimeGetCurrent()
-        await coordinator.completeConversation()
-        let duration = CFAbsoluteTimeGetCurrent() - startTime
         
-        XCTAssertLessThan(duration, 0.1, "Cached generation took \(String(format: "%.3f", duration))s - target is <100ms")
+        // Act - navigate to next screen
+        viewModel.navigateToNextScreen()
+        let transitionDuration = CFAbsoluteTimeGetCurrent() - startTime
+        
+        // Assert
+        XCTAssertLessThan(transitionDuration, 0.1, "Screen transition took \(String(format: "%.3f", transitionDuration))s - target is <100ms")
+        XCTAssertEqual(viewModel.currentScreen, .lifeSnapshot)
+    }
+    
+    // MARK: - Profile Completion Performance
+    
+    func test_completeOnboarding_shouldBeUnder1Second() async throws {
+        // Arrange
+        setupCompleteProfile()
+        
+        // Measure completion time
+        let startTime = CFAbsoluteTimeGetCurrent()
+        
+        // Act
+        try await viewModel.completeOnboarding()
+        let completionDuration = CFAbsoluteTimeGetCurrent() - startTime
+        
+        // Assert
+        XCTAssertLessThan(completionDuration, 1.0, "Profile completion took \(String(format: "%.2f", completionDuration))s - target is <1s")
     }
     
     // MARK: - Memory Usage Tests
     
-    func testMemoryUsageUnder50MB() async throws {
+    func test_memoryUsage_shouldBeUnder10MB() async throws {
         let initialMemory = getMemoryUsage()
         
-        // Generate 5 personas
-        for _ in 0..<5 {
-            await setupAndGeneratePersona()
-            coordinator.cleanup() // Simulate completion
+        // Navigate through all screens
+        let screens: [OnboardingScreen] = [
+            .openingScreen, .lifeSnapshot, .coreAspiration,
+            .coachingStyle, .engagementPreferences, .sleepAndBoundaries,
+            .motivationalAccents
+        ]
+        
+        for _ in screens {
+            viewModel.navigateToNextScreen()
+            // Simulate some data entry
+            setupCompleteProfile()
         }
         
         let finalMemory = getMemoryUsage()
         let memoryIncreaseMB = Double(finalMemory - initialMemory) / 1_048_576
         
-        XCTAssertLessThan(memoryIncreaseMB, 50.0, "Memory increased by \(String(format: "%.1f", memoryIncreaseMB))MB - target is <50MB")
+        XCTAssertLessThan(memoryIncreaseMB, 10.0, "Memory increased by \(String(format: "%.1f", memoryIncreaseMB))MB - target is <10MB")
     }
     
-    func testMemoryWarningHandling() async throws {
-        await setupAndGeneratePersona()
-        
-        let initialPersona = coordinator.generatedPersona
-        XCTAssertNotNil(initialPersona)
-        
-        // Simulate memory warning
-        NotificationCenter.default.post(
-            name: UIApplication.didReceiveMemoryWarningNotification,
-            object: nil
+    // MARK: - AI Response Simulation Performance
+    
+    func test_aiResponseStream_shouldStartWithin200ms() async throws {
+        // Arrange
+        let request = AIRequest(
+            systemPrompt: "You are a helpful assistant.",
+            messages: [],
+            temperature: 0.7,
+            stream: true,
+            user: "Test message"
         )
         
-        // Give time for async handling
-        try await Task.sleep(nanoseconds: 100_000_000)
+        // Measure time to first response
+        let startTime = CFAbsoluteTimeGetCurrent()
+        var timeToFirstResponse: Double = 0
+        var receivedFirstResponse = false
         
-        // Should clear non-essential memory
-        XCTAssertNil(coordinator.conversationSession)
-        XCTAssertNotNil(coordinator.generatedPersona) // Should keep persona
+        // Act
+        let stream = mockAIService.sendRequest(request)
+        
+        for try await response in stream {
+            if !receivedFirstResponse {
+                timeToFirstResponse = CFAbsoluteTimeGetCurrent() - startTime
+                receivedFirstResponse = true
+            }
+            // Continue consuming stream
+            _ = response
+        }
+        
+        // Assert
+        XCTAssertTrue(receivedFirstResponse)
+        XCTAssertLessThan(timeToFirstResponse, 0.2, "Time to first response was \(String(format: "%.3f", timeToFirstResponse))s - target is <200ms")
     }
     
-    // MARK: - Cache Performance
+    // MARK: - Profile Save Performance
     
-    func testOnboardingCachePerformance() async throws {
-        let cache = OnboardingCache()
-        let userId = UUID()
+    func test_profileSave_shouldBeUnder500ms() async throws {
+        // Arrange
+        setupCompleteProfile()
         
-        let conversationData = ConversationData(
-            userName: "Test",
-            primaryGoal: "Fitness",
-            responses: createLargeResponseDict()
+        // Create profile blob
+        let profileBlob = UserProfileJsonBlob(
+            lifeContext: viewModel.lifeContext,
+            goal: viewModel.goal,
+            blend: Blend(), // Using default blend as we use selectedPersonaMode now
+            engagementPreferences: viewModel.engagementPreferences,
+            sleepWindow: viewModel.sleepWindow,
+            motivationalStyle: viewModel.motivationalStyle,
+            timezone: viewModel.timezone,
+            baselineModeEnabled: viewModel.baselineModeEnabled
         )
         
-        let responses = createRealisticResponses()
+        let encoder = JSONEncoder()
+        encoder.keyEncodingStrategy = .convertToSnakeCase
+        let data = try encoder.encode(profileBlob)
+        
+        let profile = OnboardingProfile(
+            personaPromptData: data,
+            communicationPreferencesData: data,
+            rawFullProfileData: data
+        )
         
         // Measure save time
-        let saveStart = CFAbsoluteTimeGetCurrent()
-        await cache.saveSession(
-            userId: userId,
-            conversationData: conversationData,
-            insights: nil,
-            currentStep: "conversation",
-            responses: responses
-        )
-        let saveDuration = CFAbsoluteTimeGetCurrent() - saveStart
+        let startTime = CFAbsoluteTimeGetCurrent()
+        try await onboardingService.saveProfile(profile)
+        let saveDuration = CFAbsoluteTimeGetCurrent() - startTime
         
-        // Should be nearly instant (async save)
-        XCTAssertLessThan(saveDuration, 0.01, "Save took \(String(format: "%.3f", saveDuration))s")
-        
-        // Measure restore time
-        let restoreStart = CFAbsoluteTimeGetCurrent()
-        let restored = await cache.restoreSession(userId: userId)
-        let restoreDuration = CFAbsoluteTimeGetCurrent() - restoreStart
-        
-        XCTAssertNotNil(restored)
-        XCTAssertLessThan(restoreDuration, 0.1, "Restore took \(String(format: "%.3f", restoreDuration))s - target is <100ms")
+        // Assert
+        XCTAssertLessThan(saveDuration, 0.5, "Profile save took \(String(format: "%.3f", saveDuration))s - target is <500ms")
     }
     
-    // MARK: - Network Optimization
+    // MARK: - Navigation Performance
     
-    func testRequestOptimizerBatching() async throws {
-        let optimizer = RequestOptimizer()
-        var requests: [URLRequest] = []
+    func test_navigationThroughAllScreens_shouldBeUnder2Seconds() async throws {
+        let screens: [OnboardingScreen] = [
+            .openingScreen, .lifeSnapshot, .coreAspiration,
+            .coachingStyle, .engagementPreferences, .sleepAndBoundaries,
+            .motivationalAccents, .generatingCoach, .coachProfileReady
+        ]
         
-        // Create batch-compatible requests
-        for i in 0..<5 {
-            var request = URLRequest(url: URL(string: "https://api.example.com/api/batch-compatible/\(i)")!)
-            request.httpMethod = "GET"
-            requests.append(request)
-        }
-        
-        // Measure concurrent execution
         let startTime = CFAbsoluteTimeGetCurrent()
         
-        await withTaskGroup(of: Result<Data, Error>.self) { group in
-            for request in requests {
-                group.addTask {
-                    do {
-                        let data = try await optimizer.execute(request)
-                        return .success(data)
-                    } catch {
-                        return .failure(error)
-                    }
-                }
-            }
-            
-            var results: [Result<Data, Error>] = []
-            for await result in group {
-                results.append(result)
-            }
+        for _ in screens {
+            viewModel.navigateToNextScreen()
+            // Small delay to simulate real usage
+            try await Task.sleep(nanoseconds: 10_000_000) // 10ms
         }
-        
-        let duration = CFAbsoluteTimeGetCurrent() - startTime
-        
-        // Should batch efficiently
-        XCTAssertLessThan(duration, 1.0, "Batch execution took \(String(format: "%.2f", duration))s")
-    }
-    
-    // MARK: - End-to-End Performance
-    
-    func testCompleteOnboardingFlowPerformance() async throws {
-        let startTime = CFAbsoluteTimeGetCurrent()
-        
-        // 1. Start onboarding
-        coordinator.start()
-        
-        // 2. Begin conversation
-        await coordinator.beginConversation()
-        
-        // 3. Simulate user responses (instant)
-        if let session = coordinator.conversationSession {
-            session.responses = createRealisticResponses()
-            try modelContext.save()
-        }
-        
-        // 4. Complete conversation and generate persona
-        await coordinator.completeConversation()
-        
-        // 5. Accept persona
-        await coordinator.acceptPersona()
         
         let totalDuration = CFAbsoluteTimeGetCurrent() - startTime
         
-        XCTAssertEqual(coordinator.currentView, .complete)
-        XCTAssertLessThan(totalDuration, 5.0, "Complete flow took \(String(format: "%.2f", totalDuration))s - target is <5s")
+        XCTAssertLessThan(totalDuration, 2.0, "Navigation through all screens took \(String(format: "%.2f", totalDuration))s - target is <2s")
+    }
+    
+    // MARK: - Concurrent Operation Performance
+    
+    func test_concurrentOperations_shouldNotDegrade() async throws {
+        // Test that multiple async operations don't degrade performance
+        
+        let startTime = CFAbsoluteTimeGetCurrent()
+        
+        // Run multiple operations concurrently
+        async let op1: Void = navigateNext()
+        async let op2: Void = validateMockData()
+        async let op3: Void = Task.sleep(nanoseconds: 50_000_000)
+        
+        _ = try await (op1, op2, op3)
+        
+        let duration = CFAbsoluteTimeGetCurrent() - startTime
+        
+        XCTAssertLessThan(duration, 1.0, "Concurrent operations took \(String(format: "%.2f", duration))s - target is <1s")
     }
     
     // MARK: - Helper Methods
     
-    private func setupAndGeneratePersona() async {
-        coordinator.start()
-        await coordinator.beginConversation()
+    private func setupCompleteProfile() {
+        viewModel.lifeContext = LifeContext(
+            isDeskJob: true,
+            isPhysicallyActiveWork: false,
+            travelsFrequently: false,
+            hasChildrenOrFamilyCare: false,
+            scheduleType: .predictable,
+            workoutWindowPreference: .earlyBird
+        )
         
-        if let session = coordinator.conversationSession {
-            session.responses = createRealisticResponses()
-            try? modelContext.save()
-        }
+        viewModel.goal = Goal(
+            family: .healthWellbeing,
+            rawText: "Lose 20 pounds and build muscle"
+        )
         
-        await coordinator.completeConversation()
+        viewModel.selectedPersonaMode = .supportiveCoach
+        
+        viewModel.engagementPreferences = EngagementPreferences(
+            trackingStyle: .dataDrivenPartnership,
+            informationDepth: .detailed,
+            updateFrequency: .daily
+        )
+        
+        viewModel.sleepWindow = SleepWindow(
+            bedTime: "22:00",
+            wakeTime: "06:00",
+            consistency: .consistent
+        )
+        
+        viewModel.motivationalStyle = MotivationalStyle(
+            celebrationStyle: .enthusiasticCelebratory,
+            absenceResponse: .gentleNudge
+        )
     }
     
-    private func createRealisticResponses() -> [ConversationResponse] {
-        [
-            ConversationResponse(
-                nodeId: "name",
-                responseType: "text",
-                responseData: try! JSONEncoder().encode(ResponseValue.text("Alex"))
-            ),
-            ConversationResponse(
-                nodeId: "goals",
-                responseType: "text",
-                responseData: try! JSONEncoder().encode(ResponseValue.text("Lose 20 pounds and build muscle"))
-            ),
-            ConversationResponse(
-                nodeId: "experience",
-                responseType: "choice",
-                responseData: try! JSONEncoder().encode(ResponseValue.choice("intermediate"))
-            ),
-            ConversationResponse(
-                nodeId: "preferences",
-                responseType: "multiChoice",
-                responseData: try! JSONEncoder().encode(ResponseValue.multiChoice(["morning", "gym", "strength training"]))
-            ),
-            ConversationResponse(
-                nodeId: "lifestyle",
-                responseType: "text",
-                responseData: try! JSONEncoder().encode(ResponseValue.text("Busy professional, sedentary job"))
-            )
-        ]
+    private func navigateNext() async {
+        viewModel.navigateToNextScreen()
     }
     
-    private func createLargeResponseDict() -> [String: Any] {
-        var dict: [String: Any] = [:]
-        for i in 0..<100 {
-            dict["key\(i)"] = "value\(i)"
-        }
-        return dict
+    private func validateMockData() async {
+        // Simulate some async validation
+        try? await Task.sleep(nanoseconds: 50_000_000) // 50ms
     }
     
     private func getMemoryUsage() -> Int64 {
@@ -291,4 +283,3 @@ final class OnboardingPerformanceTests: XCTestCase {
         return result == KERN_SUCCESS ? Int64(info.resident_size) : 0
     }
 }
-

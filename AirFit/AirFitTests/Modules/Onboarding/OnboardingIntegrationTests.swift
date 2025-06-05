@@ -322,10 +322,15 @@ final class OnboardingFlowIntegrationTests: XCTestCase {
         // Arrange
         try await appState.createNewUser()
 
+        let mockAPIKeyManager = MockAPIKeyManager()
+        let mockUserService = MockUserService()
+        
         let viewModel = OnboardingViewModel(
             aiService: MockAIService(),
             onboardingService: onboardingService,
-            modelContext: context
+            modelContext: context,
+            apiKeyManager: mockAPIKeyManager,
+            userService: mockUserService
         )
 
         // Set up complete profile data
@@ -338,12 +343,7 @@ final class OnboardingFlowIntegrationTests: XCTestCase {
             workoutWindowPreference: .earlyBird
         )
         viewModel.goal = Goal(family: .healthWellbeing, rawText: "Lose weight for health")
-        viewModel.blend = Blend(
-            authoritativeDirect: 0.25,
-            encouragingEmpathetic: 0.25,
-            analyticalInsightful: 0.25,
-            playfullyProvocative: 0.25
-        )
+        viewModel.selectedPersonaMode = .supportiveCoach
         viewModel.engagementPreferences = EngagementPreferences(
             trackingStyle: .dataDrivenPartnership,
             informationDepth: .detailed,

@@ -1,9 +1,9 @@
 import XCTest
 @testable import AirFit
 
-// Mock for VoiceInputManager (Module 13's component)
+// Using the centralized MockVoiceInputManager from Mocks folder
 @MainActor
-class MockVoiceInputManager: VoiceInputManagerProtocol { // Assuming VoiceInputManager conforms to a protocol
+class TestMockVoiceInputManager: VoiceInputManagerProtocol { // Renamed to avoid conflict
     var isRecording: Bool = false
     var transcribedText: String = "" // For simulating final transcription from stopRecording
     var currentPartialText: String = ""
@@ -96,12 +96,12 @@ protocol VoiceInputManagerProtocol: AnyObject {
 @MainActor
 final class FoodVoiceAdapterTests: XCTestCase {
 
-    var mockVoiceInputManager: MockVoiceInputManager!
+    var mockVoiceInputManager: TestMockVoiceInputManager!
     var sut: FoodVoiceAdapter!
 
     override func setUpWithError() throws {
         try super.setUpWithError()
-        mockVoiceInputManager = MockVoiceInputManager()
+        mockVoiceInputManager = TestMockVoiceInputManager()
         // Explicitly pass the mock. If FoodVoiceAdapter used VoiceInputManager.shared, this would be harder.
         // The provided FoodVoiceAdapter code has `init(voiceInputManager: VoiceInputManager = VoiceInputManager.shared)`
         // So we need to ensure our mock can be injected.

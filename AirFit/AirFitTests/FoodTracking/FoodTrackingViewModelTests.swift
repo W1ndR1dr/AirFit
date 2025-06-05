@@ -4,47 +4,6 @@ import SwiftData
 
 // MARK: - Mock Dependencies
 
-@MainActor
-class MockFoodVoiceAdapter: FoodVoiceServiceProtocol {
-    var isRecording: Bool = false
-    var isTranscribing: Bool = false
-    var transcribedText: String = ""
-    var voiceWaveform: [Float] = []
-
-    var onFoodTranscription: ((String) -> Void)?
-    var onError: ((Error) -> Void)?
-
-    var requestPermissionShouldSucceed: Bool = true
-    var startRecordingShouldSucceed: Bool = true
-    var stopRecordingText: String? = "mock transcription"
-
-    func requestPermission() async throws -> Bool {
-        if !requestPermissionShouldSucceed { throw MockError.permissionDenied }
-        return requestPermissionShouldSucceed
-    }
-
-    func startRecording() async throws {
-        if !startRecordingShouldSucceed { throw MockError.recordingFailed }
-        isRecording = true
-    }
-
-    func stopRecording() async -> String? {
-        isRecording = false
-        return stopRecordingText
-    }
-    
-    // Helper to simulate transcription
-    func simulateTranscription(_ text: String) {
-        self.transcribedText = text
-        onFoodTranscription?(text)
-    }
-
-    // Helper to simulate error
-    func simulateError(_ error: Error) {
-        onError?(error)
-    }
-}
-
 class MockNutritionService: NutritionServiceProtocol {
     var foodEntriesToReturn: [FoodEntry] = []
     var nutritionSummaryToReturn = FoodNutritionSummary()

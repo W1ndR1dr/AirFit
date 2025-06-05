@@ -4,8 +4,8 @@ import Foundation
 // MARK: - MockNetworkManager
 @MainActor
 final class MockNetworkManager: NetworkManagementProtocol, MockProtocol {
-    var invocations: [String: [Any]] = [:]
-    var stubbedResults: [String: Any] = [:]
+    nonisolated(unsafe) var invocations: [String: [Any]] = [:]
+    nonisolated(unsafe) var stubbedResults: [String: Any] = [:]
     let mockLock = NSLock()
     
     // NetworkManagementProtocol conformance

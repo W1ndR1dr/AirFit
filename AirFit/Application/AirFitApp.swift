@@ -29,8 +29,6 @@ struct AirFitApp: App {
 
         do {
             let container = try ModelContainer(for: schema, configurations: [modelConfiguration])
-            // Configure dependency container
-            DependencyContainer.shared.configure(with: container)
             return container
         } catch {
             fatalError("Could not create ModelContainer: \(error)")

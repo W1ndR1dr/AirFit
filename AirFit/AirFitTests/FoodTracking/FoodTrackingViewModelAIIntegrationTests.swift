@@ -6,7 +6,7 @@ import SwiftData
 final class FoodTrackingViewModelAIIntegrationTests: XCTestCase {
     private var sut: FoodTrackingViewModel!
     private var mockCoachEngine: MockAICoachEngine!
-    private var mockVoiceAdapter: MockFoodVoiceAdapter!
+    private var mockVoiceAdapter: LocalMockFoodVoiceAdapter!
     private var mockNutritionService: MockNutritionService!
     private var mockCoordinator: MockFoodTrackingCoordinator!
     private var testUser: User!
@@ -36,7 +36,7 @@ final class FoodTrackingViewModelAIIntegrationTests: XCTestCase {
         
         // Create mocks
         mockCoachEngine = MockAICoachEngine()
-        mockVoiceAdapter = MockFoodVoiceAdapter()
+        mockVoiceAdapter = LocalMockFoodVoiceAdapter()
         mockNutritionService = MockNutritionService()
         mockCoordinator = MockFoodTrackingCoordinator()
         
@@ -600,7 +600,7 @@ final class MockAICoachEngine: FoodCoachEngineProtocol {
 // MARK: - Additional Mock Classes
 
 @MainActor
-class MockFoodVoiceAdapter: FoodVoiceServiceProtocol {
+class LocalMockFoodVoiceAdapter: FoodVoiceServiceProtocol {
     var isRecording: Bool = false
     var isTranscribing: Bool = false
     var transcribedText: String = ""

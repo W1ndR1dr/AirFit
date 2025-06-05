@@ -4,48 +4,33 @@ import SwiftData
 
 final class MockUserService: UserServiceProtocol, MockProtocol, @unchecked Sendable {
     private let lock = NSLock()
-    private var _invocations: [String: [Any]] = [:]
-    private var _stubbedResults: [String: Any] = [:]
     let mockLock = NSLock()
+    
+    nonisolated(unsafe) var invocations: [String: [Any]] = [:]
+    nonisolated(unsafe) var stubbedResults: [String: Any] = [:]
 
-    var invocations: [String: [Any]] {
-        get {
-            lock.lock()
-            defer { lock.unlock() }
-            return _invocations
-        }
-        set {
-            lock.lock()
-            defer { lock.unlock() }
-            _invocations = newValue
-        }
-    }
-
-    var stubbedResults: [String: Any] {
-        get {
-            lock.lock()
-            defer { lock.unlock() }
-            return _stubbedResults
-        }
-        set {
-            lock.lock()
-            defer { lock.unlock() }
-            _stubbedResults = newValue
-        }
-    }
-
-    var createUserResult: Result<User, Error> = .success(User.mock)
+    var createUserResult: Result<User, Error>?
     var updateProfileResult: Result<Void, Error> = .success(())
-    var getCurrentUserResult: User? = User.mock
+    var getCurrentUserResult: User?
 
     func createUser(from profile: OnboardingProfile) async throws -> User {
         recordInvocation(#function, arguments: profile)
-        switch createUserResult {
-        case .success(let user):
-            return user
-        case .failure(let error):
-            throw error
+        
+        if let result = createUserResult {
+            switch result {
+            case .success(let user):
+                return user
+            case .failure(let error):
+                throw error
+            }
         }
+        
+        // Default behavior: create user from profile
+        let user = User(
+            email: profile.email ?? "test@example.com",
+            name: profile.name ?? "Test User"
+        )
+        return user
     }
 
     func updateProfile(_ updates: ProfileUpdate) async throws {
@@ -84,8 +69,3 @@ final class MockUserService: UserServiceProtocol, MockProtocol, @unchecked Senda
     }
 }
 
-extension User {
-    static var mock: User {
-        User(id: UUID(), email: "test@example.com", name: "Test User", preferredUnits: "imperial")
-    }
-}

@@ -6,11 +6,41 @@ import XCTest
 @MainActor
 final class MockWeatherService: WeatherServiceProtocol, MockProtocol {
     // MARK: - MockProtocol
-    var invocations: [String: [Any]] = [:]
-    var stubbedResults: [String: Any] = [:]
+    nonisolated(unsafe) var invocations: [String: [Any]] = [:]
+    nonisolated(unsafe) var stubbedResults: [String: Any] = [:]
     let mockLock = NSLock()
     
     // MARK: - ServiceProtocol
+    var isConfigured: Bool = true
+    var serviceIdentifier: String = "MockWeatherService"
+    
+    func configure() async throws {
+        recordInvocation("configure")
+        if shouldThrowError {
+            throw errorToThrow
+        }
+        isConfigured = true
+    }
+    
+    func reset() async {
+        recordInvocation("reset")
+        requestCount = 0
+        lastRequestTime = nil
+        cachedWeatherData.removeAll()
+    }
+    
+    func healthCheck() async -> ServiceHealth {
+        recordInvocation("healthCheck")
+        return ServiceHealth(
+            status: isConfigured ? .healthy : .unhealthy,
+            lastCheckTime: Date(),
+            responseTime: 0.1,
+            errorMessage: nil,
+            metadata: ["service": "mock"]
+        )
+    }
+    
+    // MARK: - Additional Properties
     var isAvailable: Bool = true
     private(set) var lastRequestTime: Date?
     private(set) var requestCount: Int = 0

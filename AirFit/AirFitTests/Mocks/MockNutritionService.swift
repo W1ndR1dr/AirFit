@@ -6,8 +6,8 @@ import XCTest
 /// Mock implementation of NutritionServiceProtocol for testing
 final class MockNutritionService: NutritionServiceProtocol, MockProtocol, @unchecked Sendable {
     // MARK: - MockProtocol
-    var invocations: [String: [Any]] = [:]
-    var stubbedResults: [String: Any] = [:]
+    nonisolated(unsafe) var invocations: [String: [Any]] = [:]
+    nonisolated(unsafe) var stubbedResults: [String: Any] = [:]
     let mockLock = NSLock()
     
     // MARK: - Error Control

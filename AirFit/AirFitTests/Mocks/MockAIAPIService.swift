@@ -1,24 +1,3 @@
-@testable import AirFit
-import Combine
-import Foundation
-
-struct ConfigureCallData {
-    let provider: AIProvider
-    let apiKey: String
-    let modelIdentifier: String?
-}
-
-final class MockAIAPIService: AIAPIServiceProtocol {
-    var configureCalledWith: ConfigureCallData?
-    var getStreamingResponseCalledWithRequest: AIRequest?
-    var mockStreamingResponsePublisher: AnyPublisher<AIResponse, Error> = Empty().eraseToAnyPublisher()
-
-    func configure(provider: AIProvider, apiKey: String, modelIdentifier: String?) {
-        configureCalledWith = ConfigureCallData(provider: provider, apiKey: apiKey, modelIdentifier: modelIdentifier)
-    }
-
-    func getStreamingResponse(for request: AIRequest) -> AnyPublisher<AIResponse, Error> {
-        getStreamingResponseCalledWithRequest = request
-        return mockStreamingResponsePublisher
-    }
-}
+// This file is deprecated - AIAPIServiceProtocol doesn't exist in the codebase
+// The functionality is handled by AIServiceProtocol and LLMOrchestrator
+// Keeping empty file to avoid breaking imports until tests are migrated

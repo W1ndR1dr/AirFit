@@ -1,4 +1,5 @@
 import XCTest
+import Combine
 @testable import AirFit
 
 @MainActor
@@ -11,9 +12,8 @@ final class MockServicesTests: XCTestCase {
         
         XCTAssertTrue(mock.isReachable)
         XCTAssertEqual(mock.currentNetworkType, .wifi)
-        XCTAssertFalse(mock.shouldFail)
-        XCTAssertEqual(mock.responseDelay, 0)
-        XCTAssertTrue(mock.requestHistory.isEmpty)
+        XCTAssertNil(mock.stubbedPerformRequestError)
+        XCTAssertTrue(mock.invocations.isEmpty)
     }
     
     func testMockNetworkManagerRecordsRequests() async throws {
@@ -21,27 +21,32 @@ final class MockServicesTests: XCTestCase {
         let url = URL(string: "https://test.com")!
         let request = URLRequest(url: url)
         
-        // Make request
-        do {
-            let _: EmptyResponse = try await mock.performRequest(request, expecting: EmptyResponse.self)
-        } catch {
-            // Ignore errors for this test
+        // Stub a response
+        struct TestResponse: Codable, Sendable {
+            let value: String
         }
+        mock.stubRequest(with: TestResponse(value: "test"))
+        
+        // Make request
+        let _: TestResponse = try await mock.performRequest(request, expecting: TestResponse.self)
         
         // Verify request was recorded
-        XCTAssertEqual(mock.requestHistory.count, 1)
-        XCTAssertEqual(mock.requestHistory.first?.url, url)
+        mock.verifyPerformRequest(called: 1)
+        XCTAssertTrue(mock.invocations["performRequest"] != nil)
     }
     
     func testMockNetworkManagerSimulatesFailure() async {
         let mock = MockNetworkManager()
-        mock.shouldFail = true
-        mock.failureError = ServiceError.timeout
+        mock.stubRequestError(with: ServiceError.timeout)
         
         let request = URLRequest(url: URL(string: "https://test.com")!)
         
+        struct TestResponse: Codable, Sendable {
+            let value: String
+        }
+        
         do {
-            let _: EmptyResponse = try await mock.performRequest(request, expecting: EmptyResponse.self)
+            let _: TestResponse = try await mock.performRequest(request, expecting: TestResponse.self)
             XCTFail("Should throw error")
         } catch {
             XCTAssertTrue(error is ServiceError)
@@ -55,6 +60,12 @@ final class MockServicesTests: XCTestCase {
         let mock = MockNetworkManager()
         let request = URLRequest(url: URL(string: "https://test.com")!)
         
+        // Stub streaming chunks
+        let chunk1 = "Hello".data(using: .utf8)!
+        let chunk2 = " World".data(using: .utf8)!
+        let chunk3 = "[DONE]".data(using: .utf8)!
+        mock.stubStreamingRequest(with: [chunk1, chunk2, chunk3])
+        
         var chunks: [String] = []
         let stream = mock.performStreamingRequest(request)
         
@@ -64,69 +75,9 @@ final class MockServicesTests: XCTestCase {
             }
         }
         
-        XCTAssertFalse(chunks.isEmpty)
-        XCTAssertTrue(chunks.contains { $0.contains("Hello") })
-        XCTAssertTrue(chunks.contains { $0.contains("[DONE]") })
-    }
-    
-    // MARK: - MockAIAPIService Tests
-    
-    func testMockAIAPIServiceInitialState() {
-        let mock = MockAIAPIService()
-        
-        XCTAssertFalse(mock.isConfigured)
-        XCTAssertEqual(mock.activeProvider, .openAI)
-        XCTAssertFalse(mock.shouldFail)
-        XCTAssertTrue(mock.requestHistory.isEmpty)
-        XCTAssertEqual(mock.configureCallCount, 0)
-    }
-    
-    func testMockAIAPIServiceConfigure() async throws {
-        let mock = MockAIAPIService()
-        
-        try await mock.configure()
-        
-        XCTAssertTrue(mock.isConfigured)
-        XCTAssertEqual(mock.configureCallCount, 1)
-    }
-    
-    func testMockAIAPIServiceStreaming() async throws {
-        let mock = MockAIAPIService()
-        mock.setMockResponses(["Test", " response", " message"])
-        
-        let request = AIRequest(
-            messages: [AIMessage(role: .user, content: "Hello", name: nil)],
-            model: "mock-model",
-            systemPrompt: "",
-            maxTokens: nil,
-            temperature: nil,
-            stream: true,
-            functions: nil
-        )
-        
-        var responses: [String] = []
-        for try await response in mock.sendRequest(request) {
-            if case .textDelta(let text) = response {
-                responses.append(text)
-            }
-        }
-        
-        XCTAssertEqual(responses, ["Test", " response", " message"])
-        XCTAssertEqual(mock.requestHistory.count, 1)
-    }
-    
-    func testMockAIAPIServiceHealthCheck() async {
-        let mock = MockAIAPIService()
-        
-        // Not configured
-        var health = await mock.healthCheck()
-        XCTAssertEqual(health.status, .unhealthy)
-        
-        // Configure and check again
-        try? await mock.configure()
-        health = await mock.healthCheck()
-        XCTAssertEqual(health.status, .healthy)
-        XCTAssertEqual(mock.healthCheckCallCount, 2)
+        XCTAssertEqual(chunks.count, 3)
+        XCTAssertTrue(chunks.contains("Hello"))
+        XCTAssertTrue(chunks.contains("[DONE]"))
     }
     
     // MARK: - MockWeatherService Tests
@@ -139,15 +90,14 @@ final class MockServicesTests: XCTestCase {
         
         XCTAssertEqual(weather.temperature, 72.0)
         XCTAssertEqual(weather.condition, .partlyCloudy)
-        XCTAssertTrue(weather.location.contains("40.00"))
-        XCTAssertTrue(weather.location.contains("-74.00"))
+        XCTAssertEqual(weather.location, "Test Location")
     }
     
     func testMockWeatherServiceCustomResponse() async throws {
         let mock = MockWeatherService()
         try await mock.configure()
         
-        let customWeather = WeatherData(
+        let customWeather = ServiceWeatherData(
             temperature: 85.0,
             condition: .clear,
             humidity: 40.0,
@@ -155,7 +105,7 @@ final class MockServicesTests: XCTestCase {
             location: "Custom Location",
             timestamp: Date()
         )
-        mock.setMockWeather(customWeather)
+        mock.stubWeather(customWeather, for: 0, longitude: 0)
         
         let weather = try await mock.getCurrentWeather(latitude: 0, longitude: 0)
         
@@ -164,34 +114,16 @@ final class MockServicesTests: XCTestCase {
         XCTAssertEqual(weather.location, "Custom Location")
     }
     
-    func testMockWeatherServiceRequestHistory() async throws {
+    func testMockWeatherServiceVerification() async throws {
         let mock = MockWeatherService()
         try await mock.configure()
         
         _ = try await mock.getCurrentWeather(latitude: 40.0, longitude: -74.0)
         _ = try await mock.getForecast(latitude: 35.0, longitude: -120.0, days: 5)
         
-        XCTAssertEqual(mock.requestHistory.count, 2)
-        
-        if let first = mock.requestHistory.first {
-            XCTAssertEqual(first.latitude, 40.0)
-            XCTAssertEqual(first.longitude, -74.0)
-            if case .current = first.type {
-                // Success
-            } else {
-                XCTFail("Expected current weather request")
-            }
-        }
-        
-        if let last = mock.requestHistory.last {
-            XCTAssertEqual(last.latitude, 35.0)
-            XCTAssertEqual(last.longitude, -120.0)
-            if case .forecast(let days) = last.type {
-                XCTAssertEqual(days, 5)
-            } else {
-                XCTFail("Expected forecast request")
-            }
-        }
+        // Verify methods were called
+        mock.verifyWeatherRequested(for: 40.0, longitude: -74.0)
+        XCTAssertEqual(mock.requestCount, 2)
     }
     
     // MARK: - MockAPIKeyManager Tests
@@ -201,32 +133,27 @@ final class MockServicesTests: XCTestCase {
         
         // Save key
         try await mock.saveAPIKey("test-key", for: .openAI)
-        XCTAssertEqual(mock.saveCallCount, 1)
+        XCTAssertTrue(mock.invocations["saveAPIKey"] != nil)
         
-        // Get key
+        // Get key (uses stubbed result)
         let key = try await mock.getAPIKey(for: .openAI)
-        XCTAssertEqual(key, "test-key")
-        XCTAssertEqual(mock.getCallCount, 1)
+        XCTAssertEqual(key, "test-api-key") // Default stubbed value
+        XCTAssertTrue(mock.invocations["getAPIKey"] != nil)
         
-        // Check existence
+        // Check existence (uses stubbed result)
         let hasKey = await mock.hasAPIKey(for: .openAI)
-        XCTAssertTrue(hasKey)
+        XCTAssertTrue(hasKey) // Default stubbed value
         
         // Delete key
         try await mock.deleteAPIKey(for: .openAI)
-        XCTAssertEqual(mock.deleteCallCount, 1)
-        
-        // Verify deletion
-        let hasKeyAfterDelete = await mock.hasAPIKey(for: .openAI)
-        XCTAssertFalse(hasKeyAfterDelete)
+        XCTAssertTrue(mock.invocations["deleteAPIKey"] != nil)
     }
     
-    func testMockAPIKeyManagerGetAllProviders() async throws {
+    func testMockAPIKeyManagerGetAllProviders() async {
         let mock = MockAPIKeyManager()
         
-        // Add keys for multiple providers
-        try await mock.saveAPIKey("key1", for: .openAI)
-        try await mock.saveAPIKey("key2", for: .anthropic)
+        // Stub the providers list
+        mock.stubbedGetAllConfiguredProvidersResult = [.openAI, .anthropic]
         
         let providers = await mock.getAllConfiguredProviders()
         

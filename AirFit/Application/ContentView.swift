@@ -4,6 +4,8 @@ import SwiftData
 struct ContentView: View {
     @Environment(\.modelContext)
     private var modelContext
+    @Environment(\.diContainer)
+    private var diContainer
     @State private var appState: AppState?
 
     var body: some View {
@@ -14,7 +16,8 @@ struct ContentView: View {
                 } else if appState.shouldCreateUser {
                     WelcomeView(appState: appState)
                 } else if appState.shouldShowOnboarding {
-                    // Use OfflineAIService as immediate fallback
+                    // TODO: Migrate to DI when Onboarding module is updated
+                    // For now, use DependencyContainer as fallback
                     let aiService = DependencyContainer.shared.aiService ?? OfflineAIService()
                     OnboardingFlowView(
                         aiService: aiService,

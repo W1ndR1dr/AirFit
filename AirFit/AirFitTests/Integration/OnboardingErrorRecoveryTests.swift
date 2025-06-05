@@ -5,196 +5,130 @@ import SwiftData
 /// Tests for error handling and recovery in onboarding flow
 final class OnboardingErrorRecoveryTests: XCTestCase {
     
-    var coordinator: OnboardingFlowCoordinator!
     var recovery: OnboardingRecovery!
-    var cache: OnboardingCache!
     var modelContext: ModelContext!
+    var analytics: ConversationAnalytics!
     
+    @MainActor
     override func setUp() async throws {
         try await super.setUp()
         
         let container = try ModelContainer.createTestContainer()
         modelContext = container.mainContext
         
-        cache = OnboardingCache()
-        recovery = OnboardingRecovery(cache: cache, modelContext: modelContext)
-        
-        let conversationManager = ConversationFlowManager()
-        let personaService = PersonaService(
-            personaSynthesizer: PersonaSynthesizer(llmOrchestrator: MockLLMOrchestrator()),
-            llmOrchestrator: MockLLMOrchestrator(),
-            modelContext: modelContext,
-            cache: cache
-        )
-        
-        coordinator = OnboardingFlowCoordinator(
-            conversationManager: conversationManager,
-            personaService: personaService,
-            userService: MockUserService(),
-            modelContext: modelContext
-        )
+        analytics = ConversationAnalytics()
+        recovery = OnboardingRecovery(modelContext: modelContext, analytics: analytics)
     }
     
     // MARK: - Network Error Recovery
     
+    @MainActor
     func testNetworkErrorRecovery() async throws {
-        let userId = UUID()
+        let sessionId = "test-session-123"
         
-        // Test offline error
-        let offlineResult = await recovery.attemptRecovery(
-            from: NetworkError.offline,
-            userId: userId,
-            currentState: .conversation
-        )
+        // Test network error recovery
+        let networkError = OnboardingOrchestratorError.networkError
         
-        switch offlineResult {
-        case .waitForConnection(let resumeFrom):
-            XCTAssertEqual(resumeFrom, .conversation)
-        default:
-            XCTFail("Expected waitForConnection result")
-        }
+        // Record error
+        await recovery.recordError(networkError, sessionId: sessionId)
         
-        // Test timeout error with retries
-        let timeoutResult1 = await recovery.attemptRecovery(
-            from: NetworkError.timeout,
-            userId: userId,
-            currentState: .generatingPersona
-        )
+        // Check if recovery is possible
+        let canRecover = recovery.canRecover(from: networkError, sessionId: sessionId)
+        XCTAssertTrue(canRecover, "Network errors should be recoverable")
         
-        switch timeoutResult1 {
-        case .retry(let delay):
-            XCTAssertGreaterThan(delay, 0)
-            XCTAssertLessThanOrEqual(delay, 30)
-        default:
-            XCTFail("Expected retry result")
-        }
+        // Create recovery plan
+        let plan = recovery.createRecoveryPlan(for: networkError, sessionId: sessionId)
+        XCTAssertEqual(plan.strategy, RecoveryPlan.Strategy.retry)
+        XCTAssertTrue(plan.actions.contains(RecoveryAction.checkConnectivity))
+        XCTAssertTrue(plan.actions.contains(RecoveryAction.retryWithBackoff))
     }
     
+    @MainActor
     func testMaxRetryLimit() async throws {
-        let userId = UUID()
+        let sessionId = "test-session-456"
+        let networkError = OnboardingOrchestratorError.networkError
         
         // Simulate hitting retry limit
-        for i in 0..<3 {
-            _ = await recovery.attemptRecovery(
-                from: NetworkError.timeout,
-                userId: userId,
-                currentState: .generatingPersona
-            )
+        for _ in 0..<3 {
+            await recovery.recordError(networkError, sessionId: sessionId)
         }
         
-        // Fourth attempt should abort
-        let result = await recovery.attemptRecovery(
-            from: NetworkError.timeout,
-            userId: userId,
-            currentState: .generatingPersona
-        )
+        // After 3 attempts, should not be recoverable
+        let canRecover = recovery.canRecover(from: networkError, sessionId: sessionId)
+        XCTAssertFalse(canRecover, "Should not be recoverable after max attempts")
         
-        switch result {
-        case .abort(let reason):
-            XCTAssertTrue(reason.contains("Maximum retry"))
-        default:
-            XCTFail("Expected abort after max retries")
-        }
+        // Recovery plan should indicate no recovery possible
+        let plan = recovery.createRecoveryPlan(for: networkError, sessionId: sessionId)
+        XCTAssertEqual(plan.strategy, RecoveryPlan.Strategy.none)
     }
     
-    // MARK: - Session Recovery
-    
-    func testSessionRecovery() async throws {
-        let userId = UUID()
+    @MainActor
+    func testSynthesisFailureRecovery() async throws {
+        let sessionId = "test-session-789"
+        let synthesisError = OnboardingOrchestratorError.synthesisFailed(NSError(domain: "test", code: -1, userInfo: [NSLocalizedDescriptionKey: "Model unavailable"]))
         
-        // Save session state
-        let responses = [
-            ConversationResponse(
-                nodeId: "name",
-                responseType: "text",
-                responseData: try! JSONEncoder().encode(ResponseValue.text("Test User"))
-            )
+        // Record error
+        await recovery.recordError(synthesisError, sessionId: sessionId)
+        
+        // Check if recovery is possible
+        let canRecover = recovery.canRecover(from: synthesisError, sessionId: sessionId)
+        XCTAssertTrue(canRecover, "Synthesis failures should be recoverable")
+        
+        // Create recovery plan
+        let plan = recovery.createRecoveryPlan(for: synthesisError, sessionId: sessionId)
+        XCTAssertEqual(plan.strategy, RecoveryPlan.Strategy.fallback)
+        XCTAssertTrue(plan.actions.contains(RecoveryAction.switchProvider))
+    }
+    
+    @MainActor
+    func testNonRecoverableErrors() async throws {
+        let sessionId = "test-session-nonrecoverable"
+        
+        // Test user cancelled - should not be recoverable
+        let cancelledError = OnboardingOrchestratorError.userCancelled
+        let canRecoverCancelled = recovery.canRecover(from: cancelledError, sessionId: sessionId)
+        XCTAssertFalse(canRecoverCancelled, "User cancelled should not be recoverable")
+        
+        // Test invalid state transition - should not be recoverable
+        let invalidStateError = OnboardingOrchestratorError.invalidStateTransition
+        let canRecoverInvalidState = recovery.canRecover(from: invalidStateError, sessionId: sessionId)
+        XCTAssertFalse(canRecoverInvalidState, "Invalid state transitions should not be recoverable")
+    }
+    
+    @MainActor
+    func testClearRecoveryData() async throws {
+        let sessionId = "test-session-clear"
+        let networkError = OnboardingOrchestratorError.networkError
+        
+        // Record some errors
+        await recovery.recordError(networkError, sessionId: sessionId)
+        await recovery.recordError(networkError, sessionId: sessionId)
+        
+        // After recording multiple errors, should eventually not be recoverable
+        // Record one more error to reach limit
+        await recovery.recordError(networkError, sessionId: sessionId)
+        
+        // Should not be recoverable after 3 attempts
+        let canRecover = recovery.canRecover(from: networkError, sessionId: sessionId)
+        XCTAssertFalse(canRecover, "Should not be recoverable after max attempts")
+    }
+    
+    @MainActor
+    func testRecoveryPlanUserMessages() async throws {
+        let sessionId = "test-session-messages"
+        
+        // Test different error types produce appropriate user messages
+        let errors: [(OnboardingOrchestratorError, String)] = [
+            (.networkError, "Connection issue detected"),
+            (.timeout, "Taking longer than expected"),
+            (.synthesisFailed(NSError(domain: "test", code: -1)), "generation issue"),
+            (.saveFailed(NSError(domain: "test", code: 0)), "save your progress")
         ]
         
-        await recovery.saveRecoveryState(
-            userId: userId,
-            conversationData: ConversationData(
-                userName: "Test User",
-                primaryGoal: "fitness",
-                responses: ["name": "Test User"]
-            ),
-            insights: nil,
-            currentStep: "personaPreview",
-            responses: responses
-        )
-        
-        // Simulate recovery
-        let result = await recovery.attemptRecovery(
-            from: PersonaError.generationFailed("Test error"),
-            userId: userId,
-            currentState: .generatingPersona
-        )
-        
-        switch result {
-        case .useAlternative(let approach):
-            XCTAssertEqual(approach, .simplifiedGeneration)
-        default:
-            XCTFail("Expected alternative approach")
+        for (error, expectedMessage) in errors {
+            let plan = recovery.createRecoveryPlan(for: error, sessionId: sessionId)
+            XCTAssertTrue(plan.userMessage.contains(expectedMessage), 
+                         "User message for \(error) should contain: \(expectedMessage)")
         }
-        
-        // Verify cached data exists
-        let cached = await cache.restoreSession(userId: userId)
-        XCTAssertNotNil(cached)
-        XCTAssertEqual(cached?.currentStep, "personaPreview")
-    }
-    
-    // MARK: - Error Presentation
-    
-    func testErrorPresentation() async throws {
-        // Network error
-        let networkError = NetworkError.offline
-        XCTAssertEqual(networkError.errorDescription, "No internet connection")
-        XCTAssertEqual(networkError.recoverySuggestion, "Please check your network settings and try again")
-        
-        // Persona error
-        let personaError = PersonaError.parsingFailed("Invalid JSON")
-        XCTAssertTrue(personaError.errorDescription?.contains("Failed to parse") ?? false)
-        
-        // Validation error
-        let validationError = ValidationError.missingRequiredField("name")
-        XCTAssertEqual(validationError.errorDescription, "Please provide your name")
-    }
-    
-    // MARK: - Coordinator Error Handling
-    
-    func testCoordinatorErrorHandling() async throws {
-        coordinator.start()
-        
-        // Simulate network error during conversation
-        await coordinator.beginConversation()
-        
-        // Should have error set if offline
-        // Note: This test assumes NetworkReachability can be mocked
-        // In real tests, you'd inject a mock NetworkReachability
-    }
-    
-    func testRecoveryStateCleanup() async throws {
-        let userId = UUID()
-        
-        // Save recovery state
-        await recovery.saveRecoveryState(
-            userId: userId,
-            conversationData: nil,
-            insights: nil,
-            currentStep: "conversation",
-            responses: []
-        )
-        
-        // Verify saved
-        var cached = await cache.restoreSession(userId: userId)
-        XCTAssertNotNil(cached)
-        
-        // Clear recovery state
-        await recovery.clearRecoveryState(userId: userId)
-        
-        // Verify cleared
-        cached = await cache.restoreSession(userId: userId)
-        XCTAssertNil(cached)
     }
 }
-

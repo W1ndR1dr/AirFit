@@ -1,11 +1,26 @@
 # Build Status & Next Steps
 
 ## Current State
-- ✅ **BUILD SUCCESSFUL** (as of 2025-06-04)
-- All compilation errors resolved
-- Only warnings remain (deprecations, cosmetic issues)
-- Major refactoring complete: CoachEngine Combine → AsyncThrowingStream
-- All force casts eliminated
+- 🟢 **BUILD IMPROVING** (as of 2025-06-04)
+- Main app builds successfully  
+- DI migration complete for 6/7 modules
+- Test suite errors reduced from 100+ to ~20 remaining
+- Fixed:
+  - MockAIWorkoutService protocol conformance
+  - MockUserService User initialization  
+  - MockViewModel nonisolated properties
+  - OnboardingErrorRecoveryTests updated to current API
+  - OnboardingFlowTests updated to current API
+  - MockAIAPIService deprecated and removed from tests
+  - MockAIAnalyticsService complete implementation
+  - MockAIGoalService complete implementation
+  - MockAIService complete implementation with AIModel fix
+  - OnboardingViewModel test initialization fixed
+  - Blend.isValid tests updated (property removed)
+- ~20 test compilation errors remain:
+  - WeatherServiceTests using old mock API methods
+  - WorkoutViewModelTests MockWorkoutCoachEngine protocol conformance
+  - OnboardingPerformanceTests updated but needs review
 
 ## Fix Summary (2025-06-04)
 - Fixed SwiftData predicate issue in DefaultDashboardNutritionService  
@@ -110,6 +125,15 @@ xcodebuild build -scheme "AirFit" -destination 'platform=iOS Simulator,name=iPho
   - FoodTracking ✅
   - AI/Onboarding ⏭️ (deferred - complex)
 - ✅ Removed UnifiedOnboardingView (naming violation)
-- 🚧 Test migration partially complete
-- 🚧 DependencyContainer removal pending
-- Test isolation via DIBootstrapper.createTestContainer()
+- ✅ Removed MinimalContentView (unused test file)
+- ✅ Committed DI work with comprehensive git commit
+- 🚧 Mock compilation errors in test suite:
+  - Fixed many MockProtocol nonisolated(unsafe) issues
+  - Fixed duplicate User.mock definitions
+  - Fixed LoadingState.refreshing → .loading
+  - Fixed WorkoutTemplate.notes → descriptionText
+  - MockAI* services need protocol conformance updates
+  - Several mocks missing required protocol methods
+- 🚧 Test migration to DITestHelper pending
+- 🚧 DependencyContainer removal (3 files remain)
+- 🚧 ServiceRegistry removal pending

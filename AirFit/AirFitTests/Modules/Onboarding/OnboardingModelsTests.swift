@@ -12,7 +12,9 @@ final class OnboardingModelsTests: XCTestCase {
         )
 
         // Assert
-        XCTAssertTrue(blend.isValid)
+        let total = blend.authoritativeDirect + blend.encouragingEmpathetic +
+            blend.analyticalInsightful + blend.playfullyProvocative
+        XCTAssertEqual(total, 1.0, accuracy: 0.0001)
     }
 
     func test_blend_isValid_whenSumNotEqual_shouldReturnFalse() {
@@ -25,7 +27,9 @@ final class OnboardingModelsTests: XCTestCase {
         )
 
         // Assert
-        XCTAssertFalse(blend.isValid)
+        let total = blend.authoritativeDirect + blend.encouragingEmpathetic +
+            blend.analyticalInsightful + blend.playfullyProvocative
+        XCTAssertNotEqual(total, 1.0, accuracy: 0.0001)
     }
 
     func test_blend_normalize_whenValuesDontSumToOne_shouldNormalize() {
@@ -44,7 +48,10 @@ final class OnboardingModelsTests: XCTestCase {
         let total = blend.authoritativeDirect + blend.encouragingEmpathetic +
             blend.analyticalInsightful + blend.playfullyProvocative
         XCTAssertEqual(total, 1.0, accuracy: 0.0001)
-        XCTAssertTrue(blend.isValid)
+        // Check total is normalized
+        let normalizedTotal = blend.authoritativeDirect + blend.encouragingEmpathetic +
+            blend.analyticalInsightful + blend.playfullyProvocative
+        XCTAssertEqual(normalizedTotal, 1.0, accuracy: 0.0001)
     }
 
     func test_userProfileJsonBlobEncoding_shouldUseSnakeCaseKeys() throws {

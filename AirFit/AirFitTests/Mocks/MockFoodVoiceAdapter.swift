@@ -3,7 +3,12 @@ import Foundation
 
 /// Mock implementation of FoodVoiceAdapterProtocol for testing
 @MainActor
-final class MockFoodVoiceAdapter: FoodVoiceAdapterProtocol, MockProtocol {
+final class MockFoodVoiceAdapter: FoodVoiceAdapterProtocol, @preconcurrency MockProtocol {
+    // MARK: - MockProtocol
+    var invocations: [String: [Any]] = [:]
+    var stubbedResults: [String: Any] = [:]
+    let mockLock = NSLock()
+    
     // MARK: - Mock State
     
     private var _isListening = false

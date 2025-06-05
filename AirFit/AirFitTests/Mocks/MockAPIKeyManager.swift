@@ -1,10 +1,12 @@
 import Foundation
 @testable import AirFit
 
-// MARK: - MockAPIKeyManagementProtocol
-final class MockAPIKeyManagement: APIKeyManagementProtocol, MockProtocol {
-    var invocations: [String: [Any]] = [:]
-    var stubbedResults: [String: Any] = [:]
+// MARK: - MockAPIKeyManager
+@MainActor
+final class MockAPIKeyManager: APIKeyManagementProtocol, MockProtocol {
+    // MARK: - MockProtocol (not Sendable, but that's OK for test mocks)
+    nonisolated(unsafe) var invocations: [String: [Any]] = [:]
+    nonisolated(unsafe) var stubbedResults: [String: Any] = [:]
     let mockLock = NSLock()
     
     // Stubbed responses
@@ -43,58 +45,7 @@ final class MockAPIKeyManagement: APIKeyManagementProtocol, MockProtocol {
     }
     
     func getAllConfiguredProviders() async -> [AIProvider] {
-        recordInvocation("getAllConfiguredProviders", arguments: nil)
-        return stubbedGetAllConfiguredProvidersResult
-    }
-}
-
-// MARK: - MockAPIKeyManager
-final class MockAPIKeyManager: APIKeyManagementProtocol, MockProtocol {
-    var invocations: [String: [Any]] = [:]
-    var stubbedResults: [String: Any] = [:]
-    let mockLock = NSLock()
-    
-    // Stubbed responses
-    var stubbedSetAPIKeyError: Error?
-    var stubbedGetAPIKeyResult: String? = "test-api-key"
-    var stubbedGetAPIKeyError: Error?
-    var stubbedRemoveAPIKeyError: Error?
-    var stubbedHasAPIKeyResult: Bool = true
-    var stubbedGetAllConfiguredProvidersResult: [AIProvider] = []
-    
-    // Legacy sync methods
-    var stubbedSaveAPIKeyError: Error?
-    var stubbedDeleteAPIKeyError: Error?
-    
-    func setAPIKey(_ key: String, for provider: AIProvider) async throws {
-        recordInvocation("setAPIKey", arguments: key, provider)
-        if let error = stubbedSetAPIKeyError {
-            throw error
-        }
-    }
-    
-    func getAPIKey(for provider: AIProvider) async throws -> String? {
-        recordInvocation("getAPIKey", arguments: provider)
-        if let error = stubbedGetAPIKeyError {
-            throw error
-        }
-        return stubbedGetAPIKeyResult
-    }
-    
-    func removeAPIKey(for provider: AIProvider) async throws {
-        recordInvocation("removeAPIKey", arguments: provider)
-        if let error = stubbedRemoveAPIKeyError {
-            throw error
-        }
-    }
-    
-    func hasAPIKey(for provider: AIProvider) async -> Bool {
-        recordInvocation("hasAPIKey", arguments: provider)
-        return stubbedHasAPIKeyResult
-    }
-    
-    func getAllConfiguredProviders() async -> [AIProvider] {
-        recordInvocation("getAllConfiguredProviders", arguments: nil)
+        recordInvocation("getAllConfiguredProviders")
         return stubbedGetAllConfiguredProvidersResult
     }
 }

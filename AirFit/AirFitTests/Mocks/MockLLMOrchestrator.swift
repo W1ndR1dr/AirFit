@@ -2,17 +2,18 @@ import Foundation
 @testable import AirFit
 
 /// Mock LLMOrchestrator for testing
-class MockLLMOrchestrator: LLMOrchestrator {
+@MainActor
+final class MockLLMOrchestrator {
     
     var mockResponse: LLMResponse?
     var shouldThrowError = false
     var mockError: Error = LLMError.invalidResponse("Mock error")
     
     init() {
-        super.init(apiKeyManager: MockAPIKeyManager())
+        // No super init needed for mock
     }
     
-    override func complete(_ request: LLMRequest) async throws -> LLMResponse {
+    func complete(_ request: LLMRequest) async throws -> LLMResponse {
         if shouldThrowError {
             throw mockError
         }
@@ -34,7 +35,7 @@ class MockLLMOrchestrator: LLMOrchestrator {
         )
     }
     
-    override func stream(prompt request: LLMRequest) async throws -> AsyncThrowingStream<LLMStreamChunk, Error> {
+    func stream(prompt request: LLMRequest) async throws -> AsyncThrowingStream<LLMStreamChunk, Error> {
         if shouldThrowError {
             throw mockError
         }
@@ -46,8 +47,8 @@ class MockLLMOrchestrator: LLMOrchestrator {
                 for chunk in chunks {
                     continuation.yield(LLMStreamChunk(
                         delta: chunk,
-                        model: request.model ?? "mock",
-                        finishReason: nil
+                        isFinished: false,
+                        usage: nil
                     ))
                     try? await Task.sleep(nanoseconds: 100_000_000) // 0.1s
                 }

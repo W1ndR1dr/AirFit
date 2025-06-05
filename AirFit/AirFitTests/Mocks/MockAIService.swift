@@ -2,24 +2,106 @@
 import Foundation
 
 @MainActor
-final class MockAIService: AIServiceProtocol, @preconcurrency MockProtocol {
-    var invocations: [String: [Any]] = [:]
-    var stubbedResults: [String: Any] = [:]
+final class MockAIService: AIServiceProtocol, MockProtocol {
+    nonisolated(unsafe) var invocations: [String: [Any]] = [:]
+    nonisolated(unsafe) var stubbedResults: [String: Any] = [:]
     let mockLock = NSLock()
-
-    var analyzeGoalResult: Result<String, Error> = .failure(MockError.notSet)
-    private(set) var analyzeGoalCalled = false
-
-    func analyzeGoal(_ goalText: String) async throws -> String {
-        recordInvocation(#function, arguments: goalText)
-        analyzeGoalCalled = true
-
-        switch analyzeGoalResult {
-        case .success(let analysis):
-            return analysis
-        case .failure(let error):
-            throw error
+    
+    // MARK: - ServiceProtocol
+    var isConfigured: Bool = true
+    var serviceIdentifier: String = "MockAIService"
+    
+    func configure() async throws {
+        recordInvocation("configure")
+    }
+    
+    func reset() async {
+        recordInvocation("reset")
+        isConfigured = false
+    }
+    
+    func healthCheck() async -> ServiceHealth {
+        recordInvocation("healthCheck")
+        return ServiceHealth(
+            status: isConfigured ? .healthy : .unhealthy,
+            lastCheckTime: Date(),
+            responseTime: 0.1,
+            errorMessage: nil,
+            metadata: ["provider": activeProvider.rawValue]
+        )
+    }
+    
+    // MARK: - AIServiceProtocol
+    var activeProvider: AIProvider = .openAI
+    var availableModels: [AIModel] = [
+        AIModel(
+            id: "gpt-4",
+            name: "GPT-4",
+            provider: .openAI,
+            contextWindow: 8192,
+            costPerThousandTokens: AIModel.TokenCost(input: 0.03, output: 0.06)
+        ),
+        AIModel(
+            id: "claude-3",
+            name: "Claude 3",
+            provider: .anthropic,
+            contextWindow: 100000,
+            costPerThousandTokens: AIModel.TokenCost(input: 0.015, output: 0.075)
+        )
+    ]
+    
+    func configure(provider: AIProvider, apiKey: String, model: String?) async throws {
+        recordInvocation("configure", arguments: provider.rawValue, apiKey, model ?? "default")
+        activeProvider = provider
+        isConfigured = true
+    }
+    
+    func sendRequest(_ request: AIRequest) -> AsyncThrowingStream<AIResponse, Error> {
+        recordInvocation("sendRequest", arguments: request.messages.count)
+        
+        return AsyncThrowingStream { continuation in
+            Task {
+                // Simulate streaming response
+                let mockResponse = "This is a mock response to your request."
+                for word in mockResponse.split(separator: " ") {
+                    try? await Task.sleep(nanoseconds: 50_000_000) // 50ms between words
+                    let response = AIResponse(
+                        id: UUID().uuidString,
+                        content: String(word) + " ",
+                        model: "mock-model",
+                        usage: AIUsage(promptTokens: 10, completionTokens: 1, totalTokens: 11),
+                        finishReason: nil
+                    )
+                    continuation.yield(response)
+                }
+                
+                // Final response
+                let finalResponse = AIResponse(
+                    id: UUID().uuidString,
+                    content: mockResponse,
+                    model: "mock-model",
+                    usage: AIUsage(promptTokens: 10, completionTokens: 20, totalTokens: 30),
+                    finishReason: "stop"
+                )
+                continuation.yield(finalResponse)
+                continuation.finish()
+            }
         }
+    }
+    
+    func validateConfiguration() async throws -> Bool {
+        recordInvocation("validateConfiguration")
+        return isConfigured
+    }
+    
+    func checkHealth() async -> ServiceHealth {
+        return await healthCheck()
+    }
+    
+    func estimateTokenCount(for text: String) -> Int {
+        recordInvocation("estimateTokenCount", arguments: text.count)
+        // Simple mock estimation
+        return text.count / 4
     }
 
     enum MockError: Error {

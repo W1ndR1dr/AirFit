@@ -19,7 +19,7 @@ final class GeminiProviderTests: XCTestCase {
     
     func testThinkingBudgetInRequest() async {
         // Test that thinking budget is properly set for Gemini 2.5 Flash Thinking
-        let orchestrator = LLMOrchestrator(apiKeyManager: MockAPIKeyManager())
+        let orchestrator = LLMOrchestrator(apiKeyManager: LocalMockAPIKeyManager())
         
         // Test persona synthesis task (should get 8192 thinking budget)
         let request = orchestrator.buildRequest(
@@ -140,21 +140,25 @@ extension LLMOrchestrator {
     }
 }
 
-// Simple mock for testing
-struct MockAPIKeyManager: APIKeyManagementProtocol {
-    func getAPIKey(for provider: LLMProviderIdentifier) async throws -> String {
+// Simple mock for testing - using a different name to avoid conflicts
+private struct LocalMockAPIKeyManager: APIKeyManagementProtocol {
+    func saveAPIKey(_ key: String, for provider: AIProvider) async throws {
+        // No-op for testing
+    }
+    
+    func getAPIKey(for provider: AIProvider) async throws -> String {
         return "test-key"
     }
     
-    func setAPIKey(_ key: String, for provider: LLMProviderIdentifier) async throws {
+    func deleteAPIKey(for provider: AIProvider) async throws {
         // No-op for testing
     }
     
-    func deleteAPIKey(for provider: LLMProviderIdentifier) async throws {
-        // No-op for testing
-    }
-    
-    func hasAPIKey(for provider: LLMProviderIdentifier) async -> Bool {
+    func hasAPIKey(for provider: AIProvider) async -> Bool {
         return true
+    }
+    
+    func getAllConfiguredProviders() async -> [AIProvider] {
+        return [.gemini]
     }
 }

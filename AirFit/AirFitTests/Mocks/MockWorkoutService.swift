@@ -12,7 +12,7 @@ final class MockWorkoutService: WorkoutServiceProtocol, MockProtocol {
     
     // MARK: - Error Control
     var shouldThrowError = false
-    var errorToThrow: Error = AppError.serviceError("Mock workout service error")
+    var errorToThrow: Error = AppError.unknown(message: "Mock workout service error")
     
     // MARK: - Stubbed Data
     var stubbedWorkout: Workout?
@@ -42,11 +42,10 @@ final class MockWorkoutService: WorkoutServiceProtocol, MockProtocol {
         }
         
         // Create a default workout
-        let workout = Workout()
-        workout.type = type
-        workout.startTime = Date()
+        let workout = Workout(name: "Test Workout")
+        workout.workoutType = type.rawValue
+        workout.plannedDate = Date()
         workout.user = user
-        workout.isActive = true
         
         activeWorkouts.insert(workout.id)
         return workout
@@ -60,12 +59,12 @@ final class MockWorkoutService: WorkoutServiceProtocol, MockProtocol {
         }
         
         guard activeWorkouts.contains(workout.id) else {
-            throw AppError.invalidState("Cannot pause inactive workout")
+            throw AppError.unknown(message: "Cannot pause inactive workout")
         }
         
         activeWorkouts.remove(workout.id)
         pausedWorkouts.insert(workout.id)
-        workout.isActive = false
+        // Track state internally
     }
     
     func resumeWorkout(_ workout: Workout) async throws {
@@ -76,12 +75,12 @@ final class MockWorkoutService: WorkoutServiceProtocol, MockProtocol {
         }
         
         guard pausedWorkouts.contains(workout.id) else {
-            throw AppError.invalidState("Cannot resume workout that is not paused")
+            throw AppError.unknown(message: "Cannot resume workout that is not paused")
         }
         
         pausedWorkouts.remove(workout.id)
         activeWorkouts.insert(workout.id)
-        workout.isActive = true
+        // Track resumed state internally
     }
     
     func endWorkout(_ workout: Workout) async throws {
@@ -94,9 +93,8 @@ final class MockWorkoutService: WorkoutServiceProtocol, MockProtocol {
         activeWorkouts.remove(workout.id)
         pausedWorkouts.remove(workout.id)
         
-        workout.endTime = Date()
-        workout.isActive = false
-        workout.totalCaloriesBurned = calculateMockCalories(workout)
+        workout.completedDate = Date()
+        workout.caloriesBurned = calculateMockCalories(workout)
     }
     
     func logExercise(_ exercise: Exercise, in workout: Workout) async throws {
@@ -125,7 +123,7 @@ final class MockWorkoutService: WorkoutServiceProtocol, MockProtocol {
     }
     
     func getWorkoutTemplates() async throws -> [WorkoutTemplate] {
-        recordInvocation("getWorkoutTemplates", arguments: nil)
+        recordInvocation("getWorkoutTemplates")
         
         if shouldThrowError {
             throw errorToThrow
@@ -147,38 +145,39 @@ final class MockWorkoutService: WorkoutServiceProtocol, MockProtocol {
     // MARK: - Test Helpers
     private func setupDefaultStubs() {
         // Create default workout templates
-        let pushTemplate = WorkoutTemplate()
-        pushTemplate.name = "Push Day"
-        pushTemplate.type = .strength
-        pushTemplate.targetMuscleGroups = ["Chest", "Shoulders", "Triceps"]
+        let pushTemplate = WorkoutTemplate(name: "Push Day")
+        pushTemplate.workoutType = WorkoutType.strength.rawValue
+        pushTemplate.descriptionText = "Target muscles: Chest, Shoulders, Triceps"
+        pushTemplate.difficulty = "intermediate"
         
-        let cardioTemplate = WorkoutTemplate()
-        cardioTemplate.name = "HIIT Cardio"
-        cardioTemplate.type = .cardio
+        let cardioTemplate = WorkoutTemplate(name: "HIIT Cardio")
+        cardioTemplate.workoutType = WorkoutType.cardio.rawValue
         cardioTemplate.estimatedDuration = 30 * 60 // 30 minutes
+        cardioTemplate.difficulty = "advanced"
         
         stubbedWorkoutTemplates = [pushTemplate, cardioTemplate]
     }
     
-    private func calculateMockCalories(_ workout: Workout) -> Int {
+    private func calculateMockCalories(_ workout: Workout) -> Double {
         // Simple mock calculation based on duration and type
-        let duration = workout.duration / 60 // Convert to minutes
+        let duration = (workout.durationSeconds ?? 1800) / 60 // Default 30 min
         let caloriesPerMinute: Double = {
-            switch workout.type {
+            let type = WorkoutType(rawValue: workout.workoutType) ?? .general
+            switch type {
             case .strength:
                 return 5.0
-            case .cardio:
+            case .cardio, .hiit:
                 return 8.0
             case .flexibility:
                 return 3.0
             case .sports:
                 return 7.0
-            case .other:
+            case .general, .yoga, .pilates:
                 return 4.0
             }
         }()
         
-        return Int(duration * caloriesPerMinute)
+        return duration * caloriesPerMinute
     }
     
     func stubWorkout(_ workout: Workout) {

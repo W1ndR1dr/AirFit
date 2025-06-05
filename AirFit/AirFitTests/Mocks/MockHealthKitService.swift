@@ -18,8 +18,8 @@ final class MockHealthKitService: HealthKitServiceProtocol, @preconcurrency Mock
         hrv: nil,
         steps: nil
     )
-    var recoveryResult = RecoveryScore(score: 0, components: [])
-    var performanceResult = PerformanceInsight(summary: "", trend: .steady, keyMetric: "", value: 0)
+    var recoveryResult = RecoveryScore(score: 75, status: .good, factors: ["Good sleep", "Low stress"])
+    var performanceResult = PerformanceInsight(trend: .stable, metric: "VO2 Max", value: "45", insight: "Your fitness level is stable")
 
     func getCurrentContext() async throws -> HealthContext {
         recordInvocation(#function)

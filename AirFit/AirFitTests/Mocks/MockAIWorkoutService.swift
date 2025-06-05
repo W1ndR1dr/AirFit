@@ -4,8 +4,47 @@ import Foundation
 // MARK: - Mock AI Workout Service
 // This is the AI-based workout generation service, different from MockWorkoutService
 
-actor MockAIWorkoutService: WorkoutServiceProtocol {
-
+actor MockAIWorkoutService: AIWorkoutServiceProtocol {
+    
+    // MARK: - WorkoutServiceProtocol conformance (base protocol)
+    func startWorkout(type: WorkoutType, user: User) async throws -> Workout {
+        let workout = Workout(name: "AI Generated Workout")
+        workout.workoutType = type.rawValue
+        workout.plannedDate = Date()
+        workout.user = user
+        return workout
+    }
+    
+    func pauseWorkout(_ workout: Workout) async throws {
+        // Mock implementation
+    }
+    
+    func resumeWorkout(_ workout: Workout) async throws {
+        // Mock implementation
+    }
+    
+    func endWorkout(_ workout: Workout) async throws {
+        workout.completedDate = Date()
+        workout.caloriesBurned = 250
+    }
+    
+    func logExercise(_ exercise: Exercise, in workout: Workout) async throws {
+        workout.exercises.append(exercise)
+    }
+    
+    func getWorkoutHistory(for user: User, limit: Int) async throws -> [Workout] {
+        return []
+    }
+    
+    func getWorkoutTemplates() async throws -> [WorkoutTemplate] {
+        return []
+    }
+    
+    func saveWorkoutTemplate(_ template: WorkoutTemplate) async throws {
+        // Mock implementation
+    }
+    
+    // MARK: - AIWorkoutServiceProtocol specific methods
     func generatePlan(
         for user: User,
         goal: String,
@@ -33,13 +72,42 @@ actor MockAIWorkoutService: WorkoutServiceProtocol {
             duration: duration,
             intensity: intensity
         )
+        
+        let difficulty: WorkoutPlanResult.WorkoutDifficulty = switch intensity {
+        case "light": .beginner
+        case "moderate": .intermediate
+        case "high": .advanced
+        case "extreme": .expert
+        default: .intermediate
+        }
+        
+        let focusAreas = targetMuscles // Use the input target muscles as focus areas
 
         return WorkoutPlanResult(
             id: UUID(),
             exercises: exercises,
             estimatedCalories: estimatedCalories,
             estimatedDuration: duration,
-            summary: generateWorkoutSummary(goal: goal, exercises: exercises, duration: duration)
+            summary: generateWorkoutSummary(goal: goal, exercises: exercises, duration: duration),
+            difficulty: difficulty,
+            focusAreas: focusAreas
+        )
+    }
+    
+    nonisolated func adaptPlan(
+        _ plan: WorkoutPlanResult,
+        feedback: String,
+        adjustments: [String: Any]
+    ) async throws -> WorkoutPlanResult {
+        // Simple mock: return the same plan with updated summary
+        return WorkoutPlanResult(
+            id: plan.id,
+            exercises: plan.exercises,
+            estimatedCalories: plan.estimatedCalories,
+            estimatedDuration: plan.estimatedDuration,
+            summary: plan.summary + " (adapted based on feedback)",
+            difficulty: plan.difficulty,
+            focusAreas: plan.focusAreas
         )
     }
 
@@ -49,10 +117,10 @@ actor MockAIWorkoutService: WorkoutServiceProtocol {
         targetMuscles: [String],
         equipment: [String],
         style: String
-    ) -> [WorkoutPlanResult.ExerciseInfo] {
+    ) -> [PlannedExercise] {
 
         let exerciseCount = min(max(duration / 8, 3), 8) // 3-8 exercises based on duration
-        var exercises: [WorkoutPlanResult.ExerciseInfo] = []
+        var exercises: [PlannedExercise] = []
 
         let exerciseDatabase = getExerciseDatabase(equipment: equipment)
         let filteredExercises = exerciseDatabase.filter { exercise in
@@ -65,12 +133,14 @@ actor MockAIWorkoutService: WorkoutServiceProtocol {
             let (sets, reps) = getSetsAndReps(goal: goal, style: style, exerciseIndex: i)
             let restSeconds = getRestTime(goal: goal, style: style)
 
-            exercises.append(WorkoutPlanResult.ExerciseInfo(
+            exercises.append(PlannedExercise(
+                exerciseId: UUID(),
                 name: exercise.name,
                 sets: sets,
                 reps: reps,
                 restSeconds: restSeconds,
-                muscleGroups: exercise.muscleGroups
+                notes: "Target muscles: \(exercise.muscleGroups.joined(separator: ", "))",
+                alternatives: []
             ))
         }
 
@@ -157,7 +227,7 @@ actor MockAIWorkoutService: WorkoutServiceProtocol {
     }
 
     private func calculateEstimatedCalories(
-        exercises: [WorkoutPlanResult.ExerciseInfo],
+        exercises: [PlannedExercise],
         duration: Int,
         intensity: String
     ) -> Int {
@@ -173,10 +243,18 @@ actor MockAIWorkoutService: WorkoutServiceProtocol {
 
     private func generateWorkoutSummary(
         goal: String,
-        exercises: [WorkoutPlanResult.ExerciseInfo],
+        exercises: [PlannedExercise],
         duration: Int
     ) -> String {
-        let primaryMuscles = Set(exercises.flatMap { $0.muscleGroups }).prefix(3).joined(separator: ", ")
+        // Extract muscle groups from notes since PlannedExercise doesn't have muscleGroups property
+        let muscleGroups = exercises.compactMap { exercise -> [String]? in
+            guard let notes = exercise.notes,
+                  let range = notes.range(of: "Target muscles: ") else { return nil }
+            let musclesString = String(notes[range.upperBound...])
+            return musclesString.split(separator: ",").map { $0.trimmingCharacters(in: .whitespaces) }
+        }.flatMap { $0 }
+        
+        let primaryMuscles = Set(muscleGroups).prefix(3).joined(separator: ", ")
         return "A \(duration)-minute \(goal) workout targeting \(primaryMuscles) with \(exercises.count) exercises."
     }
 }

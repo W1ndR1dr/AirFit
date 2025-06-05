@@ -5,8 +5,8 @@ import SwiftUI
 // MARK: - MockViewModel (Generic ViewModelProtocol Implementation)
 @MainActor
 final class MockViewModel: ViewModelProtocol, MockProtocol {
-    var invocations: [String: [Any]] = [:]
-    var stubbedResults: [String: Any] = [:]
+    nonisolated(unsafe) var invocations: [String: [Any]] = [:]
+    nonisolated(unsafe) var stubbedResults: [String: Any] = [:]
     let mockLock = NSLock()
     
     // ViewModelProtocol conformance
@@ -21,7 +21,7 @@ final class MockViewModel: ViewModelProtocol, MockProtocol {
     var refreshDelay: TimeInterval = 0.5
     
     func initialize() async {
-        recordInvocation("initialize", arguments: nil)
+        recordInvocation("initialize")
         loadingState = .loading
         
         if shouldDelayInitialize {
@@ -37,8 +37,8 @@ final class MockViewModel: ViewModelProtocol, MockProtocol {
     }
     
     func refresh() async {
-        recordInvocation("refresh", arguments: nil)
-        loadingState = .refreshing
+        recordInvocation("refresh")
+        loadingState = .loading
         
         if shouldDelayRefresh {
             try? await Task.sleep(nanoseconds: UInt64(refreshDelay * 1_000_000_000))
@@ -53,7 +53,7 @@ final class MockViewModel: ViewModelProtocol, MockProtocol {
     }
     
     func cleanup() {
-        recordInvocation("cleanup", arguments: nil)
+        recordInvocation("cleanup")
         loadingState = .idle
     }
     
@@ -97,8 +97,8 @@ final class MockViewModel: ViewModelProtocol, MockProtocol {
 // MARK: - MockFormViewModel
 @MainActor
 final class MockFormViewModel<T>: FormViewModelProtocol, MockProtocol {
-    var invocations: [String: [Any]] = [:]
-    var stubbedResults: [String: Any] = [:]
+    nonisolated(unsafe) var invocations: [String: [Any]] = [:]
+    nonisolated(unsafe) var stubbedResults: [String: Any] = [:]
     let mockLock = NSLock()
     
     // FormViewModelProtocol conformance
@@ -119,25 +119,25 @@ final class MockFormViewModel<T>: FormViewModelProtocol, MockProtocol {
     }
     
     func initialize() async {
-        recordInvocation("initialize", arguments: nil)
+        recordInvocation("initialize")
     }
     
     func refresh() async {
-        recordInvocation("refresh", arguments: nil)
+        recordInvocation("refresh")
     }
     
     func cleanup() {
-        recordInvocation("cleanup", arguments: nil)
+        recordInvocation("cleanup")
     }
     
     func validate() -> [String: String] {
-        recordInvocation("validate", arguments: nil)
+        recordInvocation("validate")
         isFormValid = stubbedValidationErrors.isEmpty
         return stubbedValidationErrors
     }
     
     func submit() async throws {
-        recordInvocation("submit", arguments: nil)
+        recordInvocation("submit")
         loadingState = .loading
         
         if shouldDelaySubmit {
@@ -171,8 +171,8 @@ final class MockFormViewModel<T>: FormViewModelProtocol, MockProtocol {
 // MARK: - MockListViewModel
 @MainActor
 final class MockListViewModel<Item: Identifiable>: ListViewModelProtocol, MockProtocol {
-    var invocations: [String: [Any]] = [:]
-    var stubbedResults: [String: Any] = [:]
+    nonisolated(unsafe) var invocations: [String: [Any]] = [:]
+    nonisolated(unsafe) var stubbedResults: [String: Any] = [:]
     let mockLock = NSLock()
     
     // ListViewModelProtocol conformance
@@ -187,19 +187,19 @@ final class MockListViewModel<Item: Identifiable>: ListViewModelProtocol, MockPr
     var additionalItemsToLoad: [Item] = []
     
     func initialize() async {
-        recordInvocation("initialize", arguments: nil)
+        recordInvocation("initialize")
     }
     
     func refresh() async {
-        recordInvocation("refresh", arguments: nil)
+        recordInvocation("refresh")
     }
     
     func cleanup() {
-        recordInvocation("cleanup", arguments: nil)
+        recordInvocation("cleanup")
     }
     
     func loadMore() async {
-        recordInvocation("loadMore", arguments: nil)
+        recordInvocation("loadMore")
         
         if let error = stubbedLoadMoreError {
             loadingState = .error(error)

@@ -4,8 +4,8 @@ import Foundation
 // MARK: - MockFoodVoiceService
 @MainActor
 final class MockFoodVoiceService: FoodVoiceServiceProtocol, MockProtocol {
-    var invocations: [String: [Any]] = [:]
-    var stubbedResults: [String: Any] = [:]
+    nonisolated(unsafe) var invocations: [String: [Any]] = [:]
+    nonisolated(unsafe) var stubbedResults: [String: Any] = [:]
     let mockLock = NSLock()
     
     // FoodVoiceServiceProtocol conformance
@@ -27,7 +27,7 @@ final class MockFoodVoiceService: FoodVoiceServiceProtocol, MockProtocol {
     var stubbedWaveformUpdates: [[Float]] = []
     
     func requestPermission() async throws -> Bool {
-        recordInvocation("requestPermission", arguments: nil)
+        recordInvocation("requestPermission")
         
         if let error = stubbedRequestPermissionError {
             throw error
@@ -37,7 +37,7 @@ final class MockFoodVoiceService: FoodVoiceServiceProtocol, MockProtocol {
     }
     
     func startRecording() async throws {
-        recordInvocation("startRecording", arguments: nil)
+        recordInvocation("startRecording")
         
         if let error = stubbedStartRecordingError {
             throw error
@@ -71,7 +71,7 @@ final class MockFoodVoiceService: FoodVoiceServiceProtocol, MockProtocol {
     }
     
     func stopRecording() async -> String? {
-        recordInvocation("stopRecording", arguments: nil)
+        recordInvocation("stopRecording")
         
         isRecording = false
         isTranscribing = false
@@ -132,13 +132,25 @@ final class MockFoodVoiceService: FoodVoiceServiceProtocol, MockProtocol {
     }
     
     // Reset state
-    override func reset() {
-        super.reset()
+    func reset() {
+        // Clear invocations
+        mockLock.lock()
+        invocations.removeAll()
+        stubbedResults.removeAll()
+        mockLock.unlock()
+        
+        // Reset state
         isRecording = false
         isTranscribing = false
         transcribedText = ""
         voiceWaveform = []
         onFoodTranscription = nil
         onError = nil
+        stubbedRequestPermissionResult = true
+        stubbedRequestPermissionError = nil
+        stubbedStartRecordingError = nil
+        stubbedStopRecordingResult = "Mock transcription"
+        stubbedTranscriptionUpdates = []
+        stubbedWaveformUpdates = []
     }
 }

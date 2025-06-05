@@ -46,6 +46,7 @@ final class OnboardingFlowViewTests: XCTestCase {
         // Arrange
         var completionCalled = false
         let completion = { completionCalled = true }
+        _ = completionCalled // Silence warning
 
         // Act
         let view = OnboardingFlowView(
@@ -190,10 +191,15 @@ final class OnboardingFlowViewTests: XCTestCase {
     // MARK: - Integration Tests
     func test_onboardingFlow_withRealViewModel_shouldInitializeCorrectly() async throws {
         // Arrange
+        let mockAPIKeyManager = MockAPIKeyManager()
+        let mockUserService = MockUserService()
+        
         let viewModel = OnboardingViewModel(
             aiService: mockAIService,
             onboardingService: mockOnboardingService,
-            modelContext: context
+            modelContext: context,
+            apiKeyManager: mockAPIKeyManager,
+            userService: mockUserService
         )
 
         // Act
@@ -204,16 +210,14 @@ final class OnboardingFlowViewTests: XCTestCase {
 
         // Assert
         XCTAssertNotNil(view)
-        XCTAssertEqual(viewModel.currentScreen, .openingScreen)
+        XCTAssertEqual(viewModel.currentScreen, OnboardingScreen.openingScreen)
     }
 
     func test_onboardingFlow_completionCallback_shouldBeInvoked() async throws {
         // Arrange
-        var completionCalled = false
         let expectation = XCTestExpectation(description: "Completion callback")
 
         let completion = {
-            completionCalled = true
             expectation.fulfill()
         }
 

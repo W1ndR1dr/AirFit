@@ -5,8 +5,8 @@ import XCTest
 /// Mock implementation of NetworkClientProtocol for testing
 final class MockNetworkClient: NetworkClientProtocol, MockProtocol {
     // MARK: - MockProtocol
-    var invocations: [String: [Any]] = [:]
-    var stubbedResults: [String: Any] = [:]
+    nonisolated(unsafe) var invocations: [String: [Any]] = [:]
+    nonisolated(unsafe) var stubbedResults: [String: Any] = [:]
     let mockLock = NSLock()
     
     // MARK: - Error Control

@@ -6,13 +6,13 @@ import XCTest
 /// Mock implementation of GoalServiceProtocol for testing
 final class MockGoalService: GoalServiceProtocol, MockProtocol {
     // MARK: - MockProtocol
-    var invocations: [String: [Any]] = [:]
-    var stubbedResults: [String: Any] = [:]
+    nonisolated(unsafe) var invocations: [String: [Any]] = [:]
+    nonisolated(unsafe) var stubbedResults: [String: Any] = [:]
     let mockLock = NSLock()
     
     // MARK: - Error Control
     var shouldThrowError = false
-    var errorToThrow: Error = AppError.serviceError("Mock goal service error")
+    var errorToThrow: Error = AppError.unknown(message: "Mock goal service error")
     
     // MARK: - Data Storage
     private var goals: [UUID: ServiceGoal] = [:]
@@ -66,7 +66,7 @@ final class MockGoalService: GoalServiceProtocol, MockProtocol {
         }
         
         guard let existingGoal = goals[goal.id] else {
-            throw AppError.notFound("Goal not found")
+            throw AppError.unknown(message: "Goal not found")
         }
         
         // Create updated goal
@@ -91,7 +91,7 @@ final class MockGoalService: GoalServiceProtocol, MockProtocol {
         }
         
         guard goals[goal.id] != nil else {
-            throw AppError.notFound("Goal not found")
+            throw AppError.unknown(message: "Goal not found")
         }
         
         goals.removeValue(forKey: goal.id)
@@ -142,7 +142,7 @@ final class MockGoalService: GoalServiceProtocol, MockProtocol {
         }
         
         guard let existingGoal = goals[goal.id] else {
-            throw AppError.notFound("Goal not found")
+            throw AppError.unknown(message: "Goal not found")
         }
         
         // Update goal with new progress value

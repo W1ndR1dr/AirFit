@@ -285,9 +285,12 @@ For each module:
 1. ✅ Fixed build issues with AIServiceProtocol Sendable conformance
 2. ✅ Created DI integration for Dashboard
 3. ✅ Discovered @Observable incompatibility with withViewModel helper
-4. 🚧 Migrate Dashboard tests to use test container
-5. 🚧 Document @Observable migration pattern
-6. 🚧 Proceed with Settings module
+4. ✅ Migrated all 6 viable modules to DI (AI/Onboarding deferred)
+5. ✅ Removed UnifiedOnboardingView and MinimalContentView (cleanup)
+6. 🚧 Fix mock compilation errors in test suite
+7. 🚧 Migrate tests to use DITestHelper
+8. 🚧 Remove DependencyContainer usage (3 files remain)
+9. 🚧 Remove ServiceRegistry
 
 ## @Observable Migration Pattern
 
