@@ -3,7 +3,7 @@ import SwiftData
 import Combine
 
 @MainActor
-final class ChatViewModel: ObservableObject {
+final class ChatViewModel: ObservableObject, ErrorHandling {
     // MARK: - Dependencies
     private let modelContext: ModelContext
     let user: User
@@ -17,7 +17,8 @@ final class ChatViewModel: ObservableObject {
     @Published private(set) var currentSession: ChatSession?
     @Published private(set) var isLoading = false
     @Published private(set) var isStreaming = false
-    @Published private(set) var error: Error?
+    @Published var error: AppError?
+    @Published var isShowingError = false
 
     // MARK: - Composer State
     @Published var composerText = ""
@@ -70,7 +71,7 @@ final class ChatViewModel: ObservableObject {
                 currentSession = newSession
             }
         } catch {
-            self.error = error
+            handleError(error)
             AppLogger.error("Failed to load chat session", error: error, category: .chat)
         }
     }
@@ -162,7 +163,7 @@ final class ChatViewModel: ObservableObject {
             } catch {
                 assistantMessage.content = "I apologize, but I encountered an error. Please try again."
                 assistantMessage.recordError(error.localizedDescription)
-                self.error = error
+                handleError(error)
             }
 
             isStreaming = false
@@ -186,7 +187,7 @@ final class ChatViewModel: ObservableObject {
 
         voiceManager.onError = { [weak self] error in
             Task { @MainActor in
-                self?.error = error
+                self?.handleError(error)
                 self?.isRecording = false
             }
         }
@@ -205,7 +206,7 @@ final class ChatViewModel: ObservableObject {
                 isRecording = true
                 HapticManager.impact(.medium)
             } catch {
-                self.error = error
+                handleError(error)
                 HapticManager.notification(.error)
             }
         }
@@ -236,7 +237,7 @@ final class ChatViewModel: ObservableObject {
         do {
             try modelContext.save()
         } catch {
-            self.error = error
+            handleError(error)
         }
     }
 

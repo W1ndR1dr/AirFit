@@ -3,11 +3,12 @@ import Observation
 
 @MainActor
 @Observable
-final class ConversationViewModel {
+final class ConversationViewModel: ErrorHandling {
     // MARK: - Published State
     var currentNode: ConversationNode?
     var isLoading = false
-    var error: Error?
+    var error: AppError?
+    var isShowingError = false
     var completionPercentage: Double = 0
     var showSkipOption = false
     
@@ -60,7 +61,7 @@ final class ConversationViewModel {
                 await flowManager.startNewSession(userId: userId)
             }
         } catch {
-            self.error = error
+            handleError(error)
             await analytics.track(.errorOccurred(nodeId: nil, error: error))
         }
     }
@@ -86,7 +87,7 @@ final class ConversationViewModel {
                 await handleCompletion()
             }
         } catch {
-            self.error = error
+            handleError(error)
             await analytics.track(.errorOccurred(
                 nodeId: node.id.uuidString,
                 error: error
@@ -103,13 +104,11 @@ final class ConversationViewModel {
             await analytics.track(.nodeSkipped(nodeId: node.id.uuidString))
             try await flowManager.skipCurrentNode()
         } catch {
-            self.error = error
+            handleError(error)
         }
     }
     
-    func clearError() {
-        error = nil
-    }
+    // clearError() is now provided by ErrorHandling protocol
     
     // MARK: - Private Methods
     private func setupObservers() {

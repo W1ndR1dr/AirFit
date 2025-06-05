@@ -59,7 +59,7 @@ actor OptimizedPersonaSynthesizer {
         )
         
         let duration = CFAbsoluteTimeGetCurrent() - startTime
-        print("Persona generated in \(String(format: "%.2f", duration))s")
+        AppLogger.info("Persona generated in \(String(format: "%.2f", duration))s", category: .ai)
         
         return persona
     }

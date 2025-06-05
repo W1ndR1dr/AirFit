@@ -1,9 +1,9 @@
 import Foundation
 import SwiftData
 
-/// Default implementation of UserServiceProtocol
+/// Implementation of UserServiceProtocol
 @MainActor
-final class DefaultUserService: UserServiceProtocol {
+final class UserService: UserServiceProtocol {
     private let modelContext: ModelContext
     
     init(modelContext: ModelContext) {

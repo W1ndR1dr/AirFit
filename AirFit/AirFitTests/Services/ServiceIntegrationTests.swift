@@ -5,7 +5,7 @@ import XCTest
 final class ServiceIntegrationTests: XCTestCase {
     
     var networkManager: NetworkManager!
-    var apiKeyManager: DefaultAPIKeyManager!
+    var apiKeyManager: APIKeyManager!
     var aiService: EnhancedAIAPIService!
     var weatherService: WeatherService!
     var serviceRegistry: ServiceRegistry!
@@ -15,7 +15,7 @@ final class ServiceIntegrationTests: XCTestCase {
         
         // Use real implementations for integration testing
         networkManager = NetworkManager.shared
-        apiKeyManager = DefaultAPIKeyManager()
+        apiKeyManager = APIKeyManager()
         serviceRegistry = ServiceRegistry.shared
         
         // Initialize services

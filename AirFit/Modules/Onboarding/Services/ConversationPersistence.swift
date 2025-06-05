@@ -69,7 +69,7 @@ final class ConversationPersistence {
         
         if !oldSessions.isEmpty {
             try modelContext.save()
-            print("Cleaned up \(oldSessions.count) old conversation sessions")
+            AppLogger.info("Cleaned up \(oldSessions.count) old conversation sessions", category: .onboarding)
         }
     }
     
@@ -131,12 +131,13 @@ final class ConversationPersistence {
         // Add responses
         for response in export.responses {
             let newResponse = ConversationResponse(
+                sessionId: session.id,
                 nodeId: response.nodeId,
-                responseType: response.responseType,
                 responseData: response.responseData
             )
             newResponse.timestamp = response.timestamp
             newResponse.processingTime = response.processingTime
+            newResponse.responseType = response.responseType
             session.responses.append(newResponse)
         }
         
@@ -169,8 +170,8 @@ private struct ConversationExport: Codable {
     init(session: ConversationSession, responses: [ConversationResponse], insights: PersonalityInsights?) {
         self.session = SessionData(
             startedAt: session.startedAt,
-            completedAt: session.completedAt,
-            currentNodeId: session.currentNodeId,
+            completedAt: session.completedAt ?? Date(),
+            currentNodeId: session.currentNodeId ?? "",
             completionPercentage: session.completionPercentage
         )
         

@@ -103,8 +103,6 @@ targets:
       - AirFit/Data/Models/ExerciseSet.swift
       - AirFit/Data/Models/NutritionData.swift
       - AirFit/Data/Models/ChatSession.swift
-      - AirFit/Data/Models/ConversationSession.swift
-      - AirFit/Data/Models/ConversationResponse.swift
       - AirFit/Data/Models/SetTemplate.swift
       # Data Layer Extensions & Managers (CRITICAL: XcodeGen nesting bug)
       - AirFit/Data/Extensions/FetchDescriptor+Extensions.swift
@@ -116,6 +114,7 @@ targets:
       - AirFit/Core/Constants/AppConstants.swift
       - AirFit/Core/Enums/GlobalEnums.swift
       - AirFit/Core/Enums/AppError.swift
+      - AirFit/Core/Enums/AppError+Extensions.swift
       - AirFit/Core/Enums/MessageType.swift
       - AirFit/Core/Models/HealthContextSnapshot.swift
       - AirFit/Core/Models/WorkoutBuilderData.swift
@@ -148,9 +147,10 @@ targets:
       - AirFit/Core/Views/ErrorPresentationView.swift  # Phase 4: Error handling UI
       - AirFit/Core/Views/ErrorPresentationView.swift  # Batch 4.3: Error presentation
       - AirFit/Core/Protocols/ViewModelProtocol.swift
+      - AirFit/Core/Protocols/ErrorHandling.swift
       - AirFit/Core/Protocols/ServiceProtocol.swift
       - AirFit/Core/Protocols/AIServiceProtocol.swift
-      - AirFit/Core/Protocols/AIServiceProtocolExtensions.swift
+      - AirFit/Core/Protocols/AIServiceProtocol+Extensions.swift
       - AirFit/Core/Protocols/APIKeyManagementProtocol.swift
       - AirFit/Core/Protocols/NetworkManagementProtocol.swift
       - AirFit/Core/Protocols/WeatherServiceProtocol.swift
@@ -161,15 +161,16 @@ targets:
       - AirFit/Services/Speech/WhisperModelManager.swift
       - AirFit/Services/Speech/VoiceInputManager.swift
       # Services Layer Files (CRITICAL: XcodeGen nesting bug)
-      - AirFit/Services/Security/DefaultAPIKeyManager.swift
+      - AirFit/Services/Security/APIKeyManager.swift
       - AirFit/Services/Network/NetworkClient.swift
       - AirFit/Core/Protocols/NetworkClientProtocol.swift
       - AirFit/Core/Protocols/UserServiceProtocol.swift
-      - AirFit/Services/User/DefaultUserService.swift
+      - AirFit/Services/User/UserService.swift
       - AirFit/Core/Protocols/WhisperServiceWrapperProtocol.swift
       - AirFit/Services/AI/ProductionAIService.swift
-      - AirFit/Services/AI/SimpleMockAIService.swift
       - AirFit/Services/AI/OfflineAIService.swift
+      - AirFit/Services/Analytics/AnalyticsService.swift
+      - AirFit/Modules/Workouts/Services/WorkoutService.swift
       - AirFit/Core/Protocols/LLMProvider.swift
       - AirFit/Services/AI/LLMProviders/LLMModels.swift
       - AirFit/Services/AI/LLMProviders/AnthropicProvider.swift
@@ -190,6 +191,10 @@ targets:
       - AirFit/Modules/AI/CoachEngine.swift
       - AirFit/Modules/AI/ContextAnalyzer.swift
       - AirFit/Modules/AI/WorkoutAnalysisEngine.swift
+      - AirFit/Modules/AI/Components/MessageProcessor.swift
+      - AirFit/Modules/AI/Components/ConversationStateManager.swift
+      - AirFit/Modules/AI/Components/DirectAIProcessor.swift
+      - AirFit/Modules/AI/Components/StreamingResponseHandler.swift
       - AirFit/Modules/AI/PersonaSynthesis/PersonaSynthesizer.swift
       - AirFit/Modules/AI/PersonaSynthesis/OptimizedPersonaSynthesizer.swift
       - AirFit/Modules/AI/PersonaSynthesis/FallbackPersonaGenerator.swift  # Phase 4: Error recovery
@@ -198,9 +203,9 @@ targets:
       - AirFit/Modules/AI/Models/ConversationPersonalityInsights.swift
       - AirFit/Modules/AI/Configuration/RoutingConfiguration.swift
       - AirFit/Core/Protocols/DashboardServiceProtocols.swift
-      - AirFit/Modules/Dashboard/Services/DefaultHealthKitService.swift
-      - AirFit/Modules/Dashboard/Services/DefaultAICoachService.swift
-      - AirFit/Modules/Dashboard/Services/DefaultDashboardNutritionService.swift
+      - AirFit/Modules/Dashboard/Services/HealthKitService.swift
+      - AirFit/Modules/Dashboard/Services/AICoachService.swift
+      - AirFit/Modules/Dashboard/Services/DashboardNutritionService.swift
       - AirFit/Modules/Dashboard/Models/DashboardModels.swift
       - AirFit/Modules/Dashboard/Coordinators/DashboardCoordinator.swift
       - AirFit/Modules/Dashboard/ViewModels/DashboardViewModel.swift
@@ -215,7 +220,7 @@ targets:
       - AirFit/Services/Health/HealthKitDataFetcher.swift
       - AirFit/Services/Health/HealthKitSleepAnalyzer.swift
       - AirFit/Services/Health/HealthKitDataTypes.swift
-      - AirFit/Services/Health/HealthKitExtensions.swift
+      - AirFit/Services/Health/HealthKit+Extensions.swift
       - AirFit/Services/Context/ContextAssembler.swift
       - AirFit/Services/WorkoutSyncService.swift
       - AirFit/Services/ExerciseDatabase.swift
@@ -227,11 +232,11 @@ targets:
       - AirFit/Services/ServiceConfiguration.swift
       - AirFit/Services/ServiceRegistry.swift
       - AirFit/Services/Security/KeychainHelper.swift
-      - AirFit/Services/WeatherService.swift
+      - AirFit/Services/Weather/WeatherService.swift
       - AirFit/Services/AI/AIResponseParser.swift
       - AirFit/Services/AI/AIRequestBuilder.swift
       - AirFit/Core/Extensions/URLRequest+Extensions.swift
-      - AirFit/Core/Extensions/AIProvider+Extensions.swift
+      - AirFit/Core/Extensions/AIProvider+API.swift
       - AirFit/Modules/Workouts/ViewModels/WorkoutViewModel.swift
       - AirFit/Modules/Workouts/Coordinators/WorkoutCoordinator.swift
       - AirFit/Modules/Workouts/Models/WorkoutModels.swift
@@ -256,12 +261,12 @@ targets:
       # Settings Module Files (Module 11 - CRITICAL: XcodeGen nesting bug)
       - AirFit/Modules/Settings/Coordinators/SettingsCoordinator.swift
       - AirFit/Modules/Settings/Models/SettingsModels.swift
-      - AirFit/Modules/Settings/Models/AIProviderExtensions.swift
+      - AirFit/Modules/Settings/Models/AIProvider+Settings.swift
       - AirFit/Modules/Settings/Models/PersonaSettingsModels.swift
-      - AirFit/Modules/Settings/Models/UserSettingsExtensions.swift
+      - AirFit/Modules/Settings/Models/User+Settings.swift
       - AirFit/Modules/Settings/Services/BiometricAuthManager.swift
       - AirFit/Modules/Settings/Services/UserDataExporter.swift
-      - AirFit/Modules/Settings/Services/NotificationManagerExtensions.swift
+      - AirFit/Modules/Settings/Services/NotificationManager+Extensions.swift
       - AirFit/Modules/Settings/ViewModels/SettingsViewModel.swift
       - AirFit/Modules/Settings/Views/SettingsListView.swift
       - AirFit/Modules/Settings/Views/Components/SettingsComponents.swift

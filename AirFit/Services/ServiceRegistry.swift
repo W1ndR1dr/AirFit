@@ -202,7 +202,7 @@ struct ServiceBootstrapper {
         
         // Initialize core services
         let networkManager = NetworkManager.shared
-        let apiKeyManager = DefaultAPIKeyManager()
+        let apiKeyManager = APIKeyManager()
         
         // Register core services
         registry.register(networkManager, for: NetworkManagementProtocol.self)
@@ -217,11 +217,8 @@ struct ServiceBootstrapper {
             registry.register(aiService, for: AIServiceProtocol.self)
         }
         
-        // Initialize weather service
-        let weatherService = WeatherService(
-            networkManager: networkManager
-        )
-        
+        // Initialize weather service - WeatherKit requires no configuration
+        let weatherService = WeatherService()
         try await weatherService.configure()
         registry.register(weatherService, for: WeatherServiceProtocol.self)
         

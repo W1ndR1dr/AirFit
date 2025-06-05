@@ -4,10 +4,11 @@ import Observation
 
 @MainActor
 @Observable
-final class DashboardViewModel {
+final class DashboardViewModel: ErrorHandling {
     // MARK: - State Properties
     private(set) var isLoading = true
-    private(set) var error: Error?
+    var error: AppError?
+    var isShowingError = false
 
     // Morning Greeting
     private(set) var morningGreeting = "Good morning!"
@@ -116,8 +117,7 @@ final class DashboardViewModel {
             AppLogger.info("Energy level logged: \(level)", category: .data)
 
         } catch {
-            self.error = error
-            AppLogger.error("Failed to log energy", error: error, category: .data)
+            handleError(error)
         }
     }
 

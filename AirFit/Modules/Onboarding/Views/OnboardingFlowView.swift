@@ -22,8 +22,8 @@ struct OnboardingFlowView: View {
                 aiService: aiService,
                 onboardingService: onboardingService,
                 modelContext: tempContainer.mainContext,
-                apiKeyManager: DefaultAPIKeyManager(keychain: KeychainWrapper.shared),
-                userService: DefaultUserService(modelContext: tempContainer.mainContext)
+                apiKeyManager: APIKeyManager(keychain: KeychainWrapper.shared),
+                userService: UserService(modelContext: tempContainer.mainContext)
             ))
         } catch {
             // Fallback to in-memory container if persistent storage fails
@@ -36,8 +36,8 @@ struct OnboardingFlowView: View {
                     aiService: aiService,
                     onboardingService: onboardingService,
                     modelContext: inMemoryContainer.mainContext,
-                    apiKeyManager: DefaultAPIKeyManager(keychain: KeychainWrapper.shared),
-                    userService: DefaultUserService(modelContext: inMemoryContainer.mainContext)
+                    apiKeyManager: APIKeyManager(keychain: KeychainWrapper.shared),
+                    userService: UserService(modelContext: inMemoryContainer.mainContext)
                 ))
             } catch {
                 // Final fallback - this should never happen but prevents crashes

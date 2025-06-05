@@ -1,8 +1,8 @@
 import Foundation
 import SwiftData
 
-/// Default implementation of AICoachServiceProtocol for the Dashboard
-actor DefaultAICoachService: AICoachServiceProtocol {
+/// Implementation of AICoachServiceProtocol for the Dashboard
+actor AICoachService: AICoachServiceProtocol {
     private let coachEngine: CoachEngine
     
     init(coachEngine: CoachEngine) {

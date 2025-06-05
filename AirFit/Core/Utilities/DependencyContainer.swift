@@ -22,7 +22,7 @@ public final class DependencyContainer: @unchecked Sendable {
         
         // Initialize services that don't depend on ModelContext
         Task { @MainActor in
-            self.apiKeyManager = DefaultAPIKeyManager(keychain: keychain)
+            self.apiKeyManager = APIKeyManager(keychain: keychain)
             self.notificationManager = NotificationManager.shared
         }
     }
@@ -33,12 +33,19 @@ public final class DependencyContainer: @unchecked Sendable {
         
         // Initialize services that depend on ModelContext
         let modelContext = ModelContext(modelContainer)
+        
+        // Set offline AI service immediately as fallback
         Task { @MainActor in
-            self.userService = DefaultUserService(modelContext: modelContext)
+            if self.aiService == nil {
+                self.aiService = await OfflineAIService()
+            }
+        }
+        Task { @MainActor in
+            self.userService = UserService(modelContext: modelContext)
         }
         
         // Configure AI service with ProductionAIService
-        Task {
+        Task { @MainActor in
             if let keyManager = self.apiKeyManager {
                 // Safe cast with fallback
                 guard let apiKeyManagement = keyManager as? APIKeyManagementProtocol else {

@@ -11,7 +11,7 @@ final class OnboardingProfile: @unchecked Sendable {
     @Attribute(.externalStorage)
     var rawFullProfileData: Data
     
-    // Additional properties for DefaultUserService
+    // Additional properties for UserService
     var name: String?
     var email: String?
     var isComplete: Bool = false

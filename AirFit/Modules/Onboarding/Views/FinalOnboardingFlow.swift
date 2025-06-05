@@ -18,7 +18,7 @@ struct FinalOnboardingFlow: View {
               let apiKeyManagement = apiKeyManager as? APIKeyManagementProtocol else {
             AppLogger.error("Failed to initialize onboarding: API key manager unavailable", category: .onboarding)
             // Initialize with default values - onboarding will show error state
-            let defaultLLMOrchestrator = LLMOrchestrator(apiKeyManager: DefaultAPIKeyManager())
+            let defaultLLMOrchestrator = LLMOrchestrator(apiKeyManager: APIKeyManager())
             let defaultSynthesizer = OptimizedPersonaSynthesizer(
                 llmOrchestrator: defaultLLMOrchestrator,
                 cache: cache

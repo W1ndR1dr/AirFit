@@ -4,7 +4,7 @@ import Observation
 
 @MainActor
 @Observable
-final class WorkoutViewModel {
+final class WorkoutViewModel: ErrorHandling {
     // MARK: - State
     private(set) var workouts: [Workout] = []
     private(set) var weeklyStats = WeeklyWorkoutStats()
@@ -12,6 +12,8 @@ final class WorkoutViewModel {
     private(set) var aiWorkoutSummary: String?
     private(set) var isGeneratingAnalysis = false
     var activeWorkout: Workout?
+    var error: AppError?
+    var isShowingError = false
 
     // MARK: - Dependencies
     private let modelContext: ModelContext
@@ -57,6 +59,7 @@ final class WorkoutViewModel {
             workouts = try modelContext.fetch(descriptor)
             await calculateWeeklyStats()
         } catch {
+            handleError(error)
             AppLogger.error("Failed to load workouts", error: error, category: .data)
         }
     }
@@ -78,6 +81,7 @@ final class WorkoutViewModel {
                 await generateAIAnalysis(for: workout)
             }
         } catch {
+            handleError(error)
             AppLogger.error("Failed to process workout", error: error, category: .data)
         }
     }
@@ -103,6 +107,7 @@ final class WorkoutViewModel {
             workout.aiAnalysis = analysis
             try modelContext.save()
         } catch {
+            handleError(error)
             AppLogger.error("Failed to generate AI analysis", error: error, category: .ai)
         }
     }

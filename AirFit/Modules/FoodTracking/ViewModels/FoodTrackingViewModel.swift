@@ -36,7 +36,7 @@ import UIKit
 /// Central business logic coordinator for food tracking.
 @MainActor
 @Observable
-final class FoodTrackingViewModel {
+final class FoodTrackingViewModel: ErrorHandling {
     // MARK: - Dependencies
     private let modelContext: ModelContext
     internal let user: User
@@ -47,7 +47,8 @@ final class FoodTrackingViewModel {
 
     // MARK: - State
     private(set) var isLoading = false
-    private(set) var error: Error?
+    var error: AppError?
+    var isShowingError = false
 
     // Current meal being logged
     var selectedMealType: MealType = .lunch
@@ -73,19 +74,30 @@ final class FoodTrackingViewModel {
     private(set) var recentFoods: [FoodItem] = []
     private(set) var suggestedFoods: [FoodItem] = []
 
-    // Error handling
-    private(set) var currentError: Error?
+    // Legacy error handling - replaced by ErrorHandling protocol
+    private var currentError: Error? {
+        get { error }
+        set { 
+            if let newValue {
+                handleError(newValue)
+            } else {
+                error = nil
+                isShowingError = false
+            }
+        }
+    }
     
     var hasError: Bool {
-        currentError != nil
+        error != nil
     }
     
     func clearError() {
-        currentError = nil
+        error = nil
+        isShowingError = false
     }
     
     private func setError(_ error: Error) {
-        currentError = error
+        handleError(error)
     }
 
     // MARK: - Initialization
@@ -117,7 +129,7 @@ final class FoodTrackingViewModel {
 
         foodVoiceAdapter.onError = { [weak self] error in
             Task { @MainActor in
-                self?.error = error
+                self?.handleError(error)
             }
         }
     }
@@ -160,7 +172,7 @@ final class FoodTrackingViewModel {
         do {
             let hasPermission = try await foodVoiceAdapter.requestPermission()
             guard hasPermission else {
-                error = FoodVoiceError.permissionDenied
+                handleError(FoodVoiceError.permissionDenied)
                 return
             }
 

@@ -138,7 +138,7 @@ private final class APIKeyManagerToManagementAdapter: APIKeyManagementProtocol {
     
     func getAPIKey(for provider: AIProvider) async throws -> String {
         // Note: wrapped.getAPIKey returns optional, but APIKeyManagementProtocol expects non-optional
-        guard let key = await wrapped.getAPIKey(for: provider) else {
+        guard let key = try await wrapped.getAPIKey(for: provider) else {
             throw APIKeyError.keyNotFound(provider: provider.rawValue)
         }
         return key

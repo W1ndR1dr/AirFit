@@ -188,7 +188,7 @@ actor ConversationAnalytics {
             eventDescription = "Error at node: \(nodeId ?? "unknown"), error: \(error.localizedDescription)"
         }
         
-        print("[ConversationAnalytics] \(eventDescription)")
+        AppLogger.debug("[ConversationAnalytics] \(eventDescription)", category: .onboarding)
     }
 }
 

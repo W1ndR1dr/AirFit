@@ -1,8 +1,8 @@
 import Foundation
 
-/// Default implementation of APIKeyManagerProtocol using Keychain
+/// Implementation of APIKeyManagerProtocol using Keychain
 @MainActor
-final class DefaultAPIKeyManager: APIKeyManagerProtocol, APIKeyManagementProtocol, ServiceProtocol, @unchecked Sendable {
+final class APIKeyManager: APIKeyManagerProtocol, APIKeyManagementProtocol, ServiceProtocol, @unchecked Sendable {
     private let keychain: KeychainWrapper
     private let keychainPrefix = "com.airfit.apikey."
     

@@ -12,7 +12,7 @@ protocol HealthKitPrefillProviding: AnyObject, Sendable {
 // MARK: - ViewModel
 @MainActor
 @Observable
-final class OnboardingViewModel {
+final class OnboardingViewModel: ErrorHandling {
     // MARK: - Onboarding Flow State
     enum OnboardingMode {
         case legacy          // Old 4-persona form flow
@@ -22,7 +22,8 @@ final class OnboardingViewModel {
     // MARK: - Navigation State
     private(set) var currentScreen: OnboardingScreen = .openingScreen
     private(set) var isLoading = false
-    var error: Error?
+    var error: AppError?
+    var isShowingError = false
     
     // MARK: - Integration State
     private(set) var mode: OnboardingMode = .conversational
@@ -129,7 +130,7 @@ final class OnboardingViewModel {
         case .completed:
             onCompletionCallback?()
         case .error(let error):
-            self.error = error
+            handleError(error)
         default:
             break
         }
@@ -209,8 +210,7 @@ final class OnboardingViewModel {
                     case .success(let transcript):
                         self.goal.rawText = transcript
                     case .failure(let error):
-                        self.error = error
-                        AppLogger.error("Voice transcription failed", error: error, category: .onboarding)
+                        self.handleError(error)
                     }
                 }
             }
@@ -309,6 +309,7 @@ final class OnboardingViewModel {
                 sleepWindow.wakeTime = Self.formatTime(window.wake)
             }
         } catch {
+            // Non-critical error - just log, don't show to user
             AppLogger.error("HealthKit prefill failed", error: error, category: .health)
         }
     }

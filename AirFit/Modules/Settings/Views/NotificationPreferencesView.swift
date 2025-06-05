@@ -178,7 +178,7 @@ struct NotificationPreferencesView: View {
                 HapticManager.notification(.success)
             } catch {
                 // Error is handled by the view model
-                print("Failed to update notification preferences: \(error)")
+                AppLogger.error("Failed to update notification preferences", error: error, category: .general)
             }
         }
     }

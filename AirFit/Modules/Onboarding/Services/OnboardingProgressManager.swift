@@ -389,7 +389,9 @@ extension ConversationAnalytics {
         // Convert to appropriate analytics event
         // For now, track as an error with the event name
         Task {
-            await track(.errorOccurred(nodeId: nil, error: ProgressAnalyticsError(message: event.rawValue)))
+            // TODO: Implement proper analytics error tracking
+            // await track(.errorOccurred(nodeId: nil, error: ProgressAnalyticsError(message: event.rawValue)))
+            AppLogger.info("ProgressEvent: \(event.rawValue)", category: .app)
         }
     }
 }

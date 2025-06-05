@@ -70,6 +70,7 @@ final class AppState {
         try modelContext.save()
         currentUser = user
         hasCompletedOnboarding = false
+        isLoading = false
         AppLogger.info("New user created", category: .app)
     }
 

@@ -22,7 +22,9 @@ extension ConversationAnalytics {
     func trackEvent(_ event: OnboardingEvent, properties: [String: Any] = [:]) async {
         // TODO: Implement proper event tracking integration
         // For now, we'll create a simple log entry
-        await track(.errorOccurred(nodeId: nil, error: SimpleAnalyticsError(message: event.rawValue)))
+        // TODO: Implement proper analytics error tracking
+        // await track(.errorOccurred(nodeId: nil, error: SimpleAnalyticsError(message: event.rawValue)))
+        AppLogger.info("OnboardingEvent: \(event.rawValue) - \(properties)", category: .app)
     }
 }
 

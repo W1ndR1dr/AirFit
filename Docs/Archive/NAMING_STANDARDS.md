@@ -9,7 +9,7 @@ Consistent naming prevents confusion, reduces refactoring, and makes the codebas
 - **Views**: `DescriptiveNameView.swift` (e.g., `PersonaSelectionView.swift`)
 - **ViewModels**: `FeatureNameViewModel.swift` (e.g., `ChatViewModel.swift`)
 - **Coordinators**: `ModuleNameCoordinator.swift` (e.g., `OnboardingCoordinator.swift`)
-- **Services**: `ServiceName.swift` or `DefaultServiceName.swift`
+- **Services**: `ServiceName.swift` (e.g., `UserService.swift`, `WorkoutService.swift`)
 - **Protocols**: `ServiceNameProtocol.swift` (e.g., `AIServiceProtocol.swift`)
 - **Models**: `ModelName.swift` (singular, e.g., `User.swift`, `Workout.swift`)
 - **Tests**: `ComponentNameTests.swift` (e.g., `PersonaEngineTests.swift`)
@@ -19,14 +19,15 @@ Consistent naming prevents confusion, reduces refactoring, and makes the codebas
 // Protocol names describe capabilities
 protocol AIServiceProtocol { }  // NOT: AIServiceProtocolInterface
 
-// Default implementations prefix with "Default"
-class DefaultAIService: AIServiceProtocol { }  // NOT: AIServiceImpl
+// Concrete implementations use clean names (no "Default" prefix)
+class AIService: AIServiceProtocol { }  // NOT: DefaultAIService, AIServiceImpl
 
 // Mock implementations prefix with "Mock"
 class MockAIService: AIServiceProtocol { }  // NOT: AIServiceMock, TestAIService
 
-// Offline/Fallback implementations are descriptive
-class OfflineAIService: AIServiceProtocol { }  // NOT: FallbackAIService
+// Specialized implementations are descriptive
+class OfflineAIService: AIServiceProtocol { }  // Alternative implementation
+class ProductionAIService: AIServiceProtocol { }  // When multiple variants exist
 ```
 
 ## Documentation Naming
@@ -158,8 +159,8 @@ docs(cleanup): add naming standards
 
 2. **Inconsistent Service Naming**
    ```swift
-   ❌ AIService, DefaultUserServiceImpl, MockWeatherSvc
-   ✅ DefaultAIService, DefaultUserService, MockWeatherService
+   ❌ DefaultAIService, UserServiceImpl, MockWeatherSvc
+   ✅ AIService, UserService, MockWeatherService
    ```
 
 3. **Vague Documentation Names**

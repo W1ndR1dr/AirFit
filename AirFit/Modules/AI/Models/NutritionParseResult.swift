@@ -14,6 +14,8 @@ struct NutritionParseResult: Sendable {
         case directAI = "direct_ai"
         case functionCall = "function_call"
         case fallback = "fallback"
+        case cached = "cached"
+        case quickLookup = "quick_lookup"
     }
 }
 

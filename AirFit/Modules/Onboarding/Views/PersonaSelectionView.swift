@@ -186,7 +186,7 @@ private final class PreviewUserService: UserServiceProtocol {
             configurations: ModelConfiguration(isStoredInMemoryOnly: true)
         )
         return OnboardingViewModel(
-            aiService: SimpleMockAIService(),
+            aiService: OfflineAIService(),
             onboardingService: OnboardingService(modelContext: tempContainer.mainContext),
             modelContext: tempContainer.mainContext,
             apiKeyManager: PreviewAPIKeyManager(),

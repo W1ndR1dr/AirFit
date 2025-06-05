@@ -1,8 +1,9 @@
 import Foundation
 import SwiftData
 
-/// Default implementation of DashboardNutritionServiceProtocol
-actor DefaultDashboardNutritionService: DashboardNutritionServiceProtocol {
+/// Implementation of DashboardNutritionServiceProtocol
+@MainActor
+final class DashboardNutritionService: DashboardNutritionServiceProtocol, @unchecked Sendable {
     private let modelContext: ModelContext
     
     init(modelContext: ModelContext) {
@@ -15,10 +16,15 @@ actor DefaultDashboardNutritionService: DashboardNutritionServiceProtocol {
         let startOfDay = calendar.startOfDay(for: Date())
         let endOfDay = calendar.date(byAdding: .day, value: 1, to: startOfDay) ?? Date()
         
+        let userID = user.id
         let predicate = #Predicate<FoodEntry> { entry in
-            entry.user?.id == user.id &&
-            entry.loggedAt >= startOfDay &&
-            entry.loggedAt < endOfDay
+            if let entryUser = entry.user {
+                return entryUser.id == userID &&
+                       entry.loggedAt >= startOfDay &&
+                       entry.loggedAt < endOfDay
+            } else {
+                return false
+            }
         }
         
         let descriptor = FetchDescriptor<FoodEntry>(

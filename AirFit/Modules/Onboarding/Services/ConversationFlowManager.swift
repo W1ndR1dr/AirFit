@@ -127,7 +127,7 @@ final class ConversationFlowManager: ObservableObject {
         // Track analytics event if specified
         if let event = node.analyticsEvent {
             // Analytics tracking would go here
-            print("Analytics event: \(event)")
+            AppLogger.debug("Analytics event: \(event)", category: .onboarding)
         }
     }
     
@@ -271,7 +271,7 @@ enum ConversationError: LocalizedError {
 }
 
 // MARK: - Response Analyzer Protocol
-protocol ResponseAnalyzer {
+protocol ResponseAnalyzer: Sendable {
     func analyzeResponse(
         response: ResponseValue,
         node: ConversationNode,

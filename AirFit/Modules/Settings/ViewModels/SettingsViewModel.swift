@@ -4,7 +4,7 @@ import Observation
 
 @MainActor
 @Observable
-final class SettingsViewModel {
+final class SettingsViewModel: ErrorHandling {
     // MARK: - Dependencies
     private let modelContext: ModelContext
     private let user: User
@@ -15,7 +15,8 @@ final class SettingsViewModel {
     
     // MARK: - Published State
     private(set) var isLoading = false
-    private(set) var error: Error?
+    var error: AppError?
+    var isShowingError = false
     
     // MARK: - Public Access
     var currentUser: User { user }
@@ -108,7 +109,7 @@ final class SettingsViewModel {
             // Export history is already loaded from user
             
         } catch {
-            self.error = error
+            handleError(error)
             AppLogger.error("Failed to load settings", error: error, category: .general)
         }
     }

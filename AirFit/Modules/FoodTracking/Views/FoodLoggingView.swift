@@ -79,13 +79,10 @@ struct FoodLoggingView: View {
             .refreshable {
                 await viewModel.loadTodaysData()
             }
-            .alert("Error", isPresented: .constant(viewModel.hasError)) {
-                Button("OK") { viewModel.clearError() }
-            } message: {
-                if let error = viewModel.currentError {
-                    Text(error.localizedDescription)
-                }
-            }
+            .errorAlert(
+                error: $viewModel.error,
+                isPresented: $viewModel.isShowingError
+            )
         }
     }
 

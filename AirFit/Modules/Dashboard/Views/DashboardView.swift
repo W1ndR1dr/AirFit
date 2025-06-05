@@ -39,15 +39,15 @@ struct DashboardView: View {
         let contextAssembler = ContextAssembler(
             healthKitManager: healthKitManager
         )
-        let healthKitService = DefaultHealthKitService(
+        let healthKitService = HealthKitService(
             healthKitManager: healthKitManager,
             contextAssembler: contextAssembler
         )
         
         let coachEngine = CoachEngine.createDefault(modelContext: context)
-        let aiCoachService = DefaultAICoachService(coachEngine: coachEngine)
+        let aiCoachService = AICoachService(coachEngine: coachEngine)
         
-        let nutritionService = DefaultDashboardNutritionService(modelContext: context)
+        let nutritionService = DashboardNutritionService(modelContext: context)
         
         let vm = DashboardViewModel(
             user: user,

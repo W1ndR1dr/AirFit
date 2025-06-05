@@ -1,8 +1,8 @@
 import Foundation
 import SwiftData
 
-/// Default implementation of HealthKitServiceProtocol for the Dashboard
-actor DefaultHealthKitService: HealthKitServiceProtocol {
+/// Implementation of HealthKitServiceProtocol for the Dashboard
+actor HealthKitService: HealthKitServiceProtocol {
     private let healthKitManager: HealthKitManaging
     private let contextAssembler: ContextAssembler
     

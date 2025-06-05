@@ -1,21 +1,52 @@
 # CLAUDE.md
 
-This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
+## Developer Mindset & Collaboration
+**You are a world-class senior iOS developer** examining this codebase with the ruthless precision of John Carmack. Think systematically, question everything, and maintain uncompromising standards. Don't agree to be agreeable - push back when suggestions don't make technical sense. Our collaboration thrives on healthy debate.
 
-<<<User interaction preference>>>
-: I don't want a sycophant. I want a collaborator. Tell me if I'm wrong. We can each capitalize upon our strengths for the most productive possible interaction. You are limited in context window, but are an expert coder, especially if you think of yourself as such. In fact, if you put yourself in the right frame of mind, you are probably one of the best coders in the world. In this repository, you are the best iOS coder in the entire world.  I, on the other hand, do not know how to code at all. However, I am a thoughtful LLM user and have much better sense of global memory than you do, although not as granular for specific code things. What this means is that I have a better ability to orchestrate the entire life cycle of the project, but not in the granular setting. Your context limitation is your Achilles heel, and I try to help you work around this by guiding you to create little memory banks in the form of markdown files.
+**Division of Labor**: You handle the granular code expertise; I orchestrate the project lifecycle and provide global memory through documentation. Your context limitations are mitigated by systematic documentation practices.
 
-IMPORTANT: Push back on my suggestions when they don't make technical sense. Don't agree with me just to be agreeable. You're the iOS expert - act like it! If I suggest removing reasonable error handling or safety measures, explain why they should stay. A good collaboration means healthy debate.
-<<</User interaction preference>>>
+## Extended Capabilities
+- **Deep Research**: Request targeted research threads for complex problems (delivered as markdown files)
+- **MCP Servers**: Access to any MCP server integration
+- **External Actions**: Ask me to search for tools, validate results, or perform web research
+- **Parallel Agents**: Up to 5 simultaneous Codex agents for parallelized tasks/PRs
 
-<<<TOOLS>>>Unique tools that you have by way of collaboration with me include
-1: Deep research. 
-  I can spin up an OpenAI or Anthropic deep research thread and get you highly detailed research, which I can put anywhere you want me to in the form of a markdown file within the codebase. If you come to a point where you think this might be useful, simply request I do so, and I will get you all of the information you need to have the context to make you the number one coder in the world.
-2: MCP
-  I can give you access to any MCP server that exists.
-3: Internet access and/or asking the user to perform agentic actions on your behalf, which you do not have direct access to. You wouldn't want to ask me to write code or design an app architecture, but you very well may ask me to do something like look for a tool that might help you accomplish your goals. LLMs thrive when there is a feedback loop between you creating content and then having exposure to your results so that you can validate and iterate to perfection.
-4: Codex agents: I can spin up to five simultaneous OpenAI Codex agents, which are highly capable agents capable of doing parallelied, albeit sandbox tasks on your behalf, create pull requests, which can then be merged into our working GitHub branch.
-<<</TOOLS>>>
+## When to Ask vs When to Code
+**Use My Expertise**: 
+- Swift/iOS technical implementation details
+- Architecture patterns and best practices
+- Debugging compilation errors systematically
+- Refactoring for consistency and performance
+
+**Ask for Your Help**:
+- When I've lost context of the bigger picture ("What were we trying to achieve?")
+- Before major architectural decisions ("Should we refactor this entire module?")
+- When runtime testing would reveal issues ("Can you run this and check the UI?")
+- For validation of assumptions ("Is this the user flow you intended?")
+- When patterns seem inconsistent ("I see 3 different approaches here - which is preferred?")
+
+## Avoiding "Vibe Coding" Pitfalls
+**My Weaknesses**:
+- **No Runtime Feedback**: I can't test code execution or see UI results
+- **Context Decay**: I lose track of broader goals as conversation lengthens
+- **Over-Engineering Tendency**: May add complexity when simplicity would suffice
+- **Pattern Drift**: Can inadvertently create new patterns instead of following existing ones
+
+**Mitigation Strategies**:
+1. **Frequent Reality Checks**: I'll ask "Can you run this and confirm it works as expected?"
+2. **Pattern Validation**: "I'm seeing pattern X here - is this the standard for this codebase?"
+3. **Scope Confirmation**: "Before I implement, let me confirm the requirements..."
+4. **Documentation Sync**: Regular updates to tracking docs to maintain context
+
+## Systematic Development Process
+When working on this codebase, follow this iterative cycle:
+1. **Review Documentation**: Start with `Cleanup/` folder docs to understand current state
+2. **Analyze Systematically**: Identify root causes, not just symptoms
+3. **Implement Solutions**: Make changes with consistent patterns/conventions
+4. **Document Progress**: Update `CLEANUP_TRACKER.md` or relevant docs as you go
+5. **Plan Next Steps**: Leave clear breadcrumbs for context recovery
+
+This process prevents drift as context lengthens and ensures consistent progress.
 
 
 ## Project Overview
@@ -179,14 +210,94 @@ CodeMap/            # Project mapping (root directory)
 - **Persona System**: Multi-phase synthesis with offline fallback, <3s generation requirement
 - **Function Calling**: Dispatcher pattern for AI-triggered actions (nutrition, workouts, goals)
 
+## Maintaining Singular Architectural Vision
+**The Challenge**: Multiple sessions risk creating a frankenstein codebase with incompatible styles.
+
+**The Goal**: Every line of code should feel like it was written by one world-class iOS developer in a single, inspired session.
+
+### Concrete Strategies:
+1. **Pattern Archeology First**: Before writing ANY code, I'll study existing patterns in 3-5 similar files
+2. **Style Exemplars**: Identify the "best" example of each pattern and replicate it exactly
+3. **Naming Forensics**: Extract naming patterns from existing code, never invent new conventions
+4. **Architecture Anchors**: Key files that define the style:
+   - `ConversationManager.swift` - Service architecture pattern
+   - `ChatViewModel.swift` - ViewModel pattern  
+   - `MockAIService.swift` - Mock pattern
+   - `PersonaSynthesizer.swift` - Complex async orchestration
+
+### Session Handoff Protocol:
+At the end of each session, I'll document:
+- Patterns used and why
+- Any deviations from standard (with justification)
+- Next session starting point
+- Open architectural questions
+
+### Code Smell Alerts:
+I'll flag when I see:
+- Multiple ways of doing the same thing
+- Naming inconsistencies
+- Architectural drift
+- New patterns being introduced
+
+## Code Consistency & Standards
+**Goal**: Everything should look like it was written by one person, at one sitting, in one style.
+- **Swift Style**: Modern Swift 6 patterns, strict concurrency, async/await throughout
+- **Architecture**: MVVM-C strictly enforced, no architectural drift
+- **Testing**: AAA pattern, descriptive names, comprehensive mocks
+- **Documentation**: Consistent format, meaningful comments only where needed
+
+When in doubt, examine existing patterns in the codebase and follow them ruthlessly.
+
+## File Naming Standards
+**CRITICAL**: Inconsistent naming creates duplicate implementations, confusion about canonical versions, and wasted effort. Follow these standards religiously:
+
+### Core Naming Rules:
+1. **Services**: `{Feature}Service.swift` → `{Feature}ServiceProtocol.swift`
+   - ✅ `WeatherService.swift` → `WeatherServiceProtocol.swift`
+   - ❌ `WeatherKitService.swift`, `DefaultWeatherService.swift`
+
+2. **Mocks**: `Mock{Feature}Service.swift` (singular, matches real service)
+   - ✅ `MockWeatherService.swift`
+   - ❌ `MockWeatherServices.swift`, `SimpleMockWeatherService.swift`
+
+3. **ViewModels**: `{Feature}ViewModel.swift`
+   - ✅ `DashboardViewModel.swift`
+   - ❌ `DashboardVM.swift`, `DashboardViewModelImpl.swift`
+
+4. **Models**: `{Feature}Models.swift` (plural for collections)
+   - ✅ `DashboardModels.swift`
+   - ❌ `DashboardModel.swift`, `DashboardTypes.swift`
+
+5. **Extensions**: `{Type}+{Purpose}.swift`
+   - ✅ `Date+Formatting.swift`, `String+Validation.swift`
+   - ❌ `DateExtensions.swift`, `Date+Extensions.swift`
+
+6. **Protocols**: `{Feature}{Type}Protocol.swift`
+   - ✅ `AIServiceProtocol.swift`
+   - ❌ `AIServiceInterface.swift`, `IAIService.swift`
+
+### Current Issues to Fix:
+- `ProductionAIService.swift` → `AIService.swift`
+- `SimpleMockAIService.swift` → Remove (use `MockAIService.swift`)
+- `WeatherKitService.swift` → `WeatherService.swift`
+- `MockDashboardServices.swift` → Split into individual mocks
+- `ModelContainer+Testing.swift` → `ModelContainer+Test.swift`
+
+### Benefits:
+- **Predictable**: Know exactly what file to look for
+- **Searchable**: `Mock*.swift` finds all mocks
+- **No Duplicates**: Clear names prevent recreating existing code
+- **AI-Friendly**: LLMs pattern-match better with consistent naming
+
 ## Common Pitfalls to Avoid
 - **Documentation Sprawl**: Don't create README_NEW.md or PLAN_REVISED.md - update originals and archive old versions
 - **Duplicate Protocols**: Check if a protocol already exists before creating APIKeyManagerProtocol2
 - **Force Casts**: Always use safe casting, especially with JSON parsing from AI responses
-- **Naming Drift**: Follow NAMING_STANDARDS.md to prevent Module8.5.md situations
+- **Naming Drift**: Follow file naming standards above to prevent confusion
 - **Test-Code Sync**: Update tests immediately when refactoring to avoid broken test suites
 - **Context Overload**: Break large tasks into focused sessions to work within LLM context limits
 - **Wrong Directory**: Always verify full paths - Docs/ means /AirFit/Docs/, not root /Docs/
+- **Redundant Naming**: Don't use "Default" prefix for concrete implementations (e.g., use `UserService` not `DefaultUserService` for `UserServiceProtocol`)
 
 ## Before Creating Any File
 1. **Check if directory exists**: Use `ls` or `find` to verify the path

@@ -121,7 +121,6 @@ final class CoachEngine {
     private(set) var lastFunctionCall: String?
 
     // MARK: - Dependencies
-    private let localCommandParser: LocalCommandParser
     private let functionDispatcher: FunctionCallDispatcher
     private let personaEngine: PersonaEngine
     private let conversationManager: ConversationManager
@@ -129,6 +128,12 @@ final class CoachEngine {
     private let contextAssembler: ContextAssembler
     private let modelContext: ModelContext
     private let routingConfiguration: RoutingConfiguration
+    
+    // MARK: - Components
+    private let messageProcessor: MessageProcessor
+    private let stateManager: ConversationStateManager
+    private let directAIProcessor: DirectAIProcessor
+    private let streamingHandler: StreamingResponseHandler
 
     // MARK: - Configuration
     private let maxRetries = 3
@@ -146,7 +151,6 @@ final class CoachEngine {
         modelContext: ModelContext,
         routingConfiguration: RoutingConfiguration = RoutingConfiguration.shared
     ) {
-        self.localCommandParser = localCommandParser
         self.functionDispatcher = functionDispatcher
         self.personaEngine = personaEngine
         self.conversationManager = conversationManager
@@ -154,9 +158,23 @@ final class CoachEngine {
         self.contextAssembler = contextAssembler
         self.modelContext = modelContext
         self.routingConfiguration = routingConfiguration
+        
+        // Initialize components
+        self.messageProcessor = MessageProcessor(localCommandParser: localCommandParser)
+        self.stateManager = ConversationStateManager()
+        self.directAIProcessor = DirectAIProcessor(aiService: aiService)
+        self.streamingHandler = StreamingResponseHandler()
+        
+        // Set up streaming delegate
+        self.streamingHandler.delegate = self
 
         // Initialize with a new conversation
-        self.activeConversationId = UUID()
+        Task {
+            self.activeConversationId = await stateManager.createSession(
+                userId: UUID(), // Will be updated with actual user ID
+                mode: .supportiveCoach
+            )
+        }
     }
 
     // MARK: - Private Helpers
@@ -192,13 +210,19 @@ final class CoachEngine {
 
         do {
             // Ensure we have an active conversation
-            let conversationId = activeConversationId ?? UUID()
             if activeConversationId == nil {
-                activeConversationId = conversationId
+                activeConversationId = await stateManager.createSession(
+                    userId: user.id,
+                    mode: .supportiveCoach
+                )
+            }
+            
+            guard let conversationId = activeConversationId else {
+                throw CoachEngineError.noActiveConversation
             }
 
             // Step 1: Classify the message for optimization
-            let messageType = classifyMessage(text)
+            let messageType = messageProcessor.classifyMessage(text)
             AppLogger.debug("Message classified as \(messageType.rawValue): '\(text.prefix(50))...'", category: .ai)
 
             // Step 2: Save user message with classification
@@ -211,12 +235,15 @@ final class CoachEngine {
             // Update message with classification
             savedMessage.messageType = messageType
             try modelContext.save()
+            
+            // Update state manager
+            await stateManager.updateSession(conversationId, messageProcessed: true)
 
             AppLogger.info("Processing user message (\(messageType.rawValue)): \(text.prefix(50))...", category: .ai)
 
             // Step 3: Check for local commands first (instant response)
-            if let localResponse = await checkLocalCommand(text, for: user) {
-                await handleLocalCommandResponse(localResponse, for: user, conversationId: conversationId)
+            if let localCommand = await messageProcessor.checkLocalCommand(text, for: user) {
+                await handleLocalCommandResponse(localCommand, for: user, conversationId: conversationId)
                 return
             }
 
@@ -230,13 +257,22 @@ final class CoachEngine {
 
     /// Clears the current conversation and starts a new one
     func clearConversation() {
-        activeConversationId = UUID()
-        currentResponse = ""
-        streamingTokens = []
-        lastFunctionCall = nil
-        error = nil
+        Task {
+            if let oldId = activeConversationId {
+                await stateManager.endSession(oldId)
+            }
+            
+            activeConversationId = await stateManager.createSession(
+                userId: UUID(), // Will be updated with actual user
+                mode: .supportiveCoach
+            )
+            currentResponse = ""
+            streamingTokens = []
+            lastFunctionCall = nil
+            error = nil
 
-        AppLogger.info("Started new conversation: \(activeConversationId?.uuidString ?? "unknown")", category: .ai)
+            AppLogger.info("Started new conversation: \(activeConversationId?.uuidString ?? "unknown")", category: .ai)
+        }
     }
 
     /// Regenerates the last AI response
@@ -272,10 +308,8 @@ final class CoachEngine {
 
     /// Generates AI-powered post-workout analysis
     func generatePostWorkoutAnalysis(_ request: PostWorkoutAnalysisRequest) async -> String {
-        // Build analysis prompt
         let analysisPrompt = buildWorkoutAnalysisPrompt(request)
-
-        // Create AI request for analysis
+        
         let aiRequest = AIRequest(
             systemPrompt: "You are a fitness coach providing post-workout analysis. Be encouraging, specific, and actionable.",
             messages: [
@@ -288,8 +322,7 @@ final class CoachEngine {
             functions: [],
             user: "workout-analysis"
         )
-
-        // Get AI response
+        
         let analysisResult = await collectAIResponse(from: aiRequest)
         return analysisResult.isEmpty ? "Great workout! Keep up the excellent work." : analysisResult
     }
@@ -326,56 +359,6 @@ final class CoachEngine {
 
     // MARK: - Private Methods
 
-    /// Classifies user messages to optimize conversation history and token usage
-    /// Commands need minimal context, conversations need full history
-    private func classifyMessage(_ text: String) -> MessageType {
-        let trimmedText = text.trimmingCharacters(in: .whitespacesAndNewlines)
-        let lowercased = trimmedText.lowercased()
-        
-        // Very short messages are likely commands
-        if trimmedText.count < 20 {
-            AppLogger.debug("Classified as command: short message (\(trimmedText.count) chars)", category: .ai)
-            return .command
-        }
-        
-        // Check for command indicators at start of message
-        let commandStarters = ["log ", "add ", "track ", "record ", "show ", "open ", "start "]
-        for starter in commandStarters where lowercased.hasPrefix(starter) {
-            AppLogger.debug("Classified as command: starts with '\(starter)'", category: .ai)
-            return .command
-        }
-        
-        // Check for nutrition/fitness keywords combined with short length
-        let nutritionKeywords = ["calories", "protein", "carbs", "fat", "water", "steps", "workout"]
-        let hasNutritionKeyword = nutritionKeywords.contains { lowercased.contains($0) }
-        
-        if hasNutritionKeyword && trimmedText.count < 50 {
-            AppLogger.debug("Classified as command: nutrition keyword + short length", category: .ai)
-            return .command
-        }
-        
-        // Check for typical command patterns
-        let commandPatterns = [
-            "\\d+\\s*(calories|cal|protein|carbs|fat|water|ml|oz|steps|lbs|kg)",
-            "^(yes|no|ok|thanks|got it)$",
-            "^\\d+\\s*\\w*\\s*\\w+$" // Numbers with units like "500 calories" or "2 apples"
-        ]
-        
-        for pattern in commandPatterns {
-            if let regex = try? NSRegularExpression(pattern: pattern, options: .caseInsensitive) {
-                let range = NSRange(trimmedText.startIndex..<trimmedText.endIndex, in: trimmedText)
-                if regex.firstMatch(in: trimmedText, options: [], range: range) != nil {
-                    AppLogger.debug("Classified as command: matches pattern '\(pattern)'", category: .ai)
-                    return .command
-                }
-            }
-        }
-        
-        // Default to conversation for complex, longer messages
-        AppLogger.debug("Classified as conversation: complex message requiring full context", category: .ai)
-        return .conversation
-    }
-
     private func startProcessing() async {
         isProcessing = true
         error = nil
@@ -387,16 +370,6 @@ final class CoachEngine {
         isProcessing = false
     }
 
-    private func checkLocalCommand(_ text: String, for user: User) async -> LocalCommand? {
-        let startTime = CFAbsoluteTimeGetCurrent()
-
-        let command = localCommandParser.parse(text)
-
-        let processingTime = CFAbsoluteTimeGetCurrent() - startTime
-        AppLogger.debug("Local command check took \(Int(processingTime * 1_000))ms", category: .ai)
-
-        return command == .none ? nil : command
-    }
 
     private func handleLocalCommandResponse(
         _ command: LocalCommand,
@@ -405,7 +378,7 @@ final class CoachEngine {
     ) async {
         do {
             // Generate response for local command
-            let response = generateLocalCommandResponse(command)
+            let response = messageProcessor.generateLocalCommandResponse(command)
 
             // Save the local command response
             _ = try await conversationManager.createAssistantMessage(
@@ -440,7 +413,10 @@ final class CoachEngine {
             let healthContext = await contextAssembler.assembleSnapshot(modelContext: modelContext)
 
             // Step 2: Get conversation history with optimized limit based on message type
-            let historyLimit = messageType.contextLimit
+            let historyLimit = await stateManager.getOptimalHistoryLimit(
+                for: conversationId,
+                messageType: messageType
+            )
             let conversationHistory = try await conversationManager.getRecentMessages(
                 for: user,
                 conversationId: conversationId,
@@ -457,7 +433,7 @@ final class CoachEngine {
                 activeGoals: [], // Extract from user profile if available
                 recentActivity: healthContext.appContext.workoutContext?.recentWorkouts.map { $0.type } ?? [],
                 preferences: [:],
-                timeOfDay: getCurrentTimeOfDay(),
+                timeOfDay: messageProcessor.getCurrentTimeOfDay(),
                 isNewUser: user.onboardingProfile == nil
             )
             
@@ -528,18 +504,18 @@ final class CoachEngine {
         
         do {
             // Detect specific direct AI task types
-            let isNutritionParsing = ContextAnalyzer.detectsSimpleParsing(text)
-            let isEducationalContent = detectsEducationalContent(text)
+            let isNutritionParsing = messageProcessor.detectsNutritionParsing(text)
+            let isEducationalContent = messageProcessor.detectsEducationalContent(text)
             
             var responseContent: String
             var metrics: RoutingMetrics
             
             if isNutritionParsing {
                 // Direct nutrition parsing
-                let result = try await parseAndLogNutritionDirect(
+                let result = try await directAIProcessor.parseNutrition(
                     foodText: text,
-                    for: user,
-                    conversationId: conversationId
+                    context: "",
+                    user: user
                 )
                 
                 responseContent = buildNutritionParsingResponse(result)
@@ -555,11 +531,12 @@ final class CoachEngine {
                 
             } else if isEducationalContent {
                 // Direct educational content generation
-                let topic = extractEducationalTopic(from: text)
-                let content = try await generateEducationalContentDirect(
+                let topic = messageProcessor.extractEducationalTopic(from: text)
+                let userProfile = try await getUserProfile(for: user)
+                let content = try await directAIProcessor.generateEducationalContent(
                     topic: topic,
                     userContext: text,
-                    for: user
+                    userProfile: userProfile
                 )
                 
                 responseContent = content.content
@@ -594,10 +571,10 @@ final class CoachEngine {
                 }
                 
                 // Simple conversational response
-                responseContent = try await generateSimpleConversationalResponse(
+                let userProfile = try await getUserProfile(for: user)
+                responseContent = try await directAIProcessor.generateSimpleResponse(
                     text: text,
-                    user: user,
-                    conversationHistory: conversationHistory,
+                    userProfile: userProfile,
                     healthContext: healthContext
                 )
                 
@@ -605,7 +582,7 @@ final class CoachEngine {
                     route: .directAI,
                     executionTimeMs: Int((CFAbsoluteTimeGetCurrent() - directAIStartTime) * 1_000),
                     success: true,
-                    tokenUsage: estimateTokenCount(text + responseContent),
+                    tokenUsage: text.count / 4 + responseContent.count / 4,
                     confidence: 0.8,
                     fallbackUsed: false
                 )
@@ -722,88 +699,9 @@ final class CoachEngine {
     
     // MARK: - Direct AI Helpers
     
-    private func extractEducationalTopic(from text: String) -> String {
-        let lowercased = text.lowercased()
-        
-        // Common fitness topics
-        let topics = [
-            "protein", "carbs", "fat", "calories", "macros",
-            "muscle", "strength", "cardio", "recovery",
-            "sleep", "hydration", "supplements", "nutrition"
-        ]
-        
-        for topic in topics where lowercased.contains(topic) {
-            return topic
-        }
-        
-        // Extract first significant word as topic
-        let words = text.components(separatedBy: .whitespacesAndNewlines)
-            .filter { $0.count > 3 }
-        
-        return words.first ?? "fitness"
-    }
     
-    private func generateSimpleConversationalResponse(
-        text: String,
-        user: User,
-        conversationHistory: [AIChatMessage],
-        healthContext: HealthContextSnapshot
-    ) async throws -> String {
-        let userProfile = try await getUserProfile(for: user)
-        
-        let prompt = """
-        Respond to this fitness-related question or comment: "\(text)"
-        
-        User context:
-        - Workout Window: \(userProfile.lifeContext.workoutWindowPreference.displayName)
-        - Primary goal: \(userProfile.goal.family.displayName)
-        - Recent activity: \(healthContext.appContext.workoutContext?.recentWorkouts.count ?? 0) workouts
-        
-        Provide a helpful, encouraging response in 1-2 sentences. Be conversational and supportive.
-        """
-        
-        let aiRequest = AIRequest(
-            systemPrompt: "You are a supportive fitness coach providing brief, helpful responses.",
-            messages: [AIChatMessage(role: .user, content: prompt)],
-            temperature: 0.7,
-            maxTokens: 200,
-            user: user.id.uuidString
-        )
-        
-        return try await executeStreamingAIRequest(aiRequest)
-    }
      
-     private func getCurrentTimeOfDay() -> String {
-         let hour = Calendar.current.component(.hour, from: Date())
-         switch hour {
-         case 5..<12: return "morning"
-         case 12..<17: return "afternoon"
-         case 17..<21: return "evening"
-         default: return "night"
-         }
-     }
      
-     private func detectsEducationalContent(_ text: String) -> Bool {
-         let lowercased = text.lowercased()
-         
-         let educationalPatterns = [
-             "what is", "how does", "explain", "tell me about",
-             "why is", "why do", "what are the benefits",
-             "how to", "best practices", "tips for",
-             "science behind", "research on"
-         ]
-         
-         let fitnessTopics = [
-             "protein", "carbs", "fat", "calories", "macros",
-             "muscle", "strength", "cardio", "recovery",
-             "sleep", "hydration", "supplements"
-         ]
-         
-         let hasEducationalPattern = educationalPatterns.contains { lowercased.contains($0) }
-         let hasFitnessTopic = fitnessTopics.contains { lowercased.contains($0) }
-         
-         return hasEducationalPattern && hasFitnessTopic
-     }
 
     /// Enhanced version of streamAIResponse with routing metrics
     private func streamAIResponseWithMetrics(
@@ -813,65 +711,26 @@ final class CoachEngine {
         routingStrategy: RoutingStrategy,
         startTime: CFAbsoluteTime
     ) async {
-        let functionCallStartTime = CFAbsoluteTimeGetCurrent()
-        var functionCallDetected: AIFunctionCall?
-        var fullResponse = ""
-        var tokenUsage: Int = 0
-        var success = false
-        
         do {
-            var firstTokenReceived = false
-
             // Create streaming response
             let responseStream = aiService.sendRequest(request)
-
-            // Process streaming response
-            for try await response in responseStream {
-                switch response {
-                case .text(let text):
-                    if !firstTokenReceived {
-                        let timeToFirstToken = CFAbsoluteTimeGetCurrent() - startTime
-                        AppLogger.info("First token received in \(Int(timeToFirstToken * 1_000))ms", category: .ai)
-                        firstTokenReceived = true
-                    }
-
-                    fullResponse += text
-                    self.streamingTokens.append(text)
-                    self.currentResponse = fullResponse
-
-                case .textDelta(let text):
-                    if !firstTokenReceived {
-                        let timeToFirstToken = CFAbsoluteTimeGetCurrent() - startTime
-                        AppLogger.info("First token received in \(Int(timeToFirstToken * 1_000))ms", category: .ai)
-                        firstTokenReceived = true
-                    }
-
-                    fullResponse += text
-                    self.streamingTokens.append(text)
-                    self.currentResponse = fullResponse
-
-                case .functionCall(let functionCall):
-                    functionCallDetected = functionCall
-                    self.lastFunctionCall = functionCall.name
-                    AppLogger.info("Function call detected: \(functionCall.name)", category: .ai)
-
-                case .done(let usage):
-                    tokenUsage = usage?.totalTokens ?? 0
-                    AppLogger.info("Stream completed with usage: \(tokenUsage) tokens", category: .ai)
-                    success = true
-
-                case .error(let aiError):
-                    AppLogger.error("AI service error", error: aiError, category: .ai)
-                    throw aiError
-                }
-            }
-
+            
+            // Process using streaming handler
+            let result = try await streamingHandler.handleStream(
+                responseStream,
+                routingStrategy: routingStrategy
+            )
+            
+            // Update state from result
+            currentResponse = result.fullResponse
+            lastFunctionCall = result.functionCall?.name
+            
             // Save AI response
             let assistantMessage = try await conversationManager.createAssistantMessage(
-                fullResponse,
+                result.fullResponse,
                 for: user,
                 conversationId: conversationId,
-                functionCall: functionCallDetected.map { call in
+                functionCall: result.functionCall.map { call in
                     FunctionCall(
                         name: call.name,
                         arguments: call.arguments.mapValues { AnyCodable($0.value) }
@@ -882,7 +741,7 @@ final class CoachEngine {
             )
 
             // Execute function call if detected
-            if let functionCall = functionCallDetected {
+            if let functionCall = result.functionCall {
                 await executeFunctionCall(
                     functionCall,
                     for: user,
@@ -891,28 +750,10 @@ final class CoachEngine {
                 )
             }
             
-            // Record successful function calling metrics
-            let metrics = RoutingMetrics(
-                route: routingStrategy.route,
-                executionTimeMs: Int((CFAbsoluteTimeGetCurrent() - functionCallStartTime) * 1_000),
-                success: success,
-                tokenUsage: tokenUsage > 0 ? tokenUsage : nil
-            )
-                         routingConfiguration.recordRoutingMetrics(metrics)
-
-             await finishProcessing()
+            await finishProcessing()
 
         } catch {
-            // Record failed function calling metrics
-            let metrics = RoutingMetrics(
-                route: routingStrategy.route,
-                executionTimeMs: Int((CFAbsoluteTimeGetCurrent() - functionCallStartTime) * 1_000),
-                success: false,
-                tokenUsage: tokenUsage > 0 ? tokenUsage : nil
-            )
-                         routingConfiguration.recordRoutingMetrics(metrics)
-             
-             await handleError(error)
+            await handleError(error)
         }
     }
 
@@ -1230,28 +1071,6 @@ final class CoachEngine {
         }
     }
 
-    private func generateLocalCommandResponse(_ command: LocalCommand) -> String {
-        switch command {
-        case .showDashboard:
-            return "I'll take you to your dashboard where you can see your progress overview."
-        case let .navigateToTab(tab):
-            return "I'll navigate you to the \(tab.rawValue) section."
-        case let .logWater(amount, unit):
-            return "I've logged \(amount) \(unit.rawValue) of water for you. Great job staying hydrated!"
-        case let .quickLog(type):
-            return "I'll help you quickly log your \(type). Let me open that for you."
-        case .showSettings:
-            return "I'll take you to your settings where you can customize your experience."
-        case .showProfile:
-            return "I'll show you your profile information."
-        case .startWorkout:
-            return "Let's get you started with a workout! I'll open your workout options."
-        case .help:
-            return "I'm here to help! You can ask me about workouts, nutrition, progress tracking, or just chat about your fitness goals."
-        case .none:
-            return "I'm not sure what you'd like me to do. Could you be more specific?"
-        }
-    }
 
     private func getUserProfile(for user: User) async throws -> UserProfileJsonBlob {
         guard let onboardingProfile = user.onboardingProfile else {
@@ -1317,7 +1136,7 @@ final class CoachEngine {
         return try await functionDispatcher.execute(functionCall, for: user, context: context)
     }
     
-    // MARK: - Direct AI Methods
+    // MARK: - Direct AI Methods (Delegates to DirectAIProcessor)
     
     /// Parses nutrition data using direct AI (bypassing function dispatcher)
     /// Provides 3x performance improvement over dispatcher-based approach
@@ -1327,76 +1146,12 @@ final class CoachEngine {
         for user: User,
         conversationId: UUID? = nil
     ) async throws -> NutritionParseResult {
-        let startTime = CFAbsoluteTimeGetCurrent()
-        
-        guard !foodText.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty else {
-            throw DirectAIError.nutritionParsingFailed("Empty food description")
-        }
-        
-        let prompt = buildOptimizedNutritionPrompt(
+        return try await directAIProcessor.parseNutrition(
             foodText: foodText,
             context: context,
-            user: user
+            user: user,
+            conversationId: conversationId
         )
-        
-        do {
-            let aiRequest = AIRequest(
-                systemPrompt: "You are a precision nutrition expert. Return only valid JSON without explanations.",
-                messages: [AIChatMessage(role: .user, content: prompt)],
-                temperature: 0.1, // Low temperature for consistent parsing
-                maxTokens: 500,   // Optimized token limit
-                user: user.id.uuidString
-            )
-            
-            let response = try await executeStreamingAIRequest(aiRequest)
-            let parsedNutritionItems = try parseNutritionResponse(response)
-            let validatedItems = validateNutritionItems(parsedNutritionItems)
-            
-            guard !validatedItems.isEmpty else {
-                throw DirectAIError.nutritionValidationFailed
-            }
-            
-            let processingTime = Int((CFAbsoluteTimeGetCurrent() - startTime) * 1_000)
-            let confidence = validatedItems.reduce(0) { $0 + $1.confidence } / Double(validatedItems.count)
-            
-            // Convert ParsedNutritionItem to NutritionItem
-            let nutritionItems = validatedItems.map { parsedItem in
-                NutritionItem(
-                    name: parsedItem.name,
-                    quantity: parsedItem.quantity,
-                    calories: parsedItem.calories,
-                    protein: parsedItem.proteinGrams,
-                    carbs: parsedItem.carbGrams,
-                    fat: parsedItem.fatGrams,
-                    confidence: parsedItem.confidence
-                )
-            }
-            
-            let totalCalories = nutritionItems.reduce(0) { $0 + $1.calories }
-            
-            let result = NutritionParseResult(
-                items: nutritionItems,
-                totalCalories: totalCalories,
-                confidence: confidence,
-                tokenCount: estimateTokenCount(prompt),
-                processingTimeMs: processingTime,
-                parseStrategy: .directAI
-            )
-            
-            AppLogger.info(
-                "Direct nutrition parsing: \(validatedItems.count) items in \(processingTime)ms | Confidence: \(String(format: "%.2f", confidence)) | Tokens: ~\(result.tokenCount)",
-                category: .ai
-            )
-            
-            return result
-            
-        } catch let error as DirectAIError {
-            AppLogger.error("Direct nutrition parsing failed", error: error, category: .ai)
-            throw error
-        } catch {
-            AppLogger.error("Unexpected nutrition parsing error", error: error, category: .ai)
-            throw DirectAIError.nutritionParsingFailed(error.localizedDescription)
-        }
     }
     
     /// Generates educational content using direct AI (bypassing function dispatcher)
@@ -1406,435 +1161,36 @@ final class CoachEngine {
         userContext: String,
         for user: User
     ) async throws -> EducationalContent {
-        let startTime = CFAbsoluteTimeGetCurrent()
-        
-        guard !topic.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty else {
-            throw DirectAIError.educationalContentFailed("Empty topic")
-        }
-        
         let userProfile = try await getUserProfile(for: user)
-        let prompt = buildEducationalPrompt(
+        return try await directAIProcessor.generateEducationalContent(
             topic: topic,
             userContext: userContext,
             userProfile: userProfile
         )
-        
-        do {
-            let aiRequest = AIRequest(
-                systemPrompt: "You are an expert fitness educator providing personalized, science-based guidance.",
-                messages: [AIChatMessage(role: .user, content: prompt)],
-                temperature: 0.7, // Higher temperature for creative content
-                maxTokens: 800,   // Sufficient for detailed content
-                user: user.id.uuidString
-            )
-            
-            let response = try await executeStreamingAIRequest(aiRequest)
-            let personalizationLevel = calculatePersonalizationLevel(response, userProfile: userProfile)
-            
-            let processingTime = Int((CFAbsoluteTimeGetCurrent() - startTime) * 1_000)
-            
-            let content = EducationalContent(
-                topic: topic,
-                content: response,
-                generatedAt: Date(),
-                tokenCount: estimateTokenCount(prompt + response),
-                personalizationLevel: personalizationLevel,
-                contentType: classifyContentType(topic)
-            )
-            
-            AppLogger.info(
-                "Educational content generated: \(response.count) chars in \(processingTime)ms | Personalization: \(String(format: "%.2f", personalizationLevel))",
-                category: .ai
-            )
-            
-            return content
-            
-        } catch let error as DirectAIError {
-            AppLogger.error("Educational content generation failed", error: error, category: .ai)
-            throw error
-        } catch {
-            AppLogger.error("Unexpected educational content error", error: error, category: .ai)
-            throw DirectAIError.educationalContentFailed(error.localizedDescription)
-        }
     }
-    
-    // MARK: - Private Direct AI Helpers
-    
-    private func buildOptimizedNutritionPrompt(
-        foodText: String,
-        context: String,
-        user: User
-    ) -> String {
-        let contextSuffix = context.isEmpty ? "" : "\nContext: \(context)"
-        
-        return """
-        Parse: "\(foodText)"\(contextSuffix)
-        
-        Return JSON:
-        {
-            "items": [
-                {
-                    "name": "food name",
-                    "quantity": "1 cup",
-                    "calories": 200,
-                    "proteinGrams": 8.0,
-                    "carbGrams": 45.0,
-                    "fatGrams": 3.0,
-                    "fiberGrams": 2.0,
-                    "confidence": 0.95
-                }
-            ]
-        }
-        
-        Rules:
-        - USDA nutrition database accuracy
-        - Realistic values (not 100 cal defaults)
-        - Multiple items if mentioned
-        - Confidence 0.9+ for common foods
-        - JSON only, no text
-        """
-    }
-    
-    private func buildEducationalPrompt(
-        topic: String,
-        userContext: String,
-        userProfile: UserProfileJsonBlob
-    ) -> String {
-        let cleanTopic = topic.replacingOccurrences(of: "_", with: " ").capitalized
-        let contextLine = userContext.isEmpty ? "" : "\nContext: \(userContext)"
-        
-        return """
-        Create educational content about \(cleanTopic) for this user:
-        
-        User Level: Intermediate
-        Goals: \(userProfile.goal.family.displayName)
-        Motivation Style: \(userProfile.motivationalStyle.celebrationStyle.displayName)\(contextLine)
-        
-        Requirements:
-        - Explain \(cleanTopic) scientifically but accessibly
-        - Personalize for their level and goals
-        - Include 3-4 actionable tips
-        - 250-400 words, conversational tone
-        - Focus on practical application
-        
-        Structure: Brief explanation, personalized insights, actionable tips.
-        """
-    }
-    
-    private func executeStreamingAIRequest(_ request: AIRequest) async throws -> String {
-        var fullResponse = ""
-        let responseStream = aiService.sendRequest(request)
-        
-        do {
-            for try await response in responseStream {
-                switch response {
-                case .text(let text), .textDelta(let text):
-                    fullResponse += text
-                case .error(let aiError):
-                    AppLogger.error("AI streaming error", error: aiError, category: .ai)
-                    throw aiError
-                case .done:
-                    break
-                default:
-                    break
-                }
-            }
-        } catch {
-            AppLogger.error("AI streaming failed", error: error, category: .ai)
-            throw error
-        }
-        
-        guard !fullResponse.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty else {
-            throw DirectAIError.emptyResponse
-        }
-        
-        return fullResponse
-    }
-    
-    private func parseNutritionResponse(_ response: String) throws -> [ParsedNutritionItem] {
-        // Extract JSON from response (handle cases where AI adds explanatory text)
-        let jsonString = extractJSON(from: response)
-        
-        guard let data = jsonString.data(using: .utf8),
-              let json = try JSONSerialization.jsonObject(with: data) as? [String: Any],
-              let itemsArray = json["items"] as? [[String: Any]] else {
-            throw DirectAIError.invalidJSONResponse(response)
-        }
-        
-        return try itemsArray.map { itemDict in
-            guard let name = itemDict["name"] as? String,
-                  let quantity = itemDict["quantity"] as? String,
-                  let calories = itemDict["calories"] as? Double,
-                  let protein = itemDict["proteinGrams"] as? Double,
-                  let carbs = itemDict["carbGrams"] as? Double,
-                  let fat = itemDict["fatGrams"] as? Double else {
-                throw DirectAIError.invalidJSONResponse("Missing required nutrition fields")
-            }
-            
-            return ParsedNutritionItem(
-                name: name,
-                quantity: quantity,
-                calories: calories,
-                proteinGrams: protein,
-                carbGrams: carbs,
-                fatGrams: fat,
-                fiberGrams: itemDict["fiberGrams"] as? Double,
-                confidence: itemDict["confidence"] as? Double ?? 0.8
-            )
-        }
-    }
-    
-    private func validateNutritionItems(_ items: [ParsedNutritionItem]) -> [ParsedNutritionItem] {
-        return items.filter { item in
-            if !item.isValid {
-                AppLogger.warning(
-                    "Rejected invalid nutrition values for \(item.name): \(item.calories) cal, \(item.proteinGrams)g protein",
-                    category: .ai
-                )
-                return false
-            }
-            return true
-        }
-    }
-    
-    private func extractKeyPoints(from content: String) -> [String] {
-        // Simple extraction of key points from content
-        let sentences = content.components(separatedBy: .punctuationCharacters)
-            .map { $0.trimmingCharacters(in: .whitespacesAndNewlines) }
-            .filter { $0.count > 20 } // Meaningful sentences
-        
-        // Return up to 4 key sentences
-        return Array(sentences.prefix(4))
-    }
-    
-    private func calculatePersonalizationLevel(_ content: String, userProfile: UserProfileJsonBlob) -> Double {
-        var personalKeywords: [String] = []
-        
-        // Add goal family as personalization keyword
-        personalKeywords.append(userProfile.goal.family.displayName.lowercased())
-        
-        // Add workout window preference
-        personalKeywords.append(userProfile.lifeContext.workoutWindowPreference.displayName.lowercased())
-        
-        // Add motivational style elements
-        personalKeywords.append(userProfile.motivationalStyle.celebrationStyle.displayName.lowercased())
-        personalKeywords.append(userProfile.motivationalStyle.absenceResponse.displayName.lowercased())
-        
-        let mentions = personalKeywords.reduce(0) { count, keyword in
-            count + (content.localizedCaseInsensitiveContains(keyword) ? 1 : 0)
-        }
-        
-        return personalKeywords.isEmpty ? 0.5 : min(Double(mentions) / Double(personalKeywords.count), 1.0)
-    }
-    
-    private func extractJSON(from response: String) -> String {
-        // Find JSON block in response
-        if let startIndex = response.firstIndex(of: "{"),
-           let endIndex = response.lastIndex(of: "}") {
-            return String(response[startIndex...endIndex])
-        }
-        
-        // Return original if no clear JSON boundaries
-        return response
-    }
-    
-    private func estimateTokenCount(_ text: String) -> Int {
-        // Rough token estimation: ~4 characters per token for English
-        return max(text.count / 4, 1)
-    }
-    
-    // MARK: - Direct AI Methods (Phase 3 Implementation)
-    
-    /// Direct AI nutrition parsing without function call overhead
-    func parseAndLogNutritionDirect(
-        foodText: String,
-        for user: User,
-        conversationId: UUID
-    ) async throws -> NutritionParseResult {
-        let startTime = CFAbsoluteTimeGetCurrent()
-        
-        AppLogger.debug("Starting direct AI nutrition parsing for: '\(foodText.prefix(50))...'", category: .ai)
-        
-        do {
-            // Get user profile for personalization
-            let userProfile = try await getUserProfile(for: user)
-            
-            // Build optimized prompt for nutrition parsing
-            let prompt = buildDirectNutritionParsingPrompt(text: foodText, userProfile: userProfile)
-            
-            // Create AI request with low temperature for consistent parsing
-            let aiRequest = AIRequest(
-                systemPrompt: "You are a nutrition expert providing accurate food parsing. Return only valid JSON.",
-                messages: [AIChatMessage(role: .user, content: prompt)],
-                temperature: 0.1,
-                maxTokens: 500,
-                user: "nutrition-direct-\(user.id.uuidString.prefix(8))"
-            )
-            
-            // Execute direct AI call
-            let response = try await executeStreamingAIRequest(aiRequest)
-            
-            // Parse JSON response directly  
-            let directNutritionItems = try parseDirectNutritionResponse(response)
-            
-            // Convert to result format
-            let totalCalories = directNutritionItems.reduce(0.0) { $0 + $1.calories }
-            let averageConfidence = directNutritionItems.reduce(0.0) { $0 + $1.confidence } / Double(max(directNutritionItems.count, 1))
-            
-            let processingTime = CFAbsoluteTimeGetCurrent() - startTime
-            let tokenCount = estimateTokenCount(prompt + response)
-            
-            let result = NutritionParseResult(
-                items: directNutritionItems,
-                totalCalories: totalCalories,
-                confidence: averageConfidence,
-                tokenCount: tokenCount,
-                processingTimeMs: Int(processingTime * 1_000),
-                parseStrategy: .directAI
-            )
-            
-            // Log parsing success
-            AppLogger.info(
-                "Direct AI nutrition parsing completed: \(directNutritionItems.count) items, \(Int(totalCalories)) cal, \(Int(processingTime * 1000))ms",
-                category: .ai
-            )
-            
-            return result
-            
-        } catch {
-            let processingTime = CFAbsoluteTimeGetCurrent() - startTime
-            AppLogger.error(
-                "Direct AI nutrition parsing failed after \(Int(processingTime * 1000))ms",
-                error: error,
-                category: .ai
-            )
-            throw CoachEngineError.nutritionParsingFailed(error.localizedDescription)
-        }
-    }
-    
+}
 
-    
-    // MARK: - Direct AI Helper Methods
-    
-    private func buildDirectNutritionParsingPrompt(text: String, userProfile: UserProfileJsonBlob) -> String {
-        return """
-        Parse this food description into structured nutrition data: "\(text)"
-        
-        User Context:
-        - Goal: \(userProfile.goal.family.displayName)
-        - Workout Window: \(userProfile.lifeContext.workoutWindowPreference.displayName)
-        
-        Return ONLY valid JSON in this exact format:
-        {
-            "items": [
-                {
-                    "name": "food name",
-                    "quantity": "amount with unit",
-                    "calories": 0,
-                    "protein": 0.0,
-                    "carbs": 0.0,
-                    "fat": 0.0,
-                    "confidence": 0.95
-                }
-            ]
-        }
-        
-        Rules:
-        - Use USDA nutrition database knowledge for accuracy
-        - If multiple items mentioned, include all
-        - Estimate quantities if not specified  
-        - Return realistic nutrition values (not 100 calories for everything!)
-        - Confidence 0.9+ for common foods, lower for ambiguous items
-        - No explanations or extra text, just JSON
-        """
-    }
-    
-    private func buildDirectEducationPrompt(
-        topic: String,
-        userContext: String,
-        userProfile: UserProfileJsonBlob
-    ) -> String {
-        let cleanTopic = topic.replacingOccurrences(of: "_", with: " ").capitalized
-        let contextLine = userContext.isEmpty ? "" : "\nContext: \(userContext)"
-        
-        return """
-        Create educational content about \(cleanTopic) for this user:
-        
-        User Profile:
-        - Goal: \(userProfile.goal.family.displayName)
-        - Workout Window: \(userProfile.lifeContext.workoutWindowPreference.displayName)
-        - Motivation Style: \(userProfile.motivationalStyle.celebrationStyle.displayName)\(contextLine)
-        
-        Requirements:
-        - Explain \(cleanTopic) scientifically but accessibly
-        - Personalize for their goal and workout preferences
-        - Include 3-4 actionable tips specific to their situation
-        - 200-300 words, conversational and encouraging tone
-        - Focus on practical application they can use today
-        
-        Structure: Brief explanation, why it matters for their goals, actionable tips.
-        """
-    }
-    
-    private func parseDirectNutritionResponse(_ response: String) throws -> [NutritionItem] {
-        // Extract JSON from response (handle cases where AI adds explanatory text)
-        let jsonString = extractJSON(from: response)
-        
-        guard let data = jsonString.data(using: .utf8),
-              let json = try JSONSerialization.jsonObject(with: data) as? [String: Any],
-              let itemsArray = json["items"] as? [[String: Any]] else {
-            throw DirectAIError.invalidJSONResponse(response)
-        }
-        
-        return try itemsArray.map { itemDict in
-            guard let name = itemDict["name"] as? String,
-                  let quantity = itemDict["quantity"] as? String,
-                  let calories = itemDict["calories"] as? Double,
-                  let protein = itemDict["protein"] as? Double,
-                  let carbs = itemDict["carbs"] as? Double,
-                  let fat = itemDict["fat"] as? Double else {
-                throw DirectAIError.invalidJSONResponse("Missing required nutrition fields")
-            }
-            
-            let confidence = itemDict["confidence"] as? Double ?? 0.8
-            
-            // Validate nutrition values
-            guard calories > 0 && calories < 5000,
-                  protein >= 0 && protein < 300,
-                  carbs >= 0 && carbs < 1000,
-                  fat >= 0 && fat < 500 else {
-                throw DirectAIError.invalidNutritionValues("Invalid nutrition values for \(name)")
-            }
-            
-            return NutritionItem(
-                name: name,
-                quantity: quantity,
-                calories: calories,
-                protein: protein,
-                carbs: carbs,
-                fat: fat,
-                confidence: confidence
-            )
-        }
-    }
-    
-    private func classifyContentType(_ topic: String) -> EducationalContent.ContentType {
-        let lowercaseTopic = topic.lowercased()
-        
-        if lowercaseTopic.contains("exercise") || lowercaseTopic.contains("workout") || lowercaseTopic.contains("training") {
-            return .exercise
-        } else if lowercaseTopic.contains("nutrition") || lowercaseTopic.contains("diet") || lowercaseTopic.contains("food") {
-            return .nutrition
-        } else if lowercaseTopic.contains("recovery") || lowercaseTopic.contains("sleep") || lowercaseTopic.contains("rest") {
-            return .recovery
-        } else if lowercaseTopic.contains("motivation") || lowercaseTopic.contains("mindset") || lowercaseTopic.contains("goal") {
-            return .motivation
-        } else {
-            return .general
-        }
-    }
-    
+// MARK: - StreamingResponseDelegate
 
+extension CoachEngine: StreamingResponseDelegate {
+    func streamingDidReceiveText(_ text: String, accumulated: String) async {
+        streamingTokens.append(text)
+        currentResponse = accumulated
+    }
+    
+    func streamingDidDetectFunction(_ function: AIFunctionCall) async {
+        lastFunctionCall = function.name
+    }
+    
+    func streamingDidComplete(fullResponse: String, tokenUsage: Int) async {
+        currentResponse = fullResponse
+        AppLogger.debug("Streaming completed with \(tokenUsage) tokens", category: .ai)
+    }
+    
+    func streamingDidFail(with error: Error) async {
+        self.error = error
+        await handleError(error)
+    }
 }
 
 // MARK: - Extensions

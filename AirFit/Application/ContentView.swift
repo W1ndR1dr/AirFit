@@ -14,23 +14,17 @@ struct ContentView: View {
                 } else if appState.shouldCreateUser {
                     WelcomeView(appState: appState)
                 } else if appState.shouldShowOnboarding {
-                    if let aiService = DependencyContainer.shared.aiService {
-                        OnboardingFlowView(
-                            aiService: aiService,
-                            onboardingService: OnboardingService(modelContext: modelContext),
-                            onCompletion: {
-                                Task {
-                                    await appState.completeOnboarding()
-                                }
+                    // Use OfflineAIService as immediate fallback
+                    let aiService = DependencyContainer.shared.aiService ?? OfflineAIService()
+                    OnboardingFlowView(
+                        aiService: aiService,
+                        onboardingService: OnboardingService(modelContext: modelContext),
+                        onCompletion: {
+                            Task {
+                                await appState.completeOnboarding()
                             }
-                        )
-                    } else {
-                        Text("AI Service not configured")
-                            .font(AppFonts.headline)
-                            .foregroundColor(AppColors.errorColor)
-                            .frame(maxWidth: .infinity, maxHeight: .infinity)
-                            .background(AppColors.backgroundPrimary)
-                    }
+                        }
+                    )
                 } else if appState.shouldShowDashboard {
                     DashboardView()
                 } else {
@@ -102,7 +96,11 @@ private struct WelcomeView: View {
 
             Button {
                 Task {
-                    try await appState.createNewUser()
+                    do {
+                        try await appState.createNewUser()
+                    } catch {
+                        AppLogger.error("Failed to create user", error: error, category: .app)
+                    }
                 }
             } label: {
                 Text("Get Started")
