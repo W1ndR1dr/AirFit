@@ -11,21 +11,11 @@ final class EngagementEngineTests: XCTestCase {
     var mockCoachEngine: MockCoachEngine!
     var testUser: User!
     
-    override func setUp() {
-        super.setUp()
+    override func setUp() async throws {
+        try await super.setUp()
         
         // Setup test context
-        do {
-
-            container = try ModelContainer.createTestContainer()
-
-        } catch {
-
-            XCTFail("Failed to create test container: \(error)")
-
-            return
-
-        }
+        container = try ModelContainer.createTestContainer()
         modelContext = container.mainContext
         
         // Create test user
@@ -46,15 +36,7 @@ final class EngagementEngineTests: XCTestCase {
         testUser.onboardingProfile = onboardingProfile
         
         modelContext.insert(testUser)
-        do {
-
-            try modelContext.save()
-
-        } catch {
-
-            XCTFail("Failed to save test context: \(error)")
-
-        }
+        try modelContext.save()
         
         // Setup mocks
         mockCoachEngine = MockCoachEngine()
@@ -69,13 +51,13 @@ final class EngagementEngineTests: XCTestCase {
         )
     }
     
-    override func tearDown() {
+    override func tearDown() async throws {
         sut = nil
         container = nil
         modelContext = nil
         mockCoachEngine = nil
         testUser = nil
-        super.tearDown()
+        try await super.tearDown()
     }
     
     func test_detectLapsedUsers_withInactiveUser_shouldReturnUser() async throws {

@@ -8,8 +8,8 @@ final class AINutritionParsingTests: XCTestCase {
     private var coachEngine: MockFoodCoachEngine!
     private var testUser: User!
 
-    override func setUp() {
-        super.setUp()
+    override func setUp() async throws {
+        try await super.setUp()
         
         // Create in-memory model container
         let schema = Schema([User.self, FoodEntry.self, FoodItem.self])
@@ -60,12 +60,12 @@ final class AINutritionParsingTests: XCTestCase {
         coachEngine = MockFoodCoachEngine()
     }
 
-    override func tearDown() {
+    override func tearDown() async throws {
         modelContainer = nil
         modelContext = nil
         coachEngine = nil
         testUser = nil
-        super.tearDown()
+        try await super.tearDown()
     }
 
     // MARK: - Basic Parsing Tests

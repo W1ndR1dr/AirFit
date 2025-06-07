@@ -36,13 +36,9 @@ final class FoodTrackingViewModelTests: XCTestCase {
 
     var sut: FoodTrackingViewModel!
 
-    override func setUp() {
-        super.setUp()
-        // Async initialization moved to setupTest()
-    }
-    
-    @MainActor
-    private func setupTest() async throws {
+    override func setUp() async throws {
+        try await super.setUp()
+        
         modelContainer = try await SwiftDataTestHelper.previewContainer()
         modelContext = ModelContext(modelContainer)
 
@@ -76,7 +72,7 @@ final class FoodTrackingViewModelTests: XCTestCase {
         )
     }
 
-    override func tearDownWithError() throws {
+    override func tearDown() async throws {
         sut = nil
         coordinator = nil
         mockCoachEngine = nil
@@ -86,7 +82,7 @@ final class FoodTrackingViewModelTests: XCTestCase {
         testUser = nil
         modelContext = nil
         modelContainer = nil
-        try super.tearDownWithError()
+        try await super.tearDown()
     }
 
     // MARK: - Helper Methods
@@ -131,7 +127,6 @@ final class FoodTrackingViewModelTests: XCTestCase {
     // MARK: - Initialization and Data Loading Tests
     @MainActor
     func test_init_loadsInitialDataViaSetNutritionService() async throws {
-        try await setupTest()
         let expectation = XCTestExpectation(description: "Initial data loaded")
         mockNutritionService.recentFoodsToReturn = [createSampleFoodItem(name: "Recent Banana")]
         
@@ -159,7 +154,6 @@ final class FoodTrackingViewModelTests: XCTestCase {
 
     @MainActor
     func test_loadTodaysData_success_populatesPropertiesCorrectly() async throws {
-        try await setupTest()
         let expectation = XCTestExpectation(description: "loadTodaysData completes and populates properties")
         mockNutritionService.foodEntriesToReturn = [FoodEntry(loggedAt: Date(), mealType: .breakfast)]
         mockNutritionService.nutritionSummaryToReturn = FoodNutritionSummary(
@@ -198,7 +192,6 @@ final class FoodTrackingViewModelTests: XCTestCase {
 
     @MainActor
     func test_loadTodaysData_serviceFailure_setsError() async throws {
-        try await setupTest()
         let expectation = XCTestExpectation(description: "loadTodaysData handles service failure")
         mockNutritionService.shouldThrowError = true
 
@@ -214,7 +207,6 @@ final class FoodTrackingViewModelTests: XCTestCase {
     // MARK: - Voice Integration Tests
     @MainActor
     func test_startVoiceInput_permissionGranted_showsVoiceSheet() async throws {
-        try await setupTest()
         mockFoodVoiceAdapter.requestPermissionShouldSucceed = true
         await sut.startVoiceInput()
         if case .voiceInput = coordinator.activeSheet {
@@ -227,7 +219,6 @@ final class FoodTrackingViewModelTests: XCTestCase {
 
     @MainActor
     func test_startVoiceInput_permissionDenied_setsError() async throws {
-        try await setupTest()
         mockFoodVoiceAdapter.requestPermissionShouldSucceed = false
         await sut.startVoiceInput()
         XCTAssertNil(coordinator.activeSheet)
@@ -237,7 +228,6 @@ final class FoodTrackingViewModelTests: XCTestCase {
 
     @MainActor
     func test_startRecording_success_updatesState() async throws {
-        try await setupTest()
         await sut.startRecording() // Assumes permission already granted or not checked here
         XCTAssertTrue(mockFoodVoiceAdapter.isRecording)
         // Can't test private isRecording state - test behavior instead
@@ -246,7 +236,6 @@ final class FoodTrackingViewModelTests: XCTestCase {
     
     @MainActor
     func test_startRecording_failure_setsErrorAndState() async throws {
-        try await setupTest()
         mockFoodVoiceAdapter.startRecordingShouldSucceed = false
         await sut.startRecording()
         XCTAssertFalse(mockFoodVoiceAdapter.isRecording)
@@ -256,7 +245,6 @@ final class FoodTrackingViewModelTests: XCTestCase {
 
     @MainActor
     func test_stopRecording_withText_showsConfirmation() async throws {
-        try await setupTest()
         let expectation = XCTestExpectation(description: "Transcription processed after stopRecording")
         mockFoodVoiceAdapter.stopRecordingText = "one apple"
         // Mock the coach engine to return parsed items
@@ -282,7 +270,6 @@ final class FoodTrackingViewModelTests: XCTestCase {
     
     @MainActor
     func test_stopRecording_emptyText_doesNotShowConfirmation() async throws {
-        try await setupTest()
         mockFoodVoiceAdapter.stopRecordingText = ""
         await sut.startRecording()
         await sut.stopRecording()
@@ -293,7 +280,6 @@ final class FoodTrackingViewModelTests: XCTestCase {
 
     @MainActor
     func test_voiceCallbacks_onFoodTranscription_showsConfirmation() async throws {
-        try await setupTest()
          let expectation = XCTestExpectation(description: "onFoodTranscription callback processed")
          // Mock the coach engine to return parsed items
          let expectedItems = [createSampleParsedItem(name: "Banana")]
@@ -325,7 +311,6 @@ final class FoodTrackingViewModelTests: XCTestCase {
     // MARK: - AI Parsing Tests (via voice callbacks)
     @MainActor
     func test_voiceTranscription_simpleCommand_showsConfirmation() async throws {
-        try await setupTest()
         let expectation = XCTestExpectation(description: "Simple command parsed")
         // Use voice adapter callback to trigger processing
         let expectedItems = [createSampleParsedItem(name: "Apple")]
@@ -367,7 +352,6 @@ final class FoodTrackingViewModelTests: XCTestCase {
 
     @MainActor
     func test_processPhotoResult_success_showsConfirmation() async throws {
-        try await setupTest()
         let expectation = XCTestExpectation(description: "Photo result processed successfully")
         let testImage = UIImage() // Dummy image
         let photoParsedItem = createSampleParsedItem(name: "Photo Apple", confidence: 0.85)
@@ -390,7 +374,6 @@ final class FoodTrackingViewModelTests: XCTestCase {
     
     @MainActor
     func test_processPhotoResult_failure_setsError() async throws {
-        try await setupTest()
         let expectation = XCTestExpectation(description: "Photo result processing failure")
         let testImage = UIImage()
         mockCoachEngine.analyzeMealPhotoShouldSucceed = false
@@ -406,7 +389,6 @@ final class FoodTrackingViewModelTests: XCTestCase {
     
     @MainActor
     func test_processPhotoResult_noItemsDetected_setsError() async throws {
-        try await setupTest()
         let expectation = XCTestExpectation(description: "Photo result no items detected")
         let testImage = UIImage()
         mockCoachEngine.analyzeMealPhotoShouldSucceed = true
@@ -432,7 +414,6 @@ final class FoodTrackingViewModelTests: XCTestCase {
     // MARK: - Food Search Tests
     @MainActor
     func test_searchFoods_validQuery_callsCoachEngine() async throws {
-        try await setupTest()
         let expectation = XCTestExpectation(description: "Search foods calls coach engine")
         // Mock the coach engine to return search results
         let searchResult = createSampleParsedItem(name: "Chicken")
@@ -451,7 +432,6 @@ final class FoodTrackingViewModelTests: XCTestCase {
     
     @MainActor
     func test_searchFoods_emptyQuery_doesNotSearch() async throws {
-        try await setupTest()
         // Test that empty query doesn't trigger search
         await sut.searchFoods("")
         
@@ -480,7 +460,6 @@ final class FoodTrackingViewModelTests: XCTestCase {
     // MARK: - Saving Food Entries Tests
     @MainActor
     func test_confirmAndSaveFoodItems_success_savesAndRefreshes() async throws {
-        try await setupTest()
         let expectation = XCTestExpectation(description: "Confirm and save success")
         let itemsToSave = [createSampleParsedItem(name: "Saved Apple")]
         
@@ -511,7 +490,6 @@ final class FoodTrackingViewModelTests: XCTestCase {
     
     @MainActor
     func test_confirmAndSaveFoodItems_saveFailure_setsError() async throws {
-        try await setupTest()
         let expectation = XCTestExpectation(description: "Confirm and save failure")
         let itemsToSave = [createSampleParsedItem(name: "Unsaved Apple")]
         
@@ -562,7 +540,6 @@ final class FoodTrackingViewModelTests: XCTestCase {
     // MARK: - Water Tracking Tests
     @MainActor
     func test_logWater_success_updatesViewModelAndCallsService() async throws {
-        try await setupTest()
         let expectation = XCTestExpectation(description: "Log water success")
         let initialWater = sut.waterIntakeML
         let amountToAdd: Double = 250
@@ -581,7 +558,6 @@ final class FoodTrackingViewModelTests: XCTestCase {
     
     @MainActor
     func test_logWater_serviceFailure_setsError() async throws {
-        try await setupTest()
         let expectation = XCTestExpectation(description: "Log water service failure")
         mockNutritionService.shouldThrowError = true
         let initialWater = sut.waterIntakeML
@@ -599,7 +575,6 @@ final class FoodTrackingViewModelTests: XCTestCase {
     // MARK: - Smart Suggestions Tests
     @MainActor
     func test_generateSmartSuggestions_withHistory_returnsSuggestions() async throws {
-        try await setupTest()
         let expectation = XCTestExpectation(description: "Generate smart suggestions with history")
         let historyItem = createSampleFoodItem(name: "Frequent Banana")
         let mealEntry = FoodEntry(loggedAt: Date(), mealType: .breakfast)
@@ -618,7 +593,6 @@ final class FoodTrackingViewModelTests: XCTestCase {
     // MARK: - Meal Management Tests
     @MainActor
     func test_deleteFoodEntry_success_removesEntryAndRefreshes() async throws {
-        try await setupTest()
         let expectation = XCTestExpectation(description: "Delete food entry success")
         let entryToDelete = FoodEntry(loggedAt: Date(), mealType: .lunch)
         entryToDelete.items.append(createSampleFoodItem())
@@ -643,7 +617,6 @@ final class FoodTrackingViewModelTests: XCTestCase {
     
     @MainActor
     func test_duplicateFoodEntry_success_createsNewEntryAndRefreshes() async throws {
-        try await setupTest()
         let expectation = XCTestExpectation(description: "Duplicate food entry success")
         let entryToDuplicate = FoodEntry(loggedAt: Calendar.current.date(byAdding: .day, value: -1, to: Date())!, mealType: .dinner)
         entryToDuplicate.items.append(createSampleFoodItem(name: "Original Item"))
@@ -673,7 +646,6 @@ final class FoodTrackingViewModelTests: XCTestCase {
     // MARK: - State Management & Error Handling Tests
     @MainActor
     func test_errorState_isSetAndClearedCorrectly() async throws {
-        try await setupTest()
         XCTAssertNil(sut.error)
         XCTAssertFalse(sut.hasError)
 
@@ -692,7 +664,6 @@ final class FoodTrackingViewModelTests: XCTestCase {
     
     @MainActor
     func test_isLoading_isSetCorrectlyDuringAsyncOperations() async throws {
-        try await setupTest()
         let expectation = XCTestExpectation(description: "isLoading state managed")
         
         // For loadTodaysData
@@ -725,7 +696,6 @@ final class FoodTrackingViewModelTests: XCTestCase {
     // MARK: - Optional Nutrition Service Tests
     @MainActor
     func test_viewModel_withNilNutritionService_gracefullyHandlesCalls() async throws {
-        try await setupTest()
         // Re-init SUT with nil nutritionService
         sut = FoodTrackingViewModel(
             modelContext: modelContext,
@@ -758,7 +728,6 @@ final class FoodTrackingViewModelTests: XCTestCase {
     // MARK: - Other Public Methods
     @MainActor
     func test_setSelectedMealType_updatesPropertyAndSuggestions() async throws {
-        try await setupTest()
         let expectation = XCTestExpectation(description: "setSelectedMealType updates suggestions")
         sut.selectedMealType = .breakfast // Initial
         

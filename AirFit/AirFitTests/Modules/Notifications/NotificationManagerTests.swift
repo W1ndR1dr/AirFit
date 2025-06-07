@@ -6,11 +6,20 @@ final class NotificationManagerTests: XCTestCase {
     private var container: DIContainer!
     var sut: NotificationManager!
     
-    override func setUp() {
-        super.setUp()
+    override func setUp() async throws {
+        try await super.setUp()
         
-        // Create singleton instance
-        sut = try await container.resolve(NotificationManagerProtocol.self)
+        // Create test container
+        container = DITestHelper.createTestContainer()
+        
+        // Create NotificationManager instance
+        sut = NotificationManager.shared
+    }
+    
+    override func tearDown() async throws {
+        sut = nil
+        container = nil
+        try await super.tearDown()
     }
     
     func test_requestAuthorization_shouldRequestCorrectOptions() async throws {
