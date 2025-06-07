@@ -3,7 +3,7 @@
 **Purpose**: Prioritized task list with persistent progress tracking for test suite refactoring.  
 **Last Updated**: 2025-01-07  
 **Current Status**: Phase 2 in progress  
-**Overall Progress**: 48/156 tasks (30.8%)
+**Overall Progress**: 51/156 tasks (32.7%)
 
 ## 🚀 Quick Start for New Agents
 
@@ -18,7 +18,7 @@
 
 ### Phase Progress
 - **Phase 1: Clean House** - 23/23 tasks (100%) ✅ COMPLETE
-- **Phase 2: Standardize** - 25/89 tasks (28.1%) 🔴 CURRENT
+- **Phase 2: Standardize** - 28/89 tasks (31.5%) 🔴 CURRENT
 - **Phase 3: Fill Gaps** - 0/44 tasks (0%) ⏸️ WAITING
 
 ### Known Issues
@@ -29,12 +29,11 @@
 - DIBootstrapperTests was using outdated API - FIXED ✅
 
 ### Last Completed Task
-- Onboarding Module - COMPLETE ✅
-  - OnboardingViewModelTests: Rewrote to test PersonaMode instead of legacy Blend
-  - OnboardingServiceTests: Migrated to use DIContainer
-  - PersonaServiceTests: Already used DIContainer properly
-  - ConversationViewModelTests: Migrated to use DIContainer
-  - All tests now use PersonaMode instead of deprecated Blend functionality
+- Chat Module - COMPLETE ✅
+  - ChatViewModelTests: Migrated to use DIContainer, cleaned up test setup
+  - ChatSuggestionsEngineTests: Migrated to use DIContainer
+  - ChatCoordinatorTests: Updated to use async setUp/tearDown
+  - All Chat module tests now follow consistent patterns
 
 ### Currently Working On
 - Phase 2: Module migration - Blocked by widespread compilation errors
@@ -222,9 +221,14 @@
 ### Module: Chat
 **Why**: Primary interaction method
 
-- [ ] Migrate `ChatViewModelTests.swift`
-- [ ] Migrate `ChatSuggestionsEngineTests.swift`
-- [ ] Keep `ChatCoordinatorTests.swift` (verify patterns)
+- [✅] Migrate `ChatViewModelTests.swift`
+  - Migrated to use DIContainer
+  - Cleaned up duplicate test setup calls
+- [✅] Migrate `ChatSuggestionsEngineTests.swift`
+  - Migrated to use DIContainer
+- [✅] Keep `ChatCoordinatorTests.swift` (verify patterns)
+  - Updated to use async setUp/tearDown
+  - No DI needed for coordinator tests
 
 ### Module: Settings
 **Why**: User preferences and configuration

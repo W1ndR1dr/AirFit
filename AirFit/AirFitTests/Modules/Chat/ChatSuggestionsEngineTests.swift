@@ -1,19 +1,40 @@
 import XCTest
+import SwiftData
 @testable import AirFit
 
+@MainActor
 final class ChatSuggestionsEngineTests: XCTestCase {
-    var user: User!
-    var engine: ChatSuggestionsEngine!
+    // MARK: - Properties
+    private var container: DIContainer!
+    private var modelContext: ModelContext!
+    private var user: User!
+    private var engine: ChatSuggestionsEngine!
 
+    // MARK: - Setup
     override func setUp() async throws {
         try await super.setUp()
-        user = User()
+        
+        // Create test container
+        container = try await DITestHelper.createTestContainer()
+        
+        // Get model context from container
+        let modelContainer = try await container.resolve(ModelContainer.self)
+        modelContext = modelContainer.mainContext
+        
+        // Create test user
+        user = User(email: "test@example.com", name: "Test User")
+        modelContext.insert(user)
+        try modelContext.save()
+        
+        // Create engine
         engine = ChatSuggestionsEngine(user: user)
     }
     
     override func tearDown() async throws {
-        user = nil
         engine = nil
+        user = nil
+        modelContext = nil
+        container = nil
         try await super.tearDown()
     }
 
