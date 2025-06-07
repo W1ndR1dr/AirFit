@@ -5,14 +5,14 @@ import LocalAuthentication
 final class BiometricAuthManagerTests: XCTestCase {
     var sut: BiometricAuthManager!
     
-    override func setUp() {
-        super.setUp()
+    override func setUp() async throws {
+        try await super.setUp()
         sut = BiometricAuthManager()
     }
     
-    override func tearDown() {
+    override func tearDown() async throws {
         sut = nil
-        super.tearDown()
+        try await super.tearDown()
     }
     
     func test_biometricType_shouldReturnCorrectType() {

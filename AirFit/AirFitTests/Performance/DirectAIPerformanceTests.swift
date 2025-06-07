@@ -8,8 +8,8 @@ final class DirectAIPerformanceTests: XCTestCase {
     private var mockModelContext: ModelContext!
     private var testUser: User!
     
-    override func setUp() {
-        super.setUp()
+    override func setUp() async throws {
+        try await super.setUp()
         
         // Create test model context
         let config = ModelConfiguration(isStoredInMemoryOnly: true)
@@ -38,11 +38,11 @@ final class DirectAIPerformanceTests: XCTestCase {
         coachEngine = CoachEngine.createDefault(modelContext: mockModelContext)
     }
     
-    override func tearDown() {
+    override func tearDown() async throws {
         coachEngine = nil
         mockModelContext = nil
         testUser = nil
-        super.tearDown()
+        try await super.tearDown()
     }
     
     // MARK: - Nutrition Parsing Performance Tests

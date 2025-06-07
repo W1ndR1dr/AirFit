@@ -14,27 +14,18 @@ final class SettingsViewModelTests: XCTestCase {
     var testUser: User!
     var coordinator: SettingsCoordinator!
 
-    override func setUp() {
-        super.setUp()
+    override func setUp() async throws {
+        try await super.setUp()
 
         // Setup test context
         let config = ModelConfiguration(isStoredInMemoryOnly: true)
-        do {
-            let modelContainer = try ModelContainer(for: User.self, configurations: config)
-            modelContext = ModelContext(modelContainer)
-        } catch {
-            XCTFail("Failed to create container: \(error)")
-            return
-        }
+        let modelContainer = try ModelContainer(for: User.self, configurations: config)
+        modelContext = ModelContext(modelContainer)
 
         // Create test user
         testUser = User(name: "Test User")
         modelContext.insert(testUser)
-        do {
-            try modelContext.save()
-        } catch {
-            XCTFail("Failed to save test context: \(error)")
-        }
+        try modelContext.save()
 
         // Setup mocks
         mockAPIKeyManager = MockAPIKeyManager()
@@ -53,7 +44,7 @@ final class SettingsViewModelTests: XCTestCase {
         )
     }
 
-    override func tearDown() {
+    override func tearDown() async throws {
         sut = nil
         mockAPIKeyManager = nil
         mockAIService = nil
@@ -62,7 +53,7 @@ final class SettingsViewModelTests: XCTestCase {
         testUser = nil
         coordinator = nil
         container = nil
-        super.tearDown()
+        try await super.tearDown()
     }
 
     // MARK: - Loading Tests

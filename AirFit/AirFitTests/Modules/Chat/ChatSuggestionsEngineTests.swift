@@ -5,9 +5,16 @@ final class ChatSuggestionsEngineTests: XCTestCase {
     var user: User!
     var engine: ChatSuggestionsEngine!
 
-    override func setUp() {
+    override func setUp() async throws {
+        try await super.setUp()
         user = User()
         engine = ChatSuggestionsEngine(user: user)
+    }
+    
+    override func tearDown() async throws {
+        user = nil
+        engine = nil
+        try await super.tearDown()
     }
 
     func test_generateSuggestions_withoutHistory_returnsDefaultPrompts() async {

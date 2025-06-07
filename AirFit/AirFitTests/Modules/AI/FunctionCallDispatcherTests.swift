@@ -9,19 +9,11 @@ final class FunctionCallDispatcherTests: XCTestCase {
     var testContext: FunctionContext!
     var modelContainer: ModelContainer!
 
-    override func setUp() {
+    override func setUp() async throws {
+        try await super.setUp()
+        
         // Create in-memory model container for testing
-        do {
-
-            modelContainer = try ModelContainer.createTestContainer()
-
-        } catch {
-
-            XCTFail("Failed to create test container: \(error)")
-
-            return
-
-        }
+        modelContainer = try ModelContainer.createTestContainer()
 
         // Create test user
         testUser = User(
@@ -46,11 +38,12 @@ final class FunctionCallDispatcherTests: XCTestCase {
         )
     }
 
-    override func tearDown() {
+    override func tearDown() async throws {
         dispatcher = nil
         testUser = nil
         testContext = nil
         modelContainer = nil
+        try await super.tearDown()
     }
 
     // MARK: - Workout Function Tests

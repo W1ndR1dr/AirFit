@@ -3,7 +3,7 @@
 **Purpose**: Prioritized task list with persistent progress tracking for test suite refactoring.  
 **Last Updated**: 2025-01-07  
 **Current Status**: Phase 1 in progress  
-**Overall Progress**: 14/156 tasks (9.0%)
+**Overall Progress**: 16/156 tasks (10.3%)
 
 ## 🚀 Quick Start for New Agents
 
@@ -17,7 +17,7 @@
 ## 📊 Current Status
 
 ### Phase Progress
-- **Phase 1: Clean House** - 14/23 tasks (60.9%) 🔴 CURRENT
+- **Phase 1: Clean House** - 16/23 tasks (69.6%) 🔴 CURRENT
 - **Phase 2: Standardize** - 0/89 tasks (0%) ⏸️ WAITING
 - **Phase 3: Fill Gaps** - 0/44 tasks (0%) ⏸️ WAITING
 
@@ -27,10 +27,10 @@
 - Tests using old patterns: ~50%
 
 ### Last Completed Task
-- Verified no tests reference removed services (MockFoodDatabaseService, NetworkManager.shared, ServiceRegistry)
+- Fixed async setUp/tearDown in 6 more test files (8 total)
 
 ### Currently Working On
-- None - ready to start
+- Fixing async/await issues in remaining test files (manual approach)
 
 ## 📋 Progress Tracking Guidelines
 
@@ -50,7 +50,7 @@
 
 ## Phase 1: Clean House
 **Goal**: Remove outdated code and fix compilation errors  
-**Progress**: 14/23 tasks (60.9%)
+**Progress**: 16/23 tasks (69.6%)
 
 ### Delete Outdated Tests
 **Why**: These test deprecated features or use old patterns that no longer apply
@@ -89,7 +89,7 @@
 - [🚧] Fix remaining async/await issues:
   - [✅] Find all `override func setUp()` without async - Found ~20 files
   - [✅] Find all `override func tearDown()` without async - Found ~40 files
-  - [🚧] Update method signatures - Fixed 2 files, manual approach needed
+  - [🚧] Update method signatures - Fixed 8 files (2 + 6 more), manual approach working well
 
 - [ ] Fix Swift 6 compliance:
   - [ ] Add @MainActor to UI-related test classes
