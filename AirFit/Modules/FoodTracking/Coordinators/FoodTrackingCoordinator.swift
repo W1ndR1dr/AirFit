@@ -3,7 +3,9 @@ import Observation
 
 @MainActor
 @Observable
-final class FoodTrackingCoordinator {
+final class FoodTrackingCoordinator: FoodTrackingCoordinatorProtocol {
+    typealias SheetType = FoodTrackingSheet
+    typealias CoverType = FoodTrackingFullScreenCover
     // MARK: - Navigation State
     var navigationPath = NavigationPath()
     var activeSheet: FoodTrackingSheet?

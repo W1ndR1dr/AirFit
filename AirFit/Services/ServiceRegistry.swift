@@ -1,6 +1,9 @@
 import Foundation
 
 /// Service Registry for managing application services
+/// - Warning: DEPRECATED - Use DIContainer instead. This class is only kept for test compatibility.
+/// - SeeAlso: DIContainer, DIBootstrapper, DIViewModelFactory
+@available(*, deprecated, message: "Use DIContainer instead of ServiceRegistry")
 @MainActor
 final class ServiceRegistry {
     

@@ -61,10 +61,10 @@
 		<string>UIInterfaceOrientationLandscapeRight</string>
 	</array>
         <key>NSHealthShareUsageDescription</key>
-        <string>AirFit personalizes your fitness journey by analyzing your activity, sleep, heart health, and body metrics. Your AI coach uses this data to provide tailored recommendations and track your progress. All health data remains private and is never shared without your explicit consent.</string>
+        <string>AirFit personalizes your fitness journey by analyzing your activity, sleep, heart health, body metrics, and nutrition data. Your AI coach uses this data to provide tailored recommendations and track your progress. All health data remains private and is never shared without your explicit consent.</string>
 
         <key>NSHealthUpdateUsageDescription</key>
-        <string>AirFit saves your workouts and body measurements to Apple Health, keeping all your fitness data synchronized. This helps you track progress across all your devices and contributes to your activity rings.</string>
+        <string>AirFit saves your workouts, nutrition data, water intake, and body measurements to Apple Health, keeping all your fitness and health data synchronized. This helps you track progress across all your devices and contributes to your activity rings.</string>
 
         <key>NSHealthClinicalHealthRecordsShareUsageDescription</key>
         <string>AirFit does not access clinical health records.</string>

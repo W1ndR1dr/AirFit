@@ -274,10 +274,13 @@ final class HealthKitManager {
                     }
                     
                     let workouts = (samples as? [HKWorkout] ?? []).map { workout in
-                        WorkoutData(
+                        // Use statistics for activeEnergyBurned instead of deprecated totalEnergyBurned
+                        let activeEnergy = workout.statistics(for: HKQuantityType(.activeEnergyBurned))?.sumQuantity()
+                        
+                        return WorkoutData(
                             id: workout.uuid,
                             duration: workout.duration,
-                            totalCalories: workout.totalEnergyBurned?.doubleValue(for: .kilocalorie()),
+                            totalCalories: activeEnergy?.doubleValue(for: .kilocalorie()),
                             workoutType: workout.workoutActivityType,
                             startDate: workout.startDate,
                             endDate: workout.endDate
@@ -290,7 +293,326 @@ final class HealthKitManager {
                 healthStore.execute(query)
             }
     }
+    
+    // MARK: - Nutrition Writing
+    
+    /// Saves nutrition data from a food entry to HealthKit
+    func saveFoodEntry(_ entry: FoodEntry) async throws -> [String] {
+        var savedSampleIDs: [String] = []
+        var samples: [HKQuantitySample] = []
+        
+        // Calculate totals from all food items
+        var totalCalories: Double = 0
+        var totalProtein: Double = 0
+        var totalCarbs: Double = 0
+        var totalFat: Double = 0
+        var totalFiber: Double = 0
+        var totalSugar: Double = 0
+        var totalSodium: Double = 0
+        
+        for item in entry.items {
+            totalCalories += item.calories ?? 0
+            totalProtein += item.proteinGrams ?? 0
+            totalCarbs += item.carbGrams ?? 0
+            totalFat += item.fatGrams ?? 0
+            totalFiber += item.fiberGrams ?? 0
+            totalSugar += item.sugarGrams ?? 0
+            totalSodium += item.sodiumMg ?? 0
+        }
+        
+        let metadata: [String: Any] = [
+            "AirFitFoodEntryID": entry.id.uuidString,
+            "AirFitMealType": entry.mealType,
+            "AirFitSource": "User Input",
+            "AirFitItemCount": entry.items.count
+        ]
+        
+        let date = entry.loggedAt
+        
+        // Create samples for each nutrient
+        if totalCalories > 0,
+           let type = HKQuantityType.quantityType(forIdentifier: .dietaryEnergyConsumed) {
+            let quantity = HKQuantity(unit: .kilocalorie(), doubleValue: totalCalories)
+            let sample = HKQuantitySample(type: type, quantity: quantity, start: date, end: date, metadata: metadata)
+            samples.append(sample)
+        }
+        
+        if totalProtein > 0,
+           let type = HKQuantityType.quantityType(forIdentifier: .dietaryProtein) {
+            let quantity = HKQuantity(unit: .gram(), doubleValue: totalProtein)
+            let sample = HKQuantitySample(type: type, quantity: quantity, start: date, end: date, metadata: metadata)
+            samples.append(sample)
+        }
+        
+        if totalCarbs > 0,
+           let type = HKQuantityType.quantityType(forIdentifier: .dietaryCarbohydrates) {
+            let quantity = HKQuantity(unit: .gram(), doubleValue: totalCarbs)
+            let sample = HKQuantitySample(type: type, quantity: quantity, start: date, end: date, metadata: metadata)
+            samples.append(sample)
+        }
+        
+        if totalFat > 0,
+           let type = HKQuantityType.quantityType(forIdentifier: .dietaryFatTotal) {
+            let quantity = HKQuantity(unit: .gram(), doubleValue: totalFat)
+            let sample = HKQuantitySample(type: type, quantity: quantity, start: date, end: date, metadata: metadata)
+            samples.append(sample)
+        }
+        
+        if totalFiber > 0,
+           let type = HKQuantityType.quantityType(forIdentifier: .dietaryFiber) {
+            let quantity = HKQuantity(unit: .gram(), doubleValue: totalFiber)
+            let sample = HKQuantitySample(type: type, quantity: quantity, start: date, end: date, metadata: metadata)
+            samples.append(sample)
+        }
+        
+        if totalSugar > 0,
+           let type = HKQuantityType.quantityType(forIdentifier: .dietarySugar) {
+            let quantity = HKQuantity(unit: .gram(), doubleValue: totalSugar)
+            let sample = HKQuantitySample(type: type, quantity: quantity, start: date, end: date, metadata: metadata)
+            samples.append(sample)
+        }
+        
+        if totalSodium > 0,
+           let type = HKQuantityType.quantityType(forIdentifier: .dietarySodium) {
+            let quantity = HKQuantity(unit: .gramUnit(with: .milli), doubleValue: totalSodium)
+            let sample = HKQuantitySample(type: type, quantity: quantity, start: date, end: date, metadata: metadata)
+            samples.append(sample)
+        }
+        
+        // Save all samples
+        guard !samples.isEmpty else {
+            AppLogger.warning("No nutrition data to save for food entry", category: .health)
+            return []
+        }
+        
+        try await withCheckedThrowingContinuation { (continuation: CheckedContinuation<Void, Error>) in
+            healthStore.save(samples) { success, error in
+                if let error = error {
+                    continuation.resume(throwing: error)
+                } else if success {
+                    continuation.resume()
+                } else {
+                    continuation.resume(throwing: HealthKitError.queryFailed(NSError(domain: "HealthKit", code: -1)))
+                }
+            }
+        }
+        
+        // Collect sample IDs
+        savedSampleIDs = samples.map { $0.uuid.uuidString }
+        
+        AppLogger.info("Saved \(samples.count) nutrition samples to HealthKit for food entry", category: .health)
+        return savedSampleIDs
+    }
+    
+    /// Saves water intake to HealthKit
+    func saveWaterIntake(amountML: Double, date: Date = Date()) async throws -> String? {
+        guard let type = HKQuantityType.quantityType(forIdentifier: .dietaryWater) else {
+            throw HealthKitError.notAvailable
+        }
+        
+        let quantity = HKQuantity(unit: .literUnit(with: .milli), doubleValue: amountML)
+        let metadata: [String: Any] = [
+            "AirFitSource": "Water Tracking",
+            "AirFitTimestamp": date.timeIntervalSince1970
+        ]
+        
+        let sample = HKQuantitySample(type: type, quantity: quantity, start: date, end: date, metadata: metadata)
+        
+        try await withCheckedThrowingContinuation { (continuation: CheckedContinuation<Void, Error>) in
+            healthStore.save(sample) { success, error in
+                if let error = error {
+                    continuation.resume(throwing: error)
+                } else if success {
+                    continuation.resume()
+                } else {
+                    continuation.resume(throwing: HealthKitError.queryFailed(NSError(domain: "HealthKit", code: -1)))
+                }
+            }
+        }
+        
+        AppLogger.info("Saved water intake of \(amountML)ml to HealthKit", category: .health)
+        return sample.uuid.uuidString
+    }
+    
+    // MARK: - Nutrition Reading
+    
+    /// Fetches nutrition data for a specific date
+    func getNutritionData(for date: Date) async throws -> HealthKitNutritionSummary {
+        let calendar = Calendar.current
+        let startOfDay = calendar.startOfDay(for: date)
+        let endOfDay = calendar.date(byAdding: .day, value: 1, to: startOfDay) ?? date
+        
+        let predicate = HKQuery.predicateForSamples(
+            withStart: startOfDay,
+            end: endOfDay,
+            options: .strictStartDate
+        )
+        
+        // Fetch all nutrition types
+        let calories = try await fetchNutritionSum(for: .dietaryEnergyConsumed, unit: .kilocalorie(), predicate: predicate)
+        let protein = try await fetchNutritionSum(for: .dietaryProtein, unit: .gram(), predicate: predicate)
+        let carbs = try await fetchNutritionSum(for: .dietaryCarbohydrates, unit: .gram(), predicate: predicate)
+        let fat = try await fetchNutritionSum(for: .dietaryFatTotal, unit: .gram(), predicate: predicate)
+        let fiber = try await fetchNutritionSum(for: .dietaryFiber, unit: .gram(), predicate: predicate)
+        let sugar = try await fetchNutritionSum(for: .dietarySugar, unit: .gram(), predicate: predicate)
+        let sodium = try await fetchNutritionSum(for: .dietarySodium, unit: .gramUnit(with: .milli), predicate: predicate)
+        let water = try await fetchNutritionSum(for: .dietaryWater, unit: .literUnit(with: .milli), predicate: predicate)
+        
+        return HealthKitNutritionSummary(
+            calories: calories,
+            protein: protein,
+            carbs: carbs,
+            fat: fat,
+            fiber: fiber,
+            sugar: sugar,
+            sodium: sodium,
+            water: water,
+            date: date
+        )
+    }
+    
+    private nonisolated func fetchNutritionSum(
+        for identifier: HKQuantityTypeIdentifier,
+        unit: HKUnit,
+        predicate: NSPredicate
+    ) async throws -> Double {
+        guard let type = HKQuantityType.quantityType(forIdentifier: identifier) else {
+            return 0
+        }
+        
+        return try await withCheckedThrowingContinuation { continuation in
+            let query = HKStatisticsQuery(
+                quantityType: type,
+                quantitySamplePredicate: predicate,
+                options: .cumulativeSum
+            ) { _, statistics, error in
+                if let error = error {
+                    continuation.resume(throwing: error)
+                } else if let sum = statistics?.sumQuantity() {
+                    continuation.resume(returning: sum.doubleValue(for: unit))
+                } else {
+                    continuation.resume(returning: 0)
+                }
+            }
+            
+            HKHealthStore().execute(query)
+        }
+    }
+    
+    // MARK: - Workout Writing
+    
+    /// Saves a workout to HealthKit
+    func saveWorkout(_ workout: Workout) async throws -> String {
+        guard let workoutType = workout.workoutTypeEnum else {
+            throw HealthKitError.invalidData
+        }
+        
+        let hkWorkoutType = workoutType.toHealthKitType()
+        let startDate = workout.plannedDate ?? Date()
+        let endDate = workout.completedDate ?? Date()
+        
+        // Create energy burned quantity
+        var totalEnergy: HKQuantity?
+        if let calories = workout.caloriesBurned {
+            totalEnergy = HKQuantity(unit: .kilocalorie(), doubleValue: calories)
+        }
+        
+        // Create workout metadata
+        let metadata: [String: Any] = [
+            "AirFitWorkoutID": workout.id.uuidString,
+            "AirFitWorkoutName": workout.name,
+            "AirFitIntensity": workout.intensity ?? "moderate",
+            "AirFitSource": "AirFit App"
+        ]
+        
+        // Build workout
+        let hkWorkout = HKWorkout(
+            activityType: hkWorkoutType,
+            start: startDate,
+            end: endDate,
+            duration: workout.duration ?? 0,
+            totalEnergyBurned: totalEnergy,
+            totalDistance: nil, // TODO: Add distance tracking when available
+            metadata: metadata
+        )
+        
+        // Save workout
+        try await withCheckedThrowingContinuation { (continuation: CheckedContinuation<Void, Error>) in
+            healthStore.save(hkWorkout) { success, error in
+                if let error = error {
+                    continuation.resume(throwing: error)
+                } else if success {
+                    continuation.resume()
+                } else {
+                    continuation.resume(throwing: HealthKitError.queryFailed(NSError(domain: "HealthKit", code: -1)))
+                }
+            }
+        }
+        
+        AppLogger.info("Saved workout to HealthKit: \(workout.name)", category: .health)
+        return hkWorkout.uuid.uuidString
+    }
+    
+    /// Deletes a workout from HealthKit
+    func deleteWorkout(healthKitID: String) async throws {
+        guard let uuid = UUID(uuidString: healthKitID) else {
+            throw HealthKitError.invalidData
+        }
+        
+        // Create predicate to find the workout
+        let predicate = HKQuery.predicateForObject(with: uuid)
+        
+        // Query for the workout
+        let workouts = try await withCheckedThrowingContinuation { (continuation: CheckedContinuation<[HKWorkout], Error>) in
+            let query = HKSampleQuery(
+                sampleType: HKObjectType.workoutType(),
+                predicate: predicate,
+                limit: 1,
+                sortDescriptors: nil
+            ) { _, samples, error in
+                if let error = error {
+                    continuation.resume(throwing: error)
+                } else {
+                    let workouts = (samples as? [HKWorkout]) ?? []
+                    continuation.resume(returning: workouts)
+                }
+            }
+            healthStore.execute(query)
+        }
+        
+        guard let workout = workouts.first else {
+            throw HealthKitError.dataNotFound
+        }
+        
+        // Delete the workout
+        try await withCheckedThrowingContinuation { (continuation: CheckedContinuation<Void, Error>) in
+            healthStore.delete(workout) { success, error in
+                if let error = error {
+                    continuation.resume(throwing: error)
+                } else if success {
+                    continuation.resume()
+                } else {
+                    continuation.resume(throwing: HealthKitError.queryFailed(NSError(domain: "HealthKit", code: -1)))
+                }
+            }
+        }
+        
+        AppLogger.info("Deleted workout from HealthKit", category: .health)
+    }
 
+}
+
+// MARK: - Nutrition Summary Model
+struct HealthKitNutritionSummary {
+    let calories: Double
+    let protein: Double
+    let carbs: Double
+    let fat: Double
+    let fiber: Double
+    let sugar: Double
+    let sodium: Double
+    let water: Double
+    let date: Date
 }
 
 // MARK: - Workout Data Model

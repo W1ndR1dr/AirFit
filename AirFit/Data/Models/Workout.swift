@@ -1,6 +1,7 @@
 import SwiftData
 import Foundation
 import SwiftUI
+import HealthKit
 
 @Model
 final class Workout: @unchecked Sendable {
@@ -177,6 +178,28 @@ enum WorkoutType: String, Codable, CaseIterable, Sendable {
         case .hiit: return .red
         case .yoga: return .indigo
         case .pilates: return .teal
+        }
+    }
+    
+    /// Converts WorkoutType to HKWorkoutActivityType
+    func toHealthKitType() -> HKWorkoutActivityType {
+        switch self {
+        case .strength:
+            return .traditionalStrengthTraining
+        case .cardio:
+            return .running // Default cardio, could be more specific
+        case .flexibility:
+            return .flexibility
+        case .sports:
+            return .discSports
+        case .general:
+            return .other
+        case .hiit:
+            return .highIntensityIntervalTraining
+        case .yoga:
+            return .yoga
+        case .pilates:
+            return .pilates
         }
     }
 }

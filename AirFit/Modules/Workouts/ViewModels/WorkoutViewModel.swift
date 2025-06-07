@@ -21,19 +21,25 @@ final class WorkoutViewModel: ErrorHandling {
     private let coachEngine: CoachEngineProtocol
     private let healthKitManager: HealthKitManaging
     private let contextAssembler: ContextAssembler
+    private let exerciseDatabase: ExerciseDatabase
+    private let workoutSyncService: WorkoutSyncService
 
     // MARK: - Init
     init(
         modelContext: ModelContext,
         user: User,
         coachEngine: CoachEngineProtocol,
-        healthKitManager: HealthKitManaging
+        healthKitManager: HealthKitManaging,
+        exerciseDatabase: ExerciseDatabase,
+        workoutSyncService: WorkoutSyncService
     ) {
         self.modelContext = modelContext
         self.user = user
         self.coachEngine = coachEngine
         self.healthKitManager = healthKitManager
         self.contextAssembler = ContextAssembler(healthKitManager: healthKitManager)
+        self.exerciseDatabase = exerciseDatabase
+        self.workoutSyncService = workoutSyncService
 
         NotificationCenter.default.addObserver(
             self,
@@ -67,7 +73,7 @@ final class WorkoutViewModel: ErrorHandling {
     // MARK: - Exercise Library
     func loadExerciseLibrary() async {
         // Trigger exercise database initialization if needed
-        _ = try? await ExerciseDatabase.shared.getAllExercises()
+        _ = try? await exerciseDatabase.getAllExercises()
     }
 
     // MARK: - Processing
@@ -75,7 +81,7 @@ final class WorkoutViewModel: ErrorHandling {
         isLoading = true
         defer { isLoading = false }
         do {
-            try await WorkoutSyncService.shared.processReceivedWorkout(data, modelContext: modelContext)
+            try await workoutSyncService.processReceivedWorkout(data, modelContext: modelContext)
             await loadWorkouts()
             if let workout = workouts.first(where: { $0.id == data.id }) {
                 await generateAIAnalysis(for: workout)

@@ -23,7 +23,8 @@ struct OnboardingFlowView: View {
                 onboardingService: onboardingService,
                 modelContext: tempContainer.mainContext,
                 apiKeyManager: APIKeyManager(keychain: KeychainWrapper.shared),
-                userService: UserService(modelContext: tempContainer.mainContext)
+                userService: UserService(modelContext: tempContainer.mainContext),
+                mode: .legacy  // Use legacy mode for testing
             ))
         } catch {
             // Fallback to in-memory container if persistent storage fails

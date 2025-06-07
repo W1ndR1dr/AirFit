@@ -2,7 +2,7 @@ import Foundation
 import SwiftData
 
 /// Protocol for analytics and tracking operations
-protocol AnalyticsServiceProtocol: AnyObject {
+protocol AnalyticsServiceProtocol: AnyObject, Sendable {
     func trackEvent(_ event: AnalyticsEvent) async
     func trackScreen(_ screen: String, properties: [String: String]?) async
     func setUserProperties(_ properties: [String: String]) async

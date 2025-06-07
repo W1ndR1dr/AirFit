@@ -37,7 +37,14 @@ enum HealthKitDataTypes {
             .bodyTemperature,
             .oxygenSaturation,
             // Nutrition
-            .dietaryWater
+            .dietaryWater,
+            .dietaryEnergyConsumed,
+            .dietaryProtein,
+            .dietaryCarbohydrates,
+            .dietaryFatTotal,
+            .dietaryFiber,
+            .dietarySugar,
+            .dietarySodium
         ]
 
         for identifier in quantityIdentifiers {
@@ -78,9 +85,18 @@ enum HealthKitDataTypes {
         var types = Set<HKSampleType>()
 
         let writeIdentifiers: [HKQuantityTypeIdentifier] = [
+            // Body Metrics
             .bodyMass,
             .bodyFatPercentage,
-            .dietaryWater
+            // Nutrition
+            .dietaryWater,
+            .dietaryEnergyConsumed,
+            .dietaryProtein,
+            .dietaryCarbohydrates,
+            .dietaryFatTotal,
+            .dietaryFiber,
+            .dietarySugar,
+            .dietarySodium
         ]
 
         for identifier in writeIdentifiers {

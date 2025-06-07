@@ -1,11 +1,9 @@
 import Foundation
 import SwiftData
-import HealthKit
 
 /// Service for nutrition-related operations and calculations.
 actor NutritionService: NutritionServiceProtocol {
     private let modelContext: ModelContext
-    private let healthStore = HKHealthStore()
 
     init(modelContext: ModelContext) {
         self.modelContext = modelContext
@@ -14,8 +12,24 @@ actor NutritionService: NutritionServiceProtocol {
     // MARK: - Basic CRUD
 
     func saveFoodEntry(_ entry: FoodEntry) async throws {
+        // 1. Save to SwiftData first (immediate UI update)
         modelContext.insert(entry)
         try modelContext.save()
+        
+        // 2. Save to HealthKit (best effort, but synchronous for now)
+        do {
+            let sampleIDs = try await HealthKitManager.shared.saveFoodEntry(entry)
+            if !sampleIDs.isEmpty {
+                // Store HealthKit sample IDs for future reference
+                entry.healthKitSampleIDs = sampleIDs
+                entry.healthKitSyncDate = Date()
+                try modelContext.save()
+                AppLogger.info("Synced food entry to HealthKit with \(sampleIDs.count) samples", category: .data)
+            }
+        } catch {
+            // Don't fail the save operation if HealthKit sync fails
+            AppLogger.error("Failed to sync food entry to HealthKit", error: error, category: .data)
+        }
     }
 
     func getFoodEntries(for date: Date) async throws -> [FoodEntry] {
@@ -76,9 +90,14 @@ actor NutritionService: NutritionServiceProtocol {
     }
     
     func getWaterIntake(for user: User, date: Date) async throws -> Double {
-        // Placeholder implementation. In a complete app this would fetch from a
-        // dedicated WaterIntake entity.
-        return 0
+        // Fetch from HealthKit
+        do {
+            let nutritionData = try await HealthKitManager.shared.getNutritionData(for: date)
+            return nutritionData.water
+        } catch {
+            AppLogger.warning("Failed to fetch water intake from HealthKit: \(error)", category: .data)
+            return 0
+        }
     }
     
     func getRecentFoods(for user: User, limit: Int) async throws -> [FoodItem] {
@@ -106,8 +125,14 @@ actor NutritionService: NutritionServiceProtocol {
     }
     
     func logWaterIntake(for user: User, amountML: Double, date: Date) async throws {
-        // Placeholder implementation. Would create a WaterIntake model and save
-        // a HealthKit sample of type `.dietaryWater`.
+        // Save to HealthKit
+        do {
+            _ = try await HealthKitManager.shared.saveWaterIntake(amountML: amountML, date: date)
+            AppLogger.info("Logged \(amountML)ml water intake to HealthKit", category: .data)
+        } catch {
+            AppLogger.error("Failed to log water intake to HealthKit", error: error, category: .data)
+            throw error
+        }
     }
     
     func getMealHistory(for user: User, mealType: MealType, daysBack: Int) async throws -> [FoodEntry] {
@@ -154,30 +179,6 @@ actor NutritionService: NutritionServiceProtocol {
         return summary
     }
 
-    // MARK: - HealthKit Sync
-    func syncCaloriesToHealthKit(for user: User, date: Date) async throws {
-        guard HKHealthStore.isHealthDataAvailable(),
-              let energyType = HKQuantityType.quantityType(forIdentifier: .dietaryEnergyConsumed) else {
-            return
-        }
-
-        let status = healthStore.authorizationStatus(for: energyType)
-        guard status == .sharingAuthorized else { return }
-
-        let entries = try await getFoodEntries(for: user, date: date)
-        let summary = calculateNutritionSummary(from: entries)
-        guard summary.calories > 0 else { return }
-
-        let quantity = HKQuantity(unit: .kilocalorie(), doubleValue: summary.calories)
-        let sample = HKQuantitySample(type: energyType, quantity: quantity, start: date, end: date)
-
-        try await withCheckedThrowingContinuation { (continuation: CheckedContinuation<Void, Error>) in
-            healthStore.save(sample) { _, error in
-                if let error { continuation.resume(throwing: error) }
-                else { continuation.resume() }
-            }
-        }
-    }
 }
 
 // MARK: - Nutrition Targets

@@ -16,18 +16,13 @@ struct ContentView: View {
                 } else if appState.shouldCreateUser {
                     WelcomeView(appState: appState)
                 } else if appState.shouldShowOnboarding {
-                    // TODO: Migrate to DI when Onboarding module is updated
-                    // For now, use DependencyContainer as fallback
-                    let aiService = DependencyContainer.shared.aiService ?? OfflineAIService()
-                    OnboardingFlowView(
-                        aiService: aiService,
-                        onboardingService: OnboardingService(modelContext: modelContext),
-                        onCompletion: {
-                            Task {
-                                await appState.completeOnboarding()
-                            }
+                    // Use the new DI-based onboarding flow
+                    OnboardingFlowViewDI(onCompletion: {
+                        Task {
+                            await appState.completeOnboarding()
                         }
-                    )
+                    })
+                    .withDIContainer(diContainer)
                 } else if appState.shouldShowDashboard, let user = appState.currentUser {
                     DashboardView(user: user)
                 } else {
@@ -76,7 +71,7 @@ private struct WelcomeView: View {
     let appState: AppState
 
     var body: some View {
-        VStack(spacing: AppSpacing.xlarge) {
+        VStack(spacing: AppSpacing.xLarge) {
             Spacer()
 
             VStack(spacing: AppSpacing.large) {
@@ -113,10 +108,10 @@ private struct WelcomeView: View {
                     .frame(maxWidth: .infinity)
                     .padding()
                     .background(AppColors.accentColor)
-                    .cornerRadius(AppConstants.Layout.defaultCornerRadius.medium)
+                    .cornerRadius(AppConstants.Layout.defaultCornerRadius)
             }
             .padding(.horizontal, AppSpacing.large)
-            .padding(.bottom, AppSpacing.xlarge)
+            .padding(.bottom, AppSpacing.xLarge)
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity)
         .background(AppColors.backgroundPrimary)
@@ -154,7 +149,7 @@ private struct ErrorView: View {
                 .padding(.horizontal, AppSpacing.large)
                 .padding(.vertical, AppSpacing.medium)
                 .background(AppColors.accentColor)
-                .cornerRadius(AppConstants.Layout.defaultCornerRadius.medium)
+                .cornerRadius(AppConstants.Layout.defaultCornerRadius)
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity)
         .background(AppColors.backgroundPrimary)

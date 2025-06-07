@@ -1,6 +1,5 @@
 import Foundation
 import WatchConnectivity
-import CloudKit
 import SwiftData
 import HealthKit
 
@@ -10,16 +9,6 @@ final class WorkoutSyncService: NSObject {
 
     private let session: WCSession
     private var pendingWorkouts: [WorkoutBuilderData] = []
-
-    // Lazy initialization to avoid CloudKit crashes during init
-    private lazy var container: CKContainer? = {
-        // CloudKit may not be available in simulator or without proper entitlements
-        guard CKContainer.default() != nil else {
-            AppLogger.warning("CloudKit container not available", category: .data)
-            return nil
-        }
-        return CKContainer.default()
-    }()
 
     override private init() {
         self.session = WCSession.default
@@ -34,9 +23,9 @@ final class WorkoutSyncService: NSObject {
     // MARK: - Watch -> iPhone
     func sendWorkoutData(_ data: WorkoutBuilderData) async {
         guard session.isReachable else {
-            // Queue for later
+            // Queue for later when connection is available
             pendingWorkouts.append(data)
-            await syncToCloudKit(data)
+            AppLogger.warning("Watch not reachable, queuing workout data", category: .data)
             return
         }
 
@@ -45,39 +34,28 @@ final class WorkoutSyncService: NSObject {
             session.sendMessageData(encoded, replyHandler: nil) { error in
                 Task { @MainActor in
                     self.pendingWorkouts.append(data)
-                    Task {
-                        await self.syncToCloudKit(data)
-                    }
                     AppLogger.error("Failed to send workout data", error: error, category: .data)
                 }
             }
             AppLogger.info("Workout data sent to iPhone", category: .data)
         } catch {
             pendingWorkouts.append(data)
-            await syncToCloudKit(data)
-            AppLogger.error("Failed to send workout data", error: error, category: .data)
+            AppLogger.error("Failed to encode workout data", error: error, category: .data)
+        }
+    }
+    
+    // MARK: - Retry Pending Workouts
+    func retryPendingWorkouts() async {
+        guard session.isReachable, !pendingWorkouts.isEmpty else { return }
+        
+        let workoutsToRetry = pendingWorkouts
+        pendingWorkouts.removeAll()
+        
+        for workout in workoutsToRetry {
+            await sendWorkoutData(workout)
         }
     }
 
-    // MARK: - CloudKit Sync
-    private func syncToCloudKit(_ data: WorkoutBuilderData) async {
-        guard let container = container else {
-            AppLogger.warning("CloudKit container not available, skipping sync", category: .data)
-            return
-        }
-
-        let record = CKRecord(recordType: "WorkoutSync")
-        record["workoutId"] = data.id.uuidString
-        record["data"] = try? JSONEncoder().encode(data)
-        record["timestamp"] = Date()
-
-        do {
-            _ = try await container.privateCloudDatabase.save(record)
-            AppLogger.info("Workout synced to CloudKit", category: .data)
-        } catch {
-            AppLogger.error("CloudKit sync failed", error: error, category: .data)
-        }
-    }
 
     // MARK: - Process Received Data
     func processReceivedWorkout(_ data: WorkoutBuilderData, modelContext: ModelContext) async throws {
@@ -90,6 +68,12 @@ final class WorkoutSyncService: NSObject {
         workout.completedDate = data.endTime
         workout.caloriesBurned = data.totalCalories
         workout.durationSeconds = data.duration
+        
+        // Link to existing HealthKit workout if from Watch
+        if let healthKitID = data.healthKitWorkoutID {
+            workout.healthKitWorkoutID = healthKitID
+            workout.healthKitSyncedDate = Date()
+        }
 
         for exerciseData in data.exercises {
             let exercise = Exercise(

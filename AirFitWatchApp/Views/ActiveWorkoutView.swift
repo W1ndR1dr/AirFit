@@ -1,6 +1,8 @@
 import SwiftUI
 import HealthKit
+#if os(watchOS)
 import WatchKit
+#endif
 
 struct ActiveWorkoutView: View {
     let workoutManager: WatchWorkoutManager
@@ -26,7 +28,9 @@ struct ActiveWorkoutView: View {
         .tabViewStyle(.verticalPage)
         .ignoresSafeArea()
         .onAppear {
+            #if os(watchOS)
             WKExtension.shared().isAutorotating = false
+            #endif
         }
     }
 }

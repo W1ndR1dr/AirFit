@@ -126,10 +126,55 @@ public final class DIBootstrapper {
             return WorkoutService(modelContext: modelContainer.mainContext)
         }
         
+        // Exercise Database
+        container.register(ExerciseDatabase.self, lifetime: .singleton) { @MainActor _ in
+            ExerciseDatabase.shared
+        }
+        
+        // Workout Sync Service
+        container.register(WorkoutSyncService.self, lifetime: .singleton) { @MainActor _ in
+            WorkoutSyncService.shared
+        }
+        
         // Analytics Service
         container.register(AnalyticsServiceProtocol.self) { @MainActor container in
             let modelContainer = try await container.resolve(ModelContainer.self)
             return AnalyticsService(modelContext: modelContainer.mainContext)
+        }
+        
+        // Goal Service  
+        container.register(GoalServiceProtocol.self) { @MainActor container in
+            let modelContainer = try await container.resolve(ModelContainer.self)
+            return GoalService(modelContext: modelContainer.mainContext)
+        }
+        
+        // AI-specific service registrations for FunctionCallDispatcher
+        container.register(AIGoalServiceProtocol.self) { @MainActor container in
+            let goalService = try await container.resolve(GoalServiceProtocol.self)
+            return AIGoalService(goalService: goalService)
+        }
+        
+        container.register(AIWorkoutServiceProtocol.self) { @MainActor container in
+            let workoutService = try await container.resolve(WorkoutServiceProtocol.self)
+            return AIWorkoutService(workoutService: workoutService)
+        }
+        
+        container.register(AIAnalyticsServiceProtocol.self) { @MainActor container in
+            let analyticsService = try await container.resolve(AnalyticsServiceProtocol.self)
+            return AIAnalyticsService(analyticsService: analyticsService)
+        }
+        
+        // MARK: - FoodTracking Module Services
+        
+        // Food Voice Adapter
+        container.register(FoodVoiceAdapterProtocol.self) { @MainActor container in
+            let voiceInputManager = try await container.resolve(VoiceInputManager.self)
+            return FoodVoiceAdapter(voiceInputManager: voiceInputManager)
+        }
+        
+        // Food Tracking Coordinator
+        container.register(FoodTrackingCoordinator.self) { @MainActor _ in
+            FoodTrackingCoordinator()
         }
         
         // MARK: - Voice Services

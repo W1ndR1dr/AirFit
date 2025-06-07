@@ -3,121 +3,111 @@ import SwiftData
 
 /// Final polished onboarding flow view - production ready
 struct FinalOnboardingFlow: View {
-    @State private var coordinator: OnboardingFlowCoordinator
+    @State private var coordinator: OnboardingFlowCoordinator?
     @Environment(\.modelContext) private var modelContext
+    @Environment(\.diContainer) private var diContainer
     @State private var showingExitConfirmation = false
-    
-    init(
-        userService: UserServiceProtocol,
-        modelContext: ModelContext
-    ) {
-        let cache = AIResponseCache()
-        
-        // Safe initialization with proper error handling
-        guard let apiKeyManager = DependencyContainer.shared.apiKeyManager,
-              let apiKeyManagement = apiKeyManager as? APIKeyManagementProtocol else {
-            AppLogger.error("Failed to initialize onboarding: API key manager unavailable", category: .onboarding)
-            // Initialize with default values - onboarding will show error state
-            let defaultLLMOrchestrator = LLMOrchestrator(apiKeyManager: APIKeyManager())
-            let defaultSynthesizer = OptimizedPersonaSynthesizer(
-                llmOrchestrator: defaultLLMOrchestrator,
-                cache: cache
-            )
-            let defaultPersonaService = PersonaService(
-                personaSynthesizer: defaultSynthesizer,
-                llmOrchestrator: defaultLLMOrchestrator,
-                modelContext: modelContext,
-                cache: cache
-            )
-            // Create a basic conversation manager for error case
-            let defaultConversationManager = ConversationFlowManager(
-                flowDefinition: [:], // Empty flow for error case
-                modelContext: modelContext
-            )
-            _coordinator = State(initialValue: OnboardingFlowCoordinator(
-                conversationManager: defaultConversationManager,
-                personaService: defaultPersonaService,
-                userService: userService,
-                modelContext: modelContext
-            ))
-            return
-        }
-        
-        let llmOrchestrator = LLMOrchestrator(apiKeyManager: apiKeyManagement)
-        
-        // Use optimized synthesizer
-        let optimizedSynthesizer = OptimizedPersonaSynthesizer(
-            llmOrchestrator: llmOrchestrator,
-            cache: cache
-        )
-        
-        let personaService = PersonaService(
-            personaSynthesizer: optimizedSynthesizer,
-            llmOrchestrator: llmOrchestrator,
-            modelContext: modelContext,
-            cache: cache
-        )
-        
-        let conversationManager = ConversationFlowManager(
-            flowDefinition: ConversationFlowData.defaultFlow(),
-            modelContext: modelContext
-        )
-        
-        self.coordinator = OnboardingFlowCoordinator(
-            conversationManager: conversationManager,
-            personaService: personaService,
-            userService: userService,
-            modelContext: modelContext
-        )
-    }
+    @State private var isLoading = true
+    @State private var loadError: Error?
     
     var body: some View {
-        OnboardingErrorBoundary(content: {
-            NavigationStack {
-                ZStack {
-                    // Background gradient
-                    backgroundGradient
-                    
-                    // Content with transitions
-                    contentView
-                        .transition(.asymmetric(
-                            insertion: .move(edge: .trailing).combined(with: .opacity),
-                            removal: .move(edge: .leading).combined(with: .opacity)
-                        ))
-                }
-                .toolbar(coordinator.currentView == .welcome ? .hidden : .visible, for: .navigationBar)
-                .toolbar {
-                    if coordinator.currentView != .welcome && coordinator.currentView != .complete {
-                        ToolbarItem(placement: .navigationBarLeading) {
-                            Button("Exit") {
-                                showingExitConfirmation = true
+        Group {
+            if let coordinator = coordinator {
+                OnboardingErrorBoundary(content: {
+                    NavigationStack {
+                        ZStack {
+                            // Background gradient
+                            backgroundGradient
+                            
+                            // Content with transitions
+                            contentView(for: coordinator)
+                                .transition(.asymmetric(
+                                    insertion: .move(edge: .trailing).combined(with: .opacity),
+                                    removal: .move(edge: .leading).combined(with: .opacity)
+                                ))
+                        }
+                        .toolbar(coordinator.currentView == .welcome ? .hidden : .visible, for: .navigationBar)
+                        .toolbar {
+                            if coordinator.currentView != .welcome && coordinator.currentView != .complete {
+                                ToolbarItem(placement: .navigationBarLeading) {
+                                    Button("Exit") {
+                                        showingExitConfirmation = true
+                                    }
+                                    .foregroundColor(AppColors.textSecondary)
+                                }
                             }
-                            .foregroundColor(AppColors.textSecondary)
                         }
                     }
+                    .preferredColorScheme(.dark)
+                    .confirmationDialog(
+                        "Exit Onboarding?",
+                        isPresented: $showingExitConfirmation,
+                        titleVisibility: .visible
+                    ) {
+                        Button("Exit", role: .destructive) {
+                            // Handle exit
+                        }
+                        Button("Continue Setup", role: .cancel) { }
+                    } message: {
+                        Text("You can complete setup later from Settings")
+                    }
+                }, coordinator: coordinator)
+                .onAppear {
+                    coordinator.start()
                 }
-            }
-            .preferredColorScheme(.dark)
-            .confirmationDialog(
-                "Exit Onboarding?",
-                isPresented: $showingExitConfirmation,
-                titleVisibility: .visible
-            ) {
-                Button("Exit", role: .destructive) {
-                    // Handle exit
+            } else if isLoading {
+                ProgressView("Setting up...")
+                    .frame(maxWidth: .infinity, maxHeight: .infinity)
+                    .background(AppColors.backgroundPrimary)
+            } else if let error = loadError {
+                VStack(spacing: AppSpacing.large) {
+                    Image(systemName: "exclamationmark.triangle.fill")
+                        .font(.largeTitle)
+                        .foregroundColor(AppColors.errorColor)
+                    
+                    Text("Failed to initialize onboarding")
+                        .font(AppFonts.headline)
+                        .foregroundColor(AppColors.textPrimary)
+                    
+                    Text(error.localizedDescription)
+                        .font(AppFonts.body)
+                        .foregroundColor(AppColors.textSecondary)
+                        .multilineTextAlignment(.center)
+                    
+                    Button("Retry") {
+                        Task {
+                            await loadCoordinator()
+                        }
+                    }
+                    .buttonStyle(.borderedProminent)
                 }
-                Button("Continue Setup", role: .cancel) { }
-            } message: {
-                Text("You can complete setup later from Settings")
+                .padding()
+                .frame(maxWidth: .infinity, maxHeight: .infinity)
+                .background(AppColors.backgroundPrimary)
             }
-        }, coordinator: coordinator)
-        .onAppear {
-            coordinator.start()
+        }
+        .task {
+            await loadCoordinator()
+        }
+    }
+    
+    private func loadCoordinator() async {
+        isLoading = true
+        loadError = nil
+        
+        do {
+            let factory = DIViewModelFactory(container: diContainer)
+            coordinator = try await factory.makeOnboardingFlowCoordinator()
+            isLoading = false
+        } catch {
+            loadError = error
+            isLoading = false
+            AppLogger.error("Failed to create onboarding coordinator", error: error, category: .onboarding)
         }
     }
     
     @ViewBuilder
-    private var contentView: some View {
+    private func contentView(for coordinator: OnboardingFlowCoordinator) -> some View {
         switch coordinator.currentView {
         case .welcome:
             WelcomeView(coordinator: coordinator)

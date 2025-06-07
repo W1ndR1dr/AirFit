@@ -280,7 +280,9 @@ private struct QuickActionCard: View {
         modelContext: context,
         user: user,
         coachEngine: WorkoutMockCoachEngine(),
-        healthKitManager: PreviewHealthKitManager()
+        healthKitManager: PreviewHealthKitManager(),
+        exerciseDatabase: ExerciseDatabase.shared,
+        workoutSyncService: WorkoutSyncService.shared
     )
     WorkoutListView(viewModel: vm)
         .modelContainer(container)
@@ -295,6 +297,26 @@ final class PreviewHealthKitManager: HealthKitManaging {
     func fetchHeartHealthMetrics() async throws -> HeartHealthMetrics { HeartHealthMetrics() }
     func fetchLatestBodyMetrics() async throws -> BodyMetrics { BodyMetrics() }
     func fetchLastNightSleep() async throws -> SleepAnalysis.SleepSession? { nil }
+    
+    // New HealthKit integration methods
+    func getWorkoutData(from startDate: Date, to endDate: Date) async -> [WorkoutData] { [] }
+    func saveFoodEntry(_ entry: FoodEntry) async throws -> [String] { [] }
+    func saveWaterIntake(amountML: Double, date: Date) async throws -> String? { nil }
+    func getNutritionData(for date: Date) async throws -> HealthKitNutritionSummary {
+        HealthKitNutritionSummary(
+            calories: 0,
+            protein: 0,
+            carbs: 0,
+            fat: 0,
+            fiber: 0,
+            sugar: 0,
+            sodium: 0,
+            water: 0,
+            date: date
+        )
+    }
+    func saveWorkout(_ workout: Workout) async throws -> String { "preview-workout-id" }
+    func deleteWorkout(healthKitID: String) async throws {}
 }
 
 @MainActor

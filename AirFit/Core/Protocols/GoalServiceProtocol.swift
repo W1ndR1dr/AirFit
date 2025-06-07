@@ -2,7 +2,7 @@ import Foundation
 import SwiftData
 
 /// Protocol for goal management operations
-protocol GoalServiceProtocol: AnyObject {
+protocol GoalServiceProtocol: AnyObject, Sendable {
     func createGoal(
         _ goalData: GoalCreationData,
         for user: User

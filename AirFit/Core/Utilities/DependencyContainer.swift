@@ -1,6 +1,10 @@
 import Foundation
 import SwiftData
 
+/// Legacy dependency container
+/// - Warning: DEPRECATED - Use DIContainer instead. This class is only kept for Onboarding module compatibility.
+/// - SeeAlso: DIContainer, DIBootstrapper, DIViewModelFactory
+@available(*, deprecated, message: "Use DIContainer instead of DependencyContainer")
 public final class DependencyContainer: @unchecked Sendable {
     static let shared = DependencyContainer()
 

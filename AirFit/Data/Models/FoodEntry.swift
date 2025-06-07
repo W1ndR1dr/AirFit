@@ -15,6 +15,10 @@ final class FoodEntry: @unchecked Sendable {
     var parsingModelUsed: String?
     var parsingConfidence: Double?
     var parsingTimestamp: Date?
+    
+    // HealthKit Integration
+    var healthKitSampleIDsData: Data? // JSON array of sample UUIDs
+    var healthKitSyncDate: Date?
 
     // MARK: - Relationships
     @Relationship(deleteRule: .cascade, inverse: \FoodItem.foodEntry)
@@ -25,6 +29,16 @@ final class FoodEntry: @unchecked Sendable {
     var user: User?
 
     // MARK: - Computed Properties
+    var healthKitSampleIDs: [String] {
+        get {
+            guard let data = healthKitSampleIDsData else { return [] }
+            return (try? JSONDecoder().decode([String].self, from: data)) ?? []
+        }
+        set {
+            healthKitSampleIDsData = try? JSONEncoder().encode(newValue)
+        }
+    }
+    
     var totalCalories: Int {
         Int(items.reduce(0) { $0 + ($1.calories ?? 0) })
     }

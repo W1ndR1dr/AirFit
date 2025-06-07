@@ -141,29 +141,4 @@ struct ServiceConfiguration: Sendable {
 }
 
 
-// MARK: - Service Locator Pattern Helper
-protocol ServiceLocator {
-    static var serviceRegistry: ServiceRegistry { get }
-}
-
-extension ServiceLocator {
-    @MainActor
-    static var serviceRegistry: ServiceRegistry {
-        ServiceRegistry.shared
-    }
-    
-    @MainActor
-    static func registerService<T: ServiceProtocol>(_ service: T, for type: T.Type) {
-        serviceRegistry.register(service, for: type)
-    }
-    
-    @MainActor
-    static func getService<T: ServiceProtocol>(_ type: T.Type) -> T? {
-        serviceRegistry.get(type)
-    }
-    
-    @MainActor
-    static func requireService<T: ServiceProtocol>(_ type: T.Type) -> T {
-        serviceRegistry.require(type)
-    }
-}
+// ServiceLocator pattern removed - use DIContainer instead

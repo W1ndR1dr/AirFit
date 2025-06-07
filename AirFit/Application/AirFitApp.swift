@@ -6,6 +6,12 @@ struct AirFitApp: App {
     // MARK: - DI Container
     @State private var diContainer: DIContainer?
     
+    // MARK: - Test Mode Detection
+    private var isTestMode: Bool {
+        ProcessInfo.processInfo.arguments.contains("--test-mode") ||
+        ProcessInfo.processInfo.environment["AIRFIT_TEST_MODE"] == "1"
+    }
+    
     // MARK: - Shared Model Container
     static let sharedModelContainer: ModelContainer = {
         let schema = Schema([
@@ -43,9 +49,16 @@ struct AirFitApp: App {
                 .task {
                     if diContainer == nil {
                         do {
-                            diContainer = try await DIBootstrapper.createAppContainer(
-                                modelContainer: Self.sharedModelContainer
-                            )
+                            if isTestMode {
+                                AppLogger.info("Running in TEST MODE with mock services", category: .app)
+                                diContainer = try await DIBootstrapper.createMockContainer(
+                                    modelContainer: Self.sharedModelContainer
+                                )
+                            } else {
+                                diContainer = try await DIBootstrapper.createAppContainer(
+                                    modelContainer: Self.sharedModelContainer
+                                )
+                            }
                         } catch {
                             AppLogger.error("Failed to create DI container", error: error, category: .app)
                             // Fallback to empty container

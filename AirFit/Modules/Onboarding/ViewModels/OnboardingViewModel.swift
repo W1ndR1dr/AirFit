@@ -53,7 +53,7 @@ final class OnboardingViewModel: ErrorHandling {
     // MARK: - Dependencies
     private let aiService: AIServiceProtocol
     private let onboardingService: OnboardingServiceProtocol
-    private let modelContext: ModelContext
+    private var modelContext: ModelContext
     private let speechService: WhisperServiceWrapperProtocol?
     private let healthPrefillProvider: HealthKitPrefillProviding?
     private let healthKitAuthManager: HealthKitAuthManager
@@ -120,6 +120,13 @@ final class OnboardingViewModel: ErrorHandling {
                 orchestratorProgress = progress
             }
         }
+    }
+    
+    // MARK: - DI Support
+    
+    /// Update the model context after initialization (for DI pattern)
+    func updateModelContext(_ newContext: ModelContext) {
+        self.modelContext = newContext
     }
     
     private func handleOrchestratorStateChange(_ state: OnboardingState) {

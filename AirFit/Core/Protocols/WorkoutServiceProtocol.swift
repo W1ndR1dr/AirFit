@@ -2,7 +2,7 @@ import Foundation
 import SwiftData
 
 /// Protocol for workout-related operations
-protocol WorkoutServiceProtocol: AnyObject {
+protocol WorkoutServiceProtocol: AnyObject, Sendable {
     func startWorkout(type: WorkoutType, user: User) async throws -> Workout
     func pauseWorkout(_ workout: Workout) async throws
     func resumeWorkout(_ workout: Workout) async throws

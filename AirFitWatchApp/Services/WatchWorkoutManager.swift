@@ -1,7 +1,9 @@
 import Foundation
 import HealthKit
 import Observation
+#if os(watchOS)
 import WatchKit
+#endif
 
 @MainActor
 @Observable
@@ -112,7 +114,11 @@ final class WatchWorkoutManager: NSObject {
             startElapsedTimer()
 
             // Haptic feedback
+            #if os(watchOS)
+
             WKInterfaceDevice.current().play(.start)
+
+            #endif
 
             AppLogger.info("Workout started: \(activityType.name)", category: .health)
 
@@ -130,7 +136,13 @@ final class WatchWorkoutManager: NSObject {
         workoutState = .paused
         elapsedTimer?.invalidate()
 
+        #if os(watchOS)
+
+
         WKInterfaceDevice.current().play(.stop)
+
+
+        #endif
         AppLogger.info("Workout paused", category: .health)
     }
 
@@ -142,7 +154,13 @@ final class WatchWorkoutManager: NSObject {
         workoutState = .running
         startElapsedTimer()
 
+        #if os(watchOS)
+
+
         WKInterfaceDevice.current().play(.start)
+
+
+        #endif
         AppLogger.info("Workout resumed", category: .health)
     }
 
@@ -178,7 +196,11 @@ final class WatchWorkoutManager: NSObject {
             workoutState = .ended
 
             // Success haptic
+            #if os(watchOS)
+
             WKInterfaceDevice.current().play(.success)
+
+            #endif
 
             AppLogger.info("Workout ended and saved", category: .health)
 
@@ -199,7 +221,13 @@ final class WatchWorkoutManager: NSObject {
 
         currentWorkoutData.exercises.append(exercise)
 
+        #if os(watchOS)
+
+
         WKInterfaceDevice.current().play(.click)
+
+
+        #endif
         AppLogger.info("Started exercise: \(name)", category: .health)
     }
 
@@ -221,9 +249,17 @@ final class WatchWorkoutManager: NSObject {
            let currentWeight = weight,
            let lastWeight = lastSet.weightKg,
            currentWeight > lastWeight {
+            #if os(watchOS)
+
             WKInterfaceDevice.current().play(.success)
+
+            #endif
         } else {
+            #if os(watchOS)
+
             WKInterfaceDevice.current().play(.click)
+
+            #endif
         }
 
         AppLogger.info("Logged set: \(set)", category: .health)

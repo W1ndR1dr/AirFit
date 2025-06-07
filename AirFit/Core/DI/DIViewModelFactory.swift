@@ -55,6 +55,8 @@ public final class DIViewModelFactory {
     func makeWorkoutViewModel(user: User) async throws -> WorkoutViewModel {
         let modelContainer = try await container.resolve(ModelContainer.self)
         let healthKitManager = try await container.resolve(HealthKitManager.self)
+        let exerciseDatabase = try await container.resolve(ExerciseDatabase.self)
+        let workoutSyncService = try await container.resolve(WorkoutSyncService.self)
         
         // Create user-specific CoachEngine
         let coachEngine = try await makeCoachEngine(for: user)
@@ -63,7 +65,9 @@ public final class DIViewModelFactory {
             modelContext: modelContainer.mainContext,
             user: user,
             coachEngine: coachEngine,
-            healthKitManager: healthKitManager
+            healthKitManager: healthKitManager,
+            exerciseDatabase: exerciseDatabase,
+            workoutSyncService: workoutSyncService
         )
     }
     
@@ -136,28 +140,80 @@ public final class DIViewModelFactory {
         )
     }
     
+    func makeOnboardingFlowCoordinator() async throws -> OnboardingFlowCoordinator {
+        let modelContainer = try await container.resolve(ModelContainer.self)
+        let userService = try await container.resolve(UserServiceProtocol.self)
+        let apiKeyManager = try await container.resolve(APIKeyManagementProtocol.self)
+        let llmOrchestrator = try await container.resolve(LLMOrchestrator.self)
+        
+        let cache = AIResponseCache()
+        
+        // Create optimized persona synthesizer
+        let personaSynthesizer = OptimizedPersonaSynthesizer(
+            llmOrchestrator: llmOrchestrator,
+            cache: cache
+        )
+        
+        // Create persona service
+        let personaService = PersonaService(
+            personaSynthesizer: personaSynthesizer,
+            llmOrchestrator: llmOrchestrator,
+            modelContext: modelContainer.mainContext,
+            cache: cache
+        )
+        
+        // Create conversation flow definition
+        let flowDefinition = ConversationFlowData.defaultFlow()
+        
+        // Create conversation manager
+        let conversationManager = ConversationFlowManager(
+            flowDefinition: flowDefinition,
+            modelContext: modelContainer.mainContext
+        )
+        
+        return OnboardingFlowCoordinator(
+            conversationManager: conversationManager,
+            personaService: personaService,
+            userService: userService,
+            modelContext: modelContainer.mainContext
+        )
+    }
+    
+    // Removed duplicate - use makeFoodTrackingViewModel(user:) instead
+    
     // MARK: - Private Helpers
     
     private func makeCoachEngine(for user: User) async throws -> CoachEngine {
         let modelContainer = try await container.resolve(ModelContainer.self)
         let aiService = try await container.resolve(AIServiceProtocol.self)
-        let llmOrchestrator = try await container.resolve(LLMOrchestrator.self)
         let modelContext = modelContainer.mainContext
         
         // Create required components
         let localCommandParser = LocalCommandParser()
-        
-        // TODO: Create proper AI service implementations for FunctionCallDispatcher
-        // For now, skip FunctionCallDispatcher until AI services are properly implemented
-        // let functionDispatcher = FunctionCallDispatcher(...)
-        
         let personaEngine = PersonaEngine()
         let conversationManager = ConversationManager(modelContext: modelContext)
         let contextAssembler = try await container.resolve(ContextAssembler.self)
         
-        // Create a minimal CoachEngine without FunctionCallDispatcher for now
-        // This will need to be updated once AI services are properly implemented
-        fatalError("CoachEngine requires FunctionCallDispatcher - AI services need to be implemented")
+        // Create AI services for FunctionCallDispatcher
+        let goalService = try await container.resolve(AIGoalServiceProtocol.self)
+        let workoutService = try await container.resolve(AIWorkoutServiceProtocol.self)
+        let analyticsService = try await container.resolve(AIAnalyticsServiceProtocol.self)
+        
+        let functionDispatcher = FunctionCallDispatcher(
+            workoutService: workoutService,
+            analyticsService: analyticsService,
+            goalService: goalService
+        )
+        
+        return CoachEngine(
+            localCommandParser: localCommandParser,
+            functionDispatcher: functionDispatcher,
+            personaEngine: personaEngine,
+            conversationManager: conversationManager,
+            aiService: aiService,
+            contextAssembler: contextAssembler,
+            modelContext: modelContext
+        )
     }
     
     private func makeConversationManager(for user: User) async throws -> ConversationManager {

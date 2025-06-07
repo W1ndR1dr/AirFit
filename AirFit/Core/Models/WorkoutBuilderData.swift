@@ -11,6 +11,7 @@ struct WorkoutBuilderData: Codable, Sendable {
     var totalCalories: Double = 0
     var totalDistance: Double = 0
     var duration: TimeInterval = 0
+    var healthKitWorkoutID: String? // UUID of the HKWorkout
 }
 
 struct ExerciseBuilderData: Codable, Sendable {

@@ -78,7 +78,27 @@ final class WorkoutService: WorkoutServiceProtocol {
         }
         
         do {
+            // Save to SwiftData first
             try modelContext.save()
+            
+            // Save to HealthKit (non-blocking)
+            if workout.healthKitWorkoutID == nil {
+                Task {
+                    do {
+                        let healthKitID = try await HealthKitManager.shared.saveWorkout(workout)
+                        await MainActor.run {
+                            workout.healthKitWorkoutID = healthKitID
+                            workout.healthKitSyncedDate = Date()
+                            try? modelContext.save()
+                        }
+                        AppLogger.info("Synced workout to HealthKit", category: .services)
+                    } catch {
+                        AppLogger.error("Failed to sync workout to HealthKit", error: error, category: .services)
+                        // Don't throw - HealthKit sync is secondary
+                    }
+                }
+            }
+            
             AppLogger.info("Ended workout \(workout.id) - Duration: \(workout.formattedDuration ?? "unknown")", category: .services)
         } catch {
             AppLogger.error("Failed to end workout", error: error, category: .services)
