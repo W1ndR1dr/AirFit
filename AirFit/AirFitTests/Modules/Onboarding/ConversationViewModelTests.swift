@@ -4,18 +4,25 @@ import SwiftData
 
 @MainActor
 final class ConversationViewModelTests: XCTestCase {
-    var viewModel: ConversationViewModel!
-    var mockFlowManager: MockConversationFlowManager!
-    var mockPersistence: MockConversationPersistence!
-    var mockAnalytics: MockConversationAnalytics!
-    var testUserId: UUID!
+    // MARK: - Properties
+    private var container: DIContainer!
+    private var viewModel: ConversationViewModel!
+    private var mockFlowManager: MockConversationFlowManager!
+    private var mockPersistence: MockConversationPersistence!
+    private var mockAnalytics: MockConversationAnalytics!
+    private var testUserId: UUID!
     
+    // MARK: - Setup
     override func setUp() async throws {
-        await MainActor.run {
-            super.setUp()
-        }
+        try await super.setUp()
+        
+        // Create test container
+        container = try await DITestHelper.createTestContainer()
         
         testUserId = UUID()
+        
+        // Note: These services are not in DIContainer yet, so we create them manually
+        // This is acceptable as per our migration strategy
         mockFlowManager = MockConversationFlowManager()
         mockPersistence = MockConversationPersistence()
         mockAnalytics = MockConversationAnalytics()
@@ -34,10 +41,8 @@ final class ConversationViewModelTests: XCTestCase {
         mockPersistence = nil
         mockAnalytics = nil
         testUserId = nil
-        
-        await MainActor.run {
-            super.tearDown()
-        }
+        container = nil
+        try await super.tearDown()
     }
     
     // MARK: - Start Tests

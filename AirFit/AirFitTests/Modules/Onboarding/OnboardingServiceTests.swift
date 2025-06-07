@@ -4,34 +4,43 @@ import SwiftData
 
 @MainActor
 final class OnboardingServiceTests: XCTestCase {
-    var modelContainer: ModelContainer!
-    var context: ModelContext!
-    var sut: OnboardingService!
-    var testUser: User!
+    // MARK: - Properties
+    private var container: DIContainer!
+    private var modelContext: ModelContext!
+    private var sut: OnboardingService!
+    private var testUser: User!
 
+    // MARK: - Setup
     override func setUp() async throws {
         try await super.setUp()
-        modelContainer = try ModelContainer.createTestContainer()
-        context = modelContainer.mainContext
-        sut = OnboardingService(modelContext: context)
+        
+        // Create test container
+        container = try await DITestHelper.createTestContainer()
+        
+        // Get model context from container
+        let modelContainer = try await container.resolve(ModelContainer.self)
+        modelContext = modelContainer.mainContext
+        
+        // Create service
+        sut = OnboardingService(modelContext: modelContext)
 
         // Create test user
         testUser = User(email: "test@example.com", name: "Test User")
-        context.insert(testUser)
-        try context.save()
+        modelContext.insert(testUser)
+        try modelContext.save()
     }
 
     override func tearDown() async throws {
         sut = nil
         testUser = nil
-        context = nil
-        modelContainer = nil
+        modelContext = nil
+        container = nil
         try await super.tearDown()
     }
 
     // MARK: - Profile Saving Tests
-        @MainActor
-        func test_saveProfile_givenValidProfile_shouldPersistSuccessfully() async throws {
+    
+    func test_saveProfile_givenValidProfile_shouldPersistSuccessfully() async throws {
         // Arrange
         let profileData = createValidProfileData()
         let profile = OnboardingProfile(
@@ -44,19 +53,17 @@ final class OnboardingServiceTests: XCTestCase {
         try await sut.saveProfile(profile)
 
         // Assert
-        let profiles = try context.fetch(FetchDescriptor<OnboardingProfile>())
+        let profiles = try modelContext.fetch(FetchDescriptor<OnboardingProfile>())
         XCTAssertEqual(profiles.count, 1)
         XCTAssertEqual(profiles.first?.user?.id, testUser.id)
         XCTAssertEqual(testUser.onboardingProfile?.id, profile.id)
     }
 
-        @MainActor
-
-        func test_saveProfile_givenNoUser_shouldThrowError() async throws {
+    func test_saveProfile_givenNoUser_shouldThrowError() async throws {
         // Arrange
-        try context.delete(model: User.self)
+        try modelContext.delete(model: User.self)
         do {
-            try context.save()
+            try modelContext.save()
         } catch {
             XCTFail("Failed to save context: \(error)")
         }
@@ -79,9 +86,7 @@ final class OnboardingServiceTests: XCTestCase {
         }
     }
 
-        @MainActor
-
-        func test_saveProfile_givenInvalidJSON_shouldThrowError() async {
+    func test_saveProfile_givenInvalidJSON_shouldThrowError() async {
         // Arrange
         let invalidData = Data("invalid json".utf8)
         let profile = OnboardingProfile(
@@ -101,9 +106,7 @@ final class OnboardingServiceTests: XCTestCase {
         }
     }
 
-        @MainActor
-
-        func test_saveProfile_givenMissingRequiredField_shouldThrowError() async throws {
+    func test_saveProfile_givenMissingRequiredField_shouldThrowError() async throws {
         // Arrange
         let incompleteProfile = [
             "life_context": ["is_desk_job": true],
@@ -132,15 +135,13 @@ final class OnboardingServiceTests: XCTestCase {
         }
     }
 
-        @MainActor
-
-        func test_saveProfile_givenMultipleUsers_shouldLinkToMostRecent() async throws {
+    func test_saveProfile_givenMultipleUsers_shouldLinkToMostRecent() async throws {
         // Arrange
         let olderUser = User(email: "older@example.com", name: "Older User")
         olderUser.createdAt = Date().addingTimeInterval(-3_600) // 1 hour ago
-        context.insert(olderUser)
+        modelContext.insert(olderUser)
         do {
-            try context.save()
+            try modelContext.save()
         } catch {
             XCTFail("Failed to save context: \(error)")
         }
@@ -156,14 +157,14 @@ final class OnboardingServiceTests: XCTestCase {
         try await sut.saveProfile(profile)
 
         // Assert - Should link to most recent user (testUser)
-        let profiles = try context.fetch(FetchDescriptor<OnboardingProfile>())
+        let profiles = try modelContext.fetch(FetchDescriptor<OnboardingProfile>())
         XCTAssertEqual(profiles.count, 1)
         XCTAssertEqual(profiles.first?.user?.id, testUser.id)
         XCTAssertNotEqual(profiles.first?.user?.id, olderUser.id)
     }
 
     // MARK: - Error Handling Tests
-    @MainActor
+    
     func test_onboardingError_localizedDescriptions() {
         // Test error descriptions exist (they use NSLocalizedString)
         XCTAssertNotNil(OnboardingError.noUserFound.errorDescription)
@@ -225,34 +226,41 @@ final class OnboardingServiceTests: XCTestCase {
 // MARK: - Validation Tests
 @MainActor
 final class OnboardingServiceValidationTests: XCTestCase {
-    var modelContainer: ModelContainer!
-    var context: ModelContext!
-    var sut: OnboardingService!
-    var testUser: User!
+    // MARK: - Properties
+    private var container: DIContainer!
+    private var modelContext: ModelContext!
+    private var sut: OnboardingService!
+    private var testUser: User!
 
+    // MARK: - Setup
     override func setUp() async throws {
         try await super.setUp()
-        modelContainer = try ModelContainer.createTestContainer()
-        context = modelContainer.mainContext
-        sut = OnboardingService(modelContext: context)
+        
+        // Create test container
+        container = try await DITestHelper.createTestContainer()
+        
+        // Get model context from container
+        let modelContainer = try await container.resolve(ModelContainer.self)
+        modelContext = modelContainer.mainContext
+        
+        // Create service
+        sut = OnboardingService(modelContext: modelContext)
 
         // Create test user
         testUser = User(email: "test@example.com", name: "Test User")
-        context.insert(testUser)
-        try context.save()
+        modelContext.insert(testUser)
+        try modelContext.save()
     }
 
     override func tearDown() async throws {
         sut = nil
         testUser = nil
-        context = nil
-        modelContainer = nil
+        modelContext = nil
+        container = nil
         try await super.tearDown()
     }
 
-        @MainActor
-
-        func test_validateProfileStructure_givenValidProfile_shouldPass() async throws {
+    func test_validateProfileStructure_givenValidProfile_shouldPass() async throws {
         // Arrange
         let profileData = createValidProfileData()
         let profile = OnboardingProfile(
@@ -265,9 +273,7 @@ final class OnboardingServiceValidationTests: XCTestCase {
         try await sut.saveProfile(profile)
     }
 
-        @MainActor
-
-        func test_validateProfileStructure_givenAllRequiredFields_shouldPass() async throws {
+    func test_validateProfileStructure_givenAllRequiredFields_shouldPass() async throws {
         // Arrange
         let completeProfile = [
             "life_context": [
@@ -315,13 +321,11 @@ final class OnboardingServiceValidationTests: XCTestCase {
         // Act & Assert - Should not throw
         try await sut.saveProfile(profile)
 
-        let profiles = try context.fetch(FetchDescriptor<OnboardingProfile>())
+        let profiles = try modelContext.fetch(FetchDescriptor<OnboardingProfile>())
         XCTAssertEqual(profiles.count, 1)
     }
 
-        @MainActor
-
-        func test_saveProfile_givenEmptyData_shouldThrowError() async {
+    func test_saveProfile_givenEmptyData_shouldThrowError() async {
         // Arrange
         let emptyData = Data()
         let profile = OnboardingProfile(

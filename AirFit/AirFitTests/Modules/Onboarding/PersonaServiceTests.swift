@@ -15,12 +15,12 @@ final class PersonaServiceTests: XCTestCase {
     private var testUser: User!
     
     // MARK: - Setup
-    override func setUp() {
-        super.setUp()
+    override func setUp() async throws {
+        try await super.setUp()
         // Setup handled in async setupTest method
     }
     
-    override func tearDown() {
+    override func tearDown() async throws {
         sut = nil
         mockPersonaSynthesizer = nil
         mockLLMOrchestrator = nil
@@ -29,7 +29,7 @@ final class PersonaServiceTests: XCTestCase {
         modelContainer = nil
         modelContext = nil
         testUser = nil
-        super.tearDown()
+        try await super.tearDown()
     }
     
     // MARK: - Helper Methods

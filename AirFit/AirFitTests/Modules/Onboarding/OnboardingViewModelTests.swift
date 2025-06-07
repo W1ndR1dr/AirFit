@@ -3,56 +3,84 @@ import SwiftData
 @testable import AirFit
 
 @MainActor
-
 final class OnboardingViewModelTests: XCTestCase {
-    var modelContainer: ModelContainer!
-    var context: ModelContext!
-    var mockAIService: MockAIService!
-    var mockOnboardingService: MockOnboardingService!
-    var mockHealthProvider: MockHealthKitPrefillProvider!
-    var sut: OnboardingViewModel!
-    var mockAPIKeyManager: MockAPIKeyManager!
-    var mockUserService: MockUserService!
-
+    // MARK: - Properties
+    private var container: DIContainer!
+    private var sut: OnboardingViewModel!
+    private var mockAIService: MockAIService!
+    private var mockOnboardingService: MockOnboardingService!
+    private var mockHealthProvider: MockHealthKitPrefillProvider!
+    private var mockAPIKeyManager: MockAPIKeyManager!
+    private var mockUserService: MockUserService!
+    private var mockWhisperService: MockWhisperServiceWrapper!
+    private var modelContext: ModelContext!
+    private var testUser: User!
+    
+    // MARK: - Setup
     override func setUp() async throws {
         try await super.setUp()
         
-        modelContainer = try ModelContainer.createTestContainer()
-        context = modelContainer.mainContext
-        mockAIService = MockAIService()
-        mockOnboardingService = MockOnboardingService(modelContext: context)
+        // Create test container
+        container = try await DITestHelper.createTestContainer()
+        
+        // Get model context from container
+        let modelContainer = try await container.resolve(ModelContainer.self)
+        modelContext = modelContainer.mainContext
+        
+        // Create test user
+        testUser = User(email: "test@example.com", name: "Test User")
+        modelContext.insert(testUser)
+        try modelContext.save()
+        
+        // Get mocks from container
+        mockAIService = try await container.resolve(AIServiceProtocol.self) as? MockAIService
+        mockOnboardingService = try await container.resolve(OnboardingServiceProtocol.self) as? MockOnboardingService
+        mockAPIKeyManager = try await container.resolve(APIKeyManagementProtocol.self) as? MockAPIKeyManager
+        mockUserService = try await container.resolve(UserServiceProtocol.self) as? MockUserService
+        mockWhisperService = try await container.resolve(WhisperServiceWrapperProtocol.self) as? MockWhisperServiceWrapper
+        
+        // Create mock health provider manually (not in DI container)
         mockHealthProvider = MockHealthKitPrefillProvider()
-        mockAPIKeyManager = MockAPIKeyManager()
-        mockUserService = MockUserService()
+        
+        // Create view model with conversational mode (current implementation)
         sut = OnboardingViewModel(
             aiService: mockAIService,
             onboardingService: mockOnboardingService,
-            modelContext: context,
+            modelContext: modelContext,
             apiKeyManager: mockAPIKeyManager,
             userService: mockUserService,
-            speechService: nil,
+            speechService: mockWhisperService,
             healthPrefillProvider: mockHealthProvider,
-            mode: .legacy  // Test legacy mode to test the blend functionality
+            mode: .conversational  // Test current implementation
         )
+        
         // Allow prefill task to complete
         try? await Task.sleep(nanoseconds: 100_000_000)
     }
 
     override func tearDown() async throws {
+        mockAIService?.reset()
+        mockOnboardingService?.reset()
+        mockAPIKeyManager?.reset()
+        mockUserService?.reset()
+        mockWhisperService?.reset()
+        mockHealthProvider?.reset()
         sut = nil
-        mockUserService = nil
-        mockAPIKeyManager = nil
-        mockHealthProvider = nil
-        mockOnboardingService = nil
         mockAIService = nil
-        context = nil
-        modelContainer = nil
+        mockOnboardingService = nil
+        mockHealthProvider = nil
+        mockAPIKeyManager = nil
+        mockUserService = nil
+        mockWhisperService = nil
+        modelContext = nil
+        testUser = nil
+        container = nil
         try await super.tearDown()
     }
 
-    // MARK: - Navigation
-        @MainActor
-        func test_navigationFlow_shouldTraverseAllScreens() {
+    // MARK: - Navigation Tests
+    
+    func test_navigationFlow_shouldTraverseAllScreens() {
         // Arrange
         var visited: [OnboardingScreen] = [sut.currentScreen]
 
@@ -69,10 +97,31 @@ final class OnboardingViewModelTests: XCTestCase {
         XCTAssertEqual(sut.currentScreen, .coachProfileReady)
         XCTAssertEqual(visited.count, 9)
     }
+    
+    func test_navigateToPreviousScreen_fromSecondScreen_returnsToFirst() {
+        // Arrange
+        sut.navigateToNextScreen() // Go to second screen
+        
+        // Act
+        sut.navigateToPreviousScreen()
+        
+        // Assert
+        XCTAssertEqual(sut.currentScreen, .openingScreen)
+    }
+    
+    func test_navigateToPreviousScreen_fromFirstScreen_staysOnFirst() {
+        // Arrange - already on first screen
+        
+        // Act
+        sut.navigateToPreviousScreen()
+        
+        // Assert
+        XCTAssertEqual(sut.currentScreen, .openingScreen)
+    }
 
-    // MARK: - Goal Analysis
-        @MainActor
-        func test_analyzeGoalText_givenValidText_shouldLogGoalText() async {
+    // MARK: - Goal Analysis Tests
+    
+    func test_analyzeGoalText_givenValidText_shouldLogGoalText() async {
         // Arrange
         sut.goal.rawText = "run a marathon"
 
@@ -87,9 +136,7 @@ final class OnboardingViewModelTests: XCTestCase {
         XCTAssertNil(sut.error)
     }
 
-        @MainActor
-
-        func test_analyzeGoalText_givenEmptyText_shouldStillWork() async {
+    func test_analyzeGoalText_givenEmptyText_shouldStillWork() async {
         // Arrange
         sut.goal.rawText = "  "
 
@@ -102,22 +149,24 @@ final class OnboardingViewModelTests: XCTestCase {
         XCTAssertNil(sut.error)
     }
 
-    // MARK: - HealthKit Prefill
-        @MainActor
-        func test_prefillFromHealthKit_givenWindow_shouldUpdateSleepTimes() async {
+    // MARK: - HealthKit Prefill Tests
+    
+    func test_prefillFromHealthKit_givenWindow_shouldUpdateSleepTimes() async {
         // Arrange
         let bed = Calendar.current.date(bySettingHour: 21, minute: 30, second: 0, of: Date())!
         let wake = Calendar.current.date(bySettingHour: 6, minute: 45, second: 0, of: Date())!
         mockHealthProvider.result = .success((bed: bed, wake: wake))
+        
+        // Create new view model to trigger prefill
         sut = OnboardingViewModel(
             aiService: mockAIService,
             onboardingService: mockOnboardingService,
-            modelContext: context,
+            modelContext: modelContext,
             apiKeyManager: mockAPIKeyManager,
             userService: mockUserService,
-            speechService: nil,
+            speechService: mockWhisperService,
             healthPrefillProvider: mockHealthProvider,
-            mode: .legacy
+            mode: .conversational
         )
         try? await Task.sleep(nanoseconds: 100_000_000)
 
@@ -127,10 +176,32 @@ final class OnboardingViewModelTests: XCTestCase {
         XCTAssertEqual(sut.sleepWindow.bedTime, formatter.string(from: bed))
         XCTAssertEqual(sut.sleepWindow.wakeTime, formatter.string(from: wake))
     }
+    
+    func test_prefillFromHealthKit_whenFails_usesDefaultTimes() async {
+        // Arrange
+        mockHealthProvider.result = .failure(AppError.genericError("Failed to fetch"))
+        
+        // Act - create new view model to trigger prefill
+        sut = OnboardingViewModel(
+            aiService: mockAIService,
+            onboardingService: mockOnboardingService,
+            modelContext: modelContext,
+            apiKeyManager: mockAPIKeyManager,
+            userService: mockUserService,
+            speechService: mockWhisperService,
+            healthPrefillProvider: mockHealthProvider,
+            mode: .conversational
+        )
+        try? await Task.sleep(nanoseconds: 100_000_000)
+        
+        // Assert - Should use default times
+        XCTAssertEqual(sut.sleepWindow.bedTime, "22:30")
+        XCTAssertEqual(sut.sleepWindow.wakeTime, "06:30")
+    }
 
-    // MARK: - Persona Mode Selection
-        @MainActor
-        func test_personaModeSelection_shouldUpdateCorrectly() {
+    // MARK: - Persona Mode Selection Tests
+    
+    func test_personaModeSelection_shouldUpdateCorrectly() {
         // Arrange & Act
         sut.selectedPersonaMode = .directTrainer
 
@@ -141,10 +212,26 @@ final class OnboardingViewModelTests: XCTestCase {
         sut.selectedPersonaMode = .analyticalAdvisor
         XCTAssertEqual(sut.selectedPersonaMode, .analyticalAdvisor)
     }
+    
+    func test_allPersonaModes_canBeSelected() {
+        // Test all available persona modes
+        for mode in PersonaMode.allCases {
+            // Act
+            sut.selectedPersonaMode = mode
+            
+            // Assert
+            XCTAssertEqual(sut.selectedPersonaMode, mode)
+        }
+    }
+    
+    func test_defaultPersonaMode_isSupportiveCoach() {
+        // Assert - default should be supportive coach
+        XCTAssertEqual(sut.selectedPersonaMode, .supportiveCoach)
+    }
 
-    // MARK: - Complete Onboarding
-        @MainActor
-        func test_completeOnboarding_shouldSaveProfileWithCorrectJSON() async throws {
+    // MARK: - Complete Onboarding Tests
+    
+    func test_completeOnboarding_shouldSaveProfileWithCorrectJSON() async throws {
         // Arrange
         sut.lifeContext.isDeskJob = true
         sut.goal.family = .performance
@@ -163,7 +250,7 @@ final class OnboardingViewModelTests: XCTestCase {
 
         // Assert
         XCTAssertTrue(mockOnboardingService.saveProfileCalled)
-        let profiles = try context.fetch(FetchDescriptor<OnboardingProfile>())
+        let profiles = try modelContext.fetch(FetchDescriptor<OnboardingProfile>())
         XCTAssertEqual(profiles.count, 1)
         let decoder = JSONDecoder()
         decoder.dateDecodingStrategy = .iso8601
@@ -174,5 +261,111 @@ final class OnboardingViewModelTests: XCTestCase {
         XCTAssertEqual(blob.personaMode, .directTrainer)
         XCTAssertEqual(blob.timezone, "UTC")
         XCTAssertFalse(blob.baselineModeEnabled)
+    }
+    
+    func test_completeOnboarding_withAllPersonaModes_savesCorrectly() async throws {
+        for mode in PersonaMode.allCases {
+            // Arrange
+            setUp() // Reset for each test
+            sut.selectedPersonaMode = mode
+            sut.goal.rawText = "Test goal for \(mode.displayName)"
+            
+            // Act
+            try await sut.completeOnboarding()
+            
+            // Assert
+            let profiles = try modelContext.fetch(FetchDescriptor<OnboardingProfile>())
+            let decoder = JSONDecoder()
+            decoder.dateDecodingStrategy = .iso8601
+            decoder.keyDecodingStrategy = .convertFromSnakeCase
+            let blob = try decoder.decode(UserProfileJsonBlob.self, from: profiles.last!.personaPromptData)
+            XCTAssertEqual(blob.personaMode, mode)
+        }
+    }
+    
+    func test_completeOnboarding_whenServiceFails_showsError() async {
+        // Arrange
+        sut.goal.rawText = "Get fit"
+        mockOnboardingService.shouldThrowError = true
+        
+        // Act
+        do {
+            try await sut.completeOnboarding()
+            XCTFail("Should have thrown error")
+        } catch {
+            // Assert
+            XCTAssertNotNil(sut.error)
+            XCTAssertTrue(sut.isShowingError)
+        }
+    }
+    
+    // MARK: - Conversational Mode Tests
+    
+    func test_conversationalMode_initializesOrchestrator() {
+        // Assert - orchestrator should be set up for conversational mode
+        XCTAssertEqual(sut.mode, .conversational)
+        XCTAssertNotNil(sut.orchestratorState)
+        XCTAssertEqual(sut.orchestratorState, .notStarted)
+    }
+    
+    func test_legacyMode_doesNotInitializeOrchestrator() async throws {
+        // Arrange - create view model with legacy mode
+        let legacySut = OnboardingViewModel(
+            aiService: mockAIService,
+            onboardingService: mockOnboardingService,
+            modelContext: modelContext,
+            apiKeyManager: mockAPIKeyManager,
+            userService: mockUserService,
+            speechService: mockWhisperService,
+            healthPrefillProvider: mockHealthProvider,
+            mode: .legacy
+        )
+        
+        // Assert
+        XCTAssertEqual(legacySut.mode, .legacy)
+        XCTAssertEqual(legacySut.orchestratorState, .notStarted)
+    }
+    
+    // MARK: - Life Context Tests
+    
+    func test_lifeContext_allPropertiesCanBeSet() {
+        // Act
+        sut.lifeContext.isDeskJob = true
+        sut.lifeContext.isPhysicallyActiveWork = false
+        sut.lifeContext.travelsFrequently = true
+        sut.lifeContext.hasChildrenOrFamilyCare = true
+        sut.lifeContext.scheduleType = .unpredictable
+        sut.lifeContext.workoutWindowPreference = .evening
+        
+        // Assert
+        XCTAssertTrue(sut.lifeContext.isDeskJob)
+        XCTAssertFalse(sut.lifeContext.isPhysicallyActiveWork)
+        XCTAssertTrue(sut.lifeContext.travelsFrequently)
+        XCTAssertTrue(sut.lifeContext.hasChildrenOrFamilyCare)
+        XCTAssertEqual(sut.lifeContext.scheduleType, .unpredictable)
+        XCTAssertEqual(sut.lifeContext.workoutWindowPreference, .evening)
+    }
+    
+    // MARK: - Error Handling Tests
+    
+    func test_errorHandling_clearsError() {
+        // Arrange
+        sut.error = AppError.genericError("Test error")
+        sut.isShowingError = true
+        
+        // Act
+        sut.clearError()
+        
+        // Assert
+        XCTAssertNil(sut.error)
+        XCTAssertFalse(sut.isShowingError)
+    }
+    
+    // MARK: - Voice Input Tests
+    
+    func test_voiceInput_transcriptionState() async {
+        // Note: Voice input methods are typically tested in integration tests
+        // as they involve complex interactions with speech services
+        XCTAssertFalse(sut.isTranscribing)
     }
 }

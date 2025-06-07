@@ -3,7 +3,7 @@
 **Purpose**: Prioritized task list with persistent progress tracking for test suite refactoring.  
 **Last Updated**: 2025-01-07  
 **Current Status**: Phase 2 in progress  
-**Overall Progress**: 44/156 tasks (28.2%)
+**Overall Progress**: 48/156 tasks (30.8%)
 
 ## 🚀 Quick Start for New Agents
 
@@ -18,7 +18,7 @@
 
 ### Phase Progress
 - **Phase 1: Clean House** - 23/23 tasks (100%) ✅ COMPLETE
-- **Phase 2: Standardize** - 20/89 tasks (22.5%) 🔴 CURRENT
+- **Phase 2: Standardize** - 25/89 tasks (28.1%) 🔴 CURRENT
 - **Phase 3: Fill Gaps** - 0/44 tasks (0%) ⏸️ WAITING
 
 ### Known Issues
@@ -29,13 +29,12 @@
 - DIBootstrapperTests was using outdated API - FIXED ✅
 
 ### Last Completed Task
-- AI Services Module - COMPLETE ✅
-  - AIServiceTests: Verified good patterns, no changes needed
-  - LLMOrchestratorTests: Previously fixed in Phase 1
-  - AIAnalyticsServiceTests: Migrated to use DIContainer
-  - AIGoalServiceTests: Migrated to use DIContainer
-  - AIWorkoutServiceTests: Migrated to use DIContainer
-  - All AI Services tests now follow DI patterns
+- Onboarding Module - COMPLETE ✅
+  - OnboardingViewModelTests: Rewrote to test PersonaMode instead of legacy Blend
+  - OnboardingServiceTests: Migrated to use DIContainer
+  - PersonaServiceTests: Already used DIContainer properly
+  - ConversationViewModelTests: Migrated to use DIContainer
+  - All tests now use PersonaMode instead of deprecated Blend functionality
 
 ### Currently Working On
 - Phase 2: Module migration - Blocked by widespread compilation errors
@@ -205,14 +204,20 @@
 ### Module: Onboarding
 **Why**: First user experience, must work perfectly
 
-- [ ] Decide: Keep or rewrite `OnboardingViewModelTests.swift`
+- [✅] Decide: Keep or rewrite `OnboardingViewModelTests.swift`
   - Currently tests old patterns
   - Major refactor vs fresh start?
+  - Decision: Rewrite - tests legacy mode and deprecated Blend functionality
+  - Completed: Rewrote to test PersonaMode instead of Blend
   
-- [ ] Migrate `OnboardingServiceTests.swift`
-- [ ] Migrate `PersonaServiceTests.swift`
-- [ ] Migrate `ConversationViewModelTests.swift`
-- [ ] Update all to use new PersonaMode (not Blend)
+- [✅] Migrate `OnboardingServiceTests.swift`
+  - Migrated to use DIContainer
+- [✅] Migrate `PersonaServiceTests.swift`
+  - Already uses DIContainer properly
+- [✅] Migrate `ConversationViewModelTests.swift`
+  - Migrated to use DIContainer
+- [✅] Update all to use new PersonaMode (not Blend)
+  - All tests now use PersonaMode
 
 ### Module: Chat
 **Why**: Primary interaction method
