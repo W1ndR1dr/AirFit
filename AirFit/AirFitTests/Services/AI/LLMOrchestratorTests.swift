@@ -21,12 +21,10 @@ final class LLMOrchestratorTests: XCTestCase {
         try await Task.sleep(nanoseconds: 100_000_000) // 0.1s
     }
     
-    override func tearDown() {
-        Task { @MainActor in
-            sut = nil
-            mockAPIKeyManager = nil
-        }
-        super.tearDown()
+    override func tearDown() async throws {
+        sut = nil
+        mockAPIKeyManager = nil
+        try await super.tearDown()
     }
     
     // MARK: - Initialization Tests

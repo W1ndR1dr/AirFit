@@ -149,8 +149,6 @@ actor MockAIGoalService: AIGoalServiceProtocol {
 
     private func generateMilestones(for title: String, timeframe: String?) -> [GoalMilestone] {
         let startDate = Date()
-        let milestoneCount = 3
-        let daysBetween = 30
         
         var milestones: [GoalMilestone] = []
         

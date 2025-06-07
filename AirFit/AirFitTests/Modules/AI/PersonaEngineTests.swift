@@ -269,9 +269,17 @@ final class PersonaEngineTests: XCTestCase {
     }
     
     private func createTestUserProfile() -> UserProfileJsonBlob {
+        var lifeContext = LifeContext()
+        lifeContext.isDeskJob = true
+        lifeContext.scheduleType = .unpredictableChaotic
+        
+        var goal = Goal()
+        goal.family = .strengthTone
+        goal.rawText = "Get stronger"
+        
         UserProfileJsonBlob(
-            lifeContext: LifeContext(rawText: "Busy professional"),
-            goal: Goal(family: .buildMuscle, rawText: "Get stronger"),
+            lifeContext: lifeContext,
+            goal: goal,
             blend: Blend(
                 encouragingEmpathetic: 0.5,
                 authoritativeDirect: 0.3,

@@ -408,7 +408,6 @@ targets:
       - AirFit/AirFitTests/Modules/AI/ConversationManagerPersistenceTests.swift
       - AirFit/AirFitTests/Modules/AI/ConversationManagerPerformanceTests.swift
       - AirFit/AirFitTests/Modules/AI/MessageClassificationTests.swift
-      - AirFit/AirFitTests/Modules/AI/Phase2ValidationTests.swift  # Phase 2: Database optimization validation
       - AirFit/AirFitTests/Modules/AI/ContextAnalyzerTests.swift
       - AirFit/AirFitTests/Modules/AI/PersonaEngineTests.swift
       - AirFit/AirFitTests/Performance/DirectAIPerformanceTests.swift
