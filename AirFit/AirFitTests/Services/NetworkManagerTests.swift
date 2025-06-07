@@ -1,29 +1,36 @@
 import XCTest
 @testable import AirFit
 
-@MainActor
 final class NetworkManagerTests: XCTestCase {
+    private var container: DIContainer!
     
     var sut: NetworkManager!
     
-    override func setUp() async throws {
-        try await super.setUp()
-        sut = NetworkManager.shared
+    override func setUp() {
+        super.setUp()
+        // Container initialization moved to test methods
     }
     
-    override func tearDown() async throws {
+    private func setupTest() async throws {
+        container = try await DITestHelper.createTestContainer()
+        sut = try await container.resolve(NetworkClientProtocol.self) as? NetworkManager
+    }
+    
+    override func tearDown() {
         sut = nil
-        try await super.tearDown()
+        super.tearDown()
     }
     
     // MARK: - Basic Tests
     
-    func testNetworkManagerInitializes() {
+    func testNetworkManagerInitializes() async throws {
+        try await setupTest()
         XCTAssertNotNil(sut)
         XCTAssertTrue(sut.isReachable)
     }
     
-    func testBuildRequestCreatesCorrectRequest() {
+    func testBuildRequestCreatesCorrectRequest() async throws {
+        try await setupTest()
         // Given
         let url = URL(string: "https://api.example.com/test")!
         let headers = ["Authorization": "Bearer token", "Custom": "Value"]
@@ -50,7 +57,8 @@ final class NetworkManagerTests: XCTestCase {
     
     // MARK: - Network Type Tests
     
-    func testNetworkTypeEnumCases() {
+    func testNetworkTypeEnumCases() async throws {
+        try await setupTest()
         let types: [NetworkType] = [.wifi, .cellular, .ethernet, .unknown, .none]
         
         for type in types {
@@ -60,7 +68,8 @@ final class NetworkManagerTests: XCTestCase {
     
     // MARK: - Error Handling Tests
     
-    func testServiceErrorDescriptions() {
+    func testServiceErrorDescriptions() async throws {
+        try await setupTest()
         let errors: [(ServiceError, String)] = [
             (.notConfigured, "Service is not configured"),
             (.networkUnavailable, "Network connection is unavailable"),
@@ -73,7 +82,8 @@ final class NetworkManagerTests: XCTestCase {
         }
     }
     
-    func testServiceErrorWithParameters() {
+    func testServiceErrorWithParameters() async throws {
+        try await setupTest()
         let configError = ServiceError.invalidConfiguration("Missing API key")
         XCTAssertEqual(configError.localizedDescription, "Invalid configuration: Missing API key")
         

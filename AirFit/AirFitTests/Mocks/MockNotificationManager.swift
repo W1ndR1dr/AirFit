@@ -2,12 +2,12 @@ import Foundation
 import UserNotifications
 @testable import AirFit
 
+/// Mock implementation of NotificationManager for testing
+/// Since NotificationManager is final with private init, we create a separate mock class
 @MainActor
-final class MockNotificationManager: NSObject {
-    static let shared = MockNotificationManager()
-    
+final class MockNotificationManager {
     // Test properties
-    var authorizationStatus: UNAuthorizationStatus = .authorized
+    var mockAuthorizationStatus: UNAuthorizationStatus = .authorized
     var requestAuthorizationCalled = false
     var requestAuthorizationResult: Bool = true
     var requestAuthorizationError: Error?
@@ -29,9 +29,7 @@ final class MockNotificationManager: NSObject {
     var updatePreferencesCalled = false
     var rescheduleWithQuietHoursCalled = false
     
-    private override init() {
-        super.init()
-    }
+    init() {}
     
     // MARK: - NotificationManager Methods
     
@@ -87,7 +85,7 @@ final class MockNotificationManager: NSObject {
     
     func getAuthorizationStatus() async -> UNAuthorizationStatus {
         getAuthorizationStatusCalled = true
-        return authorizationStatus
+        return mockAuthorizationStatus
     }
     
     func updatePreferences(_ preferences: NotificationPreferences) async {

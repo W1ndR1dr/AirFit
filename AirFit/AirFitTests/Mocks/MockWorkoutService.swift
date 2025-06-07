@@ -4,15 +4,15 @@ import XCTest
 @testable import AirFit
 
 /// Mock implementation of WorkoutServiceProtocol for testing
-final class MockWorkoutService: WorkoutServiceProtocol, MockProtocol {
+final class MockWorkoutService: WorkoutServiceProtocol, AIWorkoutServiceProtocol, MockProtocol, @unchecked Sendable {
     // MARK: - MockProtocol
-    var invocations: [String: [Any]] = [:]
-    var stubbedResults: [String: Any] = [:]
+    nonisolated(unsafe) var invocations: [String: [Any]] = [:]
+    nonisolated(unsafe) var stubbedResults: [String: Any] = [:]
     let mockLock = NSLock()
     
     // MARK: - Error Control
-    var shouldThrowError = false
-    var errorToThrow: Error = AppError.unknown(message: "Mock workout service error")
+    nonisolated(unsafe) var shouldThrowError = false
+    nonisolated(unsafe) var errorToThrow: Error = AppError.unknown(message: "Mock workout service error")
     
     // MARK: - Stubbed Data
     var stubbedWorkout: Workout?
@@ -236,5 +236,57 @@ final class MockWorkoutService: WorkoutServiceProtocol, MockProtocol {
         mockLock.lock()
         defer { mockLock.unlock() }
         return pausedWorkouts.contains(workoutId)
+    }
+    
+    // MARK: - AIWorkoutServiceProtocol
+    func generatePlan(
+        for user: User,
+        goal: String,
+        duration: Int,
+        intensity: String,
+        targetMuscles: [String],
+        equipment: [String],
+        constraints: String?,
+        style: String
+    ) async throws -> WorkoutPlanResult {
+        recordInvocation("generatePlan", arguments: user.id, goal, duration, intensity, targetMuscles, equipment, constraints ?? "", style)
+        
+        if shouldThrowError {
+            throw errorToThrow
+        }
+        
+        return WorkoutPlanResult(
+            id: UUID(),
+            exercises: [
+                PlannedExercise(
+                    exerciseId: UUID(),
+                    name: "Mock Exercise",
+                    sets: 3,
+                    reps: "8-12",
+                    restSeconds: 60,
+                    notes: nil,
+                    alternatives: []
+                )
+            ],
+            estimatedCalories: 300,
+            estimatedDuration: duration,
+            summary: "Mock workout plan for \(goal)",
+            difficulty: .intermediate,
+            focusAreas: targetMuscles
+        )
+    }
+    
+    func adaptPlan(
+        _ plan: WorkoutPlanResult,
+        feedback: String,
+        adjustments: [String: Any]
+    ) async throws -> WorkoutPlanResult {
+        recordInvocation("adaptPlan", arguments: plan.id, feedback, adjustments)
+        
+        if shouldThrowError {
+            throw errorToThrow
+        }
+        
+        return plan // Return the same plan for mock
     }
 }

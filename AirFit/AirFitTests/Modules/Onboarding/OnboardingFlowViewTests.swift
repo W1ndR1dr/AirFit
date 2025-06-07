@@ -4,6 +4,7 @@ import SwiftData
 @testable import AirFit
 
 @MainActor
+
 final class OnboardingFlowViewTests: XCTestCase {
     var modelContainer: ModelContainer!
     var context: ModelContext!
@@ -11,9 +12,8 @@ final class OnboardingFlowViewTests: XCTestCase {
     var mockOnboardingService: MockOnboardingService!
 
     override func setUp() async throws {
-        await MainActor.run {
-            super.setUp()
-        }
+        try await super.setUp()
+        
         modelContainer = try ModelContainer.createTestContainer()
         context = modelContainer.mainContext
         mockAIService = MockAIService()
@@ -25,9 +25,7 @@ final class OnboardingFlowViewTests: XCTestCase {
         mockAIService = nil
         context = nil
         modelContainer = nil
-        await MainActor.run {
-            super.tearDown()
-        }
+        try await super.tearDown()
     }
 
     // MARK: - View Initialization Tests
@@ -247,7 +245,6 @@ final class OnboardingFlowViewTests: XCTestCase {
 }
 
 // MARK: - StepProgressBar Tests
-@MainActor
 final class StepProgressBarTests: XCTestCase {
 
     func test_progressBar_segmentCount_shouldBeSeven() {
@@ -282,7 +279,6 @@ final class StepProgressBarTests: XCTestCase {
 }
 
 // MARK: - PrivacyFooter Tests
-@MainActor
 final class PrivacyFooterTests: XCTestCase {
 
     func test_privacyFooter_shouldHaveCorrectText() {

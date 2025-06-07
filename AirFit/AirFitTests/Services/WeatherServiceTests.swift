@@ -1,24 +1,27 @@
 import XCTest
 @testable import AirFit
 
-@MainActor
 final class WeatherServiceTests: XCTestCase {
     
     var sut: WeatherService!
     
-    override func setUp() async throws {
-        try await super.setUp()
-        sut = WeatherService()
+    override func setUp() {
+        super.setUp()
+        // WeatherService is @MainActor, will be created in test methods
     }
     
-    override func tearDown() async throws {
+    override func tearDown() {
         sut = nil
-        try await super.tearDown()
+        super.tearDown()
     }
     
     // MARK: - Configuration Tests
     
-    func testConfigureAlwaysSucceeds() async throws {
+    @MainActor
+    
+    func testConfigureAlwaysSucceeds() async throws  {
+    
+        let sut = WeatherService()
         // WeatherKit requires no configuration
         try await sut.configure()
         XCTAssertTrue(sut.isConfigured)
@@ -26,7 +29,11 @@ final class WeatherServiceTests: XCTestCase {
     
     // MARK: - Health Check Tests
     
-    func testHealthCheckAlwaysHealthy() async {
+    @MainActor
+    
+    func testHealthCheckAlwaysHealthy() async  {
+    
+        let sut = WeatherService()
         // When
         let health = await sut.healthCheck()
         
@@ -38,7 +45,11 @@ final class WeatherServiceTests: XCTestCase {
     
     // MARK: - Weather Data Tests
     
-    func testGetCurrentWeatherReturnsData() async throws {
+    @MainActor
+    
+    func testGetCurrentWeatherReturnsData() async throws  {
+    
+        let sut = WeatherService()
         // Given - New York coordinates
         let latitude = 40.7128
         let longitude = -74.0060
@@ -61,7 +72,11 @@ final class WeatherServiceTests: XCTestCase {
         }
     }
     
-    func testGetCachedWeatherReturnsNilWhenNoCache() {
+    @MainActor
+    
+    func testGetCachedWeatherReturnsNilWhenNoCache()  {
+    
+        let sut = WeatherService()
         // When
         let cached = sut.getCachedWeather(latitude: 34.05, longitude: -118.24)
         
@@ -71,7 +86,11 @@ final class WeatherServiceTests: XCTestCase {
     
     // MARK: - Forecast Tests
     
-    func testGetForecastReturnsData() async throws {
+    @MainActor
+    
+    func testGetForecastReturnsData() async throws  {
+    
+        let sut = WeatherService()
         // Given
         let latitude = 34.0522
         let longitude = -118.2437
@@ -96,7 +115,11 @@ final class WeatherServiceTests: XCTestCase {
     
     // MARK: - Context Tests
     
-    func testGetLLMContextReturnsCompactData() async throws {
+    @MainActor
+    
+    func testGetLLMContextReturnsCompactData() async throws  {
+    
+        let sut = WeatherService()
         // Given
         let latitude = 37.7749
         let longitude = -122.4194
@@ -119,7 +142,11 @@ final class WeatherServiceTests: XCTestCase {
     
     // MARK: - Reset Tests
     
-    func testResetClearsCache() async throws {
+    @MainActor
+    
+    func testResetClearsCache() async throws  {
+    
+        let sut = WeatherService()
         // Given - Try to populate cache first
         do {
             _ = try await sut.getCurrentWeather(latitude: 40.7128, longitude: -74.0060)
@@ -137,7 +164,11 @@ final class WeatherServiceTests: XCTestCase {
     
     // MARK: - Cache Tests
     
-    func testCacheReturnsSameLocationData() async throws {
+    @MainActor
+    
+    func testCacheReturnsSameLocationData() async throws  {
+    
+        let sut = WeatherService()
         // Given
         let latitude = 34.0522
         let longitude = -118.2437

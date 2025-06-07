@@ -10,13 +10,13 @@ final class MockNetworkClient: NetworkClientProtocol, MockProtocol {
     let mockLock = NSLock()
     
     // MARK: - Error Control
-    var shouldThrowError = false
-    var errorToThrow: Error = NetworkError.networkError(NSError(domain: "MockNetworkClient", code: 1, userInfo: nil))
+    nonisolated(unsafe) var shouldThrowError = false
+    nonisolated(unsafe) var errorToThrow: Error = NetworkError.networkError(NSError(domain: "MockNetworkClient", code: 1, userInfo: nil))
     
     // MARK: - Response Configuration
-    var stubbedResponses: [String: Any] = [:]
-    var stubbedData: Data?
-    var responseDelay: TimeInterval = 0
+    nonisolated(unsafe) var stubbedResponses: [String: Any] = [:]
+    nonisolated(unsafe) var stubbedData: Data?
+    nonisolated(unsafe) var responseDelay: TimeInterval = 0
     
     // MARK: - NetworkClientProtocol
     func request<T: Decodable>(_ endpoint: Endpoint) async throws -> T {

@@ -12,7 +12,7 @@ final class MockNutritionService: NutritionServiceProtocol, MockProtocol, @unche
     
     // MARK: - Error Control
     var shouldThrowError = false
-    var errorToThrow: Error = AppError.serviceError("Mock nutrition service error")
+    var errorToThrow: Error = AppError.unknown(message: "Mock nutrition service error")
     
     // MARK: - Data Storage
     private var foodEntries: [UUID: FoodEntry] = [:]
@@ -22,6 +22,16 @@ final class MockNutritionService: NutritionServiceProtocol, MockProtocol, @unche
     var stubbedSummary: FoodNutritionSummary?
     var stubbedTargets: NutritionTargets?
     var stubbedRecentFoods: [FoodItem] = []
+    
+    // Test-specific properties
+    var foodEntriesToReturn: [FoodEntry] = []
+    var nutritionSummaryToReturn: FoodNutritionSummary?
+    var waterIntakeToReturn: Double = 0
+    var recentFoodsToReturn: [FoodItem] = []
+    var targetsToReturn: NutritionTargets?
+    var mealHistoryToReturn: [FoodEntry] = []
+    var loggedWaterAmount: Double?
+    var loggedWaterDate: Date?
     
     init() {
         // Set up default stubs
@@ -33,16 +43,19 @@ final class MockNutritionService: NutritionServiceProtocol, MockProtocol, @unche
             fiber: 0,
             sugar: 0,
             sodium: 0,
-            mealBreakdown: [:]
+            calorieGoal: 2000,
+            proteinGoal: 150,
+            carbGoal: 250,
+            fatGoal: 65
         )
         
         stubbedTargets = NutritionTargets(
-            dailyCalories: 2000,
-            proteinGrams: 150,
-            carbsGrams: 250,
-            fatGrams: 65,
-            fiberGrams: 25,
-            waterML: 3000
+            calories: 2000,
+            protein: 150,
+            carbs: 250,
+            fat: 65,
+            fiber: 25,
+            water: 3000
         )
     }
     
@@ -66,8 +79,8 @@ final class MockNutritionService: NutritionServiceProtocol, MockProtocol, @unche
         
         let calendar = Calendar.current
         return foodEntries.values.filter { entry in
-            calendar.isDate(entry.consumedAt, inSameDayAs: date)
-        }.sorted { $0.consumedAt < $1.consumedAt }
+            calendar.isDate(entry.loggedAt, inSameDayAs: date)
+        }.sorted { $0.loggedAt < $1.loggedAt }
     }
     
     func deleteFoodEntry(_ entry: FoodEntry) async throws {
@@ -90,8 +103,8 @@ final class MockNutritionService: NutritionServiceProtocol, MockProtocol, @unche
         let calendar = Calendar.current
         return foodEntries.values.filter { entry in
             entry.user?.id == user.id && 
-            calendar.isDate(entry.consumedAt, inSameDayAs: date)
-        }.sorted { $0.consumedAt < $1.consumedAt }
+            calendar.isDate(entry.loggedAt, inSameDayAs: date)
+        }.sorted { $0.loggedAt < $1.loggedAt }
     }
     
     nonisolated func calculateNutritionSummary(from entries: [FoodEntry]) -> FoodNutritionSummary {
@@ -105,22 +118,23 @@ final class MockNutritionService: NutritionServiceProtocol, MockProtocol, @unche
             fiber: 0,
             sugar: 0,
             sodium: 0,
-            mealBreakdown: [:]
+            calorieGoal: 2000,
+            proteinGoal: 150,
+            carbGoal: 250,
+            fatGoal: 65
         )
         
         for entry in entries {
-            if let nutrition = entry.nutritionData {
-                summary.calories += nutrition.calories ?? 0
-                summary.protein += nutrition.protein ?? 0
-                summary.carbs += nutrition.carbs ?? 0
-                summary.fat += nutrition.fat ?? 0
-                summary.fiber += nutrition.fiber ?? 0
-                summary.sugar += nutrition.sugar ?? 0
-                summary.sodium += nutrition.sodium ?? 0
-                
-                // Update meal breakdown
-                let mealCalories = summary.mealBreakdown[entry.mealType] ?? 0
-                summary.mealBreakdown[entry.mealType] = mealCalories + (nutrition.calories ?? 0)
+            summary.calories += Double(entry.totalCalories)
+            summary.protein += entry.totalProtein
+            summary.carbs += entry.totalCarbs
+            summary.fat += entry.totalFat
+            
+            // Sum up fiber, sugar, and sodium from individual food items
+            for item in entry.items {
+                summary.fiber += item.fiberGrams ?? 0
+                summary.sugar += item.sugarGrams ?? 0
+                summary.sodium += (item.sodiumMg ?? 0) / 1000.0 // Convert mg to g for consistency
             }
         }
         
@@ -138,6 +152,17 @@ final class MockNutritionService: NutritionServiceProtocol, MockProtocol, @unche
         return waterIntakes[key] ?? 0
     }
     
+    func updateWaterIntake(for user: User, date: Date, amount: Double) async throws {
+        recordInvocation("updateWaterIntake", arguments: user.id, date, amount)
+        
+        if shouldThrowError {
+            throw errorToThrow
+        }
+        
+        let key = waterIntakeKey(userId: user.id, date: date)
+        waterIntakes[key] = amount
+    }
+    
     func getRecentFoods(for user: User, limit: Int) async throws -> [FoodItem] {
         recordInvocation("getRecentFoods", arguments: user.id, limit)
         
@@ -152,21 +177,25 @@ final class MockNutritionService: NutritionServiceProtocol, MockProtocol, @unche
         // Return unique food items from recent entries
         let recentEntries = foodEntries.values
             .filter { $0.user?.id == user.id }
-            .sorted { $0.consumedAt > $1.consumedAt }
+            .sorted { $0.loggedAt > $1.loggedAt }
             .prefix(limit * 2) // Get more entries to ensure unique foods
         
         var uniqueFoods: [FoodItem] = []
         var seenNames = Set<String>()
         
         for entry in recentEntries {
-            if let foodItem = entry.foodItem,
-               !seenNames.contains(foodItem.name) {
-                uniqueFoods.append(foodItem)
-                seenNames.insert(foodItem.name)
-                
-                if uniqueFoods.count >= limit {
-                    break
+            for foodItem in entry.items {
+                if !seenNames.contains(foodItem.name) {
+                    uniqueFoods.append(foodItem)
+                    seenNames.insert(foodItem.name)
+                    
+                    if uniqueFoods.count >= limit {
+                        break
+                    }
                 }
+            }
+            if uniqueFoods.count >= limit {
+                break
             }
         }
         
@@ -200,21 +229,21 @@ final class MockNutritionService: NutritionServiceProtocol, MockProtocol, @unche
         
         return foodEntries.values.filter { entry in
             entry.user?.id == user.id &&
-            entry.mealType == mealType &&
-            entry.consumedAt >= startDate &&
-            entry.consumedAt <= endDate
-        }.sorted { $0.consumedAt < $1.consumedAt }
+            entry.mealType == mealType.rawValue &&
+            entry.loggedAt >= startDate &&
+            entry.loggedAt <= endDate
+        }.sorted { $0.loggedAt < $1.loggedAt }
     }
     
     nonisolated func getTargets(from profile: OnboardingProfile?) -> NutritionTargets {
         // Return stubbed targets or defaults
         return NutritionTargets(
-            dailyCalories: 2000,
-            proteinGrams: 150,
-            carbsGrams: 250,
-            fatGrams: 65,
-            fiberGrams: 25,
-            waterML: 3000
+            calories: 2000,
+            protein: 150,
+            carbs: 250,
+            fat: 65,
+            fiber: 25,
+            water: 3000
         )
     }
     

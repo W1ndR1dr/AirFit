@@ -23,9 +23,13 @@ final class Phase2ValidationTests: XCTestCase {
         
         // Create test user
         testUser = User(
-            id: UUID(),
-            email: "test@example.com",
             name: "Test User",
+            email: "test@example.com",
+            dateOfBirth: Date(),
+            heightCm: 175,
+            weightKg: 70,
+            activityLevel: .moderate,
+            gender: .male,
             preferredUnits: "metric"
         )
         modelContext.insert(testUser)
@@ -56,9 +60,13 @@ final class Phase2ValidationTests: XCTestCase {
         // Create noise data (other users and conversations) to verify predicate filtering
         for i in 1...10 {
             let otherUser = User(
-                id: UUID(),
-                email: "other\(i)@example.com",
                 name: "Other User \(i)",
+                email: "other\(i)@example.com",
+                dateOfBirth: Date(),
+                heightCm: 175,
+                weightKg: 70,
+                activityLevel: .moderate,
+                gender: .male,
                 preferredUnits: "metric"
             )
             modelContext.insert(otherUser)
@@ -119,9 +127,13 @@ final class Phase2ValidationTests: XCTestCase {
         // Create 5 additional users
         for i in 1...5 {
             let user = User(
-                id: UUID(),
-                email: "user\(i)@example.com",
                 name: "User \(i)",
+                email: "user\(i)@example.com",
+                dateOfBirth: Date(),
+                heightCm: 175,
+                weightKg: 70,
+                activityLevel: .moderate,
+                gender: .male,
                 preferredUnits: "metric"
             )
             modelContext.insert(user)

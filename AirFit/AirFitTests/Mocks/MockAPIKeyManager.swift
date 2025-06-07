@@ -17,6 +17,10 @@ final class MockAPIKeyManager: APIKeyManagementProtocol, MockProtocol {
     var stubbedHasAPIKeyResult: Bool = true
     var stubbedGetAllConfiguredProvidersResult: [AIProvider] = []
     
+    // Provider-specific results for testing
+    var getAPIKeyResults: [AIProvider: String] = [:]
+    var hasKeyResults: [AIProvider: Bool] = [:]
+    
     func saveAPIKey(_ key: String, for provider: AIProvider) async throws {
         recordInvocation("saveAPIKey", arguments: key, provider)
         if let error = stubbedSaveAPIKeyError {
@@ -28,6 +32,10 @@ final class MockAPIKeyManager: APIKeyManagementProtocol, MockProtocol {
         recordInvocation("getAPIKey", arguments: provider)
         if let error = stubbedGetAPIKeyError {
             throw error
+        }
+        // Check provider-specific results first
+        if let result = getAPIKeyResults[provider] {
+            return result
         }
         return stubbedGetAPIKeyResult
     }
@@ -41,6 +49,10 @@ final class MockAPIKeyManager: APIKeyManagementProtocol, MockProtocol {
     
     func hasAPIKey(for provider: AIProvider) async -> Bool {
         recordInvocation("hasAPIKey", arguments: provider)
+        // Check provider-specific results first
+        if let result = hasKeyResults[provider] {
+            return result
+        }
         return stubbedHasAPIKeyResult
     }
     

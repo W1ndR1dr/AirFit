@@ -2,10 +2,9 @@ import Foundation
 @testable import AirFit
 
 // MARK: - MockLLMProvider
-actor MockLLMProvider: LLMProvider, MockProtocol {
-    var invocations: [String: [Any]] = [:]
-    var stubbedResults: [String: Any] = [:]
-    let mockLock = NSLock()
+actor MockLLMProvider: LLMProvider {
+    private var _invocations: [String: [Any]] = [:]
+    private let mockLock = NSLock()
     
     // LLMProvider conformance
     let identifier: LLMProviderIdentifier = LLMProviderIdentifier(name: "MockProvider", version: "1.0")
@@ -34,7 +33,7 @@ actor MockLLMProvider: LLMProvider, MockProtocol {
     var stubbedValidateAPIKeyError: Error?
     
     func complete(_ request: LLMRequest) async throws -> LLMResponse {
-        await recordInvocation("complete", arguments: request)
+        recordInvocation("complete", arguments: request)
         
         if let error = stubbedCompleteError {
             throw error
@@ -44,9 +43,7 @@ actor MockLLMProvider: LLMProvider, MockProtocol {
     }
     
     func stream(_ request: LLMRequest) -> AsyncThrowingStream<LLMStreamChunk, Error> {
-        Task {
-            await recordInvocation("stream", arguments: request)
-        }
+        recordInvocation("stream", arguments: request)
         
         return AsyncThrowingStream { continuation in
             Task {
@@ -66,7 +63,7 @@ actor MockLLMProvider: LLMProvider, MockProtocol {
     }
     
     func validateAPIKey(_ key: String) async throws -> Bool {
-        await recordInvocation("validateAPIKey", arguments: key)
+        recordInvocation("validateAPIKey", arguments: key)
         
         if let error = stubbedValidateAPIKeyError {
             throw error
@@ -76,14 +73,14 @@ actor MockLLMProvider: LLMProvider, MockProtocol {
     }
     
     // Actor-isolated record invocation
-    private func recordInvocation(_ method: String, arguments: Any...) {
+    func recordInvocation(_ method: String, arguments: Any...) {
         mockLock.lock()
         defer { mockLock.unlock() }
         
-        if invocations[method] == nil {
-            invocations[method] = []
+        if _invocations[method] == nil {
+            _invocations[method] = []
         }
-        invocations[method]?.append(Array(arguments))
+        _invocations[method]?.append(Array(arguments))
     }
     
     // Helper methods for testing (must be called from async context)
@@ -114,7 +111,7 @@ actor MockLLMProvider: LLMProvider, MockProtocol {
     // Verify helpers (must be called from async context)
     func verifyComplete(called times: Int = 1) {
         mockLock.lock()
-        let actual = invocations["complete"]?.count ?? 0
+        let actual = _invocations["complete"]?.count ?? 0
         mockLock.unlock()
         
         assert(actual == times, "complete was called \(actual) times, expected \(times)")
@@ -122,25 +119,29 @@ actor MockLLMProvider: LLMProvider, MockProtocol {
     
     func verifyStream(called times: Int = 1) {
         mockLock.lock()
-        let actual = invocations["stream"]?.count ?? 0
+        let actual = _invocations["stream"]?.count ?? 0
         mockLock.unlock()
         
         assert(actual == times, "stream was called \(actual) times, expected \(times)")
     }
     
-    func verifyValidateAPIKey(called times: Int = 1) {
-        mockLock.lock()
-        let actual = invocations["validateAPIKey"]?.count ?? 0
-        mockLock.unlock()
-        
-        assert(actual == times, "validateAPIKey was called \(actual) times, expected \(times)")
+    // Test helpers
+    func getInvocations() -> [String: [Any]] {
+        return _invocations
     }
     
     func reset() {
+        _invocations.removeAll()
+        stubbedCompleteError = nil
+        stubbedStreamError = nil
+        stubbedValidateAPIKeyError = nil
+    }
+    
+    func verifyValidateAPIKey(called times: Int = 1) {
         mockLock.lock()
-        defer { mockLock.unlock() }
+        let actual = _invocations["validateAPIKey"]?.count ?? 0
+        mockLock.unlock()
         
-        invocations.removeAll()
-        stubbedResults.removeAll()
+        assert(actual == times, "validateAPIKey was called \(actual) times, expected \(times)")
     }
 }

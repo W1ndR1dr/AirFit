@@ -2,7 +2,6 @@ import XCTest
 import SwiftData
 @testable import AirFit
 
-@MainActor
 final class FunctionCallDispatcherTests: XCTestCase {
 
     var dispatcher: FunctionCallDispatcher!
@@ -10,9 +9,19 @@ final class FunctionCallDispatcherTests: XCTestCase {
     var testContext: FunctionContext!
     var modelContainer: ModelContainer!
 
-    override func setUp() async throws {
+    override func setUp() {
         // Create in-memory model container for testing
-        modelContainer = try ModelContainer.createTestContainer()
+        do {
+
+            modelContainer = try ModelContainer.createTestContainer()
+
+        } catch {
+
+            XCTFail("Failed to create test container: \(error)")
+
+            return
+
+        }
 
         // Create test user
         testUser = User(
@@ -37,7 +46,7 @@ final class FunctionCallDispatcherTests: XCTestCase {
         )
     }
 
-    override func tearDown() async throws {
+    override func tearDown() {
         dispatcher = nil
         testUser = nil
         testContext = nil

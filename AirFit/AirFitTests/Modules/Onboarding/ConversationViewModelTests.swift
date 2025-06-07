@@ -11,7 +11,9 @@ final class ConversationViewModelTests: XCTestCase {
     var testUserId: UUID!
     
     override func setUp() async throws {
-        try await super.setUp()
+        await MainActor.run {
+            super.setUp()
+        }
         
         testUserId = UUID()
         mockFlowManager = MockConversationFlowManager()
@@ -33,7 +35,9 @@ final class ConversationViewModelTests: XCTestCase {
         mockAnalytics = nil
         testUserId = nil
         
-        try await super.tearDown()
+        await MainActor.run {
+            super.tearDown()
+        }
     }
     
     // MARK: - Start Tests
@@ -193,7 +197,7 @@ final class ConversationViewModelTests: XCTestCase {
         // Assert
         XCTAssertTrue(completionCalled)
         XCTAssertNotNil(receivedInsights)
-        XCTAssertEqual(receivedInsights?.communicationTone, PersonalityInsights.mock.communicationTone)
+        XCTAssertEqual(receivedInsights?.traits.count, PersonalityInsights.mock.traits.count)
     }
     
     // MARK: - Skip Tests
@@ -209,7 +213,7 @@ final class ConversationViewModelTests: XCTestCase {
         // Assert
         XCTAssertEqual(mockFlowManager.skipCurrentNodeCallCount, 1)
         XCTAssertTrue(mockAnalytics.trackedEvents.contains {
-            if case .questionSkipped(let nodeId) = $0 {
+            if case .nodeSkipped(let nodeId) = $0 {
                 return nodeId == testNode.id.uuidString
             }
             return false
@@ -237,77 +241,8 @@ final class ConversationViewModelTests: XCTestCase {
 
 // MARK: - Mock Classes
 
-@MainActor
-final class MockConversationFlowManager: ConversationFlowManager {
-    var startNewSessionCallCount = 0
-    var resumeSessionCallCount = 0
-    var submitResponseCallCount = 0
-    var skipCurrentNodeCallCount = 0
-    
-    var lastStartedUserId: UUID?
-    var lastResumedSession: ConversationSession?
-    var lastSubmittedResponse: ResponseValue?
-    
-    var shouldThrowError = false
-    var mockInsights = PersonalityInsights.mock
-    
-    override func startNewSession(userId: UUID) async {
-        startNewSessionCallCount += 1
-        lastStartedUserId = userId
-        
-        if shouldThrowError {
-            throw AppError.genericError("Mock error")
-        }
-    }
-    
-    override func resumeSession(_ session: ConversationSession) async {
-        resumeSessionCallCount += 1
-        lastResumedSession = session
-    }
-    
-    override func submitResponse(_ response: ResponseValue) async throws {
-        submitResponseCallCount += 1
-        lastSubmittedResponse = response
-        
-        if shouldThrowError {
-            throw AppError.genericError("Mock error")
-        }
-    }
-    
-    override func skipCurrentNode() async {
-        skipCurrentNodeCallCount += 1
-    }
-    
-    override func generateInsights() -> PersonalityInsights {
-        return mockInsights
-    }
-    
-    func simulateProgressUpdate(_ progress: Double) {
-        self.progress = progress
-    }
-}
+// MockConversationFlowManager and related mocks are in the Mocks folder
 
-@MainActor
-final class MockConversationPersistence: ConversationPersistence {
-    var mockSession: ConversationSession?
-    var shouldThrowError = false
-    
-    override func fetchActiveSession(for userId: UUID) throws -> ConversationSession? {
-        if shouldThrowError {
-            throw AppError.databaseError("Mock persistence error")
-        }
-        return mockSession
-    }
-}
-
-@MainActor
-final class MockConversationAnalytics: ConversationAnalytics {
-    var trackedEvents: [ConversationEvent] = []
-    
-    override func track(_ event: ConversationEvent) async {
-        trackedEvents.append(event)
-    }
-}
 
 // MARK: - Test Helpers
 
@@ -315,30 +250,22 @@ extension ConversationNode {
     static var mock: ConversationNode {
         ConversationNode(
             id: UUID(),
-            question: "Test question?",
-            type: .openText,
-            category: .lifestyle,
-            isRequired: true,
-            nextNodeId: nil,
-            metadata: [:]
+            nodeType: .lifestyle,
+            question: ConversationQuestion(
+                primary: "Test question?",
+                clarifications: [],
+                examples: nil,
+                voicePrompt: nil
+            ),
+            inputType: .text(minLength: 0, maxLength: 500, placeholder: "Enter your response"),
+            branchingRules: [],
+            dataKey: "test_response",
+            validationRules: ValidationRules(required: true)
         )
     }
 }
 
-extension PersonalityInsights {
-    static var mock: PersonalityInsights {
-        PersonalityInsights(
-            communicationTone: .friendly,
-            motivationStyle: .encouraging,
-            detailLevel: .balanced,
-            preferredTiming: .morning,
-            responseToSuccess: .enthusiastic,
-            responseToStruggle: .supportive,
-            humorLevel: .moderate,
-            formalityLevel: .casual
-        )
-    }
-}
+// PersonalityInsights.mock is now provided by MockConversationFlowManager.swift
 
 extension ResponseValue: Equatable {
     public static func == (lhs: ResponseValue, rhs: ResponseValue) -> Bool {

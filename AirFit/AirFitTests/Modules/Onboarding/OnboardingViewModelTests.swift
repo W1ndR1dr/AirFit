@@ -2,6 +2,8 @@ import XCTest
 import SwiftData
 @testable import AirFit
 
+@MainActor
+
 final class OnboardingViewModelTests: XCTestCase {
     var modelContainer: ModelContainer!
     var context: ModelContext!
@@ -9,44 +11,48 @@ final class OnboardingViewModelTests: XCTestCase {
     var mockOnboardingService: MockOnboardingService!
     var mockHealthProvider: MockHealthKitPrefillProvider!
     var sut: OnboardingViewModel!
+    var mockAPIKeyManager: MockAPIKeyManager!
+    var mockUserService: MockUserService!
 
-    @MainActor
     override func setUp() async throws {
-        await MainActor.run {
-            super.setUp()
-        }
+        try await super.setUp()
+        
         modelContainer = try ModelContainer.createTestContainer()
         context = modelContainer.mainContext
         mockAIService = MockAIService()
         mockOnboardingService = MockOnboardingService(modelContext: context)
         mockHealthProvider = MockHealthKitPrefillProvider()
+        mockAPIKeyManager = MockAPIKeyManager()
+        mockUserService = MockUserService()
         sut = OnboardingViewModel(
             aiService: mockAIService,
             onboardingService: mockOnboardingService,
             modelContext: context,
+            apiKeyManager: mockAPIKeyManager,
+            userService: mockUserService,
             speechService: nil,
-            healthPrefillProvider: mockHealthProvider
+            healthPrefillProvider: mockHealthProvider,
+            mode: .legacy  // Test legacy mode to test the blend functionality
         )
         // Allow prefill task to complete
         try? await Task.sleep(nanoseconds: 100_000_000)
     }
 
-    @MainActor
     override func tearDown() async throws {
         sut = nil
+        mockUserService = nil
+        mockAPIKeyManager = nil
         mockHealthProvider = nil
         mockOnboardingService = nil
         mockAIService = nil
         context = nil
         modelContainer = nil
-        await MainActor.run {
-            super.tearDown()
-        }
+        try await super.tearDown()
     }
 
     // MARK: - Navigation
-    @MainActor
-    func test_navigationFlow_shouldTraverseAllScreens() {
+        @MainActor
+        func test_navigationFlow_shouldTraverseAllScreens() {
         // Arrange
         var visited: [OnboardingScreen] = [sut.currentScreen]
 
@@ -65,8 +71,8 @@ final class OnboardingViewModelTests: XCTestCase {
     }
 
     // MARK: - Goal Analysis
-    @MainActor
-    func test_analyzeGoalText_givenValidText_shouldLogGoalText() async {
+        @MainActor
+        func test_analyzeGoalText_givenValidText_shouldLogGoalText() async {
         // Arrange
         sut.goal.rawText = "run a marathon"
 
@@ -81,8 +87,9 @@ final class OnboardingViewModelTests: XCTestCase {
         XCTAssertNil(sut.error)
     }
 
-    @MainActor
-    func test_analyzeGoalText_givenEmptyText_shouldStillWork() async {
+        @MainActor
+
+        func test_analyzeGoalText_givenEmptyText_shouldStillWork() async {
         // Arrange
         sut.goal.rawText = "  "
 
@@ -96,8 +103,8 @@ final class OnboardingViewModelTests: XCTestCase {
     }
 
     // MARK: - HealthKit Prefill
-    @MainActor
-    func test_prefillFromHealthKit_givenWindow_shouldUpdateSleepTimes() async {
+        @MainActor
+        func test_prefillFromHealthKit_givenWindow_shouldUpdateSleepTimes() async {
         // Arrange
         let bed = Calendar.current.date(bySettingHour: 21, minute: 30, second: 0, of: Date())!
         let wake = Calendar.current.date(bySettingHour: 6, minute: 45, second: 0, of: Date())!
@@ -106,8 +113,11 @@ final class OnboardingViewModelTests: XCTestCase {
             aiService: mockAIService,
             onboardingService: mockOnboardingService,
             modelContext: context,
+            apiKeyManager: mockAPIKeyManager,
+            userService: mockUserService,
             speechService: nil,
-            healthPrefillProvider: mockHealthProvider
+            healthPrefillProvider: mockHealthProvider,
+            mode: .legacy
         )
         try? await Task.sleep(nanoseconds: 100_000_000)
 
@@ -118,38 +128,28 @@ final class OnboardingViewModelTests: XCTestCase {
         XCTAssertEqual(sut.sleepWindow.wakeTime, formatter.string(from: wake))
     }
 
-    // MARK: - Blend Validation
-    @MainActor
-    func test_validateBlend_shouldNormalizeValues() {
-        // Arrange
-        sut.blend.authoritativeDirect = 0.5
-        sut.blend.encouragingEmpathetic = 0.5
-        sut.blend.analyticalInsightful = 0.5
-        sut.blend.playfullyProvocative = 0.5
-
-        // Act
-        sut.validateBlend()
+    // MARK: - Persona Mode Selection
+        @MainActor
+        func test_personaModeSelection_shouldUpdateCorrectly() {
+        // Arrange & Act
+        sut.selectedPersonaMode = .directTrainer
 
         // Assert
-        let total = sut.blend.authoritativeDirect + sut.blend.encouragingEmpathetic +
-            sut.blend.analyticalInsightful + sut.blend.playfullyProvocative
-        XCTAssertEqual(total, 1.0, accuracy: 0.0001)
-        XCTAssertTrue(sut.blend.isValid)
+        XCTAssertEqual(sut.selectedPersonaMode, .directTrainer)
+
+        // Change mode
+        sut.selectedPersonaMode = .analyticalAdvisor
+        XCTAssertEqual(sut.selectedPersonaMode, .analyticalAdvisor)
     }
 
     // MARK: - Complete Onboarding
-    @MainActor
-    func test_completeOnboarding_shouldSaveProfileWithCorrectJSON() async throws {
+        @MainActor
+        func test_completeOnboarding_shouldSaveProfileWithCorrectJSON() async throws {
         // Arrange
         sut.lifeContext.isDeskJob = true
         sut.goal.family = .performance
         sut.goal.rawText = "Run a marathon"
-        sut.blend = Blend(
-            authoritativeDirect: 0.4,
-            encouragingEmpathetic: 0.3,
-            analyticalInsightful: 0.2,
-            playfullyProvocative: 0.1
-        )
+        sut.selectedPersonaMode = .directTrainer
         sut.engagementPreferences.trackingStyle = .guidanceOnDemand
         sut.sleepWindow.bedTime = "23:00"
         sut.sleepWindow.wakeTime = "07:00"
@@ -171,7 +171,7 @@ final class OnboardingViewModelTests: XCTestCase {
         let blob = try decoder.decode(UserProfileJsonBlob.self, from: profiles.first!.personaPromptData)
         XCTAssertEqual(blob.lifeContext.isDeskJob, true)
         XCTAssertEqual(blob.goal.family, .performance)
-        XCTAssertEqual(blob.blend.playfullyProvocative, 0.1, accuracy: 0.001)
+        XCTAssertEqual(blob.personaMode, .directTrainer)
         XCTAssertEqual(blob.timezone, "UTC")
         XCTAssertFalse(blob.baselineModeEnabled)
     }

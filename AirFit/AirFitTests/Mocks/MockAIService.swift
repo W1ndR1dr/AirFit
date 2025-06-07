@@ -65,25 +65,11 @@ final class MockAIService: AIServiceProtocol, MockProtocol {
                 let mockResponse = "This is a mock response to your request."
                 for word in mockResponse.split(separator: " ") {
                     try? await Task.sleep(nanoseconds: 50_000_000) // 50ms between words
-                    let response = AIResponse(
-                        id: UUID().uuidString,
-                        content: String(word) + " ",
-                        model: "mock-model",
-                        usage: AIUsage(promptTokens: 10, completionTokens: 1, totalTokens: 11),
-                        finishReason: nil
-                    )
-                    continuation.yield(response)
+                    continuation.yield(.textDelta(String(word) + " "))
                 }
                 
-                // Final response
-                let finalResponse = AIResponse(
-                    id: UUID().uuidString,
-                    content: mockResponse,
-                    model: "mock-model",
-                    usage: AIUsage(promptTokens: 10, completionTokens: 20, totalTokens: 30),
-                    finishReason: "stop"
-                )
-                continuation.yield(finalResponse)
+                // Final response with usage
+                continuation.yield(.done(usage: AITokenUsage(promptTokens: 10, completionTokens: 20, totalTokens: 30)))
                 continuation.finish()
             }
         }

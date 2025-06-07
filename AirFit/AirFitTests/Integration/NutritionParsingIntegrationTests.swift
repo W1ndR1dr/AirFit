@@ -18,7 +18,6 @@ import SwiftData
 // ✅ End-to-end flow functions correctly
 //
 
-@MainActor
 final class NutritionParsingIntegrationTests: XCTestCase {
     
     // MARK: - Test Infrastructure
@@ -26,13 +25,14 @@ final class NutritionParsingIntegrationTests: XCTestCase {
     private var coachEngine: CoachEngine!
     private var mockVoiceAdapter: MockFoodVoiceAdapter!
     private var mockNutritionService: MockNutritionService!
-    private var mockCoordinator: MockFoodTrackingCoordinator!
+    private var coordinator: FoodTrackingCoordinator!
     private var testUser: User!
     private var modelContainer: ModelContainer!
     private var modelContext: ModelContext!
+    private var container: DIContainer!
 
-    override func setUp() async throws {
-        try await super.setUp()
+    override func setUp() {
+        super.setUp()
         
         // Create in-memory model container for integration testing
         let schema = Schema([User.self, FoodEntry.self, FoodItem.self, OnboardingProfile.self])
@@ -42,32 +42,62 @@ final class NutritionParsingIntegrationTests: XCTestCase {
         
         // Create test user with realistic profile
         testUser = User(
-            name: "Integration Test User",
-            email: "integration@airfit.com", 
-            dateOfBirth: Calendar.current.date(byAdding: .year, value: -30, to: Date())!,
-            heightCm: 175,
-            weightKg: 70,
-            activityLevel: .moderate,
-            primaryGoal: .maintainWeight
+            email: "integration@airfit.com",
+            name: "Integration Test User"
         )
         let onboardingProfile = OnboardingProfile(
-            userId: testUser.id,
-            goal: "maintain_weight",
-            activityLevel: "moderate",
-            dietaryRestrictions: []
+            personaPromptData: Data(),
+            communicationPreferencesData: Data(),
+            rawFullProfileData: Data()
         )
         testUser.onboardingProfile = onboardingProfile
         modelContext.insert(testUser)
         modelContext.insert(onboardingProfile)
-        try modelContext.save()
+        do {
+
+            try modelContext.save()
+
+        } catch {
+
+            XCTFail("Failed to save test context: \(error)")
+
+        }
+        
+        // Create DI container with mock services
+        container = try await DITestHelper.createTestContainer()
         
         // Create real CoachEngine for true integration testing
-        coachEngine = CoachEngine.createDefault(modelContext: modelContext)
+        let mockAIService = MockAIService()
+        let mockAPIKeyManager = MockAPIKeyManager()
+        let mockHealthKitManager = MockHealthKitManager()
+        let mockAnalyticsService = await MockAnalyticsService()
+        
+        // Create dependencies
+        let llmOrchestrator = await LLMOrchestrator(apiKeyManager: mockAPIKeyManager)
+        let contextAssembler = await ContextAssembler(healthKitManager: mockHealthKitManager)
+        let conversationManager = ConversationManager(modelContext: modelContext)
+        let localCommandParser = LocalCommandParser()
+        let personaEngine = PersonaEngine()
+        let functionDispatcher = FunctionCallDispatcher(
+            workoutService: MockAIWorkoutService(),
+            analyticsService: MockAIAnalyticsService(),
+            goalService: MockAIGoalService()
+        )
+        
+        coachEngine = CoachEngine(
+            localCommandParser: localCommandParser,
+            functionDispatcher: functionDispatcher,
+            personaEngine: personaEngine,
+            conversationManager: conversationManager,
+            aiService: mockAIService,
+            contextAssembler: contextAssembler,
+            modelContext: modelContext
+        )
         
         // Create mocks for other dependencies
         mockVoiceAdapter = MockFoodVoiceAdapter()
         mockNutritionService = MockNutritionService()
-        mockCoordinator = MockFoodTrackingCoordinator()
+        coordinator = FoodTrackingCoordinator()
         
         // Create SUT with real CoachEngine to test actual AI integration
         sut = FoodTrackingViewModel(
@@ -76,31 +106,36 @@ final class NutritionParsingIntegrationTests: XCTestCase {
             foodVoiceAdapter: mockVoiceAdapter,
             nutritionService: mockNutritionService,
             coachEngine: coachEngine,
-            coordinator: mockCoordinator
+            coordinator: coordinator
         )
     }
 
-    override func tearDown() async throws {
+    override func tearDown() {
         sut = nil
         coachEngine = nil
         mockVoiceAdapter = nil
         mockNutritionService = nil
-        mockCoordinator = nil
+        coordinator = nil
         testUser = nil
         modelContext = nil
         modelContainer = nil
-        try await super.tearDown()
+        container = nil
+        super.tearDown()
     }
 
     // MARK: - Task 8.1: End-to-End Flow Validation
     
     func test_endToEnd_voiceToNutrition_realData() async throws {
         // Given: User speaks food description
-        sut.transcribedText = "I had a grilled chicken salad with olive oil dressing"
+        let foodDescription = "I had a grilled chicken salad with olive oil dressing"
         
         // When: Process transcription (triggers AI parsing)
         let startTime = CFAbsoluteTimeGetCurrent()
-        await sut.processTranscription()
+        mockVoiceAdapter.onFoodTranscription?(foodDescription)
+        
+        // Wait for async processing
+        try await Task.sleep(nanoseconds: 200_000_000) // 0.2 seconds
+        
         let totalDuration = CFAbsoluteTimeGetCurrent() - startTime
         
         // Then: Verify real nutrition data (not 100-calorie placeholder)
@@ -112,7 +147,7 @@ final class NutritionParsingIntegrationTests: XCTestCase {
         XCTAssertLessThan(totalCalories, 800, "Should not be unrealistically high")
         
         // Verify coordination to confirmation screen
-        if case .confirmation(let items) = mockCoordinator.didShowFullScreenCover {
+        if case .confirmation(let items) = coordinator.activeFullScreenCover {
             XCTAssertEqual(items.count, sut.parsedItems.count, "Coordinator should receive all parsed items")
         } else {
             XCTFail("Should navigate to confirmation screen with parsed items")
@@ -135,8 +170,14 @@ final class NutritionParsingIntegrationTests: XCTestCase {
         ]
         
         for food in testFoods {
-            sut.transcribedText = food
-            await sut.processTranscription()
+            // Clear previous state
+            sut.setParsedItems([])
+            
+            // Simulate voice transcription
+            mockVoiceAdapter.onFoodTranscription?(food)
+            
+            // Wait for async processing
+            try await Task.sleep(nanoseconds: 200_000_000) // 0.2 seconds
             
             let result = sut.parsedItems
             XCTAssertFalse(result.isEmpty, "Should parse food: \(food)")
@@ -165,13 +206,15 @@ final class NutritionParsingIntegrationTests: XCTestCase {
         // AFTER: Real nutrition values based on actual food
         
         // Test Apple
-        sut.transcribedText = "1 medium apple"
-        await sut.processTranscription()
+        sut.setParsedItems([])
+        mockVoiceAdapter.onFoodTranscription?("1 medium apple")
+        try await Task.sleep(nanoseconds: 200_000_000) // 0.2 seconds
         let apple = sut.parsedItems.first
         
-        // Test Pizza  
-        sut.transcribedText = "1 slice pepperoni pizza"
-        await sut.processTranscription()
+        // Test Pizza
+        sut.setParsedItems([])
+        mockVoiceAdapter.onFoodTranscription?("1 slice pepperoni pizza")
+        try await Task.sleep(nanoseconds: 200_000_000) // 0.2 seconds
         let pizza = sut.parsedItems.first
         
         // Verify different foods have different calories (not hardcoded 100)
@@ -196,14 +239,16 @@ final class NutritionParsingIntegrationTests: XCTestCase {
     
     func test_integration_errorRecovery() async throws {
         // Test with problematic input that might cause AI failures
-        sut.transcribedText = "xyz invalid food gibberish 123"
+        sut.setParsedItems([])
+        sut.clearError()
         
-        await sut.processTranscription()
+        mockVoiceAdapter.onFoodTranscription?("xyz invalid food gibberish 123")
+        try await Task.sleep(nanoseconds: 200_000_000) // 0.2 seconds
         
         // Should either parse successfully or show appropriate error
         if sut.parsedItems.isEmpty {
             // Verify error was set and user sees feedback
-            XCTAssertNotNil(sut.currentError, "Should have error for invalid input")
+            XCTAssertNotNil(sut.error, "Should have error for invalid input")
         } else {
             // Verify fallback provided reasonable values
             let fallbackItem = sut.parsedItems.first!
@@ -217,10 +262,11 @@ final class NutritionParsingIntegrationTests: XCTestCase {
     // MARK: - Task 8.4: Performance Integration
     
     func test_integration_performanceTarget() async throws {
-        sut.transcribedText = "grilled salmon with quinoa and steamed vegetables"
+        sut.setParsedItems([])
         
         let startTime = CFAbsoluteTimeGetCurrent()
-        await sut.processTranscription()
+        mockVoiceAdapter.onFoodTranscription?("grilled salmon with quinoa and steamed vegetables")
+        try await Task.sleep(nanoseconds: 200_000_000) // 0.2 seconds
         let totalDuration = CFAbsoluteTimeGetCurrent() - startTime
         
         XCTAssertLessThan(totalDuration, 3.0, "Complete voice-to-nutrition flow should complete under 3 seconds")
@@ -247,8 +293,9 @@ final class NutritionParsingIntegrationTests: XCTestCase {
         var previousCalories: Int?
         
         for (food, expectedRange) in foodTests {
-            sut.transcribedText = food
-            await sut.processTranscription()
+            sut.setParsedItems([])
+            mockVoiceAdapter.onFoodTranscription?(food)
+            try await Task.sleep(nanoseconds: 200_000_000) // 0.2 seconds
             
             let item = sut.parsedItems.first
             XCTAssertNotNil(item, "Should parse: \(food)")
@@ -285,31 +332,35 @@ final class NutritionParsingIntegrationTests: XCTestCase {
         AppLogger.info("🏁 PHASE 1 TASK 8 - FINAL INTEGRATION VALIDATION")
         
         // Validation 1: Real nutrition data
-        sut.transcribedText = "medium apple"
-        await sut.processTranscription()
+        sut.setParsedItems([])
+        mockVoiceAdapter.onFoodTranscription?("medium apple")
+        try await Task.sleep(nanoseconds: 200_000_000) // 0.2 seconds
         let appleItem = sut.parsedItems.first
         XCTAssertNotEqual(appleItem?.calories, 100, "✅ No more hardcoded 100 calories")
         
         // Validation 2: Performance target
+        sut.setParsedItems([])
         let startTime = CFAbsoluteTimeGetCurrent()
-        sut.transcribedText = "grilled chicken with vegetables"
-        await sut.processTranscription()
+        mockVoiceAdapter.onFoodTranscription?("grilled chicken with vegetables")
+        try await Task.sleep(nanoseconds: 200_000_000) // 0.2 seconds
         let duration = CFAbsoluteTimeGetCurrent() - startTime
         XCTAssertLessThan(duration, 3.0, "✅ Performance under 3 seconds")
         
         // Validation 3: Different foods have different values
-        sut.transcribedText = "slice of pizza"
-        await sut.processTranscription()
+        sut.setParsedItems([])
+        mockVoiceAdapter.onFoodTranscription?("slice of pizza")
+        try await Task.sleep(nanoseconds: 200_000_000) // 0.2 seconds
         let pizzaItem = sut.parsedItems.first
         XCTAssertNotEqual(appleItem?.calories, pizzaItem?.calories, "✅ Different foods have different calories")
         
         // Validation 4: Error handling works
-        sut.transcribedText = ""
-        await sut.processTranscription()
+        sut.setParsedItems([])
+        mockVoiceAdapter.onFoodTranscription?("")
+        try await Task.sleep(nanoseconds: 200_000_000) // 0.2 seconds
         XCTAssertTrue(sut.parsedItems.isEmpty, "✅ Empty input handled correctly")
         
         // Validation 5: UI integration preserved
-        XCTAssertNotNil(mockCoordinator, "✅ UI coordination preserved")
+        XCTAssertNotNil(coordinator, "✅ UI coordination preserved")
         
         AppLogger.info("🎉 PHASE 1 NUTRITION SYSTEM REFACTOR - TASK 8 COMPLETE")
         AppLogger.info("✅ Real nutrition data instead of 100-calorie placeholders")
@@ -322,4 +373,8 @@ final class NutritionParsingIntegrationTests: XCTestCase {
         // PHASE 1 SUCCESS: Users now receive realistic nutrition data
         // instead of the previous embarrassing 100-calorie placeholders!
     }
-} 
+}
+
+// MARK: - Mock Dependencies
+
+// Using MockFoodVoiceAdapter from Mocks directory 

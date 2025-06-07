@@ -2,54 +2,54 @@ import XCTest
 import SwiftData
 @testable import AirFit
 
+@MainActor
 final class OnboardingFlowTests: XCTestCase {
-    
+
     var coordinator: OnboardingFlowCoordinator!
     var modelContext: ModelContext!
     var conversationManager: ConversationFlowManager!
     var personaService: PersonaService!
     var userService: MockUserService!
     var flowDefinition: [String: ConversationNode]!
-    
-    @MainActor
+
     override func setUp() async throws {
         try await super.setUp()
-        
+
         // Create in-memory container
         let container = try ModelContainer.createTestContainer()
         modelContext = container.mainContext
-        
+
         // Create flow definition
         flowDefinition = createTestFlowDefinition()
-        
+
         // Initialize conversation manager with flow definition
         conversationManager = ConversationFlowManager(
             flowDefinition: flowDefinition,
             modelContext: modelContext,
             responseAnalyzer: nil
         )
-        
+
         // Initialize services
         let apiKeyManager = MockAPIKeyManager()
         let _ = MockLLMOrchestrator()
         let cache = AIResponseCache()
         // Create a real LLMOrchestrator with mock API key manager for testing
         let realLLMOrchestrator = LLMOrchestrator(apiKeyManager: apiKeyManager)
-        
+
         let personaSynthesizer = OptimizedPersonaSynthesizer(
             llmOrchestrator: realLLMOrchestrator,
             cache: cache
         )
-        
+
         personaService = PersonaService(
             personaSynthesizer: personaSynthesizer,
             llmOrchestrator: realLLMOrchestrator,
             modelContext: modelContext,
             cache: cache
         )
-        
+
         userService = MockUserService()
-        
+
         // Initialize coordinator
         coordinator = OnboardingFlowCoordinator(
             conversationManager: conversationManager,
@@ -58,8 +58,7 @@ final class OnboardingFlowTests: XCTestCase {
             modelContext: modelContext
         )
     }
-    
-    @MainActor
+
     override func tearDown() async throws {
         coordinator = nil
         modelContext = nil
@@ -68,31 +67,29 @@ final class OnboardingFlowTests: XCTestCase {
         userService = nil
         try await super.tearDown()
     }
-    
+
     // MARK: - Navigation Tests
-    
-    @MainActor
+
     func testInitialState() {
         XCTAssertEqual(coordinator.currentView, .welcome)
         XCTAssertFalse(coordinator.isLoading)
         XCTAssertNil(coordinator.error)
         XCTAssertEqual(coordinator.progress, 0.0)
     }
-    
-    @MainActor
+
     func testNavigationFlow() async throws {
         // Start
-        coordinator.start()
+        await coordinator.start()
         XCTAssertEqual(coordinator.currentView, .welcome)
-        
+
         // Begin conversation
         await coordinator.beginConversation()
         XCTAssertEqual(coordinator.currentView, .conversation)
         XCTAssertNotNil(coordinator.conversationSession)
         XCTAssertEqual(coordinator.progress, 0.1)
-        
+
         // Add some responses to session
-        if let session = coordinator.conversationSession {
+        if let session = await coordinator.conversationSession {
             // Create mock responses
             let responseValue1 = ResponseValue.text("I'm new to fitness")
             let responseData1 = try JSONEncoder().encode(responseValue1)
@@ -101,69 +98,75 @@ final class OnboardingFlowTests: XCTestCase {
                 nodeId: "opening",
                 responseData: responseData1
             )
-            
+
             let responseValue2 = ResponseValue.choice("beginner")
             let responseData2 = try JSONEncoder().encode(responseValue2)
             let response2 = ConversationResponse(
                 sessionId: session.id,
-                nodeId: "experience", 
+                nodeId: "experience",
                 responseData: responseData2
             )
             session.responses = [response1, response2]
-            try modelContext.save()
+            do {
+
+                try modelContext.save()
+
+            } catch {
+
+                XCTFail("Failed to save test context: \(error)")
+
+            }
         }
-        
+
         // Complete conversation
         await coordinator.completeConversation()
         XCTAssertEqual(coordinator.currentView, .generatingPersona)
         XCTAssertTrue(coordinator.progress >= 0.7)
-        
+
         // Wait for persona generation to complete or fail
         // Since we can't set generatedPersona directly, we'll just check the state
         // In a real test, we'd mock the persona service to return our test persona
-        
+
         // Accept persona
         await coordinator.acceptPersona()
         XCTAssertEqual(coordinator.currentView, .complete)
         XCTAssertEqual(coordinator.progress, 1.0)
     }
-    
+
     // MARK: - Error Handling Tests
-    
-    @MainActor
+
     func testBeginConversationError() async {
         // Simulate network error
-        let reachability = NetworkReachability.shared
+        let reachability = await NetworkReachability.shared
         // We can't actually control network state, so test error handling directly
-        
+
         await coordinator.beginConversation()
-        
+
         // If network is available, session should be created
         // If not, error should be set
-        if reachability.isConnected {
+        if await reachability.isConnected {
             XCTAssertNotNil(coordinator.conversationSession)
         } else {
             XCTAssertNotNil(coordinator.error)
         }
     }
-    
-    @MainActor
+
     func testErrorHandling() async throws {
         // Test that errors are properly set when operations fail
         // This test works with the public API only
-        
+
         // Begin conversation (may fail if network is down)
         await coordinator.beginConversation()
-        
+
         // If there's an error, verify it's handled
         if coordinator.error != nil {
             XCTAssertFalse(coordinator.isLoading)
             XCTAssertNotEqual(coordinator.currentView, .complete)
         }
     }
-    
+
     // MARK: - Helper Methods
-    
+
     private func createTestFlowDefinition() -> [String: ConversationNode] {
         [
             "opening": ConversationNode(

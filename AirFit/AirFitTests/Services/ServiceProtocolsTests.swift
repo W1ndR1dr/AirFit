@@ -72,16 +72,21 @@ final class ServiceProtocolsTests: XCTestCase {
         let model = AIModel(
             id: "gpt-4",
             name: "GPT-4",
-            contextWindow: 8192
+            provider: .openAI,
+            contextWindow: 8192,
+            costPerThousandTokens: AIModel.TokenCost(input: 0.03, output: 0.06)
         )
         
         XCTAssertEqual(model.id, "gpt-4")
         XCTAssertEqual(model.name, "GPT-4")
+        XCTAssertEqual(model.provider, .openAI)
         XCTAssertEqual(model.contextWindow, 8192)
+        XCTAssertEqual(model.costPerThousandTokens.input, 0.03)
+        XCTAssertEqual(model.costPerThousandTokens.output, 0.06)
     }
     
     func testWeatherDataInitialization() {
-        let weather = WeatherData(
+        let weather = ServiceWeatherData(
             temperature: 72.5,
             condition: .partlyCloudy,
             humidity: 65.0,
@@ -117,12 +122,15 @@ final class ServiceProtocolsTests: XCTestCase {
         XCTAssertTrue(goalTypes.contains(.custom))
     }
     
-    func testWorkoutTypeEnumeration() {
-        let workoutTypes = WorkoutType.allCases
-        XCTAssertEqual(workoutTypes.count, 5)
-        XCTAssertTrue(workoutTypes.contains(.strength))
-        XCTAssertTrue(workoutTypes.contains(.cardio))
-        XCTAssertTrue(workoutTypes.contains(.custom))
+    func testExerciseCategoryEnumeration() {
+        let categories = ExerciseCategory.allCases
+        XCTAssertEqual(categories.count, 6)
+        XCTAssertTrue(categories.contains(.strength))
+        XCTAssertTrue(categories.contains(.cardio))
+        XCTAssertTrue(categories.contains(.flexibility))
+        XCTAssertTrue(categories.contains(.plyometrics))
+        XCTAssertTrue(categories.contains(.balance))
+        XCTAssertTrue(categories.contains(.sports))
     }
     
     // MARK: - Analytics Types Tests
@@ -130,13 +138,13 @@ final class ServiceProtocolsTests: XCTestCase {
     func testAnalyticsEventCreation() {
         let event = AnalyticsEvent(
             name: "workout_completed",
-            properties: ["duration": 3600, "type": "strength"],
+            properties: ["duration": "3600", "type": "strength"],
             timestamp: Date()
         )
         
         XCTAssertEqual(event.name, "workout_completed")
-        XCTAssertEqual(event.properties["duration"] as? Int, 3600)
-        XCTAssertEqual(event.properties["type"] as? String, "strength")
+        XCTAssertEqual(event.properties["duration"], "3600")
+        XCTAssertEqual(event.properties["type"], "strength")
         XCTAssertNotNil(event.timestamp)
     }
     

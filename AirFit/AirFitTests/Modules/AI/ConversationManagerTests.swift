@@ -2,7 +2,6 @@ import XCTest
 import SwiftData
 @testable import AirFit
 
-@MainActor
 final class ConversationManagerTests: XCTestCase {
     // MARK: - Properties
     var sut: ConversationManager!
@@ -12,14 +11,27 @@ final class ConversationManagerTests: XCTestCase {
     var testConversationId: UUID!
 
     // MARK: - Setup & Teardown
-    override func setUp() async throws {
-        await MainActor.run {
-            super.setUp()
-        }
+    override func setUp() {
+        super.setUp()
 
         // Create in-memory model container for testing
-        modelContainer = try ModelContainer.createTestContainer()
-        modelContext = modelContainer.mainContext
+        do {
+            do {
+
+                modelContainer = try ModelContainer.createTestContainer()
+
+            } catch {
+
+                XCTFail("Failed to create test container: \(error)")
+
+                return
+
+            }
+            modelContext = modelContainer.mainContext
+        } catch {
+            XCTFail("Failed to create test container: \(error)")
+            return
+        }
 
         // Create test user
         testUser = User(
@@ -29,7 +41,11 @@ final class ConversationManagerTests: XCTestCase {
             preferredUnits: "metric"
         )
         modelContext.insert(testUser)
-        try modelContext.save()
+        do {
+            try modelContext.save()
+        } catch {
+            XCTFail("Failed to save test context: \(error)")
+        }
 
         // Create test conversation ID
         testConversationId = UUID()
@@ -38,16 +54,14 @@ final class ConversationManagerTests: XCTestCase {
         sut = ConversationManager(modelContext: modelContext)
     }
 
-    override func tearDown() async throws {
+    override func tearDown() {
         sut = nil
         testUser = nil
         testConversationId = nil
         modelContext = nil
         modelContainer = nil
 
-        await MainActor.run {
-            super.tearDown()
-        }
+        super.tearDown()
     }
 
     // MARK: - Core Functionality Tests

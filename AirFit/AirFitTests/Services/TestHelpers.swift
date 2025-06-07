@@ -9,40 +9,57 @@ enum TestDataGenerators {
     static func makeAIRequest(
         systemPrompt: String = "You are a helpful assistant",
         userMessage: String = "Hello, how are you?",
-        model: String? = nil,
-        temperature: Double? = 0.7,
+        temperature: Double = 0.7,
         maxTokens: Int? = 2048,
         stream: Bool = true,
-        functions: [FunctionSchema]? = nil
+        functions: [AIFunctionDefinition]? = nil
     ) -> AIRequest {
         AIRequest(
-            messages: [
-                AIMessage(role: .system, content: systemPrompt, name: nil),
-                AIMessage(role: .user, content: userMessage, name: nil)
-            ],
-            model: model,
             systemPrompt: systemPrompt,
-            maxTokens: maxTokens,
+            messages: [
+                AIChatMessage(role: .system, content: systemPrompt),
+                AIChatMessage(role: .user, content: userMessage)
+            ],
+            functions: functions,
             temperature: temperature,
+            maxTokens: maxTokens,
             stream: stream,
-            functions: functions
+            user: "test-user"
         )
     }
     
     static func makeConversationRequest(
         messages: [(role: AIMessageRole, content: String)],
-        functions: [FunctionSchema]? = nil
+        functions: [AIFunctionDefinition]? = nil
     ) -> AIRequest {
-        let aiMessages = messages.map { AIMessage(role: $0.role, content: $0.content, name: nil) }
+        let chatMessages = messages.map { AIChatMessage(role: $0.role, content: $0.content) }
         
         return AIRequest(
-            messages: aiMessages,
-            model: nil,
             systemPrompt: "You are a helpful AI assistant",
+            messages: chatMessages,
+            functions: functions,
+            temperature: 0.7,
             maxTokens: nil,
-            temperature: nil,
             stream: true,
-            functions: functions
+            user: "test-user"
+        )
+    }
+    
+    // MARK: - AI Function Definition Generators
+    
+    static func makeAIFunctionDefinition(
+        name: String,
+        description: String,
+        properties: [String: AIParameterDefinition] = [:],
+        required: [String] = []
+    ) -> AIFunctionDefinition {
+        AIFunctionDefinition(
+            name: name,
+            description: description,
+            parameters: AIFunctionParameters(
+                properties: properties,
+                required: required
+            )
         )
     }
     
@@ -79,11 +96,10 @@ enum TestDataGenerators {
         functionName: String,
         arguments: [String: Any]
     ) -> [AIResponse] {
-        let jsonData = try! JSONSerialization.data(withJSONObject: arguments)
-        let jsonString = String(data: jsonData, encoding: .utf8)!
+        let functionCall = AIFunctionCall(name: functionName, arguments: arguments)
         
         return [
-            .functionCall(name: functionName, arguments: jsonString),
+            .functionCall(functionCall),
             .done(usage: AITokenUsage(promptTokens: 50, completionTokens: 25, totalTokens: 75))
         ]
     }
@@ -96,8 +112,8 @@ enum TestDataGenerators {
         location: String = "New York",
         humidity: Double = 65.0,
         windSpeed: Double = 10.0
-    ) -> WeatherData {
-        WeatherData(
+    ) -> ServiceWeatherData {
+        ServiceWeatherData(
             temperature: temperature,
             condition: condition,
             humidity: humidity,
@@ -112,14 +128,22 @@ enum TestDataGenerators {
         days: Int = 5,
         baseTemp: Double = 70.0
     ) -> WeatherForecast {
-        let dailyForecasts = (0..<days).map { dayOffset in
-            DailyForecast(
-                date: Calendar.current.date(byAdding: .day, value: dayOffset, to: Date())!,
-                highTemperature: baseTemp + Double(dayOffset * 2),
-                lowTemperature: baseTemp - 10 + Double(dayOffset),
-                condition: dayOffset % 3 == 0 ? .rain : .partlyCloudy,
-                precipitationChance: dayOffset % 3 == 0 ? 80.0 : 20.0
+        var dailyForecasts: [DailyForecast] = []
+        for dayOffset in 0..<days {
+            let date = Calendar.current.date(byAdding: .day, value: dayOffset, to: Date())!
+            let highTemp = baseTemp + Double(dayOffset * 2)
+            let lowTemp = baseTemp - 10 + Double(dayOffset)
+            let condition: WeatherCondition = dayOffset % 3 == 0 ? .rain : .partlyCloudy
+            let precipChance = dayOffset % 3 == 0 ? 80.0 : 20.0
+            
+            let forecast = DailyForecast(
+                date: date,
+                highTemperature: highTemp,
+                lowTemperature: lowTemp,
+                condition: condition,
+                precipitationChance: precipChance
             )
+            dailyForecasts.append(forecast)
         }
         
         return WeatherForecast(
@@ -166,18 +190,26 @@ enum TestDataGenerators {
         ]
         
         if let content = content {
-            (response["choices"] as! [[String: Any]])[0]["delta"] = ["content": content]
+            if var choices = response["choices"] as? [[String: Any]],
+               !choices.isEmpty {
+                choices[0]["delta"] = ["content": content]
+                response["choices"] = choices
+            }
         }
         
         if let (name, args) = functionCall {
-            (response["choices"] as! [[String: Any]])[0]["delta"] = [
-                "tool_calls": [[
-                    "function": [
-                        "name": name,
-                        "arguments": args
-                    ]
-                ]]
-            ]
+            if var choices = response["choices"] as? [[String: Any]],
+               !choices.isEmpty {
+                choices[0]["delta"] = [
+                    "tool_calls": [[
+                        "function": [
+                            "name": name,
+                            "arguments": args
+                        ]
+                    ]]
+                ]
+                response["choices"] = choices
+            }
         }
         
         let jsonData = try! JSONSerialization.data(withJSONObject: response)
@@ -203,11 +235,17 @@ enum TestDataGenerators {
                 ]
             ]
         case "message_delta":
-            data = [
-                "delta": [
-                    "stop_reason": stopReason ?? NSNull()
+            if let reason = stopReason {
+                data = [
+                    "delta": [
+                        "stop_reason": reason
+                    ]
                 ]
-            ]
+            } else {
+                data = [
+                    "delta": [:]
+                ]
+            }
         case "message_stop":
             data = [:]
         default:
@@ -245,7 +283,7 @@ enum TestDataGenerators {
         let response: [String: Any] = [
             "candidates": [[
                 "content": ["parts": parts],
-                "finishReason": finishReason ?? NSNull()
+                "finishReason": finishReason as Any
             ]]
         ]
         
@@ -278,7 +316,7 @@ enum TestDataGenerators {
                     "message": message
                 ]
             ]
-        case .googleGemini:
+        case .gemini:
             errorData = [
                 "error": [
                     "code": code,
@@ -309,28 +347,53 @@ enum TestDataGenerators {
     // MARK: - User Profile Generators
     
     static func makeOnboardingProfile(
-        name: String = "Test User",
-        age: Int = 30,
-        fitnessLevel: FitnessLevel = .intermediate
+        name: String = "Test User"
     ) -> OnboardingProfile {
-        OnboardingProfile(
-            name: name,
-            age: age,
-            gender: .male,
-            height: 175,
-            weight: 75,
-            fitnessLevel: fitnessLevel,
-            primaryGoal: .generalFitness,
-            workoutFrequency: 3,
-            dietaryRestrictions: [],
-            healthConditions: [],
-            preferredWorkoutTime: .morning,
-            equipmentAccess: [.gym, .home]
+        let profile = OnboardingProfile(
+            personaPromptData: Data(),
+            communicationPreferencesData: Data(),
+            rawFullProfileData: Data()
+        )
+        profile.name = name
+        profile.isComplete = true
+        return profile
+    }
+}
+
+// MARK: - Legacy Test Support
+// These extensions help migrate old tests that use deprecated FunctionSchema
+
+extension AIRequest {
+    /// Helper for tests that still use old FunctionSchema format
+    static func createTestRequest(
+        systemPrompt: String = "You are a helpful assistant",
+        userMessage: String = "Hello",
+        temperature: Double = 0.7,
+        maxTokens: Int? = 2048,
+        stream: Bool = true,
+        functionSchemas: [FunctionSchema]? = nil
+    ) -> AIRequest {
+        let functions = functionSchemas?.map { schema in
+            AIFunctionDefinition(
+                name: schema.name,
+                description: schema.description,
+                parameters: AIFunctionParameters(properties: [:], required: [])
+            )
+        }
+        
+        return TestDataGenerators.makeAIRequest(
+            systemPrompt: systemPrompt,
+            userMessage: userMessage,
+            temperature: temperature,
+            maxTokens: maxTokens,
+            stream: stream,
+            functions: functions
         )
     }
 }
 
-// MARK: - Function Schema Helper
+// MARK: - Function Schema Helper (Legacy)
+// Note: This is a test-only type for backward compatibility
 
 struct FunctionSchema: Codable {
     let name: String
@@ -341,7 +404,7 @@ struct FunctionSchema: Codable {
         case name, description, parameters
     }
     
-    init(name: String, description: String, parameters: [String: Any]) {
+    init(name: String, description: String, parameters: [String: Any] = [:]) {
         self.name = name
         self.description = description
         self.parameters = parameters

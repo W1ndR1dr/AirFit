@@ -2,6 +2,8 @@ import XCTest
 import SwiftData
 @testable import AirFit
 
+@MainActor
+
 final class ChatViewModelTests: XCTestCase {
     var sut: ChatViewModel?
     var mockAIService: MockAIService?
@@ -116,6 +118,7 @@ final class ChatViewModelTests: XCTestCase {
     
     @MainActor
     func test_loadOrCreateSession_withNoExistingSession_shouldCreateNewSession() async {
+        try await setupTest()
         try! setupTest()
         createSUT()
         
@@ -136,6 +139,7 @@ final class ChatViewModelTests: XCTestCase {
     
     @MainActor
     func test_loadOrCreateSession_withExistingActiveSession_shouldLoadExistingSession() async {
+        try await setupTest()
         try! setupTest()
         createSUT()
         
@@ -180,6 +184,7 @@ final class ChatViewModelTests: XCTestCase {
     
     @MainActor
     func test_toggleVoiceRecording_whenNotRecording_shouldStartRecording() async {
+        try await setupTest()
         try! setupTest()
         createSUT()
         
@@ -197,6 +202,7 @@ final class ChatViewModelTests: XCTestCase {
     
     @MainActor
     func test_toggleVoiceRecording_whenRecording_shouldStopRecording() async {
+        try await setupTest()
         try! setupTest()
         createSUT()
         
@@ -217,6 +223,7 @@ final class ChatViewModelTests: XCTestCase {
     
     @MainActor
     func test_toggleVoiceRecording_withPermissionDenied_shouldSetError() async {
+        try await setupTest()
         try! setupTest()
         createSUT()
         
@@ -235,6 +242,7 @@ final class ChatViewModelTests: XCTestCase {
     
     @MainActor
     func test_toggleVoiceRecording_withRecordingFailure_shouldSetError() async {
+        try await setupTest()
         try! setupTest()
         createSUT()
         
@@ -253,6 +261,7 @@ final class ChatViewModelTests: XCTestCase {
     
     @MainActor
     func test_voiceTranscription_callback_shouldUpdateComposerText() async {
+        try await setupTest()
         try! setupTest()
         createSUT()
         
@@ -272,6 +281,7 @@ final class ChatViewModelTests: XCTestCase {
     
     @MainActor
     func test_voiceWaveformUpdate_callback_shouldUpdateWaveformData() async {
+        try await setupTest()
         try! setupTest()
         createSUT()
         
@@ -289,6 +299,7 @@ final class ChatViewModelTests: XCTestCase {
     
     @MainActor
     func test_voiceError_callback_shouldSetErrorStateAndStopRecording() async {
+        try await setupTest()
         try! setupTest()
         createSUT()
         
@@ -311,6 +322,7 @@ final class ChatViewModelTests: XCTestCase {
     
     @MainActor
     func test_voiceRecording_withTranscriptionFailure_shouldHandleGracefully() async {
+        try await setupTest()
         try! setupTest()
         createSUT()
         
@@ -332,6 +344,7 @@ final class ChatViewModelTests: XCTestCase {
     
     @MainActor
     func test_sendMessage_withValidText_shouldCreateUserMessage() async {
+        try await setupTest()
         try! setupTest()
         createSUT()
         
@@ -355,6 +368,7 @@ final class ChatViewModelTests: XCTestCase {
     
     @MainActor
     func test_sendMessage_withEmptyText_shouldNotCreateMessage() async {
+        try await setupTest()
         try! setupTest()
         createSUT()
         
@@ -374,6 +388,7 @@ final class ChatViewModelTests: XCTestCase {
     
     @MainActor
     func test_sendMessage_withNoSession_shouldNotCreateMessage() async {
+        try await setupTest()
         try! setupTest()
         createSUT()
         
@@ -392,6 +407,7 @@ final class ChatViewModelTests: XCTestCase {
     
     @MainActor
     func test_sendMessage_shouldGenerateAIResponse() async {
+        try await setupTest()
         try! setupTest()
         createSUT()
         
@@ -415,6 +431,7 @@ final class ChatViewModelTests: XCTestCase {
     
     @MainActor
     func test_deleteMessage_shouldRemoveMessageFromList() async {
+        try await setupTest()
         try! setupTest()
         createSUT()
         
@@ -438,6 +455,7 @@ final class ChatViewModelTests: XCTestCase {
     
     @MainActor
     func test_copyMessage_shouldCopyToClipboard() async {
+        try await setupTest()
         try! setupTest()
         createSUT()
         
@@ -460,6 +478,7 @@ final class ChatViewModelTests: XCTestCase {
     
     @MainActor
     func test_regenerateResponse_withValidAssistantMessage_shouldRegenerateResponse() async {
+        try await setupTest()
         try! setupTest()
         createSUT()
         
@@ -492,6 +511,7 @@ final class ChatViewModelTests: XCTestCase {
     
     @MainActor
     func test_regenerateResponse_withUserMessage_shouldNotRegenerate() async {
+        try await setupTest()
         try! setupTest()
         createSUT()
         
@@ -517,6 +537,7 @@ final class ChatViewModelTests: XCTestCase {
     
     @MainActor
     func test_aiStreaming_shouldUpdateStreamingState() async {
+        try await setupTest()
         try! setupTest()
         createSUT()
         
@@ -540,6 +561,7 @@ final class ChatViewModelTests: XCTestCase {
     
     @MainActor
     func test_aiStreaming_shouldUpdateMessageContentIncrementally() async {
+        try await setupTest()
         try! setupTest()
         createSUT()
         
@@ -568,6 +590,7 @@ final class ChatViewModelTests: XCTestCase {
     
     @MainActor
     func test_searchMessages_withMatchingQuery_shouldReturnFilteredResults() async {
+        try await setupTest()
         try! setupTest()
         createSUT()
         
@@ -596,6 +619,7 @@ final class ChatViewModelTests: XCTestCase {
     
     @MainActor
     func test_searchMessages_withNoMatches_shouldReturnEmptyArray() async {
+        try await setupTest()
         try! setupTest()
         createSUT()
         
@@ -619,6 +643,7 @@ final class ChatViewModelTests: XCTestCase {
     
     @MainActor
     func test_exportChat_withActiveSession_shouldReturnURL() async throws {
+        try await setupTest()
         try! setupTest()
         createSUT()
         
@@ -638,6 +663,7 @@ final class ChatViewModelTests: XCTestCase {
     
     @MainActor
     func test_exportChat_withNoActiveSession_shouldThrowError() async {
+        try await setupTest()
         try! setupTest()
         createSUT()
         
@@ -664,6 +690,7 @@ final class ChatViewModelTests: XCTestCase {
     
     @MainActor
     func test_selectSuggestion_withAutoSend_shouldSendMessage() async {
+        try await setupTest()
         try! setupTest()
         createSUT()
         
@@ -710,6 +737,7 @@ final class ChatViewModelTests: XCTestCase {
     
     @MainActor
     func test_scheduleWorkout_fromMessage_shouldLogAction() async {
+        try await setupTest()
         try! setupTest()
         createSUT()
         
@@ -734,6 +762,7 @@ final class ChatViewModelTests: XCTestCase {
     
     @MainActor
     func test_scheduleWorkout_fromMessageWithoutWorkoutData_shouldCreateGenericWorkout() async {
+        try await setupTest()
         try! setupTest()
         createSUT()
         
@@ -756,6 +785,7 @@ final class ChatViewModelTests: XCTestCase {
     
     @MainActor
     func test_setReminder_fromMessage_shouldLogAction() async {
+        try await setupTest()
         try! setupTest()
         createSUT()
         
@@ -780,6 +810,7 @@ final class ChatViewModelTests: XCTestCase {
     
     @MainActor
     func test_setReminder_fromMessageWithoutReminderData_shouldCreateGenericReminder() async {
+        try await setupTest()
         try! setupTest()
         createSUT()
         
@@ -852,6 +883,7 @@ final class ChatViewModelTests: XCTestCase {
     
     @MainActor
     func test_performance_largeMessageList_shouldHandleEfficiently() async {
+        try await setupTest()
         try! setupTest()
         createSUT()
         
@@ -884,6 +916,7 @@ final class ChatViewModelTests: XCTestCase {
     
     @MainActor
     func test_performance_searchLargeMessageSet_shouldBeEfficient() async {
+        try await setupTest()
         try! setupTest()
         createSUT()
         
@@ -919,6 +952,7 @@ final class ChatViewModelTests: XCTestCase {
     
     @MainActor
     func test_waveformVisualization_dataFlow_shouldWork() async {
+        try await setupTest()
         try! setupTest()
         createSUT()
         
@@ -942,6 +976,7 @@ final class ChatViewModelTests: XCTestCase {
     
     @MainActor
     func test_waveformVisualization_realTimeUpdates_shouldAnimate() async {
+        try await setupTest()
         try! setupTest()
         createSUT()
         

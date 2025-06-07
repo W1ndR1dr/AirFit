@@ -4,15 +4,15 @@ import XCTest
 @testable import AirFit
 
 /// Mock implementation of GoalServiceProtocol for testing
-final class MockGoalService: GoalServiceProtocol, MockProtocol {
+final class MockGoalService: GoalServiceProtocol, AIGoalServiceProtocol, MockProtocol, @unchecked Sendable {
     // MARK: - MockProtocol
     nonisolated(unsafe) var invocations: [String: [Any]] = [:]
     nonisolated(unsafe) var stubbedResults: [String: Any] = [:]
     let mockLock = NSLock()
     
     // MARK: - Error Control
-    var shouldThrowError = false
-    var errorToThrow: Error = AppError.unknown(message: "Mock goal service error")
+    nonisolated(unsafe) var shouldThrowError = false
+    nonisolated(unsafe) var errorToThrow: Error = AppError.unknown(message: "Mock goal service error")
     
     // MARK: - Data Storage
     private var goals: [UUID: ServiceGoal] = [:]
@@ -59,7 +59,7 @@ final class MockGoalService: GoalServiceProtocol, MockProtocol {
     }
     
     func updateGoal(_ goal: ServiceGoal, updates: GoalUpdate) async throws {
-        recordInvocation("updateGoal", arguments: goal.id, updates.target, updates.deadline)
+        recordInvocation("updateGoal", arguments: goal.id, updates.target as Any, updates.deadline as Any)
         
         if shouldThrowError {
             throw errorToThrow
@@ -240,5 +240,52 @@ final class MockGoalService: GoalServiceProtocol, MockProtocol {
         goals.removeAll()
         userGoals.removeAll()
         stubbedGoals.removeAll()
+    }
+    
+    // MARK: - AIGoalServiceProtocol
+    func createOrRefineGoal(
+        current: String?,
+        aspirations: String,
+        timeframe: String?,
+        fitnessLevel: String?,
+        constraints: [String],
+        motivations: [String],
+        goalType: String?,
+        for user: User
+    ) async throws -> GoalResult {
+        recordInvocation("createOrRefineGoal", arguments: current ?? "", aspirations, timeframe ?? "", fitnessLevel ?? "", constraints, motivations, goalType ?? "", user.id)
+        
+        if shouldThrowError {
+            throw errorToThrow
+        }
+        
+        return GoalResult(
+            id: UUID(),
+            title: aspirations,
+            description: "Mock goal based on: \(aspirations)",
+            targetDate: Date().addingTimeInterval(30 * 24 * 60 * 60),
+            metrics: [],
+            milestones: [],
+            smartCriteria: GoalResult.SMARTCriteria(
+                specific: aspirations,
+                measurable: "Track progress daily",
+                achievable: "Based on your fitness level",
+                relevant: "Aligned with your motivations",
+                timeBound: timeframe ?? "30 days"
+            )
+        )
+    }
+    
+    func suggestGoalAdjustments(
+        for goal: ServiceGoal,
+        user: User
+    ) async throws -> [GoalAdjustment] {
+        recordInvocation("suggestGoalAdjustments", arguments: goal.id, user.id)
+        
+        if shouldThrowError {
+            throw errorToThrow
+        }
+        
+        return []
     }
 }

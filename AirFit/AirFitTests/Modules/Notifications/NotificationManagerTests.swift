@@ -2,15 +2,15 @@ import XCTest
 import UserNotifications
 @testable import AirFit
 
-@MainActor
 final class NotificationManagerTests: XCTestCase {
+    private var container: DIContainer!
     var sut: NotificationManager!
     
-    override func setUp() async throws {
-        try await super.setUp()
+    override func setUp() {
+        super.setUp()
         
         // Create singleton instance
-        sut = NotificationManager.shared
+        sut = try await container.resolve(NotificationManagerProtocol.self)
     }
     
     func test_requestAuthorization_shouldRequestCorrectOptions() async throws {

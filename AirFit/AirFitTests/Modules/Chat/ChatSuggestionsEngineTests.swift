@@ -1,12 +1,11 @@
 import XCTest
 @testable import AirFit
 
-@MainActor
 final class ChatSuggestionsEngineTests: XCTestCase {
     var user: User!
     var engine: ChatSuggestionsEngine!
 
-    override func setUp() async throws {
+    override func setUp() {
         user = User()
         engine = ChatSuggestionsEngine(user: user)
     }

@@ -1,28 +1,35 @@
 import XCTest
 @testable import AirFit
 
-@MainActor
 final class ChatCoordinatorTests: XCTestCase {
     var coordinator: ChatCoordinator!
 
-    override func setUp() async throws {
+    override func setUp() {
         coordinator = ChatCoordinator()
     }
+
+    @MainActor
 
     func test_navigateToPushesDestination() {
         coordinator.navigateTo(.searchResults)
         XCTAssertEqual(coordinator.navigationPath.count, 1)
     }
 
+    @MainActor
+
     func test_showSheetSetsActiveSheet() {
         coordinator.showSheet(.voiceSettings)
         XCTAssertEqual(coordinator.activeSheet, .voiceSettings)
     }
 
+    @MainActor
+
     func test_scrollToStoresMessageId() {
         coordinator.scrollTo(messageId: "123")
         XCTAssertEqual(coordinator.scrollToMessageId, "123")
     }
+
+    @MainActor
 
     func test_dismissClearsPresentation() {
         coordinator.showSheet(.exportChat)

@@ -2,15 +2,14 @@ import XCTest
 import SwiftData
 @testable import AirFit
 
-@MainActor
 final class DirectAIPerformanceTests: XCTestCase {
     
     private var coachEngine: CoachEngine!
     private var mockModelContext: ModelContext!
     private var testUser: User!
     
-    override func setUp() async throws {
-        try await super.setUp()
+    override func setUp() {
+        super.setUp()
         
         // Create test model context
         let config = ModelConfiguration(isStoredInMemoryOnly: true)
@@ -18,9 +17,20 @@ final class DirectAIPerformanceTests: XCTestCase {
         mockModelContext = ModelContext(container)
         
         // Create test user with persona
-        testUser = User()
-        testUser.onboardingProfile = OnboardingProfile()
-        testUser.onboardingProfile?.persona = PersonaProfile.default
+        testUser = User(email: "test@example.com", name: "Test User")
+        
+        // Create onboarding profile with mock data
+        let onboardingProfile = OnboardingProfile(
+            personaPromptData: Data(),
+            communicationPreferencesData: Data(),
+            rawFullProfileData: Data()
+        )
+        
+        // Create a test persona profile
+        let testPersona = createTestPersonaProfile()
+        onboardingProfile.persona = testPersona
+        
+        testUser.onboardingProfile = onboardingProfile
         mockModelContext.insert(testUser)
         try mockModelContext.save()
         
@@ -28,11 +38,11 @@ final class DirectAIPerformanceTests: XCTestCase {
         coachEngine = CoachEngine.createDefault(modelContext: mockModelContext)
     }
     
-    override func tearDown() async throws {
+    override func tearDown() {
         coachEngine = nil
         mockModelContext = nil
         testUser = nil
-        try await super.tearDown()
+        super.tearDown()
     }
     
     // MARK: - Nutrition Parsing Performance Tests
@@ -206,15 +216,17 @@ final class DirectAIPerformanceTests: XCTestCase {
         // When - execute concurrent direct AI requests
         let startTime = CFAbsoluteTimeGetCurrent()
         
+        // Capture necessary values before entering task group
+        let engine = self.coachEngine!
+        let user = self.testUser!
+        
         await withTaskGroup(of: Void.self) { group in
             for (index, input) in testInputs.enumerated() {
-                group.addTask { [weak self] in
-                    guard let self = self else { return }
-                    
+                group.addTask {
                     do {
-                        let result = try await self.coachEngine.parseAndLogNutritionDirect(
+                        let result = try await engine.parseAndLogNutritionDirect(
                             foodText: input,
-                            for: self.testUser,
+                            for: user,
                             conversationId: UUID()
                         )
                         
@@ -281,6 +293,61 @@ final class DirectAIPerformanceTests: XCTestCase {
         UserDefaults.standard.set(averageTime, forKey: "DirectAI.Performance.Baseline.Time")
         UserDefaults.standard.set(averageTokens, forKey: "DirectAI.Performance.Baseline.Tokens")
     }
+    
+    // MARK: - Helper Methods
+    
+    private func createTestPersonaProfile() -> PersonaProfile {
+        let voiceCharacteristics = VoiceCharacteristics(
+            energy: .moderate,
+            pace: .natural,
+            warmth: .friendly,
+            vocabulary: .moderate,
+            sentenceStructure: .moderate
+        )
+        
+        let interactionStyle = InteractionStyle(
+            greetingStyle: "Hey there!",
+            closingStyle: "Keep it up!",
+            encouragementPhrases: ["Great job!", "You're doing awesome!", "Keep going!"],
+            acknowledgmentStyle: "I hear you",
+            correctionApproach: "gentle",
+            humorLevel: .light,
+            formalityLevel: .balanced,
+            responseLength: .moderate
+        )
+        
+        let metadata = PersonaMetadata(
+            createdAt: Date(),
+            version: "1.0",
+            sourceInsights: ConversationPersonalityInsights(
+                dominantTraits: ["supportive", "balanced"],
+                communicationStyle: .conversational,
+                motivationType: .health,
+                energyLevel: .moderate,
+                preferredComplexity: .moderate,
+                emotionalTone: ["encouraging", "positive"],
+                stressResponse: .wantsEncouragement,
+                preferredTimes: ["morning", "evening"],
+                extractedAt: Date()
+            ),
+            generationDuration: 2.5,
+            tokenCount: 1500,
+            previewReady: true
+        )
+        
+        return PersonaProfile(
+            id: UUID(),
+            name: "Test Coach",
+            archetype: "Supportive Mentor",
+            systemPrompt: "You are a supportive fitness coach.",
+            coreValues: ["health", "balance", "progress"],
+            backgroundStory: "A test coach for performance testing.",
+            voiceCharacteristics: voiceCharacteristics,
+            interactionStyle: interactionStyle,
+            adaptationRules: [],
+            metadata: metadata
+        )
+    }
 }
 
 // MARK: - Performance Metrics Helper
@@ -288,8 +355,8 @@ final class DirectAIPerformanceTests: XCTestCase {
 extension DirectAIPerformanceTests {
     
     /// Helper to measure and validate performance characteristics
-    private func measurePerformance<T>(
-        operation: () async throws -> T,
+    private func measurePerformance<T: Sendable>(
+        operation: @Sendable () async throws -> T,
         expectedMaxTime: TimeInterval = 5.0,
         description: String
     ) async throws -> (result: T, executionTime: TimeInterval) {

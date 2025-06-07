@@ -15,9 +15,7 @@ final class OnboardingPerformanceTests: XCTestCase {
     var onboardingService: OnboardingService!
     
     override func setUp() async throws {
-        await MainActor.run {
-            super.setUp()
-        }
+        try await super.setUp()
         
         modelContainer = try ModelContainer.createTestContainer()
         modelContext = modelContainer.mainContext
@@ -45,9 +43,7 @@ final class OnboardingPerformanceTests: XCTestCase {
         mockAIService = nil
         modelContext = nil
         modelContainer = nil
-        await MainActor.run {
-            super.tearDown()
-        }
+        try await super.tearDown()
     }
     
     // MARK: - Screen Transition Performance
@@ -209,16 +205,14 @@ final class OnboardingPerformanceTests: XCTestCase {
         
         let startTime = CFAbsoluteTimeGetCurrent()
         
-        // Run multiple operations concurrently
-        async let op1: Void = navigateNext()
-        async let op2: Void = validateMockData()
-        async let op3: Void = Task.sleep(nanoseconds: 50_000_000)
-        
-        _ = try await (op1, op2, op3)
+        // Run navigation and validation sequentially but measure total time
+        await navigateNext()
+        await validateMockData()
+        try? await Task.sleep(nanoseconds: 50_000_000)
         
         let duration = CFAbsoluteTimeGetCurrent() - startTime
         
-        XCTAssertLessThan(duration, 1.0, "Concurrent operations took \(String(format: "%.2f", duration))s - target is <1s")
+        XCTAssertLessThan(duration, 1.0, "Sequential operations took \(String(format: "%.2f", duration))s - target is <1s")
     }
     
     // MARK: - Helper Methods

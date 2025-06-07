@@ -1,6 +1,7 @@
 import XCTest
 import SwiftData
 @testable import AirFit
+import Observation
 
 /// Comprehensive regression tests for nutrition system refactor
 /// 
@@ -11,57 +12,90 @@ import SwiftData
 final class NutritionParsingRegressionTests: XCTestCase {
     private var modelContainer: ModelContainer!
     private var modelContext: ModelContext!
-    private var coachEngine: MockCoachEngineExtensive!
+    private var coachEngine: MockCoachEngine!
     private var viewModel: FoodTrackingViewModel!
     private var testUser: User!
+    private var coordinator: FoodTrackingCoordinator!
+    private var mockFoodVoiceAdapter: MockFoodVoiceAdapter!
     
-    override func setUp() async throws {
-        try await super.setUp()
+    override func setUp() {
+        super.setUp()
+        // Async initialization moved to setupTest()
+    }
+    
+    private func setupTest() async throws {
+        // SwiftData setup
+        do {
+            let schema = Schema([User.self, FoodEntry.self, FoodItem.self, Workout.self, Exercise.self, ExerciseSet.self, DailyLog.self])
+            let configuration = ModelConfiguration(isStoredInMemoryOnly: true)
+            modelContainer = try ModelContainer(for: schema, configurations: [configuration])
+        } catch {
+            XCTFail("Failed to create model container: \(error)")
+        }
         
-        // Create in-memory model container
-        let schema = Schema([User.self, FoodEntry.self, FoodItem.self])
-        let configuration = ModelConfiguration(schema: schema, isStoredInMemoryOnly: true)
-        modelContainer = try ModelContainer(for: schema, configurations: [configuration])
-        modelContext = ModelContext(modelContainer)
+        modelContext = modelContainer.mainContext
         
         // Create test user
-        testUser = User(
-            name: "Regression Test User",
-            email: "regression@test.com",
-            dateOfBirth: Calendar.current.date(byAdding: .year, value: -25, to: Date())!,
-            heightCm: 170,
-            weightKg: 65,
-            activityLevel: .moderate,
-            primaryGoal: .maintainWeight
-        )
+        testUser = User(name: "Test User")
+        testUser.dailyCalorieTarget = 2000
+        testUser.preferences = NutritionPreferences()
         modelContext.insert(testUser)
+        
         try modelContext.save()
         
+        // Initialize mocks and SUT
+        nutritionService = NutritionService(modelContext: modelContext)
+        coachEngine = MockCoachEngine()
+        coordinator = FoodTrackingCoordinator()
+        mockFoodVoiceAdapter = MockFoodVoiceAdapter()
+        
+        viewModel = FoodTrackingViewModel(
+            modelContext: modelContext,
+            user: testUser,
+            foodVoiceAdapter: mockFoodVoiceAdapter,
+            nutritionService: nutritionService,
+            coachEngine: coachEngine,
+            coordinator: coordinator
+        )
+    } catch {
+
+            XCTFail("Failed to save test context: \(error)")
+
+        }
+        
         // Setup mock coach engine with regression-focused configuration
-        coachEngine = MockCoachEngineExtensive()
+        coachEngine = MockCoachEngine()
         
         // Setup view model with mock dependencies (simplified for testing)
+        coordinator = FoodTrackingCoordinator()
+        mockFoodVoiceAdapter = MockFoodVoiceAdapter()
+        
         viewModel = FoodTrackingViewModel(
+            modelContext: modelContext,
             user: testUser,
-            coordinator: MockFoodTrackingCoordinator(),
+            foodVoiceAdapter: mockFoodVoiceAdapter,
+            nutritionService: LocalMockNutritionService(),
             coachEngine: coachEngine,
-            nutritionService: MockNutritionService()
+            coordinator: coordinator
         )
     }
     
-    override func tearDown() async throws {
+    override func tearDown() {
         modelContainer = nil
         modelContext = nil
         coachEngine = nil
         viewModel = nil
         testUser = nil
-        try await super.tearDown()
+        coordinator = nil
+        mockFoodVoiceAdapter = nil
+        super.tearDown()
     }
     
     // MARK: - Critical Regression Prevention
     
     /// **CRITICAL**: Ensures we never return hardcoded 100 calories for any food
     func test_criticalRegression_noHardcoded100Calories() async throws {
+        try await setupTest()
         let testCases = [
             ("1 apple", "Apple should have ~95 calories, not 100"),
             ("1 slice pizza", "Pizza should have ~285 calories, not 100"),
@@ -74,7 +108,7 @@ final class NutritionParsingRegressionTests: XCTestCase {
         ]
         
         for (input, failureMessage) in testCases {
-            coachEngine.setupRealisticNutrition(for: input)
+            setupRealisticNutrition(for: input)
             
             let result = try await coachEngine.parseNaturalLanguageFood(
                 text: input,
@@ -98,10 +132,11 @@ final class NutritionParsingRegressionTests: XCTestCase {
     
     /// **CRITICAL**: Ensures we never return hardcoded macro placeholders
     func test_criticalRegression_noHardcodedMacros() async throws {
+        try await setupTest()
         let foods = ["apple", "pizza", "chicken", "rice", "avocado"]
         
         for food in foods {
-            coachEngine.setupRealisticNutrition(for: food)
+            setupRealisticNutrition(for: food)
             
             let result = try await coachEngine.parseNaturalLanguageFood(
                 text: food,
@@ -131,6 +166,7 @@ final class NutritionParsingRegressionTests: XCTestCase {
     
     /// **CRITICAL**: Validates different foods have meaningfully different nutrition
     func test_criticalRegression_nutritionVarietyNotUniform() async throws {
+        try await setupTest()
         let diverseFoods = [
             "apple",        // Low calorie fruit
             "avocado",      // High fat fruit
@@ -142,7 +178,7 @@ final class NutritionParsingRegressionTests: XCTestCase {
         var nutritionProfiles: [(food: String, calories: Int, protein: Double, carbs: Double, fat: Double)] = []
         
         for food in diverseFoods {
-            coachEngine.setupRealisticNutrition(for: food)
+            setupRealisticNutrition(for: food)
             
             let result = try await coachEngine.parseNaturalLanguageFood(
                 text: food,
@@ -202,7 +238,8 @@ final class NutritionParsingRegressionTests: XCTestCase {
     // MARK: - FoodTrackingViewModel Integration Regression
     
     /// Tests that processTranscription flow produces realistic nutrition (not placeholders)
-    func test_viewModelRegression_processTranscriptionRealisticResults() async throws {
+        func test_viewModelRegression_processTranscriptionRealisticResults() async throws {
+        try await setupTest()
         let testInputs = [
             "I ate an apple",
             "had a slice of pizza for lunch", 
@@ -211,13 +248,16 @@ final class NutritionParsingRegressionTests: XCTestCase {
         
         for input in testInputs {
             // Setup realistic nutrition in mock
-            coachEngine.setupRealisticNutrition(for: input)
+            setupRealisticNutrition(for: input)
             
-            // Simulate voice transcription
-            viewModel.transcribedText = input
+            // Clear previous parsed items
+            viewModel.setParsedItems([])
             
-            // Process transcription (should use AI parsing now)
-            await viewModel.processTranscription()
+            // Simulate voice transcription through the adapter
+            mockFoodVoiceAdapter.onFoodTranscription?(input)
+            
+            // Wait for async processing
+            try await Task.sleep(nanoseconds: 200_000_000) // 0.2 seconds
             
             // Validate results are realistic, not hardcoded placeholders
             XCTAssertGreaterThan(viewModel.parsedItems.count, 0,
@@ -238,19 +278,25 @@ final class NutritionParsingRegressionTests: XCTestCase {
     }
     
     /// Tests that error handling doesn't regress to broken parsing methods
-    func test_viewModelRegression_errorHandlingMaintained() async throws {
+        func test_viewModelRegression_errorHandlingMaintained() async throws {
+        try await setupTest()
         // Configure mock to simulate AI failure
         coachEngine.shouldThrowError = true
         
-        viewModel.transcribedText = "problematic input"
+        // Clear previous state
+        viewModel.setParsedItems([])
+        viewModel.clearError()
         
-        // Process transcription - should handle error gracefully
-        await viewModel.processTranscription()
+        // Simulate voice transcription through the adapter
+        mockFoodVoiceAdapter.onFoodTranscription?("problematic input")
+        
+        // Wait for async processing
+        try await Task.sleep(nanoseconds: 200_000_000) // 0.2 seconds
         
         // Should either show error or fallback results (not crash)
         if viewModel.parsedItems.isEmpty {
             // Error path - should have error set
-            XCTAssertNotNil(viewModel.currentError, "Should set error when AI parsing fails")
+            XCTAssertNotNil(viewModel.error, "Should set error when AI parsing fails")
         } else {
             // Fallback path - should have reasonable fallback
             let fallbackItem = viewModel.parsedItems.first!
@@ -266,13 +312,14 @@ final class NutritionParsingRegressionTests: XCTestCase {
     
     /// Ensures performance hasn't regressed below acceptable thresholds
     func test_performanceRegression_responseTimeAcceptable() async throws {
+        try await setupTest()
         let performanceInputs = [
             "simple apple",
             "complex meal with chicken, rice, and vegetables"
         ]
         
         for input in performanceInputs {
-            coachEngine.setupRealisticNutrition(for: input)
+            setupRealisticNutrition(for: input)
             
             let startTime = CFAbsoluteTimeGetCurrent()
             
@@ -292,13 +339,14 @@ final class NutritionParsingRegressionTests: XCTestCase {
     
     /// Tests that batch processing doesn't have memory leaks or performance degradation
     func test_performanceRegression_batchProcessingStable() async throws {
+        try await setupTest()
         let batchSize = 10
         let foods = (0..<batchSize).map { "test food \($0)" }
         
         let startTime = CFAbsoluteTimeGetCurrent()
         
         for food in foods {
-            coachEngine.setupRealisticNutrition(for: food)
+            setupRealisticNutrition(for: food)
             
             _ = try await coachEngine.parseNaturalLanguageFood(
                 text: food,
@@ -321,8 +369,9 @@ final class NutritionParsingRegressionTests: XCTestCase {
     
     /// Ensures parseNaturalLanguageFood method signature and behavior is preserved
     func test_apiContractRegression_methodSignaturePreserved() async throws {
+        try await setupTest()
         let input = "test food"
-        coachEngine.setupRealisticNutrition(for: input)
+        setupRealisticNutrition(for: input)
         
         // Test that method can be called with expected parameters
         let result = try await coachEngine.parseNaturalLanguageFood(
@@ -348,8 +397,10 @@ final class NutritionParsingRegressionTests: XCTestCase {
     
     /// Tests that error types and handling haven't changed
     func test_apiContractRegression_errorHandlingPreserved() async throws {
+        try await setupTest()
         // Test various error scenarios
         coachEngine.shouldThrowError = true
+        coachEngine.errorToThrow = FoodTrackingError.aiParsingFailed
         
         do {
             _ = try await coachEngine.parseNaturalLanguageFood(
@@ -360,7 +411,7 @@ final class NutritionParsingRegressionTests: XCTestCase {
             XCTFail("Should have thrown an error")
         } catch {
             // Error should be a FoodTrackingError or compatible type
-            XCTAssertTrue(error is FoodTrackingError || error is MockError,
+            XCTAssertTrue(error is FoodTrackingError,
                 "Error should be expected type, got: \(type(of: error))")
         }
         
@@ -368,7 +419,7 @@ final class NutritionParsingRegressionTests: XCTestCase {
         coachEngine.shouldThrowError = false
         
         // Test successful case
-        coachEngine.setupRealisticNutrition(for: "valid food")
+        setupRealisticNutrition(for: "valid food")
         
         let result = try await coachEngine.parseNaturalLanguageFood(
             text: "valid food",
@@ -383,6 +434,7 @@ final class NutritionParsingRegressionTests: XCTestCase {
     
     /// Ensures nutrition data quality hasn't degraded
     func test_dataQualityRegression_nutritionDataRealistic() async throws {
+        try await setupTest()
         let qualityTestCases: [(food: String, expectedCalorieRange: ClosedRange<Int>, macroCheck: String)] = [
             ("apple", 80...120, "fruit should be low calorie"),
             ("pizza slice", 250...400, "pizza should be moderate-high calorie"),
@@ -392,7 +444,7 @@ final class NutritionParsingRegressionTests: XCTestCase {
         ]
         
         for (food, calorieRange, description) in qualityTestCases {
-            coachEngine.setupRealisticNutrition(for: food)
+            setupRealisticNutrition(for: food)
             
             let result = try await coachEngine.parseNaturalLanguageFood(
                 text: food,
@@ -418,13 +470,14 @@ final class NutritionParsingRegressionTests: XCTestCase {
     
     /// Tests that confidence scores are meaningful and not placeholder values
     func test_dataQualityRegression_confidenceScoresMeaningful() async throws {
+        try await setupTest()
         let confidenceTests = [
             ("apple", 0.8...1.0, "common food should have high confidence"),
             ("exotic fruit", 0.5...0.9, "less common food should have moderate confidence")
         ]
         
         for (food, expectedRange, description) in confidenceTests {
-            coachEngine.setupRealisticNutrition(for: food)
+            setupRealisticNutrition(for: food)
             
             let result = try await coachEngine.parseNaturalLanguageFood(
                 text: food,
@@ -434,7 +487,7 @@ final class NutritionParsingRegressionTests: XCTestCase {
             
             let confidence = result.first?.confidence ?? 0
             
-            XCTAssertTrue(expectedRange.contains(confidence),
+            XCTAssertTrue(expectedRange.contains(Double(confidence)),
                 "\(food) confidence (\(confidence)) outside expected range \(expectedRange) - \(description)")
             
             // Confidence should never be exactly 0.7 (old hardcoded value)
@@ -442,63 +495,132 @@ final class NutritionParsingRegressionTests: XCTestCase {
                 "🚨 Regression: \(food) has hardcoded 0.7 confidence from old system")
         }
     }
-}
-
-// MARK: - Mock Dependencies for Regression Testing
-
-/// Mock coordinator for regression testing
-private class MockFoodTrackingCoordinator: FoodTrackingCoordinatorProtocol {
-    var didShowFullScreenCover: FoodTrackingRoute?
     
-    func showFullScreenCover(_ route: FoodTrackingRoute) {
-        didShowFullScreenCover = route
-    }
+    // MARK: - Helper Methods
     
-    func dismissFullScreenCover() {
-        didShowFullScreenCover = nil
+    private func setupRealisticNutrition(for food: String) {
+        let foodLower = food.lowercased()
+        
+        // Set up realistic nutrition based on food type
+        switch true {
+        case foodLower.contains("apple"):
+            coachEngine.mockParsedItems = [
+                ParsedFoodItem(name: "apple", brand: nil, quantity: 1.0, unit: "medium",
+                              calories: 95, proteinGrams: 0.5, carbGrams: 25.0, fatGrams: 0.3,
+                              fiberGrams: 4.0, sugarGrams: 19.0, sodiumMilligrams: 2.0,
+                              databaseId: nil, confidence: 0.95)
+            ]
+        case foodLower.contains("pizza"):
+            coachEngine.mockParsedItems = [
+                ParsedFoodItem(name: "pizza slice", brand: nil, quantity: 1.0, unit: "slice",
+                              calories: 285, proteinGrams: 12.0, carbGrams: 36.0, fatGrams: 10.0,
+                              fiberGrams: 2.3, sugarGrams: 3.8, sodiumMilligrams: 640.0,
+                              databaseId: nil, confidence: 0.90)
+            ]
+        case foodLower.contains("chicken"):
+            coachEngine.mockParsedItems = [
+                ParsedFoodItem(name: "chicken breast", brand: nil, quantity: 6.0, unit: "oz",
+                              calories: 280, proteinGrams: 53.0, carbGrams: 0.0, fatGrams: 6.0,
+                              fiberGrams: 0.0, sugarGrams: 0.0, sodiumMilligrams: 126.0,
+                              databaseId: nil, confidence: 0.92)
+            ]
+        case foodLower.contains("rice"):
+            coachEngine.mockParsedItems = [
+                ParsedFoodItem(name: "brown rice", brand: nil, quantity: 1.0, unit: "cup",
+                              calories: 216, proteinGrams: 5.0, carbGrams: 45.0, fatGrams: 1.8,
+                              fiberGrams: 3.5, sugarGrams: 0.7, sodiumMilligrams: 10.0,
+                              databaseId: nil, confidence: 0.88)
+            ]
+        case foodLower.contains("banana"):
+            coachEngine.mockParsedItems = [
+                ParsedFoodItem(name: "banana", brand: nil, quantity: 1.0, unit: "medium",
+                              calories: 105, proteinGrams: 1.3, carbGrams: 27.0, fatGrams: 0.4,
+                              fiberGrams: 3.1, sugarGrams: 14.4, sodiumMilligrams: 1.0,
+                              databaseId: nil, confidence: 0.94)
+            ]
+        case foodLower.contains("avocado"):
+            coachEngine.mockParsedItems = [
+                ParsedFoodItem(name: "avocado", brand: nil, quantity: 1.0, unit: "whole",
+                              calories: 322, proteinGrams: 4.0, carbGrams: 17.0, fatGrams: 29.0,
+                              fiberGrams: 13.5, sugarGrams: 1.3, sodiumMilligrams: 14.0,
+                              databaseId: nil, confidence: 0.91)
+            ]
+        case foodLower.contains("almonds"):
+            coachEngine.mockParsedItems = [
+                ParsedFoodItem(name: "almonds", brand: nil, quantity: 1.0, unit: "oz",
+                              calories: 164, proteinGrams: 6.0, carbGrams: 6.0, fatGrams: 14.0,
+                              fiberGrams: 3.5, sugarGrams: 1.2, sodiumMilligrams: 0.0,
+                              databaseId: nil, confidence: 0.93)
+            ]
+        default:
+            coachEngine.mockParsedItems = [
+                ParsedFoodItem(name: food, brand: nil, quantity: 1.0, unit: "serving",
+                              calories: 150, proteinGrams: 8.0, carbGrams: 20.0, fatGrams: 4.0,
+                              fiberGrams: 2.0, sugarGrams: 5.0, sodiumMilligrams: 100.0,
+                              databaseId: nil, confidence: 0.75)
+            ]
+        }
     }
-}
 
-/// Mock nutrition service for regression testing
-private class MockNutritionService: NutritionServiceProtocol {
+// MARK: - Mock Dependencies
+
+// Using MockFoodVoiceAdapter from Mocks directory
+
+// Using MockNutritionService from Mocks folder
+
+/// Local mock nutrition service wrapper for regression testing
+@MainActor
+private final class LocalMockNutritionService: NutritionServiceProtocol, @unchecked Sendable {
+    private let mockService = MockNutritionService()
+    
     func getFoodEntries(for user: User, date: Date) async throws -> [FoodEntry] {
-        return []
+        return try await mockService.getFoodEntries(for: user, date: date)
     }
     
     func saveFoodEntry(_ entry: FoodEntry) async throws {
-        // Mock implementation
+        try await mockService.saveFoodEntry(entry)
     }
     
     func calculateNutritionSummary(from entries: [FoodEntry]) -> FoodNutritionSummary {
-        return FoodNutritionSummary(
-            totalCalories: 0,
-            totalProteinGrams: 0,
-            totalCarbGrams: 0,
-            totalFatGrams: 0,
-            totalFiberGrams: 0,
-            totalSugarGrams: 0,
-            totalSodiumMilligrams: 0
-        )
+        return mockService.calculateNutritionSummary(from: entries)
     }
     
     func getWaterIntake(for user: User, date: Date) async throws -> Double {
-        return 0.0
+        return try await mockService.getWaterIntake(for: user, date: date)
     }
     
     func updateWaterIntake(for user: User, date: Date, amount: Double) async throws {
-        // Mock implementation
+        try await mockService.updateWaterIntake(for: user, date: date, amount: amount)
     }
     
-    func getRecentFoods(for user: User, limit: Int) async throws -> [ParsedFoodItem] {
-        return []
+    func getRecentFoods(for user: User, limit: Int) async throws -> [FoodItem] {
+        return try await mockService.getRecentFoods(for: user, limit: limit)
     }
     
     func getMealHistory(for user: User, mealType: MealType, daysBack: Int) async throws -> [FoodEntry] {
-        return []
+        return try await mockService.getMealHistory(for: user, mealType: mealType, daysBack: daysBack)
+    }
+    
+    func logWaterIntake(for user: User, amountML: Double, date: Date) async throws {
+        try await mockService.logWaterIntake(for: user, amountML: amountML, date: date)
+    }
+    
+    func getFoodEntries(for date: Date) async throws -> [FoodEntry] {
+        return try await mockService.getFoodEntries(for: date)
+    }
+    
+    func deleteFoodEntry(_ entry: FoodEntry) async throws {
+        try await mockService.deleteFoodEntry(entry)
+    }
+    
+    nonisolated func getTargets(from profile: OnboardingProfile?) -> NutritionTargets {
+        return mockService.getTargets(from: profile)
+    }
+    
+    func getTodaysSummary(for user: User) async throws -> FoodNutritionSummary {
+        return try await mockService.getTodaysSummary(for: user)
     }
 }
 
 /// Mock error type for testing
-private enum MockError: Error, Equatable {
-    case testError
-} 
+// Using MockError from MockFoodVoiceAdapter.swift 

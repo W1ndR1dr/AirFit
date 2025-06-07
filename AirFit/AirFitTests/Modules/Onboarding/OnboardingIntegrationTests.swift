@@ -3,35 +3,30 @@ import SwiftData
 @testable import AirFit
 
 // MARK: - App State Integration Tests
+@MainActor
 final class OnboardingAppStateIntegrationTests: XCTestCase {
     var container: ModelContainer!
     var context: ModelContext!
     var appState: AppState!
     var onboardingService: OnboardingService!
 
-    @MainActor
     override func setUp() async throws {
-        await MainActor.run {
-            super.setUp()
-        }
+        try await super.setUp()
+        
         container = try ModelContainer.createTestContainer()
         context = container.mainContext
         appState = AppState(modelContext: context)
         onboardingService = OnboardingService(modelContext: context)
     }
 
-    @MainActor
     override func tearDown() async throws {
         container = nil
         context = nil
         appState = nil
         onboardingService = nil
-        await MainActor.run {
-            super.tearDown()
-        }
+        try await super.tearDown()
     }
 
-    @MainActor
     func test_appState_withNoUser_shouldShowWelcome() async throws {
         // Arrange - Fresh app state with no users
         await appState.loadUserState()
@@ -43,7 +38,6 @@ final class OnboardingAppStateIntegrationTests: XCTestCase {
         XCTAssertFalse(appState.isLoading)
     }
 
-    @MainActor
     func test_appState_withUserButNoProfile_shouldShowOnboarding() async throws {
         // Arrange
         try await appState.createNewUser()
@@ -56,7 +50,6 @@ final class OnboardingAppStateIntegrationTests: XCTestCase {
         XCTAssertNotNil(appState.currentUser)
     }
 
-    @MainActor
     func test_appState_withCompletedOnboarding_shouldShowDashboard() async throws {
         // Arrange
         try await appState.createNewUser()
@@ -95,35 +88,30 @@ final class OnboardingAppStateIntegrationTests: XCTestCase {
 }
 
 // MARK: - Service Integration Tests
+@MainActor
 final class OnboardingServiceIntegrationTests: XCTestCase {
     var container: ModelContainer!
     var context: ModelContext!
     var appState: AppState!
     var onboardingService: OnboardingService!
 
-    @MainActor
     override func setUp() async throws {
-        await MainActor.run {
-            super.setUp()
-        }
+        try await super.setUp()
+        
         container = try ModelContainer.createTestContainer()
         context = container.mainContext
         appState = AppState(modelContext: context)
         onboardingService = OnboardingService(modelContext: context)
     }
 
-    @MainActor
     override func tearDown() async throws {
         container = nil
         context = nil
         appState = nil
         onboardingService = nil
-        await MainActor.run {
-            super.tearDown()
-        }
+        try await super.tearDown()
     }
 
-    @MainActor
     func test_onboardingService_saveProfile_shouldValidateRequiredFields() async throws {
         // Arrange
         try await appState.createNewUser()
@@ -159,7 +147,6 @@ final class OnboardingServiceIntegrationTests: XCTestCase {
         }
     }
 
-    @MainActor
     func test_onboardingService_saveProfile_shouldLinkToUser() async throws {
         // Arrange
         try await appState.createNewUser()
@@ -200,6 +187,7 @@ final class OnboardingServiceIntegrationTests: XCTestCase {
 }
 
 // MARK: - JSON Structure Tests
+@MainActor
 final class OnboardingJSONStructureTests: XCTestCase {
 
     func test_userProfileJsonBlob_shouldMatchSystemPromptRequirements() throws {
@@ -289,35 +277,30 @@ final class OnboardingJSONStructureTests: XCTestCase {
 }
 
 // MARK: - Flow Integration Tests
+@MainActor
 final class OnboardingFlowIntegrationTests: XCTestCase {
     var container: ModelContainer!
     var context: ModelContext!
     var appState: AppState!
     var onboardingService: OnboardingService!
 
-    @MainActor
     override func setUp() async throws {
-        await MainActor.run {
-            super.setUp()
-        }
+        try await super.setUp()
+        
         container = try ModelContainer.createTestContainer()
         context = container.mainContext
         appState = AppState(modelContext: context)
         onboardingService = OnboardingService(modelContext: context)
     }
 
-    @MainActor
     override func tearDown() async throws {
         container = nil
         context = nil
         appState = nil
         onboardingService = nil
-        await MainActor.run {
-            super.tearDown()
-        }
+        try await super.tearDown()
     }
 
-    @MainActor
     func test_completeOnboardingFlow_shouldTransitionToDashboard() async throws {
         // Arrange
         try await appState.createNewUser()

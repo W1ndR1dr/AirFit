@@ -1,0 +1,403 @@
+import XCTest
+@testable import AirFit
+
+final class NetworkClientTests: XCTestCase {
+    // MARK: - Properties
+    private var sut: NetworkClient!
+    private var mockSession: MockURLSession!
+    
+    // MARK: - Setup
+    override func setUp() {
+        super.setUp()
+        mockSession = MockURLSession()
+        sut = NetworkClient(session: mockSession)
+    }
+    
+    override func tearDown() {
+        sut = nil
+        mockSession = nil
+        super.tearDown()
+    }
+    
+    // MARK: - Request Tests
+    
+    func test_request_withSuccessfulResponse_returnsDecodedData() async throws {
+        // Arrange
+        struct TestResponse: Codable, Equatable {
+            let id: Int
+            let name: String
+            let isActive: Bool
+        }
+        
+        let expectedResponse = TestResponse(id: 1, name: "Test", isActive: true)
+        let responseData = try JSONEncoder().encode(expectedResponse)
+        
+        mockSession.mockData = responseData
+        mockSession.mockResponse = HTTPURLResponse(
+            url: URL(string: "https://api.test.com")!,
+            statusCode: 200,
+            httpVersion: nil,
+            headerFields: nil
+        )
+        
+        let endpoint = TestEndpoint(path: "/test", method: .get)
+        
+        // Act
+        let response: TestResponse = try await sut.request(endpoint)
+        
+        // Assert
+        XCTAssertEqual(response, expectedResponse)
+        XCTAssertEqual(mockSession.lastRequest?.url?.absoluteString, "https://api.test.com/test")
+        XCTAssertEqual(mockSession.lastRequest?.httpMethod, "GET")
+    }
+    
+    func test_request_withServerError_throwsHTTPError() async throws {
+        // Arrange
+        mockSession.mockData = Data()
+        mockSession.mockResponse = HTTPURLResponse(
+            url: URL(string: "https://api.test.com")!,
+            statusCode: 500,
+            httpVersion: nil,
+            headerFields: nil
+        )
+        
+        let endpoint = TestEndpoint(path: "/test", method: .get)
+        
+        // Act & Assert
+        do {
+            let _: EmptyResponse = try await sut.request(endpoint)
+            XCTFail("Should have thrown error")
+        } catch {
+            guard case NetworkError.httpError(let statusCode, _) = error else {
+                XCTFail("Wrong error type: \(error)")
+                return
+            }
+            XCTAssertEqual(statusCode, 500)
+        }
+    }
+    
+    func test_request_withDecodingError_throwsDecodingError() async throws {
+        // Arrange
+        struct ComplexResponse: Codable {
+            let requiredField: String
+        }
+        
+        // Invalid JSON for the expected type
+        let invalidData = Data("{}".utf8)
+        
+        mockSession.mockData = invalidData
+        mockSession.mockResponse = HTTPURLResponse(
+            url: URL(string: "https://api.test.com")!,
+            statusCode: 200,
+            httpVersion: nil,
+            headerFields: nil
+        )
+        
+        let endpoint = TestEndpoint(path: "/test", method: .get)
+        
+        // Act & Assert
+        do {
+            let _: ComplexResponse = try await sut.request(endpoint)
+            XCTFail("Should have thrown error")
+        } catch {
+            guard case NetworkError.decodingError = error else {
+                XCTFail("Wrong error type: \(error)")
+                return
+            }
+        }
+    }
+    
+    func test_request_withNetworkError_throwsNetworkError() async throws {
+        // Arrange
+        mockSession.shouldThrowError = true
+        mockSession.mockError = URLError(.notConnectedToInternet)
+        
+        let endpoint = TestEndpoint(path: "/test", method: .get)
+        
+        // Act & Assert
+        do {
+            let _: EmptyResponse = try await sut.request(endpoint)
+            XCTFail("Should have thrown error")
+        } catch {
+            guard case NetworkError.networkError = error else {
+                XCTFail("Wrong error type: \(error)")
+                return
+            }
+        }
+    }
+    
+    func test_request_withNonHTTPResponse_throwsInvalidResponse() async throws {
+        // Arrange
+        mockSession.mockData = Data()
+        mockSession.mockResponse = URLResponse() // Non-HTTP response
+        
+        let endpoint = TestEndpoint(path: "/test", method: .get)
+        
+        // Act & Assert
+        do {
+            let _: EmptyResponse = try await sut.request(endpoint)
+            XCTFail("Should have thrown error")
+        } catch {
+            guard case NetworkError.invalidResponse = error else {
+                XCTFail("Wrong error type: \(error)")
+                return
+            }
+        }
+    }
+    
+    // MARK: - Request Building Tests
+    
+    func test_request_withPOSTMethod_setsCorrectMethod() async throws {
+        // Arrange
+        mockSession.mockData = Data("{}".utf8)
+        mockSession.mockResponse = HTTPURLResponse(
+            url: URL(string: "https://api.test.com")!,
+            statusCode: 200,
+            httpVersion: nil,
+            headerFields: nil
+        )
+        
+        let endpoint = TestEndpoint(path: "/test", method: .post)
+        
+        // Act
+        let _: EmptyResponse = try await sut.request(endpoint)
+        
+        // Assert
+        XCTAssertEqual(mockSession.lastRequest?.httpMethod, "POST")
+    }
+    
+    func test_request_withHeaders_includesHeaders() async throws {
+        // Arrange
+        mockSession.mockData = Data("{}".utf8)
+        mockSession.mockResponse = HTTPURLResponse(
+            url: URL(string: "https://api.test.com")!,
+            statusCode: 200,
+            httpVersion: nil,
+            headerFields: nil
+        )
+        
+        let headers = ["Authorization": "Bearer token123", "X-Custom": "value"]
+        let endpoint = TestEndpoint(path: "/test", method: .get, headers: headers)
+        
+        // Act
+        let _: EmptyResponse = try await sut.request(endpoint)
+        
+        // Assert
+        XCTAssertEqual(mockSession.lastRequest?.value(forHTTPHeaderField: "Authorization"), "Bearer token123")
+        XCTAssertEqual(mockSession.lastRequest?.value(forHTTPHeaderField: "X-Custom"), "value")
+    }
+    
+    func test_request_withQueryParameters_appendsToURL() async throws {
+        // Arrange
+        mockSession.mockData = Data("{}".utf8)
+        mockSession.mockResponse = HTTPURLResponse(
+            url: URL(string: "https://api.test.com")!,
+            statusCode: 200,
+            httpVersion: nil,
+            headerFields: nil
+        )
+        
+        let queryItems = [
+            URLQueryItem(name: "page", value: "1"),
+            URLQueryItem(name: "limit", value: "10")
+        ]
+        let endpoint = TestEndpoint(path: "/test", method: .get, queryItems: queryItems)
+        
+        // Act
+        let _: EmptyResponse = try await sut.request(endpoint)
+        
+        // Assert
+        let url = mockSession.lastRequest?.url
+        XCTAssertTrue(url?.absoluteString.contains("page=1") ?? false)
+        XCTAssertTrue(url?.absoluteString.contains("limit=10") ?? false)
+    }
+    
+    func test_request_withBody_encodesBody() async throws {
+        // Arrange
+        struct TestBody: Codable, Equatable {
+            let message: String
+            let count: Int
+        }
+        
+        let body = TestBody(message: "Hello", count: 42)
+        
+        mockSession.mockData = Data("{}".utf8)
+        mockSession.mockResponse = HTTPURLResponse(
+            url: URL(string: "https://api.test.com")!,
+            statusCode: 200,
+            httpVersion: nil,
+            headerFields: nil
+        )
+        
+        let endpoint = TestEndpoint(path: "/test", method: .post, body: body)
+        
+        // Act
+        let _: EmptyResponse = try await sut.request(endpoint)
+        
+        // Assert
+        let requestBody = mockSession.lastRequest?.httpBody
+        XCTAssertNotNil(requestBody)
+        
+        let decodedBody = try JSONDecoder().decode(TestBody.self, from: requestBody!)
+        XCTAssertEqual(decodedBody, body)
+    }
+    
+    // MARK: - Date Encoding/Decoding Tests
+    
+    func test_request_withDateResponse_decodesISO8601() async throws {
+        // Arrange
+        struct DateResponse: Codable, Equatable {
+            let createdAt: Date
+        }
+        
+        let dateString = "2024-01-15T10:30:00Z"
+        let expectedDate = ISO8601DateFormatter().date(from: dateString)!
+        
+        let json = """
+        {
+            "created_at": "\(dateString)"
+        }
+        """
+        
+        mockSession.mockData = Data(json.utf8)
+        mockSession.mockResponse = HTTPURLResponse(
+            url: URL(string: "https://api.test.com")!,
+            statusCode: 200,
+            httpVersion: nil,
+            headerFields: nil
+        )
+        
+        let endpoint = TestEndpoint(path: "/test", method: .get)
+        
+        // Act
+        let response: DateResponse = try await sut.request(endpoint)
+        
+        // Assert
+        XCTAssertEqual(response.createdAt, expectedDate)
+    }
+    
+    func test_request_withSnakeCaseResponse_convertsToCAmelCase() async throws {
+        // Arrange
+        struct SnakeCaseResponse: Codable, Equatable {
+            let userId: Int
+            let firstName: String
+            let isActive: Bool
+        }
+        
+        let json = """
+        {
+            "user_id": 123,
+            "first_name": "John",
+            "is_active": true
+        }
+        """
+        
+        mockSession.mockData = Data(json.utf8)
+        mockSession.mockResponse = HTTPURLResponse(
+            url: URL(string: "https://api.test.com")!,
+            statusCode: 200,
+            httpVersion: nil,
+            headerFields: nil
+        )
+        
+        let endpoint = TestEndpoint(path: "/test", method: .get)
+        
+        // Act
+        let response: SnakeCaseResponse = try await sut.request(endpoint)
+        
+        // Assert
+        XCTAssertEqual(response.userId, 123)
+        XCTAssertEqual(response.firstName, "John")
+        XCTAssertTrue(response.isActive)
+    }
+    
+    // MARK: - Edge Cases
+    
+    func test_request_withEmptyResponse_decodesSuccessfully() async throws {
+        // Arrange
+        mockSession.mockData = Data("{}".utf8)
+        mockSession.mockResponse = HTTPURLResponse(
+            url: URL(string: "https://api.test.com")!,
+            statusCode: 200,
+            httpVersion: nil,
+            headerFields: nil
+        )
+        
+        let endpoint = TestEndpoint(path: "/test", method: .get)
+        
+        // Act
+        let response: EmptyResponse = try await sut.request(endpoint)
+        
+        // Assert
+        XCTAssertNotNil(response)
+    }
+    
+    func test_request_with204NoContent_handlesEmptyData() async throws {
+        // Arrange
+        mockSession.mockData = Data() // Empty data
+        mockSession.mockResponse = HTTPURLResponse(
+            url: URL(string: "https://api.test.com")!,
+            statusCode: 204,
+            httpVersion: nil,
+            headerFields: nil
+        )
+        
+        let endpoint = TestEndpoint(path: "/test", method: .delete)
+        
+        // Act & Assert
+        // This might throw depending on implementation
+        do {
+            let _: EmptyResponse = try await sut.request(endpoint)
+        } catch {
+            // Some implementations might throw on empty data
+            guard case NetworkError.decodingError = error else {
+                XCTFail("Unexpected error type: \(error)")
+                return
+            }
+        }
+    }
+}
+
+// MARK: - Test Helpers
+
+private struct EmptyResponse: Codable {}
+
+private struct TestEndpoint: Endpoint {
+    let baseURL = URL(string: "https://api.test.com")!
+    let path: String
+    let method: HTTPMethod
+    let headers: [String: String]
+    let queryItems: [URLQueryItem]?
+    let body: Encodable?
+    
+    init(path: String, method: HTTPMethod, headers: [String: String] = [:], queryItems: [URLQueryItem]? = nil, body: Encodable? = nil) {
+        self.path = path
+        self.method = method
+        self.headers = headers
+        self.queryItems = queryItems
+        self.body = body
+    }
+}
+
+// MARK: - Mock URLSession
+
+private class MockURLSession: URLSession {
+    var mockData: Data?
+    var mockResponse: URLResponse?
+    var mockError: Error?
+    var shouldThrowError = false
+    var lastRequest: URLRequest?
+    
+    override func data(for request: URLRequest) async throws -> (Data, URLResponse) {
+        lastRequest = request
+        
+        if shouldThrowError, let error = mockError {
+            throw error
+        }
+        
+        let data = mockData ?? Data()
+        let response = mockResponse ?? URLResponse()
+        
+        return (data, response)
+    }
+}

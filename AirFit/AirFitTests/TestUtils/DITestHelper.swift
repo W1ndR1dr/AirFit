@@ -55,7 +55,7 @@ enum DITestHelper {
             MockUserService()
         }
         
-        container.register(HealthKitManaging.self, lifetime: .singleton) { _ in
+        container.register(HealthKitManagerProtocol.self, lifetime: .singleton) { _ in
             MockHealthKitManager()
         }
         
@@ -84,38 +84,64 @@ enum DITestHelper {
             MockAnalyticsService()
         }
         
+        container.register(GoalServiceProtocol.self) { _ in
+            MockGoalService()
+        }
+        
         container.register(NotificationManager.self, lifetime: .singleton) { _ in
             MockNotificationManager()
         }
         
+        container.register(NotificationManagerProtocol.self, lifetime: .singleton) { _ in
+            MockNotificationManager()
+        }
+        
         container.register(VoiceInputManager.self, lifetime: .singleton) { _ in
-            MockVoiceInputManager()
+            VoiceInputManager()
         }
         
         // LLM and AI-related mocks
-        container.register(LLMOrchestrator.self, lifetime: .singleton) { _ in
-            MockLLMOrchestrator()
+        container.register(LLMOrchestrator.self, lifetime: .singleton) { container in
+            let apiKeyManager = try await container.resolve(APIKeyManagementProtocol.self)
+            return await LLMOrchestrator(apiKeyManager: apiKeyManager)
         }
         
         // Context Assembler for health services
         container.register(ContextAssembler.self) { container in
-            let modelContainer = try await container.resolve(ModelContainer.self)
-            let healthKitManager = try await container.resolve(HealthKitManager.self)
-            let weatherService = try await container.resolve(WeatherServiceProtocol.self)
-            return ContextAssembler(
-                healthKitManager: healthKitManager,
-                weatherService: weatherService,
-                modelContext: modelContainer.mainContext
-            )
+            let healthKitManager = try await container.resolve(HealthKitManager.self) as! MockHealthKitManager
+            return ContextAssembler(healthKitManager: healthKitManager)
         }
         
         // Dashboard services
         container.register(HealthKitService.self) { container in
-            MockHealthKitService()
+            let healthKitManager = try await container.resolve(HealthKitManager.self) as! MockHealthKitManager
+            let contextAssembler = try await container.resolve(ContextAssembler.self)
+            return HealthKitService(healthKitManager: healthKitManager, contextAssembler: contextAssembler)
         }
         
-        container.register(DashboardNutritionService.self) { container in
-            MockDashboardNutritionService()
+        container.register(AICoachServiceProtocol.self) { _ in
+            MockAICoachService()
+        }
+        
+        container.register(DashboardNutritionService.self) { @MainActor container in
+            let modelContainer = try await container.resolve(ModelContainer.self)
+            return DashboardNutritionService(modelContext: ModelContext(modelContainer))
+        }
+        
+        // Onboarding services (concrete classes, not protocols)
+        container.register(ConversationFlowManager.self) { @MainActor container in
+            let modelContainer = try await container.resolve(ModelContainer.self)
+            let flowDefinition: [String: ConversationNode] = [:] // Empty for tests
+            return MockConversationFlowManager()
+        }
+        
+        container.register(ConversationPersistence.self) { @MainActor container in
+            let modelContainer = try await container.resolve(ModelContainer.self)
+            return MockConversationPersistence()
+        }
+        
+        container.register(PersonaService.self) { @MainActor container in
+            return MockPersonaService()
         }
         
         return container
@@ -153,14 +179,8 @@ extension DIContainer {
 extension User {
     static var mock: User {
         User(
-            name: "Test User",
-            age: 30,
-            heightCM: 175,
-            weightKG: 70,
-            biologicalSex: .male,
-            activityLevel: .moderate,
-            primaryGoal: .maintainWeight,
-            preferredUnits: .metric
+            email: "test@example.com",
+            name: "Test User"
         )
     }
 }
@@ -168,18 +188,9 @@ extension User {
 extension OnboardingProfile {
     static var mock: OnboardingProfile {
         OnboardingProfile(
-            preferredUnits: "metric",
-            weight: 70,
-            height: 175,
-            biologicalSex: "male",
-            lifeSnapshot: "Active professional",
-            coreAspiration: "Stay healthy and fit",
-            coachingStyle: .balanced,
-            motivationalAccents: .encouraging,
-            sleepSchedule: "11pm-7am",
-            workLifeBoundaries: .moderate,
-            communicationPreferences: nil,
-            personaPromptData: nil
+            personaPromptData: Data(),
+            communicationPreferencesData: Data(),
+            rawFullProfileData: Data()
         )
     }
 }

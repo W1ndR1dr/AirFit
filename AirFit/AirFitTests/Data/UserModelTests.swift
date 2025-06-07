@@ -6,25 +6,22 @@ final class UserModelTests: XCTestCase {
     var container: ModelContainer!
     var context: ModelContext!
 
-    @MainActor
-    override func setUp() async throws {
-        await MainActor.run {
-            super.setUp()
+    override func setUp() {
+        super.setUp()
+        do {
+            container = try ModelContainer.createTestContainer()
+            context = container.mainContext
+        } catch {
+            XCTFail("Failed to create test container: \(error)")
         }
-        container = try ModelContainer.createTestContainer()
-        context = container.mainContext
     }
 
-    @MainActor
-    override func tearDown() async throws {
+    override func tearDown() {
         container = nil
         context = nil
-        await MainActor.run {
-            super.tearDown()
-        }
+        super.tearDown()
     }
 
-    @MainActor
     func test_createUser_withDefaultValues_shouldInitializeCorrectly() throws {
         // Arrange & Act
         let user = User()
@@ -41,7 +38,6 @@ final class UserModelTests: XCTestCase {
         XCTAssertFalse(user.isInactive)
     }
 
-    @MainActor
     func test_createUser_withCustomValues_shouldSetCorrectly() throws {
         // Arrange
         let user = User(
@@ -61,7 +57,6 @@ final class UserModelTests: XCTestCase {
         XCTAssertTrue(user.isMetric)
     }
 
-    @MainActor
     func test_userRelationships_whenDeleted_shouldCascadeDelete() throws {
         // Arrange
         let user = User(name: "Test User")
@@ -90,7 +85,6 @@ final class UserModelTests: XCTestCase {
         XCTAssertEqual(try context.fetchCount(FetchDescriptor<Workout>()), 0)
     }
 
-    @MainActor
     func test_getTodaysLog_withMultipleLogs_shouldReturnToday() throws {
         // Arrange
         let user = User(name: "Test User")
@@ -115,7 +109,6 @@ final class UserModelTests: XCTestCase {
         XCTAssertEqual(result?.date, Calendar.current.startOfDay(for: Date()))
     }
 
-    @MainActor
     func test_getRecentMeals_shouldReturnSortedMeals() throws {
         // Arrange
         let user = User(name: "Test User")
@@ -150,3 +143,4 @@ final class UserModelTests: XCTestCase {
         XCTAssertEqual(recentMeals[1].id, yesterday.id)
     }
 }
+

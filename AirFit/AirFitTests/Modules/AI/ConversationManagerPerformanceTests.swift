@@ -2,7 +2,6 @@ import XCTest
 import SwiftData
 @testable import AirFit
 
-@MainActor
 final class ConversationManagerPerformanceTests: XCTestCase {
     // MARK: - Properties
     var sut: ConversationManager!
@@ -12,13 +11,21 @@ final class ConversationManagerPerformanceTests: XCTestCase {
     var testConversationId: UUID!
 
     // MARK: - Setup & Teardown
-    override func setUp() async throws {
-        await MainActor.run {
-            super.setUp()
-        }
+    override func setUp() {
+        super.setUp()
 
         // Create in-memory model container for testing
-        modelContainer = try ModelContainer.createTestContainer()
+        do {
+
+            modelContainer = try ModelContainer.createTestContainer()
+
+        } catch {
+
+            XCTFail("Failed to create test container: \(error)")
+
+            return
+
+        }
         modelContext = modelContainer.mainContext
 
         // Create test user
@@ -29,7 +36,15 @@ final class ConversationManagerPerformanceTests: XCTestCase {
             preferredUnits: "metric"
         )
         modelContext.insert(testUser)
-        try modelContext.save()
+        do {
+
+            try modelContext.save()
+
+        } catch {
+
+            XCTFail("Failed to save test context: \(error)")
+
+        }
 
         // Create test conversation ID
         testConversationId = UUID()
@@ -38,16 +53,14 @@ final class ConversationManagerPerformanceTests: XCTestCase {
         sut = ConversationManager(modelContext: modelContext)
     }
 
-    override func tearDown() async throws {
+    override func tearDown() {
         sut = nil
         testUser = nil
         testConversationId = nil
         modelContext = nil
         modelContainer = nil
 
-        await MainActor.run {
-            super.tearDown()
-        }
+        super.tearDown()
     }
 
     // MARK: - Enhanced Performance Tests for Task 2.5
