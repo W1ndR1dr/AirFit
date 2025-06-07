@@ -25,7 +25,7 @@ final class MessageClassificationTests: XCTestCase {
         try modelContext.save()
         
         // Create CoachEngine with minimal dependencies for testing
-        coachEngine = CoachEngine.createDefault(modelContext: modelContext)
+        coachEngine = await CoachEngine.createDefault(modelContext: modelContext)
     }
     
     override func tearDown() async throws {
