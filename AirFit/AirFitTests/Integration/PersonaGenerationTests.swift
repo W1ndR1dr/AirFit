@@ -10,8 +10,8 @@ final class PersonaGenerationTests: XCTestCase {
     var personaSynthesizer: PersonaSynthesizer!
     var testUser: User!
     
-    override func setUp() {
-        // setUp can be synchronous for MainActor tests
+    override func setUp() async throws {
+        try await super.setUp()
         
         // Setup in-memory database
         let schema = Schema([
@@ -54,24 +54,16 @@ final class PersonaGenerationTests: XCTestCase {
         // Create test user
         testUser = User(email: "test@example.com", name: "Test User")
         modelContext.insert(testUser)
-        do {
-
-            try modelContext.save()
-
-        } catch {
-
-            XCTFail("Failed to save test context: \(error)")
-
-        }
+        try modelContext.save()
     }
     
-    override func tearDown() {
+    override func tearDown() async throws {
         testUser = nil
         personaService = nil
         personaSynthesizer = nil
         mockLLMOrchestrator = nil
         modelContext = nil
-        // tearDown can be synchronous for MainActor tests
+        try await super.tearDown()
     }
     
     // MARK: - Basic Persona Generation

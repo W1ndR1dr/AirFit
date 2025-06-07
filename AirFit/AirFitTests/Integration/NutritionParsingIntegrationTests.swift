@@ -31,8 +31,8 @@ final class NutritionParsingIntegrationTests: XCTestCase {
     private var modelContext: ModelContext!
     private var container: DIContainer!
 
-    override func setUp() {
-        super.setUp()
+    override func setUp() async throws {
+        try await super.setUp()
         
         // Create in-memory model container for integration testing
         let schema = Schema([User.self, FoodEntry.self, FoodItem.self, OnboardingProfile.self])
@@ -53,15 +53,7 @@ final class NutritionParsingIntegrationTests: XCTestCase {
         testUser.onboardingProfile = onboardingProfile
         modelContext.insert(testUser)
         modelContext.insert(onboardingProfile)
-        do {
-
-            try modelContext.save()
-
-        } catch {
-
-            XCTFail("Failed to save test context: \(error)")
-
-        }
+        try modelContext.save()
         
         // Create DI container with mock services
         container = try await DITestHelper.createTestContainer()
@@ -110,7 +102,7 @@ final class NutritionParsingIntegrationTests: XCTestCase {
         )
     }
 
-    override func tearDown() {
+    override func tearDown() async throws {
         sut = nil
         coachEngine = nil
         mockVoiceAdapter = nil
@@ -120,7 +112,7 @@ final class NutritionParsingIntegrationTests: XCTestCase {
         modelContext = nil
         modelContainer = nil
         container = nil
-        super.tearDown()
+        try await super.tearDown()
     }
 
     // MARK: - Task 8.1: End-to-End Flow Validation
