@@ -11,7 +11,9 @@ final class CoachEngineTests: XCTestCase {
     var mockAIService: MockAIService!
 
     // MARK: - Setup & Teardown
-        override func setUp() {
+    override func setUp() async throws {
+        try await super.setUp()
+        
         // Create in-memory model container for testing
         let schema = Schema([
             User.self,
@@ -32,15 +34,7 @@ final class CoachEngineTests: XCTestCase {
             lastActiveAt: Date()
         )
         modelContext.insert(testUser)
-        do {
-
-            try modelContext.save()
-
-        } catch {
-
-            XCTFail("Failed to save test context: \(error)")
-
-        }
+        try modelContext.save()
 
         // Initialize mock AI service
         mockAIService = MockAIService()
@@ -49,11 +43,12 @@ final class CoachEngineTests: XCTestCase {
         sut = createTestableCoachEngine()
     }
 
-        override func tearDown() {
+    override func tearDown() async throws {
         sut = nil
         modelContext = nil
         testUser = nil
         mockAIService = nil
+        try await super.tearDown()
     }
 
     // MARK: - Local Command Integration Tests

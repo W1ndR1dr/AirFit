@@ -11,21 +11,11 @@ final class ConversationManagerPerformanceTests: XCTestCase {
     var testConversationId: UUID!
 
     // MARK: - Setup & Teardown
-    override func setUp() {
-        super.setUp()
+    override func setUp() async throws {
+        try await super.setUp()
 
         // Create in-memory model container for testing
-        do {
-
-            modelContainer = try ModelContainer.createTestContainer()
-
-        } catch {
-
-            XCTFail("Failed to create test container: \(error)")
-
-            return
-
-        }
+        modelContainer = try ModelContainer.createTestContainer()
         modelContext = modelContainer.mainContext
 
         // Create test user
@@ -36,15 +26,7 @@ final class ConversationManagerPerformanceTests: XCTestCase {
             preferredUnits: "metric"
         )
         modelContext.insert(testUser)
-        do {
-
-            try modelContext.save()
-
-        } catch {
-
-            XCTFail("Failed to save test context: \(error)")
-
-        }
+        try modelContext.save()
 
         // Create test conversation ID
         testConversationId = UUID()
@@ -53,14 +35,13 @@ final class ConversationManagerPerformanceTests: XCTestCase {
         sut = ConversationManager(modelContext: modelContext)
     }
 
-    override func tearDown() {
+    override func tearDown() async throws {
         sut = nil
         testUser = nil
         testConversationId = nil
         modelContext = nil
         modelContainer = nil
-
-        super.tearDown()
+        try await super.tearDown()
     }
 
     // MARK: - Enhanced Performance Tests for Task 2.5
