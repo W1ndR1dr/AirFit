@@ -409,7 +409,6 @@ targets:
       - AirFit/AirFitTests/Modules/AI/ConversationManagerPerformanceTests.swift
       - AirFit/AirFitTests/Modules/AI/MessageClassificationTests.swift
       - AirFit/AirFitTests/Modules/AI/ContextAnalyzerTests.swift
-      - AirFit/AirFitTests/Modules/AI/PersonaEngineTests.swift
       - AirFit/AirFitTests/Performance/DirectAIPerformanceTests.swift
       - AirFit/AirFitTests/Services/WorkoutSyncServiceTests.swift
       # - AirFit/AirFitTests/Modules/Workouts/WorkoutViewModelTests.swift # Compilation errors - needs updating

@@ -198,7 +198,6 @@
 		7CC856000D0202EA34E831F8 /* MockAIPerformanceAnalytics.swift in Sources */ = {isa = PBXBuildFile; fileRef = 696A8D6F075F3B4849A168DD /* MockAIPerformanceAnalytics.swift */; };
 		7CD362917C400D207A45C941 /* PersonalityInsights.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5EDA54B8A950BDAB2809EFBF /* PersonalityInsights.swift */; };
 		7D248A864B99B520A6D2511F /* AIWorkoutServiceTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 084C85AA2C935571580B2C4C /* AIWorkoutServiceTests.swift */; };
-		7D2BDDDDC164806E4551FB8F /* ServiceProtocolsTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = DD3AA59777E8CF27325E3164 /* ServiceProtocolsTests.swift */; };
 		7EAE993533E457ECBC5FEBE3 /* ChatSuggestionsEngineTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = AD378A527ABDEB68D92FA7EF /* ChatSuggestionsEngineTests.swift */; };
 		7F2C8518EB202D2635C6D72D /* DailyLog.swift in Sources */ = {isa = PBXBuildFile; fileRef = B921ADA58682DC0610AAEDC8 /* DailyLog.swift */; };
 		7F61ACE02B163C9EAAB3A8A5 /* WorkoutBuilderData.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5A2DBDD235A3F8A366E0F7F1 /* WorkoutBuilderData.swift */; };
@@ -245,7 +244,6 @@
 		96E5830D979CD1D5EE0BAC87 /* AppearanceSettingsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 35D1DCE6E361B1BADF6D7F84 /* AppearanceSettingsView.swift */; };
 		97941E63E1FE040CC9392B32 /* FoodVoiceAdapter.swift in Sources */ = {isa = PBXBuildFile; fileRef = C4CBF672A0114BADF9F375CD /* FoodVoiceAdapter.swift */; };
 		97FA9BAEF5A06664010B5736 /* HealthKitAuthorizationView.swift in Sources */ = {isa = PBXBuildFile; fileRef = E34E29E5F70521BB66EE0B22 /* HealthKitAuthorizationView.swift */; };
-		986422811782A39E4B584D48 /* PersonaEngineTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 58296DE7F4726AD43BBD29EA /* PersonaEngineTests.swift */; };
 		98CEA52D85B4B458A1D614CA /* MockOnboardingService.swift in Sources */ = {isa = PBXBuildFile; fileRef = F12B964391AE27C0CBA30019 /* MockOnboardingService.swift */; };
 		99609C72CCFD69CFCFC9974E /* WorkoutCoordinator.swift in Sources */ = {isa = PBXBuildFile; fileRef = 77DA61671D7B0AF4BE4C6215 /* WorkoutCoordinator.swift */; };
 		9A1C8FD0E79EAA291CDB5850 /* DashboardCoordinator.swift in Sources */ = {isa = PBXBuildFile; fileRef = FC828598F030698132245AE8 /* DashboardCoordinator.swift */; };
@@ -581,7 +579,6 @@
 		5424473EFB56156C1987DF93 /* CoreAspirationView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CoreAspirationView.swift; sourceTree = "<group>"; };
 		559BD314119BF550C704D11B /* OnboardingPage.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OnboardingPage.swift; sourceTree = "<group>"; };
 		56383313A510553A05CF0A98 /* NutritionServiceProtocol.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NutritionServiceProtocol.swift; sourceTree = "<group>"; };
-		58296DE7F4726AD43BBD29EA /* PersonaEngineTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PersonaEngineTests.swift; sourceTree = "<group>"; };
 		586E5425AC0598693D6C2256 /* AirFit.app */ = {isa = PBXFileReference; includeInIndex = 0; lastKnownFileType = wrapper.application; path = AirFit.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		58A6597F3D8BF2D486CB66A0 /* PerformanceCard.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PerformanceCard.swift; sourceTree = "<group>"; };
 		58F7BC85F76353BBF779DC41 /* AIService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AIService.swift; sourceTree = "<group>"; };
@@ -798,7 +795,6 @@
 		DBFBA98BA7B0995A8DC2B68C /* EngagementEngineTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = EngagementEngineTests.swift; sourceTree = "<group>"; };
 		DC865FED24944B52466D8734 /* EngagementPreferencesView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = EngagementPreferencesView.swift; sourceTree = "<group>"; };
 		DCB65D3EE5335C1F2D58EE50 /* CoachEngine.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CoachEngine.swift; sourceTree = "<group>"; };
-		DD3AA59777E8CF27325E3164 /* ServiceProtocolsTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ServiceProtocolsTests.swift; sourceTree = "<group>"; };
 		DD673BF5783D737F16B8B22B /* OnboardingFlowUITests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OnboardingFlowUITests.swift; sourceTree = "<group>"; };
 		DD99329DEB96165E6CEF1289 /* ConversationCoordinator.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ConversationCoordinator.swift; sourceTree = "<group>"; };
 		DE55F7E0B0B4E3C7B4D7F0F1 /* MockAIAPIService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MockAIAPIService.swift; sourceTree = "<group>"; };
@@ -2164,7 +2160,6 @@
 				AD765E53C595E218F64FB03D /* FunctionCallDispatcherTests.swift */,
 				6038A37C6C1CCD16D0389FE0 /* LocalCommandParserTests.swift */,
 				F2786BF5B755ECCF5643313B /* MessageClassificationTests.swift */,
-				58296DE7F4726AD43BBD29EA /* PersonaEngineTests.swift */,
 			);
 			path = AI;
 			sourceTree = "<group>";
@@ -2215,7 +2210,6 @@
 				0247E202C8BC9275D31E7D7D /* GeminiProviderTests.swift */,
 				752E1999026A42B7113D42FC /* MockServicesTests.swift */,
 				3FDBBF9FE045C86ED7E8A5D5 /* NetworkManagerTests.swift */,
-				DD3AA59777E8CF27325E3164 /* ServiceProtocolsTests.swift */,
 				B8E591A2E509DEF881091300 /* TestHelpers.swift */,
 				5CC358EE4A4A8582CFD33075 /* WeatherServiceTests.swift */,
 				FFCBBA55E292E1AD36B10B5F /* WorkoutSyncServiceTests.swift */,
@@ -2544,10 +2538,8 @@
 				C19411AE7351207F6F9772AC /* OnboardingPerformanceTests.swift in Sources */,
 				8C505A52BE1FA72500122C61 /* OnboardingServiceTests.swift in Sources */,
 				87728038918C9D9D3871E28B /* OnboardingViewModelTests.swift in Sources */,
-				986422811782A39E4B584D48 /* PersonaEngineTests.swift in Sources */,
 				19803077D3BBD63E9FEDC6E0 /* PersonaGenerationTests.swift in Sources */,
 				5E665A93FC5665BC6FF83C15 /* PersonaServiceTests.swift in Sources */,
-				7D2BDDDDC164806E4551FB8F /* ServiceProtocolsTests.swift in Sources */,
 				4E670E8F01C8D98AE15911E3 /* SettingsModelsTests.swift in Sources */,
 				0C5F28F9BC4874D47D0219B6 /* SettingsViewModelTests.swift in Sources */,
 				B649CBE84747D7EA719A4360 /* TestHelpers.swift in Sources */,

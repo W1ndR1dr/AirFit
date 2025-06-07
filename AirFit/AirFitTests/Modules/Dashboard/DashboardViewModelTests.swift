@@ -10,23 +10,20 @@ final class DashboardViewModelTests: XCTestCase {
     var modelContainer: ModelContainer!
     var modelContext: ModelContext!
 
-    override func setUp() {
-        super.setUp()
-        // Async initialization moved to setupTest()
-    }
-    
-    private func setupTest() async throws {
+    override func setUp() async throws {
+        try await super.setUp()
         diContainer = try await DITestHelper.createTestContainer()
         factory = DIViewModelFactory(container: diContainer)
         modelContainer = try await diContainer.resolve(ModelContainer.self)
         modelContext = modelContainer.mainContext
     }
 
-    override func tearDown() {
+    override func tearDown() async throws {
         diContainer = nil
         factory = nil
         modelContainer = nil
         modelContext = nil
+        try await super.tearDown()
     }
 
     private func createTestUser() -> User {
