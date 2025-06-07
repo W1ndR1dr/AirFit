@@ -1,7 +1,11 @@
 @testable import AirFit
 import Foundation
 
-final class MockHealthKitManager: HealthKitManaging, @unchecked Sendable {
+final class MockHealthKitManager: HealthKitManaging, MockProtocol, @unchecked Sendable {
+    // MARK: - MockProtocol
+    nonisolated(unsafe) var invocations: [String: [Any]] = [:]
+    nonisolated(unsafe) var stubbedResults: [String: Any] = [:]
+    let mockLock = NSLock()
     var authorizationStatus: HealthKitManager.AuthorizationStatus = .authorized
     private(set) var refreshCalled = false
     private(set) var requestAuthCalled = false
@@ -10,6 +14,8 @@ final class MockHealthKitManager: HealthKitManaging, @unchecked Sendable {
     var simulateDelay: TimeInterval = 0
     var callCount = 0
     var shouldFailAfterCalls: Int? = nil
+    var shouldThrowError = false
+    var errorToThrow: Error = HealthKitManager.HealthKitError.queryFailed(NSError(domain: "MockError", code: -1))
 
     var activityResult: Result<ActivityMetrics, Error> = .success(ActivityMetrics())
     var heartResult: Result<HeartHealthMetrics, Error> = .success(HeartHealthMetrics())
@@ -51,7 +57,15 @@ final class MockHealthKitManager: HealthKitManaging, @unchecked Sendable {
     }
 
     func requestAuthorization() async throws {
+        recordInvocation(#function)
         requestAuthCalled = true
+        
+        if shouldThrowError {
+            authorizationStatus = .denied
+            throw errorToThrow
+        }
+        
+        authorizationStatus = .authorized
     }
 
     func fetchTodayActivityMetrics() async throws -> ActivityMetrics {
@@ -132,6 +146,50 @@ final class MockHealthKitManager: HealthKitManaging, @unchecked Sendable {
         case .failure(let error):
             throw error
         }
+    }
+    
+    // MARK: - Legacy Nutrition Methods (for test compatibility)
+    
+    func saveNutritionToHealthKit(_ nutrition: NutritionData, date: Date) async throws -> Bool {
+        recordInvocation(#function, arguments: nutrition, date)
+        
+        if shouldThrowError {
+            throw errorToThrow
+        }
+        
+        if let stubbed = stubbedResults["saveNutritionToHealthKit"] as? Bool {
+            return stubbed
+        }
+        
+        return true
+    }
+    
+    func syncFoodEntryToHealthKit(_ entry: FoodEntry) async throws -> String {
+        recordInvocation(#function, arguments: entry)
+        
+        if shouldThrowError {
+            throw errorToThrow
+        }
+        
+        if let stubbed = stubbedResults["syncFoodEntryToHealthKit"] as? String {
+            return stubbed
+        }
+        
+        return "mock-healthkit-id"
+    }
+    
+    func deleteFoodEntryFromHealthKit(_ entry: FoodEntry) async throws -> Bool {
+        recordInvocation(#function, arguments: entry)
+        
+        if shouldThrowError {
+            throw errorToThrow
+        }
+        
+        if let stubbed = stubbedResults["deleteFoodEntryFromHealthKit"] as? Bool {
+            return stubbed
+        }
+        
+        return true
     }
     
     // MARK: - New HealthKit Integration Methods
@@ -247,11 +305,28 @@ final class MockHealthKitManager: HealthKitManaging, @unchecked Sendable {
         }
     }
     
-    // Test utility methods
+    // MARK: - Test Utility Methods
+    
+    func invocationCount(for method: String) -> Int {
+        mockLock.lock()
+        defer { mockLock.unlock() }
+        return invocations[method]?.count ?? 0
+    }
+    
     func reset() {
+        mockLock.lock()
+        defer { mockLock.unlock() }
+        
+        // Reset MockProtocol properties
+        invocations.removeAll()
+        stubbedResults.removeAll()
+        
+        // Reset other properties
         refreshCalled = false
         requestAuthCalled = false
         callCount = 0
+        shouldThrowError = false
+        errorToThrow = HealthKitManager.HealthKitError.queryFailed(NSError(domain: "MockError", code: -1))
         fetchActivityCallCount = 0
         fetchHeartCallCount = 0
         fetchBodyCallCount = 0

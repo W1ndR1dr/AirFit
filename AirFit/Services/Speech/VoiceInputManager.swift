@@ -26,13 +26,13 @@ final class VoiceInputManager: NSObject, VoiceInputProtocol {
     private var audioBuffer: [Float] = []
     private var recordingURL: URL?
     private var whisper: WhisperKit?
-    private let modelManager: WhisperModelManager
+    private let modelManager: WhisperModelManagerProtocol
     private var downloadObserver: NSObjectProtocol?
 
     private var inputNode: AVAudioInputNode { audioEngine.inputNode }
 
     // MARK: - Initialization
-    init(modelManager: WhisperModelManager = .shared) {
+    init(modelManager: WhisperModelManagerProtocol = WhisperModelManager.shared) {
         self.modelManager = modelManager
         super.init()
     }

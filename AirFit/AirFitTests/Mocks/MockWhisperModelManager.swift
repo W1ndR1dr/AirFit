@@ -4,7 +4,7 @@ import Foundation
 // MARK: - Mock WhisperModelManager
 
 @MainActor
-final class MockWhisperModelManager: ObservableObject, @unchecked Sendable {
+final class MockWhisperModelManager: ObservableObject, WhisperModelManagerProtocol, @unchecked Sendable {
     // MARK: - Stubbed Values
     private var optimalModel = "base"
     private var transcriptionResult: String?
@@ -15,22 +15,12 @@ final class MockWhisperModelManager: ObservableObject, @unchecked Sendable {
     private var isDownloading: [String: Bool] = [:]
     
     // MARK: - Published Properties (matching real WhisperModelManager)
-    @Published var availableModels: [WhisperModel] = []
+    @Published var availableModels: [WhisperModelManager.WhisperModel] = []
     @Published var downloadedModels: Set<String> = ["base", "tiny"]
     @Published var activeModel: String = "base"
     
-    // MARK: - Model Configuration
-    struct WhisperModel: Identifiable {
-        let id: String
-        let displayName: String
-        let size: String
-        let sizeBytes: Int
-        let accuracy: String
-        let speed: String
-        let languages: String
-        let requiredMemory: UInt64
-        let huggingFaceRepo: String
-    }
+    // Use WhisperModel from WhisperModelManager
+    typealias WhisperModel = WhisperModelManager.WhisperModel
     
     init() {
         availableModels = [
@@ -92,6 +82,30 @@ final class MockWhisperModelManager: ObservableObject, @unchecked Sendable {
     func modelPath(for modelId: String) -> URL? {
         guard downloadedModels.contains(modelId) else { return nil }
         return FileManager.default.temporaryDirectory.appendingPathComponent(modelId)
+    }
+    
+    func isModelDownloaded(_ modelId: String) -> Bool {
+        return downloadedModels.contains(modelId)
+    }
+    
+    func getModelConfiguration(_ modelId: String) -> WhisperModelManager.WhisperModel? {
+        return availableModels.first { $0.id == modelId }
+    }
+    
+    func freeUpSpace() async throws {
+        // Mock implementation - just remove all but the active model
+        let modelsToKeep = Set([activeModel])
+        downloadedModels = downloadedModels.intersection(modelsToKeep)
+    }
+    
+    func ensureModelSpace(for modelId: String) async throws -> Bool {
+        // Mock implementation - always return true
+        return true
+    }
+    
+    func updateDownloadedModels() {
+        // Mock implementation - no-op
+        // In real implementation, this would scan the disk for downloaded models
     }
     
     // MARK: - Test Stubbing Methods

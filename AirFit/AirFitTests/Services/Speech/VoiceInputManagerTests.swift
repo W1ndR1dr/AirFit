@@ -5,16 +5,22 @@ import XCTest
 final class VoiceInputManagerTests: XCTestCase {
     
     var sut: VoiceInputManager!
+    var mockModelManager: MockWhisperModelManager!
     
     override func setUp() async throws {
         try await super.setUp()
-        // Use default WhisperModelManager for now
-        // TODO: Extract protocol for WhisperModelManager to enable proper mocking
-        sut = VoiceInputManager()
+        
+        // Create mock model manager
+        mockModelManager = MockWhisperModelManager()
+        
+        // Create VoiceInputManager with mock
+        sut = VoiceInputManager(modelManager: mockModelManager)
     }
     
     override func tearDown() async throws {
         sut = nil
+        mockModelManager?.reset()
+        mockModelManager = nil
         try await super.tearDown()
     }
     

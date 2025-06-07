@@ -29,12 +29,12 @@ final class HealthKitServiceTests: XCTestCase {
         )
     }
     
-    override func tearDown() {
+    override func tearDown() async throws {
         sut = nil
         mockHealthKitManager = nil
         mockContextAssembler = nil
         testUser = nil
-        super.tearDown()
+        try await super.tearDown()
     }
     
     // MARK: - Get Current Context Tests
@@ -42,45 +42,89 @@ final class HealthKitServiceTests: XCTestCase {
     func test_getCurrentContext_withFullData_mapsCorrectly() async throws {
         // Arrange
         let mockSnapshot = HealthContextSnapshot(
-            sleep: SleepContext(
-                lastNight: SleepData(
-                    bedtime: Date().addingTimeInterval(-28800), // 8 hours ago
-                    wakeTime: Date(),
-                    totalSleepTime: 25200, // 7 hours
-                    deepSleepTime: 7200,
-                    remSleepTime: 5400,
-                    efficiency: 87.5,
-                    interruptions: 2
-                ),
-                weeklyAverage: 7.2,
-                consistency: 0.85
-            ),
-            heartHealth: HeartHealthContext(
-                restingHeartRate: 65,
-                hrv: 55,
-                bloodPressure: nil,
-                weeklyTrend: .stable
-            ),
-            activity: ActivityContext(
-                steps: 8500,
-                activeEnergyBurned: 450,
-                exerciseMinutes: 35,
-                standHours: 10,
-                moveStreak: 5
+            subjectiveData: SubjectiveData(
+                energyLevel: 7,
+                mood: 4,
+                stress: 3,
+                motivation: nil,
+                soreness: nil,
+                notes: nil
             ),
             environment: EnvironmentContext(
                 weatherCondition: "Sunny",
-                temperature: 22.0,
-                airQuality: "Good",
-                location: "Home"
+                temperature: Measurement(value: 22.0, unit: .celsius),
+                humidity: nil,
+                airQualityIndex: nil
             ),
-            subjectiveData: SubjectiveContext(
-                energyLevel: 7,
-                stressLevel: 3,
-                mood: "Good",
-                notes: nil
+            activity: ActivityMetrics(
+                activeEnergyBurned: Measurement(value: 450, unit: .kilocalories),
+                basalEnergyBurned: nil,
+                steps: 8500,
+                distance: nil,
+                flightsClimbed: nil,
+                exerciseMinutes: 35,
+                standHours: 10,
+                moveMinutes: nil,
+                currentHeartRate: nil,
+                isWorkoutActive: false,
+                workoutTypeRawValue: nil,
+                moveProgress: nil,
+                exerciseProgress: nil,
+                standProgress: nil
             ),
-            timestamp: Date()
+            sleep: SleepAnalysis(
+                lastNight: SleepAnalysis.SleepSession(
+                    bedtime: Date().addingTimeInterval(-28800), // 8 hours ago
+                    wakeTime: Date(),
+                    totalSleepTime: 25200, // 7 hours
+                    timeInBed: 28800, // 8 hours
+                    efficiency: 87.5,
+                    remTime: 5400,
+                    coreTime: 12600,
+                    deepTime: 7200,
+                    awakeTime: 3600
+                ),
+                weeklyAverage: SleepAnalysis.SleepAverages(
+                    averageBedtime: nil,
+                    averageWakeTime: nil,
+                    averageDuration: 25920, // 7.2 hours
+                    averageEfficiency: 85.0,
+                    consistency: 85.0
+                )
+            ),
+            heartHealth: HeartHealthMetrics(
+                restingHeartRate: 65,
+                hrv: Measurement(value: 55, unit: .milliseconds),
+                respiratoryRate: nil,
+                vo2Max: nil,
+                cardioFitness: nil,
+                recoveryHeartRate: nil,
+                heartRateRecovery: nil
+            ),
+            body: BodyMetrics(
+                weight: nil,
+                bodyFatPercentage: nil,
+                leanBodyMass: nil,
+                bmi: nil,
+                weightTrend: nil,
+                bodyFatTrend: nil
+            ),
+            appContext: AppSpecificContext(
+                activeWorkoutName: nil,
+                lastMealTime: nil,
+                lastMealSummary: nil,
+                waterIntakeToday: nil,
+                lastCoachInteraction: nil,
+                upcomingWorkout: nil,
+                currentStreak: 5,
+                workoutContext: nil
+            ),
+            trends: HealthTrends(
+                weeklyActivityChange: nil,
+                sleepConsistencyScore: nil,
+                recoveryTrend: nil,
+                performanceTrend: .maintaining
+            )
         )
         mockContextAssembler.mockSnapshot = mockSnapshot
         
@@ -101,37 +145,73 @@ final class HealthKitServiceTests: XCTestCase {
     func test_getCurrentContext_withMinimalData_handlesNilsGracefully() async throws {
         // Arrange
         let mockSnapshot = HealthContextSnapshot(
-            sleep: SleepContext(
-                lastNight: nil,
-                weeklyAverage: nil,
-                consistency: nil
-            ),
-            heartHealth: HeartHealthContext(
-                restingHeartRate: nil,
-                hrv: nil,
-                bloodPressure: nil,
-                weeklyTrend: nil
-            ),
-            activity: ActivityContext(
-                steps: nil,
-                activeEnergyBurned: nil,
-                exerciseMinutes: nil,
-                standHours: nil,
-                moveStreak: nil
+            subjectiveData: SubjectiveData(
+                energyLevel: nil,
+                mood: nil,
+                stress: nil,
+                motivation: nil,
+                soreness: nil,
+                notes: nil
             ),
             environment: EnvironmentContext(
                 weatherCondition: nil,
                 temperature: nil,
-                airQuality: nil,
-                location: nil
+                humidity: nil,
+                airQualityIndex: nil
             ),
-            subjectiveData: SubjectiveContext(
-                energyLevel: nil,
-                stressLevel: nil,
-                mood: nil,
-                notes: nil
+            activity: ActivityMetrics(
+                activeEnergyBurned: nil,
+                basalEnergyBurned: nil,
+                steps: nil,
+                distance: nil,
+                flightsClimbed: nil,
+                exerciseMinutes: nil,
+                standHours: nil,
+                moveMinutes: nil,
+                currentHeartRate: nil,
+                isWorkoutActive: false,
+                workoutTypeRawValue: nil,
+                moveProgress: nil,
+                exerciseProgress: nil,
+                standProgress: nil
             ),
-            timestamp: Date()
+            sleep: SleepAnalysis(
+                lastNight: nil,
+                weeklyAverage: nil
+            ),
+            heartHealth: HeartHealthMetrics(
+                restingHeartRate: nil,
+                hrv: nil,
+                respiratoryRate: nil,
+                vo2Max: nil,
+                cardioFitness: nil,
+                recoveryHeartRate: nil,
+                heartRateRecovery: nil
+            ),
+            body: BodyMetrics(
+                weight: nil,
+                bodyFatPercentage: nil,
+                leanBodyMass: nil,
+                bmi: nil,
+                weightTrend: nil,
+                bodyFatTrend: nil
+            ),
+            appContext: AppSpecificContext(
+                activeWorkoutName: nil,
+                lastMealTime: nil,
+                lastMealSummary: nil,
+                waterIntakeToday: nil,
+                lastCoachInteraction: nil,
+                upcomingWorkout: nil,
+                currentStreak: nil,
+                workoutContext: nil
+            ),
+            trends: HealthTrends(
+                weeklyActivityChange: nil,
+                sleepConsistencyScore: nil,
+                recoveryTrend: nil,
+                performanceTrend: nil
+            )
         )
         mockContextAssembler.mockSnapshot = mockSnapshot
         
@@ -152,45 +232,27 @@ final class HealthKitServiceTests: XCTestCase {
     func test_getCurrentContext_withPartialSleepData_calculatesHoursCorrectly() async throws {
         // Arrange
         let mockSnapshot = HealthContextSnapshot(
-            sleep: SleepContext(
-                lastNight: SleepData(
+            subjectiveData: SubjectiveData(),
+            environment: EnvironmentContext(),
+            activity: ActivityMetrics(),
+            sleep: SleepAnalysis(
+                lastNight: SleepAnalysis.SleepSession(
                     bedtime: Date().addingTimeInterval(-32400), // 9 hours ago
                     wakeTime: Date(),
                     totalSleepTime: 30600, // 8.5 hours
-                    deepSleepTime: nil,
-                    remSleepTime: nil,
+                    timeInBed: nil,
                     efficiency: nil,
-                    interruptions: nil
+                    remTime: nil,
+                    coreTime: nil,
+                    deepTime: nil,
+                    awakeTime: nil
                 ),
-                weeklyAverage: nil,
-                consistency: nil
+                weeklyAverage: nil
             ),
-            heartHealth: HeartHealthContext(
-                restingHeartRate: nil,
-                hrv: nil,
-                bloodPressure: nil,
-                weeklyTrend: nil
-            ),
-            activity: ActivityContext(
-                steps: nil,
-                activeEnergyBurned: nil,
-                exerciseMinutes: nil,
-                standHours: nil,
-                moveStreak: nil
-            ),
-            environment: EnvironmentContext(
-                weatherCondition: nil,
-                temperature: nil,
-                airQuality: nil,
-                location: nil
-            ),
-            subjectiveData: SubjectiveContext(
-                energyLevel: nil,
-                stressLevel: nil,
-                mood: nil,
-                notes: nil
-            ),
-            timestamp: Date()
+            heartHealth: HeartHealthMetrics(),
+            body: BodyMetrics(),
+            appContext: AppSpecificContext(),
+            trends: HealthTrends()
         )
         mockContextAssembler.mockSnapshot = mockSnapshot
         
@@ -207,45 +269,70 @@ final class HealthKitServiceTests: XCTestCase {
     func test_calculateRecoveryScore_withGoodSleepAndHRV_returnsHighScore() async throws {
         // Arrange
         let mockSnapshot = HealthContextSnapshot(
-            sleep: SleepContext(
-                lastNight: SleepData(
+            subjectiveData: SubjectiveData(),
+            environment: EnvironmentContext(),
+            activity: ActivityMetrics(
+                activeEnergyBurned: Measurement(value: 300, unit: .kilocalories),
+                basalEnergyBurned: nil,
+                steps: 5000,
+                distance: nil,
+                flightsClimbed: nil,
+                exerciseMinutes: 20,
+                standHours: 8,
+                moveMinutes: nil,
+                currentHeartRate: nil,
+                isWorkoutActive: false,
+                workoutTypeRawValue: nil,
+                moveProgress: nil,
+                exerciseProgress: nil,
+                standProgress: nil
+            ),
+            sleep: SleepAnalysis(
+                lastNight: SleepAnalysis.SleepSession(
                     bedtime: Date().addingTimeInterval(-28800),
                     wakeTime: Date(),
                     totalSleepTime: 28800, // 8 hours - perfect
-                    deepSleepTime: 7200,
-                    remSleepTime: 5400,
+                    timeInBed: 32400,
                     efficiency: 90.0,
-                    interruptions: 1
+                    remTime: 5400,
+                    coreTime: 13200,
+                    deepTime: 7200,
+                    awakeTime: 3200
                 ),
-                weeklyAverage: 7.5,
-                consistency: 0.9
+                weeklyAverage: SleepAnalysis.SleepAverages(
+                    averageBedtime: nil,
+                    averageWakeTime: nil,
+                    averageDuration: 27000, // 7.5 hours
+                    averageEfficiency: 88.0,
+                    consistency: 90.0
+                )
             ),
-            heartHealth: HeartHealthContext(
+            heartHealth: HeartHealthMetrics(
                 restingHeartRate: 60,
-                hrv: 60, // Above baseline of 50
-                bloodPressure: nil,
-                weeklyTrend: .improving
+                hrv: Measurement(value: 60, unit: .milliseconds), // Above baseline of 50
+                respiratoryRate: nil,
+                vo2Max: nil,
+                cardioFitness: nil,
+                recoveryHeartRate: nil,
+                heartRateRecovery: nil
             ),
-            activity: ActivityContext(
-                steps: 5000,
-                activeEnergyBurned: 300, // Moderate activity yesterday
-                exerciseMinutes: 20,
-                standHours: 8,
-                moveStreak: 3
+            body: BodyMetrics(),
+            appContext: AppSpecificContext(
+                activeWorkoutName: nil,
+                lastMealTime: nil,
+                lastMealSummary: nil,
+                waterIntakeToday: nil,
+                lastCoachInteraction: nil,
+                upcomingWorkout: nil,
+                currentStreak: 3,
+                workoutContext: nil
             ),
-            environment: EnvironmentContext(
-                weatherCondition: nil,
-                temperature: nil,
-                airQuality: nil,
-                location: nil
-            ),
-            subjectiveData: SubjectiveContext(
-                energyLevel: nil,
-                stressLevel: nil,
-                mood: nil,
-                notes: nil
-            ),
-            timestamp: Date()
+            trends: HealthTrends(
+                weeklyActivityChange: nil,
+                sleepConsistencyScore: nil,
+                recoveryTrend: nil,
+                performanceTrend: .improving
+            )
         )
         mockContextAssembler.mockSnapshot = mockSnapshot
         
@@ -263,45 +350,70 @@ final class HealthKitServiceTests: XCTestCase {
     func test_calculateRecoveryScore_withPoorSleep_returnsLowScore() async throws {
         // Arrange
         let mockSnapshot = HealthContextSnapshot(
-            sleep: SleepContext(
-                lastNight: SleepData(
+            subjectiveData: SubjectiveData(),
+            environment: EnvironmentContext(),
+            activity: ActivityMetrics(
+                activeEnergyBurned: Measurement(value: 150, unit: .kilocalories),
+                basalEnergyBurned: nil,
+                steps: 2000,
+                distance: nil,
+                flightsClimbed: nil,
+                exerciseMinutes: 0,
+                standHours: 5,
+                moveMinutes: nil,
+                currentHeartRate: nil,
+                isWorkoutActive: false,
+                workoutTypeRawValue: nil,
+                moveProgress: nil,
+                exerciseProgress: nil,
+                standProgress: nil
+            ),
+            sleep: SleepAnalysis(
+                lastNight: SleepAnalysis.SleepSession(
                     bedtime: Date().addingTimeInterval(-18000),
                     wakeTime: Date(),
                     totalSleepTime: 14400, // 4 hours - poor
-                    deepSleepTime: 3600,
-                    remSleepTime: 1800,
+                    timeInBed: 18000,
                     efficiency: 65.0,
-                    interruptions: 5
+                    remTime: 1800,
+                    coreTime: 8400,
+                    deepTime: 3600,
+                    awakeTime: 600
                 ),
-                weeklyAverage: 5.5,
-                consistency: 0.6
+                weeklyAverage: SleepAnalysis.SleepAverages(
+                    averageBedtime: nil,
+                    averageWakeTime: nil,
+                    averageDuration: 19800, // 5.5 hours
+                    averageEfficiency: 70.0,
+                    consistency: 60.0
+                )
             ),
-            heartHealth: HeartHealthContext(
+            heartHealth: HeartHealthMetrics(
                 restingHeartRate: 75,
-                hrv: 40, // Below baseline
-                bloodPressure: nil,
-                weeklyTrend: .declining
+                hrv: Measurement(value: 40, unit: .milliseconds), // Below baseline
+                respiratoryRate: nil,
+                vo2Max: nil,
+                cardioFitness: nil,
+                recoveryHeartRate: nil,
+                heartRateRecovery: nil
             ),
-            activity: ActivityContext(
-                steps: 2000,
-                activeEnergyBurned: 150,
-                exerciseMinutes: 0,
-                standHours: 5,
-                moveStreak: 0
+            body: BodyMetrics(),
+            appContext: AppSpecificContext(
+                activeWorkoutName: nil,
+                lastMealTime: nil,
+                lastMealSummary: nil,
+                waterIntakeToday: nil,
+                lastCoachInteraction: nil,
+                upcomingWorkout: nil,
+                currentStreak: 0,
+                workoutContext: nil
             ),
-            environment: EnvironmentContext(
-                weatherCondition: nil,
-                temperature: nil,
-                airQuality: nil,
-                location: nil
-            ),
-            subjectiveData: SubjectiveContext(
-                energyLevel: nil,
-                stressLevel: nil,
-                mood: nil,
-                notes: nil
-            ),
-            timestamp: Date()
+            trends: HealthTrends(
+                weeklyActivityChange: nil,
+                sleepConsistencyScore: nil,
+                recoveryTrend: nil,
+                performanceTrend: .declining
+            )
         )
         mockContextAssembler.mockSnapshot = mockSnapshot
         
@@ -318,45 +430,70 @@ final class HealthKitServiceTests: XCTestCase {
     func test_calculateRecoveryScore_withHighYesterdayActivity_reducesScore() async throws {
         // Arrange
         let mockSnapshot = HealthContextSnapshot(
-            sleep: SleepContext(
-                lastNight: SleepData(
+            subjectiveData: SubjectiveData(),
+            environment: EnvironmentContext(),
+            activity: ActivityMetrics(
+                activeEnergyBurned: Measurement(value: 800, unit: .kilocalories), // High activity yesterday
+                basalEnergyBurned: nil,
+                steps: 15000,
+                distance: nil,
+                flightsClimbed: nil,
+                exerciseMinutes: 90,
+                standHours: 12,
+                moveMinutes: nil,
+                currentHeartRate: nil,
+                isWorkoutActive: false,
+                workoutTypeRawValue: nil,
+                moveProgress: nil,
+                exerciseProgress: nil,
+                standProgress: nil
+            ),
+            sleep: SleepAnalysis(
+                lastNight: SleepAnalysis.SleepSession(
                     bedtime: Date().addingTimeInterval(-25200),
                     wakeTime: Date(),
                     totalSleepTime: 25200, // 7 hours
-                    deepSleepTime: 6000,
-                    remSleepTime: 4800,
+                    timeInBed: 28800,
                     efficiency: 85.0,
-                    interruptions: 2
+                    remTime: 4800,
+                    coreTime: 12600,
+                    deepTime: 6000,
+                    awakeTime: 1800
                 ),
-                weeklyAverage: 7.0,
-                consistency: 0.8
+                weeklyAverage: SleepAnalysis.SleepAverages(
+                    averageBedtime: nil,
+                    averageWakeTime: nil,
+                    averageDuration: 25200, // 7.0 hours
+                    averageEfficiency: 83.0,
+                    consistency: 80.0
+                )
             ),
-            heartHealth: HeartHealthContext(
+            heartHealth: HeartHealthMetrics(
                 restingHeartRate: 62,
-                hrv: 50, // Exactly at baseline
-                bloodPressure: nil,
-                weeklyTrend: .stable
+                hrv: Measurement(value: 50, unit: .milliseconds), // Exactly at baseline
+                respiratoryRate: nil,
+                vo2Max: nil,
+                cardioFitness: nil,
+                recoveryHeartRate: nil,
+                heartRateRecovery: nil
             ),
-            activity: ActivityContext(
-                steps: 15000,
-                activeEnergyBurned: 800, // High activity yesterday
-                exerciseMinutes: 90,
-                standHours: 12,
-                moveStreak: 10
+            body: BodyMetrics(),
+            appContext: AppSpecificContext(
+                activeWorkoutName: nil,
+                lastMealTime: nil,
+                lastMealSummary: nil,
+                waterIntakeToday: nil,
+                lastCoachInteraction: nil,
+                upcomingWorkout: nil,
+                currentStreak: 10,
+                workoutContext: nil
             ),
-            environment: EnvironmentContext(
-                weatherCondition: nil,
-                temperature: nil,
-                airQuality: nil,
-                location: nil
-            ),
-            subjectiveData: SubjectiveContext(
-                energyLevel: nil,
-                stressLevel: nil,
-                mood: nil,
-                notes: nil
-            ),
-            timestamp: Date()
+            trends: HealthTrends(
+                weeklyActivityChange: nil,
+                sleepConsistencyScore: nil,
+                recoveryTrend: nil,
+                performanceTrend: .maintaining
+            )
         )
         mockContextAssembler.mockSnapshot = mockSnapshot
         
@@ -374,45 +511,70 @@ final class HealthKitServiceTests: XCTestCase {
         testUser.baselineHRV = nil // No baseline
         
         let mockSnapshot = HealthContextSnapshot(
-            sleep: SleepContext(
-                lastNight: SleepData(
+            subjectiveData: SubjectiveData(),
+            environment: EnvironmentContext(),
+            activity: ActivityMetrics(
+                activeEnergyBurned: Measurement(value: 400, unit: .kilocalories),
+                basalEnergyBurned: nil,
+                steps: 7000,
+                distance: nil,
+                flightsClimbed: nil,
+                exerciseMinutes: 30,
+                standHours: 9,
+                moveMinutes: nil,
+                currentHeartRate: nil,
+                isWorkoutActive: false,
+                workoutTypeRawValue: nil,
+                moveProgress: nil,
+                exerciseProgress: nil,
+                standProgress: nil
+            ),
+            sleep: SleepAnalysis(
+                lastNight: SleepAnalysis.SleepSession(
                     bedtime: Date().addingTimeInterval(-21600),
                     wakeTime: Date(),
                     totalSleepTime: 21600, // 6 hours
-                    deepSleepTime: 5400,
-                    remSleepTime: 4200,
+                    timeInBed: 25200,
                     efficiency: 80.0,
-                    interruptions: 3
+                    remTime: 4200,
+                    coreTime: 10800,
+                    deepTime: 5400,
+                    awakeTime: 1200
                 ),
-                weeklyAverage: 6.5,
-                consistency: 0.75
+                weeklyAverage: SleepAnalysis.SleepAverages(
+                    averageBedtime: nil,
+                    averageWakeTime: nil,
+                    averageDuration: 23400, // 6.5 hours
+                    averageEfficiency: 78.0,
+                    consistency: 75.0
+                )
             ),
-            heartHealth: HeartHealthContext(
+            heartHealth: HeartHealthMetrics(
                 restingHeartRate: 70,
-                hrv: 45, // HRV present but no baseline to compare
-                bloodPressure: nil,
-                weeklyTrend: .stable
+                hrv: Measurement(value: 45, unit: .milliseconds), // HRV present but no baseline to compare
+                respiratoryRate: nil,
+                vo2Max: nil,
+                cardioFitness: nil,
+                recoveryHeartRate: nil,
+                heartRateRecovery: nil
             ),
-            activity: ActivityContext(
-                steps: 7000,
-                activeEnergyBurned: 400,
-                exerciseMinutes: 30,
-                standHours: 9,
-                moveStreak: 2
+            body: BodyMetrics(),
+            appContext: AppSpecificContext(
+                activeWorkoutName: nil,
+                lastMealTime: nil,
+                lastMealSummary: nil,
+                waterIntakeToday: nil,
+                lastCoachInteraction: nil,
+                upcomingWorkout: nil,
+                currentStreak: 2,
+                workoutContext: nil
             ),
-            environment: EnvironmentContext(
-                weatherCondition: nil,
-                temperature: nil,
-                airQuality: nil,
-                location: nil
-            ),
-            subjectiveData: SubjectiveContext(
-                energyLevel: nil,
-                stressLevel: nil,
-                mood: nil,
-                notes: nil
-            ),
-            timestamp: Date()
+            trends: HealthTrends(
+                weeklyActivityChange: nil,
+                sleepConsistencyScore: nil,
+                recoveryTrend: nil,
+                performanceTrend: .maintaining
+            )
         )
         mockContextAssembler.mockSnapshot = mockSnapshot
         
@@ -427,14 +589,7 @@ final class HealthKitServiceTests: XCTestCase {
     
     func test_calculateRecoveryScore_withNoData_returnsBaseScore() async throws {
         // Arrange
-        let mockSnapshot = HealthContextSnapshot(
-            sleep: SleepContext(lastNight: nil, weeklyAverage: nil, consistency: nil),
-            heartHealth: HeartHealthContext(restingHeartRate: nil, hrv: nil, bloodPressure: nil, weeklyTrend: nil),
-            activity: ActivityContext(steps: nil, activeEnergyBurned: nil, exerciseMinutes: nil, standHours: nil, moveStreak: nil),
-            environment: EnvironmentContext(weatherCondition: nil, temperature: nil, airQuality: nil, location: nil),
-            subjectiveData: SubjectiveContext(energyLevel: nil, stressLevel: nil, mood: nil, notes: nil),
-            timestamp: Date()
-        )
+        let mockSnapshot = HealthContextSnapshot()
         mockContextAssembler.mockSnapshot = mockSnapshot
         
         // Act
@@ -521,45 +676,82 @@ final class HealthKitServiceTests: XCTestCase {
     func test_getCurrentContext_withExtremeValues_handlesCorrectly() async throws {
         // Arrange
         let mockSnapshot = HealthContextSnapshot(
-            sleep: SleepContext(
-                lastNight: SleepData(
-                    bedtime: Date().addingTimeInterval(-43200), // 12 hours ago
-                    wakeTime: Date(),
-                    totalSleepTime: 43200, // 12 hours - very long
-                    deepSleepTime: 14400,
-                    remSleepTime: 10800,
-                    efficiency: 100.0,
-                    interruptions: 0
-                ),
-                weeklyAverage: 10.0,
-                consistency: 1.0
-            ),
-            heartHealth: HeartHealthContext(
-                restingHeartRate: 150, // Very high
-                hrv: 200, // Very high
-                bloodPressure: nil,
-                weeklyTrend: .improving
-            ),
-            activity: ActivityContext(
-                steps: 50000, // Very high
-                activeEnergyBurned: 2000, // Very high
-                exerciseMinutes: 300, // 5 hours
-                standHours: 24, // All day
-                moveStreak: 365 // Full year
+            subjectiveData: SubjectiveData(
+                energyLevel: 10, // Max
+                mood: 10, // Max
+                stress: 10, // Max
+                motivation: 10,
+                soreness: 1,
+                notes: "Best day ever!"
             ),
             environment: EnvironmentContext(
                 weatherCondition: "Extreme Heat",
-                temperature: 50.0, // Very hot
-                airQuality: "Hazardous",
-                location: "Desert"
+                temperature: Measurement(value: 50.0, unit: .celsius), // Very hot
+                humidity: 90.0,
+                airQualityIndex: 500
             ),
-            subjectiveData: SubjectiveContext(
-                energyLevel: 10, // Max
-                stressLevel: 10, // Max
-                mood: "Euphoric",
-                notes: "Best day ever!"
+            activity: ActivityMetrics(
+                activeEnergyBurned: Measurement(value: 2000, unit: .kilocalories), // Very high
+                basalEnergyBurned: nil,
+                steps: 50000, // Very high
+                distance: nil,
+                flightsClimbed: nil,
+                exerciseMinutes: 300, // 5 hours
+                standHours: 24, // All day
+                moveMinutes: nil,
+                currentHeartRate: nil,
+                isWorkoutActive: false,
+                workoutTypeRawValue: nil,
+                moveProgress: nil,
+                exerciseProgress: nil,
+                standProgress: nil
             ),
-            timestamp: Date()
+            sleep: SleepAnalysis(
+                lastNight: SleepAnalysis.SleepSession(
+                    bedtime: Date().addingTimeInterval(-43200), // 12 hours ago
+                    wakeTime: Date(),
+                    totalSleepTime: 43200, // 12 hours - very long
+                    timeInBed: 43200,
+                    efficiency: 100.0,
+                    remTime: 10800,
+                    coreTime: 18000,
+                    deepTime: 14400,
+                    awakeTime: 0
+                ),
+                weeklyAverage: SleepAnalysis.SleepAverages(
+                    averageBedtime: nil,
+                    averageWakeTime: nil,
+                    averageDuration: 36000, // 10.0 hours
+                    averageEfficiency: 98.0,
+                    consistency: 100.0
+                )
+            ),
+            heartHealth: HeartHealthMetrics(
+                restingHeartRate: 150, // Very high
+                hrv: Measurement(value: 200, unit: .milliseconds), // Very high
+                respiratoryRate: nil,
+                vo2Max: nil,
+                cardioFitness: nil,
+                recoveryHeartRate: nil,
+                heartRateRecovery: nil
+            ),
+            body: BodyMetrics(),
+            appContext: AppSpecificContext(
+                activeWorkoutName: nil,
+                lastMealTime: nil,
+                lastMealSummary: nil,
+                waterIntakeToday: nil,
+                lastCoachInteraction: nil,
+                upcomingWorkout: nil,
+                currentStreak: 365, // Full year
+                workoutContext: nil
+            ),
+            trends: HealthTrends(
+                weeklyActivityChange: nil,
+                sleepConsistencyScore: nil,
+                recoveryTrend: nil,
+                performanceTrend: .improving
+            )
         )
         mockContextAssembler.mockSnapshot = mockSnapshot
         
@@ -578,45 +770,70 @@ final class HealthKitServiceTests: XCTestCase {
     func test_calculateRecoveryScore_withExtremeValues_capsAtBounds() async throws {
         // Arrange
         let mockSnapshot = HealthContextSnapshot(
-            sleep: SleepContext(
-                lastNight: SleepData(
+            subjectiveData: SubjectiveData(),
+            environment: EnvironmentContext(),
+            activity: ActivityMetrics(
+                activeEnergyBurned: Measurement(value: 200, unit: .kilocalories), // Low activity
+                basalEnergyBurned: nil,
+                steps: 3000,
+                distance: nil,
+                flightsClimbed: nil,
+                exerciseMinutes: 15,
+                standHours: 6,
+                moveMinutes: nil,
+                currentHeartRate: nil,
+                isWorkoutActive: false,
+                workoutTypeRawValue: nil,
+                moveProgress: nil,
+                exerciseProgress: nil,
+                standProgress: nil
+            ),
+            sleep: SleepAnalysis(
+                lastNight: SleepAnalysis.SleepSession(
                     bedtime: Date().addingTimeInterval(-36000),
                     wakeTime: Date(),
                     totalSleepTime: 36000, // 10 hours - more than perfect
-                    deepSleepTime: 12000,
-                    remSleepTime: 9000,
+                    timeInBed: 38000,
                     efficiency: 95.0,
-                    interruptions: 0
+                    remTime: 9000,
+                    coreTime: 15000,
+                    deepTime: 12000,
+                    awakeTime: 0
                 ),
-                weeklyAverage: 9.0,
-                consistency: 0.95
+                weeklyAverage: SleepAnalysis.SleepAverages(
+                    averageBedtime: nil,
+                    averageWakeTime: nil,
+                    averageDuration: 32400, // 9.0 hours
+                    averageEfficiency: 92.0,
+                    consistency: 95.0
+                )
             ),
-            heartHealth: HeartHealthContext(
+            heartHealth: HeartHealthMetrics(
                 restingHeartRate: 50,
-                hrv: 100, // Double the baseline
-                bloodPressure: nil,
-                weeklyTrend: .improving
+                hrv: Measurement(value: 100, unit: .milliseconds), // Double the baseline
+                respiratoryRate: nil,
+                vo2Max: nil,
+                cardioFitness: nil,
+                recoveryHeartRate: nil,
+                heartRateRecovery: nil
             ),
-            activity: ActivityContext(
-                steps: 3000,
-                activeEnergyBurned: 200, // Low activity
-                exerciseMinutes: 15,
-                standHours: 6,
-                moveStreak: 1
+            body: BodyMetrics(),
+            appContext: AppSpecificContext(
+                activeWorkoutName: nil,
+                lastMealTime: nil,
+                lastMealSummary: nil,
+                waterIntakeToday: nil,
+                lastCoachInteraction: nil,
+                upcomingWorkout: nil,
+                currentStreak: 1,
+                workoutContext: nil
             ),
-            environment: EnvironmentContext(
-                weatherCondition: nil,
-                temperature: nil,
-                airQuality: nil,
-                location: nil
-            ),
-            subjectiveData: SubjectiveContext(
-                energyLevel: nil,
-                stressLevel: nil,
-                mood: nil,
-                notes: nil
-            ),
-            timestamp: Date()
+            trends: HealthTrends(
+                weeklyActivityChange: nil,
+                sleepConsistencyScore: nil,
+                recoveryTrend: nil,
+                performanceTrend: .improving
+            )
         )
         mockContextAssembler.mockSnapshot = mockSnapshot
         
@@ -663,45 +880,82 @@ final class HealthKitServiceTests: XCTestCase {
     
     private func createFullSnapshot() -> HealthContextSnapshot {
         return HealthContextSnapshot(
-            sleep: SleepContext(
-                lastNight: SleepData(
-                    bedtime: Date().addingTimeInterval(-25200),
-                    wakeTime: Date(),
-                    totalSleepTime: 25200,
-                    deepSleepTime: 6300,
-                    remSleepTime: 5040,
-                    efficiency: 87.5,
-                    interruptions: 2
-                ),
-                weeklyAverage: 7.2,
-                consistency: 0.85
-            ),
-            heartHealth: HeartHealthContext(
-                restingHeartRate: 62,
-                hrv: 52,
-                bloodPressure: nil,
-                weeklyTrend: .stable
-            ),
-            activity: ActivityContext(
-                steps: 8000,
-                activeEnergyBurned: 420,
-                exerciseMinutes: 32,
-                standHours: 10,
-                moveStreak: 5
+            subjectiveData: SubjectiveData(
+                energyLevel: 7,
+                mood: 4,
+                stress: 4,
+                motivation: nil,
+                soreness: nil,
+                notes: nil
             ),
             environment: EnvironmentContext(
                 weatherCondition: "Partly Cloudy",
-                temperature: 20.0,
-                airQuality: "Good",
-                location: "Home"
+                temperature: Measurement(value: 20.0, unit: .celsius),
+                humidity: nil,
+                airQualityIndex: nil
             ),
-            subjectiveData: SubjectiveContext(
-                energyLevel: 7,
-                stressLevel: 4,
-                mood: "Good",
-                notes: nil
+            activity: ActivityMetrics(
+                activeEnergyBurned: Measurement(value: 420, unit: .kilocalories),
+                basalEnergyBurned: nil,
+                steps: 8000,
+                distance: nil,
+                flightsClimbed: nil,
+                exerciseMinutes: 32,
+                standHours: 10,
+                moveMinutes: nil,
+                currentHeartRate: nil,
+                isWorkoutActive: false,
+                workoutTypeRawValue: nil,
+                moveProgress: nil,
+                exerciseProgress: nil,
+                standProgress: nil
             ),
-            timestamp: Date()
+            sleep: SleepAnalysis(
+                lastNight: SleepAnalysis.SleepSession(
+                    bedtime: Date().addingTimeInterval(-25200),
+                    wakeTime: Date(),
+                    totalSleepTime: 25200,
+                    timeInBed: 28800,
+                    efficiency: 87.5,
+                    remTime: 5040,
+                    coreTime: 12600,
+                    deepTime: 6300,
+                    awakeTime: 3060
+                ),
+                weeklyAverage: SleepAnalysis.SleepAverages(
+                    averageBedtime: nil,
+                    averageWakeTime: nil,
+                    averageDuration: 25920, // 7.2 hours
+                    averageEfficiency: 86.0,
+                    consistency: 85.0
+                )
+            ),
+            heartHealth: HeartHealthMetrics(
+                restingHeartRate: 62,
+                hrv: Measurement(value: 52, unit: .milliseconds),
+                respiratoryRate: nil,
+                vo2Max: nil,
+                cardioFitness: nil,
+                recoveryHeartRate: nil,
+                heartRateRecovery: nil
+            ),
+            body: BodyMetrics(),
+            appContext: AppSpecificContext(
+                activeWorkoutName: nil,
+                lastMealTime: nil,
+                lastMealSummary: nil,
+                waterIntakeToday: nil,
+                lastCoachInteraction: nil,
+                upcomingWorkout: nil,
+                currentStreak: 5,
+                workoutContext: nil
+            ),
+            trends: HealthTrends(
+                weeklyActivityChange: nil,
+                sleepConsistencyScore: nil,
+                recoveryTrend: nil,
+                performanceTrend: .maintaining
+            )
         )
     }
 }
@@ -709,19 +963,12 @@ final class HealthKitServiceTests: XCTestCase {
 // MARK: - Mock Context Assembler
 
 @MainActor
-final class MockContextAssembler: ContextAssembler {
-    var mockSnapshot: HealthContextSnapshot = HealthContextSnapshot(
-        sleep: SleepContext(lastNight: nil, weeklyAverage: nil, consistency: nil),
-        heartHealth: HeartHealthContext(restingHeartRate: nil, hrv: nil, bloodPressure: nil, weeklyTrend: nil),
-        activity: ActivityContext(steps: nil, activeEnergyBurned: nil, exerciseMinutes: nil, standHours: nil, moveStreak: nil),
-        environment: EnvironmentContext(weatherCondition: nil, temperature: nil, airQuality: nil, location: nil),
-        subjectiveData: SubjectiveContext(energyLevel: nil, stressLevel: nil, mood: nil, notes: nil),
-        timestamp: Date()
-    )
+final class MockContextAssembler: ContextAssemblerProtocol {
+    var mockSnapshot: HealthContextSnapshot = HealthContextSnapshot()
     
     var assembleContextCallCount = 0
     
-    override func assembleContext() async -> HealthContextSnapshot {
+    func assembleContext() async -> HealthContextSnapshot {
         assembleContextCallCount += 1
         return mockSnapshot
     }

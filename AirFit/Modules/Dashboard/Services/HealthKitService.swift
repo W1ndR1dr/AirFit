@@ -4,9 +4,9 @@ import SwiftData
 /// Implementation of HealthKitServiceProtocol for the Dashboard
 actor HealthKitService: HealthKitServiceProtocol {
     private let healthKitManager: HealthKitManaging
-    private let contextAssembler: ContextAssembler
+    private let contextAssembler: ContextAssemblerProtocol
     
-    init(healthKitManager: HealthKitManaging, contextAssembler: ContextAssembler) {
+    init(healthKitManager: HealthKitManaging, contextAssembler: ContextAssemblerProtocol) {
         self.healthKitManager = healthKitManager
         self.contextAssembler = contextAssembler
     }

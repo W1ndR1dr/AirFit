@@ -55,7 +55,7 @@ enum DITestHelper {
             MockUserService()
         }
         
-        container.register(HealthKitManagerProtocol.self, lifetime: .singleton) { _ in
+        container.register(HealthKitManaging.self, lifetime: .singleton) { _ in
             MockHealthKitManager()
         }
         
@@ -89,10 +89,6 @@ enum DITestHelper {
         }
         
         container.register(NotificationManager.self, lifetime: .singleton) { _ in
-            MockNotificationManager()
-        }
-        
-        container.register(NotificationManagerProtocol.self, lifetime: .singleton) { _ in
             MockNotificationManager()
         }
         

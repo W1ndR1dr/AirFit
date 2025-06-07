@@ -24,14 +24,14 @@ final class FunctionCallDispatcherTests: XCTestCase {
         )
 
         // Create test context
-        testContext = FunctionContext(
+        testContext = await FunctionContext(
             modelContext: modelContainer.mainContext,
             conversationId: UUID(),
             userId: testUser.id
         )
 
         // Initialize dispatcher with AI-specific mock services
-        dispatcher = FunctionCallDispatcher(
+        dispatcher = await FunctionCallDispatcher(
             workoutService: MockAIWorkoutService(),
             analyticsService: MockAIAnalyticsService(),
             goalService: MockAIGoalService()

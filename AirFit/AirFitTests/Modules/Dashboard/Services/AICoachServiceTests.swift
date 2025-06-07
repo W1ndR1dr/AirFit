@@ -5,6 +5,7 @@ import SwiftData
 @MainActor
 final class AICoachServiceTests: XCTestCase {
     // MARK: - Properties
+    private var container: DIContainer!
     private var sut: AICoachService!
     private var mockCoachEngine: MockCoachEngine!
     private var modelContext: ModelContext!
@@ -14,28 +15,34 @@ final class AICoachServiceTests: XCTestCase {
     override func setUp() async throws {
         try await super.setUp()
         
-        // Create in-memory model container
-        let schema = Schema([User.self, CoachMessage.self])
-        let configuration = ModelConfiguration(schema: schema, isStoredInMemoryOnly: true)
-        let modelContainer = try ModelContainer(for: schema, configurations: [configuration])
-        modelContext = ModelContext(modelContainer)
+        // Create test container
+        container = try await DITestHelper.createTestContainer()
+        
+        // Get model context from container
+        let modelContainer = try await container.resolve(ModelContainer.self)
+        modelContext = modelContainer.mainContext
         
         // Create test user
         testUser = User(email: "test@example.com", name: "Test User")
         modelContext.insert(testUser)
         try modelContext.save()
         
-        // Create mocks and service
-        mockCoachEngine = MockCoachEngine()
+        // Get mock from container
+        mockCoachEngine = try await container.resolve(CoachEngineProtocol.self) as? MockCoachEngine
+        XCTAssertNotNil(mockCoachEngine, "Expected MockCoachEngine from test container")
+        
+        // Create service with injected dependencies
         sut = AICoachService(coachEngine: mockCoachEngine)
     }
     
-    override func tearDown() {
+    override func tearDown() async throws {
+        mockCoachEngine?.reset()
         sut = nil
         mockCoachEngine = nil
+        container = nil
         modelContext = nil
         testUser = nil
-        super.tearDown()
+        try await super.tearDown()
     }
     
     // MARK: - Basic Greeting Tests

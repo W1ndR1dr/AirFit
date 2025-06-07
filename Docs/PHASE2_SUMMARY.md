@@ -5,6 +5,13 @@
 
 ## Work Completed
 
+### Reference Files for Future Work
+The following files contain important changes that serve as patterns for future fixes:
+- **DITestHelper.swift** - Shows how to properly register mocks with protocol interfaces
+- **DIBootstrapper.swift** - Shows how to register both concrete types and protocols
+- **MockNotificationManager.swift** - Example of adding reset() method to mocks
+- **PHASE2_AUDIT.md** - Complete audit of mock registration issues and patterns
+
 ### Phase 2 Prerequisites ✅
 1. **Mock Audit**:
    - Found 40 mock files total

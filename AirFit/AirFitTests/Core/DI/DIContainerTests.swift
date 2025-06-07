@@ -201,8 +201,8 @@ final class DIContainerTests: XCTestCase {
             MockHealthKitManager()
         }
         
-        await container.register(WeatherServiceProtocol.self, lifetime: .singleton) { _ in
-            await MockWeatherService()
+        container.register(WeatherServiceProtocol.self, lifetime: .singleton) { _ in
+            MockWeatherService()
         }
         
         container.register(AIServiceProtocol.self, lifetime: .singleton) { _ in

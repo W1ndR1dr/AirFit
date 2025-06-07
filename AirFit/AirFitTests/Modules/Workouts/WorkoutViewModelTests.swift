@@ -12,18 +12,10 @@ final class WorkoutViewModelTests: XCTestCase {
     var mockHealth: MockHealthKitManager!
     var sut: WorkoutViewModel!
 
-    override func setUp() {
-        do {
-
-            container = try ModelContainer.createTestContainer()
-
-        } catch {
-
-            XCTFail("Failed to create test container: \(error)")
-
-            return
-
-        }
+    override func setUp() async throws {
+        try await super.setUp()
+        
+        container = try ModelContainer.createTestContainer()
         context = container.mainContext
         user = User(name: "Tester")
         context.insert(user)
@@ -41,13 +33,14 @@ final class WorkoutViewModelTests: XCTestCase {
         )
     }
 
-    override func tearDown() {
+    override func tearDown() async throws {
         sut = nil
         mockCoach = nil
         mockHealth = nil
         user = nil
         context = nil
         container = nil
+        try await super.tearDown()
     }
 
     // MARK: - Workout Loading Tests
@@ -629,11 +622,11 @@ final class WorkoutViewModelTests: XCTestCase {
 }
 
 // MARK: - Test Mock
-final class MockWorkoutCoachEngine: CoachEngineProtocol {
-    var mockAnalysis: String = "Mock analysis"
-    var didGenerateAnalysis: Bool = false
-    var shouldThrowError: Bool = false
-    var processUserMessageCalled: Bool = false
+final class MockWorkoutCoachEngine: CoachEngineProtocol, @unchecked Sendable {
+    nonisolated(unsafe) var mockAnalysis: String = "Mock analysis"
+    nonisolated(unsafe) var didGenerateAnalysis: Bool = false
+    nonisolated(unsafe) var shouldThrowError: Bool = false
+    nonisolated(unsafe) var processUserMessageCalled: Bool = false
     
     func processUserMessage(_ text: String, for user: User) async {
         processUserMessageCalled = true

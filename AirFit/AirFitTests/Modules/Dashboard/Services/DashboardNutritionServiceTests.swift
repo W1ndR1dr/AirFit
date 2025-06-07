@@ -5,6 +5,7 @@ import SwiftData
 @MainActor
 final class DashboardNutritionServiceTests: XCTestCase {
     // MARK: - Properties
+    private var container: DIContainer!
     private var sut: DashboardNutritionService!
     private var modelContext: ModelContext!
     private var testUser: User!
@@ -14,11 +15,12 @@ final class DashboardNutritionServiceTests: XCTestCase {
     override func setUp() async throws {
         try await super.setUp()
         
-        // Create in-memory model container
-        let schema = Schema([User.self, FoodEntry.self, FoodItem.self, OnboardingProfile.self])
-        let configuration = ModelConfiguration(schema: schema, isStoredInMemoryOnly: true)
-        let modelContainer = try ModelContainer(for: schema, configurations: [configuration])
-        modelContext = ModelContext(modelContainer)
+        // Create test container
+        container = try await DITestHelper.createTestContainer()
+        
+        // Get model context from container
+        let modelContainer = try await container.resolve(ModelContainer.self)
+        modelContext = modelContainer.mainContext
         
         // Create test user
         testUser = User(email: "test@example.com", name: "Test User")
@@ -112,16 +114,17 @@ final class DashboardNutritionServiceTests: XCTestCase {
         modelContext.insert(testProfile)
         try modelContext.save()
         
-        // Create service
+        // Create service with injected dependencies
         sut = DashboardNutritionService(modelContext: modelContext)
     }
     
-    override func tearDown() {
+    override func tearDown() async throws {
         sut = nil
+        container = nil
         modelContext = nil
         testUser = nil
         testProfile = nil
-        super.tearDown()
+        try await super.tearDown()
     }
     
     // MARK: - Get Today's Summary Tests

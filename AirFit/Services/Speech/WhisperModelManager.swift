@@ -2,7 +2,24 @@ import Foundation
 @preconcurrency import WhisperKit
 
 @MainActor
-final class WhisperModelManager: ObservableObject {
+protocol WhisperModelManagerProtocol: AnyObject {
+    var availableModels: [WhisperModelManager.WhisperModel] { get }
+    var downloadedModels: Set<String> { get }
+    var activeModel: String { get set }
+    
+    func selectOptimalModel() -> String
+    func downloadModel(_ modelId: String) async throws
+    func deleteModel(_ modelId: String) throws
+    func modelPath(for modelId: String) -> URL?
+    func isModelDownloaded(_ modelId: String) -> Bool
+    func getModelConfiguration(_ modelId: String) -> WhisperModelManager.WhisperModel?
+    func freeUpSpace() async throws
+    func ensureModelSpace(for modelId: String) async throws -> Bool
+    func updateDownloadedModels()
+}
+
+@MainActor
+final class WhisperModelManager: ObservableObject, WhisperModelManagerProtocol {
     // MARK: - Singleton
     static let shared = WhisperModelManager()
 
@@ -246,5 +263,36 @@ final class WhisperModelManager: ObservableObject {
            FileManager.default.fileExists(atPath: cacheDir.path) {
             try? FileManager.default.removeItem(at: cacheDir)
         }
+    }
+    
+    // MARK: - Protocol Requirements
+    func isModelDownloaded(_ modelId: String) -> Bool {
+        return downloadedModels.contains(modelId)
+    }
+    
+    func getModelConfiguration(_ modelId: String) -> WhisperModel? {
+        return availableModels.first { $0.id == modelId }
+    }
+    
+    func freeUpSpace() async throws {
+        // Clear unused models to free up space
+        try clearUnusedModels()
+    }
+    
+    func ensureModelSpace(for modelId: String) async throws -> Bool {
+        guard let model = getModelConfiguration(modelId) else {
+            return false
+        }
+        
+        // Check if we have enough space
+        if hasEnoughStorage(for: model) {
+            return true
+        }
+        
+        // Try to free up space
+        try await freeUpSpace()
+        
+        // Check again
+        return hasEnoughStorage(for: model)
     }
 }

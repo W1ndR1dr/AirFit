@@ -1,6 +1,12 @@
 import Foundation
 import SwiftData
 
+/// Protocol for assembling health context snapshots
+@MainActor
+protocol ContextAssemblerProtocol: Sendable {
+    func assembleContext() async -> HealthContextSnapshot
+}
+
 /// Provides health-related data for the dashboard.
 protocol HealthKitServiceProtocol: Sendable {
     func getCurrentContext() async throws -> HealthContext

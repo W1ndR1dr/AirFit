@@ -1,248 +1,197 @@
 import XCTest
+import SwiftData
 @testable import AirFit
 
 @MainActor
 final class DIBootstrapperTests: XCTestCase {
     // MARK: - Properties
     private var container: DIContainer!
+    private var modelContainer: ModelContainer!
     
     // MARK: - Setup
     override func setUp() async throws {
         try await super.setUp()
-        container = DIContainer()
+        
+        // Create test model container
+        modelContainer = try ModelContainer.createTestContainer()
     }
     
-    override func tearDown() {
+    override func tearDown() async throws {
         container = nil
-        super.tearDown()
+        modelContainer = nil
+        try await super.tearDown()
     }
     
-    // MARK: - Registration Tests
+    // MARK: - App Container Tests
     
-    func test_registerCoreServices_registersAllRequiredServices() async throws {
+    func test_createAppContainer_registersAllRequiredServices() async throws {
         // Act
-        try await DIBootstrapper.registerCoreServices(in: container)
+        container = try await DIBootstrapper.createAppContainer(modelContainer: modelContainer)
         
         // Assert - Core services should be registered
         let networkManager = try await container.resolve(NetworkManagementProtocol.self)
         XCTAssertNotNil(networkManager)
+        XCTAssertTrue(networkManager is NetworkManager)
         
         let apiKeyManager = try await container.resolve(APIKeyManagementProtocol.self)
         XCTAssertNotNil(apiKeyManager)
+        XCTAssertTrue(apiKeyManager is APIKeyManager)
         
-        let analyticsService = try await container.resolve(AnalyticsServiceProtocol.self)
-        XCTAssertNotNil(analyticsService)
-    }
-    
-    func test_registerDataServices_registersAllDataServices() async throws {
-        // Arrange - Core services must be registered first
-        try await DIBootstrapper.registerCoreServices(in: container)
-        
-        // Act
-        try await DIBootstrapper.registerDataServices(in: container)
-        
-        // Assert
         let userService = try await container.resolve(UserServiceProtocol.self)
         XCTAssertNotNil(userService)
-        
-        let goalService = try await container.resolve(GoalServiceProtocol.self)
-        XCTAssertNotNil(goalService)
-        
-        let nutritionService = try await container.resolve(NutritionServiceProtocol.self)
-        XCTAssertNotNil(nutritionService)
-        
-        let workoutService = try await container.resolve(WorkoutServiceProtocol.self)
-        XCTAssertNotNil(workoutService)
+        XCTAssertTrue(userService is UserService)
     }
     
-    func test_registerAIServices_registersAllAIServices() async throws {
-        // Arrange - Core services must be registered first
-        try await DIBootstrapper.registerCoreServices(in: container)
-        
+    func test_createAppContainer_registersAIServices() async throws {
         // Act
-        try await DIBootstrapper.registerAIServices(in: container)
+        container = try await DIBootstrapper.createAppContainer(modelContainer: modelContainer)
         
         // Assert
         let aiService = try await container.resolve(AIServiceProtocol.self)
         XCTAssertNotNil(aiService)
+        XCTAssertTrue(aiService is AIService)
         
         let coachEngine = try await container.resolve(CoachEngineProtocol.self)
         XCTAssertNotNil(coachEngine)
-        
-        let foodCoachEngine = try await container.resolve(FoodCoachEngineProtocol.self)
-        XCTAssertNotNil(foodCoachEngine)
+        XCTAssertTrue(coachEngine is CoachEngine)
     }
     
-    func test_registerHealthServices_registersHealthKitManager() async throws {
+    func test_createAppContainer_registersHealthServices() async throws {
         // Act
-        try await DIBootstrapper.registerHealthServices(in: container)
+        container = try await DIBootstrapper.createAppContainer(modelContainer: modelContainer)
         
         // Assert
-        let healthKitManager = try await container.resolve(HealthKitManagerProtocol.self)
+        let healthKitManager = try await container.resolve(HealthKitManaging.self)
         XCTAssertNotNil(healthKitManager)
         XCTAssertTrue(healthKitManager is HealthKitManager)
+        
+        let healthKitService = try await container.resolve(HealthKitService.self)
+        XCTAssertNotNil(healthKitService)
     }
     
-    func test_registerTestServices_overridesWithMocks() async throws {
-        // Arrange - Register real services first
-        try await DIBootstrapper.registerCoreServices(in: container)
-        try await DIBootstrapper.registerDataServices(in: container)
+    func test_createAppContainer_registersSingletonServices() async throws {
+        // Act
+        container = try await DIBootstrapper.createAppContainer(modelContainer: modelContainer)
         
-        // Act - Override with test services
-        try await DIBootstrapper.registerTestServices(in: container)
+        // Assert - Verify singletons return same instance
+        let healthKit1 = try await container.resolve(HealthKitManager.self)
+        let healthKit2 = try await container.resolve(HealthKitManager.self)
+        XCTAssertTrue(healthKit1 === healthKit2, "HealthKitManager should be singleton")
         
-        // Assert - Should now resolve to mocks
-        let userService = try await container.resolve(UserServiceProtocol.self)
-        XCTAssertTrue(userService is MockUserService)
+        let notificationManager1 = try await container.resolve(NotificationManager.self)
+        let notificationManager2 = try await container.resolve(NotificationManager.self)
+        XCTAssertTrue(notificationManager1 === notificationManager2, "NotificationManager should be singleton")
+    }
+    
+    // MARK: - Test Container Tests
+    
+    func test_createTestContainer_createsValidContainer() throws {
+        // Act
+        container = DIBootstrapper.createTestContainer()
         
+        // Assert
+        XCTAssertNotNil(container)
+        
+        // Should have basic registrations that tests can override
+        // Note: We can't test specific mocks here since they're in test target
+    }
+    
+    // MARK: - Preview Container Tests
+    
+    func test_createPreviewContainer_createsContainerWithOfflineServices() async throws {
+        // Act
+        container = try await DIBootstrapper.createPreviewContainer()
+        
+        // Assert
         let aiService = try await container.resolve(AIServiceProtocol.self)
-        XCTAssertTrue(aiService is MockAIService)
+        XCTAssertNotNil(aiService)
+        XCTAssertTrue(aiService is OfflineAIService, "Preview should use offline AI")
         
-        let healthKitManager = try await container.resolve(HealthKitManagerProtocol.self)
-        XCTAssertTrue(healthKitManager is MockHealthKitManager)
+        let apiKeyManager = try await container.resolve(APIKeyManagementProtocol.self)
+        XCTAssertNotNil(apiKeyManager)
+        // Should be preview API key manager that returns false for hasAPIKey
+        let hasKey = await apiKeyManager.hasAPIKey(for: .openAI)
+        XCTAssertFalse(hasKey, "Preview API key manager should return false")
     }
     
-    // MARK: - Environment Tests
-    
-    func test_configure_forProduction_registersRealServices() async throws {
+    func test_createPreviewContainer_includesPreviewData() async throws {
         // Act
-        try await DIBootstrapper.configure(container: container, environment: .production)
+        container = try await DIBootstrapper.createPreviewContainer()
         
-        // Assert - Should have real services
-        let networkManager = try await container.resolve(NetworkManagementProtocol.self)
-        XCTAssertTrue(networkManager is NetworkManager)
-        
+        // Assert - Should have preview model container with data
         let userService = try await container.resolve(UserServiceProtocol.self)
-        XCTAssertTrue(userService is UserService)
-    }
-    
-    func test_configure_forDevelopment_registersRealServices() async throws {
-        // Act
-        try await DIBootstrapper.configure(container: container, environment: .development)
+        XCTAssertNotNil(userService)
         
-        // Assert - Should have real services (same as production)
-        let networkManager = try await container.resolve(NetworkManagementProtocol.self)
-        XCTAssertTrue(networkManager is NetworkManager)
+        // Get current user to verify preview data exists
+        let currentUser = await userService.currentUser
+        XCTAssertNotNil(currentUser, "Preview container should include sample user")
     }
     
-    func test_configure_forTesting_registersMockServices() async throws {
-        // Act
-        try await DIBootstrapper.configure(container: container, environment: .testing)
+    // MARK: - Service Resolution Tests
+    
+    func test_appContainer_allServicesResolvable() async throws {
+        // Arrange
+        container = try await DIBootstrapper.createAppContainer(modelContainer: modelContainer)
         
-        // Assert - Should have mock services
-        let networkManager = try await container.resolve(NetworkManagementProtocol.self)
-        XCTAssertTrue(networkManager is MockNetworkManager)
-        
-        let userService = try await container.resolve(UserServiceProtocol.self)
-        XCTAssertTrue(userService is MockUserService)
-    }
-    
-    // MARK: - Dependency Order Tests
-    
-    func test_registerDataServices_withoutCoreServices_throwsError() async throws {
-        // Act & Assert - Should fail because core services aren't registered
-        do {
-            try await DIBootstrapper.registerDataServices(in: container)
-            XCTFail("Expected dependency resolution error")
-        } catch {
-            // Expected - data services depend on core services
-            XCTAssertTrue(error is DIContainer.DIError)
-        }
-    }
-    
-    func test_registerAIServices_withoutCoreServices_throwsError() async throws {
-        // Act & Assert - Should fail because core services aren't registered
-        do {
-            try await DIBootstrapper.registerAIServices(in: container)
-            XCTFail("Expected dependency resolution error")
-        } catch {
-            // Expected - AI services depend on core services
-            XCTAssertTrue(error is DIContainer.DIError)
-        }
-    }
-    
-    // MARK: - Service Integration Tests
-    
-    func test_allRegisteredServices_canBeResolved() async throws {
-        // Act - Full registration
-        try await DIBootstrapper.configure(container: container, environment: .production)
-        
-        // Assert - All services should be resolvable
-        let services: [Any.Type] = [
-            NetworkManagementProtocol.self,
-            APIKeyManagementProtocol.self,
-            AnalyticsServiceProtocol.self,
+        // Define all service types that should be resolvable
+        let serviceTypes: [Any.Type] = [
             UserServiceProtocol.self,
             GoalServiceProtocol.self,
             NutritionServiceProtocol.self,
             WorkoutServiceProtocol.self,
-            HealthKitManagerProtocol.self,
+            HealthKitManaging.self,
             AIServiceProtocol.self,
             CoachEngineProtocol.self,
             FoodCoachEngineProtocol.self,
-            NotificationManagerProtocol.self,
+            NotificationManager.self,
             WeatherServiceProtocol.self,
             FoodVoiceServiceProtocol.self,
             OnboardingServiceProtocol.self
         ]
         
-        for serviceType in services {
+        // Act & Assert - All services should resolve without throwing
+        for serviceType in serviceTypes {
             do {
                 let service = try await container.resolve(serviceType)
-                XCTAssertNotNil(service, "Failed to resolve \(serviceType)")
+                XCTAssertNotNil(service, "\(serviceType) should resolve")
             } catch {
                 XCTFail("Failed to resolve \(serviceType): \(error)")
             }
         }
     }
     
-    // MARK: - Singleton Tests
+    // MARK: - Integration Tests
     
-    func test_singletonServices_returnSameInstance() async throws {
+    func test_createAppContainer_servicesCanInteract() async throws {
         // Arrange
-        try await DIBootstrapper.configure(container: container, environment: .production)
+        container = try await DIBootstrapper.createAppContainer(modelContainer: modelContainer)
         
-        // Act - Resolve same service multiple times
-        let apiKeyManager1 = try await container.resolve(APIKeyManagementProtocol.self)
-        let apiKeyManager2 = try await container.resolve(APIKeyManagementProtocol.self)
+        // Act - Get services that depend on each other
+        let userService = try await container.resolve(UserServiceProtocol.self)
+        let goalService = try await container.resolve(GoalServiceProtocol.self)
         
-        let analyticsService1 = try await container.resolve(AnalyticsServiceProtocol.self)
-        let analyticsService2 = try await container.resolve(AnalyticsServiceProtocol.self)
+        // Assert - Services should be able to work together
+        // This verifies the dependency graph is correctly wired
+        XCTAssertNotNil(userService)
+        XCTAssertNotNil(goalService)
         
-        // Assert - Should be same instance for singletons
-        XCTAssertTrue(apiKeyManager1 === apiKeyManager2)
-        XCTAssertTrue(analyticsService1 === analyticsService2)
-    }
-    
-    // MARK: - Test Helper Integration
-    
-    func test_testContainer_creation_usesTestEnvironment() async throws {
-        // Act
-        let testContainer = try await DITestHelper.createTestContainer()
-        
-        // Assert - Should have mock services
-        let networkManager = try await testContainer.resolve(NetworkManagementProtocol.self)
-        XCTAssertTrue(networkManager is MockNetworkManager)
-        
-        let healthKitManager = try await testContainer.resolve(HealthKitManagerProtocol.self)
-        XCTAssertTrue(healthKitManager is MockHealthKitManager)
+        // Goal service depends on user service internally
+        // If this doesn't crash, dependencies are wired correctly
     }
     
     // MARK: - Error Handling Tests
     
-    func test_multipleRegistration_ofSameProtocol_overridesPrevious() async throws {
+    func test_container_throwsForUnregisteredService() async throws {
         // Arrange
-        try await container.register(NetworkManagementProtocol.self) { _ in
-            NetworkManager()
-        }
+        container = DIContainer()
         
-        // Act - Register again with mock
-        try await container.register(NetworkManagementProtocol.self) { _ in
-            MockNetworkManager()
+        // Act & Assert
+        do {
+            _ = try await container.resolve(String.self)
+            XCTFail("Should throw for unregistered type")
+        } catch {
+            // Expected - should throw DIError
+            XCTAssertTrue(error.localizedDescription.contains("not registered"))
         }
-        
-        // Assert - Should resolve to the latest registration
-        let service = try await container.resolve(NetworkManagementProtocol.self)
-        XCTAssertTrue(service is MockNetworkManager)
     }
 }
