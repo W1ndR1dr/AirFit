@@ -2,37 +2,42 @@ import XCTest
 import SwiftData
 @testable import AirFit
 
+@MainActor
 final class ContextAssemblerTests: XCTestCase {
-    var modelContainer: ModelContainer!
-    var context: ModelContext!
-    var mockHealthKit: MockHealthKitManager!
-    var sut: ContextAssembler!
+    // MARK: - Properties
+    private var container: DIContainer!
+    private var modelContext: ModelContext!
+    private var mockHealthKit: MockHealthKitManager!
+    private var sut: ContextAssembler!
 
-        override func setUp() {
-        do {
-
-            modelContainer = try ModelContainer.createTestContainer()
-
-        } catch {
-
-            XCTFail("Failed to create test container: \(error)")
-
-            return
-
-        }
-        context = modelContainer.mainContext
-        mockHealthKit = MockHealthKitManager()
+    // MARK: - Setup
+    override func setUp() async throws {
+        try await super.setUp()
+        
+        // Create test container
+        container = try await DITestHelper.createTestContainer()
+        
+        // Get model context from container
+        let modelContainer = try await container.resolve(ModelContainer.self)
+        modelContext = modelContainer.mainContext
+        
+        // Get mock from container
+        mockHealthKit = try await container.resolve(HealthKitManagerProtocol.self) as? MockHealthKitManager
+        
+        // Create SUT
         sut = ContextAssembler(healthKitManager: mockHealthKit)
     }
 
-        override func tearDown() {
+    override func tearDown() async throws {
+        mockHealthKit?.reset()
         sut = nil
         mockHealthKit = nil
-        context = nil
-        modelContainer = nil
+        modelContext = nil
+        container = nil
+        try await super.tearDown()
     }
 
-        func test_assembleSnapshot_withCompleteData_populatesSnapshot() async throws {
+    func test_assembleSnapshot_withCompleteData_populatesSnapshot() async throws {
         // Arrange - mock HealthKit data
         mockHealthKit.activityResult = .success(
             ActivityMetrics(
@@ -91,7 +96,7 @@ final class ContextAssemblerTests: XCTestCase {
         try await addTestData()
 
         // Act
-        let snapshot = await sut.assembleSnapshot(modelContext: context)
+        let snapshot = await sut.assembleSnapshot(modelContext: modelContext)
 
         // Assert
         XCTAssertEqual(snapshot.subjectiveData.energyLevel, 4)
@@ -119,7 +124,7 @@ final class ContextAssemblerTests: XCTestCase {
         try context.save()
     }
 
-        func test_assembleSnapshot_whenHealthKitThrows_returnsDefaultMetrics() async {
+    func test_assembleSnapshot_whenHealthKitThrows_returnsDefaultMetrics() async {
         // Arrange - make HealthKit throw
         mockHealthKit.activityResult = .failure(TestError.test)
         mockHealthKit.heartResult = .failure(TestError.test)
@@ -127,7 +132,7 @@ final class ContextAssemblerTests: XCTestCase {
         mockHealthKit.sleepResult = .failure(TestError.test)
 
         // Act
-        let snapshot = await sut.assembleSnapshot(modelContext: context)
+        let snapshot = await sut.assembleSnapshot(modelContext: modelContext)
 
         // Assert - all metrics should be default/empty
         XCTAssertNil(snapshot.activity.steps)
@@ -136,7 +141,7 @@ final class ContextAssemblerTests: XCTestCase {
         XCTAssertNil(snapshot.sleep.lastNight)
     }
 
-        func test_performance_assembleSnapshot_largeDataSet() async throws {
+    func test_performance_assembleSnapshot_largeDataSet() async throws {
         // Create realistic test data with proper date distribution
         let calendar = Calendar.current
         let today = Date()
@@ -153,7 +158,7 @@ final class ContextAssemblerTests: XCTestCase {
         let startTime = CFAbsoluteTimeGetCurrent()
 
         for _ in 0..<10 {
-            _ = await sut.assembleSnapshot(modelContext: context)
+            _ = await sut.assembleSnapshot(modelContext: modelContext)
         }
 
         let timeElapsed = CFAbsoluteTimeGetCurrent() - startTime
@@ -163,13 +168,13 @@ final class ContextAssemblerTests: XCTestCase {
         XCTAssertLessThan(averageTime, 0.05, "assembleSnapshot should complete in under 50ms, took \(averageTime)s")
 
         // Verify the snapshot is still functional
-        let snapshot = await sut.assembleSnapshot(modelContext: context)
+        let snapshot = await sut.assembleSnapshot(modelContext: modelContext)
         XCTAssertNotNil(snapshot.trends.weeklyActivityChange, "Trends should be calculated with sufficient data")
     }
 
     // MARK: - HealthKit Permission Scenarios
 
-        func test_assembleSnapshot_whenHealthKitDenied_usesDefaultValues() async {
+    func test_assembleSnapshot_whenHealthKitDenied_usesDefaultValues() async {
         // Arrange - set HealthKit as denied
         mockHealthKit.authorizationStatus = .denied
         mockHealthKit.activityResult = .failure(HealthKitManager.HealthKitError.authorizationDenied)
@@ -181,7 +186,7 @@ final class ContextAssemblerTests: XCTestCase {
         try? await addTestData()
 
         // Act
-        let snapshot = await sut.assembleSnapshot(modelContext: context)
+        let snapshot = await sut.assembleSnapshot(modelContext: modelContext)
 
         // Assert - HealthKit data should be default/nil, but other data present
         XCTAssertNil(snapshot.activity.steps)
@@ -194,7 +199,7 @@ final class ContextAssemblerTests: XCTestCase {
         XCTAssertEqual(snapshot.appContext.lastMealSummary, "Breakfast, 1 item")
     }
 
-        func test_assembleSnapshot_whenPartialPermissions_handlesGracefully() async {
+    func test_assembleSnapshot_whenPartialPermissions_handlesGracefully() async {
         // Arrange - some data succeeds, some fails
         mockHealthKit.authorizationStatus = .authorized
         mockHealthKit.activityResult = .success(
@@ -209,7 +214,7 @@ final class ContextAssemblerTests: XCTestCase {
         try? await addTestData()
 
         // Act
-        let snapshot = await sut.assembleSnapshot(modelContext: context)
+        let snapshot = await sut.assembleSnapshot(modelContext: modelContext)
 
         // Assert - partial data is present
         XCTAssertEqual(snapshot.activity.steps, 5_000)
@@ -222,7 +227,7 @@ final class ContextAssemblerTests: XCTestCase {
 
     // MARK: - Data Integration Edge Cases
 
-        func test_assembleSnapshot_withIncompleteHealthData_assemblesPartialSnapshot() async {
+    func test_assembleSnapshot_withIncompleteHealthData_assemblesPartialSnapshot() async {
         // Arrange - HealthKit returns incomplete metrics
         mockHealthKit.activityResult = .success(
             ActivityMetrics(steps: 2_000) // Only steps, no other metrics
@@ -240,7 +245,7 @@ final class ContextAssemblerTests: XCTestCase {
         try? context.save()
 
         // Act
-        let snapshot = await sut.assembleSnapshot(modelContext: context)
+        let snapshot = await sut.assembleSnapshot(modelContext: modelContext)
 
         // Assert - partial data is correctly assembled
         XCTAssertEqual(snapshot.activity.steps, 2_000)
@@ -252,7 +257,7 @@ final class ContextAssemblerTests: XCTestCase {
         XCTAssertEqual(snapshot.subjectiveData.energyLevel, 3)
     }
 
-        func test_assembleSnapshot_withStaleData_includesTimestampWarnings() async throws {
+    func test_assembleSnapshot_withStaleData_includesTimestampWarnings() async throws {
         // Arrange - create old data
         let calendar = Calendar.current
         let yesterdayLog = DailyLog(date: calendar.date(byAdding: .day, value: -1, to: Date())!)
@@ -268,7 +273,7 @@ final class ContextAssemblerTests: XCTestCase {
         try context.save()
 
         // Act
-        let snapshot = await sut.assembleSnapshot(modelContext: context)
+        let snapshot = await sut.assembleSnapshot(modelContext: modelContext)
 
         // Assert - stale data handling
         XCTAssertNil(snapshot.subjectiveData.energyLevel) // Should be nil for today
@@ -278,7 +283,7 @@ final class ContextAssemblerTests: XCTestCase {
         XCTAssertNotEqual(expectedSummary, "Dinner, 1 item") // Stale meal shouldn't appear
     }
 
-        func test_assembleSnapshot_withLargeDataSets_maintainsPerformance() async throws {
+    func test_assembleSnapshot_withLargeDataSets_maintainsPerformance() async throws {
         // Arrange - create large dataset (realistic user with 2+ years of data)
         let calendar = Calendar.current
         let today = Date()
@@ -308,7 +313,7 @@ final class ContextAssemblerTests: XCTestCase {
         let startTime = CFAbsoluteTimeGetCurrent()
 
         for _ in 0..<iterations {
-            _ = await sut.assembleSnapshot(modelContext: context)
+            _ = await sut.assembleSnapshot(modelContext: modelContext)
         }
 
         let totalTime = CFAbsoluteTimeGetCurrent() - startTime
@@ -318,7 +323,7 @@ final class ContextAssemblerTests: XCTestCase {
         XCTAssertLessThan(averageTime, 0.050, "assembleSnapshot should complete in under 50ms with large dataset, took \(averageTime * 1000)ms")
 
         // Verify functionality with large dataset
-        let snapshot = await sut.assembleSnapshot(modelContext: context)
+        let snapshot = await sut.assembleSnapshot(modelContext: modelContext)
         XCTAssertNotNil(snapshot.subjectiveData.energyLevel)
         XCTAssertNotNil(snapshot.trends)
         XCTAssertNotNil(snapshot.appContext.lastMealSummary)
@@ -326,7 +331,7 @@ final class ContextAssemblerTests: XCTestCase {
 
     // MARK: - Cross-Service Integration
 
-        func test_assembleSnapshot_coordinating_HealthKitAndSwiftData_successfully() async throws {
+    func test_assembleSnapshot_coordinating_HealthKitAndSwiftData_successfully() async throws {
         // Arrange - comprehensive data from both systems
         mockHealthKit.activityResult = .success(
             ActivityMetrics(
@@ -358,7 +363,7 @@ final class ContextAssemblerTests: XCTestCase {
         try context.save()
 
         // Act
-        let snapshot = await sut.assembleSnapshot(modelContext: context)
+        let snapshot = await sut.assembleSnapshot(modelContext: modelContext)
 
         // Assert - proper coordination
         // HealthKit data should take precedence for objective metrics
@@ -376,7 +381,7 @@ final class ContextAssemblerTests: XCTestCase {
         XCTAssertNotNil(snapshot.trends)
     }
 
-        func test_assembleSnapshot_withConcurrentAccess_remainsThreadSafe() async throws {
+    func test_assembleSnapshot_withConcurrentAccess_remainsThreadSafe() async throws {
         // Arrange - prepare test data
         try await addTestData()
 
@@ -387,7 +392,7 @@ final class ContextAssemblerTests: XCTestCase {
             // Add some random delay to simulate timing variations
             try? await Task.sleep(nanoseconds: UInt64.random(in: 1_000_000...10_000_000))
 
-            let snapshot = await sut.assembleSnapshot(modelContext: context)
+            let snapshot = await sut.assembleSnapshot(modelContext: modelContext)
             snapshots.append(snapshot)
         }
 
@@ -404,7 +409,7 @@ final class ContextAssemblerTests: XCTestCase {
 
     // MARK: - Enhanced Error Condition Testing
 
-        func test_assembleSnapshot_withTimeout_handlesGracefully() async {
+    func test_assembleSnapshot_withTimeout_handlesGracefully() async {
         // Arrange - simulate slow HealthKit responses by making mock delay
         mockHealthKit.activityResult = .failure(HealthKitManager.HealthKitError.queryFailed(NSError(domain: "TestDomain", code: -1, userInfo: [NSLocalizedDescriptionKey: "Timeout"])))
 
@@ -412,7 +417,7 @@ final class ContextAssemblerTests: XCTestCase {
 
         // Act with timeout
         let task = Task {
-            return await sut.assembleSnapshot(modelContext: context)
+            return await sut.assembleSnapshot(modelContext: modelContext)
         }
 
         // Simulate timeout scenario
@@ -429,7 +434,7 @@ final class ContextAssemblerTests: XCTestCase {
         XCTAssertEqual(snapshot.subjectiveData.energyLevel, 4) // SwiftData should still work
     }
 
-        func test_assembleSnapshot_withCorruptedSwiftData_handlesGracefully() async {
+    func test_assembleSnapshot_withCorruptedSwiftData_handlesGracefully() async {
         // Arrange - create corrupted data scenario
         let log = DailyLog(date: Date())
         log.subjectiveEnergyLevel = 999 // Invalid value
@@ -445,7 +450,7 @@ final class ContextAssemblerTests: XCTestCase {
         try? context.save()
 
         // Act
-        let snapshot = await sut.assembleSnapshot(modelContext: context)
+        let snapshot = await sut.assembleSnapshot(modelContext: modelContext)
 
         // Assert - should handle corrupted data gracefully
         XCTAssertNotNil(snapshot)

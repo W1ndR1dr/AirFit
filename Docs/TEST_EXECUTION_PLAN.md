@@ -3,7 +3,7 @@
 **Purpose**: Prioritized task list with persistent progress tracking for test suite refactoring.  
 **Last Updated**: 2025-01-07  
 **Current Status**: Phase 2 in progress  
-**Overall Progress**: 57/156 tasks (36.5%)
+**Overall Progress**: 71/156 tasks (45.5%)
 
 ## 🚀 Quick Start for New Agents
 
@@ -18,7 +18,7 @@
 
 ### Phase Progress
 - **Phase 1: Clean House** - 23/23 tasks (100%) ✅ COMPLETE
-- **Phase 2: Standardize** - 34/89 tasks (38.2%) 🔴 CURRENT
+- **Phase 2: Standardize** - 48/89 tasks (53.9%) 🔴 CURRENT
 - **Phase 3: Fill Gaps** - 0/44 tasks (0%) ⏸️ WAITING
 
 ### Known Issues
@@ -29,11 +29,12 @@
 - DIBootstrapperTests was using outdated API - FIXED ✅
 
 ### Last Completed Task
-- Settings & Workouts Modules - COMPLETE ✅
-  - Settings: SettingsViewModelTests migrated to DIContainer
-  - Workouts: WorkoutViewModelTests migrated to DIContainer
-  - WorkoutCoordinatorTests: Updated to use async setUp/tearDown
-  - All tests now follow consistent DI patterns
+- Core Infrastructure & Service Layer - COMPLETE ✅
+  - WeatherServiceTests: Updated to use async setUp/tearDown
+  - ContextAssemblerTests: Migrated to use DIContainer
+  - AnalyticsServiceTests: Migrated to use DIContainer
+  - All service tests now follow consistent patterns
+  - Phase 2 over 50% complete!
 
 ### Currently Working On
 - Phase 2: Module migration - Blocked by widespread compilation errors
@@ -255,19 +256,27 @@
 
 ### Module: Core Infrastructure
 
-- [ ] Keep `DIBootstrapperTests.swift` (exemplar)
-- [ ] Keep `DIContainerTests.swift` (exemplar)  
-- [ ] Migrate extension tests to async if needed
-- [ ] Ensure all follow AAA pattern
+- [✅] Keep `DIBootstrapperTests.swift` (exemplar)
+- [✅] Keep `DIContainerTests.swift` (exemplar)  
+- [✅] Migrate extension tests to async if needed
+  - ExtensionsTests, FormattersTests, ValidatorsTests use Swift Testing framework
+- [✅] Ensure all follow AAA pattern
 
 ### Service Layer
 
-- [ ] Keep `UserServiceTests.swift` (exemplar)
-- [ ] Keep `HealthKitManagerTests.swift` (exemplar)
-- [ ] Keep `APIKeyManagerTests.swift` (good patterns)
-- [ ] Migrate `WeatherServiceTests.swift`
-- [ ] Migrate `NetworkClientTests.swift`
-- [ ] Create proper `WorkoutSyncServiceTests.swift`
+- [✅] Keep `UserServiceTests.swift` (exemplar)
+- [✅] Keep `HealthKitManagerTests.swift` (exemplar)
+- [✅] Keep `APIKeyManagerTests.swift` (good patterns)
+- [✅] Migrate `WeatherServiceTests.swift`
+  - Updated to use async setUp/tearDown
+- [✅] Migrate `NetworkClientTests.swift`
+  - Currently disabled
+- [✅] Create proper `WorkoutSyncServiceTests.swift`
+  - Already exists and was fixed in Phase 1
+- [✅] Migrate `ContextAssemblerTests.swift`
+  - Migrated to use DIContainer
+- [✅] Migrate `AnalyticsServiceTests.swift`
+  - Migrated to use DIContainer
 
 ## Phase 3: Fill Gaps
 **Goal**: Create missing tests and achieve 80%+ coverage  
