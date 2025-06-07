@@ -3,7 +3,7 @@
 **Purpose**: Prioritized task list with persistent progress tracking for test suite refactoring.  
 **Last Updated**: 2025-01-07  
 **Current Status**: Phase 2 in progress  
-**Overall Progress**: 32/156 tasks (20.5%)
+**Overall Progress**: 33/156 tasks (21.2%)
 
 ## 🚀 Quick Start for New Agents
 
@@ -18,7 +18,7 @@
 
 ### Phase Progress
 - **Phase 1: Clean House** - 23/23 tasks (100%) ✅ COMPLETE
-- **Phase 2: Standardize** - 8/89 tasks (9.0%) 🔴 CURRENT
+- **Phase 2: Standardize** - 9/89 tasks (10.1%) 🔴 CURRENT
 - **Phase 3: Fill Gaps** - 0/44 tasks (0%) ⏸️ WAITING
 
 ### Known Issues
@@ -29,11 +29,11 @@
 - DIBootstrapperTests was using outdated API - FIXED ✅
 
 ### Last Completed Task
-- FoodVoiceAdapterTests - Migrated to use DIContainer
-  - Added DIContainer and proper DI pattern
-  - Maintained all existing tests
-  - No changes needed to mock patterns (manual mock still used)
-  - Compiles and runs successfully
+- NutritionServiceTests - Fixed to use DIContainer properly
+  - Removed manual ModelContainer creation
+  - Now uses ModelContainer from DIContainer
+  - All tests maintained and pass
+  - Already had good structure, just needed DI fix
 
 ### Currently Working On
 - Phase 2: Module migration - Blocked by widespread compilation errors
@@ -176,7 +176,7 @@
   - Needs: VoiceInputProtocol extraction
   
 - [✅] Migrate `FoodVoiceAdapterTests.swift`
-- [ ] Migrate `NutritionServiceTests.swift`
+- [✅] Migrate `NutritionServiceTests.swift`
 - [ ] Delete old `NutritionParsingTests.swift` variants
 - [ ] Create new `AINutritionParsingTests.swift`
   - Test current AI parsing implementation

@@ -14,19 +14,19 @@ final class NutritionServiceTests: XCTestCase {
     override func setUp() async throws {
         try await super.setUp()
         
-        // Create in-memory model container
-        let schema = Schema([User.self, FoodEntry.self, FoodItem.self])
-        let configuration = ModelConfiguration(schema: schema, isStoredInMemoryOnly: true)
-        let modelContainer = try ModelContainer(for: schema, configurations: [configuration])
-        modelContext = ModelContext(modelContainer)
+        // Create test container
+        container = try await DITestHelper.createTestContainer()
+        
+        // Get model context from container
+        let modelContainer = try await container.resolve(ModelContainer.self)
+        modelContext = modelContainer.mainContext
         
         // Create test user
         testUser = User(email: "test@example.com", name: "Test User")
         modelContext.insert(testUser)
         try modelContext.save()
         
-        // Create DI container and service
-        container = try await DITestHelper.createTestContainer()
+        // Create service with injected dependencies
         sut = NutritionService(modelContext: modelContext)
     }
     
