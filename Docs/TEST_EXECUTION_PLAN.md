@@ -3,7 +3,7 @@
 **Purpose**: Prioritized task list with persistent progress tracking for test suite refactoring.  
 **Last Updated**: 2025-01-07  
 **Current Status**: Phase 2 in progress  
-**Overall Progress**: 42/156 tasks (26.9%)
+**Overall Progress**: 44/156 tasks (28.2%)
 
 ## 🚀 Quick Start for New Agents
 
@@ -18,7 +18,7 @@
 
 ### Phase Progress
 - **Phase 1: Clean House** - 23/23 tasks (100%) ✅ COMPLETE
-- **Phase 2: Standardize** - 18/89 tasks (20.2%) 🔴 CURRENT
+- **Phase 2: Standardize** - 20/89 tasks (22.5%) 🔴 CURRENT
 - **Phase 3: Fill Gaps** - 0/44 tasks (0%) ⏸️ WAITING
 
 ### Known Issues
@@ -29,12 +29,13 @@
 - DIBootstrapperTests was using outdated API - FIXED ✅
 
 ### Last Completed Task
-- AI Services Module - Partial completion
+- AI Services Module - COMPLETE ✅
   - AIServiceTests: Verified good patterns, no changes needed
   - LLMOrchestratorTests: Previously fixed in Phase 1
   - AIAnalyticsServiceTests: Migrated to use DIContainer
-  - Fixed project.yml to remove deleted files
-  - Re-enabled DashboardViewModelTests and FoodTrackingViewModelTests
+  - AIGoalServiceTests: Migrated to use DIContainer
+  - AIWorkoutServiceTests: Migrated to use DIContainer
+  - All AI Services tests now follow DI patterns
 
 ### Currently Working On
 - Phase 2: Module migration - Blocked by widespread compilation errors
@@ -198,8 +199,8 @@
 - [✅] Keep `LLMOrchestratorTests.swift` (already fixed)
   - Previously fixed in Phase 1 for Swift 6 concurrency
 - [✅] Migrate `AIAnalyticsServiceTests.swift`
-- [ ] Migrate `AIGoalServiceTests.swift`
-- [ ] Migrate `AIWorkoutServiceTests.swift`
+- [✅] Migrate `AIGoalServiceTests.swift`
+- [✅] Migrate `AIWorkoutServiceTests.swift`
 
 ### Module: Onboarding
 **Why**: First user experience, must work perfectly

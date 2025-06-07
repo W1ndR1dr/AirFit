@@ -5,6 +5,7 @@ import SwiftData
 @MainActor
 final class AIWorkoutServiceTests: XCTestCase {
     // MARK: - Properties
+    private var container: DIContainer!
     private var sut: AIWorkoutService!
     private var mockWorkoutService: MockWorkoutService!
     private var modelContext: ModelContext!
@@ -14,11 +15,12 @@ final class AIWorkoutServiceTests: XCTestCase {
     override func setUp() async throws {
         try await super.setUp()
         
-        // Create in-memory model container
-        let schema = Schema([User.self, Workout.self, Exercise.self, WorkoutTemplate.self])
-        let configuration = ModelConfiguration(schema: schema, isStoredInMemoryOnly: true)
-        let modelContainer = try ModelContainer(for: schema, configurations: [configuration])
-        modelContext = ModelContext(modelContainer)
+        // Create test container
+        container = try await DITestHelper.createTestContainer()
+        
+        // Get model context from container
+        let modelContainer = try await container.resolve(ModelContainer.self)
+        modelContext = modelContainer.mainContext
         
         // Create test user
         testUser = User(email: "test@example.com", name: "Test User")
@@ -28,17 +30,22 @@ final class AIWorkoutServiceTests: XCTestCase {
         modelContext.insert(testUser)
         try modelContext.save()
         
-        // Create mocks and service
-        mockWorkoutService = MockWorkoutService()
+        // Get mock from container
+        mockWorkoutService = try await container.resolve(WorkoutServiceProtocol.self) as? MockWorkoutService
+        XCTAssertNotNil(mockWorkoutService, "Expected MockWorkoutService from test container")
+        
+        // Create service with injected dependencies
         sut = AIWorkoutService(workoutService: mockWorkoutService)
     }
     
-    override func tearDown() {
+    override func tearDown() async throws {
+        mockWorkoutService?.reset()
         sut = nil
         mockWorkoutService = nil
         modelContext = nil
         testUser = nil
-        super.tearDown()
+        container = nil
+        try await super.tearDown()
     }
     
     // MARK: - Generate Plan Tests
