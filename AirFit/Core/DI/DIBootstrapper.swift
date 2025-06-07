@@ -106,9 +106,19 @@ public final class DIBootstrapper {
             return HealthKitService(healthKitManager: healthKitManager, contextAssembler: contextAssembler)
         }
         
+        // Also register the protocol interface to the same service
+        container.register(HealthKitServiceProtocol.self) { container in
+            try await container.resolve(HealthKitService.self)
+        }
+        
         container.register(DashboardNutritionService.self) { @MainActor container in
             let modelContainer = try await container.resolve(ModelContainer.self)
             return DashboardNutritionService(modelContext: modelContainer.mainContext)
+        }
+        
+        // Also register the protocol interface to the same service
+        container.register(DashboardNutritionServiceProtocol.self) { @MainActor container in
+            try await container.resolve(DashboardNutritionService.self)
         }
         
         // Note: AICoachService requires a user-specific CoachEngine

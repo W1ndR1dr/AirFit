@@ -15,8 +15,8 @@ public final class DIViewModelFactory {
     
     func makeDashboardViewModel(user: User) async throws -> DashboardViewModel {
         let modelContainer = try await container.resolve(ModelContainer.self)
-        let healthKitService = try await container.resolve(HealthKitService.self)
-        let nutritionService = try await container.resolve(DashboardNutritionService.self)
+        let healthKitService = try await container.resolve(HealthKitServiceProtocol.self)
+        let nutritionService = try await container.resolve(DashboardNutritionServiceProtocol.self)
         
         // Create user-specific CoachEngine and AICoachService
         let coachEngine = try await makeCoachEngine(for: user)

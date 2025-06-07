@@ -95,4 +95,25 @@ final class MockNotificationManager {
     func rescheduleWithQuietHours(_ quietHours: QuietHours) async {
         rescheduleWithQuietHoursCalled = true
     }
+    
+    // MARK: - Mock Reset
+    
+    func reset() {
+        mockAuthorizationStatus = .authorized
+        requestAuthorizationCalled = false
+        requestAuthorizationResult = true
+        requestAuthorizationError = nil
+        scheduleNotificationCalled = false
+        scheduledNotifications.removeAll()
+        cancelNotificationCalled = false
+        cancelledIdentifiers.removeAll()
+        cancelAllNotificationsCalled = false
+        getPendingNotificationsCalled = false
+        pendingNotifications.removeAll()
+        updateBadgeCountCalled = false
+        badgeCount = 0
+        getAuthorizationStatusCalled = false
+        updatePreferencesCalled = false
+        rescheduleWithQuietHoursCalled = false
+    }
 }

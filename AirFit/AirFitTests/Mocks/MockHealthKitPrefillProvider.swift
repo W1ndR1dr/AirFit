@@ -40,4 +40,8 @@ final class MockHealthKitPrefillProvider: HealthKitPrefillProviding, @unchecked 
             throw error
         }
     }
+    
+    func reset() {
+        result = .success(nil)
+    }
 }

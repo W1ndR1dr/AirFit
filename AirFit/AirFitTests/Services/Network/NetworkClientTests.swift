@@ -40,7 +40,7 @@ final class NetworkClientTests: XCTestCase {
             headerFields: nil
         )
         
-        let endpoint = TestEndpoint(path: "/test", method: .get)
+        let endpoint = createTestEndpoint(path: "/test", method: .get)
         
         // Act
         let response: TestResponse = try await sut.request(endpoint)
@@ -61,7 +61,7 @@ final class NetworkClientTests: XCTestCase {
             headerFields: nil
         )
         
-        let endpoint = TestEndpoint(path: "/test", method: .get)
+        let endpoint = createTestEndpoint(path: "/test", method: .get)
         
         // Act & Assert
         do {
@@ -93,7 +93,7 @@ final class NetworkClientTests: XCTestCase {
             headerFields: nil
         )
         
-        let endpoint = TestEndpoint(path: "/test", method: .get)
+        let endpoint = createTestEndpoint(path: "/test", method: .get)
         
         // Act & Assert
         do {
@@ -112,7 +112,7 @@ final class NetworkClientTests: XCTestCase {
         mockSession.shouldThrowError = true
         mockSession.mockError = URLError(.notConnectedToInternet)
         
-        let endpoint = TestEndpoint(path: "/test", method: .get)
+        let endpoint = createTestEndpoint(path: "/test", method: .get)
         
         // Act & Assert
         do {
@@ -131,7 +131,7 @@ final class NetworkClientTests: XCTestCase {
         mockSession.mockData = Data()
         mockSession.mockResponse = URLResponse() // Non-HTTP response
         
-        let endpoint = TestEndpoint(path: "/test", method: .get)
+        let endpoint = createTestEndpoint(path: "/test", method: .get)
         
         // Act & Assert
         do {
@@ -157,7 +157,7 @@ final class NetworkClientTests: XCTestCase {
             headerFields: nil
         )
         
-        let endpoint = TestEndpoint(path: "/test", method: .post)
+        let endpoint = createTestEndpoint(path: "/test", method: .post)
         
         // Act
         let _: EmptyResponse = try await sut.request(endpoint)
@@ -177,7 +177,7 @@ final class NetworkClientTests: XCTestCase {
         )
         
         let headers = ["Authorization": "Bearer token123", "X-Custom": "value"]
-        let endpoint = TestEndpoint(path: "/test", method: .get, headers: headers)
+        let endpoint = createTestEndpoint(path: "/test", method: .get, headers: headers)
         
         // Act
         let _: EmptyResponse = try await sut.request(endpoint)
@@ -201,7 +201,7 @@ final class NetworkClientTests: XCTestCase {
             URLQueryItem(name: "page", value: "1"),
             URLQueryItem(name: "limit", value: "10")
         ]
-        let endpoint = TestEndpoint(path: "/test", method: .get, queryItems: queryItems)
+        let endpoint = createTestEndpoint(path: "/test", method: .get, queryItems: queryItems)
         
         // Act
         let _: EmptyResponse = try await sut.request(endpoint)
@@ -229,7 +229,7 @@ final class NetworkClientTests: XCTestCase {
             headerFields: nil
         )
         
-        let endpoint = TestEndpoint(path: "/test", method: .post, body: body)
+        let endpoint = createTestEndpoint(path: "/test", method: .post, body: body)
         
         // Act
         let _: EmptyResponse = try await sut.request(endpoint)
@@ -267,7 +267,7 @@ final class NetworkClientTests: XCTestCase {
             headerFields: nil
         )
         
-        let endpoint = TestEndpoint(path: "/test", method: .get)
+        let endpoint = createTestEndpoint(path: "/test", method: .get)
         
         // Act
         let response: DateResponse = try await sut.request(endpoint)
@@ -300,7 +300,7 @@ final class NetworkClientTests: XCTestCase {
             headerFields: nil
         )
         
-        let endpoint = TestEndpoint(path: "/test", method: .get)
+        let endpoint = createTestEndpoint(path: "/test", method: .get)
         
         // Act
         let response: SnakeCaseResponse = try await sut.request(endpoint)
@@ -323,7 +323,7 @@ final class NetworkClientTests: XCTestCase {
             headerFields: nil
         )
         
-        let endpoint = TestEndpoint(path: "/test", method: .get)
+        let endpoint = createTestEndpoint(path: "/test", method: .get)
         
         // Act
         let response: EmptyResponse = try await sut.request(endpoint)
@@ -342,7 +342,7 @@ final class NetworkClientTests: XCTestCase {
             headerFields: nil
         )
         
-        let endpoint = TestEndpoint(path: "/test", method: .delete)
+        let endpoint = createTestEndpoint(path: "/test", method: .delete)
         
         // Act & Assert
         // This might throw depending on implementation
@@ -362,21 +362,21 @@ final class NetworkClientTests: XCTestCase {
 
 private struct EmptyResponse: Codable {}
 
-private struct TestEndpoint: Endpoint {
-    let baseURL = URL(string: "https://api.test.com")!
-    let path: String
-    let method: HTTPMethod
-    let headers: [String: String]
-    let queryItems: [URLQueryItem]?
-    let body: Encodable?
-    
-    init(path: String, method: HTTPMethod, headers: [String: String] = [:], queryItems: [URLQueryItem]? = nil, body: Encodable? = nil) {
-        self.path = path
-        self.method = method
-        self.headers = headers
-        self.queryItems = queryItems
-        self.body = body
-    }
+private func createTestEndpoint(
+    path: String,
+    method: HTTPMethod = .get,
+    headers: [String: String] = [:],
+    queryItems: [URLQueryItem]? = nil,
+    body: Encodable? = nil
+) -> Endpoint {
+    let bodyData = body.flatMap { try? JSONEncoder().encode($0) }
+    return Endpoint(
+        path: path,
+        method: method,
+        headers: headers,
+        queryItems: queryItems,
+        body: bodyData
+    )
 }
 
 // MARK: - Mock URLSession

@@ -81,6 +81,13 @@ final class MockWhisperKit: @unchecked Sendable {
     func stubReady(_ ready: Bool) {
         isReady = ready
     }
+    
+    // MARK: - Reset
+    func reset() {
+        transcriptionResult = []
+        transcriptionError = nil
+        isReady = true
+    }
 }
 
 // MARK: - Mock Decode Options

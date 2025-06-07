@@ -257,4 +257,11 @@ actor MockAIWorkoutService: AIWorkoutServiceProtocol {
         let primaryMuscles = Set(muscleGroups).prefix(3).joined(separator: ", ")
         return "A \(duration)-minute \(goal) workout targeting \(primaryMuscles) with \(exercises.count) exercises."
     }
+    
+    // MARK: - Reset
+    
+    func reset() {
+        // This is an actor, so no state to reset
+        // All methods return fresh data each time
+    }
 }

@@ -97,7 +97,7 @@ enum DITestHelper {
         }
         
         container.register(VoiceInputManager.self, lifetime: .singleton) { _ in
-            VoiceInputManager()
+            MockVoiceInputManager()
         }
         
         // LLM and AI-related mocks
@@ -112,20 +112,17 @@ enum DITestHelper {
             return ContextAssembler(healthKitManager: healthKitManager)
         }
         
-        // Dashboard services
-        container.register(HealthKitService.self) { container in
-            let healthKitManager = try await container.resolve(HealthKitManager.self) as! MockHealthKitManager
-            let contextAssembler = try await container.resolve(ContextAssembler.self)
-            return HealthKitService(healthKitManager: healthKitManager, contextAssembler: contextAssembler)
+        // Dashboard services - only register protocols since mocks can't be concrete actor types
+        container.register(HealthKitServiceProtocol.self) { _ in
+            MockHealthKitService()
         }
         
         container.register(AICoachServiceProtocol.self) { _ in
             MockAICoachService()
         }
         
-        container.register(DashboardNutritionService.self) { @MainActor container in
-            let modelContainer = try await container.resolve(ModelContainer.self)
-            return DashboardNutritionService(modelContext: ModelContext(modelContainer))
+        container.register(DashboardNutritionServiceProtocol.self) { _ in
+            MockDashboardNutritionService()
         }
         
         // Onboarding services (concrete classes, not protocols)
@@ -142,6 +139,30 @@ enum DITestHelper {
         
         container.register(PersonaService.self) { @MainActor container in
             return MockPersonaService()
+        }
+        
+        // Food tracking services
+        container.register(FoodVoiceAdapterProtocol.self) { _ in
+            MockFoodVoiceAdapter()
+        }
+        
+        container.register(FoodTrackingCoordinatorProtocol.self) { _ in
+            MockFoodTrackingCoordinator()
+        }
+        
+        // Voice/Speech services
+        container.register(WhisperServiceWrapperProtocol.self) { _ in
+            MockWhisperServiceWrapper()
+        }
+        
+        // Onboarding services
+        container.register(OnboardingServiceProtocol.self) { _ in
+            MockOnboardingService()
+        }
+        
+        // Additional AI services
+        container.register(CoachEngine.self) { @MainActor container in
+            MockCoachEngine()
         }
         
         return container

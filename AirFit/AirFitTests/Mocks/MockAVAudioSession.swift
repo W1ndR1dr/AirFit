@@ -67,4 +67,13 @@ final class MockAVAudioSession: @unchecked Sendable {
     func stubActivationError(_ error: Error?) {
         activationError = error
     }
+    
+    // MARK: - Reset
+    func reset() {
+        recordPermissionResponse = true
+        categorySetError = nil
+        activationError = nil
+        isActive = false
+        category = .playAndRecord
+    }
 }

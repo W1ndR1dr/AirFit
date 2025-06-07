@@ -295,4 +295,11 @@ actor MockAIGoalService: AIGoalServiceProtocol {
         
         return adjustments
     }
+    
+    // MARK: - Reset
+    
+    func reset() {
+        // This is an actor, so no state to reset
+        // All methods return fresh data each time
+    }
 }

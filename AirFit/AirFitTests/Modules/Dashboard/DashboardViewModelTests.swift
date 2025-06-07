@@ -80,8 +80,8 @@ final class DashboardViewModelTests: XCTestCase {
         let sut = try await createSUT(with: user)
         
         // Get mocks from container
-        let mockHealthKitService = try await diContainer.resolve(HealthKitService.self) as! MockHealthKitService
-        let mockNutritionService = try await diContainer.resolve(DashboardNutritionService.self) as! MockDashboardNutritionService
+        let mockHealthKitService = try await diContainer.resolve(HealthKitServiceProtocol.self) as! MockHealthKitService
+        let mockNutritionService = try await diContainer.resolve(DashboardNutritionServiceProtocol.self) as! MockDashboardNutritionService
 
         // Arrange mock values
         mockHealthKitService.mockContext = HealthContext(
@@ -131,8 +131,8 @@ final class DashboardViewModelTests: XCTestCase {
         let sut = try await createSUT(with: user)
         
         // Get mocks from container
-        let mockHealthKitService = try await diContainer.resolve(HealthKitService.self) as! MockHealthKitService
-        let mockNutritionService = try await diContainer.resolve(DashboardNutritionService.self) as! MockDashboardNutritionService
+        let mockHealthKitService = try await diContainer.resolve(HealthKitServiceProtocol.self) as! MockHealthKitService
+        let mockNutritionService = try await diContainer.resolve(DashboardNutritionServiceProtocol.self) as! MockDashboardNutritionService
         let mockAICoachService = try await diContainer.resolve(AICoachServiceProtocol.self) as! MockAICoachService
 
         // Arrange mock values
@@ -168,8 +168,8 @@ final class DashboardViewModelTests: XCTestCase {
         let user = createTestUser()
         
         // Get mocks from container
-        let mockHealthKitService = try await diContainer.resolve(HealthKitService.self) as! MockHealthKitService
-        let mockNutritionService = try await diContainer.resolve(DashboardNutritionService.self) as! MockDashboardNutritionService
+        let mockHealthKitService = try await diContainer.resolve(HealthKitServiceProtocol.self) as! MockHealthKitService
+        let mockNutritionService = try await diContainer.resolve(DashboardNutritionServiceProtocol.self) as! MockDashboardNutritionService
 
         // Arrange failing AI service
         final class FailingAI: AICoachServiceProtocol {

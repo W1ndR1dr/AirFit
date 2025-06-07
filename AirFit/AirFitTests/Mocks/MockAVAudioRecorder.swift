@@ -72,4 +72,12 @@ final class MockAVAudioRecorder: @unchecked Sendable {
     func stubAveragePower(_ power: Float) {
         averagePowerValue = power
     }
+    
+    // MARK: - Reset
+    func reset() {
+        isRecording = false
+        isMeteringEnabled = false
+        recordingError = nil
+        averagePowerValue = -20.0
+    }
 }

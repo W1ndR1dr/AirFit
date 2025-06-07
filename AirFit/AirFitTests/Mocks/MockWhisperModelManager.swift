@@ -137,4 +137,17 @@ final class MockWhisperModelManager: ObservableObject, @unchecked Sendable {
         // This would be used to trigger partial transcription callbacks
         // Implementation depends on how VoiceInputManager handles streaming
     }
+    
+    // MARK: - Reset
+    func reset() {
+        optimalModel = "base"
+        transcriptionResult = nil
+        transcriptionError = nil
+        whisperReady = true
+        initializationError = nil
+        downloadProgress.removeAll()
+        isDownloading.removeAll()
+        downloadedModels = ["base", "tiny"]
+        activeModel = "base"
+    }
 }
