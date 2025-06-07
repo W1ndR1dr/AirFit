@@ -18,6 +18,10 @@ If you find it us
 - **MCP Servers**: Access to any MCP server integration
 - **External Actions**: Ask me to search for tools, validate results, or perform web research
 - **Parallel Agents**: You can spin up subagents when needed.
+- **Codex Agents**: You can delegate tasks to an OpenAI Codex Agent:
+    What Codex Is. OpenAI Codex (launched mid-May 2025) is a cloud-hosted autonomous software-engineering agent. For each task you submit it clones the target branch into an isolated Linux sandbox, iteratively edits the code, compiles and runs the project’s tests until they pass, then produces a clean, review-ready pull request; you can run many such tasks in parallel. The sandbox has no GUI, no Xcode or simulators, and (unless opt-in) no internet access.
+    
+    When to Delegate. Delegate to Codex whenever a job is purely code-bound, objectively verifiable, and headless: bug fixes, routine feature scaffolds, large-scale refactors/renames, unit-test generation, lint/static-analysis clean-ups, or boilerplate docs. Keep tasks that need design judgment, Apple-GUI workflows (Interface Builder, UI-sim tests), external-network calls, or fuzzy architectural choices inside Claude (or human) scope. Before handing off, confirm the repo has reliable automated tests and an AGENTS.md (build + test commands, style rules) so Codex can succeed on the first pass.
 
 Reference Airfit/Docs/Research Reports/Clauide Code Best Practices.md if you need guidance on best way to work.
 
@@ -44,7 +48,7 @@ Reference Airfit/Docs/Research Reports/Clauide Code Best Practices.md if you nee
 - ✅ HealthKit integration complete (nutrition + workouts)
 - ✅ DI migration 90% complete (Onboarding still needs migration)
 - ✅ Main app builds and runs successfully
-- 🚧 Test suite refactoring in progress (Phase 1/3)
+- 🚧 Test suite refactoring in progress (Phase 2/3)
 
 ## Current Focus: Test Suite Standardization
 **Goal**: Transform mixed test patterns into consistent, reliable test suite
@@ -52,7 +56,7 @@ Reference Airfit/Docs/Research Reports/Clauide Code Best Practices.md if you nee
 - **Phase 2**: Standardize - Migrate all tests to DI pattern  
 - **Phase 3**: Fill gaps - Create missing tests, achieve 80%+ coverage
 
-**Progress**: 3/156 tasks complete (see Docs/TEST_EXECUTION_PLAN.md)
+**Progress**: 71/156 tasks complete (45.5%) - Phase 2 over 50% done!
 
 ## Build & Run Commands
 ```bash
