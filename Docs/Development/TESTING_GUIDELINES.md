@@ -45,7 +45,97 @@ AirFit/AirFitUITests/
 └── FoodTracking/
 ```
 
-## 3. Test Types
+## 3. Test Refactoring Guide (2025-06-05)
+
+### Common Refactoring Patterns
+
+#### Pattern 1: Private API Access
+**Problem**: Tests accessing private properties/methods after refactoring
+```swift
+// ❌ OLD: Direct access to private internals
+sut.transcribedText = "test input"
+await sut.processTranscription()
+XCTAssertEqual(sut.parsedItems.count, 1)
+```
+
+**Solution**: Use public interfaces and callbacks
+```swift
+// ✅ NEW: Use public API through mocks
+mockVoiceAdapter.simulateTranscription("test input")
+// Wait for async processing
+await fulfillment(of: [expectation], timeout: 1.0)
+XCTAssertEqual(sut.parsedItems.count, 1)
+```
+
+#### Pattern 2: DI Initialization
+**Problem**: Tests using old initialization patterns
+```swift
+// ❌ OLD: Partial initialization
+let viewModel = FoodTrackingViewModel(
+    user: testUser,
+    coordinator: mockCoordinator
+)
+```
+
+**Solution**: Use full DI pattern
+```swift
+// ✅ NEW: Complete DI initialization
+let viewModel = FoodTrackingViewModel(
+    modelContext: modelContext,
+    user: testUser,
+    foodVoiceAdapter: mockVoiceAdapter,
+    nutritionService: mockNutritionService,
+    coachEngine: mockCoachEngine,
+    coordinator: mockCoordinator
+)
+```
+
+#### Pattern 3: Protocol vs Concrete Types
+**Problem**: Expecting concrete types when protocols are needed
+```swift
+// ❌ OLD: Mock doesn't match expected type
+let adapter: FoodVoiceAdapter = MockFoodVoiceAdapter() // Type mismatch
+```
+
+**Solution**: Add protocol conformance or factory methods
+```swift
+// ✅ NEW: Use protocols or test-specific factories
+protocol FoodVoiceAdapterProtocol { ... }
+class FoodVoiceAdapter: FoodVoiceAdapterProtocol { ... }
+class MockFoodVoiceAdapter: FoodVoiceAdapterProtocol { ... }
+```
+
+#### Pattern 4: Async/Await Updates
+**Problem**: Tests not handling Swift 6 concurrency
+```swift
+// ❌ OLD: Synchronous setUp/tearDown
+override func setUp() {
+    super.setUp()
+    // setup code
+}
+```
+
+**Solution**: Use async setUp/tearDown
+```swift
+// ✅ NEW: Async setUp with MainActor
+override func setUp() async throws {
+    await MainActor.run {
+        super.setUp()
+    }
+    // async setup code
+}
+```
+
+### Test Migration Checklist
+- [ ] Update all mock patterns to support DI
+- [ ] Replace private API access with public interfaces
+- [ ] Add async/await to test lifecycle methods
+- [ ] Update initialization to match new signatures
+- [ ] Ensure Sendable conformance for concurrent code
+- [ ] Remove dependencies on implementation details
+- [ ] Test behavior, not implementation
+
+## 4. Test Types
 
 ### Unit Tests
 **Definition**: Tests for individual units of code in isolation from their dependencies.

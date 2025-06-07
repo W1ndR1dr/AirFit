@@ -2,31 +2,36 @@
 
 Working directory for AirFit architecture cleanup and standardization efforts.
 
-## 🔥 Active Work
-- **FILE_NAMING_FIXES_PLAN.md** - Standardizing all file names (26 files total, 6 done, 20 remaining)
-- **CLEANUP_TRACKER.md** - Overall cleanup progress tracking
-
-## 📚 Key References  
+## 🔥 Active Documents (Simplified)
+- **CLEANUP_TRACKER.md** - Single source of truth for all progress and tasks
+- **DI_MIGRATION_PLAN.md** - Detailed DI migration strategy (Phase 5)
+- **ERROR_HANDLING_GUIDE.md** - Error handling patterns reference
 - **PRESERVATION_GUIDE.md** - What NOT to delete/change (critical!)
-- **ERROR_HANDLING_GUIDE.md** - Error handling patterns
-- **BUILD_STATUS.md** - Current build status
 
 ## 📁 Organization
-- **[../01_PHASES/](../01_PHASES/)** - Cleanup phase definitions
-- **[../Archive/](../Archive/)** - Completed work (Phase 3 modules, old plans)
+- **[../Phases/](../Phases/)** - Phase definitions (mostly complete)
+- **[../Archive/](../Archive/)** - Completed work and historical docs
 
-## 🎯 Current Status
-- Phase 1: ✅ Critical fixes complete
-- Phase 2: ✅ Service migration complete  
-- Phase 3: ✅ Module standardization complete
-- Phase 4: 🚧 File naming standardization (26 files - in progress)
-- Phase 5: ⏳ Modern DI implementation (next)
+## 🎯 Current Priority
+**HealthKit/WorkoutKit Integration** - Implementing core Apple ecosystem features before completing cleanup:
+- `/Docs/HEALTHKIT_NUTRITION_INTEGRATION_PLAN.md`
+- `/Docs/WORKOUTKIT_INTEGRATION_PLAN.md`
+
+## ✅ Completed Phases
+- Phase 1: Critical build fixes
+- Phase 2: Service architecture migration
+- Phase 3: Module standardization
+- Phase 4: File naming standardization
+- Phase 5: DI implementation (90% - paused for HealthKit work)
 
 ## 🛠️ Key Commands
 ```bash
-# After ANY file rename
+# After ANY file changes
 xcodegen generate
 
 # Build check
-xcodebuild build -scheme "AirFit" -destination 'platform=iOS Simulator,name=iPhone 16 Pro,OS=18.4' -quiet
+xcodebuild build -scheme "AirFit" -destination 'platform=iOS Simulator,name=iPhone 16 Pro,OS=18.4'
+
+# Run tests
+xcodebuild test -scheme "AirFit" -destination 'platform=iOS Simulator,name=iPhone 16 Pro,OS=18.4'
 ```
