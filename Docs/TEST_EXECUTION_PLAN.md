@@ -3,7 +3,7 @@
 **Purpose**: Prioritized task list with persistent progress tracking for test suite refactoring.  
 **Last Updated**: 2025-01-07  
 **Current Status**: Phase 2 in progress  
-**Overall Progress**: 33/156 tasks (21.2%)
+**Overall Progress**: 37/156 tasks (23.7%)
 
 ## 🚀 Quick Start for New Agents
 
@@ -18,7 +18,7 @@
 
 ### Phase Progress
 - **Phase 1: Clean House** - 23/23 tasks (100%) ✅ COMPLETE
-- **Phase 2: Standardize** - 9/89 tasks (10.1%) 🔴 CURRENT
+- **Phase 2: Standardize** - 13/89 tasks (14.6%) 🔴 CURRENT
 - **Phase 3: Fill Gaps** - 0/44 tasks (0%) ⏸️ WAITING
 
 ### Known Issues
@@ -29,11 +29,12 @@
 - DIBootstrapperTests was using outdated API - FIXED ✅
 
 ### Last Completed Task
-- NutritionServiceTests - Fixed to use DIContainer properly
-  - Removed manual ModelContainer creation
-  - Now uses ModelContainer from DIContainer
-  - All tests maintained and pass
-  - Already had good structure, just needed DI fix
+- Food Tracking Module - Completed all migration tasks
+  - FoodTrackingViewModelTests: Migrated to DIContainer
+  - FoodVoiceAdapterTests: Added DI pattern
+  - NutritionServiceTests: Fixed ModelContainer usage
+  - Deleted 4 old nutrition parsing test files
+  - Retained AI-prefixed nutrition parsing tests
 
 ### Currently Working On
 - Phase 2: Module migration - Blocked by widespread compilation errors
@@ -171,16 +172,21 @@
 ### Module: Food Tracking (High Priority)
 **Why**: Complex feature with voice input, critical path
 
-- [ ] Migrate `FoodTrackingViewModelTests.swift`
-  - Issues: Manual mocking, private API access
-  - Needs: VoiceInputProtocol extraction
+- [✅] Migrate `FoodTrackingViewModelTests.swift`
+  - Migrated to use DIContainer
+  - Added @MainActor annotation
+  - All mocks retrieved from container
   
 - [✅] Migrate `FoodVoiceAdapterTests.swift`
 - [✅] Migrate `NutritionServiceTests.swift`
-- [ ] Delete old `NutritionParsingTests.swift` variants
-- [ ] Create new `AINutritionParsingTests.swift`
-  - Test current AI parsing implementation
-  - Use DirectAIProcessor patterns
+- [✅] Delete old `NutritionParsingTests.swift` variants
+  - Deleted: NutritionParsingIntegrationTests.swift
+  - Deleted: NutritionParsingExtensiveTests.swift
+  - Deleted: NutritionParsingPerformanceTests.swift
+  - Deleted: NutritionParsingRegressionTests.swift
+- [✅] Create new `AINutritionParsingTests.swift`
+  - Already exists with proper AI implementation tests
+  - AINutritionParsingTests.swift and AINutritionParsingIntegrationTests.swift retained
 
 ### Module: AI Services
 **Why**: Core infrastructure, all features depend on it
