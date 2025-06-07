@@ -27,6 +27,12 @@ final class MockLLMOrchestrator {
         self.apiKeyManager = apiKeyManager
     }
     
+    // MARK: - Test Helper Methods
+    
+    func setShouldThrowError(_ value: Bool) {
+        self.shouldThrowError = value
+    }
+    
     // MARK: - LLMOrchestrator-like Methods
     
     func complete(

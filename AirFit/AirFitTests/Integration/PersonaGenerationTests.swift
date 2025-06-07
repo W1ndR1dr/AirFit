@@ -28,10 +28,10 @@ final class PersonaGenerationTests: XCTestCase {
         let cache = AIResponseCache()
         
         // Setup mocks
-        mockLLMOrchestrator = MockLLMOrchestrator()
+        mockLLMOrchestrator = await MockLLMOrchestrator()
         
         // Create LLMOrchestrator
-        let realLLMOrchestrator = LLMOrchestrator(apiKeyManager: MockAPIKeyManager())
+        let realLLMOrchestrator = await LLMOrchestrator(apiKeyManager: MockAPIKeyManager())
         
         // Create synthesizers
         personaSynthesizer = PersonaSynthesizer(
@@ -44,7 +44,7 @@ final class PersonaGenerationTests: XCTestCase {
         )
         
         // Create PersonaService
-        personaService = PersonaService(
+        personaService = await PersonaService(
             personaSynthesizer: optimizedSynthesizer,
             llmOrchestrator: realLLMOrchestrator,
             modelContext: modelContext,
@@ -174,7 +174,7 @@ final class PersonaGenerationTests: XCTestCase {
     
     func testPersonaGenerationFailure() async throws {
         // Setup LLM to fail
-        mockLLMOrchestrator.shouldThrowError = true
+        await mockLLMOrchestrator.setShouldThrowError(true)
         
         let session = createTestSession()
         modelContext.insert(session)

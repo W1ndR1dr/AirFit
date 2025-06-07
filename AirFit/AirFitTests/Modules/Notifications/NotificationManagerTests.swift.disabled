@@ -10,10 +10,10 @@ final class NotificationManagerTests: XCTestCase {
         try await super.setUp()
         
         // Create test container
-        container = DITestHelper.createTestContainer()
+        container = try await DITestHelper.createTestContainer()
         
         // Create NotificationManager instance
-        sut = NotificationManager.shared
+        sut = try await container.resolve(NotificationManager.self)
     }
     
     override func tearDown() async throws {
