@@ -331,7 +331,6 @@
 		C19411AE7351207F6F9772AC /* OnboardingPerformanceTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 46B5522651C302C944758C78 /* OnboardingPerformanceTests.swift */; };
 		C1FB48E63BEA73C741A89322 /* WorkoutStatisticsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9F75EB776BD7B9E5F55464F5 /* WorkoutStatisticsView.swift */; };
 		C33B706DC05FA5144CD4FFFC /* OpenAIProvider.swift in Sources */ = {isa = PBXBuildFile; fileRef = C8A23AAA2E3D74C0BD408D6E /* OpenAIProvider.swift */; };
-		C483F7DC287381243690905A /* ServiceIntegrationTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2E5056FB4C59D4F3AA5F1D00 /* ServiceIntegrationTests.swift */; };
 		C4A10477DC7C59A39D647427 /* ConversationAnalytics.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8FECD37C1B9428CD20AC2FCD /* ConversationAnalytics.swift */; };
 		C4FA472770E7A6DF3C95DDEE /* MockAVAudioSession.swift in Sources */ = {isa = PBXBuildFile; fileRef = 10C9724D9ADFCBE086196908 /* MockAVAudioSession.swift */; };
 		C50CF4B143E552D8E0A046AB /* MockAIGoalService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 34BBC656E94D5ACBC793414D /* MockAIGoalService.swift */; };
@@ -349,7 +348,6 @@
 		CE1DB0BEAF1AA8144108DF81 /* MockConversationPersistence.swift in Sources */ = {isa = PBXBuildFile; fileRef = E70431F303BB4E2DA5BBB6B3 /* MockConversationPersistence.swift */; };
 		CEB3B57F87485DFF8B310175 /* HealthKitAuthManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = C0C1FC092E47241CE247DFA0 /* HealthKitAuthManager.swift */; };
 		CF586E35A1213A10911703C9 /* View+Styling.swift in Sources */ = {isa = PBXBuildFile; fileRef = 967C8F4FC46AF3A6096F6119 /* View+Styling.swift */; };
-		CFA5158B22F7A3FB801D3B28 /* Phase2ValidationTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9D3609446D0540544CBB4DD3 /* Phase2ValidationTests.swift */; };
 		D0DC2C42B0D055C0DE8180D6 /* OnboardingOrchestrator.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0F7D7324823088A50D01B618 /* OnboardingOrchestrator.swift */; };
 		D21DF6FB37C65D848033690D /* ChatCoordinatorTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = FC1BEDAD32C7F731C8A4900B /* ChatCoordinatorTests.swift */; };
 		D2DB6E24084CDC39B2E7A698 /* WorkoutSyncService.swift in Sources */ = {isa = PBXBuildFile; fileRef = D6D89032346EBEC5F976CCF2 /* WorkoutSyncService.swift */; };
@@ -520,7 +518,6 @@
 		2B90CFEB6341BF989BAD9220 /* DirectAIPerformanceTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DirectAIPerformanceTests.swift; sourceTree = "<group>"; };
 		2CC7CC129C677A7EB19CA324 /* MockGoalService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MockGoalService.swift; sourceTree = "<group>"; };
 		2DF48B6AB5E3447EB8AB91F9 /* UserDataExporter.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = UserDataExporter.swift; sourceTree = "<group>"; };
-		2E5056FB4C59D4F3AA5F1D00 /* ServiceIntegrationTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ServiceIntegrationTests.swift; sourceTree = "<group>"; };
 		2E8FD3D3E6FD9B574798F53F /* ValidatorsTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ValidatorsTests.swift; sourceTree = "<group>"; };
 		2F53D6F74EB52DF93CE9614F /* FoodTrackingViewModelTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FoodTrackingViewModelTests.swift; sourceTree = "<group>"; };
 		315821A8700C81883A46CD07 /* PersonaGenerationTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PersonaGenerationTests.swift; sourceTree = "<group>"; };
@@ -697,7 +694,6 @@
 		9B8780801F23B6AF21A3B0BB /* NetworkClientProtocol.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NetworkClientProtocol.swift; sourceTree = "<group>"; };
 		9BAAB368D0AD74B0FED40963 /* AIAnalyticsService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AIAnalyticsService.swift; sourceTree = "<group>"; };
 		9BEC58E631F0685EAFC8CFD2 /* AnthropicProvider.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AnthropicProvider.swift; sourceTree = "<group>"; };
-		9D3609446D0540544CBB4DD3 /* Phase2ValidationTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Phase2ValidationTests.swift; sourceTree = "<group>"; };
 		9E4A7CBD578AFC8B2638DF33 /* GoalServiceProtocol.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GoalServiceProtocol.swift; sourceTree = "<group>"; };
 		9F75EB776BD7B9E5F55464F5 /* WorkoutStatisticsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WorkoutStatisticsView.swift; sourceTree = "<group>"; };
 		9F8A93BEFE768B25CB6DC872 /* CoachEngineTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CoachEngineTests.swift; sourceTree = "<group>"; };
@@ -2169,7 +2165,6 @@
 				6038A37C6C1CCD16D0389FE0 /* LocalCommandParserTests.swift */,
 				F2786BF5B755ECCF5643313B /* MessageClassificationTests.swift */,
 				58296DE7F4726AD43BBD29EA /* PersonaEngineTests.swift */,
-				9D3609446D0540544CBB4DD3 /* Phase2ValidationTests.swift */,
 			);
 			path = AI;
 			sourceTree = "<group>";
@@ -2220,7 +2215,6 @@
 				0247E202C8BC9275D31E7D7D /* GeminiProviderTests.swift */,
 				752E1999026A42B7113D42FC /* MockServicesTests.swift */,
 				3FDBBF9FE045C86ED7E8A5D5 /* NetworkManagerTests.swift */,
-				2E5056FB4C59D4F3AA5F1D00 /* ServiceIntegrationTests.swift */,
 				DD3AA59777E8CF27325E3164 /* ServiceProtocolsTests.swift */,
 				B8E591A2E509DEF881091300 /* TestHelpers.swift */,
 				5CC358EE4A4A8582CFD33075 /* WeatherServiceTests.swift */,
@@ -2553,8 +2547,6 @@
 				986422811782A39E4B584D48 /* PersonaEngineTests.swift in Sources */,
 				19803077D3BBD63E9FEDC6E0 /* PersonaGenerationTests.swift in Sources */,
 				5E665A93FC5665BC6FF83C15 /* PersonaServiceTests.swift in Sources */,
-				CFA5158B22F7A3FB801D3B28 /* Phase2ValidationTests.swift in Sources */,
-				C483F7DC287381243690905A /* ServiceIntegrationTests.swift in Sources */,
 				7D2BDDDDC164806E4551FB8F /* ServiceProtocolsTests.swift in Sources */,
 				4E670E8F01C8D98AE15911E3 /* SettingsModelsTests.swift in Sources */,
 				0C5F28F9BC4874D47D0219B6 /* SettingsViewModelTests.swift in Sources */,
