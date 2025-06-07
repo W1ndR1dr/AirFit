@@ -3,36 +3,41 @@ import SwiftData
 @testable import AirFit
 
 @MainActor
-
 final class SettingsViewModelTests: XCTestCase {
+    // MARK: - Properties
     private var container: DIContainer!
-    var sut: SettingsViewModel!
-    var mockAPIKeyManager: MockAPIKeyManager!
-    var mockAIService: MockAIService!
-    var mockNotificationManager: MockNotificationManager!
-    var modelContext: ModelContext!
-    var testUser: User!
-    var coordinator: SettingsCoordinator!
+    private var sut: SettingsViewModel!
+    private var mockAPIKeyManager: MockAPIKeyManager!
+    private var mockAIService: MockAIService!
+    private var mockNotificationManager: MockNotificationManager!
+    private var modelContext: ModelContext!
+    private var testUser: User!
+    private var coordinator: SettingsCoordinator!
 
+    // MARK: - Setup
     override func setUp() async throws {
         try await super.setUp()
-
-        // Setup test context
-        let config = ModelConfiguration(isStoredInMemoryOnly: true)
-        let modelContainer = try ModelContainer(for: User.self, configurations: config)
-        modelContext = ModelContext(modelContainer)
-
+        
+        // Create test container
+        container = try await DITestHelper.createTestContainer()
+        
+        // Get model context from container
+        let modelContainer = try await container.resolve(ModelContainer.self)
+        modelContext = modelContainer.mainContext
+        
         // Create test user
         testUser = User(name: "Test User")
         modelContext.insert(testUser)
         try modelContext.save()
-
-        // Setup mocks
-        mockAPIKeyManager = MockAPIKeyManager()
-        mockAIService = MockAIService()
-        mockNotificationManager = MockNotificationManager()
+        
+        // Get mocks from container
+        mockAPIKeyManager = try await container.resolve(APIKeyManagementProtocol.self) as? MockAPIKeyManager
+        mockAIService = try await container.resolve(AIServiceProtocol.self) as? MockAIService
+        mockNotificationManager = try await container.resolve(NotificationManager.self) as? MockNotificationManager
+        
+        // Create coordinator manually (not in DI container yet)
         coordinator = SettingsCoordinator()
-
+        
         // Create SUT
         sut = SettingsViewModel(
             modelContext: modelContext,
@@ -45,6 +50,9 @@ final class SettingsViewModelTests: XCTestCase {
     }
 
     override func tearDown() async throws {
+        mockAPIKeyManager?.reset()
+        mockAIService?.reset()
+        mockNotificationManager?.reset()
         sut = nil
         mockAPIKeyManager = nil
         mockAIService = nil
@@ -58,8 +66,6 @@ final class SettingsViewModelTests: XCTestCase {
 
     // MARK: - Loading Tests
 
-    @MainActor
-
     func test_loadSettings_shouldPopulateAvailableProviders() async {
         // Act
         await sut.loadSettings()
@@ -69,8 +75,6 @@ final class SettingsViewModelTests: XCTestCase {
         XCTAssertTrue(sut.availableProviders.contains(.openAI))
         XCTAssertTrue(sut.availableProviders.contains(.anthropic))
     }
-
-    @MainActor
 
     func test_loadSettings_shouldCheckInstalledAPIKeys() async {
         // Arrange
@@ -86,8 +90,6 @@ final class SettingsViewModelTests: XCTestCase {
 
     // MARK: - API Key Management Tests
 
-    @MainActor
-
     func test_saveAPIKey_withValidKey_shouldStoreAndConfigureService() async throws {
         // Arrange
         let testKey = "sk-test1234567890"
@@ -101,8 +103,6 @@ final class SettingsViewModelTests: XCTestCase {
         XCTAssertTrue(sut.installedAPIKeys.contains(.openAI))
         XCTAssertTrue(mockAIService.isConfigured)
     }
-
-    @MainActor
 
     func test_saveAPIKey_withInvalidFormat_shouldThrowError() async {
         // Arrange
@@ -118,8 +118,6 @@ final class SettingsViewModelTests: XCTestCase {
             XCTFail("Unexpected error: \(error)")
         }
     }
-
-    @MainActor
 
     func test_deleteAPIKey_forActiveProvider_shouldSwitchToAlternative() async throws {
         // Arrange
@@ -137,8 +135,6 @@ final class SettingsViewModelTests: XCTestCase {
 
     // MARK: - Preference Update Tests
 
-    @MainActor
-
     func test_updateUnits_shouldSaveAndPostNotification() async throws {
         // Arrange
         let expectation = expectation(forNotification: .unitsChanged, object: nil)
@@ -152,8 +148,6 @@ final class SettingsViewModelTests: XCTestCase {
         await fulfillment(of: [expectation], timeout: 1.0)
     }
 
-    @MainActor
-
     func test_updateAppearance_shouldSavePreference() async throws {
         // Act
         try await sut.updateAppearance(.dark)
@@ -162,8 +156,6 @@ final class SettingsViewModelTests: XCTestCase {
         XCTAssertEqual(sut.appearanceMode, .dark)
         XCTAssertEqual(testUser.appearanceMode, .dark)
     }
-
-    @MainActor
 
     func test_updateHaptics_shouldSavePreference() async throws {
         // Act
@@ -175,8 +167,6 @@ final class SettingsViewModelTests: XCTestCase {
     }
 
     // MARK: - Biometric Lock Tests
-
-    @MainActor
 
     func test_updateBiometricLock_whenNotAvailable_shouldThrowError() async {
         // Arrange
@@ -195,8 +185,6 @@ final class SettingsViewModelTests: XCTestCase {
 
     // MARK: - Persona Tests
 
-    @MainActor
-
     func test_loadCoachPersona_withValidData_shouldLoadPersona() async throws {
         // Arrange
         let testPersona = createTestPersona()
@@ -210,8 +198,6 @@ final class SettingsViewModelTests: XCTestCase {
         XCTAssertNotNil(sut.coachPersona)
         XCTAssertEqual(sut.coachPersona?.identity.name, testPersona.identity.name)
     }
-
-    @MainActor
 
     func test_generatePersonaPreview_withNoPersona_shouldThrowError() async {
         // Arrange

@@ -3,48 +3,64 @@ import SwiftData
 @testable import AirFit
 
 @MainActor
-
 final class WorkoutViewModelTests: XCTestCase {
-    var container: ModelContainer!
-    var context: ModelContext!
-    var user: User!
-    var mockCoach: MockWorkoutCoachEngine!
-    var mockHealth: MockHealthKitManager!
-    var sut: WorkoutViewModel!
+    // MARK: - Properties
+    private var container: DIContainer!
+    private var modelContext: ModelContext!
+    private var user: User!
+    private var mockCoach: MockCoachEngine!
+    private var mockHealthKitManager: MockHealthKitManager!
+    private var mockWorkoutService: MockWorkoutService!
+    private var sut: WorkoutViewModel!
 
+    // MARK: - Setup
     override func setUp() async throws {
         try await super.setUp()
         
-        container = try ModelContainer.createTestContainer()
-        context = container.mainContext
-        user = User(name: "Tester")
-        context.insert(user)
-        try context.save()
-        mockCoach = MockWorkoutCoachEngine()
-        mockHealth = MockHealthKitManager()
+        // Create test container
+        container = try await DITestHelper.createTestContainer()
         
+        // Get model context from container
+        let modelContainer = try await container.resolve(ModelContainer.self)
+        modelContext = modelContainer.mainContext
+        
+        // Create test user
+        user = User(name: "Tester")
+        modelContext.insert(user)
+        try modelContext.save()
+        
+        // Get mocks from container
+        mockCoach = try await container.resolve(CoachEngine.self) as? MockCoachEngine
+        mockHealthKitManager = try await container.resolve(HealthKitManagerProtocol.self) as? MockHealthKitManager
+        mockWorkoutService = try await container.resolve(WorkoutServiceProtocol.self) as? MockWorkoutService
+        
+        // Create SUT
         sut = WorkoutViewModel(
-            modelContext: context,
+            modelContext: modelContext,
             user: user,
             coachEngine: mockCoach,
-            healthKitManager: mockHealth,
+            healthKitManager: mockHealthKitManager,
             exerciseDatabase: ExerciseDatabase.shared,
             workoutSyncService: WorkoutSyncService.shared
         )
     }
 
     override func tearDown() async throws {
+        mockCoach?.reset()
+        mockHealthKitManager?.reset()
+        mockWorkoutService?.reset()
         sut = nil
         mockCoach = nil
-        mockHealth = nil
+        mockHealthKitManager = nil
+        mockWorkoutService = nil
         user = nil
-        context = nil
+        modelContext = nil
         container = nil
         try await super.tearDown()
     }
 
     // MARK: - Workout Loading Tests
-    @MainActor
+    
     func test_loadWorkouts_withNoWorkouts_shouldReturnEmptyArray() async throws {
         // Act
         await sut.loadWorkouts()
@@ -55,17 +71,15 @@ final class WorkoutViewModelTests: XCTestCase {
         XCTAssertEqual(sut.weeklyStats.totalWorkouts, 0)
     }
 
-    @MainActor
-
     func test_loadWorkouts_fetchesUserWorkouts() async throws {
         // Arrange
         let w1 = Workout(name: "W1", user: user)
         w1.completedDate = Date()
         let w2 = Workout(name: "W2", user: user)
         w2.completedDate = Date().addingTimeInterval(-3_600)
-        context.insert(w1)
-        context.insert(w2)
-        try context.save()
+        modelContext.insert(w1)
+        modelContext.insert(w2)
+        try modelContext.save()
 
         // Act
         await sut.loadWorkouts()
@@ -75,8 +89,6 @@ final class WorkoutViewModelTests: XCTestCase {
         XCTAssertEqual(sut.workouts.first?.id, w1.id) // Most recent first
         XCTAssertFalse(sut.isLoading)
     }
-
-    @MainActor
 
     func test_loadWorkouts_shouldSortByCompletedDateDescending() async throws {
         // Arrange
@@ -89,10 +101,10 @@ final class WorkoutViewModelTests: XCTestCase {
         let middle = Workout(name: "Middle", user: user)
         middle.completedDate = Date().addingTimeInterval(-3_600)
 
-        context.insert(oldest)
-        context.insert(newest)
-        context.insert(middle)
-        try context.save()
+        modelContext.insert(oldest)
+        modelContext.insert(newest)
+        modelContext.insert(middle)
+        try modelContext.save()
 
         // Act
         await sut.loadWorkouts()
@@ -103,8 +115,6 @@ final class WorkoutViewModelTests: XCTestCase {
         XCTAssertEqual(sut.workouts[1].name, "Middle")
         XCTAssertEqual(sut.workouts[2].name, "Oldest")
     }
-
-    @MainActor
 
     func test_loadWorkouts_withDatabaseError_shouldHandleGracefully() async throws {
         // Arrange - Create invalid context to trigger error
@@ -157,7 +167,7 @@ final class WorkoutViewModelTests: XCTestCase {
         await sut.processReceivedWorkout(data: builder)
 
         // Assert
-        let fetched = try context.fetch(FetchDescriptor<Workout>())
+        let fetched = try modelContext.fetch(FetchDescriptor<Workout>())
         XCTAssertEqual(fetched.count, 1)
         XCTAssertEqual(fetched.first?.caloriesBurned, 100)
         XCTAssertEqual(fetched.first?.durationSeconds, 60)
@@ -166,8 +176,6 @@ final class WorkoutViewModelTests: XCTestCase {
         XCTAssertEqual(fetched.first?.exercises.first?.sets.count, 1)
         XCTAssertFalse(sut.isLoading)
     }
-
-    @MainActor
 
     func test_processReceivedWorkout_withComplexWorkout_shouldCreateAllExercisesAndSets() async throws {
         // Arrange
@@ -207,7 +215,7 @@ final class WorkoutViewModelTests: XCTestCase {
         await sut.processReceivedWorkout(data: builder)
 
         // Assert
-        let fetched = try context.fetch(FetchDescriptor<Workout>())
+        let fetched = try modelContext.fetch(FetchDescriptor<Workout>())
         XCTAssertEqual(fetched.count, 1)
 
         let workout = fetched.first!
@@ -233,8 +241,6 @@ final class WorkoutViewModelTests: XCTestCase {
         XCTAssertEqual(plank?.sets.first?.completedDurationSeconds, 60.0)
     }
 
-    @MainActor
-
     func test_processReceivedWorkout_shouldTriggerAIAnalysis() async throws {
         // Arrange
         let builder = WorkoutBuilderData(
@@ -256,8 +262,6 @@ final class WorkoutViewModelTests: XCTestCase {
         XCTAssertTrue(mockCoach.didGenerateAnalysis)
         XCTAssertEqual(sut.aiWorkoutSummary, "Great workout session!")
     }
-
-    @MainActor
 
     func test_processReceivedWorkout_withSyncError_shouldHandleGracefully() async throws {
         // Arrange
@@ -298,8 +302,8 @@ final class WorkoutViewModelTests: XCTestCase {
         // Arrange
         let workout = Workout(name: "Test", user: user)
         workout.completedDate = Date()
-        context.insert(workout)
-        try context.save()
+        modelContext.insert(workout)
+        try modelContext.save()
         mockCoach.mockAnalysis = "Well done"
 
         // Act
@@ -311,17 +315,15 @@ final class WorkoutViewModelTests: XCTestCase {
         XCTAssertFalse(sut.isGeneratingAnalysis)
     }
 
-    @MainActor
-
     func test_generateAIAnalysis_withMultipleWorkouts_shouldIncludeRecentWorkouts() async throws {
         // Arrange
         let workouts = (1...7).map { i in
             let workout = Workout(name: "Workout \(i)", user: user)
             workout.completedDate = Date().addingTimeInterval(TimeInterval(-i * 3_600))
-            context.insert(workout)
+            modelContext.insert(workout)
             return workout
         }
-        try context.save()
+        try modelContext.save()
 
         await sut.loadWorkouts()
         mockCoach.mockAnalysis = "Progressive improvement"
@@ -339,14 +341,12 @@ final class WorkoutViewModelTests: XCTestCase {
         // This is more reliable than mock verification in async contexts
     }
 
-    @MainActor
-
     func test_generateAIAnalysis_withError_shouldHandleGracefully() async throws {
         // Arrange
         let workout = Workout(name: "Test", user: user)
         workout.completedDate = Date()
-        context.insert(workout)
-        try context.save()
+        modelContext.insert(workout)
+        try modelContext.save()
 
         mockCoach.shouldThrowError = true
 
@@ -373,9 +373,9 @@ final class WorkoutViewModelTests: XCTestCase {
         w2.durationSeconds = 30
         w2.caloriesBurned = 40
 
-        context.insert(w1)
-        context.insert(w2)
-        try context.save()
+        modelContext.insert(w1)
+        modelContext.insert(w2)
+        try modelContext.save()
 
         // Act
         await sut.loadWorkouts()
@@ -385,8 +385,6 @@ final class WorkoutViewModelTests: XCTestCase {
         XCTAssertEqual(sut.weeklyStats.totalCalories, 90)
         XCTAssertEqual(sut.weeklyStats.totalDuration, 90)
     }
-
-    @MainActor
 
     func test_calculateWeeklyStats_excludesOldWorkouts() async throws {
         // Arrange
@@ -401,9 +399,9 @@ final class WorkoutViewModelTests: XCTestCase {
         oldWorkout.durationSeconds = 120
         oldWorkout.caloriesBurned = 100
 
-        context.insert(recentWorkout)
-        context.insert(oldWorkout)
-        try context.save()
+        modelContext.insert(recentWorkout)
+        modelContext.insert(oldWorkout)
+        try modelContext.save()
 
         // Act
         await sut.loadWorkouts()
@@ -414,8 +412,6 @@ final class WorkoutViewModelTests: XCTestCase {
         XCTAssertEqual(sut.weeklyStats.totalDuration, 60)
     }
 
-    @MainActor
-
     func test_calculateWeeklyStats_withPlannedDateFallback_shouldIncludeWorkout() async throws {
         // Arrange
         let today = Date()
@@ -425,8 +421,8 @@ final class WorkoutViewModelTests: XCTestCase {
         workout.durationSeconds = 45
         workout.caloriesBurned = 30
 
-        context.insert(workout)
-        try context.save()
+        modelContext.insert(workout)
+        try modelContext.save()
 
         // Act
         await sut.loadWorkouts()
@@ -437,8 +433,6 @@ final class WorkoutViewModelTests: XCTestCase {
         XCTAssertEqual(sut.weeklyStats.totalDuration, 45)
     }
 
-    @MainActor
-
     func test_calculateWeeklyStats_withNilValues_shouldHandleGracefully() async throws {
         // Arrange
         let today = Date()
@@ -447,8 +441,8 @@ final class WorkoutViewModelTests: XCTestCase {
         workout.durationSeconds = nil
         workout.caloriesBurned = nil
 
-        context.insert(workout)
-        try context.save()
+        modelContext.insert(workout)
+        try modelContext.save()
 
         // Act
         await sut.loadWorkouts()
@@ -485,15 +479,13 @@ final class WorkoutViewModelTests: XCTestCase {
         try await Task.sleep(nanoseconds: 100_000_000) // 100ms
 
         // Assert
-        let fetched = try context.fetch(FetchDescriptor<Workout>())
+        let fetched = try modelContext.fetch(FetchDescriptor<Workout>())
         XCTAssertEqual(fetched.count, 1)
     }
 
-    @MainActor
-
     func test_handleWorkoutDataReceived_withInvalidData_shouldIgnore() async throws {
         // Arrange
-        let initialCount = try context.fetchCount(FetchDescriptor<Workout>())
+        let initialCount = try modelContext.fetchCount(FetchDescriptor<Workout>())
 
         // Act
         NotificationCenter.default.post(
@@ -506,7 +498,7 @@ final class WorkoutViewModelTests: XCTestCase {
         try await Task.sleep(nanoseconds: 50_000_000) // 50ms
 
         // Assert
-        let finalCount = try context.fetchCount(FetchDescriptor<Workout>())
+        let finalCount = try modelContext.fetchCount(FetchDescriptor<Workout>())
         XCTAssertEqual(finalCount, initialCount)
     }
 
@@ -528,14 +520,12 @@ final class WorkoutViewModelTests: XCTestCase {
         XCTAssertFalse(sut.isLoading)
     }
 
-    @MainActor
-
     func test_isGeneratingAnalysis_shouldBeSetDuringAIGeneration() async throws {
         // Arrange
         let workout = Workout(name: "Test", user: user)
         workout.completedDate = Date()
-        context.insert(workout)
-        try context.save()
+        modelContext.insert(workout)
+        try modelContext.save()
 
         mockCoach.mockAnalysis = "Analysis"
         XCTAssertFalse(sut.isGeneratingAnalysis)
@@ -557,9 +547,9 @@ final class WorkoutViewModelTests: XCTestCase {
         for i in 1...100 {
             let workout = Workout(name: "Workout \(i)", user: user)
             workout.completedDate = Date().addingTimeInterval(TimeInterval(-i * 60))
-            context.insert(workout)
+            modelContext.insert(workout)
         }
-        try context.save()
+        try modelContext.save()
 
         // Act & Assert
         let startTime = CFAbsoluteTimeGetCurrent()
@@ -570,8 +560,6 @@ final class WorkoutViewModelTests: XCTestCase {
         XCTAssertEqual(sut.workouts.count, 100)
     }
 
-    @MainActor
-
     func test_calculateWeeklyStats_performance_shouldCompleteQuickly() async throws {
         // Arrange - Create many workouts
         for i in 1...50 {
@@ -579,9 +567,9 @@ final class WorkoutViewModelTests: XCTestCase {
             workout.completedDate = Date().addingTimeInterval(TimeInterval(-i * 3_600))
             workout.durationSeconds = Double(i * 60)
             workout.caloriesBurned = Double(i * 10)
-            context.insert(workout)
+            modelContext.insert(workout)
         }
-        try context.save()
+        try modelContext.save()
 
         await sut.loadWorkouts()
 

@@ -3,7 +3,7 @@
 **Purpose**: Prioritized task list with persistent progress tracking for test suite refactoring.  
 **Last Updated**: 2025-01-07  
 **Current Status**: Phase 2 in progress  
-**Overall Progress**: 51/156 tasks (32.7%)
+**Overall Progress**: 57/156 tasks (36.5%)
 
 ## 🚀 Quick Start for New Agents
 
@@ -18,7 +18,7 @@
 
 ### Phase Progress
 - **Phase 1: Clean House** - 23/23 tasks (100%) ✅ COMPLETE
-- **Phase 2: Standardize** - 28/89 tasks (31.5%) 🔴 CURRENT
+- **Phase 2: Standardize** - 34/89 tasks (38.2%) 🔴 CURRENT
 - **Phase 3: Fill Gaps** - 0/44 tasks (0%) ⏸️ WAITING
 
 ### Known Issues
@@ -29,11 +29,11 @@
 - DIBootstrapperTests was using outdated API - FIXED ✅
 
 ### Last Completed Task
-- Chat Module - COMPLETE ✅
-  - ChatViewModelTests: Migrated to use DIContainer, cleaned up test setup
-  - ChatSuggestionsEngineTests: Migrated to use DIContainer
-  - ChatCoordinatorTests: Updated to use async setUp/tearDown
-  - All Chat module tests now follow consistent patterns
+- Settings & Workouts Modules - COMPLETE ✅
+  - Settings: SettingsViewModelTests migrated to DIContainer
+  - Workouts: WorkoutViewModelTests migrated to DIContainer
+  - WorkoutCoordinatorTests: Updated to use async setUp/tearDown
+  - All tests now follow consistent DI patterns
 
 ### Currently Working On
 - Phase 2: Module migration - Blocked by widespread compilation errors
@@ -233,19 +233,25 @@
 ### Module: Settings
 **Why**: User preferences and configuration
 
-- [ ] Keep `SettingsViewModelTests.swift` (already good)
-- [ ] Migrate `BiometricAuthManagerTests.swift`
-- [ ] Verify all use proper DI patterns
+- [✅] Keep `SettingsViewModelTests.swift` (already good)
+  - Migrated to use DIContainer for consistency
+- [✅] Migrate `BiometricAuthManagerTests.swift`
+  - Already has async setup/tearDown, no DI needed
+- [✅] Verify all use proper DI patterns
+  - SettingsModelsTests is model testing, no DI needed
 
 ### Module: Workouts
 **Why**: Core fitness tracking feature
 
-- [ ] Decision: Enable `WorkoutViewModelTests.swift`?
+- [✅] Decision: Enable `WorkoutViewModelTests.swift`?
   - Currently disabled
   - Assess effort vs value
+  - Found it was already enabled, migrated to use DIContainer
   
-- [ ] Migrate or create `WorkoutServiceTests.swift`
-- [ ] Migrate `WorkoutCoordinatorTests.swift`
+- [✅] Migrate or create `WorkoutServiceTests.swift`
+  - Does not exist, WorkoutService is tested via AIWorkoutServiceTests
+- [✅] Migrate `WorkoutCoordinatorTests.swift`
+  - Updated to use async setUp/tearDown
 
 ### Module: Core Infrastructure
 
