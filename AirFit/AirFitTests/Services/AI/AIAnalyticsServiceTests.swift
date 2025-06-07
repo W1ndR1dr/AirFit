@@ -5,6 +5,7 @@ import SwiftData
 @MainActor
 final class AIAnalyticsServiceTests: XCTestCase {
     // MARK: - Properties
+    private var container: DIContainer!
     private var sut: AIAnalyticsService!
     private var mockAnalyticsService: MockAnalyticsService!
     private var modelContext: ModelContext!
@@ -14,11 +15,12 @@ final class AIAnalyticsServiceTests: XCTestCase {
     override func setUp() async throws {
         try await super.setUp()
         
-        // Create in-memory model container
-        let schema = Schema([User.self, Workout.self, FoodEntry.self])
-        let configuration = ModelConfiguration(schema: schema, isStoredInMemoryOnly: true)
-        let modelContainer = try ModelContainer(for: schema, configurations: [configuration])
-        modelContext = ModelContext(modelContainer)
+        // Create test container
+        container = try await DITestHelper.createTestContainer()
+        
+        // Get model context from container
+        let modelContainer = try await container.resolve(ModelContainer.self)
+        modelContext = modelContainer.mainContext
         
         // Create test user
         testUser = User(email: "test@example.com", name: "Test User")
@@ -28,17 +30,22 @@ final class AIAnalyticsServiceTests: XCTestCase {
         modelContext.insert(testUser)
         try modelContext.save()
         
-        // Create mocks and service
-        mockAnalyticsService = MockAnalyticsService()
+        // Get mock from container
+        mockAnalyticsService = try await container.resolve(AnalyticsServiceProtocol.self) as? MockAnalyticsService
+        XCTAssertNotNil(mockAnalyticsService, "Expected MockAnalyticsService from test container")
+        
+        // Create service with injected dependencies
         sut = AIAnalyticsService(analyticsService: mockAnalyticsService)
     }
     
-    override func tearDown() {
+    override func tearDown() async throws {
+        mockAnalyticsService?.reset()
         sut = nil
         mockAnalyticsService = nil
         modelContext = nil
         testUser = nil
-        super.tearDown()
+        container = nil
+        try await super.tearDown()
     }
     
     // MARK: - Analyze Performance Tests

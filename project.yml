@@ -419,23 +419,18 @@ targets:
       - AirFit/AirFitTests/Services/Speech/VoiceInputManagerTests.swift
       - AirFit/AirFitTests/Core/DI/DIContainerTests.swift
       - AirFit/AirFitTests/Core/DI/DIBootstrapperTests.swift
-      # - AirFit/AirFitTests/Modules/Dashboard/DashboardViewModelTests.swift # Needs updating for new DI system
+      - AirFit/AirFitTests/Modules/Dashboard/DashboardViewModelTests.swift
       # DISABLED TESTS - Refactoring needed after DI migration (2025-06-05)
       # Priority 1: Core Module Tests
-      # - AirFit/AirFitTests/Modules/FoodTracking/FoodTrackingViewModelTests.swift # Swift 6 concurrency issues with test setup
+      - AirFit/AirFitTests/Modules/FoodTracking/FoodTrackingViewModelTests.swift
       - AirFit/AirFitTests/Modules/FoodTracking/FoodVoiceAdapterTests.swift
       # NEW TASK 6 TEST FILES (CRITICAL: Add for comprehensive test coverage)
-      - AirFit/AirFitTests/Modules/FoodTracking/NutritionParsingExtensiveTests.swift
       - AirFit/AirFitTests/Modules/FoodTracking/Services/NutritionServiceTests.swift
       - AirFit/AirFitTests/Modules/FoodTracking/FoodTrackingViewModelAIIntegrationTests.swift
       - AirFit/AirFitTests/Modules/FoodTracking/AINutritionParsingIntegrationTests.swift
       - AirFit/AirFitTests/Modules/FoodTracking/AINutritionParsingTests.swift
       - AirFit/AirFitTests/Modules/FoodTracking/FoodTrackingCoordinatorTests.swift
-      # TASK 7 PERFORMANCE & REGRESSION TEST FILES (CRITICAL: Phase 1 Task 7)
-      - AirFit/AirFitTests/Performance/NutritionParsingPerformanceTests.swift
-      - AirFit/AirFitTests/Performance/NutritionParsingRegressionTests.swift
       # Priority 2: Integration Tests
-      # - AirFit/AirFitTests/Integration/NutritionParsingIntegrationTests.swift # Needs updating for new initializers
       # - AirFit/AirFitTests/Integration/PersonaSystemIntegrationTests.swift # PersonalityInsights API
       # - AirFit/AirFitTests/Modules/FoodTracking/NutritionParsingFinalIntegrationTests.swift # Multiple issues
       - AirFit/AirFitTests/Integration/OnboardingFlowTests.swift
