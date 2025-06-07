@@ -44,7 +44,6 @@ targets:
       - AirFit/Modules/Onboarding/ViewModels/OnboardingViewModel.swift
       - AirFit/Modules/Onboarding/ViewModels/ConversationViewModel.swift
       - AirFit/Modules/Onboarding/Views/OnboardingFlowView.swift
-      - AirFit/Modules/Onboarding/Views/OnboardingFlowViewDI.swift
       - AirFit/Modules/Onboarding/Views/ConversationView.swift
       - AirFit/Modules/Onboarding/Views/LifeSnapshotView.swift
       - AirFit/Modules/Onboarding/Views/OpeningScreenView.swift
@@ -124,7 +123,6 @@ targets:
       - AirFit/Core/Enums/MessageType.swift
       - AirFit/Core/Models/HealthContextSnapshot.swift
       - AirFit/Core/Models/WorkoutBuilderData.swift
-      - AirFit/Core/Models/VoiceInputState.swift
       - AirFit/Core/Models/AI/AIModels.swift
       - AirFit/Modules/AI/Models/DirectAIModels.swift
       - AirFit/Modules/AI/Models/NutritionParseResult.swift
@@ -174,10 +172,8 @@ targets:
       - AirFit/Core/Protocols/UserServiceProtocol.swift
       - AirFit/Services/User/UserService.swift
       - AirFit/Core/Protocols/WhisperServiceWrapperProtocol.swift
-      - AirFit/Core/Protocols/VoiceInputProtocol.swift
       - AirFit/Services/AI/AIService.swift
       - AirFit/Services/AI/OfflineAIService.swift
-      - AirFit/Services/AI/TestModeAIService.swift
       - AirFit/Services/Analytics/AnalyticsService.swift
       - AirFit/Modules/Workouts/Services/WorkoutService.swift
       - AirFit/Core/Protocols/LLMProvider.swift
@@ -187,9 +183,6 @@ targets:
       - AirFit/Services/AI/LLMProviders/GeminiProvider.swift
       - AirFit/Services/AI/LLMOrchestrator.swift
       - AirFit/Services/AI/AIResponseCache.swift
-      - AirFit/Services/AI/AIGoalService.swift
-      - AirFit/Services/AI/AIWorkoutService.swift
-      - AirFit/Services/AI/AIAnalyticsService.swift
       - AirFit/Modules/AI/Parsing/LocalCommandParser.swift
       - AirFit/Modules/AI/Functions/FunctionRegistry.swift
       - AirFit/Modules/AI/Functions/WorkoutFunctions.swift
@@ -212,7 +205,6 @@ targets:
       # Dependency Injection System
       - AirFit/Core/DI/DIContainer.swift
       - AirFit/Core/DI/DIBootstrapper.swift
-      - AirFit/Core/DI/DIBootstrapper+Test.swift
       - AirFit/Core/DI/DIViewModelFactory.swift
       - AirFit/Core/DI/DIExample.swift
       - AirFit/Modules/AI/PersonaSynthesis/FallbackPersonaGenerator.swift  # Phase 4: Error recovery
@@ -321,10 +313,8 @@ targets:
       - AirFit/Modules/FoodTracking/Views/WaterTrackingView.swift
       - AirFit/Modules/FoodTracking/Views/MacroRingsView.swift
       - AirFit/Modules/FoodTracking/Views/FoodVoiceInputView.swift
-      - AirFit/Modules/FoodTracking/Views/VoiceInputDownloadView.swift
       - AirFit/Modules/FoodTracking/Services/FoodVoiceAdapter.swift
       - AirFit/Core/Protocols/FoodVoiceAdapterProtocol.swift
-      - AirFit/Core/Protocols/FoodTrackingCoordinatorProtocol.swift
       - AirFit/Modules/FoodTracking/Services/NutritionService.swift
       - AirFit/Core/Protocols/NutritionServiceProtocol.swift
       - AirFit/Modules/FoodTracking/Coordinators/FoodTrackingCoordinator.swift
@@ -364,36 +354,30 @@ targets:
           - "**/*.swift"
         excludes:
           - "**/*.md"
+          - "Context/ContextAssemblerTests.swift"
       # Explicit test files (CRITICAL: XcodeGen nesting bug)
       - AirFit/AirFitTests/Modules/Onboarding/OnboardingServiceTests.swift
       - AirFit/AirFitTests/Modules/Onboarding/OnboardingFlowViewTests.swift
-      # - AirFit/AirFitTests/Modules/Onboarding/OnboardingViewTests.swift # Outdated - uses old blend API
+      - AirFit/AirFitTests/Modules/Onboarding/OnboardingViewTests.swift
       # Priority 3: Onboarding Tests (requires DI migration)
       # - AirFit/AirFitTests/Modules/Onboarding/OnboardingViewModelTests.swift # Missing DI params
-      - AirFit/AirFitTests/Modules/Onboarding/ConversationViewModelTests.swift
+      # - AirFit/AirFitTests/Modules/Onboarding/ConversationViewModelTests.swift # Concrete vs protocol
       - AirFit/AirFitTests/Modules/Onboarding/OnboardingIntegrationTests.swift
       - AirFit/AirFitTests/Modules/Onboarding/OnboardingModelsTests.swift
-      - AirFit/AirFitTests/Services/Health/HealthKitManagerTests.swift
-      - AirFit/AirFitTests/Services/User/UserServiceTests.swift
-      - AirFit/AirFitTests/Services/Security/APIKeyManagerTests.swift
+      - AirFit/AirFitTests/Health/HealthKitManagerTests.swift
       - AirFit/AirFitTests/Mocks/MockHealthKitManager.swift
       - AirFit/AirFitTests/Services/NetworkManagerTests.swift
-      - AirFit/AirFitTests/Services/Network/NetworkClientTests.swift
       # ServiceProtocolsTests.swift removed - protocols moved to Core/Protocols
       - AirFit/AirFitTests/Services/WeatherServiceTests.swift
       - AirFit/AirFitTests/Services/MockServicesTests.swift
       - AirFit/AirFitTests/Services/TestHelpers.swift
-      # - AirFit/AirFitTests/Services/Context/ContextAssemblerTests.swift # File removed during refactoring
-      # - AirFit/AirFitTests/Services/ServicePerformanceTests.swift # Outdated - uses old APIs (EnhancedAIAPIService, setMockAPIKey)
-      # - AirFit/AirFitTests/Services/ServiceIntegrationTests.swift # Uses deprecated ServiceRegistry
+      - AirFit/AirFitTests/Services/ServicePerformanceTests.swift
+      - AirFit/AirFitTests/Services/ServiceIntegrationTests.swift
       - AirFit/AirFitTests/Services/GeminiProviderTests.swift
       - AirFit/AirFitTests/Mocks/MockHealthKitPrefillProvider.swift
       - AirFit/AirFitTests/Mocks/MockHealthKitService.swift
       - AirFit/AirFitTests/Mocks/MockAICoachService.swift
-      - AirFit/AirFitTests/Modules/Dashboard/Services/AICoachServiceTests.swift
       - AirFit/AirFitTests/Mocks/MockDashboardNutritionService.swift
-      - AirFit/AirFitTests/Modules/Dashboard/Services/DashboardNutritionServiceTests.swift
-      - AirFit/AirFitTests/Modules/Dashboard/Services/HealthKitServiceTests.swift
       - AirFit/AirFitTests/Mocks/MockVoiceInputManager.swift
       - AirFit/AirFitTests/Mocks/MockWhisperModelManager.swift
       - AirFit/AirFitTests/Mocks/MockAVAudioSession.swift
@@ -409,58 +393,46 @@ targets:
       - AirFit/AirFitTests/Modules/AI/ConversationManagerPerformanceTests.swift
       - AirFit/AirFitTests/Modules/AI/MessageClassificationTests.swift
       - AirFit/AirFitTests/Modules/AI/Phase2ValidationTests.swift  # Phase 2: Database optimization validation
-      - AirFit/AirFitTests/Modules/AI/ContextAnalyzerTests.swift
-      - AirFit/AirFitTests/Modules/AI/PersonaEngineTests.swift
+      - AirFit/AirFitTests/AI/ContextAnalyzerTests.swift
       - AirFit/AirFitTests/Performance/DirectAIPerformanceTests.swift
       - AirFit/AirFitTests/Services/WorkoutSyncServiceTests.swift
-      # - AirFit/AirFitTests/Modules/Workouts/WorkoutViewModelTests.swift # Compilation errors - needs updating
-      # - AirFit/AirFitTests/Modules/Workouts/WorkoutCoordinatorTests.swift # Compilation errors - needs updating
+      - AirFit/AirFitTests/Workouts/WorkoutViewModelTests.swift
+      - AirFit/AirFitTests/Workouts/WorkoutCoordinatorTests.swift
       - AirFit/AirFitTests/Modules/Chat/ChatCoordinatorTests.swift
       - AirFit/AirFitTests/Modules/Chat/ChatSuggestionsEngineTests.swift
       - AirFit/AirFitTests/Modules/Chat/ChatViewModelTests.swift
-      - AirFit/AirFitTests/Services/Speech/VoiceInputManagerTests.swift
+      - AirFit/AirFitTests/Core/VoiceInputManagerTests.swift
       - AirFit/AirFitTests/Core/DI/DIContainerTests.swift
-      - AirFit/AirFitTests/Core/DI/DIBootstrapperTests.swift
-      # - AirFit/AirFitTests/Modules/Dashboard/DashboardViewModelTests.swift # Needs updating for new DI system
+      - AirFit/AirFitTests/Modules/Dashboard/DashboardViewModelTests.swift
       # DISABLED TESTS - Refactoring needed after DI migration (2025-06-05)
       # Priority 1: Core Module Tests
-      # - AirFit/AirFitTests/Modules/FoodTracking/FoodTrackingViewModelTests.swift # Swift 6 concurrency issues with test setup
-      - AirFit/AirFitTests/Modules/FoodTracking/FoodVoiceAdapterTests.swift
+      - AirFit/AirFitTests/FoodTracking/FoodTrackingViewModelTests.swift # Fixed - uses public API
+      # - AirFit/AirFitTests/FoodTracking/FoodVoiceAdapterTests.swift # VoiceInputManager injection
       # NEW TASK 6 TEST FILES (CRITICAL: Add for comprehensive test coverage)
-      - AirFit/AirFitTests/Modules/FoodTracking/NutritionParsingExtensiveTests.swift
-      - AirFit/AirFitTests/Modules/FoodTracking/Services/NutritionServiceTests.swift
-      - AirFit/AirFitTests/Modules/FoodTracking/FoodTrackingViewModelAIIntegrationTests.swift
-      - AirFit/AirFitTests/Modules/FoodTracking/AINutritionParsingIntegrationTests.swift
-      - AirFit/AirFitTests/Modules/FoodTracking/AINutritionParsingTests.swift
-      - AirFit/AirFitTests/Modules/FoodTracking/FoodTrackingCoordinatorTests.swift
+      - AirFit/AirFitTests/FoodTracking/NutritionParsingExtensiveTests.swift
+      - AirFit/AirFitTests/FoodTracking/FoodTrackingViewModelAIIntegrationTests.swift
+      - AirFit/AirFitTests/FoodTracking/AINutritionParsingIntegrationTests.swift
+      - AirFit/AirFitTests/FoodTracking/AINutritionParsingTests.swift
       # TASK 7 PERFORMANCE & REGRESSION TEST FILES (CRITICAL: Phase 1 Task 7)
       - AirFit/AirFitTests/Performance/NutritionParsingPerformanceTests.swift
-      - AirFit/AirFitTests/Performance/NutritionParsingRegressionTests.swift
+      # - AirFit/AirFitTests/Performance/NutritionParsingRegressionTests.swift # FoodTrackingViewModel init
       # Priority 2: Integration Tests
-      # - AirFit/AirFitTests/Integration/NutritionParsingIntegrationTests.swift # Needs updating for new initializers
+      # - AirFit/AirFitTests/Integration/NutritionParsingIntegrationTests.swift # FoodVoiceAdapter type
       # - AirFit/AirFitTests/Integration/PersonaSystemIntegrationTests.swift # PersonalityInsights API
-      # - AirFit/AirFitTests/Modules/FoodTracking/NutritionParsingFinalIntegrationTests.swift # Multiple issues
+      # - AirFit/AirFitTests/FoodTracking/NutritionParsingFinalIntegrationTests.swift # Multiple issues
       - AirFit/AirFitTests/Integration/OnboardingFlowTests.swift
       - AirFit/AirFitTests/Integration/PersonaGenerationTests.swift
       - AirFit/AirFitTests/Integration/OnboardingErrorRecoveryTests.swift  # Phase 4: Error handling tests
       # Phase 3 Performance Tests
-      # - AirFit/AirFitTests/Performance/PersonaGenerationStressTests.swift # Disabled - Swift 6 concurrency issues
+      - AirFit/AirFitTests/Performance/PersonaGenerationStressTests.swift
       - AirFit/AirFitTests/Mocks/MockAIService.swift
       - AirFit/AirFitTests/Mocks/MockOnboardingService.swift
       - AirFit/AirFitTests/Mocks/MockWhisperServiceWrapper.swift
       - AirFit/AirFitTests/Mocks/MockAIAPIService.swift
       - AirFit/AirFitTests/Mocks/MockAIWorkoutService.swift
-      - AirFit/AirFitTests/Services/AI/AIWorkoutServiceTests.swift
       - AirFit/AirFitTests/Mocks/MockAIAnalyticsService.swift
-      - AirFit/AirFitTests/Services/AI/AIAnalyticsServiceTests.swift
       - AirFit/AirFitTests/Mocks/MockAIPerformanceAnalytics.swift
       - AirFit/AirFitTests/Mocks/MockAIGoalService.swift
-      # NEW TEST FILES ADDED 2025-06-06
-      - AirFit/AirFitTests/Mocks/MockPersonaService.swift
-      - AirFit/AirFitTests/Modules/Onboarding/PersonaServiceTests.swift
-      - AirFit/AirFitTests/Services/AI/AIGoalServiceTests.swift
-      - AirFit/AirFitTests/Services/AI/AIServiceTests.swift
-      - AirFit/AirFitTests/Services/AI/LLMOrchestratorTests.swift
       - AirFit/AirFitTests/Mocks/MockLLMOrchestrator.swift
       - AirFit/AirFitTests/Mocks/MockCoachEngine.swift
       - AirFit/AirFitTests/Mocks/MockConversationFlowManager.swift
@@ -482,8 +454,8 @@ targets:
       TEST_HOST: $(BUILT_PRODUCTS_DIR)/AirFit.app/AirFit
       GENERATE_INFOPLIST_FILE: YES
       SWIFT_VERSION: "6.0"
-      ENABLE_STRICT_CONCURRENCY: NO
-      SWIFT_STRICT_CONCURRENCY: minimal
+      ENABLE_STRICT_CONCURRENCY: YES
+      SWIFT_STRICT_CONCURRENCY: complete
 
   AirFitUITests:
     type: bundle.ui-testing
@@ -554,18 +526,14 @@ schemes:
         AirFit: all
         AirFitTests: [test]
         AirFitUITests: [test]
+        AirFitWatchApp: all
     run:
       config: Debug
     test:
       config: Debug
-      parallelizeBuildables: true
       targets:
-        - name: AirFitTests
-          parallelizable: true
-          randomExecutionOrder: true
-        - name: AirFitUITests
-          parallelizable: true
-          randomExecutionOrder: true
+        - AirFitTests
+        - AirFitUITests
     profile:
       config: Release
     analyze:

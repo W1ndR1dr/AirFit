@@ -40,6 +40,17 @@ struct FoodVoiceInputView: View {
             .onReceive(audioLevelTimer) { _ in
                 updateAudioLevel()
             }
+            .voiceInputDownloadOverlay(
+                state: $viewModel.voiceInputState,
+                onCancel: {
+                    // Cancel download and dismiss view
+                    dismiss()
+                }
+            )
+            .task {
+                // Initialize voice input when view appears
+                await viewModel.initializeVoiceInput()
+            }
         }
     }
 

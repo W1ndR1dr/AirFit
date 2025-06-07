@@ -3,9 +3,9 @@ import SwiftUI
 
 /// Adapter around `VoiceInputManager` providing food-specific enhancements.
 @MainActor
-final class FoodVoiceAdapter: ObservableObject {
+final class FoodVoiceAdapter: ObservableObject, FoodVoiceAdapterProtocol {
     // MARK: - Dependencies
-    private let voiceInputManager: VoiceInputManager
+    private let voiceInputManager: VoiceInputProtocol
 
     // MARK: - Published State
     @Published private(set) var isRecording = false
@@ -16,9 +16,11 @@ final class FoodVoiceAdapter: ObservableObject {
     // MARK: - Callbacks
     var onFoodTranscription: ((String) -> Void)?
     var onError: ((Error) -> Void)?
+    var onStateChange: ((VoiceInputState) -> Void)?
+    var onWaveformUpdate: (([Float]) -> Void)?
 
     // MARK: - Initialization
-    init(voiceInputManager: VoiceInputManager = VoiceInputManager()) {
+    init(voiceInputManager: VoiceInputProtocol = VoiceInputManager()) {
         self.voiceInputManager = voiceInputManager
         setupCallbacks()
     }
@@ -39,15 +41,25 @@ final class FoodVoiceAdapter: ObservableObject {
         voiceInputManager.onWaveformUpdate = { [weak self] levels in
             guard let self else { return }
             self.voiceWaveform = levels
+            self.onWaveformUpdate?(levels)
         }
 
         voiceInputManager.onError = { [weak self] error in
             guard let self else { return }
             self.onError?(error)
         }
+        
+        voiceInputManager.onStateChange = { [weak self] state in
+            guard let self else { return }
+            self.onStateChange?(state)
+        }
     }
 
     // MARK: - Public Methods
+    func initialize() async {
+        await voiceInputManager.initialize()
+    }
+    
     func requestPermission() async throws -> Bool {
         try await voiceInputManager.requestPermission()
     }

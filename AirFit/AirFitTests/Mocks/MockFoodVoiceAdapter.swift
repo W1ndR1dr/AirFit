@@ -1,6 +1,12 @@
 import Foundation
 @testable import AirFit
 
+// Simple mock error for testing
+enum MockError: Error {
+    case generic
+    case custom(String)
+}
+
 /// Mock implementation of FoodVoiceAdapterProtocol for testing
 @MainActor
 final class MockFoodVoiceAdapter: FoodVoiceAdapterProtocol, @preconcurrency MockProtocol {
@@ -9,18 +15,23 @@ final class MockFoodVoiceAdapter: FoodVoiceAdapterProtocol, @preconcurrency Mock
     var stubbedResults: [String: Any] = [:]
     let mockLock = NSLock()
     
-    // MARK: - Mock State
+    // MARK: - FoodVoiceAdapterProtocol Properties
+    var onFoodTranscription: ((String) -> Void)?
+    var onError: ((Error) -> Void)?
+    var onStateChange: ((VoiceInputState) -> Void)?
+    var onWaveformUpdate: (([Float]) -> Void)?
     
-    private var _isListening = false
-    var mockTranscription = "one apple and a glass of milk"
+    private(set) var isRecording = false
+    private(set) var transcribedText = ""
+    private(set) var voiceWaveform: [Float] = []
+    private(set) var currentState: VoiceInputState = .idle
+    
+    // MARK: - Mock State
+    var stopRecordingText = "one apple and a glass of milk"
+    var requestPermissionShouldSucceed = true
+    var startRecordingShouldSucceed = true
     var shouldThrowError = false
     var throwError: Error?
-    
-    // MARK: - Call Tracking
-    
-    var startListeningCallCount = 0
-    var stopListeningCallCount = 0
-    var isListeningCallCount = 0
     
     // MARK: - Configuration
     
@@ -30,69 +41,102 @@ final class MockFoodVoiceAdapter: FoodVoiceAdapterProtocol, @preconcurrency Mock
     
     // MARK: - FoodVoiceAdapterProtocol
     
-    func startListening() async throws {
-        startListeningCallCount += 1
-        
-        if shouldThrowError, let error = throwError {
-            throw error
-        }
-        
-        if simulatedDelay > 0 {
-            try await Task.sleep(nanoseconds: UInt64(simulatedDelay * 1_000_000_000))
-        }
-        
-        _isListening = true
+    func initialize() async {
+        recordInvocation("initialize")
+        // Simulate initialization - could trigger state changes if needed
+        currentState = .ready
+        onStateChange?(.ready)
     }
     
-    func stopListening() async throws -> String {
-        stopListeningCallCount += 1
+    func requestPermission() async throws -> Bool {
+        recordInvocation("requestPermission")
         
         if shouldThrowError, let error = throwError {
             throw error
         }
         
-        _isListening = false
+        return requestPermissionShouldSucceed
+    }
+    
+    func startRecording() async throws {
+        recordInvocation("startRecording")
+        
+        if !startRecordingShouldSucceed {
+            throw MockError.generic
+        }
+        
+        if shouldThrowError, let error = throwError {
+            throw error
+        }
         
         if simulatedDelay > 0 {
             try await Task.sleep(nanoseconds: UInt64(simulatedDelay * 1_000_000_000))
+        }
+        
+        isRecording = true
+        transcribedText = ""
+        voiceWaveform = []
+    }
+    
+    func stopRecording() async -> String? {
+        recordInvocation("stopRecording")
+        
+        isRecording = false
+        
+        if simulatedDelay > 0 {
+            try? await Task.sleep(nanoseconds: UInt64(simulatedDelay * 1_000_000_000))
         }
         
         // Return from sequence if available
         if !transcriptionSequence.isEmpty {
             let transcription = transcriptionSequence[transcriptionIndex % transcriptionSequence.count]
             transcriptionIndex += 1
+            transcribedText = transcription
             return transcription
         }
         
-        return mockTranscription
-    }
-    
-    func isListening() -> Bool {
-        isListeningCallCount += 1
-        return _isListening
+        transcribedText = stopRecordingText
+        return stopRecordingText
     }
     
     // MARK: - MockProtocol
     
     func reset() {
-        _isListening = false
-        mockTranscription = "one apple and a glass of milk"
+        isRecording = false
+        transcribedText = ""
+        voiceWaveform = []
+        currentState = .idle
+        stopRecordingText = "one apple and a glass of milk"
+        requestPermissionShouldSucceed = true
+        startRecordingShouldSucceed = true
         shouldThrowError = false
         throwError = nil
-        
-        startListeningCallCount = 0
-        stopListeningCallCount = 0
-        isListeningCallCount = 0
         
         simulatedDelay = 0
         transcriptionSequence = []
         transcriptionIndex = 0
+        
+        onFoodTranscription = nil
+        onError = nil
+        onStateChange = nil
+        onWaveformUpdate = nil
+        
+        invocations.removeAll()
     }
     
     // MARK: - Helper Methods
     
+    func simulateTranscription(_ text: String) {
+        transcribedText = text
+        onFoodTranscription?(text)
+    }
+    
+    func simulateError(_ error: Error) {
+        onError?(error)
+    }
+    
     func configureTranscription(_ text: String) {
-        mockTranscription = text
+        stopRecordingText = text
     }
     
     func configureTranscriptionSequence(_ texts: [String]) {
@@ -105,7 +149,17 @@ final class MockFoodVoiceAdapter: FoodVoiceAdapterProtocol, @preconcurrency Mock
         throwError = error
     }
     
-    func verifyListeningState(expected: Bool) -> Bool {
-        return _isListening == expected
+    func verifyRecordingState(expected: Bool) -> Bool {
+        return isRecording == expected
+    }
+    
+    func simulateStateChange(_ state: VoiceInputState) {
+        currentState = state
+        onStateChange?(state)
+    }
+    
+    func simulateWaveformUpdate(_ waveform: [Float]) {
+        voiceWaveform = waveform
+        onWaveformUpdate?(waveform)
     }
 }

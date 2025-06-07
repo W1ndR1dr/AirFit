@@ -122,7 +122,7 @@ final class WhisperModelManager: ObservableObject {
         }
     }
 
-    private func updateDownloadedModels() {
+    func updateDownloadedModels() {
         downloadedModels.removeAll()
         for model in availableModels {
             let path = modelStorageURL.appendingPathComponent(model.id)

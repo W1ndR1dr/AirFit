@@ -40,7 +40,7 @@ final class FoodTrackingViewModel: ErrorHandling {
     // MARK: - Dependencies
     private let modelContext: ModelContext
     internal let user: User
-    private let foodVoiceAdapter: FoodVoiceAdapter
+    private let foodVoiceAdapter: FoodVoiceAdapterProtocol
     private let nutritionService: NutritionServiceProtocol?
     internal let coachEngine: FoodCoachEngineProtocol
     private let coordinator: FoodTrackingCoordinator
@@ -59,6 +59,7 @@ final class FoodTrackingViewModel: ErrorHandling {
     private(set) var transcribedText = ""
     private(set) var transcriptionConfidence: Float = 0
     private(set) var voiceWaveform: [Float] = []
+    var voiceInputState: VoiceInputState = .idle
 
     // Parsed food items
     private(set) var parsedItems: [ParsedFoodItem] = []
@@ -104,8 +105,8 @@ final class FoodTrackingViewModel: ErrorHandling {
     init(
         modelContext: ModelContext,
         user: User,
-        foodVoiceAdapter: FoodVoiceAdapter,
-        nutritionService: NutritionServiceProtocol,
+        foodVoiceAdapter: FoodVoiceAdapterProtocol,
+        nutritionService: NutritionServiceProtocol?,
         coachEngine: FoodCoachEngineProtocol,
         coordinator: FoodTrackingCoordinator
     ) {
@@ -132,6 +133,23 @@ final class FoodTrackingViewModel: ErrorHandling {
                 self?.handleError(error)
             }
         }
+        
+        foodVoiceAdapter.onStateChange = { [weak self] state in
+            Task { @MainActor in
+                self?.voiceInputState = state
+            }
+        }
+        
+        foodVoiceAdapter.onWaveformUpdate = { [weak self] waveform in
+            Task { @MainActor in
+                self?.voiceWaveform = waveform
+            }
+        }
+    }
+    
+    // MARK: - Voice Input Management
+    func initializeVoiceInput() async {
+        await foodVoiceAdapter.initialize()
     }
 
     // MARK: - Data Loading
@@ -172,7 +190,7 @@ final class FoodTrackingViewModel: ErrorHandling {
         do {
             let hasPermission = try await foodVoiceAdapter.requestPermission()
             guard hasPermission else {
-                handleError(FoodVoiceError.permissionDenied)
+                handleError(AppError.cameraNotAuthorized)
                 return
             }
 
@@ -241,7 +259,7 @@ final class FoodTrackingViewModel: ErrorHandling {
             if !parsedItems.isEmpty {
                 coordinator.showFullScreenCover(.confirmation(parsedItems))
             } else {
-                setError(FoodTrackingError.noFoodFound)
+                setError(AppError.validationError(message: "No food detected"))
             }
 
         } catch {
@@ -268,7 +286,7 @@ final class FoodTrackingViewModel: ErrorHandling {
                 coordinator.dismiss()
                 coordinator.showFullScreenCover(.confirmation(parsedItems))
             } else {
-                setError(FoodTrackingError.noFoodFound)
+                setError(AppError.validationError(message: "No food detected"))
             }
         } catch {
             setError(error)
@@ -472,7 +490,7 @@ final class FoodTrackingViewModel: ErrorHandling {
             let timer = Timer.scheduledTimer(withTimeInterval: seconds, repeats: false) { _ in
                 guard !finished else { return }
                 finished = true
-                continuation.resume(throwing: FoodTrackingError.aiProcessingTimeout)
+                continuation.resume(throwing: AppError.unknown(message: "AI processing timed out"))
             }
 
             Task {

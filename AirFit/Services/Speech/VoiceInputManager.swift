@@ -4,8 +4,9 @@ import AVFoundation
 
 @MainActor
 @Observable
-final class VoiceInputManager: NSObject {
+final class VoiceInputManager: NSObject, VoiceInputProtocol {
     // MARK: - Published State
+    private(set) var state: VoiceInputState = .idle
     private(set) var isRecording = false
     private(set) var isTranscribing = false
     private(set) var waveformBuffer: [Float] = []
@@ -16,6 +17,7 @@ final class VoiceInputManager: NSObject {
     var onPartialTranscription: ((String) -> Void)?
     var onWaveformUpdate: (([Float]) -> Void)?
     var onError: ((Error) -> Void)?
+    var onStateChange: ((VoiceInputState) -> Void)?
 
     // MARK: - Private Properties
     private var audioEngine = AVAudioEngine()
@@ -25,6 +27,7 @@ final class VoiceInputManager: NSObject {
     private var recordingURL: URL?
     private var whisper: WhisperKit?
     private let modelManager: WhisperModelManager
+    private var downloadObserver: NSObjectProtocol?
 
     private var inputNode: AVAudioInputNode { audioEngine.inputNode }
 
@@ -32,10 +35,11 @@ final class VoiceInputManager: NSObject {
     init(modelManager: WhisperModelManager = .shared) {
         self.modelManager = modelManager
         super.init()
-
-        Task { [weak self] in
-            await self?.initializeWhisper()
-        }
+    }
+    
+    // MARK: - Public Methods
+    func initialize() async {
+        await initializeWhisper()
     }
 
     // MARK: - Permission
@@ -51,7 +55,11 @@ final class VoiceInputManager: NSObject {
 
     // MARK: - Recording Control
     func startRecording() async throws {
+        guard state == .ready else {
+            throw VoiceInputError.whisperNotReady
+        }
         guard try await requestPermission() else { return }
+        updateState(.recording)
         try await prepareRecorder()
         audioRecorder?.record()
         isRecording = true
@@ -63,15 +71,23 @@ final class VoiceInputManager: NSObject {
         recorder.stop()
         stopWaveformTimer()
         isRecording = false
-        guard let url = recordingURL else { return nil }
+        updateState(.transcribing)
+        
+        guard let url = recordingURL else { 
+            updateState(.ready)
+            return nil 
+        }
+        
         do {
             let text = try await transcribeAudio(at: url)
             try? FileManager.default.removeItem(at: url)
             currentTranscription = text
             onTranscription?(text)
+            updateState(.ready)
             return text
         } catch {
             AppLogger.error("Transcription failed", error: error, category: .ai)
+            updateState(.error(.transcriptionFailed))
             onError?(error)
             return nil
         }
@@ -79,8 +95,14 @@ final class VoiceInputManager: NSObject {
 
     // MARK: - Streaming Transcription
     func startStreamingTranscription() async throws {
+        guard state == .ready else {
+            throw VoiceInputError.whisperNotReady
+        }
         guard try await requestPermission() else { return }
         guard whisper != nil else { throw VoiceInputError.whisperNotReady }
+        
+        updateState(.transcribing)
+        
         if audioEngine.isRunning { audioEngine.stop() }
         audioBuffer.removeAll()
         let format = AVAudioFormat(commonFormat: .pcmFormatFloat32, sampleRate: 16_000, channels: 1, interleaved: false)!
@@ -102,29 +124,67 @@ final class VoiceInputManager: NSObject {
         stopWaveformTimer()
         audioBuffer.removeAll()
         isTranscribing = false
+        updateState(.ready)
         try? AVAudioSession.sharedInstance().setActive(false)
     }
 
     // MARK: - Private Setup
     private func initializeWhisper() async {
         let modelID = modelManager.selectOptimalModel()
-        do {
-            whisper = try await WhisperKit(
-                WhisperKitConfig(
-                    model: modelID,
-                    modelRepo: "mlx-community/whisper-\(modelID)-mlx",
-                    modelFolder: modelID,
-                    verbose: false,
-                    logLevel: .error,
-                    prewarm: true,
-                    load: true,
-                    download: true
+        let modelName = modelManager.availableModels.first { $0.id == modelID }?.displayName ?? modelID
+        
+        // Check if model already downloaded
+        if modelManager.downloadedModels.contains(modelID) {
+            updateState(.preparingModel)
+            do {
+                whisper = try await WhisperKit(
+                    WhisperKitConfig(
+                        model: modelID,
+                        modelRepo: "mlx-community/whisper-\(modelID)-mlx",
+                        modelFolder: modelID,
+                        verbose: false,
+                        logLevel: .error,
+                        prewarm: true,
+                        load: true,
+                        download: false
+                    )
                 )
-            )
-        } catch {
-            AppLogger.error("Failed to initialize Whisper", error: error, category: .ai)
-            await MainActor.run {
+                updateState(.ready)
+            } catch {
+                AppLogger.error("Failed to initialize Whisper", error: error, category: .ai)
+                updateState(.error(.whisperInitializationFailed))
                 onError?(VoiceInputError.whisperInitializationFailed)
+            }
+        } else {
+            // Need to download model - set up progress tracking
+            updateState(.downloadingModel(progress: 0.0, modelName: modelName))
+            
+            // Start observing download progress
+            setupDownloadProgressObserver(for: modelID)
+            
+            do {
+                whisper = try await WhisperKit(
+                    WhisperKitConfig(
+                        model: modelID,
+                        modelRepo: "mlx-community/whisper-\(modelID)-mlx",
+                        modelFolder: modelID,
+                        verbose: false,
+                        logLevel: .error,
+                        prewarm: true,
+                        load: true,
+                        download: true
+                    )
+                )
+                
+                // Download completed
+                cleanupDownloadObserver()
+                modelManager.updateDownloadedModels()
+                updateState(.ready)
+            } catch {
+                AppLogger.error("Failed to download/initialize Whisper", error: error, category: .ai)
+                cleanupDownloadObserver()
+                updateState(.error(.modelDownloadFailed(error.localizedDescription)))
+                onError?(VoiceInputError.modelDownloadFailed(error.localizedDescription))
             }
         }
     }
@@ -270,31 +330,51 @@ final class VoiceInputManager: NSObject {
 
         return processed
     }
-}
-
-// MARK: - Errors
-enum VoiceInputError: LocalizedError, Sendable {
-    case notAuthorized
-    case whisperInitializationFailed
-    case whisperNotReady
-    case recordingFailed
-    case transcriptionFailed
-    case audioEngineError
-
-    var errorDescription: String? {
-        switch self {
-        case .notAuthorized:
-            return "Microphone access not authorized"
-        case .whisperInitializationFailed:
-            return "Failed to initialize Whisper model"
-        case .whisperNotReady:
-            return "Whisper is not ready for transcription"
-        case .recordingFailed:
-            return "Audio recording failed"
-        case .transcriptionFailed:
-            return "Failed to transcribe audio"
-        case .audioEngineError:
-            return "Audio engine error occurred"
+    
+    // MARK: - State Management
+    private func updateState(_ newState: VoiceInputState) {
+        state = newState
+        onStateChange?(newState)
+    }
+    
+    // MARK: - Download Progress Tracking
+    private func setupDownloadProgressObserver(for modelID: String) {
+        // Monitor WhisperKit's download directory for progress
+        // This is a simplified approach - in production you'd want more sophisticated progress tracking
+        downloadObserver = NotificationCenter.default.addObserver(
+            forName: .init("WhisperKitDownloadProgress"),
+            object: nil,
+            queue: .main
+        ) { [weak self] notification in
+            if let progress = notification.userInfo?["progress"] as? Double {
+                Task { @MainActor in
+                    if case .downloadingModel(_, let modelName) = self?.state {
+                        self?.updateState(.downloadingModel(progress: progress, modelName: modelName))
+                    }
+                }
+            }
+        }
+        
+        // Simulate progress updates for demo
+        // In production, you'd integrate with actual download progress
+        Task { [weak self] in
+            guard let self else { return }
+            var progress = 0.0
+            while progress < 1.0 && downloadObserver != nil {
+                try? await Task.sleep(nanoseconds: 500_000_000) // 0.5s
+                progress += 0.1
+                if case .downloadingModel(_, let modelName) = state {
+                    updateState(.downloadingModel(progress: min(progress, 0.95), modelName: modelName))
+                }
+            }
+        }
+    }
+    
+    private func cleanupDownloadObserver() {
+        if let observer = downloadObserver {
+            NotificationCenter.default.removeObserver(observer)
+            downloadObserver = nil
         }
     }
 }
+

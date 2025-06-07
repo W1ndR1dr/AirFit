@@ -1,0 +1,49 @@
+name: AirFit
+options:
+  bundleIdPrefix: com.airfit
+  deploymentTarget:
+    iOS: "18.0"
+
+settings:
+  SWIFT_VERSION: "6.0"
+  ENABLE_STRICT_CONCURRENCY: YES
+  SWIFT_STRICT_CONCURRENCY: complete
+
+targets:
+  AirFitCoreTests:
+    type: bundle.unit-test
+    platform: iOS
+    sources:
+      # Essential test infrastructure
+      - AirFit/AirFitTests/TestUtils/DITestHelper.swift
+      - AirFit/AirFitTests/Services/TestHelpers.swift
+      
+      # Core mocks needed
+      - AirFit/AirFitTests/Mocks/Base/MockProtocol.swift
+      - AirFit/AirFitTests/Mocks/MockAIService.swift
+      - AirFit/AirFitTests/Mocks/MockCoachEngine.swift
+      - AirFit/AirFitTests/Mocks/MockNutritionService.swift
+      - AirFit/AirFitTests/Mocks/MockHealthKitManager.swift
+      - AirFit/AirFitTests/Mocks/MockFoodVoiceAdapter.swift
+      - AirFit/AirFitTests/Mocks/MockLLMOrchestrator.swift
+      - AirFit/AirFitTests/Mocks/MockAPIKeyManager.swift
+      - AirFit/AirFitTests/Mocks/MockUserService.swift
+      
+      # Phase 1: Critical business logic tests
+      - AirFit/AirFitTests/Performance/NutritionParsingRegressionTests.swift
+      - AirFit/AirFitTests/Modules/FoodTracking/NutritionParsingExtensiveTests.swift
+      - AirFit/AirFitTests/Modules/FoodTracking/AINutritionParsingTests.swift
+      
+      # Core model tests
+      - AirFit/AirFitTests/Data/UserModelTests.swift
+      
+      # Essential service tests
+      - AirFit/AirFitTests/Services/Health/HealthKitManagerTests.swift
+      - AirFit/AirFitTests/Modules/AI/CoachEngineTests.swift
+      
+    dependencies:
+      - target: AirFit
+    settings:
+      BUNDLE_LOADER: $(TEST_HOST)
+      TEST_HOST: $(BUILT_PRODUCTS_DIR)/AirFit.app/AirFit
+      GENERATE_INFOPLIST_FILE: YES
