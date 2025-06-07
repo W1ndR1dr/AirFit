@@ -1,22 +1,33 @@
 import XCTest
+import SwiftData
 @testable import AirFit
 
 @MainActor
 final class FoodVoiceAdapterTests: XCTestCase {
+    // MARK: - Properties
+    private var container: DIContainer!
+    private var sut: FoodVoiceAdapter!
+    private var mockVoiceInputManager: MockVoiceInputManager!
     
-    var sut: FoodVoiceAdapter!
-    var mockVoiceInputManager: MockVoiceInputManager!
-    
+    // MARK: - Setup
     override func setUp() async throws {
         try await super.setUp()
+        
+        // Create test container
+        container = try await DITestHelper.createTestContainer()
+        
+        // Create mock voice input manager
         mockVoiceInputManager = MockVoiceInputManager()
+        
+        // Create subject under test with injected dependencies
         sut = FoodVoiceAdapter(voiceInputManager: mockVoiceInputManager)
     }
     
     override func tearDown() async throws {
-        sut = nil
         mockVoiceInputManager?.reset()
+        sut = nil
         mockVoiceInputManager = nil
+        container = nil
         try await super.tearDown()
     }
     
