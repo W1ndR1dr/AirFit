@@ -41,7 +41,7 @@ public final class DIBootstrapper {
         container.registerSingleton(KeychainWrapper.self, instance: KeychainWrapper.shared)
         
         // API Key Manager
-        container.register(APIKeyManagementProtocol.self, lifetime: .singleton) { @MainActor container in
+        container.register(APIKeyManagementProtocol.self, lifetime: .singleton) { container in
             let keychain = try await container.resolve(KeychainWrapper.self)
             return APIKeyManager(keychain: keychain)
         }
@@ -65,28 +65,10 @@ public final class DIBootstrapper {
             return await LLMOrchestrator(apiKeyManager: apiKeyManager)
         }
         
-        // AI Service - with demo/offline fallback
+        // AI Service - production only, no fallback
         container.register(AIServiceProtocol.self, lifetime: .singleton) { container in
-            // Check if we're in demo mode
-            let isUsingDemoMode = UserDefaults.standard.bool(forKey: "isUsingDemoMode")
-            
-            if isUsingDemoMode {
-                AppLogger.info("Using Demo AI Service", category: .ai)
-                return await DemoAIService()
-            }
-            
-            // Check if we have any configured API keys
-            let apiKeyManager = try await container.resolve(APIKeyManagementProtocol.self)
-            let configuredProviders = await apiKeyManager.getAllConfiguredProviders()
-            
-            if configuredProviders.isEmpty {
-                AppLogger.warning("No API keys configured, using Demo AI Service", category: .ai)
-                return await DemoAIService()
-            }
-            
-            // Create production service with LLM orchestrator
             let llmOrchestrator = try await container.resolve(LLMOrchestrator.self)
-            return await AIService(llmOrchestrator: llmOrchestrator)
+            return AIService(llmOrchestrator: llmOrchestrator)
         }
         
         // MARK: - User Services

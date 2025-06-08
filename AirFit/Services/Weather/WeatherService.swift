@@ -3,11 +3,10 @@ import Foundation
 import CoreLocation
 
 /// Clean WeatherKit implementation - no API keys, no network complexity
-@MainActor
-final class WeatherService: WeatherServiceProtocol, ServiceProtocol {
+actor WeatherService: WeatherServiceProtocol, ServiceProtocol {
     // MARK: - Properties
-    let serviceIdentifier = "weatherkit-service"
-    private(set) var isConfigured = true // WeatherKit requires no configuration
+    nonisolated let serviceIdentifier = "weatherkit-service"
+    nonisolated var isConfigured: Bool { true } // WeatherKit requires no configuration
     
     private let weatherService = WeatherKit.WeatherService.shared
     private let locationManager = CLLocationManager()

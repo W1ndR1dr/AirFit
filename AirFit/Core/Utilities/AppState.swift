@@ -11,7 +11,6 @@ final class AppState {
     private(set) var currentUser: User?
     private(set) var hasCompletedOnboarding = false
     private(set) var needsAPISetup = false
-    private(set) var isUsingDemoMode = false
     private(set) var error: Error?
 
     // MARK: - Dependencies
@@ -50,12 +49,6 @@ final class AppState {
             if let apiKeyManager = apiKeyManager {
                 let configuredProviders = await apiKeyManager.getAllConfiguredProviders()
                 needsAPISetup = configuredProviders.isEmpty
-                isUsingDemoMode = UserDefaults.standard.bool(forKey: "isUsingDemoMode")
-                
-                // If using demo mode but no configured providers, still need setup
-                if isUsingDemoMode && configuredProviders.isEmpty {
-                    needsAPISetup = true
-                }
             }
             
             // Fetch the current user
@@ -91,11 +84,9 @@ final class AppState {
         AppLogger.info("New user created", category: .app)
     }
     
-    func completeAPISetup(usingDemoMode: Bool) {
+    func completeAPISetup() {
         needsAPISetup = false
-        isUsingDemoMode = usingDemoMode
-        UserDefaults.standard.set(usingDemoMode, forKey: "isUsingDemoMode")
-        AppLogger.info("API setup completed - demo mode: \(usingDemoMode)", category: .app)
+        AppLogger.info("API setup completed", category: .app)
     }
 
     func completeOnboarding() async {

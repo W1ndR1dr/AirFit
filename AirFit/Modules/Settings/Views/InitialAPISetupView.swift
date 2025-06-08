@@ -8,7 +8,7 @@ struct InitialAPISetupView: View {
     @State private var validationError: String?
     @State private var showingInfo = false
     
-    let onCompletion: (Bool) -> Void // True = configured, False = demo mode
+    let onCompletion: () -> Void
     
     var body: some View {
         VStack(spacing: 0) {
@@ -93,14 +93,7 @@ struct InitialAPISetupView: View {
                 .cornerRadius(AppConstants.Layout.defaultCornerRadius)
                 .disabled(apiKey.isEmpty || isValidating)
                 
-                Button(action: { onCompletion(false) }) {
-                    Text("Try Demo Mode")
-                        .font(AppFonts.body)
-                        .foregroundColor(AppColors.accentColor)
-                }
-                .disabled(isValidating)
-                
-                Text("You can add an API key later in Settings")
+                Text("An API key is required to use AirFit")
                     .font(AppFonts.caption)
                     .foregroundColor(AppColors.textTertiary)
                     .multilineTextAlignment(.center)
@@ -140,7 +133,7 @@ struct InitialAPISetupView: View {
                 // Success
                 await MainActor.run {
                     HapticManager.impact(.medium)
-                    onCompletion(true)
+                    onCompletion()
                 }
             } catch {
                 await MainActor.run {
@@ -306,7 +299,7 @@ private struct APIKeyInfoSheet: View {
 // MARK: - Preview
 
 #Preview {
-    InitialAPISetupView { configured in
-        print("Setup completed: \(configured)")
+    InitialAPISetupView {
+        print("Setup completed")
     }
 }

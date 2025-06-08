@@ -1,8 +1,7 @@
 import Foundation
 
 /// Production AI service that adapts between the simple interface and full AI capabilities
-@MainActor
-final class AIService: AIServiceProtocol {
+final class AIService: AIServiceProtocol, @unchecked Sendable {
     
     // MARK: - Properties
     let serviceIdentifier = "production-ai-service"
@@ -16,7 +15,7 @@ final class AIService: AIServiceProtocol {
     private var currentModel: String = LLMModel.gemini25Flash.identifier
     
     // Cost tracking
-    @Published private(set) var totalCost: Double = 0
+    private(set) var totalCost: Double = 0
     
     // Fallback providers
     private var fallbackProviders: [AIProvider] = [.openAI, .gemini, .anthropic]
@@ -161,7 +160,7 @@ final class AIService: AIServiceProtocol {
                     
                     if request.stream {
                         // Stream responses (no caching for streams)
-                        let stream = orchestrator.stream(
+                        let stream = await orchestrator.stream(
                             prompt: prompt,
                             task: .coaching,
                             temperature: request.temperature
@@ -301,7 +300,7 @@ final class AIService: AIServiceProtocol {
     
     private func generateCacheKey(for request: AIRequest) -> String {
         let content = request.messages.map { $0.content }.joined(separator: "|")
-        let systemPromptPart = request.systemPrompt ?? ""
+        let systemPromptPart = request.systemPrompt
         let key = "\(systemPromptPart)-\(content)-\(request.temperature)"
         return key.data(using: .utf8)?.base64EncodedString() ?? key
     }

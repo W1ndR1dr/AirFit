@@ -1,7 +1,6 @@
 import Foundation
 
 // MARK: - Weather Service Protocol
-@MainActor
 protocol WeatherServiceProtocol: ServiceProtocol, Sendable {
     func getCurrentWeather(
         latitude: Double,

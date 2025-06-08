@@ -1,8 +1,7 @@
 import Foundation
 
 /// Demo AI service that provides canned responses for testing without API keys
-@MainActor
-final class DemoAIService: AIServiceProtocol {
+final class DemoAIService: AIServiceProtocol, @unchecked Sendable {
     
     // MARK: - Properties
     let serviceIdentifier = "demo-ai-service"
@@ -105,7 +104,7 @@ final class DemoAIService: AIServiceProtocol {
         await healthCheck()
     }
     
-    func estimateTokenCount(for text: String) -> Int {
+    nonisolated func estimateTokenCount(for text: String) -> Int {
         // Rough estimate: 1 token per 4 characters
         return text.count / 4
     }

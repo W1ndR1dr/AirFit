@@ -2,11 +2,10 @@ import Foundation
 
 /// Fallback AI service that returns errors when no providers are configured
 /// Prevents crashes and provides clear error feedback to users
-@MainActor
-final class OfflineAIService: AIServiceProtocol {
+actor OfflineAIService: AIServiceProtocol {
     // MARK: - ServiceProtocol
-    var isConfigured: Bool { false }
-    var serviceIdentifier: String { "offline_ai_service" }
+    nonisolated var isConfigured: Bool { false }
+    nonisolated var serviceIdentifier: String { "offline_ai_service" }
     
     func configure() async throws {
         throw AIError.unauthorized
@@ -27,14 +26,14 @@ final class OfflineAIService: AIServiceProtocol {
     }
     
     // MARK: - AIServiceProtocol
-    var activeProvider: AIProvider { .openAI }  // Default, not actually used
-    var availableModels: [AIModel] { [] }
+    nonisolated var activeProvider: AIProvider { .openAI }  // Default, not actually used
+    nonisolated var availableModels: [AIModel] { [] }
     
     func configure(provider: AIProvider, apiKey: String, model: String?) async throws {
         throw AIError.unauthorized
     }
     
-    func sendRequest(_ request: AIRequest) -> AsyncThrowingStream<AIResponse, Error> {
+    nonisolated func sendRequest(_ request: AIRequest) -> AsyncThrowingStream<AIResponse, Error> {
         AsyncThrowingStream { continuation in
             continuation.yield(.error(AIError.unauthorized))
             continuation.finish()
@@ -49,7 +48,7 @@ final class OfflineAIService: AIServiceProtocol {
         await healthCheck()
     }
     
-    func estimateTokenCount(for text: String) -> Int {
+    nonisolated func estimateTokenCount(for text: String) -> Int {
         // Rough estimate: ~4 characters per token
         text.count / 4
     }

@@ -1,8 +1,7 @@
 import Foundation
 
 // MARK: - Base Service Protocol
-@MainActor
-protocol ServiceProtocol: AnyObject {
+protocol ServiceProtocol: AnyObject, Sendable {
     var isConfigured: Bool { get }
     var serviceIdentifier: String { get }
     

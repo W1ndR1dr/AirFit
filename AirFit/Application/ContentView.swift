@@ -20,14 +20,12 @@ struct ContentView: View {
                 if appState.isLoading {
                     LoadingView()
                 } else if appState.shouldShowAPISetup {
-                    InitialAPISetupView { configured in
-                        appState.completeAPISetup(usingDemoMode: !configured)
-                        if configured {
-                            // Need to recreate the DI container with the new API key
-                            isRecreatingContainer = true
-                            Task {
-                                await recreateContainer()
-                            }
+                    InitialAPISetupView { 
+                        appState.completeAPISetup()
+                        // Need to recreate the DI container with the new API key
+                        isRecreatingContainer = true
+                        Task {
+                            await recreateContainer()
                         }
                     }
                 } else if appState.shouldCreateUser {
@@ -60,6 +58,7 @@ struct ContentView: View {
             }
         }
         .onAppear {
+            AppLogger.info("ContentView.onAppear: Called", category: .app)
             // Capture the container from environment
             if activeContainer == nil {
                 activeContainer = diContainer
@@ -67,28 +66,38 @@ struct ContentView: View {
             }
             
             if appState == nil {
+                AppLogger.info("ContentView.onAppear: appState is nil, creating it", category: .app)
                 Task {
                     await createAppState()
                 }
+            } else {
+                AppLogger.info("ContentView.onAppear: appState already exists", category: .app)
             }
         }
         .accessibilityIdentifier("app.content")
     }
     
     private func createAppState() async {
+        AppLogger.info("ContentView.createAppState: Starting", category: .app)
         do {
             // Use shared container during initialization
             let containerToUse = DIContainer.shared ?? diContainer
             AppLogger.info("ContentView.createAppState: Using container ID: \(ObjectIdentifier(containerToUse))", category: .app)
+            
+            AppLogger.info("ContentView.createAppState: Resolving APIKeyManager", category: .app)
             let apiKeyManager = try await containerToUse.resolve(APIKeyManagementProtocol.self)
+            AppLogger.info("ContentView.createAppState: APIKeyManager resolved successfully", category: .app)
+            
             appState = AppState(
                 modelContext: modelContext,
                 apiKeyManager: apiKeyManager
             )
+            AppLogger.info("ContentView.createAppState: AppState created successfully", category: .app)
         } catch {
             AppLogger.error("ContentView.createAppState: Failed to resolve APIKeyManager", error: error, category: .app)
             // Create without API key manager for error case
             appState = AppState(modelContext: modelContext)
+            AppLogger.info("ContentView.createAppState: Created AppState without APIKeyManager", category: .app)
         }
     }
     

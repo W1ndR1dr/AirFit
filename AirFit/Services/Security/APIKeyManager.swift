@@ -1,14 +1,16 @@
 import Foundation
 
 /// Implementation of APIKeyManagementProtocol using Keychain
-@MainActor
-final class APIKeyManager: APIKeyManagementProtocol, ServiceProtocol, @unchecked Sendable {
+actor APIKeyManager: APIKeyManagementProtocol, ServiceProtocol {
     private let keychain: KeychainWrapper
     private let keychainPrefix = "com.airfit.apikey."
     
     // MARK: - ServiceProtocol
-    private(set) var isConfigured: Bool = false
-    let serviceIdentifier = "api-key-manager"
+    nonisolated var isConfigured: Bool { 
+        // For APIKeyManager, we're always configured if we can access keychain
+        true 
+    }
+    nonisolated let serviceIdentifier = "api-key-manager"
     
     init(keychain: KeychainWrapper = .shared) {
         self.keychain = keychain
@@ -18,7 +20,6 @@ final class APIKeyManager: APIKeyManagementProtocol, ServiceProtocol, @unchecked
     
     func configure() async throws {
         // Nothing specific to configure for keychain access
-        isConfigured = true
         AppLogger.info("APIKeyManager configured", category: .security)
     }
     
@@ -29,18 +30,15 @@ final class APIKeyManager: APIKeyManagementProtocol, ServiceProtocol, @unchecked
     
     func healthCheck() async -> ServiceHealth {
         // Check if we can access keychain
-        let canAccessKeychain = await withCheckedContinuation { continuation in
-            Task { @MainActor in
-                let testKey = "com.airfit.health.check"
-                do {
-                    try keychain.save("test".data(using: .utf8)!, forKey: testKey)
-                    _ = try keychain.load(key: testKey)
-                    try keychain.delete(key: testKey)
-                    continuation.resume(returning: true)
-                } catch {
-                    continuation.resume(returning: false)
-                }
-            }
+        let testKey = "com.airfit.health.check"
+        let canAccessKeychain: Bool
+        do {
+            try keychain.save("test".data(using: .utf8)!, forKey: testKey)
+            _ = try keychain.load(key: testKey)
+            try keychain.delete(key: testKey)
+            canAccessKeychain = true
+        } catch {
+            canAccessKeychain = false
         }
         
         return ServiceHealth(
