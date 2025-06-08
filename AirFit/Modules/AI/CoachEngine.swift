@@ -1607,22 +1607,35 @@ private final class PreviewAIAnalyticsService: AIAnalyticsServiceProtocol {
 /// Minimal preview implementation of AI goal service
 private final class PreviewAIGoalService: AIGoalServiceProtocol {
     // Base protocol requirements
-    func createGoal(_ goalData: GoalCreationData, for user: User) async throws -> ServiceGoal {
-        ServiceGoal(
-            id: UUID(),
-            type: goalData.type,
-            target: goalData.target,
-            currentValue: 0,
-            deadline: goalData.deadline,
-            createdAt: Date(),
-            updatedAt: Date()
+    func createGoal(_ goal: TrackedGoal) async throws {}
+    func updateGoal(_ goal: TrackedGoal) async throws {}
+    func deleteGoal(_ goal: TrackedGoal) async throws {}
+    func completeGoal(_ goal: TrackedGoal) async throws {}
+    func getActiveGoals(for userId: UUID) async throws -> [TrackedGoal] { [] }
+    func getAllGoals(for userId: UUID) async throws -> [TrackedGoal] { [] }
+    func getGoal(by id: UUID) async throws -> TrackedGoal? { nil }
+    func updateProgress(for goalId: UUID, progress: Double) async throws {}
+    func recordMilestone(for goalId: UUID, milestone: TrackedGoalMilestone) async throws {}
+    func getGoalsContext(for userId: UUID) async throws -> GoalsContext {
+        GoalsContext(
+            activeGoals: [],
+            totalActiveGoals: 0,
+            goalsNeedingAttention: [],
+            recentAchievements: [],
+            primaryGoal: nil
         )
     }
-    func updateGoal(_ goal: ServiceGoal, updates: GoalUpdate) async throws {}
-    func deleteGoal(_ goal: ServiceGoal) async throws {}
-    func getActiveGoals(for user: User) async throws -> [ServiceGoal] { [] }
-    func trackProgress(for goal: ServiceGoal, value: Double) async throws {}
-    func checkGoalCompletion(_ goal: ServiceGoal) async -> Bool { false }
+    func getGoalStatistics(for userId: UUID) async throws -> GoalStatistics {
+        GoalStatistics(
+            totalGoals: 0,
+            activeGoals: 0,
+            completedGoals: 0,
+            pausedGoals: 0,
+            completionRate: 0,
+            averageCompletionDays: 0,
+            currentStreak: 0
+        )
+    }
     
     // AI protocol requirements
     func createOrRefineGoal(current: String?, aspirations: String, timeframe: String?, fitnessLevel: String?, constraints: [String], motivations: [String], goalType: String?, for user: User) async throws -> GoalResult {
@@ -1643,7 +1656,7 @@ private final class PreviewAIGoalService: AIGoalServiceProtocol {
         )
     }
     
-    func suggestGoalAdjustments(for goal: ServiceGoal, user: User) async throws -> [GoalAdjustment] {
+    func suggestGoalAdjustments(for goal: TrackedGoal, user: User) async throws -> [GoalAdjustment] {
         []
     }
 }

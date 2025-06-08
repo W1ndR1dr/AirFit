@@ -11,10 +11,17 @@ public final class DIViewModelFactory {
         self.container = container
     }
     
+    private func getModelContext() async throws -> ModelContext {
+        // Since we're @MainActor, we can safely get the ModelContainer
+        let modelContainer = try await container.resolve(ModelContainer.self)
+        // mainContext is accessed on MainActor
+        return modelContainer.mainContext
+    }
+    
     // MARK: - Dashboard
     
     func makeDashboardViewModel(user: User) async throws -> DashboardViewModel {
-        let modelContainer = try await container.resolve(ModelContainer.self)
+        let modelContext = try await getModelContext()
         let healthKitService = try await container.resolve(HealthKitServiceProtocol.self)
         let nutritionService = try await container.resolve(DashboardNutritionServiceProtocol.self)
         
@@ -24,7 +31,7 @@ public final class DIViewModelFactory {
         
         return DashboardViewModel(
             user: user,
-            modelContext: modelContainer.mainContext,
+            modelContext: modelContext,
             healthKitService: healthKitService,
             aiCoachService: aiCoachService,
             nutritionService: nutritionService
@@ -34,14 +41,14 @@ public final class DIViewModelFactory {
     // MARK: - Settings
     
     func makeSettingsViewModel(user: User) async throws -> SettingsViewModel {
-        let modelContainer = try await container.resolve(ModelContainer.self)
+        let modelContext = try await getModelContext()
         let apiKeyManager = try await container.resolve(APIKeyManagementProtocol.self)
         let aiService = try await container.resolve(AIServiceProtocol.self)
         let notificationManager = try await container.resolve(NotificationManager.self)
         let coordinator = SettingsCoordinator()
         
         return SettingsViewModel(
-            modelContext: modelContainer.mainContext,
+            modelContext: modelContext,
             user: user,
             apiKeyManager: apiKeyManager,
             aiService: aiService,
@@ -53,7 +60,7 @@ public final class DIViewModelFactory {
     // MARK: - Workouts
     
     func makeWorkoutViewModel(user: User) async throws -> WorkoutViewModel {
-        let modelContainer = try await container.resolve(ModelContainer.self)
+        let modelContext = try await getModelContext()
         let healthKitManager = try await container.resolve(HealthKitManager.self)
         let exerciseDatabase = try await container.resolve(ExerciseDatabase.self)
         let workoutSyncService = try await container.resolve(WorkoutSyncService.self)
@@ -62,7 +69,7 @@ public final class DIViewModelFactory {
         let coachEngine = try await makeCoachEngine(for: user)
         
         return WorkoutViewModel(
-            modelContext: modelContainer.mainContext,
+            modelContext: modelContext,
             user: user,
             coachEngine: coachEngine,
             healthKitManager: healthKitManager,
@@ -74,14 +81,14 @@ public final class DIViewModelFactory {
     // MARK: - Chat
     
     func makeChatViewModel(user: User) async throws -> ChatViewModel {
-        let modelContainer = try await container.resolve(ModelContainer.self)
+        let modelContext = try await getModelContext()
         let aiService = try await container.resolve(AIServiceProtocol.self, name: "adaptive")
         
         // Create user-specific CoachEngine
         let coachEngine = try await makeCoachEngine(for: user)
         
         return ChatViewModel(
-            modelContext: modelContainer.mainContext,
+            modelContext: modelContext,
             user: user,
             coachEngine: coachEngine,
             aiService: aiService,
@@ -92,7 +99,7 @@ public final class DIViewModelFactory {
     // MARK: - Food Tracking
     
     func makeFoodTrackingViewModel(user: User) async throws -> FoodTrackingViewModel {
-        let modelContainer = try await container.resolve(ModelContainer.self)
+        let modelContext = try await getModelContext()
         let voiceInputManager = try await container.resolve(VoiceInputManager.self)
         let nutritionService = try await container.resolve(NutritionServiceProtocol.self)
         let coordinator = FoodTrackingCoordinator()
@@ -104,7 +111,7 @@ public final class DIViewModelFactory {
         let coachEngine = try await makeCoachEngine(for: user)
         
         return FoodTrackingViewModel(
-            modelContext: modelContainer.mainContext,
+            modelContext: modelContext,
             user: user,
             foodVoiceAdapter: foodVoiceAdapter,
             nutritionService: nutritionService,
@@ -116,16 +123,24 @@ public final class DIViewModelFactory {
     
     // MARK: - Onboarding
     
-    func makeOnboardingViewModel() async throws -> OnboardingViewModel {
-        let modelContainer = try await container.resolve(ModelContainer.self)
+    func makeOnboardingViewModel(modelContext: ModelContext? = nil) async throws -> OnboardingViewModel {
+        AppLogger.info("DIViewModelFactory: Creating OnboardingViewModel", category: .app)
+        AppLogger.info("DIViewModelFactory: Container ID: \(ObjectIdentifier(container))", category: .app)
+        
+        // Use provided context or get from container
+        let context: ModelContext
+        if let modelContext = modelContext {
+            context = modelContext
+        } else {
+            context = try await getModelContext()
+        }
+        
         let userService = try await container.resolve(UserServiceProtocol.self)
         let apiKeyManager = try await container.resolve(APIKeyManagementProtocol.self)
         let aiService = try await container.resolve(AIServiceProtocol.self)
         
         // Create onboarding service
-        let onboardingService = OnboardingService(
-            modelContext: modelContainer.mainContext
-        )
+        let onboardingService = OnboardingService(modelContext: context)
         
         // Create HealthKit auth manager
         let healthKitAuthManager = HealthKitAuthManager()
@@ -133,7 +148,7 @@ public final class DIViewModelFactory {
         return OnboardingViewModel(
             aiService: aiService,
             onboardingService: onboardingService,
-            modelContext: modelContainer.mainContext,
+            modelContext: context,
             apiKeyManager: apiKeyManager,
             userService: userService,
             healthKitAuthManager: healthKitAuthManager
@@ -141,7 +156,7 @@ public final class DIViewModelFactory {
     }
     
     func makeOnboardingFlowCoordinator() async throws -> OnboardingFlowCoordinator {
-        let modelContainer = try await container.resolve(ModelContainer.self)
+        let modelContext = try await getModelContext()
         let userService = try await container.resolve(UserServiceProtocol.self)
         let apiKeyManager = try await container.resolve(APIKeyManagementProtocol.self)
         let llmOrchestrator = try await container.resolve(LLMOrchestrator.self)
@@ -158,7 +173,7 @@ public final class DIViewModelFactory {
         let personaService = PersonaService(
             personaSynthesizer: personaSynthesizer,
             llmOrchestrator: llmOrchestrator,
-            modelContext: modelContainer.mainContext,
+            modelContext: modelContext,
             cache: cache
         )
         
@@ -168,14 +183,14 @@ public final class DIViewModelFactory {
         // Create conversation manager
         let conversationManager = ConversationFlowManager(
             flowDefinition: flowDefinition,
-            modelContext: modelContainer.mainContext
+            modelContext: modelContext
         )
         
         return OnboardingFlowCoordinator(
             conversationManager: conversationManager,
             personaService: personaService,
             userService: userService,
-            modelContext: modelContainer.mainContext
+            modelContext: modelContext
         )
     }
     
@@ -184,9 +199,8 @@ public final class DIViewModelFactory {
     // MARK: - Private Helpers
     
     private func makeCoachEngine(for user: User) async throws -> CoachEngine {
-        let modelContainer = try await container.resolve(ModelContainer.self)
+        let modelContext = try await getModelContext()
         let aiService = try await container.resolve(AIServiceProtocol.self)
-        let modelContext = modelContainer.mainContext
         
         // Create required components
         let localCommandParser = LocalCommandParser()
@@ -217,8 +231,8 @@ public final class DIViewModelFactory {
     }
     
     private func makeConversationManager(for user: User) async throws -> ConversationManager {
-        let modelContainer = try await container.resolve(ModelContainer.self)
-        return ConversationManager(modelContext: modelContainer.mainContext)
+        let modelContext = try await getModelContext()
+        return ConversationManager(modelContext: modelContext)
     }
 }
 

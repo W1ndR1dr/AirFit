@@ -4,6 +4,9 @@ import SwiftUI
 /// Modern dependency injection container for AirFit
 /// Provides a clean, testable alternative to singletons
 public final class DIContainer: @unchecked Sendable {
+    /// Shared instance for app initialization
+    /// Note: This is only used during app startup to avoid SwiftUI environment timing issues
+    nonisolated(unsafe) public static var shared: DIContainer?
     /// Lifetime of a registered dependency
     public enum Lifetime {
         case singleton  // Created once, shared across app
@@ -49,6 +52,11 @@ public final class DIContainer: @unchecked Sendable {
         let key = makeKey(type: type, name: name)
         registrations[key] = Registration(lifetime: .singleton, factory: { _ in instance })
         singletonInstances[key] = instance
+        
+        // Debug logging for ModelContainer
+        if String(describing: type).contains("ModelContainer") {
+            AppLogger.info("DI: Registered \(type) with key: \(key)", category: .app)
+        }
     }
     
     // MARK: - Resolution
@@ -56,6 +64,14 @@ public final class DIContainer: @unchecked Sendable {
     /// Resolve a dependency
     public func resolve<T>(_ type: T.Type, name: String? = nil) async throws -> T {
         let key = makeKey(type: type, name: name)
+        
+        // Debug logging for ModelContainer
+        if String(describing: type).contains("ModelContainer") {
+            AppLogger.info("DI: Resolving ModelContainer", category: .app)
+            AppLogger.info("DI: Key: \(key)", category: .app)
+            AppLogger.info("DI: Registrations count: \(registrations.count)", category: .app)
+            AppLogger.info("DI: Has registration: \(registrations[key] != nil)", category: .app)
+        }
         
         // Check if we have a registration
         guard let registration = findRegistration(for: key) else {
@@ -151,14 +167,14 @@ public enum DIError: LocalizedError {
 
 // MARK: - SwiftUI Environment Integration
 
-private struct DIContainerKey: @preconcurrency EnvironmentKey {
-    @MainActor static let defaultValue = DIContainer()
+private struct DIContainerEnvironmentKey: EnvironmentKey {
+    static let defaultValue = DIContainer()
 }
 
 public extension EnvironmentValues {
     var diContainer: DIContainer {
-        get { self[DIContainerKey.self] }
-        set { self[DIContainerKey.self] = newValue }
+        get { self[DIContainerEnvironmentKey.self] }
+        set { self[DIContainerEnvironmentKey.self] = newValue }
     }
 }
 

@@ -5,6 +5,7 @@ import SwiftData
 struct AirFitApp: App {
     // MARK: - DI Container
     @State private var diContainer: DIContainer?
+    @State private var isInitializing = true
     
     // MARK: - Test Mode Detection
     private var isTestMode: Bool {
@@ -25,7 +26,8 @@ struct AirFitApp: App {
             ChatSession.self,
             ChatMessage.self,
             ConversationSession.self,
-            ConversationResponse.self
+            ConversationResponse.self,
+            TrackedGoal.self
         ])
 
         let modelConfiguration = ModelConfiguration(
@@ -43,29 +45,85 @@ struct AirFitApp: App {
 
     var body: some Scene {
         WindowGroup {
-            ContentView()
-                .modelContainer(Self.sharedModelContainer)
-                .withDIContainer(diContainer ?? DIContainer())
+            if isInitializing {
+                // Show loading screen while DI container initializes
+                VStack(spacing: 20) {
+                    ProgressView()
+                        .scaleEffect(1.5)
+                        .tint(AppColors.accentColor)
+                    
+                    Text("Initializing AirFit...")
+                        .font(AppFonts.headline)
+                        .foregroundColor(AppColors.textSecondary)
+                }
+                .frame(maxWidth: .infinity, maxHeight: .infinity)
+                .background(AppColors.backgroundPrimary)
                 .task {
-                    if diContainer == nil {
-                        do {
-                            if isTestMode {
-                                AppLogger.info("Running in TEST MODE with mock services", category: .app)
-                                diContainer = try await DIBootstrapper.createMockContainer(
-                                    modelContainer: Self.sharedModelContainer
-                                )
-                            } else {
-                                diContainer = try await DIBootstrapper.createAppContainer(
-                                    modelContainer: Self.sharedModelContainer
-                                )
-                            }
-                        } catch {
-                            AppLogger.error("Failed to create DI container", error: error, category: .app)
-                            // Fallback to empty container
-                            diContainer = DIContainer()
+                    await initializeApp()
+                }
+            } else if let diContainer = diContainer {
+                ContentView()
+                    .modelContainer(Self.sharedModelContainer)
+                    .withDIContainer(diContainer)
+            } else {
+                // Error state - should not happen
+                VStack(spacing: 20) {
+                    Image(systemName: "exclamationmark.triangle.fill")
+                        .font(.largeTitle)
+                        .foregroundColor(AppColors.errorColor)
+                    
+                    Text("Failed to initialize")
+                        .font(AppFonts.headline)
+                        .foregroundColor(AppColors.textPrimary)
+                    
+                    Button("Retry") {
+                        Task {
+                            await initializeApp()
                         }
                     }
+                    .buttonStyle(.borderedProminent)
                 }
+                .frame(maxWidth: .infinity, maxHeight: .infinity)
+                .background(AppColors.backgroundPrimary)
+            }
+        }
+    }
+    
+    private func initializeApp() async {
+        isInitializing = true
+        
+        do {
+            if isTestMode {
+                AppLogger.info("Running in TEST MODE with mock services", category: .app)
+                diContainer = try await DIBootstrapper.createMockContainer(
+                    modelContainer: Self.sharedModelContainer
+                )
+                // Set shared instance for initialization
+                DIContainer.shared = diContainer
+            } else {
+                AppLogger.info("AirFitApp: Creating DI container", category: .app)
+                diContainer = try await DIBootstrapper.createAppContainer(
+                    modelContainer: Self.sharedModelContainer
+                )
+                // Set shared instance for initialization
+                DIContainer.shared = diContainer
+                AppLogger.info("AirFitApp: DI container created with ID: \(ObjectIdentifier(diContainer!))", category: .app)
+            }
+        } catch {
+            AppLogger.error("Failed to create DI container", error: error, category: .app)
+            // Create a minimal container with just the model container
+            let container = DIContainer()
+            container.registerSingleton(ModelContainer.self, instance: Self.sharedModelContainer)
+            diContainer = container
+            DIContainer.shared = container
+        }
+        
+        isInitializing = false
+        
+        // Clear shared instance after a longer delay to ensure all views are initialized
+        // Views should now use the environment container
+        DispatchQueue.main.asyncAfter(deadline: .now() + 5.0) {
+            DIContainer.shared = nil
         }
     }
 }

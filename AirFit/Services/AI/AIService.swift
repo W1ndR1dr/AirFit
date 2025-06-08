@@ -13,7 +13,7 @@ final class AIService: AIServiceProtocol {
     private let orchestrator: LLMOrchestrator
     private let apiKeyManager: APIKeyManagementProtocol
     private let cache: AIResponseCache
-    private var currentModel: String = LLMModel.claude3Sonnet.identifier
+    private var currentModel: String = LLMModel.gemini25Flash.identifier
     
     // Cost tracking
     @Published private(set) var totalCost: Double = 0
@@ -66,15 +66,16 @@ final class AIService: AIServiceProtocol {
         }
         
         // Set active provider and model based on available keys
-        if hasAnthropicKey {
+        // Default to Gemini 2.5 Flash if available
+        if hasGeminiKey {
+            activeProvider = .gemini
+            currentModel = LLMModel.gemini25Flash.identifier
+        } else if hasAnthropicKey {
             activeProvider = .anthropic
             currentModel = LLMModel.claude3Sonnet.identifier
         } else if hasOpenAIKey {
             activeProvider = .openAI
             currentModel = LLMModel.gpt4Turbo.identifier
-        } else if hasGeminiKey {
-            activeProvider = .gemini
-            currentModel = LLMModel.gemini15Pro.identifier
         }
         
         isConfigured = true

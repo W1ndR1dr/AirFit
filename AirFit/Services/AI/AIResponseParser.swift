@@ -12,7 +12,7 @@ actor AIResponseParser {
     ) async throws -> [AIResponse] {
         
         switch provider {
-        case .openAI, .openRouter:
+        case .openAI:
             return try parseOpenAIStream(data)
             
         case .anthropic:
@@ -23,7 +23,7 @@ actor AIResponseParser {
         }
     }
     
-    // MARK: - OpenAI/OpenRouter Parsing
+    // MARK: - OpenAI Parsing
     private func parseOpenAIStream(_ data: Data) throws -> [AIResponse] {
         guard let string = String(data: data, encoding: .utf8) else {
             throw ServiceError.invalidResponse("Invalid UTF-8 data")
@@ -232,7 +232,7 @@ actor AIResponseParser {
 
 // MARK: - Response Models
 
-// OpenAI/OpenRouter
+// OpenAI
 private struct OpenAIStreamResponse: Decodable {
     let choices: [Choice]
     

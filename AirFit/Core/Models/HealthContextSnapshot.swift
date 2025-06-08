@@ -244,6 +244,7 @@ struct AppSpecificContext: Sendable, Codable {
     var upcomingWorkout: String?
     var currentStreak: Int?
     var workoutContext: WorkoutContext?
+    var goalsContext: GoalsContext?
 }
 
 // MARK: - Enhanced Workout Context Types

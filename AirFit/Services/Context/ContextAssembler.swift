@@ -5,10 +5,15 @@ import SwiftData
 @MainActor
 final class ContextAssembler: ContextAssemblerProtocol {
     private let healthKitManager: HealthKitManaging
+    private let goalService: GoalServiceProtocol?
     // Future: private let weatherService: WeatherServiceProtocol
 
-    init(healthKitManager: HealthKitManaging = HealthKitManager.shared) {
+    init(
+        healthKitManager: HealthKitManaging = HealthKitManager.shared,
+        goalService: GoalServiceProtocol? = nil
+    ) {
         self.healthKitManager = healthKitManager
+        self.goalService = goalService
     }
     
     /// Simplified context assembly for dashboard
@@ -167,6 +172,7 @@ final class ContextAssembler: ContextAssemblerProtocol {
         var upcomingWorkout: String?
         var currentStreak: Int?
         var workoutContext: WorkoutContext?
+        var goalsContext: GoalsContext?
 
         do {
             // Meal context (unchanged)
@@ -193,6 +199,17 @@ final class ContextAssembler: ContextAssemblerProtocol {
             upcomingWorkout = workoutContext?.upcomingWorkout?.name
             currentStreak = workoutContext?.streakDays
 
+            // Fetch goals context if goalService is available
+            if let goalService = self.goalService {
+                // Get current user ID - for now, using a fetch
+                let userDescriptor = FetchDescriptor<User>(
+                    sortBy: [SortDescriptor(\.lastActiveDate, order: .reverse)]
+                )
+                if let currentUser = try context.fetch(userDescriptor).first {
+                    goalsContext = try await goalService.getGoalsContext(for: currentUser.id)
+                }
+            }
+
         } catch {
             AppLogger.error("Failed to assemble app context", error: error, category: .data)
         }
@@ -205,7 +222,8 @@ final class ContextAssembler: ContextAssemblerProtocol {
             lastCoachInteraction: nil,
             upcomingWorkout: upcomingWorkout,
             currentStreak: currentStreak,
-            workoutContext: workoutContext
+            workoutContext: workoutContext,
+            goalsContext: goalsContext
         )
     }
 

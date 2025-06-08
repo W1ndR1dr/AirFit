@@ -51,9 +51,11 @@ public final class DIBootstrapper {
             NetworkClient()
         }
         
-        // Model Container - register the container itself, not the context
-        // Services will access mainContext from the container as needed
+        // Model Container - only register the container, not the context
+        // Services will get mainContext directly from the container when needed
+        AppLogger.info("DIBootstrapper: Registering ModelContainer", category: .app)
         container.registerSingleton(ModelContainer.self, instance: modelContainer)
+        AppLogger.info("DIBootstrapper: ModelContainer registered successfully", category: .app)
         
         // MARK: - AI Services
         
@@ -63,40 +65,67 @@ public final class DIBootstrapper {
             return await LLMOrchestrator(apiKeyManager: apiKeyManager)
         }
         
-        // AI Service - with offline fallback
-        container.register(AIServiceProtocol.self, lifetime: .singleton) { @MainActor container in
-            let llmOrchestrator = try await container.resolve(LLMOrchestrator.self)
+        // AI Service - with demo/offline fallback
+        container.register(AIServiceProtocol.self, lifetime: .singleton) { container in
+            // Check if we're in demo mode
+            let isUsingDemoMode = UserDefaults.standard.bool(forKey: "isUsingDemoMode")
+            
+            if isUsingDemoMode {
+                AppLogger.info("Using Demo AI Service", category: .ai)
+                return await DemoAIService()
+            }
+            
+            // Check if we have any configured API keys
+            let apiKeyManager = try await container.resolve(APIKeyManagementProtocol.self)
+            let configuredProviders = await apiKeyManager.getAllConfiguredProviders()
+            
+            if configuredProviders.isEmpty {
+                AppLogger.warning("No API keys configured, using Demo AI Service", category: .ai)
+                return await DemoAIService()
+            }
             
             // Create production service with LLM orchestrator
-            return AIService(llmOrchestrator: llmOrchestrator)
+            let llmOrchestrator = try await container.resolve(LLMOrchestrator.self)
+            return await AIService(llmOrchestrator: llmOrchestrator)
         }
         
         // MARK: - User Services
         
         // User Service
-        container.register(UserServiceProtocol.self, lifetime: .singleton) { @MainActor container in
-            let modelContainer = try await container.resolve(ModelContainer.self)
-            return UserService(modelContext: modelContainer.mainContext)
+        container.register(UserServiceProtocol.self, lifetime: .singleton) { _ in
+            await MainActor.run {
+                UserService(modelContext: modelContainer.mainContext)
+            }
         }
         
         // MARK: - Health Services
         
         // HealthKit Manager
-        container.register(HealthKitManager.self, lifetime: .singleton) { @MainActor _ in
-            HealthKitManager.shared
+        container.register(HealthKitManager.self, lifetime: .singleton) { _ in
+            await MainActor.run {
+                HealthKitManager.shared
+            }
         }
         
         // Weather Service
-        container.register(WeatherServiceProtocol.self, lifetime: .singleton) { @MainActor _ in
-            WeatherService()
+        container.register(WeatherServiceProtocol.self, lifetime: .singleton) { _ in
+            await MainActor.run {
+                WeatherService()
+            }
         }
         
         // MARK: - Module Services (Transient - created per-use)
         
         // Context Assembler - needed by HealthKitService
-        container.register(ContextAssembler.self) { @MainActor container in
+        container.register(ContextAssembler.self) { container in
             let healthKitManager = try await container.resolve(HealthKitManager.self)
-            return ContextAssembler(healthKitManager: healthKitManager)
+            let goalService = try? await container.resolve(GoalServiceProtocol.self)
+            return await MainActor.run {
+                ContextAssembler(
+                    healthKitManager: healthKitManager,
+                    goalService: goalService
+                )
+            }
         }
         
         // Dashboard Module Services
@@ -111,13 +140,14 @@ public final class DIBootstrapper {
             try await container.resolve(HealthKitService.self)
         }
         
-        container.register(DashboardNutritionService.self) { @MainActor container in
-            let modelContainer = try await container.resolve(ModelContainer.self)
-            return DashboardNutritionService(modelContext: modelContainer.mainContext)
+        container.register(DashboardNutritionService.self) { _ in
+            await MainActor.run {
+                DashboardNutritionService(modelContext: modelContainer.mainContext)
+            }
         }
         
         // Also register the protocol interface to the same service
-        container.register(DashboardNutritionServiceProtocol.self) { @MainActor container in
+        container.register(DashboardNutritionServiceProtocol.self) { container in
             try await container.resolve(DashboardNutritionService.self)
         }
         
@@ -125,83 +155,121 @@ public final class DIBootstrapper {
         // Register it as transient and create per-user in ViewModelFactory
         
         // Nutrition Service
-        container.register(NutritionServiceProtocol.self) { @MainActor container in
-            let modelContainer = try await container.resolve(ModelContainer.self)
-            return NutritionService(modelContext: modelContainer.mainContext)
+        container.register(NutritionServiceProtocol.self) { _ in
+            await MainActor.run {
+                NutritionService(modelContext: modelContainer.mainContext)
+            }
         }
         
         // Workout Service
-        container.register(WorkoutServiceProtocol.self) { @MainActor container in
-            let modelContainer = try await container.resolve(ModelContainer.self)
-            return WorkoutService(modelContext: modelContainer.mainContext)
+        container.register(WorkoutServiceProtocol.self) { _ in
+            await MainActor.run {
+                WorkoutService(modelContext: modelContainer.mainContext)
+            }
         }
         
         // Exercise Database
-        container.register(ExerciseDatabase.self, lifetime: .singleton) { @MainActor _ in
-            ExerciseDatabase.shared
+        container.register(ExerciseDatabase.self, lifetime: .singleton) { _ in
+            await MainActor.run {
+                ExerciseDatabase.shared
+            }
         }
         
         // Workout Sync Service
-        container.register(WorkoutSyncService.self, lifetime: .singleton) { @MainActor _ in
-            WorkoutSyncService.shared
+        container.register(WorkoutSyncService.self, lifetime: .singleton) { _ in
+            await MainActor.run {
+                WorkoutSyncService.shared
+            }
         }
         
         // Analytics Service
-        container.register(AnalyticsServiceProtocol.self) { @MainActor container in
-            let modelContainer = try await container.resolve(ModelContainer.self)
-            return AnalyticsService(modelContext: modelContainer.mainContext)
+        container.register(AnalyticsServiceProtocol.self) { _ in
+            await MainActor.run {
+                AnalyticsService(modelContext: modelContainer.mainContext)
+            }
         }
         
         // Goal Service  
-        container.register(GoalServiceProtocol.self) { @MainActor container in
-            let modelContainer = try await container.resolve(ModelContainer.self)
-            return GoalService(modelContext: modelContainer.mainContext)
+        container.register(GoalServiceProtocol.self) { _ in
+            await MainActor.run {
+                GoalService(modelContext: modelContainer.mainContext)
+            }
+        }
+        
+        // Also register the concrete type
+        container.register(GoalService.self) { _ in
+            await MainActor.run {
+                GoalService(modelContext: modelContainer.mainContext)
+            }
         }
         
         // AI-specific service registrations for FunctionCallDispatcher
-        container.register(AIGoalServiceProtocol.self) { @MainActor container in
+        container.register(AIGoalServiceProtocol.self) { container in
             let goalService = try await container.resolve(GoalServiceProtocol.self)
-            return AIGoalService(goalService: goalService)
+            return await MainActor.run {
+                AIGoalService(goalService: goalService)
+            }
         }
         
-        container.register(AIWorkoutServiceProtocol.self) { @MainActor container in
+        container.register(AIWorkoutServiceProtocol.self) { container in
             let workoutService = try await container.resolve(WorkoutServiceProtocol.self)
-            return AIWorkoutService(workoutService: workoutService)
+            return await MainActor.run {
+                AIWorkoutService(workoutService: workoutService)
+            }
         }
         
-        container.register(AIAnalyticsServiceProtocol.self) { @MainActor container in
+        container.register(AIAnalyticsServiceProtocol.self) { container in
             let analyticsService = try await container.resolve(AnalyticsServiceProtocol.self)
-            return AIAnalyticsService(analyticsService: analyticsService)
+            return await MainActor.run {
+                AIAnalyticsService(analyticsService: analyticsService)
+            }
         }
         
         // MARK: - FoodTracking Module Services
         
         // Food Voice Adapter
-        container.register(FoodVoiceAdapterProtocol.self) { @MainActor container in
+        container.register(FoodVoiceAdapterProtocol.self) { container in
             let voiceInputManager = try await container.resolve(VoiceInputManager.self)
-            return FoodVoiceAdapter(voiceInputManager: voiceInputManager)
+            return await MainActor.run {
+                FoodVoiceAdapter(voiceInputManager: voiceInputManager)
+            }
         }
         
         // Food Tracking Coordinator
-        container.register(FoodTrackingCoordinator.self) { @MainActor _ in
-            FoodTrackingCoordinator()
+        container.register(FoodTrackingCoordinator.self) { _ in
+            await MainActor.run {
+                FoodTrackingCoordinator()
+            }
         }
         
         // MARK: - Voice Services
         
         // Voice Input Manager
-        container.register(VoiceInputManager.self, lifetime: .singleton) { @MainActor _ in
-            VoiceInputManager()
+        container.register(VoiceInputManager.self, lifetime: .singleton) { _ in
+            await MainActor.run {
+                VoiceInputManager()
+            }
         }
         
         // MARK: - Notification Services
         
         // Notification Manager
-        container.register(NotificationManager.self, lifetime: .singleton) { @MainActor _ in
-            NotificationManager.shared
+        container.register(NotificationManager.self, lifetime: .singleton) { _ in
+            await MainActor.run {
+                NotificationManager.shared
+            }
         }
         
         return container
+    }
+    
+    /// Create and configure a demo container (no API keys required)
+    public static func createDemoContainer(modelContainer: ModelContainer) async throws -> DIContainer {
+        // Set demo mode flag
+        UserDefaults.standard.set(true, forKey: "isUsingDemoMode")
+        
+        // Create regular container - it will use DemoAIService based on the flag
+        return try await createAppContainer(modelContainer: modelContainer)
     }
     
     /// Create a test container with mock services
@@ -244,7 +312,8 @@ public final class DIBootstrapper {
             ChatSession.self,
             ChatMessage.self,
             ConversationSession.self,
-            ConversationResponse.self
+            ConversationResponse.self,
+            TrackedGoal.self
         ])
         
         let configuration = ModelConfiguration(isStoredInMemoryOnly: true)

@@ -17,7 +17,7 @@ actor AIRequestBuilder {
         
         // Add authentication
         switch provider {
-        case .openAI, .openRouter:
+        case .openAI:
             request.setValue("Bearer \(apiKey)", forHTTPHeaderField: "Authorization")
             
         case .anthropic:
@@ -59,8 +59,6 @@ actor AIRequestBuilder {
             components.queryItems = [URLQueryItem(name: "alt", value: "sse")]
             return components.url!
             
-        case .openRouter:
-            return provider.baseURL.appendingPathComponent("chat/completions")
         }
     }
     
@@ -71,7 +69,7 @@ actor AIRequestBuilder {
     ) async throws -> [String: Any] {
         
         switch provider {
-        case .openAI, .openRouter:
+        case .openAI:
             return buildOpenAIRequestBody(request: request, model: model)
             
         case .anthropic:

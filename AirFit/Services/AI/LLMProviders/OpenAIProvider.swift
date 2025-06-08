@@ -22,10 +22,7 @@ actor OpenAIProvider: LLMProvider {
         
         let sessionConfig = URLSessionConfiguration.default
         sessionConfig.timeoutIntervalForRequest = config.timeout
-        sessionConfig.httpAdditionalHeaders = [
-            "Authorization": "Bearer \(config.apiKey)",
-            "Content-Type": "application/json"
-        ]
+        // Don't set authorization header here for security - set per-request instead
         
         self.session = URLSession(configuration: sessionConfig)
     }
@@ -37,6 +34,8 @@ actor OpenAIProvider: LLMProvider {
         
         var urlRequest = URLRequest(url: url)
         urlRequest.httpMethod = "POST"
+        urlRequest.setValue("Bearer \(config.apiKey)", forHTTPHeaderField: "Authorization")
+        urlRequest.setValue("application/json", forHTTPHeaderField: "Content-Type")
         urlRequest.httpBody = try JSONEncoder().encode(openAIRequest)
         
         let (data, response) = try await session.data(for: urlRequest)
@@ -85,6 +84,8 @@ actor OpenAIProvider: LLMProvider {
                     
                     var urlRequest = URLRequest(url: url)
                     urlRequest.httpMethod = "POST"
+                    urlRequest.setValue("Bearer \(config.apiKey)", forHTTPHeaderField: "Authorization")
+                    urlRequest.setValue("application/json", forHTTPHeaderField: "Content-Type")
                     urlRequest.httpBody = try JSONEncoder().encode(openAIRequest)
                     
                     let (bytes, response) = try await session.bytes(for: urlRequest)

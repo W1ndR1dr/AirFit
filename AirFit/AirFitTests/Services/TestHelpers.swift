@@ -302,7 +302,7 @@ enum TestDataGenerators {
         let errorData: [String: Any]
         
         switch provider {
-        case .openAI, .openRouter:
+        case .openAI:
             errorData = [
                 "error": [
                     "type": code,

@@ -10,21 +10,26 @@ final class AppState {
     private(set) var isLoading = true
     private(set) var currentUser: User?
     private(set) var hasCompletedOnboarding = false
+    private(set) var needsAPISetup = false
+    private(set) var isUsingDemoMode = false
     private(set) var error: Error?
 
     // MARK: - Dependencies
     private let modelContext: ModelContext
     private let isUITesting: Bool
     private let healthKitAuthManager: HealthKitAuthManager
+    private let apiKeyManager: APIKeyManagementProtocol?
 
     // MARK: - Initialization
     init(
         modelContext: ModelContext,
-        healthKitAuthManager: HealthKitAuthManager = HealthKitAuthManager()
+        healthKitAuthManager: HealthKitAuthManager = HealthKitAuthManager(),
+        apiKeyManager: APIKeyManagementProtocol? = nil
     ) {
         self.modelContext = modelContext
         self.isUITesting = ProcessInfo.processInfo.arguments.contains("--uitesting")
         self.healthKitAuthManager = healthKitAuthManager
+        self.apiKeyManager = apiKeyManager
 
         if isUITesting {
             setupUITestingState()
@@ -41,6 +46,18 @@ final class AppState {
         defer { isLoading = false }
 
         do {
+            // Check API configuration status
+            if let apiKeyManager = apiKeyManager {
+                let configuredProviders = await apiKeyManager.getAllConfiguredProviders()
+                needsAPISetup = configuredProviders.isEmpty
+                isUsingDemoMode = UserDefaults.standard.bool(forKey: "isUsingDemoMode")
+                
+                // If using demo mode but no configured providers, still need setup
+                if isUsingDemoMode && configuredProviders.isEmpty {
+                    needsAPISetup = true
+                }
+            }
+            
             // Fetch the current user
             let userDescriptor = FetchDescriptor<User>(
                 sortBy: [SortDescriptor(\.createdAt, order: .reverse)]
@@ -72,6 +89,13 @@ final class AppState {
         hasCompletedOnboarding = false
         isLoading = false
         AppLogger.info("New user created", category: .app)
+    }
+    
+    func completeAPISetup(usingDemoMode: Bool) {
+        needsAPISetup = false
+        isUsingDemoMode = usingDemoMode
+        UserDefaults.standard.set(usingDemoMode, forKey: "isUsingDemoMode")
+        AppLogger.info("API setup completed - demo mode: \(usingDemoMode)", category: .app)
     }
 
     func completeOnboarding() async {
@@ -109,8 +133,12 @@ final class AppState {
 
 // MARK: - App State Extensions
 extension AppState {
+    var shouldShowAPISetup: Bool {
+        !isLoading && needsAPISetup
+    }
+    
     var shouldShowOnboarding: Bool {
-        !isLoading && currentUser != nil && !hasCompletedOnboarding
+        !isLoading && !needsAPISetup && currentUser != nil && !hasCompletedOnboarding
     }
 
     var healthKitStatus: HealthKitAuthorizationStatus {
@@ -118,10 +146,10 @@ extension AppState {
     }
 
     var shouldCreateUser: Bool {
-        !isLoading && currentUser == nil
+        !isLoading && !needsAPISetup && currentUser == nil
     }
 
     var shouldShowDashboard: Bool {
-        !isLoading && currentUser != nil && hasCompletedOnboarding
+        !isLoading && !needsAPISetup && currentUser != nil && hasCompletedOnboarding
     }
 }

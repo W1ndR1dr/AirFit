@@ -22,11 +22,7 @@ actor AnthropicProvider: LLMProvider {
         
         let sessionConfig = URLSessionConfiguration.default
         sessionConfig.timeoutIntervalForRequest = config.timeout
-        sessionConfig.httpAdditionalHeaders = [
-            "x-api-key": config.apiKey,
-            "anthropic-version": "2023-06-01",
-            "content-type": "application/json"
-        ]
+        // Don't set API key here for security - set per-request instead
         
         self.session = URLSession(configuration: sessionConfig)
     }
@@ -37,6 +33,9 @@ actor AnthropicProvider: LLMProvider {
         
         var urlRequest = URLRequest(url: url)
         urlRequest.httpMethod = "POST"
+        urlRequest.setValue(config.apiKey, forHTTPHeaderField: "x-api-key")
+        urlRequest.setValue("2023-06-01", forHTTPHeaderField: "anthropic-version")
+        urlRequest.setValue("application/json", forHTTPHeaderField: "content-type")
         urlRequest.httpBody = try JSONEncoder().encode(anthropicRequest)
         
         let (data, response) = try await session.data(for: urlRequest)
@@ -84,6 +83,9 @@ actor AnthropicProvider: LLMProvider {
                     
                     var urlRequest = URLRequest(url: url)
                     urlRequest.httpMethod = "POST"
+                    urlRequest.setValue(config.apiKey, forHTTPHeaderField: "x-api-key")
+                    urlRequest.setValue("2023-06-01", forHTTPHeaderField: "anthropic-version")
+                    urlRequest.setValue("application/json", forHTTPHeaderField: "content-type")
                     urlRequest.httpBody = try JSONEncoder().encode(anthropicRequest)
                     
                     let (bytes, response) = try await session.bytes(for: urlRequest)

@@ -314,8 +314,6 @@ final class SettingsViewModel: ErrorHandling {
             return key.hasPrefix("sk-ant-") && key.count > 20
         case .gemini:
             return key.count > 20 // Google uses various formats
-        case .openRouter:
-            return !key.isEmpty
         }
     }
     

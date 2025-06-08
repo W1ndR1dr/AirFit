@@ -11,8 +11,6 @@ extension AIProvider {
             return URL(string: "https://api.anthropic.com/v1")!
         case .gemini:
             return URL(string: "https://generativelanguage.googleapis.com")!
-        case .openRouter:
-            return URL(string: "https://openrouter.ai/api/v1")!
         }
     }
     
@@ -25,8 +23,6 @@ extension AIProvider {
             return "Anthropic"
         case .gemini:
             return "Google Gemini"
-        case .openRouter:
-            return "OpenRouter"
         }
     }
     
@@ -39,8 +35,6 @@ extension AIProvider {
             return "claude-3-5-sonnet-20241022"
         case .gemini:
             return "gemini-1.5-flash-002"
-        case .openRouter:
-            return "openai/gpt-4o-mini"
         }
     }
     
@@ -71,16 +65,6 @@ extension AIProvider {
                 "gemini-1.5-flash-002",
                 "gemini-1.0-pro"
             ]
-        case .openRouter:
-            return [
-                "openai/gpt-4o",
-                "openai/gpt-4o-mini",
-                "anthropic/claude-3.5-sonnet",
-                "anthropic/claude-3-opus",
-                "google/gemini-pro-1.5",
-                "meta-llama/llama-3.1-405b-instruct",
-                "mistralai/mistral-large"
-            ]
         }
     }
     
@@ -93,8 +77,6 @@ extension AIProvider {
             return 200_000 // Claude 3 Sonnet
         case .gemini:
             return 30_720 // Gemini Pro
-        case .openRouter:
-            return 128_000 // GPT-4o-mini via OpenRouter
         }
     }
     
@@ -103,8 +85,6 @@ extension AIProvider {
         switch self {
         case .openAI, .anthropic, .gemini:
             return true
-        case .openRouter:
-            return true // Depends on underlying model
         }
     }
     
@@ -113,8 +93,6 @@ extension AIProvider {
         switch self {
         case .openAI, .anthropic, .gemini:
             return true
-        case .openRouter:
-            return true // Depends on underlying model
         }
     }
     
@@ -127,15 +105,13 @@ extension AIProvider {
             return 5 // Claude free tier
         case .gemini:
             return 60 // Gemini free tier
-        case .openRouter:
-            return nil // Varies by model
         }
     }
     
     /// Required headers for authentication
     func authHeaders(apiKey: String) -> [String: String] {
         switch self {
-        case .openAI, .openRouter:
+        case .openAI:
             return ["Authorization": "Bearer \(apiKey)"]
         case .anthropic:
             return [
@@ -150,7 +126,7 @@ extension AIProvider {
     /// Streaming endpoint path
     func streamingEndpoint(for model: String) -> String {
         switch self {
-        case .openAI, .openRouter:
+        case .openAI:
             return "chat/completions"
         case .anthropic:
             return "messages"
@@ -205,16 +181,12 @@ extension AIProvider {
             default:
                 return nil
             }
-        case .openRouter:
-            // OpenRouter has variable pricing
-            return nil
         }
     }
     
     /// Validate if a model string is valid for this provider
     func isValidModel(_ model: String) -> Bool {
-        availableModels.contains(model) ||
-        (self == .openRouter && model.contains("/")) // OpenRouter uses provider/model format
+        availableModels.contains(model)
     }
     
     /// Get a descriptive error message for common provider errors
@@ -249,8 +221,6 @@ extension AIProvider {
             default:
                 return nil
             }
-        case .openRouter:
-            return nil // OpenRouter uses standard HTTP error codes
         }
     }
 }

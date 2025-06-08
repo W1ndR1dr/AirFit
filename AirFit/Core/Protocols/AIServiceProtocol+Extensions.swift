@@ -62,7 +62,7 @@ protocol AIGoalServiceProtocol: GoalServiceProtocol {
     
     /// Suggest goal adjustments based on progress
     func suggestGoalAdjustments(
-        for goal: ServiceGoal,
+        for goal: TrackedGoal,
         user: User
     ) async throws -> [GoalAdjustment]
 }

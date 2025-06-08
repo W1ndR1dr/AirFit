@@ -10,7 +10,6 @@ extension AIProvider: Identifiable {
         case .openAI: return "cpu"
         case .anthropic: return "brain"
         case .gemini: return "sparkles"
-        case .openRouter: return "arrow.triangle.branch"
         }
     }
     
@@ -40,14 +39,6 @@ extension AIProvider: Identifiable {
                 "Generate and copy your API key",
                 "Enable the Gemini API for your project"
             ]
-        case .openRouter:
-            return [
-                "Create an OpenRouter account",
-                "Navigate to Keys section",
-                "Generate a new API key",
-                "Copy your key",
-                "Add credits to your account"
-            ]
         }
     }
     
@@ -59,8 +50,6 @@ extension AIProvider: Identifiable {
             return URL(string: "https://console.anthropic.com/account/keys")
         case .gemini:
             return URL(string: "https://aistudio.google.com/app/apikey")
-        case .openRouter:
-            return URL(string: "https://openrouter.ai/keys")
         }
     }
 }

@@ -258,7 +258,6 @@ enum AIProvider: String, CaseIterable, Sendable, Codable {
     case openAI
     case gemini
     case anthropic
-    case openRouter
 }
 
 // MARK: - AIAnyCodable for flexible JSON handling

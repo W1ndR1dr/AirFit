@@ -2,6 +2,15 @@ import SwiftUI
 import SwiftData
 import Observation
 
+// MARK: - Fallback API Key Manager
+private final class PreviewAPIKeyManager: APIKeyManagementProtocol {
+    func saveAPIKey(_ key: String, for provider: AIProvider) async throws {}
+    func getAPIKey(for provider: AIProvider) async throws -> String { throw AppError.unauthorized }
+    func deleteAPIKey(for provider: AIProvider) async throws {}
+    func hasAPIKey(for provider: AIProvider) async -> Bool { false }
+    func getAllConfiguredProviders() async -> [AIProvider] { [] }
+}
+
 /// DI-based version of OnboardingFlowView
 struct OnboardingFlowViewDI: View {
     @Environment(\.modelContext) private var modelContext
@@ -9,6 +18,7 @@ struct OnboardingFlowViewDI: View {
     @State private var viewModel: OnboardingViewModel?
     @State private var isLoading = true
     @State private var loadError: Error?
+    @State private var retryCount = 0
     
     let onCompletion: (() -> Void)?
     
@@ -120,10 +130,19 @@ struct OnboardingFlowViewDI: View {
     private func loadViewModel() async {
         isLoading = true
         loadError = nil
+        retryCount += 1
         
         do {
-            let factory = DIViewModelFactory(container: diContainer)
-            viewModel = try await factory.makeOnboardingViewModel()
+            // Add a small delay to ensure the container is ready
+            try await Task.sleep(nanoseconds: 100_000_000) // 0.1 second
+            
+            // Use shared container if available (during initialization)
+            let containerToUse = DIContainer.shared ?? diContainer
+            AppLogger.info("OnboardingFlowViewDI: Attempt \(retryCount) using container ID: \(ObjectIdentifier(containerToUse))", category: .onboarding)
+            
+            // Try to create view model through DI, passing model context directly
+            let factory = DIViewModelFactory(container: containerToUse)
+            viewModel = try await factory.makeOnboardingViewModel(modelContext: modelContext)
             
             // Update the view model's model context to use the one from the environment
             viewModel?.updateModelContext(modelContext)
@@ -133,9 +152,47 @@ struct OnboardingFlowViewDI: View {
             
             isLoading = false
         } catch {
+            // If DI fails, create a minimal view model directly
+            if retryCount < 3 {
+                // Retry a few times with increasing delay
+                try? await Task.sleep(nanoseconds: UInt64(retryCount) * 500_000_000)
+                await loadViewModel()
+            } else {
+                // After retries, create view model with minimal dependencies
+                await createMinimalViewModel()
+            }
+        }
+    }
+    
+    private func createMinimalViewModel() async {
+        AppLogger.warning("Creating minimal OnboardingViewModel without full DI", category: .onboarding)
+        
+        do {
+            // Create minimal services directly
+            let onboardingService = OnboardingService(modelContext: modelContext)
+            let healthKitAuthManager = HealthKitAuthManager()
+            
+            // Try to get services from container if possible, otherwise use defaults
+            let aiService = try? await (DIContainer.shared ?? diContainer).resolve(AIServiceProtocol.self) ?? DemoAIService()
+            let apiKeyManager = try? await (DIContainer.shared ?? diContainer).resolve(APIKeyManagementProtocol.self)
+            let userService = try? await (DIContainer.shared ?? diContainer).resolve(UserServiceProtocol.self) ?? UserService(modelContext: modelContext)
+            
+            viewModel = OnboardingViewModel(
+                aiService: aiService ?? DemoAIService(),
+                onboardingService: onboardingService,
+                modelContext: modelContext,
+                apiKeyManager: apiKeyManager ?? PreviewAPIKeyManager(),
+                userService: userService ?? UserService(modelContext: modelContext),
+                healthKitAuthManager: healthKitAuthManager
+            )
+            
+            viewModel?.onCompletionCallback = onCompletion
+            isLoading = false
+            loadError = nil
+        } catch {
             loadError = error
             isLoading = false
-            AppLogger.error("Failed to create onboarding view model", error: error, category: .onboarding)
+            AppLogger.error("Failed to create minimal onboarding view model", error: error, category: .onboarding)
         }
     }
     

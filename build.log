@@ -1,0 +1,1315 @@
+Command line invocation:
+    /Applications/Xcode.app/Contents/Developer/usr/bin/xcodebuild -project AirFit.xcodeproj -scheme AirFit -destination "platform=iOS Simulator,name=iPhone 16" -configuration Debug build
+
+Resolve Package Graph
+
+
+Resolved source packages:
+  whisperkit: https://github.com/argmaxinc/WhisperKit.git @ 0.12.0
+  swift-collections: https://github.com/apple/swift-collections.git @ 1.2.0
+  swift-transformers: https://github.com/huggingface/swift-transformers.git @ 0.1.15
+  swift-argument-parser: https://github.com/apple/swift-argument-parser.git @ 1.5.0
+  Jinja: https://github.com/johnmai-dev/Jinja @ 1.2.0
+
+ComputePackagePrebuildTargetDependencyGraph
+
+Prepare packages
+
+CreateBuildRequest
+
+SendProjectDescription
+
+CreateBuildOperation
+
+ComputeTargetDependencyGraph
+note: Building targets in dependency order
+note: Target dependency graph (15 targets)
+    Target 'AirFit' in project 'AirFit'
+        ➜ Explicit dependency on target 'WhisperKit' in project 'whisperkit'
+    Target 'WhisperKit' in project 'whisperkit'
+        ➜ Explicit dependency on target 'WhisperKit' in project 'whisperkit'
+        ➜ Explicit dependency on target 'Transformers' in project 'swift-transformers'
+    Target 'WhisperKit' in project 'whisperkit'
+        ➜ Explicit dependency on target 'Transformers' in project 'swift-transformers'
+    Target 'Transformers' in project 'swift-transformers'
+        ➜ Explicit dependency on target 'Tokenizers' in project 'swift-transformers'
+        ➜ Explicit dependency on target 'Generation' in project 'swift-transformers'
+        ➜ Explicit dependency on target 'Models' in project 'swift-transformers'
+        ➜ Explicit dependency on target 'Hub' in project 'swift-transformers'
+        ➜ Explicit dependency on target 'TensorUtils' in project 'swift-transformers'
+        ➜ Explicit dependency on target 'Jinja' in project 'Jinja'
+    Target 'Models' in project 'swift-transformers'
+        ➜ Explicit dependency on target 'Hub' in project 'swift-transformers'
+        ➜ Explicit dependency on target 'Tokenizers' in project 'swift-transformers'
+        ➜ Explicit dependency on target 'TensorUtils' in project 'swift-transformers'
+        ➜ Explicit dependency on target 'Generation' in project 'swift-transformers'
+        ➜ Explicit dependency on target 'Jinja' in project 'Jinja'
+    Target 'Generation' in project 'swift-transformers'
+        ➜ Explicit dependency on target 'Hub' in project 'swift-transformers'
+        ➜ Explicit dependency on target 'Tokenizers' in project 'swift-transformers'
+        ➜ Explicit dependency on target 'TensorUtils' in project 'swift-transformers'
+        ➜ Explicit dependency on target 'Jinja' in project 'Jinja'
+    Target 'TensorUtils' in project 'swift-transformers' (no dependencies)
+    Target 'Tokenizers' in project 'swift-transformers'
+        ➜ Explicit dependency on target 'Hub' in project 'swift-transformers'
+        ➜ Explicit dependency on target 'Jinja' in project 'Jinja'
+    Target 'Jinja' in project 'Jinja'
+        ➜ Explicit dependency on target 'Jinja' in project 'Jinja'
+        ➜ Explicit dependency on target 'OrderedCollections' in project 'swift-collections'
+    Target 'Jinja' in project 'Jinja'
+        ➜ Explicit dependency on target 'OrderedCollections' in project 'swift-collections'
+    Target 'OrderedCollections' in project 'swift-collections'
+        ➜ Explicit dependency on target 'OrderedCollections' in project 'swift-collections'
+        ➜ Explicit dependency on target 'InternalCollectionsUtilities' in project 'swift-collections'
+    Target 'OrderedCollections' in project 'swift-collections'
+        ➜ Explicit dependency on target 'InternalCollectionsUtilities' in project 'swift-collections'
+    Target 'InternalCollectionsUtilities' in project 'swift-collections' (no dependencies)
+    Target 'Hub' in project 'swift-transformers'
+        ➜ Explicit dependency on target 'swift-transformers_Hub' in project 'swift-transformers'
+    Target 'swift-transformers_Hub' in project 'swift-transformers' (no dependencies)
+
+GatherProvisioningInputs
+
+CreateBuildDescription
+
+ClangStatCache /Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/bin/clang-stat-cache /Applications/Xcode.app/Contents/Developer/Platforms/iPhoneSimulator.platform/Developer/SDKs/iPhoneSimulator18.5.sdk /Users/Brian/Library/Developer/Xcode/DerivedData/SDKStatCaches.noindex/iphonesimulator18.5-22F76-d5fc8ad4295d2ef488fb7d0f804ce0c4.sdkstatcache
+    cd /Users/Brian/Coding\ Projects/AirFit/AirFit.xcodeproj
+    /Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/bin/clang-stat-cache /Applications/Xcode.app/Contents/Developer/Platforms/iPhoneSimulator.platform/Developer/SDKs/iPhoneSimulator18.5.sdk -o /Users/Brian/Library/Developer/Xcode/DerivedData/SDKStatCaches.noindex/iphonesimulator18.5-22F76-d5fc8ad4295d2ef488fb7d0f804ce0c4.sdkstatcache
+
+warning: Run script build phase 'Generate Info.plist if needed' will be run during every build because it does not specify any outputs. To address this issue, either add output dependencies to the script phase, or configure it to run in every build by unchecking "Based on dependency analysis" in the script phase. (in target 'AirFit' from project 'AirFit')
+PhaseScriptExecution Generate\ Info.plist\ if\ needed /Users/Brian/Library/Developer/Xcode/DerivedData/AirFit-byirbnjrjkaivfbuyqrmiapiyxae/Build/Intermediates.noindex/AirFit.build/Debug-iphonesimulator/AirFit.build/Script-A21597B01764419FC11321A6.sh (in target 'AirFit' from project 'AirFit')
+    cd /Users/Brian/Coding\ Projects/AirFit
+    /bin/sh -c /Users/Brian/Library/Developer/Xcode/DerivedData/AirFit-byirbnjrjkaivfbuyqrmiapiyxae/Build/Intermediates.noindex/AirFit.build/Debug-iphonesimulator/AirFit.build/Script-A21597B01764419FC11321A6.sh
+
+SwiftDriver AirFit normal arm64 com.apple.xcode.tools.swift.compiler (in target 'AirFit' from project 'AirFit')
+    cd /Users/Brian/Coding\ Projects/AirFit
+    builtin-SwiftDriver -- /Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/bin/swiftc -module-name AirFit -Onone -enforce-exclusivity\=checked @/Users/Brian/Library/Developer/Xcode/DerivedData/AirFit-byirbnjrjkaivfbuyqrmiapiyxae/Build/Intermediates.noindex/AirFit.build/Debug-iphonesimulator/AirFit.build/Objects-normal/arm64/AirFit.SwiftFileList -DDEBUG -enable-experimental-feature DebugDescriptionMacro -sdk /Applications/Xcode.app/Contents/Developer/Platforms/iPhoneSimulator.platform/Developer/SDKs/iPhoneSimulator18.5.sdk -target arm64-apple-ios18.0-simulator -g -module-cache-path /Users/Brian/Library/Developer/Xcode/DerivedData/ModuleCache.noindex -Xfrontend -serialize-debugging-options -profile-coverage-mapping -profile-generate -enable-testing -index-store-path /Users/Brian/Library/Developer/Xcode/DerivedData/AirFit-byirbnjrjkaivfbuyqrmiapiyxae/Index.noindex/DataStore -swift-version 6 -I /Users/Brian/Library/Developer/Xcode/DerivedData/AirFit-byirbnjrjkaivfbuyqrmiapiyxae/Build/Products/Debug-iphonesimulator -F /Users/Brian/Library/Developer/Xcode/DerivedData/AirFit-byirbnjrjkaivfbuyqrmiapiyxae/Build/Products/Debug-iphonesimulator/PackageFrameworks -F /Users/Brian/Library/Developer/Xcode/DerivedData/AirFit-byirbnjrjkaivfbuyqrmiapiyxae/Build/Products/Debug-iphonesimulator/PackageFrameworks -F /Users/Brian/Library/Developer/Xcode/DerivedData/AirFit-byirbnjrjkaivfbuyqrmiapiyxae/Build/Products/Debug-iphonesimulator/PackageFrameworks -F /Users/Brian/Library/Developer/Xcode/DerivedData/AirFit-byirbnjrjkaivfbuyqrmiapiyxae/Build/Products/Debug-iphonesimulator/PackageFrameworks -F /Users/Brian/Library/Developer/Xcode/DerivedData/AirFit-byirbnjrjkaivfbuyqrmiapiyxae/Build/Products/Debug-iphonesimulator/PackageFrameworks -F /Users/Brian/Library/Developer/Xcode/DerivedData/AirFit-byirbnjrjkaivfbuyqrmiapiyxae/Build/Products/Debug-iphonesimulator/PackageFrameworks -F /Users/Brian/Library/Developer/Xcode/DerivedData/AirFit-byirbnjrjkaivfbuyqrmiapiyxae/Build/Products/Debug-iphonesimulator/PackageFrameworks -F /Users/Brian/Library/Developer/Xcode/DerivedData/AirFit-byirbnjrjkaivfbuyqrmiapiyxae/Build/Products/Debug-iphonesimulator/PackageFrameworks -F /Users/Brian/Library/Developer/Xcode/DerivedData/AirFit-byirbnjrjkaivfbuyqrmiapiyxae/Build/Products/Debug-iphonesimulator/PackageFrameworks -F /Users/Brian/Library/Developer/Xcode/DerivedData/AirFit-byirbnjrjkaivfbuyqrmiapiyxae/Build/Products/Debug-iphonesimulator -c -j16 -enable-batch-mode -incremental -Xcc -ivfsstatcache -Xcc /Users/Brian/Library/Developer/Xcode/DerivedData/SDKStatCaches.noindex/iphonesimulator18.5-22F76-d5fc8ad4295d2ef488fb7d0f804ce0c4.sdkstatcache -output-file-map /Users/Brian/Library/Developer/Xcode/DerivedData/AirFit-byirbnjrjkaivfbuyqrmiapiyxae/Build/Intermediates.noindex/AirFit.build/Debug-iphonesimulator/AirFit.build/Objects-normal/arm64/AirFit-OutputFileMap.json -use-frontend-parseable-output -save-temps -no-color-diagnostics -serialize-diagnostics -emit-dependencies -emit-module -emit-module-path /Users/Brian/Library/Developer/Xcode/DerivedData/AirFit-byirbnjrjkaivfbuyqrmiapiyxae/Build/Intermediates.noindex/AirFit.build/Debug-iphonesimulator/AirFit.build/Objects-normal/arm64/AirFit.swiftmodule -validate-clang-modules-once -clang-build-session-file /Users/Brian/Library/Developer/Xcode/DerivedData/ModuleCache.noindex/Session.modulevalidation -Xcc -I/Users/Brian/Library/Developer/Xcode/DerivedData/AirFit-byirbnjrjkaivfbuyqrmiapiyxae/Build/Intermediates.noindex/AirFit.build/Debug-iphonesimulator/AirFit.build/swift-overrides.hmap -emit-const-values -Xfrontend -const-gather-protocols-file -Xfrontend /Users/Brian/Library/Developer/Xcode/DerivedData/AirFit-byirbnjrjkaivfbuyqrmiapiyxae/Build/Intermediates.noindex/AirFit.build/Debug-iphonesimulator/AirFit.build/Objects-normal/arm64/AirFit_const_extract_protocols.json -Xcc -iquote -Xcc /Users/Brian/Library/Developer/Xcode/DerivedData/AirFit-byirbnjrjkaivfbuyqrmiapiyxae/Build/Intermediates.noindex/AirFit.build/Debug-iphonesimulator/AirFit.build/AirFit-generated-files.hmap -Xcc -I/Users/Brian/Library/Developer/Xcode/DerivedData/AirFit-byirbnjrjkaivfbuyqrmiapiyxae/Build/Intermediates.noindex/AirFit.build/Debug-iphonesimulator/AirFit.build/AirFit-own-target-headers.hmap -Xcc -I/Users/Brian/Library/Developer/Xcode/DerivedData/AirFit-byirbnjrjkaivfbuyqrmiapiyxae/Build/Intermediates.noindex/AirFit.build/Debug-iphonesimulator/AirFit.build/AirFit-all-non-framework-target-headers.hmap -Xcc -ivfsoverlay -Xcc /Users/Brian/Library/Developer/Xcode/DerivedData/AirFit-byirbnjrjkaivfbuyqrmiapiyxae/Build/Intermediates.noindex/AirFit.build/Debug-iphonesimulator/AirFit-ebd97daffa3a1e236f047a59eef70a3a-VFS-iphonesimulator/all-product-headers.yaml -Xcc -iquote -Xcc /Users/Brian/Library/Developer/Xcode/DerivedData/AirFit-byirbnjrjkaivfbuyqrmiapiyxae/Build/Intermediates.noindex/AirFit.build/Debug-iphonesimulator/AirFit.build/AirFit-project-headers.hmap -Xcc -I/Users/Brian/Library/Developer/Xcode/DerivedData/AirFit-byirbnjrjkaivfbuyqrmiapiyxae/Build/Products/Debug-iphonesimulator/include -Xcc -I/Users/Brian/Library/Developer/Xcode/DerivedData/AirFit-byirbnjrjkaivfbuyqrmiapiyxae/Build/Intermediates.noindex/AirFit.build/Debug-iphonesimulator/AirFit.build/DerivedSources-normal/arm64 -Xcc -I/Users/Brian/Library/Developer/Xcode/DerivedData/AirFit-byirbnjrjkaivfbuyqrmiapiyxae/Build/Intermediates.noindex/AirFit.build/Debug-iphonesimulator/AirFit.build/DerivedSources/arm64 -Xcc -I/Users/Brian/Library/Developer/Xcode/DerivedData/AirFit-byirbnjrjkaivfbuyqrmiapiyxae/Build/Intermediates.noindex/AirFit.build/Debug-iphonesimulator/AirFit.build/DerivedSources -Xcc -DDEBUG\=1 -emit-objc-header -emit-objc-header-path /Users/Brian/Library/Developer/Xcode/DerivedData/AirFit-byirbnjrjkaivfbuyqrmiapiyxae/Build/Intermediates.noindex/AirFit.build/Debug-iphonesimulator/AirFit.build/Objects-normal/arm64/AirFit-Swift.h -working-directory /Users/Brian/Coding\ Projects/AirFit -experimental-emit-module-separately -disable-cmo
+
+SwiftCompile normal arm64 Compiling\ AIAnalyticsService.swift,\ AICoachService.swift,\ AIGoalService.swift,\ AIModels.swift,\ AIPersonaSettingsView.swift,\ AIProvider+API.swift,\ AIProvider+Settings.swift,\ AIRequestBuilder.swift,\ AIResponseCache.swift,\ AIResponseParser.swift,\ AIService.swift,\ AIServiceProtocol+Extensions.swift,\ AIServiceProtocol.swift,\ AIWorkoutService.swift,\ APIConfigurationView.swift,\ APIConstants.swift,\ APIKeyEntryView.swift,\ APIKeyManagementProtocol.swift /Users/Brian/Coding\ Projects/AirFit/AirFit/Services/AI/AIAnalyticsService.swift /Users/Brian/Coding\ Projects/AirFit/AirFit/Modules/Dashboard/Services/AICoachService.swift /Users/Brian/Coding\ Projects/AirFit/AirFit/Services/AI/AIGoalService.swift /Users/Brian/Coding\ Projects/AirFit/AirFit/Core/Models/AI/AIModels.swift /Users/Brian/Coding\ Projects/AirFit/AirFit/Modules/Settings/Views/AIPersonaSettingsView.swift /Users/Brian/Coding\ Projects/AirFit/AirFit/Core/Extensions/AIProvider+API.swift /Users/Brian/Coding\ Projects/AirFit/AirFit/Modules/Settings/Models/AIProvider+Settings.swift /Users/Brian/Coding\ Projects/AirFit/AirFit/Services/AI/AIRequestBuilder.swift /Users/Brian/Coding\ Projects/AirFit/AirFit/Services/AI/AIResponseCache.swift /Users/Brian/Coding\ Projects/AirFit/AirFit/Services/AI/AIResponseParser.swift /Users/Brian/Coding\ Projects/AirFit/AirFit/Services/AI/AIService.swift /Users/Brian/Coding\ Projects/AirFit/AirFit/Core/Protocols/AIServiceProtocol+Extensions.swift /Users/Brian/Coding\ Projects/AirFit/AirFit/Core/Protocols/AIServiceProtocol.swift /Users/Brian/Coding\ Projects/AirFit/AirFit/Services/AI/AIWorkoutService.swift /Users/Brian/Coding\ Projects/AirFit/AirFit/Modules/Settings/Views/APIConfigurationView.swift /Users/Brian/Coding\ Projects/AirFit/AirFit/Core/Constants/APIConstants.swift /Users/Brian/Coding\ Projects/AirFit/AirFit/Modules/Settings/Views/APIKeyEntryView.swift /Users/Brian/Coding\ Projects/AirFit/AirFit/Core/Protocols/APIKeyManagementProtocol.swift (in target 'AirFit' from project 'AirFit')
+
+SwiftCompile normal arm64 /Users/Brian/Coding\ Projects/AirFit/AirFit/Services/AI/AIAnalyticsService.swift (in target 'AirFit' from project 'AirFit')
+    cd /Users/Brian/Coding\ Projects/AirFit
+    
+
+SwiftCompile normal arm64 /Users/Brian/Coding\ Projects/AirFit/AirFit/Modules/Dashboard/Services/AICoachService.swift (in target 'AirFit' from project 'AirFit')
+    cd /Users/Brian/Coding\ Projects/AirFit
+    
+
+SwiftCompile normal arm64 /Users/Brian/Coding\ Projects/AirFit/AirFit/Services/AI/AIGoalService.swift (in target 'AirFit' from project 'AirFit')
+    cd /Users/Brian/Coding\ Projects/AirFit
+    
+
+SwiftCompile normal arm64 /Users/Brian/Coding\ Projects/AirFit/AirFit/Core/Models/AI/AIModels.swift (in target 'AirFit' from project 'AirFit')
+    cd /Users/Brian/Coding\ Projects/AirFit
+    
+
+SwiftCompile normal arm64 /Users/Brian/Coding\ Projects/AirFit/AirFit/Modules/Settings/Views/AIPersonaSettingsView.swift (in target 'AirFit' from project 'AirFit')
+    cd /Users/Brian/Coding\ Projects/AirFit
+    
+
+SwiftCompile normal arm64 /Users/Brian/Coding\ Projects/AirFit/AirFit/Core/Extensions/AIProvider+API.swift (in target 'AirFit' from project 'AirFit')
+    cd /Users/Brian/Coding\ Projects/AirFit
+    
+
+SwiftCompile normal arm64 /Users/Brian/Coding\ Projects/AirFit/AirFit/Modules/Settings/Models/AIProvider+Settings.swift (in target 'AirFit' from project 'AirFit')
+    cd /Users/Brian/Coding\ Projects/AirFit
+    
+
+SwiftCompile normal arm64 /Users/Brian/Coding\ Projects/AirFit/AirFit/Services/AI/AIRequestBuilder.swift (in target 'AirFit' from project 'AirFit')
+    cd /Users/Brian/Coding\ Projects/AirFit
+    
+
+SwiftCompile normal arm64 /Users/Brian/Coding\ Projects/AirFit/AirFit/Services/AI/AIResponseCache.swift (in target 'AirFit' from project 'AirFit')
+    cd /Users/Brian/Coding\ Projects/AirFit
+    
+
+SwiftCompile normal arm64 /Users/Brian/Coding\ Projects/AirFit/AirFit/Services/AI/AIResponseParser.swift (in target 'AirFit' from project 'AirFit')
+    cd /Users/Brian/Coding\ Projects/AirFit
+    
+
+SwiftCompile normal arm64 /Users/Brian/Coding\ Projects/AirFit/AirFit/Services/AI/AIService.swift (in target 'AirFit' from project 'AirFit')
+    cd /Users/Brian/Coding\ Projects/AirFit
+    
+
+SwiftCompile normal arm64 /Users/Brian/Coding\ Projects/AirFit/AirFit/Core/Protocols/AIServiceProtocol+Extensions.swift (in target 'AirFit' from project 'AirFit')
+    cd /Users/Brian/Coding\ Projects/AirFit
+    
+
+SwiftCompile normal arm64 /Users/Brian/Coding\ Projects/AirFit/AirFit/Core/Protocols/AIServiceProtocol.swift (in target 'AirFit' from project 'AirFit')
+    cd /Users/Brian/Coding\ Projects/AirFit
+    
+
+SwiftCompile normal arm64 /Users/Brian/Coding\ Projects/AirFit/AirFit/Services/AI/AIWorkoutService.swift (in target 'AirFit' from project 'AirFit')
+    cd /Users/Brian/Coding\ Projects/AirFit
+    
+
+SwiftCompile normal arm64 /Users/Brian/Coding\ Projects/AirFit/AirFit/Modules/Settings/Views/APIConfigurationView.swift (in target 'AirFit' from project 'AirFit')
+    cd /Users/Brian/Coding\ Projects/AirFit
+    
+
+SwiftCompile normal arm64 /Users/Brian/Coding\ Projects/AirFit/AirFit/Core/Constants/APIConstants.swift (in target 'AirFit' from project 'AirFit')
+    cd /Users/Brian/Coding\ Projects/AirFit
+    
+
+SwiftCompile normal arm64 /Users/Brian/Coding\ Projects/AirFit/AirFit/Modules/Settings/Views/APIKeyEntryView.swift (in target 'AirFit' from project 'AirFit')
+    cd /Users/Brian/Coding\ Projects/AirFit
+    
+
+SwiftCompile normal arm64 /Users/Brian/Coding\ Projects/AirFit/AirFit/Core/Protocols/APIKeyManagementProtocol.swift (in target 'AirFit' from project 'AirFit')
+    cd /Users/Brian/Coding\ Projects/AirFit
+    
+
+SwiftCompile normal arm64 Compiling\ FoodConfirmationView.swift,\ FoodEntry.swift,\ FoodItem.swift,\ FoodItemTemplate.swift,\ FoodLoggingView.swift,\ FoodTrackingCoordinator.swift,\ FoodTrackingCoordinatorProtocol.swift,\ FoodTrackingModels.swift,\ FoodTrackingViewModel.swift,\ FoodVoiceAdapter.swift,\ FoodVoiceAdapterProtocol.swift,\ FoodVoiceInputView.swift,\ FoodVoiceServiceProtocol.swift,\ Formatters.swift,\ FunctionCallDispatcher.swift,\ FunctionRegistry.swift,\ GeminiProvider.swift,\ GeneratingCoachView.swift /Users/Brian/Coding\ Projects/AirFit/AirFit/Modules/FoodTracking/Views/FoodConfirmationView.swift /Users/Brian/Coding\ Projects/AirFit/AirFit/Data/Models/FoodEntry.swift /Users/Brian/Coding\ Projects/AirFit/AirFit/Data/Models/FoodItem.swift /Users/Brian/Coding\ Projects/AirFit/AirFit/Data/Models/FoodItemTemplate.swift /Users/Brian/Coding\ Projects/AirFit/AirFit/Modules/FoodTracking/Views/FoodLoggingView.swift /Users/Brian/Coding\ Projects/AirFit/AirFit/Modules/FoodTracking/Coordinators/FoodTrackingCoordinator.swift /Users/Brian/Coding\ Projects/AirFit/AirFit/Core/Protocols/FoodTrackingCoordinatorProtocol.swift /Users/Brian/Coding\ Projects/AirFit/AirFit/Modules/FoodTracking/Models/FoodTrackingModels.swift /Users/Brian/Coding\ Projects/AirFit/AirFit/Modules/FoodTracking/ViewModels/FoodTrackingViewModel.swift /Users/Brian/Coding\ Projects/AirFit/AirFit/Modules/FoodTracking/Services/FoodVoiceAdapter.swift /Users/Brian/Coding\ Projects/AirFit/AirFit/Core/Protocols/FoodVoiceAdapterProtocol.swift /Users/Brian/Coding\ Projects/AirFit/AirFit/Modules/FoodTracking/Views/FoodVoiceInputView.swift /Users/Brian/Coding\ Projects/AirFit/AirFit/Core/Protocols/FoodVoiceServiceProtocol.swift /Users/Brian/Coding\ Projects/AirFit/AirFit/Core/Utilities/Formatters.swift /Users/Brian/Coding\ Projects/AirFit/AirFit/Modules/AI/Functions/FunctionCallDispatcher.swift /Users/Brian/Coding\ Projects/AirFit/AirFit/Modules/AI/Functions/FunctionRegistry.swift /Users/Brian/Coding\ Projects/AirFit/AirFit/Services/AI/LLMProviders/GeminiProvider.swift /Users/Brian/Coding\ Projects/AirFit/AirFit/Modules/Onboarding/Views/GeneratingCoachView.swift (in target 'AirFit' from project 'AirFit')
+
+SwiftCompile normal arm64 /Users/Brian/Coding\ Projects/AirFit/AirFit/Modules/FoodTracking/Views/FoodConfirmationView.swift (in target 'AirFit' from project 'AirFit')
+    cd /Users/Brian/Coding\ Projects/AirFit
+    
+
+SwiftCompile normal arm64 /Users/Brian/Coding\ Projects/AirFit/AirFit/Data/Models/FoodEntry.swift (in target 'AirFit' from project 'AirFit')
+    cd /Users/Brian/Coding\ Projects/AirFit
+    
+
+SwiftCompile normal arm64 /Users/Brian/Coding\ Projects/AirFit/AirFit/Data/Models/FoodItem.swift (in target 'AirFit' from project 'AirFit')
+    cd /Users/Brian/Coding\ Projects/AirFit
+    
+
+SwiftCompile normal arm64 /Users/Brian/Coding\ Projects/AirFit/AirFit/Data/Models/FoodItemTemplate.swift (in target 'AirFit' from project 'AirFit')
+    cd /Users/Brian/Coding\ Projects/AirFit
+    
+
+SwiftCompile normal arm64 /Users/Brian/Coding\ Projects/AirFit/AirFit/Modules/FoodTracking/Views/FoodLoggingView.swift (in target 'AirFit' from project 'AirFit')
+    cd /Users/Brian/Coding\ Projects/AirFit
+    
+
+SwiftCompile normal arm64 /Users/Brian/Coding\ Projects/AirFit/AirFit/Modules/FoodTracking/Coordinators/FoodTrackingCoordinator.swift (in target 'AirFit' from project 'AirFit')
+    cd /Users/Brian/Coding\ Projects/AirFit
+    
+
+SwiftCompile normal arm64 /Users/Brian/Coding\ Projects/AirFit/AirFit/Core/Protocols/FoodTrackingCoordinatorProtocol.swift (in target 'AirFit' from project 'AirFit')
+    cd /Users/Brian/Coding\ Projects/AirFit
+    
+
+SwiftCompile normal arm64 /Users/Brian/Coding\ Projects/AirFit/AirFit/Modules/FoodTracking/Models/FoodTrackingModels.swift (in target 'AirFit' from project 'AirFit')
+    cd /Users/Brian/Coding\ Projects/AirFit
+    
+
+SwiftCompile normal arm64 /Users/Brian/Coding\ Projects/AirFit/AirFit/Modules/FoodTracking/ViewModels/FoodTrackingViewModel.swift (in target 'AirFit' from project 'AirFit')
+    cd /Users/Brian/Coding\ Projects/AirFit
+    
+
+SwiftCompile normal arm64 /Users/Brian/Coding\ Projects/AirFit/AirFit/Modules/FoodTracking/Services/FoodVoiceAdapter.swift (in target 'AirFit' from project 'AirFit')
+    cd /Users/Brian/Coding\ Projects/AirFit
+    
+
+SwiftCompile normal arm64 /Users/Brian/Coding\ Projects/AirFit/AirFit/Core/Protocols/FoodVoiceAdapterProtocol.swift (in target 'AirFit' from project 'AirFit')
+    cd /Users/Brian/Coding\ Projects/AirFit
+    
+
+SwiftCompile normal arm64 /Users/Brian/Coding\ Projects/AirFit/AirFit/Modules/FoodTracking/Views/FoodVoiceInputView.swift (in target 'AirFit' from project 'AirFit')
+    cd /Users/Brian/Coding\ Projects/AirFit
+    
+
+SwiftCompile normal arm64 /Users/Brian/Coding\ Projects/AirFit/AirFit/Core/Protocols/FoodVoiceServiceProtocol.swift (in target 'AirFit' from project 'AirFit')
+    cd /Users/Brian/Coding\ Projects/AirFit
+    
+
+SwiftCompile normal arm64 /Users/Brian/Coding\ Projects/AirFit/AirFit/Core/Utilities/Formatters.swift (in target 'AirFit' from project 'AirFit')
+    cd /Users/Brian/Coding\ Projects/AirFit
+    
+
+SwiftCompile normal arm64 /Users/Brian/Coding\ Projects/AirFit/AirFit/Modules/AI/Functions/FunctionCallDispatcher.swift (in target 'AirFit' from project 'AirFit')
+    cd /Users/Brian/Coding\ Projects/AirFit
+    
+
+SwiftCompile normal arm64 /Users/Brian/Coding\ Projects/AirFit/AirFit/Modules/AI/Functions/FunctionRegistry.swift (in target 'AirFit' from project 'AirFit')
+    cd /Users/Brian/Coding\ Projects/AirFit
+    
+
+SwiftCompile normal arm64 /Users/Brian/Coding\ Projects/AirFit/AirFit/Services/AI/LLMProviders/GeminiProvider.swift (in target 'AirFit' from project 'AirFit')
+    cd /Users/Brian/Coding\ Projects/AirFit
+    
+
+SwiftCompile normal arm64 /Users/Brian/Coding\ Projects/AirFit/AirFit/Modules/Onboarding/Views/GeneratingCoachView.swift (in target 'AirFit' from project 'AirFit')
+    cd /Users/Brian/Coding\ Projects/AirFit
+    
+
+SwiftCompile normal arm64 Compiling\ KeychainHelper.swift,\ KeychainWrapper.swift,\ LLMModels.swift,\ LLMOrchestrator.swift,\ LLMProvider.swift,\ LifeSnapshotView.swift,\ LiveActivityManager.swift,\ LocalCommandParser.swift,\ MacroRingsView.swift,\ MealTemplate.swift,\ MessageBubbleView.swift,\ MessageComposer.swift,\ MessageProcessor.swift,\ MessageType.swift,\ ModelContainer+Test.swift,\ MonitoringService.swift,\ MorningGreetingCard.swift,\ MotivationalAccentsView.swift /Users/Brian/Coding\ Projects/AirFit/AirFit/Services/Security/KeychainHelper.swift /Users/Brian/Coding\ Projects/AirFit/AirFit/Core/Utilities/KeychainWrapper.swift /Users/Brian/Coding\ Projects/AirFit/AirFit/Services/AI/LLMProviders/LLMModels.swift /Users/Brian/Coding\ Projects/AirFit/AirFit/Services/AI/LLMOrchestrator.swift /Users/Brian/Coding\ Projects/AirFit/AirFit/Core/Protocols/LLMProvider.swift /Users/Brian/Coding\ Projects/AirFit/AirFit/Modules/Onboarding/Views/LifeSnapshotView.swift /Users/Brian/Coding\ Projects/AirFit/AirFit/Modules/Notifications/Managers/LiveActivityManager.swift /Users/Brian/Coding\ Projects/AirFit/AirFit/Modules/AI/Parsing/LocalCommandParser.swift /Users/Brian/Coding\ Projects/AirFit/AirFit/Modules/FoodTracking/Views/MacroRingsView.swift /Users/Brian/Coding\ Projects/AirFit/AirFit/Data/Models/MealTemplate.swift /Users/Brian/Coding\ Projects/AirFit/AirFit/Modules/Chat/Views/MessageBubbleView.swift /Users/Brian/Coding\ Projects/AirFit/AirFit/Modules/Chat/Views/MessageComposer.swift /Users/Brian/Coding\ Projects/AirFit/AirFit/Modules/AI/Components/MessageProcessor.swift /Users/Brian/Coding\ Projects/AirFit/AirFit/Core/Enums/MessageType.swift /Users/Brian/Coding\ Projects/AirFit/AirFit/Data/Extensions/ModelContainer+Test.swift /Users/Brian/Coding\ Projects/AirFit/AirFit/Services/Monitoring/MonitoringService.swift /Users/Brian/Coding\ Projects/AirFit/AirFit/Modules/Dashboard/Views/Cards/MorningGreetingCard.swift /Users/Brian/Coding\ Projects/AirFit/AirFit/Modules/Onboarding/Views/MotivationalAccentsView.swift (in target 'AirFit' from project 'AirFit')
+
+SwiftCompile normal arm64 /Users/Brian/Coding\ Projects/AirFit/AirFit/Services/Security/KeychainHelper.swift (in target 'AirFit' from project 'AirFit')
+    cd /Users/Brian/Coding\ Projects/AirFit
+    
+
+SwiftCompile normal arm64 /Users/Brian/Coding\ Projects/AirFit/AirFit/Core/Utilities/KeychainWrapper.swift (in target 'AirFit' from project 'AirFit')
+    cd /Users/Brian/Coding\ Projects/AirFit
+    
+
+SwiftCompile normal arm64 /Users/Brian/Coding\ Projects/AirFit/AirFit/Services/AI/LLMProviders/LLMModels.swift (in target 'AirFit' from project 'AirFit')
+    cd /Users/Brian/Coding\ Projects/AirFit
+    
+
+SwiftCompile normal arm64 /Users/Brian/Coding\ Projects/AirFit/AirFit/Services/AI/LLMOrchestrator.swift (in target 'AirFit' from project 'AirFit')
+    cd /Users/Brian/Coding\ Projects/AirFit
+    
+
+SwiftCompile normal arm64 /Users/Brian/Coding\ Projects/AirFit/AirFit/Core/Protocols/LLMProvider.swift (in target 'AirFit' from project 'AirFit')
+    cd /Users/Brian/Coding\ Projects/AirFit
+    
+
+SwiftCompile normal arm64 /Users/Brian/Coding\ Projects/AirFit/AirFit/Modules/Onboarding/Views/LifeSnapshotView.swift (in target 'AirFit' from project 'AirFit')
+    cd /Users/Brian/Coding\ Projects/AirFit
+    
+
+SwiftCompile normal arm64 /Users/Brian/Coding\ Projects/AirFit/AirFit/Modules/Notifications/Managers/LiveActivityManager.swift (in target 'AirFit' from project 'AirFit')
+    cd /Users/Brian/Coding\ Projects/AirFit
+    
+
+SwiftCompile normal arm64 /Users/Brian/Coding\ Projects/AirFit/AirFit/Modules/AI/Parsing/LocalCommandParser.swift (in target 'AirFit' from project 'AirFit')
+    cd /Users/Brian/Coding\ Projects/AirFit
+    
+
+SwiftCompile normal arm64 /Users/Brian/Coding\ Projects/AirFit/AirFit/Modules/FoodTracking/Views/MacroRingsView.swift (in target 'AirFit' from project 'AirFit')
+    cd /Users/Brian/Coding\ Projects/AirFit
+    
+
+SwiftCompile normal arm64 /Users/Brian/Coding\ Projects/AirFit/AirFit/Data/Models/MealTemplate.swift (in target 'AirFit' from project 'AirFit')
+    cd /Users/Brian/Coding\ Projects/AirFit
+    
+
+SwiftCompile normal arm64 /Users/Brian/Coding\ Projects/AirFit/AirFit/Modules/Chat/Views/MessageBubbleView.swift (in target 'AirFit' from project 'AirFit')
+    cd /Users/Brian/Coding\ Projects/AirFit
+    
+
+SwiftCompile normal arm64 /Users/Brian/Coding\ Projects/AirFit/AirFit/Modules/Chat/Views/MessageComposer.swift (in target 'AirFit' from project 'AirFit')
+    cd /Users/Brian/Coding\ Projects/AirFit
+    
+
+SwiftCompile normal arm64 /Users/Brian/Coding\ Projects/AirFit/AirFit/Modules/AI/Components/MessageProcessor.swift (in target 'AirFit' from project 'AirFit')
+    cd /Users/Brian/Coding\ Projects/AirFit
+    
+
+SwiftCompile normal arm64 /Users/Brian/Coding\ Projects/AirFit/AirFit/Core/Enums/MessageType.swift (in target 'AirFit' from project 'AirFit')
+    cd /Users/Brian/Coding\ Projects/AirFit
+    
+
+SwiftCompile normal arm64 /Users/Brian/Coding\ Projects/AirFit/AirFit/Data/Extensions/ModelContainer+Test.swift (in target 'AirFit' from project 'AirFit')
+    cd /Users/Brian/Coding\ Projects/AirFit
+    
+
+SwiftCompile normal arm64 /Users/Brian/Coding\ Projects/AirFit/AirFit/Services/Monitoring/MonitoringService.swift (in target 'AirFit' from project 'AirFit')
+    cd /Users/Brian/Coding\ Projects/AirFit
+    
+
+SwiftCompile normal arm64 /Users/Brian/Coding\ Projects/AirFit/AirFit/Modules/Dashboard/Views/Cards/MorningGreetingCard.swift (in target 'AirFit' from project 'AirFit')
+    cd /Users/Brian/Coding\ Projects/AirFit
+    
+
+SwiftCompile normal arm64 /Users/Brian/Coding\ Projects/AirFit/AirFit/Modules/Onboarding/Views/MotivationalAccentsView.swift (in target 'AirFit' from project 'AirFit')
+    cd /Users/Brian/Coding\ Projects/AirFit
+    
+
+SwiftCompile normal arm64 Compiling\ OnboardingServiceProtocol.swift,\ OnboardingState.swift,\ OnboardingStateView.swift,\ OnboardingViewModel.swift,\ OpenAIProvider.swift,\ OpeningScreenView.swift,\ OptimizedGeneratingPersonaView.swift,\ OptimizedPersonaSynthesizer.swift,\ PerformanceCard.swift,\ PersonaEngine.swift,\ PersonaMigrationUtility.swift,\ PersonaMode.swift,\ PersonaModels.swift,\ PersonaPreviewCard.swift,\ PersonaPreviewView.swift,\ PersonaSelectionView.swift,\ PersonaService.swift /Users/Brian/Coding\ Projects/AirFit/AirFit/Core/Protocols/OnboardingServiceProtocol.swift /Users/Brian/Coding\ Projects/AirFit/AirFit/Modules/Onboarding/Services/OnboardingState.swift /Users/Brian/Coding\ Projects/AirFit/AirFit/Modules/Onboarding/Views/OnboardingStateView.swift /Users/Brian/Coding\ Projects/AirFit/AirFit/Modules/Onboarding/ViewModels/OnboardingViewModel.swift /Users/Brian/Coding\ Projects/AirFit/AirFit/Services/AI/LLMProviders/OpenAIProvider.swift /Users/Brian/Coding\ Projects/AirFit/AirFit/Modules/Onboarding/Views/OpeningScreenView.swift /Users/Brian/Coding\ Projects/AirFit/AirFit/Modules/Onboarding/Views/OptimizedGeneratingPersonaView.swift /Users/Brian/Coding\ Projects/AirFit/AirFit/Modules/AI/PersonaSynthesis/OptimizedPersonaSynthesizer.swift /Users/Brian/Coding\ Projects/AirFit/AirFit/Modules/Dashboard/Views/Cards/PerformanceCard.swift /Users/Brian/Coding\ Projects/AirFit/AirFit/Modules/AI/PersonaEngine.swift /Users/Brian/Coding\ Projects/AirFit/AirFit/Core/Utilities/PersonaMigrationUtility.swift /Users/Brian/Coding\ Projects/AirFit/AirFit/Modules/AI/Models/PersonaMode.swift /Users/Brian/Coding\ Projects/AirFit/AirFit/Modules/AI/Models/PersonaModels.swift /Users/Brian/Coding\ Projects/AirFit/AirFit/Modules/Onboarding/Views/PersonaPreviewCard.swift /Users/Brian/Coding\ Projects/AirFit/AirFit/Modules/Onboarding/Views/PersonaPreviewView.swift /Users/Brian/Coding\ Projects/AirFit/AirFit/Modules/Onboarding/Views/PersonaSelectionView.swift /Users/Brian/Coding\ Projects/AirFit/AirFit/Modules/Onboarding/Services/PersonaService.swift (in target 'AirFit' from project 'AirFit')
+
+SwiftCompile normal arm64 /Users/Brian/Coding\ Projects/AirFit/AirFit/Core/Protocols/OnboardingServiceProtocol.swift (in target 'AirFit' from project 'AirFit')
+    cd /Users/Brian/Coding\ Projects/AirFit
+    
+
+SwiftCompile normal arm64 /Users/Brian/Coding\ Projects/AirFit/AirFit/Modules/Onboarding/Services/OnboardingState.swift (in target 'AirFit' from project 'AirFit')
+    cd /Users/Brian/Coding\ Projects/AirFit
+    
+
+SwiftCompile normal arm64 /Users/Brian/Coding\ Projects/AirFit/AirFit/Modules/Onboarding/Views/OnboardingStateView.swift (in target 'AirFit' from project 'AirFit')
+    cd /Users/Brian/Coding\ Projects/AirFit
+    
+
+SwiftCompile normal arm64 /Users/Brian/Coding\ Projects/AirFit/AirFit/Modules/Onboarding/ViewModels/OnboardingViewModel.swift (in target 'AirFit' from project 'AirFit')
+    cd /Users/Brian/Coding\ Projects/AirFit
+    
+
+SwiftCompile normal arm64 /Users/Brian/Coding\ Projects/AirFit/AirFit/Services/AI/LLMProviders/OpenAIProvider.swift (in target 'AirFit' from project 'AirFit')
+    cd /Users/Brian/Coding\ Projects/AirFit
+    
+
+SwiftCompile normal arm64 /Users/Brian/Coding\ Projects/AirFit/AirFit/Modules/Onboarding/Views/OpeningScreenView.swift (in target 'AirFit' from project 'AirFit')
+    cd /Users/Brian/Coding\ Projects/AirFit
+    
+
+SwiftCompile normal arm64 /Users/Brian/Coding\ Projects/AirFit/AirFit/Modules/Onboarding/Views/OptimizedGeneratingPersonaView.swift (in target 'AirFit' from project 'AirFit')
+    cd /Users/Brian/Coding\ Projects/AirFit
+    
+
+SwiftCompile normal arm64 /Users/Brian/Coding\ Projects/AirFit/AirFit/Modules/AI/PersonaSynthesis/OptimizedPersonaSynthesizer.swift (in target 'AirFit' from project 'AirFit')
+    cd /Users/Brian/Coding\ Projects/AirFit
+    
+
+SwiftCompile normal arm64 /Users/Brian/Coding\ Projects/AirFit/AirFit/Modules/Dashboard/Views/Cards/PerformanceCard.swift (in target 'AirFit' from project 'AirFit')
+    cd /Users/Brian/Coding\ Projects/AirFit
+    
+
+SwiftCompile normal arm64 /Users/Brian/Coding\ Projects/AirFit/AirFit/Modules/AI/PersonaEngine.swift (in target 'AirFit' from project 'AirFit')
+    cd /Users/Brian/Coding\ Projects/AirFit
+    
+
+SwiftCompile normal arm64 /Users/Brian/Coding\ Projects/AirFit/AirFit/Core/Utilities/PersonaMigrationUtility.swift (in target 'AirFit' from project 'AirFit')
+    cd /Users/Brian/Coding\ Projects/AirFit
+    
+
+SwiftCompile normal arm64 /Users/Brian/Coding\ Projects/AirFit/AirFit/Modules/AI/Models/PersonaMode.swift (in target 'AirFit' from project 'AirFit')
+    cd /Users/Brian/Coding\ Projects/AirFit
+    
+
+SwiftCompile normal arm64 /Users/Brian/Coding\ Projects/AirFit/AirFit/Modules/AI/Models/PersonaModels.swift (in target 'AirFit' from project 'AirFit')
+    cd /Users/Brian/Coding\ Projects/AirFit
+    
+
+SwiftCompile normal arm64 /Users/Brian/Coding\ Projects/AirFit/AirFit/Modules/Onboarding/Views/PersonaPreviewCard.swift (in target 'AirFit' from project 'AirFit')
+    cd /Users/Brian/Coding\ Projects/AirFit
+    
+
+SwiftCompile normal arm64 /Users/Brian/Coding\ Projects/AirFit/AirFit/Modules/Onboarding/Views/PersonaPreviewView.swift (in target 'AirFit' from project 'AirFit')
+    cd /Users/Brian/Coding\ Projects/AirFit
+    
+
+SwiftCompile normal arm64 /Users/Brian/Coding\ Projects/AirFit/AirFit/Modules/Onboarding/Views/PersonaSelectionView.swift (in target 'AirFit' from project 'AirFit')
+    cd /Users/Brian/Coding\ Projects/AirFit
+    
+
+SwiftCompile normal arm64 /Users/Brian/Coding\ Projects/AirFit/AirFit/Modules/Onboarding/Services/PersonaService.swift (in target 'AirFit' from project 'AirFit')
+    cd /Users/Brian/Coding\ Projects/AirFit
+    
+
+SwiftCompile normal arm64 Compiling\ NutritionService.swift,\ NutritionServiceProtocol.swift,\ OfflineAIService.swift,\ OnboardingCache.swift,\ OnboardingContainerView.swift,\ OnboardingCoordinator.swift,\ OnboardingErrorBoundary.swift,\ OnboardingFlowCoordinator.swift,\ OnboardingFlowView.swift,\ OnboardingFlowViewDI.swift,\ OnboardingModels.swift,\ OnboardingNavigationButtons.swift,\ OnboardingOrchestrator.swift,\ OnboardingProfile.swift,\ OnboardingProgressManager.swift,\ OnboardingRecovery.swift,\ OnboardingService.swift /Users/Brian/Coding\ Projects/AirFit/AirFit/Modules/FoodTracking/Services/NutritionService.swift /Users/Brian/Coding\ Projects/AirFit/AirFit/Core/Protocols/NutritionServiceProtocol.swift /Users/Brian/Coding\ Projects/AirFit/AirFit/Services/AI/OfflineAIService.swift /Users/Brian/Coding\ Projects/AirFit/AirFit/Services/Cache/OnboardingCache.swift /Users/Brian/Coding\ Projects/AirFit/AirFit/Modules/Onboarding/Views/OnboardingContainerView.swift /Users/Brian/Coding\ Projects/AirFit/AirFit/Modules/Onboarding/Coordinators/OnboardingCoordinator.swift /Users/Brian/Coding\ Projects/AirFit/AirFit/Modules/Onboarding/Views/OnboardingErrorBoundary.swift /Users/Brian/Coding\ Projects/AirFit/AirFit/Modules/Onboarding/Coordinators/OnboardingFlowCoordinator.swift /Users/Brian/Coding\ Projects/AirFit/AirFit/Modules/Onboarding/Views/OnboardingFlowView.swift /Users/Brian/Coding\ Projects/AirFit/AirFit/Modules/Onboarding/Views/OnboardingFlowViewDI.swift /Users/Brian/Coding\ Projects/AirFit/AirFit/Modules/Onboarding/Models/OnboardingModels.swift /Users/Brian/Coding\ Projects/AirFit/AirFit/Modules/Onboarding/Views/OnboardingNavigationButtons.swift /Users/Brian/Coding\ Projects/AirFit/AirFit/Modules/Onboarding/Services/OnboardingOrchestrator.swift /Users/Brian/Coding\ Projects/AirFit/AirFit/Data/Models/OnboardingProfile.swift /Users/Brian/Coding\ Projects/AirFit/AirFit/Modules/Onboarding/Services/OnboardingProgressManager.swift /Users/Brian/Coding\ Projects/AirFit/AirFit/Modules/Onboarding/Services/OnboardingRecovery.swift /Users/Brian/Coding\ Projects/AirFit/AirFit/Modules/Onboarding/Services/OnboardingService.swift (in target 'AirFit' from project 'AirFit')
+
+SwiftCompile normal arm64 /Users/Brian/Coding\ Projects/AirFit/AirFit/Modules/FoodTracking/Services/NutritionService.swift (in target 'AirFit' from project 'AirFit')
+    cd /Users/Brian/Coding\ Projects/AirFit
+    
+
+SwiftCompile normal arm64 /Users/Brian/Coding\ Projects/AirFit/AirFit/Core/Protocols/NutritionServiceProtocol.swift (in target 'AirFit' from project 'AirFit')
+    cd /Users/Brian/Coding\ Projects/AirFit
+    
+
+SwiftCompile normal arm64 /Users/Brian/Coding\ Projects/AirFit/AirFit/Services/AI/OfflineAIService.swift (in target 'AirFit' from project 'AirFit')
+    cd /Users/Brian/Coding\ Projects/AirFit
+    
+
+SwiftCompile normal arm64 /Users/Brian/Coding\ Projects/AirFit/AirFit/Services/Cache/OnboardingCache.swift (in target 'AirFit' from project 'AirFit')
+    cd /Users/Brian/Coding\ Projects/AirFit
+    
+
+SwiftCompile normal arm64 /Users/Brian/Coding\ Projects/AirFit/AirFit/Modules/Onboarding/Views/OnboardingContainerView.swift (in target 'AirFit' from project 'AirFit')
+    cd /Users/Brian/Coding\ Projects/AirFit
+    
+
+SwiftCompile normal arm64 /Users/Brian/Coding\ Projects/AirFit/AirFit/Modules/Onboarding/Coordinators/OnboardingCoordinator.swift (in target 'AirFit' from project 'AirFit')
+    cd /Users/Brian/Coding\ Projects/AirFit
+    
+
+SwiftCompile normal arm64 /Users/Brian/Coding\ Projects/AirFit/AirFit/Modules/Onboarding/Views/OnboardingErrorBoundary.swift (in target 'AirFit' from project 'AirFit')
+    cd /Users/Brian/Coding\ Projects/AirFit
+    
+
+SwiftCompile normal arm64 /Users/Brian/Coding\ Projects/AirFit/AirFit/Modules/Onboarding/Coordinators/OnboardingFlowCoordinator.swift (in target 'AirFit' from project 'AirFit')
+    cd /Users/Brian/Coding\ Projects/AirFit
+    
+
+SwiftCompile normal arm64 /Users/Brian/Coding\ Projects/AirFit/AirFit/Modules/Onboarding/Views/OnboardingFlowView.swift (in target 'AirFit' from project 'AirFit')
+    cd /Users/Brian/Coding\ Projects/AirFit
+    
+
+SwiftCompile normal arm64 /Users/Brian/Coding\ Projects/AirFit/AirFit/Modules/Onboarding/Views/OnboardingFlowViewDI.swift (in target 'AirFit' from project 'AirFit')
+    cd /Users/Brian/Coding\ Projects/AirFit
+    
+
+SwiftCompile normal arm64 /Users/Brian/Coding\ Projects/AirFit/AirFit/Modules/Onboarding/Models/OnboardingModels.swift (in target 'AirFit' from project 'AirFit')
+    cd /Users/Brian/Coding\ Projects/AirFit
+    
+
+SwiftCompile normal arm64 /Users/Brian/Coding\ Projects/AirFit/AirFit/Modules/Onboarding/Views/OnboardingNavigationButtons.swift (in target 'AirFit' from project 'AirFit')
+    cd /Users/Brian/Coding\ Projects/AirFit
+    
+
+SwiftCompile normal arm64 /Users/Brian/Coding\ Projects/AirFit/AirFit/Modules/Onboarding/Services/OnboardingOrchestrator.swift (in target 'AirFit' from project 'AirFit')
+    cd /Users/Brian/Coding\ Projects/AirFit
+    
+
+SwiftCompile normal arm64 /Users/Brian/Coding\ Projects/AirFit/AirFit/Data/Models/OnboardingProfile.swift (in target 'AirFit' from project 'AirFit')
+    cd /Users/Brian/Coding\ Projects/AirFit
+    
+
+SwiftCompile normal arm64 /Users/Brian/Coding\ Projects/AirFit/AirFit/Modules/Onboarding/Services/OnboardingProgressManager.swift (in target 'AirFit' from project 'AirFit')
+    cd /Users/Brian/Coding\ Projects/AirFit
+    
+
+SwiftCompile normal arm64 /Users/Brian/Coding\ Projects/AirFit/AirFit/Modules/Onboarding/Services/OnboardingRecovery.swift (in target 'AirFit' from project 'AirFit')
+    cd /Users/Brian/Coding\ Projects/AirFit
+    
+
+SwiftCompile normal arm64 /Users/Brian/Coding\ Projects/AirFit/AirFit/Modules/Onboarding/Services/OnboardingService.swift (in target 'AirFit' from project 'AirFit')
+    cd /Users/Brian/Coding\ Projects/AirFit
+    
+
+SwiftCompile normal arm64 Compiling\ BiometricAuthManager.swift,\ ChatAttachment.swift,\ ChatCoordinator.swift,\ ChatExporter.swift,\ ChatHistoryManager.swift,\ ChatMessage.swift,\ ChatModels.swift,\ ChatSession.swift,\ ChatSuggestionsEngine.swift,\ ChatView.swift,\ ChatViewModel.swift,\ ChoiceCardsView.swift,\ CoachEngine.swift,\ CoachMessage.swift,\ CoachProfileReadyView.swift,\ CoachingStyleView.swift,\ Color+Hex.swift,\ CommonComponents.swift /Users/Brian/Coding\ Projects/AirFit/AirFit/Modules/Settings/Services/BiometricAuthManager.swift /Users/Brian/Coding\ Projects/AirFit/AirFit/Data/Models/ChatAttachment.swift /Users/Brian/Coding\ Projects/AirFit/AirFit/Modules/Chat/Coordinators/ChatCoordinator.swift /Users/Brian/Coding\ Projects/AirFit/AirFit/Modules/Chat/Services/ChatExporter.swift /Users/Brian/Coding\ Projects/AirFit/AirFit/Modules/Chat/Services/ChatHistoryManager.swift /Users/Brian/Coding\ Projects/AirFit/AirFit/Data/Models/ChatMessage.swift /Users/Brian/Coding\ Projects/AirFit/AirFit/Modules/Chat/Models/ChatModels.swift /Users/Brian/Coding\ Projects/AirFit/AirFit/Data/Models/ChatSession.swift /Users/Brian/Coding\ Projects/AirFit/AirFit/Modules/Chat/Services/ChatSuggestionsEngine.swift /Users/Brian/Coding\ Projects/AirFit/AirFit/Modules/Chat/Views/ChatView.swift /Users/Brian/Coding\ Projects/AirFit/AirFit/Modules/Chat/ViewModels/ChatViewModel.swift /Users/Brian/Coding\ Projects/AirFit/AirFit/Modules/Onboarding/Views/InputModalities/ChoiceCardsView.swift /Users/Brian/Coding\ Projects/AirFit/AirFit/Modules/AI/CoachEngine.swift /Users/Brian/Coding\ Projects/AirFit/AirFit/Data/Models/CoachMessage.swift /Users/Brian/Coding\ Projects/AirFit/AirFit/Modules/Onboarding/Views/CoachProfileReadyView.swift /Users/Brian/Coding\ Projects/AirFit/AirFit/Modules/Onboarding/Views/CoachingStyleView.swift /Users/Brian/Coding\ Projects/AirFit/AirFit/Core/Extensions/Color+Hex.swift /Users/Brian/Coding\ Projects/AirFit/AirFit/Core/Views/CommonComponents.swift (in target 'AirFit' from project 'AirFit')
+
+SwiftCompile normal arm64 /Users/Brian/Coding\ Projects/AirFit/AirFit/Modules/Settings/Services/BiometricAuthManager.swift (in target 'AirFit' from project 'AirFit')
+    cd /Users/Brian/Coding\ Projects/AirFit
+    
+
+SwiftCompile normal arm64 /Users/Brian/Coding\ Projects/AirFit/AirFit/Data/Models/ChatAttachment.swift (in target 'AirFit' from project 'AirFit')
+    cd /Users/Brian/Coding\ Projects/AirFit
+    
+
+SwiftCompile normal arm64 /Users/Brian/Coding\ Projects/AirFit/AirFit/Modules/Chat/Coordinators/ChatCoordinator.swift (in target 'AirFit' from project 'AirFit')
+    cd /Users/Brian/Coding\ Projects/AirFit
+    
+
+SwiftCompile normal arm64 /Users/Brian/Coding\ Projects/AirFit/AirFit/Modules/Chat/Services/ChatExporter.swift (in target 'AirFit' from project 'AirFit')
+    cd /Users/Brian/Coding\ Projects/AirFit
+    
+
+SwiftCompile normal arm64 /Users/Brian/Coding\ Projects/AirFit/AirFit/Modules/Chat/Services/ChatHistoryManager.swift (in target 'AirFit' from project 'AirFit')
+    cd /Users/Brian/Coding\ Projects/AirFit
+    
+
+SwiftCompile normal arm64 /Users/Brian/Coding\ Projects/AirFit/AirFit/Data/Models/ChatMessage.swift (in target 'AirFit' from project 'AirFit')
+    cd /Users/Brian/Coding\ Projects/AirFit
+    
+
+SwiftCompile normal arm64 /Users/Brian/Coding\ Projects/AirFit/AirFit/Modules/Chat/Models/ChatModels.swift (in target 'AirFit' from project 'AirFit')
+    cd /Users/Brian/Coding\ Projects/AirFit
+    
+
+SwiftCompile normal arm64 /Users/Brian/Coding\ Projects/AirFit/AirFit/Data/Models/ChatSession.swift (in target 'AirFit' from project 'AirFit')
+    cd /Users/Brian/Coding\ Projects/AirFit
+    
+
+SwiftCompile normal arm64 /Users/Brian/Coding\ Projects/AirFit/AirFit/Modules/Chat/Services/ChatSuggestionsEngine.swift (in target 'AirFit' from project 'AirFit')
+    cd /Users/Brian/Coding\ Projects/AirFit
+    
+
+SwiftCompile normal arm64 /Users/Brian/Coding\ Projects/AirFit/AirFit/Modules/Chat/Views/ChatView.swift (in target 'AirFit' from project 'AirFit')
+    cd /Users/Brian/Coding\ Projects/AirFit
+    
+
+SwiftCompile normal arm64 /Users/Brian/Coding\ Projects/AirFit/AirFit/Modules/Chat/ViewModels/ChatViewModel.swift (in target 'AirFit' from project 'AirFit')
+    cd /Users/Brian/Coding\ Projects/AirFit
+    
+
+SwiftCompile normal arm64 /Users/Brian/Coding\ Projects/AirFit/AirFit/Modules/Onboarding/Views/InputModalities/ChoiceCardsView.swift (in target 'AirFit' from project 'AirFit')
+    cd /Users/Brian/Coding\ Projects/AirFit
+    
+
+SwiftCompile normal arm64 /Users/Brian/Coding\ Projects/AirFit/AirFit/Modules/AI/CoachEngine.swift (in target 'AirFit' from project 'AirFit')
+    cd /Users/Brian/Coding\ Projects/AirFit
+    
+
+SwiftCompile normal arm64 /Users/Brian/Coding\ Projects/AirFit/AirFit/Data/Models/CoachMessage.swift (in target 'AirFit' from project 'AirFit')
+    cd /Users/Brian/Coding\ Projects/AirFit
+    
+
+SwiftCompile normal arm64 /Users/Brian/Coding\ Projects/AirFit/AirFit/Modules/Onboarding/Views/CoachProfileReadyView.swift (in target 'AirFit' from project 'AirFit')
+    cd /Users/Brian/Coding\ Projects/AirFit
+    
+
+SwiftCompile normal arm64 /Users/Brian/Coding\ Projects/AirFit/AirFit/Modules/Onboarding/Views/CoachingStyleView.swift (in target 'AirFit' from project 'AirFit')
+    cd /Users/Brian/Coding\ Projects/AirFit
+    
+
+SwiftCompile normal arm64 /Users/Brian/Coding\ Projects/AirFit/AirFit/Core/Extensions/Color+Hex.swift (in target 'AirFit' from project 'AirFit')
+    cd /Users/Brian/Coding\ Projects/AirFit
+    
+
+SwiftCompile normal arm64 /Users/Brian/Coding\ Projects/AirFit/AirFit/Core/Views/CommonComponents.swift (in target 'AirFit' from project 'AirFit')
+    cd /Users/Brian/Coding\ Projects/AirFit
+    
+
+SwiftCompile normal arm64 Compiling\ PersonaSettingsModels.swift,\ PersonaSynthesisView.swift,\ PersonaSynthesizer.swift,\ PersonalityInsights.swift,\ PhotoInputView.swift,\ PreviewGenerator.swift,\ PreviewServices.swift,\ PrivacySecurityView.swift,\ QuickActionsCard.swift,\ RecoveryCard.swift,\ RequestOptimizer.swift,\ ResponseAnalyzer.swift,\ RoutingConfiguration.swift,\ SchemaV1.swift,\ ServiceConfiguration.swift,\ ServiceModels.swift,\ ServiceProtocol.swift /Users/Brian/Coding\ Projects/AirFit/AirFit/Modules/Settings/Models/PersonaSettingsModels.swift /Users/Brian/Coding\ Projects/AirFit/AirFit/Modules/Onboarding/Views/PersonaSynthesisView.swift /Users/Brian/Coding\ Projects/AirFit/AirFit/Modules/AI/PersonaSynthesis/PersonaSynthesizer.swift /Users/Brian/Coding\ Projects/AirFit/AirFit/Modules/Onboarding/Models/PersonalityInsights.swift /Users/Brian/Coding\ Projects/AirFit/AirFit/Modules/FoodTracking/Views/PhotoInputView.swift /Users/Brian/Coding\ Projects/AirFit/AirFit/Modules/AI/PersonaSynthesis/PreviewGenerator.swift /Users/Brian/Coding\ Projects/AirFit/AirFit/Modules/FoodTracking/Services/PreviewServices.swift /Users/Brian/Coding\ Projects/AirFit/AirFit/Modules/Settings/Views/PrivacySecurityView.swift /Users/Brian/Coding\ Projects/AirFit/AirFit/Modules/Dashboard/Views/Cards/QuickActionsCard.swift /Users/Brian/Coding\ Projects/AirFit/AirFit/Modules/Dashboard/Views/Cards/RecoveryCard.swift /Users/Brian/Coding\ Projects/AirFit/AirFit/Services/Network/RequestOptimizer.swift /Users/Brian/Coding\ Projects/AirFit/AirFit/Modules/Onboarding/Services/ResponseAnalyzer.swift /Users/Brian/Coding\ Projects/AirFit/AirFit/Modules/AI/Configuration/RoutingConfiguration.swift /Users/Brian/Coding\ Projects/AirFit/AirFit/Data/Migrations/SchemaV1.swift /Users/Brian/Coding\ Projects/AirFit/AirFit/Services/ServiceConfiguration.swift /Users/Brian/Coding\ Projects/AirFit/AirFit/Core/Models/ServiceModels.swift /Users/Brian/Coding\ Projects/AirFit/AirFit/Core/Protocols/ServiceProtocol.swift (in target 'AirFit' from project 'AirFit')
+
+SwiftCompile normal arm64 /Users/Brian/Coding\ Projects/AirFit/AirFit/Modules/Settings/Models/PersonaSettingsModels.swift (in target 'AirFit' from project 'AirFit')
+    cd /Users/Brian/Coding\ Projects/AirFit
+    
+
+SwiftCompile normal arm64 /Users/Brian/Coding\ Projects/AirFit/AirFit/Modules/Onboarding/Views/PersonaSynthesisView.swift (in target 'AirFit' from project 'AirFit')
+    cd /Users/Brian/Coding\ Projects/AirFit
+    
+
+SwiftCompile normal arm64 /Users/Brian/Coding\ Projects/AirFit/AirFit/Modules/AI/PersonaSynthesis/PersonaSynthesizer.swift (in target 'AirFit' from project 'AirFit')
+    cd /Users/Brian/Coding\ Projects/AirFit
+    
+
+SwiftCompile normal arm64 /Users/Brian/Coding\ Projects/AirFit/AirFit/Modules/Onboarding/Models/PersonalityInsights.swift (in target 'AirFit' from project 'AirFit')
+    cd /Users/Brian/Coding\ Projects/AirFit
+    
+
+SwiftCompile normal arm64 /Users/Brian/Coding\ Projects/AirFit/AirFit/Modules/FoodTracking/Views/PhotoInputView.swift (in target 'AirFit' from project 'AirFit')
+    cd /Users/Brian/Coding\ Projects/AirFit
+    
+
+SwiftCompile normal arm64 /Users/Brian/Coding\ Projects/AirFit/AirFit/Modules/AI/PersonaSynthesis/PreviewGenerator.swift (in target 'AirFit' from project 'AirFit')
+    cd /Users/Brian/Coding\ Projects/AirFit
+    
+
+SwiftCompile normal arm64 /Users/Brian/Coding\ Projects/AirFit/AirFit/Modules/FoodTracking/Services/PreviewServices.swift (in target 'AirFit' from project 'AirFit')
+    cd /Users/Brian/Coding\ Projects/AirFit
+    
+
+SwiftCompile normal arm64 /Users/Brian/Coding\ Projects/AirFit/AirFit/Modules/Settings/Views/PrivacySecurityView.swift (in target 'AirFit' from project 'AirFit')
+    cd /Users/Brian/Coding\ Projects/AirFit
+    
+
+SwiftCompile normal arm64 /Users/Brian/Coding\ Projects/AirFit/AirFit/Modules/Dashboard/Views/Cards/QuickActionsCard.swift (in target 'AirFit' from project 'AirFit')
+    cd /Users/Brian/Coding\ Projects/AirFit
+    
+
+SwiftCompile normal arm64 /Users/Brian/Coding\ Projects/AirFit/AirFit/Modules/Dashboard/Views/Cards/RecoveryCard.swift (in target 'AirFit' from project 'AirFit')
+    cd /Users/Brian/Coding\ Projects/AirFit
+    
+
+SwiftCompile normal arm64 /Users/Brian/Coding\ Projects/AirFit/AirFit/Services/Network/RequestOptimizer.swift (in target 'AirFit' from project 'AirFit')
+    cd /Users/Brian/Coding\ Projects/AirFit
+    
+
+SwiftCompile normal arm64 /Users/Brian/Coding\ Projects/AirFit/AirFit/Modules/Onboarding/Services/ResponseAnalyzer.swift (in target 'AirFit' from project 'AirFit')
+    cd /Users/Brian/Coding\ Projects/AirFit
+    
+
+SwiftCompile normal arm64 /Users/Brian/Coding\ Projects/AirFit/AirFit/Modules/AI/Configuration/RoutingConfiguration.swift (in target 'AirFit' from project 'AirFit')
+    cd /Users/Brian/Coding\ Projects/AirFit
+    
+
+SwiftCompile normal arm64 /Users/Brian/Coding\ Projects/AirFit/AirFit/Data/Migrations/SchemaV1.swift (in target 'AirFit' from project 'AirFit')
+    cd /Users/Brian/Coding\ Projects/AirFit
+    
+
+SwiftCompile normal arm64 /Users/Brian/Coding\ Projects/AirFit/AirFit/Services/ServiceConfiguration.swift (in target 'AirFit' from project 'AirFit')
+    cd /Users/Brian/Coding\ Projects/AirFit
+    
+
+SwiftCompile normal arm64 /Users/Brian/Coding\ Projects/AirFit/AirFit/Core/Models/ServiceModels.swift (in target 'AirFit' from project 'AirFit')
+    cd /Users/Brian/Coding\ Projects/AirFit
+    
+
+SwiftCompile normal arm64 /Users/Brian/Coding\ Projects/AirFit/AirFit/Core/Protocols/ServiceProtocol.swift (in target 'AirFit' from project 'AirFit')
+    cd /Users/Brian/Coding\ Projects/AirFit
+    
+
+SwiftCompile normal arm64 Compiling\ DemoAIService.swift,\ DependencyContainer.swift,\ DirectAIModels.swift,\ DirectAIProcessor.swift,\ Double+Formatting.swift,\ EngagementEngine.swift,\ EngagementPreferencesView.swift,\ ErrorHandling.swift,\ ErrorPresentationView.swift,\ Exercise.swift,\ ExerciseDatabase.swift,\ ExerciseLibraryComponents.swift,\ ExerciseLibraryView.swift,\ ExerciseSet.swift,\ ExerciseTemplate.swift,\ FallbackPersonaGenerator.swift,\ FetchDescriptor+Convenience.swift,\ FinalOnboardingFlow.swift /Users/Brian/Coding\ Projects/AirFit/AirFit/Services/AI/DemoAIService.swift /Users/Brian/Coding\ Projects/AirFit/AirFit/Core/Utilities/DependencyContainer.swift /Users/Brian/Coding\ Projects/AirFit/AirFit/Modules/AI/Models/DirectAIModels.swift /Users/Brian/Coding\ Projects/AirFit/AirFit/Modules/AI/Components/DirectAIProcessor.swift /Users/Brian/Coding\ Projects/AirFit/AirFit/Core/Extensions/Double+Formatting.swift /Users/Brian/Coding\ Projects/AirFit/AirFit/Modules/Notifications/Services/EngagementEngine.swift /Users/Brian/Coding\ Projects/AirFit/AirFit/Modules/Onboarding/Views/EngagementPreferencesView.swift /Users/Brian/Coding\ Projects/AirFit/AirFit/Core/Protocols/ErrorHandling.swift /Users/Brian/Coding\ Projects/AirFit/AirFit/Core/Views/ErrorPresentationView.swift /Users/Brian/Coding\ Projects/AirFit/AirFit/Data/Models/Exercise.swift /Users/Brian/Coding\ Projects/AirFit/AirFit/Services/ExerciseDatabase.swift /Users/Brian/Coding\ Projects/AirFit/AirFit/Modules/Workouts/Views/ExerciseLibraryComponents.swift /Users/Brian/Coding\ Projects/AirFit/AirFit/Modules/Workouts/Views/ExerciseLibraryView.swift /Users/Brian/Coding\ Projects/AirFit/AirFit/Data/Models/ExerciseSet.swift /Users/Brian/Coding\ Projects/AirFit/AirFit/Data/Models/ExerciseTemplate.swift /Users/Brian/Coding\ Projects/AirFit/AirFit/Modules/AI/PersonaSynthesis/FallbackPersonaGenerator.swift /Users/Brian/Coding\ Projects/AirFit/AirFit/Data/Extensions/FetchDescriptor+Convenience.swift /Users/Brian/Coding\ Projects/AirFit/AirFit/Modules/Onboarding/Views/FinalOnboardingFlow.swift (in target 'AirFit' from project 'AirFit')
+
+SwiftCompile normal arm64 /Users/Brian/Coding\ Projects/AirFit/AirFit/Services/AI/DemoAIService.swift (in target 'AirFit' from project 'AirFit')
+    cd /Users/Brian/Coding\ Projects/AirFit
+    
+
+SwiftCompile normal arm64 /Users/Brian/Coding\ Projects/AirFit/AirFit/Core/Utilities/DependencyContainer.swift (in target 'AirFit' from project 'AirFit')
+    cd /Users/Brian/Coding\ Projects/AirFit
+    
+
+SwiftCompile normal arm64 /Users/Brian/Coding\ Projects/AirFit/AirFit/Modules/AI/Models/DirectAIModels.swift (in target 'AirFit' from project 'AirFit')
+    cd /Users/Brian/Coding\ Projects/AirFit
+    
+
+SwiftCompile normal arm64 /Users/Brian/Coding\ Projects/AirFit/AirFit/Modules/AI/Components/DirectAIProcessor.swift (in target 'AirFit' from project 'AirFit')
+    cd /Users/Brian/Coding\ Projects/AirFit
+    
+
+SwiftCompile normal arm64 /Users/Brian/Coding\ Projects/AirFit/AirFit/Core/Extensions/Double+Formatting.swift (in target 'AirFit' from project 'AirFit')
+    cd /Users/Brian/Coding\ Projects/AirFit
+    
+
+SwiftCompile normal arm64 /Users/Brian/Coding\ Projects/AirFit/AirFit/Modules/Notifications/Services/EngagementEngine.swift (in target 'AirFit' from project 'AirFit')
+    cd /Users/Brian/Coding\ Projects/AirFit
+    
+
+SwiftCompile normal arm64 /Users/Brian/Coding\ Projects/AirFit/AirFit/Modules/Onboarding/Views/EngagementPreferencesView.swift (in target 'AirFit' from project 'AirFit')
+    cd /Users/Brian/Coding\ Projects/AirFit
+    
+
+SwiftCompile normal arm64 /Users/Brian/Coding\ Projects/AirFit/AirFit/Core/Protocols/ErrorHandling.swift (in target 'AirFit' from project 'AirFit')
+    cd /Users/Brian/Coding\ Projects/AirFit
+    
+
+SwiftCompile normal arm64 /Users/Brian/Coding\ Projects/AirFit/AirFit/Core/Views/ErrorPresentationView.swift (in target 'AirFit' from project 'AirFit')
+    cd /Users/Brian/Coding\ Projects/AirFit
+    
+
+SwiftCompile normal arm64 /Users/Brian/Coding\ Projects/AirFit/AirFit/Data/Models/Exercise.swift (in target 'AirFit' from project 'AirFit')
+    cd /Users/Brian/Coding\ Projects/AirFit
+    
+
+SwiftCompile normal arm64 /Users/Brian/Coding\ Projects/AirFit/AirFit/Services/ExerciseDatabase.swift (in target 'AirFit' from project 'AirFit')
+    cd /Users/Brian/Coding\ Projects/AirFit
+    
+
+SwiftCompile normal arm64 /Users/Brian/Coding\ Projects/AirFit/AirFit/Modules/Workouts/Views/ExerciseLibraryComponents.swift (in target 'AirFit' from project 'AirFit')
+    cd /Users/Brian/Coding\ Projects/AirFit
+    
+
+SwiftCompile normal arm64 /Users/Brian/Coding\ Projects/AirFit/AirFit/Modules/Workouts/Views/ExerciseLibraryView.swift (in target 'AirFit' from project 'AirFit')
+    cd /Users/Brian/Coding\ Projects/AirFit
+    
+
+SwiftCompile normal arm64 /Users/Brian/Coding\ Projects/AirFit/AirFit/Data/Models/ExerciseSet.swift (in target 'AirFit' from project 'AirFit')
+    cd /Users/Brian/Coding\ Projects/AirFit
+    
+
+SwiftCompile normal arm64 /Users/Brian/Coding\ Projects/AirFit/AirFit/Data/Models/ExerciseTemplate.swift (in target 'AirFit' from project 'AirFit')
+    cd /Users/Brian/Coding\ Projects/AirFit
+    
+
+SwiftCompile normal arm64 /Users/Brian/Coding\ Projects/AirFit/AirFit/Modules/AI/PersonaSynthesis/FallbackPersonaGenerator.swift (in target 'AirFit' from project 'AirFit')
+    cd /Users/Brian/Coding\ Projects/AirFit
+    
+
+SwiftCompile normal arm64 /Users/Brian/Coding\ Projects/AirFit/AirFit/Data/Extensions/FetchDescriptor+Convenience.swift (in target 'AirFit' from project 'AirFit')
+    cd /Users/Brian/Coding\ Projects/AirFit
+    
+
+SwiftCompile normal arm64 /Users/Brian/Coding\ Projects/AirFit/AirFit/Modules/Onboarding/Views/FinalOnboardingFlow.swift (in target 'AirFit' from project 'AirFit')
+    cd /Users/Brian/Coding\ Projects/AirFit
+    
+
+SwiftCompile normal arm64 Compiling\ User.swift,\ UserDataExporter.swift,\ UserService.swift,\ UserServiceProtocol.swift,\ Validators.swift,\ View+Styling.swift,\ ViewModelProtocol.swift,\ VoiceInputDownloadView.swift,\ VoiceInputManager.swift,\ VoiceInputProtocol.swift,\ VoiceInputState.swift,\ VoiceInputView.swift,\ VoiceSettingsView.swift,\ VoiceVisualizer.swift,\ WaterTrackingView.swift,\ WeatherService.swift,\ WeatherServiceProtocol.swift /Users/Brian/Coding\ Projects/AirFit/AirFit/Data/Models/User.swift /Users/Brian/Coding\ Projects/AirFit/AirFit/Modules/Settings/Services/UserDataExporter.swift /Users/Brian/Coding\ Projects/AirFit/AirFit/Services/User/UserService.swift /Users/Brian/Coding\ Projects/AirFit/AirFit/Core/Protocols/UserServiceProtocol.swift /Users/Brian/Coding\ Projects/AirFit/AirFit/Core/Utilities/Validators.swift /Users/Brian/Coding\ Projects/AirFit/AirFit/Core/Extensions/View+Styling.swift /Users/Brian/Coding\ Projects/AirFit/AirFit/Core/Protocols/ViewModelProtocol.swift /Users/Brian/Coding\ Projects/AirFit/AirFit/Modules/FoodTracking/Views/VoiceInputDownloadView.swift /Users/Brian/Coding\ Projects/AirFit/AirFit/Services/Speech/VoiceInputManager.swift /Users/Brian/Coding\ Projects/AirFit/AirFit/Core/Protocols/VoiceInputProtocol.swift /Users/Brian/Coding\ Projects/AirFit/AirFit/Core/Models/VoiceInputState.swift /Users/Brian/Coding\ Projects/AirFit/AirFit/Modules/Onboarding/Views/InputModalities/VoiceInputView.swift /Users/Brian/Coding\ Projects/AirFit/AirFit/Modules/Chat/Views/VoiceSettingsView.swift /Users/Brian/Coding\ Projects/AirFit/AirFit/Modules/Onboarding/Views/InputModalities/VoiceVisualizer.swift /Users/Brian/Coding\ Projects/AirFit/AirFit/Modules/FoodTracking/Views/WaterTrackingView.swift /Users/Brian/Coding\ Projects/AirFit/AirFit/Services/Weather/WeatherService.swift /Users/Brian/Coding\ Projects/AirFit/AirFit/Core/Protocols/WeatherServiceProtocol.swift (in target 'AirFit' from project 'AirFit')
+
+SwiftCompile normal arm64 /Users/Brian/Coding\ Projects/AirFit/AirFit/Data/Models/User.swift (in target 'AirFit' from project 'AirFit')
+    cd /Users/Brian/Coding\ Projects/AirFit
+    
+
+SwiftCompile normal arm64 /Users/Brian/Coding\ Projects/AirFit/AirFit/Modules/Settings/Services/UserDataExporter.swift (in target 'AirFit' from project 'AirFit')
+    cd /Users/Brian/Coding\ Projects/AirFit
+    
+
+SwiftCompile normal arm64 /Users/Brian/Coding\ Projects/AirFit/AirFit/Services/User/UserService.swift (in target 'AirFit' from project 'AirFit')
+    cd /Users/Brian/Coding\ Projects/AirFit
+    
+
+SwiftCompile normal arm64 /Users/Brian/Coding\ Projects/AirFit/AirFit/Core/Protocols/UserServiceProtocol.swift (in target 'AirFit' from project 'AirFit')
+    cd /Users/Brian/Coding\ Projects/AirFit
+    
+
+SwiftCompile normal arm64 /Users/Brian/Coding\ Projects/AirFit/AirFit/Core/Utilities/Validators.swift (in target 'AirFit' from project 'AirFit')
+    cd /Users/Brian/Coding\ Projects/AirFit
+    
+
+SwiftCompile normal arm64 /Users/Brian/Coding\ Projects/AirFit/AirFit/Core/Extensions/View+Styling.swift (in target 'AirFit' from project 'AirFit')
+    cd /Users/Brian/Coding\ Projects/AirFit
+    
+
+SwiftCompile normal arm64 /Users/Brian/Coding\ Projects/AirFit/AirFit/Core/Protocols/ViewModelProtocol.swift (in target 'AirFit' from project 'AirFit')
+    cd /Users/Brian/Coding\ Projects/AirFit
+    
+
+SwiftCompile normal arm64 /Users/Brian/Coding\ Projects/AirFit/AirFit/Modules/FoodTracking/Views/VoiceInputDownloadView.swift (in target 'AirFit' from project 'AirFit')
+    cd /Users/Brian/Coding\ Projects/AirFit
+    
+
+SwiftCompile normal arm64 /Users/Brian/Coding\ Projects/AirFit/AirFit/Services/Speech/VoiceInputManager.swift (in target 'AirFit' from project 'AirFit')
+    cd /Users/Brian/Coding\ Projects/AirFit
+    
+
+SwiftCompile normal arm64 /Users/Brian/Coding\ Projects/AirFit/AirFit/Core/Protocols/VoiceInputProtocol.swift (in target 'AirFit' from project 'AirFit')
+    cd /Users/Brian/Coding\ Projects/AirFit
+    
+
+SwiftCompile normal arm64 /Users/Brian/Coding\ Projects/AirFit/AirFit/Core/Models/VoiceInputState.swift (in target 'AirFit' from project 'AirFit')
+    cd /Users/Brian/Coding\ Projects/AirFit
+    
+
+SwiftCompile normal arm64 /Users/Brian/Coding\ Projects/AirFit/AirFit/Modules/Onboarding/Views/InputModalities/VoiceInputView.swift (in target 'AirFit' from project 'AirFit')
+    cd /Users/Brian/Coding\ Projects/AirFit
+    
+
+SwiftCompile normal arm64 /Users/Brian/Coding\ Projects/AirFit/AirFit/Modules/Chat/Views/VoiceSettingsView.swift (in target 'AirFit' from project 'AirFit')
+    cd /Users/Brian/Coding\ Projects/AirFit
+    
+
+SwiftCompile normal arm64 /Users/Brian/Coding\ Projects/AirFit/AirFit/Modules/Onboarding/Views/InputModalities/VoiceVisualizer.swift (in target 'AirFit' from project 'AirFit')
+    cd /Users/Brian/Coding\ Projects/AirFit
+    
+
+SwiftCompile normal arm64 /Users/Brian/Coding\ Projects/AirFit/AirFit/Modules/FoodTracking/Views/WaterTrackingView.swift (in target 'AirFit' from project 'AirFit')
+    cd /Users/Brian/Coding\ Projects/AirFit
+    
+
+SwiftCompile normal arm64 /Users/Brian/Coding\ Projects/AirFit/AirFit/Services/Weather/WeatherService.swift (in target 'AirFit' from project 'AirFit')
+    cd /Users/Brian/Coding\ Projects/AirFit
+    
+
+SwiftCompile normal arm64 /Users/Brian/Coding\ Projects/AirFit/AirFit/Core/Protocols/WeatherServiceProtocol.swift (in target 'AirFit' from project 'AirFit')
+    cd /Users/Brian/Coding\ Projects/AirFit
+    
+
+SwiftCompile normal arm64 Compiling\ GlobalEnums.swift,\ Goal.swift,\ GoalFunctions.swift,\ GoalService.swift,\ GoalServiceProtocol.swift,\ HapticManager.swift,\ HealthContextSnapshot.swift,\ HealthKit+Types.swift,\ HealthKitAuthManager.swift,\ HealthKitAuthorizationView.swift,\ HealthKitDataFetcher.swift,\ HealthKitDataTypes.swift,\ HealthKitManager.swift,\ HealthKitManagerProtocol.swift,\ HealthKitService.swift,\ HealthKitSleepAnalyzer.swift,\ HealthKitSyncRecord.swift,\ InitialAPISetupView.swift /Users/Brian/Coding\ Projects/AirFit/AirFit/Core/Enums/GlobalEnums.swift /Users/Brian/Coding\ Projects/AirFit/AirFit/Data/Models/Goal.swift /Users/Brian/Coding\ Projects/AirFit/AirFit/Modules/AI/Functions/GoalFunctions.swift /Users/Brian/Coding\ Projects/AirFit/AirFit/Services/Goals/GoalService.swift /Users/Brian/Coding\ Projects/AirFit/AirFit/Core/Protocols/GoalServiceProtocol.swift /Users/Brian/Coding\ Projects/AirFit/AirFit/Core/Utilities/HapticManager.swift /Users/Brian/Coding\ Projects/AirFit/AirFit/Core/Models/HealthContextSnapshot.swift /Users/Brian/Coding\ Projects/AirFit/AirFit/Services/Health/HealthKit+Types.swift /Users/Brian/Coding\ Projects/AirFit/AirFit/Core/Utilities/HealthKitAuthManager.swift /Users/Brian/Coding\ Projects/AirFit/AirFit/Modules/Onboarding/Views/HealthKitAuthorizationView.swift /Users/Brian/Coding\ Projects/AirFit/AirFit/Services/Health/HealthKitDataFetcher.swift /Users/Brian/Coding\ Projects/AirFit/AirFit/Services/Health/HealthKitDataTypes.swift /Users/Brian/Coding\ Projects/AirFit/AirFit/Services/Health/HealthKitManager.swift /Users/Brian/Coding\ Projects/AirFit/AirFit/Core/Protocols/HealthKitManagerProtocol.swift /Users/Brian/Coding\ Projects/AirFit/AirFit/Modules/Dashboard/Services/HealthKitService.swift /Users/Brian/Coding\ Projects/AirFit/AirFit/Services/Health/HealthKitSleepAnalyzer.swift /Users/Brian/Coding\ Projects/AirFit/AirFit/Data/Models/HealthKitSyncRecord.swift /Users/Brian/Coding\ Projects/AirFit/AirFit/Modules/Settings/Views/InitialAPISetupView.swift (in target 'AirFit' from project 'AirFit')
+
+SwiftCompile normal arm64 /Users/Brian/Coding\ Projects/AirFit/AirFit/Core/Enums/GlobalEnums.swift (in target 'AirFit' from project 'AirFit')
+    cd /Users/Brian/Coding\ Projects/AirFit
+    
+
+SwiftCompile normal arm64 /Users/Brian/Coding\ Projects/AirFit/AirFit/Data/Models/Goal.swift (in target 'AirFit' from project 'AirFit')
+    cd /Users/Brian/Coding\ Projects/AirFit
+    
+
+SwiftCompile normal arm64 /Users/Brian/Coding\ Projects/AirFit/AirFit/Modules/AI/Functions/GoalFunctions.swift (in target 'AirFit' from project 'AirFit')
+    cd /Users/Brian/Coding\ Projects/AirFit
+    
+
+SwiftCompile normal arm64 /Users/Brian/Coding\ Projects/AirFit/AirFit/Services/Goals/GoalService.swift (in target 'AirFit' from project 'AirFit')
+    cd /Users/Brian/Coding\ Projects/AirFit
+    
+
+SwiftCompile normal arm64 /Users/Brian/Coding\ Projects/AirFit/AirFit/Core/Protocols/GoalServiceProtocol.swift (in target 'AirFit' from project 'AirFit')
+    cd /Users/Brian/Coding\ Projects/AirFit
+    
+
+SwiftCompile normal arm64 /Users/Brian/Coding\ Projects/AirFit/AirFit/Core/Utilities/HapticManager.swift (in target 'AirFit' from project 'AirFit')
+    cd /Users/Brian/Coding\ Projects/AirFit
+    
+
+SwiftCompile normal arm64 /Users/Brian/Coding\ Projects/AirFit/AirFit/Core/Models/HealthContextSnapshot.swift (in target 'AirFit' from project 'AirFit')
+    cd /Users/Brian/Coding\ Projects/AirFit
+    
+
+SwiftCompile normal arm64 /Users/Brian/Coding\ Projects/AirFit/AirFit/Services/Health/HealthKit+Types.swift (in target 'AirFit' from project 'AirFit')
+    cd /Users/Brian/Coding\ Projects/AirFit
+    
+
+SwiftCompile normal arm64 /Users/Brian/Coding\ Projects/AirFit/AirFit/Core/Utilities/HealthKitAuthManager.swift (in target 'AirFit' from project 'AirFit')
+    cd /Users/Brian/Coding\ Projects/AirFit
+    
+
+SwiftCompile normal arm64 /Users/Brian/Coding\ Projects/AirFit/AirFit/Modules/Onboarding/Views/HealthKitAuthorizationView.swift (in target 'AirFit' from project 'AirFit')
+    cd /Users/Brian/Coding\ Projects/AirFit
+    
+
+SwiftCompile normal arm64 /Users/Brian/Coding\ Projects/AirFit/AirFit/Services/Health/HealthKitDataFetcher.swift (in target 'AirFit' from project 'AirFit')
+    cd /Users/Brian/Coding\ Projects/AirFit
+    
+
+SwiftCompile normal arm64 /Users/Brian/Coding\ Projects/AirFit/AirFit/Services/Health/HealthKitDataTypes.swift (in target 'AirFit' from project 'AirFit')
+    cd /Users/Brian/Coding\ Projects/AirFit
+    
+
+SwiftCompile normal arm64 /Users/Brian/Coding\ Projects/AirFit/AirFit/Services/Health/HealthKitManager.swift (in target 'AirFit' from project 'AirFit')
+    cd /Users/Brian/Coding\ Projects/AirFit
+    
+
+SwiftCompile normal arm64 /Users/Brian/Coding\ Projects/AirFit/AirFit/Core/Protocols/HealthKitManagerProtocol.swift (in target 'AirFit' from project 'AirFit')
+    cd /Users/Brian/Coding\ Projects/AirFit
+    
+
+SwiftCompile normal arm64 /Users/Brian/Coding\ Projects/AirFit/AirFit/Modules/Dashboard/Services/HealthKitService.swift (in target 'AirFit' from project 'AirFit')
+    cd /Users/Brian/Coding\ Projects/AirFit
+    
+
+SwiftCompile normal arm64 /Users/Brian/Coding\ Projects/AirFit/AirFit/Services/Health/HealthKitSleepAnalyzer.swift (in target 'AirFit' from project 'AirFit')
+    cd /Users/Brian/Coding\ Projects/AirFit
+    
+
+SwiftCompile normal arm64 /Users/Brian/Coding\ Projects/AirFit/AirFit/Data/Models/HealthKitSyncRecord.swift (in target 'AirFit' from project 'AirFit')
+    cd /Users/Brian/Coding\ Projects/AirFit
+    
+
+SwiftCompile normal arm64 /Users/Brian/Coding\ Projects/AirFit/AirFit/Modules/Settings/Views/InitialAPISetupView.swift (in target 'AirFit' from project 'AirFit')
+    cd /Users/Brian/Coding\ Projects/AirFit
+    
+
+SwiftCompile normal arm64 Compiling\ ConversationalInputView.swift,\ CoreAspirationView.swift,\ DIBootstrapper+Test.swift,\ DIBootstrapper.swift,\ DIContainer.swift,\ DIEnvironment.swift,\ DIExample.swift,\ DIViewModelFactory.swift,\ DailyLog.swift,\ DashboardCoordinator.swift,\ DashboardModels.swift,\ DashboardNutritionService.swift,\ DashboardServiceProtocols.swift,\ DashboardView.swift,\ DashboardViewModel.swift,\ DataManagementView.swift,\ DataManager.swift,\ Date+Helpers.swift /Users/Brian/Coding\ Projects/AirFit/AirFit/Modules/Onboarding/Views/ConversationalInputView.swift /Users/Brian/Coding\ Projects/AirFit/AirFit/Modules/Onboarding/Views/CoreAspirationView.swift /Users/Brian/Coding\ Projects/AirFit/AirFit/Core/DI/DIBootstrapper+Test.swift /Users/Brian/Coding\ Projects/AirFit/AirFit/Core/DI/DIBootstrapper.swift /Users/Brian/Coding\ Projects/AirFit/AirFit/Core/DI/DIContainer.swift /Users/Brian/Coding\ Projects/AirFit/AirFit/Core/DI/DIEnvironment.swift /Users/Brian/Coding\ Projects/AirFit/AirFit/Core/DI/DIExample.swift /Users/Brian/Coding\ Projects/AirFit/AirFit/Core/DI/DIViewModelFactory.swift /Users/Brian/Coding\ Projects/AirFit/AirFit/Data/Models/DailyLog.swift /Users/Brian/Coding\ Projects/AirFit/AirFit/Modules/Dashboard/Coordinators/DashboardCoordinator.swift /Users/Brian/Coding\ Projects/AirFit/AirFit/Modules/Dashboard/Models/DashboardModels.swift /Users/Brian/Coding\ Projects/AirFit/AirFit/Modules/Dashboard/Services/DashboardNutritionService.swift /Users/Brian/Coding\ Projects/AirFit/AirFit/Core/Protocols/DashboardServiceProtocols.swift /Users/Brian/Coding\ Projects/AirFit/AirFit/Modules/Dashboard/Views/DashboardView.swift /Users/Brian/Coding\ Projects/AirFit/AirFit/Modules/Dashboard/ViewModels/DashboardViewModel.swift /Users/Brian/Coding\ Projects/AirFit/AirFit/Modules/Settings/Views/DataManagementView.swift /Users/Brian/Coding\ Projects/AirFit/AirFit/Data/Managers/DataManager.swift /Users/Brian/Coding\ Projects/AirFit/AirFit/Core/Extensions/Date+Helpers.swift (in target 'AirFit' from project 'AirFit')
+Failed frontend command:
+/Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/bin/swift-frontend -frontend -c -filelist /Users/Brian/Library/Developer/Xcode/DerivedData/AirFit-byirbnjrjkaivfbuyqrmiapiyxae/Build/Intermediates.noindex/AirFit.build/Debug-iphonesimulator/AirFit.build/Objects-normal/arm64/sources-1 -primary-file /Users/Brian/Coding\ Projects/AirFit/AirFit/Modules/Onboarding/Views/ConversationalInputView.swift -primary-file /Users/Brian/Coding\ Projects/AirFit/AirFit/Modules/Onboarding/Views/CoreAspirationView.swift -primary-file /Users/Brian/Coding\ Projects/AirFit/AirFit/Core/DI/DIBootstrapper+Test.swift -primary-file /Users/Brian/Coding\ Projects/AirFit/AirFit/Core/DI/DIBootstrapper.swift -primary-file /Users/Brian/Coding\ Projects/AirFit/AirFit/Core/DI/DIContainer.swift -primary-file /Users/Brian/Coding\ Projects/AirFit/AirFit/Core/DI/DIEnvironment.swift -primary-file /Users/Brian/Coding\ Projects/AirFit/AirFit/Core/DI/DIExample.swift -primary-file /Users/Brian/Coding\ Projects/AirFit/AirFit/Core/DI/DIViewModelFactory.swift -primary-file /Users/Brian/Coding\ Projects/AirFit/AirFit/Data/Models/DailyLog.swift -primary-file /Users/Brian/Coding\ Projects/AirFit/AirFit/Modules/Dashboard/Coordinators/DashboardCoordinator.swift -primary-file /Users/Brian/Coding\ Projects/AirFit/AirFit/Modules/Dashboard/Models/DashboardModels.swift -primary-file /Users/Brian/Coding\ Projects/AirFit/AirFit/Modules/Dashboard/Services/DashboardNutritionService.swift -primary-file /Users/Brian/Coding\ Projects/AirFit/AirFit/Core/Protocols/DashboardServiceProtocols.swift -primary-file /Users/Brian/Coding\ Projects/AirFit/AirFit/Modules/Dashboard/Views/DashboardView.swift -primary-file /Users/Brian/Coding\ Projects/AirFit/AirFit/Modules/Dashboard/ViewModels/DashboardViewModel.swift -primary-file /Users/Brian/Coding\ Projects/AirFit/AirFit/Modules/Settings/Views/DataManagementView.swift -primary-file /Users/Brian/Coding\ Projects/AirFit/AirFit/Data/Managers/DataManager.swift -primary-file /Users/Brian/Coding\ Projects/AirFit/AirFit/Core/Extensions/Date+Helpers.swift -supplementary-output-file-map /Users/Brian/Library/Developer/Xcode/DerivedData/AirFit-byirbnjrjkaivfbuyqrmiapiyxae/Build/Intermediates.noindex/AirFit.build/Debug-iphonesimulator/AirFit.build/Objects-normal/arm64/supplementaryOutputs-5 -target arm64-apple-ios18.0-simulator -Xllvm -aarch64-use-tbi -enable-objc-interop -sdk /Applications/Xcode.app/Contents/Developer/Platforms/iPhoneSimulator.platform/Developer/SDKs/iPhoneSimulator18.5.sdk -I /Users/Brian/Library/Developer/Xcode/DerivedData/AirFit-byirbnjrjkaivfbuyqrmiapiyxae/Build/Products/Debug-iphonesimulator -F /Users/Brian/Library/Developer/Xcode/DerivedData/AirFit-byirbnjrjkaivfbuyqrmiapiyxae/Build/Products/Debug-iphonesimulator/PackageFrameworks -F /Users/Brian/Library/Developer/Xcode/DerivedData/AirFit-byirbnjrjkaivfbuyqrmiapiyxae/Build/Products/Debug-iphonesimulator/PackageFrameworks -F /Users/Brian/Library/Developer/Xcode/DerivedData/AirFit-byirbnjrjkaivfbuyqrmiapiyxae/Build/Products/Debug-iphonesimulator/PackageFrameworks -F /Users/Brian/Library/Developer/Xcode/DerivedData/AirFit-byirbnjrjkaivfbuyqrmiapiyxae/Build/Products/Debug-iphonesimulator/PackageFrameworks -F /Users/Brian/Library/Developer/Xcode/DerivedData/AirFit-byirbnjrjkaivfbuyqrmiapiyxae/Build/Products/Debug-iphonesimulator/PackageFrameworks -F /Users/Brian/Library/Developer/Xcode/DerivedData/AirFit-byirbnjrjkaivfbuyqrmiapiyxae/Build/Products/Debug-iphonesimulator/PackageFrameworks -F /Users/Brian/Library/Developer/Xcode/DerivedData/AirFit-byirbnjrjkaivfbuyqrmiapiyxae/Build/Products/Debug-iphonesimulator/PackageFrameworks -F /Users/Brian/Library/Developer/Xcode/DerivedData/AirFit-byirbnjrjkaivfbuyqrmiapiyxae/Build/Products/Debug-iphonesimulator/PackageFrameworks -F /Users/Brian/Library/Developer/Xcode/DerivedData/AirFit-byirbnjrjkaivfbuyqrmiapiyxae/Build/Products/Debug-iphonesimulator/PackageFrameworks -F /Users/Brian/Library/Developer/Xcode/DerivedData/AirFit-byirbnjrjkaivfbuyqrmiapiyxae/Build/Products/Debug-iphonesimulator -no-color-diagnostics -enable-testing -g -debug-info-format\=dwarf -dwarf-version\=5 -module-cache-path /Users/Brian/Library/Developer/Xcode/DerivedData/ModuleCache.noindex -profile-generate -profile-coverage-mapping -swift-version 6 -enforce-exclusivity\=checked -Onone -D DEBUG -serialize-debugging-options -const-gather-protocols-file /Users/Brian/Library/Developer/Xcode/DerivedData/AirFit-byirbnjrjkaivfbuyqrmiapiyxae/Build/Intermediates.noindex/AirFit.build/Debug-iphonesimulator/AirFit.build/Objects-normal/arm64/AirFit_const_extract_protocols.json -enable-experimental-feature DebugDescriptionMacro -empty-abi-descriptor -validate-clang-modules-once -clang-build-session-file /Users/Brian/Library/Developer/Xcode/DerivedData/ModuleCache.noindex/Session.modulevalidation -Xcc -working-directory -Xcc /Users/Brian/Coding\ Projects/AirFit -resource-dir /Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/lib/swift -enable-anonymous-context-mangled-names -file-compilation-dir /Users/Brian/Coding\ Projects/AirFit -Xcc -ivfsstatcache -Xcc /Users/Brian/Library/Developer/Xcode/DerivedData/SDKStatCaches.noindex/iphonesimulator18.5-22F76-d5fc8ad4295d2ef488fb7d0f804ce0c4.sdkstatcache -Xcc -I/Users/Brian/Library/Developer/Xcode/DerivedData/AirFit-byirbnjrjkaivfbuyqrmiapiyxae/Build/Intermediates.noindex/AirFit.build/Debug-iphonesimulator/AirFit.build/swift-overrides.hmap -Xcc -iquote -Xcc /Users/Brian/Library/Developer/Xcode/DerivedData/AirFit-byirbnjrjkaivfbuyqrmiapiyxae/Build/Intermediates.noindex/AirFit.build/Debug-iphonesimulator/AirFit.build/AirFit-generated-files.hmap -Xcc -I/Users/Brian/Library/Developer/Xcode/DerivedData/AirFit-byirbnjrjkaivfbuyqrmiapiyxae/Build/Intermediates.noindex/AirFit.build/Debug-iphonesimulator/AirFit.build/AirFit-own-target-headers.hmap -Xcc -I/Users/Brian/Library/Developer/Xcode/DerivedData/AirFit-byirbnjrjkaivfbuyqrmiapiyxae/Build/Intermediates.noindex/AirFit.build/Debug-iphonesimulator/AirFit.build/AirFit-all-non-framework-target-headers.hmap -Xcc -ivfsoverlay -Xcc /Users/Brian/Library/Developer/Xcode/DerivedData/AirFit-byirbnjrjkaivfbuyqrmiapiyxae/Build/Intermediates.noindex/AirFit.build/Debug-iphonesimulator/AirFit-ebd97daffa3a1e236f047a59eef70a3a-VFS-iphonesimulator/all-product-headers.yaml -Xcc -iquote -Xcc /Users/Brian/Library/Developer/Xcode/DerivedData/AirFit-byirbnjrjkaivfbuyqrmiapiyxae/Build/Intermediates.noindex/AirFit.build/Debug-iphonesimulator/AirFit.build/AirFit-project-headers.hmap -Xcc -I/Users/Brian/Library/Developer/Xcode/DerivedData/AirFit-byirbnjrjkaivfbuyqrmiapiyxae/Build/Products/Debug-iphonesimulator/include -Xcc -I/Users/Brian/Library/Developer/Xcode/DerivedData/AirFit-byirbnjrjkaivfbuyqrmiapiyxae/Build/Intermediates.noindex/AirFit.build/Debug-iphonesimulator/AirFit.build/DerivedSources-normal/arm64 -Xcc -I/Users/Brian/Library/Developer/Xcode/DerivedData/AirFit-byirbnjrjkaivfbuyqrmiapiyxae/Build/Intermediates.noindex/AirFit.build/Debug-iphonesimulator/AirFit.build/DerivedSources/arm64 -Xcc -I/Users/Brian/Library/Developer/Xcode/DerivedData/AirFit-byirbnjrjkaivfbuyqrmiapiyxae/Build/Intermediates.noindex/AirFit.build/Debug-iphonesimulator/AirFit.build/DerivedSources -Xcc -DDEBUG\=1 -module-name AirFit -frontend-parseable-output -disable-clang-spi -target-sdk-version 18.5 -target-sdk-name iphonesimulator18.5 -external-plugin-path /Applications/Xcode.app/Contents/Developer/Platforms/iPhoneOS.platform/Developer/usr/lib/swift/host/plugins\#/Applications/Xcode.app/Contents/Developer/Platforms/iPhoneOS.platform/Developer/usr/bin/swift-plugin-server -external-plugin-path /Applications/Xcode.app/Contents/Developer/Platforms/iPhoneOS.platform/Developer/usr/local/lib/swift/host/plugins\#/Applications/Xcode.app/Contents/Developer/Platforms/iPhoneOS.platform/Developer/usr/bin/swift-plugin-server -in-process-plugin-server-path /Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/lib/swift/host/libSwiftInProcPluginServer.dylib -plugin-path /Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/lib/swift/host/plugins -plugin-path /Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/local/lib/swift/host/plugins -o /Users/Brian/Library/Developer/Xcode/DerivedData/AirFit-byirbnjrjkaivfbuyqrmiapiyxae/Build/Intermediates.noindex/AirFit.build/Debug-iphonesimulator/AirFit.build/Objects-normal/arm64/ConversationalInputView.o -o /Users/Brian/Library/Developer/Xcode/DerivedData/AirFit-byirbnjrjkaivfbuyqrmiapiyxae/Build/Intermediates.noindex/AirFit.build/Debug-iphonesimulator/AirFit.build/Objects-normal/arm64/CoreAspirationView.o -o /Users/Brian/Library/Developer/Xcode/DerivedData/AirFit-byirbnjrjkaivfbuyqrmiapiyxae/Build/Intermediates.noindex/AirFit.build/Debug-iphonesimulator/AirFit.build/Objects-normal/arm64/DIBootstrapper+Test.o -o /Users/Brian/Library/Developer/Xcode/DerivedData/AirFit-byirbnjrjkaivfbuyqrmiapiyxae/Build/Intermediates.noindex/AirFit.build/Debug-iphonesimulator/AirFit.build/Objects-normal/arm64/DIBootstrapper.o -o /Users/Brian/Library/Developer/Xcode/DerivedData/AirFit-byirbnjrjkaivfbuyqrmiapiyxae/Build/Intermediates.noindex/AirFit.build/Debug-iphonesimulator/AirFit.build/Objects-normal/arm64/DIContainer.o -o /Users/Brian/Library/Developer/Xcode/DerivedData/AirFit-byirbnjrjkaivfbuyqrmiapiyxae/Build/Intermediates.noindex/AirFit.build/Debug-iphonesimulator/AirFit.build/Objects-normal/arm64/DIEnvironment.o -o /Users/Brian/Library/Developer/Xcode/DerivedData/AirFit-byirbnjrjkaivfbuyqrmiapiyxae/Build/Intermediates.noindex/AirFit.build/Debug-iphonesimulator/AirFit.build/Objects-normal/arm64/DIExample.o -o /Users/Brian/Library/Developer/Xcode/DerivedData/AirFit-byirbnjrjkaivfbuyqrmiapiyxae/Build/Intermediates.noindex/AirFit.build/Debug-iphonesimulator/AirFit.build/Objects-normal/arm64/DIViewModelFactory.o -o /Users/Brian/Library/Developer/Xcode/DerivedData/AirFit-byirbnjrjkaivfbuyqrmiapiyxae/Build/Intermediates.noindex/AirFit.build/Debug-iphonesimulator/AirFit.build/Objects-normal/arm64/DailyLog.o -o /Users/Brian/Library/Developer/Xcode/DerivedData/AirFit-byirbnjrjkaivfbuyqrmiapiyxae/Build/Intermediates.noindex/AirFit.build/Debug-iphonesimulator/AirFit.build/Objects-normal/arm64/DashboardCoordinator.o -o /Users/Brian/Library/Developer/Xcode/DerivedData/AirFit-byirbnjrjkaivfbuyqrmiapiyxae/Build/Intermediates.noindex/AirFit.build/Debug-iphonesimulator/AirFit.build/Objects-normal/arm64/DashboardModels.o -o /Users/Brian/Library/Developer/Xcode/DerivedData/AirFit-byirbnjrjkaivfbuyqrmiapiyxae/Build/Intermediates.noindex/AirFit.build/Debug-iphonesimulator/AirFit.build/Objects-normal/arm64/DashboardNutritionService.o -o /Users/Brian/Library/Developer/Xcode/DerivedData/AirFit-byirbnjrjkaivfbuyqrmiapiyxae/Build/Intermediates.noindex/AirFit.build/Debug-iphonesimulator/AirFit.build/Objects-normal/arm64/DashboardServiceProtocols.o -o /Users/Brian/Library/Developer/Xcode/DerivedData/AirFit-byirbnjrjkaivfbuyqrmiapiyxae/Build/Intermediates.noindex/AirFit.build/Debug-iphonesimulator/AirFit.build/Objects-normal/arm64/DashboardView.o -o /Users/Brian/Library/Developer/Xcode/DerivedData/AirFit-byirbnjrjkaivfbuyqrmiapiyxae/Build/Intermediates.noindex/AirFit.build/Debug-iphonesimulator/AirFit.build/Objects-normal/arm64/DashboardViewModel.o -o /Users/Brian/Library/Developer/Xcode/DerivedData/AirFit-byirbnjrjkaivfbuyqrmiapiyxae/Build/Intermediates.noindex/AirFit.build/Debug-iphonesimulator/AirFit.build/Objects-normal/arm64/DataManagementView.o -o /Users/Brian/Library/Developer/Xcode/DerivedData/AirFit-byirbnjrjkaivfbuyqrmiapiyxae/Build/Intermediates.noindex/AirFit.build/Debug-iphonesimulator/AirFit.build/Objects-normal/arm64/DataManager.o -o /Users/Brian/Library/Developer/Xcode/DerivedData/AirFit-byirbnjrjkaivfbuyqrmiapiyxae/Build/Intermediates.noindex/AirFit.build/Debug-iphonesimulator/AirFit.build/Objects-normal/arm64/Date+Helpers.o -index-unit-output-path /AirFit.build/Debug-iphonesimulator/AirFit.build/Objects-normal/arm64/ConversationalInputView.o -index-unit-output-path /AirFit.build/Debug-iphonesimulator/AirFit.build/Objects-normal/arm64/CoreAspirationView.o -index-unit-output-path /AirFit.build/Debug-iphonesimulator/AirFit.build/Objects-normal/arm64/DIBootstrapper+Test.o -index-unit-output-path /AirFit.build/Debug-iphonesimulator/AirFit.build/Objects-normal/arm64/DIBootstrapper.o -index-unit-output-path /AirFit.build/Debug-iphonesimulator/AirFit.build/Objects-normal/arm64/DIContainer.o -index-unit-output-path /AirFit.build/Debug-iphonesimulator/AirFit.build/Objects-normal/arm64/DIEnvironment.o -index-unit-output-path /AirFit.build/Debug-iphonesimulator/AirFit.build/Objects-normal/arm64/DIExample.o -index-unit-output-path /AirFit.build/Debug-iphonesimulator/AirFit.build/Objects-normal/arm64/DIViewModelFactory.o -index-unit-output-path /AirFit.build/Debug-iphonesimulator/AirFit.build/Objects-normal/arm64/DailyLog.o -index-unit-output-path /AirFit.build/Debug-iphonesimulator/AirFit.build/Objects-normal/arm64/DashboardCoordinator.o -index-unit-output-path /AirFit.build/Debug-iphonesimulator/AirFit.build/Objects-normal/arm64/DashboardModels.o -index-unit-output-path /AirFit.build/Debug-iphonesimulator/AirFit.build/Objects-normal/arm64/DashboardNutritionService.o -index-unit-output-path /AirFit.build/Debug-iphonesimulator/AirFit.build/Objects-normal/arm64/DashboardServiceProtocols.o -index-unit-output-path /AirFit.build/Debug-iphonesimulator/AirFit.build/Objects-normal/arm64/DashboardView.o -index-unit-output-path /AirFit.build/Debug-iphonesimulator/AirFit.build/Objects-normal/arm64/DashboardViewModel.o -index-unit-output-path /AirFit.build/Debug-iphonesimulator/AirFit.build/Objects-normal/arm64/DataManagementView.o -index-unit-output-path /AirFit.build/Debug-iphonesimulator/AirFit.build/Objects-normal/arm64/DataManager.o -index-unit-output-path /AirFit.build/Debug-iphonesimulator/AirFit.build/Objects-normal/arm64/Date+Helpers.o -index-store-path /Users/Brian/Library/Developer/Xcode/DerivedData/AirFit-byirbnjrjkaivfbuyqrmiapiyxae/Index.noindex/DataStore -index-system-modules
+
+SwiftCompile normal arm64 /Users/Brian/Coding\ Projects/AirFit/AirFit/Modules/Onboarding/Views/ConversationalInputView.swift (in target 'AirFit' from project 'AirFit')
+    cd /Users/Brian/Coding\ Projects/AirFit
+    
+/Users/Brian/Coding Projects/AirFit/AirFit/Modules/Onboarding/Views/ConversationalInputView.swift:64:43: warning: immutable value 'secondary' was never used; consider replacing with '_' or removing it
+            case .hybrid(let primary, let secondary):
+                                      ~~~~^~~~~~~~~
+                                      _
+
+SwiftCompile normal arm64 /Users/Brian/Coding\ Projects/AirFit/AirFit/Modules/Onboarding/Views/CoreAspirationView.swift (in target 'AirFit' from project 'AirFit')
+    cd /Users/Brian/Coding\ Projects/AirFit
+    
+
+SwiftCompile normal arm64 /Users/Brian/Coding\ Projects/AirFit/AirFit/Core/DI/DIBootstrapper+Test.swift (in target 'AirFit' from project 'AirFit')
+    cd /Users/Brian/Coding\ Projects/AirFit
+    
+
+SwiftCompile normal arm64 /Users/Brian/Coding\ Projects/AirFit/AirFit/Core/DI/DIBootstrapper.swift (in target 'AirFit' from project 'AirFit')
+    cd /Users/Brian/Coding\ Projects/AirFit
+    
+/Users/Brian/Coding Projects/AirFit/AirFit/Core/DI/DIBootstrapper.swift:58:19: error: conformance of 'ModelContext' to 'Sendable' is unavailable: contexts cannot be shared across concurrency contexts
+        container.registerSingleton(ModelContext.self, instance: modelContainer.mainContext)
+                  ^
+SwiftData.ModelContext:2:11: note: conformance of 'ModelContext' to 'Sendable' has been explicitly marked unavailable here
+extension ModelContext : @unchecked Sendable {
+          ^
+/Users/Brian/Coding Projects/AirFit/AirFit/Core/DI/DIBootstrapper.swift:97:52: error: non-sendable result type 'ModelContext' cannot be sent from nonisolated context in call to instance method 'resolve(_:name:)'
+            let modelContext = try await container.resolve(ModelContext.self)
+                                                   ^
+SwiftData.ModelContext:3:14: note: class 'ModelContext' does not conform to the 'Sendable' protocol
+public class ModelContext : Equatable {
+             ^
+/Users/Brian/Coding Projects/AirFit/AirFit/Core/DI/DIBootstrapper.swift:118:52: error: non-sendable result type 'any GoalServiceProtocol' cannot be sent from nonisolated context in call to instance method 'resolve(_:name:)'
+            let goalService = try? await container.resolve(GoalServiceProtocol.self)
+                                                   ^
+/Users/Brian/Coding Projects/AirFit/AirFit/Core/Protocols/GoalServiceProtocol.swift:6:10: note: protocol 'GoalServiceProtocol' does not conform to the 'Sendable' protocol
+protocol GoalServiceProtocol: AnyObject {
+         ^
+/Users/Brian/Coding Projects/AirFit/AirFit/Core/DI/DIBootstrapper.swift:138:52: error: non-sendable result type 'ModelContext' cannot be sent from nonisolated context in call to instance method 'resolve(_:name:)'
+            let modelContext = try await container.resolve(ModelContext.self)
+                                                   ^
+SwiftData.ModelContext:3:14: note: class 'ModelContext' does not conform to the 'Sendable' protocol
+public class ModelContext : Equatable {
+             ^
+/Users/Brian/Coding Projects/AirFit/AirFit/Core/DI/DIBootstrapper.swift:152:52: error: non-sendable result type 'ModelContext' cannot be sent from nonisolated context in call to instance method 'resolve(_:name:)'
+            let modelContext = try await container.resolve(ModelContext.self)
+                                                   ^
+SwiftData.ModelContext:3:14: note: class 'ModelContext' does not conform to the 'Sendable' protocol
+public class ModelContext : Equatable {
+             ^
+/Users/Brian/Coding Projects/AirFit/AirFit/Core/DI/DIBootstrapper.swift:158:52: error: non-sendable result type 'ModelContext' cannot be sent from nonisolated context in call to instance method 'resolve(_:name:)'
+            let modelContext = try await container.resolve(ModelContext.self)
+                                                   ^
+SwiftData.ModelContext:3:14: note: class 'ModelContext' does not conform to the 'Sendable' protocol
+public class ModelContext : Equatable {
+             ^
+/Users/Brian/Coding Projects/AirFit/AirFit/Core/DI/DIBootstrapper.swift:174:52: error: non-sendable result type 'ModelContext' cannot be sent from nonisolated context in call to instance method 'resolve(_:name:)'
+            let modelContext = try await container.resolve(ModelContext.self)
+                                                   ^
+SwiftData.ModelContext:3:14: note: class 'ModelContext' does not conform to the 'Sendable' protocol
+public class ModelContext : Equatable {
+             ^
+/Users/Brian/Coding Projects/AirFit/AirFit/Core/DI/DIBootstrapper.swift:180:52: error: non-sendable result type 'ModelContext' cannot be sent from nonisolated context in call to instance method 'resolve(_:name:)'
+            let modelContext = try await container.resolve(ModelContext.self)
+                                                   ^
+SwiftData.ModelContext:3:14: note: class 'ModelContext' does not conform to the 'Sendable' protocol
+public class ModelContext : Equatable {
+             ^
+/Users/Brian/Coding Projects/AirFit/AirFit/Core/DI/DIBootstrapper.swift:186:52: error: non-sendable result type 'ModelContext' cannot be sent from nonisolated context in call to instance method 'resolve(_:name:)'
+            let modelContext = try await container.resolve(ModelContext.self)
+                                                   ^
+SwiftData.ModelContext:3:14: note: class 'ModelContext' does not conform to the 'Sendable' protocol
+public class ModelContext : Equatable {
+             ^
+/Users/Brian/Coding Projects/AirFit/AirFit/Core/DI/DIBootstrapper.swift:192:51: error: non-sendable result type 'any GoalServiceProtocol' cannot be sent from nonisolated context in call to instance method 'resolve(_:name:)'
+            let goalService = try await container.resolve(GoalServiceProtocol.self)
+                                                  ^
+/Users/Brian/Coding Projects/AirFit/AirFit/Core/Protocols/GoalServiceProtocol.swift:6:10: note: protocol 'GoalServiceProtocol' does not conform to the 'Sendable' protocol
+protocol GoalServiceProtocol: AnyObject {
+         ^
+
+SwiftCompile normal arm64 /Users/Brian/Coding\ Projects/AirFit/AirFit/Core/DI/DIContainer.swift (in target 'AirFit' from project 'AirFit')
+    cd /Users/Brian/Coding\ Projects/AirFit
+    
+
+SwiftCompile normal arm64 /Users/Brian/Coding\ Projects/AirFit/AirFit/Core/DI/DIEnvironment.swift (in target 'AirFit' from project 'AirFit')
+    cd /Users/Brian/Coding\ Projects/AirFit
+    
+
+SwiftCompile normal arm64 /Users/Brian/Coding\ Projects/AirFit/AirFit/Core/DI/DIExample.swift (in target 'AirFit' from project 'AirFit')
+    cd /Users/Brian/Coding\ Projects/AirFit
+    
+
+SwiftCompile normal arm64 /Users/Brian/Coding\ Projects/AirFit/AirFit/Core/DI/DIViewModelFactory.swift (in target 'AirFit' from project 'AirFit')
+    cd /Users/Brian/Coding\ Projects/AirFit
+    
+/Users/Brian/Coding Projects/AirFit/AirFit/Core/DI/DIViewModelFactory.swift:17:48: error: non-sendable result type 'ModelContext' cannot be sent from nonisolated context in call to instance method 'resolve(_:name:)'
+        let modelContext = try await container.resolve(ModelContext.self)
+                                               ^
+SwiftData.ModelContext:3:14: note: class 'ModelContext' does not conform to the 'Sendable' protocol
+public class ModelContext : Equatable {
+             ^
+/Users/Brian/Coding Projects/AirFit/AirFit/Core/DI/DIViewModelFactory.swift:37:48: error: non-sendable result type 'ModelContext' cannot be sent from nonisolated context in call to instance method 'resolve(_:name:)'
+        let modelContext = try await container.resolve(ModelContext.self)
+                                               ^
+SwiftData.ModelContext:3:14: note: class 'ModelContext' does not conform to the 'Sendable' protocol
+public class ModelContext : Equatable {
+             ^
+/Users/Brian/Coding Projects/AirFit/AirFit/Core/DI/DIViewModelFactory.swift:56:48: error: non-sendable result type 'ModelContext' cannot be sent from nonisolated context in call to instance method 'resolve(_:name:)'
+        let modelContext = try await container.resolve(ModelContext.self)
+                                               ^
+SwiftData.ModelContext:3:14: note: class 'ModelContext' does not conform to the 'Sendable' protocol
+public class ModelContext : Equatable {
+             ^
+/Users/Brian/Coding Projects/AirFit/AirFit/Core/DI/DIViewModelFactory.swift:77:48: error: non-sendable result type 'ModelContext' cannot be sent from nonisolated context in call to instance method 'resolve(_:name:)'
+        let modelContext = try await container.resolve(ModelContext.self)
+                                               ^
+SwiftData.ModelContext:3:14: note: class 'ModelContext' does not conform to the 'Sendable' protocol
+public class ModelContext : Equatable {
+             ^
+/Users/Brian/Coding Projects/AirFit/AirFit/Core/DI/DIViewModelFactory.swift:95:48: error: non-sendable result type 'ModelContext' cannot be sent from nonisolated context in call to instance method 'resolve(_:name:)'
+        let modelContext = try await container.resolve(ModelContext.self)
+                                               ^
+SwiftData.ModelContext:3:14: note: class 'ModelContext' does not conform to the 'Sendable' protocol
+public class ModelContext : Equatable {
+             ^
+/Users/Brian/Coding Projects/AirFit/AirFit/Core/DI/DIViewModelFactory.swift:128:43: error: non-sendable result type 'ModelContext' cannot be sent from nonisolated context in call to instance method 'resolve(_:name:)'
+            context = try await container.resolve(ModelContext.self)
+                                          ^
+SwiftData.ModelContext:3:14: note: class 'ModelContext' does not conform to the 'Sendable' protocol
+public class ModelContext : Equatable {
+             ^
+/Users/Brian/Coding Projects/AirFit/AirFit/Core/DI/DIViewModelFactory.swift:154:13: warning: initialization of immutable value 'apiKeyManager' was never used; consider replacing with assignment to '_' or removing it
+        let apiKeyManager = try await container.resolve(APIKeyManagementProtocol.self)
+        ~~~~^~~~~~~~~~~~~
+        _
+/Users/Brian/Coding Projects/AirFit/AirFit/Core/DI/DIViewModelFactory.swift:152:48: error: non-sendable result type 'ModelContext' cannot be sent from nonisolated context in call to instance method 'resolve(_:name:)'
+        let modelContext = try await container.resolve(ModelContext.self)
+                                               ^
+SwiftData.ModelContext:3:14: note: class 'ModelContext' does not conform to the 'Sendable' protocol
+public class ModelContext : Equatable {
+             ^
+/Users/Brian/Coding Projects/AirFit/AirFit/Core/DI/DIViewModelFactory.swift:195:48: error: non-sendable result type 'ModelContext' cannot be sent from nonisolated context in call to instance method 'resolve(_:name:)'
+        let modelContext = try await container.resolve(ModelContext.self)
+                                               ^
+SwiftData.ModelContext:3:14: note: class 'ModelContext' does not conform to the 'Sendable' protocol
+public class ModelContext : Equatable {
+             ^
+/Users/Brian/Coding Projects/AirFit/AirFit/Core/DI/DIViewModelFactory.swift:205:47: error: non-sendable result type 'any AIGoalServiceProtocol' cannot be sent from nonisolated context in call to instance method 'resolve(_:name:)'
+        let goalService = try await container.resolve(AIGoalServiceProtocol.self)
+                                              ^
+/Users/Brian/Coding Projects/AirFit/AirFit/Core/Protocols/AIServiceProtocol+Extensions.swift:50:10: note: protocol 'AIGoalServiceProtocol' does not conform to the 'Sendable' protocol
+protocol AIGoalServiceProtocol: GoalServiceProtocol {
+         ^
+/Users/Brian/Coding Projects/AirFit/AirFit/Core/DI/DIViewModelFactory.swift:227:48: error: non-sendable result type 'ModelContext' cannot be sent from nonisolated context in call to instance method 'resolve(_:name:)'
+        let modelContext = try await container.resolve(ModelContext.self)
+                                               ^
+SwiftData.ModelContext:3:14: note: class 'ModelContext' does not conform to the 'Sendable' protocol
+public class ModelContext : Equatable {
+             ^
+
+SwiftCompile normal arm64 /Users/Brian/Coding\ Projects/AirFit/AirFit/Data/Models/DailyLog.swift (in target 'AirFit' from project 'AirFit')
+    cd /Users/Brian/Coding\ Projects/AirFit
+    
+
+SwiftCompile normal arm64 /Users/Brian/Coding\ Projects/AirFit/AirFit/Modules/Dashboard/Coordinators/DashboardCoordinator.swift (in target 'AirFit' from project 'AirFit')
+    cd /Users/Brian/Coding\ Projects/AirFit
+    
+
+SwiftCompile normal arm64 /Users/Brian/Coding\ Projects/AirFit/AirFit/Modules/Dashboard/Models/DashboardModels.swift (in target 'AirFit' from project 'AirFit')
+    cd /Users/Brian/Coding\ Projects/AirFit
+    
+
+SwiftCompile normal arm64 /Users/Brian/Coding\ Projects/AirFit/AirFit/Modules/Dashboard/Services/DashboardNutritionService.swift (in target 'AirFit' from project 'AirFit')
+    cd /Users/Brian/Coding\ Projects/AirFit
+    
+/Users/Brian/Coding Projects/AirFit/AirFit/Modules/Dashboard/Services/DashboardNutritionService.swift:76:53: warning: comparing non-optional value of type 'String' to 'nil' always returns true
+            mealCount: entries.filter { $0.mealType != nil }.count
+                                        ~~~~~~~~~~~ ^  ~~~
+
+SwiftCompile normal arm64 /Users/Brian/Coding\ Projects/AirFit/AirFit/Core/Protocols/DashboardServiceProtocols.swift (in target 'AirFit' from project 'AirFit')
+    cd /Users/Brian/Coding\ Projects/AirFit
+    
+
+SwiftCompile normal arm64 /Users/Brian/Coding\ Projects/AirFit/AirFit/Modules/Dashboard/Views/DashboardView.swift (in target 'AirFit' from project 'AirFit')
+    cd /Users/Brian/Coding\ Projects/AirFit
+    
+
+SwiftCompile normal arm64 /Users/Brian/Coding\ Projects/AirFit/AirFit/Modules/Dashboard/ViewModels/DashboardViewModel.swift (in target 'AirFit' from project 'AirFit')
+    cd /Users/Brian/Coding\ Projects/AirFit
+    
+
+SwiftCompile normal arm64 /Users/Brian/Coding\ Projects/AirFit/AirFit/Modules/Settings/Views/DataManagementView.swift (in target 'AirFit' from project 'AirFit')
+    cd /Users/Brian/Coding\ Projects/AirFit
+    
+
+SwiftCompile normal arm64 /Users/Brian/Coding\ Projects/AirFit/AirFit/Data/Managers/DataManager.swift (in target 'AirFit' from project 'AirFit')
+    cd /Users/Brian/Coding\ Projects/AirFit
+    
+
+SwiftCompile normal arm64 /Users/Brian/Coding\ Projects/AirFit/AirFit/Core/Extensions/Date+Helpers.swift (in target 'AirFit' from project 'AirFit')
+    cd /Users/Brian/Coding\ Projects/AirFit
+    
+
+SwiftCompile normal arm64 Compiling\ ContentView.swift,\ ContextAnalyzer.swift,\ ContextAssembler.swift,\ ContextualSlider.swift,\ ConversationAnalytics.swift,\ ConversationCoordinator.swift,\ ConversationFlowData.swift,\ ConversationFlowManager.swift,\ ConversationManager.swift,\ ConversationModels.swift,\ ConversationPersistence.swift,\ ConversationPersonalityInsights.swift,\ ConversationProgress.swift,\ ConversationResponse.swift,\ ConversationSession.swift,\ ConversationStateManager.swift,\ ConversationView.swift,\ ConversationViewModel.swift /Users/Brian/Coding\ Projects/AirFit/AirFit/Application/ContentView.swift /Users/Brian/Coding\ Projects/AirFit/AirFit/Modules/AI/ContextAnalyzer.swift /Users/Brian/Coding\ Projects/AirFit/AirFit/Services/Context/ContextAssembler.swift /Users/Brian/Coding\ Projects/AirFit/AirFit/Modules/Onboarding/Views/InputModalities/ContextualSlider.swift /Users/Brian/Coding\ Projects/AirFit/AirFit/Modules/Onboarding/Services/ConversationAnalytics.swift /Users/Brian/Coding\ Projects/AirFit/AirFit/Modules/Onboarding/Coordinators/ConversationCoordinator.swift /Users/Brian/Coding\ Projects/AirFit/AirFit/Modules/Onboarding/Data/ConversationFlowData.swift /Users/Brian/Coding\ Projects/AirFit/AirFit/Modules/Onboarding/Services/ConversationFlowManager.swift /Users/Brian/Coding\ Projects/AirFit/AirFit/Modules/AI/ConversationManager.swift /Users/Brian/Coding\ Projects/AirFit/AirFit/Modules/Onboarding/Models/ConversationModels.swift /Users/Brian/Coding\ Projects/AirFit/AirFit/Modules/Onboarding/Services/ConversationPersistence.swift /Users/Brian/Coding\ Projects/AirFit/AirFit/Modules/AI/Models/ConversationPersonalityInsights.swift /Users/Brian/Coding\ Projects/AirFit/AirFit/Modules/Onboarding/Views/ConversationProgress.swift /Users/Brian/Coding\ Projects/AirFit/AirFit/Data/Models/ConversationResponse.swift /Users/Brian/Coding\ Projects/AirFit/AirFit/Data/Models/ConversationSession.swift /Users/Brian/Coding\ Projects/AirFit/AirFit/Modules/AI/Components/ConversationStateManager.swift /Users/Brian/Coding\ Projects/AirFit/AirFit/Modules/Onboarding/Views/ConversationView.swift /Users/Brian/Coding\ Projects/AirFit/AirFit/Modules/Onboarding/ViewModels/ConversationViewModel.swift (in target 'AirFit' from project 'AirFit')
+
+SwiftCompile normal arm64 /Users/Brian/Coding\ Projects/AirFit/AirFit/Application/ContentView.swift (in target 'AirFit' from project 'AirFit')
+    cd /Users/Brian/Coding\ Projects/AirFit
+    
+
+SwiftCompile normal arm64 /Users/Brian/Coding\ Projects/AirFit/AirFit/Modules/AI/ContextAnalyzer.swift (in target 'AirFit' from project 'AirFit')
+    cd /Users/Brian/Coding\ Projects/AirFit
+    
+
+SwiftCompile normal arm64 /Users/Brian/Coding\ Projects/AirFit/AirFit/Services/Context/ContextAssembler.swift (in target 'AirFit' from project 'AirFit')
+    cd /Users/Brian/Coding\ Projects/AirFit
+    
+
+SwiftCompile normal arm64 /Users/Brian/Coding\ Projects/AirFit/AirFit/Modules/Onboarding/Views/InputModalities/ContextualSlider.swift (in target 'AirFit' from project 'AirFit')
+    cd /Users/Brian/Coding\ Projects/AirFit
+    
+
+SwiftCompile normal arm64 /Users/Brian/Coding\ Projects/AirFit/AirFit/Modules/Onboarding/Services/ConversationAnalytics.swift (in target 'AirFit' from project 'AirFit')
+    cd /Users/Brian/Coding\ Projects/AirFit
+    
+
+SwiftCompile normal arm64 /Users/Brian/Coding\ Projects/AirFit/AirFit/Modules/Onboarding/Coordinators/ConversationCoordinator.swift (in target 'AirFit' from project 'AirFit')
+    cd /Users/Brian/Coding\ Projects/AirFit
+    
+
+SwiftCompile normal arm64 /Users/Brian/Coding\ Projects/AirFit/AirFit/Modules/Onboarding/Data/ConversationFlowData.swift (in target 'AirFit' from project 'AirFit')
+    cd /Users/Brian/Coding\ Projects/AirFit
+    
+
+SwiftCompile normal arm64 /Users/Brian/Coding\ Projects/AirFit/AirFit/Modules/Onboarding/Services/ConversationFlowManager.swift (in target 'AirFit' from project 'AirFit')
+    cd /Users/Brian/Coding\ Projects/AirFit
+    
+
+SwiftCompile normal arm64 /Users/Brian/Coding\ Projects/AirFit/AirFit/Modules/AI/ConversationManager.swift (in target 'AirFit' from project 'AirFit')
+    cd /Users/Brian/Coding\ Projects/AirFit
+    
+
+SwiftCompile normal arm64 /Users/Brian/Coding\ Projects/AirFit/AirFit/Modules/Onboarding/Models/ConversationModels.swift (in target 'AirFit' from project 'AirFit')
+    cd /Users/Brian/Coding\ Projects/AirFit
+    
+
+SwiftCompile normal arm64 /Users/Brian/Coding\ Projects/AirFit/AirFit/Modules/Onboarding/Services/ConversationPersistence.swift (in target 'AirFit' from project 'AirFit')
+    cd /Users/Brian/Coding\ Projects/AirFit
+    
+
+SwiftCompile normal arm64 /Users/Brian/Coding\ Projects/AirFit/AirFit/Modules/AI/Models/ConversationPersonalityInsights.swift (in target 'AirFit' from project 'AirFit')
+    cd /Users/Brian/Coding\ Projects/AirFit
+    
+
+SwiftCompile normal arm64 /Users/Brian/Coding\ Projects/AirFit/AirFit/Modules/Onboarding/Views/ConversationProgress.swift (in target 'AirFit' from project 'AirFit')
+    cd /Users/Brian/Coding\ Projects/AirFit
+    
+
+SwiftCompile normal arm64 /Users/Brian/Coding\ Projects/AirFit/AirFit/Data/Models/ConversationResponse.swift (in target 'AirFit' from project 'AirFit')
+    cd /Users/Brian/Coding\ Projects/AirFit
+    
+
+SwiftCompile normal arm64 /Users/Brian/Coding\ Projects/AirFit/AirFit/Data/Models/ConversationSession.swift (in target 'AirFit' from project 'AirFit')
+    cd /Users/Brian/Coding\ Projects/AirFit
+    
+
+SwiftCompile normal arm64 /Users/Brian/Coding\ Projects/AirFit/AirFit/Modules/AI/Components/ConversationStateManager.swift (in target 'AirFit' from project 'AirFit')
+    cd /Users/Brian/Coding\ Projects/AirFit
+    
+
+SwiftCompile normal arm64 /Users/Brian/Coding\ Projects/AirFit/AirFit/Modules/Onboarding/Views/ConversationView.swift (in target 'AirFit' from project 'AirFit')
+    cd /Users/Brian/Coding\ Projects/AirFit
+    
+
+SwiftCompile normal arm64 /Users/Brian/Coding\ Projects/AirFit/AirFit/Modules/Onboarding/ViewModels/ConversationViewModel.swift (in target 'AirFit' from project 'AirFit')
+    cd /Users/Brian/Coding\ Projects/AirFit
+    
+
+SwiftEmitModule normal arm64 Emitting\ module\ for\ AirFit (in target 'AirFit' from project 'AirFit')
+
+EmitSwiftModule normal arm64 (in target 'AirFit' from project 'AirFit')
+    cd /Users/Brian/Coding\ Projects/AirFit
+    
+
+SwiftCompile normal arm64 Compiling\ WhisperModelManager.swift,\ WhisperServiceWrapperProtocol.swift,\ Workout.swift,\ WorkoutAnalysisEngine.swift,\ WorkoutBuilderData.swift,\ WorkoutBuilderView.swift,\ WorkoutCoordinator.swift,\ WorkoutDetailView.swift,\ WorkoutFunctions.swift,\ WorkoutListView.swift,\ WorkoutModels.swift,\ WorkoutService.swift,\ WorkoutServiceProtocol.swift,\ WorkoutStatisticsView.swift,\ WorkoutSyncService.swift,\ WorkoutTemplate.swift,\ WorkoutViewModel.swift /Users/Brian/Coding\ Projects/AirFit/AirFit/Services/Speech/WhisperModelManager.swift /Users/Brian/Coding\ Projects/AirFit/AirFit/Core/Protocols/WhisperServiceWrapperProtocol.swift /Users/Brian/Coding\ Projects/AirFit/AirFit/Data/Models/Workout.swift /Users/Brian/Coding\ Projects/AirFit/AirFit/Modules/AI/WorkoutAnalysisEngine.swift /Users/Brian/Coding\ Projects/AirFit/AirFit/Core/Models/WorkoutBuilderData.swift /Users/Brian/Coding\ Projects/AirFit/AirFit/Modules/Workouts/Views/WorkoutBuilderView.swift /Users/Brian/Coding\ Projects/AirFit/AirFit/Modules/Workouts/Coordinators/WorkoutCoordinator.swift /Users/Brian/Coding\ Projects/AirFit/AirFit/Modules/Workouts/Views/WorkoutDetailView.swift /Users/Brian/Coding\ Projects/AirFit/AirFit/Modules/AI/Functions/WorkoutFunctions.swift /Users/Brian/Coding\ Projects/AirFit/AirFit/Modules/Workouts/Views/WorkoutListView.swift /Users/Brian/Coding\ Projects/AirFit/AirFit/Modules/Workouts/Models/WorkoutModels.swift /Users/Brian/Coding\ Projects/AirFit/AirFit/Modules/Workouts/Services/WorkoutService.swift /Users/Brian/Coding\ Projects/AirFit/AirFit/Core/Protocols/WorkoutServiceProtocol.swift /Users/Brian/Coding\ Projects/AirFit/AirFit/Modules/Workouts/Views/WorkoutStatisticsView.swift /Users/Brian/Coding\ Projects/AirFit/AirFit/Services/WorkoutSyncService.swift /Users/Brian/Coding\ Projects/AirFit/AirFit/Data/Models/WorkoutTemplate.swift /Users/Brian/Coding\ Projects/AirFit/AirFit/Modules/Workouts/ViewModels/WorkoutViewModel.swift (in target 'AirFit' from project 'AirFit')
+
+SwiftCompile normal arm64 /Users/Brian/Coding\ Projects/AirFit/AirFit/Services/Speech/WhisperModelManager.swift (in target 'AirFit' from project 'AirFit')
+    cd /Users/Brian/Coding\ Projects/AirFit
+    
+
+SwiftCompile normal arm64 /Users/Brian/Coding\ Projects/AirFit/AirFit/Core/Protocols/WhisperServiceWrapperProtocol.swift (in target 'AirFit' from project 'AirFit')
+    cd /Users/Brian/Coding\ Projects/AirFit
+    
+
+SwiftCompile normal arm64 /Users/Brian/Coding\ Projects/AirFit/AirFit/Data/Models/Workout.swift (in target 'AirFit' from project 'AirFit')
+    cd /Users/Brian/Coding\ Projects/AirFit
+    
+
+SwiftCompile normal arm64 /Users/Brian/Coding\ Projects/AirFit/AirFit/Modules/AI/WorkoutAnalysisEngine.swift (in target 'AirFit' from project 'AirFit')
+    cd /Users/Brian/Coding\ Projects/AirFit
+    
+
+SwiftCompile normal arm64 /Users/Brian/Coding\ Projects/AirFit/AirFit/Core/Models/WorkoutBuilderData.swift (in target 'AirFit' from project 'AirFit')
+    cd /Users/Brian/Coding\ Projects/AirFit
+    
+
+SwiftCompile normal arm64 /Users/Brian/Coding\ Projects/AirFit/AirFit/Modules/Workouts/Views/WorkoutBuilderView.swift (in target 'AirFit' from project 'AirFit')
+    cd /Users/Brian/Coding\ Projects/AirFit
+    
+
+SwiftCompile normal arm64 /Users/Brian/Coding\ Projects/AirFit/AirFit/Modules/Workouts/Coordinators/WorkoutCoordinator.swift (in target 'AirFit' from project 'AirFit')
+    cd /Users/Brian/Coding\ Projects/AirFit
+    
+
+SwiftCompile normal arm64 /Users/Brian/Coding\ Projects/AirFit/AirFit/Modules/Workouts/Views/WorkoutDetailView.swift (in target 'AirFit' from project 'AirFit')
+    cd /Users/Brian/Coding\ Projects/AirFit
+    
+
+SwiftCompile normal arm64 /Users/Brian/Coding\ Projects/AirFit/AirFit/Modules/AI/Functions/WorkoutFunctions.swift (in target 'AirFit' from project 'AirFit')
+    cd /Users/Brian/Coding\ Projects/AirFit
+    
+
+SwiftCompile normal arm64 /Users/Brian/Coding\ Projects/AirFit/AirFit/Modules/Workouts/Views/WorkoutListView.swift (in target 'AirFit' from project 'AirFit')
+    cd /Users/Brian/Coding\ Projects/AirFit
+    
+
+SwiftCompile normal arm64 /Users/Brian/Coding\ Projects/AirFit/AirFit/Modules/Workouts/Models/WorkoutModels.swift (in target 'AirFit' from project 'AirFit')
+    cd /Users/Brian/Coding\ Projects/AirFit
+    
+
+SwiftCompile normal arm64 /Users/Brian/Coding\ Projects/AirFit/AirFit/Modules/Workouts/Services/WorkoutService.swift (in target 'AirFit' from project 'AirFit')
+    cd /Users/Brian/Coding\ Projects/AirFit
+    
+
+SwiftCompile normal arm64 /Users/Brian/Coding\ Projects/AirFit/AirFit/Core/Protocols/WorkoutServiceProtocol.swift (in target 'AirFit' from project 'AirFit')
+    cd /Users/Brian/Coding\ Projects/AirFit
+    
+
+SwiftCompile normal arm64 /Users/Brian/Coding\ Projects/AirFit/AirFit/Modules/Workouts/Views/WorkoutStatisticsView.swift (in target 'AirFit' from project 'AirFit')
+    cd /Users/Brian/Coding\ Projects/AirFit
+    
+
+SwiftCompile normal arm64 /Users/Brian/Coding\ Projects/AirFit/AirFit/Services/WorkoutSyncService.swift (in target 'AirFit' from project 'AirFit')
+    cd /Users/Brian/Coding\ Projects/AirFit
+    
+
+SwiftCompile normal arm64 /Users/Brian/Coding\ Projects/AirFit/AirFit/Data/Models/WorkoutTemplate.swift (in target 'AirFit' from project 'AirFit')
+    cd /Users/Brian/Coding\ Projects/AirFit
+    
+
+SwiftCompile normal arm64 /Users/Brian/Coding\ Projects/AirFit/AirFit/Modules/Workouts/ViewModels/WorkoutViewModel.swift (in target 'AirFit' from project 'AirFit')
+    cd /Users/Brian/Coding\ Projects/AirFit
+    
+
+SwiftCompile normal arm64 Compiling\ APIKeyManager.swift,\ AirFitApp.swift,\ AllWorkoutsView.swift,\ AnalysisFunctions.swift,\ AnalyticsService.swift,\ AnalyticsServiceProtocol.swift,\ AnthropicProvider.swift,\ AppColors.swift,\ AppConstants+Settings.swift,\ AppConstants.swift,\ AppError+Conversion.swift,\ AppError.swift,\ AppFonts.swift,\ AppLogger.swift,\ AppShadows.swift,\ AppSpacing.swift,\ AppState.swift,\ AppearanceSettingsView.swift /Users/Brian/Coding\ Projects/AirFit/AirFit/Services/Security/APIKeyManager.swift /Users/Brian/Coding\ Projects/AirFit/AirFit/Application/AirFitApp.swift /Users/Brian/Coding\ Projects/AirFit/AirFit/Modules/Workouts/Views/AllWorkoutsView.swift /Users/Brian/Coding\ Projects/AirFit/AirFit/Modules/AI/Functions/AnalysisFunctions.swift /Users/Brian/Coding\ Projects/AirFit/AirFit/Services/Analytics/AnalyticsService.swift /Users/Brian/Coding\ Projects/AirFit/AirFit/Core/Protocols/AnalyticsServiceProtocol.swift /Users/Brian/Coding\ Projects/AirFit/AirFit/Services/AI/LLMProviders/AnthropicProvider.swift /Users/Brian/Coding\ Projects/AirFit/AirFit/Core/Theme/AppColors.swift /Users/Brian/Coding\ Projects/AirFit/AirFit/Core/Constants/AppConstants+Settings.swift /Users/Brian/Coding\ Projects/AirFit/AirFit/Core/Constants/AppConstants.swift /Users/Brian/Coding\ Projects/AirFit/AirFit/Core/Enums/AppError+Conversion.swift /Users/Brian/Coding\ Projects/AirFit/AirFit/Core/Enums/AppError.swift /Users/Brian/Coding\ Projects/AirFit/AirFit/Core/Theme/AppFonts.swift /Users/Brian/Coding\ Projects/AirFit/AirFit/Core/Utilities/AppLogger.swift /Users/Brian/Coding\ Projects/AirFit/AirFit/Core/Theme/AppShadows.swift /Users/Brian/Coding\ Projects/AirFit/AirFit/Core/Theme/AppSpacing.swift /Users/Brian/Coding\ Projects/AirFit/AirFit/Core/Utilities/AppState.swift /Users/Brian/Coding\ Projects/AirFit/AirFit/Modules/Settings/Views/AppearanceSettingsView.swift (in target 'AirFit' from project 'AirFit')
+
+SwiftCompile normal arm64 /Users/Brian/Coding\ Projects/AirFit/AirFit/Services/Security/APIKeyManager.swift (in target 'AirFit' from project 'AirFit')
+    cd /Users/Brian/Coding\ Projects/AirFit
+    
+
+SwiftCompile normal arm64 /Users/Brian/Coding\ Projects/AirFit/AirFit/Application/AirFitApp.swift (in target 'AirFit' from project 'AirFit')
+    cd /Users/Brian/Coding\ Projects/AirFit
+    
+
+SwiftCompile normal arm64 /Users/Brian/Coding\ Projects/AirFit/AirFit/Modules/Workouts/Views/AllWorkoutsView.swift (in target 'AirFit' from project 'AirFit')
+    cd /Users/Brian/Coding\ Projects/AirFit
+    
+
+SwiftCompile normal arm64 /Users/Brian/Coding\ Projects/AirFit/AirFit/Modules/AI/Functions/AnalysisFunctions.swift (in target 'AirFit' from project 'AirFit')
+    cd /Users/Brian/Coding\ Projects/AirFit
+    
+
+SwiftCompile normal arm64 /Users/Brian/Coding\ Projects/AirFit/AirFit/Services/Analytics/AnalyticsService.swift (in target 'AirFit' from project 'AirFit')
+    cd /Users/Brian/Coding\ Projects/AirFit
+    
+
+SwiftCompile normal arm64 /Users/Brian/Coding\ Projects/AirFit/AirFit/Core/Protocols/AnalyticsServiceProtocol.swift (in target 'AirFit' from project 'AirFit')
+    cd /Users/Brian/Coding\ Projects/AirFit
+    
+
+SwiftCompile normal arm64 /Users/Brian/Coding\ Projects/AirFit/AirFit/Services/AI/LLMProviders/AnthropicProvider.swift (in target 'AirFit' from project 'AirFit')
+    cd /Users/Brian/Coding\ Projects/AirFit
+    
+
+SwiftCompile normal arm64 /Users/Brian/Coding\ Projects/AirFit/AirFit/Core/Theme/AppColors.swift (in target 'AirFit' from project 'AirFit')
+    cd /Users/Brian/Coding\ Projects/AirFit
+    
+
+SwiftCompile normal arm64 /Users/Brian/Coding\ Projects/AirFit/AirFit/Core/Constants/AppConstants+Settings.swift (in target 'AirFit' from project 'AirFit')
+    cd /Users/Brian/Coding\ Projects/AirFit
+    
+
+SwiftCompile normal arm64 /Users/Brian/Coding\ Projects/AirFit/AirFit/Core/Constants/AppConstants.swift (in target 'AirFit' from project 'AirFit')
+    cd /Users/Brian/Coding\ Projects/AirFit
+    
+
+SwiftCompile normal arm64 /Users/Brian/Coding\ Projects/AirFit/AirFit/Core/Enums/AppError+Conversion.swift (in target 'AirFit' from project 'AirFit')
+    cd /Users/Brian/Coding\ Projects/AirFit
+    
+
+SwiftCompile normal arm64 /Users/Brian/Coding\ Projects/AirFit/AirFit/Core/Enums/AppError.swift (in target 'AirFit' from project 'AirFit')
+    cd /Users/Brian/Coding\ Projects/AirFit
+    
+
+SwiftCompile normal arm64 /Users/Brian/Coding\ Projects/AirFit/AirFit/Core/Theme/AppFonts.swift (in target 'AirFit' from project 'AirFit')
+    cd /Users/Brian/Coding\ Projects/AirFit
+    
+
+SwiftCompile normal arm64 /Users/Brian/Coding\ Projects/AirFit/AirFit/Core/Utilities/AppLogger.swift (in target 'AirFit' from project 'AirFit')
+    cd /Users/Brian/Coding\ Projects/AirFit
+    
+
+SwiftCompile normal arm64 /Users/Brian/Coding\ Projects/AirFit/AirFit/Core/Theme/AppShadows.swift (in target 'AirFit' from project 'AirFit')
+    cd /Users/Brian/Coding\ Projects/AirFit
+    
+
+SwiftCompile normal arm64 /Users/Brian/Coding\ Projects/AirFit/AirFit/Core/Theme/AppSpacing.swift (in target 'AirFit' from project 'AirFit')
+    cd /Users/Brian/Coding\ Projects/AirFit
+    
+
+SwiftCompile normal arm64 /Users/Brian/Coding\ Projects/AirFit/AirFit/Core/Utilities/AppState.swift (in target 'AirFit' from project 'AirFit')
+    cd /Users/Brian/Coding\ Projects/AirFit
+    
+
+SwiftCompile normal arm64 /Users/Brian/Coding\ Projects/AirFit/AirFit/Modules/Settings/Views/AppearanceSettingsView.swift (in target 'AirFit' from project 'AirFit')
+    cd /Users/Brian/Coding\ Projects/AirFit
+    
+
+SwiftCompile normal arm64 Compiling\ NetworkClient.swift,\ NetworkClientProtocol.swift,\ NetworkManagementProtocol.swift,\ NetworkManager.swift,\ NetworkReachability.swift,\ NotificationContentGenerator.swift,\ NotificationManager+Settings.swift,\ NotificationManager.swift,\ NotificationModels.swift,\ NotificationPreferencesView.swift,\ NotificationsCoordinator.swift,\ NutritionCard.swift,\ NutritionData.swift,\ NutritionFunctions.swift,\ NutritionParseResult.swift,\ NutritionPreferences.swift,\ NutritionSearchView.swift /Users/Brian/Coding\ Projects/AirFit/AirFit/Services/Network/NetworkClient.swift /Users/Brian/Coding\ Projects/AirFit/AirFit/Core/Protocols/NetworkClientProtocol.swift /Users/Brian/Coding\ Projects/AirFit/AirFit/Core/Protocols/NetworkManagementProtocol.swift /Users/Brian/Coding\ Projects/AirFit/AirFit/Services/Network/NetworkManager.swift /Users/Brian/Coding\ Projects/AirFit/AirFit/Core/Utilities/NetworkReachability.swift /Users/Brian/Coding\ Projects/AirFit/AirFit/Modules/Notifications/Services/NotificationContentGenerator.swift /Users/Brian/Coding\ Projects/AirFit/AirFit/Modules/Settings/Services/NotificationManager+Settings.swift /Users/Brian/Coding\ Projects/AirFit/AirFit/Modules/Notifications/Managers/NotificationManager.swift /Users/Brian/Coding\ Projects/AirFit/AirFit/Modules/Notifications/Models/NotificationModels.swift /Users/Brian/Coding\ Projects/AirFit/AirFit/Modules/Settings/Views/NotificationPreferencesView.swift /Users/Brian/Coding\ Projects/AirFit/AirFit/Modules/Notifications/Coordinators/NotificationsCoordinator.swift /Users/Brian/Coding\ Projects/AirFit/AirFit/Modules/Dashboard/Views/Cards/NutritionCard.swift /Users/Brian/Coding\ Projects/AirFit/AirFit/Data/Models/NutritionData.swift /Users/Brian/Coding\ Projects/AirFit/AirFit/Modules/AI/Functions/NutritionFunctions.swift /Users/Brian/Coding\ Projects/AirFit/AirFit/Modules/AI/Models/NutritionParseResult.swift /Users/Brian/Coding\ Projects/AirFit/AirFit/Core/Models/NutritionPreferences.swift /Users/Brian/Coding\ Projects/AirFit/AirFit/Modules/FoodTracking/Views/NutritionSearchView.swift (in target 'AirFit' from project 'AirFit')
+
+SwiftCompile normal arm64 /Users/Brian/Coding\ Projects/AirFit/AirFit/Services/Network/NetworkClient.swift (in target 'AirFit' from project 'AirFit')
+    cd /Users/Brian/Coding\ Projects/AirFit
+    
+
+SwiftCompile normal arm64 /Users/Brian/Coding\ Projects/AirFit/AirFit/Core/Protocols/NetworkClientProtocol.swift (in target 'AirFit' from project 'AirFit')
+    cd /Users/Brian/Coding\ Projects/AirFit
+    
+
+SwiftCompile normal arm64 /Users/Brian/Coding\ Projects/AirFit/AirFit/Core/Protocols/NetworkManagementProtocol.swift (in target 'AirFit' from project 'AirFit')
+    cd /Users/Brian/Coding\ Projects/AirFit
+    
+
+SwiftCompile normal arm64 /Users/Brian/Coding\ Projects/AirFit/AirFit/Services/Network/NetworkManager.swift (in target 'AirFit' from project 'AirFit')
+    cd /Users/Brian/Coding\ Projects/AirFit
+    
+
+SwiftCompile normal arm64 /Users/Brian/Coding\ Projects/AirFit/AirFit/Core/Utilities/NetworkReachability.swift (in target 'AirFit' from project 'AirFit')
+    cd /Users/Brian/Coding\ Projects/AirFit
+    
+
+SwiftCompile normal arm64 /Users/Brian/Coding\ Projects/AirFit/AirFit/Modules/Notifications/Services/NotificationContentGenerator.swift (in target 'AirFit' from project 'AirFit')
+    cd /Users/Brian/Coding\ Projects/AirFit
+    
+
+SwiftCompile normal arm64 /Users/Brian/Coding\ Projects/AirFit/AirFit/Modules/Settings/Services/NotificationManager+Settings.swift (in target 'AirFit' from project 'AirFit')
+    cd /Users/Brian/Coding\ Projects/AirFit
+    
+
+SwiftCompile normal arm64 /Users/Brian/Coding\ Projects/AirFit/AirFit/Modules/Notifications/Managers/NotificationManager.swift (in target 'AirFit' from project 'AirFit')
+    cd /Users/Brian/Coding\ Projects/AirFit
+    
+
+SwiftCompile normal arm64 /Users/Brian/Coding\ Projects/AirFit/AirFit/Modules/Notifications/Models/NotificationModels.swift (in target 'AirFit' from project 'AirFit')
+    cd /Users/Brian/Coding\ Projects/AirFit
+    
+
+SwiftCompile normal arm64 /Users/Brian/Coding\ Projects/AirFit/AirFit/Modules/Settings/Views/NotificationPreferencesView.swift (in target 'AirFit' from project 'AirFit')
+    cd /Users/Brian/Coding\ Projects/AirFit
+    
+
+SwiftCompile normal arm64 /Users/Brian/Coding\ Projects/AirFit/AirFit/Modules/Notifications/Coordinators/NotificationsCoordinator.swift (in target 'AirFit' from project 'AirFit')
+    cd /Users/Brian/Coding\ Projects/AirFit
+    
+
+SwiftCompile normal arm64 /Users/Brian/Coding\ Projects/AirFit/AirFit/Modules/Dashboard/Views/Cards/NutritionCard.swift (in target 'AirFit' from project 'AirFit')
+    cd /Users/Brian/Coding\ Projects/AirFit
+    
+
+SwiftCompile normal arm64 /Users/Brian/Coding\ Projects/AirFit/AirFit/Data/Models/NutritionData.swift (in target 'AirFit' from project 'AirFit')
+    cd /Users/Brian/Coding\ Projects/AirFit
+    
+
+SwiftCompile normal arm64 /Users/Brian/Coding\ Projects/AirFit/AirFit/Modules/AI/Functions/NutritionFunctions.swift (in target 'AirFit' from project 'AirFit')
+    cd /Users/Brian/Coding\ Projects/AirFit
+    
+
+SwiftCompile normal arm64 /Users/Brian/Coding\ Projects/AirFit/AirFit/Modules/AI/Models/NutritionParseResult.swift (in target 'AirFit' from project 'AirFit')
+    cd /Users/Brian/Coding\ Projects/AirFit
+    
+
+SwiftCompile normal arm64 /Users/Brian/Coding\ Projects/AirFit/AirFit/Core/Models/NutritionPreferences.swift (in target 'AirFit' from project 'AirFit')
+    cd /Users/Brian/Coding\ Projects/AirFit
+    
+
+SwiftCompile normal arm64 /Users/Brian/Coding\ Projects/AirFit/AirFit/Modules/FoodTracking/Views/NutritionSearchView.swift (in target 'AirFit' from project 'AirFit')
+    cd /Users/Brian/Coding\ Projects/AirFit
+    
+
+SwiftCompile normal arm64 Compiling\ ServiceRegistry.swift,\ SetTemplate.swift,\ SettingsComponents.swift,\ SettingsCoordinator.swift,\ SettingsListView.swift,\ SettingsModels.swift,\ SettingsViewModel.swift,\ SleepAndBoundariesView.swift,\ StreamingResponseHandler.swift,\ String+Helpers.swift,\ TemplatePickerView.swift,\ TestModeAIService.swift,\ TextInputView.swift,\ TimeInterval+Formatting.swift,\ URLRequest+API.swift,\ UnitsSettingsView.swift,\ User+Settings.swift /Users/Brian/Coding\ Projects/AirFit/AirFit/Services/ServiceRegistry.swift /Users/Brian/Coding\ Projects/AirFit/AirFit/Data/Models/SetTemplate.swift /Users/Brian/Coding\ Projects/AirFit/AirFit/Modules/Settings/Views/Components/SettingsComponents.swift /Users/Brian/Coding\ Projects/AirFit/AirFit/Modules/Settings/Coordinators/SettingsCoordinator.swift /Users/Brian/Coding\ Projects/AirFit/AirFit/Modules/Settings/Views/SettingsListView.swift /Users/Brian/Coding\ Projects/AirFit/AirFit/Modules/Settings/Models/SettingsModels.swift /Users/Brian/Coding\ Projects/AirFit/AirFit/Modules/Settings/ViewModels/SettingsViewModel.swift /Users/Brian/Coding\ Projects/AirFit/AirFit/Modules/Onboarding/Views/SleepAndBoundariesView.swift /Users/Brian/Coding\ Projects/AirFit/AirFit/Modules/AI/Components/StreamingResponseHandler.swift /Users/Brian/Coding\ Projects/AirFit/AirFit/Core/Extensions/String+Helpers.swift /Users/Brian/Coding\ Projects/AirFit/AirFit/Modules/Workouts/Views/TemplatePickerView.swift /Users/Brian/Coding\ Projects/AirFit/AirFit/Services/AI/TestModeAIService.swift /Users/Brian/Coding\ Projects/AirFit/AirFit/Modules/Onboarding/Views/InputModalities/TextInputView.swift /Users/Brian/Coding\ Projects/AirFit/AirFit/Core/Extensions/TimeInterval+Formatting.swift /Users/Brian/Coding\ Projects/AirFit/AirFit/Core/Extensions/URLRequest+API.swift /Users/Brian/Coding\ Projects/AirFit/AirFit/Modules/Settings/Views/UnitsSettingsView.swift /Users/Brian/Coding\ Projects/AirFit/AirFit/Modules/Settings/Models/User+Settings.swift (in target 'AirFit' from project 'AirFit')
+Command SwiftCompile failed with a nonzero exit code
+
