@@ -123,6 +123,22 @@ protocol MockProtocol {
 
 ### Standard Mock Implementation
 ```swift
+// For actor-isolated services
+actor MockUserService: UserServiceProtocol, MockProtocol {
+    // Use nonisolated for simple properties
+    nonisolated let id = UUID()
+    
+    // For mutable state, stay actor-isolated
+    private(set) var callCount = 0
+    
+    // Reset must be async for actors
+    func reset() async {
+        callCount = 0
+    }
+}
+
+// For @MainActor services
+@MainActor
 final class MockUserService: UserServiceProtocol, MockProtocol {
     // MARK: - MockProtocol
     func reset() {
@@ -242,20 +258,44 @@ final class NutritionServiceTests: XCTestCase {
 }
 ```
 
-## Async/Await Standards
+## Async/Await Standards (Swift 6)
 
-### Always Use Async Setup/Teardown
+### Setup/Teardown Patterns
 ```swift
-// ✅ Correct
+// ✅ CORRECT - Swift 6 Pattern
 override func setUp() async throws {
-    try await super.setUp()
-    // setup code
+    try super.setUp()  // NO await - XCTestCase methods aren't async
+    
+    // Your async setup code here
+    container = try await DITestHelper.createTestContainer()
 }
 
-// ❌ Wrong - causes Swift 6 warnings
-override func setUp() {
-    super.setUp()
-    // setup code
+override func tearDown() async throws {
+    // Async cleanup first
+    await mockService?.reset()
+    
+    // Then call super
+    try super.tearDown()  // NO await
+}
+
+// ❌ WRONG - Causes Swift 6 concurrency warnings
+override func setUp() async throws {
+    try await super.setUp()  // ❌ Don't await non-async methods
+}
+```
+
+### Actor Isolation Requirements
+```swift
+// ✅ CORRECT - For tests using ModelContext or UI components
+@MainActor
+final class ViewModelTests: XCTestCase {
+    private var modelContext: ModelContext!
+    // ...
+}
+
+// ❌ WRONG - Missing actor isolation
+final class ViewModelTests: XCTestCase {
+    private var modelContext: ModelContext!  // ❌ Requires @MainActor
 }
 ```
 
@@ -379,6 +419,34 @@ class TestDataBuilder {
         Exercise(name: name, sets: sets, reps: reps)
     }
 }
+```
+
+## Swift 6 Common Pitfalls
+
+### ❌ Wrong Variable Names
+```swift
+// Wrong - inconsistent naming
+var context: ModelContext!  // Should be modelContext
+var mockHealth: MockHealthKitManager!  // Should be mockHealthKitManager
+```
+
+### ❌ Wrong Protocol References  
+```swift
+// Wrong - using old/wrong protocol names
+let healthKit = try container.resolve(HealthKitManagerProtocol.self)  // ❌
+
+// Correct
+let healthKit = try container.resolve(HealthKitManaging.self)  // ✅
+```
+
+### ❌ Force Unwrapping Without Assertion
+```swift
+// Wrong - will crash without helpful message
+let mock = container.resolve(SomeProtocol.self) as! MockService
+
+// Correct - fails with clear message
+let mock = try container.resolve(SomeProtocol.self) as? MockService
+XCTAssertNotNil(mock, "MockService should be registered in DITestHelper")
 ```
 
 ## Anti-Patterns to Avoid

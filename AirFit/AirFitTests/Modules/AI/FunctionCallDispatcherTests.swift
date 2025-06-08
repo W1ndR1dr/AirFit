@@ -11,7 +11,7 @@ final class FunctionCallDispatcherTests: XCTestCase {
     var modelContainer: ModelContainer!
 
     override func setUp() async throws {
-        try await super.setUp()
+        try super.setUp()
         
         // Create in-memory model container for testing
         modelContainer = try ModelContainer.createTestContainer()
@@ -45,7 +45,7 @@ final class FunctionCallDispatcherTests: XCTestCase {
         testUser = nil
         testContext = nil
         modelContainer = nil
-        try await super.tearDown()
+        try super.tearDown()
     }
 
     // MARK: - Workout Function Tests

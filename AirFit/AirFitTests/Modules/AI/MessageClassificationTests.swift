@@ -13,7 +13,7 @@ final class MessageClassificationTests: XCTestCase {
     // MARK: - Setup & Teardown
     
     override func setUp() async throws {
-        try await super.setUp()
+        try super.setUp()
         
         // Create in-memory model container for testing
         let configuration = ModelConfiguration(isStoredInMemoryOnly: true)
@@ -33,7 +33,7 @@ final class MessageClassificationTests: XCTestCase {
         modelContext = nil
         coachEngine = nil
         testUser = nil
-        try await super.tearDown()
+        try super.tearDown()
     }
     
     // MARK: - Command Classification Tests

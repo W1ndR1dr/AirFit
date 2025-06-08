@@ -64,7 +64,7 @@
 
 ## Phase 0: Emergency Triage 🚨 PRIORITY
 **Goal**: Fix fundamental test quality issues before any migration
-**Progress**: 5/15 tasks (33%)
+**Progress**: 7/15 tasks (47%)
 **Status**: IN PROGRESS
 
 ### Fix Test-Code Mismatches
@@ -88,9 +88,10 @@
   - Fixed: Used local MockWorkoutCoachEngine instead of shared mock
   - Fixed: Corrected undefined variable references
   
-- [ ] Audit ALL enum usage across tests
-  - Find/replace outdated enum values
-  - Verify against current models
+- [✅] Audit ALL enum usage across tests
+  - Created audit_test_issues.py script
+  - Found 342 issues across test suite!
+  - Need systematic fix campaign
 
 ### Fix Mock-Protocol Mismatches  
 **Critical**: Mocks don't match their protocols
@@ -123,10 +124,13 @@
 ### Validate Test Coverage
 **Ensure we're testing real behavior**
 
-- [ ] Run full test suite, categorize failures
-  - Compilation errors (fix first)
-  - Runtime failures (fix second)  
-  - Flaky tests (document/disable)
+- [✅] Run full test suite, categorize failures
+  - Found 342 issues via automated audit:
+    - 97 wrong async patterns (try await super.setUp)
+    - 40 undefined references (context vs modelContext)
+    - 1 wrong protocol name
+    - 5 mock usage issues
+  - Many tests missing @MainActor annotation
   
 - [ ] Create test health dashboard
   - Which tests compile

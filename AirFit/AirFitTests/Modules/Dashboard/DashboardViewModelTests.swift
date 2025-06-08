@@ -3,7 +3,6 @@ import SwiftData
 @testable import AirFit
 
 @MainActor
-
 final class DashboardViewModelTests: XCTestCase {
     var diContainer: DIContainer!
     var factory: DIViewModelFactory!
@@ -11,7 +10,7 @@ final class DashboardViewModelTests: XCTestCase {
     var modelContext: ModelContext!
 
     override func setUp() async throws {
-        try await super.setUp()
+        try super.setUp()
         diContainer = try await DITestHelper.createTestContainer()
         factory = DIViewModelFactory(container: diContainer)
         modelContainer = try await diContainer.resolve(ModelContainer.self)
@@ -23,7 +22,7 @@ final class DashboardViewModelTests: XCTestCase {
         factory = nil
         modelContainer = nil
         modelContext = nil
-        try await super.tearDown()
+        try super.tearDown()
     }
 
     private func createTestUser() -> User {
@@ -60,8 +59,6 @@ final class DashboardViewModelTests: XCTestCase {
         #endif
     }
 
-    @MainActor
-
     func test_initialState_defaults() async throws {
         let user = createTestUser()
         let sut = try await createSUT(with: user)
@@ -72,8 +69,6 @@ final class DashboardViewModelTests: XCTestCase {
         XCTAssertNil(sut.currentEnergyLevel)
         XCTAssertTrue(sut.suggestedActions.isEmpty)
     }
-
-    @MainActor
 
     func test_loadDashboardData_loadsDashboardData() async throws {
         let user = createTestUser()
@@ -124,8 +119,6 @@ final class DashboardViewModelTests: XCTestCase {
         // This is more reliable than mock verification in async contexts
     }
 
-    @MainActor
-
     func test_onAppear_triggersDataLoad() async throws {
         let user = createTestUser()
         let sut = try await createSUT(with: user)
@@ -161,8 +154,6 @@ final class DashboardViewModelTests: XCTestCase {
         XCTAssertEqual(sut.morningGreeting, "Hi Tester")
         XCTAssertEqual(sut.nutritionSummary.calories, 500)
     }
-
-    @MainActor
 
     func test_aiFailure_usesFallbackGreeting() async throws {
         let user = createTestUser()
@@ -208,8 +199,6 @@ final class DashboardViewModelTests: XCTestCase {
         XCTAssertEqual(sut.morningGreeting, expected)
     }
 
-    @MainActor
-
     func test_logEnergyLevel_createsNewLog() async throws {
         let user = createTestUser()
         let sut = try await createSUT(with: user)
@@ -224,8 +213,6 @@ final class DashboardViewModelTests: XCTestCase {
         XCTAssertEqual(sut.currentEnergyLevel, 4)
         XCTAssertFalse(sut.isLoggingEnergy)
     }
-
-    @MainActor
 
     func test_logEnergyLevel_updatesExistingLog() async throws {
         let user = createTestUser()
@@ -252,8 +239,6 @@ final class DashboardViewModelTests: XCTestCase {
         XCTAssertEqual(sut.currentEnergyLevel, 5)
     }
 
-    @MainActor
-
     func test_loadNutritionData_withProfile_fetchesTargets() async throws {
         let user = createTestUser()
         let sut = try await createSUT(with: user)
@@ -262,7 +247,7 @@ final class DashboardViewModelTests: XCTestCase {
         let blob = UserProfileJsonBlob(
             lifeContext: LifeContext(),
             goal: Goal(),
-            blend: Blend(),
+            personaMode: .supportiveCoach,
             engagementPreferences: EngagementPreferences(),
             sleepWindow: SleepWindow(),
             motivationalStyle: MotivationalStyle(),
@@ -289,7 +274,7 @@ final class DashboardViewModelTests: XCTestCase {
 
         }
 
-        let mockNutritionService = try await diContainer.resolve(DashboardNutritionService.self) as! MockDashboardNutritionService
+        let mockNutritionService = try await diContainer.resolve(DashboardNutritionServiceProtocol.self) as! MockDashboardNutritionService
         let targets = NutritionTargets(
             calories: 2_500,
             protein: NutritionTargets.default.protein,
@@ -314,8 +299,6 @@ final class DashboardViewModelTests: XCTestCase {
         // The fact that custom targets are set proves getTargets was called
         // This is more reliable than mock verification in async contexts
     }
-
-    @MainActor
 
     func test_loadHealthInsights_errorDoesNotCrash() async throws {
         let user = createTestUser()
@@ -342,7 +325,7 @@ final class DashboardViewModelTests: XCTestCase {
             }
         }
         let mockAICoachService = try await diContainer.resolve(AICoachServiceProtocol.self) as! MockAICoachService
-        let mockNutritionService = try await diContainer.resolve(DashboardNutritionService.self) as! MockDashboardNutritionService
+        let mockNutritionService = try await diContainer.resolve(DashboardNutritionServiceProtocol.self) as! MockDashboardNutritionService
         
         let sut = DashboardViewModel(
             user: user,
