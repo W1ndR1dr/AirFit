@@ -195,6 +195,17 @@ Remember: You are providing critical intelligence for fixing a production app wi
 
 ## 📁 PROJECT STRUCTURE REFERENCE
 
+### FileTree Documentation Available
+**IMPORTANT**: A complete file structure snapshot is available at:
+`Docs/FileTree 6-8-25-10am.md`
+
+This document contains the entire project file tree with all directories and files listed. Use this as your primary reference for:
+- Finding specific files quickly
+- Understanding the complete project structure
+- Verifying file locations
+- Ensuring no files are missed in your analysis
+
+### High-Level Structure
 ```
 AirFit/
 ├── Application/          # App entry point and main views
