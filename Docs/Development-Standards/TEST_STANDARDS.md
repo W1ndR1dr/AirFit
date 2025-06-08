@@ -1,5 +1,8 @@
 # AirFit Test Standards
 
+**Last Updated**: 2025-01-08  
+**Status**: Active
+
 **Purpose**: Define the patterns, conventions, and standards that ALL tests must follow.  
 **Scope**: Unit tests, integration tests, and UI tests for the AirFit iOS app.
 
@@ -278,9 +281,14 @@ override func tearDown() async throws {
     try super.tearDown()  // NO await
 }
 
-// ❌ WRONG - Causes Swift 6 concurrency warnings
+// ❌ WRONG - This pattern is outdated
 override func setUp() async throws {
-    try await super.setUp()  // ❌ Don't await non-async methods
+    try super.setUp()  // ❌ Missing await in Swift 6!
+}
+
+// ✅ CORRECT - Swift 6 requires await for async parent methods
+override func setUp() async throws {
+    try await super.setUp()  // ✅ Must await async parent methods
 }
 ```
 
