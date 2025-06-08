@@ -25,7 +25,7 @@ final class HealthKitServiceTests: XCTestCase {
         // Create service
         sut = HealthKitService(
             healthKitManager: mockHealthKitManager,
-            contextAssembler: mockContextAssembler
+            mockContextAssembler: mockContextAssembler
         )
     }
     

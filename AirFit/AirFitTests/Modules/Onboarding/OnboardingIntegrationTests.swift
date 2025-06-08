@@ -6,25 +6,25 @@ import SwiftData
 @MainActor
 final class OnboardingAppStateIntegrationTests: XCTestCase {
     var container: ModelContainer!
-    var context: ModelContext!
+    var modelContext: ModelContext!
     var appState: AppState!
     var onboardingService: OnboardingService!
 
     override func setUp() async throws {
-        try await super.setUp()
+        try super.setUp()
         
         container = try ModelContainer.createTestContainer()
-        context = container.mainContext
+        modelContext = container.mainContext
         appState = AppState(modelContext: context)
         onboardingService = OnboardingService(modelContext: context)
     }
 
     override func tearDown() async throws {
         container = nil
-        context = nil
+        modelContext = nil
         appState = nil
         onboardingService = nil
-        try await super.tearDown()
+        try super.tearDown()
     }
 
     func test_appState_withNoUser_shouldShowWelcome() async throws {
@@ -58,7 +58,7 @@ final class OnboardingAppStateIntegrationTests: XCTestCase {
         let profileBlob = UserProfileJsonBlob(
             lifeContext: LifeContext(),
             goal: Goal(family: .healthWellbeing, rawText: "Lose 10 pounds"),
-            blend: Blend(),
+            personaMode: .supportiveCoach,
             engagementPreferences: EngagementPreferences(),
             sleepWindow: SleepWindow(),
             motivationalStyle: MotivationalStyle(),
@@ -91,25 +91,25 @@ final class OnboardingAppStateIntegrationTests: XCTestCase {
 @MainActor
 final class OnboardingServiceIntegrationTests: XCTestCase {
     var container: ModelContainer!
-    var context: ModelContext!
+    var modelContext: ModelContext!
     var appState: AppState!
     var onboardingService: OnboardingService!
 
     override func setUp() async throws {
-        try await super.setUp()
+        try super.setUp()
         
         container = try ModelContainer.createTestContainer()
-        context = container.mainContext
+        modelContext = container.mainContext
         appState = AppState(modelContext: context)
         onboardingService = OnboardingService(modelContext: context)
     }
 
     override func tearDown() async throws {
         container = nil
-        context = nil
+        modelContext = nil
         appState = nil
         onboardingService = nil
-        try await super.tearDown()
+        try super.tearDown()
     }
 
     func test_onboardingService_saveProfile_shouldValidateRequiredFields() async throws {
@@ -158,7 +158,7 @@ final class OnboardingServiceIntegrationTests: XCTestCase {
         let profileBlob = UserProfileJsonBlob(
             lifeContext: LifeContext(),
             goal: Goal(family: .healthWellbeing, rawText: "Test goal"),
-            blend: Blend(),
+            personaMode: .supportiveCoach,
             engagementPreferences: EngagementPreferences(),
             sleepWindow: SleepWindow(),
             motivationalStyle: MotivationalStyle(),
@@ -217,12 +217,7 @@ final class OnboardingJSONStructureTests: XCTestCase {
                 family: .healthWellbeing,
                 rawText: "I want to lose 15 pounds for my wedding"
             ),
-            blend: Blend(
-                authoritativeDirect: 0.25,
-                encouragingEmpathetic: 0.35,
-                analyticalInsightful: 0.30,
-                playfullyProvocative: 0.10
-            ),
+            personaMode: .analyticalAdvisor,
             engagementPreferences: EngagementPreferences(
                 trackingStyle: .dataDrivenPartnership,
                 informationDepth: .detailed,
@@ -252,7 +247,7 @@ final class OnboardingJSONStructureTests: XCTestCase {
     private func verifyRequiredFields(in jsonObject: [String: Any]) {
         XCTAssertNotNil(jsonObject["life_context"])
         XCTAssertNotNil(jsonObject["goal"])
-        XCTAssertNotNil(jsonObject["blend"])
+        XCTAssertNotNil(jsonObject["persona_mode"])
         XCTAssertNotNil(jsonObject["engagement_preferences"])
         XCTAssertNotNil(jsonObject["sleep_window"])
         XCTAssertNotNil(jsonObject["motivational_style"])
@@ -280,25 +275,25 @@ final class OnboardingJSONStructureTests: XCTestCase {
 @MainActor
 final class OnboardingFlowIntegrationTests: XCTestCase {
     var container: ModelContainer!
-    var context: ModelContext!
+    var modelContext: ModelContext!
     var appState: AppState!
     var onboardingService: OnboardingService!
 
     override func setUp() async throws {
-        try await super.setUp()
+        try super.setUp()
         
         container = try ModelContainer.createTestContainer()
-        context = container.mainContext
+        modelContext = container.mainContext
         appState = AppState(modelContext: context)
         onboardingService = OnboardingService(modelContext: context)
     }
 
     override func tearDown() async throws {
         container = nil
-        context = nil
+        modelContext = nil
         appState = nil
         onboardingService = nil
-        try await super.tearDown()
+        try super.tearDown()
     }
 
     func test_completeOnboardingFlow_shouldTransitionToDashboard() async throws {

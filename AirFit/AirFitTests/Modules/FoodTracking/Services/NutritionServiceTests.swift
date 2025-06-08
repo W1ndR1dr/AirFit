@@ -12,7 +12,7 @@ final class NutritionServiceTests: XCTestCase {
     
     // MARK: - Setup
     override func setUp() async throws {
-        try await super.setUp()
+        try super.setUp()
         
         // Create test container
         container = try await DITestHelper.createTestContainer()
@@ -35,7 +35,7 @@ final class NutritionServiceTests: XCTestCase {
         modelContext = nil
         testUser = nil
         container = nil
-        try await super.tearDown()
+        try super.tearDown()
     }
     
     // MARK: - Save Food Entry Tests

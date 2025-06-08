@@ -2,6 +2,7 @@ import XCTest
 import SwiftData
 @testable import AirFit
 
+@MainActor
 final class PersonaGenerationTests: XCTestCase {
     
     var personaService: PersonaService!
@@ -11,7 +12,7 @@ final class PersonaGenerationTests: XCTestCase {
     var testUser: User!
     
     override func setUp() async throws {
-        try await super.setUp()
+        try super.setUp()
         
         // Setup in-memory database
         let schema = Schema([
@@ -63,7 +64,7 @@ final class PersonaGenerationTests: XCTestCase {
         personaSynthesizer = nil
         mockLLMOrchestrator = nil
         modelContext = nil
-        try await super.tearDown()
+        try super.tearDown()
     }
     
     // MARK: - Basic Persona Generation

@@ -2,6 +2,7 @@ import XCTest
 import SwiftData
 @testable import AirFit
 
+@MainActor
 final class AINutritionParsingTests: XCTestCase {
     private var modelContainer: ModelContainer!
     private var modelContext: ModelContext!
@@ -9,7 +10,7 @@ final class AINutritionParsingTests: XCTestCase {
     private var testUser: User!
 
     override func setUp() async throws {
-        try await super.setUp()
+        try super.setUp()
         
         // Create in-memory model container
         let schema = Schema([User.self, FoodEntry.self, FoodItem.self])
@@ -27,7 +28,7 @@ final class AINutritionParsingTests: XCTestCase {
         let profileData = UserProfileJsonBlob(
             lifeContext: LifeContext(),
             goal: Goal(family: .healthWellbeing, rawText: "Maintain weight"),
-            blend: Blend(),
+            personaMode: .supportiveCoach,
             engagementPreferences: EngagementPreferences(),
             sleepWindow: SleepWindow(),
             motivationalStyle: MotivationalStyle()
@@ -65,7 +66,7 @@ final class AINutritionParsingTests: XCTestCase {
         modelContext = nil
         coachEngine = nil
         testUser = nil
-        try await super.tearDown()
+        try super.tearDown()
     }
 
     // MARK: - Basic Parsing Tests

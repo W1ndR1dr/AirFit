@@ -8,7 +8,7 @@ final class VoiceInputManagerTests: XCTestCase {
     var mockModelManager: MockWhisperModelManager!
     
     override func setUp() async throws {
-        try await super.setUp()
+        try super.setUp()
         
         // Create mock model manager
         mockModelManager = MockWhisperModelManager()
@@ -21,7 +21,7 @@ final class VoiceInputManagerTests: XCTestCase {
         sut = nil
         mockModelManager?.reset()
         mockModelManager = nil
-        try await super.tearDown()
+        try super.tearDown()
     }
     
     // MARK: - Initialization Tests

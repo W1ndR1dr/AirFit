@@ -9,7 +9,7 @@ final class FoodTrackingCoordinatorTests: XCTestCase {
     
     // MARK: - Setup
     override func setUp() async throws {
-        try await super.setUp()
+        try super.setUp()
         sut = FoodTrackingCoordinator()
     }
     

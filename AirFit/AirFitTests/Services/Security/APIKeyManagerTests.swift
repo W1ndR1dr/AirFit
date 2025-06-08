@@ -9,7 +9,7 @@ final class APIKeyManagerTests: XCTestCase {
     
     // MARK: - Setup
     override func setUp() async throws {
-        try await super.setUp()
+        try super.setUp()
         
         // Create mock keychain
         mockKeychain = MockKeychainWrapper()

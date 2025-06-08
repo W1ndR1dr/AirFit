@@ -9,7 +9,7 @@ final class OnboardingViewModelTests: XCTestCase {
     private var sut: OnboardingViewModel!
     private var mockAIService: MockAIService!
     private var mockOnboardingService: MockOnboardingService!
-    private var mockHealthProvider: MockHealthKitPrefillProvider!
+    private var mockHealthKitManager: MockHealthKitPrefillProvider!
     private var mockAPIKeyManager: MockAPIKeyManager!
     private var mockUserService: MockUserService!
     private var mockWhisperService: MockWhisperServiceWrapper!
@@ -18,7 +18,7 @@ final class OnboardingViewModelTests: XCTestCase {
     
     // MARK: - Setup
     override func setUp() async throws {
-        try await super.setUp()
+        try super.setUp()
         
         // Create test container
         container = try await DITestHelper.createTestContainer()
@@ -40,7 +40,7 @@ final class OnboardingViewModelTests: XCTestCase {
         mockWhisperService = try await container.resolve(WhisperServiceWrapperProtocol.self) as? MockWhisperServiceWrapper
         
         // Create mock health provider manually (not in DI container)
-        mockHealthProvider = MockHealthKitPrefillProvider()
+        mockHealthKitManager = MockHealthKitPrefillProvider()
         
         // Create view model with conversational mode (current implementation)
         sut = OnboardingViewModel(
@@ -50,7 +50,7 @@ final class OnboardingViewModelTests: XCTestCase {
             apiKeyManager: mockAPIKeyManager,
             userService: mockUserService,
             speechService: mockWhisperService,
-            healthPrefillProvider: mockHealthProvider,
+            healthPrefillProvider: mockHealthKitManager,
             mode: .conversational  // Test current implementation
         )
         
@@ -64,18 +64,18 @@ final class OnboardingViewModelTests: XCTestCase {
         await mockAPIKeyManager?.reset()
         await mockUserService?.reset()
         await mockWhisperService?.reset()
-        mockHealthProvider?.reset()
+        mockHealthKitManager?.reset()
         sut = nil
         mockAIService = nil
         mockOnboardingService = nil
-        mockHealthProvider = nil
+        mockHealthKitManager = nil
         mockAPIKeyManager = nil
         mockUserService = nil
         mockWhisperService = nil
         modelContext = nil
         testUser = nil
         container = nil
-        try await super.tearDown()
+        try super.tearDown()
     }
 
     // MARK: - Navigation Tests
@@ -155,7 +155,7 @@ final class OnboardingViewModelTests: XCTestCase {
         // Arrange
         let bed = Calendar.current.date(bySettingHour: 21, minute: 30, second: 0, of: Date())!
         let wake = Calendar.current.date(bySettingHour: 6, minute: 45, second: 0, of: Date())!
-        mockHealthProvider.result = .success((bed: bed, wake: wake))
+        mockHealthKitManager.result = .success((bed: bed, wake: wake))
         
         // Create new view model to trigger prefill
         sut = OnboardingViewModel(
@@ -165,7 +165,7 @@ final class OnboardingViewModelTests: XCTestCase {
             apiKeyManager: mockAPIKeyManager,
             userService: mockUserService,
             speechService: mockWhisperService,
-            healthPrefillProvider: mockHealthProvider,
+            healthPrefillProvider: mockHealthKitManager,
             mode: .conversational
         )
         try? await Task.sleep(nanoseconds: 100_000_000)
@@ -179,7 +179,7 @@ final class OnboardingViewModelTests: XCTestCase {
     
     func test_prefillFromHealthKit_whenFails_usesDefaultTimes() async {
         // Arrange
-        mockHealthProvider.result = .failure(AppError.unknown(message: "Failed to fetch"))
+        mockHealthKitManager.result = .failure(AppError.unknown(message: "Failed to fetch"))
         
         // Act - create new view model to trigger prefill
         sut = OnboardingViewModel(
@@ -189,7 +189,7 @@ final class OnboardingViewModelTests: XCTestCase {
             apiKeyManager: mockAPIKeyManager,
             userService: mockUserService,
             speechService: mockWhisperService,
-            healthPrefillProvider: mockHealthProvider,
+            healthPrefillProvider: mockHealthKitManager,
             mode: .conversational
         )
         try? await Task.sleep(nanoseconds: 100_000_000)
@@ -317,7 +317,7 @@ final class OnboardingViewModelTests: XCTestCase {
             apiKeyManager: mockAPIKeyManager,
             userService: mockUserService,
             speechService: mockWhisperService,
-            healthPrefillProvider: mockHealthProvider,
+            healthPrefillProvider: mockHealthKitManager,
             mode: .legacy
         )
         

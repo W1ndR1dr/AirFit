@@ -11,7 +11,7 @@ final class OnboardingErrorRecoveryTests: XCTestCase {
     var analytics: ConversationAnalytics!
 
     override func setUp() async throws {
-        try await super.setUp()
+        try super.setUp()
 
         do {
             let container = try ModelContainer.createTestContainer()

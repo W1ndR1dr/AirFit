@@ -49,7 +49,7 @@ final class AICoachServiceTests: XCTestCase {
     
     func test_generateMorningGreeting_withMinimalContext_returnsGreeting() async throws {
         // Arrange
-        let context = GreetingContext(
+        let modelContext = GreetingContext(
             userName: testUser.name,
             dayOfWeek: "Monday"
         )
@@ -65,7 +65,7 @@ final class AICoachServiceTests: XCTestCase {
     
     func test_generateMorningGreeting_withFullContext_buildsCompletePrompt() async throws {
         // Arrange
-        let context = GreetingContext(
+        let modelContext = GreetingContext(
             userName: "Test User",
             sleepHours: 7.5,
             sleepQuality: "Good",
@@ -94,7 +94,7 @@ final class AICoachServiceTests: XCTestCase {
     
     func test_generateMorningGreeting_withSleepContext_includesSleepInfo() async throws {
         // Arrange
-        let context = GreetingContext(
+        let modelContext = GreetingContext(
             userName: testUser.name,
             sleepHours: 5.2,
             sleepQuality: "Poor",
@@ -112,7 +112,7 @@ final class AICoachServiceTests: XCTestCase {
     
     func test_generateMorningGreeting_withWeatherContext_includesWeather() async throws {
         // Arrange
-        let context = GreetingContext(
+        let modelContext = GreetingContext(
             userName: testUser.name,
             weather: "Rainy, 15°C",
             temperature: 15.0,
@@ -130,7 +130,7 @@ final class AICoachServiceTests: XCTestCase {
     
     func test_generateMorningGreeting_withScheduleContext_includesSchedule() async throws {
         // Arrange
-        let context = GreetingContext(
+        let modelContext = GreetingContext(
             userName: testUser.name,
             todaysSchedule: "Morning run, then leg day workout",
             dayOfWeek: "Friday"
@@ -165,7 +165,7 @@ final class AICoachServiceTests: XCTestCase {
         let personaData = try JSONEncoder().encode(persona)
         testUser.coachPersonaData = personaData
         
-        let context = GreetingContext(
+        let modelContext = GreetingContext(
             userName: testUser.name,
             dayOfWeek: "Saturday"
         )
@@ -182,7 +182,7 @@ final class AICoachServiceTests: XCTestCase {
     func test_generateMorningGreeting_withNilUserName_stillGeneratesGreeting() async throws {
         // Arrange
         testUser.name = nil
-        let context = GreetingContext(
+        let modelContext = GreetingContext(
             userName: "",
             dayOfWeek: "Sunday"
         )
@@ -203,7 +203,7 @@ final class AICoachServiceTests: XCTestCase {
         mockCoachEngine.shouldThrowError = true
         mockCoachEngine.errorToThrow = CoachEngineError.aiServiceUnavailable
         
-        let context = GreetingContext(
+        let modelContext = GreetingContext(
             userName: testUser.name,
             dayOfWeek: "Monday"
         )
@@ -220,7 +220,7 @@ final class AICoachServiceTests: XCTestCase {
     func test_generateMorningGreeting_withInvalidPersonaData_handlesGracefully() async throws {
         // Arrange
         testUser.coachPersonaData = Data("invalid json".utf8)
-        let context = GreetingContext(
+        let modelContext = GreetingContext(
             userName: testUser.name,
             dayOfWeek: "Monday"
         )
@@ -239,7 +239,7 @@ final class AICoachServiceTests: XCTestCase {
     func test_generateMorningGreeting_withVeryLongContext_truncatesGracefully() async throws {
         // Arrange
         let veryLongSchedule = String(repeating: "Workout, ", count: 100)
-        let context = GreetingContext(
+        let modelContext = GreetingContext(
             userName: testUser.name,
             todaysSchedule: veryLongSchedule,
             dayOfWeek: "Monday",
@@ -258,7 +258,7 @@ final class AICoachServiceTests: XCTestCase {
     func test_generateMorningGreeting_withSpecialCharactersInName_handlesCorrectly() async throws {
         // Arrange
         testUser.name = "Test@User#123"
-        let context = GreetingContext(
+        let modelContext = GreetingContext(
             userName: testUser.name,
             dayOfWeek: "Monday"
         )
@@ -274,7 +274,7 @@ final class AICoachServiceTests: XCTestCase {
     
     func test_generateMorningGreeting_withEmptyContext_stillGeneratesValidPrompt() async throws {
         // Arrange
-        let context = GreetingContext()  // All defaults
+        let modelContext = GreetingContext()  // All defaults
         
         // Act
         let greeting = try await sut.generateMorningGreeting(for: testUser, context: context)
@@ -293,7 +293,7 @@ final class AICoachServiceTests: XCTestCase {
     
     func test_generateMorningGreeting_performance() async throws {
         // Arrange
-        let context = GreetingContext(
+        let modelContext = GreetingContext(
             userName: testUser.name,
             sleepHours: 8.0,
             weather: "Sunny",
@@ -349,7 +349,7 @@ final class AICoachServiceTests: XCTestCase {
     
     func test_generateMorningGreeting_withRealWorldScenario_monday() async throws {
         // Arrange - Monday morning, poor sleep, rainy day
-        let context = GreetingContext(
+        let modelContext = GreetingContext(
             userName: "Alex",
             sleepHours: 5.5,
             sleepQuality: "Poor",
@@ -376,7 +376,7 @@ final class AICoachServiceTests: XCTestCase {
     
     func test_generateMorningGreeting_withRealWorldScenario_friday() async throws {
         // Arrange - Friday morning, great sleep, nice weather, workout day
-        let context = GreetingContext(
+        let modelContext = GreetingContext(
             userName: "Jordan",
             sleepHours: 8.2,
             sleepQuality: "Excellent",

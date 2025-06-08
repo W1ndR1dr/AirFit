@@ -33,7 +33,7 @@ final class FunctionCallDispatcherTests: XCTestCase {
         )
 
         // Initialize dispatcher with AI-specific mock services
-        dispatcher = await FunctionCallDispatcher(
+        dispatcher = FunctionCallDispatcher(
             workoutService: MockAIWorkoutService(),
             analyticsService: MockAIAnalyticsService(),
             goalService: MockAIGoalService()

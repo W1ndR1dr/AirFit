@@ -7,15 +7,15 @@ import SwiftData
 
 final class OnboardingFlowViewTests: XCTestCase {
     var modelContainer: ModelContainer!
-    var context: ModelContext!
+    var modelContext: ModelContext!
     var mockAIService: MockAIService!
     var mockOnboardingService: MockOnboardingService!
 
     override func setUp() async throws {
-        try await super.setUp()
+        try super.setUp()
         
         modelContainer = try ModelContainer.createTestContainer()
-        context = modelContainer.mainContext
+        modelContext = modelContainer.mainContext
         mockAIService = MockAIService()
         mockOnboardingService = MockOnboardingService()
     }
@@ -23,9 +23,9 @@ final class OnboardingFlowViewTests: XCTestCase {
     override func tearDown() async throws {
         mockOnboardingService = nil
         mockAIService = nil
-        context = nil
+        modelContext = nil
         modelContainer = nil
-        try await super.tearDown()
+        try super.tearDown()
     }
 
     // MARK: - View Initialization Tests

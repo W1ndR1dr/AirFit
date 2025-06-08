@@ -9,7 +9,7 @@ final class LLMOrchestratorTests: XCTestCase {
     
     // MARK: - Setup
     override func setUp() async throws {
-        try await super.setUp()
+        try super.setUp()
         
         // Create mocks
         mockAPIKeyManager = MockAPIKeyManager()
@@ -24,7 +24,7 @@ final class LLMOrchestratorTests: XCTestCase {
     override func tearDown() async throws {
         sut = nil
         mockAPIKeyManager = nil
-        try await super.tearDown()
+        try super.tearDown()
     }
     
     // MARK: - Initialization Tests

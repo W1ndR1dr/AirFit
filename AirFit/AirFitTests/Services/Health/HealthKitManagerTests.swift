@@ -12,7 +12,7 @@ final class HealthKitManagerTests: XCTestCase {
     
     // MARK: - Setup
     override func setUp() async throws {
-        try await super.setUp()
+        try super.setUp()
         
         // Create test container
         container = try await DITestHelper.createTestContainer()
@@ -39,7 +39,7 @@ final class HealthKitManagerTests: XCTestCase {
         container = nil
         modelContext = nil
         testUser = nil
-        try await super.tearDown()
+        try super.tearDown()
     }
     
     // MARK: - Authorization Tests

@@ -12,7 +12,7 @@ final class EngagementEngineTests: XCTestCase {
     var testUser: User!
     
     override func setUp() async throws {
-        try await super.setUp()
+        try super.setUp()
         
         // Setup test context
         container = try ModelContainer.createTestContainer()
@@ -57,7 +57,7 @@ final class EngagementEngineTests: XCTestCase {
         modelContext = nil
         mockCoachEngine = nil
         testUser = nil
-        try await super.tearDown()
+        try super.tearDown()
     }
     
     func test_detectLapsedUsers_withInactiveUser_shouldReturnUser() async throws {

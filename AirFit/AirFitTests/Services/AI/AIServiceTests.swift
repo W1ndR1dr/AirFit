@@ -10,7 +10,7 @@ final class AIServiceTests: XCTestCase {
     
     // MARK: - Setup
     override func setUp() async throws {
-        try await super.setUp()
+        try super.setUp()
         
         // Create mocks
         mockAPIKeyManager = MockAPIKeyManager()

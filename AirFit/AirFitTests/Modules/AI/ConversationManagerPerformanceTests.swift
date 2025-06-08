@@ -12,7 +12,7 @@ final class ConversationManagerPerformanceTests: XCTestCase {
 
     // MARK: - Setup & Teardown
     override func setUp() async throws {
-        try await super.setUp()
+        try super.setUp()
 
         // Create in-memory model container for testing
         modelContainer = try ModelContainer.createTestContainer()
@@ -41,7 +41,7 @@ final class ConversationManagerPerformanceTests: XCTestCase {
         testConversationId = nil
         modelContext = nil
         modelContainer = nil
-        try await super.tearDown()
+        try super.tearDown()
     }
 
     // MARK: - Enhanced Performance Tests for Task 2.5

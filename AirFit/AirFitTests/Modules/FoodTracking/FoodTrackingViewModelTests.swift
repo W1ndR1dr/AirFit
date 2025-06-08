@@ -17,7 +17,7 @@ final class FoodTrackingViewModelTests: XCTestCase {
     
     // MARK: - Setup
     override func setUp() async throws {
-        try await super.setUp()
+        try super.setUp()
         
         // Create test container
         container = try await DITestHelper.createTestContainer()
@@ -77,7 +77,7 @@ final class FoodTrackingViewModelTests: XCTestCase {
         modelContext = nil
         modelContainer = nil
         container = nil
-        try await super.tearDown()
+        try super.tearDown()
     }
     
     // MARK: - Helper Methods

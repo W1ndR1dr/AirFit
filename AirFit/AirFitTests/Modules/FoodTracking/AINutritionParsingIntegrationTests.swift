@@ -2,6 +2,7 @@ import XCTest
 import SwiftData
 @testable import AirFit
 
+@MainActor
 final class AINutritionParsingIntegrationTests: XCTestCase {
     private var modelContainer: ModelContainer!
     private var modelContext: ModelContext!

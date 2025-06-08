@@ -2,6 +2,7 @@ import XCTest
 import SwiftData
 @testable import AirFit
 
+@MainActor
 final class ConversationManagerPersistenceTests: XCTestCase {
     // MARK: - Properties
     var sut: ConversationManager!
@@ -12,7 +13,7 @@ final class ConversationManagerPersistenceTests: XCTestCase {
 
     // MARK: - Setup & Teardown
     override func setUp() async throws {
-        try await super.setUp()
+        try super.setUp()
 
         // Create in-memory model container for testing
         modelContainer = try ModelContainer.createTestContainer()
@@ -41,7 +42,7 @@ final class ConversationManagerPersistenceTests: XCTestCase {
         testConversationId = nil
         modelContext = nil
         modelContainer = nil
-        try await super.tearDown()
+        try super.tearDown()
     }
 
     // MARK: - Message Persistence Tests

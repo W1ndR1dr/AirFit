@@ -14,7 +14,7 @@ final class ConversationViewModelTests: XCTestCase {
     
     // MARK: - Setup
     override func setUp() async throws {
-        try await super.setUp()
+        try super.setUp()
         
         // Create test container
         container = try await DITestHelper.createTestContainer()
@@ -42,7 +42,7 @@ final class ConversationViewModelTests: XCTestCase {
         mockAnalytics = nil
         testUserId = nil
         container = nil
-        try await super.tearDown()
+        try super.tearDown()
     }
     
     // MARK: - Start Tests

@@ -10,7 +10,7 @@ final class DIBootstrapperTests: XCTestCase {
     
     // MARK: - Setup
     override func setUp() async throws {
-        try await super.setUp()
+        try super.setUp()
         
         // Create test model container
         modelContainer = try ModelContainer.createTestContainer()
@@ -19,7 +19,7 @@ final class DIBootstrapperTests: XCTestCase {
     override func tearDown() async throws {
         container = nil
         modelContainer = nil
-        try await super.tearDown()
+        try super.tearDown()
     }
     
     // MARK: - App Container Tests

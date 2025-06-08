@@ -11,7 +11,7 @@ final class FoodVoiceAdapterTests: XCTestCase {
     
     // MARK: - Setup
     override func setUp() async throws {
-        try await super.setUp()
+        try super.setUp()
         
         // Create test container
         container = try await DITestHelper.createTestContainer()
@@ -28,7 +28,7 @@ final class FoodVoiceAdapterTests: XCTestCase {
         sut = nil
         mockVoiceInputManager = nil
         container = nil
-        try await super.tearDown()
+        try super.tearDown()
     }
     
     // MARK: - Post-Processing Tests

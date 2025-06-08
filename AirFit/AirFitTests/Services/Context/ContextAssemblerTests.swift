@@ -12,7 +12,7 @@ final class ContextAssemblerTests: XCTestCase {
 
     // MARK: - Setup
     override func setUp() async throws {
-        try await super.setUp()
+        try super.setUp()
         
         // Create test container
         container = try await DITestHelper.createTestContainer()
@@ -34,7 +34,7 @@ final class ContextAssemblerTests: XCTestCase {
         mockHealthKit = nil
         modelContext = nil
         container = nil
-        try await super.tearDown()
+        try super.tearDown()
     }
 
     func test_assembleSnapshot_withCompleteData_populatesSnapshot() async throws {
@@ -113,15 +113,15 @@ final class ContextAssemblerTests: XCTestCase {
         let log = DailyLog(date: Date())
         log.subjectiveEnergyLevel = 4
         log.stressLevel = 2
-        context.insert(log)
-        try context.save()
+        modelContext.insert(log)
+        try modelContext.save()
 
         // Add recent meal
         let meal = FoodEntry(mealType: .breakfast)
         let item = FoodItem(name: "Egg", calories: 70)
         meal.addItem(item)
-        context.insert(meal)
-        try context.save()
+        modelContext.insert(meal)
+        try modelContext.save()
     }
 
     func test_assembleSnapshot_whenHealthKitThrows_returnsDefaultMetrics() async {
@@ -150,9 +150,9 @@ final class ContextAssemblerTests: XCTestCase {
             guard let date = calendar.date(byAdding: .day, value: -day, to: today) else { continue }
             let log = DailyLog(date: date)
             log.steps = max(1_000, 1_000 + day * 100) // Realistic step counts
-            context.insert(log)
+            modelContext.insert(log)
         }
-        try context.save()
+        try modelContext.save()
 
         // Proper async performance testing
         let startTime = CFAbsoluteTimeGetCurrent()
@@ -241,8 +241,8 @@ final class ContextAssemblerTests: XCTestCase {
         // Add minimal SwiftData
         let log = DailyLog(date: Date())
         log.subjectiveEnergyLevel = 3
-        context.insert(log)
-        try? context.save()
+        modelContext.insert(log)
+        try? modelContext.save()
 
         // Act
         let snapshot = await sut.assembleSnapshot(modelContext: modelContext)
@@ -262,15 +262,15 @@ final class ContextAssemblerTests: XCTestCase {
         let calendar = Calendar.current
         let yesterdayLog = DailyLog(date: calendar.date(byAdding: .day, value: -1, to: Date())!)
         yesterdayLog.subjectiveEnergyLevel = 2
-        context.insert(yesterdayLog)
+        modelContext.insert(yesterdayLog)
 
         // Create stale meal data (24+ hours old)
         let staleMeal = FoodEntry(mealType: .dinner)
         staleMeal.loggedAt = calendar.date(byAdding: .day, value: -2, to: Date())!
         let item = FoodItem(name: "Stale Food", calories: 300)
         staleMeal.addItem(item)
-        context.insert(staleMeal)
-        try context.save()
+        modelContext.insert(staleMeal)
+        try modelContext.save()
 
         // Act
         let snapshot = await sut.assembleSnapshot(modelContext: modelContext)
@@ -295,7 +295,7 @@ final class ContextAssemblerTests: XCTestCase {
             log.steps = Int.random(in: 2_000...15_000)
             log.subjectiveEnergyLevel = Int.random(in: 1...5)
             log.stressLevel = Int.random(in: 1...5)
-            context.insert(log)
+            modelContext.insert(log)
 
             // Add some meals for recent days
             if day < 30 {
@@ -303,10 +303,10 @@ final class ContextAssemblerTests: XCTestCase {
                 meal.loggedAt = date
                 let item = FoodItem(name: "Lunch Item \(day)", calories: Double(Int.random(in: 200...600)))
                 meal.addItem(item)
-                context.insert(meal)
+                modelContext.insert(meal)
             }
         }
-        try context.save()
+        try modelContext.save()
 
         // Act - measure performance over multiple runs
         let iterations = 20
@@ -352,15 +352,15 @@ final class ContextAssemblerTests: XCTestCase {
         log.subjectiveEnergyLevel = 5
         log.stressLevel = 1
         log.steps = 7_500 // Different from HealthKit to test prioritization
-        context.insert(log)
+        modelContext.insert(log)
 
         let meal1 = FoodEntry(mealType: .breakfast)
         meal1.addItem(FoodItem(name: "Oatmeal", calories: 300))
         let meal2 = FoodEntry(mealType: .lunch)
         meal2.addItem(FoodItem(name: "Salad", calories: 400))
-        context.insert(meal1)
-        context.insert(meal2)
-        try context.save()
+        modelContext.insert(meal1)
+        modelContext.insert(meal2)
+        try modelContext.save()
 
         // Act
         let snapshot = await sut.assembleSnapshot(modelContext: modelContext)
@@ -439,15 +439,15 @@ final class ContextAssemblerTests: XCTestCase {
         let log = DailyLog(date: Date())
         log.subjectiveEnergyLevel = 999 // Invalid value
         log.stressLevel = -5 // Invalid value
-        context.insert(log)
+        modelContext.insert(log)
 
         // Create meal with nil values that might cause issues
         let meal = FoodEntry(mealType: .breakfast)
         let corruptedItem = FoodItem(name: "", calories: -100) // Invalid data
         meal.addItem(corruptedItem)
-        context.insert(meal)
+        modelContext.insert(meal)
 
-        try? context.save()
+        try? modelContext.save()
 
         // Act
         let snapshot = await sut.assembleSnapshot(modelContext: modelContext)

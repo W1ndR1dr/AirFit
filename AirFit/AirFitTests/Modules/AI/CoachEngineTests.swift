@@ -12,7 +12,7 @@ final class CoachEngineTests: XCTestCase {
 
     // MARK: - Setup & Teardown
     override func setUp() async throws {
-        try await super.setUp()
+        try super.setUp()
         
         // Create in-memory model container for testing
         let schema = Schema([
@@ -48,7 +48,7 @@ final class CoachEngineTests: XCTestCase {
         modelContext = nil
         testUser = nil
         mockAIService = nil
-        try await super.tearDown()
+        try super.tearDown()
     }
 
     // MARK: - Local Command Integration Tests
@@ -228,7 +228,7 @@ final class CoachEngineTests: XCTestCase {
             personaEngine: realPersonaEngine,
             conversationManager: realConversationManager,
             aiService: mockAIService,
-            contextAssembler: realContextAssembler,
+            mockContextAssembler: realContextAssembler,
             modelContext: modelContext
         )
     }

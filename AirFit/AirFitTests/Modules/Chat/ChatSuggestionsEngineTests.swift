@@ -11,31 +11,31 @@ final class ChatSuggestionsEngineTests: XCTestCase {
     private var engine: ChatSuggestionsEngine!
 
     // MARK: - Setup
-    override func setUp() async throws {
-        try await super.setUp()
+    override func setUp() {
+        super.setUp()
         
         // Create test container
-        container = try await DITestHelper.createTestContainer()
+        container = DITestHelper.createTestContainer()
         
         // Get model context from container
-        let modelContainer = try await container.resolve(ModelContainer.self)
+        let modelContainer = try! container.resolve(ModelContainer.self)
         modelContext = modelContainer.mainContext
         
         // Create test user
         user = User(email: "test@example.com", name: "Test User")
         modelContext.insert(user)
-        try modelContext.save()
+        try! modelContext.save()
         
         // Create engine
         engine = ChatSuggestionsEngine(user: user)
     }
     
-    override func tearDown() async throws {
+    override func tearDown() {
         engine = nil
         user = nil
         modelContext = nil
         container = nil
-        try await super.tearDown()
+        super.tearDown()
     }
 
     func test_generateSuggestions_withoutHistory_returnsDefaultPrompts() async {

@@ -2,6 +2,7 @@ import XCTest
 import SwiftData
 @testable import AirFit
 
+@MainActor
 final class DirectAIPerformanceTests: XCTestCase {
     
     private var coachEngine: CoachEngine!
@@ -9,7 +10,7 @@ final class DirectAIPerformanceTests: XCTestCase {
     private var testUser: User!
     
     override func setUp() async throws {
-        try await super.setUp()
+        try super.setUp()
         
         // Create test model context
         let config = ModelConfiguration(isStoredInMemoryOnly: true)
@@ -42,7 +43,7 @@ final class DirectAIPerformanceTests: XCTestCase {
         coachEngine = nil
         mockModelContext = nil
         testUser = nil
-        try await super.tearDown()
+        try super.tearDown()
     }
     
     // MARK: - Nutrition Parsing Performance Tests

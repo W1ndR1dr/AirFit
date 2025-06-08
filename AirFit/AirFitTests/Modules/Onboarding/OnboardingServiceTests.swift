@@ -12,7 +12,7 @@ final class OnboardingServiceTests: XCTestCase {
 
     // MARK: - Setup
     override func setUp() async throws {
-        try await super.setUp()
+        try super.setUp()
         
         // Create test container
         container = try await DITestHelper.createTestContainer()
@@ -35,7 +35,7 @@ final class OnboardingServiceTests: XCTestCase {
         testUser = nil
         modelContext = nil
         container = nil
-        try await super.tearDown()
+        try super.tearDown()
     }
 
     // MARK: - Profile Saving Tests
@@ -234,7 +234,7 @@ final class OnboardingServiceValidationTests: XCTestCase {
 
     // MARK: - Setup
     override func setUp() async throws {
-        try await super.setUp()
+        try super.setUp()
         
         // Create test container
         container = try await DITestHelper.createTestContainer()
@@ -257,7 +257,7 @@ final class OnboardingServiceValidationTests: XCTestCase {
         testUser = nil
         modelContext = nil
         container = nil
-        try await super.tearDown()
+        try super.tearDown()
     }
 
     func test_validateProfileStructure_givenValidProfile_shouldPass() async throws {

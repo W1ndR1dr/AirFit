@@ -30,7 +30,7 @@ final class MockOnboardingService: OnboardingServiceProtocol, @preconcurrency Mo
             let userDescriptor = FetchDescriptor<User>(
                 sortBy: [SortDescriptor(\.createdAt, order: .reverse)]
             )
-            let users = try context.fetch(userDescriptor)
+            let users = try modelContext.fetch(userDescriptor)
             
             let currentUser: User
             if let existingUser = users.first {
@@ -41,7 +41,7 @@ final class MockOnboardingService: OnboardingServiceProtocol, @preconcurrency Mo
                     email: "test@example.com",
                     name: "Test User"
                 )
-                context.insert(currentUser)
+                modelContext.insert(currentUser)
             }
             
             // Link the profile to the user
@@ -49,8 +49,8 @@ final class MockOnboardingService: OnboardingServiceProtocol, @preconcurrency Mo
             currentUser.onboardingProfile = profile
             
             // Save to SwiftData
-            context.insert(profile)
-            try context.save()
+            modelContext.insert(profile)
+            try modelContext.save()
         }
     }
     

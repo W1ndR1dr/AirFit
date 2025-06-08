@@ -15,7 +15,7 @@ final class OnboardingPerformanceTests: XCTestCase {
     var onboardingService: OnboardingService!
     
     override func setUp() async throws {
-        try await super.setUp()
+        try super.setUp()
         
         modelContainer = try ModelContainer.createTestContainer()
         modelContext = modelContainer.mainContext
@@ -43,7 +43,7 @@ final class OnboardingPerformanceTests: XCTestCase {
         mockAIService = nil
         modelContext = nil
         modelContainer = nil
-        try await super.tearDown()
+        try super.tearDown()
     }
     
     // MARK: - Screen Transition Performance

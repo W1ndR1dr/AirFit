@@ -11,7 +11,7 @@ final class UserServiceTests: XCTestCase {
     
     // MARK: - Setup
     override func setUp() async throws {
-        try await super.setUp()
+        try super.setUp()
         
         // Create in-memory model container
         let schema = Schema([User.self])

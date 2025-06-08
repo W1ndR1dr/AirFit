@@ -7,14 +7,14 @@ final class WorkoutCoordinatorTests: XCTestCase {
     private var coordinator: WorkoutCoordinator!
 
     // MARK: - Setup
-    override func setUp() async throws {
-        try await super.setUp()
+    override func setUp() throws {
+        try super.setUp()
         coordinator = WorkoutCoordinator()
     }
     
-    override func tearDown() async throws {
+    override func tearDown() throws {
         coordinator = nil
-        try await super.tearDown()
+        try super.tearDown()
     }
 
     func test_navigateToPushesDestination() {

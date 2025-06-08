@@ -13,7 +13,7 @@ final class OnboardingFlowTests: XCTestCase {
     var flowDefinition: [String: ConversationNode]!
 
     override func setUp() async throws {
-        try await super.setUp()
+        try super.setUp()
 
         // Create in-memory container
         let container = try ModelContainer.createTestContainer()
@@ -65,7 +65,7 @@ final class OnboardingFlowTests: XCTestCase {
         conversationManager = nil
         personaService = nil
         userService = nil
-        try await super.tearDown()
+        try super.tearDown()
     }
 
     // MARK: - Navigation Tests

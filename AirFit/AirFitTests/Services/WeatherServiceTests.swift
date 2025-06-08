@@ -8,13 +8,13 @@ final class WeatherServiceTests: XCTestCase {
     
     // MARK: - Setup
     override func setUp() async throws {
-        try await super.setUp()
+        try super.setUp()
         sut = WeatherService()
     }
     
     override func tearDown() async throws {
         sut = nil
-        try await super.tearDown()
+        try super.tearDown()
     }
     
     // MARK: - Configuration Tests
@@ -104,7 +104,7 @@ final class WeatherServiceTests: XCTestCase {
         
         // When
         do {
-            let context = try await sut.getLLMContext(latitude: latitude, longitude: longitude)
+            let modelContext = try await sut.getLLMContext(latitude: latitude, longitude: longitude)
             
             // Then
             XCTAssertNotNil(context)

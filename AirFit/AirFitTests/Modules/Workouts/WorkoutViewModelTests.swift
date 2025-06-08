@@ -14,50 +14,65 @@ final class WorkoutViewModelTests: XCTestCase {
     private var sut: WorkoutViewModel!
 
     // MARK: - Setup
-    override func setUp() async throws {
-        try await super.setUp()
+    override func setUp() throws {
+        try super.setUp()
         
-        // Create test container
-        container = try await DITestHelper.createTestContainer()
+        let expectation = XCTestExpectation(description: "Setup complete")
         
-        // Get model context from container
-        let modelContainer = try await container.resolve(ModelContainer.self)
-        modelContext = modelContainer.mainContext
+        Task { @MainActor in
+            // Create test container
+            container = try await DITestHelper.createTestContainer()
+            
+            // Get model context from container
+            let modelContainer = try await container.resolve(ModelContainer.self)
+            modelContext = modelContainer.mainContext
+            
+            // Create test user
+            user = User(name: "Tester")
+            modelContext.insert(user)
+            try modelContext.save()
+            
+            // Get mocks from container
+            // Create mock coach directly - not registered in DI
+            mockCoach = MockWorkoutCoachEngine()
+            mockHealthKitManager = try await container.resolve(HealthKitManaging.self) as? MockHealthKitManager
+            mockWorkoutService = try await container.resolve(WorkoutServiceProtocol.self) as? MockWorkoutService
+            
+            // Create SUT
+            sut = WorkoutViewModel(
+                modelContext: modelContext,
+                user: user,
+                coachEngine: mockCoach,
+                healthKitManager: mockHealthKitManager,
+                exerciseDatabase: ExerciseDatabase.shared,
+                workoutSyncService: WorkoutSyncService.shared
+            )
+            
+            expectation.fulfill()
+        }
         
-        // Create test user
-        user = User(name: "Tester")
-        modelContext.insert(user)
-        try modelContext.save()
-        
-        // Get mocks from container
-        // Create mock coach directly - not registered in DI
-        mockCoach = MockWorkoutCoachEngine()
-        mockHealthKitManager = try await container.resolve(HealthKitManaging.self) as? MockHealthKitManager
-        mockWorkoutService = try await container.resolve(WorkoutServiceProtocol.self) as? MockWorkoutService
-        
-        // Create SUT
-        sut = WorkoutViewModel(
-            modelContext: modelContext,
-            user: user,
-            coachEngine: mockCoach,
-            healthKitManager: mockHealthKitManager,
-            exerciseDatabase: ExerciseDatabase.shared,
-            workoutSyncService: WorkoutSyncService.shared
-        )
+        wait(for: [expectation], timeout: 5.0)
     }
 
-    override func tearDown() async throws {
-        mockCoach?.reset()
-        await mockHealthKitManager?.reset()
-        mockWorkoutService?.reset()
-        sut = nil
-        mockCoach = nil
-        mockHealthKitManager = nil
-        mockWorkoutService = nil
-        user = nil
-        modelContext = nil
-        container = nil
-        try await super.tearDown()
+    override func tearDown() throws {
+        let expectation = XCTestExpectation(description: "Teardown complete")
+        
+        Task { @MainActor in
+            mockCoach?.reset()
+            await mockHealthKitManager?.reset()
+            mockWorkoutService?.reset()
+            sut = nil
+            mockCoach = nil
+            mockHealthKitManager = nil
+            mockWorkoutService = nil
+            user = nil
+            modelContext = nil
+            container = nil
+            expectation.fulfill()
+        }
+        
+        wait(for: [expectation], timeout: 5.0)
+        try super.tearDown()
     }
 
     // MARK: - Workout Loading Tests

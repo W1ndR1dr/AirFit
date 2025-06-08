@@ -15,14 +15,14 @@ final class ChatViewModelTests: XCTestCase {
     private var testUser: User!
     
     // MARK: - Setup
-    override func setUp() async throws {
-        try await super.setUp()
+    override func setUp() {
+        super.setUp()
         
         // Create test container
-        container = try await DITestHelper.createTestContainer()
+        container = DITestHelper.createTestContainer()
         
         // Get model context from container
-        let modelContainer = try await container.resolve(ModelContainer.self)
+        let modelContainer = try! container.resolve(ModelContainer.self)
         modelContext = modelContainer.mainContext
         
         // Create test user
@@ -32,12 +32,12 @@ final class ChatViewModelTests: XCTestCase {
             lastActiveAt: Date()
         )
         modelContext.insert(testUser)
-        try modelContext.save()
+        try! modelContext.save()
         
         // Get mocks from container
-        mockAIService = try await container.resolve(AIServiceProtocol.self) as? MockAIService
-        mockCoachEngine = try await container.resolve(CoachEngine.self) as? MockCoachEngine
-        mockVoiceManager = try await container.resolve(VoiceInputProtocol.self) as? MockVoiceInputManager
+        mockAIService = try! container.resolve(AIServiceProtocol.self) as? MockAIService
+        mockCoachEngine = try! container.resolve(CoachEngine.self) as? MockCoachEngine
+        mockVoiceManager = try! container.resolve(VoiceInputProtocol.self) as? MockVoiceInputManager
         
         // Create coordinator manually (not in DI container yet)
         mockCoordinator = ChatCoordinator()
@@ -55,7 +55,7 @@ final class ChatViewModelTests: XCTestCase {
         setupVoiceManagerCallbacks()
     }
     
-    override func tearDown() async throws {
+    override func tearDown() {
         mockAIService?.reset()
         mockCoachEngine?.reset()
         mockVoiceManager?.reset()
@@ -67,7 +67,7 @@ final class ChatViewModelTests: XCTestCase {
         modelContext = nil
         testUser = nil
         container = nil
-        try await super.tearDown()
+        super.tearDown()
     }
     
     // MARK: - Helper Methods

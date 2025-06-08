@@ -6,7 +6,7 @@ final class KeychainWrapperTests: XCTestCase {
     private let testKey = "test_key"
 
     override func setUp() async throws {
-        try await super.setUp()
+        try super.setUp()
         sut = KeychainWrapper.shared
         // Clean up any existing test data
         try? sut.delete(key: testKey)
@@ -14,7 +14,7 @@ final class KeychainWrapperTests: XCTestCase {
 
     override func tearDown() async throws {
         try? sut.delete(key: testKey)
-        try await super.tearDown()
+        try super.tearDown()
     }
 
     func test_saveData_shouldSucceed() throws {

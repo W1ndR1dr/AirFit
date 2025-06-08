@@ -2,15 +2,16 @@ import XCTest
 import SwiftData
 @testable import AirFit
 
+@MainActor
 final class UserModelTests: XCTestCase {
     var container: ModelContainer!
-    var context: ModelContext!
+    var modelContext: ModelContext!
 
     override func setUp() {
         super.setUp()
         do {
             container = try ModelContainer.createTestContainer()
-            context = container.mainContext
+            modelContext = container.mainContext
         } catch {
             XCTFail("Failed to create test container: \(error)")
         }
@@ -18,15 +19,15 @@ final class UserModelTests: XCTestCase {
 
     override func tearDown() {
         container = nil
-        context = nil
+        modelContext = nil
         super.tearDown()
     }
 
     func test_createUser_withDefaultValues_shouldInitializeCorrectly() throws {
         // Arrange & Act
         let user = User()
-        context.insert(user)
-        try context.save()
+        modelContext.insert(user)
+        try modelContext.save()
 
         // Assert
         XCTAssertNotNil(user.id)
@@ -47,8 +48,8 @@ final class UserModelTests: XCTestCase {
         )
 
         // Act
-        context.insert(user)
-        try context.save()
+        modelContext.insert(user)
+        try modelContext.save()
 
         // Assert
         XCTAssertEqual(user.name, "Test User")
@@ -60,46 +61,46 @@ final class UserModelTests: XCTestCase {
     func test_userRelationships_whenDeleted_shouldCascadeDelete() throws {
         // Arrange
         let user = User(name: "Test User")
-        context.insert(user)
+        modelContext.insert(user)
 
         let foodEntry = FoodEntry(user: user)
-        context.insert(foodEntry)
+        modelContext.insert(foodEntry)
 
         let workout = Workout(name: "Test Workout", user: user)
-        context.insert(workout)
+        modelContext.insert(workout)
 
-        try context.save()
+        try modelContext.save()
 
         // Verify setup
-        XCTAssertEqual(try context.fetchCount(FetchDescriptor<User>()), 1)
-        XCTAssertEqual(try context.fetchCount(FetchDescriptor<FoodEntry>()), 1)
-        XCTAssertEqual(try context.fetchCount(FetchDescriptor<Workout>()), 1)
+        XCTAssertEqual(try modelContext.fetchCount(FetchDescriptor<User>()), 1)
+        XCTAssertEqual(try modelContext.fetchCount(FetchDescriptor<FoodEntry>()), 1)
+        XCTAssertEqual(try modelContext.fetchCount(FetchDescriptor<Workout>()), 1)
 
         // Act
-        context.delete(user)
-        try context.save()
+        modelContext.delete(user)
+        try modelContext.save()
 
         // Assert - cascade delete should remove related entities
-        XCTAssertEqual(try context.fetchCount(FetchDescriptor<User>()), 0)
-        XCTAssertEqual(try context.fetchCount(FetchDescriptor<FoodEntry>()), 0)
-        XCTAssertEqual(try context.fetchCount(FetchDescriptor<Workout>()), 0)
+        XCTAssertEqual(try modelContext.fetchCount(FetchDescriptor<User>()), 0)
+        XCTAssertEqual(try modelContext.fetchCount(FetchDescriptor<FoodEntry>()), 0)
+        XCTAssertEqual(try modelContext.fetchCount(FetchDescriptor<Workout>()), 0)
     }
 
     func test_getTodaysLog_withMultipleLogs_shouldReturnToday() throws {
         // Arrange
         let user = User(name: "Test User")
-        context.insert(user)
+        modelContext.insert(user)
 
         let todayLog = DailyLog(date: Date(), user: user)
-        context.insert(todayLog)
+        modelContext.insert(todayLog)
 
         let yesterdayLog = DailyLog(
             date: Calendar.current.date(byAdding: .day, value: -1, to: Date())!,
             user: user
         )
-        context.insert(yesterdayLog)
+        modelContext.insert(yesterdayLog)
 
-        try context.save()
+        try modelContext.save()
 
         // Act
         let result = user.getTodaysLog()
@@ -112,27 +113,27 @@ final class UserModelTests: XCTestCase {
     func test_getRecentMeals_shouldReturnSortedMeals() throws {
         // Arrange
         let user = User(name: "Test User")
-        context.insert(user)
+        modelContext.insert(user)
 
         // Create meals for different days
         let today = FoodEntry(loggedAt: Date(), mealType: .lunch, user: user)
-        context.insert(today)
+        modelContext.insert(today)
 
         let yesterday = FoodEntry(
             loggedAt: Calendar.current.date(byAdding: .day, value: -1, to: Date())!,
             mealType: .dinner,
             user: user
         )
-        context.insert(yesterday)
+        modelContext.insert(yesterday)
 
         let oldMeal = FoodEntry(
             loggedAt: Calendar.current.date(byAdding: .day, value: -10, to: Date())!,
             mealType: .breakfast,
             user: user
         )
-        context.insert(oldMeal)
+        modelContext.insert(oldMeal)
 
-        try context.save()
+        try modelContext.save()
 
         // Act
         let recentMeals = user.getRecentMeals(days: 7)
