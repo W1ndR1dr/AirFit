@@ -9,7 +9,7 @@ enum TranscriptionError: Error {
 }
 
 /// Interface for speech-to-text transcription services.
-protocol WhisperServiceWrapperProtocol {
+protocol WhisperServiceWrapperProtocol: Sendable {
     var isAvailable: CurrentValueSubject<Bool, Never> { get }
     var isTranscribing: CurrentValueSubject<Bool, Never> { get }
 

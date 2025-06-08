@@ -450,7 +450,6 @@ targets:
       - AirFit/AirFitTests/Mocks/MockAIGoalService.swift
       # NEW TEST FILES ADDED 2025-06-06
       - AirFit/AirFitTests/Mocks/MockPersonaService.swift
-      - AirFit/AirFitTests/Modules/Onboarding/PersonaServiceTests.swift
       - AirFit/AirFitTests/Services/AI/AIGoalServiceTests.swift
       - AirFit/AirFitTests/Services/AI/AIServiceTests.swift
       - AirFit/AirFitTests/Services/AI/LLMOrchestratorTests.swift

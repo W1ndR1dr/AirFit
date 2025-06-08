@@ -8,7 +8,7 @@ final class WorkoutViewModelTests: XCTestCase {
     private var container: DIContainer!
     private var modelContext: ModelContext!
     private var user: User!
-    private var mockCoach: MockCoachEngine!
+    private var mockCoach: MockWorkoutCoachEngine!
     private var mockHealthKitManager: MockHealthKitManager!
     private var mockWorkoutService: MockWorkoutService!
     private var sut: WorkoutViewModel!
@@ -30,8 +30,9 @@ final class WorkoutViewModelTests: XCTestCase {
         try modelContext.save()
         
         // Get mocks from container
-        mockCoach = try await container.resolve(CoachEngine.self) as? MockCoachEngine
-        mockHealthKitManager = try await container.resolve(HealthKitManagerProtocol.self) as? MockHealthKitManager
+        // Create mock coach directly - not registered in DI
+        mockCoach = MockWorkoutCoachEngine()
+        mockHealthKitManager = try await container.resolve(HealthKitManaging.self) as? MockHealthKitManager
         mockWorkoutService = try await container.resolve(WorkoutServiceProtocol.self) as? MockWorkoutService
         
         // Create SUT
@@ -47,7 +48,7 @@ final class WorkoutViewModelTests: XCTestCase {
 
     override func tearDown() async throws {
         mockCoach?.reset()
-        mockHealthKitManager?.reset()
+        await mockHealthKitManager?.reset()
         mockWorkoutService?.reset()
         sut = nil
         mockCoach = nil
@@ -125,7 +126,7 @@ final class WorkoutViewModelTests: XCTestCase {
             modelContext: invalidContext,
             user: user,
             coachEngine: mockCoach,
-            healthKitManager: mockHealth,
+            healthKitManager: mockHealthKitManager,
             exerciseDatabase: ExerciseDatabase.shared,
             workoutSyncService: WorkoutSyncService.shared
         )
@@ -284,7 +285,7 @@ final class WorkoutViewModelTests: XCTestCase {
             modelContext: failingContext,
             user: user,
             coachEngine: mockCoach,
-            healthKitManager: mockHealth,
+            healthKitManager: mockHealthKitManager,
             exerciseDatabase: ExerciseDatabase.shared,
             workoutSyncService: WorkoutSyncService.shared
         )
@@ -586,10 +587,10 @@ final class WorkoutViewModelTests: XCTestCase {
     func test_deinit_shouldRemoveNotificationObserver() throws {
         // Arrange
         var viewModel: WorkoutViewModel? = WorkoutViewModel(
-            modelContext: context,
+            modelContext: modelContext,
             user: user,
             coachEngine: mockCoach,
-            healthKitManager: mockHealth,
+            healthKitManager: mockHealthKitManager,
             exerciseDatabase: ExerciseDatabase.shared,
             workoutSyncService: WorkoutSyncService.shared
         )

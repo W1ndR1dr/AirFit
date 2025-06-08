@@ -59,11 +59,11 @@ final class OnboardingViewModelTests: XCTestCase {
     }
 
     override func tearDown() async throws {
-        mockAIService?.reset()
-        mockOnboardingService?.reset()
-        mockAPIKeyManager?.reset()
-        mockUserService?.reset()
-        mockWhisperService?.reset()
+        await mockAIService?.reset()
+        await mockOnboardingService?.reset()
+        await mockAPIKeyManager?.reset()
+        await mockUserService?.reset()
+        await mockWhisperService?.reset()
         mockHealthProvider?.reset()
         sut = nil
         mockAIService = nil
@@ -179,7 +179,7 @@ final class OnboardingViewModelTests: XCTestCase {
     
     func test_prefillFromHealthKit_whenFails_usesDefaultTimes() async {
         // Arrange
-        mockHealthProvider.result = .failure(AppError.genericError("Failed to fetch"))
+        mockHealthProvider.result = .failure(AppError.unknown(message: "Failed to fetch"))
         
         // Act - create new view model to trigger prefill
         sut = OnboardingViewModel(
@@ -266,7 +266,7 @@ final class OnboardingViewModelTests: XCTestCase {
     func test_completeOnboarding_withAllPersonaModes_savesCorrectly() async throws {
         for mode in PersonaMode.allCases {
             // Arrange
-            setUp() // Reset for each test
+            try await setUp() // Reset for each test
             sut.selectedPersonaMode = mode
             sut.goal.rawText = "Test goal for \(mode.displayName)"
             
@@ -286,7 +286,7 @@ final class OnboardingViewModelTests: XCTestCase {
     func test_completeOnboarding_whenServiceFails_showsError() async {
         // Arrange
         sut.goal.rawText = "Get fit"
-        mockOnboardingService.shouldThrowError = true
+        mockOnboardingService.saveProfileError = AppError.unknown(message: "Save failed")
         
         // Act
         do {
@@ -334,23 +334,23 @@ final class OnboardingViewModelTests: XCTestCase {
         sut.lifeContext.isPhysicallyActiveWork = false
         sut.lifeContext.travelsFrequently = true
         sut.lifeContext.hasChildrenOrFamilyCare = true
-        sut.lifeContext.scheduleType = .unpredictable
-        sut.lifeContext.workoutWindowPreference = .evening
+        sut.lifeContext.scheduleType = .unpredictableChaotic
+        sut.lifeContext.workoutWindowPreference = .nightOwl
         
         // Assert
         XCTAssertTrue(sut.lifeContext.isDeskJob)
         XCTAssertFalse(sut.lifeContext.isPhysicallyActiveWork)
         XCTAssertTrue(sut.lifeContext.travelsFrequently)
         XCTAssertTrue(sut.lifeContext.hasChildrenOrFamilyCare)
-        XCTAssertEqual(sut.lifeContext.scheduleType, .unpredictable)
-        XCTAssertEqual(sut.lifeContext.workoutWindowPreference, .evening)
+        XCTAssertEqual(sut.lifeContext.scheduleType, .unpredictableChaotic)
+        XCTAssertEqual(sut.lifeContext.workoutWindowPreference, .nightOwl)
     }
     
     // MARK: - Error Handling Tests
     
     func test_errorHandling_clearsError() {
         // Arrange
-        sut.error = AppError.genericError("Test error")
+        sut.error = AppError.unknown(message: "Test error")
         sut.isShowingError = true
         
         // Act

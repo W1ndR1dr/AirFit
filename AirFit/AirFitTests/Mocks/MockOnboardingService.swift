@@ -53,4 +53,11 @@ final class MockOnboardingService: OnboardingServiceProtocol, @preconcurrency Mo
             try context.save()
         }
     }
+    
+    func reset() {
+        invocations.removeAll()
+        stubbedResults.removeAll()
+        saveProfileCalled = false
+        saveProfileError = nil
+    }
 }

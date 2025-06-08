@@ -144,7 +144,6 @@
 		58BB1FADF7D0B3509BE713FA /* MockHealthKitService.swift in Sources */ = {isa = PBXBuildFile; fileRef = A50187C286CBD907C7BDF25A /* MockHealthKitService.swift */; };
 		595E6F437E418A8A20B1D042 /* MotivationalAccentsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = DFAE4F420CC3C82913315240 /* MotivationalAccentsView.swift */; };
 		5B99E0350CE1F5275EB10996 /* ChatView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3FEDECBBC22AB7A58C3AD20B /* ChatView.swift */; };
-		5E665A93FC5665BC6FF83C15 /* PersonaServiceTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3D5F821EA078541E8344929A /* PersonaServiceTests.swift */; };
 		5E6D9E3C45EAA8396A21011F /* LLMModels.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1907975EC611556358976432 /* LLMModels.swift */; };
 		5E98D2A7D2C302AE9B9BE93B /* AppConstants.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6F2DABC5FF1E845ED62D28A0 /* AppConstants.swift */; };
 		6018226DC7AF218B45B136A8 /* MockLLMProvider.swift in Sources */ = {isa = PBXBuildFile; fileRef = D8AA3FA97BF3A0887F494408 /* MockLLMProvider.swift */; };
@@ -529,7 +528,6 @@
 		3B2D413E5432E389B7FF89BC /* ChatExporter.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ChatExporter.swift; sourceTree = "<group>"; };
 		3B944A714172791168C6A4A7 /* LLMOrchestratorTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LLMOrchestratorTests.swift; sourceTree = "<group>"; };
 		3BF5280F5534F84E7D7CBD7D /* AIServiceProtocol.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AIServiceProtocol.swift; sourceTree = "<group>"; };
-		3D5F821EA078541E8344929A /* PersonaServiceTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PersonaServiceTests.swift; sourceTree = "<group>"; };
 		3ED50D3690AC88E874ECAEE5 /* MessageComposer.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MessageComposer.swift; sourceTree = "<group>"; };
 		3FEDECBBC22AB7A58C3AD20B /* ChatView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ChatView.swift; sourceTree = "<group>"; };
 		40D692E7A273905F1BA787D0 /* PersonaService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PersonaService.swift; sourceTree = "<group>"; };
@@ -1871,7 +1869,6 @@
 				165513E132D7A2DEBDB1FB4F /* OnboardingModelsTests.swift */,
 				A9ECE252B9153A6519353069 /* OnboardingServiceTests.swift */,
 				77FE8390B5C3AD9F84E49B18 /* OnboardingViewModelTests.swift */,
-				3D5F821EA078541E8344929A /* PersonaServiceTests.swift */,
 			);
 			path = Onboarding;
 			sourceTree = "<group>";
@@ -2503,7 +2500,6 @@
 				8C505A52BE1FA72500122C61 /* OnboardingServiceTests.swift in Sources */,
 				87728038918C9D9D3871E28B /* OnboardingViewModelTests.swift in Sources */,
 				19803077D3BBD63E9FEDC6E0 /* PersonaGenerationTests.swift in Sources */,
-				5E665A93FC5665BC6FF83C15 /* PersonaServiceTests.swift in Sources */,
 				4E670E8F01C8D98AE15911E3 /* SettingsModelsTests.swift in Sources */,
 				0C5F28F9BC4874D47D0219B6 /* SettingsViewModelTests.swift in Sources */,
 				B649CBE84747D7EA719A4360 /* TestHelpers.swift in Sources */,
