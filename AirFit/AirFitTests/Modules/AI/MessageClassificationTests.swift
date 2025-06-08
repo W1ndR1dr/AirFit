@@ -2,6 +2,7 @@ import XCTest
 import SwiftData
 @testable import AirFit
 
+@MainActor
 final class MessageClassificationTests: XCTestCase {
     
     // MARK: - Test Properties
@@ -25,8 +26,7 @@ final class MessageClassificationTests: XCTestCase {
         try modelContext.save()
         
         // Create CoachEngine with minimal dependencies for testing
-        let context = modelContext!
-        coachEngine = await CoachEngine.createDefault(modelContext: context)
+        coachEngine = await CoachEngine.createDefault(modelContext: modelContext)
     }
     
     override func tearDown() async throws {

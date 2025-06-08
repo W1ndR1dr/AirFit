@@ -629,5 +629,12 @@ final class MockWorkoutCoachEngine: CoachEngineProtocol, @unchecked Sendable {
         return mockAnalysis
     }
     
+    func reset() {
+        mockAnalysis = "Mock analysis"
+        didGenerateAnalysis = false
+        shouldThrowError = false
+        processUserMessageCalled = false
+    }
+    
     struct TestError: Error {}
 }

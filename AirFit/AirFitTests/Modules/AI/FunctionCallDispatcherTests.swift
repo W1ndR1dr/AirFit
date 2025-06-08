@@ -2,6 +2,7 @@ import XCTest
 import SwiftData
 @testable import AirFit
 
+@MainActor
 final class FunctionCallDispatcherTests: XCTestCase {
 
     var dispatcher: FunctionCallDispatcher!
@@ -24,8 +25,9 @@ final class FunctionCallDispatcherTests: XCTestCase {
         )
 
         // Create test context
-        testContext = await FunctionContext(
-            modelContext: modelContainer.mainContext,
+        let modelContext = modelContainer.mainContext
+        testContext = FunctionContext(
+            modelContext: modelContext,
             conversationId: UUID(),
             userId: testUser.id
         )

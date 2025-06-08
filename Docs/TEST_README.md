@@ -1,7 +1,8 @@
 # AirFit Test Suite - Start Here
 
 ## 🎯 Current Mission
-Transform the test suite from mixed patterns (~50% outdated) to 100% standardized, reliable tests.
+🚨 **EMERGENCY TRIAGE IN PROGRESS** 🚨
+Tests are using APIs that don't exist. We must fix fundamental quality issues before any migration work.
 
 ## 📚 Essential Documents (Read in Order)
 
@@ -12,8 +13,9 @@ Transform the test suite from mixed patterns (~50% outdated) to 100% standardize
    - File locations
 
 2. **[TEST_EXECUTION_PLAN.md](./TEST_EXECUTION_PLAN.md)** - Your Task List
-   - Current progress: 3/156 tasks
-   - Next task: Check Phase 1
+   - 🚨 **Phase 0 Emergency Triage**: 5/15 tasks (33%)
+   - Current progress: 76/171 tasks overall
+   - Next task: Check Phase 0 (PRIORITY)
    - Update after EVERY task
 
 3. **[TEST_MIGRATION_GUIDE.md](./TEST_MIGRATION_GUIDE.md)** - How-To Reference
@@ -27,10 +29,16 @@ Transform the test suite from mixed patterns (~50% outdated) to 100% standardize
    - Success criteria
 
 ## 🚦 Current Status
-- **Phase**: 2 - Standardize (migrating to DI patterns)
+- **Phase 0**: 🚨 EMERGENCY TRIAGE (5/15 tasks) - CURRENT PRIORITY
 - **Phase 1**: ✅ COMPLETE (23/23 tasks)
-- **Phase 2**: 48/89 tasks (53.9%) - Over halfway!
-- **Good Test Examples**: DIBootstrapperTests, HealthKitManagerTests
+- **Phase 2**: ⏸️ BLOCKED - 48/89 tasks (waiting for Phase 0)
+- **Phase 3**: ⏸️ BLOCKED - 0/44 tasks
+
+### ⚠️ Critical Issues Found
+- Tests using non-existent APIs (wrong enum values, missing methods)
+- Mocks don't match their protocols
+- Services expecting concrete types instead of protocols
+- See: TEST_QUALITY_AUDIT.md and MOCK_PROTOCOL_AUDIT.md
 
 ## 🎬 Quick Start Commands
 
@@ -69,11 +77,12 @@ ls AirFit/AirFitTests/Mocks/Mock*.swift | grep "ServiceName"
 ## 📈 Progress Snapshot
 
 ```
-Phase 1: Clean House    [###-------] 3/23 tasks
-Phase 2: Standardize    [----------] 0/89 tasks  
-Phase 3: Fill Gaps      [----------] 0/44 tasks
+Phase 0: Emergency      [#####-----] 5/15 tasks  🚨 CURRENT
+Phase 1: Clean House    [##########] 23/23 tasks ✅ COMPLETE
+Phase 2: Standardize    [#####-----] 48/89 tasks ⏸️ BLOCKED
+Phase 3: Fill Gaps      [----------] 0/44 tasks  ⏸️ BLOCKED
 
-Overall: 3/156 tasks (2%)
+Overall: 76/171 tasks (44%)
 ```
 
 ## 🆘 Common Issues Reference
@@ -84,6 +93,9 @@ Overall: 3/156 tasks (2%)
 | "Property is private" | Testing implementation | Test through public API |
 | "Expression is async..." | Missing await | Add await or make method async |
 | "@MainActor-isolated..." | Missing annotation | Add @MainActor to class |
+| "Type 'X' has no member 'Y'" | Using outdated API | Check current enum/method names |
+| "Cannot convert MockX to X" | Service expects concrete type | Create protocol for service |
+| "HealthKitManagerProtocol" | Wrong protocol name | Use HealthKitManaging |
 
 ## 🎖️ Definition of Done
 

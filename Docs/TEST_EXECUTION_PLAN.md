@@ -3,7 +3,7 @@
 **Purpose**: Prioritized task list with persistent progress tracking for test suite refactoring.  
 **Last Updated**: 2025-01-07  
 **Current Status**: Phase 2 in progress  
-**Overall Progress**: 74/171 tasks (43.3%)
+**Overall Progress**: 76/171 tasks (44.4%)
 
 ## 🚀 Quick Start for New Agents
 
@@ -64,7 +64,7 @@
 
 ## Phase 0: Emergency Triage 🚨 PRIORITY
 **Goal**: Fix fundamental test quality issues before any migration
-**Progress**: 3/15 tasks (20%)
+**Progress**: 5/15 tasks (33%)
 **Status**: IN PROGRESS
 
 ### Fix Test-Code Mismatches
@@ -83,9 +83,10 @@
   - Added await to async reset() calls
   - Added missing reset() to MockOnboardingService
 
-- [ ] Fix WorkoutViewModelTests compilation errors
-  - Missing HealthKitManagerProtocol
-  - MockCoachEngine missing properties
+- [✅] Fix WorkoutViewModelTests compilation errors
+  - Fixed: Changed HealthKitManagerProtocol → HealthKitManaging
+  - Fixed: Used local MockWorkoutCoachEngine instead of shared mock
+  - Fixed: Corrected undefined variable references
   
 - [ ] Audit ALL enum usage across tests
   - Find/replace outdated enum values
@@ -94,10 +95,10 @@
 ### Fix Mock-Protocol Mismatches  
 **Critical**: Mocks don't match their protocols
 
-- [ ] Audit MockLLMOrchestrator
-  - Missing stubbedCompleteResult property
-  - Missing verify() method
-  - Wrong return types
+- [✅] Audit MockLLMOrchestrator
+  - Found: It's mocking a class, not a protocol (anti-pattern)
+  - Documented in MOCK_PROTOCOL_AUDIT.md
+  - Needs LLMOrchestratorProtocol to be created
   
 - [ ] Audit MockCoachEngine  
   - Missing mockAnalysis property

@@ -48,15 +48,24 @@ Reference Airfit/Docs/Research Reports/Clauide Code Best Practices.md if you nee
 - ✅ HealthKit integration complete (nutrition + workouts)
 - ✅ DI migration 90% complete (Onboarding still needs migration)
 - ✅ Main app builds and runs successfully
-- 🚧 Test suite refactoring in progress (Phase 2/3)
+- 🚨 Test suite EMERGENCY TRIAGE in progress (Phase 0)
 
-## Current Focus: Test Suite Standardization
-**Goal**: Transform mixed test patterns into consistent, reliable test suite
-- **Phase 1**: Clean house - Remove outdated tests, fix compilation
-- **Phase 2**: Standardize - Migrate all tests to DI pattern  
-- **Phase 3**: Fill gaps - Create missing tests, achieve 80%+ coverage
+## Current Focus: Test Suite Emergency Triage 🚨
+**Critical Issue**: Tests are using APIs that don't exist in production code!
 
-**Progress**: 71/156 tasks complete (45.5%) - Phase 2 over 50% done!
+**Phases**:
+- **Phase 0**: Emergency Triage - Fix fundamental quality issues (CURRENT - 33%)
+- **Phase 1**: Clean house - Remove outdated tests (✅ COMPLETE)
+- **Phase 2**: Standardize - Migrate to DI pattern (⏸️ BLOCKED)
+- **Phase 3**: Fill gaps - Create missing tests (⏸️ BLOCKED)
+
+**Progress**: 76/171 tasks complete (44.4%)
+
+**Key Issues Found**:
+- Tests using outdated enum values and APIs
+- Mocks don't match their protocols
+- Services expecting concrete types instead of protocols
+- See: Docs/TEST_QUALITY_AUDIT.md and Docs/MOCK_PROTOCOL_AUDIT.md
 
 ## Build & Run Commands
 ```bash
@@ -94,13 +103,14 @@ xcodebuild test -scheme "AirFit" -destination 'platform=iOS Simulator,name=iPhon
 
 ## Active Documentation
 
-### 🎯 Test Refactoring (CURRENT PRIORITY)
-Start with: **`Docs/TEST_README.md`** - Quick overview and next steps
+### 🎯 Test Emergency Triage (CURRENT PRIORITY) 🚨
+Start with: **`Docs/TEST_README.md`** - Critical status update
 
-- **TEST_EXECUTION_PLAN.md** - Task checklist with progress tracking (156 tasks)
+- **TEST_EXECUTION_PLAN.md** - Phase 0 Emergency Triage tasks (171 total tasks)
+- **TEST_QUALITY_AUDIT.md** - Critical findings about test quality
+- **MOCK_PROTOCOL_AUDIT.md** - Mock-protocol mismatches
 - **TEST_STANDARDS.md** - MUST READ before writing any test
 - **TEST_MIGRATION_GUIDE.md** - How to migrate existing tests
-- **TEST_REFACTORING_PLAN.md** - Overall strategy
 
 ### Project Standards
 - **NAMING_STANDARDS.md** - File naming conventions (updated 2025-01-07)
