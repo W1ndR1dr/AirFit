@@ -12,7 +12,7 @@ final class HealthKitServiceTests: XCTestCase {
     
     // MARK: - Setup
     override func setUp() async throws {
-        try await super.setUp()
+        try super.setUp()
         
         // Create test user
         testUser = User(email: "test@example.com", name: "Test User")
@@ -34,7 +34,7 @@ final class HealthKitServiceTests: XCTestCase {
         mockHealthKitManager = nil
         mockContextAssembler = nil
         testUser = nil
-        try await super.tearDown()
+        try super.tearDown()
     }
     
     // MARK: - Get Current Context Tests
