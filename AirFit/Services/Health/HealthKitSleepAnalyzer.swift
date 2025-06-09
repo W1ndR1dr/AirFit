@@ -2,8 +2,7 @@ import Foundation
 import HealthKit
 
 /// Handles HealthKit sleep analysis operations
-@MainActor
-final class HealthKitSleepAnalyzer {
+actor HealthKitSleepAnalyzer {
     private let healthStore: HKHealthStore
 
     init(healthStore: HKHealthStore) {

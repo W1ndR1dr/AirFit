@@ -136,8 +136,8 @@ struct OnboardingFlowViewDI: View {
             // Add a small delay to ensure the container is ready
             try await Task.sleep(nanoseconds: 100_000_000) // 0.1 second
             
-            // Use shared container if available (during initialization)
-            let containerToUse = DIContainer.shared ?? diContainer
+            // Use the injected container
+            let containerToUse = diContainer
             AppLogger.info("OnboardingFlowViewDI: Attempt \(retryCount) using container ID: \(ObjectIdentifier(containerToUse))", category: .onboarding)
             
             // Try to create view model through DI, passing model context directly
@@ -173,9 +173,9 @@ struct OnboardingFlowViewDI: View {
             let healthKitAuthManager = HealthKitAuthManager()
             
             // Try to get services from container if possible, otherwise use defaults
-            let aiService = try? await (DIContainer.shared ?? diContainer).resolve(AIServiceProtocol.self) ?? DemoAIService()
-            let apiKeyManager = try? await (DIContainer.shared ?? diContainer).resolve(APIKeyManagementProtocol.self)
-            let userService = try? await (DIContainer.shared ?? diContainer).resolve(UserServiceProtocol.self) ?? UserService(modelContext: modelContext)
+            let aiService = try? await diContainer.resolve(AIServiceProtocol.self) ?? DemoAIService()
+            let apiKeyManager = try? await diContainer.resolve(APIKeyManagementProtocol.self)
+            let userService = try? await diContainer.resolve(UserServiceProtocol.self) ?? UserService(modelContext: modelContext)
             
             viewModel = OnboardingViewModel(
                 aiService: aiService ?? DemoAIService(),

@@ -1,8 +1,15 @@
 # App Lifecycle Analysis Report
 
+**Last Updated**: 2025-01-08 (Post-Phase 1.2)  
+**Status**: ✅ UPDATED - Reflects current architecture after Phase 1 improvements
+
 ## Executive Summary
 
-The AirFit application follows a multi-phase initialization sequence from app launch to full UI presentation. The initialization flow involves ModelContainer setup, dependency injection container creation, AppState management, and conditional view routing based on user state. Critical findings include a complex async initialization pattern with potential race conditions between DIContainer.shared lifecycle management and SwiftUI environment injection. The app uses a temporary shared singleton pattern during startup to work around SwiftUI timing issues, which is cleared after 5 seconds. This analysis traces the complete flow from @main entry point to dashboard presentation, identifying several architectural concerns and potential blocking operations during startup.
+The AirFit application follows a multi-phase initialization sequence from app launch to full UI presentation. The initialization flow involves ModelContainer setup, dependency injection container creation, AppState management, and conditional view routing based on user state. 
+
+**Phase 1 Updates**: The app has been significantly improved through Phase 1.1 (DI fixes) and Phase 1.2 (@MainActor cleanup). The problematic DIContainer.shared pattern has been removed, synchronous resolution eliminated, and unnecessary @MainActor annotations cleaned up. However, the black screen issue persists, indicating initialization flow problems that will be addressed in Phase 1.3.
+
+This updated analysis reflects the current architecture and identifies remaining issues in the initialization sequence.
 
 ## Table of Contents
 1. App Launch Sequence
@@ -105,22 +112,16 @@ private func initializeApp() async {
                 modelContainer: Self.sharedModelContainer
             )
         }
-        // CRITICAL: Set shared instance for initialization timing issues
-        DIContainer.shared = diContainer
+        // NOTE: DIContainer.shared removed in Phase 1.1
     } catch {
         // Fallback: Create minimal container with just ModelContainer
         let container = DIContainer()
         container.registerSingleton(ModelContainer.self, instance: Self.sharedModelContainer)
         diContainer = container
-        DIContainer.shared = container
     }
     
     isInitializing = false
-    
-    // Clear shared instance after delay
-    DispatchQueue.main.asyncAfter(deadline: .now() + 5.0) {
-        DIContainer.shared = nil
-    }
+    // NOTE: 5-second delay pattern removed in Phase 1.1
 }
 ```
 
@@ -166,9 +167,8 @@ public static func createAppContainer(modelContainer: ModelContainer) async thro
 
 private func createAppState() async {
     do {
-        // Use shared container during initialization
-        let containerToUse = DIContainer.shared ?? diContainer
-        let apiKeyManager = try await containerToUse.resolve(APIKeyManagementProtocol.self)
+        // Use environment container (Phase 1.1 fix)
+        let apiKeyManager = try await diContainer.resolve(APIKeyManagementProtocol.self)
         
         appState = AppState(
             modelContext: modelContext,
@@ -225,11 +225,11 @@ public extension View {
 }
 ```
 
-### DIContainer.shared Lifecycle
-1. **Creation**: Set immediately after container creation (AirFitApp.swift:102, 109, 118)
-2. **Usage**: During AppState creation as fallback (ContentView.swift:84)
-3. **Cleanup**: Cleared after 5 seconds (AirFitApp.swift:125-127)
-4. **Purpose**: Workaround for SwiftUI environment timing issues
+### DIContainer Lifecycle (Updated in Phase 1.1)
+1. **Creation**: Container created via DIBootstrapper
+2. **Usage**: Passed through SwiftUI environment only
+3. **No shared instance**: DIContainer.shared pattern removed
+4. **Pure async resolution**: No synchronous wrappers
 
 ## 3. View Routing Logic
 
@@ -348,40 +348,45 @@ final class AppState {
 - **Fallback**: DIContainer.shared during initialization only
 - **ViewModels**: Created with DIViewModelFactory using container
 
-## 6. Issues Identified
+## 6. Issues Identified (Updated Post-Phase 1)
 
-### Critical Issues 🔴
-- **Issue 1**: Race Condition in Container Access
-  - Location: `ContentView.swift:84`
-  - Impact: Potential nil container access if shared is cleared before AppState creation
-  - Evidence: `let containerToUse = DIContainer.shared ?? diContainer`
+### ✅ RESOLVED Issues (Fixed in Phase 1)
+- **~~Race Condition in Container Access~~** - Fixed in Phase 1.1
+  - Removed DIContainer.shared pattern
+  - Now uses environment injection only
+
+- **~~Synchronous Dependency Resolution~~** - Fixed in Phase 1.1
+  - Removed synchronousResolve and DispatchSemaphore
+  - All resolution is now async
+
+- **~~Hardcoded 5-Second Delay~~** - Fixed in Phase 1.1
+  - Removed along with shared instance pattern
+
+- **~~Shared Singleton Anti-Pattern~~** - Fixed in Phase 1.1
+  - DIContainer.shared completely removed
+
+### 🔴 ACTIVE Critical Issues
+- **Issue 1**: Black Screen on Startup
+  - Status: CONFIRMED in testing
+  - Impact: App launches but shows black screen
+  - Root Cause: Complex initialization flow
+  - Solution: Phase 1.3 - Simplify App Initialization
 
 - **Issue 2**: Fatal Error on ModelContainer Failure
   - Location: `AirFitApp.swift:42`
   - Impact: App crashes with no recovery path
   - Evidence: `fatalError("Could not create ModelContainer: \(error)")`
 
-### High Priority Issues 🟠
-- **Issue 1**: Synchronous Dependency Resolution in UI
-  - Location: `DIContainer.swift:203-236`
-  - Impact: UI thread blocking during service resolution
-  - Evidence: `synchronousResolve` function uses DispatchSemaphore
-
-- **Issue 2**: Hardcoded 5-Second Delay
-  - Location: `AirFitApp.swift:125`
-  - Impact: Arbitrary timing that may not suit all devices
-  - Evidence: `DispatchQueue.main.asyncAfter(deadline: .now() + 5.0)`
-
-### Medium Priority Issues 🟡
+### 🟠 High Priority Issues
 - **Issue 1**: No Progress Indication During Service Registration
   - Location: `DIBootstrapper.swift:35-246`
   - Impact: User sees generic loading with no progress
   - Evidence: Multiple async service registrations with no feedback
 
-- **Issue 2**: Shared Singleton Anti-Pattern
-  - Location: `DIContainer.swift:9`
-  - Impact: Global mutable state contradicts DI principles
-  - Evidence: `nonisolated(unsafe) public static var shared: DIContainer?`
+### 🟡 Medium Priority Issues
+- **Issue 1**: Complex Initialization Chain
+  - Impact: Difficult to debug startup issues
+  - Evidence: Multiple async phases before UI appears
 
 ### Low Priority Issues 🟢
 - **Issue 1**: Inconsistent Error Handling
@@ -391,17 +396,19 @@ final class AppState {
 
 ## 7. Architectural Patterns
 
-### Pattern Analysis
-1. **Dependency Injection**: Modern DI container with lifetime management
-2. **MVVM-C**: ViewModels created via factory, Coordinators for navigation
-3. **Repository Pattern**: Services abstract data access
-4. **Environment Injection**: SwiftUI environment for dependency propagation
+### Pattern Analysis (Updated Post-Phase 1)
+1. **Dependency Injection**: Modern DI container with lifetime management ✅
+2. **MVVM-C**: ViewModels created via factory, Coordinators for navigation ✅
+3. **Repository Pattern**: Services abstract data access ✅
+4. **Environment Injection**: SwiftUI environment for dependency propagation ✅
+5. **Actor Model**: Services converted to actors where appropriate (Phase 1.2) ✅
 
-### Inconsistencies
-1. **Mixed Singleton Usage**: Some services use .shared, others use DI
-2. **Async/Sync Mismatch**: Async service creation but sync resolution in views
-3. **Container Access Patterns**: Environment vs shared instance confusion
-4. **State Management**: Mix of @Observable, @State, and environment
+### Improvements Made in Phase 1
+1. **Removed Mixed Patterns**: DIContainer.shared eliminated
+2. **Pure Async Resolution**: No more sync wrappers
+3. **Consistent Container Access**: Environment only
+4. **Cleaner Concurrency**: 7 services converted to actors
+5. **Reduced @MainActor**: Removed from 96 test classes
 
 ## 8. Dependencies & Interactions
 
@@ -427,14 +434,32 @@ AirFitApp
 
 ## 9. Recommendations
 
-### Immediate Actions
-1. **Remove DIContainer.shared Pattern**
-   - Pass container explicitly through initializers
-   - Use environment consistently after initialization
+### ✅ Completed Actions (Phase 1)
+1. **Removed DIContainer.shared Pattern** ✅
+   - Now using environment injection exclusively
+   - No static shared instance
+   - Clean container lifecycle
+
+2. **Removed Synchronous Resolution** ✅
+   - All resolution is now async
+   - No DispatchSemaphore usage
+   - No blocking operations
+
+3. **Cleaned Up @MainActor Usage** ✅
+   - Removed from 96 test classes
+   - Converted 7 services to actors
+   - Clear standards documented
+
+### 🚨 Immediate Actions (Phase 1.3)
+1. **Fix Black Screen Issue**
+   - Simplify initialization flow
+   - Remove complex async chains
+   - Add proper loading states
 
 2. **Add Initialization Error Recovery**
    - Replace fatalError with recoverable error state
    - Provide retry mechanism for container creation
+   - Show meaningful error messages
 
 ### Long-term Improvements
 1. **Implement Progressive Initialization**
@@ -442,18 +467,85 @@ AirFitApp
    - Defer non-essential service creation
    - Show progress during initialization
 
-2. **Refactor Service Resolution**
-   - Remove synchronous resolution wrapper
-   - Pre-resolve ViewModels before view creation
-   - Use async View modifiers where available
+2. **Optimize Service Creation**
+   - Lazy load services when needed
+   - Parallel service initialization where possible
+   - Cache resolved services appropriately
 
-## 10. Questions for Clarification
+## 10. Phase 1 Summary
 
-### Technical Questions
-- [ ] Why is 5 seconds chosen for shared container cleanup delay?
-- [ ] Is synchronous service resolution required by SwiftUI constraints?
+### Phase 1.1: DI Container Fixes ✅
+**Completed**: 2025-01-08 (15 minutes)
+- Removed DIContainer.shared pattern
+- Eliminated synchronous resolution
+- Fixed all blocking operations
+- Pure async/await resolution
+
+### Phase 1.2: @MainActor Cleanup ✅
+**Completed**: 2025-01-08 (75 minutes)
+- Removed @MainActor from 96 test classes
+- Converted 7 services to actors:
+  - NetworkManager, AIAnalyticsService, MonitoringService
+  - TestModeAIService, HealthKitDataFetcher, HealthKitSleepAnalyzer
+- Deleted deprecated ServiceRegistry
+- Created comprehensive standards documentation
+- Fixed all build errors
+
+### Current Status
+- **Build**: ✅ Succeeds with all changes
+- **Runtime**: ❌ Black screen persists
+- **Next**: Phase 1.3 - Simplify App Initialization
+
+## 11. Phase 1.3 Planning: Simplify App Initialization
+
+### Current Issues Causing Black Screen
+1. **Complex Async Chain**:
+   - AirFitApp → ContentView → AppState → User Loading
+   - Multiple onAppear handlers with async tasks
+   - Potential race conditions in initialization
+
+2. **Initialization Flow**:
+   ```
+   AirFitApp.initializeApp() → creates DIContainer
+   ContentView.onAppear() → creates AppState
+   AppState.init() → loads user state
+   ```
+
+3. **Potential Root Causes**:
+   - ContentView might not be rendering properly
+   - AppState creation might be failing silently
+   - Routing logic might be stuck in a state
+
+### Proposed Simplifications for Phase 1.3
+1. **Linear Initialization**:
+   - Move AppState creation to AirFitApp
+   - Pass AppState directly to ContentView
+   - Remove multiple async initialization points
+
+2. **Clear State Machine**:
+   - Define explicit initialization states
+   - Add proper error boundaries
+   - Show clear progress indicators
+
+3. **Debug Visibility**:
+   - Add extensive logging at each step
+   - Add visual indicators for each state
+   - Include initialization timing metrics
+
+### Implementation Strategy
+1. **Step 1**: Add comprehensive logging to trace black screen
+2. **Step 2**: Simplify ContentView to remove onAppear complexity
+3. **Step 3**: Move AppState creation to AirFitApp
+4. **Step 4**: Implement proper error recovery
+5. **Step 5**: Add initialization progress UI
+
+## 12. Questions for Clarification
+
+### Technical Questions (Updated)
+- [x] ~~Why is 5 seconds chosen for shared container cleanup delay?~~ Removed in Phase 1.1
+- [x] ~~Is synchronous service resolution required by SwiftUI constraints?~~ No, removed in Phase 1.1
 - [ ] Should ModelContainer creation failure be recoverable?
-- [ ] Why mix singleton services with DI container?
+- [x] ~~Why mix singleton services with DI container?~~ Consistent pattern now
 
 ### Business Logic Questions
 - [ ] What should happen if API key verification fails during startup?
@@ -462,11 +554,26 @@ AirFitApp
 - [ ] Should demo mode be available without API keys?
 
 ## Appendix: File Reference List
+
+### Core Initialization Files
 - `/Users/Brian/Coding Projects/AirFit/AirFit/Application/AirFitApp.swift`
 - `/Users/Brian/Coding Projects/AirFit/AirFit/Application/ContentView.swift`
 - `/Users/Brian/Coding Projects/AirFit/AirFit/Core/Utilities/AppState.swift`
+
+### DI System Files
 - `/Users/Brian/Coding Projects/AirFit/AirFit/Core/DI/DIContainer.swift`
 - `/Users/Brian/Coding Projects/AirFit/AirFit/Core/DI/DIBootstrapper.swift`
 - `/Users/Brian/Coding Projects/AirFit/AirFit/Core/DI/DIBootstrapper+Test.swift`
 - `/Users/Brian/Coding Projects/AirFit/AirFit/Core/DI/DIEnvironment.swift`
 - `/Users/Brian/Coding Projects/AirFit/AirFit/Core/DI/DIViewModelFactory.swift`
+
+### Related Documentation
+- `/Users/Brian/Coding Projects/AirFit/Docs/PHASE_1_PROGRESS.md`
+- `/Users/Brian/Coding Projects/AirFit/Docs/CODEBASE_RECOVERY_PLAN.md`
+- `/Users/Brian/Coding Projects/AirFit/Docs/Development-Standards/MAINACTOR_CLEANUP_STANDARDS.md`
+- `/Users/Brian/Coding Projects/AirFit/Docs/Development-Standards/DI_STANDARDS.md`
+
+---
+
+**Document Status**: ✅ Updated to reflect Phase 1.2 completion and current architecture
+**Next Update**: After Phase 1.3 implementation to document initialization improvements

@@ -2,7 +2,8 @@
 
 **Last Updated**: 2025-01-08  
 **Status**: Active  
-**Priority**: 🎨 Critical - Defines our visual excellence
+**Priority**: 🎨 Critical - Defines our visual excellence  
+**Implementation**: Scheduled for Phase 3.3 (after Phase 2 architectural improvements)
 
 ## Design DNA
 
@@ -273,6 +274,13 @@ AirFit/
    ```
 
 ## Quality Assurance
+
+### Pre-Implementation Requirements (Phase 2 Dependencies)
+- [ ] All services follow ServiceProtocol (Phase 2.1)
+- [ ] Concurrency model fixed - no MainActor blocking (Phase 2.2)
+- [ ] Data layer provides reliable UI state (Phase 2.3)
+- [ ] ViewModels properly isolated from services
+- [ ] Performance baseline established
 
 ### Visual QA Checklist
 - [ ] Gradients transition smoothly (< 2% pixel delta per frame)

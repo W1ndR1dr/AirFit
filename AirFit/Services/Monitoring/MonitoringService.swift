@@ -2,17 +2,14 @@ import Foundation
 import os
 
 /// Production monitoring for AI persona system
-@MainActor
-final class MonitoringService: ObservableObject {
+actor MonitoringService {
     static let shared = MonitoringService()
     
     // MARK: - Properties
-    @Published private(set) var metrics = ProductionMetrics()
-    @Published private(set) var alerts: [MonitoringAlert] = []
+    private var metrics = ProductionMetrics()
+    private var alerts: [MonitoringAlert] = []
     
     private let logger = Logger(subsystem: "com.airfit", category: "monitoring")
-    private var metricsTimer: Timer?
-    private let metricsQueue = DispatchQueue(label: "com.airfit.monitoring", qos: .utility)
     
     // Thresholds
     private let performanceThresholds = PerformanceThresholds(
@@ -26,156 +23,133 @@ final class MonitoringService: ObservableObject {
     // MARK: - Initialization
     
     private init() {
-        startMonitoring()
+        Task {
+            await startMonitoring()
+        }
     }
     
     // MARK: - Public API
     
     /// Track persona generation performance
     func trackPersonaGeneration(duration: TimeInterval, success: Bool, model: String? = nil) {
-        metricsQueue.async { [weak self] in
-            guard let self = self else { return }
-            
-            Task { @MainActor in
-                self.metrics.personaGeneration.count += 1
-                self.metrics.personaGeneration.totalDuration += duration
-                
-                if success {
-                    self.metrics.personaGeneration.successCount += 1
-                } else {
-                    self.metrics.personaGeneration.failureCount += 1
-                }
-                
-                // Check threshold
-                if duration > self.performanceThresholds.personaGenerationMax {
-                    self.createAlert(
-                        type: .performanceDegradation,
-                        severity: .warning,
-                        message: "Persona generation took \(String(format: "%.1f", duration))s (threshold: \(self.performanceThresholds.personaGenerationMax)s)",
-                        metadata: ["duration": duration, "model": model ?? "unknown"]
-                    )
-                }
-                
-                self.logger.info("Persona generation: \(duration)s, success: \(success)")
-            }
+        metrics.personaGeneration.count += 1
+        metrics.personaGeneration.totalDuration += duration
+        
+        if success {
+            metrics.personaGeneration.successCount += 1
+        } else {
+            metrics.personaGeneration.failureCount += 1
         }
+        
+        // Check threshold
+        if duration > performanceThresholds.personaGenerationMax {
+            createAlert(
+                type: .performanceDegradation,
+                severity: .warning,
+                message: "Persona generation took \(String(format: "%.1f", duration))s (threshold: \(performanceThresholds.personaGenerationMax)s)",
+                metadata: ["duration": duration, "model": model ?? "unknown"]
+            )
+        }
+        
+        logger.info("Persona generation: \(duration)s, success: \(success)")
     }
     
     /// Track conversation response time
     func trackConversationResponse(duration: TimeInterval, nodeId: String, tokenCount: Int) {
-        metricsQueue.async { [weak self] in
-            guard let self = self else { return }
-            
-            Task { @MainActor in
-                self.metrics.conversationFlow.responseCount += 1
-                self.metrics.conversationFlow.totalResponseTime += duration
-                self.metrics.conversationFlow.totalTokens += tokenCount
-                
-                if duration > self.performanceThresholds.conversationResponseMax {
-                    self.createAlert(
-                        type: .performanceDegradation,
-                        severity: .warning,
-                        message: "Slow conversation response: \(String(format: "%.1f", duration))s at node \(nodeId)",
-                        metadata: ["duration": duration, "nodeId": nodeId, "tokens": tokenCount]
-                    )
-                }
-            }
+        metrics.conversationFlow.responseCount += 1
+        metrics.conversationFlow.totalResponseTime += duration
+        metrics.conversationFlow.totalTokens += tokenCount
+        
+        if duration > performanceThresholds.conversationResponseMax {
+            createAlert(
+                type: .performanceDegradation,
+                severity: .warning,
+                message: "Slow conversation response: \(String(format: "%.1f", duration))s at node \(nodeId)",
+                metadata: ["duration": duration, "nodeId": nodeId, "tokens": tokenCount]
+            )
         }
     }
     
     /// Track API call performance
     func trackAPICall(provider: String, model: String, duration: TimeInterval, success: Bool, cost: Double) {
-        metricsQueue.async { [weak self] in
-            guard let self = self else { return }
-            
-            Task { @MainActor in
-                self.metrics.apiPerformance.callCount += 1
-                self.metrics.apiPerformance.totalDuration += duration
-                self.metrics.apiPerformance.totalCost += cost
-                
-                if !success {
-                    self.metrics.apiPerformance.errorCount += 1
-                }
-                
-                // Track by provider
-                if self.metrics.apiPerformance.byProvider[provider] == nil {
-                    self.metrics.apiPerformance.byProvider[provider] = ProviderMetrics()
-                }
-                
-                self.metrics.apiPerformance.byProvider[provider]?.callCount += 1
-                self.metrics.apiPerformance.byProvider[provider]?.totalDuration += duration
-                self.metrics.apiPerformance.byProvider[provider]?.errorCount += success ? 0 : 1
-                
-                // Check error rate
-                let errorRate = Double(self.metrics.apiPerformance.errorCount) / Double(self.metrics.apiPerformance.callCount)
-                if errorRate > self.performanceThresholds.errorRateMax {
-                    self.createAlert(
-                        type: .highErrorRate,
-                        severity: .critical,
-                        message: "High API error rate: \(String(format: "%.1f%%", errorRate * 100))",
-                        metadata: ["provider": provider, "errorRate": errorRate]
-                    )
-                }
-            }
+        metrics.apiPerformance.callCount += 1
+        metrics.apiPerformance.totalDuration += duration
+        metrics.apiPerformance.totalCost += cost
+        
+        if !success {
+            metrics.apiPerformance.errorCount += 1
+        }
+        
+        // Track by provider
+        if metrics.apiPerformance.byProvider[provider] == nil {
+            metrics.apiPerformance.byProvider[provider] = ProviderMetrics()
+        }
+        
+        metrics.apiPerformance.byProvider[provider]?.callCount += 1
+        metrics.apiPerformance.byProvider[provider]?.totalDuration += duration
+        metrics.apiPerformance.byProvider[provider]?.errorCount += success ? 0 : 1
+        
+        // Check error rate
+        let errorRate = Double(metrics.apiPerformance.errorCount) / Double(metrics.apiPerformance.callCount)
+        if errorRate > performanceThresholds.errorRateMax {
+            createAlert(
+                type: .highErrorRate,
+                severity: .critical,
+                message: "High API error rate: \(String(format: "%.1f%%", errorRate * 100))",
+                metadata: ["provider": provider, "errorRate": errorRate]
+            )
         }
     }
     
     /// Track cache performance
     func trackCacheHit(hit: Bool) {
-        metricsQueue.async { [weak self] in
-            guard let self = self else { return }
-            
-            Task { @MainActor in
-                if hit {
-                    self.metrics.cachePerformance.hitCount += 1
-                } else {
-                    self.metrics.cachePerformance.missCount += 1
-                }
-                
-                let total = self.metrics.cachePerformance.hitCount + self.metrics.cachePerformance.missCount
-                if total > 100 { // Only check after sufficient data
-                    let hitRate = Double(self.metrics.cachePerformance.hitCount) / Double(total)
-                    if hitRate < self.performanceThresholds.cacheHitRateMin {
-                        self.createAlert(
-                            type: .lowCacheHitRate,
-                            severity: .info,
-                            message: "Low cache hit rate: \(String(format: "%.1f%%", hitRate * 100))",
-                            metadata: ["hitRate": hitRate]
-                        )
-                    }
-                }
+        if hit {
+            metrics.cachePerformance.hitCount += 1
+        } else {
+            metrics.cachePerformance.missCount += 1
+        }
+        
+        let total = metrics.cachePerformance.hitCount + metrics.cachePerformance.missCount
+        if total > 100 { // Only check after sufficient data
+            let hitRate = Double(metrics.cachePerformance.hitCount) / Double(total)
+            if hitRate < performanceThresholds.cacheHitRateMin {
+                createAlert(
+                    type: .lowCacheHitRate,
+                    severity: .info,
+                    message: "Low cache hit rate: \(String(format: "%.1f%%", hitRate * 100))",
+                    metadata: ["hitRate": hitRate]
+                )
             }
         }
     }
     
     /// Track error occurrence
     func trackError(_ error: Error, context: String) {
-        metricsQueue.async { [weak self] in
-            guard let self = self else { return }
-            
-            Task { @MainActor in
-                self.metrics.errors.append(ErrorRecord(
-                    timestamp: Date(),
-                    error: error,
-                    context: context
-                ))
-                
-                // Keep only recent errors
-                let cutoff = Date().addingTimeInterval(-3600) // 1 hour
-                self.metrics.errors.removeAll { $0.timestamp < cutoff }
-                
-                self.logger.error("Error in \(context): \(error.localizedDescription)")
-            }
-        }
+        metrics.errors.append(ErrorRecord(
+            timestamp: Date(),
+            error: error,
+            context: context
+        ))
+        
+        // Keep only recent errors
+        let cutoff = Date().addingTimeInterval(-3600) // 1 hour
+        metrics.errors.removeAll { $0.timestamp < cutoff }
+        
+        logger.error("Error in \(context): \(error.localizedDescription)")
     }
     
     /// Get current metrics snapshot
-    func getMetricsSnapshot() -> ProductionMetrics {
+    func getMetricsSnapshot() async -> ProductionMetrics {
         return metrics
     }
     
+    /// Get current alerts
+    func getAlerts() async -> [MonitoringAlert] {
+        return alerts
+    }
+    
     /// Export metrics for analysis
-    func exportMetrics() -> Data? {
+    func exportMetrics() async -> Data? {
         let encoder = JSONEncoder()
         encoder.dateEncodingStrategy = .iso8601
         encoder.outputFormatting = .prettyPrinted
@@ -184,7 +158,7 @@ final class MonitoringService: ObservableObject {
     }
     
     /// Reset metrics
-    func resetMetrics() {
+    func resetMetrics() async {
         metrics = ProductionMetrics()
         alerts.removeAll()
         logger.info("Metrics reset")
@@ -194,9 +168,10 @@ final class MonitoringService: ObservableObject {
     
     private func startMonitoring() {
         // Periodic metrics reporting
-        metricsTimer = Timer.scheduledTimer(withTimeInterval: 300, repeats: true) { [weak self] _ in
-            Task { @MainActor in
-                self?.reportMetrics()
+        Task {
+            while true {
+                try? await Task.sleep(nanoseconds: 300_000_000_000) // 300 seconds
+                await reportMetrics()
             }
         }
         
@@ -206,7 +181,7 @@ final class MonitoringService: ObservableObject {
         }
     }
     
-    private func reportMetrics() {
+    private func reportMetrics() async {
         let snapshot = metrics
         
         // Log summary

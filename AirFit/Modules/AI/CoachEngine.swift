@@ -1219,58 +1219,8 @@ extension CoachEngine {
 // MARK: - Factory Methods
 extension CoachEngine {
     /// Creates a default instance of CoachEngine with minimal dependencies for development.
-    /// Uses inline stub implementations to avoid external dependencies.
+    /// Uses stub implementations to avoid external dependencies.
     static func createDefault(modelContext: ModelContext) -> CoachEngine {
-        // Minimal inline stub for AIServiceProtocol
-        @MainActor
-        final class MinimalAIAPIService: AIServiceProtocol {
-            var serviceIdentifier = "minimal-ai-service"
-            var isConfigured = true
-            var activeProvider: AIProvider = .anthropic
-            var availableModels: [AIModel] = []
-            
-            func configure() async throws {
-                // No-op for development
-            }
-            
-            func reset() async {
-                // No-op for development
-            }
-            
-            func healthCheck() async -> ServiceHealth {
-                ServiceHealth(
-                    status: .healthy,
-                    lastCheckTime: Date(),
-                    responseTime: nil,
-                    errorMessage: nil,
-                    metadata: [:]
-                )
-            }
-            
-            func configure(provider: AIProvider, apiKey: String, model: String?) async throws {
-                // No-op for development
-            }
-            
-            func sendRequest(_ request: AIRequest) -> AsyncThrowingStream<AIResponse, Error> {
-                AsyncThrowingStream { continuation in
-                    continuation.yield(.textDelta("Mock response"))
-                    continuation.finish()
-                }
-            }
-            
-            func validateConfiguration() async throws -> Bool {
-                return true
-            }
-            
-            func checkHealth() async -> ServiceHealth {
-                return await healthCheck()
-            }
-            
-            func estimateTokenCount(for text: String) -> Int {
-                return text.count / 4
-            }
-        }
-        
         // Create minimal preview services that conform to AI protocols
         let previewWorkoutService = PreviewAIWorkoutService()
         let previewAnalyticsService = PreviewAIAnalyticsService()

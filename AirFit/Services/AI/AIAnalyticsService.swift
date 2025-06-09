@@ -3,8 +3,7 @@ import SwiftData
 
 /// Basic implementation of AI Analytics Service
 /// Wraps the base AnalyticsServiceProtocol and adds AI-specific functionality
-@MainActor
-final class AIAnalyticsService: AIAnalyticsServiceProtocol {
+actor AIAnalyticsService: AIAnalyticsServiceProtocol {
     private let analyticsService: AnalyticsServiceProtocol
     
     init(analyticsService: AnalyticsServiceProtocol) {

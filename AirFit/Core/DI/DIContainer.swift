@@ -4,9 +4,6 @@ import SwiftUI
 /// Modern dependency injection container for AirFit
 /// Provides a clean, testable alternative to singletons
 public final class DIContainer: @unchecked Sendable {
-    /// Shared instance for app initialization
-    /// Note: This is only used during app startup to avoid SwiftUI environment timing issues
-    nonisolated(unsafe) public static var shared: DIContainer?
     /// Lifetime of a registered dependency
     public enum Lifetime {
         case singleton  // Created once, shared across app
@@ -185,53 +182,4 @@ public extension View {
     }
 }
 
-// MARK: - Property Wrapper for SwiftUI
 
-@propertyWrapper
-@MainActor
-public struct DIInjected<T: Sendable> {
-    @Environment(\.diContainer) private var container
-    private let type: T.Type
-    private let name: String?
-    
-    public init(_ type: T.Type, name: String? = nil) {
-        self.type = type
-        self.name = name
-    }
-    
-    public var wrappedValue: T {
-        get {
-            // This is a synchronous wrapper
-            // In practice, dependencies should be pre-resolved at view creation
-            synchronousResolve {
-                try await container.resolve(type, name: name)
-            }
-        }
-    }
-}
-
-// Helper for synchronous resolution (use sparingly)
-@MainActor
-fileprivate func synchronousResolve<T: Sendable>(_ operation: @escaping @Sendable () async throws -> T) -> T {
-    let semaphore = DispatchSemaphore(value: 0)
-    var result: Result<T, Error>!
-    
-    Task.detached {
-        do {
-            let value = try await operation()
-            result = .success(value)
-        } catch {
-            result = .failure(error)
-        }
-        semaphore.signal()
-    }
-    
-    semaphore.wait()
-    
-    switch result! {
-    case .success(let value):
-        return value
-    case .failure(let error):
-        fatalError("Synchronous resolution failed: \(error)")
-    }
-}

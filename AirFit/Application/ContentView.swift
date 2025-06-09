@@ -80,8 +80,8 @@ struct ContentView: View {
     private func createAppState() async {
         AppLogger.info("ContentView.createAppState: Starting", category: .app)
         do {
-            // Use shared container during initialization
-            let containerToUse = DIContainer.shared ?? diContainer
+            // Use the container from environment
+            let containerToUse = activeContainer ?? diContainer
             AppLogger.info("ContentView.createAppState: Using container ID: \(ObjectIdentifier(containerToUse))", category: .app)
             
             AppLogger.info("ContentView.createAppState: Resolving APIKeyManager", category: .app)

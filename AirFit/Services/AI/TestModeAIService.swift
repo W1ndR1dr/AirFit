@@ -1,8 +1,7 @@
 import Foundation
 
 /// AI service that returns mock data for testing the UI without real API calls
-@MainActor
-final class TestModeAIService: AIServiceProtocol {
+actor TestModeAIService: @preconcurrency AIServiceProtocol {
     // MARK: - ServiceProtocol
     var isConfigured: Bool { true }
     var serviceIdentifier: String { "test_mode_ai_service" }

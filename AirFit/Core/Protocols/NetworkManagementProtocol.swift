@@ -1,7 +1,6 @@
 import Foundation
 
 // MARK: - Network Management Protocol
-@MainActor
 protocol NetworkManagementProtocol: AnyObject {
     var isReachable: Bool { get }
     var currentNetworkType: NetworkType { get }

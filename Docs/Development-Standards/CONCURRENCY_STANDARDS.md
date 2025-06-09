@@ -25,6 +25,8 @@ This document defines concurrency patterns for the AirFit codebase to prevent pe
 3. **Structured concurrency** - Prefer async/await over unstructured Tasks
 4. **No blocking operations** - Never block threads, especially the main thread
 5. **Clear isolation boundaries** - Each component should have clear actor isolation
+6. **Lazy service initialization** - Services created only when first accessed
+7. **Zero-cost app startup** - No service creation during DI registration
 
 ## Actor Isolation Patterns
 
@@ -129,6 +131,24 @@ actor UserService: UserServiceProtocol {
     func updateProfile(_ profile: Profile) async throws {
         // Runs on actor's executor
     }
+}
+```
+
+### Lazy DI Integration
+```swift
+// ❌ BAD: Eager service creation during registration
+container.registerSingleton(ServiceProtocol.self, instance: await createService())
+
+// ✅ GOOD: Lazy factory registration
+container.register(ServiceProtocol.self, lifetime: .singleton) { resolver in
+    // This closure is stored, NOT executed during registration
+    await createService()
+}
+
+// ✅ PERFECT: Complete lazy pattern with dependencies
+container.register(ServiceProtocol.self, lifetime: .singleton) { resolver in
+    let dependency = try await resolver.resolve(DependencyProtocol.self)
+    return await ServiceImplementation(dependency: dependency)
 }
 ```
 
@@ -237,6 +257,15 @@ class AppState {
     }
 }
 
+// ❌ BAD: DIBootstrapper blocking main thread
+@MainActor
+class DIBootstrapper {
+    static func bootstrap() async throws {
+        // Creating 34 services sequentially on main thread!
+        await createAllServices()
+    }
+}
+
 // ✅ GOOD: Simple init, explicit loading
 class AppState {
     init() {}
@@ -244,6 +273,14 @@ class AppState {
     func initialize() async throws {
         // Explicit, can show loading UI
     }
+}
+
+// ✅ PERFECT: Zero-cost DI bootstrapping
+public static func createAppContainer(modelContainer: ModelContainer) -> DIContainer {
+    let container = DIContainer()
+    // Only registers factories, no service creation!
+    registerServices(in: container, modelContainer: modelContainer)
+    return container  // Returns instantly
 }
 ```
 
@@ -377,9 +414,14 @@ func testCancellation() async throws {
 - [ ] No MainActor.run in services
 - [ ] Cancellation is handled properly
 - [ ] Error handling crosses actor boundaries correctly
+- [ ] DI registration uses lazy factories, not eager instances
+- [ ] No service creation during app initialization
+- [ ] Services marked with appropriate actor isolation
 
 ## References
 
 - [Swift Concurrency Guide](https://docs.swift.org/swift-book/documentation/the-swift-programming-language/concurrency)
 - Research Reports: `Concurrency_Model_Analysis.md`
 - Recovery Plan: `CODEBASE_RECOVERY_PLAN.md`
+- DI Standards: `DI_LAZY_RESOLUTION_STANDARDS.md`
+- MainActor Guidelines: `MAINACTOR_CLEANUP_STANDARDS.md`

@@ -2,8 +2,7 @@ import Foundation
 import HealthKit
 
 /// Handles HealthKit data fetching operations
-@MainActor
-final class HealthKitDataFetcher {
+actor HealthKitDataFetcher {
     private let healthStore: HKHealthStore
 
     init(healthStore: HKHealthStore) {

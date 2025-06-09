@@ -4,18 +4,25 @@ import SwiftData
 import HealthKit
 
 @MainActor
-final class WorkoutSyncService: NSObject {
+final class WorkoutSyncService {
     static let shared = WorkoutSyncService()
+    
+    // Wrapper for NSObject requirements
+    private let delegateHandler = WorkoutSyncDelegateHandler()
 
     private let session: WCSession
     private var pendingWorkouts: [WorkoutBuilderData] = []
 
-    override private init() {
+    private init() {
         self.session = WCSession.default
-        super.init()
-
+        
+        setupSession()
+    }
+    
+    private func setupSession() {
         if WCSession.isSupported() {
-            session.delegate = self
+            delegateHandler.configure(with: self)
+            session.delegate = delegateHandler
             session.activate()
         }
     }
@@ -31,11 +38,11 @@ final class WorkoutSyncService: NSObject {
 
         do {
             let encoded = try JSONEncoder().encode(data)
-            session.sendMessageData(encoded, replyHandler: nil) { error in
-                Task { @MainActor in
-                    self.pendingWorkouts.append(data)
-                    AppLogger.error("Failed to send workout data", error: error, category: .data)
-                }
+            let capturedData = data // Capture data to avoid sending issues
+            session.sendMessageData(encoded, replyHandler: nil) { [weak self] error in
+                guard let self = self else { return }
+                self.addPendingWorkout(capturedData)
+                AppLogger.error("Failed to send workout data", error: error, category: .data)
             }
             AppLogger.info("Workout data sent to iPhone", category: .data)
         } catch {
@@ -103,9 +110,38 @@ final class WorkoutSyncService: NSObject {
 
         AppLogger.info("Workout processed and saved", category: .data)
     }
+    
+    // Helper method for delegate
+    func addPendingWorkout(_ data: WorkoutBuilderData) {
+        pendingWorkouts.append(data)
+    }
+    
+    // Called by delegate when message received
+    func handleReceivedMessageData(_ messageData: Data) {
+        do {
+            let workoutData = try JSONDecoder().decode(WorkoutBuilderData.self, from: messageData)
+            Task { @MainActor in
+                NotificationCenter.default.post(
+                    name: .workoutDataReceived,
+                    object: nil,
+                    userInfo: ["data": workoutData]
+                )
+            }
+        } catch {
+            AppLogger.error("Failed to decode workout data", error: error, category: .data)
+        }
+    }
 }
 
-extension WorkoutSyncService: WCSessionDelegate {
+// Separate class to handle WCSessionDelegate requirements
+@MainActor
+final class WorkoutSyncDelegateHandler: NSObject, WCSessionDelegate {
+    private weak var service: WorkoutSyncService?
+    
+    func configure(with service: WorkoutSyncService) {
+        self.service = service
+    }
+    
     nonisolated func session(_ session: WCSession, activationDidCompleteWith activationState: WCSessionActivationState, error: Error?) {
         if let error = error {
             AppLogger.error("WCSession activation failed", error: error, category: .data)
@@ -121,16 +157,7 @@ extension WorkoutSyncService: WCSessionDelegate {
 
     nonisolated func session(_ session: WCSession, didReceiveMessageData messageData: Data) {
         Task { @MainActor in
-            do {
-                let workoutData = try JSONDecoder().decode(WorkoutBuilderData.self, from: messageData)
-                NotificationCenter.default.post(
-                    name: .workoutDataReceived,
-                    object: nil,
-                    userInfo: ["data": workoutData]
-                )
-            } catch {
-                AppLogger.error("Failed to decode workout data", error: error, category: .data)
-            }
+            service?.handleReceivedMessageData(messageData)
         }
     }
 }

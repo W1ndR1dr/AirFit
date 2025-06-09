@@ -6,6 +6,8 @@ This comprehensive analysis catalogs all 50+ services in the AirFit application,
 
 The service layer demonstrates sophisticated functionality across AI integration, health tracking, and user management, but the architectural inconsistencies create significant technical debt and initialization complexity.
 
+**UPDATE (2025-01-08)**: Phase 1 complete! DI system rebuilt with lazy resolution, @MainActor reduced from 258 to minimum, and 7 services converted to actors. Ready for Phase 2.1 standardization.
+
 ## Table of Contents
 1. Service Inventory
 2. Service Categories
@@ -337,29 +339,30 @@ let healthData = await HealthKitManager.shared.fetchData()
 
 ## 6. Issues Identified
 
-### Critical Issues 🔴
+### Critical Issues 🔴 (Updated 2025-01-08)
 
-1. **Inconsistent ServiceProtocol Implementation**
+1. **Inconsistent ServiceProtocol Implementation** 🎯 PHASE 2.1 TARGET
    - Location: Throughout service layer
    - Impact: Lifecycle management impossible
    - Evidence: Only 2/20+ services implement base protocol
 
-2. **Mixed Actor Isolation**
+2. ~~**Mixed Actor Isolation**~~ ✅ PARTIALLY FIXED IN PHASE 1.2
    - Location: Service implementations
    - Impact: Potential deadlocks during initialization
-   - Evidence: 7 actors, 10+ @MainActor, 5+ @unchecked Sendable
+   - Status: 7 services converted to actors, @MainActor reduced to minimum
+   - Remaining: 5+ @unchecked Sendable to fix in Phase 2.2
 
-3. **Singleton Abuse**
-   - Location: `HealthKitManager.swift:10`, `NetworkClient.swift:8`
+3. **Singleton Abuse** 🎯 PHASE 2.1 TARGET
+   - Location: `HealthKitManager.swift:10`, `NetworkClient.shared`
    - Impact: Initialization order dependencies
    - Evidence: Direct singleton access throughout codebase
 
 ### High Priority Issues 🟠
 
-1. **No Service Registry**
+1. ~~**No Service Registry**~~ ✅ FIXED - Deleted unused ServiceRegistry.swift
    - Location: Missing infrastructure
    - Impact: Manual service wiring required
-   - Evidence: No ServiceRegistry implementation found
+   - Status: Using lazy DI pattern instead (Phase 1.3)
 
 2. **Inconsistent Error Handling**
    - Location: All service implementations
@@ -414,6 +417,7 @@ actor LLMOrchestrator {
 ### 7.3 Repository Pattern (Implicit)
 ```swift
 // Services act as repositories for their domains
+@MainActor  // Required for SwiftData
 class UserService: UserServiceProtocol {
     private let modelContext: ModelContext
     // CRUD operations for User entity
@@ -454,42 +458,54 @@ graph TD
 - **Security**: Keychain Services
 - **AI APIs**: OpenAI, Anthropic, Google
 
-## 9. Recommendations
+## 9. Recommendations (Updated 2025-01-08)
 
-### Immediate Actions
+### Phase 2.1: Standardize Services (CURRENT TARGET)
 
-1. **Standardize ServiceProtocol Implementation**
-   - Rationale: Enable consistent lifecycle management
-   - Action: Update all services to implement ServiceProtocol
-   - Priority: Critical for initialization fix
+1. **Implement ServiceProtocol on All Services**
+   - Action: Add ServiceProtocol to 41 remaining services
+   - Priority: Critical for lifecycle management
+   - Pattern: Follow AIAnalyticsService example
 
-2. **Resolve Actor Isolation Conflicts**
-   - Rationale: Prevent deadlocks during startup
-   - Action: Choose consistent concurrency model
-   - Priority: Critical for black screen fix
+2. **Remove Singleton Patterns**
+   - Action: Convert HealthKitManager.shared, NetworkClient.shared
+   - Priority: Critical for testability
+   - Pattern: Register in DIBootstrapper with lazy resolution
 
-3. **Implement Service Registry**
-   - Rationale: Centralize service initialization
-   - Action: Create ServiceRegistry with dependency resolution
-   - Priority: High for initialization order
+3. **Add Consistent Error Handling**
+   - Action: Create base ServiceError type
+   - Priority: High for debugging
+   - Pattern: Extend AppError with service-specific cases
 
-### Long-term Improvements
+4. **Document Service Dependencies**
+   - Action: Add dependency documentation to each service
+   - Priority: Medium for maintainability
+   - Pattern: Use header comments with clear dependency list
 
-1. **Eliminate Singletons**
-   - Benefits: Testability, clear dependencies
-   - Approach: Convert to DI container registration
+### Phase 2.2: Fix Concurrency Model
 
-2. **Unified Error Handling**
-   - Benefits: Consistent error recovery
-   - Approach: Base error protocol with extensions
+1. **Remove @unchecked Sendable (5+ instances)**
+   - AIService, DemoAIService, OnboardingService, etc.
+   - Convert to proper actor isolation
 
-3. **Service Health Monitoring**
-   - Benefits: Runtime diagnostics
-   - Approach: Implement health checks in all services
+2. **Establish Clear Actor Boundaries**
+   - Services: actors (unless SwiftData bound)
+   - ViewModels: @MainActor
+   - Data models: Sendable or @unchecked with documentation
 
-4. **Data Access Layer**
-   - Benefits: Abstract SwiftData complexity
-   - Approach: Repository pattern implementation
+3. **Fix Unstructured Task Usage**
+   - Add proper cancellation support
+   - Use structured concurrency patterns
+
+### Phase 2.3: Data Layer Improvements
+
+1. **Abstract SwiftData Complexity**
+   - Create repository pattern wrappers
+   - Handle ModelContext lifecycle properly
+
+2. **Implement Migration System**
+   - Version schema changes
+   - Test migration paths
 
 ## 10. Service Catalog Table
 
@@ -536,13 +552,14 @@ graph TD
 | ExerciseDatabase | Data | Unknown | Unknown | None | ❌ | ❌ |
 | WorkoutSyncService | Sync | Unknown | Unknown | ModelContext | ❌ | ❌ |
 
-### Summary Statistics
+### Summary Statistics (Updated 2025-01-08)
 - **Total Services**: 45+ implementations
-- **Implement ServiceProtocol**: 4 (8.9%)
-- **Actor-based**: 7 (15.6%)
-- **@MainActor**: 10+ (22.2%)
-- **Singleton Pattern**: 2 (4.4%)
-- **Have Health Checks**: 4 (8.9%)
+- **Implement ServiceProtocol**: 4 (8.9%) 🎯 TARGET: 100%
+- **Actor-based**: 14 (31.1%) ✅ IMPROVED from 7
+- **@MainActor**: 7 (15.6%) ✅ REDUCED from 10+
+- **Singleton Pattern**: 2 (4.4%) 🎯 TARGET: 0%
+- **Have Health Checks**: 4 (8.9%) 🎯 TARGET: 100%
+- **Lazy DI Registration**: 100% ✅ COMPLETE
 
 ## Appendix: File Reference List
 

@@ -1,7 +1,6 @@
 import Foundation
 
 /// Configuration for all services in the application
-@MainActor
 struct ServiceConfiguration: Sendable {
     // MARK: - AI Service Configuration
     struct AIConfiguration: Sendable {

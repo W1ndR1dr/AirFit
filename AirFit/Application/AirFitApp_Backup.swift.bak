@@ -92,22 +92,27 @@ struct AirFitApp: App {
     private func initializeApp() async {
         isInitializing = true
         
-        // Create DI container with perfect lazy resolution
-        // This is FAST - just registers factories, doesn't create services
-        if isTestMode {
-            AppLogger.info("Running in TEST MODE with mock services", category: .app)
-            diContainer = DIBootstrapper.createMockContainer(
-                modelContainer: Self.sharedModelContainer
-            )
-        } else {
-            AppLogger.info("AirFitApp: Creating DI container", category: .app)
-            diContainer = DIBootstrapper.createAppContainer(
-                modelContainer: Self.sharedModelContainer
-            )
-            AppLogger.info("AirFitApp: DI container created instantly", category: .app)
+        do {
+            if isTestMode {
+                AppLogger.info("Running in TEST MODE with mock services", category: .app)
+                diContainer = try await DIBootstrapper.createMockContainer(
+                    modelContainer: Self.sharedModelContainer
+                )
+            } else {
+                AppLogger.info("AirFitApp: Creating DI container", category: .app)
+                diContainer = try await DIBootstrapper.createAppContainer(
+                    modelContainer: Self.sharedModelContainer
+                )
+                AppLogger.info("AirFitApp: DI container created with ID: \(ObjectIdentifier(diContainer!))", category: .app)
+            }
+        } catch {
+            AppLogger.error("Failed to create DI container", error: error, category: .app)
+            // Create a minimal container with just the model container
+            let container = DIContainer()
+            container.registerSingleton(ModelContainer.self, instance: Self.sharedModelContainer)
+            diContainer = container
         }
         
-        // UI can render immediately - services will be created lazily as needed
         isInitializing = false
     }
 }
