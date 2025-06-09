@@ -22,7 +22,12 @@ struct ConversationMetrics {
 }
 
 // MARK: - Analytics Service
-actor ConversationAnalytics {
+actor ConversationAnalytics: ServiceProtocol {
+    // MARK: - ServiceProtocol
+    nonisolated let serviceIdentifier = "conversation-analytics"
+    private var _isConfigured = false
+    nonisolated var isConfigured: Bool { true } // Always ready
+    
     private var events: [AnalyticsEventRecord] = []
     private let maxEventsInMemory = 1000
     
@@ -189,6 +194,38 @@ actor ConversationAnalytics {
         }
         
         AppLogger.debug("[ConversationAnalytics] \(eventDescription)", category: .onboarding)
+    }
+    
+    // MARK: - ServiceProtocol Methods
+    
+    func configure() async throws {
+        guard !_isConfigured else { return }
+        _isConfigured = true
+        AppLogger.info("\(serviceIdentifier) configured", category: .services)
+    }
+    
+    func reset() async {
+        events.removeAll()
+        _isConfigured = false
+        AppLogger.info("\(serviceIdentifier) reset", category: .services)
+    }
+    
+    func healthCheck() async -> ServiceHealth {
+        let metrics = calculateMetrics()
+        let errorRate = getErrorRate()
+        
+        return ServiceHealth(
+            status: errorRate < 0.1 ? .healthy : .degraded,
+            lastCheckTime: Date(),
+            responseTime: nil,
+            errorMessage: nil,
+            metadata: [
+                "eventCount": "\(events.count)",
+                "completionRate": String(format: "%.2f%%", metrics.completionRate * 100),
+                "errorRate": String(format: "%.2f%%", errorRate * 100),
+                "avgCompletionTime": String(format: "%.1fs", metrics.averageCompletionTime)
+            ]
+        )
     }
 }
 

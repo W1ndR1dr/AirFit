@@ -2,17 +2,59 @@ import Foundation
 import HealthKit
 import Observation
 
+/// # HealthKitManager
+/// 
+/// ## Purpose
+/// Comprehensive health data integration service that manages all HealthKit operations.
+/// Provides bidirectional sync between AirFit and Apple Health for fitness and nutrition data.
+///
+/// ## Dependencies
+/// - `HealthKitDataFetcher`: Handles complex HealthKit queries and data aggregation
+/// - `HealthKitSleepAnalyzer`: Specialized sleep data analysis and pattern detection
+///
+/// ## Key Responsibilities
+/// - Request and manage HealthKit authorization
+/// - Fetch activity metrics (steps, calories, distance, etc.)
+/// - Read and write nutrition data (macros, water intake)
+/// - Sync workout data bidirectionally
+/// - Analyze sleep patterns and recovery metrics
+/// - Track heart health indicators (HRV, resting HR, VO2 Max)
+/// - Monitor body composition metrics
+///
+/// ## Usage
+/// ```swift
+/// let healthKit = await container.resolve(HealthKitManagerProtocol.self)
+/// 
+/// // Request authorization
+/// try await healthKit.requestAuthorization()
+/// 
+/// // Fetch today's metrics
+/// let activity = try await healthKit.fetchTodayActivityMetrics()
+/// 
+/// // Save nutrition data
+/// let sampleIDs = try await healthKit.saveFoodEntry(foodEntry)
+/// ```
+///
+/// ## Important Notes
+/// - @MainActor isolated for UI updates and @Observable support
+/// - Handles background delivery for continuous sync
+/// - Automatically manages HealthKit session lifecycle
 @MainActor
 @Observable
-final class HealthKitManager {
-    // MARK: - Singleton
-    static let shared = HealthKitManager()
-
+final class HealthKitManager: HealthKitManaging, ServiceProtocol {
     // MARK: - Properties
     private let healthStore = HKHealthStore()
     private let dataFetcher: HealthKitDataFetcher
     private let sleepAnalyzer: HealthKitSleepAnalyzer
     private(set) var authorizationStatus: AuthorizationStatus = .notDetermined
+    
+    // MARK: - ServiceProtocol
+    nonisolated let serviceIdentifier = "healthkit-manager"
+    private var _isConfigured = false
+    nonisolated var isConfigured: Bool {
+        // Since this is @MainActor, we need to check on main thread
+        return MainActor.assumeIsolated { _isConfigured }
+    }
 
     // MARK: - Authorization Status
     enum AuthorizationStatus {
@@ -47,17 +89,65 @@ final class HealthKitManager {
     }
 
     // MARK: - Initialization
-    private init() {
+    init() {
         self.dataFetcher = HealthKitDataFetcher(healthStore: healthStore)
         self.sleepAnalyzer = HealthKitSleepAnalyzer(healthStore: healthStore)
+    }
+    
+    // MARK: - ServiceProtocol Methods
+    
+    func configure() async throws {
+        guard !_isConfigured else { return }
+        
         refreshAuthorizationStatus()
+        _isConfigured = true
+        
+        AppLogger.info("HealthKitManager configured", category: .health)
+    }
+    
+    func reset() async {
+        authorizationStatus = .notDetermined
+        _isConfigured = false
+        AppLogger.info("HealthKitManager reset", category: .health)
+    }
+    
+    nonisolated func healthCheck() async -> ServiceHealth {
+        await MainActor.run {
+            let canAccessHealthKit = HKHealthStore.isHealthDataAvailable()
+            let hasAuthorization = authorizationStatus == .authorized
+            
+            let status: ServiceHealth.Status
+            let errorMessage: String?
+            
+            if !canAccessHealthKit {
+                status = .unhealthy
+                errorMessage = "HealthKit not available on this device"
+            } else if !hasAuthorization {
+                status = authorizationStatus == .notDetermined ? .degraded : .unhealthy
+                errorMessage = authorizationStatus == .notDetermined ? "Authorization not requested" : "Authorization denied"
+            } else {
+                status = .healthy
+                errorMessage = nil
+            }
+            
+            return ServiceHealth(
+                status: status,
+                lastCheckTime: Date(),
+                responseTime: nil,
+                errorMessage: errorMessage,
+                metadata: [
+                    "authorizationStatus": authorizationStatus.rawValue,
+                    "healthKitAvailable": "\(canAccessHealthKit)"
+                ]
+            )
+        }
     }
 
     // MARK: - Authorization
     func requestAuthorization() async throws {
         guard HKHealthStore.isHealthDataAvailable() else {
             authorizationStatus = .restricted
-            throw HealthKitError.notAvailable
+            throw AppError.from(HealthKitError.notAvailable)
         }
 
         do {
@@ -407,7 +497,7 @@ final class HealthKitManager {
     /// Saves water intake to HealthKit
     func saveWaterIntake(amountML: Double, date: Date = Date()) async throws -> String? {
         guard let type = HKQuantityType.quantityType(forIdentifier: .dietaryWater) else {
-            throw HealthKitError.notAvailable
+            throw AppError.from(HealthKitError.notAvailable)
         }
         
         let quantity = HKQuantity(unit: .literUnit(with: .milli), doubleValue: amountML)
@@ -504,7 +594,7 @@ final class HealthKitManager {
     /// Saves a workout to HealthKit
     func saveWorkout(_ workout: Workout) async throws -> String {
         guard let workoutType = workout.workoutTypeEnum else {
-            throw HealthKitError.invalidData
+            throw AppError.from(HealthKitError.invalidData)
         }
         
         let hkWorkoutType = workoutType.toHealthKitType()
@@ -556,7 +646,7 @@ final class HealthKitManager {
     /// Deletes a workout from HealthKit
     func deleteWorkout(healthKitID: String) async throws {
         guard let uuid = UUID(uuidString: healthKitID) else {
-            throw HealthKitError.invalidData
+            throw AppError.from(HealthKitError.invalidData)
         }
         
         // Create predicate to find the workout
@@ -581,7 +671,7 @@ final class HealthKitManager {
         }
         
         guard let workout = workouts.first else {
-            throw HealthKitError.dataNotFound
+            throw AppError.from(HealthKitError.dataNotFound)
         }
         
         // Delete the workout
@@ -600,6 +690,30 @@ final class HealthKitManager {
         AppLogger.info("Deleted workout from HealthKit", category: .health)
     }
 
+}
+
+// MARK: - Authorization Status Extension
+extension HealthKitManager.AuthorizationStatus: RawRepresentable {
+    public typealias RawValue = String
+    
+    public init?(rawValue: String) {
+        switch rawValue {
+        case "notDetermined": self = .notDetermined
+        case "authorized": self = .authorized
+        case "denied": self = .denied
+        case "restricted": self = .restricted
+        default: return nil
+        }
+    }
+    
+    public var rawValue: String {
+        switch self {
+        case .notDetermined: return "notDetermined"
+        case .authorized: return "authorized"
+        case .denied: return "denied"
+        case .restricted: return "restricted"
+        }
+    }
 }
 
 // MARK: - Nutrition Summary Model

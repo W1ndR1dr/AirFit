@@ -19,9 +19,13 @@ protocol WhisperModelManagerProtocol: AnyObject {
 }
 
 @MainActor
-final class WhisperModelManager: ObservableObject, WhisperModelManagerProtocol {
-    // MARK: - Singleton
-    static let shared = WhisperModelManager()
+final class WhisperModelManager: ObservableObject, WhisperModelManagerProtocol, ServiceProtocol {
+    // MARK: - ServiceProtocol
+    nonisolated let serviceIdentifier = "whisper-model-manager"
+    private var _isConfigured = false
+    nonisolated var isConfigured: Bool {
+        MainActor.assumeIsolated { _isConfigured }
+    }
 
     // MARK: - Model Configuration
     struct WhisperModel: Identifiable, Sendable {
@@ -118,13 +122,51 @@ final class WhisperModelManager: ObservableObject, WhisperModelManagerProtocol {
     @Published var isDownloading: [String: Bool] = [:]
     @Published var downloadProgress: [String: Double] = [:]
     @Published var activeModel: String = "base"
+    private var currentDownloadTask: Task<Void, Never>?
 
     // MARK: - Initialization
-    private init() {
+    init() {
         let support = FileManager.default.urls(for: .applicationSupportDirectory, in: .userDomainMask).first!
         modelStorageURL = support.appendingPathComponent("WhisperModels")
         try? FileManager.default.createDirectory(at: modelStorageURL, withIntermediateDirectories: true)
         loadModelInfo()
+    }
+    
+    // MARK: - ServiceProtocol Methods
+    
+    func configure() async throws {
+        guard !_isConfigured else { return }
+        _isConfigured = true
+        AppLogger.info("\(serviceIdentifier) configured", category: .services)
+    }
+    
+    func reset() async {
+        downloadedModels.removeAll()
+        activeModel = "base"
+        isDownloading.removeAll()
+        downloadProgress.removeAll()
+        currentDownloadTask?.cancel()
+        currentDownloadTask = nil
+        _isConfigured = false
+        AppLogger.info("\(serviceIdentifier) reset", category: .services)
+    }
+    
+    func healthCheck() async -> ServiceHealth {
+        updateDownloadedModels()
+        let hasModels = !downloadedModels.isEmpty
+        let activeModelExists = modelPath(for: activeModel) != nil
+        
+        return ServiceHealth(
+            status: hasModels && activeModelExists ? .healthy : .degraded,
+            lastCheckTime: Date(),
+            responseTime: nil,
+            errorMessage: hasModels ? nil : "No models downloaded",
+            metadata: [
+                "downloadedModels": "\(downloadedModels.count)",
+                "activeModel": activeModel,
+                "availableModels": "\(availableModels.count)"
+            ]
+        )
     }
 
     // MARK: - Model Management
@@ -155,10 +197,10 @@ final class WhisperModelManager: ObservableObject, WhisperModelManagerProtocol {
     // MARK: - Download Management
     func downloadModel(_ modelId: String) async throws {
         guard let model = availableModels.first(where: { $0.id == modelId }) else {
-            throw ModelError.modelNotFound
+            throw AppError.from(ModelError.modelNotFound)
         }
         guard hasEnoughStorage(for: model) else {
-            throw ModelError.insufficientStorage
+            throw AppError.from(ModelError.insufficientStorage)
         }
 
         isDownloading[modelId] = true
@@ -186,7 +228,7 @@ final class WhisperModelManager: ObservableObject, WhisperModelManagerProtocol {
         } catch {
             downloadProgress[modelId] = 0.0
             isDownloading[modelId] = false
-            throw ModelError.downloadFailed(error.localizedDescription)
+            throw AppError.from(ModelError.downloadFailed(error.localizedDescription))
         }
 
         isDownloading[modelId] = false

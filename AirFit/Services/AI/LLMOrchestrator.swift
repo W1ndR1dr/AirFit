@@ -1,7 +1,57 @@
 import Foundation
 
+/// # LLMOrchestrator
+/// 
+/// ## Purpose
+/// Orchestrates multiple LLM providers (Anthropic, OpenAI, Gemini), handles intelligent
+/// fallback logic, manages response caching, and tracks usage/costs across providers.
+///
+/// ## Dependencies
+/// - `APIKeyManagementProtocol`: Secure API key storage and retrieval
+/// - `LLMProvider` implementations: Anthropic, OpenAI, and Gemini providers
+/// - `AIResponseCache`: Intelligent response caching with TTL management
+///
+/// ## Key Responsibilities
+/// - Manage multiple LLM provider instances
+/// - Select optimal model based on task requirements
+/// - Implement intelligent fallback when providers fail
+/// - Cache responses with task-specific TTL
+/// - Track token usage and costs across all providers
+/// - Provide streaming and completion APIs
+/// - Optimize model selection for cost/performance
+///
+/// ## Usage
+/// ```swift
+/// let orchestrator = await container.resolve(LLMOrchestrator.self)
+/// 
+/// // Complete request with automatic provider selection
+/// let response = try await orchestrator.complete(
+///     prompt: "Analyze this workout",
+///     task: .coaching,
+///     temperature: 0.7
+/// )
+/// 
+/// // Stream response
+/// let stream = orchestrator.stream(prompt: prompt, task: .quickResponse)
+/// for try await chunk in stream {
+///     // Handle streaming chunk
+/// }
+/// ```
+///
+/// ## Important Notes
+/// - Automatically validates API keys on startup
+/// - Implements smart caching based on task type
+/// - Tracks costs in real-time for budget management
+/// - Supports Gemini 2.5 Flash thinking model with budget control
 @MainActor
-final class LLMOrchestrator: ObservableObject {
+final class LLMOrchestrator: ObservableObject, ServiceProtocol {
+    // MARK: - ServiceProtocol
+    nonisolated let serviceIdentifier = "llm-orchestrator"
+    private var _isConfigured = false
+    nonisolated var isConfigured: Bool {
+        MainActor.assumeIsolated { _isConfigured }
+    }
+    
     private var providers: [LLMProviderIdentifier: any LLMProvider] = [:]
     let apiKeyManager: APIKeyManagementProtocol
     private let cache = AIResponseCache()
@@ -17,6 +67,42 @@ final class LLMOrchestrator: ObservableObject {
         Task {
             await setupProviders()
         }
+    }
+    
+    // MARK: - ServiceProtocol Methods
+    
+    func configure() async throws {
+        guard !_isConfigured else { return }
+        await setupProviders()
+        _isConfigured = true
+        AppLogger.info("\(serviceIdentifier) configured with \(availableProviders.count) providers", category: .services)
+    }
+    
+    func reset() async {
+        providers.removeAll()
+        availableProviders.removeAll()
+        totalCost = 0
+        usageHistory.removeAll()
+        await cache.clear()
+        _isConfigured = false
+        AppLogger.info("\(serviceIdentifier) reset", category: .services)
+    }
+    
+    func healthCheck() async -> ServiceHealth {
+        let healthyProviders = availableProviders.count
+        let status: ServiceHealth.Status = healthyProviders > 0 ? .healthy : .unhealthy
+        
+        return ServiceHealth(
+            status: status,
+            lastCheckTime: Date(),
+            responseTime: nil,
+            errorMessage: healthyProviders == 0 ? "No LLM providers available" : nil,
+            metadata: [
+                "availableProviders": availableProviders.map { $0.name }.joined(separator: ", "),
+                "totalCost": "\(totalCost)",
+                "cacheEnabled": "\(cacheEnabled)"
+            ]
+        )
     }
     
     // MARK: - Public API
@@ -189,7 +275,7 @@ final class LLMOrchestrator: ObservableObject {
                 )
             }
             
-            throw error
+            throw error.asAppError
         }
     }
     
@@ -200,14 +286,14 @@ final class LLMOrchestrator: ObservableObject {
     ) async throws -> any LLMProvider {
         // Find provider for model
         guard let model = LLMModel.allCases.first(where: { $0.identifier == modelId }) else {
-            throw LLMError.unsupportedFeature("Unknown model: \(modelId)")
+            throw AppError.from(LLMError.unsupportedFeature("Unknown model: \(modelId)"))
         }
         
         let providerId = model.provider
         
         guard !excluding.contains(providerId),
               let provider = providers[providerId] else {
-            throw LLMError.unsupportedFeature("Provider not available: \(providerId.name)")
+            throw AppError.from(LLMError.unsupportedFeature("Provider not available: \(providerId.name)"))
         }
         
         return provider

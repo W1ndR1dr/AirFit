@@ -110,7 +110,6 @@
 		3E3739AD88FE3D774FB40512 /* GeminiProvider.swift in Sources */ = {isa = PBXBuildFile; fileRef = D0F26646605D52C022B9D5D3 /* GeminiProvider.swift */; };
 		3E455C044ADFE3F85DCC8135 /* MockWhisperServiceWrapper.swift in Sources */ = {isa = PBXBuildFile; fileRef = 50FDFC0C2199A782548AD466 /* MockWhisperServiceWrapper.swift */; };
 		3E62881EAA37C5F202C99855 /* FoodTrackingViewModelAIIntegrationTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = FC961E59DB6F16C5721CCB45 /* FoodTrackingViewModelAIIntegrationTests.swift */; };
-		3E747FADF7481E869690D3B4 /* DependencyContainer.swift in Sources */ = {isa = PBXBuildFile; fileRef = E83CC15CADBC8BB540597DB8 /* DependencyContainer.swift */; };
 		3EAA0247C4878DDFE9D129A6 /* FoodLoggingView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 39F8B8EF7A3FE3412D4B38CA /* FoodLoggingView.swift */; };
 		3EDC5A4C0CE9F8E97F9E6E66 /* MealTemplate.swift in Sources */ = {isa = PBXBuildFile; fileRef = F0AF8EFC5F3C4C57A25C6C29 /* MealTemplate.swift */; };
 		3F1EE10CB0980A748BA8D152 /* VoicePerformanceMetrics.swift in Sources */ = {isa = PBXBuildFile; fileRef = 47CBEB36B7BF4466B3910233 /* VoicePerformanceMetrics.swift */; };
@@ -326,7 +325,6 @@
 		C5169D47DC65552A40136533 /* MockService.swift in Sources */ = {isa = PBXBuildFile; fileRef = F49A3CA73207E47D6DF84552 /* MockService.swift */; };
 		C5C052223962725B0E707021 /* PersonalityInsights.swift in Sources */ = {isa = PBXBuildFile; fileRef = E8E6ADC4A9C9691E23093B5F /* PersonalityInsights.swift */; };
 		C626586DAA1D4ACDA62D3F20 /* APIKeyManagerTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7AAB228BAE4A875E0AB61FFD /* APIKeyManagerTests.swift */; };
-		C6F44E468549D1F005DEBE94 /* OnboardingFlowView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4071F6125BF92A3ED839A43F /* OnboardingFlowView.swift */; };
 		C73E6BAB95BC07BF6858302D /* HealthKitDataFetcher.swift in Sources */ = {isa = PBXBuildFile; fileRef = 91436C969C2A75E4B9AF91E8 /* HealthKitDataFetcher.swift */; };
 		C8355D92F9CBCC805BE190C1 /* AppError.swift in Sources */ = {isa = PBXBuildFile; fileRef = BB0026FF0665ED4612F12B98 /* AppError.swift */; };
 		C87C283F4A150840BD32BBF5 /* ServiceModels.swift in Sources */ = {isa = PBXBuildFile; fileRef = D6E7688403FA225D26458DEA /* ServiceModels.swift */; };
@@ -565,7 +563,6 @@
 		3E5CD990694586F681E615A3 /* PhotoInputView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PhotoInputView.swift; sourceTree = "<group>"; };
 		3EE437464431FDC484624A03 /* WeatherServiceTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WeatherServiceTests.swift; sourceTree = "<group>"; };
 		406AE17398A49DFCBD369E9D /* ContextualSlider.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ContextualSlider.swift; sourceTree = "<group>"; };
-		4071F6125BF92A3ED839A43F /* OnboardingFlowView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OnboardingFlowView.swift; sourceTree = "<group>"; };
 		41FEF1BBCA6F7D043A1FFF8B /* AIRequestBuilder.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AIRequestBuilder.swift; sourceTree = "<group>"; };
 		42602D222E11E8661ED81FE9 /* SettingsComponents.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SettingsComponents.swift; sourceTree = "<group>"; };
 		428574168550C14CFF8577F1 /* FetchDescriptor+Convenience.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "FetchDescriptor+Convenience.swift"; sourceTree = "<group>"; };
@@ -838,7 +835,6 @@
 		E4B17502ACA8401FA697B77A /* FoodVoiceAdapter.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FoodVoiceAdapter.swift; sourceTree = "<group>"; };
 		E6E799392C2558DF545FD3CC /* DIContainerAsyncTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DIContainerAsyncTests.swift; sourceTree = "<group>"; };
 		E77C4A79AD84BCB4EFF35E9C /* OnboardingFlowUITests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OnboardingFlowUITests.swift; sourceTree = "<group>"; };
-		E83CC15CADBC8BB540597DB8 /* DependencyContainer.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DependencyContainer.swift; sourceTree = "<group>"; };
 		E890AD52F4C49D644109AF64 /* AICoachService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AICoachService.swift; sourceTree = "<group>"; };
 		E8A7FE0D46A314459231DE2D /* KeychainHelper.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = KeychainHelper.swift; sourceTree = "<group>"; };
 		E8E6ADC4A9C9691E23093B5F /* PersonalityInsights.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PersonalityInsights.swift; sourceTree = "<group>"; };
@@ -1569,7 +1565,6 @@
 				EB5A702CA6F9B448EB3B8AB5 /* MotivationalAccentsView.swift */,
 				F72E79054BC0702BE75F6C56 /* OnboardingContainerView.swift */,
 				261786F426BD3A3FD706B605 /* OnboardingErrorBoundary.swift */,
-				4071F6125BF92A3ED839A43F /* OnboardingFlowView.swift */,
 				88B98BFD0559C19A98E19089 /* OnboardingFlowViewDI.swift */,
 				A5A2960C3CBBD8DB96412C2F /* OnboardingNavigationButtons.swift */,
 				C6A1818454EC2F5B9EF2F160 /* OnboardingStateView.swift */,
@@ -2223,7 +2218,6 @@
 				2859FD2074D7CCB480D709EE /* AppInitializer.swift */,
 				AC30B5EC288B2008C9E5DA5B /* AppLogger.swift */,
 				0266E5A96E537418204292CF /* AppState.swift */,
-				E83CC15CADBC8BB540597DB8 /* DependencyContainer.swift */,
 				6177F063856EDE0A0CE7A138 /* Formatters.swift */,
 				CE8662879267717165BF7758 /* HapticManager.swift */,
 				0DB623F5A23537C0C2143D79 /* HealthKitAuthManager.swift */,
@@ -2801,7 +2795,6 @@
 				ABAE8613C48D9BACC1175724 /* DataManager.swift in Sources */,
 				C9193FBFA7A632D1D6241D59 /* Date+Helpers.swift in Sources */,
 				44012B48AADAC5E3E096E3A4 /* DemoAIService.swift in Sources */,
-				3E747FADF7481E869690D3B4 /* DependencyContainer.swift in Sources */,
 				C95F7A75A89388306DA9A6F3 /* DirectAIModels.swift in Sources */,
 				FAE98A9CE92B707B1178F633 /* DirectAIProcessor.swift in Sources */,
 				57DF0A116016497B27CF5C9E /* Double+Formatting.swift in Sources */,
@@ -2898,7 +2891,6 @@
 				8E5A618A9D9164610ADFDAA2 /* OnboardingCoordinator.swift in Sources */,
 				81EE9FAC470ACAA1567EB592 /* OnboardingErrorBoundary.swift in Sources */,
 				0B58662E03FEDFE864CF2EC4 /* OnboardingFlowCoordinator.swift in Sources */,
-				C6F44E468549D1F005DEBE94 /* OnboardingFlowView.swift in Sources */,
 				85E5EEBDF8BB90BC7FCC9593 /* OnboardingFlowViewDI.swift in Sources */,
 				4D0ADDC076B127F9C616BFC1 /* OnboardingModels.swift in Sources */,
 				E4FF6A38F1F176C9CB97EA63 /* OnboardingNavigationButtons.swift in Sources */,

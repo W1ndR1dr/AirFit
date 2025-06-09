@@ -1,6 +1,11 @@
 import Foundation
 
-actor OpenAIProvider: LLMProvider {
+actor OpenAIProvider: LLMProvider, ServiceProtocol {
+    // MARK: - ServiceProtocol
+    nonisolated let serviceIdentifier = "openai-provider"
+    private var _isConfigured = false
+    nonisolated var isConfigured: Bool { true } // Always ready
+    
     private let config: LLMProviderConfig
     private let session: URLSession
     
@@ -41,21 +46,21 @@ actor OpenAIProvider: LLMProvider {
         let (data, response) = try await session.data(for: urlRequest)
         
         guard let httpResponse = response as? HTTPURLResponse else {
-            throw LLMError.networkError(URLError(.badServerResponse))
+            throw AppError.from(LLMError.networkError(URLError(.badServerResponse)))
         }
         
         if httpResponse.statusCode == 401 {
-            throw LLMError.invalidAPIKey
+            throw AppError.from(LLMError.invalidAPIKey)
         } else if httpResponse.statusCode == 429 {
             let retryAfter = httpResponse.value(forHTTPHeaderField: "Retry-After")
                 .flatMap { Double($0) }
-            throw LLMError.rateLimitExceeded(retryAfter: retryAfter)
+            throw AppError.from(LLMError.rateLimitExceeded(retryAfter: retryAfter))
         } else if httpResponse.statusCode >= 400 {
             let errorMessage = try? JSONDecoder().decode(OpenAIError.self, from: data)
-            throw LLMError.serverError(
+            throw AppError.from(LLMError.serverError(
                 statusCode: httpResponse.statusCode,
                 message: errorMessage?.error.message
-            )
+            ))
         }
         
         let openAIResponse = try JSONDecoder().decode(OpenAIResponse.self, from: data)
@@ -92,7 +97,7 @@ actor OpenAIProvider: LLMProvider {
                     
                     guard let httpResponse = response as? HTTPURLResponse,
                           httpResponse.statusCode == 200 else {
-                        throw LLMError.networkError(URLError(.badServerResponse))
+                        throw AppError.from(LLMError.networkError(URLError(.badServerResponse)))
                     }
                     
                     var buffer = ""
@@ -184,7 +189,7 @@ actor OpenAIProvider: LLMProvider {
     private func mapToLLMResponse(_ response: OpenAIResponse) throws -> LLMResponse {
         guard let choice = response.choices.first,
               let content = choice.message.content else {
-            throw LLMError.invalidResponse("No content in response")
+            throw AppError.from(LLMError.invalidResponse("No content in response"))
         }
         
         return LLMResponse(
@@ -297,5 +302,34 @@ private struct OpenAIError: Decodable {
         let message: String
         let type: String
         let code: String?
+    }
+}
+
+// MARK: - ServiceProtocol Extension
+
+extension OpenAIProvider {
+    func configure() async throws {
+        guard !_isConfigured else { return }
+        _isConfigured = true
+        AppLogger.info("\(serviceIdentifier) configured", category: .services)
+    }
+    
+    func reset() async {
+        _isConfigured = false
+        AppLogger.info("\(serviceIdentifier) reset", category: .services)
+    }
+    
+    func healthCheck() async -> ServiceHealth {
+        ServiceHealth(
+            status: _isConfigured ? .healthy : .unhealthy,
+            lastCheckTime: Date(),
+            responseTime: nil,
+            errorMessage: _isConfigured ? nil : "Service not configured",
+            metadata: [
+                "provider": identifier.name,
+                "maxTokens": "\(capabilities.maxContextTokens)",
+                "supportsFunctions": capabilities.supportsFunctionCalling ? "true" : "false"
+            ]
+        )
     }
 }

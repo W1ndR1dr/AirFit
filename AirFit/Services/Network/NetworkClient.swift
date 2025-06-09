@@ -1,11 +1,16 @@
 import Foundation
 
-final class NetworkClient: NetworkClientProtocol {
-    static let shared = NetworkClient()
-
+final class NetworkClient: NetworkClientProtocol, ServiceProtocol {    
     private let session: URLSession
     private let decoder: JSONDecoder
     private let encoder: JSONEncoder
+    
+    // MARK: - ServiceProtocol
+    let serviceIdentifier = "network-client"
+    @MainActor private var _isConfigured = false
+    var isConfigured: Bool { 
+        MainActor.assumeIsolated { _isConfigured }
+    }
 
     init(session: URLSession = .shared) {
         self.session = session
@@ -18,6 +23,62 @@ final class NetworkClient: NetworkClientProtocol {
         self.encoder.dateEncodingStrategy = .iso8601
         self.encoder.keyEncodingStrategy = .convertToSnakeCase
     }
+    
+    // MARK: - ServiceProtocol Methods
+    
+    func configure() async throws {
+        await MainActor.run {
+            guard !_isConfigured else { return }
+            _isConfigured = true
+        }
+        AppLogger.info("NetworkClient configured", category: .networking)
+    }
+    
+    func reset() async {
+        await MainActor.run {
+            _isConfigured = false
+        }
+        AppLogger.info("NetworkClient reset", category: .networking)
+    }
+    
+    func healthCheck() async -> ServiceHealth {
+        // Test connectivity with a simple request
+        let testURL = URL(string: "https://www.apple.com")!
+        let request = URLRequest(url: testURL, timeoutInterval: 5.0)
+        
+        let startTime = Date()
+        do {
+            let (_, response) = try await session.data(for: request)
+            let responseTime = Date().timeIntervalSince(startTime)
+            
+            if let httpResponse = response as? HTTPURLResponse,
+               (200...299).contains(httpResponse.statusCode) {
+                return ServiceHealth(
+                    status: .healthy,
+                    lastCheckTime: Date(),
+                    responseTime: responseTime,
+                    errorMessage: nil,
+                    metadata: ["statusCode": "\(httpResponse.statusCode)"]
+                )
+            } else {
+                return ServiceHealth(
+                    status: .degraded,
+                    lastCheckTime: Date(),
+                    responseTime: responseTime,
+                    errorMessage: "Unexpected response",
+                    metadata: [:]
+                )
+            }
+        } catch {
+            return ServiceHealth(
+                status: .unhealthy,
+                lastCheckTime: Date(),
+                responseTime: nil,
+                errorMessage: error.localizedDescription,
+                metadata: [:]
+            )
+        }
+    }
 
     // MARK: - Request
     func request<T: Decodable>(_ endpoint: Endpoint) async throws -> T {
@@ -27,11 +88,11 @@ final class NetworkClient: NetworkClientProtocol {
             let (data, response) = try await session.data(for: request)
 
             guard let httpResponse = response as? HTTPURLResponse else {
-                throw NetworkError.invalidResponse
+                throw AppError.from(NetworkError.invalidResponse)
             }
 
             guard (200...299).contains(httpResponse.statusCode) else {
-                throw NetworkError.httpError(statusCode: httpResponse.statusCode, data: data)
+                throw AppError.from(NetworkError.httpError(statusCode: httpResponse.statusCode, data: data))
             }
 
             do {
@@ -41,7 +102,7 @@ final class NetworkClient: NetworkClientProtocol {
                 AppLogger.error("Decoding failed for \(T.self)",
                                 error: error,
                                 category: .networking)
-                throw NetworkError.decodingError(error)
+                throw AppError.from(NetworkError.decodingError(error))
             }
         } catch let error as NetworkError {
             throw error
@@ -49,7 +110,7 @@ final class NetworkClient: NetworkClientProtocol {
             AppLogger.error("Network request failed",
                             error: error,
                             category: .networking)
-            throw NetworkError.networkError(error)
+            throw AppError.from(NetworkError.networkError(error))
         }
     }
 
@@ -62,11 +123,11 @@ final class NetworkClient: NetworkClientProtocol {
             let (_, response) = try await session.data(for: request)
 
             guard let httpResponse = response as? HTTPURLResponse else {
-                throw NetworkError.invalidResponse
+                throw AppError.from(NetworkError.invalidResponse)
             }
 
             guard (200...299).contains(httpResponse.statusCode) else {
-                throw NetworkError.httpError(statusCode: httpResponse.statusCode, data: nil)
+                throw AppError.from(NetworkError.httpError(statusCode: httpResponse.statusCode, data: nil))
             }
         } catch let error as NetworkError {
             throw error
@@ -74,7 +135,7 @@ final class NetworkClient: NetworkClientProtocol {
             AppLogger.error("Upload failed",
                             error: error,
                             category: .networking)
-            throw NetworkError.networkError(error)
+            throw AppError.from(NetworkError.networkError(error))
         }
     }
 
@@ -86,11 +147,11 @@ final class NetworkClient: NetworkClientProtocol {
             let (data, response) = try await session.data(for: request)
 
             guard let httpResponse = response as? HTTPURLResponse else {
-                throw NetworkError.invalidResponse
+                throw AppError.from(NetworkError.invalidResponse)
             }
 
             guard (200...299).contains(httpResponse.statusCode) else {
-                throw NetworkError.httpError(statusCode: httpResponse.statusCode, data: data)
+                throw AppError.from(NetworkError.httpError(statusCode: httpResponse.statusCode, data: data))
             }
 
             return data
@@ -100,7 +161,7 @@ final class NetworkClient: NetworkClientProtocol {
             AppLogger.error("Download failed",
                             error: error,
                             category: .networking)
-            throw NetworkError.networkError(error)
+            throw AppError.from(NetworkError.networkError(error))
         }
     }
 
@@ -110,7 +171,7 @@ final class NetworkClient: NetworkClientProtocol {
         components?.queryItems = endpoint.queryItems
 
         guard let url = components?.url else {
-            throw NetworkError.invalidURL
+            throw AppError.from(NetworkError.invalidURL)
         }
 
         var request = URLRequest(url: url)

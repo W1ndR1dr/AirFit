@@ -149,7 +149,7 @@ final class CoachEngine {
         aiService: AIServiceProtocol,
         contextAssembler: ContextAssembler,
         modelContext: ModelContext,
-        routingConfiguration: RoutingConfiguration = RoutingConfiguration.shared
+        routingConfiguration: RoutingConfiguration
     ) {
         self.functionDispatcher = functionDispatcher
         self.personaEngine = personaEngine
@@ -163,7 +163,7 @@ final class CoachEngine {
         self.messageProcessor = MessageProcessor(localCommandParser: localCommandParser)
         self.stateManager = ConversationStateManager()
         self.directAIProcessor = DirectAIProcessor(aiService: aiService)
-        self.streamingHandler = StreamingResponseHandler()
+        self.streamingHandler = StreamingResponseHandler(routingConfiguration: routingConfiguration)
         
         // Set up streaming delegate
         self.streamingHandler.delegate = self
@@ -1220,7 +1220,7 @@ extension CoachEngine {
 extension CoachEngine {
     /// Creates a default instance of CoachEngine with minimal dependencies for development.
     /// Uses stub implementations to avoid external dependencies.
-    static func createDefault(modelContext: ModelContext) -> CoachEngine {
+    static func createDefault(modelContext: ModelContext) async -> CoachEngine {
         // Create minimal preview services that conform to AI protocols
         let previewWorkoutService = PreviewAIWorkoutService()
         let previewAnalyticsService = PreviewAIAnalyticsService()
@@ -1236,16 +1236,19 @@ extension CoachEngine {
             personaEngine: PersonaEngine(),
             conversationManager: ConversationManager(modelContext: modelContext),
             aiService: MinimalAIAPIService(),
-            contextAssembler: ContextAssembler(),
-            modelContext: modelContext
+            contextAssembler: await MainActor.run { ContextAssembler(healthKitManager: HealthKitManager()) },
+            modelContext: modelContext,
+            routingConfiguration: await MainActor.run { RoutingConfiguration() }
         )
     }
+    
 }
 
 // MARK: - CoachEngineProtocol Conformance
 extension CoachEngine: CoachEngineProtocol {
     // generatePostWorkoutAnalysis is already implemented above
 }
+
 
 // MARK: - FoodCoachEngineProtocol Conformance
 extension CoachEngine: FoodCoachEngineProtocol {

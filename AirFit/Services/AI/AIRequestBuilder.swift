@@ -1,6 +1,10 @@
 import Foundation
 
-actor AIRequestBuilder {
+actor AIRequestBuilder: ServiceProtocol {
+    // MARK: - ServiceProtocol
+    nonisolated let serviceIdentifier = "ai-request-builder"
+    private var _isConfigured = false
+    nonisolated var isConfigured: Bool { true } // Always ready
     
     func buildRequest(
         for aiRequest: AIRequest,
@@ -270,5 +274,32 @@ extension AIRequest {
             try container.encode(description, forKey: .description)
             // For encoding, we'll need custom handling of the parameters dictionary
         }
+    }
+}
+
+// MARK: - ServiceProtocol Extension
+
+extension AIRequestBuilder {
+    func configure() async throws {
+        guard !_isConfigured else { return }
+        _isConfigured = true
+        AppLogger.info("\(serviceIdentifier) configured", category: .services)
+    }
+    
+    func reset() async {
+        _isConfigured = false
+        AppLogger.info("\(serviceIdentifier) reset", category: .services)
+    }
+    
+    func healthCheck() async -> ServiceHealth {
+        ServiceHealth(
+            status: _isConfigured ? .healthy : .unhealthy,
+            lastCheckTime: Date(),
+            responseTime: nil,
+            errorMessage: _isConfigured ? nil : "Service not configured",
+            metadata: [
+                "providersSupported": "openai,anthropic,gemini"
+            ]
+        )
     }
 }

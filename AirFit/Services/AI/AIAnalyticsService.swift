@@ -3,11 +3,42 @@ import SwiftData
 
 /// Basic implementation of AI Analytics Service
 /// Wraps the base AnalyticsServiceProtocol and adds AI-specific functionality
-actor AIAnalyticsService: AIAnalyticsServiceProtocol {
+actor AIAnalyticsService: AIAnalyticsServiceProtocol, ServiceProtocol {
+    // MARK: - ServiceProtocol
+    nonisolated let serviceIdentifier = "ai-analytics-service"
+    private var _isConfigured = false
+    nonisolated var isConfigured: Bool {
+        // For actors, return true as services are ready when created
+        true
+    }
+    
     private let analyticsService: AnalyticsServiceProtocol
     
     init(analyticsService: AnalyticsServiceProtocol) {
         self.analyticsService = analyticsService
+    }
+    
+    // MARK: - ServiceProtocol Methods
+    
+    func configure() async throws {
+        guard !_isConfigured else { return }
+        _isConfigured = true
+        AppLogger.info("\(serviceIdentifier) configured", category: .services)
+    }
+    
+    func reset() async {
+        _isConfigured = false
+        AppLogger.info("\(serviceIdentifier) reset", category: .services)
+    }
+    
+    func healthCheck() async -> ServiceHealth {
+        ServiceHealth(
+            status: .healthy,
+            lastCheckTime: Date(),
+            responseTime: nil,
+            errorMessage: nil,
+            metadata: ["hasAnalyticsService": "true"]
+        )
     }
     
     // MARK: - AI-specific methods

@@ -4,19 +4,74 @@ import SwiftData
 import HealthKit
 
 @MainActor
-final class WorkoutSyncService {
-    static let shared = WorkoutSyncService()
-    
+final class WorkoutSyncService: ServiceProtocol {
     // Wrapper for NSObject requirements
     private let delegateHandler = WorkoutSyncDelegateHandler()
 
     private let session: WCSession
     private var pendingWorkouts: [WorkoutBuilderData] = []
+    
+    // MARK: - ServiceProtocol
+    nonisolated let serviceIdentifier = "workout-sync-service"
+    private var _isConfigured = false
+    nonisolated var isConfigured: Bool {
+        MainActor.assumeIsolated { _isConfigured }
+    }
 
-    private init() {
+    init() {
         self.session = WCSession.default
-        
+    }
+    
+    // MARK: - ServiceProtocol Methods
+    
+    func configure() async throws {
+        guard !_isConfigured else { return }
         setupSession()
+        _isConfigured = true
+        AppLogger.info("WorkoutSyncService configured", category: .services)
+    }
+    
+    func reset() async {
+        pendingWorkouts.removeAll()
+        _isConfigured = false
+        AppLogger.info("WorkoutSyncService reset", category: .services)
+    }
+    
+    nonisolated func healthCheck() async -> ServiceHealth {
+        await MainActor.run {
+            let isSupported = WCSession.isSupported()
+            let sessionState = session.activationState
+            let isReachable = session.isReachable
+            
+            let status: ServiceHealth.Status
+            let errorMessage: String?
+            
+            if !isSupported {
+                status = .unhealthy
+                errorMessage = "WatchConnectivity not supported"
+            } else if sessionState != .activated {
+                status = .degraded
+                errorMessage = "Session not activated"
+            } else if !isReachable {
+                status = .degraded
+                errorMessage = "Watch not reachable"
+            } else {
+                status = .healthy
+                errorMessage = nil
+            }
+            
+            return ServiceHealth(
+                status: status,
+                lastCheckTime: Date(),
+                responseTime: nil,
+                errorMessage: errorMessage,
+                metadata: [
+                    "pendingWorkouts": "\(pendingWorkouts.count)",
+                    "sessionState": "\(sessionState.rawValue)",
+                    "isReachable": "\(isReachable)"
+                ]
+            )
+        }
     }
     
     private func setupSession() {

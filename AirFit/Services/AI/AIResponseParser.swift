@@ -1,6 +1,10 @@
 import Foundation
 
-actor AIResponseParser {
+actor AIResponseParser: ServiceProtocol {
+    // MARK: - ServiceProtocol
+    nonisolated let serviceIdentifier = "ai-response-parser"
+    private var _isConfigured = false
+    nonisolated var isConfigured: Bool { true } // Always ready
     
     // MARK: - Properties
     private var buffers: [UUID: ResponseBuffer] = [:]
@@ -26,7 +30,7 @@ actor AIResponseParser {
     // MARK: - OpenAI Parsing
     private func parseOpenAIStream(_ data: Data) throws -> [AIResponse] {
         guard let string = String(data: data, encoding: .utf8) else {
-            throw ServiceError.invalidResponse("Invalid UTF-8 data")
+            throw AppError.from(ServiceError.invalidResponse("Invalid UTF-8 data"))
         }
         
         // Skip empty data or [DONE] marker
@@ -94,7 +98,7 @@ actor AIResponseParser {
     // MARK: - Anthropic Parsing
     private func parseAnthropicStream(_ data: Data) throws -> [AIResponse] {
         guard let string = String(data: data, encoding: .utf8) else {
-            throw ServiceError.invalidResponse("Invalid UTF-8 data")
+            throw AppError.from(ServiceError.invalidResponse("Invalid UTF-8 data"))
         }
         
         var results: [AIResponse] = []
@@ -164,7 +168,7 @@ actor AIResponseParser {
     // MARK: - Gemini Parsing
     private func parseGeminiStream(_ data: Data) throws -> [AIResponse] {
         guard let string = String(data: data, encoding: .utf8) else {
-            throw ServiceError.invalidResponse("Invalid UTF-8 data")
+            throw AppError.from(ServiceError.invalidResponse("Invalid UTF-8 data"))
         }
         
         // Remove "data: " prefix
@@ -316,5 +320,33 @@ struct GeminiStreamResponse: Decodable {
                 }
             }
         }
+    }
+}
+
+// MARK: - ServiceProtocol Extension
+
+extension AIResponseParser {
+    func configure() async throws {
+        guard !_isConfigured else { return }
+        _isConfigured = true
+        AppLogger.info("\(serviceIdentifier) configured", category: .services)
+    }
+    
+    func reset() async {
+        _isConfigured = false
+        buffers.removeAll()
+        AppLogger.info("\(serviceIdentifier) reset", category: .services)
+    }
+    
+    func healthCheck() async -> ServiceHealth {
+        ServiceHealth(
+            status: _isConfigured ? .healthy : .unhealthy,
+            lastCheckTime: Date(),
+            responseTime: nil,
+            errorMessage: _isConfigured ? nil : "Service not configured",
+            metadata: [
+                "activeBuffers": "\(buffers.count)"
+            ]
+        )
     }
 }

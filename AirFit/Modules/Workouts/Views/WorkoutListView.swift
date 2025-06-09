@@ -281,8 +281,8 @@ private struct QuickActionCard: View {
         user: user,
         coachEngine: WorkoutMockCoachEngine(),
         healthKitManager: PreviewHealthKitManager(),
-        exerciseDatabase: ExerciseDatabase.shared,
-        workoutSyncService: WorkoutSyncService.shared
+        exerciseDatabase: ExerciseDatabase(container: container),
+        workoutSyncService: WorkoutSyncService()
     )
     WorkoutListView(viewModel: vm)
         .modelContainer(container)

@@ -34,27 +34,6 @@ struct FoodLoggingView: View {
         _coordinator = State(initialValue: coordinator)
     }
 
-    @MainActor
-    init(user: User, modelContext: ModelContext) {
-        let coordinator = FoodTrackingCoordinator()
-        let adapter = FoodVoiceAdapter()
-        
-        // Create services within MainActor context to avoid data races
-        // Use nonisolated(unsafe) for modelContext since we know it's safe during initialization
-        nonisolated(unsafe) let unsafeModelContext = modelContext
-        let nutritionService = NutritionService(modelContext: unsafeModelContext)
-        let coachEngine = CoachEngine.createDefault(modelContext: unsafeModelContext)
-        
-        let viewModel = FoodTrackingViewModel(
-            modelContext: modelContext,
-            user: user,
-            foodVoiceAdapter: adapter,
-            nutritionService: nutritionService,
-            coachEngine: coachEngine,
-            coordinator: coordinator
-        )
-        self.init(viewModel: viewModel, coordinator: coordinator)
-    }
 
     var body: some View {
         NavigationStack(path: $coordinator.navigationPath) {

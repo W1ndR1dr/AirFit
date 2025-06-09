@@ -118,14 +118,6 @@ struct ServiceConfiguration: Sendable {
     }
     
     // MARK: - Initialization
-    static let shared = ServiceConfiguration(
-        ai: .default,
-        weather: .default,
-        network: .default,
-        analytics: .default,
-        environment: detectEnvironment()
-    )
-    
     static func detectEnvironment() -> Environment {
         #if DEBUG
         return .development

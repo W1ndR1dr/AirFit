@@ -170,19 +170,20 @@ struct OnboardingFlowViewDI: View {
         do {
             // Create minimal services directly
             let onboardingService = OnboardingService(modelContext: modelContext)
-            let healthKitAuthManager = HealthKitAuthManager()
+            let healthKitManager = HealthKitManager()
+            let healthKitAuthManager = HealthKitAuthManager(healthKitManager: healthKitManager)
             
             // Try to get services from container if possible, otherwise use defaults
-            let aiService = try? await diContainer.resolve(AIServiceProtocol.self) ?? DemoAIService()
+            let aiService = (try? await diContainer.resolve(AIServiceProtocol.self)) ?? DemoAIService()
             let apiKeyManager = try? await diContainer.resolve(APIKeyManagementProtocol.self)
-            let userService = try? await diContainer.resolve(UserServiceProtocol.self) ?? UserService(modelContext: modelContext)
+            let userService = (try? await diContainer.resolve(UserServiceProtocol.self)) ?? UserService(modelContext: modelContext)
             
             viewModel = OnboardingViewModel(
-                aiService: aiService ?? DemoAIService(),
+                aiService: aiService,
                 onboardingService: onboardingService,
                 modelContext: modelContext,
                 apiKeyManager: apiKeyManager ?? PreviewAPIKeyManager(),
-                userService: userService ?? UserService(modelContext: modelContext),
+                userService: userService,
                 healthKitAuthManager: healthKitAuthManager
             )
             

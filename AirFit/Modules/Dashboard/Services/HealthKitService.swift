@@ -2,13 +2,47 @@ import Foundation
 import SwiftData
 
 /// Implementation of HealthKitServiceProtocol for the Dashboard
-actor HealthKitService: HealthKitServiceProtocol {
+actor HealthKitService: HealthKitServiceProtocol, ServiceProtocol {
+    // MARK: - ServiceProtocol
+    nonisolated let serviceIdentifier = "healthkit-service"
+    private var _isConfigured = false
+    nonisolated var isConfigured: Bool {
+        // For actors, return true as services are ready when created
+        true
+    }
+    
     private let healthKitManager: HealthKitManaging
     private let contextAssembler: ContextAssemblerProtocol
     
     init(healthKitManager: HealthKitManaging, contextAssembler: ContextAssemblerProtocol) {
         self.healthKitManager = healthKitManager
         self.contextAssembler = contextAssembler
+    }
+    
+    // MARK: - ServiceProtocol Methods
+    
+    func configure() async throws {
+        guard !_isConfigured else { return }
+        _isConfigured = true
+        AppLogger.info("\(serviceIdentifier) configured", category: .services)
+    }
+    
+    func reset() async {
+        _isConfigured = false
+        AppLogger.info("\(serviceIdentifier) reset", category: .services)
+    }
+    
+    func healthCheck() async -> ServiceHealth {
+        ServiceHealth(
+            status: .healthy,
+            lastCheckTime: Date(),
+            responseTime: nil,
+            errorMessage: nil,
+            metadata: [
+                "hasHealthKitManager": "true",
+                "hasContextAssembler": "true"
+            ]
+        )
     }
     
     func getCurrentContext() async throws -> HealthContext {

@@ -5,10 +5,6 @@
 ├── .github
 │   └── workflows
 │       └── test.yml
-├── .screenshots
-│   ├── app_final_fixed.png
-│   ├── app_with_proper_di.png
-│   └── black_screen_issue.png
 ├── AirFit
 │   ├── AirFitTests
 │   │   ├── Core
@@ -151,6 +147,7 @@
 │   │   │   └── WorkoutSyncServiceTests.swift
 │   │   ├── TestUtils
 │   │   │   └── DITestHelper.swift
+│   │   ├── DIContainerAsyncTests.swift
 │   │   ├── SmokeTest.swift
 │   │   └── TEST_STRUCTURE.md
 │   ├── AirFitUITests
@@ -223,7 +220,6 @@
 │   │   │   └── AppConstants+Settings.swift
 │   │   ├── DI
 │   │   │   ├── DIBootstrapper.swift
-│   │   │   ├── DIBootstrapper+Test.swift
 │   │   │   ├── DIContainer.swift
 │   │   │   ├── DIEnvironment.swift
 │   │   │   ├── DIExample.swift
@@ -510,24 +506,25 @@
 │   │   │       ├── PrivacySecurityView.swift
 │   │   │       ├── SettingsListView.swift
 │   │   │       └── UnitsSettingsView.swift
-│   │   └── Workouts
-│   │       ├── Coordinators
-│   │       │   └── WorkoutCoordinator.swift
-│   │       ├── Models
-│   │       │   └── WorkoutModels.swift
-│   │       ├── Services
-│   │       │   └── WorkoutService.swift
-│   │       ├── ViewModels
-│   │       │   └── WorkoutViewModel.swift
-│   │       └── Views
-│   │           ├── AllWorkoutsView.swift
-│   │           ├── ExerciseLibraryComponents.swift
-│   │           ├── ExerciseLibraryView.swift
-│   │           ├── TemplatePickerView.swift
-│   │           ├── WorkoutBuilderView.swift
-│   │           ├── WorkoutDetailView.swift
-│   │           ├── WorkoutListView.swift
-│   │           └── WorkoutStatisticsView.swift
+│   │   ├── Workouts
+│   │   │   ├── Coordinators
+│   │   │   │   └── WorkoutCoordinator.swift
+│   │   │   ├── Models
+│   │   │   │   └── WorkoutModels.swift
+│   │   │   ├── Services
+│   │   │   │   └── WorkoutService.swift
+│   │   │   ├── ViewModels
+│   │   │   │   └── WorkoutViewModel.swift
+│   │   │   └── Views
+│   │   │       ├── AllWorkoutsView.swift
+│   │   │       ├── ExerciseLibraryComponents.swift
+│   │   │       ├── ExerciseLibraryView.swift
+│   │   │       ├── TemplatePickerView.swift
+│   │   │       ├── WorkoutBuilderView.swift
+│   │   │       ├── WorkoutDetailView.swift
+│   │   │       ├── WorkoutListView.swift
+│   │   │       └── WorkoutStatisticsView.swift
+│   │   └── Module_Services_Analysis.md
 │   ├── Resources
 │   │   ├── SeedData
 │   │   │   └── exercises.json
@@ -551,6 +548,7 @@
 │   │   │   ├── AIWorkoutService.swift
 │   │   │   ├── DemoAIService.swift
 │   │   │   ├── LLMOrchestrator.swift
+│   │   │   ├── MinimalAIService.swift
 │   │   │   ├── OfflineAIService.swift
 │   │   │   └── TestModeAIService.swift
 │   │   ├── Analytics
@@ -585,7 +583,6 @@
 │   │   │   └── WeatherService.swift
 │   │   ├── ExerciseDatabase.swift
 │   │   ├── ServiceConfiguration.swift
-│   │   ├── ServiceRegistry.swift
 │   │   └── WorkoutSyncService.swift
 │   ├── .gitignore
 │   ├── .swiftlint.yml
@@ -606,26 +603,87 @@
 │   └── AirFitWatchApp.swift
 ├── Docs
 │   ├── Archive
-│   │   ├── IGNORE THIS FOLDER
+│   │   ├── Codex-Analysis
+│   │   │   ├── CODEX_AGENT_TEMPLATE.md
+│   │   │   ├── CODEX_ANALYSIS_SUMMARY.md
+│   │   │   └── CODEX_ANALYSIS_WAVE1.md
+│   │   └── Testing-Docs
+│   │       ├── MOCK_PROTOCOL_AUDIT.md
+│   │       ├── TEST_EXECUTION_PLAN.md
+│   │       ├── TEST_MIGRATION_GUIDE.md
+│   │       ├── TEST_README.md
+│   │       └── TESTING_GUIDELINES.md
+│   ├── Development-Standards
+│   │   ├── CONCURRENCY_STANDARDS.md
+│   │   ├── DI_LAZY_RESOLUTION_STANDARDS.md
+│   │   ├── DI_STANDARDS.md
+│   │   ├── DOCUMENTATION_CHECKLIST.md
+│   │   ├── MAINACTOR_CLEANUP_STANDARDS.md
+│   │   ├── MAINACTOR_SERVICE_CATEGORIZATION.md
+│   │   ├── NAMING_STANDARDS.md
+│   │   ├── PROJECT_FILE_MANAGEMENT.md
+│   │   ├── TEST_STANDARDS.md
+│   │   └── UI_STANDARDS.md
 │   ├── Research Reports
-│   │   └── Deep Research Archive
-│   │       └─ IGNORE THIS FOLDER
-│   ├── AGENT_PROMPTS_WAVE1.md
-│   ├── AGENT_PROMPTS_WAVE2.md
-│   ├── AGENT_PROMPTS_WAVE3.md
-│   ├── ARCHITECTURE_ANALYSIS_2025.md
-│   ├── CODEX_EXECUTION_GUIDE.md
-│   ├── COMPREHENSIVE_CODEBASE_ANALYSIS_PLAN.md
-│   ├── CURRENT_ANALYSIS_README.md
-│   └── Filetree 6-8-25-10am.md
+│   │   ├── AI_Integration_Analysis.md
+│   │   ├── AI_System_Complete_Analysis.md
+│   │   ├── App_Lifecycle_Analysis.md
+│   │   ├── Architecture_Dependencies_Analysis.md
+│   │   ├── Architecture_Overview_Analysis.md
+│   │   ├── Concurrency_Model_Analysis.md
+│   │   ├── Data_Layer_Analysis.md
+│   │   ├── DI_System_Complete_Analysis.md
+│   │   ├── HealthKit_Integration_Analysis.md
+│   │   ├── Network_Integration_Analysis.md
+│   │   ├── o3 UI consult.md
+│   │   ├── Onboarding_Module_Analysis.md
+│   │   ├── Service_Layer_Complete_Catalog.md
+│   │   ├── UI_Implementation_Analysis.md
+│   │   └── Voice_Integration_Analysis.md
+│   ├── CODEBASE_RECOVERY_PLAN.md
+│   ├── Filetree 6-8-25-10am.md
+│   └── PHASE_1_PROGRESS.md
+├── Scripts
+│   ├── add_files_to_xcode.sh
+│   ├── add_mainactor_to_tests.py
+│   ├── architecture_audit.sh
+│   ├── audit_test_issues.py
+│   ├── check_duplicates.sh
+│   ├── final_swift6_fix.py
+│   ├── final_test_fixes.sh
+│   ├── find_passing_tests.sh
+│   ├── fix_async_patterns.py
+│   ├── fix_async_setup_tests.sh
+│   ├── fix_async_tests.py
+│   ├── fix_di_test_errors.py
+│   ├── fix_mainactor_final.py
+│   ├── fix_mainactor_tests.py
+│   ├── fix_message_classification_tests.py
+│   ├── fix_remaining_mainactor_tests.py
+│   ├── fix_remaining_test_issues.py
+│   ├── fix_targets.sh
+│   ├── fix_test_compilation.py
+│   ├── fix_variable_names.py
+│   ├── fix_watchkit_usage.py
+│   ├── identify_mainactor_needs.py
+│   ├── remove_mainactor_from_tests.py
+│   ├── reorganize_tests.sh
+│   ├── test_module8_integration.sh
+│   ├── update_project_yml.py
+│   ├── update_project_yml.sh
+│   ├── validate_cleanup_claims.sh
+│   ├── validate-tuneup.sh
+│   ├── verify_module_tests.sh
+│   ├── verify_module8_integration.sh
+│   └── verify_module10.sh
 ├── .cursorrules
 ├── .gitignore
-├── AGENTS.md
 ├── AirFit.xctestplan
 ├── app_logs.txt
 ├── build.log
 ├── CLAUDE.md
 ├── envsetupscript.sh
+├── mainactor_annotations_report.md
 ├── Manual.md
 ├── package.json
 └── project.yml

@@ -2,9 +2,38 @@ import Foundation
 import SwiftData
 
 @MainActor
-final class DataManager {
-    static let shared = DataManager()
-    private init() {}
+final class DataManager: ServiceProtocol {
+    // MARK: - ServiceProtocol
+    nonisolated let serviceIdentifier = "data-manager"
+    private var _isConfigured = false
+    nonisolated var isConfigured: Bool {
+        MainActor.assumeIsolated { _isConfigured }
+    }
+    
+    init() {}
+    
+    // MARK: - ServiceProtocol Methods
+    
+    func configure() async throws {
+        guard !_isConfigured else { return }
+        _isConfigured = true
+        AppLogger.info("\(serviceIdentifier) configured", category: .services)
+    }
+    
+    func reset() async {
+        _isConfigured = false
+        AppLogger.info("\(serviceIdentifier) reset", category: .services)
+    }
+    
+    func healthCheck() async -> ServiceHealth {
+        ServiceHealth(
+            status: .healthy,
+            lastCheckTime: Date(),
+            responseTime: nil,
+            errorMessage: nil,
+            metadata: ["configured": "\(_isConfigured)"]
+        )
+    }
 
     // MARK: - Initial Setup
     func performInitialSetup(with container: ModelContainer) async {

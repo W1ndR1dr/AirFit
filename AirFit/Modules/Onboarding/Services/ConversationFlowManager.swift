@@ -2,7 +2,13 @@ import Foundation
 import SwiftData
 
 @MainActor
-final class ConversationFlowManager: ObservableObject {
+final class ConversationFlowManager: ObservableObject, ServiceProtocol {
+    // MARK: - ServiceProtocol
+    nonisolated let serviceIdentifier = "conversation-flow-manager"
+    private var _isConfigured = false
+    nonisolated var isConfigured: Bool {
+        MainActor.assumeIsolated { _isConfigured }
+    }
     // MARK: - Properties
     private let flowDefinition: [String: ConversationNode]
     private let modelContext: ModelContext
@@ -234,6 +240,37 @@ final class ConversationFlowManager: ObservableObject {
         } catch {
             self.error = error
         }
+    }
+    
+    // MARK: - ServiceProtocol Methods
+    
+    func configure() async throws {
+        guard !_isConfigured else { return }
+        _isConfigured = true
+        AppLogger.info("\(serviceIdentifier) configured", category: .services)
+    }
+    
+    func reset() async {
+        currentNode = nil
+        session = nil
+        isLoading = false
+        error = nil
+        _isConfigured = false
+        AppLogger.info("\(serviceIdentifier) reset", category: .services)
+    }
+    
+    func healthCheck() async -> ServiceHealth {
+        ServiceHealth(
+            status: _isConfigured ? .healthy : .unhealthy,
+            lastCheckTime: Date(),
+            responseTime: nil,
+            errorMessage: _isConfigured ? nil : "Service not configured",
+            metadata: [
+                "hasActiveSession": "\(session != nil)",
+                "currentNodeId": currentNode?.id.uuidString ?? "none",
+                "flowDefinitionCount": "\(flowDefinition.count)"
+            ]
+        )
     }
 }
 

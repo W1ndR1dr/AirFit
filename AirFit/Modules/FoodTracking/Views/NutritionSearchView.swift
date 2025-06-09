@@ -372,38 +372,4 @@ private struct CategoryChip: View {
 
 
 // MARK: - Previews
-#if DEBUG
-#Preview("Default State") {
-    @MainActor func makePreview() -> some View {
-        let container = try! ModelContainer(for: User.self, configurations: ModelConfiguration(isStoredInMemoryOnly: true))
-        let context = container.mainContext
-        
-        let user = User(
-            id: UUID(),
-            createdAt: Date(),
-            lastActiveAt: Date(),
-            email: "test@example.com",
-            name: "Test User",
-            preferredUnits: "metric"
-        )
-        context.insert(user)
-        
-        let coordinator = FoodTrackingCoordinator()
-        let viewModel = FoodTrackingViewModel(
-            modelContext: context,
-            user: user,
-            foodVoiceAdapter: FoodVoiceAdapter(),
-            nutritionService: MockNutritionService(),
-            coachEngine: CoachEngine.createDefault(modelContext: context),
-            coordinator: coordinator
-        )
-        
-        return NavigationStack {
-            NutritionSearchView(viewModel: viewModel)
-        }
-        .modelContainer(container)
-    }
-    
-    return makePreview()
-}
-#endif
+// TODO: Fix preview to handle async CoachEngine.createDefault

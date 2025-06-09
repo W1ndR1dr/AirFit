@@ -3,7 +3,14 @@ import SwiftUI
 
 /// Adapter around `VoiceInputManager` providing food-specific enhancements.
 @MainActor
-final class FoodVoiceAdapter: ObservableObject, FoodVoiceAdapterProtocol {
+final class FoodVoiceAdapter: ObservableObject, FoodVoiceAdapterProtocol, ServiceProtocol {
+    // MARK: - ServiceProtocol
+    nonisolated let serviceIdentifier = "food-voice-adapter"
+    private var _isConfigured = false
+    nonisolated var isConfigured: Bool {
+        MainActor.assumeIsolated { _isConfigured }
+    }
+    
     // MARK: - Dependencies
     private let voiceInputManager: VoiceInputProtocol
 
@@ -20,9 +27,49 @@ final class FoodVoiceAdapter: ObservableObject, FoodVoiceAdapterProtocol {
     var onWaveformUpdate: (([Float]) -> Void)?
 
     // MARK: - Initialization
-    init(voiceInputManager: VoiceInputProtocol = VoiceInputManager()) {
+    init(voiceInputManager: VoiceInputProtocol) {
         self.voiceInputManager = voiceInputManager
         setupCallbacks()
+    }
+    
+    // MARK: - ServiceProtocol Methods
+    
+    func configure() async throws {
+        guard !_isConfigured else { return }
+        await voiceInputManager.initialize()
+        _isConfigured = true
+        AppLogger.info("\(serviceIdentifier) configured", category: .services)
+    }
+    
+    func reset() async {
+        transcribedText = ""
+        voiceWaveform = []
+        if isRecording {
+            _ = await stopRecording()
+        }
+        _isConfigured = false
+        AppLogger.info("\(serviceIdentifier) reset", category: .services)
+    }
+    
+    func healthCheck() async -> ServiceHealth {
+        let voiceState = voiceInputManager.state
+        let isHealthy: Bool
+        if case .error = voiceState {
+            isHealthy = false
+        } else {
+            isHealthy = true
+        }
+        
+        return ServiceHealth(
+            status: isHealthy ? .healthy : .degraded,
+            lastCheckTime: Date(),
+            responseTime: nil,
+            errorMessage: isHealthy ? nil : "Voice input in error state",
+            metadata: [
+                "voiceState": "\(voiceState)",
+                "isRecording": "\(isRecording)"
+            ]
+        )
     }
 
     private func setupCallbacks() {

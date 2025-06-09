@@ -1,6 +1,35 @@
 import Foundation
 
-/// Production AI service that adapts between the simple interface and full AI capabilities
+/// # AIService
+/// 
+/// ## Purpose
+/// Production AI service that provides the primary interface for all AI operations in AirFit.
+/// Manages provider switching, model selection, cost tracking, and response caching.
+///
+/// ## Dependencies
+/// - `LLMOrchestrator`: Manages multiple LLM providers and handles fallback logic
+/// - `APIKeyManagementProtocol`: Secure storage and retrieval of API keys
+/// - `AIResponseCache`: Caches AI responses to reduce costs and improve performance
+///
+/// ## Key Responsibilities
+/// - Configure and manage AI providers (Anthropic, OpenAI, Gemini)
+/// - Handle streaming and non-streaming AI requests
+/// - Track token usage and costs across providers
+/// - Cache responses for efficiency
+/// - Provide fallback mechanisms when providers fail
+/// - Convert between simplified AIRequest and full LLMRequest formats
+///
+/// ## Usage
+/// ```swift
+/// let aiService = await container.resolve(AIServiceProtocol.self)
+/// try await aiService.configure()
+/// 
+/// // Send a request
+/// let request = AIRequest(systemPrompt: "You are a fitness coach", messages: [...])
+/// for try await response in aiService.sendRequest(request) {
+///     // Handle response
+/// }
+/// ```
 final class AIService: AIServiceProtocol, @unchecked Sendable {
     
     // MARK: - Properties
@@ -61,7 +90,7 @@ final class AIService: AIServiceProtocol, @unchecked Sendable {
         let hasGeminiKey = await apiKeyManager.hasAPIKey(for: .gemini)
         
         guard hasAnthropicKey || hasOpenAIKey || hasGeminiKey else {
-            throw ServiceError.notConfigured
+            throw AppError.from(ServiceError.notConfigured)
         }
         
         // Set active provider and model based on available keys
@@ -123,7 +152,7 @@ final class AIService: AIServiceProtocol, @unchecked Sendable {
             Task {
                 do {
                     guard isConfigured else {
-                        throw ServiceError.notConfigured
+                        throw AppError.from(ServiceError.notConfigured)
                     }
                     
                     // Convert AIRequest messages to LLMMessage format
@@ -237,7 +266,7 @@ final class AIService: AIServiceProtocol, @unchecked Sendable {
     /// Analyze a goal using AI (legacy method for backward compatibility)
     func analyzeGoal(_ goalText: String) async throws -> String {
         guard isConfigured else {
-            throw ServiceError.notConfigured
+            throw AppError.from(ServiceError.notConfigured)
         }
         
         let systemPrompt = """

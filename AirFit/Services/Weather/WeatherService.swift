@@ -2,7 +2,44 @@ import Foundation
 @preconcurrency import WeatherKit
 import CoreLocation
 
-/// Clean WeatherKit implementation - no API keys, no network complexity
+/// # WeatherService
+/// 
+/// ## Purpose
+/// Provides weather data using Apple's WeatherKit framework for contextual AI coaching.
+/// Enables weather-aware workout recommendations and outdoor activity planning.
+///
+/// ## Dependencies
+/// - `WeatherKit`: Apple's native weather framework (no API keys required)
+/// - `CoreLocation`: Location services for geocoding and weather lookup
+///
+/// ## Key Responsibilities
+/// - Fetch current weather conditions for any location
+/// - Provide multi-day weather forecasts
+/// - Cache weather data to minimize requests
+/// - Convert weather data to LLM-friendly context strings
+/// - Map WeatherKit conditions to simplified categories
+/// - Reverse geocode locations for human-readable names
+///
+/// ## Usage
+/// ```swift
+/// let weather = await container.resolve(WeatherServiceProtocol.self)
+/// 
+/// // Get current weather
+/// let current = try await weather.getCurrentWeather(latitude: 37.7749, longitude: -122.4194)
+/// 
+/// // Get forecast
+/// let forecast = try await weather.getForecast(latitude: lat, longitude: lon, days: 7)
+/// 
+/// // Get LLM context (token-efficient)
+/// let context = await weather.getLLMContext(latitude: lat, longitude: lon)
+/// // Returns: "sunny,22C"
+/// ```
+///
+/// ## Important Notes
+/// - No API keys or configuration required
+/// - 10-minute cache to prevent excessive requests
+/// - Automatically handles WeatherKit entitlements
+/// - Provides simplified weather conditions for AI context
 actor WeatherService: WeatherServiceProtocol, ServiceProtocol {
     // MARK: - Properties
     nonisolated let serviceIdentifier = "weatherkit-service"

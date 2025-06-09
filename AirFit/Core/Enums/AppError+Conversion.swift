@@ -79,7 +79,7 @@ extension AppError {
             return .unknown(message: "Invalid configuration: \(detail)")
         case .networkUnavailable:
             return .networkError(underlying: NSError(domain: "Service", code: 0, userInfo: [NSLocalizedDescriptionKey: "Network unavailable"]))
-        case .authenticationFailed(let reason):
+        case .authenticationFailed:
             return .unauthorized
         case .rateLimitExceeded(let retryAfter):
             let message = retryAfter.map { "Rate limit exceeded. Retry after \(Int($0)) seconds" } 
@@ -112,6 +112,68 @@ extension AppError {
         }
     }
     
+    // MARK: - HealthKit Errors
+    
+    /// Creates AppError from HealthKitError
+    static func from(_ healthKitError: HealthKitManager.HealthKitError) -> AppError {
+        switch healthKitError {
+        case .notAvailable:
+            return .unknown(message: "HealthKit is not available on this device")
+        case .authorizationDenied:
+            return .healthKitNotAuthorized
+        case .dataNotFound:
+            return .unknown(message: "No health data found")
+        case .queryFailed(let error):
+            return .unknown(message: "Health data query failed: \(error.localizedDescription)")
+        case .invalidData:
+            return .validationError(message: "Invalid health data format")
+        }
+    }
+    
+    // MARK: - LLM Errors
+    
+    /// Creates AppError from LLMError
+    static func from(_ llmError: LLMError) -> AppError {
+        switch llmError {
+        case .invalidAPIKey:
+            return .unauthorized
+        case .rateLimitExceeded(let retryAfter):
+            let message = retryAfter.map { "Rate limit exceeded. Try again in \(Int($0)) seconds." }
+                ?? "Rate limit exceeded. Please try again later."
+            return .serverError(code: 429, message: message)
+        case .contextLengthExceeded(let max, let requested):
+            return .validationError(message: "Message too long. Maximum: \(max) tokens, requested: \(requested)")
+        case .invalidResponse(let detail):
+            return .decodingError(underlying: NSError(domain: "LLM", code: 0, userInfo: [NSLocalizedDescriptionKey: detail]))
+        case .networkError(let error):
+            return .networkError(underlying: error)
+        case .serverError(let statusCode, let message):
+            return .serverError(code: statusCode, message: message)
+        case .timeout:
+            return .networkError(underlying: NSError(domain: "LLM", code: -1001, userInfo: [NSLocalizedDescriptionKey: "Request timed out"]))
+        case .cancelled:
+            return .unknown(message: "Request was cancelled")
+        case .unsupportedFeature(let feature):
+            return .unsupportedProvider
+        case .contentFilter:
+            return .validationError(message: "Content was filtered for safety reasons")
+        }
+    }
+    
+    // MARK: - Whisper Model Errors
+    
+    /// Creates AppError from WhisperModelManager.ModelError
+    static func from(_ modelError: WhisperModelManager.ModelError) -> AppError {
+        switch modelError {
+        case .modelNotFound:
+            return .unknown(message: "Model not found")
+        case .insufficientStorage:
+            return .validationError(message: "Not enough storage space for model")
+        case .downloadFailed(let reason):
+            return .networkError(underlying: NSError(domain: "WhisperModel", code: 0, userInfo: [NSLocalizedDescriptionKey: "Download failed: \(reason)"]))
+        }
+    }
+    
     // MARK: - Keychain Errors
     
     /// Creates AppError from KeychainError
@@ -123,6 +185,26 @@ extension AppError {
             return .unknown(message: "Keychain item already exists")
         case .invalidData:
             return .decodingError(underlying: NSError(domain: "Keychain", code: 0))
+        case .unhandledError(let status):
+            return .unknown(message: "Keychain error: \(status)")
+        }
+    }
+    
+    /// Creates AppError from KeychainHelperError
+    static func from(_ keychainHelperError: KeychainHelperError) -> AppError {
+        switch keychainHelperError {
+        case .itemNotFound:
+            return .unknown(message: "Keychain item not found")
+        case .duplicateItem:
+            return .unknown(message: "Keychain item already exists")
+        case .invalidItemFormat:
+            return .validationError(message: "Invalid keychain item format")
+        case .unexpectedItemData:
+            return .decodingError(underlying: NSError(domain: "KeychainHelper", code: 0, userInfo: [NSLocalizedDescriptionKey: "Unexpected item data from keychain"]))
+        case .encodingError:
+            return .decodingError(underlying: NSError(domain: "KeychainHelper", code: 1, userInfo: [NSLocalizedDescriptionKey: "Failed to encode data for keychain"]))
+        case .decodingError:
+            return .decodingError(underlying: NSError(domain: "KeychainHelper", code: 2, userInfo: [NSLocalizedDescriptionKey: "Failed to decode data from keychain"]))
         case .unhandledError(let status):
             return .unknown(message: "Keychain error: \(status)")
         }
@@ -349,6 +431,51 @@ extension AppError {
             return .unknown(message: "Educational content failed: \(details)")
         }
     }
+    
+    // MARK: - Request Optimizer Errors
+    
+    /// Creates AppError from RequestOptimizerError
+    static func from(_ optimizerError: RequestOptimizerError) -> AppError {
+        switch optimizerError {
+        case .offline:
+            return .networkError(underlying: NSError(domain: "RequestOptimizer", code: 0, userInfo: [NSLocalizedDescriptionKey: "No internet connection"]))
+        case .timeout:
+            return .networkError(underlying: NSError(domain: "RequestOptimizer", code: -1001, userInfo: [NSLocalizedDescriptionKey: "Request timed out"]))
+        case .connectionLost:
+            return .networkError(underlying: NSError(domain: "RequestOptimizer", code: -1005, userInfo: [NSLocalizedDescriptionKey: "Connection lost"]))
+        case .duplicate:
+            return .unknown(message: "Request already in progress")
+        case .invalidResponse:
+            return .decodingError(underlying: NSError(domain: "RequestOptimizer", code: 0, userInfo: [NSLocalizedDescriptionKey: "Invalid server response"]))
+        case .httpError(let statusCode, let data):
+            return .serverError(code: statusCode, message: String(data: data, encoding: .utf8))
+        case .rateLimited(let retryAfter):
+            let message = retryAfter.map { "Rate limited. Retry after: \($0)" } ?? "Rate limited"
+            return .serverError(code: 429, message: message)
+        }
+    }
+    
+    // MARK: - Voice Input Errors
+    
+    /// Creates AppError from VoiceInputError
+    static func from(_ voiceInputError: VoiceInputError) -> AppError {
+        switch voiceInputError {
+        case .notAuthorized:
+            return .unauthorized
+        case .whisperNotReady:
+            return .unknown(message: "Voice model not ready")
+        case .whisperInitializationFailed:
+            return .unknown(message: "Failed to initialize voice model")
+        case .modelDownloadFailed(let reason):
+            return .networkError(underlying: NSError(domain: "VoiceInput", code: 0, userInfo: [NSLocalizedDescriptionKey: "Model download failed: \(reason)"]))
+        case .transcriptionFailed:
+            return .unknown(message: "Failed to transcribe audio")
+        case .recordingFailed(let reason):
+            return .unknown(message: "Recording failed: \(reason)")
+        case .noAudioDetected:
+            return .validationError(message: "No audio detected")
+        }
+    }
 }
 
 // MARK: - Error Handling Utilities
@@ -418,6 +545,21 @@ struct ErrorContext: Sendable {
     }
 }
 
+// MARK: - Error Extension
+
+extension Error {
+    /// Converts any Error to AppError using the Result extension
+    var asAppError: AppError {
+        switch Result<Void, Error>.failure(self).mapToAppError() {
+        case .failure(let appError):
+            return appError
+        case .success:
+            // This should never happen
+            return AppError.unknown(message: "Unexpected error conversion")
+        }
+    }
+}
+
 // MARK: - Result Extensions
 
 extension Result where Failure == Error {
@@ -436,6 +578,8 @@ extension Result where Failure == Error {
                 return AppError.from(workoutError)
             } else if let keychainError = error as? KeychainError {
                 return AppError.from(keychainError)
+            } else if let keychainHelperError = error as? KeychainHelperError {
+                return AppError.from(keychainHelperError)
             } else if let coachError = error as? CoachEngineError {
                 return AppError.from(coachError)
             } else if let directAIError = error as? DirectAIError {
@@ -462,6 +606,16 @@ extension Result where Failure == Error {
                 return AppError.from(personaError)
             } else if let liveActivityError = error as? LiveActivityError {
                 return AppError.from(liveActivityError)
+            } else if let healthKitError = error as? HealthKitManager.HealthKitError {
+                return AppError.from(healthKitError)
+            } else if let llmError = error as? LLMError {
+                return AppError.from(llmError)
+            } else if let modelError = error as? WhisperModelManager.ModelError {
+                return AppError.from(modelError)
+            } else if let optimizerError = error as? RequestOptimizerError {
+                return AppError.from(optimizerError)
+            } else if let voiceInputError = error as? VoiceInputError {
+                return AppError.from(voiceInputError)
             } else {
                 return AppError.networkError(underlying: error)
             }

@@ -2,7 +2,11 @@ import Foundation
 import SwiftData
 
 /// High-performance cache for onboarding flow - resumes in <100ms
-actor OnboardingCache {
+actor OnboardingCache: ServiceProtocol {
+    // MARK: - ServiceProtocol
+    nonisolated let serviceIdentifier = "onboarding-cache"
+    private var _isConfigured = false
+    nonisolated var isConfigured: Bool { true } // Cache is always ready
     private let diskCache: URL
     private var memoryCache: [UUID: CachedSession] = [:]
     
@@ -137,6 +141,42 @@ actor OnboardingCache {
                 memoryCache[userId] = cached
             }
         }
+    }
+    
+    // MARK: - ServiceProtocol Methods
+    
+    func configure() async throws {
+        guard !_isConfigured else { return }
+        await loadActiveSessions()
+        _isConfigured = true
+        AppLogger.info("\(serviceIdentifier) configured", category: .services)
+    }
+    
+    func reset() async {
+        memoryCache.removeAll()
+        if let files = try? FileManager.default.contentsOfDirectory(at: diskCache, includingPropertiesForKeys: nil) {
+            for file in files {
+                try? FileManager.default.removeItem(at: file)
+            }
+        }
+        _isConfigured = false
+        AppLogger.info("\(serviceIdentifier) reset", category: .services)
+    }
+    
+    func healthCheck() async -> ServiceHealth {
+        let cacheCount = memoryCache.count
+        let diskFiles = (try? FileManager.default.contentsOfDirectory(at: diskCache, includingPropertiesForKeys: nil))?.count ?? 0
+        
+        return ServiceHealth(
+            status: .healthy,
+            lastCheckTime: Date(),
+            responseTime: nil,
+            errorMessage: nil,
+            metadata: [
+                "memoryCacheCount": "\(cacheCount)",
+                "diskCacheFiles": "\(diskFiles)"
+            ]
+        )
     }
 }
 

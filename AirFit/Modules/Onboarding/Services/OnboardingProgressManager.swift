@@ -8,7 +8,14 @@ struct ProgressAnalyticsError: Error {
 }
 
 @MainActor
-final class OnboardingProgressManager: ObservableObject {
+final class OnboardingProgressManager: ObservableObject, ServiceProtocol {
+    // MARK: - ServiceProtocol
+    nonisolated let serviceIdentifier = "onboarding-progress-manager"
+    private var _isConfigured = false
+    nonisolated var isConfigured: Bool {
+        MainActor.assumeIsolated { _isConfigured }
+    }
+    
     // MARK: - Properties
     @Published private(set) var currentProgress: PersistedProgress?
     @Published private(set) var isLoading = false
@@ -253,6 +260,33 @@ final class OnboardingProgressManager: ObservableObject {
         ))
         
         return migrated
+    }
+    
+    // MARK: - ServiceProtocol Methods
+    
+    func configure() async throws {
+        guard !_isConfigured else { return }
+        _isConfigured = true
+        AppLogger.info("\(serviceIdentifier) configured", category: .services)
+    }
+    
+    func reset() async {
+        _isConfigured = false
+        currentProgress = nil
+        AppLogger.info("\(serviceIdentifier) reset", category: .services)
+    }
+    
+    func healthCheck() async -> ServiceHealth {
+        ServiceHealth(
+            status: _isConfigured ? .healthy : .unhealthy,
+            lastCheckTime: Date(),
+            responseTime: nil,
+            errorMessage: _isConfigured ? nil : "Service not configured",
+            metadata: [
+                "hasCurrentProgress": currentProgress != nil ? "true" : "false",
+                "cacheEnabled": "true"
+            ]
+        )
     }
 }
 

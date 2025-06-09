@@ -1,9 +1,51 @@
 import Foundation
 import SwiftData
 
-/// Service responsible for managing user fitness goals and providing goal context to the AI coach
+/// # GoalService
+/// 
+/// ## Purpose
+/// Manages user fitness and health goals, tracks progress, and provides contextual
+/// goal information to the AI coach for personalized guidance.
+///
+/// ## Dependencies
+/// - `ModelContext`: SwiftData context for persisting and querying goal data
+///
+/// ## Key Responsibilities
+/// - Create, update, and delete fitness/nutrition goals
+/// - Track goal progress and milestones
+/// - Identify goals needing attention based on deadlines
+/// - Calculate goal statistics and completion rates
+/// - Provide goal context for AI coaching decisions
+/// - Monitor goal streaks and achievements
+///
+/// ## Usage
+/// ```swift
+/// let goalService = await container.resolve(GoalServiceProtocol.self)
+/// 
+/// // Create a new goal
+/// let goal = TrackedGoal(title: "Lose 10 lbs", type: .weightLoss)
+/// try await goalService.createGoal(goal)
+/// 
+/// // Update progress
+/// try await goalService.updateProgress(for: goal.id, progress: 5.0)
+/// 
+/// // Get goal context for AI
+/// let context = try await goalService.getGoalsContext(for: userId)
+/// ```
+///
+/// ## Important Notes
+/// - Automatically marks goals complete when target is reached
+/// - Provides rich context for AI coaching recommendations
+/// - Tracks both quantitative and qualitative goals
 @MainActor
-final class GoalService: GoalServiceProtocol {
+final class GoalService: GoalServiceProtocol, ServiceProtocol {
+    // MARK: - ServiceProtocol
+    nonisolated let serviceIdentifier = "goal-service"
+    private var _isConfigured = false
+    nonisolated var isConfigured: Bool {
+        MainActor.assumeIsolated { _isConfigured }
+    }
+    
     // MARK: - Properties
     
     private let modelContext: ModelContext
@@ -12,6 +54,32 @@ final class GoalService: GoalServiceProtocol {
     
     init(modelContext: ModelContext) {
         self.modelContext = modelContext
+    }
+    
+    // MARK: - ServiceProtocol Methods
+    
+    func configure() async throws {
+        guard !_isConfigured else { return }
+        _isConfigured = true
+        AppLogger.info("\(serviceIdentifier) configured", category: .services)
+    }
+    
+    func reset() async {
+        _isConfigured = false
+        AppLogger.info("\(serviceIdentifier) reset", category: .services)
+    }
+    
+    func healthCheck() async -> ServiceHealth {
+        // Check if we can access goals data
+        let canAccessData = (try? modelContext.fetch(FetchDescriptor<TrackedGoal>())) != nil
+        
+        return ServiceHealth(
+            status: canAccessData ? .healthy : .degraded,
+            lastCheckTime: Date(),
+            responseTime: nil,
+            errorMessage: canAccessData ? nil : "Cannot access goals data",
+            metadata: ["modelContext": "true"]
+        )
     }
     
     // MARK: - Goal Management

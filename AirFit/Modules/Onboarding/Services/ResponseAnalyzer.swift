@@ -1,7 +1,12 @@
 import Foundation
 
 // MARK: - Response Analyzer Implementation
-actor ResponseAnalyzerImpl: ResponseAnalyzer {
+actor ResponseAnalyzerImpl: ResponseAnalyzer, ServiceProtocol {
+    // MARK: - ServiceProtocol
+    nonisolated let serviceIdentifier = "response-analyzer"
+    private var _isConfigured = false
+    nonisolated var isConfigured: Bool { true } // Always ready
+    
     // For now, we'll do local analysis without AI service
     // Phase 2 will integrate the actual AI persona synthesis
     
@@ -214,5 +219,30 @@ actor ResponseAnalyzerImpl: ResponseAnalyzer {
         }
         
         return scores
+    }
+    
+    // MARK: - ServiceProtocol Methods
+    
+    func configure() async throws {
+        guard !_isConfigured else { return }
+        _isConfigured = true
+        AppLogger.info("\(serviceIdentifier) configured", category: .services)
+    }
+    
+    func reset() async {
+        _isConfigured = false
+        AppLogger.info("\(serviceIdentifier) reset", category: .services)
+    }
+    
+    func healthCheck() async -> ServiceHealth {
+        ServiceHealth(
+            status: .healthy,
+            lastCheckTime: Date(),
+            responseTime: nil,
+            errorMessage: nil,
+            metadata: [
+                "analysisReady": "true"
+            ]
+        )
     }
 }

@@ -2,7 +2,12 @@ import Foundation
 import LocalAuthentication
 
 /// Manages biometric authentication for the app
-final class BiometricAuthManager {
+final class BiometricAuthManager: ServiceProtocol, @unchecked Sendable {
+    // MARK: - ServiceProtocol
+    let serviceIdentifier = "biometric-auth-manager"
+    private var _isConfigured = false
+    var isConfigured: Bool { _isConfigured }
+    
     private let context = LAContext()
     
     /// Check if biometric authentication is available
@@ -49,6 +54,33 @@ final class BiometricAuthManager {
     /// Reset the authentication context
     func reset() {
         context.invalidate()
+    }
+    
+    // MARK: - ServiceProtocol Methods
+    
+    func configure() async throws {
+        guard !_isConfigured else { return }
+        _isConfigured = true
+        AppLogger.info("\(serviceIdentifier) configured", category: .services)
+    }
+    
+    func reset() async {
+        context.invalidate()
+        _isConfigured = false
+        AppLogger.info("\(serviceIdentifier) reset", category: .services)
+    }
+    
+    func healthCheck() async -> ServiceHealth {
+        ServiceHealth(
+            status: canUseBiometrics ? .healthy : .degraded,
+            lastCheckTime: Date(),
+            responseTime: nil,
+            errorMessage: canUseBiometrics ? nil : "Biometrics not available",
+            metadata: [
+                "biometricType": biometricType.displayName,
+                "canUseBiometrics": "\(canUseBiometrics)"
+            ]
+        )
     }
 }
 

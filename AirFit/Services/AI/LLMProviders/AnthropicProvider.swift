@@ -1,6 +1,11 @@
 import Foundation
 
-actor AnthropicProvider: LLMProvider {
+actor AnthropicProvider: LLMProvider, ServiceProtocol {
+    // MARK: - ServiceProtocol
+    nonisolated let serviceIdentifier = "anthropic-provider"
+    private var _isConfigured = false
+    nonisolated var isConfigured: Bool { true } // Always ready
+    
     private let config: LLMProviderConfig
     private let session: URLSession
     
@@ -41,21 +46,21 @@ actor AnthropicProvider: LLMProvider {
         let (data, response) = try await session.data(for: urlRequest)
         
         guard let httpResponse = response as? HTTPURLResponse else {
-            throw LLMError.networkError(URLError(.badServerResponse))
+            throw AppError.from(LLMError.networkError(URLError(.badServerResponse)))
         }
         
         if httpResponse.statusCode == 401 {
-            throw LLMError.invalidAPIKey
+            throw AppError.from(LLMError.invalidAPIKey)
         } else if httpResponse.statusCode == 429 {
             let retryAfter = httpResponse.value(forHTTPHeaderField: "Retry-After")
                 .flatMap { Double($0) }
-            throw LLMError.rateLimitExceeded(retryAfter: retryAfter)
+            throw AppError.from(LLMError.rateLimitExceeded(retryAfter: retryAfter))
         } else if httpResponse.statusCode >= 400 {
             let errorMessage = try? JSONDecoder().decode(AnthropicError.self, from: data)
-            throw LLMError.serverError(
+            throw AppError.from(LLMError.serverError(
                 statusCode: httpResponse.statusCode,
                 message: errorMessage?.error.message
-            )
+            ))
         }
         
         let anthropicResponse = try JSONDecoder().decode(AnthropicResponse.self, from: data)
@@ -92,7 +97,7 @@ actor AnthropicProvider: LLMProvider {
                     
                     guard let httpResponse = response as? HTTPURLResponse,
                           httpResponse.statusCode == 200 else {
-                        throw LLMError.networkError(URLError(.badServerResponse))
+                        throw AppError.from(LLMError.networkError(URLError(.badServerResponse)))
                     }
                     
                     var buffer = ""
@@ -176,7 +181,7 @@ actor AnthropicProvider: LLMProvider {
     
     private func mapToLLMResponse(_ response: AnthropicResponse, model: String) throws -> LLMResponse {
         guard let content = response.content.first?.text else {
-            throw LLMError.invalidResponse("No content in response")
+            throw AppError.from(LLMError.invalidResponse("No content in response"))
         }
         
         return LLMResponse(
@@ -224,6 +229,33 @@ actor AnthropicProvider: LLMProvider {
         default:
             return .stop
         }
+    }
+    
+    // MARK: - ServiceProtocol Methods
+    
+    func configure() async throws {
+        guard !_isConfigured else { return }
+        _isConfigured = true
+        AppLogger.info("\(serviceIdentifier) configured", category: .services)
+    }
+    
+    func reset() async {
+        _isConfigured = false
+        AppLogger.info("\(serviceIdentifier) reset", category: .services)
+    }
+    
+    func healthCheck() async -> ServiceHealth {
+        ServiceHealth(
+            status: _isConfigured ? .healthy : .unhealthy,
+            lastCheckTime: Date(),
+            responseTime: nil,
+            errorMessage: _isConfigured ? nil : "Service not configured",
+            metadata: [
+                "provider": identifier.name,
+                "maxTokens": "\(capabilities.maxContextTokens)",
+                "supportsFunctions": capabilities.supportsFunctionCalling ? "true" : "false"
+            ]
+        )
     }
 }
 

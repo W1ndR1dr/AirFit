@@ -7,7 +7,7 @@ final class HealthKitAuthManager {
     private let healthKitManager: HealthKitManaging
     var authorizationStatus: HealthKitAuthorizationStatus = .notDetermined
 
-    init(healthKitManager: HealthKitManaging = HealthKitManager.shared) {
+    init(healthKitManager: HealthKitManaging) {
         self.healthKitManager = healthKitManager
         refreshStatus()
     }

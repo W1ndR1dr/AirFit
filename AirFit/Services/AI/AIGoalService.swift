@@ -3,11 +3,41 @@ import SwiftData
 
 /// AI Goal Service - Wraps the base GoalServiceProtocol and adds AI-specific functionality
 @MainActor
-final class AIGoalService: AIGoalServiceProtocol {
+final class AIGoalService: AIGoalServiceProtocol, ServiceProtocol {
+    // MARK: - ServiceProtocol
+    nonisolated let serviceIdentifier = "ai-goal-service"
+    private var _isConfigured = false
+    nonisolated var isConfigured: Bool {
+        MainActor.assumeIsolated { _isConfigured }
+    }
+    
     private let goalService: GoalServiceProtocol
     
     init(goalService: GoalServiceProtocol) {
         self.goalService = goalService
+    }
+    
+    // MARK: - ServiceProtocol Methods
+    
+    func configure() async throws {
+        guard !_isConfigured else { return }
+        _isConfigured = true
+        AppLogger.info("\(serviceIdentifier) configured", category: .services)
+    }
+    
+    func reset() async {
+        _isConfigured = false
+        AppLogger.info("\(serviceIdentifier) reset", category: .services)
+    }
+    
+    func healthCheck() async -> ServiceHealth {
+        ServiceHealth(
+            status: _isConfigured ? .healthy : .unhealthy,
+            lastCheckTime: Date(),
+            responseTime: nil,
+            errorMessage: _isConfigured ? nil : "Service not configured",
+            metadata: ["hasGoalService": "true"]
+        )
     }
     
     // MARK: - AI-specific methods

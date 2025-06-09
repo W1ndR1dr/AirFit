@@ -5,7 +5,14 @@ import SwiftData
 // instead of Onboarding/Models/PersonalityInsights.swift for persona synthesis
 
 @MainActor
-final class PersonaService {
+final class PersonaService: ServiceProtocol {
+    // MARK: - ServiceProtocol
+    nonisolated let serviceIdentifier = "persona-service"
+    private var _isConfigured = false
+    nonisolated var isConfigured: Bool {
+        MainActor.assumeIsolated { _isConfigured }
+    }
+    
     private let personaSynthesizer: OptimizedPersonaSynthesizer
     private let llmOrchestrator: LLMOrchestrator
     private let modelContext: ModelContext
@@ -21,6 +28,33 @@ final class PersonaService {
         self.llmOrchestrator = llmOrchestrator
         self.modelContext = modelContext
         self.cache = cache ?? AIResponseCache()
+    }
+    
+    // MARK: - ServiceProtocol Methods
+    
+    func configure() async throws {
+        guard !_isConfigured else { return }
+        _isConfigured = true
+        AppLogger.info("\(serviceIdentifier) configured", category: .services)
+    }
+    
+    func reset() async {
+        _isConfigured = false
+        await cache.clear()
+        AppLogger.info("\(serviceIdentifier) reset", category: .services)
+    }
+    
+    func healthCheck() async -> ServiceHealth {
+        ServiceHealth(
+            status: _isConfigured ? .healthy : .unhealthy,
+            lastCheckTime: Date(),
+            responseTime: nil,
+            errorMessage: _isConfigured ? nil : "Service not configured",
+            metadata: [
+                "hasPersonaSynthesizer": "true",
+                "hasLLMOrchestrator": "true"
+            ]
+        )
     }
     
     func generatePersona(from session: ConversationSession) async throws -> PersonaProfile {

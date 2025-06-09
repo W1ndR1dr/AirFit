@@ -2,11 +2,47 @@ import Foundation
 import SwiftData
 
 /// Service for nutrition-related operations and calculations.
-actor NutritionService: NutritionServiceProtocol {
+actor NutritionService: NutritionServiceProtocol, ServiceProtocol {
     private let modelContext: ModelContext
+    private let healthKitManager: HealthKitManaging?
+    
+    // MARK: - ServiceProtocol
+    nonisolated let serviceIdentifier = "nutrition-service"
+    private var _isConfigured = false
+    nonisolated var isConfigured: Bool {
+        // For actors, we need async access but protocol requires sync
+        // Return true as nutrition service is always ready after init
+        true
+    }
 
-    init(modelContext: ModelContext) {
+    init(modelContext: ModelContext, healthKitManager: HealthKitManaging? = nil) {
         self.modelContext = modelContext
+        self.healthKitManager = healthKitManager
+    }
+    
+    // MARK: - ServiceProtocol Methods
+    
+    func configure() async throws {
+        guard !_isConfigured else { return }
+        _isConfigured = true
+        AppLogger.info("NutritionService configured", category: .services)
+    }
+    
+    func reset() async {
+        _isConfigured = false
+        AppLogger.info("NutritionService reset", category: .services)
+    }
+    
+    func healthCheck() async -> ServiceHealth {
+        return ServiceHealth(
+            status: _isConfigured ? .healthy : .degraded,
+            lastCheckTime: Date(),
+            responseTime: nil,
+            errorMessage: nil,
+            metadata: [
+                "healthKitAvailable": "\(healthKitManager != nil)"
+            ]
+        )
     }
 
     // MARK: - Basic CRUD
@@ -18,7 +54,11 @@ actor NutritionService: NutritionServiceProtocol {
         
         // 2. Save to HealthKit (best effort, but synchronous for now)
         do {
-            let sampleIDs = try await HealthKitManager.shared.saveFoodEntry(entry)
+            guard let healthKitManager else {
+                AppLogger.warning("HealthKitManager not available for food entry sync", category: .data)
+                return
+            }
+            let sampleIDs = try await healthKitManager.saveFoodEntry(entry)
             if !sampleIDs.isEmpty {
                 // Store HealthKit sample IDs for future reference
                 entry.healthKitSampleIDs = sampleIDs
@@ -92,7 +132,11 @@ actor NutritionService: NutritionServiceProtocol {
     func getWaterIntake(for user: User, date: Date) async throws -> Double {
         // Fetch from HealthKit
         do {
-            let nutritionData = try await HealthKitManager.shared.getNutritionData(for: date)
+            guard let healthKitManager else {
+                AppLogger.warning("HealthKitManager not available for nutrition data", category: .data)
+                return 0
+            }
+            let nutritionData = try await healthKitManager.getNutritionData(for: date)
             return nutritionData.water
         } catch {
             AppLogger.warning("Failed to fetch water intake from HealthKit: \(error)", category: .data)
@@ -127,7 +171,10 @@ actor NutritionService: NutritionServiceProtocol {
     func logWaterIntake(for user: User, amountML: Double, date: Date) async throws {
         // Save to HealthKit
         do {
-            _ = try await HealthKitManager.shared.saveWaterIntake(amountML: amountML, date: date)
+            guard let healthKitManager else {
+                throw AppError.unknown(message: "HealthKitManager not available for water intake")
+            }
+            _ = try await healthKitManager.saveWaterIntake(amountML: amountML, date: date)
             AppLogger.info("Logged \(amountML)ml water intake to HealthKit", category: .data)
         } catch {
             AppLogger.error("Failed to log water intake to HealthKit", error: error, category: .data)

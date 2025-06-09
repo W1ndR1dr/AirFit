@@ -71,7 +71,9 @@ struct WorkoutBuilderView: View {
                 }
             }
             .sheet(isPresented: $showingExercisePicker) {
-                ExercisePickerView { exercise in
+                ExercisePickerView(
+                    exerciseDatabase: viewModel.exerciseDatabase
+                ) { exercise in
                     addExercise(from: exercise)
                 }
             }
@@ -267,6 +269,7 @@ struct ExercisePickerView: View {
     @State private var exercises: [ExerciseDefinition] = []
     @State private var isLoading = true
 
+    let exerciseDatabase: ExerciseDatabase
     let onSelect: (ExerciseDefinition) -> Void
 
     var filteredExercises: [ExerciseDefinition] {
@@ -313,7 +316,7 @@ struct ExercisePickerView: View {
             }
             .task {
                 do {
-                    exercises = try await ExerciseDatabase.shared.getAllExercises()
+                    exercises = try await exerciseDatabase.getAllExercises()
                     isLoading = false
                 } catch {
                     AppLogger.error("Failed to load exercises", error: error, category: .data)

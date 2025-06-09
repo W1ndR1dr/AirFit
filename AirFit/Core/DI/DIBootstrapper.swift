@@ -122,16 +122,24 @@ public final class DIBootstrapper {
         // Nutrition Service
         container.register(NutritionServiceProtocol.self, lifetime: .transient) { resolver in
             let modelContainer = try await resolver.resolve(ModelContainer.self)
+            let healthKitManager = try? await resolver.resolve(HealthKitManaging.self)
             return await MainActor.run {
-                NutritionService(modelContext: modelContainer.mainContext)
+                NutritionService(
+                    modelContext: modelContainer.mainContext,
+                    healthKitManager: healthKitManager
+                )
             }
         }
         
         // Workout Service
         container.register(WorkoutServiceProtocol.self, lifetime: .transient) { resolver in
             let modelContainer = try await resolver.resolve(ModelContainer.self)
+            let healthKitManager = try? await resolver.resolve(HealthKitManaging.self)
             return await MainActor.run {
-                WorkoutService(modelContext: modelContainer.mainContext)
+                WorkoutService(
+                    modelContext: modelContainer.mainContext,
+                    healthKitManager: healthKitManager
+                )
             }
         }
         
@@ -157,9 +165,24 @@ public final class DIBootstrapper {
             WeatherService()
         }
         
-        // HealthKit Manager - Observable, needs careful handling
+        // HealthKit Manager - MainActor service, no longer singleton
         container.register(HealthKitManager.self, lifetime: .singleton) { _ in
-            await HealthKitManager.shared
+            await MainActor.run {
+                HealthKitManager()
+            }
+        }
+        
+        // Also register as protocol
+        container.register(HealthKitManaging.self, lifetime: .singleton) { resolver in
+            try await resolver.resolve(HealthKitManager.self)
+        }
+        
+        // HealthKit Auth Manager
+        container.register(HealthKitAuthManager.self, lifetime: .singleton) { resolver in
+            let healthKitManager = try await resolver.resolve(HealthKitManaging.self)
+            return await MainActor.run {
+                HealthKitAuthManager(healthKitManager: healthKitManager)
+            }
         }
         
         // Context Assembler
@@ -186,28 +209,59 @@ public final class DIBootstrapper {
             try await resolver.resolve(HealthKitService.self)
         }
         
+        // KeychainHelper
+        container.register(KeychainHelper.self, lifetime: .singleton) { _ in
+            KeychainHelper()
+        }
+        
+        // NetworkMonitor
+        container.register(NetworkMonitor.self, lifetime: .singleton) { _ in
+            await MainActor.run {
+                NetworkMonitor()
+            }
+        }
+        
+        // RequestOptimizer
+        container.register(RequestOptimizer.self, lifetime: .singleton) { resolver in
+            let networkMonitor = try await resolver.resolve(NetworkMonitor.self)
+            return RequestOptimizer(networkMonitor: networkMonitor)
+        }
+        
         // Exercise Database
-        container.register(ExerciseDatabase.self, lifetime: .singleton) { _ in
-            await ExerciseDatabase.shared
+        container.register(ExerciseDatabase.self, lifetime: .singleton) { resolver in
+            let modelContainer = try? await resolver.resolve(ModelContainer.self)
+            return await MainActor.run {
+                ExerciseDatabase(container: modelContainer)
+            }
         }
         
         // Workout Sync Service
         container.register(WorkoutSyncService.self, lifetime: .singleton) { _ in
-            await WorkoutSyncService.shared
+            await MainActor.run {
+                WorkoutSyncService()
+            }
         }
         
         // Monitoring Service - Actor-based
         container.register(MonitoringService.self, lifetime: .singleton) { _ in
-            MonitoringService.shared
+            MonitoringService()
         }
     }
     
     // MARK: - UI Services
     
     private static func registerUIServices(in container: DIContainer) {
+        // Whisper Model Manager
+        container.register(WhisperModelManager.self, lifetime: .singleton) { _ in
+            await MainActor.run {
+                WhisperModelManager()
+            }
+        }
+        
         // Voice Input Manager
-        container.register(VoiceInputManager.self, lifetime: .singleton) { _ in
-            await VoiceInputManager()
+        container.register(VoiceInputManager.self, lifetime: .singleton) { resolver in
+            let modelManager = try await resolver.resolve(WhisperModelManager.self)
+            return await VoiceInputManager(modelManager: modelManager)
         }
         
         // Food Voice Adapter
@@ -223,7 +277,23 @@ public final class DIBootstrapper {
         
         // Notification Manager
         container.register(NotificationManager.self, lifetime: .singleton) { _ in
-            await NotificationManager.shared
+            await MainActor.run {
+                NotificationManager()
+            }
+        }
+        
+        // Live Activity Manager
+        container.register(LiveActivityManager.self, lifetime: .singleton) { _ in
+            await MainActor.run {
+                LiveActivityManager()
+            }
+        }
+        
+        // Routing Configuration
+        container.register(RoutingConfiguration.self, lifetime: .singleton) { _ in
+            await MainActor.run {
+                RoutingConfiguration()
+            }
         }
         
         // Onboarding Service

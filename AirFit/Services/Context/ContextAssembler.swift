@@ -3,13 +3,20 @@ import SwiftData
 
 /// Aggregates health and environmental data into `HealthContextSnapshot` instances.
 @MainActor
-final class ContextAssembler: ContextAssemblerProtocol {
+final class ContextAssembler: ContextAssemblerProtocol, ServiceProtocol {
+    // MARK: - ServiceProtocol
+    nonisolated let serviceIdentifier = "context-assembler"
+    private var _isConfigured = false
+    nonisolated var isConfigured: Bool {
+        MainActor.assumeIsolated { _isConfigured }
+    }
+    
     private let healthKitManager: HealthKitManaging
     private let goalService: GoalServiceProtocol?
     // Future: private let weatherService: WeatherServiceProtocol
 
     init(
-        healthKitManager: HealthKitManaging = HealthKitManager.shared,
+        healthKitManager: HealthKitManaging,
         goalService: GoalServiceProtocol? = nil
     ) {
         self.healthKitManager = healthKitManager
@@ -520,5 +527,31 @@ final class ContextAssembler: ContextAssemblerProtocol {
 
             return HealthTrends(weeklyActivityChange: weeklyChange)
         }
+    }
+    
+    // MARK: - ServiceProtocol Methods
+    
+    func configure() async throws {
+        guard !_isConfigured else { return }
+        _isConfigured = true
+        AppLogger.info("\(serviceIdentifier) configured", category: .services)
+    }
+    
+    func reset() async {
+        _isConfigured = false
+        AppLogger.info("\(serviceIdentifier) reset", category: .services)
+    }
+    
+    func healthCheck() async -> ServiceHealth {
+        ServiceHealth(
+            status: _isConfigured ? .healthy : .unhealthy,
+            lastCheckTime: Date(),
+            responseTime: nil,
+            errorMessage: _isConfigured ? nil : "Service not configured",
+            metadata: [
+                "hasHealthKitManager": "true",
+                "hasGoalService": "\(goalService != nil)"
+            ]
+        )
     }
 }

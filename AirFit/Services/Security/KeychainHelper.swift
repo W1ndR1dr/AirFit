@@ -2,12 +2,17 @@ import Foundation
 import Security
 
 /// Helper class for enhanced Keychain operations with error handling and batch operations
-final class KeychainHelper: @unchecked Sendable {
-    static let shared = KeychainHelper()
+actor KeychainHelper: ServiceProtocol {
+    // MARK: - ServiceProtocol
+    nonisolated let serviceIdentifier = "keychain-helper"
+    private var _isConfigured = false
+    nonisolated var isConfigured: Bool {
+        // For actors, return true as services are ready when created
+        true
+    }
     
     private let serviceName: String
     private let accessGroup: String?
-    private let lock = NSLock()
     
     init(serviceName: String = Bundle.main.bundleIdentifier ?? "com.airfit",
          accessGroup: String? = nil) {
@@ -15,12 +20,50 @@ final class KeychainHelper: @unchecked Sendable {
         self.accessGroup = accessGroup
     }
     
+    // MARK: - ServiceProtocol Methods
+    
+    func configure() async throws {
+        guard !_isConfigured else { return }
+        _isConfigured = true
+        AppLogger.info("\(serviceIdentifier) configured", category: .services)
+    }
+    
+    func reset() async {
+        _isConfigured = false
+        AppLogger.info("\(serviceIdentifier) reset", category: .services)
+    }
+    
+    func healthCheck() async -> ServiceHealth {
+        // Try a simple keychain operation to verify access
+        let testKey = "__health_check_test__"
+        let testData = "test".data(using: .utf8)!
+        
+        do {
+            try save(testData, for: testKey)
+            _ = try getData(for: testKey)
+            try delete(for: testKey)
+            
+            return ServiceHealth(
+                status: .healthy,
+                lastCheckTime: Date(),
+                responseTime: nil,
+                errorMessage: nil,
+                metadata: ["accessible": "true"]
+            )
+        } catch {
+            return ServiceHealth(
+                status: .unhealthy,
+                lastCheckTime: Date(),
+                responseTime: nil,
+                errorMessage: error.localizedDescription,
+                metadata: ["accessible": "false"]
+            )
+        }
+    }
+    
     // MARK: - Save Operations
     
     func save(_ data: Data, for key: String, accessibility: KeychainAccessibility = .whenUnlockedThisDeviceOnly) throws {
-        lock.lock()
-        defer { lock.unlock() }
-        
         // Delete any existing item first
         try? delete(for: key)
         
@@ -31,13 +74,13 @@ final class KeychainHelper: @unchecked Sendable {
         let status = SecItemAdd(query as CFDictionary, nil)
         
         guard status == errSecSuccess else {
-            throw KeychainHelperError.unhandledError(status: status)
+            throw AppError.from(KeychainHelperError.unhandledError(status: status))
         }
     }
     
     func save(_ string: String, for key: String, accessibility: KeychainAccessibility = .whenUnlockedThisDeviceOnly) throws {
         guard let data = string.data(using: .utf8) else {
-            throw KeychainHelperError.encodingError
+            throw AppError.from(KeychainHelperError.encodingError)
         }
         try save(data, for: key, accessibility: accessibility)
     }
@@ -45,9 +88,6 @@ final class KeychainHelper: @unchecked Sendable {
     // MARK: - Retrieve Operations
     
     func getData(for key: String) throws -> Data {
-        lock.lock()
-        defer { lock.unlock() }
-        
         var query = baseQuery(for: key)
         query[kSecReturnData] = true
         query[kSecMatchLimit] = kSecMatchLimitOne
@@ -57,13 +97,13 @@ final class KeychainHelper: @unchecked Sendable {
         
         guard status == errSecSuccess else {
             if status == errSecItemNotFound {
-                throw KeychainHelperError.itemNotFound
+                throw AppError.from(KeychainHelperError.itemNotFound)
             }
-            throw KeychainHelperError.unhandledError(status: status)
+            throw AppError.from(KeychainHelperError.unhandledError(status: status))
         }
         
         guard let data = result as? Data else {
-            throw KeychainHelperError.unexpectedItemData
+            throw AppError.from(KeychainHelperError.unexpectedItemData)
         }
         
         return data
@@ -72,7 +112,7 @@ final class KeychainHelper: @unchecked Sendable {
     func getString(for key: String) throws -> String {
         let data = try getData(for: key)
         guard let string = String(data: data, encoding: .utf8) else {
-            throw KeychainHelperError.decodingError
+            throw AppError.from(KeychainHelperError.decodingError)
         }
         return string
     }
@@ -80,21 +120,15 @@ final class KeychainHelper: @unchecked Sendable {
     // MARK: - Delete Operations
     
     func delete(for key: String) throws {
-        lock.lock()
-        defer { lock.unlock() }
-        
         let query = baseQuery(for: key)
         let status = SecItemDelete(query as CFDictionary)
         
         guard status == errSecSuccess || status == errSecItemNotFound else {
-            throw KeychainHelperError.unhandledError(status: status)
+            throw AppError.from(KeychainHelperError.unhandledError(status: status))
         }
     }
     
     func deleteAll() throws {
-        lock.lock()
-        defer { lock.unlock() }
-        
         let query: [CFString: Any] = [
             kSecClass: kSecClassGenericPassword,
             kSecAttrService: serviceName
@@ -103,15 +137,13 @@ final class KeychainHelper: @unchecked Sendable {
         let status = SecItemDelete(query as CFDictionary)
         
         guard status == errSecSuccess || status == errSecItemNotFound else {
-            throw KeychainHelperError.unhandledError(status: status)
+            throw AppError.from(KeychainHelperError.unhandledError(status: status))
         }
     }
     
     // MARK: - Batch Operations
     
     func getAllKeys() throws -> [String] {
-        lock.lock()
-        defer { lock.unlock() }
         
         var query: [CFString: Any] = [
             kSecClass: kSecClassGenericPassword,
@@ -131,7 +163,7 @@ final class KeychainHelper: @unchecked Sendable {
             if status == errSecItemNotFound {
                 return []
             }
-            throw KeychainHelperError.unhandledError(status: status)
+            throw AppError.from(KeychainHelperError.unhandledError(status: status))
         }
         
         guard let items = result as? [[CFString: Any]] else {

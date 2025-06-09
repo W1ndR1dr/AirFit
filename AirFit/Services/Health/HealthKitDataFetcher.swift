@@ -2,7 +2,12 @@ import Foundation
 import HealthKit
 
 /// Handles HealthKit data fetching operations
-actor HealthKitDataFetcher {
+actor HealthKitDataFetcher: ServiceProtocol {
+    // MARK: - ServiceProtocol
+    nonisolated let serviceIdentifier = "healthkit-data-fetcher"
+    private var _isConfigured = false
+    nonisolated var isConfigured: Bool { true } // Always ready when health store is available
+    
     private let healthStore: HKHealthStore
 
     init(healthStore: HKHealthStore) {
@@ -96,5 +101,30 @@ actor HealthKitDataFetcher {
 
             healthStore.execute(query)
         }
+    }
+    
+    // MARK: - ServiceProtocol Methods
+    
+    func configure() async throws {
+        guard !_isConfigured else { return }
+        _isConfigured = true
+        AppLogger.info("\(serviceIdentifier) configured", category: .services)
+    }
+    
+    func reset() async {
+        _isConfigured = false
+        AppLogger.info("\(serviceIdentifier) reset", category: .services)
+    }
+    
+    func healthCheck() async -> ServiceHealth {
+        ServiceHealth(
+            status: HKHealthStore.isHealthDataAvailable() ? .healthy : .unhealthy,
+            lastCheckTime: Date(),
+            responseTime: nil,
+            errorMessage: HKHealthStore.isHealthDataAvailable() ? nil : "HealthKit not available",
+            metadata: [
+                "healthDataAvailable": "\(HKHealthStore.isHealthDataAvailable())"
+            ]
+        )
     }
 }

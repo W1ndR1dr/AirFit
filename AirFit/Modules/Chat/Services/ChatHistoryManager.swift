@@ -2,7 +2,14 @@ import Foundation
 import SwiftData
 
 @MainActor
-final class ChatHistoryManager: ObservableObject {
+final class ChatHistoryManager: ObservableObject, ServiceProtocol {
+    // MARK: - ServiceProtocol
+    nonisolated let serviceIdentifier = "chat-history-manager"
+    private var _isConfigured = false
+    nonisolated var isConfigured: Bool {
+        MainActor.assumeIsolated { _isConfigured }
+    }
+    
     private let modelContext: ModelContext
     
     @Published private(set) var sessions: [ChatSession] = []
@@ -11,6 +18,36 @@ final class ChatHistoryManager: ObservableObject {
     
     init(modelContext: ModelContext) {
         self.modelContext = modelContext
+    }
+    
+    // MARK: - ServiceProtocol Methods
+    
+    func configure() async throws {
+        guard !_isConfigured else { return }
+        _isConfigured = true
+        AppLogger.info("\(serviceIdentifier) configured", category: .services)
+    }
+    
+    func reset() async {
+        sessions.removeAll()
+        error = nil
+        _isConfigured = false
+        AppLogger.info("\(serviceIdentifier) reset", category: .services)
+    }
+    
+    func healthCheck() async -> ServiceHealth {
+        let canAccessData = (try? modelContext.fetch(FetchDescriptor<ChatSession>())) != nil
+        
+        return ServiceHealth(
+            status: canAccessData ? .healthy : .degraded,
+            lastCheckTime: Date(),
+            responseTime: nil,
+            errorMessage: canAccessData ? nil : "Cannot access chat data",
+            metadata: [
+                "sessionCount": "\(sessions.count)",
+                "hasError": "\(error != nil)"
+            ]
+        )
     }
     
     func loadSessions(for user: User) async {

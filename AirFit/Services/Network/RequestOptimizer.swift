@@ -3,13 +3,56 @@ import Network
 import Combine
 
 /// Network request optimizer - batching, retry, and offline handling
-actor RequestOptimizer {
+actor RequestOptimizer: ServiceProtocol {
+    // MARK: - ServiceProtocol
+    nonisolated let serviceIdentifier = "request-optimizer"
+    private var _isConfigured = false
+    nonisolated var isConfigured: Bool { true } // Always ready for an actor
+    
+    private let networkMonitor: NetworkMonitor
     private var pendingRequests: [RequestKey: PendingRequest] = [:]
     private var batchQueue: [BatchableRequest] = []
     private var retryQueue: [RetryableRequest] = []
     private let maxBatchSize = 10
     private let batchDelay: TimeInterval = 0.1 // 100ms
     private var batchTimer: Task<Void, Never>?
+    
+    init(networkMonitor: NetworkMonitor) {
+        self.networkMonitor = networkMonitor
+    }
+    
+    // MARK: - ServiceProtocol Methods
+    
+    func configure() async throws {
+        guard !_isConfigured else { return }
+        _isConfigured = true
+        AppLogger.info("\(serviceIdentifier) configured", category: .services)
+    }
+    
+    func reset() async {
+        pendingRequests.removeAll()
+        batchQueue.removeAll()
+        retryQueue.removeAll()
+        batchTimer?.cancel()
+        batchTimer = nil
+        _isConfigured = false
+        AppLogger.info("\(serviceIdentifier) reset", category: .services)
+    }
+    
+    func healthCheck() async -> ServiceHealth {
+        let isConnected = await MainActor.run { networkMonitor.isConnected }
+        return ServiceHealth(
+            status: isConnected ? .healthy : .degraded,
+            lastCheckTime: Date(),
+            responseTime: nil,
+            errorMessage: isConnected ? nil : "Network offline",
+            metadata: [
+                "pendingRequests": "\(pendingRequests.count)",
+                "batchQueueSize": "\(batchQueue.count)",
+                "retryQueueSize": "\(retryQueue.count)"
+            ]
+        )
+    }
     
     struct RequestKey: Hashable {
         let endpoint: String
@@ -40,9 +83,9 @@ actor RequestOptimizer {
     /// Execute request with optimization
     func execute(_ request: URLRequest) async throws -> Data {
         // Check if we're offline
-        let isConnected = await NetworkMonitor.shared.isConnected
+        let isConnected = await MainActor.run { networkMonitor.isConnected }
         if !isConnected {
-            throw RequestOptimizerError.offline
+            throw AppError.from(RequestOptimizerError.offline)
         }
         
         // Check for duplicate in-flight requests
@@ -51,7 +94,7 @@ actor RequestOptimizer {
             // Dedupe - wait for existing request
             return try await withCheckedThrowingContinuation { continuation in
                 // This would need proper handling in production
-                continuation.resume(throwing: RequestOptimizerError.duplicate)
+                continuation.resume(throwing: AppError.from(RequestOptimizerError.duplicate))
             }
         }
         
@@ -125,15 +168,15 @@ actor RequestOptimizer {
             let (data, response) = try await URLSession.shared.data(for: request)
             
             guard let httpResponse = response as? HTTPURLResponse else {
-                throw RequestOptimizerError.invalidResponse
+                throw AppError.from(RequestOptimizerError.invalidResponse)
             }
             
             if httpResponse.statusCode == 429 { // Rate limited
-                throw RequestOptimizerError.rateLimited(retryAfter: httpResponse.value(forHTTPHeaderField: "Retry-After"))
+                throw AppError.from(RequestOptimizerError.rateLimited(retryAfter: httpResponse.value(forHTTPHeaderField: "Retry-After")))
             }
             
             guard (200...299).contains(httpResponse.statusCode) else {
-                throw RequestOptimizerError.httpError(statusCode: httpResponse.statusCode, data: data)
+                throw AppError.from(RequestOptimizerError.httpError(statusCode: httpResponse.statusCode, data: data))
             }
             
             return data
@@ -152,15 +195,8 @@ actor RequestOptimizer {
     private func shouldRetry(error: Error, retryCount: Int) -> Bool {
         guard retryCount < 3 else { return false }
         
-        if let networkError = error as? RequestOptimizerError {
-            switch networkError {
-            case .timeout, .connectionLost, .rateLimited:
-                return true
-            case .httpError(let code, _) where code >= 500:
-                return true
-            default:
-                return false
-            }
+        if let appError = error as? AppError {
+            return appError.shouldRetry
         }
         
         // Retry on URLError network failures
@@ -197,14 +233,19 @@ actor RequestOptimizer {
 // MARK: - Network Monitor
 
 @MainActor
-class NetworkMonitor: ObservableObject {
-    static let shared = NetworkMonitor()
+class NetworkMonitor: ObservableObject, ServiceProtocol {
+    // MARK: - ServiceProtocol
+    nonisolated let serviceIdentifier = "network-monitor"
+    private var _isConfigured = false
+    nonisolated var isConfigured: Bool {
+        MainActor.assumeIsolated { _isConfigured }
+    }
     
     @Published private(set) var isConnected = true
     private var monitor: NWPathMonitor?
     private let queue = DispatchQueue(label: "NetworkMonitor")
     
-    private init() {
+    init() {
         startMonitoring()
     }
     
@@ -212,6 +253,31 @@ class NetworkMonitor: ObservableObject {
         // In production, would use NWPathMonitor
         // For now, assume connected
         isConnected = true
+    }
+    
+    // MARK: - ServiceProtocol Methods
+    
+    func configure() async throws {
+        guard !_isConfigured else { return }
+        _isConfigured = true
+        AppLogger.info("\(serviceIdentifier) configured", category: .services)
+    }
+    
+    func reset() async {
+        monitor?.cancel()
+        monitor = nil
+        _isConfigured = false
+        AppLogger.info("\(serviceIdentifier) reset", category: .services)
+    }
+    
+    func healthCheck() async -> ServiceHealth {
+        return ServiceHealth(
+            status: isConnected ? .healthy : .degraded,
+            lastCheckTime: Date(),
+            responseTime: nil,
+            errorMessage: isConnected ? nil : "Network offline",
+            metadata: ["connected": "\(isConnected)"]
+        )
     }
 }
 
@@ -246,11 +312,3 @@ enum RequestOptimizerError: LocalizedError {
     }
 }
 
-// MARK: - URLSession Extension
-
-extension URLSession {
-    /// Optimized data task with automatic optimization
-    func optimizedData(for request: URLRequest) async throws -> Data {
-        try await RequestOptimizer().execute(request)
-    }
-}

@@ -10,13 +10,17 @@ final class NotificationsCoordinator: ObservableObject {
     private let liveActivityManager: LiveActivityManager
     private let notificationContentGenerator: NotificationContentGenerator
     
-    init(modelContext: ModelContext, coachEngine: CoachEngine) {
+    init(modelContext: ModelContext, 
+         coachEngine: CoachEngine,
+         notificationManager: NotificationManager,
+         liveActivityManager: LiveActivityManager) {
         self.modelContext = modelContext
-        self.notificationManager = NotificationManager.shared
-        self.liveActivityManager = LiveActivityManager.shared
+        self.notificationManager = notificationManager
+        self.liveActivityManager = liveActivityManager
         self.engagementEngine = EngagementEngine(
             modelContext: modelContext,
-            coachEngine: coachEngine
+            coachEngine: coachEngine,
+            notificationManager: notificationManager
         )
         self.notificationContentGenerator = NotificationContentGenerator(
             coachEngine: coachEngine,

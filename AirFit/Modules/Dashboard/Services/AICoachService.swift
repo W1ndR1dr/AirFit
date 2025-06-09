@@ -2,11 +2,42 @@ import Foundation
 import SwiftData
 
 /// Implementation of AICoachServiceProtocol for the Dashboard
-actor AICoachService: AICoachServiceProtocol {
+actor AICoachService: AICoachServiceProtocol, ServiceProtocol {
+    // MARK: - ServiceProtocol
+    nonisolated let serviceIdentifier = "ai-coach-service"
+    private var _isConfigured = false
+    nonisolated var isConfigured: Bool {
+        // For actors, return true as services are ready when created
+        true
+    }
+    
     private let coachEngine: CoachEngine
     
     init(coachEngine: CoachEngine) {
         self.coachEngine = coachEngine
+    }
+    
+    // MARK: - ServiceProtocol Methods
+    
+    func configure() async throws {
+        guard !_isConfigured else { return }
+        _isConfigured = true
+        AppLogger.info("\(serviceIdentifier) configured", category: .services)
+    }
+    
+    func reset() async {
+        _isConfigured = false
+        AppLogger.info("\(serviceIdentifier) reset", category: .services)
+    }
+    
+    func healthCheck() async -> ServiceHealth {
+        ServiceHealth(
+            status: .healthy,
+            lastCheckTime: Date(),
+            responseTime: nil,
+            errorMessage: nil,
+            metadata: ["hasCoachEngine": "true"]
+        )
     }
     
     func generateMorningGreeting(for user: User, context: GreetingContext) async throws -> String {

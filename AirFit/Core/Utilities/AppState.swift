@@ -22,7 +22,7 @@ final class AppState {
     // MARK: - Initialization
     init(
         modelContext: ModelContext,
-        healthKitAuthManager: HealthKitAuthManager = HealthKitAuthManager(),
+        healthKitAuthManager: HealthKitAuthManager,
         apiKeyManager: APIKeyManagementProtocol? = nil
     ) {
         self.modelContext = modelContext

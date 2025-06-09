@@ -27,7 +27,9 @@ final class ChatSuggestionsEngineTests: XCTestCase {
         try! modelContext.save()
         
         // Create engine
-        engine = ChatSuggestionsEngine(user: user)
+        let healthKitManager = MockHealthKitManager()
+        let contextAssembler = ContextAssembler(healthKitManager: healthKitManager)
+        engine = ChatSuggestionsEngine(user: user, contextAssembler: contextAssembler)
     }
     
     override func tearDown() {

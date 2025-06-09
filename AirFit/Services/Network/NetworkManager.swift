@@ -2,9 +2,44 @@ import Foundation
 import Network
 import Combine
 
-actor NetworkManager: NetworkManagementProtocol, ServiceProtocol {
-    static let shared = NetworkManager()
-    
+/// # NetworkManager
+/// 
+/// ## Purpose
+/// Central networking service that handles all HTTP requests, monitors network connectivity,
+/// and provides streaming support for AI responses.
+///
+/// ## Dependencies
+/// - `URLSession`: Core networking for HTTP requests
+/// - `NWPathMonitor`: Network connectivity monitoring
+///
+/// ## Key Responsibilities
+/// - Build and execute HTTP requests with proper headers
+/// - Monitor network connectivity and type (WiFi, Cellular, etc.)
+/// - Handle streaming responses for AI providers
+/// - Validate HTTP responses and map errors
+/// - Provide retry logic and timeout handling
+/// - Track network performance metrics
+///
+/// ## Usage
+/// ```swift
+/// let network = await container.resolve(NetworkManagementProtocol.self)
+/// 
+/// // Build and perform request
+/// let request = network.buildRequest(url: apiURL, method: "POST")
+/// let response: APIResponse = try await network.performRequest(request, expecting: APIResponse.self)
+/// 
+/// // Stream data
+/// let stream = network.performStreamingRequest(request)
+/// for try await chunk in stream {
+///     // Process chunk
+/// }
+/// ```
+///
+/// ## Important Notes
+/// - Actor-isolated for thread safety
+/// - Automatically monitors network changes
+/// - Provides appropriate error types for network failures
+actor NetworkManager: NetworkManagementProtocol, ServiceProtocol {    
     // Actor-isolated state
     private var _isReachable: Bool = true
     private var _currentNetworkType: NetworkType = .unknown
@@ -133,7 +168,7 @@ actor NetworkManager: NetworkManagementProtocol, ServiceProtocol {
         AsyncThrowingStream { continuation in
             Task {
                 guard isReachable else {
-                    continuation.finish(throwing: ServiceError.networkUnavailable)
+                    continuation.finish(throwing: AppError.from(ServiceError.networkUnavailable))
                     return
                 }
                 
@@ -141,15 +176,15 @@ actor NetworkManager: NetworkManagementProtocol, ServiceProtocol {
                     let (bytes, response) = try await session.bytes(for: request)
                     
                     guard let httpResponse = response as? HTTPURLResponse else {
-                        continuation.finish(throwing: ServiceError.invalidResponse("Response is not HTTP"))
+                        continuation.finish(throwing: AppError.from(ServiceError.invalidResponse("Response is not HTTP")))
                         return
                     }
                     
                     if !(200...299).contains(httpResponse.statusCode) {
-                        continuation.finish(throwing: ServiceError.providerError(
+                        continuation.finish(throwing: AppError.from(ServiceError.providerError(
                             code: "\(httpResponse.statusCode)",
                             message: HTTPURLResponse.localizedString(forStatusCode: httpResponse.statusCode)
-                        ))
+                        )))
                         return
                     }
                     
@@ -270,20 +305,20 @@ actor NetworkManager: NetworkManagementProtocol, ServiceProtocol {
         case 200...299:
             return
         case 401:
-            throw ServiceError.authenticationFailed("Invalid credentials")
+            throw AppError.from(ServiceError.authenticationFailed("Invalid credentials"))
         case 429:
             let retryAfter = response.value(forHTTPHeaderField: "Retry-After")
                 .flatMap { TimeInterval($0) }
-            throw ServiceError.rateLimitExceeded(retryAfter: retryAfter)
+            throw AppError.from(ServiceError.rateLimitExceeded(retryAfter: retryAfter))
         case 400...499:
-            throw ServiceError.invalidResponse("Client error: \(response.statusCode)")
+            throw AppError.from(ServiceError.invalidResponse("Client error: \(response.statusCode)"))
         case 500...599:
-            throw ServiceError.providerError(
+            throw AppError.from(ServiceError.providerError(
                 code: "\(response.statusCode)",
                 message: "Server error"
-            )
+            ))
         default:
-            throw ServiceError.invalidResponse("Unexpected status code: \(response.statusCode)")
+            throw AppError.from(ServiceError.invalidResponse("Unexpected status code: \(response.statusCode)"))
         }
     }
     

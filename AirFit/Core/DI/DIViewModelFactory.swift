@@ -83,6 +83,7 @@ public final class DIViewModelFactory {
     func makeChatViewModel(user: User) async throws -> ChatViewModel {
         let modelContext = try await getModelContext()
         let aiService = try await container.resolve(AIServiceProtocol.self, name: "adaptive")
+        let voiceManager = try await container.resolve(VoiceInputManager.self)
         
         // Create user-specific CoachEngine
         let coachEngine = try await makeCoachEngine(for: user)
@@ -92,7 +93,8 @@ public final class DIViewModelFactory {
             user: user,
             coachEngine: coachEngine,
             aiService: aiService,
-            coordinator: ChatCoordinator()
+            coordinator: ChatCoordinator(),
+            voiceManager: voiceManager
         )
     }
     
@@ -142,8 +144,8 @@ public final class DIViewModelFactory {
         // Create onboarding service
         let onboardingService = OnboardingService(modelContext: context)
         
-        // Create HealthKit auth manager
-        let healthKitAuthManager = HealthKitAuthManager()
+        // Get HealthKit auth manager from container
+        let healthKitAuthManager = try await container.resolve(HealthKitAuthManager.self)
         
         return OnboardingViewModel(
             aiService: aiService,
@@ -219,6 +221,9 @@ public final class DIViewModelFactory {
             goalService: goalService
         )
         
+        // Get routing configuration
+        let routingConfiguration = try await container.resolve(RoutingConfiguration.self)
+        
         return CoachEngine(
             localCommandParser: localCommandParser,
             functionDispatcher: functionDispatcher,
@@ -226,7 +231,8 @@ public final class DIViewModelFactory {
             conversationManager: conversationManager,
             aiService: aiService,
             contextAssembler: contextAssembler,
-            modelContext: modelContext
+            modelContext: modelContext,
+            routingConfiguration: routingConfiguration
         )
     }
     

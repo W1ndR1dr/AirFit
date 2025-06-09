@@ -190,7 +190,8 @@ private final class PreviewUserService: UserServiceProtocol {
             onboardingService: OnboardingService(modelContext: tempContainer.mainContext),
             modelContext: tempContainer.mainContext,
             apiKeyManager: PreviewAPIKeyManager(),
-            userService: PreviewUserService()
+            userService: PreviewUserService(),
+            healthKitAuthManager: HealthKitAuthManager(healthKitManager: HealthKitManager())
         )
     }())
 } 

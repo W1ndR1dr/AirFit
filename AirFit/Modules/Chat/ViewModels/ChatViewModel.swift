@@ -40,14 +40,15 @@ final class ChatViewModel: ObservableObject, ErrorHandling {
         user: User,
         coachEngine: CoachEngineProtocol,
         aiService: AIServiceProtocol,
-        coordinator: ChatCoordinator
+        coordinator: ChatCoordinator,
+        voiceManager: VoiceInputManager
     ) {
         self.modelContext = modelContext
         self.user = user
         self.coachEngine = coachEngine
         self.aiService = aiService
         self.coordinator = coordinator
-        self.voiceManager = VoiceInputManager()
+        self.voiceManager = voiceManager
 
         setupVoiceManager()
     }

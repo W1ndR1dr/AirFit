@@ -184,7 +184,11 @@ struct ChatView: View {
         case .exportChat:
             ChatExportView(viewModel: viewModel)
         case .voiceSettings:
-            VoiceSettingsView()
+            if let modelManager = viewModel.voiceManager.modelManager as? WhisperModelManager {
+                VoiceSettingsView(modelManager: modelManager)
+            } else {
+                Text("Voice settings unavailable")
+            }
         case .imageAttachment:
             ImagePickerView { image in
                 viewModel.attachments.append(

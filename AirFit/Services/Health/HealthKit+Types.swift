@@ -16,5 +16,3 @@ extension HeartHealthMetrics.CardioFitnessLevel {
         }
     }
 }
-
-extension HealthKitManager: HealthKitManaging {}

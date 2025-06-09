@@ -1,7 +1,7 @@
 import SwiftUI
 
 struct VoiceSettingsView: View {
-    @ObservedObject var modelManager = WhisperModelManager.shared
+    @ObservedObject var modelManager: WhisperModelManager
     @Environment(\.dismiss) private var dismiss
     @State private var downloadError: Error?
     @State private var showDeleteConfirmation: String?

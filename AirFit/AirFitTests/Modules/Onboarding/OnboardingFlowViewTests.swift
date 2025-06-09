@@ -31,10 +31,7 @@ final class OnboardingFlowViewTests: XCTestCase {
     // MARK: - View Initialization Tests
     func test_onboardingFlowView_initialization_shouldCreateWithCorrectDependencies() {
         // Act
-        let view = OnboardingFlowView(
-            aiService: mockAIService,
-            onboardingService: mockOnboardingService
-        )
+        let view = OnboardingFlowViewDI()
 
         // Assert - View should be created without issues
         XCTAssertNotNil(view)
@@ -47,9 +44,7 @@ final class OnboardingFlowViewTests: XCTestCase {
         _ = completionCalled // Silence warning
 
         // Act
-        let view = OnboardingFlowView(
-            aiService: mockAIService,
-            onboardingService: mockOnboardingService,
+        let view = OnboardingFlowViewDI(
             onCompletion: completion
         )
 

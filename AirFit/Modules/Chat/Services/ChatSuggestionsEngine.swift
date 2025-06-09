@@ -1,11 +1,17 @@
 import Foundation
 
 @MainActor
-final class ChatSuggestionsEngine {
+final class ChatSuggestionsEngine: ServiceProtocol {
+    // MARK: - ServiceProtocol
+    nonisolated let serviceIdentifier = "chat-suggestions-engine"
+    private var _isConfigured = false
+    nonisolated var isConfigured: Bool {
+        MainActor.assumeIsolated { _isConfigured }
+    }
     private let user: User
     private let contextAssembler: ContextAssembler
 
-    init(user: User, contextAssembler: ContextAssembler = ContextAssembler()) {
+    init(user: User, contextAssembler: ContextAssembler) {
         self.user = user
         self.contextAssembler = contextAssembler
     }
@@ -67,6 +73,32 @@ final class ChatSuggestionsEngine {
             QuickSuggestion(text: "Analyze my nutrition", autoSend: true),
             QuickSuggestion(text: "Set a new fitness goal", autoSend: false)
         ]
+    }
+    
+    // MARK: - ServiceProtocol Methods
+    
+    func configure() async throws {
+        guard !_isConfigured else { return }
+        _isConfigured = true
+        AppLogger.info("\(serviceIdentifier) configured", category: .services)
+    }
+    
+    func reset() async {
+        _isConfigured = false
+        AppLogger.info("\(serviceIdentifier) reset", category: .services)
+    }
+    
+    func healthCheck() async -> ServiceHealth {
+        ServiceHealth(
+            status: _isConfigured ? .healthy : .unhealthy,
+            lastCheckTime: Date(),
+            responseTime: nil,
+            errorMessage: _isConfigured ? nil : "Service not configured",
+            metadata: [
+                "hasUser": "true",
+                "hasContextAssembler": "true"
+            ]
+        )
     }
 }
 

@@ -2,7 +2,12 @@ import Foundation
 import CryptoKit
 
 /// High-performance AI response cache with intelligent invalidation
-actor AIResponseCache {
+actor AIResponseCache: ServiceProtocol {
+    // MARK: - ServiceProtocol
+    nonisolated let serviceIdentifier = "ai-response-cache"
+    private var _isConfigured = false
+    nonisolated var isConfigured: Bool { true } // Always ready
+    
     // MARK: - Properties
     private var memoryCache: [String: CacheEntry] = [:]
     private var diskCachePath: URL
@@ -311,6 +316,38 @@ actor AIResponseCache {
     private func decodeLLMResponse(from data: Data) throws -> LLMResponse {
         let decoder = JSONDecoder()
         return try decoder.decode(LLMResponse.self, from: data)
+    }
+    
+    // MARK: - ServiceProtocol Methods
+    
+    func configure() async throws {
+        guard !_isConfigured else { return }
+        await loadDiskCacheMetadata()
+        _isConfigured = true
+        AppLogger.info("\(serviceIdentifier) configured", category: .services)
+    }
+    
+    func reset() async {
+        await clear()
+        _isConfigured = false
+        AppLogger.info("\(serviceIdentifier) reset", category: .services)
+    }
+    
+    func healthCheck() async -> ServiceHealth {
+        let stats = getStatistics()
+        
+        return ServiceHealth(
+            status: .healthy,
+            lastCheckTime: Date(),
+            responseTime: nil,
+            errorMessage: nil,
+            metadata: [
+                "hitRate": String(format: "%.2f%%", stats.hitRate * 100),
+                "memoryEntries": "\(stats.memoryEntries)",
+                "memorySizeMB": String(format: "%.2f", Double(stats.memorySizeBytes) / 1024 / 1024),
+                "evictionCount": "\(stats.evictionCount)"
+            ]
+        )
     }
 }
 

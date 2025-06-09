@@ -4,11 +4,41 @@ import SwiftData
 /// Basic implementation of AI Workout Service
 /// Wraps the base WorkoutServiceProtocol and adds AI-specific functionality
 @MainActor
-final class AIWorkoutService: AIWorkoutServiceProtocol {
+final class AIWorkoutService: AIWorkoutServiceProtocol, ServiceProtocol {
+    // MARK: - ServiceProtocol
+    nonisolated let serviceIdentifier = "ai-workout-service"
+    private var _isConfigured = false
+    nonisolated var isConfigured: Bool {
+        MainActor.assumeIsolated { _isConfigured }
+    }
+    
     private let workoutService: WorkoutServiceProtocol
     
     init(workoutService: WorkoutServiceProtocol) {
         self.workoutService = workoutService
+    }
+    
+    // MARK: - ServiceProtocol Methods
+    
+    func configure() async throws {
+        guard !_isConfigured else { return }
+        _isConfigured = true
+        AppLogger.info("\(serviceIdentifier) configured", category: .services)
+    }
+    
+    func reset() async {
+        _isConfigured = false
+        AppLogger.info("\(serviceIdentifier) reset", category: .services)
+    }
+    
+    func healthCheck() async -> ServiceHealth {
+        ServiceHealth(
+            status: _isConfigured ? .healthy : .unhealthy,
+            lastCheckTime: Date(),
+            responseTime: nil,
+            errorMessage: _isConfigured ? nil : "Service not configured",
+            metadata: ["hasWorkoutService": "true"]
+        )
     }
     
     // MARK: - AI-specific methods

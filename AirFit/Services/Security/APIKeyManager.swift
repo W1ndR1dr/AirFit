@@ -1,6 +1,39 @@
 import Foundation
 
-/// Implementation of APIKeyManagementProtocol using Keychain
+/// # APIKeyManager
+/// 
+/// ## Purpose
+/// Secure storage and retrieval of API keys for AI providers using iOS Keychain.
+/// Ensures sensitive credentials are never stored in plain text or user defaults.
+///
+/// ## Dependencies
+/// - `KeychainWrapper`: Secure keychain access wrapper for encrypted storage
+///
+/// ## Key Responsibilities
+/// - Store API keys securely in iOS Keychain
+/// - Retrieve API keys for authenticated providers
+/// - Track which AI providers have configured keys
+/// - Validate keychain access health
+/// - Prevent accidental deletion of credentials
+///
+/// ## Usage
+/// ```swift
+/// let keyManager = await container.resolve(APIKeyManagementProtocol.self)
+/// 
+/// // Save API key
+/// try await keyManager.saveAPIKey("sk-...", for: .anthropic)
+/// 
+/// // Check if provider is configured
+/// let hasKey = await keyManager.hasAPIKey(for: .openAI)
+/// 
+/// // Get all configured providers
+/// let providers = await keyManager.getAllConfiguredProviders()
+/// ```
+///
+/// ## Important Notes
+/// - Actor-isolated for thread-safe keychain access
+/// - Keys are prefixed with "com.airfit.apikey." for organization
+/// - Never logs actual API key values for security
 actor APIKeyManager: APIKeyManagementProtocol, ServiceProtocol {
     private let keychain: KeychainWrapper
     private let keychainPrefix = "com.airfit.apikey."
@@ -68,12 +101,12 @@ actor APIKeyManager: APIKeyManagementProtocol, ServiceProtocol {
         do {
             let data = try keychain.load(key: keychainKey)
             guard let apiKey = String(data: data, encoding: .utf8) else {
-                throw ServiceError.invalidResponse("Invalid API key data")
+                throw AppError.from(ServiceError.invalidResponse("Invalid API key data"))
             }
             return apiKey
         } catch {
             AppLogger.error("Failed to get API key for provider: \(provider.rawValue)", error: error, category: .security)
-            throw ServiceError.authenticationFailed("No API key found for \(provider.rawValue)")
+            throw AppError.from(ServiceError.authenticationFailed("No API key found for \(provider.rawValue)"))
         }
     }
     

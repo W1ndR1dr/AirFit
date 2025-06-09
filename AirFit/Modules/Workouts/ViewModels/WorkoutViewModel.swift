@@ -21,7 +21,7 @@ final class WorkoutViewModel: ErrorHandling {
     private let coachEngine: CoachEngineProtocol
     private let healthKitManager: HealthKitManaging
     private let contextAssembler: ContextAssembler
-    private let exerciseDatabase: ExerciseDatabase
+    let exerciseDatabase: ExerciseDatabase
     private let workoutSyncService: WorkoutSyncService
 
     // MARK: - Init

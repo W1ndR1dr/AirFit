@@ -1,6 +1,11 @@
 import Foundation
 
-actor GeminiProvider: LLMProvider {
+actor GeminiProvider: LLMProvider, ServiceProtocol {
+    // MARK: - ServiceProtocol
+    nonisolated let serviceIdentifier = "gemini-provider"
+    private var _isConfigured = false
+    nonisolated var isConfigured: Bool { true } // Always ready
+    
     let identifier = LLMProviderIdentifier.google
     let capabilities = LLMCapabilities(
         maxContextTokens: 2_097_152,  // 2M tokens for Gemini 1.5 Pro, 1M for 2.5 Flash
@@ -53,7 +58,7 @@ actor GeminiProvider: LLMProvider {
             let (data, response) = try await session.data(for: urlRequest)
             
             guard let httpResponse = response as? HTTPURLResponse else {
-                throw LLMError.invalidResponse("Invalid HTTP response")
+                throw AppError.from(LLMError.invalidResponse("Invalid HTTP response"))
             }
             
             guard (200...299).contains(httpResponse.statusCode) else {
@@ -90,7 +95,7 @@ actor GeminiProvider: LLMProvider {
                     
                     guard let httpResponse = response as? HTTPURLResponse,
                           (200...299).contains(httpResponse.statusCode) else {
-                        throw LLMError.invalidResponse("Invalid streaming response")
+                        throw AppError.from(LLMError.invalidResponse("Invalid streaming response"))
                     }
                     
                     var buffer = ""
@@ -208,7 +213,7 @@ actor GeminiProvider: LLMProvider {
     private func convertToLLMResponse(_ response: GeminiResponse, for request: LLMRequest) throws -> LLMResponse {
         guard let candidate = response.candidates.first,
               let content = candidate.content.parts.first?.text else {
-            throw LLMError.invalidResponse("Empty response from Gemini")
+            throw AppError.from(LLMError.invalidResponse("Empty response from Gemini"))
         }
         
         let usage = LLMResponse.TokenUsage(
@@ -392,21 +397,21 @@ extension GeminiProvider {
             switch statusCode {
             case 400:
                 if message.contains("API key") || message.contains("Invalid API key") {
-                    throw LLMError.invalidAPIKey
+                    throw AppError.from(LLMError.invalidAPIKey)
                 } else if message.contains("safety") {
-                    throw LLMError.contentFilter
+                    throw AppError.from(LLMError.contentFilter)
                 } else {
-                    throw LLMError.invalidResponse(message)
+                    throw AppError.from(LLMError.invalidResponse(message))
                 }
             case 401, 403:
-                throw LLMError.invalidAPIKey
+                throw AppError.from(LLMError.invalidAPIKey)
             case 429:
                 // Extract retry-after if available from headers
-                throw LLMError.rateLimitExceeded(retryAfter: nil)
+                throw AppError.from(LLMError.rateLimitExceeded(retryAfter: nil))
             case 500...599:
-                throw LLMError.serverError(statusCode: statusCode, message: message)
+                throw AppError.from(LLMError.serverError(statusCode: statusCode, message: message))
             default:
-                throw LLMError.invalidResponse("HTTP \(statusCode): \(message)")
+                throw AppError.from(LLMError.invalidResponse("HTTP \(statusCode): \(message)"))
             }
         } else {
             // Try to parse as plain text error
@@ -414,11 +419,11 @@ extension GeminiProvider {
             
             switch statusCode {
             case 429:
-                throw LLMError.rateLimitExceeded(retryAfter: nil)
+                throw AppError.from(LLMError.rateLimitExceeded(retryAfter: nil))
             case 500...599:
-                throw LLMError.serverError(statusCode: statusCode, message: errorText)
+                throw AppError.from(LLMError.serverError(statusCode: statusCode, message: errorText))
             default:
-                throw LLMError.invalidResponse("HTTP \(statusCode): \(errorText)")
+                throw AppError.from(LLMError.invalidResponse("HTTP \(statusCode): \(errorText)"))
             }
         }
     }
@@ -432,4 +437,34 @@ struct GeminiError: Codable {
     let code: Int
     let message: String
     let status: String
+}
+
+// MARK: - ServiceProtocol Extension
+
+extension GeminiProvider {
+    func configure() async throws {
+        guard !_isConfigured else { return }
+        _isConfigured = true
+        AppLogger.info("\(serviceIdentifier) configured", category: .services)
+    }
+    
+    func reset() async {
+        _isConfigured = false
+        retryCount = 0
+        AppLogger.info("\(serviceIdentifier) reset", category: .services)
+    }
+    
+    func healthCheck() async -> ServiceHealth {
+        ServiceHealth(
+            status: _isConfigured ? .healthy : .unhealthy,
+            lastCheckTime: Date(),
+            responseTime: nil,
+            errorMessage: _isConfigured ? nil : "Service not configured",
+            metadata: [
+                "provider": identifier.name,
+                "maxTokens": "\(capabilities.maxContextTokens)",
+                "supportsFunctions": capabilities.supportsFunctionCalling ? "true" : "false"
+            ]
+        )
+    }
 }

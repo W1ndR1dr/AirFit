@@ -319,6 +319,7 @@ private struct ManualFoodEntryView: View {
 }
 
 #if DEBUG
+/*
 #Preview {
     let container = ModelContainer.preview
     let context = container.mainContext
@@ -349,6 +350,7 @@ private struct ManualFoodEntryView: View {
     FoodConfirmationView(items: [parsed], viewModel: vm)
         .modelContainer(container)
 }
+*/
 
 @MainActor
 final class MockNutritionService: NutritionServiceProtocol {

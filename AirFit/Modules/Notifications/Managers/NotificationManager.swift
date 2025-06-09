@@ -2,8 +2,13 @@
 import UIKit
 
 @MainActor
-final class NotificationManager: NSObject, @unchecked Sendable {
-    static let shared = NotificationManager()
+final class NotificationManager: NSObject, @unchecked Sendable, ServiceProtocol {
+    // MARK: - ServiceProtocol
+    nonisolated let serviceIdentifier = "notification-manager"
+    private var _isConfigured = false
+    nonisolated var isConfigured: Bool {
+        MainActor.assumeIsolated { _isConfigured }
+    }
     
     private let center = UNUserNotificationCenter.current()
     private var pendingNotifications: Set<String> = []
@@ -39,10 +44,40 @@ final class NotificationManager: NSObject, @unchecked Sendable {
         }
     }
     
-    override private init() {
+    override init() {
         super.init()
         center.delegate = self
         setupNotificationCategories()
+    }
+    
+    // MARK: - ServiceProtocol Methods
+    
+    func configure() async throws {
+        guard !_isConfigured else { return }
+        _isConfigured = true
+        AppLogger.info("\(serviceIdentifier) configured", category: .services)
+    }
+    
+    func reset() async {
+        pendingNotifications.removeAll()
+        _isConfigured = false
+        AppLogger.info("\(serviceIdentifier) reset", category: .services)
+    }
+    
+    func healthCheck() async -> ServiceHealth {
+        let settings = await center.notificationSettings()
+        let status: ServiceHealth.Status = settings.authorizationStatus == .authorized ? .healthy : .degraded
+        
+        return ServiceHealth(
+            status: status,
+            lastCheckTime: Date(),
+            responseTime: nil,
+            errorMessage: status == .healthy ? nil : "Notifications not authorized",
+            metadata: [
+                "authorizationStatus": "\(settings.authorizationStatus.rawValue)",
+                "pendingNotifications": "\(pendingNotifications.count)"
+            ]
+        )
     }
     
     // MARK: - Authorization

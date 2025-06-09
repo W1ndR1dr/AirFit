@@ -2,7 +2,8 @@ import SwiftUI
 import SwiftData
 
 struct ExerciseLibraryView: View {
-    @StateObject private var exerciseDatabase = ExerciseDatabase.shared
+    @Environment(\.diContainer) private var container
+    @State private var exerciseDatabase: ExerciseDatabase?
     @State private var searchText = ""
     @State private var selectedCategory: ExerciseCategory?
     @State private var selectedMuscleGroup: MuscleGroup?
@@ -51,7 +52,7 @@ struct ExerciseLibraryView: View {
     var body: some View {
         NavigationStack {
             Group {
-                if exerciseDatabase.isLoading {
+                if exerciseDatabase?.isLoading ?? false {
                     loadingView
                 } else if exercises.isEmpty && !hasLoaded {
                     emptyStateView
@@ -85,8 +86,13 @@ struct ExerciseLibraryView: View {
         }
         .task {
             guard !hasLoaded else { return }
-            hasLoaded = true
-            await loadExercises()
+            do {
+                exerciseDatabase = try await container.resolve(ExerciseDatabase.self)
+                hasLoaded = true
+                await loadExercises()
+            } catch {
+                AppLogger.error("Failed to resolve ExerciseDatabase", error: error, category: .ui)
+            }
         }
     }
 
@@ -97,7 +103,7 @@ struct ExerciseLibraryView: View {
 
     private var loadingView: some View {
         VStack(spacing: AppSpacing.large) {
-            ProgressView(value: exerciseDatabase.loadingProgress)
+            ProgressView(value: exerciseDatabase?.loadingProgress ?? 0)
                 .progressViewStyle(LinearProgressViewStyle())
                 .frame(maxWidth: 200)
 
@@ -105,7 +111,7 @@ struct ExerciseLibraryView: View {
                 .font(.headline)
                 .foregroundStyle(.secondary)
 
-            Text("\(Int(exerciseDatabase.loadingProgress * 100))% Complete")
+            Text("\(Int((exerciseDatabase?.loadingProgress ?? 0) * 100))% Complete")
                 .font(.caption)
                 .foregroundStyle(.tertiary)
         }
@@ -141,6 +147,7 @@ struct ExerciseLibraryView: View {
     }
 
     private func loadExercises() async {
+        guard let exerciseDatabase else { return }
         do {
             exercises = try await exerciseDatabase.getAllExercises()
         } catch {

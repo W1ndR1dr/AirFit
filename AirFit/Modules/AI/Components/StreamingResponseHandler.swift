@@ -32,6 +32,13 @@ final class StreamingResponseHandler {
     // MARK: - Properties
     
     weak var delegate: StreamingResponseDelegate?
+    private let routingConfiguration: RoutingConfiguration?
+    
+    // MARK: - Initialization
+    
+    init(routingConfiguration: RoutingConfiguration? = nil) {
+        self.routingConfiguration = routingConfiguration
+    }
     
     // MARK: - Streaming Handler
     
@@ -206,7 +213,7 @@ final class StreamingResponseHandler {
                 fallbackUsed: false
             )
             
-            RoutingConfiguration.shared.recordRoutingMetrics(routingMetrics)
+            routingConfiguration?.recordRoutingMetrics(routingMetrics)
         }
     }
 }

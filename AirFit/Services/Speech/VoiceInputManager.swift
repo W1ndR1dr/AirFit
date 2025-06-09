@@ -2,9 +2,58 @@ import Foundation
 import AVFoundation
 @preconcurrency import WhisperKit
 
+/// # VoiceInputManager
+/// 
+/// ## Purpose
+/// Manages voice input, transcription, and real-time speech-to-text conversion using
+/// WhisperKit for on-device processing. Provides streaming and batch transcription.
+///
+/// ## Dependencies
+/// - `WhisperModelManagerProtocol`: Manages WhisperKit model selection and downloads
+/// - `WhisperKit`: On-device speech recognition engine
+/// - `AVAudioEngine`: Audio capture and processing
+///
+/// ## Key Responsibilities
+/// - Request and manage microphone permissions
+/// - Record audio with real-time waveform visualization
+/// - Transcribe audio using WhisperKit models
+/// - Stream partial transcriptions during recording
+/// - Post-process transcriptions for fitness terminology
+/// - Manage model downloads with progress tracking
+/// - Handle audio session lifecycle
+///
+/// ## Usage
+/// ```swift
+/// let voiceInput = await container.resolve(VoiceInputProtocol.self)
+/// 
+/// // Start recording
+/// try await voiceInput.startRecording()
+/// 
+/// // Stop and get transcription
+/// let text = await voiceInput.stopRecording()
+/// 
+/// // Stream transcription
+/// try await voiceInput.startStreamingTranscription()
+/// voiceInput.onPartialTranscription = { partial in
+///     // Update UI with partial text
+/// }
+/// ```
+///
+/// ## Important Notes
+/// - @MainActor isolated for UI updates
+/// - Automatically handles WhisperKit model downloads
+/// - Optimizes for fitness-specific terminology
+/// - Provides real-time waveform data for visualization
 @MainActor
 @Observable
-final class VoiceInputManager: NSObject, VoiceInputProtocol {
+final class VoiceInputManager: NSObject, VoiceInputProtocol, ServiceProtocol {
+    // MARK: - ServiceProtocol
+    nonisolated let serviceIdentifier = "voice-input-manager"
+    private var _isConfigured = false
+    nonisolated var isConfigured: Bool {
+        MainActor.assumeIsolated { _isConfigured }
+    }
+    
     // MARK: - Published State
     private(set) var state: VoiceInputState = .idle
     private(set) var isRecording = false
@@ -26,15 +75,49 @@ final class VoiceInputManager: NSObject, VoiceInputProtocol {
     private var audioBuffer: [Float] = []
     private var recordingURL: URL?
     private var whisper: WhisperKit?
-    private let modelManager: WhisperModelManagerProtocol
+    let modelManager: WhisperModelManagerProtocol
     private var downloadObserver: NSObjectProtocol?
 
     private var inputNode: AVAudioInputNode { audioEngine.inputNode }
 
     // MARK: - Initialization
-    init(modelManager: WhisperModelManagerProtocol = WhisperModelManager.shared) {
+    init(modelManager: WhisperModelManagerProtocol) {
         self.modelManager = modelManager
         super.init()
+    }
+    
+    // MARK: - ServiceProtocol Methods
+    
+    func configure() async throws {
+        guard !_isConfigured else { return }
+        await initializeWhisper()
+        _isConfigured = true
+        AppLogger.info("\(serviceIdentifier) configured", category: .services)
+    }
+    
+    func reset() async {
+        if isRecording {
+            _ = await stopRecording()
+        }
+        whisper = nil
+        _isConfigured = false
+        AppLogger.info("\(serviceIdentifier) reset", category: .services)
+    }
+    
+    func healthCheck() async -> ServiceHealth {
+        let hasWhisper = whisper != nil
+        let hasModel = modelManager.activeModel != ""
+        
+        return ServiceHealth(
+            status: hasWhisper && hasModel ? .healthy : .degraded,
+            lastCheckTime: Date(),
+            responseTime: nil,
+            errorMessage: hasWhisper ? nil : "Whisper not initialized",
+            metadata: [
+                "activeModel": modelManager.activeModel,
+                "isRecording": "\(isRecording)"
+            ]
+        )
     }
     
     // MARK: - Public Methods
@@ -49,14 +132,14 @@ final class VoiceInputManager: NSObject, VoiceInputProtocol {
                 continuation.resume(returning: allowed)
             }
         }
-        if !granted { throw VoiceInputError.notAuthorized }
+        if !granted { throw AppError.from(VoiceInputError.notAuthorized) }
         return granted
     }
 
     // MARK: - Recording Control
     func startRecording() async throws {
         guard state == .ready else {
-            throw VoiceInputError.whisperNotReady
+            throw AppError.from(VoiceInputError.whisperNotReady)
         }
         guard try await requestPermission() else { return }
         updateState(.recording)
@@ -96,10 +179,10 @@ final class VoiceInputManager: NSObject, VoiceInputProtocol {
     // MARK: - Streaming Transcription
     func startStreamingTranscription() async throws {
         guard state == .ready else {
-            throw VoiceInputError.whisperNotReady
+            throw AppError.from(VoiceInputError.whisperNotReady)
         }
         guard try await requestPermission() else { return }
-        guard whisper != nil else { throw VoiceInputError.whisperNotReady }
+        guard whisper != nil else { throw AppError.from(VoiceInputError.whisperNotReady) }
         
         updateState(.transcribing)
         
@@ -190,7 +273,7 @@ final class VoiceInputManager: NSObject, VoiceInputProtocol {
     }
 
     private func prepareRecorder() async throws {
-        guard whisper != nil else { throw VoiceInputError.whisperNotReady }
+        guard whisper != nil else { throw AppError.from(VoiceInputError.whisperNotReady) }
         let session = AVAudioSession.sharedInstance()
         try session.setCategory(.playAndRecord, mode: .default, options: [.defaultToSpeaker])
         try session.setActive(true)
@@ -235,7 +318,7 @@ final class VoiceInputManager: NSObject, VoiceInputProtocol {
                 noSpeechThreshold: 0.6
             )
         )
-        guard !result.isEmpty else { throw VoiceInputError.transcriptionFailed }
+        guard !result.isEmpty else { throw AppError.from(VoiceInputError.transcriptionFailed) }
         let text = result.map { $0.text }.joined(separator: " ")
         return postProcessTranscription(text)
     }

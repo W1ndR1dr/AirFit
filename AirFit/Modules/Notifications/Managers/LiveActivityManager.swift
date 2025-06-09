@@ -2,14 +2,50 @@ import ActivityKit
 import SwiftUI
 
 @MainActor
-final class LiveActivityManager {
-    static let shared = LiveActivityManager()
+final class LiveActivityManager: ServiceProtocol {
+    // MARK: - ServiceProtocol
+    nonisolated let serviceIdentifier = "live-activity-manager"
+    private var _isConfigured = false
+    nonisolated var isConfigured: Bool {
+        MainActor.assumeIsolated { _isConfigured }
+    }
     
     // Active activities
     private var workoutActivity: Activity<WorkoutActivityAttributes>?
     private var mealTrackingActivity: Activity<MealTrackingActivityAttributes>?
     
-    private init() {}
+    init() {}
+    
+    // MARK: - ServiceProtocol Methods
+    
+    func configure() async throws {
+        guard !_isConfigured else { return }
+        _isConfigured = true
+        AppLogger.info("\(serviceIdentifier) configured", category: .services)
+    }
+    
+    func reset() async {
+        await endAllActivities()
+        _isConfigured = false
+        AppLogger.info("\(serviceIdentifier) reset", category: .services)
+    }
+    
+    func healthCheck() async -> ServiceHealth {
+        let enabled = ActivityAuthorizationInfo().areActivitiesEnabled
+        let status: ServiceHealth.Status = enabled ? .healthy : .degraded
+        
+        return ServiceHealth(
+            status: status,
+            lastCheckTime: Date(),
+            responseTime: nil,
+            errorMessage: status == .healthy ? nil : "Live Activities not enabled",
+            metadata: [
+                "activitiesEnabled": "\(enabled)",
+                "activeWorkout": "\(workoutActivity != nil)",
+                "activeMealTracking": "\(mealTrackingActivity != nil)"
+            ]
+        )
+    }
     
     // MARK: - Workout Live Activity
     func startWorkoutActivity(

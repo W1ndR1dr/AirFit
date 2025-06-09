@@ -1,13 +1,75 @@
 import Foundation
 import SwiftData
 
-/// Implementation of UserServiceProtocol
+/// # UserService
+/// 
+/// ## Purpose
+/// Core service responsible for managing user data, profiles, and onboarding state.
+/// Provides the primary interface for user-related operations throughout the app.
+///
+/// ## Dependencies
+/// - `ModelContext`: SwiftData context for persisting user data
+///
+/// ## Key Responsibilities
+/// - Create and manage user profiles from onboarding
+/// - Update user preferences and settings
+/// - Track onboarding completion status
+/// - Manage coach persona assignments
+/// - Provide current user context for other services
+///
+/// ## Usage
+/// ```swift
+/// let userService = await container.resolve(UserServiceProtocol.self)
+/// let currentUser = await userService.getCurrentUser()
+/// 
+/// // Update user profile
+/// let updates = ProfileUpdate(email: "new@email.com", preferredUnits: .metric)
+/// try await userService.updateProfile(updates)
+/// ```
+///
+/// ## Important Notes
+/// - This service is @MainActor isolated for SwiftData compatibility
+/// - All operations are performed on the main thread
+/// - User data is persisted to SwiftData immediately
 @MainActor
-final class UserService: UserServiceProtocol {
+final class UserService: UserServiceProtocol, ServiceProtocol {
+    // MARK: - ServiceProtocol
+    nonisolated let serviceIdentifier = "user-service"
+    private var _isConfigured = false
+    nonisolated var isConfigured: Bool {
+        MainActor.assumeIsolated { _isConfigured }
+    }
+    
     private let modelContext: ModelContext
     
     init(modelContext: ModelContext) {
         self.modelContext = modelContext
+    }
+    
+    // MARK: - ServiceProtocol Methods
+    
+    func configure() async throws {
+        guard !_isConfigured else { return }
+        _isConfigured = true
+        AppLogger.info("\(serviceIdentifier) configured", category: .services)
+    }
+    
+    func reset() async {
+        _isConfigured = false
+        AppLogger.info("\(serviceIdentifier) reset", category: .services)
+    }
+    
+    func healthCheck() async -> ServiceHealth {
+        // Check if we can access SwiftData
+        let canAccessData = (try? modelContext.fetch(FetchDescriptor<User>())) != nil
+        
+        return ServiceHealth(
+            status: canAccessData ? .healthy : .degraded,
+            lastCheckTime: Date(),
+            responseTime: nil,
+            errorMessage: canAccessData ? nil : "Cannot access SwiftData",
+            metadata: ["modelContext": "\(modelContext != nil)"]
+        )
     }
     
     func createUser(from profile: OnboardingProfile) async throws -> User {

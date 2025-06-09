@@ -2,7 +2,14 @@ import Foundation
 import SwiftData
 
 @MainActor
-final class NotificationContentGenerator {
+final class NotificationContentGenerator: ServiceProtocol {
+    // MARK: - ServiceProtocol
+    nonisolated let serviceIdentifier = "notification-content-generator"
+    private var _isConfigured = false
+    nonisolated var isConfigured: Bool {
+        MainActor.assumeIsolated { _isConfigured }
+    }
+    
     private let coachEngine: CoachEngine
     private let modelContext: ModelContext
     
@@ -214,6 +221,32 @@ final class NotificationContentGenerator {
             )
         }
         return nil
+    }
+    
+    // MARK: - ServiceProtocol Methods
+    
+    func configure() async throws {
+        guard !_isConfigured else { return }
+        _isConfigured = true
+        AppLogger.info("\(serviceIdentifier) configured", category: .services)
+    }
+    
+    func reset() async {
+        _isConfigured = false
+        AppLogger.info("\(serviceIdentifier) reset", category: .services)
+    }
+    
+    func healthCheck() async -> ServiceHealth {
+        ServiceHealth(
+            status: _isConfigured ? .healthy : .unhealthy,
+            lastCheckTime: Date(),
+            responseTime: nil,
+            errorMessage: _isConfigured ? nil : "Service not configured",
+            metadata: [
+                "hasCoachEngine": "true",
+                "templatesAvailable": "true"
+            ]
+        )
     }
 }
 

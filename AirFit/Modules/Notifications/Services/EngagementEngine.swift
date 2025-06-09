@@ -4,9 +4,16 @@ import BackgroundTasks
 import UserNotifications
 
 @MainActor
-final class EngagementEngine {
+final class EngagementEngine: ServiceProtocol {
+    // MARK: - ServiceProtocol
+    nonisolated let serviceIdentifier = "engagement-engine"
+    private var _isConfigured = false
+    nonisolated var isConfigured: Bool {
+        MainActor.assumeIsolated { _isConfigured }
+    }
+    
     private let modelContext: ModelContext
-    private let notificationManager = NotificationManager.shared
+    private let notificationManager: NotificationManager
     private let coachEngine: CoachEngine
     
     // Background task identifiers
@@ -17,9 +24,10 @@ final class EngagementEngine {
     private let inactivityThresholdDays = 3
     private let churnRiskThresholdDays = 7
     
-    init(modelContext: ModelContext, coachEngine: CoachEngine) {
+    init(modelContext: ModelContext, coachEngine: CoachEngine, notificationManager: NotificationManager) {
         self.modelContext = modelContext
         self.coachEngine = coachEngine
+        self.notificationManager = notificationManager
         registerBackgroundTasks()
     }
     
@@ -217,10 +225,10 @@ final class EngagementEngine {
             
             // Schedule notification
             try await notificationManager.scheduleNotification(
-                identifier: .lapse(user.daysSinceLastActive),
+                identifier: NotificationManager.NotificationIdentifier.lapse(user.daysSinceLastActive),
                 title: message.title,
                 body: message.body,
-                categoryIdentifier: .reEngagement,
+                categoryIdentifier: NotificationManager.NotificationCategory.reEngagement,
                 userInfo: ["userId": user.id.uuidString, "type": "reengagement"],
                 trigger: UNTimeIntervalNotificationTrigger(
                     timeInterval: 1,
@@ -298,10 +306,10 @@ final class EngagementEngine {
             )
             
             try await notificationManager.scheduleNotification(
-                identifier: .morning,
+                identifier: NotificationManager.NotificationIdentifier.morning,
                 title: "Good morning, \(user.name ?? "there")! ☀️",
                 body: greeting,
-                categoryIdentifier: .dailyCheck,
+                categoryIdentifier: NotificationManager.NotificationCategory.dailyCheck,
                 userInfo: ["type": "morning"],
                 trigger: trigger
             )
@@ -325,10 +333,10 @@ final class EngagementEngine {
                 )
                 
                 try await notificationManager.scheduleNotification(
-                    identifier: .workout(workout.scheduledDate),
+                    identifier: NotificationManager.NotificationIdentifier.workout(workout.scheduledDate),
                     title: content.title,
                     body: content.body,
-                    categoryIdentifier: .workout,
+                    categoryIdentifier: NotificationManager.NotificationCategory.workout,
                     userInfo: ["type": "workout", "workoutType": workout.type],
                     trigger: trigger
                 )
@@ -359,10 +367,10 @@ final class EngagementEngine {
                 )
                 
                 try await notificationManager.scheduleNotification(
-                    identifier: .meal(mealType),
+                    identifier: NotificationManager.NotificationIdentifier.meal(mealType),
                     title: content.title,
                     body: content.body,
-                    categoryIdentifier: .meal,
+                    categoryIdentifier: NotificationManager.NotificationCategory.meal,
                     userInfo: ["type": "meal", "mealType": mealType.rawValue],
                     trigger: trigger
                 )
@@ -390,10 +398,10 @@ final class EngagementEngine {
         
         do {
             try await notificationManager.scheduleNotification(
-                identifier: .hydration,
+                identifier: NotificationManager.NotificationIdentifier.hydration,
                 title: "💧 Hydration Time!",
                 body: "Time for a water break. Stay hydrated!",
-                categoryIdentifier: .hydration,
+                categoryIdentifier: NotificationManager.NotificationCategory.hydration,
                 userInfo: ["type": "hydration"],
                 trigger: trigger
             )
@@ -428,6 +436,48 @@ final class EngagementEngine {
             try modelContext.save()
         } catch {
             AppLogger.error("Failed to update user activity", error: error, category: .data)
+        }
+    }
+    
+    // MARK: - ServiceProtocol Methods
+    
+    func configure() async throws {
+        guard !_isConfigured else { return }
+        registerBackgroundTasks()
+        _isConfigured = true
+        AppLogger.info("\(serviceIdentifier) configured", category: .services)
+    }
+    
+    func reset() async {
+        BGTaskScheduler.shared.cancelAllTaskRequests()
+        _isConfigured = false
+        AppLogger.info("\(serviceIdentifier) reset", category: .services)
+    }
+    
+    func healthCheck() async -> ServiceHealth {
+        do {
+            let metrics = try await analyzeEngagementMetrics()
+            
+            return ServiceHealth(
+                status: metrics.engagementRate > 0.3 ? .healthy : .degraded,
+                lastCheckTime: Date(),
+                responseTime: nil,
+                errorMessage: nil,
+                metadata: [
+                    "totalUsers": "\(metrics.totalUsers)",
+                    "activeUsers": "\(metrics.activeUsers)",
+                    "engagementRate": String(format: "%.2f%%", metrics.engagementRate * 100),
+                    "backgroundTasksRegistered": "true"
+                ]
+            )
+        } catch {
+            return ServiceHealth(
+                status: .unhealthy,
+                lastCheckTime: Date(),
+                responseTime: nil,
+                errorMessage: error.localizedDescription,
+                metadata: [:]
+            )
         }
     }
 }

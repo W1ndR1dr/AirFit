@@ -2,11 +2,38 @@ import Foundation
 import SwiftData
 
 /// Production implementation of onboarding persistence
-final class OnboardingService: OnboardingServiceProtocol, @unchecked Sendable {
+final class OnboardingService: OnboardingServiceProtocol, ServiceProtocol, @unchecked Sendable {
+    // MARK: - ServiceProtocol
+    let serviceIdentifier = "onboarding-service"
+    private(set) var isConfigured = false
+    
     private let modelContext: ModelContext
 
     init(modelContext: ModelContext) {
         self.modelContext = modelContext
+    }
+    
+    // MARK: - ServiceProtocol Methods
+    
+    func configure() async throws {
+        guard !isConfigured else { return }
+        isConfigured = true
+        AppLogger.info("\(serviceIdentifier) configured", category: .services)
+    }
+    
+    func reset() async {
+        isConfigured = false
+        AppLogger.info("\(serviceIdentifier) reset", category: .services)
+    }
+    
+    func healthCheck() async -> ServiceHealth {
+        ServiceHealth(
+            status: isConfigured ? .healthy : .unhealthy,
+            lastCheckTime: Date(),
+            responseTime: nil,
+            errorMessage: isConfigured ? nil : "Service not configured",
+            metadata: ["modelContext": "\(modelContext != nil)"]
+        )
     }
 
     func saveProfile(_ profile: OnboardingProfile) async throws {

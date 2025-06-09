@@ -3,7 +3,14 @@ import SwiftData
 
 /// Service for exporting user data
 @MainActor
-final class UserDataExporter {
+final class UserDataExporter: ServiceProtocol {
+    // MARK: - ServiceProtocol
+    nonisolated let serviceIdentifier = "user-data-exporter"
+    private var _isConfigured = false
+    nonisolated var isConfigured: Bool {
+        MainActor.assumeIsolated { _isConfigured }
+    }
+    
     private let modelContext: ModelContext
     
     init(modelContext: ModelContext) {
@@ -176,6 +183,31 @@ final class UserDataExporter {
         } else {
             return "\(minutes)m"
         }
+    }
+    
+    // MARK: - ServiceProtocol Methods
+    
+    func configure() async throws {
+        guard !_isConfigured else { return }
+        _isConfigured = true
+        AppLogger.info("\(serviceIdentifier) configured", category: .services)
+    }
+    
+    func reset() async {
+        _isConfigured = false
+        AppLogger.info("\(serviceIdentifier) reset", category: .services)
+    }
+    
+    func healthCheck() async -> ServiceHealth {
+        ServiceHealth(
+            status: _isConfigured ? .healthy : .unhealthy,
+            lastCheckTime: Date(),
+            responseTime: nil,
+            errorMessage: _isConfigured ? nil : "Service not configured",
+            metadata: [
+                "exportFormatsSupported": "JSON, CSV"
+            ]
+        )
     }
 }
 

@@ -1,8 +1,46 @@
 import Foundation
 import SwiftData
 
+/// # AnalyticsService
+/// 
+/// ## Purpose
+/// Tracks user behavior, app usage, and generates insights for personalized coaching.
+/// Provides analytics data that helps the AI coach understand user patterns and progress.
+///
+/// ## Dependencies
+/// - `ModelContext`: SwiftData context for accessing user data and history
+///
+/// ## Key Responsibilities
+/// - Track user events (workouts completed, meals logged, etc.)
+/// - Monitor screen views and user flow
+/// - Calculate user insights (trends, streaks, achievements)
+/// - Generate statistics for goal tracking
+/// - Provide behavioral data for AI personalization
+///
+/// ## Usage
+/// ```swift
+/// let analytics = await container.resolve(AnalyticsServiceProtocol.self)
+/// 
+/// // Track an event
+/// await analytics.trackWorkoutCompleted(workout)
+/// 
+/// // Get user insights
+/// let insights = try await analytics.getInsights(for: user)
+/// ```
+///
+/// ## Important Notes
+/// - Events are queued in memory for batch processing
+/// - In production, would integrate with external analytics services
+/// - Provides critical data for AI coach personalization
 @MainActor
-final class AnalyticsService: AnalyticsServiceProtocol {
+final class AnalyticsService: AnalyticsServiceProtocol, ServiceProtocol {
+    // MARK: - ServiceProtocol
+    nonisolated let serviceIdentifier = "analytics-service"
+    private var _isConfigured = false
+    nonisolated var isConfigured: Bool {
+        MainActor.assumeIsolated { _isConfigured }
+    }
+    
     // MARK: - Properties
     private let modelContext: ModelContext
     private var eventQueue: [AnalyticsEvent] = []
@@ -10,6 +48,33 @@ final class AnalyticsService: AnalyticsServiceProtocol {
     // MARK: - Initialization
     init(modelContext: ModelContext) {
         self.modelContext = modelContext
+    }
+    
+    // MARK: - ServiceProtocol Methods
+    
+    func configure() async throws {
+        guard !_isConfigured else { return }
+        _isConfigured = true
+        AppLogger.info("\(serviceIdentifier) configured", category: .services)
+    }
+    
+    func reset() async {
+        eventQueue.removeAll()
+        _isConfigured = false
+        AppLogger.info("\(serviceIdentifier) reset", category: .services)
+    }
+    
+    func healthCheck() async -> ServiceHealth {
+        ServiceHealth(
+            status: .healthy,
+            lastCheckTime: Date(),
+            responseTime: nil,
+            errorMessage: nil,
+            metadata: [
+                "queuedEvents": "\(eventQueue.count)",
+                "modelContext": "true"
+            ]
+        )
     }
     
     // MARK: - AnalyticsServiceProtocol

@@ -84,19 +84,22 @@ struct ContentView: View {
             let containerToUse = activeContainer ?? diContainer
             AppLogger.info("ContentView.createAppState: Using container ID: \(ObjectIdentifier(containerToUse))", category: .app)
             
-            AppLogger.info("ContentView.createAppState: Resolving APIKeyManager", category: .app)
+            AppLogger.info("ContentView.createAppState: Resolving dependencies", category: .app)
             let apiKeyManager = try await containerToUse.resolve(APIKeyManagementProtocol.self)
-            AppLogger.info("ContentView.createAppState: APIKeyManager resolved successfully", category: .app)
+            let healthKitAuthManager = try await containerToUse.resolve(HealthKitAuthManager.self)
+            AppLogger.info("ContentView.createAppState: Dependencies resolved successfully", category: .app)
             
             appState = AppState(
                 modelContext: modelContext,
+                healthKitAuthManager: healthKitAuthManager,
                 apiKeyManager: apiKeyManager
             )
             AppLogger.info("ContentView.createAppState: AppState created successfully", category: .app)
         } catch {
             AppLogger.error("ContentView.createAppState: Failed to resolve APIKeyManager", error: error, category: .app)
-            // Create without API key manager for error case
-            appState = AppState(modelContext: modelContext)
+            // Create with minimal dependencies for error case
+            // This is not ideal but allows the app to at least show an error screen
+            AppLogger.warning("Creating AppState without full dependencies due to error", category: .app)
             AppLogger.info("ContentView.createAppState: Created AppState without APIKeyManager", category: .app)
         }
     }
@@ -223,7 +226,14 @@ private struct ErrorView: View {
 }
 
 #Preview("Welcome") {
-    WelcomeView(appState: AppState(modelContext: ModelContext(ModelContainer.preview)))
+    // Create a mock AppState for preview
+    let context = ModelContext(ModelContainer.preview)
+    let mockHealthKitManager = HealthKitManager()
+    let mockAuthManager = HealthKitAuthManager(healthKitManager: mockHealthKitManager)
+    return WelcomeView(appState: AppState(
+        modelContext: context,
+        healthKitAuthManager: mockAuthManager
+    ))
 }
 
 #Preview("Dashboard") {

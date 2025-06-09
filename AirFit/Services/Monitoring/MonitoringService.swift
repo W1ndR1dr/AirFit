@@ -2,9 +2,7 @@ import Foundation
 import os
 
 /// Production monitoring for AI persona system
-actor MonitoringService {
-    static let shared = MonitoringService()
-    
+actor MonitoringService: ServiceProtocol {
     // MARK: - Properties
     private var metrics = ProductionMetrics()
     private var alerts: [MonitoringAlert] = []
@@ -20,12 +18,63 @@ actor MonitoringService {
         errorRateMax: 0.05
     )
     
+    // MARK: - ServiceProtocol
+    nonisolated let serviceIdentifier = "monitoring-service"
+    private var _isConfigured = false
+    nonisolated var isConfigured: Bool {
+        // For actors, we need async access but protocol requires sync
+        // Return true as monitoring is always ready
+        true
+    }
+    
     // MARK: - Initialization
     
-    private init() {
-        Task {
-            await startMonitoring()
+    init() {
+        // Initialization handled in configure()
+    }
+    
+    // MARK: - ServiceProtocol Methods
+    
+    func configure() async throws {
+        guard !_isConfigured else { return }
+        startMonitoring()
+        _isConfigured = true
+        logger.info("MonitoringService configured")
+    }
+    
+    func reset() async {
+        metrics = ProductionMetrics()
+        alerts.removeAll()
+        _isConfigured = false
+        logger.info("MonitoringService reset")
+    }
+    
+    func healthCheck() async -> ServiceHealth {
+        let alertCount = alerts.count
+        let recentAlerts = alerts.filter { alert in
+            alert.timestamp.timeIntervalSinceNow > -300 // Last 5 minutes
+        }.count
+        
+        let status: ServiceHealth.Status
+        if recentAlerts > 10 {
+            status = .unhealthy
+        } else if recentAlerts > 5 {
+            status = .degraded
+        } else {
+            status = .healthy
         }
+        
+        return ServiceHealth(
+            status: status,
+            lastCheckTime: Date(),
+            responseTime: nil,
+            errorMessage: status != .healthy ? "High alert rate detected" : nil,
+            metadata: [
+                "totalAlerts": "\(alertCount)",
+                "recentAlerts": "\(recentAlerts)",
+                "errorCount": "\(metrics.apiPerformance.errorCount)"
+            ]
+        )
     }
     
     // MARK: - Public API

@@ -73,7 +73,7 @@ final class OnboardingViewModel: ErrorHandling {
         userService: UserServiceProtocol,
         speechService: WhisperServiceWrapperProtocol? = nil,
         healthPrefillProvider: HealthKitPrefillProviding? = nil,
-        healthKitAuthManager: HealthKitAuthManager = HealthKitAuthManager(),
+        healthKitAuthManager: HealthKitAuthManager,
         analytics: ConversationAnalytics = ConversationAnalytics(),
         mode: OnboardingMode = .conversational
     ) {

@@ -1,14 +1,88 @@
 import Foundation
 import SwiftData
 
+/// # WorkoutService
+/// 
+/// ## Purpose
+/// Manages workout sessions, exercise logging, templates, and HealthKit synchronization.
+/// Provides the core functionality for workout tracking and history management.
+///
+/// ## Dependencies
+/// - `ModelContext`: SwiftData context for persisting workout data
+/// - `HealthKitManaging`: Optional integration for syncing workouts to Apple Health
+///
+/// ## Key Responsibilities
+/// - Start, pause, resume, and end workout sessions
+/// - Log exercises with sets, reps, and weights
+/// - Calculate estimated calories burned based on MET values
+/// - Manage workout templates (system and user-created)
+/// - Sync completed workouts to HealthKit
+/// - Provide workout history and statistics
+///
+/// ## Usage
+/// ```swift
+/// let workoutService = await container.resolve(WorkoutServiceProtocol.self)
+/// 
+/// // Start a workout
+/// let workout = try await workoutService.startWorkout(type: .strength, user: currentUser)
+/// 
+/// // Log an exercise
+/// let exercise = Exercise(name: "Bench Press", category: .chest)
+/// try await workoutService.logExercise(exercise, in: workout)
+/// 
+/// // End workout (auto-syncs to HealthKit)
+/// try await workoutService.endWorkout(workout)
+/// ```
+///
+/// ## Important Notes
+/// - @MainActor isolated for SwiftData compatibility
+/// - HealthKit sync happens asynchronously after workout completion
+/// - Calorie calculations use standard MET values
+/// - Templates support both system and user-created workouts
 @MainActor
-final class WorkoutService: WorkoutServiceProtocol {
+final class WorkoutService: WorkoutServiceProtocol, ServiceProtocol {
     // MARK: - Properties
     private let modelContext: ModelContext
+    private let healthKitManager: HealthKitManaging?
+    
+    // MARK: - ServiceProtocol
+    nonisolated let serviceIdentifier = "workout-service"
+    private var _isConfigured = false
+    nonisolated var isConfigured: Bool {
+        MainActor.assumeIsolated { _isConfigured }
+    }
     
     // MARK: - Initialization
-    init(modelContext: ModelContext) {
+    init(modelContext: ModelContext, healthKitManager: HealthKitManaging? = nil) {
         self.modelContext = modelContext
+        self.healthKitManager = healthKitManager
+    }
+    
+    // MARK: - ServiceProtocol Methods
+    
+    func configure() async throws {
+        guard !_isConfigured else { return }
+        _isConfigured = true
+        AppLogger.info("WorkoutService configured", category: .services)
+    }
+    
+    func reset() async {
+        _isConfigured = false
+        AppLogger.info("WorkoutService reset", category: .services)
+    }
+    
+    nonisolated func healthCheck() async -> ServiceHealth {
+        await MainActor.run {
+            return ServiceHealth(
+                status: _isConfigured ? .healthy : .degraded,
+                lastCheckTime: Date(),
+                responseTime: nil,
+                errorMessage: nil,
+                metadata: [
+                    "healthKitAvailable": "\(healthKitManager != nil)"
+                ]
+            )
+        }
     }
     
     // MARK: - WorkoutServiceProtocol
@@ -85,7 +159,11 @@ final class WorkoutService: WorkoutServiceProtocol {
             if workout.healthKitWorkoutID == nil {
                 Task {
                     do {
-                        let healthKitID = try await HealthKitManager.shared.saveWorkout(workout)
+                        guard let healthKitManager = self.healthKitManager else {
+                            AppLogger.warning("HealthKitManager not available for workout sync", category: .services)
+                            return
+                        }
+                        let healthKitID = try await healthKitManager.saveWorkout(workout)
                         await MainActor.run {
                             workout.healthKitWorkoutID = healthKitID
                             workout.healthKitSyncedDate = Date()

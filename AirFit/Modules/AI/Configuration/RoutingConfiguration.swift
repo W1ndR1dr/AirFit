@@ -167,11 +167,9 @@ final class RoutingConfiguration {
         }
     }
     
-    // MARK: - Singleton Access
+    // MARK: - Initialization
     
-    static let shared = RoutingConfiguration()
-    
-    private init() {
+    init() {
         // Load configuration from UserDefaults or remote config
         loadConfiguration()
     }

@@ -109,9 +109,7 @@ private struct RawExerciseData: Codable {
 
 // MARK: - Exercise Database
 @MainActor
-final class ExerciseDatabase: ObservableObject {
-    static let shared = ExerciseDatabase()
-
+final class ExerciseDatabase: ObservableObject, ServiceProtocol {
     @Published private(set) var isLoading = false
     @Published private(set) var loadingProgress: Double = 0
     @Published private(set) var error: ExerciseDatabaseError?
@@ -119,14 +117,53 @@ final class ExerciseDatabase: ObservableObject {
     private let container: ModelContainer
     private var exercises: [ExerciseDefinition] = []
     private let cacheQueue = DispatchQueue(label: "exercise.cache", qos: .utility)
+    
+    // MARK: - ServiceProtocol
+    nonisolated let serviceIdentifier = "exercise-database"
+    private var _isConfigured = false
+    nonisolated var isConfigured: Bool {
+        MainActor.assumeIsolated { _isConfigured }
+    }
 
-    private init() {
+    init(container: ModelContainer? = nil) {
         do {
-            container = try ModelContainer(for: ExerciseDefinition.self)
-            Task { await initializeDatabase() }
+            self.container = try container ?? ModelContainer(for: ExerciseDefinition.self)
         } catch {
             AppLogger.error("Failed to initialize ExerciseDatabase", error: error, category: .data)
             fatalError("Failed to initialize ExerciseDatabase: \(error)")
+        }
+    }
+    
+    // MARK: - ServiceProtocol Methods
+    
+    func configure() async throws {
+        guard !_isConfigured else { return }
+        await initializeDatabase()
+        _isConfigured = true
+        AppLogger.info("ExerciseDatabase configured", category: .data)
+    }
+    
+    func reset() async {
+        exercises.removeAll()
+        _isConfigured = false
+        AppLogger.info("ExerciseDatabase reset", category: .data)
+    }
+    
+    nonisolated func healthCheck() async -> ServiceHealth {
+        await MainActor.run {
+            let hasExercises = !exercises.isEmpty
+            let status: ServiceHealth.Status = hasExercises ? .healthy : .degraded
+            
+            return ServiceHealth(
+                status: status,
+                lastCheckTime: Date(),
+                responseTime: nil,
+                errorMessage: hasExercises ? nil : "No exercises loaded",
+                metadata: [
+                    "exerciseCount": "\(exercises.count)",
+                    "isLoading": "\(isLoading)"
+                ]
+            )
         }
     }
 

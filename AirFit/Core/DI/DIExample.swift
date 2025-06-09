@@ -25,7 +25,7 @@ struct DIExample {
                             let modelContext = DataManager.shared.modelContext
                             let healthKitService = HealthKitService(
                                 modelContext: modelContext,
-                                healthKitManager: HealthKitManager.shared
+                                healthKitManager: HealthKitManager() // Would need proper DI
                             )
                             let nutritionService = DashboardNutritionService(
                                 modelContext: modelContext
