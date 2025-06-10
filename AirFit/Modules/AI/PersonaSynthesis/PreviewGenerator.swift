@@ -15,6 +15,10 @@ final class PreviewGenerator: ObservableObject {
         self.synthesizer = synthesizer
     }
     
+    deinit {
+        synthesisTask?.cancel()
+    }
+    
     // MARK: - Public API
     
     func startSynthesis(

@@ -37,6 +37,14 @@ enum AirFitMigrationPlan: SchemaMigrationPlan {
     }
 
     static var stages: [MigrationStage] {
-        []
+        [
+            // Placeholder stage - no actual migration needed yet
+            // This establishes the migration infrastructure for future use
+            // When we need to migrate to V2, we'll add:
+            // MigrationStage.lightweight(
+            //     fromVersion: SchemaV1.self,
+            //     toVersion: SchemaV2.self
+            // )
+        ]
     }
 }

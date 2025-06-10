@@ -313,7 +313,7 @@ struct AIPersonaSettingsView: View {
                         previewText = preview
                     }
                     isGeneratingPreview = false
-                    HapticManager.impact(.light)
+                    // TODO: Add haptic feedback via DI when needed
                 }
             } catch {
                 await MainActor.run {
@@ -447,7 +447,7 @@ struct NaturalLanguagePersonaAdjustment: View {
                 await MainActor.run {
                     isProcessing = false
                     adjustmentText = ""
-                    HapticManager.success()
+                    // TODO: Add haptic feedback via DI when needed
                     dismiss()
                 }
             } catch {
@@ -623,7 +623,7 @@ struct ConversationalPersonaRefinement: View {
                 )
                 messages.append(aiMessage)
                 isTyping = false
-                HapticManager.impact(.light)
+                // TODO: Add haptic feedback via DI when needed
             }
         }
     }
@@ -646,7 +646,7 @@ struct ConversationalPersonaRefinement: View {
     private func applyRefinements() {
         // In a real implementation, this would process the conversation
         // and update the persona accordingly
-        HapticManager.success()
+        // TODO: Add haptic feedback via DI when needed
     }
 }
 

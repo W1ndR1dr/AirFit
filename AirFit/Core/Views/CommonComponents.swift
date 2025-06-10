@@ -89,6 +89,7 @@ public struct EmptyStateView: View {
 }
 
 // MARK: - Card View
+/// Legacy card view for backward compatibility. New code should use StandardCard.
 public struct Card<Content: View>: View {
     let content: () -> Content
 
@@ -97,11 +98,10 @@ public struct Card<Content: View>: View {
     }
 
     public var body: some View {
-        content()
-            .padding(AppSpacing.medium)
-            .background(AppColors.cardBackground)
-            .clipShape(RoundedRectangle(cornerRadius: AppSpacing.medium))
-            .shadow(color: .black.opacity(0.05), radius: 5, y: 2)
+        // Use StandardCard internally for consistency
+        StandardCard(padding: .standard, showShadow: true) {
+            content()
+        }
     }
 }
 

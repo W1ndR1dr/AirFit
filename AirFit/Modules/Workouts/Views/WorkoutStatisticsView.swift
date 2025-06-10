@@ -158,7 +158,7 @@ struct WorkoutStatisticsView: View {
             }
 
             // Chart
-            Card {
+            StandardCard {
                 VStack(alignment: .leading, spacing: AppSpacing.small) {
                     Text(selectedMetric.displayName)
                         .font(.headline)
@@ -248,7 +248,7 @@ struct WorkoutStatisticsView: View {
             SectionHeader(title: "Muscle Groups", icon: "figure.strengthtraining.traditional")
                 .padding(.horizontal)
 
-            Card {
+            StandardCard {
                 if muscleGroupData.isEmpty {
                     Text("No muscle group data")
                         .foregroundStyle(.secondary)
@@ -278,7 +278,7 @@ struct WorkoutStatisticsView: View {
             SectionHeader(title: "Workout Types", icon: "chart.pie.fill")
                 .padding(.horizontal)
 
-            Card {
+            StandardCard {
                 if workoutTypeData.isEmpty {
                     Text("No workout type data")
                         .foregroundStyle(.secondary)
@@ -460,7 +460,7 @@ private struct SummaryCard: View {
     let color: Color
 
     var body: some View {
-        Card {
+        StandardCard {
             VStack(alignment: .leading, spacing: AppSpacing.small) {
                 HStack {
                     Image(systemName: icon)
@@ -498,7 +498,7 @@ private struct PersonalRecordRow: View {
     let color: Color
 
     var body: some View {
-        Card {
+        StandardCard {
             HStack {
                 Image(systemName: icon)
                     .font(.title2)

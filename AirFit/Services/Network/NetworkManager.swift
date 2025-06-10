@@ -73,16 +73,14 @@ actor NetworkManager: NetworkManagementProtocol, ServiceProtocol {
     init(session: URLSession = .shared) {
         self.session = session
         self.monitor = NWPathMonitor()
-        
-        Task {
-            await setupNetworkMonitoring()
-        }
+        // Network monitoring setup moved to configure()
     }
     
     // MARK: - ServiceProtocol
     
     func configure() async throws {
-        // Network monitoring is already set up in init
+        guard !_isConfigured else { return }
+        await setupNetworkMonitoring()
         _isConfigured = true
         AppLogger.info("NetworkManager configured", category: .networking)
     }

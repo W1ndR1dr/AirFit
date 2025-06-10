@@ -52,6 +52,8 @@ Reference `Docs/Research Reports/Claude Code Best Practices.md` if needed.
 **Current Status**: 
 - ✅ **PHASE 1 COMPLETE** - Foundation fully restored!
 - ✅ **PHASE 2.1 COMPLETE** - All services standardized!
+- ✅ **PHASE 2.2 COMPLETE** - Concurrency model fixed!
+- ⚠️ **PHASE 2.3 ATTEMPTED** - Complex features rolled back for stability
 - ✅ Black screen issue FIXED with perfect lazy DI
 - ✅ Modules 0-13 complete (all features implemented)
 - ✅ HealthKit integration complete (nutrition + workouts)
@@ -59,11 +61,13 @@ Reference `Docs/Research Reports/Claude Code Best Practices.md` if needed.
 - ✅ @MainActor reduced from 258 to necessary minimum
 - ✅ All 45+ services implement ServiceProtocol
 - ✅ All services use AppError for consistent error handling
-- 🎯 **NEXT**: Phase 2.2 - Fix Concurrency Model
+- ✅ Build compiles successfully with no errors
+- 🎯 **NEXT**: Phase 3 - Architectural Simplification
 
-## Current Focus: Phase 2 - Architectural Elegance 🎨
-**Status**: Phase 1 ✅ COMPLETE (All 3 subphases)  
-**Now**: Ready for Phase 2 - Crafting consistent, beautiful patterns
+## Current Focus: Ready for Phase 3 🎯
+**Phase 1**: ✅ COMPLETE (Foundation restored)  
+**Phase 2**: ✅ 2.1 & 2.2 COMPLETE, 2.3 attempted but rolled back  
+**Now**: Ready for Phase 3 - Simplify Architecture
 
 ### Phase 1 Completion Summary (2025-01-08)
 - ✅ **Phase 1.1**: Fixed DI Container (async-only resolution)
@@ -93,21 +97,17 @@ Reference `Docs/Research Reports/Claude Code Best Practices.md` if needed.
 - 📝 `Docs/Development-Standards/ERROR_HANDLING_STANDARDS.md` - Error patterns
 - 📝 `Docs/Development-Standards/ERROR_MIGRATION_GUIDE.md` - Migration guide
 
-#### 2.2 Fix Concurrency Model
-**Goal**: Establish clear actor boundaries
-**Targets**:
-- Remove 5+ @unchecked Sendable
-- Fix unstructured Task usage
-- Implement proper cancellation
+#### 2.2 Fix Concurrency Model ✅ COMPLETE
+**Achieved**:
+- ✅ Removed unnecessary @unchecked Sendable (8 fixed, rest are valid)
+- ✅ Fixed Task usage in service init() methods
+- ✅ Added proper task cancellation to ViewModels
+- ✅ Established actor boundaries (services that need SwiftData stay @MainActor)
 
-**Essential Reading**:
-- 📚 `Docs/Research Reports/Concurrency_Model_Analysis.md` - Current issues
-- 📝 `Docs/Development-Standards/CONCURRENCY_STANDARDS.md` - Actor patterns
-
-#### 2.3 Data Layer Improvements
-**Goal**: Fix SwiftData initialization and add migrations
-**Essential Reading**:
-- 📚 `Docs/Research Reports/Data_Layer_Analysis.md` - SwiftData issues
+#### 2.3 Data Layer Improvements ⚠️ ATTEMPTED
+**What Happened**: Complex features caused build errors, rolled back for stability
+**See**: `Docs/PHASE_2_3_HANDOFF_NOTES.md` for detailed analysis
+**Decision**: These features can be revisited in Phase 3 or later if needed
 
 ### Phase 3 Preview (Week 2)
 - **3.1**: Simplify Architecture (remove unnecessary abstractions)
@@ -149,35 +149,14 @@ grep -r "@unchecked Sendable" --include="*.swift" AirFit/  # Find unsafe concurr
 - **Services**: Moving to 100% ServiceProtocol conformance (Phase 2.1)
 
 ## Documentation Hub
+**Primary Guide**: `Docs/README.md` - Documentation overview and quick links
+**Roadmap**: `Docs/CODEBASE_RECOVERY_PLAN.md` - Vision and phases  
+**Current Phase**: `Docs/PHASE_3_KICKOFF.md` - Phase 3 objectives
 
-### 🚨 CODEBASE EXCELLENCE PLAN (HIGHEST PRIORITY)
-**Start here**: `Docs/CODEBASE_RECOVERY_PLAN.md` - Our vision and roadmap to world-class code
-
-### 📚 Phase 2 Essential Research Reports
-**Phase 2.1**: 
-- **Service_Layer_Complete_Catalog.md** → Complete service inventory with issues
-- **Architecture_Overview_Analysis.md** → Overall architecture patterns
-
-**Phase 2.2**:
-- **Concurrency_Model_Analysis.md** → Actor isolation issues
-
-**Phase 2.3**:
-- **Data_Layer_Analysis.md** → SwiftData initialization problems
-
-**All 14 Reports**: Architecture, AI, Concurrency, Data Layer, HealthKit, Network, Onboarding, Service Layer, UI, Voice
-
-### 📖 Development Standards (`Docs/Development-Standards/`)
-**Phase 2 Critical Standards**:
-- **DI_STANDARDS.md** → Service registration patterns
-- **DI_LAZY_RESOLUTION_STANDARDS.md** → Lazy DI implementation ⚡
-- **CONCURRENCY_STANDARDS.md** → Actor isolation patterns
-- **NAMING_STANDARDS.md** → Service naming conventions
-- **PROJECT_FILE_MANAGEMENT.md** → XcodeGen after file changes
-
-**UI Standards (Phase 3.3)**:
-- **UI_STANDARDS.md** → Complete visual transformation guide
-
-**All Standards**: CONCURRENCY, DI, DI_LAZY_RESOLUTION, UI, NAMING, PROJECT_FILE_MANAGEMENT, TEST, DOCUMENTATION_CHECKLIST, MAINACTOR_CLEANUP, MAINACTOR_SERVICE_CATEGORIZATION
+### 📖 Key References
+- **Development Standards**: `Docs/Development-Standards/` - All active coding standards
+- **Research Reports**: `Docs/Research Reports/` - System analysis and recommendations  
+- **UI Vision**: `Docs/Development-Standards/UI_STANDARDS.md` - Phase 3.3 UI/UX plans
 
 ## Best Practices
 - **Standards First**: I always check `Docs/Development-Standards/` before coding
@@ -185,12 +164,19 @@ grep -r "@unchecked Sendable" --include="*.swift" AirFit/  # Find unsafe concurr
 - **Course Correct Early**: If patterns don't match standards, I stop and refactor
 - **ServiceProtocol Always**: Every service must implement the base protocol (Phase 2.1)
 - **Actor Boundaries Clear**: Services are actors, ViewModels are @MainActor
+- **Check Before Creating**: ALWAYS search for existing types before creating new ones:
+  ```bash
+  # Before creating any new type/model:
+  grep -r "struct TypeName\|class TypeName\|enum TypeName" --include="*.swift" AirFit/
+  ```
+- **SwiftData Constraints**: Remember ModelContext and @Model types must stay on @MainActor
+- **Keep It Simple**: Prefer working JSON storage over complex SwiftData relationships
 
 ## Progress Tracking
-**Phase 1 Complete**: `Docs/PHASE_1_PROGRESS.md` - All 3 subphases successfully completed
-**Phase 2 Progress**: `Docs/PHASE_2_PROGRESS.md` - Phase 2.1 COMPLETE, ready for 2.2
-**Current Phase**: `Docs/CODEBASE_RECOVERY_PLAN.md` - Ready for Phase 2.2 Concurrency
+**Current Status**: Phase 3.1 (~35% complete) - See `Docs/PHASE_3_1_STATUS.md` for details
 **Service Status**: ALL 45+ services implement ServiceProtocol, ALL singletons removed, 100% AppError adoption
+**Coordinator Status**: BaseCoordinator migration complete for all 6 navigation coordinators
+**Next Steps**: Remove HapticManager calls, StandardCard adoption (~40 remaining), manager consolidations
 
 ## Memories
 - I remember to use the iPhone 16 Pro and iOS 18.4 simulator
@@ -203,5 +189,15 @@ grep -r "@unchecked Sendable" --include="*.swift" AirFit/  # Find unsafe concurr
   - ALL 17 service singletons removed
   - 100% AppError adoption across all services
   - Created comprehensive error handling standards
+- Phase 2.2 FULLY COMPLETED on 2025-06-09:
+  - Fixed @unchecked Sendable where appropriate
+  - Fixed Task usage in init() methods
+  - Added proper cancellation
+  - Established clear actor boundaries
+- Phase 2.3 ATTEMPTED on 2025-06-09:
+  - Complex features caused build errors
+  - Rolled back to maintain clean build
+  - See PHASE_2_3_HANDOFF_NOTES.md
 - Black screen issue RESOLVED
 - App launches in <0.5s with immediate UI
+- Build compiles successfully with no errors

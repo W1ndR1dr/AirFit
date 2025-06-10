@@ -193,7 +193,7 @@ final class OnboardingFlowCoordinator {
     
     private func handleError(_ error: Error) async {
         self.error = error
-        HapticManager.notification(.error)
+        // TODO: Add haptic feedback via DI when needed
         
         // Log error
         AppLogger.error("Onboarding error", error: error, category: .general)

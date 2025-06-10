@@ -1,10 +1,12 @@
 import SwiftUI
 import Observation
 
+/// Manages navigation for the Onboarding module
+/// Uses SimpleCoordinator since we only need navigation (no sheets or alerts)
+/// Tracks current screen for linear flow navigation
 @MainActor
 @Observable
-final class OnboardingCoordinator {
-    var path = NavigationPath()
+final class OnboardingCoordinator: SimpleCoordinator<OnboardingScreen> {
     var currentScreen: OnboardingScreen = .openingScreen
 
     func navigateToNext() {
@@ -13,7 +15,7 @@ final class OnboardingCoordinator {
               currentIndex < allScreens.count - 1 else { return }
 
         currentScreen = allScreens[currentIndex + 1]
-        path.append(currentScreen)
+        navigateTo(currentScreen)
     }
 
     func navigateToPrevious() {
@@ -22,18 +24,16 @@ final class OnboardingCoordinator {
               currentIndex > 0 else { return }
 
         currentScreen = allScreens[currentIndex - 1]
-        if !path.isEmpty {
-            path.removeLast()
-        }
+        pop()
     }
 
-    func navigateTo(_ screen: OnboardingScreen) {
+    override func navigateTo(_ screen: OnboardingScreen) {
         currentScreen = screen
-        path.append(screen)
+        super.navigateTo(screen)
     }
 
     func reset() {
-        path = NavigationPath()
+        popToRoot()
         currentScreen = .openingScreen
     }
 }

@@ -182,7 +182,7 @@ struct WaterTrackingView: View {
                         self.selectedUnit = .milliliters
                         self.useCustomAmount = false
                         self.customAmountString = "" // Clear custom amount
-                        HapticManager.selection()
+                        // TODO: Add haptic feedback via DI when needed
                     }
                 }
             }
@@ -208,7 +208,7 @@ struct WaterTrackingView: View {
                     )
                     .onTapGesture {
                         self.useCustomAmount = true
-                        HapticManager.selection()
+                        // TODO: Add haptic feedback via DI when needed
                     }
                     .onChange(of: customAmountString) { _, newValue in
                         // Ensure it's a valid number, could add more validation
@@ -227,7 +227,7 @@ struct WaterTrackingView: View {
                 .frame(minWidth: 150)
                 .onChange(of: selectedUnit) { _, _ in
                     self.useCustomAmount = true // Selecting unit implies custom amount
-                    HapticManager.selection()
+                    // TODO: Add haptic feedback via DI when needed
                 }
             }
         }
@@ -247,13 +247,13 @@ struct WaterTrackingView: View {
                         .foregroundColor(AppColors.accentColor)
                 }
             }
-            Text("Carry a water bottle throughout the day as a visual reminder to drink.")
-                .font(AppFonts.body)
-                .foregroundColor(AppColors.textSecondary)
-                .padding(AppSpacing.medium)
-                .frame(maxWidth: .infinity, alignment: .leading)
-                .background(AppColors.infoColor.opacity(0.1))
-                .cornerRadius(AppConstants.Layout.defaultCornerRadius)
+            StandardCard(padding: .standard, showShadow: false) {
+                Text("Carry a water bottle throughout the day as a visual reminder to drink.")
+                    .font(AppFonts.body)
+                    .foregroundColor(AppColors.textSecondary)
+                    .frame(maxWidth: .infinity, alignment: .leading)
+            }
+            .background(AppColors.infoColor.opacity(0.1))
         }
     }
     
@@ -301,8 +301,7 @@ struct WaterTrackingView: View {
 
         Task {
             await viewModel.logWater(amount: amountToAdd, unit: unitToLog)
-            HapticManager.notification(.success)
-
+            // TODO: Add haptic feedback via DI when needed
             // Reset custom input field after logging
             if useCustomAmount {
                 customAmountString = ""
@@ -338,10 +337,11 @@ struct QuickWaterButton: View {
                     .foregroundColor(isSelected ? AppColors.textOnAccent : AppColors.textPrimary)
             }
             .frame(maxWidth: .infinity)
-            .padding(AppSpacing.medium)
+            .cardStyle(
+                padding: .standard,
+                showShadow: isSelected
+            )
             .background(isSelected ? AppColors.accentColor : AppColors.backgroundSecondary)
-            .cornerRadius(AppConstants.Layout.defaultCornerRadius)
-            .shadow(color: isSelected ? AppColors.accentColor.opacity(0.3) : .clear, radius: 5, y: 3)
             .animation(.spring(response: 0.3, dampingFraction: 0.6), value: isSelected)
         }
     }

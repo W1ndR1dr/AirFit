@@ -1,13 +1,11 @@
 import SwiftUI
 import Observation
 
+/// Manages navigation for the Settings module
+/// Uses BaseCoordinator for complete navigation, sheet, and alert handling
 @MainActor
 @Observable
-final class SettingsCoordinator {
-    // MARK: - Navigation State
-    var navigationPath = NavigationPath()
-    var activeSheet: SettingsSheet?
-    var activeAlert: SettingsAlert?
+final class SettingsCoordinator: BaseCoordinator<SettingsDestination, SettingsCoordinator.SettingsSheet, SettingsCoordinator.SettingsAlert> {
     
     // MARK: - Sheet Types
     enum SettingsSheet: Identifiable {
@@ -43,31 +41,13 @@ final class SettingsCoordinator {
         }
     }
     
-    // MARK: - Navigation Methods
-    func navigateTo(_ destination: SettingsDestination) {
-        navigationPath.append(destination)
-    }
+    // MARK: - Compatibility Methods
     
     func navigateBack() {
-        if !navigationPath.isEmpty {
-            navigationPath.removeLast()
-        }
+        pop()
     }
     
     func navigateToRoot() {
-        navigationPath.removeLast(navigationPath.count)
-    }
-    
-    func showSheet(_ sheet: SettingsSheet) {
-        activeSheet = sheet
-    }
-    
-    func showAlert(_ alert: SettingsAlert) {
-        activeAlert = alert
-    }
-    
-    func dismiss() {
-        activeSheet = nil
-        activeAlert = nil
+        popToRoot()
     }
 }

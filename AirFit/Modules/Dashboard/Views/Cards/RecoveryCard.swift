@@ -38,36 +38,35 @@ struct RecoveryCard: View {
     }
 
     var body: some View {
-        VStack(alignment: .leading, spacing: AppSpacing.medium) {
-            header
+        StandardCard {
+            VStack(alignment: .leading, spacing: AppSpacing.medium) {
+                header
 
-            if let score = recoveryScore {
-                HStack(spacing: AppSpacing.medium) {
-                    ProgressRing(progress: animateRing ? progress : 0,
-                                 gradient: ringGradient,
-                                 lineWidth: 12,
-                                 label: "\(score.score)")
-                        .frame(width: 80, height: 80)
+                if let score = recoveryScore {
+                    HStack(spacing: AppSpacing.medium) {
+                        ProgressRing(progress: animateRing ? progress : 0,
+                                     gradient: ringGradient,
+                                     lineWidth: 12,
+                                     label: "\(score.score)")
+                            .frame(width: 80, height: 80)
 
-                    componentsView
+                        componentsView
+                    }
+
+                    Chart(history) { point in
+                        LineMark(x: .value("Day", point.index),
+                                 y: .value("Score", point.value))
+                            .interpolationMethod(.catmullRom)
+                            .foregroundStyle(scoreColor)
+                    }
+                    .chartXAxis(.hidden)
+                    .chartYAxis(.hidden)
+                    .frame(height: 40)
+                } else {
+                    noDataView
                 }
-
-                Chart(history) { point in
-                    LineMark(x: .value("Day", point.index),
-                             y: .value("Score", point.value))
-                        .interpolationMethod(.catmullRom)
-                        .foregroundStyle(scoreColor)
-                }
-                .chartXAxis(.hidden)
-                .chartYAxis(.hidden)
-                .frame(height: 40)
-            } else {
-                noDataView
             }
         }
-        .padding()
-        .background(AppColors.cardBackground)
-        .cornerRadius(AppConstants.Layout.defaultCornerRadius)
         .onAppear {
             withAnimation(.spring(response: 0.6, dampingFraction: 0.8).delay(0.1)) {
                 animateRing = true

@@ -1,13 +1,22 @@
 import Foundation
 
 /// Demo AI service that provides canned responses for testing without API keys
-final class DemoAIService: AIServiceProtocol, @unchecked Sendable {
+actor DemoAIService: AIServiceProtocol {
     
     // MARK: - Properties
-    let serviceIdentifier = "demo-ai-service"
-    private(set) var isConfigured: Bool = true
-    private(set) var activeProvider: AIProvider = .gemini
-    private(set) var availableModels: [AIModel] = []
+    nonisolated let serviceIdentifier = "demo-ai-service"
+    private var _isConfigured: Bool = true
+    nonisolated var isConfigured: Bool {
+        get { true } // Always configured in demo mode
+    }
+    private var _activeProvider: AIProvider = .gemini
+    nonisolated var activeProvider: AIProvider {
+        get { .gemini } // Always gemini in demo mode
+    }
+    private var _availableModels: [AIModel] = []
+    nonisolated var availableModels: [AIModel] {
+        get { [] } // Return empty for nonisolated access
+    }
     
     private var responseDelay: TimeInterval = 1.0
     
@@ -22,7 +31,7 @@ final class DemoAIService: AIServiceProtocol, @unchecked Sendable {
     
     // MARK: - Initialization
     init() {
-        self.availableModels = [
+        self._availableModels = [
             AIModel(
                 id: "demo-model",
                 name: "Demo AI (No API Key)",
@@ -36,7 +45,7 @@ final class DemoAIService: AIServiceProtocol, @unchecked Sendable {
     // MARK: - ServiceProtocol
     
     func configure() async throws {
-        isConfigured = true
+        _isConfigured = true
     }
     
     func reset() async {
@@ -61,10 +70,10 @@ final class DemoAIService: AIServiceProtocol, @unchecked Sendable {
         model: String?
     ) async throws {
         // Demo mode doesn't need configuration
-        isConfigured = true
+        _isConfigured = true
     }
     
-    func sendRequest(_ request: AIRequest) -> AsyncThrowingStream<AIResponse, Error> {
+    nonisolated func sendRequest(_ request: AIRequest) -> AsyncThrowingStream<AIResponse, Error> {
         AsyncThrowingStream { continuation in
             Task {
                 // Simulate network delay

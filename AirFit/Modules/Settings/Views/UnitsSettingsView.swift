@@ -37,7 +37,7 @@ struct UnitsSettingsView: View {
                             withAnimation {
                                 selectedUnits = system
                             }
-                            HapticManager.selection()
+                            // TODO: Add haptic feedback via DI when needed
                         }
                         
                         if system != MeasurementSystem.allCases.last {
@@ -105,7 +105,7 @@ struct UnitsSettingsView: View {
     private func saveUnits() {
         Task {
             try await viewModel.updateUnits(selectedUnits)
-            HapticManager.notification(.success)
+            // TODO: Add haptic feedback via DI when needed
             dismiss()
         }
     }

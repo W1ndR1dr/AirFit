@@ -2,7 +2,7 @@
 import UIKit
 
 @MainActor
-final class NotificationManager: NSObject, @unchecked Sendable, ServiceProtocol {
+final class NotificationManager: NSObject, ServiceProtocol {
     // MARK: - ServiceProtocol
     nonisolated let serviceIdentifier = "notification-manager"
     private var _isConfigured = false

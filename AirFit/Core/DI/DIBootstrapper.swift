@@ -209,6 +209,7 @@ public final class DIBootstrapper {
             try await resolver.resolve(HealthKitService.self)
         }
         
+        
         // KeychainHelper
         container.register(KeychainHelper.self, lifetime: .singleton) { _ in
             KeychainHelper()
@@ -246,11 +247,17 @@ public final class DIBootstrapper {
         container.register(MonitoringService.self, lifetime: .singleton) { _ in
             MonitoringService()
         }
+        
     }
     
     // MARK: - UI Services
     
     private static func registerUIServices(in container: DIContainer) {
+        // Haptic Service - UI feedback service
+        container.register(HapticServiceProtocol.self, lifetime: .singleton) { _ in
+            await HapticService()
+        }
+        
         // Whisper Model Manager
         container.register(WhisperModelManager.self, lifetime: .singleton) { _ in
             await MainActor.run {

@@ -154,7 +154,7 @@ struct FoodConfirmationView: View {
         withAnimation {
             items.removeAll { $0.id == item.id }
         }
-        HapticManager.impact(.light)
+        // TODO: Add haptic feedback via DI when needed
     }
 
     private func saveItems() {
@@ -172,7 +172,7 @@ private struct FoodItemCard: View {
     let onDelete: () -> Void
 
     var body: some View {
-        Card {
+        StandardCard {
             VStack(alignment: .leading, spacing: AppSpacing.small) {
                 HStack {
                     VStack(alignment: .leading, spacing: AppSpacing.xSmall) {

@@ -25,14 +25,13 @@ struct Chat: View {
 
 struct ChatView: View {
     @StateObject private var viewModel: ChatViewModel
-    @StateObject private var coordinator: ChatCoordinator
+    @State private var coordinator = ChatCoordinator()
     @FocusState private var isComposerFocused: Bool
     @State private var scrollProxy: ScrollViewProxy?
     let user: User
 
     init(viewModel: ChatViewModel, user: User) {
         self._viewModel = StateObject(wrappedValue: viewModel)
-        self._coordinator = StateObject(wrappedValue: ChatCoordinator())
         self.user = user
     }
 
@@ -177,7 +176,7 @@ struct ChatView: View {
     }
 
     @ViewBuilder
-    private func sheetView(for sheet: ChatCoordinator.ChatSheet) -> some View {
+    private func sheetView(for sheet: ChatSheet) -> some View {
         switch sheet {
         case .sessionHistory:
             ChatHistoryView(user: viewModel.user)

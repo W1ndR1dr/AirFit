@@ -1,6 +1,7 @@
 import SwiftUI
 
-// MARK: - Settings Card Component
+// MARK: - Settings Card Component (DEPRECATED - Use StandardCard instead)
+// This is kept for backward compatibility during migration
 struct SettingsCard<Content: View>: View {
     let content: Content
     let style: CardStyle
@@ -11,33 +12,21 @@ struct SettingsCard<Content: View>: View {
     }
     
     var body: some View {
-        content
-            .padding()
-            .background(style.backgroundColor)
-            .clipShape(RoundedRectangle(cornerRadius: 12))
-            .overlay {
-                RoundedRectangle(cornerRadius: 12)
-                    .strokeBorder(style.borderColor, lineWidth: style == .normal ? 0 : 1)
+        // Now uses StandardCard internally
+        StandardCard(showShadow: style == .destructive) {
+            content
+        }
+        .overlay {
+            if style == .destructive {
+                RoundedRectangle(cornerRadius: AppConstants.Layout.defaultCornerRadius)
+                    .strokeBorder(Color.red.opacity(0.3), lineWidth: 1)
             }
+        }
     }
     
     enum CardStyle {
         case normal
         case destructive
-        
-        var backgroundColor: Color {
-            switch self {
-            case .normal: return Color(.secondarySystemGroupedBackground)
-            case .destructive: return Color.red.opacity(0.1)
-            }
-        }
-        
-        var borderColor: Color {
-            switch self {
-            case .normal: return .clear
-            case .destructive: return .red.opacity(0.3)
-            }
-        }
     }
 }
 

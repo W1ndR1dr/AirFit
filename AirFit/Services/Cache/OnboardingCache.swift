@@ -28,11 +28,7 @@ actor OnboardingCache: ServiceProtocol {
         let cacheDir = FileManager.default.urls(for: .cachesDirectory, in: .userDomainMask).first!
         self.diskCache = cacheDir.appendingPathComponent("OnboardingCache")
         try? FileManager.default.createDirectory(at: diskCache, withIntermediateDirectories: true)
-        
-        // Load active sessions on init
-        Task {
-            await loadActiveSessions()
-        }
+        // Active sessions are loaded in configure() method
     }
     
     // MARK: - Public API

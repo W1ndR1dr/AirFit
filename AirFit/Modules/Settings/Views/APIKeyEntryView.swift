@@ -134,7 +134,7 @@ struct APIKeyEntryView: View {
             do {
                 try await viewModel.saveAPIKey(apiKey, for: provider)
                 await MainActor.run {
-                    HapticManager.success()
+                    // TODO: Add haptic feedback via DI when needed
                     dismiss()
                 }
             } catch {

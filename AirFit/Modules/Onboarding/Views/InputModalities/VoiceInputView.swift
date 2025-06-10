@@ -135,8 +135,7 @@ struct VoiceInputView: View {
                 }
             }
         }
-        
-        HapticManager.impact(.medium)
+                 // TODO: Add haptic feedback via DI when needed
     }
     
     private func stopRecording() {
@@ -150,8 +149,7 @@ struct VoiceInputView: View {
                 // For now, use placeholder
                 transcription = "This is where your transcribed speech would appear"
                 showTranscription = true
-                
-                HapticManager.notification(.success)
+                                 // TODO: Add haptic feedback via DI when needed
             }
         }
     }
@@ -159,8 +157,7 @@ struct VoiceInputView: View {
     private func submitRecording() {
         guard !transcription.isEmpty,
               let audioData = voiceRecorder.lastRecordingData else { return }
-        
-        HapticManager.impact(.light)
+                 // TODO: Add haptic feedback via DI when needed
         onSubmit(transcription, audioData)
     }
 }

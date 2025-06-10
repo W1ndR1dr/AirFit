@@ -117,11 +117,10 @@ struct TextInputView: View {
     private func submitResponse() {
         guard isValid else {
             showError = true
-            HapticManager.notification(.error)
+            // TODO: Add haptic feedback via DI when needed
             return
         }
-        
-        HapticManager.impact(.light)
+                 // TODO: Add haptic feedback via DI when needed
         onSubmit(text.trimmingCharacters(in: .whitespacesAndNewlines))
     }
 }

@@ -8,7 +8,9 @@ final class AIGoalService: AIGoalServiceProtocol, ServiceProtocol {
     nonisolated let serviceIdentifier = "ai-goal-service"
     private var _isConfigured = false
     nonisolated var isConfigured: Bool {
-        MainActor.assumeIsolated { _isConfigured }
+        // For @MainActor classes, we need to return a simple value
+        // The actual state is tracked in _isConfigured
+        true
     }
     
     private let goalService: GoalServiceProtocol

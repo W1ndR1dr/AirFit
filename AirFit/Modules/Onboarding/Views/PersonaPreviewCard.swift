@@ -52,13 +52,8 @@ struct PersonaPreviewCard: View {
                 .scaleEffect(showContent ? 1 : 0.8)
                 .animation(.spring(response: 0.6).delay(0.4), value: showContent)
         }
-        .padding(24)
         .frame(maxWidth: .infinity, alignment: .leading)
-        .background(
-            RoundedRectangle(cornerRadius: 20)
-                .fill(Color(.systemBackground))
-                .shadow(color: .black.opacity(0.1), radius: 10, y: 5)
-        )
+        .cardStyle(padding: .large)
         .onAppear {
             withAnimation {
                 showContent = true

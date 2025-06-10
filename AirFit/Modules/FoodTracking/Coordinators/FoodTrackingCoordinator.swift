@@ -1,36 +1,56 @@
 import SwiftUI
-import Observation
+
+// MARK: - Navigation Destinations
+enum FoodTrackingDestination: Hashable {
+    case history
+    case insights
+    case favorites
+    case recipes
+    case mealPlan
+}
+
+// MARK: - Sheet Types
+enum FoodTrackingSheet: Identifiable {
+    case voiceInput
+    case photoCapture
+    case foodSearch
+    case manualEntry
+    case waterTracking
+    case mealDetails(FoodEntry)
+
+    var id: String {
+        switch self {
+        case .voiceInput: return "voice"
+        case .photoCapture: return "photo"
+        case .foodSearch: return "search"
+        case .manualEntry: return "manual"
+        case .waterTracking: return "water"
+        case .mealDetails(let entry): return "meal_\(entry.id)"
+        }
+    }
+}
+
+// MARK: - Alert Types (for future use)
+enum FoodTrackingAlert: Identifiable {
+    case deleteEntry(entryId: String)
+    case nutritionWarning(message: String)
+    
+    var id: String {
+        switch self {
+        case .deleteEntry(let id): return "delete_\(id)"
+        case .nutritionWarning: return "warning"
+        }
+    }
+}
 
 @MainActor
 @Observable
-final class FoodTrackingCoordinator: FoodTrackingCoordinatorProtocol {
+final class FoodTrackingCoordinator: BaseCoordinator<FoodTrackingDestination, FoodTrackingSheet, FoodTrackingAlert>, FoodTrackingCoordinatorProtocol {
     typealias SheetType = FoodTrackingSheet
     typealias CoverType = FoodTrackingFullScreenCover
-    // MARK: - Navigation State
-    var navigationPath = NavigationPath()
-    var activeSheet: FoodTrackingSheet?
+    
+    // MARK: - Additional State
     var activeFullScreenCover: FoodTrackingFullScreenCover?
-
-    // MARK: - Sheet Types
-    enum FoodTrackingSheet: Identifiable {
-        case voiceInput
-        case photoCapture
-        case foodSearch
-        case manualEntry
-        case waterTracking
-        case mealDetails(FoodEntry)
-
-        var id: String {
-            switch self {
-            case .voiceInput: return "voice"
-            case .photoCapture: return "photo"
-            case .foodSearch: return "search"
-            case .manualEntry: return "manual"
-            case .waterTracking: return "water"
-            case .mealDetails(let entry): return "meal_\(entry.id)"
-            }
-        }
-    }
 
     // MARK: - Full Screen Cover Types
     enum FoodTrackingFullScreenCover: Identifiable {
@@ -45,46 +65,13 @@ final class FoodTrackingCoordinator: FoodTrackingCoordinatorProtocol {
         }
     }
 
-    // MARK: - Navigation
-    func navigateTo(_ destination: FoodTrackingDestination) {
-        navigationPath.append(destination)
-    }
-
-    func showSheet(_ sheet: FoodTrackingSheet) {
-        activeSheet = sheet
-    }
-
+    // MARK: - Additional Methods
     func showFullScreenCover(_ cover: FoodTrackingFullScreenCover) {
         activeFullScreenCover = cover
     }
 
-    func dismiss() {
-        activeSheet = nil
+    override func dismiss() {
+        super.dismiss()
         activeFullScreenCover = nil
     }
-
-    func pop() {
-        if !navigationPath.isEmpty {
-            navigationPath.removeLast()
-        }
-    }
-
-    func popToRoot() {
-        navigationPath.removeLast(navigationPath.count)
-    }
-
-    // MARK: - Deep Linking
-    func handleDeepLink(_ destination: FoodTrackingDestination) {
-        popToRoot()
-        navigateTo(destination)
-    }
-}
-
-// MARK: - Navigation Destinations
-enum FoodTrackingDestination: Hashable {
-    case history
-    case insights
-    case favorites
-    case recipes
-    case mealPlan
 }

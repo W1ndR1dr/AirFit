@@ -2,7 +2,7 @@ import Foundation
 
 /// Minimal AI service implementation for development and testing
 /// This is a production-ready stub that can be used when full AI services aren't configured
-final class MinimalAIAPIService: AIServiceProtocol, @unchecked Sendable {
+final class MinimalAIAPIService: AIServiceProtocol, Sendable {
     let serviceIdentifier = "minimal-ai-service"
     let isConfigured = true
     let activeProvider: AIProvider = .anthropic

@@ -116,7 +116,7 @@ private extension WorkoutDetailView {
     }
 
     var aiAnalysisSection: some View {
-        Card {
+        StandardCard {
             VStack(alignment: .leading, spacing: AppSpacing.small) {
                 HStack {
                     Label("AI Analysis", systemImage: "sparkles")
@@ -231,7 +231,7 @@ private struct SummaryStatCard: View {
     let color: Color
 
     var body: some View {
-        Card {
+        StandardCard {
             VStack(alignment: .leading, spacing: AppSpacing.xSmall) {
                 HStack {
                     Image(systemName: icon)
@@ -275,7 +275,7 @@ private struct WorkoutExerciseCard: View {
 
     var body: some View {
         Button(action: action) {
-            Card {
+            StandardCard {
                 VStack(alignment: .leading, spacing: AppSpacing.small) {
                     HStack {
                         Text(exercise.name)

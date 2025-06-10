@@ -3,7 +3,7 @@ import SwiftData
 
 /// Implementation of DashboardNutritionServiceProtocol
 @MainActor
-final class DashboardNutritionService: DashboardNutritionServiceProtocol, @unchecked Sendable {
+final class DashboardNutritionService: DashboardNutritionServiceProtocol {
     private let modelContext: ModelContext
     
     init(modelContext: ModelContext) {

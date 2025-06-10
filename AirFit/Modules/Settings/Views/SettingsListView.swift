@@ -167,7 +167,7 @@ struct SettingsListView: View {
                 Task {
                     try await viewModel.updateHaptics(newValue)
                     if newValue {
-                        HapticManager.impact(.light)
+                        // TODO: Add haptic feedback via DI when needed
                     }
                 }
             }
@@ -436,7 +436,7 @@ struct PersonaRefinementFlow: View {
                 .foregroundStyle(.secondary)
                 .multilineTextAlignment(.center)
             
-            Card {
+            StandardCard {
                 VStack(alignment: .leading, spacing: AppSpacing.sm) {
                     Text("What would you like to change?")
                         .font(.subheadline.bold())
@@ -481,7 +481,7 @@ struct PersonaRefinementFlow: View {
             Text("Refinement Summary")
                 .font(.title2.bold())
             
-            Card {
+            StandardCard {
                 VStack(alignment: .leading, spacing: AppSpacing.md) {
                     Label("Your Request", systemImage: "text.quote")
                         .font(.subheadline.bold())
@@ -558,7 +558,7 @@ struct PersonaRefinementFlow: View {
             try? await Task.sleep(nanoseconds: 2_000_000_000)
             
             await MainActor.run {
-                HapticManager.success()
+                // TODO: Add haptic feedback via DI when needed
                 dismiss()
             }
         }
@@ -585,7 +585,7 @@ struct RefinementOptionCard: View {
     @Binding var option: RefinementOption
     
     var body: some View {
-        Card {
+        StandardCard {
             HStack(spacing: AppSpacing.md) {
                 VStack(alignment: .leading, spacing: AppSpacing.xs) {
                     Text(option.title)
@@ -791,12 +791,12 @@ struct DataExportProgressView: View {
                 await MainActor.run {
                     exportProgress = 1.0
                     exportURL = url
-                    HapticManager.success()
+                    // TODO: Add haptic feedback via DI when needed
                 }
             } catch {
                 await MainActor.run {
                     exportError = error
-                    HapticManager.error()
+                    // TODO: Add haptic feedback via DI when needed
                 }
             }
         }
@@ -841,7 +841,7 @@ struct DeleteAccountView: View {
                     .padding(.top)
                     
                     // What will be deleted
-                    Card {
+                    StandardCard {
                         VStack(alignment: .leading, spacing: AppSpacing.md) {
                             Label("What will be deleted:", systemImage: "trash")
                                 .font(.headline)
@@ -858,7 +858,7 @@ struct DeleteAccountView: View {
                     }
                     
                     // What you can keep
-                    Card {
+                    StandardCard {
                         VStack(alignment: .leading, spacing: AppSpacing.md) {
                             Label("Before you go:", systemImage: "square.and.arrow.down")
                                 .font(.headline)
@@ -876,7 +876,7 @@ struct DeleteAccountView: View {
                     }
                     
                     // Confirmation input
-                    Card {
+                    StandardCard {
                         VStack(alignment: .leading, spacing: AppSpacing.md) {
                             Text("To confirm deletion, type \"\(confirmationPhrase)\" below:")
                                 .font(.callout)
@@ -1287,8 +1287,7 @@ struct DebugSettingsView: View {
             await MainActor.run {
                 isProcessing = false
                 statusMessage = "Cache cleared successfully"
-                HapticManager.success()
-                
+                // TODO: Add haptic feedback via DI when needed
                 // Clear status after delay
                 Task {
                     try? await Task.sleep(nanoseconds: 3_000_000_000)
@@ -1310,7 +1309,7 @@ struct DebugSettingsView: View {
             await MainActor.run {
                 isProcessing = false
                 statusMessage = "Onboarding reset. Please restart the app."
-                HapticManager.success()
+                // TODO: Add haptic feedback via DI when needed
             }
         }
     }
@@ -1338,7 +1337,7 @@ struct DebugSettingsView: View {
                 isProcessing = false
                 exportedLogsURL = IdentifiableURL(url: tempURL)
                 statusMessage = "Logs exported"
-                HapticManager.success()
+                // TODO: Add haptic feedback via DI when needed
             }
         }
     }

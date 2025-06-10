@@ -1,6 +1,6 @@
 # Concurrency Standards for AirFit
 
-**Last Updated**: 2025-01-08  
+**Last Updated**: 2025-06-09  
 **Status**: Active  
 **Priority**: 🚨 Critical - Addresses black screen and performance issues
 
@@ -107,14 +107,16 @@ actor HealthKitManager: HealthKitManagerProtocol {
 2. **View Components** - Custom view helpers
 3. **UI-Only Managers** - Navigation, presentation
 4. **SwiftUI Environment Objects** - Must be on MainActor
+5. **Services using SwiftData models** - @Model types are not Sendable (Phase 2.2 learning)
+6. **Services using UI frameworks** - LAContext, UIKit components
 
 ### ❌ NEVER Use @MainActor For:
 
-1. **Services** - Use actors instead
-2. **Data Models** - Keep them neutral
-3. **Network Clients** - Use actors
-4. **Persistence Layers** - Use actors
-5. **Business Logic** - Isolate from UI
+1. **Pure computation services** - Use actors instead
+2. **Network clients** - Use actors for better performance
+3. **Cache services** - Use actors for thread safety
+4. **Business logic** - Isolate from UI thread
+5. **Background processing** - Keep off main thread
 
 ### Migration Example
 ```swift
@@ -153,6 +155,54 @@ container.register(ServiceProtocol.self, lifetime: .singleton) { resolver in
 ```
 
 ## Task Management
+
+### ✅ Task Lifecycle Management (Updated Phase 2.2)
+
+#### Services with async initialization
+```swift
+// ❌ BAD: Task in init
+class MyService {
+    init() {
+        Task {
+            await setupService()  // Dangerous! Self might be deallocated
+        }
+    }
+}
+
+// ✅ GOOD: Use ServiceProtocol.configure()
+class MyService: ServiceProtocol {
+    init() {
+        // Just store dependencies
+    }
+    
+    func configure() async throws {
+        await setupService()  // Safe, called explicitly by DI container
+    }
+}
+```
+
+#### ViewModels with long-running tasks
+```swift
+// ✅ GOOD: Proper task lifecycle
+@MainActor
+final class MyViewModel: ObservableObject {
+    private var refreshTask: Task<Void, Never>?
+    
+    func startRefresh() {
+        refreshTask?.cancel()  // Cancel previous
+        refreshTask = Task {
+            while !Task.isCancelled {
+                await performRefresh()
+                try? await Task.sleep(for: .seconds(30))
+            }
+        }
+    }
+    
+    deinit {
+        refreshTask?.cancel()  // Always clean up!
+    }
+}
+```
 
 ### ✅ Structured Concurrency
 ```swift
@@ -235,9 +285,9 @@ actor MyService {
 }
 ```
 
-### ❌ @unchecked Sendable
+### ❌ @unchecked Sendable Without Valid Reason
 ```swift
-// ❌ BAD: Bypassing safety
+// ❌ BAD: Bypassing safety without justification
 class MyClass: @unchecked Sendable {
     var mutableState: String = ""  // Data race!
 }
@@ -245,6 +295,24 @@ class MyClass: @unchecked Sendable {
 // ✅ GOOD: Proper synchronization
 actor MyActor {
     var mutableState: String = ""  // Actor-isolated
+}
+
+// ✅ VALID: SwiftData models (required by framework)
+@Model
+final class User: @unchecked Sendable {
+    var name: String
+    var email: String
+}
+
+// ✅ VALID: Manual synchronization with documentation
+final class FunctionCallDispatcher: @unchecked Sendable {
+    private let queue = DispatchQueue(label: "dispatcher")
+    private var handlers: [String: Handler] = []
+    
+    // Thread-safe access via queue
+    func register(_ handler: Handler, for name: String) {
+        queue.sync { handlers[name] = handler }
+    }
 }
 ```
 
@@ -406,14 +474,15 @@ func testCancellation() async throws {
 
 ## Checklist for Code Review
 
-- [ ] ViewModels are @MainActor, services are actors
+- [ ] ViewModels are @MainActor, services are actors (unless using SwiftData)
 - [ ] No synchronous blocking (semaphores, wait, etc.)
-- [ ] No @unchecked Sendable without documentation
-- [ ] Structured concurrency used (no unstructured Tasks)
+- [ ] No @unchecked Sendable without valid reason (SwiftData models, manual sync)
+- [ ] No Tasks in init() methods - use configure() for services
+- [ ] Long-running tasks have cancellation support and deinit cleanup
+- [ ] Button actions don't wrap async calls in unnecessary Task{}
 - [ ] Actor boundaries are clear and minimal
 - [ ] No MainActor.run in services
-- [ ] Cancellation is handled properly
-- [ ] Error handling crosses actor boundaries correctly
+- [ ] Error handling for critical async operations (voice, network, saving)
 - [ ] DI registration uses lazy factories, not eager instances
 - [ ] No service creation during app initialization
 - [ ] Services marked with appropriate actor isolation

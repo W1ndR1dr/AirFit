@@ -132,13 +132,13 @@ struct InitialAPISetupView: View {
                 
                 // Success
                 await MainActor.run {
-                    HapticManager.impact(.medium)
+                    // TODO: Add haptic feedback via DI when needed
                     onCompletion()
                 }
             } catch {
                 await MainActor.run {
                     validationError = error.localizedDescription
-                    HapticManager.impact(.heavy)
+                    // TODO: Add haptic feedback via DI when needed
                     isValidating = false
                 }
             }

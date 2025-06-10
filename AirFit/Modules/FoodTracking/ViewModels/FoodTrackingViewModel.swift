@@ -374,8 +374,7 @@ final class FoodTrackingViewModel: ErrorHandling {
             transcribedText = ""
 
             coordinator.dismiss()
-            HapticManager.notification(.success)
-
+            // TODO: Add haptic feedback via DI when needed
             AppLogger.info("Saved \(items.count) food items", category: .data)
 
         } catch {
@@ -396,9 +395,7 @@ final class FoodTrackingViewModel: ErrorHandling {
             )
 
             waterIntakeML += amountInML
-
-            HapticManager.impact(.light)
-
+             // TODO: Add haptic feedback via DI when needed
         } catch {
             setError(error)
             AppLogger.error("Failed to log water: \(error)")

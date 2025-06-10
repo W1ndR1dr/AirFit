@@ -17,41 +17,40 @@ struct PerformanceCard: View {
     }
 
     var body: some View {
-        VStack(alignment: .leading, spacing: AppSpacing.medium) {
-            header
+        StandardCard {
+            VStack(alignment: .leading, spacing: AppSpacing.medium) {
+                header
 
-            if let insight {
-                Text(insight.insight)
-                    .font(AppFonts.body)
-                    .foregroundColor(AppColors.textPrimary)
-                    .fixedSize(horizontal: false, vertical: true)
+                if let insight {
+                    Text(insight.insight)
+                        .font(AppFonts.body)
+                        .foregroundColor(AppColors.textPrimary)
+                        .fixedSize(horizontal: false, vertical: true)
 
-                HStack {
-                    Text(insight.metric)
-                        .font(AppFonts.caption)
-                        .foregroundColor(AppColors.textSecondary)
-                    Spacer()
-                    Text(insight.value)
-                        .font(AppFonts.headline)
-                        .foregroundColor(AppColors.accentColor)
+                    HStack {
+                        Text(insight.metric)
+                            .font(AppFonts.caption)
+                            .foregroundColor(AppColors.textSecondary)
+                        Spacer()
+                        Text(insight.value)
+                            .font(AppFonts.headline)
+                            .foregroundColor(AppColors.accentColor)
+                    }
+
+                    Chart(history) { point in
+                        LineMark(x: .value("Day", point.index),
+                                 y: .value("Value", point.value))
+                            .interpolationMethod(.catmullRom)
+                            .foregroundStyle(AppColors.accentColor)
+                    }
+                    .chartXAxis(.hidden)
+                    .chartYAxis(.hidden)
+                    .frame(height: 40)
+                } else {
+                    noDataView
                 }
-
-                Chart(history) { point in
-                    LineMark(x: .value("Day", point.index),
-                             y: .value("Value", point.value))
-                        .interpolationMethod(.catmullRom)
-                        .foregroundStyle(AppColors.accentColor)
-                }
-                .chartXAxis(.hidden)
-                .chartYAxis(.hidden)
-                .frame(height: 40)
-            } else {
-                noDataView
             }
         }
-        .padding()
-        .background(AppColors.cardBackground)
-        .cornerRadius(AppConstants.Layout.defaultCornerRadius)
         .accessibilityElement(children: .combine)
         .accessibilityLabel(accessibilityDescription)
     }

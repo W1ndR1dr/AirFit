@@ -153,7 +153,7 @@ private struct WeeklySummaryCard: View {
     let stats: WeeklyWorkoutStats
 
     var body: some View {
-        Card {
+        StandardCard {
             VStack(alignment: .leading, spacing: AppSpacing.medium) {
                 HStack {
                     Text("This Week")
@@ -209,7 +209,7 @@ private struct WorkoutRow: View {
 
     var body: some View {
         Button(action: action) {
-            Card {
+            StandardCard {
                 HStack {
                     VStack(alignment: .leading, spacing: AppSpacing.xSmall) {
                         HStack {
@@ -250,22 +250,21 @@ private struct QuickActionCard: View {
 
     var body: some View {
         Button(action: action) {
-            VStack(spacing: AppSpacing.xSmall) {
-                Image(systemName: icon)
-                    .font(.title2)
-                    .foregroundStyle(color)
-                    .frame(width: 44, height: 44)
-                    .background(color.opacity(0.1))
-                    .clipShape(RoundedRectangle(cornerRadius: AppSpacing.small))
-                Text(title)
-                    .font(.caption)
-                    .multilineTextAlignment(.center)
-                    .foregroundStyle(.primary)
+            StandardCard(padding: .small) {
+                VStack(spacing: AppSpacing.xSmall) {
+                    Image(systemName: icon)
+                        .font(.title2)
+                        .foregroundStyle(color)
+                        .frame(width: 44, height: 44)
+                        .background(color.opacity(0.1))
+                        .clipShape(RoundedRectangle(cornerRadius: AppSpacing.small))
+                    Text(title)
+                        .font(.caption)
+                        .multilineTextAlignment(.center)
+                        .foregroundStyle(.primary)
+                }
+                .frame(maxWidth: .infinity)
             }
-            .frame(maxWidth: .infinity)
-            .padding(AppSpacing.small)
-            .background(AppColors.cardBackground)
-            .clipShape(RoundedRectangle(cornerRadius: AppSpacing.medium))
         }
         .buttonStyle(.plain)
     }

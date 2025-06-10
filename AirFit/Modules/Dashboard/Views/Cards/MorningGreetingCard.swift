@@ -10,64 +10,62 @@ struct MorningGreetingCard: View {
     @State private var animateIn = false
 
     var body: some View {
-        VStack(alignment: .leading, spacing: AppSpacing.medium) {
-            // Greeting Text
-            Text(greeting)
-                .font(AppFonts.title3)
-                .foregroundColor(AppColors.textPrimary)
-                .multilineTextAlignment(.leading)
-                .fixedSize(horizontal: false, vertical: true)
-                .opacity(animateIn ? 1 : 0)
-                .offset(y: animateIn ? 0 : 20)
-
-            // Context Pills
-            if let context = context {
-                contextPills(for: context)
+        StandardCard {
+            VStack(alignment: .leading, spacing: AppSpacing.medium) {
+                // Greeting Text
+                Text(greeting)
+                    .font(AppFonts.title3)
+                    .foregroundColor(AppColors.textPrimary)
+                    .multilineTextAlignment(.leading)
+                    .fixedSize(horizontal: false, vertical: true)
                     .opacity(animateIn ? 1 : 0)
                     .offset(y: animateIn ? 0 : 20)
-            }
 
-            Divider()
-                .padding(.vertical, AppSpacing.xSmall)
+                // Context Pills
+                if let context = context {
+                    contextPills(for: context)
+                        .opacity(animateIn ? 1 : 0)
+                        .offset(y: animateIn ? 0 : 20)
+                }
 
-            // Energy Logger
-            VStack(alignment: .leading, spacing: AppSpacing.small) {
-                Text("How's your energy?")
-                    .font(AppFonts.caption)
-                    .foregroundColor(AppColors.textSecondary)
+                Divider()
+                    .padding(.vertical, AppSpacing.xSmall)
 
-                if let energy = currentEnergy {
-                    HStack {
-                        EnergyLevelIndicator(level: energy)
-                        Spacer()
-                        Button("Update") {
-                            showEnergyPicker = true
-                        }
+                // Energy Logger
+                VStack(alignment: .leading, spacing: AppSpacing.small) {
+                    Text("How's your energy?")
                         .font(AppFonts.caption)
-                        .foregroundColor(AppColors.accentColor)
-                    }
-                } else {
-                    Button {
-                        showEnergyPicker = true
-                    } label: {
-                        Label("Log Energy", systemImage: "bolt.fill")
-                            .font(AppFonts.callout)
-                            .frame(maxWidth: .infinity)
-                            .padding(.vertical, AppSpacing.small)
-                            .background(AppColors.accentColor.opacity(0.1))
+                        .foregroundColor(AppColors.textSecondary)
+
+                    if let energy = currentEnergy {
+                        HStack {
+                            EnergyLevelIndicator(level: energy)
+                            Spacer()
+                            Button("Update") {
+                                showEnergyPicker = true
+                            }
+                            .font(AppFonts.caption)
                             .foregroundColor(AppColors.accentColor)
-                            .cornerRadius(AppConstants.Layout.smallCornerRadius)
+                        }
+                    } else {
+                        Button {
+                            showEnergyPicker = true
+                        } label: {
+                            Label("Log Energy", systemImage: "bolt.fill")
+                                .font(AppFonts.callout)
+                                .frame(maxWidth: .infinity)
+                                .padding(.vertical, AppSpacing.small)
+                                .background(AppColors.accentColor.opacity(0.1))
+                                .foregroundColor(AppColors.accentColor)
+                                .cornerRadius(AppConstants.Layout.smallCornerRadius)
+                        }
                     }
                 }
+                .opacity(animateIn ? 1 : 0)
+                .offset(y: animateIn ? 0 : 20)
             }
-            .opacity(animateIn ? 1 : 0)
-            .offset(y: animateIn ? 0 : 20)
+            .frame(maxWidth: .infinity, alignment: .leading)
         }
-        .padding()
-        .frame(maxWidth: .infinity, alignment: .leading)
-        .background(AppColors.cardBackground)
-        .cornerRadius(AppConstants.Layout.defaultCornerRadius)
-        .shadow(color: AppColors.shadowColor, radius: 4, x: 0, y: 2)
         .sheet(isPresented: $showEnergyPicker) {
             EnergyPickerSheet(
                 currentLevel: currentEnergy,
@@ -228,7 +226,7 @@ struct EnergyPickerSheet: View {
                             isSelected: selectedLevel == level,
                             onTap: {
                                 selectedLevel = level
-                                HapticManager.impact(.light)
+                                // TODO: Add haptic feedback via DI when needed
                                 onSelect(level)
                             }
                         )

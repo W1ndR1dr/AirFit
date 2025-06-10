@@ -264,14 +264,14 @@ struct PhotoInputView: View {
         Task {
             if let image = await cameraManager.capturePhoto() {
                 capturedImage = image
-                HapticManager.impact(.medium)
+                // TODO: Add haptic feedback via DI when needed
             }
         }
     }
     
     private func toggleAIAnalysis() {
         cameraManager.aiAnalysisEnabled.toggle()
-        HapticManager.selection()
+        // TODO: Add haptic feedback via DI when needed
     }
     
     private func analyzePhoto(_ image: UIImage) {
@@ -602,7 +602,7 @@ final class CameraManager: NSObject, ObservableObject {
     
     func toggleFlash() {
         flashMode = flashMode == .off ? .on : .off
-        HapticManager.selection()
+        // TODO: Add haptic feedback via DI when needed
     }
     
     func switchCamera() {
@@ -630,7 +630,7 @@ final class CameraManager: NSObject, ObservableObject {
         }
         
         session.commitConfiguration()
-        HapticManager.selection()
+        // TODO: Add haptic feedback via DI when needed
     }
     
     private func setupCameras() {

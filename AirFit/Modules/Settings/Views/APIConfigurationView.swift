@@ -89,7 +89,7 @@ struct APIConfigurationView: View {
                                 selectedProvider = provider
                                 selectedModel = provider.defaultModel
                             }
-                            HapticManager.selection()
+                            // TODO: Add haptic feedback via DI when needed
                         }
                         
                         if provider != AIProvider.allCases.last {
@@ -138,12 +138,14 @@ struct APIConfigurationView: View {
     }
     
     private var saveButton: some View {
-        Button(action: saveConfiguration) {
-            Label("Save Configuration", systemImage: "checkmark.circle.fill")
-                .frame(maxWidth: .infinity)
-        }
-        .buttonStyle(.primaryProminent)
-        .disabled(!viewModel.installedAPIKeys.contains(selectedProvider))
+        StandardButton(
+            "Save Configuration",
+            icon: "checkmark.circle.fill",
+            style: .primary,
+            isFullWidth: true,
+            isEnabled: viewModel.installedAPIKeys.contains(selectedProvider),
+            action: saveConfiguration
+        )
     }
     
     private func saveConfiguration() {
@@ -220,7 +222,7 @@ struct ProviderRow: View {
                                 provider: provider,
                                 onSelect: {
                                     selectedModel = model
-                                    HapticManager.selection()
+                                    // TODO: Add haptic feedback via DI when needed
                                 }
                             )
                         }
@@ -370,19 +372,20 @@ struct APIKeyRow: View {
             Spacer()
             
             if hasKey {
-                Button(action: onDelete) {
-                    Label("Remove", systemImage: "trash")
-                        .labelStyle(.iconOnly)
-                        .foregroundStyle(.red)
-                }
-                .buttonStyle(.plain)
+                IconButton(
+                    icon: "trash",
+                    style: .destructive,
+                    size: .small,
+                    action: onDelete
+                )
             } else {
-                Button(action: onAdd) {
-                    Label("Add Key", systemImage: "plus.circle")
-                        .font(.footnote)
-                }
-                .buttonStyle(.borderedProminent)
-                .controlSize(.small)
+                StandardButton(
+                    "Add Key",
+                    icon: "plus.circle",
+                    style: .primary,
+                    size: .small,
+                    action: onAdd
+                )
             }
         }
     }

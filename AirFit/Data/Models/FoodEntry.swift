@@ -17,7 +17,7 @@ final class FoodEntry: @unchecked Sendable {
     var parsingTimestamp: Date?
     
     // HealthKit Integration
-    var healthKitSampleIDsData: Data? // JSON array of sample UUIDs
+    var healthKitSampleIDs: [String] = []
     var healthKitSyncDate: Date?
 
     // MARK: - Relationships
@@ -27,18 +27,9 @@ final class FoodEntry: @unchecked Sendable {
     var nutritionData: NutritionData?
 
     var user: User?
+    
 
     // MARK: - Computed Properties
-    var healthKitSampleIDs: [String] {
-        get {
-            guard let data = healthKitSampleIDsData else { return [] }
-            return (try? JSONDecoder().decode([String].self, from: data)) ?? []
-        }
-        set {
-            healthKitSampleIDsData = try? JSONEncoder().encode(newValue)
-        }
-    }
-    
     var totalCalories: Int {
         Int(items.reduce(0) { $0 + ($1.calories ?? 0) })
     }

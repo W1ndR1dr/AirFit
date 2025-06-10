@@ -334,7 +334,7 @@ struct MessageBubbleView: View {
         }
         
         // Haptic feedback
-        HapticManager.impact(.light)
+        // TODO: Add haptic feedback via DI when needed
     }
     
     private func handleQuickAction(_ actionId: String) {

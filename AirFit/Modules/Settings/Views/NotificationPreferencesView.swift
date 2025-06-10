@@ -175,7 +175,7 @@ struct NotificationPreferencesView: View {
             do {
                 try await viewModel.updateNotificationPreferences(preferences)
                 try await viewModel.updateQuietHours(quietHours)
-                HapticManager.notification(.success)
+                // TODO: Add haptic feedback via DI when needed
             } catch {
                 // Error is handled by the view model
                 AppLogger.error("Failed to update notification preferences", error: error, category: .general)

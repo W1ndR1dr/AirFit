@@ -112,7 +112,7 @@ struct FoodLoggingView: View {
 
     // MARK: - Macro Summary
     private var macroSummaryCard: some View {
-        Card {
+        StandardCard {
             VStack(spacing: AppSpacing.medium) {
                 HStack {
                     Text("Today's Nutrition")
@@ -298,7 +298,7 @@ struct FoodLoggingView: View {
     }
 
     @ViewBuilder
-    private func sheetView(for sheet: FoodTrackingCoordinator.FoodTrackingSheet) -> some View {
+    private func sheetView(for sheet: FoodTrackingSheet) -> some View {
         switch sheet {
         case .voiceInput:
             FoodVoiceInputView(viewModel: viewModel)
@@ -336,12 +336,14 @@ private struct QuickActionButton: View {
     var body: some View {
         Button(action: action) {
             VStack(spacing: AppSpacing.xSmall) {
-                Image(systemName: icon)
-                    .font(.title2)
-                    .foregroundStyle(.white)
-                    .padding(AppSpacing.xSmall)
-                    .background(color)
-                    .clipShape(Circle())
+                IconButton(
+                    icon: icon,
+                    style: .custom(background: color, foreground: .white),
+                    size: .large,
+                    action: {}
+                )
+                .allowsHitTesting(false) // Parent button handles tap
+                
                 Text(title)
                     .font(.caption)
                     .foregroundStyle(.primary)
@@ -361,7 +363,7 @@ private struct MealCard: View {
     }
 
     var body: some View {
-        Card {
+        StandardCard {
             VStack(alignment: .leading, spacing: AppSpacing.small) {
                 HStack {
                     Label(mealType.displayName, systemImage: mealType.icon)
@@ -419,10 +421,8 @@ private struct SuggestionCard: View {
                 .font(.caption)
                 .foregroundStyle(.secondary)
             }
-            .padding()
             .frame(width: 140)
-            .background(AppColors.cardBackground)
-            .clipShape(RoundedRectangle(cornerRadius: AppSpacing.medium))
+            .cardStyle(padding: .standard)
         }
     }
 }

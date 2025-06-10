@@ -64,9 +64,7 @@ final class LLMOrchestrator: ObservableObject, ServiceProtocol {
     
     init(apiKeyManager: APIKeyManagementProtocol) {
         self.apiKeyManager = apiKeyManager
-        Task {
-            await setupProviders()
-        }
+        // setupProviders() is called in configure() method
     }
     
     // MARK: - ServiceProtocol Methods

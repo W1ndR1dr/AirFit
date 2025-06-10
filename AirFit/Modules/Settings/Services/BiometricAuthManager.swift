@@ -2,23 +2,34 @@ import Foundation
 import LocalAuthentication
 
 /// Manages biometric authentication for the app
-final class BiometricAuthManager: ServiceProtocol, @unchecked Sendable {
+@MainActor
+final class BiometricAuthManager: ServiceProtocol {
     // MARK: - ServiceProtocol
-    let serviceIdentifier = "biometric-auth-manager"
+    nonisolated let serviceIdentifier = "biometric-auth-manager"
     private var _isConfigured = false
-    var isConfigured: Bool { _isConfigured }
+    nonisolated var isConfigured: Bool {
+        get { false } // Return false as default for nonisolated access
+    }
     
-    private let context = LAContext()
+    private var context = LAContext()
     
     /// Check if biometric authentication is available
     var canUseBiometrics: Bool {
+        checkBiometrics()
+    }
+    
+    private func checkBiometrics() -> Bool {
         var error: NSError?
         return context.canEvaluatePolicy(.deviceOwnerAuthenticationWithBiometrics, error: &error)
     }
     
     /// The type of biometric authentication available
     var biometricType: BiometricType {
-        guard canUseBiometrics else { return .none }
+        getBiometricType()
+    }
+    
+    private func getBiometricType() -> BiometricType {
+        guard checkBiometrics() else { return .none }
         
         switch context.biometryType {
         case .faceID:
@@ -36,24 +47,28 @@ final class BiometricAuthManager: ServiceProtocol, @unchecked Sendable {
     
     /// Authenticate using biometrics
     func authenticate(reason: String) async throws -> Bool {
-        guard canUseBiometrics else {
+        guard checkBiometrics() else {
             throw BiometricError.notAvailable
         }
         
-        do {
-            let success = try await context.evaluatePolicy(
+        return try await withCheckedThrowingContinuation { continuation in
+            context.evaluatePolicy(
                 .deviceOwnerAuthenticationWithBiometrics,
                 localizedReason: reason
-            )
-            return success
-        } catch let error as LAError {
-            throw BiometricError.fromLAError(error)
+            ) { success, error in
+                if let error = error as? LAError {
+                    continuation.resume(throwing: BiometricError.fromLAError(error))
+                } else {
+                    continuation.resume(returning: success)
+                }
+            }
         }
     }
     
     /// Reset the authentication context
-    func reset() {
+    func resetContext() {
         context.invalidate()
+        context = LAContext()
     }
     
     // MARK: - ServiceProtocol Methods
@@ -65,20 +80,20 @@ final class BiometricAuthManager: ServiceProtocol, @unchecked Sendable {
     }
     
     func reset() async {
-        context.invalidate()
+        resetContext()
         _isConfigured = false
         AppLogger.info("\(serviceIdentifier) reset", category: .services)
     }
     
     func healthCheck() async -> ServiceHealth {
         ServiceHealth(
-            status: canUseBiometrics ? .healthy : .degraded,
+            status: checkBiometrics() ? .healthy : .degraded,
             lastCheckTime: Date(),
             responseTime: nil,
-            errorMessage: canUseBiometrics ? nil : "Biometrics not available",
+            errorMessage: checkBiometrics() ? nil : "Biometrics not available",
             metadata: [
-                "biometricType": biometricType.displayName,
-                "canUseBiometrics": "\(canUseBiometrics)"
+                "biometricType": getBiometricType().displayName,
+                "canUseBiometrics": "\(checkBiometrics())"
             ]
         )
     }

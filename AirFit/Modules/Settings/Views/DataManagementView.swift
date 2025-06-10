@@ -124,7 +124,7 @@ struct DataManagementView: View {
                     showExportProgress = false
                     exportURL = url
                     showShareSheet = true
-                    HapticManager.notification(.success)
+                    // TODO: Add haptic feedback via DI when needed
                 }
             } catch {
                 await MainActor.run {

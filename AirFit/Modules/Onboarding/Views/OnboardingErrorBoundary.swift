@@ -172,7 +172,7 @@ private struct ErrorOverlay: View {
             withAnimation(.spring()) {
                 showingAnimation = true
             }
-            HapticManager.notification(.error)
+            // TODO: Add haptic feedback via DI when needed
         }
     }
     

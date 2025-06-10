@@ -213,7 +213,7 @@ struct FoodVoiceInputView: View {
                     pulseAnimation = true
                 }
             }
-            HapticManager.impact(.medium)
+            // TODO: Add haptic feedback via DI when needed
         } else if !isPressing && viewModel.isRecording {
             Task {
                 await viewModel.stopRecording()
@@ -221,7 +221,7 @@ struct FoodVoiceInputView: View {
                     pulseAnimation = false
                 }
             }
-            HapticManager.impact(.light)
+            // TODO: Add haptic feedback via DI when needed
         }
     }
 

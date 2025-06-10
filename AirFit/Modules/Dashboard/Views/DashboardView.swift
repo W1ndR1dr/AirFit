@@ -8,7 +8,7 @@ struct DashboardContent: View {
 
     let viewModel: DashboardViewModel
 
-    @StateObject private var coordinator = DashboardCoordinator()
+    @State private var coordinator = DashboardCoordinator()
 
     @State private var hasAppeared = false
     

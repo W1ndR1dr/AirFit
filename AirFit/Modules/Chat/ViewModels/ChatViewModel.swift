@@ -52,6 +52,10 @@ final class ChatViewModel: ObservableObject, ErrorHandling {
 
         setupVoiceManager()
     }
+    
+    deinit {
+        streamTask?.cancel()
+    }
 
     // MARK: - Session Management
     func loadOrCreateSession() async {
@@ -130,6 +134,7 @@ final class ChatViewModel: ObservableObject, ErrorHandling {
         messages.append(assistantMessage)
 
         // Process message through actual CoachEngine
+        streamTask?.cancel() // Cancel any existing task
         streamTask = Task {
             do {
                 // Process the message through CoachEngine
@@ -198,17 +203,17 @@ final class ChatViewModel: ObservableObject, ErrorHandling {
         if isRecording {
             if let transcription = await voiceManager.stopRecording() {
                 composerText += transcription
-                HapticManager.notification(.success)
+                // TODO: Add haptic feedback via DI when needed
             }
             isRecording = false
         } else {
             do {
                 try await voiceManager.startRecording()
                 isRecording = true
-                HapticManager.impact(.medium)
+                // TODO: Add haptic feedback via DI when needed
             } catch {
                 handleError(error)
-                HapticManager.notification(.error)
+                // TODO: Add haptic feedback via DI when needed
             }
         }
     }
@@ -244,7 +249,7 @@ final class ChatViewModel: ObservableObject, ErrorHandling {
 
     func copyMessage(_ message: ChatMessage) {
         UIPasteboard.general.string = message.content
-        HapticManager.notification(.success)
+        // TODO: Add haptic feedback via DI when needed
     }
 
     func regenerateResponse(for message: ChatMessage) async {
@@ -316,7 +321,7 @@ final class ChatViewModel: ObservableObject, ErrorHandling {
         
         // Handle specific workout scheduling based on function call
         AppLogger.info("Scheduling workout from message: \(message.id)", category: .chat)
-        HapticManager.notification(.success)
+        // TODO: Add haptic feedback via DI when needed
     }
     
     func setReminder(from message: ChatMessage) async {
@@ -330,7 +335,7 @@ final class ChatViewModel: ObservableObject, ErrorHandling {
         
         // Handle specific reminder creation based on function call
         AppLogger.info("Setting reminder from message: \(message.id)", category: .chat)
-        HapticManager.notification(.success)
+        // TODO: Add haptic feedback via DI when needed
     }
     
     private func createGenericWorkout() async {

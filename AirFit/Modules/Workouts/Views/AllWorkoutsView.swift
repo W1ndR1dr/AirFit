@@ -187,7 +187,7 @@ private struct WorkoutHistoryStats: View {
     }
 
     var body: some View {
-        Card {
+        StandardCard {
             VStack(spacing: AppSpacing.medium) {
                 Text("All Time Stats")
                     .font(.headline)
@@ -262,7 +262,7 @@ private struct WorkoutHistoryRow: View {
     }
 
     var body: some View {
-        Card {
+        StandardCard {
             VStack(alignment: .leading, spacing: AppSpacing.small) {
                 HStack {
                     VStack(alignment: .leading, spacing: 2) {

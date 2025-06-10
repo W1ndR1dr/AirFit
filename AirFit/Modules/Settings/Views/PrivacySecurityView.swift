@@ -29,7 +29,7 @@ struct PrivacySecurityView: View {
         VStack(alignment: .leading, spacing: AppSpacing.medium) {
             SectionHeader(title: "Biometric Security", icon: "faceid")
             
-            Card {
+            StandardCard {
                 VStack(spacing: AppSpacing.medium) {
                     Toggle(isOn: $viewModel.biometricLockEnabled) {
                         Label {
@@ -50,7 +50,7 @@ struct PrivacySecurityView: View {
                             do {
                                 try await viewModel.updateBiometricLock(newValue)
                                 if newValue {
-                                    HapticManager.notification(.success)
+                                    // TODO: Add haptic feedback via DI when needed
                                 }
                             } catch {
                                 // Revert toggle
@@ -82,7 +82,7 @@ struct PrivacySecurityView: View {
         VStack(alignment: .leading, spacing: AppSpacing.medium) {
             SectionHeader(title: "Data Privacy", icon: "lock.shield")
             
-            Card {
+            StandardCard {
                 VStack(spacing: AppSpacing.medium) {
                     PrivacyRow(
                         title: "Health Data",
@@ -126,7 +126,7 @@ struct PrivacySecurityView: View {
         VStack(alignment: .leading, spacing: AppSpacing.medium) {
             SectionHeader(title: "Analytics & Improvements", icon: "chart.bar.xaxis")
             
-            Card {
+            StandardCard {
                 VStack(spacing: AppSpacing.medium) {
                     Toggle(isOn: $viewModel.analyticsEnabled) {
                         Label {
@@ -187,7 +187,7 @@ struct PrivacySecurityView: View {
         VStack(alignment: .leading, spacing: AppSpacing.medium) {
             SectionHeader(title: "Legal", icon: "doc.text")
             
-            Card {
+            StandardCard {
                 VStack(spacing: 0) {
                     Button(action: { showPrivacyPolicy = true }) {
                         HStack {

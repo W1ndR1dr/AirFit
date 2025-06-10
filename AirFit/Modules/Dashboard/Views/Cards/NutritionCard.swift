@@ -33,22 +33,18 @@ struct NutritionCard: View {
     }
 
     var body: some View {
-        VStack(alignment: .leading, spacing: AppSpacing.medium) {
-            cardHeader
+        TappableCard(action: { onTap?() }) {
+            VStack(alignment: .leading, spacing: AppSpacing.medium) {
+                cardHeader
 
-            HStack(spacing: AppSpacing.medium) {
-                caloriesRing
-                macroBreakdown
+                HStack(spacing: AppSpacing.medium) {
+                    caloriesRing
+                    macroBreakdown
+                }
+
+                waterIntakeRow
             }
-
-            waterIntakeRow
         }
-        .padding()
-        .background(AppColors.cardBackground)
-        .cornerRadius(AppConstants.Layout.defaultCornerRadius)
-        .shadow(color: AppColors.shadowColor, radius: 4, x: 0, y: 2)
-        .contentShape(Rectangle())
-        .onTapGesture { onTap?() }
         .onAppear {
             withAnimation(.bouncy.delay(0.1)) {
                 animateRings = true

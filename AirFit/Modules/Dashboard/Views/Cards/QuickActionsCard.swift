@@ -8,22 +8,21 @@ struct QuickActionsCard: View {
     private let actionColumns: [GridItem] = Array(repeating: GridItem(.flexible()), count: 3)
 
     var body: some View {
-        VStack(alignment: .leading, spacing: AppSpacing.medium) {
-            Text("Quick Actions")
-                .font(AppFonts.headline)
-                .foregroundStyle(AppColors.textPrimary)
+        StandardCard {
+            VStack(alignment: .leading, spacing: AppSpacing.medium) {
+                Text("Quick Actions")
+                    .font(AppFonts.headline)
+                    .foregroundStyle(AppColors.textPrimary)
 
-            LazyVGrid(columns: actionColumns, spacing: AppSpacing.small) {
-                ForEach(suggestedActions) { action in
-                    QuickActionButton(action: action) {
-                        onActionTap(action)
+                LazyVGrid(columns: actionColumns, spacing: AppSpacing.small) {
+                    ForEach(suggestedActions) { action in
+                        QuickActionButton(action: action) {
+                            onActionTap(action)
+                        }
                     }
                 }
             }
         }
-        .padding()
-        .background(AppColors.cardBackground)
-        .cornerRadius(AppConstants.Layout.defaultCornerRadius)
     }
 }
 
@@ -54,7 +53,7 @@ private struct QuickActionButton: View {
     }
 
     private func handleTap() {
-        HapticManager.impact(.light)
+        // TODO: Add haptic feedback via DI when needed
         onTap()
     }
 }

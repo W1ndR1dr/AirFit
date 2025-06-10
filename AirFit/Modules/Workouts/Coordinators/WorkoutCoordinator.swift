@@ -1,13 +1,11 @@
 import SwiftUI
 import Observation
 
+/// Manages navigation for the Workouts module
+/// Uses SheetCoordinator since we only need navigation and sheets (no alerts)
 @MainActor
 @Observable
-final class WorkoutCoordinator {
-    // MARK: - Navigation
-    var path = NavigationPath()
-    // MARK: - Sheet Presentation
-    var presentedSheet: WorkoutSheet?
+final class WorkoutCoordinator: SheetCoordinator<WorkoutCoordinator.WorkoutDestination, WorkoutCoordinator.WorkoutSheet> {
 
     // MARK: - Destinations
     enum WorkoutDestination: Hashable {
@@ -35,32 +33,20 @@ final class WorkoutCoordinator {
         }
     }
 
-    // MARK: - Navigation Control
-    func navigateTo(_ destination: WorkoutDestination) {
-        path.append(destination)
-    }
-
-    func pop() {
-        guard !path.isEmpty else { return }
-        path.removeLast()
-    }
-
+    // MARK: - Compatibility Methods (for existing code)
+    
     func resetNavigation() {
-        path = NavigationPath()
+        popToRoot()
     }
-
-    // MARK: - Sheet Control
-    func showSheet(_ sheet: WorkoutSheet) {
-        presentedSheet = sheet
-    }
-
+    
     func dismissSheet() {
-        presentedSheet = nil
+        activeSheet = nil
     }
-
-    // MARK: - Deep Linking
-    func handleDeepLink(_ destination: WorkoutDestination) {
-        resetNavigation()
-        navigateTo(destination)
+    
+    var presentedSheet: WorkoutSheet? {
+        get { activeSheet }
+        set { activeSheet = newValue }
     }
+    
+    // Note: navigateTo, pop, showSheet, and handleDeepLink are inherited from BaseCoordinator
 }

@@ -84,18 +84,16 @@ struct ChoiceCardsView: View {
             // Single select - replace selection
             selectedIds = [optionId]
         }
-        
-        HapticManager.impact(.light)
+                 // TODO: Add haptic feedback via DI when needed
     }
     
     private func submitChoices() {
         guard isValid else {
             showError = true
-            HapticManager.notification(.error)
+            // TODO: Add haptic feedback via DI when needed
             return
         }
-        
-        HapticManager.impact(.medium)
+                 // TODO: Add haptic feedback via DI when needed
         onSubmit(Array(selectedIds))
     }
 }
@@ -130,14 +128,11 @@ struct ChoiceCard: View {
                         .foregroundColor(.white)
                 }
             }
-            .padding()
             .frame(maxWidth: .infinity, minHeight: 120)
-            .background(
-                RoundedRectangle(cornerRadius: 16)
-                    .fill(isSelected ? Color.accentColor : Color(.systemGray6))
-            )
+            .cardStyle(showShadow: isSelected)
+            .background(isSelected ? Color.accentColor : Color(.systemGray6))
             .overlay(
-                RoundedRectangle(cornerRadius: 16)
+                RoundedRectangle(cornerRadius: AppConstants.Layout.defaultCornerRadius)
                     .stroke(isSelected ? Color.accentColor : Color.clear, lineWidth: 2)
             )
             .scaleEffect(isPressed ? 0.95 : 1.0)

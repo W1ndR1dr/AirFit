@@ -174,7 +174,7 @@ actor MonitoringService: ServiceProtocol {
     
     /// Track error occurrence
     func trackError(_ error: Error, context: String) {
-        metrics.errors.append(ErrorRecord(
+        metrics.errors.append(MonitoringErrorRecord(
             timestamp: Date(),
             error: error,
             context: context
@@ -326,7 +326,7 @@ struct ProductionMetrics: Codable {
     var conversationFlow = ConversationFlowMetrics()
     var apiPerformance = APIPerformanceMetrics()
     var cachePerformance = CachePerformanceMetrics()
-    var errors: [ErrorRecord] = []
+    var errors: [MonitoringErrorRecord] = []
     var startTime = Date()
     
     struct PersonaGenerationMetrics: Codable {
@@ -391,7 +391,7 @@ struct ProviderMetrics: Codable {
     var totalDuration: TimeInterval = 0
 }
 
-struct ErrorRecord: Codable {
+struct MonitoringErrorRecord: Codable {
     let timestamp: Date
     let errorDescription: String
     let context: String

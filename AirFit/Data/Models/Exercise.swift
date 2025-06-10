@@ -6,8 +6,8 @@ final class Exercise: @unchecked Sendable {
     // MARK: - Properties
     var id: UUID
     var name: String
-    var muscleGroupsData: Data?
-    var equipmentData: Data?
+    var muscleGroups: [String] = []
+    var equipment: [String] = []
     var notes: String?
     var orderIndex: Int
     var restSeconds: TimeInterval?
@@ -17,27 +17,9 @@ final class Exercise: @unchecked Sendable {
     var sets: [ExerciseSet] = []
 
     var workout: Workout?
+    
 
     // MARK: - Computed Properties
-    var muscleGroups: [String] {
-        get {
-            guard let data = muscleGroupsData else { return [] }
-            return (try? JSONDecoder().decode([String].self, from: data)) ?? []
-        }
-        set {
-            muscleGroupsData = try? JSONEncoder().encode(newValue)
-        }
-    }
-
-    var equipment: [String] {
-        get {
-            guard let data = equipmentData else { return [] }
-            return (try? JSONDecoder().decode([String].self, from: data)) ?? []
-        }
-        set {
-            equipmentData = try? JSONEncoder().encode(newValue)
-        }
-    }
 
     var completedSets: [ExerciseSet] {
         sets.filter { $0.isCompleted }

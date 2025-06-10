@@ -40,7 +40,7 @@ struct AppearanceSettingsView: View {
                             withAnimation {
                                 selectedAppearance = mode
                             }
-                            HapticManager.selection()
+                            // TODO: Add haptic feedback via DI when needed
                         }
                         
                         if mode != AppearanceMode.allCases.last {
@@ -115,7 +115,7 @@ struct AppearanceSettingsView: View {
                                 withAnimation {
                                     accentColor = option.color
                                 }
-                                HapticManager.selection()
+                                // TODO: Add haptic feedback via DI when needed
                             }
                         }
                     }
@@ -160,7 +160,7 @@ struct AppearanceSettingsView: View {
     private func saveAppearance() {
         Task {
             try await viewModel.updateAppearance(selectedAppearance)
-            HapticManager.notification(.success)
+            // TODO: Add haptic feedback via DI when needed
             dismiss()
         }
     }

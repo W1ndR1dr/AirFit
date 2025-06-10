@@ -30,13 +30,22 @@ import Foundation
 ///     // Handle response
 /// }
 /// ```
-final class AIService: AIServiceProtocol, @unchecked Sendable {
+actor AIService: AIServiceProtocol {
     
     // MARK: - Properties
-    let serviceIdentifier = "production-ai-service"
-    private(set) var isConfigured: Bool = false
-    private(set) var activeProvider: AIProvider = .anthropic
-    private(set) var availableModels: [AIModel] = []
+    nonisolated let serviceIdentifier = "production-ai-service"
+    private var _isConfigured: Bool = false
+    nonisolated var isConfigured: Bool {
+        get { false } // Return false as default for nonisolated access
+    }
+    private var _activeProvider: AIProvider = .anthropic
+    nonisolated var activeProvider: AIProvider {
+        get { .anthropic } // Return default for nonisolated access
+    }
+    private var _availableModels: [AIModel] = []
+    nonisolated var availableModels: [AIModel] {
+        get { [] } // Return empty for nonisolated access
+    }
     
     private let orchestrator: LLMOrchestrator
     private let apiKeyManager: APIKeyManagementProtocol
@@ -57,7 +66,7 @@ final class AIService: AIServiceProtocol, @unchecked Sendable {
         self.cache = AIResponseCache()
         
         // Initialize available models
-        self.availableModels = [
+        self._availableModels = [
             AIModel(
                 id: "claude-3-sonnet-20240229",
                 name: "Claude 3 Sonnet",
@@ -96,27 +105,27 @@ final class AIService: AIServiceProtocol, @unchecked Sendable {
         // Set active provider and model based on available keys
         // Default to Gemini 2.5 Flash if available
         if hasGeminiKey {
-            activeProvider = .gemini
+            _activeProvider = .gemini
             currentModel = LLMModel.gemini25Flash.identifier
         } else if hasAnthropicKey {
-            activeProvider = .anthropic
+            _activeProvider = .anthropic
             currentModel = LLMModel.claude3Sonnet.identifier
         } else if hasOpenAIKey {
-            activeProvider = .openAI
+            _activeProvider = .openAI
             currentModel = LLMModel.gpt4Turbo.identifier
         }
         
-        isConfigured = true
-        AppLogger.info("Production AI Service configured with provider: \(activeProvider.rawValue)", category: .ai)
+        _isConfigured = true
+        AppLogger.info("Production AI Service configured with provider: \(_activeProvider.rawValue)", category: .ai)
     }
     
     func reset() async {
-        isConfigured = false
-        activeProvider = .anthropic
+        _isConfigured = false
+        _activeProvider = .anthropic
     }
     
     func healthCheck() async -> ServiceHealth {
-        guard isConfigured else {
+        guard _isConfigured else {
             return ServiceHealth(
                 status: .unhealthy,
                 lastCheckTime: Date(),
@@ -131,7 +140,7 @@ final class AIService: AIServiceProtocol, @unchecked Sendable {
             lastCheckTime: Date(),
             responseTime: 0.1,
             errorMessage: nil,
-            metadata: ["provider": activeProvider.rawValue]
+            metadata: ["provider": _activeProvider.rawValue]
         )
     }
     
@@ -141,17 +150,17 @@ final class AIService: AIServiceProtocol, @unchecked Sendable {
         try await apiKeyManager.saveAPIKey(apiKey, for: provider)
         
         // Update active provider
-        activeProvider = provider
+        _activeProvider = provider
         
         // Configure the service
         try await configure()
     }
     
-    func sendRequest(_ request: AIRequest) -> AsyncThrowingStream<AIResponse, Error> {
+    nonisolated func sendRequest(_ request: AIRequest) -> AsyncThrowingStream<AIResponse, Error> {
         AsyncThrowingStream { continuation in
             Task {
                 do {
-                    guard isConfigured else {
+                    guard await self.isConfigured else {
                         throw AppError.from(ServiceError.notConfigured)
                     }
                     
@@ -166,9 +175,10 @@ final class AIService: AIServiceProtocol, @unchecked Sendable {
                     }
                     
                     // Create LLMRequest
+                    let model = await self.currentModel
                     _ = LLMRequest(
                         messages: llmMessages,
-                        model: currentModel,
+                        model: model,
                         temperature: request.temperature,
                         maxTokens: request.maxTokens,
                         systemPrompt: request.systemPrompt,
@@ -189,9 +199,11 @@ final class AIService: AIServiceProtocol, @unchecked Sendable {
                     
                     if request.stream {
                         // Stream responses (no caching for streams)
+                        let model = await self.currentModel
                         let stream = await orchestrator.stream(
                             prompt: prompt,
                             task: .coaching,
+                            model: LLMModel(rawValue: model),
                             temperature: request.temperature
                         )
                         
@@ -208,11 +220,8 @@ final class AIService: AIServiceProtocol, @unchecked Sendable {
                                 )
                                 
                                 // Update cost tracking
-                                if let model = LLMModel(rawValue: currentModel) {
-                                    let cost = Double(usage.promptTokens) / 1000.0 * model.cost.input +
-                                               Double(usage.completionTokens) / 1000.0 * model.cost.output
-                                    totalCost += cost
-                                }
+                                // Update cost tracking on actor
+                                await self.updateCost(usage: usage, model: model)
                                 
                                 continuation.yield(.done(usage: usage))
                             }
@@ -244,19 +253,19 @@ final class AIService: AIServiceProtocol, @unchecked Sendable {
     }
     
     func validateConfiguration() async throws -> Bool {
-        guard isConfigured else {
+        guard _isConfigured else {
             return false
         }
         
         // Check if the current provider has a valid API key
-        return await apiKeyManager.hasAPIKey(for: activeProvider)
+        return await apiKeyManager.hasAPIKey(for: _activeProvider)
     }
     
     func checkHealth() async -> ServiceHealth {
         return await healthCheck()
     }
     
-    func estimateTokenCount(for text: String) -> Int {
+    nonisolated func estimateTokenCount(for text: String) -> Int {
         // Simple estimation: ~4 characters per token
         return text.count / 4
     }
@@ -265,7 +274,7 @@ final class AIService: AIServiceProtocol, @unchecked Sendable {
     
     /// Analyze a goal using AI (legacy method for backward compatibility)
     func analyzeGoal(_ goalText: String) async throws -> String {
-        guard isConfigured else {
+        guard _isConfigured else {
             throw AppError.from(ServiceError.notConfigured)
         }
         
@@ -322,7 +331,7 @@ final class AIService: AIServiceProtocol, @unchecked Sendable {
     
     func getCostBreakdown() -> [(provider: AIProvider, cost: Double)] {
         // Simple breakdown - in future could track per provider
-        return [(activeProvider, totalCost)]
+        return [(_activeProvider, totalCost)]
     }
     
     // MARK: - Private Helpers
@@ -332,5 +341,13 @@ final class AIService: AIServiceProtocol, @unchecked Sendable {
         let systemPromptPart = request.systemPrompt
         let key = "\(systemPromptPart)-\(content)-\(request.temperature)"
         return key.data(using: .utf8)?.base64EncodedString() ?? key
+    }
+    
+    private func updateCost(usage: AITokenUsage, model: String) {
+        if let llmModel = LLMModel(rawValue: model) {
+            let cost = Double(usage.promptTokens) / 1000.0 * llmModel.cost.input +
+                       Double(usage.completionTokens) / 1000.0 * llmModel.cost.output
+            totalCost += cost
+        }
     }
 }
