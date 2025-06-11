@@ -166,68 +166,59 @@ private struct HealthDataRow: View {
 }
 
 #Preview {
-    HealthKitAuthorizationView(
-        viewModel: OnboardingViewModel(
-            aiService: DemoAIService(),
-            onboardingService: PreviewOnboardingService(),
-            modelContext: DataManager.preview.modelContext,
-            apiKeyManager: PreviewAPIKeyManager(),
-            userService: PreviewUserService(),
-            healthKitAuthManager: HealthKitAuthManager(healthKitManager: PreviewHealthKitManager())
+    // Simple preview without complex dependencies
+    VStack(spacing: AppSpacing.lg) {
+        Spacer()
+        
+        // Glass card with health data preview
+        VStack(spacing: AppSpacing.md) {
+            ZStack {
+                Circle()
+                    .fill(LinearGradient(colors: [.blue, .purple], startPoint: .topLeading, endPoint: .bottomTrailing))
+                    .frame(width: 100, height: 100)
+                    .opacity(0.2)
+                    .blur(radius: 10)
+                
+                Image(systemName: "heart.fill")
+                    .font(.system(size: 50, weight: .light))
+                    .foregroundStyle(LinearGradient(colors: [.blue, .purple], startPoint: .topLeading, endPoint: .bottomTrailing))
+            }
+            .frame(height: 120)
+            
+            Text("Connect HealthKit")
+                .font(.system(size: 28, weight: .light, design: .rounded))
+            
+            Text("Allow AirFit to sync with your health data for personalized insights")
+                .font(.system(size: 16, weight: .light))
+                .foregroundColor(.secondary)
+                .multilineTextAlignment(.center)
+        }
+        .padding()
+        .background(
+            RoundedRectangle(cornerRadius: 20)
+                .fill(.ultraThinMaterial)
+                .overlay(
+                    RoundedRectangle(cornerRadius: 20)
+                        .strokeBorder(Color.white.opacity(0.2), lineWidth: 1)
+                )
         )
+        .padding(.horizontal)
+        
+        Button("Authorize HealthKit") {}
+            .font(.system(size: 18, weight: .medium))
+            .foregroundColor(.white)
+            .frame(maxWidth: .infinity)
+            .padding()
+            .background(
+                LinearGradient(colors: [.blue, .purple], startPoint: .leading, endPoint: .trailing)
+            )
+            .cornerRadius(16)
+            .padding(.horizontal)
+        
+        Spacer()
+    }
+    .background(
+        LinearGradient(colors: [.blue.opacity(0.1), .purple.opacity(0.1)], startPoint: .topLeading, endPoint: .bottomTrailing)
+            .ignoresSafeArea()
     )
-    .environmentObject(GradientManager())
-}
-
-// MARK: - Preview Helpers
-private final class PreviewOnboardingService: OnboardingServiceProtocol {
-    func setupService() async throws {}
-    func teardownService() async throws {}
-    func getHealthStatus() async -> ServiceHealthStatus { .healthy }
-    
-    func completeOnboarding(profile: OnboardingProfile) async throws -> User {
-        User(email: "test@example.com", name: "Test User")
-    }
-    
-    func updatePersona(_ persona: PersonaProfile, for userId: UUID) async throws {}
-    func getPersona(for userId: UUID) async throws -> PersonaProfile? { nil }
-}
-
-private final class PreviewUserService: UserServiceProtocol {
-    func getCurrentUser() -> User? { nil }
-    func getCurrentUserId() async -> UUID? { nil }
-    func createUser(from profile: OnboardingProfile) async throws -> User {
-        User(email: profile.email, name: profile.name)
-    }
-    func updateProfile(_ updates: ProfileUpdate) async throws {}
-    func completeOnboarding() async throws {}
-    func setCoachPersona(_ persona: CoachPersona) async throws {}
-    func deleteUser(_ user: User) async throws {}
-}
-
-private final class PreviewAPIKeyManager: APIKeyManagementProtocol {
-    func getAPIKey(for provider: AIProvider) async throws -> String { "test-key" }
-    func saveAPIKey(_ key: String, for provider: AIProvider) async throws {}
-    func deleteAPIKey(for provider: AIProvider) async throws {}
-    func hasAPIKey(for provider: AIProvider) async -> Bool { true }
-    func getAllConfiguredProviders() async -> [AIProvider] { [.openAI] }
-}
-
-private final class PreviewHealthKitManager: HealthKitManaging {
-    var isAvailable: Bool { true }
-    var authorizationStatus: HealthKitManager.AuthorizationStatus { .authorized }
-    
-    func requestAuthorization() async throws {}
-    func refreshAuthorizationStatus() {}
-    func queryDailySteps(startDate: Date, endDate: Date) async throws -> [DailyStepsData] { [] }
-    func queryWorkouts(startDate: Date, endDate: Date) async throws -> [WorkoutData] { [] }
-    func queryNutrition(startDate: Date, endDate: Date) async throws -> NutritionData {
-        NutritionData(calories: 0, protein: 0, carbs: 0, fat: 0, date: Date())
-    }
-    func querySleepAnalysis(startDate: Date, endDate: Date) async throws -> [SleepData] { [] }
-    func queryRestingHeartRate(startDate: Date, endDate: Date) async throws -> [HeartRateData] { [] }
-    func queryHeartRateVariability(startDate: Date, endDate: Date) async throws -> [HRVData] { [] }
-    func saveWorkout(_ workout: WorkoutData) async throws {}
-    func saveNutrition(_ nutrition: NutritionData) async throws {}
-    func saveSleep(_ sleep: SleepData) async throws {}
 }

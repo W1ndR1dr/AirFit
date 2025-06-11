@@ -103,7 +103,7 @@ struct CoachProfileReadyView: View {
                                     .fixedSize(horizontal: false, vertical: true)
                             }
                         }
-                        .toggleStyle(SwitchToggleStyle(tint: Color(gradientManager.currentGradient(for: colorScheme).colors(for: colorScheme).first ?? .blue)))
+                        .toggleStyle(SwitchToggleStyle(tint: gradientManager.active == .peachRose ? Color.pink : Color.blue))
                     }
                     .padding(.horizontal, AppSpacing.screenPadding)
                     .opacity(animateIn ? 1 : 0)

@@ -9,6 +9,8 @@ import UIKit
 struct PhotoInputView: View {
     @State var viewModel: FoodTrackingViewModel
     @Environment(\.dismiss) private var dismiss
+    @EnvironmentObject private var gradientManager: GradientManager
+    @Environment(\.colorScheme) private var colorScheme
     
     @StateObject private var cameraManager = CameraManager()
     @State private var showingImagePicker = false
@@ -17,41 +19,58 @@ struct PhotoInputView: View {
     @State private var isAnalyzing = false
     @State private var analysisProgress: Double = 0
     @State private var showingTips = false
+    @State private var animateIn = false
     
     var body: some View {
-        NavigationStack {
+        BaseScreen {
             ZStack {
+                // Camera has its own black background for contrast
+                Color.black
+                    .ignoresSafeArea()
+                
                 // Camera preview or placeholder
                 cameraPreviewLayer
+                    .scaleEffect(animateIn ? 1 : 0.95)
+                    .opacity(animateIn ? 1 : 0)
                 
                 // Overlay UI
                 VStack {
                     // Top controls
                     topControls
+                        .opacity(animateIn ? 1 : 0)
+                        .offset(y: animateIn ? 0 : -20)
                     
                     Spacer()
                     
                     // Bottom controls
                     bottomControls
+                        .opacity(animateIn ? 1 : 0)
+                        .offset(y: animateIn ? 0 : 20)
                 }
-                .padding()
+                .padding(AppSpacing.md)
                 
                 // Analysis overlay
                 if isAnalyzing {
                     analysisOverlay
+                        .transition(.opacity.combined(with: .scale(scale: 0.9)))
                 }
             }
-            .background(Color.black)
-            .navigationTitle("Photo Capture")
+            .navigationTitle("")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) {
-                    Button("Cancel") { dismiss() }
-                        .foregroundStyle(.white)
+                    Button("Cancel") { 
+                        HapticService.impact(.light)
+                        dismiss() 
+                    }
+                    .foregroundStyle(.white)
                 }
                 
                 ToolbarItem(placement: .primaryAction) {
-                    Button(action: { showingTips = true }) {
+                    Button(action: { 
+                        HapticService.impact(.light)
+                        showingTips = true 
+                    }) {
                         Image(systemName: "questionmark.circle")
                             .foregroundStyle(.white)
                     }
@@ -59,6 +78,9 @@ struct PhotoInputView: View {
             }
             .onAppear {
                 setupCamera()
+                withAnimation(MotionToken.standardSpring.delay(0.1)) {
+                    animateIn = true
+                }
             }
             .onDisappear {
                 cameraManager.stopSession()
@@ -74,6 +96,7 @@ struct PhotoInputView: View {
             }
             .sheet(isPresented: $showingTips) {
                 PhotoTipsView()
+                    .environmentObject(gradientManager)
             }
             .onChange(of: capturedImage) { _, newImage in
                 if let image = newImage {
@@ -81,6 +104,7 @@ struct PhotoInputView: View {
                 }
             }
         }
+        .preferredColorScheme(.dark) // Force dark mode for camera UI
     }
     
     // MARK: - Camera Preview
@@ -94,13 +118,20 @@ struct PhotoInputView: View {
                             .stroke(AppColors.accent, lineWidth: 2)
                     )
                     .overlay(alignment: .center) {
-                        // Focus indicator
+                        // Focus indicator with gradient stroke
                         if cameraManager.isFocusing {
                             RoundedRectangle(cornerRadius: 8)
-                                .stroke(AppColors.accent, lineWidth: 2)
+                                .stroke(
+                                    LinearGradient(
+                                        colors: gradientManager.active.colors(for: colorScheme),
+                                        startPoint: .topLeading,
+                                        endPoint: .bottomTrailing
+                                    ),
+                                    lineWidth: 2
+                                )
                                 .frame(width: 80, height: 80)
                                 .scaleEffect(cameraManager.focusScale)
-                                .animation(.easeOut(duration: 0.3), value: cameraManager.focusScale)
+                                .animation(MotionToken.microAnimation, value: cameraManager.focusScale)
                         }
                     }
                     .accessibilityLabel("Camera preview")
@@ -110,6 +141,7 @@ struct PhotoInputView: View {
                 CameraPlaceholder {
                     requestCameraPermission()
                 }
+                .environmentObject(gradientManager)
             }
         }
     }
@@ -117,125 +149,252 @@ struct PhotoInputView: View {
     // MARK: - Top Controls
     private var topControls: some View {
         HStack {
-            // Flash toggle
-            Button(action: cameraManager.toggleFlash) {
+            // Flash toggle with glass morphism
+            Button(action: {
+                HapticService.impact(.light)
+                cameraManager.toggleFlash()
+            }) {
                 Image(systemName: cameraManager.flashMode == .on ? "bolt.fill" : "bolt.slash.fill")
                     .font(.title2)
-                    .foregroundStyle(.white)
-                    .padding(12)
-                    .background(.ultraThinMaterial)
-                    .clipShape(Circle())
+                    .foregroundStyle(cameraManager.flashMode == .on ? Color.yellow : Color.white)
+                    .frame(width: 44, height: 44)
+                    .background {
+                        Circle()
+                            .fill(.ultraThinMaterial)
+                            .overlay {
+                                Circle()
+                                    .stroke(Color.white.opacity(0.2), lineWidth: 1)
+                            }
+                    }
+                    .shadow(color: .black.opacity(0.3), radius: 8, y: 4)
                     .accessibilityLabel("Flash toggle")
                     .accessibilityValue(cameraManager.flashMode == .on ? "Flash on" : "Flash off")
                     .accessibilityHint("Tap to toggle camera flash")
                     .accessibilityIdentifier("flash_button")
             }
+            .scaleEffect(cameraManager.flashMode == .on ? 1.1 : 1.0)
+            .animation(MotionToken.microAnimation, value: cameraManager.flashMode)
             
             Spacer()
             
-            // Camera position toggle
-            Button(action: cameraManager.switchCamera) {
+            // Camera position toggle with glass morphism
+            Button(action: {
+                HapticService.impact(.light)
+                cameraManager.switchCamera()
+            }) {
                 Image(systemName: "camera.rotate")
                     .font(.title2)
                     .foregroundStyle(.white)
-                    .padding(12)
-                    .background(.ultraThinMaterial)
-                    .clipShape(Circle())
+                    .frame(width: 44, height: 44)
+                    .background {
+                        Circle()
+                            .fill(.ultraThinMaterial)
+                            .overlay {
+                                Circle()
+                                    .stroke(Color.white.opacity(0.2), lineWidth: 1)
+                            }
+                    }
+                    .shadow(color: .black.opacity(0.3), radius: 8, y: 4)
                     .accessibilityLabel("Switch camera")
                     .accessibilityHint("Tap to switch between front and back camera")
                     .accessibilityIdentifier("camera_switch_button")
             }
+            .rotationEffect(.degrees(cameraManager.isCapturing ? 180 : 0))
+            .animation(MotionToken.standardSpring, value: cameraManager.isCapturing)
         }
     }
     
     // MARK: - Bottom Controls
     private var bottomControls: some View {
-        HStack(spacing: 40) {
-            // Photo library
-            Button(action: { showingImagePicker = true }) {
+        HStack(spacing: AppSpacing.xl) {
+            // Photo library with glass morphism
+            Button(action: { 
+                HapticService.impact(.light)
+                showingImagePicker = true 
+            }) {
                 Image(systemName: "photo.on.rectangle")
                     .font(.title2)
                     .foregroundStyle(.white)
                     .frame(width: 60, height: 60)
-                    .background(.ultraThinMaterial)
-                    .clipShape(Circle())
+                    .background {
+                        Circle()
+                            .fill(.ultraThinMaterial)
+                            .overlay {
+                                Circle()
+                                    .stroke(Color.white.opacity(0.2), lineWidth: 1)
+                            }
+                    }
+                    .shadow(color: .black.opacity(0.3), radius: 10, y: 4)
                     .accessibilityLabel("Photo gallery")
                     .accessibilityHint("Tap to select a photo from your gallery")
                     .accessibilityIdentifier("gallery_button")
             }
             
-            // Capture button
-            Button(action: capturePhoto) {
+            // Capture button - custom camera-specific design
+            Button(action: {
+                HapticService.impact(.medium)
+                capturePhoto()
+            }) {
                 ZStack {
+                    // Outer ring with gradient
+                    Circle()
+                        .stroke(
+                            LinearGradient(
+                                colors: cameraManager.isAuthorized ? 
+                                    gradientManager.active.colors(for: colorScheme) : 
+                                    [Color.gray, Color.gray.opacity(0.5)],
+                                startPoint: .topLeading,
+                                endPoint: .bottomTrailing
+                            ),
+                            lineWidth: 3
+                        )
+                        .frame(width: 86, height: 86)
+                    
+                    // Inner capture button
                     Circle()
                         .fill(.white)
-                        .frame(width: 80, height: 80)
+                        .frame(width: 74, height: 74)
+                        .shadow(color: .black.opacity(0.3), radius: 4, y: 2)
                     
+                    // Center dot indicator
                     Circle()
-                        .stroke(.black, lineWidth: 4)
-                        .frame(width: 70, height: 70)
+                        .fill(
+                            cameraManager.isCapturing ? 
+                            AnyShapeStyle(Color.red) : 
+                            AnyShapeStyle(LinearGradient(
+                                colors: gradientManager.active.colors(for: colorScheme),
+                                startPoint: .topLeading,
+                                endPoint: .bottomTrailing
+                            ))
+                        )
+                        .frame(width: cameraManager.isCapturing ? 40 : 60, height: cameraManager.isCapturing ? 40 : 60)
                 }
                 .accessibilityLabel("Capture photo")
                 .accessibilityHint("Tap to take a photo of your food")
                 .accessibilityIdentifier("capture_button")
             }
             .disabled(!cameraManager.isAuthorized || isAnalyzing)
-            .scaleEffect(cameraManager.isCapturing ? 0.9 : 1.0)
-            .animation(.easeInOut(duration: 0.1), value: cameraManager.isCapturing)
+            .scaleEffect(cameraManager.isCapturing ? 0.85 : 1.0)
+            .animation(MotionToken.microAnimation, value: cameraManager.isCapturing)
             
-            // AI analysis toggle
-            Button(action: toggleAIAnalysis) {
-                Image(systemName: cameraManager.aiAnalysisEnabled ? "brain.head.profile" : "brain.head.profile.fill")
+            // AI analysis toggle with gradient accent
+            Button(action: {
+                HapticService.impact(.light)
+                toggleAIAnalysis()
+            }) {
+                Image(systemName: "brain.head.profile")
                     .font(.title2)
-                    .foregroundStyle(cameraManager.aiAnalysisEnabled ? AppColors.accent : .white)
+                    .foregroundStyle(
+                        cameraManager.aiAnalysisEnabled ? 
+                        LinearGradient(
+                            colors: gradientManager.active.colors(for: colorScheme),
+                            startPoint: .topLeading,
+                            endPoint: .bottomTrailing
+                        ) : 
+                        LinearGradient(
+                            colors: [Color.white, Color.white],
+                            startPoint: .topLeading,
+                            endPoint: .bottomTrailing
+                        )
+                    )
                     .frame(width: 60, height: 60)
-                    .background(.ultraThinMaterial)
-                    .clipShape(Circle())
-                .accessibilityLabel("AI analysis toggle")
+                    .background {
+                        Circle()
+                            .fill(.ultraThinMaterial)
+                            .overlay {
+                                Circle()
+                                    .stroke(
+                                        cameraManager.aiAnalysisEnabled ?
+                                        LinearGradient(
+                                            colors: gradientManager.active.colors(for: colorScheme),
+                                            startPoint: .topLeading,
+                                            endPoint: .bottomTrailing
+                                        ) :
+                                        LinearGradient(
+                                            colors: [Color.white.opacity(0.2), Color.white.opacity(0.2)],
+                                            startPoint: .topLeading,
+                                            endPoint: .bottomTrailing
+                                        ),
+                                        lineWidth: 1
+                                    )
+                            }
+                    }
+                    .shadow(color: .black.opacity(0.3), radius: 10, y: 4)
+                    .scaleEffect(cameraManager.aiAnalysisEnabled ? 1.1 : 1.0)
+                    .accessibilityLabel("AI analysis toggle")
             }
+            .animation(MotionToken.standardSpring, value: cameraManager.aiAnalysisEnabled)
         }
     }
     
     // MARK: - Analysis Overlay
     private var analysisOverlay: some View {
         ZStack {
-            Color.black.opacity(0.7)
+            // Softer background with glass effect
+            Color.black.opacity(0.4)
                 .ignoresSafeArea()
+                .background(.ultraThinMaterial)
             
-            VStack(spacing: 24) {
-                // AI brain animation
-                Image(systemName: "brain.head.profile")
-                    .font(.system(size: 60))
-                    .foregroundStyle(AppColors.accent)
-                    .symbolEffect(.pulse, isActive: isAnalyzing)
-                
-                VStack(spacing: 12) {
-                    Text("Analyzing Your Meal")
-                        .font(.title2)
-                        .fontWeight(.semibold)
-                        .foregroundStyle(.white)
+            GlassCard {
+                VStack(spacing: AppSpacing.md) {
+                    // AI brain animation with gradient
+                    Image(systemName: "brain.head.profile")
+                        .font(.system(size: 60))
+                        .foregroundStyle(
+                            LinearGradient(
+                                colors: gradientManager.active.colors(for: colorScheme),
+                                startPoint: .topLeading,
+                                endPoint: .bottomTrailing
+                            )
+                        )
+                        .symbolEffect(.pulse, isActive: isAnalyzing)
+                        .shadow(color: gradientManager.active.colors(for: colorScheme).first?.opacity(0.5) ?? .clear, radius: 10)
                     
-                    Text("Identifying food items and estimating nutrition...")
-                        .font(.callout)
-                        .foregroundStyle(.secondary)
-                        .multilineTextAlignment(.center)
+                    VStack(spacing: AppSpacing.xs) {
+                        CascadeText("Analyzing Your Meal")
+                            .font(.system(size: 26, weight: .semibold, design: .rounded))
+                            .foregroundStyle(.white)
+                        
+                        Text("Identifying food items and estimating nutrition...")
+                            .font(.callout)
+                            .foregroundStyle(Color.white.opacity(0.7))
+                            .multilineTextAlignment(.center)
+                    }
+                    
+                    // Custom progress bar with gradient
+                    VStack(spacing: AppSpacing.xs) {
+                        ZStack(alignment: .leading) {
+                            // Background track
+                            RoundedRectangle(cornerRadius: 6)
+                                .fill(Color.white.opacity(0.1))
+                                .frame(width: 200, height: 8)
+                            
+                            // Progress fill with gradient
+                            RoundedRectangle(cornerRadius: 6)
+                                .fill(
+                                    LinearGradient(
+                                        colors: gradientManager.active.colors(for: colorScheme),
+                                        startPoint: .leading,
+                                        endPoint: .trailing
+                                    )
+                                )
+                                .frame(width: 200 * analysisProgress, height: 8)
+                        }
+                        
+                        Text("\(Int(analysisProgress * 100))%")
+                            .font(.system(size: 14, weight: .medium, design: .rounded))
+                            .foregroundStyle(Color.white.opacity(0.9))
+                            .accessibilityLabel("AI analysis progress")
+                            .accessibilityValue("Analyzing photo: \(Int(analysisProgress * 100)) percent complete")
+                            .accessibilityIdentifier("analysis_progress")
+                    }
                 }
-                
-                // Progress indicator
-                ProgressView(value: analysisProgress)
-                    .progressViewStyle(LinearProgressViewStyle(tint: AppColors.accent))
-                    .frame(width: 200)
-                
-                Text("\(Int(analysisProgress * 100))%")
-                    .font(.caption)
-                    .foregroundStyle(.secondary)
-                    .accessibilityLabel("AI analysis progress")
-                    .accessibilityValue("Analyzing photo: \(Int(analysisProgress * 100)) percent complete")
-                    .accessibilityIdentifier("analysis_progress")
+                .padding(AppSpacing.lg)
             }
-            .padding(32)
-            .background(.ultraThinMaterial)
-            .clipShape(RoundedRectangle(cornerRadius: 20))
+            .frame(maxWidth: 300)
+            .scaleEffect(analysisProgress > 0 ? 1 : 0.9)
+            .opacity(analysisProgress > 0 ? 1 : 0)
+            .animation(MotionToken.standardSpring, value: analysisProgress)
         }
     }
     
@@ -264,14 +423,14 @@ struct PhotoInputView: View {
         Task {
             if let image = await cameraManager.capturePhoto() {
                 capturedImage = image
-                // TODO: Add haptic feedback via DI when needed
+                HapticService.impact(.rigid)
             }
         }
     }
     
     private func toggleAIAnalysis() {
         cameraManager.aiAnalysisEnabled.toggle()
-        // TODO: Add haptic feedback via DI when needed
+        HapticService.impact(.light)
     }
     
     private func analyzePhoto(_ image: UIImage) {
@@ -290,7 +449,7 @@ struct PhotoInputView: View {
                 await updateProgress(to: 0.5, message: "Detecting food items...")
                 
                 // AI-powered food analysis
-                let foodItems = try await performAIFoodAnalysis(image: image, visionResults: visionResults)
+                let _ = try await performAIFoodAnalysis(image: image, visionResults: visionResults)
                 await updateProgress(to: 0.9, message: "Calculating nutrition...")
                 
                 // Final processing
@@ -602,7 +761,6 @@ final class CameraManager: NSObject, ObservableObject {
     
     func toggleFlash() {
         flashMode = flashMode == .off ? .on : .off
-        // TODO: Add haptic feedback via DI when needed
     }
     
     func switchCamera() {
@@ -630,7 +788,6 @@ final class CameraManager: NSObject, ObservableObject {
         }
         
         session.commitConfiguration()
-        // TODO: Add haptic feedback via DI when needed
     }
     
     private func setupCameras() {
@@ -699,30 +856,54 @@ struct CameraPreview: UIViewRepresentable {
 // MARK: - Camera Placeholder
 struct CameraPlaceholder: View {
     let action: () -> Void
+    @EnvironmentObject private var gradientManager: GradientManager
+    @Environment(\.colorScheme) private var colorScheme
+    @State private var animateIn = false
     
     var body: some View {
-        VStack(spacing: 24) {
-            Image(systemName: "camera.fill")
-                .font(.system(size: 80))
-                .foregroundStyle(.secondary)
-            
-            VStack(spacing: 12) {
-                Text("Camera Access Required")
-                    .font(.title2)
-                    .fontWeight(.semibold)
+        GlassCard {
+            VStack(spacing: AppSpacing.md) {
+                // Camera icon with gradient
+                Image(systemName: "camera.fill")
+                    .font(.system(size: 80))
+                    .foregroundStyle(
+                        LinearGradient(
+                            colors: gradientManager.active.colors(for: colorScheme),
+                            startPoint: .topLeading,
+                            endPoint: .bottomTrailing
+                        )
+                    )
+                    .scaleEffect(animateIn ? 1 : 0.8)
+                    .opacity(animateIn ? 1 : 0)
                 
-                Text("Enable camera access to capture meal photos for intelligent food recognition.")
-                    .font(.callout)
-                    .foregroundStyle(.secondary)
-                    .multilineTextAlignment(.center)
+                VStack(spacing: AppSpacing.xs) {
+                    CascadeText("Camera Access Required")
+                        .font(.system(size: 24, weight: .semibold, design: .rounded))
+                        .foregroundStyle(.white)
+                    
+                    Text("Enable camera access to capture meal photos for intelligent food recognition.")
+                        .font(.callout)
+                        .foregroundStyle(Color.white.opacity(0.7))
+                        .multilineTextAlignment(.center)
+                        .opacity(animateIn ? 1 : 0)
+                }
+                
+                StandardButton("Enable Camera", style: .primary, size: .large) {
+                    HapticService.impact(.medium)
+                    action()
+                }
+                .opacity(animateIn ? 1 : 0)
+                .offset(y: animateIn ? 0 : 20)
             }
-            
-            StandardButton("Enable Camera", style: .primary, size: .large, action: action)
+            .padding(AppSpacing.lg)
         }
-        .padding(32)
         .frame(maxWidth: .infinity, maxHeight: .infinity)
-        .background(AppColors.backgroundSecondary)
-        .clipShape(RoundedRectangle(cornerRadius: 20))
+        .padding(AppSpacing.md)
+        .onAppear {
+            withAnimation(MotionToken.standardSpring.delay(0.1)) {
+                animateIn = true
+            }
+        }
     }
 }
 
@@ -768,60 +949,85 @@ struct ImagePicker: UIViewControllerRepresentable {
 // MARK: - Photo Tips View
 struct PhotoTipsView: View {
     @Environment(\.dismiss) private var dismiss
+    @EnvironmentObject private var gradientManager: GradientManager
+    @Environment(\.colorScheme) private var colorScheme
+    @State private var animateIn = false
     
     var body: some View {
-        NavigationStack {
+        BaseScreen {
             ScrollView {
-                VStack(alignment: .leading, spacing: 24) {
-                    VStack(alignment: .leading, spacing: 12) {
-                        Text("📸 Photo Tips")
-                            .font(.title2)
-                            .fontWeight(.bold)
+                VStack(alignment: .leading, spacing: AppSpacing.md) {
+                    VStack(alignment: .leading, spacing: AppSpacing.xs) {
+                        CascadeText("📸 Photo Tips")
+                            .font(.system(size: 32, weight: .bold, design: .rounded))
                         
                         Text("Get the best results from AI food recognition:")
                             .font(.callout)
-                            .foregroundStyle(.secondary)
+                            .foregroundStyle(Color.secondary)
+                            .opacity(animateIn ? 1 : 0)
                     }
+                    .padding(.horizontal, AppSpacing.md)
                     
-                    VStack(spacing: 16) {
+                    VStack(spacing: AppSpacing.sm) {
                         TipRow(
                             icon: "lightbulb.fill",
                             title: "Good Lighting",
-                            description: "Take photos in bright, natural light when possible."
+                            description: "Take photos in bright, natural light when possible.",
+                            index: 0
                         )
                         
                         TipRow(
                             icon: "viewfinder",
                             title: "Clear View",
-                            description: "Ensure all food items are clearly visible and not overlapping."
+                            description: "Ensure all food items are clearly visible and not overlapping.",
+                            index: 1
                         )
                         
                         TipRow(
                             icon: "arrow.up.and.down.and.arrow.left.and.right",
                             title: "Fill the Frame",
-                            description: "Get close enough so food takes up most of the photo."
+                            description: "Get close enough so food takes up most of the photo.",
+                            index: 2
                         )
                         
                         TipRow(
                             icon: "hand.raised.fill",
                             title: "Steady Shot",
-                            description: "Hold your phone steady to avoid blurry photos."
+                            description: "Hold your phone steady to avoid blurry photos.",
+                            index: 3
                         )
                         
                         TipRow(
                             icon: "brain.head.profile",
                             title: "AI Analysis",
-                            description: "Enable AI analysis for automatic food identification and nutrition estimation."
+                            description: "Enable AI analysis for automatic food identification and nutrition estimation.",
+                            index: 4
                         )
                     }
+                    .padding(.horizontal, AppSpacing.md)
                 }
-                .padding()
+                .padding(.bottom, AppSpacing.xl)
             }
-            .navigationTitle("Photo Tips")
+            .navigationTitle("")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .confirmationAction) {
-                    Button("Done") { dismiss() }
+                    Button("Done") { 
+                        HapticService.impact(.light)
+                        dismiss() 
+                    }
+                    .foregroundStyle(
+                        LinearGradient(
+                            colors: gradientManager.active.colors(for: colorScheme),
+                            startPoint: .topLeading,
+                            endPoint: .bottomTrailing
+                        )
+                    )
+                }
+            }
+            .onAppear {
+                withAnimation(MotionToken.standardSpring) {
+                    animateIn = true
                 }
             }
         }
@@ -832,28 +1038,47 @@ struct TipRow: View {
     let icon: String
     let title: String
     let description: String
+    let index: Int
+    
+    @EnvironmentObject private var gradientManager: GradientManager
+    @Environment(\.colorScheme) private var colorScheme
+    @State private var animateIn = false
     
     var body: some View {
-        HStack(spacing: 16) {
-            Image(systemName: icon)
-                .font(.title2)
-                .foregroundStyle(AppColors.accent)
-                .frame(width: 32)
-            
-            VStack(alignment: .leading, spacing: 4) {
-                Text(title)
-                    .font(.headline)
+        GlassCard {
+            HStack(spacing: AppSpacing.sm) {
+                Image(systemName: icon)
+                    .font(.title2)
+                    .foregroundStyle(
+                        LinearGradient(
+                            colors: gradientManager.active.colors(for: colorScheme),
+                            startPoint: .topLeading,
+                            endPoint: .bottomTrailing
+                        )
+                    )
+                    .frame(width: 32)
                 
-                Text(description)
-                    .font(.callout)
-                    .foregroundStyle(.secondary)
+                VStack(alignment: .leading, spacing: 4) {
+                    Text(title)
+                        .font(.headline)
+                        .foregroundStyle(Color.primary)
+                    
+                    Text(description)
+                        .font(.callout)
+                        .foregroundStyle(Color.secondary)
+                }
+                
+                Spacer()
             }
-            
-            Spacer()
+            .padding(AppSpacing.sm)
         }
-        .padding()
-        .background(AppColors.cardBackground)
-        .clipShape(RoundedRectangle(cornerRadius: 12))
+        .scaleEffect(animateIn ? 1 : 0.95)
+        .opacity(animateIn ? 1 : 0)
+        .onAppear {
+            withAnimation(MotionToken.standardSpring.delay(Double(index) * 0.1)) {
+                animateIn = true
+            }
+        }
     }
 }
 

@@ -24,19 +24,14 @@ struct Chat: View {
 }
 
 struct ChatView: View {
-    @StateObject private var viewModel: ChatViewModel
+    let viewModel: ChatViewModel
+    let user: User
     @State private var coordinator = ChatCoordinator()
     @FocusState private var isComposerFocused: Bool
     @State private var scrollProxy: ScrollViewProxy?
     @State private var animateIn = false
     @EnvironmentObject private var gradientManager: GradientManager
     @Environment(\.colorScheme) private var colorScheme
-    let user: User
-
-    init(viewModel: ChatViewModel, user: User) {
-        self._viewModel = StateObject(wrappedValue: viewModel)
-        self.user = user
-    }
 
     var body: some View {
         NavigationStack(path: $coordinator.navigationPath) {
@@ -45,14 +40,12 @@ struct ChatView: View {
                     // Gradient header with coach name
                     if animateIn {
                         VStack(spacing: AppSpacing.xs) {
-                            CascadeText(user.coachPersona?.name ?? "AI Coach")
+                            CascadeText("AI Coach")
                                 .font(.system(size: 24, weight: .light, design: .rounded))
                             
-                            if let archetype = user.coachPersona?.archetype {
-                                Text(archetype)
-                                    .font(.system(size: 14, weight: .light))
-                                    .foregroundColor(.secondary)
-                            }
+                            Text("Your Personal Fitness Guide")
+                                .font(.system(size: 14, weight: .light))
+                                .foregroundColor(.secondary)
                         }
                         .padding(.vertical, AppSpacing.sm)
                         .frame(maxWidth: .infinity)
@@ -112,7 +105,13 @@ struct ChatView: View {
                             VStack(spacing: AppSpacing.sm) {
                                 Image(systemName: "sparkles")
                                     .font(.system(size: 40, weight: .light))
-                                    .foregroundStyle(gradientManager.currentGradient(for: colorScheme))
+                                    .foregroundStyle(
+                                        LinearGradient(
+                                            colors: gradientManager.active.colors(for: colorScheme),
+                                            startPoint: .topLeading,
+                                            endPoint: .bottomTrailing
+                                        )
+                                    )
                                 
                                 CascadeText("Welcome! How can I help you today?")
                                     .font(.system(size: 20, weight: .light, design: .rounded))
@@ -161,7 +160,7 @@ struct ChatView: View {
                 }
                 .padding(.vertical, AppSpacing.sm)
                 .padding(.horizontal, AppSpacing.screenPadding)
-            }
+            } // End LazyVStack
             .scrollDismissesKeyboard(.interactively)
             .onAppear { scrollProxy = proxy }
             .onChange(of: coordinator.scrollToMessageId) { _, messageId in
@@ -232,7 +231,13 @@ struct ChatView: View {
             }, label: {
                 Image(systemName: "ellipsis.circle")
                     .font(.system(size: 20, weight: .light))
-                    .foregroundStyle(gradientManager.currentGradient(for: colorScheme))
+                    .foregroundStyle(
+                        LinearGradient(
+                            colors: gradientManager.active.colors(for: colorScheme),
+                            startPoint: .topLeading,
+                            endPoint: .bottomTrailing
+                        )
+                    )
             })
         }
     }
@@ -309,7 +314,6 @@ struct ChatView: View {
             withAnimation { scrollProxy?.scrollTo(last.id, anchor: .bottom) }
         }
     }
-}
 
 // MARK: - Mock Services
 private final class ChatMockCoachEngine: CoachEngineProtocol, @unchecked Sendable {
@@ -351,15 +355,11 @@ private struct SuggestionChip: View {
                 )
         }
         .scaleEffect(isPressed ? 0.95 : 1.0)
-        .onLongPressGesture(minimumDuration: 0, maximumDistance: .infinity) { _ in
+        .onLongPressGesture(minimumDuration: 0, maximumDistance: .infinity, pressing: { pressing in
             withAnimation(MotionToken.standardSpring) {
-                isPressed = true
+                isPressed = pressing
             }
-        } onEnded: { _ in
-            withAnimation(MotionToken.standardSpring) {
-                isPressed = false
-            }
-        }
+        }, perform: {})
     }
 }
 

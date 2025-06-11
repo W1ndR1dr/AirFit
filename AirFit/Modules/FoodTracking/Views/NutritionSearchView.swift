@@ -5,9 +5,12 @@ import SwiftData
 struct NutritionSearchView: View {
     @State var viewModel: FoodTrackingViewModel
     @Environment(\.dismiss) private var dismiss
+    @EnvironmentObject private var gradientManager: GradientManager
+    @Environment(\.colorScheme) private var colorScheme
     @State private var searchText = ""
     @State private var selectedCategory: FoodCategory?
     @State private var debounceTimer: Timer?
+    @State private var animateIn = false
     
     private let foodCategories: [FoodCategory] = [
         FoodCategory(name: "Fruits", icon: "apple"),
@@ -20,28 +23,54 @@ struct NutritionSearchView: View {
     
     var body: some View {
         NavigationStack {
-            VStack(spacing: 0) {
-                searchBar
-                
-                ScrollView {
-                    LazyVStack(spacing: AppSpacing.medium) {
-                        if searchText.isEmpty && selectedCategory == nil {
-                            initialContent
-                        } else if selectedCategory != nil {
-                            categoryResultsContent
-                        } else {
-                            searchResultsContent
+            BaseScreen {
+                VStack(spacing: 0) {
+                    // Header with animated title
+                    CascadeText("Add Food")
+                        .font(.system(size: 32, weight: .bold, design: .rounded))
+                        .padding(.top, AppSpacing.md)
+                        .padding(.bottom, AppSpacing.sm)
+                        .opacity(animateIn ? 1 : 0)
+                    
+                    searchBar
+                        .opacity(animateIn ? 1 : 0)
+                        .offset(y: animateIn ? 0 : 20)
+                        .animation(MotionToken.standardSpring.delay(0.2), value: animateIn)
+                    
+                    ScrollView {
+                        LazyVStack(spacing: AppSpacing.md) {
+                            if searchText.isEmpty && selectedCategory == nil {
+                                initialContent
+                            } else if selectedCategory != nil {
+                                categoryResultsContent
+                            } else {
+                                searchResultsContent
+                            }
                         }
+                        .padding(.vertical)
                     }
-                    .padding(.vertical)
                 }
             }
-            .background(AppColors.backgroundPrimary)
-            .navigationTitle("Add Food")
+            .navigationTitle("")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) {
-                    Button("Cancel") { dismiss() }
+                    Button("Cancel") { 
+                        HapticService.impact(.light)
+                        dismiss() 
+                    }
+                    .foregroundStyle(
+                        LinearGradient(
+                            colors: gradientManager.active.colors(for: colorScheme),
+                            startPoint: .topLeading,
+                            endPoint: .bottomTrailing
+                        )
+                    )
+                }
+            }
+            .onAppear {
+                withAnimation(MotionToken.standardSpring) {
+                    animateIn = true
                 }
             }
         }
@@ -49,44 +78,67 @@ struct NutritionSearchView: View {
     
     // MARK: - Search Bar
     private var searchBar: some View {
-        HStack {
-            Image(systemName: "magnifyingglass")
-                .foregroundColor(AppColors.textSecondary)
-            
-            TextField("Search foods...", text: $searchText)
-                .textFieldStyle(.plain)
-                .onSubmit {
-                    Task { await performSearch() }
-                }
-                .onChange(of: searchText) { _, newValue in
-                    triggerSearch()
-                }
-            
-            if !searchText.isEmpty {
-                Button {
-                    searchText = ""
-                    selectedCategory = nil
-                } label: {
-                    Image(systemName: "xmark.circle.fill")
-                        .foregroundColor(AppColors.textSecondary)
+        GlassCard {
+            HStack(spacing: AppSpacing.sm) {
+                Image(systemName: "magnifyingglass")
+                    .foregroundStyle(
+                        LinearGradient(
+                            colors: gradientManager.active.colors(for: colorScheme),
+                            startPoint: .topLeading,
+                            endPoint: .bottomTrailing
+                        )
+                    )
+                    .font(.system(size: 18))
+                
+                TextField("Search foods...", text: $searchText)
+                    .textFieldStyle(.plain)
+                    .font(.system(size: 16, weight: .medium))
+                    .onSubmit {
+                        HapticService.impact(.light)
+                        Task { await performSearch() }
+                    }
+                    .onChange(of: searchText) { _, newValue in
+                        triggerSearch()
+                    }
+                
+                if !searchText.isEmpty {
+                    Button {
+                        HapticService.impact(.light)
+                        withAnimation(MotionToken.microAnimation) {
+                            searchText = ""
+                            selectedCategory = nil
+                        }
+                    } label: {
+                        Image(systemName: "xmark.circle.fill")
+                            .foregroundStyle(Color.secondary.opacity(0.6))
+                            .font(.system(size: 16))
+                    }
+                    .transition(.scale.combined(with: .opacity))
                 }
             }
+            .padding(AppSpacing.sm)
         }
-        .padding()
-        .background(AppColors.cardBackground)
-        .clipShape(RoundedRectangle(cornerRadius: AppSpacing.medium))
-        .padding(.horizontal)
-    }
+        .padding(.horizontal, AppSpacing.md)
+        .padding(.bottom, AppSpacing.sm)
 
     // MARK: - Initial Content
     @ViewBuilder
     private var initialContent: some View {
         CategoriesSection(categories: foodCategories, selectedCategory: $selectedCategory)
             .padding(.horizontal)
+            .opacity(animateIn ? 1 : 0)
+            .offset(y: animateIn ? 0 : 20)
+            .animation(MotionToken.standardSpring.delay(0.3), value: animateIn)
         
-        Text("Recent Foods")
-            .font(.headline)
-            .padding(.horizontal)
+        HStack {
+            CascadeText("Recent Foods")
+                .font(.system(size: 20, weight: .semibold, design: .rounded))
+            Spacer()
+        }
+        .padding(.horizontal, AppSpacing.md)
+        .padding(.top, AppSpacing.sm)
+        .opacity(animateIn ? 1 : 0)
+        .animation(MotionToken.standardSpring.delay(0.4), value: animateIn)
         
         if viewModel.recentFoods.isEmpty {
             EmptyStateView(
@@ -95,12 +147,16 @@ struct NutritionSearchView: View {
                 message: "Foods you log will appear here for quick re-adding."
             )
         } else {
-            ForEach(viewModel.recentFoods.prefix(5), id: \.id) { food in
+            ForEach(Array(viewModel.recentFoods.prefix(5).enumerated()), id: \.element.id) { index, food in
                 FoodItemRow(food: food) {
+                    HapticService.impact(.light)
                     selectRecentFood(food)
                 }
+                .padding(.horizontal, AppSpacing.md)
+                .opacity(animateIn ? 1 : 0)
+                .offset(y: animateIn ? 0 : 20)
+                .animation(MotionToken.standardSpring.delay(0.5 + Double(index) * 0.1), value: animateIn)
             }
-            .padding(.horizontal)
         }
     }
     
@@ -123,9 +179,17 @@ struct NutritionSearchView: View {
         }
         
         if viewModel.isLoading {
-            ProgressView()
-                .frame(maxWidth: .infinity, alignment: .center)
-                .padding(.vertical, AppSpacing.xLarge)
+            VStack(spacing: AppSpacing.sm) {
+                ProgressView()
+                    .progressViewStyle(CircularProgressViewStyle(tint: gradientManager.active.colors(for: colorScheme).first))
+                    .scaleEffect(1.2)
+                
+                Text("Loading...")
+                    .font(.system(size: 14, weight: .medium))
+                    .foregroundStyle(Color.secondary)
+            }
+            .frame(maxWidth: .infinity, alignment: .center)
+            .padding(.vertical, AppSpacing.xl)
         } else {
             EmptyStateView(
                 icon: "tray.fill",
@@ -140,9 +204,17 @@ struct NutritionSearchView: View {
     @ViewBuilder
     private var searchResultsContent: some View {
         if viewModel.isLoading && !searchText.isEmpty {
-            ProgressView("Searching...")
-                .frame(maxWidth: .infinity, alignment: .center)
-                .padding(.vertical, AppSpacing.xLarge)
+            VStack(spacing: AppSpacing.sm) {
+                ProgressView()
+                    .progressViewStyle(CircularProgressViewStyle(tint: gradientManager.active.colors(for: colorScheme).first))
+                    .scaleEffect(1.2)
+                
+                CascadeText("Searching...")
+                    .font(.system(size: 16, weight: .medium, design: .rounded))
+                    .foregroundStyle(Color.secondary)
+            }
+            .frame(maxWidth: .infinity, alignment: .center)
+            .padding(.vertical, AppSpacing.xl)
         } else if !searchText.isEmpty {
             EmptyStateView(
                 icon: "magnifyingglass",
@@ -203,24 +275,32 @@ struct NutritionSearchView: View {
 private struct CategoriesSection: View {
     let categories: [FoodCategory]
     @Binding var selectedCategory: FoodCategory?
+    @EnvironmentObject private var gradientManager: GradientManager
+    @Environment(\.colorScheme) private var colorScheme
 
     var body: some View {
-        VStack(alignment: .leading, spacing: AppSpacing.medium) {
-            Text("Categories")
-                .font(AppFonts.title3)
-                .fontWeight(.semibold)
+        VStack(alignment: .leading, spacing: AppSpacing.md) {
+            HStack {
+                CascadeText("Categories")
+                    .font(.system(size: 20, weight: .semibold, design: .rounded))
+                Spacer()
+            }
             
             ScrollView(.horizontal, showsIndicators: false) {
-                HStack(spacing: AppSpacing.small) {
-                    ForEach(categories) { category in
+                HStack(spacing: AppSpacing.sm) {
+                    ForEach(Array(categories.enumerated()), id: \.element.id) { index, category in
                         CategoryChip(category: category, isSelected: selectedCategory == category) {
-                            if selectedCategory == category {
-                                selectedCategory = nil // Deselect
-                            } else {
-                                selectedCategory = category
+                            HapticService.impact(.light)
+                            withAnimation(MotionToken.microAnimation) {
+                                if selectedCategory == category {
+                                    selectedCategory = nil // Deselect
+                                } else {
+                                    selectedCategory = category
+                                }
                             }
-                            // Trigger search for this category in parent view
                         }
+                        .scaleEffect(selectedCategory == category ? 1.05 : 1.0)
+                        .animation(MotionToken.microAnimation, value: selectedCategory)
                     }
                 }
             }
@@ -298,46 +378,66 @@ enum FoodListItem: Identifiable {
 private struct FoodItemRow: View {
     let food: FoodItem
     let action: () -> Void
+    @EnvironmentObject private var gradientManager: GradientManager
+    @Environment(\.colorScheme) private var colorScheme
+    @State private var isPressed = false
 
     var body: some View {
         Button(action: action) {
-            HStack(alignment: .top, spacing: AppSpacing.medium) {
-                Image(systemName: "takeoutbag.and.cup.and.straw.fill")
-                    .font(.title2)
-                    .foregroundColor(AppColors.accent)
-                    .frame(width: 30)
+            GlassCard {
+                HStack(alignment: .top, spacing: AppSpacing.md) {
+                    // Icon with gradient
+                    Image(systemName: "takeoutbag.and.cup.and.straw.fill")
+                        .font(.system(size: 24))
+                        .foregroundStyle(
+                            LinearGradient(
+                                colors: gradientManager.active.colors(for: colorScheme),
+                                startPoint: .topLeading,
+                                endPoint: .bottomTrailing
+                            )
+                        )
+                        .frame(width: 32)
 
-                VStack(alignment: .leading, spacing: AppSpacing.xSmall) {
-                    Text(food.name)
-                        .font(.body)
-                        .fontWeight(.medium)
-                        .foregroundColor(AppColors.textPrimary)
-                        .lineLimit(2)
+                    VStack(alignment: .leading, spacing: AppSpacing.xs) {
+                        Text(food.name)
+                            .font(.system(size: 16, weight: .semibold, design: .rounded))
+                            .foregroundStyle(Color.primary)
+                            .lineLimit(2)
 
-                    if let brand = food.brand, !brand.isEmpty {
-                        Text(brand)
-                            .font(.caption)
-                            .foregroundColor(AppColors.textSecondary)
-                            .lineLimit(1)
+                        if let brand = food.brand, !brand.isEmpty {
+                            Text(brand)
+                                .font(.system(size: 12, weight: .medium))
+                                .foregroundStyle(Color.secondary.opacity(0.8))
+                                .lineLimit(1)
+                        }
+                        
+                        Text("\(food.quantity?.formatted() ?? "1") \(food.unit ?? "serving")")
+                            .font(.system(size: 11, weight: .medium))
+                            .foregroundStyle(Color.secondary.opacity(0.6))
                     }
-                    
-                    Text("\(food.quantity?.formatted() ?? "1") \(food.unit ?? "serving")")
-                        .font(.caption)
-                        .foregroundColor(AppColors.textTertiary)
-                }
 
-                Spacer()
+                    Spacer()
 
-                VStack(alignment: .trailing, spacing: AppSpacing.xSmall) {
-                    Text("\(Int(food.calories ?? 0)) cal")
-                        .font(.callout)
-                        .fontWeight(.semibold)
-                        .foregroundColor(AppColors.caloriesColor)
+                    VStack(alignment: .trailing, spacing: 2) {
+                        GradientNumber(value: Double(food.calories ?? 0))
+                            .font(.system(size: 20, weight: .bold, design: .rounded))
+                        
+                        Text("cal")
+                            .font(.system(size: 11, weight: .medium))
+                            .foregroundStyle(AppColors.caloriesColor.opacity(0.8))
+                    }
                 }
+                .padding(AppSpacing.sm)
             }
-            .padding(.vertical, AppSpacing.small)
+            .scaleEffect(isPressed ? 0.98 : 1.0)
+            .animation(MotionToken.microAnimation, value: isPressed)
         }
         .buttonStyle(.plain)
+        .onLongPressGesture(minimumDuration: 0, maximumDistance: .infinity, pressing: { pressing in
+            withAnimation(MotionToken.microAnimation) {
+                isPressed = pressing
+            }
+        }, perform: {})
     }
 }
 
@@ -351,19 +451,54 @@ private struct CategoryChip: View {
     let category: FoodCategory
     let isSelected: Bool
     let action: () -> Void
+    @EnvironmentObject private var gradientManager: GradientManager
+    @Environment(\.colorScheme) private var colorScheme
 
     var body: some View {
         Button(action: action) {
-            HStack(spacing: AppSpacing.xSmall) {
+            HStack(spacing: AppSpacing.xs) {
                 Image(systemName: category.icon)
+                    .font(.system(size: 14, weight: .medium))
                 Text(category.name)
+                    .font(.system(size: 14, weight: .medium))
             }
-            .font(.footnote)
-            .padding(.horizontal, AppSpacing.medium)
-            .padding(.vertical, AppSpacing.xSmall)
-            .foregroundColor(isSelected ? AppColors.textOnAccent : AppColors.accent)
-            .background(isSelected ? AppColors.accent : AppColors.accent.opacity(0.15))
+            .padding(.horizontal, AppSpacing.md)
+            .padding(.vertical, AppSpacing.xs)
+            .foregroundStyle(
+                isSelected ? 
+                AnyShapeStyle(Color.white) :
+                AnyShapeStyle(LinearGradient(
+                    colors: gradientManager.active.colors(for: colorScheme),
+                    startPoint: .topLeading,
+                    endPoint: .bottomTrailing
+                ))
+            )
+            .background {
+                if isSelected {
+                    LinearGradient(
+                        colors: gradientManager.active.colors(for: colorScheme),
+                        startPoint: .topLeading,
+                        endPoint: .bottomTrailing
+                    )
+                } else {
+                    Color.primary.opacity(0.08)
+                }
+            }
             .clipShape(Capsule())
+            .overlay {
+                if !isSelected {
+                    Capsule()
+                        .stroke(
+                            LinearGradient(
+                                colors: gradientManager.active.colors(for: colorScheme).map { $0.opacity(0.3) },
+                                startPoint: .topLeading,
+                                endPoint: .bottomTrailing
+                            ),
+                            lineWidth: 1
+                        )
+                }
+            }
+            .shadow(color: isSelected ? gradientManager.active.colors(for: colorScheme).first?.opacity(0.3) ?? .clear : .clear, radius: 8, y: 4)
         }
     }
 }

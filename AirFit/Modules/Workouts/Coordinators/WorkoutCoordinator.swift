@@ -17,18 +17,18 @@ final class WorkoutCoordinator: SheetCoordinator<WorkoutCoordinator.WorkoutDesti
 
     // MARK: - Sheets
     enum WorkoutSheet: Identifiable, Hashable {
-        case templatePicker
         case newTemplate
         case exerciseDetail(Exercise)
+        case voiceWorkoutInput  // New: for quick voice-based workout creation
 
         var id: String {
             switch self {
-            case .templatePicker:
-                return "templatePicker"
             case .newTemplate:
                 return "newTemplate"
             case .exerciseDetail(let exercise):
                 return "exerciseDetail-\(exercise.id)"
+            case .voiceWorkoutInput:
+                return "voiceWorkoutInput"
             }
         }
     }

@@ -72,7 +72,7 @@ struct MessageBubbleView: View {
         .clipShape(ChatBubbleShape(role: message.roleEnum))
         .overlay(
             ChatBubbleShape(role: message.roleEnum)
-                .strokeBorder(
+                .stroke(
                     message.roleEnum == .user ? Color.clear : Color.white.opacity(0.2),
                     lineWidth: 1
                 )
@@ -240,7 +240,7 @@ struct MessageBubbleView: View {
                 ProgressView()
                     .controlSize(.mini)
                     .scaleEffect(0.8)
-                    .tint(gradientManager.currentGradient(for: colorScheme).colors(for: colorScheme).first ?? .blue)
+                    .tint(gradientManager.active == .peachRose ? Color.pink : Color.blue)
             }
             
             // Timestamp

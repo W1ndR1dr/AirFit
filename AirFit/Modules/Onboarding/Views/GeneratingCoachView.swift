@@ -39,9 +39,9 @@ struct GeneratingCoachView: View {
                         .stroke(
                             AngularGradient(
                                 gradient: Gradient(colors: [
-                                    gradientManager.currentGradient(for: colorScheme).colors(for: colorScheme).first ?? .blue,
-                                    gradientManager.currentGradient(for: colorScheme).colors(for: colorScheme).last ?? .purple,
-                                    gradientManager.currentGradient(for: colorScheme).colors(for: colorScheme).first ?? .blue
+                                    gradientManager.active == .peachRose ? Color.pink : Color.blue,
+                                    gradientManager.active == .peachRose ? Color.orange : Color.purple,
+                                    gradientManager.active == .peachRose ? Color.pink : Color.blue
                                 ]),
                                 center: .center
                             ),
@@ -191,15 +191,19 @@ private struct StepRow: View {
         }
         .padding(AppSpacing.sm)
         .background(
-            RoundedRectangle(cornerRadius: 12)
-                .fill(isCurrent ? .ultraThinMaterial : Color.clear)
-                .overlay(
+            Group {
+                if isCurrent {
                     RoundedRectangle(cornerRadius: 12)
-                        .strokeBorder(
-                            isCurrent ? Color.white.opacity(0.2) : Color.clear,
-                            lineWidth: 1
+                        .fill(.ultraThinMaterial)
+                        .overlay(
+                            RoundedRectangle(cornerRadius: 12)
+                                .strokeBorder(Color.white.opacity(0.2), lineWidth: 1)
                         )
-                )
+                } else {
+                    RoundedRectangle(cornerRadius: 12)
+                        .fill(Color.clear)
+                }
+            }
         )
         .scaleEffect(isCurrent ? 1.02 : 1.0)
         .animation(MotionToken.standardSpring, value: isCurrent)

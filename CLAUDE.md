@@ -176,6 +176,7 @@ grep -r "@unchecked Sendable" --include="*.swift" AirFit/  # Find unsafe concurr
   ```
 - **SwiftData Constraints**: Remember ModelContext and @Model types must stay on @MainActor
 - **Keep It Simple**: Prefer working JSON storage over complex SwiftData relationships
+- **Documentation Discipline**: ALWAYS update existing docs rather than creating new ones. Single source of truth. Check DOCUMENTATION_CHECKLIST.md before any doc changes
 
 ## Progress Tracking
 **Current Status**: Phase 3.2 ✅ COMPLETE (100%) - Ready for Phase 3.3!

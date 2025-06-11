@@ -32,8 +32,11 @@ struct SettingsView: View {
 struct SettingsListView: View {
     @Environment(\.dismiss) private var dismiss
     @Environment(\.modelContext) private var modelContext
+    @Environment(\.colorScheme) private var colorScheme
+    @EnvironmentObject private var gradientManager: GradientManager
     @State var viewModel: SettingsViewModel
     @State private var coordinator: SettingsCoordinator
+    @State private var animateIn = false
     let user: User
     
     init(viewModel: SettingsViewModel, user: User) {
@@ -44,27 +47,78 @@ struct SettingsListView: View {
     
     var body: some View {
         NavigationStack(path: $coordinator.navigationPath) {
-            List {
-                aiSection
-                preferencesSection
-                privacySection
-                dataSection
-                supportSection
-                
-                #if DEBUG
-                debugSection
-                #endif
-            }
-            .listStyle(.insetGrouped)
-            .navigationTitle("Settings")
-            .navigationBarTitleDisplayMode(.large)
-            .toolbar {
-                ToolbarItem(placement: .navigationBarTrailing) {
-                    Button("Done") { dismiss() }
+            BaseScreen {
+                ScrollView {
+                    VStack(spacing: 0) {
+                        // Settings header
+                        HStack {
+                            CascadeText("Settings")
+                                .font(.system(size: 34, weight: .bold, design: .rounded))
+                                .opacity(animateIn ? 1 : 0)
+                            Spacer()
+                        }
+                        .padding(.horizontal, AppSpacing.lg)
+                        .padding(.top, AppSpacing.sm)
+                        .padding(.bottom, AppSpacing.lg)
+                        
+                        // Animated sections
+                        VStack(spacing: AppSpacing.md) {
+                            if animateIn {
+                                aiSection
+                                    .transition(.opacity.combined(with: .move(edge: .trailing)))
+                                    .animation(.easeOut(duration: 0.3).delay(0.1), value: animateIn)
+                                
+                                preferencesSection
+                                    .transition(.opacity.combined(with: .move(edge: .trailing)))
+                                    .animation(.easeOut(duration: 0.3).delay(0.2), value: animateIn)
+                                
+                                privacySection
+                                    .transition(.opacity.combined(with: .move(edge: .trailing)))
+                                    .animation(.easeOut(duration: 0.3).delay(0.3), value: animateIn)
+                                
+                                dataSection
+                                    .transition(.opacity.combined(with: .move(edge: .trailing)))
+                                    .animation(.easeOut(duration: 0.3).delay(0.4), value: animateIn)
+                                
+                                supportSection
+                                    .transition(.opacity.combined(with: .move(edge: .trailing)))
+                                    .animation(.easeOut(duration: 0.3).delay(0.5), value: animateIn)
+                                
+                                #if DEBUG
+                                debugSection
+                                    .transition(.opacity.combined(with: .move(edge: .trailing)))
+                                    .animation(.easeOut(duration: 0.3).delay(0.6), value: animateIn)
+                                #endif
+                            }
+                        }
+                        .padding(.horizontal, AppSpacing.lg)
+                        .padding(.bottom, AppSpacing.xl)
+                    }
+                }
+                .navigationTitle("")
+                .navigationBarTitleDisplayMode(.inline)
+                .toolbar {
+                    ToolbarItem(placement: .navigationBarTrailing) {
+                        Button {
+                            HapticService.impact(.soft)
+                            dismiss()
+                        } label: {
+                            Text("Done")
+                                .font(.system(size: 17, weight: .medium, design: .rounded))
+                                .foregroundStyle(
+                                    LinearGradient(
+                                        colors: gradientManager.currentGradient(for: colorScheme).colors,
+                                        startPoint: .leading,
+                                        endPoint: .trailing
+                                    )
+                                )
+                        }
+                    }
                 }
             }
             .navigationDestination(for: SettingsDestination.self) { destination in
                 destinationView(for: destination)
+                    .advanceGradientOnAppear()
             }
             .sheet(item: $coordinator.activeSheet) { sheet in
                 sheetView(for: sheet)
@@ -75,222 +129,679 @@ struct SettingsListView: View {
             .task {
                 await viewModel.loadSettings()
             }
+            .onAppear {
+                withAnimation(.easeOut(duration: 0.3)) {
+                    animateIn = true
+                }
+            }
         }
     }
     
     // MARK: - Sections
     private var aiSection: some View {
-        Section {
-            NavigationLink(value: SettingsDestination.aiPersona) {
-                Label {
-                    VStack(alignment: .leading, spacing: 4) {
-                        Text("AI Coach Persona")
-                        Text("Customize your coach's style")
-                            .font(.caption)
-                            .foregroundStyle(.secondary)
-                    }
-                } icon: {
-                    Image(systemName: "figure.wave")
-                        .foregroundStyle(.tint)
-                }
+        VStack(spacing: AppSpacing.xs) {
+            // Section header
+            HStack {
+                Text("AI Configuration")
+                    .font(.system(.footnote, weight: .medium, design: .rounded))
+                    .textCase(.uppercase)
+                    .foregroundStyle(.secondary.opacity(0.8))
+                Spacer()
             }
+            .padding(.horizontal, AppSpacing.xs)
+            .padding(.bottom, AppSpacing.xs)
             
-            NavigationLink(value: SettingsDestination.apiConfiguration) {
-                Label {
-                    VStack(alignment: .leading, spacing: 4) {
-                        Text("AI Provider")
-                        Text(viewModel.selectedProvider.displayName)
-                            .font(.caption)
-                            .foregroundStyle(.secondary)
+            GlassCard {
+                VStack(spacing: 0) {
+                    // AI Coach Persona row
+                    NavigationLink(value: SettingsDestination.aiPersona) {
+                        HStack(spacing: AppSpacing.md) {
+                            Image(systemName: "figure.wave")
+                                .font(.system(size: 20))
+                                .foregroundStyle(
+                                    LinearGradient(
+                                        colors: gradientManager.currentGradient(for: colorScheme).colors,
+                                        startPoint: .topLeading,
+                                        endPoint: .bottomTrailing
+                                    )
+                                )
+                                .frame(width: 28, height: 28)
+                            
+                            VStack(alignment: .leading, spacing: 4) {
+                                Text("AI Coach Persona")
+                                    .font(.system(.body, design: .rounded))
+                                Text("Customize your coach's style")
+                                    .font(.system(.caption, design: .rounded))
+                                    .foregroundStyle(.secondary)
+                            }
+                            
+                            Spacer()
+                            
+                            Image(systemName: "chevron.right")
+                                .font(.system(size: 14, weight: .medium))
+                                .foregroundStyle(.secondary)
+                        }
+                        .padding(.vertical, AppSpacing.sm)
+                        .padding(.horizontal, AppSpacing.md)
                     }
-                } icon: {
-                    Image(systemName: "cpu")
-                        .foregroundStyle(.tint)
-                }
-            }
-            
-            Toggle(isOn: $viewModel.isDemoModeEnabled) {
-                Label {
-                    VStack(alignment: .leading, spacing: 4) {
-                        Text("Demo Mode")
-                        Text("Use sample responses without API keys")
-                            .font(.caption)
-                            .foregroundStyle(.secondary)
+                    
+                    Divider()
+                        .padding(.horizontal, AppSpacing.md)
+                    
+                    // AI Provider row
+                    NavigationLink(value: SettingsDestination.apiConfiguration) {
+                        HStack(spacing: AppSpacing.md) {
+                            Image(systemName: "cpu")
+                                .font(.system(size: 20))
+                                .foregroundStyle(
+                                    LinearGradient(
+                                        colors: gradientManager.currentGradient(for: colorScheme).colors,
+                                        startPoint: .topLeading,
+                                        endPoint: .bottomTrailing
+                                    )
+                                )
+                                .frame(width: 28, height: 28)
+                            
+                            VStack(alignment: .leading, spacing: 4) {
+                                Text("AI Provider")
+                                    .font(.system(.body, design: .rounded))
+                                Text(viewModel.selectedProvider.displayName)
+                                    .font(.system(.caption, design: .rounded))
+                                    .foregroundStyle(.secondary)
+                            }
+                            
+                            Spacer()
+                            
+                            Image(systemName: "chevron.right")
+                                .font(.system(size: 14, weight: .medium))
+                                .foregroundStyle(.secondary)
+                        }
+                        .padding(.vertical, AppSpacing.sm)
+                        .padding(.horizontal, AppSpacing.md)
                     }
-                } icon: {
-                    Image(systemName: "play.circle")
-                        .foregroundStyle(.tint)
+                    
+                    Divider()
+                        .padding(.horizontal, AppSpacing.md)
+                    
+                    // Demo Mode toggle
+                    HStack(spacing: AppSpacing.md) {
+                        Image(systemName: "play.circle")
+                            .font(.system(size: 20))
+                            .foregroundStyle(
+                                LinearGradient(
+                                    colors: gradientManager.currentGradient(for: colorScheme).colors,
+                                    startPoint: .topLeading,
+                                    endPoint: .bottomTrailing
+                                )
+                            )
+                            .frame(width: 28, height: 28)
+                        
+                        VStack(alignment: .leading, spacing: 4) {
+                            Text("Demo Mode")
+                                .font(.system(.body, design: .rounded))
+                            Text("Use sample responses without API keys")
+                                .font(.system(.caption, design: .rounded))
+                                .foregroundStyle(.secondary)
+                        }
+                        
+                        Spacer()
+                        
+                        Toggle("", isOn: $viewModel.isDemoModeEnabled)
+                            .labelsHidden()
+                            .tint(Color(gradientManager.currentGradient(for: colorScheme).colors.first ?? .accentColor))
+                            .onChange(of: viewModel.isDemoModeEnabled) { _, newValue in
+                                HapticService.impact(.soft)
+                                Task {
+                                    await viewModel.setDemoMode(newValue)
+                                }
+                            }
+                    }
+                    .padding(.vertical, AppSpacing.sm)
+                    .padding(.horizontal, AppSpacing.md)
                 }
             }
-            .onChange(of: viewModel.isDemoModeEnabled) { _, newValue in
-                Task {
-                    await viewModel.setDemoMode(newValue)
-                }
-            }
-        } header: {
-            Text("AI Configuration")
         }
     }
     
     private var preferencesSection: some View {
-        Section("Preferences") {
-            NavigationLink(value: SettingsDestination.units) {
-                Label {
-                    HStack {
-                        Text("Units")
-                        Spacer()
-                        Text(viewModel.preferredUnits.displayName)
-                            .foregroundStyle(.secondary)
-                    }
-                } icon: {
-                    Image(systemName: "ruler")
-                        .foregroundStyle(.tint)
-                }
+        VStack(spacing: AppSpacing.xs) {
+            HStack {
+                Text("Preferences")
+                    .font(.system(.footnote, weight: .medium, design: .rounded))
+                    .textCase(.uppercase)
+                    .foregroundStyle(.secondary.opacity(0.8))
+                Spacer()
             }
+            .padding(.horizontal, AppSpacing.xs)
+            .padding(.bottom, AppSpacing.xs)
             
-            NavigationLink(value: SettingsDestination.appearance) {
-                Label {
-                    HStack {
-                        Text("Appearance")
-                        Spacer()
-                        Text(viewModel.appearanceMode.displayName)
-                            .foregroundStyle(.secondary)
-                    }
-                } icon: {
-                    Image(systemName: "paintbrush")
-                        .foregroundStyle(.tint)
-                }
-            }
-            
-            NavigationLink(value: SettingsDestination.notifications) {
-                Label {
-                    HStack {
-                        Text("Notifications")
-                        Spacer()
-                        if viewModel.notificationPreferences.systemEnabled {
-                            Image(systemName: "bell.fill")
-                                .font(.caption)
+            GlassCard {
+                VStack(spacing: 0) {
+                    // Units row
+                    NavigationLink(value: SettingsDestination.units) {
+                        HStack(spacing: AppSpacing.md) {
+                            Image(systemName: "ruler")
+                                .font(.system(size: 20))
+                                .foregroundStyle(
+                                    LinearGradient(
+                                        colors: gradientManager.currentGradient(for: colorScheme).colors,
+                                        startPoint: .topLeading,
+                                        endPoint: .bottomTrailing
+                                    )
+                                )
+                                .frame(width: 28, height: 28)
+                            
+                            Text("Units")
+                                .font(.system(.body, design: .rounded))
+                            
+                            Spacer()
+                            
+                            Text(viewModel.preferredUnits.displayName)
+                                .font(.system(.footnote, design: .rounded))
+                                .foregroundStyle(.secondary)
+                            
+                            Image(systemName: "chevron.right")
+                                .font(.system(size: 14, weight: .medium))
                                 .foregroundStyle(.secondary)
                         }
+                        .padding(.vertical, AppSpacing.sm)
+                        .padding(.horizontal, AppSpacing.md)
                     }
-                } icon: {
-                    Image(systemName: "bell")
-                        .foregroundStyle(.tint)
-                }
-            }
-            
-            Toggle(isOn: $viewModel.hapticFeedback) {
-                Label("Haptic Feedback", systemImage: "hand.tap")
-            }
-            .onChange(of: viewModel.hapticFeedback) { _, newValue in
-                Task {
-                    try await viewModel.updateHaptics(newValue)
-                    if newValue {
-                        // TODO: Add haptic feedback via DI when needed
+                    
+                    Divider()
+                        .padding(.horizontal, AppSpacing.md)
+                    
+                    // Appearance row
+                    NavigationLink(value: SettingsDestination.appearance) {
+                        HStack(spacing: AppSpacing.md) {
+                            Image(systemName: "paintbrush")
+                                .font(.system(size: 20))
+                                .foregroundStyle(
+                                    LinearGradient(
+                                        colors: gradientManager.currentGradient(for: colorScheme).colors,
+                                        startPoint: .topLeading,
+                                        endPoint: .bottomTrailing
+                                    )
+                                )
+                                .frame(width: 28, height: 28)
+                            
+                            Text("Appearance")
+                                .font(.system(.body, design: .rounded))
+                            
+                            Spacer()
+                            
+                            Text(viewModel.appearanceMode.displayName)
+                                .font(.system(.footnote, design: .rounded))
+                                .foregroundStyle(.secondary)
+                            
+                            Image(systemName: "chevron.right")
+                                .font(.system(size: 14, weight: .medium))
+                                .foregroundStyle(.secondary)
+                        }
+                        .padding(.vertical, AppSpacing.sm)
+                        .padding(.horizontal, AppSpacing.md)
                     }
+                    
+                    Divider()
+                        .padding(.horizontal, AppSpacing.md)
+                    
+                    // Notifications row
+                    NavigationLink(value: SettingsDestination.notifications) {
+                        HStack(spacing: AppSpacing.md) {
+                            Image(systemName: "bell")
+                                .font(.system(size: 20))
+                                .foregroundStyle(
+                                    LinearGradient(
+                                        colors: gradientManager.currentGradient(for: colorScheme).colors,
+                                        startPoint: .topLeading,
+                                        endPoint: .bottomTrailing
+                                    )
+                                )
+                                .frame(width: 28, height: 28)
+                            
+                            Text("Notifications")
+                                .font(.system(.body, design: .rounded))
+                            
+                            Spacer()
+                            
+                            if viewModel.notificationPreferences.systemEnabled {
+                                Image(systemName: "bell.fill")
+                                    .font(.caption)
+                                    .foregroundStyle(
+                                        LinearGradient(
+                                            colors: gradientManager.currentGradient(for: colorScheme).colors,
+                                            startPoint: .leading,
+                                            endPoint: .trailing
+                                        )
+                                    )
+                            }
+                            
+                            Image(systemName: "chevron.right")
+                                .font(.system(size: 14, weight: .medium))
+                                .foregroundStyle(.secondary)
+                        }
+                        .padding(.vertical, AppSpacing.sm)
+                        .padding(.horizontal, AppSpacing.md)
+                    }
+                    
+                    Divider()
+                        .padding(.horizontal, AppSpacing.md)
+                    
+                    // Haptic Feedback toggle
+                    HStack(spacing: AppSpacing.md) {
+                        Image(systemName: "hand.tap")
+                            .font(.system(size: 20))
+                            .foregroundStyle(
+                                LinearGradient(
+                                    colors: gradientManager.currentGradient(for: colorScheme).colors,
+                                    startPoint: .topLeading,
+                                    endPoint: .bottomTrailing
+                                )
+                            )
+                            .frame(width: 28, height: 28)
+                        
+                        Text("Haptic Feedback")
+                            .font(.system(.body, design: .rounded))
+                        
+                        Spacer()
+                        
+                        Toggle("", isOn: $viewModel.hapticFeedback)
+                            .labelsHidden()
+                            .tint(Color(gradientManager.currentGradient(for: colorScheme).colors.first ?? .accentColor))
+                            .onChange(of: viewModel.hapticFeedback) { _, newValue in
+                                HapticService.impact(.soft)
+                                Task {
+                                    try await viewModel.updateHaptics(newValue)
+                                    if newValue {
+                                        HapticService.notification(.success)
+                                    }
+                                }
+                            }
+                    }
+                    .padding(.vertical, AppSpacing.sm)
+                    .padding(.horizontal, AppSpacing.md)
                 }
             }
         }
     }
     
     private var privacySection: some View {
-        Section("Privacy & Security") {
-            NavigationLink(value: SettingsDestination.privacy) {
-                Label("Privacy Settings", systemImage: "lock.shield")
+        VStack(spacing: AppSpacing.xs) {
+            HStack {
+                Text("Privacy & Security")
+                    .font(.system(.footnote, weight: .medium, design: .rounded))
+                    .textCase(.uppercase)
+                    .foregroundStyle(.secondary.opacity(0.8))
+                Spacer()
             }
+            .padding(.horizontal, AppSpacing.xs)
+            .padding(.bottom, AppSpacing.xs)
             
-            Toggle(isOn: $viewModel.biometricLockEnabled) {
-                Label("Require Face ID", systemImage: "faceid")
-            }
-            .onChange(of: viewModel.biometricLockEnabled) { _, newValue in
-                Task {
-                    do {
-                        try await viewModel.updateBiometricLock(newValue)
-                    } catch {
-                        // Show error alert
-                        coordinator.showAlert(.error(message: error.localizedDescription))
-                        // Revert toggle
-                        viewModel.biometricLockEnabled = !newValue
+            GlassCard {
+                VStack(spacing: 0) {
+                    // Privacy Settings row
+                    NavigationLink(value: SettingsDestination.privacy) {
+                        HStack(spacing: AppSpacing.md) {
+                            Image(systemName: "lock.shield")
+                                .font(.system(size: 20))
+                                .foregroundStyle(
+                                    LinearGradient(
+                                        colors: gradientManager.currentGradient(for: colorScheme).colors,
+                                        startPoint: .topLeading,
+                                        endPoint: .bottomTrailing
+                                    )
+                                )
+                                .frame(width: 28, height: 28)
+                            
+                            Text("Privacy Settings")
+                                .font(.system(.body, design: .rounded))
+                            
+                            Spacer()
+                            
+                            Image(systemName: "chevron.right")
+                                .font(.system(size: 14, weight: .medium))
+                                .foregroundStyle(.secondary)
+                        }
+                        .padding(.vertical, AppSpacing.sm)
+                        .padding(.horizontal, AppSpacing.md)
                     }
-                }
-            }
-            
-            Toggle(isOn: $viewModel.analyticsEnabled) {
-                Label("Share Analytics", systemImage: "chart.line.uptrend.xyaxis")
-            }
-            .onChange(of: viewModel.analyticsEnabled) { _, newValue in
-                Task {
-                    try await viewModel.updateAnalytics(newValue)
+                    
+                    Divider()
+                        .padding(.horizontal, AppSpacing.md)
+                    
+                    // Face ID toggle
+                    HStack(spacing: AppSpacing.md) {
+                        Image(systemName: "faceid")
+                            .font(.system(size: 20))
+                            .foregroundStyle(
+                                LinearGradient(
+                                    colors: gradientManager.currentGradient(for: colorScheme).colors,
+                                    startPoint: .topLeading,
+                                    endPoint: .bottomTrailing
+                                )
+                            )
+                            .frame(width: 28, height: 28)
+                        
+                        Text("Require Face ID")
+                            .font(.system(.body, design: .rounded))
+                        
+                        Spacer()
+                        
+                        Toggle("", isOn: $viewModel.biometricLockEnabled)
+                            .labelsHidden()
+                            .tint(Color(gradientManager.currentGradient(for: colorScheme).colors.first ?? .accentColor))
+                            .onChange(of: viewModel.biometricLockEnabled) { _, newValue in
+                                HapticService.impact(.soft)
+                                Task {
+                                    do {
+                                        try await viewModel.updateBiometricLock(newValue)
+                                        if newValue {
+                                            HapticService.notification(.success)
+                                        }
+                                    } catch {
+                                        HapticService.notification(.error)
+                                        coordinator.showAlert(.error(message: error.localizedDescription))
+                                        viewModel.biometricLockEnabled = !newValue
+                                    }
+                                }
+                            }
+                    }
+                    .padding(.vertical, AppSpacing.sm)
+                    .padding(.horizontal, AppSpacing.md)
+                    
+                    Divider()
+                        .padding(.horizontal, AppSpacing.md)
+                    
+                    // Analytics toggle
+                    HStack(spacing: AppSpacing.md) {
+                        Image(systemName: "chart.line.uptrend.xyaxis")
+                            .font(.system(size: 20))
+                            .foregroundStyle(
+                                LinearGradient(
+                                    colors: gradientManager.currentGradient(for: colorScheme).colors,
+                                    startPoint: .topLeading,
+                                    endPoint: .bottomTrailing
+                                )
+                            )
+                            .frame(width: 28, height: 28)
+                        
+                        Text("Share Analytics")
+                            .font(.system(.body, design: .rounded))
+                        
+                        Spacer()
+                        
+                        Toggle("", isOn: $viewModel.analyticsEnabled)
+                            .labelsHidden()
+                            .tint(Color(gradientManager.currentGradient(for: colorScheme).colors.first ?? .accentColor))
+                            .onChange(of: viewModel.analyticsEnabled) { _, newValue in
+                                HapticService.impact(.soft)
+                                Task {
+                                    try await viewModel.updateAnalytics(newValue)
+                                }
+                            }
+                    }
+                    .padding(.vertical, AppSpacing.sm)
+                    .padding(.horizontal, AppSpacing.md)
                 }
             }
         }
     }
     
     private var dataSection: some View {
-        Section("Data Management") {
-            NavigationLink(value: SettingsDestination.dataManagement) {
-                Label {
-                    VStack(alignment: .leading, spacing: 4) {
-                        Text("Export Data")
-                        if let lastExport = viewModel.exportHistory.first {
-                            Text("Last export: \(lastExport.date.formatted(.relative(presentation: .named)))")
-                                .font(.caption)
+        VStack(spacing: AppSpacing.xs) {
+            HStack {
+                Text("Data Management")
+                    .font(.system(.footnote, weight: .medium, design: .rounded))
+                    .textCase(.uppercase)
+                    .foregroundStyle(.secondary.opacity(0.8))
+                Spacer()
+            }
+            .padding(.horizontal, AppSpacing.xs)
+            .padding(.bottom, AppSpacing.xs)
+            
+            GlassCard {
+                VStack(spacing: 0) {
+                    // Export Data row
+                    NavigationLink(value: SettingsDestination.dataManagement) {
+                        HStack(spacing: AppSpacing.md) {
+                            Image(systemName: "square.and.arrow.up")
+                                .font(.system(size: 20))
+                                .foregroundStyle(
+                                    LinearGradient(
+                                        colors: gradientManager.currentGradient(for: colorScheme).colors,
+                                        startPoint: .topLeading,
+                                        endPoint: .bottomTrailing
+                                    )
+                                )
+                                .frame(width: 28, height: 28)
+                            
+                            VStack(alignment: .leading, spacing: 4) {
+                                Text("Export Data")
+                                    .font(.system(.body, design: .rounded))
+                                if let lastExport = viewModel.exportHistory.first {
+                                    Text("Last export: \(lastExport.date.formatted(.relative(presentation: .named)))")
+                                        .font(.system(.caption, design: .rounded))
+                                        .foregroundStyle(.secondary)
+                                }
+                            }
+                            
+                            Spacer()
+                            
+                            Image(systemName: "chevron.right")
+                                .font(.system(size: 14, weight: .medium))
                                 .foregroundStyle(.secondary)
                         }
+                        .padding(.vertical, AppSpacing.sm)
+                        .padding(.horizontal, AppSpacing.md)
                     }
-                } icon: {
-                    Image(systemName: "square.and.arrow.up")
-                        .foregroundStyle(.tint)
+                    
+                    Divider()
+                        .padding(.horizontal, AppSpacing.md)
+                    
+                    // Delete All Data button
+                    Button(role: .destructive) {
+                        HapticService.impact(.rigid)
+                        Task {
+                            try await viewModel.deleteAllData()
+                        }
+                    } label: {
+                        HStack(spacing: AppSpacing.md) {
+                            Image(systemName: "trash")
+                                .font(.system(size: 20))
+                                .frame(width: 28, height: 28)
+                            
+                            Text("Delete All Data")
+                                .font(.system(.body, design: .rounded))
+                            
+                            Spacer()
+                        }
+                        .foregroundStyle(.red)
+                        .padding(.vertical, AppSpacing.sm)
+                        .padding(.horizontal, AppSpacing.md)
+                    }
                 }
-            }
-            
-            Button(role: .destructive) {
-                Task {
-                    try await viewModel.deleteAllData()
-                }
-            } label: {
-                Label("Delete All Data", systemImage: "trash")
-                    .foregroundStyle(.red)
             }
         }
     }
     
     private var supportSection: some View {
-        Section("Support") {
-            NavigationLink(value: SettingsDestination.about) {
-                Label {
-                    HStack {
-                        Text("About")
-                        Spacer()
-                        Text("v\(AppConstants.appVersion)")
-                            .font(.caption)
-                            .foregroundStyle(.secondary)
+        VStack(spacing: AppSpacing.xs) {
+            HStack {
+                Text("Support")
+                    .font(.system(.footnote, weight: .medium, design: .rounded))
+                    .textCase(.uppercase)
+                    .foregroundStyle(.secondary.opacity(0.8))
+                Spacer()
+            }
+            .padding(.horizontal, AppSpacing.xs)
+            .padding(.bottom, AppSpacing.xs)
+            
+            GlassCard {
+                VStack(spacing: 0) {
+                    // About row
+                    NavigationLink(value: SettingsDestination.about) {
+                        HStack(spacing: AppSpacing.md) {
+                            Image(systemName: "info.circle")
+                                .font(.system(size: 20))
+                                .foregroundStyle(
+                                    LinearGradient(
+                                        colors: gradientManager.currentGradient(for: colorScheme).colors,
+                                        startPoint: .topLeading,
+                                        endPoint: .bottomTrailing
+                                    )
+                                )
+                                .frame(width: 28, height: 28)
+                            
+                            Text("About")
+                                .font(.system(.body, design: .rounded))
+                            
+                            Spacer()
+                            
+                            Text("v\(AppConstants.appVersion)")
+                                .font(.system(.caption, design: .rounded))
+                                .foregroundStyle(.secondary)
+                            
+                            Image(systemName: "chevron.right")
+                                .font(.system(size: 14, weight: .medium))
+                                .foregroundStyle(.secondary)
+                        }
+                        .padding(.vertical, AppSpacing.sm)
+                        .padding(.horizontal, AppSpacing.md)
                     }
-                } icon: {
-                    Image(systemName: "info.circle")
-                        .foregroundStyle(.tint)
+                    
+                    Divider()
+                        .padding(.horizontal, AppSpacing.md)
+                    
+                    // Privacy Policy link
+                    Link(destination: URL(string: AppConstants.privacyPolicyURL)!) {
+                        HStack(spacing: AppSpacing.md) {
+                            Image(systemName: "hand.raised")
+                                .font(.system(size: 20))
+                                .foregroundStyle(
+                                    LinearGradient(
+                                        colors: gradientManager.currentGradient(for: colorScheme).colors,
+                                        startPoint: .topLeading,
+                                        endPoint: .bottomTrailing
+                                    )
+                                )
+                                .frame(width: 28, height: 28)
+                            
+                            Text("Privacy Policy")
+                                .font(.system(.body, design: .rounded))
+                            
+                            Spacer()
+                            
+                            Image(systemName: "arrow.up.forward")
+                                .font(.system(size: 12, weight: .medium))
+                                .foregroundStyle(.secondary)
+                        }
+                        .padding(.vertical, AppSpacing.sm)
+                        .padding(.horizontal, AppSpacing.md)
+                    }
+                    
+                    Divider()
+                        .padding(.horizontal, AppSpacing.md)
+                    
+                    // Terms of Service link
+                    Link(destination: URL(string: AppConstants.termsOfServiceURL)!) {
+                        HStack(spacing: AppSpacing.md) {
+                            Image(systemName: "doc.text")
+                                .font(.system(size: 20))
+                                .foregroundStyle(
+                                    LinearGradient(
+                                        colors: gradientManager.currentGradient(for: colorScheme).colors,
+                                        startPoint: .topLeading,
+                                        endPoint: .bottomTrailing
+                                    )
+                                )
+                                .frame(width: 28, height: 28)
+                            
+                            Text("Terms of Service")
+                                .font(.system(.body, design: .rounded))
+                            
+                            Spacer()
+                            
+                            Image(systemName: "arrow.up.forward")
+                                .font(.system(size: 12, weight: .medium))
+                                .foregroundStyle(.secondary)
+                        }
+                        .padding(.vertical, AppSpacing.sm)
+                        .padding(.horizontal, AppSpacing.md)
+                    }
+                    
+                    Divider()
+                        .padding(.horizontal, AppSpacing.md)
+                    
+                    // Contact Support link
+                    Link(destination: URL(string: "mailto:\(AppConstants.supportEmail)")!) {
+                        HStack(spacing: AppSpacing.md) {
+                            Image(systemName: "envelope")
+                                .font(.system(size: 20))
+                                .foregroundStyle(
+                                    LinearGradient(
+                                        colors: gradientManager.currentGradient(for: colorScheme).colors,
+                                        startPoint: .topLeading,
+                                        endPoint: .bottomTrailing
+                                    )
+                                )
+                                .frame(width: 28, height: 28)
+                            
+                            Text("Contact Support")
+                                .font(.system(.body, design: .rounded))
+                            
+                            Spacer()
+                            
+                            Image(systemName: "arrow.up.forward")
+                                .font(.system(size: 12, weight: .medium))
+                                .foregroundStyle(.secondary)
+                        }
+                        .padding(.vertical, AppSpacing.sm)
+                        .padding(.horizontal, AppSpacing.md)
+                    }
                 }
-            }
-            
-            Link(destination: URL(string: AppConstants.privacyPolicyURL)!) {
-                Label("Privacy Policy", systemImage: "hand.raised")
-            }
-            
-            Link(destination: URL(string: AppConstants.termsOfServiceURL)!) {
-                Label("Terms of Service", systemImage: "doc.text")
-            }
-            
-            Link(destination: URL(string: "mailto:\(AppConstants.supportEmail)")!) {
-                Label("Contact Support", systemImage: "envelope")
             }
         }
     }
     
     #if DEBUG
     private var debugSection: some View {
-        Section("Developer") {
-            NavigationLink(value: SettingsDestination.debug) {
-                Label("Debug Tools", systemImage: "hammer")
+        VStack(spacing: AppSpacing.xs) {
+            HStack {
+                Text("Developer")
+                    .font(.system(.footnote, weight: .medium, design: .rounded))
+                    .textCase(.uppercase)
+                    .foregroundStyle(.secondary.opacity(0.8))
+                Spacer()
+            }
+            .padding(.horizontal, AppSpacing.xs)
+            .padding(.bottom, AppSpacing.xs)
+            
+            GlassCard {
+                NavigationLink(value: SettingsDestination.debug) {
+                    HStack(spacing: AppSpacing.md) {
+                        Image(systemName: "hammer")
+                            .font(.system(size: 20))
+                            .foregroundStyle(
+                                LinearGradient(
+                                    colors: gradientManager.currentGradient(for: colorScheme).colors,
+                                    startPoint: .topLeading,
+                                    endPoint: .bottomTrailing
+                                )
+                            )
+                            .frame(width: 28, height: 28)
+                        
+                        Text("Debug Tools")
+                            .font(.system(.body, design: .rounded))
+                        
+                        Spacer()
+                        
+                        Image(systemName: "chevron.right")
+                            .font(.system(size: 14, weight: .medium))
+                            .foregroundStyle(.secondary)
+                    }
+                    .padding(.vertical, AppSpacing.sm)
+                    .padding(.horizontal, AppSpacing.md)
+                }
             }
         }
     }

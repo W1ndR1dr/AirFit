@@ -1,6 +1,9 @@
 # UI Component Standards - The AirFit Way
 
-**Last Updated**: 2025-06-09
+⚠️ **DEPRECATED**: This document describes the old UI approach. See `UI_VISION.md` for the current Phase 3.3 UI system.
+
+**Last Updated**: 2025-06-09  
+**Status**: DEPRECATED - Replaced by UI_VISION.md gradient-based approach
 **Author**: Senior iOS Developer (Diet Coke Edition)
 
 ## Philosophy
