@@ -3,73 +3,95 @@ import Observation
 
 struct OpeningScreenView: View {
     @Bindable var viewModel: OnboardingViewModel
+    @EnvironmentObject private var gradientManager: GradientManager
+    @Environment(\.colorScheme) private var colorScheme
     @State private var animateIn = false
+    @State private var iconScale: CGFloat = 0.5
 
     var body: some View {
-        VStack(spacing: AppSpacing.large) {
-            Spacer()
+        BaseScreen {
+            VStack(spacing: 0) {
+                Spacer()
 
-            VStack(spacing: AppSpacing.medium) {
+                // Animated icon with gradient
                 Image(systemName: "figure.run.circle.fill")
-                    .font(.system(size: 80))
-                    .foregroundStyle(AppColors.primaryGradient)
-                    .scaleEffect(animateIn ? 1 : 0.5)
+                    .font(.system(size: 100, weight: .thin))
+                    .foregroundStyle(gradientManager.currentGradient(for: colorScheme))
+                    .scaleEffect(iconScale)
                     .opacity(animateIn ? 1 : 0)
+                    .padding(.bottom, AppSpacing.lg)
 
-                Text("AirFit")
-                    .font(AppFonts.largeTitle)
-                    .foregroundColor(AppColors.textPrimary)
-                    .opacity(animateIn ? 1 : 0)
-            }
-
-            VStack(spacing: AppSpacing.small) {
-                Text("Let's design your AirFit Coach")
-                    .font(AppFonts.title3)
-                    .foregroundColor(AppColors.textPrimary)
-                    .multilineTextAlignment(.center)
-
-                Text("Est. 3-4 minutes to create your personalized experience")
-                    .font(AppFonts.subheadline)
-                    .foregroundColor(AppColors.textSecondary)
-                    .multilineTextAlignment(.center)
-            }
-            .opacity(animateIn ? 1 : 0)
-            .offset(y: animateIn ? 0 : 20)
-
-            Spacer()
-
-            VStack(spacing: AppSpacing.medium) {
-                StandardButton(
-                    "Begin",
-                    style: .primary,
-                    isFullWidth: true
-                ) {
-                    viewModel.navigateToNextScreen()
+                // AirFit title with cascade animation
+                if animateIn {
+                    CascadeText("AirFit")
+                        .font(.system(size: 56, weight: .thin, design: .rounded))
+                        .padding(.bottom, AppSpacing.xl)
                 }
-                .accessibilityIdentifier("onboarding.begin.button")
 
-                Button(
-                    action: {
-                        AppLogger.info("Onboarding skipped", category: .onboarding)
-                    },
-                    label: {
-                        Text("Maybe Later")
-                            .font(AppFonts.body)
-                            .foregroundColor(AppColors.textSecondary)
+                // Glass card for main content
+                GlassCard {
+                    VStack(spacing: AppSpacing.sm) {
+                        Text("Let's design your")
+                            .font(.system(size: 24, weight: .light, design: .rounded))
+                            .foregroundColor(.primary)
+                        
+                        Text("AirFit Coach")
+                            .font(.system(size: 28, weight: .medium, design: .rounded))
+                            .foregroundStyle(gradientManager.currentGradient(for: colorScheme))
+
+                        Text("Est. 3-4 minutes to create your personalized experience")
+                            .font(.system(size: 16, weight: .light))
+                            .foregroundColor(.secondary)
+                            .multilineTextAlignment(.center)
+                            .padding(.top, AppSpacing.xs)
                     }
-                )
-                .accessibilityIdentifier("onboarding.skip.button")
+                    .padding(.vertical, AppSpacing.md)
+                }
+                .padding(.horizontal, AppSpacing.screenPadding)
+
+                Spacer()
+
+                // Action buttons
+                VStack(spacing: AppSpacing.sm) {
+                    StandardButton(
+                        "Begin",
+                        style: .primary,
+                        isFullWidth: true
+                    ) {
+                        viewModel.navigateToNextScreen()
+                    }
+                    .accessibilityIdentifier("onboarding.begin.button")
+
+                    Button(
+                        action: {
+                            AppLogger.info("Onboarding skipped", category: .onboarding)
+                        },
+                        label: {
+                            Text("Maybe Later")
+                                .font(.system(size: 16, weight: .light))
+                                .foregroundColor(.secondary)
+                        }
+                    )
+                    .accessibilityIdentifier("onboarding.skip.button")
+                }
+                .padding(.horizontal, AppSpacing.screenPadding)
+                .padding(.bottom, AppSpacing.lg)
+                .opacity(animateIn ? 1 : 0)
+                .offset(y: animateIn ? 0 : 20)
             }
-            .padding(.horizontal, AppSpacing.large)
-            .opacity(animateIn ? 1 : 0)
-            .offset(y: animateIn ? 0 : 20)
         }
-        .padding(AppSpacing.medium)
         .onAppear {
-            withAnimation(
-                .easeOut(duration: 0.8).delay(0.2)
-            ) {
+            // Orchestrated entrance animation
+            withAnimation(MotionToken.standardSpring.delay(0.2)) {
                 animateIn = true
+            }
+            
+            // Icon bounce effect
+            withAnimation(
+                .interpolatingSpring(stiffness: 180, damping: 15)
+                .delay(0.4)
+            ) {
+                iconScale = 1.0
             }
         }
     }

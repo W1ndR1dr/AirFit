@@ -80,4 +80,30 @@ final class HapticService: HapticServiceProtocol {
     }
 }
 
+// MARK: - Static Convenience for UI Components
+extension HapticService {
+    /// Quick haptic feedback for UI components
+    /// Note: This creates a temporary generator for one-off haptics
+    @MainActor
+    static func impact(_ style: UIImpactFeedbackGenerator.FeedbackStyle) {
+        let generator = UIImpactFeedbackGenerator(style: style)
+        generator.prepare()
+        generator.impactOccurred()
+    }
+    
+    @MainActor
+    static func selection() {
+        let generator = UISelectionFeedbackGenerator()
+        generator.prepare()
+        generator.selectionChanged()
+    }
+    
+    @MainActor
+    static func notification(_ type: UINotificationFeedbackGenerator.FeedbackType) {
+        let generator = UINotificationFeedbackGenerator()
+        generator.prepare()
+        generator.notificationOccurred(type)
+    }
+}
+
 

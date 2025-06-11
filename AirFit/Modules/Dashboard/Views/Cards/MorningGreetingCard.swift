@@ -10,62 +10,51 @@ struct MorningGreetingCard: View {
     @State private var animateIn = false
 
     var body: some View {
-        StandardCard {
-            VStack(alignment: .leading, spacing: AppSpacing.medium) {
-                // Greeting Text
-                Text(greeting)
-                    .font(AppFonts.title3)
-                    .foregroundColor(AppColors.textPrimary)
+        VStack(alignment: .leading, spacing: AppSpacing.sm) {
+            // Beautiful cascade greeting
+            if animateIn {
+                CascadeText(greeting)
+                    .font(.system(size: 24, weight: .light, design: .rounded))
                     .multilineTextAlignment(.leading)
                     .fixedSize(horizontal: false, vertical: true)
+            }
+
+            // Context Pills
+            if let context = context {
+                contextPills(for: context)
                     .opacity(animateIn ? 1 : 0)
                     .offset(y: animateIn ? 0 : 20)
+            }
 
-                // Context Pills
-                if let context = context {
-                    contextPills(for: context)
-                        .opacity(animateIn ? 1 : 0)
-                        .offset(y: animateIn ? 0 : 20)
-                }
+            Divider()
+                .padding(.vertical, AppSpacing.xs)
 
-                Divider()
-                    .padding(.vertical, AppSpacing.xSmall)
+            // Energy Logger
+            VStack(alignment: .leading, spacing: AppSpacing.xs) {
+                Text("How's your energy?")
+                    .font(.caption)
+                    .fontWeight(.medium)
+                    .foregroundStyle(.secondary)
 
-                // Energy Logger
-                VStack(alignment: .leading, spacing: AppSpacing.small) {
-                    Text("How's your energy?")
-                        .font(AppFonts.caption)
-                        .foregroundColor(AppColors.textSecondary)
-
-                    if let energy = currentEnergy {
-                        HStack {
-                            EnergyLevelIndicator(level: energy)
-                            Spacer()
-                            Button("Update") {
-                                showEnergyPicker = true
-                            }
-                            .font(AppFonts.caption)
-                            .foregroundColor(AppColors.accentColor)
-                        }
-                    } else {
-                        Button {
+                if let energy = currentEnergy {
+                    HStack {
+                        EnergyLevelIndicator(level: energy)
+                        Spacer()
+                        StandardButton("Update", style: .secondary) {
                             showEnergyPicker = true
-                        } label: {
-                            Label("Log Energy", systemImage: "bolt.fill")
-                                .font(AppFonts.callout)
-                                .frame(maxWidth: .infinity)
-                                .padding(.vertical, AppSpacing.small)
-                                .background(AppColors.accentColor.opacity(0.1))
-                                .foregroundColor(AppColors.accentColor)
-                                .cornerRadius(AppConstants.Layout.smallCornerRadius)
                         }
+                        .controlSize(.small)
+                    }
+                } else {
+                    StandardButton("Log Energy", icon: "bolt.fill", style: .secondary) {
+                        showEnergyPicker = true
                     }
                 }
-                .opacity(animateIn ? 1 : 0)
-                .offset(y: animateIn ? 0 : 20)
             }
-            .frame(maxWidth: .infinity, alignment: .leading)
+            .opacity(animateIn ? 1 : 0)
+            .offset(y: animateIn ? 0 : 20)
         }
+        .frame(maxWidth: .infinity, alignment: .leading)
         .sheet(isPresented: $showEnergyPicker) {
             EnergyPickerSheet(
                 currentLevel: currentEnergy,
@@ -78,7 +67,7 @@ struct MorningGreetingCard: View {
             .presentationDragIndicator(.visible)
         }
         .onAppear {
-            withAnimation(.easeOut(duration: 0.6).delay(0.1)) {
+            withAnimation(MotionToken.standardSpring.delay(0.1)) {
                 animateIn = true
             }
         }

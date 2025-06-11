@@ -11,6 +11,8 @@ struct VoiceInputView: View {
     @State private var transcription = ""
     @State private var showTranscription = false
     @State private var timer: Timer?
+    @EnvironmentObject private var gradientManager: GradientManager
+    @Environment(\.colorScheme) private var colorScheme
     
     private var formattedDuration: String {
         let minutes = Int(recordingDuration) / 60
@@ -19,84 +21,57 @@ struct VoiceInputView: View {
     }
     
     var body: some View {
-        VStack(spacing: 24) {
-            // Voice visualizer
-            VoiceVisualizer(
-                isRecording: isRecording,
-                audioLevel: voiceRecorder.audioLevel
-            )
-            .frame(height: 120)
+        VStack(spacing: AppSpacing.md) {
+            // Use our MicRippleView instead of VoiceVisualizer
+            MicRippleView(isRecording: isRecording, size: 120)
+                .onTapGesture {
+                    toggleRecording()
+                }
             
-            // Recording status
-            VStack(spacing: 8) {
+            // Recording status with animations
+            VStack(spacing: AppSpacing.xs) {
                 if isRecording {
-                    Text("Listening...")
-                        .font(.headline)
-                        .foregroundColor(.primary)
+                    CascadeText("Listening...")
+                        .font(.system(size: 22, weight: .light, design: .rounded))
                     
                     Text(formattedDuration)
-                        .font(.system(.title3, design: .monospaced))
-                        .foregroundColor(.secondary)
+                        .font(.system(size: 20, weight: .medium, design: .monospaced))
+                        .foregroundStyle(gradientManager.currentGradient(for: colorScheme))
                 } else if !transcription.isEmpty {
                     Text("Tap to re-record or continue")
-                        .font(.subheadline)
+                        .font(.system(size: 16, weight: .light))
                         .foregroundColor(.secondary)
                 } else {
                     Text("Tap to start speaking")
-                        .font(.headline)
+                        .font(.system(size: 20, weight: .light))
                         .foregroundColor(.primary)
                 }
             }
             
-            // Transcription preview
+            // Transcription preview with glass morphism
             if showTranscription && !transcription.isEmpty {
-                VStack(alignment: .leading, spacing: 8) {
-                    Text("You said:")
-                        .font(.caption)
-                        .foregroundColor(.secondary)
-                    
-                    Text(transcription)
-                        .font(.body)
-                        .padding()
-                        .frame(maxWidth: .infinity, alignment: .leading)
-                        .background(Color(.systemGray6))
-                        .cornerRadius(12)
+                GlassCard {
+                    VStack(alignment: .leading, spacing: AppSpacing.xs) {
+                        Text("You said:")
+                            .font(.system(size: 14, weight: .light))
+                            .foregroundColor(.secondary)
+                        
+                        Text(transcription)
+                            .font(.system(size: 16, weight: .regular))
+                            .frame(maxWidth: .infinity, alignment: .leading)
+                    }
                 }
+                .padding(.horizontal, AppSpacing.screenPadding)
                 .transition(.opacity.combined(with: .scale(scale: 0.95)))
             }
             
-            // Control buttons
-            HStack(spacing: 20) {
-                // Record button
-                Button(action: toggleRecording) {
-                    ZStack {
-                        Circle()
-                            .fill(isRecording ? Color.red : Color.accentColor)
-                            .frame(width: 80, height: 80)
-                        
-                        Image(systemName: isRecording ? "stop.fill" : "mic.fill")
-                            .font(.system(size: 30))
-                            .foregroundColor(.white)
-                    }
+            // Submit button when transcription is available
+            if !transcription.isEmpty && !isRecording {
+                StandardButton("Continue", style: .primary) {
+                    submitRecording()
                 }
-                .scaleEffect(isRecording ? 1.1 : 1.0)
-                .animation(.spring(response: 0.3), value: isRecording)
-                
-                // Submit button (when transcription available)
-                if !transcription.isEmpty && !isRecording {
-                    Button(action: submitRecording) {
-                        ZStack {
-                            Circle()
-                                .fill(Color.green)
-                                .frame(width: 60, height: 60)
-                            
-                            Image(systemName: "checkmark")
-                                .font(.system(size: 24, weight: .bold))
-                                .foregroundColor(.white)
-                        }
-                    }
-                    .transition(.scale.combined(with: .opacity))
-                }
+                .padding(.horizontal, AppSpacing.screenPadding)
+                .transition(.scale.combined(with: .opacity))
             }
             
             // Privacy note
@@ -135,7 +110,8 @@ struct VoiceInputView: View {
                 }
             }
         }
-                 // TODO: Add haptic feedback via DI when needed
+        
+        HapticService.impact(.light)
     }
     
     private func stopRecording() {
@@ -148,8 +124,10 @@ struct VoiceInputView: View {
                 // In real app, transcribe audio here
                 // For now, use placeholder
                 transcription = "This is where your transcribed speech would appear"
-                showTranscription = true
-                                 // TODO: Add haptic feedback via DI when needed
+                withAnimation(MotionToken.standardSpring) {
+                    showTranscription = true
+                }
+                HapticService.notification(.success)
             }
         }
     }
@@ -157,7 +135,8 @@ struct VoiceInputView: View {
     private func submitRecording() {
         guard !transcription.isEmpty,
               let audioData = voiceRecorder.lastRecordingData else { return }
-                 // TODO: Add haptic feedback via DI when needed
+        
+        HapticService.impact(.medium)
         onSubmit(transcription, audioData)
     }
 }

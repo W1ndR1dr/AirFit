@@ -1,6 +1,8 @@
 import SwiftUI
 
 struct NutritionCard: View {
+    @EnvironmentObject private var gradientManager: GradientManager
+    
     let summary: NutritionSummary
     let targets: NutritionTargets
     var onTap: (() -> Void)?
@@ -33,20 +35,22 @@ struct NutritionCard: View {
     }
 
     var body: some View {
-        TappableCard(action: { onTap?() }) {
-            VStack(alignment: .leading, spacing: AppSpacing.medium) {
-                cardHeader
+        VStack(alignment: .leading, spacing: AppSpacing.sm) {
+            cardHeader
 
-                HStack(spacing: AppSpacing.medium) {
-                    caloriesRing
-                    macroBreakdown
-                }
-
-                waterIntakeRow
+            HStack(spacing: AppSpacing.md) {
+                caloriesRing
+                macroBreakdown
             }
+
+            waterIntakeRow
+        }
+        .onTapGesture {
+            HapticService.impact(.soft)
+            onTap?()
         }
         .onAppear {
-            withAnimation(.bouncy.delay(0.1)) {
+            withAnimation(MotionToken.standardSpring.delay(0.1)) {
                 animateRings = true
             }
         }
@@ -70,21 +74,24 @@ private extension NutritionCard {
     }
 
     var caloriesRing: some View {
-        ZStack {
-            AnimatedRing(
-                progress: animateRings ? caloriesProgress : 0,
-                gradient: AppColors.caloriesGradient,
-                lineWidth: 12
-            )
-            .frame(width: 80, height: 80)
-
+        MetricRing(
+            value: animateRings ? summary.calories : 0,
+            goal: targets.calories,
+            lineWidth: 12,
+            size: 80,
+            showPercentage: false
+        )
+        .overlay {
             VStack(spacing: 2) {
-                Text("\(Int(summary.calories))")
-                    .font(AppFonts.headline)
-                    .foregroundStyle(AppColors.textPrimary)
+                GradientNumber(
+                    value: summary.calories,
+                    fontSize: 20,
+                    fontWeight: .semibold
+                )
                 Text("cal")
-                    .font(AppFonts.caption)
-                    .foregroundStyle(AppColors.textSecondary)
+                    .font(.caption)
+                    .fontWeight(.medium)
+                    .foregroundStyle(.secondary)
             }
         }
     }

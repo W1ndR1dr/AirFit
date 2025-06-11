@@ -10,22 +10,26 @@ struct MessageBubbleView: View {
     @State private var isExpanded = false
     @State private var animateIn = false
     @State private var selectedReaction: String?
+    @EnvironmentObject private var gradientManager: GradientManager
+    @Environment(\.colorScheme) private var colorScheme
     
     var body: some View {
-        HStack(alignment: .bottom, spacing: AppSpacing.small) {
+        HStack(alignment: .bottom, spacing: AppSpacing.sm) {
             if message.roleEnum == .user {
                 Spacer(minLength: 60)
             }
             
-            VStack(alignment: message.roleEnum == .user ? .trailing : .leading, spacing: AppSpacing.xSmall) {
-                // Message bubble
+            VStack(alignment: message.roleEnum == .user ? .trailing : .leading, spacing: AppSpacing.xs) {
+                // Message bubble with glass morphism
                 bubble
-                    .scaleEffect(animateIn ? 1.0 : 0.8)
+                    .scaleEffect(animateIn ? 1.0 : 0.9)
                     .opacity(animateIn ? 1.0 : 0.0)
-                    .animation(.spring(response: 0.6, dampingFraction: 0.8), value: animateIn)
+                    .animation(MotionToken.standardSpring, value: animateIn)
                 
                 // Timestamp and status
                 messageFooter
+                    .opacity(animateIn ? 1 : 0)
+                    .animation(MotionToken.standardSpring.delay(0.1), value: animateIn)
             }
             
             if message.roleEnum == .assistant {
@@ -33,14 +37,14 @@ struct MessageBubbleView: View {
             }
         }
         .onAppear {
-            withAnimation(.spring(response: 0.4, dampingFraction: 0.7).delay(0.1)) {
+            withAnimation(MotionToken.standardSpring.delay(0.05)) {
                 animateIn = true
             }
         }
     }
     
     private var bubble: some View {
-        VStack(alignment: .leading, spacing: AppSpacing.small) {
+        VStack(alignment: .leading, spacing: AppSpacing.sm) {
             // Attachments
             if !message.attachments.isEmpty {
                 attachmentsView
@@ -63,22 +67,30 @@ struct MessageBubbleView: View {
                 interactiveElements
             }
         }
-        .padding()
+        .padding(AppSpacing.sm)
         .background(bubbleBackground)
         .clipShape(ChatBubbleShape(role: message.roleEnum))
+        .overlay(
+            ChatBubbleShape(role: message.roleEnum)
+                .strokeBorder(
+                    message.roleEnum == .user ? Color.clear : Color.white.opacity(0.2),
+                    lineWidth: 1
+                )
+        )
         .shadow(
-            color: .black.opacity(0.1),
-            radius: 2,
+            color: Color.black.opacity(0.05),
+            radius: message.roleEnum == .user ? 0 : 5,
             x: 0,
-            y: 1
+            y: 2
         )
         .contextMenu {
             messageActions
         }
         .onTapGesture {
             if hasExpandableContent {
-                withAnimation(.spring()) {
+                withAnimation(MotionToken.standardSpring) {
                     isExpanded.toggle()
+                    HapticService.selection()
                 }
             }
         }
@@ -87,16 +99,13 @@ struct MessageBubbleView: View {
     @ViewBuilder
     private var bubbleBackground: some View {
         if message.roleEnum == .user {
-            LinearGradient(
-                colors: [Color.accentColor.opacity(0.8), Color.accentColor.opacity(0.6)],
-                startPoint: .topLeading,
-                endPoint: .bottomTrailing
-            )
+            gradientManager.currentGradient(for: colorScheme)
         } else {
-            AppColors.cardBackground
+            Color.clear
+                .background(.ultraThinMaterial)
                 .overlay(
                     LinearGradient(
-                        colors: [Color.white.opacity(0.1), Color.clear],
+                        colors: [Color.white.opacity(0.05), Color.clear],
                         startPoint: .topLeading,
                         endPoint: .bottomTrailing
                     )
@@ -207,35 +216,36 @@ struct MessageBubbleView: View {
                 HStack(spacing: 8) {
                     Button(action: { onAction(.copy) }) {
                         Image(systemName: "doc.on.doc")
-                            .font(.caption)
+                            .font(.system(size: 14, weight: .light))
                             .foregroundStyle(.secondary)
                     }
                     .buttonStyle(.plain)
                     
                     Button(action: { onAction(.regenerate) }) {
                         Image(systemName: "arrow.clockwise")
-                            .font(.caption)
+                            .font(.system(size: 14, weight: .light))
                             .foregroundStyle(.secondary)
                     }
                     .buttonStyle(.plain)
                 }
             }
-            .padding(.top, AppSpacing.xSmall)
+            .padding(.top, AppSpacing.xs)
             .opacity(0.7)
         }
     }
     
     private var messageFooter: some View {
-        HStack(spacing: AppSpacing.xSmall) {
+        HStack(spacing: AppSpacing.xs) {
             if message.roleEnum == .user && isStreaming {
                 ProgressView()
                     .controlSize(.mini)
                     .scaleEffect(0.8)
+                    .tint(gradientManager.currentGradient(for: colorScheme).colors(for: colorScheme).first ?? .blue)
             }
             
             // Timestamp
             Text(formatTimestamp(message.timestamp))
-                .font(.caption2)
+                .font(.system(size: 11, weight: .light))
                 .foregroundStyle(.secondary)
             
             // Message status indicators
@@ -247,7 +257,7 @@ struct MessageBubbleView: View {
             if message.roleEnum == .assistant,
                let tokenCount = message.tokenCount {
                 Text("• \(tokenCount) tokens")
-                    .font(.caption2)
+                    .font(.system(size: 11, weight: .light))
                     .foregroundStyle(.tertiary)
             }
         }
@@ -333,8 +343,7 @@ struct MessageBubbleView: View {
             selectedReaction = emoji
         }
         
-        // Haptic feedback
-        // TODO: Add haptic feedback via DI when needed
+        HapticService.selection()
     }
     
     private func handleQuickAction(_ actionId: String) {
@@ -465,18 +474,27 @@ struct ReactionButton: View {
     let emoji: String
     let isSelected: Bool
     let onTap: () -> Void
+    @EnvironmentObject private var gradientManager: GradientManager
+    @Environment(\.colorScheme) private var colorScheme
     
     var body: some View {
         Button(action: onTap) {
             Text(emoji)
-                .font(.caption)
-                .padding(4)
+                .font(.system(size: 14))
+                .padding(6)
                 .background(
                     Circle()
-                        .fill(isSelected ? Color.accentColor.opacity(0.2) : Color.clear)
+                        .fill(isSelected ? AnyShapeStyle(gradientManager.currentGradient(for: colorScheme).opacity(0.2)) : AnyShapeStyle(Color.clear))
+                        .overlay(
+                            Circle()
+                                .strokeBorder(
+                                    isSelected ? gradientManager.currentGradient(for: colorScheme) : LinearGradient(colors: [Color.clear], startPoint: .top, endPoint: .bottom),
+                                    lineWidth: 1
+                                )
+                        )
                 )
                 .scaleEffect(isSelected ? 1.1 : 1.0)
-                .animation(.spring(response: 0.3), value: isSelected)
+                .animation(MotionToken.standardSpring, value: isSelected)
         }
         .buttonStyle(.plain)
     }

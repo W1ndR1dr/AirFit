@@ -28,6 +28,9 @@ struct ChatView: View {
     @State private var coordinator = ChatCoordinator()
     @FocusState private var isComposerFocused: Bool
     @State private var scrollProxy: ScrollViewProxy?
+    @State private var animateIn = false
+    @EnvironmentObject private var gradientManager: GradientManager
+    @Environment(\.colorScheme) private var colorScheme
     let user: User
 
     init(viewModel: ChatViewModel, user: User) {
@@ -37,31 +40,47 @@ struct ChatView: View {
 
     var body: some View {
         NavigationStack(path: $coordinator.navigationPath) {
-            VStack(spacing: 0) {
-                messagesScrollView
+            BaseScreen {
+                VStack(spacing: 0) {
+                    // Gradient header with coach name
+                    if animateIn {
+                        VStack(spacing: AppSpacing.xs) {
+                            CascadeText(user.coachPersona?.name ?? "AI Coach")
+                                .font(.system(size: 24, weight: .light, design: .rounded))
+                            
+                            if let archetype = user.coachPersona?.archetype {
+                                Text(archetype)
+                                    .font(.system(size: 14, weight: .light))
+                                    .foregroundColor(.secondary)
+                            }
+                        }
+                        .padding(.vertical, AppSpacing.sm)
+                        .frame(maxWidth: .infinity)
+                        .background(.ultraThinMaterial)
+                    }
+                    
+                    messagesScrollView
 
-                if !viewModel.quickSuggestions.isEmpty {
-                    suggestionsBar
+                    if !viewModel.quickSuggestions.isEmpty {
+                        suggestionsBar
+                    }
+
+                    // Glass morphism composer
+                    MessageComposer(
+                        text: $viewModel.composerText,
+                        attachments: $viewModel.attachments,
+                        isRecording: viewModel.isRecording,
+                        waveform: viewModel.voiceWaveform,
+                        onSend: { Task { await viewModel.sendMessage() } },
+                        onVoiceToggle: { Task { await viewModel.toggleVoiceRecording() } }
+                    )
+                    .focused($isComposerFocused)
+                    .padding(.horizontal, AppSpacing.sm)
+                    .padding(.vertical, AppSpacing.xs)
+                    .background(.ultraThinMaterial)
                 }
-
-                MessageComposer(
-                    text: $viewModel.composerText,
-                    attachments: $viewModel.attachments,
-                    isRecording: viewModel.isRecording,
-                    waveform: viewModel.voiceWaveform,
-                    onSend: { Task { await viewModel.sendMessage() } },
-                    onVoiceToggle: { Task { await viewModel.toggleVoiceRecording() } }
-                )
-                .focused($isComposerFocused)
-                .padding(.horizontal)
-                .padding(.vertical, 8)
-                .background(AppColors.backgroundPrimary)
             }
-            .navigationTitle("AI Coach")
-            .navigationBarTitleDisplayMode(.inline)
-            .toolbar {
-                toolbarContent
-            }
+            .navigationBarHidden(true)
             .navigationDestination(for: ChatDestination.self) { destination in
                 destinationView(for: destination)
             }
@@ -74,6 +93,11 @@ struct ChatView: View {
             .onChange(of: viewModel.messages.count) { _, _ in
                 scrollToBottom()
             }
+            .onAppear {
+                withAnimation(MotionToken.standardSpring) {
+                    animateIn = true
+                }
+            }
         }
     }
 
@@ -81,8 +105,31 @@ struct ChatView: View {
     private var messagesScrollView: some View {
         ScrollViewReader { proxy in
             ScrollView {
-                LazyVStack(spacing: AppSpacing.medium) {
-                    ForEach(viewModel.messages) { message in
+                LazyVStack(spacing: AppSpacing.sm) {
+                    // Welcome message if no messages
+                    if viewModel.messages.isEmpty && animateIn {
+                        GlassCard {
+                            VStack(spacing: AppSpacing.sm) {
+                                Image(systemName: "sparkles")
+                                    .font(.system(size: 40, weight: .light))
+                                    .foregroundStyle(gradientManager.currentGradient(for: colorScheme))
+                                
+                                CascadeText("Welcome! How can I help you today?")
+                                    .font(.system(size: 20, weight: .light, design: .rounded))
+                                    .multilineTextAlignment(.center)
+                                
+                                Text("I'm your personalized AI coach, here to support your fitness journey.")
+                                    .font(.system(size: 14, weight: .light))
+                                    .foregroundColor(.secondary)
+                                    .multilineTextAlignment(.center)
+                            }
+                            .padding(AppSpacing.md)
+                        }
+                        .padding(AppSpacing.screenPadding)
+                        .transition(.scale.combined(with: .opacity))
+                    }
+                    
+                    ForEach(Array(viewModel.messages.enumerated()), id: \.element.id) { index, message in
                         MessageBubbleView(
                             message: message,
                             isStreaming: viewModel.isStreaming && message == viewModel.messages.last,
@@ -91,7 +138,16 @@ struct ChatView: View {
                             }
                         )
                         .id(message.id)
-                        .transition(.opacity)
+                        .transition(.asymmetric(
+                            insertion: .push(from: message.isFromUser ? .trailing : .leading).combined(with: .opacity),
+                            removal: .opacity
+                        ))
+                        .opacity(animateIn ? 1 : 0)
+                        .offset(y: animateIn ? 0 : 10)
+                        .animation(
+                            MotionToken.standardSpring.delay(Double(index) * 0.05),
+                            value: animateIn
+                        )
                     }
 
                     if viewModel.isStreaming {
@@ -99,37 +155,44 @@ struct ChatView: View {
                             ChatTypingIndicator()
                             Spacer()
                         }
-                        .padding(.leading, AppSpacing.medium)
+                        .padding(.leading, AppSpacing.md)
+                        .transition(.scale.combined(with: .opacity))
                     }
                 }
-                .padding()
+                .padding(.vertical, AppSpacing.sm)
+                .padding(.horizontal, AppSpacing.screenPadding)
             }
             .scrollDismissesKeyboard(.interactively)
             .onAppear { scrollProxy = proxy }
             .onChange(of: coordinator.scrollToMessageId) { _, messageId in
                 if let id = messageId {
-                    withAnimation { proxy.scrollTo(id, anchor: .center) }
+                    withAnimation(MotionToken.standardSpring) {
+                        proxy.scrollTo(id, anchor: .center)
+                    }
                 }
             }
         }
-        .background(AppColors.backgroundSecondary)
     }
 
     // MARK: - Suggestions Bar
     private var suggestionsBar: some View {
         ScrollView(.horizontal, showsIndicators: false) {
-            HStack(spacing: AppSpacing.small) {
+            HStack(spacing: AppSpacing.xs) {
                 ForEach(viewModel.quickSuggestions) { suggestion in
                     SuggestionChip(
                         suggestion: suggestion,
-                        onTap: { viewModel.selectSuggestion(suggestion) }
+                        onTap: { 
+                            HapticService.selection()
+                            viewModel.selectSuggestion(suggestion)
+                        }
                     )
+                    .transition(.scale.combined(with: .opacity))
                 }
             }
-            .padding(.horizontal)
-            .padding(.vertical, AppSpacing.small)
+            .padding(.horizontal, AppSpacing.screenPadding)
+            .padding(.vertical, AppSpacing.xs)
         }
-        .background(AppColors.backgroundSecondary)
+        .background(.ultraThinMaterial)
     }
 
     // MARK: - Toolbar
@@ -137,25 +200,39 @@ struct ChatView: View {
     private var toolbarContent: some ToolbarContent {
         ToolbarItem(placement: .navigationBarTrailing) {
             Menu(content: {
-                Button(action: { coordinator.showSheet(.sessionHistory) }) {
+                Button(action: { 
+                    HapticService.selection()
+                    coordinator.showSheet(.sessionHistory)
+                }) {
                     Label("Chat History", systemImage: "clock")
                 }
 
-                Button(action: { coordinator.navigateTo(.searchResults) }) {
+                Button(action: { 
+                    HapticService.selection()
+                    coordinator.navigateTo(.searchResults)
+                }) {
                     Label("Search", systemImage: "magnifyingglass")
                 }
 
-                Button(action: { coordinator.showSheet(.exportChat) }) {
+                Button(action: { 
+                    HapticService.selection()
+                    coordinator.showSheet(.exportChat)
+                }) {
                     Label("Export Chat", systemImage: "square.and.arrow.up")
                 }
 
                 Divider()
 
-                Button(action: startNewSession) {
+                Button(action: {
+                    HapticService.selection()
+                    startNewSession()
+                }) {
                     Label("New Session", systemImage: "plus.bubble")
                 }
             }, label: {
                 Image(systemName: "ellipsis.circle")
+                    .font(.system(size: 20, weight: .light))
+                    .foregroundStyle(gradientManager.currentGradient(for: colorScheme))
             })
         }
     }
@@ -250,20 +327,89 @@ private final class ChatMockCoachEngine: CoachEngineProtocol, @unchecked Sendabl
 private struct SuggestionChip: View {
     let suggestion: QuickSuggestion
     let onTap: () -> Void
+    @State private var isPressed = false
+    @EnvironmentObject private var gradientManager: GradientManager
+    @Environment(\.colorScheme) private var colorScheme
 
     var body: some View {
         Button(action: onTap) {
             Text(suggestion.text)
-                .padding(.horizontal, 12)
-                .padding(.vertical, 6)
-                .background(Capsule().fill(AppColors.accent.opacity(0.2)))
+                .font(.system(size: 14, weight: .light))
+                .foregroundColor(.primary)
+                .padding(.horizontal, AppSpacing.sm)
+                .padding(.vertical, AppSpacing.xs)
+                .background(
+                    Capsule()
+                        .fill(.ultraThinMaterial)
+                        .overlay(
+                            Capsule()
+                                .strokeBorder(
+                                    gradientManager.currentGradient(for: colorScheme),
+                                    lineWidth: isPressed ? 2 : 1
+                                )
+                        )
+                )
+        }
+        .scaleEffect(isPressed ? 0.95 : 1.0)
+        .onLongPressGesture(minimumDuration: 0, maximumDistance: .infinity) { _ in
+            withAnimation(MotionToken.standardSpring) {
+                isPressed = true
+            }
+        } onEnded: { _ in
+            withAnimation(MotionToken.standardSpring) {
+                isPressed = false
+            }
         }
     }
 }
 
 private struct ChatTypingIndicator: View {
+    @State private var animationPhase: CGFloat = 0
+    @EnvironmentObject private var gradientManager: GradientManager
+    @Environment(\.colorScheme) private var colorScheme
+    
     var body: some View {
-        ProgressView()
+        HStack(spacing: AppSpacing.xs) {
+            ForEach(0..<3) { index in
+                Circle()
+                    .fill(gradientManager.currentGradient(for: colorScheme))
+                    .frame(width: 8, height: 8)
+                    .scaleEffect(animationScale(for: index))
+                    .opacity(animationOpacity(for: index))
+            }
+        }
+        .padding(.horizontal, AppSpacing.sm)
+        .padding(.vertical, AppSpacing.xs)
+        .background(
+            Capsule()
+                .fill(.ultraThinMaterial)
+        )
+        .onAppear {
+            withAnimation(
+                .easeInOut(duration: 1.4)
+                .repeatForever(autoreverses: false)
+            ) {
+                animationPhase = 3
+            }
+        }
+    }
+    
+    private func animationScale(for index: Int) -> CGFloat {
+        let phase = animationPhase - CGFloat(index) * 0.3
+        let normalizedPhase = (phase.truncatingRemainder(dividingBy: 3) + 3).truncatingRemainder(dividingBy: 3)
+        
+        if normalizedPhase < 1 {
+            return 1 + normalizedPhase * 0.3
+        } else if normalizedPhase < 2 {
+            return 1.3 - (normalizedPhase - 1) * 0.3
+        } else {
+            return 1
+        }
+    }
+    
+    private func animationOpacity(for index: Int) -> Double {
+        let scale = animationScale(for: index)
+        return scale > 1 ? 1 : 0.6
     }
 }
 

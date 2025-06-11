@@ -8,6 +8,9 @@ struct PersonaPreviewView: View {
     @State private var showingAdjustmentSheet = false
     @State private var adjustmentText = ""
     @State private var selectedSampleIndex = 0
+    @State private var animateIn = false
+    @EnvironmentObject private var gradientManager: GradientManager
+    @Environment(\.colorScheme) private var colorScheme
     
     private let sampleMessages = [
         "Good morning! Ready to crush your fitness goals today? 🔥",
@@ -18,24 +21,31 @@ struct PersonaPreviewView: View {
     ]
     
     var body: some View {
-        ScrollView {
-            VStack(spacing: 24) {
-                // Coach Card
-                coachCard
-                    .padding(.horizontal)
-                    .padding(.top)
-                
-                // Sample Messages
-                sampleMessagesSection
-                    .padding(.horizontal)
-                
-                // Action Buttons
-                actionButtons
-                    .padding(.horizontal)
-                    .padding(.bottom, 32)
+        BaseScreen {
+            ScrollView {
+                VStack(spacing: AppSpacing.lg) {
+                    // Coach Card
+                    coachCard
+                        .padding(.horizontal, AppSpacing.screenPadding)
+                        .padding(.top, AppSpacing.md)
+                    
+                    // Sample Messages
+                    sampleMessagesSection
+                        .padding(.horizontal, AppSpacing.screenPadding)
+                    
+                    // Action Buttons
+                    actionButtons
+                        .padding(.horizontal, AppSpacing.screenPadding)
+                        .padding(.bottom, AppSpacing.xl)
+                }
+            }
+            .navigationBarHidden(true)
+            .onAppear {
+                withAnimation(MotionToken.standardSpring.delay(0.1)) {
+                    animateIn = true
+                }
             }
         }
-        .navigationBarHidden(true)
         .sheet(isPresented: $showingAdjustmentSheet) {
             PreviewPersonaAdjustmentSheet(
                 adjustmentText: $adjustmentText,
@@ -52,106 +62,107 @@ struct PersonaPreviewView: View {
     // MARK: - Components
     
     private var coachCard: some View {
-        VStack(spacing: 20) {
-            // Header
-            HStack {
-                VStack(alignment: .leading, spacing: 4) {
-                    Text("Meet Your Coach")
-                        .font(.headline)
-                        .foregroundStyle(.secondary)
-                    
-                    Text(persona.name)
-                        .font(.largeTitle)
-                        .fontWeight(.bold)
-                }
+        GlassCard {
+            VStack(spacing: AppSpacing.md) {
+                // Header
+                HStack {
+                    VStack(alignment: .leading, spacing: AppSpacing.xs) {
+                        Text("Meet Your Coach")
+                            .font(.system(size: 16, weight: .light))
+                            .foregroundStyle(.secondary)
+                        
+                        if animateIn {
+                            CascadeText(persona.name)
+                                .font(.system(size: 36, weight: .light, design: .rounded))
+                        }
+                    }
                 
                 Spacer()
                 
-                // Coach Avatar
-                ZStack {
-                    Circle()
-                        .fill(
-                            LinearGradient(
-                                colors: [AppColors.accentColor, AppColors.accentSecondary],
-                                startPoint: .topLeading,
-                                endPoint: .bottomTrailing
-                            )
+                    // Coach Avatar with gradient
+                    ZStack {
+                        Circle()
+                            .fill(gradientManager.currentGradient(for: colorScheme))
+                            .frame(width: 80, height: 80)
+                        
+                        Text(persona.name.prefix(1))
+                            .font(.system(size: 36, weight: .bold, design: .rounded))
+                            .foregroundColor(.white)
+                    }
+                    .scaleEffect(animateIn ? 1 : 0.5)
+                    .opacity(animateIn ? 1 : 0)
+                }
+            
+                // Archetype Badge with gradient
+                HStack {
+                    Label(persona.archetype, systemImage: "star.fill")
+                        .font(.system(size: 14, weight: .medium))
+                        .foregroundStyle(.white)
+                        .padding(.horizontal, AppSpacing.sm)
+                        .padding(.vertical, AppSpacing.xs)
+                        .background(
+                            Capsule()
+                                .fill(gradientManager.currentGradient(for: colorScheme))
                         )
-                        .frame(width: 80, height: 80)
                     
-                    Text(persona.name.prefix(1))
-                        .font(.system(size: 36, weight: .bold, design: .rounded))
-                        .foregroundColor(.white)
+                    Spacer()
                 }
-            }
+                .opacity(animateIn ? 1 : 0)
+                .offset(y: animateIn ? 0 : 10)
             
-            // Archetype Badge
-            HStack {
-                Label(persona.archetype, systemImage: "star.fill")
-                    .font(.subheadline)
-                    .foregroundStyle(.white)
-                    .padding(.horizontal, 16)
-                    .padding(.vertical, 8)
-                    .background(
-                        Capsule()
-                            .fill(AppColors.accentColor.opacity(0.9))
-                    )
-                
-                Spacer()
-            }
-            
-            // Personality Traits
-            VStack(alignment: .leading, spacing: 12) {
-                Text("Personality")
-                    .font(.headline)
-                
-                FlowLayout(spacing: 8) {
-                    ForEach(persona.coreValues, id: \.self) { value in
-                        TraitChip(text: value)
+                // Personality Traits
+                VStack(alignment: .leading, spacing: AppSpacing.sm) {
+                    Text("Personality")
+                        .font(.system(size: 18, weight: .medium))
+                    
+                    FlowLayout(spacing: AppSpacing.xs) {
+                        ForEach(persona.coreValues, id: \.self) { value in
+                            TraitChip(text: value)
+                        }
                     }
                 }
-            }
+                .opacity(animateIn ? 1 : 0)
+                .offset(y: animateIn ? 0 : 10)
+                .animation(MotionToken.standardSpring.delay(0.2), value: animateIn)
             
-            // Communication Style
-            VStack(alignment: .leading, spacing: 12) {
-                Text("Communication Style")
-                    .font(.headline)
-                
-                HStack(spacing: 16) {
-                    StyleIndicator(
-                        label: "Energy",
-                        value: persona.voiceCharacteristics.energy.rawValue.capitalized,
-                        icon: "bolt.fill"
-                    )
+                // Communication Style
+                VStack(alignment: .leading, spacing: AppSpacing.sm) {
+                    Text("Communication Style")
+                        .font(.system(size: 18, weight: .medium))
                     
-                    StyleIndicator(
-                        label: "Warmth",
-                        value: persona.voiceCharacteristics.warmth.rawValue.capitalized,
-                        icon: "heart.fill"
-                    )
-                    
-                    StyleIndicator(
-                        label: "Formality",
-                        value: persona.interactionStyle.formalityLevel.rawValue.capitalized,
-                        icon: "text.bubble.fill"
-                    )
+                    HStack(spacing: AppSpacing.sm) {
+                        StyleIndicator(
+                            label: "Energy",
+                            value: persona.voiceCharacteristics.energy.rawValue.capitalized,
+                            icon: "bolt.fill"
+                        )
+                        
+                        StyleIndicator(
+                            label: "Warmth",
+                            value: persona.voiceCharacteristics.warmth.rawValue.capitalized,
+                            icon: "heart.fill"
+                        )
+                        
+                        StyleIndicator(
+                            label: "Formality",
+                            value: persona.interactionStyle.formalityLevel.rawValue.capitalized,
+                            icon: "text.bubble.fill"
+                        )
+                    }
                 }
+                .opacity(animateIn ? 1 : 0)
+                .offset(y: animateIn ? 0 : 10)
+                .animation(MotionToken.standardSpring.delay(0.3), value: animateIn)
             }
         }
-        .padding(24)
-        .background(
-            RoundedRectangle(cornerRadius: 20)
-                .fill(AppColors.cardBackground)
-                .shadow(color: .black.opacity(0.05), radius: 10, y: 5)
-        )
     }
     
     private var sampleMessagesSection: some View {
-        VStack(alignment: .leading, spacing: 16) {
+        VStack(alignment: .leading, spacing: AppSpacing.sm) {
             Text("Sample Messages")
-                .font(.headline)
+                .font(.system(size: 18, weight: .medium))
             
-            // Message carousel
+            // Message carousel with glass morphism
             TabView(selection: $selectedSampleIndex) {
                 ForEach(0..<generateSampleMessages().count, id: \.self) { index in
                     PreviewMessageBubble(
@@ -164,10 +175,13 @@ struct PersonaPreviewView: View {
             .tabViewStyle(.page(indexDisplayMode: .automatic))
             .frame(height: 120)
         }
+        .opacity(animateIn ? 1 : 0)
+        .offset(y: animateIn ? 0 : 20)
+        .animation(MotionToken.standardSpring.delay(0.4), value: animateIn)
     }
     
     private var actionButtons: some View {
-        VStack(spacing: 12) {
+        VStack(spacing: AppSpacing.sm) {
             // Accept button
             StandardButton(
                 "Accept \(persona.name)",
@@ -180,7 +194,7 @@ struct PersonaPreviewView: View {
                 }
             }
             
-            HStack(spacing: 12) {
+            HStack(spacing: AppSpacing.sm) {
                 // Adjust button
                 StandardButton(
                     "Adjust",
@@ -206,6 +220,9 @@ struct PersonaPreviewView: View {
                 }
             }
         }
+        .opacity(animateIn ? 1 : 0)
+        .offset(y: animateIn ? 0 : 20)
+        .animation(MotionToken.standardSpring.delay(0.5), value: animateIn)
     }
     
     // MARK: - Helper Methods
@@ -245,73 +262,83 @@ struct PreviewPersonaAdjustmentSheet: View {
     @Binding var adjustmentText: String
     let onSubmit: () -> Void
     @Environment(\.dismiss) private var dismiss
+    @EnvironmentObject private var gradientManager: GradientManager
+    @Environment(\.colorScheme) private var colorScheme
     
     var body: some View {
         NavigationStack {
-            VStack(spacing: 20) {
-                Text("What would you like to adjust?")
-                    .font(.headline)
-                    .padding(.top)
+            BaseScreen {
+                VStack(spacing: AppSpacing.md) {
+                    Text("What would you like to adjust?")
+                        .font(.system(size: 24, weight: .light, design: .rounded))
+                        .padding(.top, AppSpacing.md)
                 
-                VStack(alignment: .leading, spacing: 12) {
-                    Text("Examples:")
-                        .font(.subheadline)
-                        .foregroundStyle(.secondary)
-                    
-                    ForEach([
-                        "Be more motivational and energetic",
-                        "Use a more casual, friendly tone",
-                        "Be more direct and concise",
-                        "Add more humor and playfulness"
-                    ], id: \.self) { example in
-                        Button(action: {
-                            adjustmentText = example
-                        }) {
-                            HStack {
-                                Image(systemName: "lightbulb")
-                                    .font(.caption)
-                                Text(example)
-                                    .font(.subheadline)
-                                Spacer()
+                    GlassCard {
+                        VStack(alignment: .leading, spacing: AppSpacing.sm) {
+                            Text("Examples:")
+                                .font(.system(size: 14, weight: .light))
+                                .foregroundStyle(.secondary)
+                            
+                            ForEach([
+                                "Be more motivational and energetic",
+                                "Use a more casual, friendly tone",
+                                "Be more direct and concise",
+                                "Add more humor and playfulness"
+                            ], id: \.self) { example in
+                                Button(action: {
+                                    adjustmentText = example
+                                    HapticService.selection()
+                                }) {
+                                    HStack {
+                                        Image(systemName: "lightbulb")
+                                            .font(.caption)
+                                            .foregroundStyle(gradientManager.currentGradient(for: colorScheme))
+                                        Text(example)
+                                            .font(.system(size: 15, weight: .light))
+                                        Spacer()
+                                    }
+                                    .padding(AppSpacing.sm)
+                                    .background(
+                                        RoundedRectangle(cornerRadius: 8)
+                                            .fill(.ultraThinMaterial)
+                                    )
+                                }
+                                .buttonStyle(.plain)
                             }
-                            .padding(12)
-                            .background(
-                                RoundedRectangle(cornerRadius: 8)
-                                    .fill(AppColors.textSecondary.opacity(0.1))
-                            )
                         }
-                        .buttonStyle(.plain)
                     }
-                }
-                .padding(.horizontal)
+                    .padding(.horizontal, AppSpacing.screenPadding)
                 
-                VStack(alignment: .leading, spacing: 8) {
-                    Text("Your adjustment:")
-                        .font(.subheadline)
-                        .foregroundStyle(.secondary)
+                    GlassCard {
+                        VStack(alignment: .leading, spacing: AppSpacing.xs) {
+                            Text("Your adjustment:")
+                                .font(.system(size: 14, weight: .light))
+                                .foregroundStyle(.secondary)
+                            
+                            TextField("Describe how you'd like to adjust your coach...", text: $adjustmentText, axis: .vertical)
+                                .textFieldStyle(.plain)
+                                .padding(AppSpacing.sm)
+                                .background(Color.black.opacity(0.05))
+                                .cornerRadius(8)
+                                .lineLimit(3...6)
+                        }
+                    }
+                    .padding(.horizontal, AppSpacing.screenPadding)
+                
+                    Spacer()
                     
-                    TextField("Describe how you'd like to adjust your coach...", text: $adjustmentText, axis: .vertical)
-                        .textFieldStyle(.roundedBorder)
-                        .lineLimit(3...6)
+                    StandardButton(
+                        "Apply Adjustment",
+                        style: .primary,
+                        isFullWidth: true
+                    ) {
+                        onSubmit()
+                        dismiss()
+                    }
+                    .disabled(adjustmentText.isEmpty)
+                    .padding(.horizontal, AppSpacing.screenPadding)
+                    .padding(.bottom, AppSpacing.lg)
                 }
-                .padding(.horizontal)
-                
-                Spacer()
-                
-                Button(action: {
-                    onSubmit()
-                    dismiss()
-                }) {
-                    Text("Apply Adjustment")
-                        .font(.headline)
-                        .foregroundColor(.white)
-                        .frame(maxWidth: .infinity)
-                        .padding()
-                        .background(AppColors.accentColor)
-                        .cornerRadius(12)
-                }
-                .disabled(adjustmentText.isEmpty)
-                .padding(.horizontal)
             }
             .navigationTitle("Adjust Your Coach")
             .navigationBarTitleDisplayMode(.inline)
@@ -328,16 +355,22 @@ struct PreviewPersonaAdjustmentSheet: View {
 
 struct TraitChip: View {
     let text: String
+    @EnvironmentObject private var gradientManager: GradientManager
+    @Environment(\.colorScheme) private var colorScheme
     
     var body: some View {
         Text(text)
-            .font(.caption)
+            .font(.system(size: 13, weight: .light))
             .foregroundStyle(.primary)
-            .padding(.horizontal, 12)
+            .padding(.horizontal, AppSpacing.sm)
             .padding(.vertical, 6)
             .background(
                 Capsule()
-                    .fill(AppColors.accentColor.opacity(0.1))
+                    .strokeBorder(Color.white.opacity(0.2), lineWidth: 1)
+                    .background(
+                        Capsule()
+                            .fill(.ultraThinMaterial)
+                    )
             )
     }
 }
@@ -346,26 +379,28 @@ struct StyleIndicator: View {
     let label: String
     let value: String
     let icon: String
+    @EnvironmentObject private var gradientManager: GradientManager
+    @Environment(\.colorScheme) private var colorScheme
     
     var body: some View {
-        VStack(spacing: 4) {
+        VStack(spacing: AppSpacing.xs) {
             Image(systemName: icon)
-                .font(.caption)
-                .foregroundStyle(.secondary)
+                .font(.system(size: 16))
+                .foregroundStyle(gradientManager.currentGradient(for: colorScheme))
             
             Text(value)
-                .font(.caption2)
-                .fontWeight(.medium)
+                .font(.system(size: 12, weight: .medium))
+                .foregroundStyle(.primary)
             
             Text(label)
-                .font(.caption2)
+                .font(.system(size: 11, weight: .light))
                 .foregroundStyle(.secondary)
         }
         .frame(maxWidth: .infinity)
-        .padding(.vertical, 8)
+        .padding(.vertical, AppSpacing.xs)
         .background(
             RoundedRectangle(cornerRadius: 8)
-                .fill(AppColors.textSecondary.opacity(0.05))
+                .fill(.ultraThinMaterial)
         )
     }
 }
@@ -373,18 +408,20 @@ struct StyleIndicator: View {
 struct PreviewMessageBubble: View {
     let message: String
     let isFromCoach: Bool
+    @EnvironmentObject private var gradientManager: GradientManager
+    @Environment(\.colorScheme) private var colorScheme
     
     var body: some View {
         HStack {
             if !isFromCoach { Spacer() }
             
             Text(message)
-                .font(.subheadline)
+                .font(.system(size: 15, weight: .light))
                 .foregroundColor(isFromCoach ? .primary : .white)
-                .padding(12)
+                .padding(AppSpacing.sm)
                 .background(
                     RoundedRectangle(cornerRadius: 16)
-                        .fill(isFromCoach ? AppColors.textSecondary.opacity(0.1) : AppColors.accentColor)
+                        .fill(isFromCoach ? AnyShapeStyle(.ultraThinMaterial) : AnyShapeStyle(gradientManager.currentGradient(for: colorScheme)))
                 )
             
             if isFromCoach { Spacer() }

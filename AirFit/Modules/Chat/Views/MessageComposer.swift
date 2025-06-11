@@ -12,6 +12,9 @@ struct MessageComposer: View {
     @State private var showAttachmentPicker = false
     @State private var selectedPhoto: PhotosPickerItem?
     @FocusState private var isTextFieldFocused: Bool
+    @State private var animateIn = false
+    @EnvironmentObject private var gradientManager: GradientManager
+    @Environment(\.colorScheme) private var colorScheme
 
     private var canSend: Bool {
         !text.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty || !attachments.isEmpty
@@ -21,33 +24,53 @@ struct MessageComposer: View {
         VStack(spacing: 0) {
             if !attachments.isEmpty {
                 attachmentsPreview
-                    .padding(.bottom, AppSpacing.small)
+                    .padding(.bottom, AppSpacing.xs)
+                    .transition(.move(edge: .bottom).combined(with: .opacity))
             }
 
-            HStack(alignment: .bottom, spacing: AppSpacing.small) {
+            HStack(alignment: .bottom, spacing: AppSpacing.sm) {
                 attachmentMenu
+                    .scaleEffect(animateIn ? 1 : 0.8)
+                    .opacity(animateIn ? 1 : 0)
 
                 if isRecording {
                     recordingView
+                        .transition(.scale.combined(with: .opacity))
                 } else {
                     textInputView
                 }
 
-                Button(action: canSend ? onSend : onVoiceToggle) {
+                Button(action: {
+                    HapticService.impact(.light)
+                    canSend ? onSend() : onVoiceToggle()
+                }) {
                     Image(systemName: canSend ? "arrow.up.circle.fill" : "mic.circle.fill")
-                        .font(.title2)
-                        .foregroundStyle(canSend ? AppColors.accent : .secondary)
-                        .animation(.easeInOut(duration: 0.2), value: canSend)
+                        .font(.system(size: 28, weight: .light))
+                        .foregroundStyle(
+                            canSend ? AnyShapeStyle(gradientManager.currentGradient(for: colorScheme)) : AnyShapeStyle(Color.secondary)
+                        )
+                        .animation(MotionToken.standardSpring, value: canSend)
+                        .scaleEffect(canSend ? 1.1 : 1.0)
                 }
                 .disabled(isRecording && !canSend)
+                .scaleEffect(animateIn ? 1 : 0.8)
+                .opacity(animateIn ? 1 : 0)
             }
-            .padding(.horizontal, AppSpacing.medium)
-            .padding(.vertical, AppSpacing.small)
+            .padding(.horizontal, AppSpacing.sm)
+            .padding(.vertical, AppSpacing.xs)
             .background(
                 Capsule()
-                    .fill(AppColors.backgroundSecondary)
-                    .shadow(color: .black.opacity(0.05), radius: 5, y: 2)
+                    .fill(.ultraThinMaterial)
+                    .overlay(
+                        Capsule()
+                            .strokeBorder(Color.white.opacity(0.1), lineWidth: 1)
+                    )
             )
+        }
+        .onAppear {
+            withAnimation(MotionToken.standardSpring.delay(0.2)) {
+                animateIn = true
+            }
         }
         .photosPicker(
             isPresented: $showAttachmentPicker,
@@ -73,28 +96,43 @@ struct MessageComposer: View {
 
     private var attachmentMenu: some View {
         Menu(content: {
-            Button(action: { showAttachmentPicker = true }) {
+            Button(action: { 
+                HapticService.selection()
+                showAttachmentPicker = true 
+            }) {
                 Label("Photo", systemImage: "photo")
             }
         }, label: {
             Image(systemName: "plus.circle.fill")
-                .font(.title2)
-                .foregroundStyle(AppColors.accent)
+                .font(.system(size: 24, weight: .light))
+                .foregroundStyle(gradientManager.currentGradient(for: colorScheme))
         })
     }
 
     private var textInputView: some View {
         TextField("Message your coach...", text: $text, axis: .vertical)
+            .font(.system(size: 16, weight: .light))
             .textFieldStyle(.plain)
             .lineLimit(1...5)
             .focused($isTextFieldFocused)
-            .onSubmit { if canSend { onSend() } }
+            .onSubmit { 
+                if canSend { 
+                    HapticService.impact(.light)
+                    onSend() 
+                } 
+            }
+            .opacity(animateIn ? 1 : 0)
+            .animation(MotionToken.standardSpring.delay(0.1), value: animateIn)
     }
 
     private var recordingView: some View {
-        HStack(spacing: AppSpacing.small) {
-            Button(action: onVoiceToggle) {
+        HStack(spacing: AppSpacing.sm) {
+            Button(action: {
+                HapticService.impact(.light)
+                onVoiceToggle()
+            }) {
                 Image(systemName: "xmark.circle.fill")
+                    .font(.system(size: 20, weight: .light))
                     .foregroundStyle(.secondary)
             }
 
@@ -107,29 +145,37 @@ struct MessageComposer: View {
 
     private var attachmentsPreview: some View {
         ScrollView(.horizontal, showsIndicators: false) {
-            HStack(spacing: AppSpacing.small) {
+            HStack(spacing: AppSpacing.xs) {
                 ForEach(attachments) { attachment in
                     AttachmentPreview(attachment: attachment) {
-                        attachments.removeAll { $0.id == attachment.id }
+                        withAnimation(MotionToken.standardSpring) {
+                            attachments.removeAll { $0.id == attachment.id }
+                        }
                     }
                 }
             }
-            .padding(.horizontal)
+            .padding(.horizontal, AppSpacing.sm)
         }
     }
 }
 
 private struct VoiceWaveformView: View {
     let levels: [Float]
+    @EnvironmentObject private var gradientManager: GradientManager
+    @Environment(\.colorScheme) private var colorScheme
 
     var body: some View {
         GeometryReader { geometry in
             HStack(spacing: 2) {
-                ForEach(Array(levels.enumerated()), id: \.offset) { _, level in
+                ForEach(Array(levels.enumerated()), id: \.offset) { index, level in
                     RoundedRectangle(cornerRadius: 2)
-                        .fill(AppColors.accent)
+                        .fill(gradientManager.currentGradient(for: colorScheme))
                         .frame(width: 3, height: CGFloat(level) * geometry.size.height)
-                        .animation(.easeInOut(duration: 0.1), value: level)
+                        .opacity(0.6 + Double(level) * 0.4)
+                        .animation(
+                            MotionToken.standardSpring.delay(Double(index) * 0.01),
+                            value: level
+                        )
                 }
             }
             .frame(maxWidth: .infinity, maxHeight: .infinity)
@@ -139,24 +185,42 @@ private struct VoiceWaveformView: View {
 
 private struct RecordingIndicator: View {
     @State private var isAnimating = false
+    @State private var pulseScale: CGFloat = 1.0
 
     var body: some View {
-        Circle()
-            .fill(Color.red)
-            .frame(width: 12, height: 12)
-            .scaleEffect(isAnimating ? 1.2 : 1.0)
-            .opacity(isAnimating ? 0.6 : 1.0)
-            .animation(
-                .easeInOut(duration: 0.8).repeatForever(autoreverses: true),
-                value: isAnimating
-            )
-            .onAppear { isAnimating = true }
+        ZStack {
+            Circle()
+                .fill(Color.red.opacity(0.3))
+                .frame(width: 20, height: 20)
+                .scaleEffect(pulseScale)
+                .opacity(isAnimating ? 0 : 0.5)
+            
+            Circle()
+                .fill(Color.red)
+                .frame(width: 12, height: 12)
+                .overlay(
+                    Circle()
+                        .strokeBorder(Color.white.opacity(0.3), lineWidth: 1)
+                )
+        }
+        .onAppear { 
+            withAnimation(
+                .easeInOut(duration: 1.5)
+                .repeatForever(autoreverses: false)
+            ) {
+                isAnimating = true
+                pulseScale = 2.0
+            }
+        }
     }
 }
 
 private struct AttachmentPreview: View {
     let attachment: ChatAttachment
     let onRemove: () -> Void
+    @State private var animateIn = false
+    @EnvironmentObject private var gradientManager: GradientManager
+    @Environment(\.colorScheme) private var colorScheme
 
     var body: some View {
         ZStack(alignment: .topTrailing) {
@@ -166,23 +230,42 @@ private struct AttachmentPreview: View {
                     .scaledToFill()
                     .frame(width: 60, height: 60)
                     .clipped()
-                    .cornerRadius(8)
+                    .clipShape(RoundedRectangle(cornerRadius: 8))
+                    .overlay(
+                        RoundedRectangle(cornerRadius: 8)
+                            .strokeBorder(Color.white.opacity(0.2), lineWidth: 1)
+                    )
             } else {
                 RoundedRectangle(cornerRadius: 8)
-                    .fill(AppColors.backgroundSecondary)
+                    .fill(.ultraThinMaterial)
                     .frame(width: 60, height: 60)
                     .overlay(
                         Image(systemName: attachment.attachmentType?.systemImage ?? "doc")
-                            .font(.title3)
-                            .foregroundStyle(.secondary)
+                            .font(.system(size: 20, weight: .light))
+                            .foregroundStyle(gradientManager.currentGradient(for: colorScheme))
                     )
             }
 
-            Button(action: onRemove) {
+            Button(action: {
+                HapticService.impact(.light)
+                onRemove()
+            }) {
                 Image(systemName: "xmark.circle.fill")
-                    .foregroundStyle(.secondary)
+                    .font(.system(size: 16))
+                    .foregroundStyle(.white)
+                    .background(
+                        Circle()
+                            .fill(Color.black.opacity(0.6))
+                    )
             }
             .offset(x: 4, y: -4)
+        }
+        .scaleEffect(animateIn ? 1 : 0.8)
+        .opacity(animateIn ? 1 : 0)
+        .onAppear {
+            withAnimation(MotionToken.standardSpring) {
+                animateIn = true
+            }
         }
     }
 }

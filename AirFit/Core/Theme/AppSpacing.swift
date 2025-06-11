@@ -1,6 +1,21 @@
 import SwiftUI
 
 public enum AppSpacing: Sendable {
+    // MARK: - Core Spacing System (UI Vision aligned)
+    
+    /// 12pt - Tight groupings
+    static let xs: CGFloat = 12
+    /// 20pt - Related elements
+    static let sm: CGFloat = 20
+    /// 24pt - Standard sections
+    static let md: CGFloat = 24
+    /// 32pt - Major sections
+    static let lg: CGFloat = 32
+    /// 48pt - Screen divisions
+    static let xl: CGFloat = 48
+    
+    // MARK: - Legacy Support (kept for compatibility)
+    
     /// 4pt
     static let xxSmall: CGFloat = 4
     /// 8pt
@@ -16,17 +31,21 @@ public enum AppSpacing: Sendable {
     /// 48pt
     static let xxLarge: CGFloat = 48
     
-    // Convenience aliases
-    static let xxs = xxSmall
-    static let xs = xSmall
-    static let sm = small
-    static let md = medium
-    static let lg = large
-    static let xl = xLarge
-    static let xxl = xxLarge
+    // MARK: - Screen & Component Padding
     
-    // Corner radius values
+    /// 24pt - Standard screen padding
+    static let screenPadding: CGFloat = 24
+    /// 16pt - Card interior padding
+    static let cardPadding: CGFloat = 16
+    /// 20pt - Vertical component spacing
+    static let componentSpacing: CGFloat = 20
+    
+    // MARK: - Corner Radius (Glass Morphism)
+    
+    /// 8pt - Small elements
     static let radiusSm: CGFloat = 8
+    /// 12pt - Buttons
     static let radiusMd: CGFloat = 12
-    static let radiusLg: CGFloat = 16
+    /// 20pt - Cards (continuous curve)
+    static let radiusLg: CGFloat = 20
 }

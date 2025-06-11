@@ -345,12 +345,12 @@ let request = AIRequest(
 - AIWorkoutService updated to use persona
 - AIGoalService updated to use persona
 - AIAnalyticsService updated to use persona
+- CoachEngine updated to use PersonaService instead of PersonaEngine
+- generatePostWorkoutAnalysis now uses user's persona
+- AIWorkoutServiceProtocol.adaptPlan updated with User parameter
+- All implementations updated to match new protocol signature
 
-🔴 **Issues Found**:
-- CoachEngine uses PersonaEngine with UserProfileJsonBlob instead of PersonaService
-- generatePostWorkoutAnalysis in CoachEngine still uses generic prompt
-- PersonaEngine builds prompts from Blend, not the stored PersonaProfile
-- adaptPlan methods lack User context (protocol limitation)
+✅ **Phase 3.2 Complete**: All AI services now maintain persona coherence!
 
 ### Migration Strategy for CoachEngine
 1. **Add PersonaService to CoachEngine**:

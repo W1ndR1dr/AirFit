@@ -414,7 +414,8 @@ final class FunctionCallDispatcher: Sendable {
         let adaptedPlan = try await workoutService.adaptPlan(
             currentPlan,
             feedback: feedback,
-            adjustments: performanceData as [String: Any]
+            adjustments: performanceData as [String: Any],
+            for: user
         )
 
         // Update the workout in database

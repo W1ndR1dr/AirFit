@@ -144,16 +144,20 @@ final class AIWorkoutService: AIWorkoutServiceProtocol, ServiceProtocol {
         )
     }
     
-    func adaptPlan(
+    nonisolated func adaptPlan(
         _ plan: WorkoutPlanResult,
         feedback: String,
-        adjustments: [String: SendableValue]
+        adjustments: [String: Any],
+        for user: User
     ) async throws -> WorkoutPlanResult {
         
         // Build adaptation prompt
+        let formattedPlan = await MainActor.run {
+            formatWorkoutPlan(plan)
+        }
         let prompt = """
         Current workout plan:
-        \(formatWorkoutPlan(plan))
+        \(formattedPlan)
         
         User feedback: \(feedback)
         
@@ -171,10 +175,13 @@ final class AIWorkoutService: AIWorkoutServiceProtocol, ServiceProtocol {
         ]
         """
         
-        // TODO: adaptPlan method signature needs User parameter to get persona
-        // For now, using generic prompt but this breaks persona coherence
+        // Get user's persona for consistent coaching voice
+        let userId = user.id
+        let persona = try await self.personaService.getActivePersona(for: userId)
+        
+        // Create AI request with persona's system prompt
         let request = AIRequest(
-            systemPrompt: "You are an expert personal trainer adapting workout plans based on user feedback. Be supportive and encouraging.",
+            systemPrompt: persona.systemPrompt,
             messages: [
                 AIChatMessage(
                     role: .system,
@@ -187,7 +194,7 @@ final class AIWorkoutService: AIWorkoutServiceProtocol, ServiceProtocol {
             ],
             temperature: 0.7,
             stream: false,
-            user: UUID().uuidString // Using new UUID as we don't have user context here
+            user: user.id.uuidString
         )
         
         // Send request and collect response
@@ -208,7 +215,7 @@ final class AIWorkoutService: AIWorkoutServiceProtocol, ServiceProtocol {
         let response = fullResponse
         
         // Parse the adapted plan
-        let adaptedExercises = try parseWorkoutPlan(from: response, availableExercises: nil)
+        let adaptedExercises = try await parseWorkoutPlan(from: response, availableExercises: nil)
         
         return WorkoutPlanResult(
             id: UUID(),

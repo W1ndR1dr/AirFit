@@ -278,6 +278,13 @@ public final class DIBootstrapper {
     // MARK: - UI Services
     
     private static func registerUIServices(in container: DIContainer) {
+        // Gradient Manager - Manages UI gradient transitions
+        container.register(GradientManager.self, lifetime: .singleton) { _ in
+            await MainActor.run {
+                GradientManager()
+            }
+        }
+        
         // Haptic Service - UI feedback service
         container.register(HapticServiceProtocol.self, lifetime: .singleton) { _ in
             await HapticService()

@@ -23,7 +23,8 @@ protocol AIWorkoutServiceProtocol: WorkoutServiceProtocol {
     func adaptPlan(
         _ plan: WorkoutPlanResult,
         feedback: String,
-        adjustments: [String: Any]
+        adjustments: [String: Any],
+        for user: User
     ) async throws -> WorkoutPlanResult
 }
 

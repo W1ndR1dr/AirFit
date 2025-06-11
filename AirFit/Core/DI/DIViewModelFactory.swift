@@ -206,7 +206,7 @@ public final class DIViewModelFactory {
         
         // Create required components
         let localCommandParser = LocalCommandParser()
-        let personaEngine = PersonaEngine()
+        let personaService = try await container.resolve(PersonaService.self)
         let conversationManager = ConversationManager(modelContext: modelContext)
         let contextAssembler = try await container.resolve(ContextAssembler.self)
         
@@ -227,7 +227,7 @@ public final class DIViewModelFactory {
         return CoachEngine(
             localCommandParser: localCommandParser,
             functionDispatcher: functionDispatcher,
-            personaEngine: personaEngine,
+            personaService: personaService,
             conversationManager: conversationManager,
             aiService: aiService,
             contextAssembler: contextAssembler,

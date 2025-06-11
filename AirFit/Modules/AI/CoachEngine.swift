@@ -122,7 +122,7 @@ final class CoachEngine {
 
     // MARK: - Dependencies
     private let functionDispatcher: FunctionCallDispatcher
-    private let personaEngine: PersonaEngine
+    private let personaService: PersonaService
     private let conversationManager: ConversationManager
     private let aiService: AIServiceProtocol
     private let contextAssembler: ContextAssembler
@@ -144,7 +144,7 @@ final class CoachEngine {
     init(
         localCommandParser: LocalCommandParser,
         functionDispatcher: FunctionCallDispatcher,
-        personaEngine: PersonaEngine,
+        personaService: PersonaService,
         conversationManager: ConversationManager,
         aiService: AIServiceProtocol,
         contextAssembler: ContextAssembler,
@@ -152,7 +152,7 @@ final class CoachEngine {
         routingConfiguration: RoutingConfiguration
     ) {
         self.functionDispatcher = functionDispatcher
-        self.personaEngine = personaEngine
+        self.personaService = personaService
         self.conversationManager = conversationManager
         self.aiService = aiService
         self.contextAssembler = contextAssembler
@@ -310,8 +310,22 @@ final class CoachEngine {
     func generatePostWorkoutAnalysis(_ request: PostWorkoutAnalysisRequest) async -> String {
         let analysisPrompt = buildWorkoutAnalysisPrompt(request)
         
+        // Get user's persona for consistent voice
+        var systemPrompt = "You are a fitness coach providing post-workout analysis. Be encouraging, specific, and actionable."
+        let user = request.workout.user
+        let userId = user?.id ?? UUID()
+        
+        if let user = user {
+            do {
+                let persona = try await personaService.getActivePersona(for: user.id)
+                systemPrompt = persona.systemPrompt + "\n\nTask context: Providing post-workout analysis. Be encouraging, specific, and actionable."
+            } catch {
+                AppLogger.warning("Failed to get user persona for workout analysis, using default", category: .ai)
+            }
+        }
+        
         let aiRequest = AIRequest(
-            systemPrompt: "You are a fitness coach providing post-workout analysis. Be encouraging, specific, and actionable.",
+            systemPrompt: systemPrompt,
             messages: [
                 AIChatMessage(
                     role: .user,
@@ -320,7 +334,7 @@ final class CoachEngine {
                 )
             ],
             functions: [],
-            user: "workout-analysis"
+            user: userId.uuidString
         )
         
         let analysisResult = await collectAIResponse(from: aiRequest)
@@ -652,15 +666,11 @@ final class CoachEngine {
         let functionCallStartTime = CFAbsoluteTimeGetCurrent()
         
         do {
-            // Build persona-aware system prompt (traditional path)
-            let userProfile = try await getUserProfile(for: user)
-
-            let systemPrompt = try personaEngine.buildSystemPrompt(
-                userProfile: userProfile,
-                healthContext: healthContext,
-                conversationHistory: conversationHistory,
-                availableFunctions: FunctionRegistry.availableFunctions
-            )
+            // Get user's persona for consistent coaching voice
+            let persona = try await personaService.getActivePersona(for: user.id)
+            
+            // Add task context to system prompt
+            let systemPrompt = persona.systemPrompt + "\n\nTask context: General conversation with access to functions."
 
             // Add current user message
             let currentMessage = AIChatMessage(
@@ -669,11 +679,12 @@ final class CoachEngine {
                 timestamp: Date()
             )
 
+            let userId = user.id
             let aiRequest = AIRequest(
                 systemPrompt: systemPrompt,
                 messages: conversationHistory + [currentMessage],
                 functions: FunctionRegistry.availableFunctions,
-                user: user.id.uuidString
+                user: userId.uuidString
             )
 
             // Stream AI response with function calling
@@ -1073,6 +1084,8 @@ final class CoachEngine {
 
 
     private func getUserProfile(for user: User) async throws -> UserProfileJsonBlob {
+        // Note: This method is now primarily used for direct AI processing fallback.
+        // The main persona functionality uses PersonaService.getActivePersona()
         guard let onboardingProfile = user.onboardingProfile else {
             return createDefaultProfile()
         }
@@ -1225,6 +1238,22 @@ extension CoachEngine {
         let previewAnalyticsService = PreviewAIAnalyticsService()
         let previewGoalService = PreviewAIGoalService()
         
+        // Create minimal persona service
+        let llmOrchestrator = LLMOrchestrator(apiKeyManager: PreviewAPIKeyManager())
+        let cache = AIResponseCache()
+        let personaSynthesizer = OptimizedPersonaSynthesizer(
+            llmOrchestrator: llmOrchestrator,
+            cache: cache
+        )
+        let personaService = await MainActor.run {
+            PersonaService(
+                personaSynthesizer: personaSynthesizer,
+                llmOrchestrator: llmOrchestrator,
+                modelContext: modelContext,
+                cache: cache
+            )
+        }
+        
         return CoachEngine(
             localCommandParser: LocalCommandParser(),
             functionDispatcher: FunctionCallDispatcher(
@@ -1232,7 +1261,7 @@ extension CoachEngine {
                 analyticsService: previewAnalyticsService,
                 goalService: previewGoalService
             ),
-            personaEngine: PersonaEngine(),
+            personaService: personaService,
             conversationManager: ConversationManager(modelContext: modelContext),
             aiService: MinimalAIAPIService(),
             contextAssembler: await MainActor.run { ContextAssembler(healthKitManager: HealthKitManager()) },
@@ -1483,6 +1512,15 @@ extension CoachEngine: FoodCoachEngineProtocol {
 
 // MARK: - Preview Service Implementations
 
+/// Minimal preview implementation of API key manager
+private final class PreviewAPIKeyManager: APIKeyManagementProtocol {
+    func saveAPIKey(_ key: String, for provider: AIProvider) async throws {}
+    func getAPIKey(for provider: AIProvider) async throws -> String { "preview-key" }
+    func deleteAPIKey(for provider: AIProvider) async throws {}
+    func hasAPIKey(for provider: AIProvider) async -> Bool { true }
+    func getAllConfiguredProviders() async -> [AIProvider] { AIProvider.allCases }
+}
+
 /// Minimal preview implementation of AI workout service
 private final class PreviewAIWorkoutService: AIWorkoutServiceProtocol {
     // Base protocol requirements
@@ -1510,7 +1548,7 @@ private final class PreviewAIWorkoutService: AIWorkoutServiceProtocol {
         )
     }
     
-    func adaptPlan(_ plan: WorkoutPlanResult, feedback: String, adjustments: [String: Any]) async throws -> WorkoutPlanResult {
+    func adaptPlan(_ plan: WorkoutPlanResult, feedback: String, adjustments: [String: Any], for user: User) async throws -> WorkoutPlanResult {
         plan
     }
 }

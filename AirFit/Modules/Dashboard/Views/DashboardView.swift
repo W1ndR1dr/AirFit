@@ -5,6 +5,7 @@ import SwiftData
 struct DashboardContent: View {
     @Environment(\.modelContext)
     private var modelContext
+    @EnvironmentObject private var gradientManager: GradientManager
 
     let viewModel: DashboardViewModel
 
@@ -15,25 +16,36 @@ struct DashboardContent: View {
     let user: User
 
     private let columns: [GridItem] = [
-        GridItem(.adaptive(minimum: 180), spacing: AppSpacing.medium)
+        GridItem(.adaptive(minimum: 180), spacing: AppSpacing.sm)
     ]
 
     var body: some View {
-        NavigationStack(path: $coordinator.path) {
-            ScrollView {
-                if viewModel.isLoading {
-                    loadingView
-                } else if let error = viewModel.error {
-                    errorView(error)
-                } else {
-                    dashboardContent
+        BaseScreen {
+            NavigationStack(path: $coordinator.path) {
+                ScrollView {
+                    VStack(spacing: 0) {
+                        // Beautiful cascade title
+                        CascadeText("Daily Dashboard")
+                            .font(.system(size: 34, weight: .thin, design: .rounded))
+                            .padding(.horizontal, AppSpacing.screenPadding)
+                            .padding(.top, AppSpacing.md)
+                            .padding(.bottom, AppSpacing.lg)
+                        
+                        if viewModel.isLoading {
+                            loadingView
+                        } else if let error = viewModel.error {
+                            errorView(error)
+                        } else {
+                            dashboardContent
+                        }
+                    }
                 }
-            }
-            .contentMargins(.horizontal, AppSpacing.medium)
-            .navigationTitle("Dashboard")
-            .refreshable { viewModel.refreshDashboard() }
-            .navigationDestination(for: DashboardDestination.self) { destination in
-                destinationView(for: destination)
+                .scrollContentBackground(.hidden)
+                .navigationBarTitleDisplayMode(.inline)
+                .refreshable { viewModel.refreshDashboard() }
+                .navigationDestination(for: DashboardDestination.self) { destination in
+                    destinationView(for: destination)
+                }
             }
         }
         .task {
@@ -80,27 +92,43 @@ struct DashboardContent: View {
     }
 
     private var dashboardContent: some View {
-        LazyVGrid(columns: columns, spacing: AppSpacing.medium) {
-            MorningGreetingCard(
-                greeting: viewModel.morningGreeting,
-                context: viewModel.greetingContext,
-                currentEnergy: viewModel.currentEnergyLevel,
-                onEnergyLog: { level in
-                    Task { await viewModel.logEnergyLevel(level) }
-                }
-            )
-            NutritionCard(
-                summary: viewModel.nutritionSummary,
-                targets: viewModel.nutritionTargets
-            )
-            RecoveryCard(recoveryScore: viewModel.recoveryScore)
-            PerformanceCard(insight: viewModel.performanceInsight)
-            QuickActionsCard(
-                suggestedActions: viewModel.suggestedActions,
-                onActionTap: handleQuickAction
-            )
+        LazyVGrid(columns: columns, spacing: AppSpacing.sm) {
+            GlassCard {
+                MorningGreetingCard(
+                    greeting: viewModel.morningGreeting,
+                    context: viewModel.greetingContext,
+                    currentEnergy: viewModel.currentEnergyLevel,
+                    onEnergyLog: { level in
+                        Task { await viewModel.logEnergyLevel(level) }
+                    }
+                )
+            }
+            
+            GlassCard {
+                NutritionCard(
+                    summary: viewModel.nutritionSummary,
+                    targets: viewModel.nutritionTargets
+                )
+            }
+            
+            GlassCard {
+                RecoveryCard(recoveryScore: viewModel.recoveryScore)
+            }
+            
+            GlassCard {
+                PerformanceCard(insight: viewModel.performanceInsight)
+            }
+            
+            GlassCard {
+                QuickActionsCard(
+                    suggestedActions: viewModel.suggestedActions,
+                    onActionTap: handleQuickAction
+                )
+            }
         }
-        .animation(.bouncy, value: viewModel.morningGreeting)
+        .padding(.horizontal, AppSpacing.screenPadding)
+        .padding(.bottom, AppSpacing.xl)
+        .animation(MotionToken.standardSpring, value: viewModel.morningGreeting)
     }
 
     @ViewBuilder

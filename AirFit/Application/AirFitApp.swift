@@ -12,6 +12,9 @@ struct AirFitApp: App {
     @State private var containerError: Error?
     @State private var isRetrying = false
     
+    // MARK: - UI State
+    @State private var gradientManager: GradientManager?
+    
     // MARK: - Test Mode Detection
     private var isTestMode: Bool {
         ProcessInfo.processInfo.arguments.contains("--test-mode") ||
@@ -128,6 +131,13 @@ struct AirFitApp: App {
                 ContentView()
                     .modelContainer(modelContainer)
                     .withDIContainer(diContainer)
+                    .environmentObject(gradientManager ?? GradientManager())
+                    .task {
+                        // Resolve GradientManager from DI
+                        if gradientManager == nil {
+                            gradientManager = try? await diContainer.resolve(GradientManager.self)
+                        }
+                    }
             } else {
                 // Unexpected error state
                 VStack(spacing: 20) {
