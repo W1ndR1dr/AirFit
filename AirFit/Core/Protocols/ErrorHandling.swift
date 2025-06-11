@@ -50,8 +50,6 @@ extension ErrorHandling {
             self.error = AppError.from(settingsError)
         } else if let conversationError = error as? ConversationManagerError {
             self.error = AppError.from(conversationError)
-        } else if let functionError = error as? FunctionError {
-            self.error = AppError.from(functionError)
         } else if let personaEngineError = error as? PersonaEngineError {
             self.error = AppError.from(personaEngineError)
         } else if let personaError = error as? PersonaError {

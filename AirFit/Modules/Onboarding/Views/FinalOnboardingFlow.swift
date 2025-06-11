@@ -74,12 +74,11 @@ struct FinalOnboardingFlow: View {
                         .foregroundColor(AppColors.textSecondary)
                         .multilineTextAlignment(.center)
                     
-                    Button("Retry") {
+                    StandardButton("Retry", style: .primary) {
                         Task {
                             await loadCoordinator()
                         }
                     }
-                    .buttonStyle(.borderedProminent)
                 }
                 .padding()
                 .frame(maxWidth: .infinity, maxHeight: .infinity)
@@ -268,20 +267,21 @@ private struct ConversationFlowView: View {
             
             // Action buttons
             HStack(spacing: AppSpacing.medium) {
-                Button("Skip") {
+                StandardButton("Skip", style: .secondary) {
                     Task {
                         await coordinator.completeConversation()
                     }
                 }
-                .buttonStyle(.bordered)
                 
-                Button("Continue") {
+                StandardButton(
+                    "Continue",
+                    style: .primary,
+                    isEnabled: !coordinator.isLoading
+                ) {
                     Task {
                         await coordinator.completeConversation()
                     }
                 }
-                .buttonStyle(.borderedProminent)
-                .disabled(coordinator.isLoading)
             }
             .padding(AppSpacing.large)
         }

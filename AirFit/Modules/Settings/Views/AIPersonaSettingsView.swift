@@ -272,19 +272,24 @@ struct AIPersonaSettingsView: View {
     
     private var personaActions: some View {
         VStack(spacing: AppSpacing.md) {
-            Button(action: { showPersonaRefinement = true }) {
-                Label("Refine Through Conversation", systemImage: "bubble.left.and.bubble.right")
-                    .frame(maxWidth: .infinity)
+            StandardButton(
+                "Refine Through Conversation",
+                icon: "bubble.left.and.bubble.right",
+                style: .primary,
+                isFullWidth: true,
+                isEnabled: viewModel.coachPersona != nil
+            ) {
+                showPersonaRefinement = true
             }
-            .buttonStyle(.primaryProminent)
-            .disabled(viewModel.coachPersona == nil)
             
-            Button(action: generateNewPreview) {
-                Label("Generate New Preview", systemImage: "arrow.clockwise")
-                    .frame(maxWidth: .infinity)
-            }
-            .buttonStyle(.secondary)
-            .disabled(isGeneratingPreview || viewModel.coachPersona == nil)
+            StandardButton(
+                "Generate New Preview",
+                icon: "arrow.clockwise",
+                style: .secondary,
+                isFullWidth: true,
+                isEnabled: !isGeneratingPreview && viewModel.coachPersona != nil,
+                action: generateNewPreview
+            )
             
             // Natural Language Adjustment
             NavigationLink(destination: NaturalLanguagePersonaAdjustment(viewModel: viewModel)) {
@@ -415,17 +420,15 @@ struct NaturalLanguagePersonaAdjustment: View {
             }
             
             // Apply Button
-            Button(action: applyAdjustment) {
-                if isProcessing {
-                    ProgressView()
-                        .controlSize(.small)
-                } else {
-                    Label("Apply Adjustment", systemImage: "wand.and.stars")
-                }
-            }
-            .frame(maxWidth: .infinity)
-            .buttonStyle(.primaryProminent)
-            .disabled(adjustmentText.isEmpty || isProcessing)
+            StandardButton(
+                "Apply Adjustment",
+                icon: "wand.and.stars",
+                style: .primary,
+                isFullWidth: true,
+                isLoading: isProcessing,
+                isEnabled: !adjustmentText.isEmpty && !isProcessing,
+                action: applyAdjustment
+            )
             
             Spacer()
         }
@@ -562,10 +565,12 @@ struct ConversationalPersonaRefinement: View {
                             sendMessage(inputText)
                         }
                     
-                    Button(action: { sendMessage(inputText) }) {
-                        Image(systemName: "arrow.up.circle.fill")
-                            .font(.title2)
-                            .foregroundStyle(inputText.isEmpty ? Color.secondary : Color.accentColor)
+                    IconButton(
+                        icon: "arrow.up.circle.fill",
+                        style: inputText.isEmpty ? .secondary : .primary,
+                        size: .medium
+                    ) {
+                        sendMessage(inputText)
                     }
                     .disabled(inputText.isEmpty)
                 }

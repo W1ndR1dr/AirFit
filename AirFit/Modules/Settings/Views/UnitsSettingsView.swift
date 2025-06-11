@@ -94,12 +94,14 @@ struct UnitsSettingsView: View {
     }
     
     private var saveButton: some View {
-        Button(action: saveUnits) {
-            Label("Save Units", systemImage: "checkmark.circle.fill")
-                .frame(maxWidth: .infinity)
-        }
-        .buttonStyle(.primaryProminent)
-        .disabled(selectedUnits == viewModel.preferredUnits)
+        StandardButton(
+            "Save Units",
+            icon: "checkmark.circle.fill",
+            style: .primary,
+            isFullWidth: true,
+            isEnabled: selectedUnits != viewModel.preferredUnits,
+            action: saveUnits
+        )
     }
     
     private func saveUnits() {

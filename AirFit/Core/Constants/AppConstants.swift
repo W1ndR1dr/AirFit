@@ -59,6 +59,32 @@ enum AppConstants {
         static let maxHeight: Double = 300 // cm
     }
 
+    // MARK: - Configuration
+    enum Configuration {
+        /// Global demo mode flag - when true, the app uses DemoAIService with canned responses
+        /// This allows testing the full app experience without API keys
+        static var isUsingDemoMode: Bool {
+            get {
+                UserDefaults.standard.bool(forKey: "AirFit.DemoMode")
+            }
+            set {
+                UserDefaults.standard.set(newValue, forKey: "AirFit.DemoMode")
+                AppLogger.info("Demo mode \(newValue ? "enabled" : "disabled")", category: .app)
+            }
+        }
+        
+        /// Check if running in test mode (for unit tests)
+        static var isTestMode: Bool {
+            ProcessInfo.processInfo.arguments.contains("--test-mode") ||
+            ProcessInfo.processInfo.environment["AIRFIT_TEST_MODE"] == "1"
+        }
+        
+        /// Check if running in preview mode (for SwiftUI previews)
+        static var isPreviewMode: Bool {
+            ProcessInfo.processInfo.environment["XCODE_RUNNING_FOR_PREVIEWS"] == "1"
+        }
+    }
+
     // MARK: - Static Properties
 
     // MARK: - App Info

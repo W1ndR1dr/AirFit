@@ -72,8 +72,7 @@ struct DashboardContent: View {
                 .foregroundColor(AppColors.textSecondary)
                 .multilineTextAlignment(.center)
 
-            Button("Retry") { viewModel.refreshDashboard() }
-                .buttonStyle(.borderedProminent)
+            StandardButton("Retry", style: .primary) { viewModel.refreshDashboard() }
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity)
         .padding(.top, 100)

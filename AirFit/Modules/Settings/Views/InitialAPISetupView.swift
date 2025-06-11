@@ -55,9 +55,12 @@ struct InitialAPISetupView: View {
                         .font(AppFonts.headline)
                         .foregroundColor(AppColors.textPrimary)
                     
-                    Button(action: { showingInfo = true }) {
-                        Image(systemName: "info.circle")
-                            .foregroundColor(AppColors.textSecondary)
+                    IconButton(
+                        icon: "info.circle",
+                        style: .tertiary,
+                        size: .small
+                    ) {
+                        showingInfo = true
                     }
                 }
                 
@@ -77,21 +80,15 @@ struct InitialAPISetupView: View {
             
             // Action Buttons
             VStack(spacing: AppSpacing.medium) {
-                Button(action: validateAndSave) {
-                    if isValidating {
-                        ProgressView()
-                            .progressViewStyle(CircularProgressViewStyle(tint: .white))
-                            .scaleEffect(0.8)
-                    } else {
-                        Text("Configure AI")
-                    }
-                }
-                .frame(maxWidth: .infinity)
-                .frame(height: 50)
-                .background(apiKey.isEmpty ? Color.gray : AppColors.accentColor)
-                .foregroundColor(.white)
-                .cornerRadius(AppConstants.Layout.defaultCornerRadius)
-                .disabled(apiKey.isEmpty || isValidating)
+                StandardButton(
+                    "Configure AI",
+                    style: .primary,
+                    size: .large,
+                    isFullWidth: true,
+                    isLoading: isValidating,
+                    isEnabled: !apiKey.isEmpty && !isValidating,
+                    action: validateAndSave
+                )
                 
                 Text("An API key is required to use AirFit")
                     .font(AppFonts.caption)

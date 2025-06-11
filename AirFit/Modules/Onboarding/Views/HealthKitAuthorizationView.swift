@@ -25,18 +25,13 @@ struct HealthKitAuthorizationView: View {
             }
 
             // Authorization button
-            Button(
-                action: { Task { await viewModel.requestHealthKitAuthorization() } },
-                label: {
-                    Text("Authorize HealthKit")
-                        .font(AppFonts.bodyBold)
-                        .foregroundColor(AppColors.textOnAccent)
-                        .frame(maxWidth: .infinity)
-                        .padding()
-                        .background(AppColors.accentColor)
-                        .cornerRadius(AppConstants.Layout.defaultCornerRadius)
-                }
-            )
+            StandardButton(
+                "Authorize HealthKit",
+                style: .primary,
+                isFullWidth: true
+            ) {
+                Task { await viewModel.requestHealthKitAuthorization() }
+            }
             .accessibilityIdentifier("onboarding.healthkit.authorize")
 
             Spacer()

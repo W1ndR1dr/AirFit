@@ -42,11 +42,9 @@ struct NotificationPreferencesView: View {
                         
                         Spacer()
                         
-                        Button("Open Settings") {
+                        StandardButton("Open Settings", style: .secondary, size: .small) {
                             viewModel.openSystemNotificationSettings()
                         }
-                        .buttonStyle(.bordered)
-                        .controlSize(.small)
                     }
                     
                     if !preferences.systemEnabled {
@@ -162,12 +160,14 @@ struct NotificationPreferencesView: View {
     }
     
     private var saveButton: some View {
-        Button(action: savePreferences) {
-            Label("Save Preferences", systemImage: "checkmark.circle.fill")
-                .frame(maxWidth: .infinity)
-        }
-        .buttonStyle(.primaryProminent)
-        .disabled(preferences == viewModel.notificationPreferences && quietHours == viewModel.quietHours)
+        StandardButton(
+            "Save Preferences",
+            icon: "checkmark.circle.fill",
+            style: .primary,
+            isFullWidth: true,
+            isEnabled: preferences != viewModel.notificationPreferences || quietHours != viewModel.quietHours,
+            action: savePreferences
+        )
     }
     
     private func savePreferences() {

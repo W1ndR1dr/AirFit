@@ -37,6 +37,7 @@ final class SettingsViewModel: ErrorHandling {
     var selectedModel: String
     var availableProviders: [AIProvider] = []
     var installedAPIKeys: Set<AIProvider> = []
+    var isDemoModeEnabled: Bool = AppConstants.Configuration.isUsingDemoMode
     
     // Synthesized Persona
     var coachPersona: CoachPersona?
@@ -295,6 +296,19 @@ final class SettingsViewModel: ErrorHandling {
         // 4. Signing out
         
         AppLogger.info("User data deletion requested", category: .general)
+    }
+    
+    // MARK: - Demo Mode
+    func setDemoMode(_ enabled: Bool) async {
+        isDemoModeEnabled = enabled
+        AppConstants.Configuration.isUsingDemoMode = enabled
+        
+        // Show alert to inform user about the change
+        if enabled {
+            coordinator.showAlert(.demoModeEnabled)
+        } else {
+            coordinator.showAlert(.demoModeDisabled)
+        }
     }
     
     // MARK: - Helper Methods

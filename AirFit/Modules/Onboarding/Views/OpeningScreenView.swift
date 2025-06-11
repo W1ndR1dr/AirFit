@@ -39,20 +39,13 @@ struct OpeningScreenView: View {
             Spacer()
 
             VStack(spacing: AppSpacing.medium) {
-                Button(
-                    action: {
-                        viewModel.navigateToNextScreen()
-                    },
-                    label: {
-                        Text("Begin")
-                            .font(AppFonts.bodyBold)
-                            .foregroundColor(AppColors.textOnAccent)
-                            .frame(maxWidth: .infinity)
-                            .padding()
-                            .background(AppColors.accentColor)
-                            .cornerRadius(AppConstants.Layout.defaultCornerRadius)
-                    }
-                )
+                StandardButton(
+                    "Begin",
+                    style: .primary,
+                    isFullWidth: true
+                ) {
+                    viewModel.navigateToNextScreen()
+                }
                 .accessibilityIdentifier("onboarding.begin.button")
 
                 Button(

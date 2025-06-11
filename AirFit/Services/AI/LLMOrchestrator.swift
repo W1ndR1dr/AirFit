@@ -1,4 +1,5 @@
 import Foundation
+import Combine
 
 /// # LLMOrchestrator
 /// 
@@ -43,24 +44,33 @@ import Foundation
 /// - Implements smart caching based on task type
 /// - Tracks costs in real-time for budget management
 /// - Supports Gemini 2.5 Flash thinking model with budget control
+/// 
+/// ## Performance Update (Phase 3.2)
+/// - Optimized to run all AI operations off the main thread
+/// - Class remains @MainActor for ObservableObject compatibility
+/// - All heavy operations are nonisolated and use internal actor
+/// - Thread safety handled by OrchestratorState actor for concurrent access
 @MainActor
 final class LLMOrchestrator: ObservableObject, ServiceProtocol {
     // MARK: - ServiceProtocol
     nonisolated let serviceIdentifier = "llm-orchestrator"
-    private var _isConfigured = false
+    
+    // Thread-safe state management using internal actor
+    private nonisolated let state = OrchestratorState()
+    
+    // Synchronous access required by ServiceProtocol
+    // This is a best-effort check - for guaranteed accuracy use async version
+    private nonisolated let _isConfiguredCache = AtomicBool()
     nonisolated var isConfigured: Bool {
-        MainActor.assumeIsolated { _isConfigured }
+        _isConfiguredCache.value
     }
     
-    private var providers: [LLMProviderIdentifier: any LLMProvider] = [:]
-    let apiKeyManager: APIKeyManagementProtocol
-    private let cache = AIResponseCache()
+    nonisolated let apiKeyManager: APIKeyManagementProtocol
+    private nonisolated let cache = AIResponseCache()
     
+    // UI-related properties that need MainActor
     @Published private(set) var availableProviders: Set<LLMProviderIdentifier> = []
     @Published private(set) var totalCost: Double = 0
-    
-    private var usageHistory: [UsageRecord] = []
-    private var cacheEnabled = true
     
     init(apiKeyManager: APIKeyManagementProtocol) {
         self.apiKeyManager = apiKeyManager
@@ -69,25 +79,36 @@ final class LLMOrchestrator: ObservableObject, ServiceProtocol {
     
     // MARK: - ServiceProtocol Methods
     
-    func configure() async throws {
-        guard !_isConfigured else { return }
+    nonisolated func configure() async throws {
+        guard await !state.isConfigured else { return }
+        
         await setupProviders()
-        _isConfigured = true
-        AppLogger.info("\(serviceIdentifier) configured with \(availableProviders.count) providers", category: .services)
+        await state.setConfigured(true)
+        _isConfiguredCache.value = true
+        
+        let providerCount = await MainActor.run { availableProviders.count }
+        AppLogger.info("\(serviceIdentifier) configured with \(providerCount) providers", category: .services)
     }
     
-    func reset() async {
-        providers.removeAll()
-        availableProviders.removeAll()
-        totalCost = 0
-        usageHistory.removeAll()
+    nonisolated func reset() async {
+        await state.reset()
+        _isConfiguredCache.value = false
+        
+        await MainActor.run {
+            availableProviders.removeAll()
+            totalCost = 0
+        }
+        
         await cache.clear()
-        _isConfigured = false
+        
         AppLogger.info("\(serviceIdentifier) reset", category: .services)
     }
     
-    func healthCheck() async -> ServiceHealth {
-        let healthyProviders = availableProviders.count
+    nonisolated func healthCheck() async -> ServiceHealth {
+        let (providerSet, cost) = await MainActor.run { 
+            (availableProviders, totalCost)
+        }
+        let healthyProviders = providerSet.count
         let status: ServiceHealth.Status = healthyProviders > 0 ? .healthy : .unhealthy
         
         return ServiceHealth(
@@ -96,16 +117,16 @@ final class LLMOrchestrator: ObservableObject, ServiceProtocol {
             responseTime: nil,
             errorMessage: healthyProviders == 0 ? "No LLM providers available" : nil,
             metadata: [
-                "availableProviders": availableProviders.map { $0.name }.joined(separator: ", "),
-                "totalCost": "\(totalCost)",
-                "cacheEnabled": "\(cacheEnabled)"
+                "availableProviders": providerSet.map { $0.name }.joined(separator: ", "),
+                "totalCost": "\(cost)",
+                "cacheEnabled": "\(await state.cacheEnabled)"
             ]
         )
     }
     
     // MARK: - Public API
     
-    func complete(
+    nonisolated func complete(
         prompt: String,
         task: AITask,
         model: LLMModel? = nil,
@@ -124,7 +145,7 @@ final class LLMOrchestrator: ObservableObject, ServiceProtocol {
         return try await executeWithFallback(request: request, task: task)
     }
     
-    func stream(
+    nonisolated func stream(
         prompt: String,
         task: AITask,
         model: LLMModel? = nil,
@@ -157,7 +178,7 @@ final class LLMOrchestrator: ObservableObject, ServiceProtocol {
         }
     }
     
-    func estimateCost(for prompt: String, model: LLMModel, responseTokens: Int = 1000) -> Double {
+    nonisolated func estimateCost(for prompt: String, model: LLMModel, responseTokens: Int = 1000) -> Double {
         let promptTokens = estimateTokenCount(prompt)
         let rates = model.cost
         
@@ -169,15 +190,18 @@ final class LLMOrchestrator: ObservableObject, ServiceProtocol {
     
     // MARK: - Private Implementation
     
-    private func setupProviders() async {
+    nonisolated private func setupProviders() async {
+        var newProviders = Set<LLMProviderIdentifier>()
+        var localProviders: [LLMProviderIdentifier: any LLMProvider] = [:]
+        
         // Setup Anthropic
         if let anthropicKey = try? await apiKeyManager.getAPIKey(for: .anthropic) {
             let config = LLMProviderConfig(apiKey: anthropicKey)
             let provider = AnthropicProvider(config: config)
             
             if let validated = try? await provider.validateAPIKey(anthropicKey), validated {
-                providers[.anthropic] = provider
-                availableProviders.insert(.anthropic)
+                localProviders[.anthropic] = provider
+                newProviders.insert(.anthropic)
             }
         }
         
@@ -187,26 +211,34 @@ final class LLMOrchestrator: ObservableObject, ServiceProtocol {
             let provider = OpenAIProvider(config: config)
             
             if let validated = try? await provider.validateAPIKey(openAIKey), validated {
-                providers[.openai] = provider
-                availableProviders.insert(.openai)
+                localProviders[.openai] = provider
+                newProviders.insert(.openai)
             }
         }
         
         // Setup Google Gemini
         if let geminiKey = try? await apiKeyManager.getAPIKey(for: .gemini) {
             let provider = GeminiProvider(apiKey: geminiKey)
-            providers[.google] = provider
-            availableProviders.insert(.google)
+            localProviders[.google] = provider
+            newProviders.insert(.google)
+        }
+        
+        // Update state
+        await state.setProviders(localProviders)
+        
+        // Update UI property on MainActor
+        await MainActor.run {
+            availableProviders = newProviders
         }
     }
     
-    private func executeWithFallback(
+    nonisolated private func executeWithFallback(
         request: LLMRequest,
         task: AITask,
         attemptedProviders: Set<LLMProviderIdentifier> = []
     ) async throws -> LLMResponse {
         // Check cache first if enabled
-        if cacheEnabled {
+        if await state.cacheEnabled {
             if let cachedResponse = await cache.get(request: request) {
                 AppLogger.debug("Cache hit for LLM request", category: .ai)
                 return cachedResponse
@@ -234,7 +266,7 @@ final class LLMOrchestrator: ObservableObject, ServiceProtocol {
             )
             
             // Cache the response if caching is enabled
-            if cacheEnabled {
+            if await state.cacheEnabled {
                 // Determine TTL based on task type
                 let ttl = determineCacheTTL(for: task, request: request)
                 await cache.set(request: request, response: response, ttl: ttl)
@@ -246,7 +278,7 @@ final class LLMOrchestrator: ObservableObject, ServiceProtocol {
             print("LLM Provider error: \(error)")
             
             // Try fallback if available
-            if let fallbackModel = findFallbackModel(
+            if let fallbackModel = await findFallbackModel(
                 for: request.model,
                 task: task,
                 excluding: attemptedProviders
@@ -277,7 +309,7 @@ final class LLMOrchestrator: ObservableObject, ServiceProtocol {
         }
     }
     
-    private func selectProvider(
+    nonisolated private func selectProvider(
         for modelId: String,
         task: AITask,
         excluding: Set<LLMProviderIdentifier> = []
@@ -289,32 +321,37 @@ final class LLMOrchestrator: ObservableObject, ServiceProtocol {
         
         let providerId = model.provider
         
-        guard !excluding.contains(providerId),
-              let provider = providers[providerId] else {
+        guard !excluding.contains(providerId) else {
+            throw AppError.from(LLMError.unsupportedFeature("Provider excluded: \(providerId.name)"))
+        }
+        
+        guard let provider = await state.getProvider(providerId) else {
             throw AppError.from(LLMError.unsupportedFeature("Provider not available: \(providerId.name)"))
         }
         
         return provider
     }
     
-    private func findFallbackModel(
+    nonisolated private func findFallbackModel(
         for modelId: String,
         task: AITask,
         excluding: Set<LLMProviderIdentifier>
-    ) -> LLMModel? {
+    ) async -> LLMModel? {
         let recommendedModels = task.recommendedModels
         
         // Find next available model
         for model in recommendedModels {
-            if !excluding.contains(model.provider) && providers[model.provider] != nil {
-                return model
+            if !excluding.contains(model.provider) {
+                if await state.hasProvider(model.provider) {
+                    return model
+                }
             }
         }
         
         return nil
     }
     
-    private func buildRequest(
+    nonisolated private func buildRequest(
         prompt: String,
         model: LLMModel,
         temperature: Double,
@@ -351,7 +388,7 @@ final class LLMOrchestrator: ObservableObject, ServiceProtocol {
         )
     }
     
-    private func recordUsage(
+    nonisolated private func recordUsage(
         provider: LLMProviderIdentifier,
         model: String,
         usage: LLMResponse.TokenUsage,
@@ -367,25 +404,23 @@ final class LLMOrchestrator: ObservableObject, ServiceProtocol {
             timestamp: Date()
         )
         
-        usageHistory.append(record)
+        await state.addUsageRecord(record)
         
         // Update total cost
         if let modelEnum = LLMModel.allCases.first(where: { $0.identifier == model }) {
-            totalCost += usage.cost(at: modelEnum.cost)
-        }
-        
-        // Keep only last 1000 records
-        if usageHistory.count > 1000 {
-            usageHistory.removeFirst(usageHistory.count - 1000)
+            let additionalCost = usage.cost(at: modelEnum.cost)
+            await MainActor.run {
+                totalCost += additionalCost
+            }
         }
     }
     
-    private func estimateTokenCount(_ text: String) -> Int {
+    nonisolated private func estimateTokenCount(_ text: String) -> Int {
         // Rough estimation: ~4 characters per token
         return text.count / 4
     }
     
-    private func determineCacheTTL(for task: AITask, request: LLMRequest) -> TimeInterval {
+    nonisolated private func determineCacheTTL(for task: AITask, request: LLMRequest) -> TimeInterval {
         // Determine cache TTL based on task type and other factors
         switch task {
         case .personalityExtraction:
@@ -408,24 +443,22 @@ final class LLMOrchestrator: ObservableObject, ServiceProtocol {
     
     // MARK: - Cache Control Methods
     
-    func setCacheEnabled(_ enabled: Bool) {
-        cacheEnabled = enabled
+    nonisolated func setCacheEnabled(_ enabled: Bool) async {
+        await state.setCacheEnabled(enabled)
         if !enabled {
-            Task {
-                await cache.clear()
-            }
+            await cache.clear()
         }
     }
     
-    func clearCache() async {
+    nonisolated func clearCache() async {
         await cache.clear()
     }
     
-    func invalidateCache(tag: String) async {
+    nonisolated func invalidateCache(tag: String) async {
         await cache.invalidate(tag: tag)
     }
     
-    func getCacheStatistics() async -> CacheStatistics {
+    nonisolated func getCacheStatistics() async -> CacheStatistics {
         await cache.getStatistics()
     }
 }
@@ -441,3 +474,77 @@ private struct UsageRecord {
     let timestamp: Date
 }
 
+// MARK: - Thread-Safe State Management
+
+private actor OrchestratorState {
+    private var providers: [LLMProviderIdentifier: any LLMProvider] = [:]
+    private var usageHistory: [UsageRecord] = []
+    private(set) var cacheEnabled = true
+    private(set) var isConfigured = false
+    
+    func setConfigured(_ value: Bool) {
+        isConfigured = value
+    }
+    
+    func setProviders(_ newProviders: [LLMProviderIdentifier: any LLMProvider]) {
+        providers = newProviders
+    }
+    
+    func getProvider(_ identifier: LLMProviderIdentifier) -> (any LLMProvider)? {
+        providers[identifier]
+    }
+    
+    func hasProvider(_ identifier: LLMProviderIdentifier) -> Bool {
+        providers[identifier] != nil
+    }
+    
+    func addUsageRecord(_ record: UsageRecord) {
+        usageHistory.append(record)
+        
+        // Keep only last 1000 records
+        if usageHistory.count > 1000 {
+            usageHistory.removeFirst(usageHistory.count - 1000)
+        }
+    }
+    
+    func setCacheEnabled(_ enabled: Bool) {
+        cacheEnabled = enabled
+    }
+    
+    func reset() {
+        providers.removeAll()
+        usageHistory.removeAll()
+        cacheEnabled = true
+        isConfigured = false
+    }
+}
+
+// MARK: - Atomic Bool for Thread-Safe Synchronous Access
+
+private final class AtomicBool: @unchecked Sendable {
+    private var _value: Bool
+    private let lock = NSLock()
+    
+    init(initialValue: Bool = false) {
+        self._value = initialValue
+    }
+    
+    var value: Bool {
+        get {
+            lock.withLock { _value }
+        }
+        set {
+            lock.withLock { _value = newValue }
+        }
+    }
+}
+
+// NSLock extension for withLock pattern
+extension NSLock {
+    @inlinable
+    func withLock<R>(_ body: () throws -> R) rethrows -> R {
+        lock()
+        defer { unlock() }
+        return try body()
+    }
+}

@@ -55,9 +55,7 @@ struct VoiceInputDownloadView: View {
                     .frame(maxWidth: 250)
                     
                     if let onCancel {
-                        Button("Cancel", action: onCancel)
-                            .buttonStyle(.bordered)
-                            .controlSize(.small)
+                        StandardButton("Cancel", style: .secondary, size: .small, action: onCancel)
                     }
                 }
                 
@@ -90,9 +88,7 @@ struct VoiceInputDownloadView: View {
                         .frame(maxWidth: 300)
                     
                     if let onCancel {
-                        Button("Dismiss", action: onCancel)
-                            .buttonStyle(.borderedProminent)
-                            .controlSize(.small)
+                        StandardButton("Dismiss", style: .primary, size: .small, action: onCancel)
                     }
                 }
                 

@@ -114,12 +114,11 @@ struct OnboardingContainerView: View {
                         .foregroundColor(.secondary)
                         .multilineTextAlignment(.center)
                     
-                    Button("Retry") {
+                    StandardButton("Retry", style: .primary) {
                         Task {
                             await loadCoordinator()
                         }
                     }
-                    .buttonStyle(.borderedProminent)
                 }
                 .padding()
                 .frame(maxWidth: .infinity, maxHeight: .infinity)
@@ -226,12 +225,11 @@ private struct ConversationFlowView: View {
                 .frame(maxWidth: .infinity, maxHeight: .infinity)
             
             // Complete button for testing
-            Button("Complete Conversation") {
+            StandardButton("Complete Conversation", style: .primary) {
                 Task {
                     await coordinator.completeConversation()
                 }
             }
-            .buttonStyle(.borderedProminent)
             .padding()
         }
     }
@@ -325,7 +323,6 @@ private struct ContainerCompletionView: View {
                     await coordinator.acceptPersona()
                 }
             }
-            .buttonStyle(.borderedProminent)
             .controlSize(.large)
             .padding(.horizontal, 32)
             .padding(.bottom, 50)

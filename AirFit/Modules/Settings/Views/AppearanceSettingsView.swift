@@ -138,23 +138,27 @@ struct AppearanceSettingsView: View {
                         .font(.callout)
                         .foregroundStyle(.secondary)
                     
-                    Button(action: openDisplaySettings) {
-                        Label("Open Display Settings", systemImage: "arrow.up.forward.square")
-                            .frame(maxWidth: .infinity)
-                    }
-                    .buttonStyle(.bordered)
+                    StandardButton(
+                        "Open Display Settings",
+                        icon: "arrow.up.forward.square",
+                        style: .secondary,
+                        isFullWidth: true,
+                        action: openDisplaySettings
+                    )
                 }
             }
         }
     }
     
     private var saveButton: some View {
-        Button(action: saveAppearance) {
-            Label("Save Appearance", systemImage: "checkmark.circle.fill")
-                .frame(maxWidth: .infinity)
-        }
-        .buttonStyle(.primaryProminent)
-        .disabled(selectedAppearance == viewModel.appearanceMode)
+        StandardButton(
+            "Save Appearance",
+            icon: "checkmark.circle.fill",
+            style: .primary,
+            isFullWidth: true,
+            isEnabled: selectedAppearance != viewModel.appearanceMode,
+            action: saveAppearance
+        )
     }
     
     private func saveAppearance() {

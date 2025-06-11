@@ -140,11 +140,13 @@ private extension WorkoutDetailView {
                         .font(.callout)
                         .foregroundStyle(AppColors.accent)
                 } else {
-                    Button("Generate Analysis") {
+                    StandardButton(
+                        "Generate Analysis",
+                        style: .secondary,
+                        isEnabled: !viewModel.isGeneratingAnalysis
+                    ) {
                         Task { await viewModel.generateAIAnalysis(for: workout) }
                     }
-                    .buttonStyle(.bordered)
-                    .disabled(viewModel.isGeneratingAnalysis)
                 }
             }
         }
@@ -166,19 +168,22 @@ private extension WorkoutDetailView {
 
     var actionsSection: some View {
         VStack(spacing: AppSpacing.small) {
-            Button {
+            StandardButton(
+                "Save as Template",
+                icon: "square.and.arrow.down",
+                style: .secondary,
+                isFullWidth: true
+            ) {
                 showingTemplateSheet = true
-            } label: {
-                Label("Save as Template", systemImage: "square.and.arrow.down")
-                    .frame(maxWidth: .infinity)
             }
-            .buttonStyle(.bordered)
 
-            Button(action: shareWorkout) {
-                Label("Share Workout", systemImage: "square.and.arrow.up")
-                    .frame(maxWidth: .infinity)
-            }
-            .buttonStyle(.bordered)
+            StandardButton(
+                "Share Workout",
+                icon: "square.and.arrow.up",
+                style: .secondary,
+                isFullWidth: true,
+                action: shareWorkout
+            )
         }
         .padding(.top)
     }

@@ -14,11 +14,18 @@ import Foundation
 // - Focus on complex workflows that benefit from function ecosystem
 // - Simple parsing tasks route to direct AI for 3x performance improvement
 
-struct FunctionContext: @unchecked Sendable {
-    let modelContext: ModelContext
+// MARK: - Phase 3.2 Thread Safety Update
+// - Removed @unchecked Sendable from FunctionContext and FunctionCallDispatcher
+// - FunctionContext now properly Sendable by storing only IDs
+// - FunctionCallDispatcher runs on MainActor since it needs ModelContext
+// - All database operations are properly isolated to MainActor
+
+struct FunctionContext: Sendable {
     let conversationId: UUID
     let userId: UUID
     let timestamp = Date()
+    
+    // ModelContext is passed separately to ensure MainActor isolation
 }
 
 struct FunctionExecutionResult: Sendable {
@@ -87,17 +94,18 @@ enum SendableValue: Sendable {
 
 // MARK: - Function Call Dispatcher
 
-final class FunctionCallDispatcher: @unchecked Sendable {
+@MainActor
+final class FunctionCallDispatcher: Sendable {
 
     // MARK: - Dependencies
     private let workoutService: AIWorkoutServiceProtocol
     private let analyticsService: AIAnalyticsServiceProtocol
     private let goalService: AIGoalServiceProtocol
-    // Removed nutritionService and educationService - functions migrated to direct AI implementation
-
+    // ModelContext will be passed in when needed
+    
     // MARK: - Performance Tracking (Optimized)
-    private let metricsQueue = DispatchQueue(label: "com.airfit.function-metrics", attributes: .concurrent)
-    private var _functionMetrics: [String: FunctionMetrics] = [:]
+    private var functionMetrics: [String: FunctionMetrics] = [:]
+    private let metricsLock = NSLock()
 
     // Pre-allocated formatters for performance
     private let intFormatter: NumberFormatter = {
@@ -107,8 +115,17 @@ final class FunctionCallDispatcher: @unchecked Sendable {
         return formatter
     }()
 
+    // Sendable result type for function handlers
+    struct FunctionHandlerResult: Sendable {
+        let message: String
+        let data: [String: SendableValue]
+    }
+    
+    // Function handler type
+    typealias FunctionHandler = @MainActor @Sendable (FunctionCallDispatcher, [String: AIAnyCodable], User, FunctionContext, ModelContext) async throws -> FunctionHandlerResult
+
     // Function name lookup table for O(1) dispatch
-    private let functionDispatchTable: [String: @Sendable (FunctionCallDispatcher, [String: AIAnyCodable], User, FunctionContext) async throws -> (message: String, data: [String: Any])]
+    private let functionDispatchTable: [String: FunctionHandler]
 
     private struct FunctionMetrics: Sendable {
         var totalCalls: Int = 0
@@ -137,17 +154,17 @@ final class FunctionCallDispatcher: @unchecked Sendable {
 
         // Pre-build dispatch table for O(1) function lookup
         self.functionDispatchTable = [
-            "generatePersonalizedWorkoutPlan": { dispatcher, args, user, context in
-                try await dispatcher.executeWorkoutPlan(args, for: user, context: context)
+            "generatePersonalizedWorkoutPlan": { dispatcher, args, user, context, modelContext in
+                try await dispatcher.executeWorkoutPlan(args, for: user, context: context, modelContext: modelContext)
             },
-            "adaptPlanBasedOnFeedback": { dispatcher, args, user, context in
-                try await dispatcher.executeAdaptPlan(args, for: user, context: context)
+            "adaptPlanBasedOnFeedback": { dispatcher, args, user, context, modelContext in
+                try await dispatcher.executeAdaptPlan(args, for: user, context: context, modelContext: modelContext)
             },
-            "analyzePerformanceTrends": { dispatcher, args, user, context in
-                try await dispatcher.executePerformanceAnalysis(args, for: user, context: context)
+            "analyzePerformanceTrends": { dispatcher, args, user, context, modelContext in
+                try await dispatcher.executePerformanceAnalysis(args, for: user, context: context, modelContext: modelContext)
             },
-            "assistGoalSettingOrRefinement": { dispatcher, args, user, context in
-                try await dispatcher.executeGoalSetting(args, for: user, context: context)
+            "assistGoalSettingOrRefinement": { dispatcher, args, user, context, modelContext in
+                try await dispatcher.executeGoalSetting(args, for: user, context: context, modelContext: modelContext)
             }
         ]
     }
@@ -157,14 +174,15 @@ final class FunctionCallDispatcher: @unchecked Sendable {
     func execute(
         _ call: AIFunctionCall,
         for user: User,
-        context: FunctionContext
+        context: FunctionContext,
+        modelContext: ModelContext
     ) async throws -> FunctionExecutionResult {
         let startTime = CFAbsoluteTimeGetCurrent()
 
         AppLogger.info("Executing function: \(call.name)", category: .ai)
 
         do {
-            let result = try await executeFunction(call, for: user, context: context)
+            let result = try await executeFunction(call, for: user, context: context, modelContext: modelContext)
             let executionTime = CFAbsoluteTimeGetCurrent() - startTime
 
             // Update metrics
@@ -179,7 +197,7 @@ final class FunctionCallDispatcher: @unchecked Sendable {
             return FunctionExecutionResult(
                 success: true,
                 message: result.message,
-                data: result.data,
+                data: result.data.mapValues { $0.anyValue },
                 executionTimeMs: executionTimeMs,
                 functionName: call.name
             )
@@ -197,28 +215,32 @@ final class FunctionCallDispatcher: @unchecked Sendable {
                 category: .ai
             )
 
-            let errorMessage = handleError(error, functionName: call.name)
-
             return FunctionExecutionResult(
                 success: false,
-                message: errorMessage,
-                data: ["error": error.localizedDescription],
+                message: "Error executing \(call.name): \(error.localizedDescription)",
+                data: nil,
                 executionTimeMs: executionTimeMs,
                 functionName: call.name
             )
         }
     }
 
-    func getMetrics() -> [String: Any] {
-        return metricsQueue.sync {
-            return _functionMetrics.mapValues { metrics in
-                [
-                    "totalCalls": metrics.totalCalls,
-                    "averageExecutionTimeMs": Int(metrics.averageExecutionTime * 1_000),
-                    "successRate": metrics.successRate,
-                    "errorCount": metrics.errorCount
-                ]
+    func getMetrics(for functionName: String? = nil) -> [String: Any] {
+        metricsLock.lock()
+        defer { metricsLock.unlock() }
+        
+        if let functionName = functionName {
+            guard let metrics = functionMetrics[functionName] else {
+                return ["error": "No metrics available for function: \(functionName)"]
             }
+            return metricsToDict(metrics, functionName: functionName)
+        } else {
+            // Return all metrics
+            var allMetrics: [String: Any] = [:]
+            for (name, metrics) in functionMetrics {
+                allMetrics[name] = metricsToDict(metrics, functionName: name)
+            }
+            return allMetrics
         }
     }
 
@@ -227,15 +249,40 @@ final class FunctionCallDispatcher: @unchecked Sendable {
     private func executeFunction(
         _ call: AIFunctionCall,
         for user: User,
-        context: FunctionContext
-    ) async throws -> (message: String, data: [String: Any]) {
-
-        // O(1) function dispatch using lookup table
+        context: FunctionContext,
+        modelContext: ModelContext
+    ) async throws -> FunctionHandlerResult {
         guard let handler = functionDispatchTable[call.name] else {
-            throw FunctionError.unknownFunction(call.name)
+            throw AppError.validationError(message: "Unknown function: \(call.name)")
         }
 
-        return try await handler(self, call.arguments, user, context)
+        return try await handler(self, call.arguments, user, context, modelContext)
+    }
+
+    private func updateMetrics(for functionName: String, executionTime: TimeInterval, success: Bool) {
+        metricsLock.lock()
+        defer { metricsLock.unlock() }
+        
+        var metrics = functionMetrics[functionName] ?? FunctionMetrics()
+        metrics.totalCalls += 1
+        metrics.totalExecutionTime += executionTime
+        if success {
+            metrics.successCount += 1
+        } else {
+            metrics.errorCount += 1
+        }
+        functionMetrics[functionName] = metrics
+    }
+
+    private func metricsToDict(_ metrics: FunctionMetrics, functionName: String) -> [String: Any] {
+        return [
+            "functionName": functionName,
+            "totalCalls": metrics.totalCalls,
+            "successCount": metrics.successCount,
+            "errorCount": metrics.errorCount,
+            "successRate": String(format: "%.2f%%", metrics.successRate * 100),
+            "averageExecutionTime": String(format: "%.2fms", metrics.averageExecutionTime * 1_000)
+        ]
     }
 
     // MARK: - Function Implementations
@@ -243,410 +290,352 @@ final class FunctionCallDispatcher: @unchecked Sendable {
     private func executeWorkoutPlan(
         _ args: [String: AIAnyCodable],
         for user: User,
-        context: FunctionContext
-    ) async throws -> (message: String, data: [String: Any]) {
+        context: FunctionContext,
+        modelContext: ModelContext
+    ) async throws -> FunctionHandlerResult {
+        let goals = (args["goals"]?.value as? [String]) ?? ["general fitness"]
+        let durationMinutes = (args["duration_minutes"]?.value as? Int) ?? 45
+        let equipment = (args["equipment"]?.value as? [String]) ?? ["bodyweight"]
+        let intensity = (args["intensity"]?.value as? String) ?? "moderate"
 
-        let goalFocus = extractString(from: args["goalFocus"]) ?? "general_fitness"
-        let duration = extractInt(from: args["durationMinutes"]) ?? 45
-        let intensity = extractString(from: args["intensityPreference"]) ?? "moderate"
-        let muscleGroups = extractStringArray(from: args["targetMuscleGroups"]) ?? ["full_body"]
-        let equipment = extractStringArray(from: args["availableEquipment"]) ?? ["bodyweight"]
-        let constraints = extractString(from: args["constraints"])
-        let style = extractString(from: args["workoutStyle"]) ?? "traditional_sets"
-
-        // Now properly implemented in AIWorkoutServiceProtocol
         let plan = try await workoutService.generatePlan(
             for: user,
-            goal: goalFocus,
-            duration: duration,
+            goal: goals.joined(separator: ", "),
+            duration: durationMinutes,
             intensity: intensity,
-            targetMuscles: muscleGroups,
+            targetMuscles: [], // Could extract from goals
             equipment: equipment,
-            constraints: constraints,
-            style: style
+            constraints: nil,
+            style: "balanced"
         )
 
-        // Optimized string building - avoid repeated interpolation
-        let muscleGroupsText = muscleGroups.joined(separator: ", ")
-        let exerciseCount = plan.exercises.count
-        let calories = plan.estimatedCalories
+        // Save the workout plan to the database
+        let workout = Workout(
+            name: plan.summary,
+            workoutType: .general,
+            plannedDate: Date(),
+            user: user
+        )
+        workout.durationSeconds = TimeInterval(plan.estimatedDuration * 60)
+        workout.caloriesBurned = Double(plan.estimatedCalories)
 
-        let message = "Created a personalized \(duration)-minute \(goalFocus) workout targeting \(muscleGroupsText). The workout includes \(exerciseCount) exercises and is estimated to burn \(calories) calories."
-
-        // Pre-allocate exercise array capacity for better performance
-        var exerciseData: [[String: Any]] = []
-        exerciseData.reserveCapacity(exerciseCount)
-
-        for exercise in plan.exercises {
-            exerciseData.append([
-                "name": exercise.name,
-                "sets": exercise.sets,
-                "reps": exercise.reps,
-                "restSeconds": exercise.restSeconds,
-                "notes": exercise.notes ?? "",
-                "alternatives": exercise.alternatives
-            ])
+        // Create exercises
+        for (index, exercise) in plan.exercises.enumerated() {
+            let exerciseModel = Exercise(
+                name: exercise.name,
+                muscleGroups: [], // PlannedExercise doesn't have muscle groups
+                equipment: [], // PlannedExercise doesn't have equipment
+                orderIndex: index
+            )
+            
+            // Add default sets based on the planned exercise
+            for setNum in 1...exercise.sets {
+                // Parse reps from string (e.g., "8-12" -> 10)
+                let targetReps = parseRepsFromString(exercise.reps)
+                let set = ExerciseSet(
+                    setNumber: setNum,
+                    targetReps: targetReps,
+                    targetWeightKg: nil, // Would need to be determined
+                    targetDurationSeconds: nil
+                )
+                exerciseModel.addSet(set)
+            }
+            
+            exerciseModel.restSeconds = TimeInterval(exercise.restSeconds)
+            workout.exercises.append(exerciseModel)
         }
 
-        let data: [String: Any] = [
-            "planId": plan.id.uuidString,
-            "exerciseCount": exerciseCount,
-            "estimatedCalories": calories,
-            "estimatedDuration": plan.estimatedDuration,
-            "exercises": exerciseData,
-            "summary": plan.summary
+        modelContext.insert(workout)
+        try modelContext.save()
+
+        let exerciseData: [SendableValue] = plan.exercises.map { exercise in
+            SendableValue.dictionary([
+                "name": .string(exercise.name),
+                "sets": .int(exercise.sets),
+                "reps": .string(exercise.reps),
+                "restSeconds": .int(exercise.restSeconds)
+            ])
+        }
+        
+        let result: [String: SendableValue] = [
+            "workoutId": .string(workout.id.uuidString),
+            "planName": .string(plan.summary),
+            "exercises": .array(exerciseData),
+            "estimatedCalories": .int(plan.estimatedCalories),
+            "totalDuration": .int(plan.estimatedDuration)
         ]
 
-        return (message, data)
+        return FunctionHandlerResult(
+            message: "Created workout plan: \(plan.summary)",
+            data: result
+        )
     }
 
     private func executeAdaptPlan(
         _ args: [String: AIAnyCodable],
         for user: User,
-        context: FunctionContext
-    ) async throws -> (message: String, data: [String: Any]) {
+        context: FunctionContext,
+        modelContext: ModelContext
+    ) async throws -> FunctionHandlerResult {
+        let workoutId = args["workout_id"]?.value as? String ?? ""
+        let feedback = args["feedback"]?.value as? String ?? ""
+        let performanceDataRaw = args["performance_data"]?.value as? [String: Any] ?? [:]
+        
+        // Convert to Sendable format
+        let performanceData = performanceDataRaw.mapValues { value in
+            String(describing: value)
+        }
 
-        // Fix the nested AIAnyCodable extraction bug
-        let feedback = extractString(from: args["userFeedback"]) ?? ""
-        let adaptationType = extractString(from: args["adaptationType"]) ?? "moderate_adjustment"
-        let concern = extractString(from: args["specificConcern"])
-        let urgency = extractString(from: args["urgencyLevel"]) ?? "gradual"
-        let maintainGoals = extractBool(from: args["maintainGoals"]) ?? true
+        // Validate workout exists
+        guard let workoutUUID = UUID(uuidString: workoutId) else {
+            throw AppError.validationError(message: "Invalid workout ID")
+        }
 
-        // Mock adaptation logic
-        let adaptationSummary = generateAdaptationSummary(
+        // Fetch workout from database
+        let descriptor = FetchDescriptor<Workout>(
+            predicate: #Predicate { $0.id == workoutUUID }
+        )
+        guard let workout = try modelContext.fetch(descriptor).first else {
+            throw AppError.unknown(message: "Workout not found")
+        }
+
+        // Create a WorkoutPlanResult from the existing workout
+        let currentPlan = WorkoutPlanResult(
+            id: workout.id,
+            exercises: [], // Would need to convert from workout.exercises
+            estimatedCalories: Int(workout.caloriesBurned ?? 0),
+            estimatedDuration: Int((workout.durationSeconds ?? 0) / 60),
+            summary: workout.name,
+            difficulty: .intermediate,
+            focusAreas: []
+        )
+        
+        // Adapt the plan based on feedback
+        let adaptedPlan = try await workoutService.adaptPlan(
+            currentPlan,
             feedback: feedback,
-            type: adaptationType,
-            concern: concern,
-            urgency: urgency
+            adjustments: performanceData as [String: Any]
         )
 
-        let message = """
-        I've adapted your plan based on your feedback: "\(feedback)".
-        \(adaptationSummary) The changes will be implemented \(urgency == "immediate" ? "in your next workout" : "gradually over the next few sessions").
-        """
+        // Update the workout in database
+        // Update workout properties
+        workout.name = adaptedPlan.summary
+        workout.durationSeconds = TimeInterval(adaptedPlan.estimatedDuration * 60)
+        workout.caloriesBurned = Double(adaptedPlan.estimatedCalories)
 
-        let data: [String: Any] = [
-            "adaptationType": adaptationType,
-            "urgencyLevel": urgency,
-            "maintainGoals": maintainGoals,
-            "changes": [
-                "intensity": adaptationType.contains("intensity") ? "adjusted" : "maintained",
-                "focus": adaptationType.contains("focus") ? "shifted" : "maintained",
-                "variety": adaptationType.contains("variety") ? "increased" : "maintained"
-            ],
-            "summary": adaptationSummary
+        // Update exercises
+        workout.exercises.removeAll()
+        for (index, exercise) in adaptedPlan.exercises.enumerated() {
+            let exerciseModel = Exercise(
+                name: exercise.name,
+                muscleGroups: [], // PlannedExercise doesn't have muscle groups
+                equipment: [], // PlannedExercise doesn't have equipment
+                orderIndex: index
+            )
+            
+            // Add default sets based on the planned exercise
+            for setNum in 1...exercise.sets {
+                let targetReps = parseRepsFromString(exercise.reps)
+                let set = ExerciseSet(
+                    setNumber: setNum,
+                    targetReps: targetReps,
+                    targetWeightKg: nil,
+                    targetDurationSeconds: nil
+                )
+                exerciseModel.addSet(set)
+            }
+            
+            exerciseModel.restSeconds = TimeInterval(exercise.restSeconds)
+            workout.exercises.append(exerciseModel)
+        }
+
+        try modelContext.save()
+
+        let result: [String: SendableValue] = [
+            "workoutId": .string(workout.id.uuidString),
+            "summary": .string(adaptedPlan.summary),
+            "exercises": .int(adaptedPlan.exercises.count),
+            "estimatedCalories": .int(adaptedPlan.estimatedCalories)
         ]
 
-        return (message, data)
+        return FunctionHandlerResult(
+            message: "Adapted workout plan based on your feedback",
+            data: result
+        )
     }
 
     private func executePerformanceAnalysis(
         _ args: [String: AIAnyCodable],
         for user: User,
-        context: FunctionContext
-    ) async throws -> (message: String, data: [String: Any]) {
+        context: FunctionContext,
+        modelContext: ModelContext
+    ) async throws -> FunctionHandlerResult {
+        let metricType = args["metric_type"]?.value as? String ?? "overall"
+        let timePeriod = args["time_period"]?.value as? String ?? "week"
 
-        let query = extractString(from: args["analysisQuery"]) ?? ""
-        let metrics = extractStringArray(from: args["metricsToAnalyze"]) ?? ["workout_volume", "energy_levels"]
-        let days = extractInt(from: args["timePeriodDays"]) ?? 30
-        let depth = extractString(from: args["analysisDepth"]) ?? "standard_analysis"
-        let includeRecommendations = extractBool(from: args["includeRecommendations"]) ?? true
+        // Fetch recent workouts from database
+        let calendar = Calendar.current
+        let startDate = calendar.date(byAdding: .day, value: -7, to: Date()) ?? Date()
 
-        // TODO: Implement analyzePerformance in AnalyticsServiceProtocol
-        // let result = try await analyticsService.analyzePerformance(
-        //     query: query,
-        //     metrics: metrics,
-        //     days: days,
-        //     depth: depth,
-        //     includeRecommendations: includeRecommendations,
-        //     for: user
-        // )
+        // Fetch all user's workouts and filter manually
+        let userId = user.id
+        let descriptor = FetchDescriptor<Workout>(
+            predicate: #Predicate { workout in
+                workout.user?.id == userId
+            }
+        )
+        let allWorkouts = try modelContext.fetch(descriptor)
         
-        // Mock result for now
-        let result = PerformanceAnalysisResult(
-            summary: "Mock performance analysis",
-            insights: [],
-            trends: [],
-            recommendations: [],
-            dataPoints: 0,
-            confidence: 0.8
+        // Filter for recent workouts
+        let workouts = allWorkouts.filter { workout in
+            let workoutDate = workout.completedDate ?? workout.plannedDate ?? Date()
+            return workoutDate >= startDate
+        }
+
+        let analysis = try await analyticsService.analyzePerformance(
+            query: "Analyze \(metricType) performance",
+            metrics: ["calories", "duration", "volume"],
+            days: 7,
+            depth: "detailed",
+            includeRecommendations: true,
+            for: user
         )
 
-        let message = """
-        Analysis complete for the past \(days) days. \(result.summary)
-        Found \(result.insights.count) key insights and \(result.trends.count) significant trends.
-        """
-
-        let data: [String: Any] = [
-            "analysisQuery": query,
-            "timePeriod": days,
-            "dataPoints": result.dataPoints,
-            "summary": result.summary,
-            "insights": result.insights,
-            "trends": result.trends.map { trend in
-                [
-                    "metric": trend.metric,
-                    "direction": trend.direction.rawValue,
-                    "magnitude": trend.magnitude,
-                    "timeframe": trend.timeframe
-                ]
-            },
-            "recommendations": result.recommendations
+        let trendsData: [SendableValue] = analysis.trends.map { trend in
+            SendableValue.dictionary([
+                "metric": .string(trend.metric),
+                "direction": .string(trend.direction.rawValue),
+                "magnitude": .double(trend.magnitude),
+                "timeframe": .string(trend.timeframe)
+            ])
+        }
+        
+        let result: [String: SendableValue] = [
+            "trends": .array(trendsData),
+            "insights": .array(analysis.insights.map { .string($0.finding) }),
+            "recommendations": .array(analysis.recommendations.map { .string($0) }),
+            "dataPoints": .int(analysis.dataPoints)
         ]
 
-        return (message, data)
+        return FunctionHandlerResult(
+            message: analysis.summary,
+            data: result
+        )
     }
 
     private func executeGoalSetting(
         _ args: [String: AIAnyCodable],
         for user: User,
-        context: FunctionContext
-    ) async throws -> (message: String, data: [String: Any]) {
+        context: FunctionContext,
+        modelContext: ModelContext
+    ) async throws -> FunctionHandlerResult {
+        let goalType = args["goal_type"]?.value as? String ?? "fitness"
+        let timeframe = args["timeframe"]?.value as? String ?? "3 months"
+        let currentState = args["current_state"]?.value as? [String: Any] ?? [:]
+        let preferences = args["preferences"]?.value as? [String: Any] ?? [:]
 
-        let currentGoal = extractString(from: args["currentGoal"])
-        let aspirations = extractString(from: args["aspirations"]) ?? ""
-        let timeframe = extractString(from: args["timeframe"])
-        let fitnessLevel = extractString(from: args["currentFitnessLevel"])
-        let constraints = extractStringArray(from: args["constraints"]) ?? []
-        let motivations = extractStringArray(from: args["motivationFactors"]) ?? []
-        let goalType = extractString(from: args["goalType"])
-
-        // TODO: Implement createOrRefineGoal in GoalServiceProtocol
-        // let result = try await goalService.createOrRefineGoal(
-        //     current: currentGoal,
-        //     aspirations: aspirations,
-        //     timeframe: timeframe,
-        //     fitnessLevel: fitnessLevel,
-        //     constraints: constraints,
-        //     motivations: motivations,
-        //     goalType: goalType,
-        //     for: user
-        // )
-        
-        // Mock result for now
-        let result = GoalResult(
-            id: UUID(),
-            title: "Mock Goal",
-            description: "Mock goal description",
-            targetDate: Date().addingTimeInterval(86400 * 30),
-            metrics: [
-                GoalMetric(
-                    name: "Weight Loss",
-                    currentValue: 0,
-                    targetValue: 10,
-                    unit: "lbs"
-                )
-            ],
-            milestones: [
-                GoalMilestone(
-                    title: "First Week Complete",
-                    targetDate: Date().addingTimeInterval(86400 * 7),
-                    criteria: "Complete all workouts",
-                    reward: "New workout playlist"
-                )
-            ],
-            smartCriteria: GoalResult.SMARTCriteria(
-                specific: "Mock specific criteria",
-                measurable: "Mock measurable criteria",
-                achievable: "Mock achievable criteria",
-                relevant: "Mock relevant criteria",
-                timeBound: "Mock time-bound criteria"
-            )
+        let result = try await goalService.createOrRefineGoal(
+            current: nil,
+            aspirations: goalType,
+            timeframe: timeframe,
+            fitnessLevel: currentState["fitnessLevel"] as? String,
+            constraints: [],
+            motivations: [],
+            goalType: goalType,
+            for: user
         )
 
-        let message = """
-        Created SMART goal: "\(result.title)".
-        This goal is specific, measurable, and tailored to your \(fitnessLevel ?? "current") fitness level.
-        I've identified \(result.milestones.count) key milestones to track your progress.
-        """
+        // Save goal to database
+        let targetDate = result.targetDate ?? Date().addingTimeInterval(TimeInterval(90 * 24 * 60 * 60)) // Default 90 days
+        let goal = TrackedGoal(
+            userId: user.id,
+            title: result.title,
+            type: .custom,
+            category: .fitness,
+            priority: .high,
+            targetValue: result.metrics.first?.targetValue.description,
+            targetUnit: result.metrics.first?.unit,
+            deadline: targetDate,
+            description: result.description
+        )
 
-        let data: [String: Any] = [
-            "goalId": result.id.uuidString,
-            "title": result.title,
-            "description": result.description,
-            "targetDate": result.targetDate?.ISO8601Format() ?? "",
-            "metrics": result.metrics,
-            "milestones": result.milestones,
-            "smartCriteria": [
-                "specific": result.smartCriteria.specific,
-                "measurable": result.smartCriteria.measurable,
-                "achievable": result.smartCriteria.achievable,
-                "relevant": result.smartCriteria.relevant,
-                "timeBound": result.smartCriteria.timeBound
-            ]
+        modelContext.insert(goal)
+        try modelContext.save()
+
+        let milestonesData: [SendableValue] = result.milestones.map { milestone in
+            SendableValue.dictionary([
+                "title": .string(milestone.title),
+                "targetDate": .string(milestone.targetDate.ISO8601Format()),
+                "criteria": .string(milestone.criteria)
+            ])
+        }
+        
+        let metricsData: [SendableValue] = result.metrics.map { metric in
+            SendableValue.dictionary([
+                "name": .string(metric.name),
+                "currentValue": .double(metric.currentValue),
+                "targetValue": .double(metric.targetValue),
+                "unit": .string(metric.unit)
+            ])
+        }
+        
+        let savedGoal: [String: SendableValue] = [
+            "goalId": .string(goal.id.uuidString),
+            "title": .string(result.title),
+            "milestones": .array(milestonesData),
+            "metrics": .array(metricsData)
         ]
 
-        return (message, data)
+        return FunctionHandlerResult(
+            message: "Created goal: \(result.title)",
+            data: savedGoal
+        )
     }
-
+    
     // MARK: - Helper Methods
-
-    private func generateAdaptationSummary(
-        feedback: String,
-        type: String,
-        concern: String?,
-        urgency: String
-    ) -> String {
-        switch type {
-        case "reduce_intensity":
-            return "I've reduced the workout intensity to better match your current energy levels."
-        case "increase_intensity":
-            return "I've increased the challenge level to help you progress faster."
-        case "change_focus":
-            return "I've shifted the workout focus to address your specific needs."
-        case "add_variety":
-            return "I've added new exercises to keep your workouts engaging and prevent plateaus."
-        case "recovery_focus":
-            return "I've emphasized recovery and mobility work to help you feel better."
-        case "time_adjustment":
-            return "I've adjusted the workout duration to fit your schedule better."
-        case "equipment_swap":
-            return "I've modified exercises to work with your available equipment."
-        case "injury_accommodation":
-            return "I've adapted the plan to work around your injury while maintaining progress."
-        default:
-            return "I've made adjustments to better align with your feedback and goals."
-        }
-    }
-
-    private func updateMetrics(for functionName: String, executionTime: TimeInterval, success: Bool) {
-        metricsQueue.async(flags: .barrier) { [weak self] in
-            guard let self = self else { return }
-
-            // Use modify-in-place pattern for better performance
-            if self._functionMetrics[functionName] != nil {
-                self._functionMetrics[functionName]!.totalCalls += 1
-                self._functionMetrics[functionName]!.totalExecutionTime += executionTime
-
-                if success {
-                    self._functionMetrics[functionName]!.successCount += 1
-                } else {
-                    self._functionMetrics[functionName]!.errorCount += 1
-                }
-            } else {
-                // First call for this function
-                var newMetrics = FunctionMetrics()
-                newMetrics.totalCalls = 1
-                newMetrics.totalExecutionTime = executionTime
-
-                if success {
-                    newMetrics.successCount = 1
-                } else {
-                    newMetrics.errorCount = 1
-                }
-
-                self._functionMetrics[functionName] = newMetrics
+    
+    /// Parse reps from string format (e.g., "8-12" -> 10, "15" -> 15)
+    private func parseRepsFromString(_ repsString: String) -> Int {
+        // Handle range format "8-12"
+        if repsString.contains("-") {
+            let components = repsString.split(separator: "-").compactMap { Int($0.trimmingCharacters(in: .whitespaces)) }
+            if components.count == 2 {
+                // Return the average
+                return (components[0] + components[1]) / 2
             }
         }
-    }
-
-    private func handleError(_ error: Error, functionName: String) -> String {
-        switch error {
-        case FunctionError.unknownFunction(let name):
-            return "I don't recognize the function '\(name)'. This might be a system error."
-
-        case FunctionError.invalidArguments:
-            return "The request had invalid parameters. Let me try a different approach."
-
-        case FunctionError.serviceUnavailable:
-            return "The service is temporarily unavailable. Please try again in a moment."
-
-        case FunctionError.dataNotFound:
-            return "I couldn't find the data needed for this analysis. Try asking about a different time period."
-
-        case FunctionError.processingTimeout:
-            return "This request is taking longer than expected. Let me try a simpler approach."
-
-        default:
-            return "I encountered an issue while processing your request. Let me try to help you in a different way."
-        }
-    }
-
-    // MARK: - Helper Methods for AIAnyCodable Extraction
-
-    private func extractString(from anyCodable: AIAnyCodable?) -> String? {
-        guard let anyCodable = anyCodable else { return nil }
-
-        // Handle nested AIAnyCodable
-        if let nestedAnyCodable = anyCodable.value as? AIAnyCodable {
-            return nestedAnyCodable.value as? String
-        }
-
-        // Handle direct value
-        return anyCodable.value as? String
-    }
-
-    private func extractInt(from anyCodable: AIAnyCodable?) -> Int? {
-        guard let anyCodable = anyCodable else { return nil }
-
-        // Handle nested AIAnyCodable
-        if let nestedAnyCodable = anyCodable.value as? AIAnyCodable {
-            return nestedAnyCodable.value as? Int
-        }
-
-        // Handle direct value
-        return anyCodable.value as? Int
-    }
-
-    private func extractDouble(from anyCodable: AIAnyCodable?) -> Double? {
-        guard let anyCodable = anyCodable else { return nil }
-
-        // Handle nested AIAnyCodable
-        if let nestedAnyCodable = anyCodable.value as? AIAnyCodable {
-            return nestedAnyCodable.value as? Double
-        }
-
-        // Handle direct value
-        return anyCodable.value as? Double
-    }
-
-    private func extractBool(from anyCodable: AIAnyCodable?) -> Bool? {
-        guard let anyCodable = anyCodable else { return nil }
-
-        // Handle nested AIAnyCodable
-        if let nestedAnyCodable = anyCodable.value as? AIAnyCodable {
-            return nestedAnyCodable.value as? Bool
-        }
-
-        // Handle direct value
-        return anyCodable.value as? Bool
-    }
-
-    private func extractStringArray(from anyCodable: AIAnyCodable?) -> [String]? {
-        guard let anyCodable = anyCodable else { return nil }
-
-        // Handle nested AIAnyCodable
-        if let nestedAnyCodable = anyCodable.value as? AIAnyCodable {
-            return nestedAnyCodable.value as? [String]
-        }
-
-        // Handle direct value
-        return anyCodable.value as? [String]
+        
+        // Try to parse as single number
+        return Int(repsString.trimmingCharacters(in: .whitespaces)) ?? 10
     }
 }
 
-// MARK: - Errors
+// MARK: - Extensions
 
-enum FunctionError: LocalizedError {
-    case unknownFunction(String)
-    case invalidArguments
-    case serviceUnavailable
-    case dataNotFound
-    case processingTimeout
-
-    var errorDescription: String? {
-        switch self {
-        case .unknownFunction(let name):
-            return "Unknown function: \(name)"
-        case .invalidArguments:
-            return "Invalid function arguments"
-        case .serviceUnavailable:
-            return "Service temporarily unavailable"
-        case .dataNotFound:
-            return "Required data not found"
-        case .processingTimeout:
-            return "Processing timeout"
+extension FunctionCallDispatcher {
+    // Phase 3.2: Batch execution support for improved performance
+    func executeBatch(
+        _ calls: [AIFunctionCall],
+        for user: User,
+        context: FunctionContext,
+        modelContext: ModelContext
+    ) async -> [FunctionExecutionResult] {
+        // Execute sequentially to avoid data races with ModelContext
+        var results: [FunctionExecutionResult] = []
+        for call in calls {
+            do {
+                let result = try await self.execute(call, for: user, context: context, modelContext: modelContext)
+                results.append(result)
+            } catch {
+                results.append(FunctionExecutionResult(
+                    success: false,
+                    message: "Error: \(error.localizedDescription)",
+                    data: nil,
+                    executionTimeMs: 0,
+                    functionName: call.name
+                ))
+            }
         }
+        return results
     }
 }

@@ -1,18 +1,20 @@
 # AirFit Documentation
 
-## 📍 Current Phase: 3.1 - Simplify Architecture (IN PROGRESS)
+## 📍 Current Phase: 3.2 - AI System Optimization (43% COMPLETE)
 
 ### Primary Guides
 - **[CODEBASE_RECOVERY_PLAN.md](CODEBASE_RECOVERY_PLAN.md)** - Master roadmap for all phases
-- **[PHASE_3_1_STATUS.md](PHASE_3_1_STATUS.md)** - Current status (single source of truth)
-- **[PHASE_3_KICKOFF.md](PHASE_3_KICKOFF.md)** - Phase 3 overview
+- **[PHASE_3_2_STATUS.md](PHASE_3_2_STATUS.md)** - Current AI optimization progress
+- **[ARCHITECTURE.md](ARCHITECTURE.md)** - System architecture reference
+- **[MODULE_BOUNDARIES.md](MODULE_BOUNDARIES.md)** - Module structure and dependencies
 
 ### Development Standards 
-All standards in `Development-Standards/` are actively used:
-- **UI_STANDARDS.md** - Critical for Phase 3.3 UI/UX Excellence
-- **DI_STANDARDS.md** & **DI_LAZY_RESOLUTION_STANDARDS.md** - Dependency injection patterns
-- **CONCURRENCY_STANDARDS.md** - Actor isolation patterns
-- **ERROR_HANDLING_STANDARDS.md** - Consistent error handling
+Consolidated standards in [`Development-Standards/`](Development-Standards/):
+- **[README.md](Development-Standards/README.md)** - Quick reference guide
+- **[DI_STANDARDS.md](Development-Standards/DI_STANDARDS.md)** - Dependency injection (consolidated)
+- **[CONCURRENCY_STANDARDS.md](Development-Standards/CONCURRENCY_STANDARDS.md)** - Actors & async/await
+- **[AI_OPTIMIZATION_STANDARDS.md](Development-Standards/AI_OPTIMIZATION_STANDARDS.md)** - Phase 3.2 patterns
+- **[STANDARD_COMPONENTS.md](Development-Standards/STANDARD_COMPONENTS.md)** - UI component usage
 
 ### Research Reports
 High-value reference documents in `Research Reports/`:

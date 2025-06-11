@@ -42,44 +42,30 @@ struct CoachProfileReadyView: View {
                 .padding(.horizontal, AppSpacing.large)
 
                 VStack(spacing: AppSpacing.medium) {
-                    Button(
-                        action: {
-                            Task {
-                                do {
-                                    try await viewModel.completeOnboarding()
-                                } catch {
-                                    AppLogger.error("Failed to complete onboarding",
-                                                    error: error,
-                                                    category: .onboarding)
-                                }
+                    StandardButton(
+                        "onboarding.profileReady.begin",
+                        style: .primary,
+                        isFullWidth: true
+                    ) {
+                        Task {
+                            do {
+                                try await viewModel.completeOnboarding()
+                            } catch {
+                                AppLogger.error("Failed to complete onboarding",
+                                                error: error,
+                                                category: .onboarding)
                             }
-                        },
-                        label: {
-                            Text(LocalizedStringKey("onboarding.profileReady.begin"))
-                                .font(AppFonts.bodyBold)
-                                .foregroundColor(AppColors.textOnAccent)
-                                .frame(maxWidth: .infinity)
-                                .padding()
-                                .background(AppColors.accentColor)
-                                .cornerRadius(AppConstants.Layout.defaultCornerRadius)
                         }
-                    )
+                    }
                     .accessibilityIdentifier("onboarding.beginCoach.button")
 
-                    Button(
-                        action: {
-                            viewModel.navigateToPreviousScreen()
-                        },
-                        label: {
-                            Text(LocalizedStringKey("onboarding.profileReady.review"))
-                                .font(AppFonts.body)
-                                .foregroundColor(AppColors.textPrimary)
-                                .frame(maxWidth: .infinity)
-                                .padding()
-                                .background(AppColors.backgroundSecondary)
-                                .cornerRadius(AppConstants.Layout.defaultCornerRadius)
-                        }
-                    )
+                    StandardButton(
+                        "onboarding.profileReady.review",
+                        style: .secondary,
+                        isFullWidth: true
+                    ) {
+                        viewModel.navigateToPreviousScreen()
+                    }
                     .accessibilityIdentifier("onboarding.reviewProfile.button")
                 }
                 .padding(.horizontal, AppSpacing.large)

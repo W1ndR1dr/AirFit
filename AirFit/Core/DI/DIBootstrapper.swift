@@ -62,28 +62,53 @@ public final class DIBootstrapper {
             return await LLMOrchestrator(apiKeyManager: apiKeyManager)
         }
         
-        // Main AI Service
+        // Main AI Service - Use DemoAIService if in demo mode
         container.register(AIServiceProtocol.self, lifetime: .singleton) { resolver in
-            let orchestrator = try await resolver.resolve(LLMOrchestrator.self)
-            return AIService(llmOrchestrator: orchestrator)
+            if AppConstants.Configuration.isUsingDemoMode {
+                AppLogger.info("Using DemoAIService (demo mode enabled)", category: .services)
+                return DemoAIService()
+            } else {
+                let orchestrator = try await resolver.resolve(LLMOrchestrator.self)
+                return AIService(llmOrchestrator: orchestrator)
+            }
         }
         
         // AI Goal Service - Wrapper around GoalService
         container.register(AIGoalServiceProtocol.self, lifetime: .transient) { resolver in
             let goalService = try await resolver.resolve(GoalServiceProtocol.self)
-            return await AIGoalService(goalService: goalService)
+            let aiService = try await resolver.resolve(AIServiceProtocol.self)
+            let personaService = try await resolver.resolve(PersonaService.self)
+            return await AIGoalService(
+                goalService: goalService, 
+                aiService: aiService,
+                personaService: personaService
+            )
         }
         
         // AI Workout Service
         container.register(AIWorkoutServiceProtocol.self, lifetime: .transient) { resolver in
             let workoutService = try await resolver.resolve(WorkoutServiceProtocol.self)
-            return await AIWorkoutService(workoutService: workoutService)
+            let aiService = try await resolver.resolve(AIServiceProtocol.self)
+            let exerciseDatabase = try await resolver.resolve(ExerciseDatabase.self)
+            let personaService = try await resolver.resolve(PersonaService.self)
+            return await AIWorkoutService(
+                workoutService: workoutService,
+                aiService: aiService,
+                exerciseDatabase: exerciseDatabase,
+                personaService: personaService
+            )
         }
         
         // AI Analytics Service
         container.register(AIAnalyticsServiceProtocol.self, lifetime: .transient) { resolver in
             let analyticsService = try await resolver.resolve(AnalyticsServiceProtocol.self)
-            return AIAnalyticsService(analyticsService: analyticsService)
+            let aiService = try await resolver.resolve(AIServiceProtocol.self)
+            let personaService = try await resolver.resolve(PersonaService.self)
+            return AIAnalyticsService(
+                analyticsService: analyticsService, 
+                aiService: aiService,
+                personaService: personaService
+            )
         }
     }
     
@@ -317,6 +342,38 @@ public final class DIBootstrapper {
             let modelContainer = try await resolver.resolve(ModelContainer.self)
             return await MainActor.run {
                 ConversationManager(modelContext: modelContainer.mainContext)
+            }
+        }
+        
+        // AI Response Cache - Used by PersonaService
+        container.register(AIResponseCache.self, lifetime: .singleton) { _ in
+            AIResponseCache()
+        }
+        
+        // Optimized Persona Synthesizer
+        container.register(OptimizedPersonaSynthesizer.self, lifetime: .singleton) { resolver in
+            let llmOrchestrator = try await resolver.resolve(LLMOrchestrator.self)
+            let cache = try await resolver.resolve(AIResponseCache.self)
+            return OptimizedPersonaSynthesizer(
+                llmOrchestrator: llmOrchestrator,
+                cache: cache
+            )
+        }
+        
+        // Persona Service - Critical for persona coherence
+        container.register(PersonaService.self, lifetime: .singleton) { resolver in
+            let personaSynthesizer = try await resolver.resolve(OptimizedPersonaSynthesizer.self)
+            let llmOrchestrator = try await resolver.resolve(LLMOrchestrator.self)
+            let modelContainer = try await resolver.resolve(ModelContainer.self)
+            let cache = try await resolver.resolve(AIResponseCache.self)
+            
+            return await MainActor.run {
+                PersonaService(
+                    personaSynthesizer: personaSynthesizer,
+                    llmOrchestrator: llmOrchestrator,
+                    modelContext: modelContainer.mainContext,
+                    cache: cache
+                )
             }
         }
     }

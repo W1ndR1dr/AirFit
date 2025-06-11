@@ -137,18 +137,15 @@ private struct ErrorOverlay: View {
                 // Actions
                 HStack(spacing: AppSpacing.medium) {
                     if !isRecovering {
-                        Button(action: onRetry) {
-                            Label("Retry", systemImage: "arrow.clockwise")
-                                .font(AppFonts.bodyBold)
-                        }
-                        .buttonStyle(.borderedProminent)
+                        StandardButton(
+                            "Retry",
+                            icon: "arrow.clockwise",
+                            style: .primary,
+                            action: onRetry
+                        )
                     }
                     
-                    Button(action: onDismiss) {
-                        Text("Dismiss")
-                            .font(AppFonts.body)
-                    }
-                    .buttonStyle(.bordered)
+                    StandardButton("Dismiss", style: .secondary, action: onDismiss)
                     
                     Button(action: onShowDetails) {
                         Image(systemName: "info.circle")

@@ -37,11 +37,13 @@ struct DataManagementView: View {
                         .font(.callout)
                         .foregroundStyle(.secondary)
                     
-                    Button(action: startExport) {
-                        Label("Export All Data", systemImage: "square.and.arrow.up")
-                            .frame(maxWidth: .infinity)
-                    }
-                    .buttonStyle(.borderedProminent)
+                    StandardButton(
+                        "Export All Data",
+                        icon: "square.and.arrow.up",
+                        style: .primary,
+                        isFullWidth: true,
+                        action: startExport
+                    )
                 }
             }
         }
@@ -103,12 +105,12 @@ struct DataManagementView: View {
                             .foregroundStyle(.red)
                     }
                     
-                    Button(role: .destructive, action: confirmDelete) {
-                        Text("Delete Everything")
-                            .frame(maxWidth: .infinity)
-                    }
-                    .buttonStyle(.borderedProminent)
-                    .tint(.red)
+                    StandardButton(
+                        "Delete Everything",
+                        style: .destructive,
+                        isFullWidth: true,
+                        action: confirmDelete
+                    )
                 }
             }
         }
@@ -190,10 +192,9 @@ struct DataExportProgressSheet: View {
                 
                 Spacer()
                 
-                Button("Cancel") {
+                StandardButton("Cancel", style: .secondary) {
                     dismiss()
                 }
-                .buttonStyle(.bordered)
             }
             .padding()
             .navigationTitle("Export Progress")

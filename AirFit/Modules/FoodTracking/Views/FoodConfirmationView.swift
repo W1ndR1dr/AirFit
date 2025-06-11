@@ -33,11 +33,14 @@ struct FoodConfirmationView: View {
                         }
 
                         // Add item button
-                        Button(action: { showAddItem = true }) {
-                            Label("Add Item", systemImage: "plus.circle.fill")
-                                .frame(maxWidth: .infinity)
+                        StandardButton(
+                            "Add Item",
+                            icon: "plus.circle.fill",
+                            style: .secondary,
+                            isFullWidth: true
+                        ) {
+                            showAddItem = true
                         }
-                        .buttonStyle(.bordered)
                         .padding(.top)
                     }
                     .padding()
@@ -115,18 +118,22 @@ struct FoodConfirmationView: View {
     // MARK: - Action Buttons
     private var actionButtons: some View {
         HStack(spacing: AppSpacing.medium) {
-            Button(action: { dismiss() }) {
-                Text("Cancel")
-                    .frame(maxWidth: .infinity)
+            StandardButton(
+                "Cancel",
+                style: .secondary,
+                isFullWidth: true
+            ) {
+                dismiss()
             }
-            .buttonStyle(.bordered)
 
-            Button(action: saveItems) {
-                Label("Save", systemImage: "checkmark.circle.fill")
-                    .frame(maxWidth: .infinity)
-            }
-            .buttonStyle(.borderedProminent)
-            .disabled(items.isEmpty)
+            StandardButton(
+                "Save",
+                icon: "checkmark.circle.fill",
+                style: .primary,
+                isFullWidth: true,
+                isEnabled: !items.isEmpty,
+                action: saveItems
+            )
         }
         .padding()
         .background(AppColors.cardBackground)

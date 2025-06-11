@@ -110,12 +110,11 @@ struct OnboardingFlowViewDI: View {
                         .foregroundColor(AppColors.textSecondary)
                         .multilineTextAlignment(.center)
                     
-                    Button("Retry") {
+                    StandardButton("Retry", style: .primary) {
                         Task {
                             await loadViewModel()
                         }
                     }
-                    .buttonStyle(.borderedProminent)
                 }
                 .padding()
                 .frame(maxWidth: .infinity, maxHeight: .infinity)

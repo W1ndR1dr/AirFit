@@ -970,10 +970,10 @@ final class CoachEngine {
                 functionCall,
                 for: user,
                 context: FunctionContext(
-                    modelContext: modelContext,
                     conversationId: conversationId,
                     userId: user.id
-                )
+                ),
+                modelContext: modelContext
             )
             
             let executionTime = CFAbsoluteTimeGetCurrent() - startTime
@@ -1128,12 +1128,11 @@ final class CoachEngine {
         for user: User
     ) async throws -> FunctionExecutionResult {
         let context = FunctionContext(
-            modelContext: modelContext,
             conversationId: UUID(), // Temporary conversation for standalone function calls
             userId: user.id
         )
         
-        return try await functionDispatcher.execute(functionCall, for: user, context: context)
+        return try await functionDispatcher.execute(functionCall, for: user, context: context, modelContext: modelContext)
     }
     
     // MARK: - Direct AI Methods (Delegates to DirectAIProcessor)

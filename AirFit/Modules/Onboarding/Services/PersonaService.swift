@@ -144,6 +144,28 @@ final class PersonaService: ServiceProtocol {
         try modelContext.save()
     }
     
+    func getActivePersona(for userId: UUID) async throws -> PersonaProfile {
+        // Fetch the user and their onboarding profile
+        let userDescriptor = FetchDescriptor<User>(
+            predicate: #Predicate { user in
+                user.id == userId
+            }
+        )
+        let users = try modelContext.fetch(userDescriptor)
+        guard let user = users.first else {
+            throw AppError.userNotFound
+        }
+        
+        guard let onboardingProfile = user.onboardingProfile,
+              let personaData = onboardingProfile.personaData else {
+            throw AppError.validationError(message: "No persona found for user")
+        }
+        
+        // Decode the persona profile
+        let persona = try JSONDecoder().decode(PersonaProfile.self, from: personaData)
+        return persona
+    }
+    
     // MARK: - Private Methods
     
     private func extractPersonalityInsights(from responses: [ConversationResponse]) async throws -> ConversationPersonalityInsights {

@@ -20,6 +20,11 @@ actor AIResponseCache: ServiceProtocol {
     private var missCount = 0
     private var evictionCount = 0
     
+    // Task management for proper cancellation
+    private var initTask: Task<Void, Never>?
+    private var diskWriteTasks: Set<Task<Void, Never>> = []
+    private var cleanupTask: Task<Void, Never>?
+    
     struct CacheEntry {
         let key: String
         let response: Data
@@ -54,10 +59,7 @@ actor AIResponseCache: ServiceProtocol {
         // Create directory if needed
         try? FileManager.default.createDirectory(at: diskCachePath, withIntermediateDirectories: true)
         
-        // Load disk cache metadata
-        Task {
-            await loadDiskCacheMetadata()
-        }
+        // Initialize tasks in configure() method instead
     }
     
     // MARK: - Public API
@@ -121,10 +123,13 @@ actor AIResponseCache: ServiceProtocol {
         // Add to memory cache
         await addToMemoryCache(entry)
         
-        // Write to disk asynchronously
-        Task.detached {
+        // Write to disk asynchronously with tracking
+        let diskTask = Task.detached {
             await self.saveToDisk(entry: entry)
+            await self.removeDiskWriteTask(entry.key)
         }
+        
+        diskWriteTasks.insert(diskTask)
         
         AppLogger.debug("Cached AI response: \(key) (size: \(entry.size) bytes)", category: .ai)
     }
@@ -306,6 +311,28 @@ actor AIResponseCache: ServiceProtocol {
         }
     }
     
+    
+    private func cleanupExpiredEntries() async {
+        // Clean memory cache
+        let expiredKeys = memoryCache.compactMap { key, entry in
+            entry.isExpired ? key : nil
+        }
+        
+        for key in expiredKeys {
+            memoryCache.removeValue(forKey: key)
+            await removeFromDisk(key: key)
+        }
+        
+        if !expiredKeys.isEmpty {
+            AppLogger.info("Cleaned up \(expiredKeys.count) expired cache entries", category: .ai)
+        }
+    }
+    
+    private func removeDiskWriteTask(_ key: String) async {
+        // Remove completed task from tracking set
+        diskWriteTasks = diskWriteTasks.filter { !$0.isCancelled }
+    }
+    
     // MARK: - Encoding/Decoding
     
     private func encodeLLMResponse(_ response: LLMResponse) throws -> Data {
@@ -322,12 +349,41 @@ actor AIResponseCache: ServiceProtocol {
     
     func configure() async throws {
         guard !_isConfigured else { return }
-        await loadDiskCacheMetadata()
+        
+        // Start initialization and cleanup tasks
+        initTask = Task {
+            await loadDiskCacheMetadata()
+        }
+        
+        // Start periodic cleanup
+        cleanupTask = Task {
+            while !Task.isCancelled {
+                // Wait for 15 minutes
+                try? await Task.sleep(nanoseconds: 15 * 60 * 1_000_000_000)
+                
+                guard !Task.isCancelled else { break }
+                
+                // Clean up expired entries
+                await cleanupExpiredEntries()
+            }
+        }
+        
         _isConfigured = true
         AppLogger.info("\(serviceIdentifier) configured", category: .services)
     }
     
     func reset() async {
+        // Cancel all active tasks
+        initTask?.cancel()
+        cleanupTask?.cancel()
+        
+        // Cancel and clear disk write tasks
+        for task in diskWriteTasks {
+            task.cancel()
+        }
+        diskWriteTasks.removeAll()
+        
+        // Clear cache
         await clear()
         _isConfigured = false
         AppLogger.info("\(serviceIdentifier) reset", category: .services)

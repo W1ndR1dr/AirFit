@@ -2,6 +2,15 @@ import Foundation
 import SwiftData
 import CryptoKit
 
+// MARK: - Exercise Info for AI Services
+struct ExerciseInfo: Sendable {
+    let id: String
+    let name: String
+    let primaryMuscles: [String]
+    let equipment: [String]
+    let category: String
+}
+
 // MARK: - Exercise Definition Model
 @Model
 final class ExerciseDefinition: Identifiable, Codable {
@@ -219,6 +228,43 @@ final class ExerciseDatabase: ObservableObject, ServiceProtocol {
             exercise.id == id
         }
         return try? container.mainContext.fetch(FetchDescriptor(predicate: predicate)).first
+    }
+    
+    // MARK: - AI Service Support
+    
+    func filterExercises(equipment: [String]? = nil, primaryMuscles: [String]? = nil) async -> [ExerciseInfo] {
+        var filteredExercises = exercises
+        
+        // Filter by equipment if specified
+        if let equipment = equipment, !equipment.isEmpty {
+            let equipmentSet = Set(equipment.map { $0.lowercased() })
+            filteredExercises = filteredExercises.filter { exercise in
+                exercise.equipment.contains { equip in
+                    equipmentSet.contains(equip.rawValue.lowercased())
+                }
+            }
+        }
+        
+        // Filter by primary muscles if specified
+        if let muscles = primaryMuscles, !muscles.isEmpty {
+            let muscleSet = Set(muscles.map { $0.lowercased() })
+            filteredExercises = filteredExercises.filter { exercise in
+                exercise.muscleGroups.contains { muscle in
+                    muscleSet.contains(muscle.displayName.lowercased())
+                }
+            }
+        }
+        
+        // Convert to ExerciseInfo for AI service
+        return filteredExercises.map { exercise in
+            ExerciseInfo(
+                id: exercise.id,
+                name: exercise.name,
+                primaryMuscles: exercise.muscleGroups.map { $0.displayName },
+                equipment: exercise.equipment.map { $0.displayName },
+                category: exercise.category.displayName
+            )
+        }
     }
 
     // MARK: - Private Methods

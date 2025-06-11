@@ -108,6 +108,25 @@ struct SettingsListView: View {
                         .foregroundStyle(.tint)
                 }
             }
+            
+            Toggle(isOn: $viewModel.isDemoModeEnabled) {
+                Label {
+                    VStack(alignment: .leading, spacing: 4) {
+                        Text("Demo Mode")
+                        Text("Use sample responses without API keys")
+                            .font(.caption)
+                            .foregroundStyle(.secondary)
+                    }
+                } icon: {
+                    Image(systemName: "play.circle")
+                        .foregroundStyle(.tint)
+                }
+            }
+            .onChange(of: viewModel.isDemoModeEnabled) { _, newValue in
+                Task {
+                    await viewModel.setDemoMode(newValue)
+                }
+            }
         } header: {
             Text("AI Configuration")
         }
@@ -343,6 +362,18 @@ struct SettingsListView: View {
                 message: Text(message),
                 dismissButton: .default(Text("OK"))
             )
+        case .demoModeEnabled:
+            return Alert(
+                title: Text("Demo Mode Enabled"),
+                message: Text("You're now using demo mode with sample AI responses. No API keys are required. Perfect for exploring the app!"),
+                dismissButton: .default(Text("Got it"))
+            )
+        case .demoModeDisabled:
+            return Alert(
+                title: Text("Demo Mode Disabled"),
+                message: Text("You've switched back to live AI responses. Please ensure you have valid API keys configured."),
+                dismissButton: .default(Text("OK"))
+            )
         }
     }
 }
@@ -384,17 +415,20 @@ struct PersonaRefinementFlow: View {
                 // Navigation buttons
                 HStack(spacing: AppSpacing.md) {
                     if currentStep > 0 {
-                        Button("Back") {
+                        StandardButton("Back", style: .secondary) {
                             withAnimation {
                                 currentStep -= 1
                             }
                         }
-                        .buttonStyle(.bordered)
                     }
                     
                     Spacer()
                     
-                    Button(currentStep == 2 ? "Apply Changes" : "Next") {
+                    StandardButton(
+                        currentStep == 2 ? "Apply Changes" : "Next",
+                        style: .primary,
+                        isEnabled: !(currentStep == 1 && refinementOptions.filter(\.isSelected).isEmpty)
+                    ) {
                         if currentStep == 2 {
                             applyRefinements()
                         } else {
@@ -403,8 +437,6 @@ struct PersonaRefinementFlow: View {
                             }
                         }
                     }
-                    .buttonStyle(.borderedProminent)
-                    .disabled(currentStep == 1 && refinementOptions.filter(\.isSelected).isEmpty)
                 }
                 .padding()
             }
@@ -634,11 +666,10 @@ struct DataExportProgressView: View {
                             .foregroundStyle(.secondary)
                             .multilineTextAlignment(.center)
                         
-                        Button("Try Again") {
+                        StandardButton("Try Again", style: .primary) {
                             exportError = nil
                             startExport()
                         }
-                        .buttonStyle(.borderedProminent)
                     }
                     .padding()
                 } else if let url = exportURL {
@@ -664,16 +695,18 @@ struct DataExportProgressView: View {
                         }
                         
                         HStack(spacing: AppSpacing.md) {
-                            Button(action: { showShareSheet = true }) {
-                                Label("Share", systemImage: "square.and.arrow.up")
-                                    .frame(maxWidth: .infinity)
+                            StandardButton(
+                                "Share",
+                                icon: "square.and.arrow.up",
+                                style: .primary,
+                                isFullWidth: true
+                            ) {
+                                showShareSheet = true
                             }
-                            .buttonStyle(.borderedProminent)
                             
-                            Button("Done") {
+                            StandardButton("Done", style: .secondary) {
                                 dismiss()
                             }
-                            .buttonStyle(.bordered)
                         }
                     }
                     .padding()
@@ -868,10 +901,16 @@ struct DeleteAccountView: View {
                                 .foregroundStyle(.secondary)
                             
                             NavigationLink(destination: DataManagementView(viewModel: viewModel)) {
-                                Label("Export My Data", systemImage: "square.and.arrow.up")
-                                    .frame(maxWidth: .infinity)
+                                HStack {
+                                    Image(systemName: "square.and.arrow.up")
+                                    Text("Export My Data")
+                                }
+                                .frame(maxWidth: .infinity)
+                                .frame(height: 44)
+                                .background(AppColors.backgroundSecondary)
+                                .foregroundColor(AppColors.textPrimary)
+                                .cornerRadius(AppConstants.Layout.defaultCornerRadius)
                             }
-                            .buttonStyle(.bordered)
                         }
                     }
                     
@@ -895,18 +934,15 @@ struct DeleteAccountView: View {
                     }
                     
                     // Delete button
-                    Button(action: { showFinalConfirmation = true }) {
-                        if isDeleting {
-                            ProgressView()
-                                .controlSize(.small)
-                        } else {
-                            Text("Delete My Account")
-                                .frame(maxWidth: .infinity)
-                        }
+                    StandardButton(
+                        "Delete My Account",
+                        style: .destructive,
+                        isFullWidth: true,
+                        isLoading: isDeleting,
+                        isEnabled: confirmationText == confirmationPhrase && !isDeleting
+                    ) {
+                        showFinalConfirmation = true
                     }
-                    .buttonStyle(.borderedProminent)
-                    .tint(.red)
-                    .disabled(confirmationText != confirmationPhrase || isDeleting)
                     
                     // Alternative actions
                     VStack(spacing: AppSpacing.sm) {

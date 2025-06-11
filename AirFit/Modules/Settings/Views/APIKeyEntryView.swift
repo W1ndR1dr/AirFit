@@ -76,9 +76,12 @@ struct APIKeyEntryView: View {
                                 .focused($isKeyFieldFocused)
                         }
                         
-                        Button(action: { showKey.toggle() }) {
-                            Image(systemName: showKey ? "eye.slash" : "eye")
-                                .foregroundStyle(.secondary)
+                        IconButton(
+                            icon: showKey ? "eye.slash" : "eye",
+                            style: .tertiary,
+                            size: .small
+                        ) {
+                            showKey.toggle()
                         }
                     }
                     

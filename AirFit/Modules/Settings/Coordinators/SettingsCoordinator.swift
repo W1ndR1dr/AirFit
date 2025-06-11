@@ -30,6 +30,8 @@ final class SettingsCoordinator: BaseCoordinator<SettingsDestination, SettingsCo
         case exportSuccess(url: URL)
         case apiKeyInvalid
         case error(message: String)
+        case demoModeEnabled
+        case demoModeDisabled
         
         var id: String {
             switch self {
@@ -37,6 +39,8 @@ final class SettingsCoordinator: BaseCoordinator<SettingsDestination, SettingsCo
             case .exportSuccess: return "export"
             case .apiKeyInvalid: return "apikey"
             case .error: return "error"
+            case .demoModeEnabled: return "demo_enabled"
+            case .demoModeDisabled: return "demo_disabled"
             }
         }
     }

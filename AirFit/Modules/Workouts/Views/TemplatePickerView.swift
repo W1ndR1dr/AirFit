@@ -56,14 +56,15 @@ struct TemplatePickerView: View {
                     }
 
                     // Create Custom
-                    Button {
+                    StandardButton(
+                        "Create Custom Workout",
+                        icon: "plus.circle.fill",
+                        style: .secondary,
+                        size: .large,
+                        isFullWidth: true
+                    ) {
                         showingCustomTemplate = true
-                    } label: {
-                        Label("Create Custom Workout", systemImage: "plus.circle.fill")
-                            .frame(maxWidth: .infinity)
                     }
-                    .buttonStyle(.bordered)
-                    .controlSize(.large)
                 }
                 .padding()
             }

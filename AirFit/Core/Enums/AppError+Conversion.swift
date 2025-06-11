@@ -354,21 +354,9 @@ extension AppError {
         }
     }
     
-    /// Creates AppError from FunctionError
-    static func from(_ functionError: FunctionError) -> AppError {
-        switch functionError {
-        case .unknownFunction(let name):
-            return .unknown(message: "Unknown function: \(name)")
-        case .invalidArguments:
-            return .validationError(message: "Invalid function arguments")
-        case .serviceUnavailable:
-            return .unknown(message: "Service temporarily unavailable")
-        case .dataNotFound:
-            return .unknown(message: "Required data not found")
-        case .processingTimeout:
-            return .networkError(underlying: NSError(domain: "Function", code: -1001, userInfo: [NSLocalizedDescriptionKey: "Function processing timed out"]))
-        }
-    }
+    // MARK: - FunctionError conversion removed
+    // FunctionError enum has been removed from the codebase as part of Phase 3 simplification
+    // Function execution errors are now handled directly by AppError
     
     /// Creates AppError from PersonaEngineError
     static func from(_ personaEngineError: PersonaEngineError) -> AppError {
@@ -598,8 +586,6 @@ extension Result where Failure == Error {
                 return AppError.from(settingsError)
             } else if let conversationError = error as? ConversationManagerError {
                 return AppError.from(conversationError)
-            } else if let functionError = error as? FunctionError {
-                return AppError.from(functionError)
             } else if let personaEngineError = error as? PersonaEngineError {
                 return AppError.from(personaEngineError)
             } else if let personaError = error as? PersonaError {

@@ -14,9 +14,17 @@ final class AIGoalService: AIGoalServiceProtocol, ServiceProtocol {
     }
     
     private let goalService: GoalServiceProtocol
+    private let aiService: AIServiceProtocol
+    private let personaService: PersonaService
     
-    init(goalService: GoalServiceProtocol) {
+    init(
+        goalService: GoalServiceProtocol, 
+        aiService: AIServiceProtocol,
+        personaService: PersonaService
+    ) {
         self.goalService = goalService
+        self.aiService = aiService
+        self.personaService = personaService
     }
     
     // MARK: - ServiceProtocol Methods
@@ -54,68 +62,102 @@ final class AIGoalService: AIGoalServiceProtocol, ServiceProtocol {
         goalType: String?,
         for user: User
     ) async throws -> GoalResult {
-        // AI analysis to create a refined goal
-        // This would normally use the AI service to analyze the input
-        
-        let goalFamily = mapGoalTypeToCategory(goalType)
-        let deadline = calculateDeadline(from: timeframe)
-        
-        return GoalResult(
-            id: UUID(),
-            title: aspirations,
-            description: "Goal based on: \(aspirations)",
-            targetDate: deadline,
-            metrics: generateMetrics(for: aspirations, goalType: goalType),
-            milestones: generateMilestones(for: aspirations, deadline: deadline),
-            smartCriteria: GoalResult.SMARTCriteria(
-                specific: aspirations,
-                measurable: "Track progress daily",
-                achievable: "Based on your fitness level: \(fitnessLevel ?? "intermediate")",
-                relevant: "Aligned with your motivations: \(motivations.joined(separator: ", "))",
-                timeBound: timeframe ?? "30 days"
-            )
+        // Build AI prompt for goal refinement
+        let prompt = buildGoalRefinementPrompt(
+            current: current,
+            aspirations: aspirations,
+            timeframe: timeframe,
+            fitnessLevel: fitnessLevel,
+            constraints: constraints,
+            motivations: motivations,
+            goalType: goalType
         )
+        
+        // Get user's persona for consistent coaching voice
+        let persona = try await personaService.getActivePersona(for: user.id)
+        
+        // Create AI request with persona's system prompt
+        let request = AIRequest(
+            systemPrompt: persona.systemPrompt,
+            messages: [
+                AIChatMessage(
+                    role: .system,
+                    content: "Task context: Helping refine fitness goals using SMART criteria. Focus on specific, measurable, achievable, relevant, and time-bound objectives."
+                ),
+                AIChatMessage(
+                    role: .user,
+                    content: prompt
+                )
+            ],
+            temperature: 0.7,
+            stream: false,
+            user: user.id.uuidString
+        )
+        
+        // Send request and collect response
+        var fullResponse = ""
+        for try await chunk in aiService.sendRequest(request) {
+            switch chunk {
+            case .text(let text):
+                fullResponse = text
+            case .textDelta(let delta):
+                fullResponse += delta
+            case .done:
+                break
+            default:
+                continue
+            }
+        }
+        
+        // Parse the AI response into a structured goal
+        return try parseGoalResponse(fullResponse, deadline: calculateDeadline(from: timeframe))
     }
     
     func suggestGoalAdjustments(
         for goal: TrackedGoal,
         user: User
     ) async throws -> [GoalAdjustment] {
-        // Analyze goal progress and suggest adjustments
-        var adjustments: [GoalAdjustment] = []
+        // Build AI prompt for goal adjustment analysis
+        let prompt = buildGoalAdjustmentPrompt(goal: goal)
         
-        // Check if goal is off track
-        if !goal.isOnTrack {
-            if let daysRemaining = goal.daysRemaining, daysRemaining < 14 {
-                // Timeline adjustment
-                adjustments.append(GoalAdjustment(
-                    type: .timeline,
-                    reason: "Current progress indicates you may need more time",
-                    suggestedChange: "Extend deadline by 2 weeks",
-                    impact: "Gives you breathing room while maintaining momentum"
-                ))
-            } else {
-                // Intensity adjustment
-                adjustments.append(GoalAdjustment(
-                    type: .intensity,
-                    reason: "Progress is slower than expected",
-                    suggestedChange: "Increase weekly effort by 20%",
-                    impact: "Get back on track to meet your deadline"
-                ))
+        // Get user's persona for consistent coaching voice
+        let persona = try await personaService.getActivePersona(for: user.id)
+        
+        // Create AI request with persona's system prompt
+        let request = AIRequest(
+            systemPrompt: persona.systemPrompt,
+            messages: [
+                AIChatMessage(
+                    role: .system,
+                    content: "Task context: Analyzing goal progress and providing actionable adjustments. Be encouraging and practical."
+                ),
+                AIChatMessage(
+                    role: .user,
+                    content: prompt
+                )
+            ],
+            temperature: 0.7,
+            stream: false,
+            user: user.id.uuidString
+        )
+        
+        // Send request and collect response
+        var fullResponse = ""
+        for try await chunk in aiService.sendRequest(request) {
+            switch chunk {
+            case .text(let text):
+                fullResponse = text
+            case .textDelta(let delta):
+                fullResponse += delta
+            case .done:
+                break
+            default:
+                continue
             }
         }
         
-        // Check if goal is too easy
-        if goal.progressPercentage > 80 && (goal.daysRemaining ?? 0) > 30 {
-            adjustments.append(GoalAdjustment(
-                type: .target,
-                reason: "You're progressing faster than expected",
-                suggestedChange: "Consider raising your target by 20%",
-                impact: "Challenge yourself to achieve even more"
-            ))
-        }
-        
-        return adjustments
+        // Parse the AI response into structured adjustments
+        return try parseAdjustmentsResponse(fullResponse)
     }
     
     // MARK: - GoalServiceProtocol forwarding
@@ -268,5 +310,229 @@ final class AIGoalService: AIGoalServiceProtocol, ServiceProtocol {
         }
         
         return milestones
+    }
+    
+    // MARK: - AI Helper Methods
+    
+    private func buildGoalRefinementPrompt(
+        current: String?,
+        aspirations: String,
+        timeframe: String?,
+        fitnessLevel: String?,
+        constraints: [String],
+        motivations: [String],
+        goalType: String?
+    ) -> String {
+        var prompt = """
+        Help me create a SMART fitness goal based on the following information:
+        
+        Aspiration: \(aspirations)
+        """
+        
+        if let current = current {
+            prompt += "\nCurrent goal: \(current)"
+        }
+        
+        if let timeframe = timeframe {
+            prompt += "\nTimeframe: \(timeframe)"
+        }
+        
+        if let fitnessLevel = fitnessLevel {
+            prompt += "\nFitness level: \(fitnessLevel)"
+        }
+        
+        if !constraints.isEmpty {
+            prompt += "\nConstraints: \(constraints.joined(separator: ", "))"
+        }
+        
+        if !motivations.isEmpty {
+            prompt += "\nMotivations: \(motivations.joined(separator: ", "))"
+        }
+        
+        if let goalType = goalType {
+            prompt += "\nGoal type: \(goalType)"
+        }
+        
+        prompt += """
+        
+        
+        Please create a refined SMART goal with the following structure in JSON format:
+        {
+            "title": "Clear, concise goal title",
+            "description": "Detailed description of what success looks like",
+            "metrics": [
+                {
+                    "name": "Metric name",
+                    "targetValue": 100,
+                    "unit": "unit of measurement",
+                    "currentValue": 0
+                }
+            ],
+            "milestones": [
+                {
+                    "title": "Milestone title",
+                    "daysFromNow": 7,
+                    "criteria": "What must be achieved",
+                    "reward": "Optional reward"
+                }
+            ],
+            "smartCriteria": {
+                "specific": "What exactly will be accomplished",
+                "measurable": "How progress will be measured",
+                "achievable": "Why this is realistic given constraints",
+                "relevant": "How this aligns with motivations",
+                "timeBound": "Clear timeline with deadlines"
+            }
+        }
+        """
+        
+        return prompt
+    }
+    
+    private func buildGoalAdjustmentPrompt(goal: TrackedGoal) -> String {
+        let progress = goal.progressPercentage
+        let daysRemaining = goal.daysRemaining ?? 0
+        let isOnTrack = goal.isOnTrack
+        
+        return """
+        Analyze this fitness goal and suggest adjustments:
+        
+        Goal: \(goal.title)
+        Target: \(goal.targetValue ?? "0") \(goal.targetUnit ?? "")
+        Current: \(String(format: "%.1f", goal.currentProgress)) \(goal.progressUnit ?? "")
+        Progress: \(progress)%
+        Days remaining: \(daysRemaining)
+        On track: \(isOnTrack)
+        
+        Based on the current progress trajectory, provide 0-3 adjustments in JSON format:
+        [
+            {
+                "type": "timeline|target|approach|intensity",
+                "reason": "Clear explanation of why this adjustment is needed",
+                "suggestedChange": "Specific change to make",
+                "impact": "Expected outcome of this adjustment"
+            }
+        ]
+        
+        Only suggest adjustments if they would significantly improve the user's chances of success or help them optimize their efforts.
+        """
+    }
+    
+    private func parseGoalResponse(_ response: String, deadline: Date?) throws -> GoalResult {
+        // Try to extract JSON from the response
+        let jsonPattern = #"\{[\s\S]*\}"#
+        guard let range = response.range(of: jsonPattern, options: .regularExpression),
+              let data = String(response[range]).data(using: .utf8) else {
+            throw AppError.decodingError(underlying: NSError(domain: "AIGoalService", code: -1, userInfo: [NSLocalizedDescriptionKey: "Could not find JSON in AI response"]))
+        }
+        
+        // Parse JSON
+        struct GoalJSON: Codable {
+            let title: String
+            let description: String
+            let metrics: [MetricJSON]
+            let milestones: [MilestoneJSON]
+            let smartCriteria: SMARTCriteriaJSON
+            
+            struct MetricJSON: Codable {
+                let name: String
+                let targetValue: Double
+                let unit: String
+                let currentValue: Double
+            }
+            
+            struct MilestoneJSON: Codable {
+                let title: String
+                let daysFromNow: Int
+                let criteria: String
+                let reward: String?
+            }
+            
+            struct SMARTCriteriaJSON: Codable {
+                let specific: String
+                let measurable: String
+                let achievable: String
+                let relevant: String
+                let timeBound: String
+            }
+        }
+        
+        let goalData = try JSONDecoder().decode(GoalJSON.self, from: data)
+        
+        // Convert to GoalResult
+        let metrics = goalData.metrics.map { metric in
+            GoalMetric(
+                name: metric.name,
+                currentValue: metric.currentValue,
+                targetValue: metric.targetValue,
+                unit: metric.unit
+            )
+        }
+        
+        let milestones = goalData.milestones.map { milestone in
+            let milestoneDate = Calendar.current.date(
+                byAdding: .day,
+                value: milestone.daysFromNow,
+                to: Date()
+            ) ?? Date()
+            
+            return GoalMilestone(
+                title: milestone.title,
+                targetDate: milestoneDate,
+                criteria: milestone.criteria,
+                reward: milestone.reward
+            )
+        }
+        
+        return GoalResult(
+            id: UUID(),
+            title: goalData.title,
+            description: goalData.description,
+            targetDate: deadline,
+            metrics: metrics,
+            milestones: milestones,
+            smartCriteria: GoalResult.SMARTCriteria(
+                specific: goalData.smartCriteria.specific,
+                measurable: goalData.smartCriteria.measurable,
+                achievable: goalData.smartCriteria.achievable,
+                relevant: goalData.smartCriteria.relevant,
+                timeBound: goalData.smartCriteria.timeBound
+            )
+        )
+    }
+    
+    private func parseAdjustmentsResponse(_ response: String) throws -> [GoalAdjustment] {
+        // Try to extract JSON array from the response
+        let jsonPattern = #"\[[\s\S]*\]"#
+        guard let range = response.range(of: jsonPattern, options: .regularExpression),
+              let data = String(response[range]).data(using: .utf8) else {
+            // If no adjustments needed, return empty array
+            return []
+        }
+        
+        // Parse JSON
+        struct AdjustmentJSON: Codable {
+            let type: String
+            let reason: String
+            let suggestedChange: String
+            let impact: String
+        }
+        
+        let adjustments = try JSONDecoder().decode([AdjustmentJSON].self, from: data)
+        
+        // Convert to GoalAdjustment
+        return adjustments.compactMap { json in
+            guard let adjustmentType = GoalAdjustment.AdjustmentType(rawValue: json.type) else {
+                AppLogger.warning("Unknown adjustment type: \(json.type)", category: .ai)
+                return nil
+            }
+            
+            return GoalAdjustment(
+                type: adjustmentType,
+                reason: json.reason,
+                suggestedChange: json.suggestedChange,
+                impact: json.impact
+            )
+        }
     }
 }

@@ -201,9 +201,36 @@ func testServicePerformance() async {
 }
 ```
 
+## Service Categorization
+
+### ✅ Services That CAN Be Actors
+These services don't depend on SwiftData or UI frameworks:
+- **NetworkManager** - Pure networking
+- **AIAnalyticsService** - Wraps other services
+- **MonitoringService** - Performance monitoring
+- **WhisperModelManager** - Model management
+- **WorkoutSyncService** - Background sync
+- **ContextAssembler** - Data assembly
+- **HealthKitDataFetcher** - Data fetching
+- **HealthKitSleepAnalyzer** - Pure computation
+
+### ❌ Services That MUST Keep @MainActor
+These are tightly coupled to SwiftData's ModelContext:
+- **UserService** - Direct ModelContext usage
+- **GoalService** - SwiftData CRUD operations
+- **AnalyticsService** - Stores in SwiftData
+- **AIGoalService** - Wraps GoalService
+- **AIWorkoutService** - Wraps WorkoutService
+
+### ⚠️ Services Requiring Careful Conversion
+These need special handling due to UI integration:
+- **HealthKitManager** - @Observable for SwiftUI
+- **LLMOrchestrator** - ObservableObject with @Published
+- **VoiceInputManager** - Audio + UI state updates
+
 ## Priority Order
 
-### Phase 1: Critical Services (Today)
+### Phase 1: Critical Services
 1. NetworkManager (already has @preconcurrency)
 2. HealthKitManager (lots of dependencies)
 3. UserService (core functionality)

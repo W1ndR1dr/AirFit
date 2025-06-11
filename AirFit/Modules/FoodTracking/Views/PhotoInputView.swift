@@ -717,9 +717,7 @@ struct CameraPlaceholder: View {
                     .multilineTextAlignment(.center)
             }
             
-            Button("Enable Camera", action: action)
-                .buttonStyle(.borderedProminent)
-                .controlSize(.large)
+            StandardButton("Enable Camera", style: .primary, size: .large, action: action)
         }
         .padding(32)
         .frame(maxWidth: .infinity, maxHeight: .infinity)

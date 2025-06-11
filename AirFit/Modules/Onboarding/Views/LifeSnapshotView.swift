@@ -69,7 +69,7 @@ struct LifeSnapshotView: View {
             }
             .accessibilityIdentifier("onboarding.lifeSnapshot")
 
-            NavigationButtons(
+            OnboardingNavigationButtons(
                 backAction: viewModel.navigateToPreviousScreen,
                 nextAction: viewModel.navigateToNextScreen
             )
@@ -130,39 +130,3 @@ private struct CheckboxToggleStyle: ToggleStyle {
     }
 }
 
-// MARK: - NavigationButtons
-private struct NavigationButtons: View {
-    var backAction: () -> Void
-    var nextAction: () -> Void
-
-    var body: some View {
-        HStack(spacing: AppSpacing.medium) {
-            Button(
-                action: backAction
-            ) {
-                Text(LocalizedStringKey("action.back"))
-                    .font(AppFonts.body)
-                    .foregroundColor(AppColors.textPrimary)
-                    .frame(maxWidth: .infinity)
-                    .padding()
-                    .background(AppColors.backgroundSecondary)
-                    .cornerRadius(AppConstants.Layout.defaultCornerRadius)
-            }
-            .accessibilityIdentifier("onboarding.back.button")
-
-            Button(
-                action: nextAction
-            ) {
-                Text(LocalizedStringKey("action.next"))
-                    .font(AppFonts.bodyBold)
-                    .foregroundColor(AppColors.textOnAccent)
-                    .frame(maxWidth: .infinity)
-                    .padding()
-                    .background(AppColors.accentColor)
-                    .cornerRadius(AppConstants.Layout.defaultCornerRadius)
-            }
-            .accessibilityIdentifier("onboarding.next.button")
-        }
-        .padding(.horizontal, AppSpacing.large)
-    }
-}

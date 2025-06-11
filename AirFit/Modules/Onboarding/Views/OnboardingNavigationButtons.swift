@@ -21,27 +21,21 @@ struct OnboardingNavigationButtons: View {
 
     var body: some View {
         HStack(spacing: AppSpacing.medium) {
-            Button(action: backAction) {
-                Text(LocalizedStringKey("action.back"))
-                    .font(AppFonts.body)
-                    .foregroundColor(AppColors.textPrimary)
-                    .frame(maxWidth: .infinity)
-                    .padding()
-                    .background(AppColors.backgroundSecondary)
-                    .cornerRadius(AppConstants.Layout.defaultCornerRadius)
-            }
+            StandardButton(
+                "action.back",
+                style: .secondary,
+                isFullWidth: true,
+                action: backAction
+            )
             .accessibilityIdentifier("onboarding.back.button")
 
-            Button(action: nextAction) {
-                Text(LocalizedStringKey(nextTitle))
-                    .font(AppFonts.bodyBold)
-                    .foregroundColor(isNextEnabled ? AppColors.textOnAccent : AppColors.textSecondary)
-                    .frame(maxWidth: .infinity)
-                    .padding()
-                    .background(isNextEnabled ? AppColors.accentColor : AppColors.dividerColor)
-                    .cornerRadius(AppConstants.Layout.defaultCornerRadius)
-            }
-            .disabled(!isNextEnabled)
+            StandardButton(
+                LocalizedStringKey(nextTitle),
+                style: .primary,
+                isFullWidth: true,
+                isEnabled: isNextEnabled,
+                action: nextAction
+            )
             .accessibilityIdentifier("onboarding.next.button")
         }
         .padding(.horizontal, AppSpacing.large)

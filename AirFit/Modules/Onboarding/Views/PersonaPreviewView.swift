@@ -169,60 +169,40 @@ struct PersonaPreviewView: View {
     private var actionButtons: some View {
         VStack(spacing: 12) {
             // Accept button
-            Button(action: {
+            StandardButton(
+                "Accept \(persona.name)",
+                icon: "checkmark.circle.fill",
+                style: .primary,
+                isFullWidth: true
+            ) {
                 Task {
                     await coordinator.acceptPersona()
                 }
-            }) {
-                HStack {
-                    Image(systemName: "checkmark.circle.fill")
-                    Text("Accept \(persona.name)")
-                }
-                .font(.headline)
-                .foregroundColor(.white)
-                .frame(maxWidth: .infinity)
-                .padding()
-                .background(AppColors.accentColor)
-                .cornerRadius(16)
             }
             
             HStack(spacing: 12) {
                 // Adjust button
-                Button(action: {
+                StandardButton(
+                    "Adjust",
+                    icon: "slider.horizontal.3",
+                    style: .secondary,
+                    size: .medium,
+                    isFullWidth: true
+                ) {
                     showingAdjustmentSheet = true
-                }) {
-                    HStack {
-                        Image(systemName: "slider.horizontal.3")
-                        Text("Adjust")
-                    }
-                    .font(.subheadline)
-                    .foregroundColor(AppColors.accentColor)
-                    .frame(maxWidth: .infinity)
-                    .padding()
-                    .background(
-                        RoundedRectangle(cornerRadius: 12)
-                            .stroke(AppColors.accentColor, lineWidth: 1.5)
-                    )
                 }
                 
                 // Regenerate button
-                Button(action: {
+                StandardButton(
+                    "Regenerate",
+                    icon: "arrow.clockwise",
+                    style: .tertiary,
+                    size: .medium,
+                    isFullWidth: true
+                ) {
                     Task {
                         await coordinator.regeneratePersona()
                     }
-                }) {
-                    HStack {
-                        Image(systemName: "arrow.clockwise")
-                        Text("Regenerate")
-                    }
-                    .font(.subheadline)
-                    .foregroundColor(AppColors.textSecondary)
-                    .frame(maxWidth: .infinity)
-                    .padding()
-                    .background(
-                        RoundedRectangle(cornerRadius: 12)
-                            .stroke(AppColors.textSecondary.opacity(0.3), lineWidth: 1)
-                    )
                 }
             }
         }

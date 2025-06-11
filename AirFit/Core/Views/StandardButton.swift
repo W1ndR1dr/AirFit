@@ -90,6 +90,8 @@ enum ButtonSize {
 
 // MARK: - Standard Button
 struct StandardButton: View {
+    @Environment(\.diContainer) private var diContainer
+    
     let title: String
     let icon: String?
     let style: ButtonStyleType
@@ -117,6 +119,35 @@ struct StandardButton: View {
         self.isLoading = isLoading
         self.isEnabled = isEnabled
         self.action = action
+    }
+    
+    /// LocalizedStringKey support for SwiftUI localization
+    init(
+        _ titleKey: LocalizedStringKey,
+        icon: String? = nil,
+        style: ButtonStyleType = .primary,
+        size: ButtonSize = .medium,
+        isFullWidth: Bool = false,
+        isLoading: Bool = false,
+        isEnabled: Bool = true,
+        action: @escaping () -> Void
+    ) {
+        // Extract the key from LocalizedStringKey for NSLocalizedString
+        let key = "\(titleKey)"
+            .replacingOccurrences(of: "LocalizedStringKey(key: \"", with: "")
+            .replacingOccurrences(of: "\", hasFormatting: false)", with: "")
+            .replacingOccurrences(of: "\", hasFormatting: true)", with: "")
+        
+        self.init(
+            NSLocalizedString(key, comment: ""),
+            icon: icon,
+            style: style,
+            size: size,
+            isFullWidth: isFullWidth,
+            isLoading: isLoading,
+            isEnabled: isEnabled,
+            action: action
+        )
     }
     
     var body: some View {
@@ -152,13 +183,29 @@ struct StandardButton: View {
     }
     
     private func handleTap() {
-        // TODO: Add haptic feedback via DI when needed
+        // Trigger haptic feedback based on button style
+        Task { @MainActor in
+            if let hapticService = try? await diContainer.resolve(HapticServiceProtocol.self) {
+                switch style {
+                case .primary:
+                    await hapticService.impact(.medium)
+                case .destructive:
+                    await hapticService.notification(.warning)
+                case .secondary, .tertiary:
+                    await hapticService.impact(.light)
+                case .custom:
+                    await hapticService.impact(.light)
+                }
+            }
+        }
         action()
     }
 }
 
 // MARK: - Icon Button
 struct IconButton: View {
+    @Environment(\.diContainer) private var diContainer
+    
     let icon: String
     let style: ButtonStyleType
     let size: ButtonSize
@@ -178,7 +225,19 @@ struct IconButton: View {
     
     var body: some View {
         Button(action: {
-            // TODO: Add haptic feedback via DI when needed
+            // Trigger haptic feedback
+            Task { @MainActor in
+                if let hapticService = try? await diContainer.resolve(HapticServiceProtocol.self) {
+                    switch style {
+                    case .primary:
+                        await hapticService.impact(.medium)
+                    case .destructive:
+                        await hapticService.notification(.warning)
+                    default:
+                        await hapticService.impact(.light)
+                    }
+                }
+            }
             action()
         }) {
             Image(systemName: icon)
@@ -197,12 +256,19 @@ struct IconButton: View {
 
 // MARK: - Floating Action Button
 struct FloatingActionButton: View {
+    @Environment(\.diContainer) private var diContainer
+    
     let icon: String
     let action: () -> Void
     
     var body: some View {
         Button(action: {
-            // TODO: Add haptic feedback via DI when needed
+            // Trigger haptic feedback for primary action
+            Task { @MainActor in
+                if let hapticService = try? await diContainer.resolve(HapticServiceProtocol.self) {
+                    await hapticService.impact(.medium)
+                }
+            }
             action()
         }) {
             Image(systemName: icon)

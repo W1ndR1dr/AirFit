@@ -54,6 +54,8 @@ Reference `Docs/Research Reports/Claude Code Best Practices.md` if needed.
 - ✅ **PHASE 2.1 COMPLETE** - All services standardized!
 - ✅ **PHASE 2.2 COMPLETE** - Concurrency model fixed!
 - ⚠️ **PHASE 2.3 ATTEMPTED** - Complex features rolled back for stability
+- ✅ **PHASE 3.1 COMPLETE** - BaseCoordinator, HapticService, UI components migrated
+- 🚀 **PHASE 3.2 IN PROGRESS** - AI System Optimization (high-priority tasks complete!)
 - ✅ Black screen issue FIXED with perfect lazy DI
 - ✅ Modules 0-13 complete (all features implemented)
 - ✅ HealthKit integration complete (nutrition + workouts)
@@ -62,12 +64,13 @@ Reference `Docs/Research Reports/Claude Code Best Practices.md` if needed.
 - ✅ All 45+ services implement ServiceProtocol
 - ✅ All services use AppError for consistent error handling
 - ✅ Build compiles successfully with no errors
-- 🎯 **NEXT**: Phase 3 - Architectural Simplification
+- 🎯 **CURRENT**: Phase 3.2 - AI optimizations (5/7 tasks complete)
 
-## Current Focus: Ready for Phase 3 🎯
+## Current Focus: Phase 3.2 - AI System Optimization 🎯
 **Phase 1**: ✅ COMPLETE (Foundation restored)  
 **Phase 2**: ✅ 2.1 & 2.2 COMPLETE, 2.3 attempted but rolled back  
-**Now**: Ready for Phase 3 - Simplify Architecture
+**Phase 3.1**: ✅ COMPLETE (UI components standardized)
+**Phase 3.2**: 🚀 IN PROGRESS - AI optimizations (5/7 tasks done)
 
 ### Phase 1 Completion Summary (2025-01-08)
 - ✅ **Phase 1.1**: Fixed DI Container (async-only resolution)
@@ -173,10 +176,16 @@ grep -r "@unchecked Sendable" --include="*.swift" AirFit/  # Find unsafe concurr
 - **Keep It Simple**: Prefer working JSON storage over complex SwiftData relationships
 
 ## Progress Tracking
-**Current Status**: Phase 3.1 (~35% complete) - See `Docs/PHASE_3_1_STATUS.md` for details
+**Current Status**: Phase 3.2 (71% complete) - High-priority tasks + AIWorkoutService done!
+**Phase 3.1**: ✅ COMPLETE - BaseCoordinator, HapticService, StandardButton/Card migrations
+**Phase 3.2 Status**: 
+- ✅ LLMOrchestrator optimization (nonisolated operations)
+- ✅ FunctionCallDispatcher thread safety (proper Sendable)
+- ✅ Global demo mode implementation
+- ✅ AIResponseCache memory leak fix (task tracking + cleanup)
+- ✅ AIWorkoutService implementation (real AI-powered workouts)
+- 🔄 2 medium-priority tasks remaining (AIGoalService, AIAnalyticsService)
 **Service Status**: ALL 45+ services implement ServiceProtocol, ALL singletons removed, 100% AppError adoption
-**Coordinator Status**: BaseCoordinator migration complete for all 6 navigation coordinators
-**Next Steps**: Remove HapticManager calls, StandardCard adoption (~40 remaining), manager consolidations
 
 ## Memories
 - I remember to use the iPhone 16 Pro and iOS 18.4 simulator
@@ -198,6 +207,15 @@ grep -r "@unchecked Sendable" --include="*.swift" AirFit/  # Find unsafe concurr
   - Complex features caused build errors
   - Rolled back to maintain clean build
   - See PHASE_2_3_HANDOFF_NOTES.md
+- Phase 3.1 FULLY COMPLETED on 2025-06-09:
+  - Migrated all 6 coordinators to BaseCoordinator
+  - HapticManager → HapticService (no more singletons!)
+  - StandardButton/Card UI components adopted
+  - See PHASE_3_1_COMPLETION_SUMMARY.md
+- Phase 3.2 HIGH-PRIORITY TASKS COMPLETED on 2025-06-10:
+  - LLMOrchestrator: Made operations nonisolated with AtomicBool
+  - FunctionCallDispatcher: Fixed @unchecked Sendable, proper @MainActor
+  - Demo mode: Global flag + enhanced DemoAIService
 - Black screen issue RESOLVED
 - App launches in <0.5s with immediate UI
 - Build compiles successfully with no errors
