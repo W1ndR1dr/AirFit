@@ -3,6 +3,8 @@ import Charts
 
 struct PerformanceCard: View {
     let insight: PerformanceInsight?
+    @Environment(\.colorScheme) private var colorScheme
+    @EnvironmentObject private var gradientManager: GradientManager
 
     private struct ChartPoint: Identifiable {
         let id = UUID()
@@ -17,31 +19,43 @@ struct PerformanceCard: View {
     }
 
     var body: some View {
-        StandardCard {
+        GlassCard {
             VStack(alignment: .leading, spacing: AppSpacing.medium) {
                 header
 
                 if let insight {
                     Text(insight.insight)
                         .font(AppFonts.body)
-                        .foregroundColor(AppColors.textPrimary)
+                        .foregroundStyle(.primary)
                         .fixedSize(horizontal: false, vertical: true)
 
                     HStack {
                         Text(insight.metric)
                             .font(AppFonts.caption)
-                            .foregroundColor(AppColors.textSecondary)
+                            .foregroundStyle(.secondary)
                         Spacer()
                         Text(insight.value)
                             .font(AppFonts.headline)
-                            .foregroundColor(AppColors.accentColor)
+                            .foregroundStyle(
+                                LinearGradient(
+                                    colors: gradientManager.active.colors(for: colorScheme),
+                                    startPoint: .leading,
+                                    endPoint: .trailing
+                                )
+                            )
                     }
 
                     Chart(history) { point in
                         LineMark(x: .value("Day", point.index),
                                  y: .value("Value", point.value))
                             .interpolationMethod(.catmullRom)
-                            .foregroundStyle(AppColors.accentColor)
+                            .foregroundStyle(
+                                LinearGradient(
+                                    colors: gradientManager.active.colors(for: colorScheme),
+                                    startPoint: .leading,
+                                    endPoint: .trailing
+                                )
+                            )
                     }
                     .chartXAxis(.hidden)
                     .chartYAxis(.hidden)
@@ -59,7 +73,7 @@ struct PerformanceCard: View {
         HStack {
             Label("Performance", systemImage: "chart.line.uptrend.xyaxis")
                 .font(AppFonts.headline)
-                .foregroundColor(AppColors.textPrimary)
+                .foregroundStyle(.primary)
             Spacer()
             if let trend = insight?.trend {
                 TrendIndicator(trend: trend)
@@ -71,10 +85,10 @@ struct PerformanceCard: View {
         VStack(spacing: AppSpacing.small) {
             Image(systemName: "chart.xyaxis.line")
                 .font(.title)
-                .foregroundColor(AppColors.textTertiary)
+                .foregroundStyle(.tertiary)
             Text("Building your insights…")
                 .font(AppFonts.caption)
-                .foregroundColor(AppColors.textSecondary)
+                .foregroundStyle(.secondary)
         }
         .frame(maxWidth: .infinity)
         .padding(.vertical)

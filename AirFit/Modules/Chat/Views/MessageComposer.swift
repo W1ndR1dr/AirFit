@@ -282,7 +282,7 @@ struct MessageComposer_Previews: PreviewProvider {
             onVoiceToggle: {}
         )
         .padding()
-        .background(AppColors.backgroundPrimary)
+        .background(Color.clear)
     }
 }
 #endif

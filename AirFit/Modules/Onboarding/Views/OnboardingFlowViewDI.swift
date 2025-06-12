@@ -27,98 +27,111 @@ struct OnboardingFlowViewDI: View {
     }
     
     var body: some View {
-        Group {
-            if let viewModel = viewModel {
-                VStack(spacing: 0) {
-                    if shouldShowProgressBar(for: viewModel.currentScreen) {
-                        StepProgressBar(progress: viewModel.currentScreen.progress)
-                            .padding(.horizontal)
-                            .padding(.top)
-                    }
-                    
-                    Group {
-                        switch viewModel.currentScreen {
-                        case .openingScreen:
-                            OpeningScreenView(viewModel: viewModel)
-                        case .lifeSnapshot:
-                            LifeSnapshotView(viewModel: viewModel)
-                        case .coreAspiration:
-                            CoreAspirationView(viewModel: viewModel)
-                        case .coachingStyle:
-                            CoachingStyleView(viewModel: viewModel)
-                        case .engagementPreferences:
-                            EngagementPreferencesView(viewModel: viewModel)
-                        case .sleepAndBoundaries:
-                            SleepAndBoundariesView(viewModel: viewModel)
-                        case .motivationalAccents:
-                            MotivationalAccentsView(viewModel: viewModel)
-                        case .generatingCoach:
-                            GeneratingCoachView(viewModel: viewModel)
-                        case .coachProfileReady:
-                            CoachProfileReadyView(viewModel: viewModel)
+        BaseScreen {
+            Group {
+                if let viewModel = viewModel {
+                    VStack(spacing: 0) {
+                        if shouldShowProgressBar(for: viewModel.currentScreen) {
+                            StepProgressBar(progress: viewModel.currentScreen.progress)
+                                .padding(.horizontal)
+                                .padding(.top)
                         }
-                    }
-                    .transition(
-                        .asymmetric(
-                            insertion: .move(edge: .trailing).combined(with: .opacity),
-                            removal: .move(edge: .leading).combined(with: .opacity)
+                        
+                        Group {
+                            switch viewModel.currentScreen {
+                            case .openingScreen:
+                                OpeningScreenView(viewModel: viewModel)
+                            case .lifeSnapshot:
+                                LifeSnapshotView(viewModel: viewModel)
+                            case .coreAspiration:
+                                CoreAspirationView(viewModel: viewModel)
+                            case .coachingStyle:
+                                CoachingStyleView(viewModel: viewModel)
+                            case .engagementPreferences:
+                                EngagementPreferencesView(viewModel: viewModel)
+                            case .sleepAndBoundaries:
+                                SleepAndBoundariesView(viewModel: viewModel)
+                            case .motivationalAccents:
+                                MotivationalAccentsView(viewModel: viewModel)
+                            case .generatingCoach:
+                                GeneratingCoachView(viewModel: viewModel)
+                            case .coachProfileReady:
+                                CoachProfileReadyView(viewModel: viewModel)
+                            }
+                        }
+                        .transition(
+                            .asymmetric(
+                                insertion: .move(edge: .trailing).combined(with: .opacity),
+                                removal: .move(edge: .leading).combined(with: .opacity)
+                            )
                         )
-                    )
-                    .animation(
-                        .easeInOut(duration: AppConstants.Animation.defaultDuration),
-                        value: viewModel.currentScreen
-                    )
-                    
-                    if shouldShowPrivacyFooter(for: viewModel.currentScreen) {
-                        PrivacyFooter()
-                            .padding(.bottom)
-                    }
-                }
-                .background(AppColors.backgroundPrimary)
-                .loadingOverlay(isLoading: viewModel.isLoading)
-                .alert("Error", isPresented: .constant(viewModel.error != nil)) {
-                    Button("OK") { viewModel.error = nil }
-                } message: {
-                    if let error = viewModel.error {
-                        Text(error.localizedDescription)
-                    }
-                }
-            } else if isLoading {
-                VStack(spacing: AppSpacing.large) {
-                    ProgressView()
-                        .scaleEffect(1.5)
-                        .tint(AppColors.accentColor)
-                    
-                    Text("Setting up...")
-                        .font(AppFonts.headline)
-                        .foregroundColor(AppColors.textSecondary)
-                }
-                .frame(maxWidth: .infinity, maxHeight: .infinity)
-                .background(AppColors.backgroundPrimary)
-            } else if let error = loadError {
-                VStack(spacing: AppSpacing.large) {
-                    Image(systemName: "exclamationmark.triangle.fill")
-                        .font(.largeTitle)
-                        .foregroundColor(AppColors.errorColor)
-                    
-                    Text("Failed to initialize onboarding")
-                        .font(AppFonts.headline)
-                        .foregroundColor(AppColors.textPrimary)
-                    
-                    Text(error.localizedDescription)
-                        .font(AppFonts.body)
-                        .foregroundColor(AppColors.textSecondary)
-                        .multilineTextAlignment(.center)
-                    
-                    StandardButton("Retry", style: .primary) {
-                        Task {
-                            await loadViewModel()
+                        .animation(
+                            .easeInOut(duration: AppConstants.Animation.defaultDuration),
+                            value: viewModel.currentScreen
+                        )
+                        
+                        if shouldShowPrivacyFooter(for: viewModel.currentScreen) {
+                            PrivacyFooter()
+                                .padding(.bottom)
                         }
                     }
+                    .loadingOverlay(isLoading: viewModel.isLoading)
+                    .alert("Error", isPresented: .constant(viewModel.error != nil)) {
+                        Button("OK") { viewModel.error = nil }
+                    } message: {
+                        if let error = viewModel.error {
+                            Text(error.localizedDescription)
+                        }
+                    }
+                } else if isLoading {
+                    VStack(spacing: AppSpacing.lg) {
+                        ProgressView()
+                            .scaleEffect(1.5)
+                            .tint(Color.accentColor)
+                        
+                        Text("Setting up...")
+                            .font(.system(size: 18, weight: .semibold, design: .rounded))
+                            .foregroundStyle(.secondary)
+                    }
+                    .frame(maxWidth: .infinity, maxHeight: .infinity)
+                } else if let error = loadError {
+                    VStack(spacing: AppSpacing.lg) {
+                        Image(systemName: "exclamationmark.triangle.fill")
+                            .font(.largeTitle)
+                            .foregroundStyle(.red)
+                        
+                        Text("Failed to initialize onboarding")
+                            .font(.system(size: 20, weight: .semibold, design: .rounded))
+                            .foregroundStyle(.primary)
+                        
+                        Text(error.localizedDescription)
+                            .font(.system(size: 16, weight: .regular, design: .rounded))
+                            .foregroundStyle(.secondary)
+                            .multilineTextAlignment(.center)
+                        
+                        Button {
+                            Task {
+                                await loadViewModel()
+                            }
+                        } label: {
+                            Text("Retry")
+                                .font(.system(size: 16, weight: .medium, design: .rounded))
+                                .foregroundColor(.white)
+                                .frame(width: 120)
+                                .padding(.vertical, AppSpacing.sm)
+                                .background(
+                                    LinearGradient(
+                                        colors: [Color.accentColor, Color.accentColor.opacity(0.8)],
+                                        startPoint: .leading,
+                                        endPoint: .trailing
+                                    )
+                                )
+                                .clipShape(RoundedRectangle(cornerRadius: 12))
+                        }
+                    }
+                    .padding()
+                    .frame(maxWidth: .infinity, maxHeight: .infinity)
                 }
-                .padding()
-                .frame(maxWidth: .infinity, maxHeight: .infinity)
-                .background(AppColors.backgroundPrimary)
             }
         }
         .task {
@@ -225,12 +238,18 @@ private struct StepProgressBar: View {
             ZStack(alignment: .leading) {
                 // Background
                 RoundedRectangle(cornerRadius: 4)
-                    .fill(AppColors.backgroundTertiary)
+                    .fill(.ultraThinMaterial)
                     .frame(height: 8)
                 
                 // Progress
                 RoundedRectangle(cornerRadius: 4)
-                    .fill(AppColors.accentColor)
+                    .fill(
+                        LinearGradient(
+                            colors: [Color.accentColor, Color.accentColor.opacity(0.8)],
+                            startPoint: .leading,
+                            endPoint: .trailing
+                        )
+                    )
                     .frame(width: geometry.size.width * progress, height: 8)
                     .animation(.smooth, value: progress)
             }
@@ -244,10 +263,10 @@ private struct StepProgressBar: View {
 private struct PrivacyFooter: View {
     var body: some View {
         Text("Your information is secure and will only be used to personalize your fitness experience.")
-            .font(AppFonts.caption)
-            .foregroundColor(AppColors.textTertiary)
+            .font(.system(size: 12, weight: .regular, design: .rounded))
+            .foregroundStyle(.secondary.opacity(0.8))
             .multilineTextAlignment(.center)
             .padding(.horizontal)
-            .padding(.top, AppSpacing.small)
+            .padding(.top, AppSpacing.sm)
     }
 }

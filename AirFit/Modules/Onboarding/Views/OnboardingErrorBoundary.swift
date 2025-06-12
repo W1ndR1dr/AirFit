@@ -5,6 +5,8 @@ struct OnboardingErrorBoundary<Content: View>: View {
     @ViewBuilder let content: () -> Content
     @Bindable var coordinator: OnboardingFlowCoordinator
     @State private var showingFullError = false
+    @EnvironmentObject private var gradientManager: GradientManager
+    @Environment(\.colorScheme) private var colorScheme
     
     var body: some View {
         ZStack {
@@ -59,7 +61,11 @@ private struct RecoveryOverlay: View {
             // Animated recovery indicator
             Image(systemName: "arrow.triangle.2.circlepath")
                 .font(.system(size: 48))
-                .foregroundColor(AppColors.accentColor)
+                .foregroundStyle(LinearGradient(
+                    colors: [Color.blue, Color.purple],
+                    startPoint: .topLeading,
+                    endPoint: .bottomTrailing
+                ))
                 .rotationEffect(.degrees(rotation))
                 .onAppear {
                     withAnimation(.linear(duration: 2).repeatForever(autoreverses: false)) {
@@ -69,12 +75,12 @@ private struct RecoveryOverlay: View {
             
             Text("Recovering...")
                 .font(AppFonts.title3)
-                .foregroundColor(AppColors.textPrimary)
+                .foregroundColor(.primary)
             
             if let message = message {
                 Text(message)
                     .font(AppFonts.caption)
-                    .foregroundColor(AppColors.textSecondary)
+                    .foregroundColor(.secondary)
                     .multilineTextAlignment(.center)
                     .padding(.horizontal, AppSpacing.xxLarge)
             }
@@ -82,7 +88,7 @@ private struct RecoveryOverlay: View {
         .padding(AppSpacing.xxLarge)
         .background(
             RoundedRectangle(cornerRadius: 20)
-                .fill(AppColors.cardBackground)
+                .fill(.ultraThinMaterial)
                 .shadow(radius: 10)
         )
     }
@@ -98,6 +104,8 @@ private struct ErrorOverlay: View {
     let onShowDetails: () -> Void
     
     @State private var showingAnimation = false
+    @EnvironmentObject private var gradientManager: GradientManager
+    @Environment(\.colorScheme) private var colorScheme
     
     var body: some View {
         VStack(spacing: 0) {
@@ -114,13 +122,13 @@ private struct ErrorOverlay: View {
                 // Error title
                 Text(errorTitle)
                     .font(AppFonts.title3)
-                    .foregroundColor(AppColors.textPrimary)
+                    .foregroundColor(.primary)
                     .multilineTextAlignment(.center)
                 
                 // Error message
                 Text(error.localizedDescription)
                     .font(AppFonts.body)
-                    .foregroundColor(AppColors.textSecondary)
+                    .foregroundColor(.secondary)
                     .multilineTextAlignment(.center)
                     .lineLimit(3)
                     .padding(.horizontal, AppSpacing.medium)
@@ -129,7 +137,7 @@ private struct ErrorOverlay: View {
                 if let suggestion = recoverySuggestion {
                     Text(suggestion)
                         .font(AppFonts.caption)
-                        .foregroundColor(AppColors.textTertiary)
+                        .foregroundColor(Color.secondary.opacity(0.7))
                         .multilineTextAlignment(.center)
                         .padding(.horizontal, AppSpacing.medium)
                 }
@@ -137,18 +145,74 @@ private struct ErrorOverlay: View {
                 // Actions
                 HStack(spacing: AppSpacing.medium) {
                     if !isRecovering {
-                        StandardButton(
-                            "Retry",
-                            icon: "arrow.clockwise",
-                            style: .primary,
-                            action: onRetry
-                        )
+                        Button(action: {
+                            HapticService.impact(.medium)
+                            onRetry()
+                        }) {
+                            HStack(spacing: AppSpacing.xs) {
+                                Image(systemName: "arrow.clockwise")
+                                    .font(.system(size: 14, weight: .semibold))
+                                Text("Retry")
+                                    .font(.system(size: 16, weight: .semibold, design: .rounded))
+                            }
+                            .foregroundColor(.white)
+                            .padding(.horizontal, AppSpacing.md)
+                            .padding(.vertical, AppSpacing.sm)
+                            .background(
+                                LinearGradient(
+                                    colors: gradientManager.active.colors(for: colorScheme),
+                                    startPoint: .leading,
+                                    endPoint: .trailing
+                                )
+                            )
+                            .clipShape(RoundedRectangle(cornerRadius: 14))
+                            .shadow(color: gradientManager.active.colors(for: colorScheme)[0].opacity(0.2), radius: 8, y: 2)
+                        }
                     }
                     
-                    StandardButton("Dismiss", style: .secondary, action: onDismiss)
+                    Button(action: {
+                        HapticService.impact(.light)
+                        onDismiss()
+                    }) {
+                        Text("Dismiss")
+                            .font(.system(size: 16, weight: .semibold, design: .rounded))
+                            .foregroundColor(.primary)
+                            .padding(.horizontal, AppSpacing.md)
+                            .padding(.vertical, AppSpacing.sm)
+                            .background(
+                                LinearGradient(
+                                    colors: [
+                                        Color.primary.opacity(0.05),
+                                        Color.primary.opacity(0.02)
+                                    ],
+                                    startPoint: .topLeading,
+                                    endPoint: .bottomTrailing
+                                )
+                            )
+                            .overlay(
+                                RoundedRectangle(cornerRadius: 14)
+                                    .stroke(
+                                        LinearGradient(
+                                            colors: gradientManager.active.colors(for: colorScheme).map { $0.opacity(0.3) },
+                                            startPoint: .topLeading,
+                                            endPoint: .bottomTrailing
+                                        ),
+                                        lineWidth: 1
+                                    )
+                            )
+                            .clipShape(RoundedRectangle(cornerRadius: 14))
+                    }
                     
                     Button(action: onShowDetails) {
                         Image(systemName: "info.circle")
+                            .font(.system(size: 18, weight: .medium))
+                            .foregroundStyle(
+                                LinearGradient(
+                                    colors: gradientManager.active.colors(for: colorScheme),
+                                    startPoint: .topLeading,
+                                    endPoint: .bottomTrailing
+                                )
+                            )
                     }
                     .buttonStyle(.borderless)
                 }
@@ -157,7 +221,7 @@ private struct ErrorOverlay: View {
             .padding(AppSpacing.xxLarge)
             .background(
                 RoundedRectangle(cornerRadius: 20)
-                    .fill(AppColors.cardBackground)
+                    .fill(.ultraThinMaterial)
                     .shadow(radius: 10)
             )
             .padding(.horizontal, AppSpacing.large)
@@ -169,7 +233,7 @@ private struct ErrorOverlay: View {
             withAnimation(.spring()) {
                 showingAnimation = true
             }
-            // TODO: Add haptic feedback via DI when needed
+            HapticService.play(.error)
         }
     }
     
@@ -189,11 +253,11 @@ private struct ErrorOverlay: View {
     private var errorColor: Color {
         switch error {
         case is NetworkError:
-            return AppColors.warningColor
+            return Color.orange
         case is OnboardingError:
-            return AppColors.infoColor
+            return Color.blue
         default:
-            return AppColors.errorColor
+            return Color.red
         }
     }
     
@@ -255,15 +319,15 @@ private struct ErrorDetailsView: View {
                         VStack(alignment: .leading, spacing: AppSpacing.small) {
                             Text("Debug Information")
                                 .font(AppFonts.caption)
-                                .foregroundColor(AppColors.textSecondary)
+                                .foregroundColor(.secondary)
                             
                             Text(debugDescription)
                                 .font(.system(.caption, design: .monospaced))
-                                .foregroundColor(AppColors.textTertiary)
+                                .foregroundColor(Color.secondary.opacity(0.7))
                                 .padding(AppSpacing.small)
                                 .background(
                                     RoundedRectangle(cornerRadius: 8)
-                                        .fill(AppColors.backgroundTertiary)
+                                        .fill(Color.primary.opacity(0.05))
                                 )
                         }
                     }
@@ -289,11 +353,11 @@ private struct ErrorDetailRow: View {
         VStack(alignment: .leading, spacing: AppSpacing.xxSmall) {
             Text(title)
                 .font(AppFonts.caption)
-                .foregroundColor(AppColors.textSecondary)
+                .foregroundColor(.secondary)
             
             Text(value)
                 .font(AppFonts.body)
-                .foregroundColor(AppColors.textPrimary)
+                .foregroundColor(.primary)
                 .textSelection(.enabled)
         }
     }

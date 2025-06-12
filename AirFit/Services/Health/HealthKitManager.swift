@@ -243,11 +243,24 @@ final class HealthKitManager: HealthKitManaging, ServiceProtocol {
         metrics.standHours = (try await standHours).map { Int($0) }
         metrics.moveMinutes = (try await moveTime).map { Int($0) }
         metrics.currentHeartRate = (try await currentHR).map { Int($0) }
-        metrics.isWorkoutActive = false // TODO: Implement workout detection
-        metrics.workoutType = nil
-        metrics.moveProgress = nil // TODO: Calculate from goals
-        metrics.exerciseProgress = nil
-        metrics.standProgress = nil
+        // Check for active workout
+        let activeWorkout = try await fetchActiveWorkout()
+        metrics.isWorkoutActive = activeWorkout != nil
+        metrics.workoutType = activeWorkout?.workoutActivityType
+        // Calculate progress from goals
+        let (moveGoal, exerciseGoal, standGoal) = try await fetchActivityGoals()
+        
+        if let calories = metrics.activeEnergyBurned?.value, let goal = moveGoal {
+            metrics.moveProgress = calories / goal
+        }
+        
+        if let minutes = metrics.exerciseMinutes, let goal = exerciseGoal {
+            metrics.exerciseProgress = Double(minutes) / Double(goal)
+        }
+        
+        if let hours = metrics.standHours, let goal = standGoal {
+            metrics.standProgress = Double(hours) / Double(goal)
+        }
 
         return metrics
     }
@@ -290,7 +303,7 @@ final class HealthKitManager: HealthKitManaging, ServiceProtocol {
                 HeartHealthMetrics.CardioFitnessLevel.from(vo2Max: $0)
             },
             recoveryHeartRate: (try await recovery).map { Int($0) },
-            heartRateRecovery: nil // TODO: Calculate from workout data
+            heartRateRecovery: await calculateHeartRateRecovery()
         )
     }
 
@@ -321,7 +334,7 @@ final class HealthKitManager: HealthKitManaging, ServiceProtocol {
             bodyFatPercentage: (try await bodyFat).map { $0 * 100 }, // Convert to percentage
             leanBodyMass: (try await leanMass).map { Measurement(value: $0, unit: UnitMass.kilograms) },
             bmi: try await bmi,
-            weightTrend: nil, // TODO: Calculate trends
+            weightTrend: await calculateWeightTrend(),
             bodyFatTrend: nil
         )
     }
@@ -615,16 +628,63 @@ final class HealthKitManager: HealthKitManaging, ServiceProtocol {
             "AirFitSource": "AirFit App"
         ]
         
-        // Build workout
-        let hkWorkout = HKWorkout(
-            activityType: hkWorkoutType,
-            start: startDate,
-            end: endDate,
-            duration: workout.duration ?? 0,
-            totalEnergyBurned: totalEnergy,
-            totalDistance: nil, // TODO: Add distance tracking when available
-            metadata: metadata
-        )
+        // Create workout using HKWorkoutBuilder for iOS 17+
+        let configuration = HKWorkoutConfiguration()
+        configuration.activityType = hkWorkoutType
+        
+        let builder = HKWorkoutBuilder(healthStore: healthStore, configuration: configuration, device: nil)
+        
+        try await builder.beginCollection(at: startDate)
+        
+        // Add metadata
+        try await builder.addMetadata(metadata)
+        
+        // Add energy burned if available
+        if let totalEnergy = totalEnergy {
+            let energySample = HKQuantitySample(
+                type: HKQuantityType.quantityType(forIdentifier: .activeEnergyBurned)!,
+                quantity: totalEnergy,
+                start: startDate,
+                end: endDate
+            )
+            try await withCheckedThrowingContinuation { (continuation: CheckedContinuation<Void, Error>) in
+                builder.add([energySample]) { success, error in
+                    if let error = error {
+                        continuation.resume(throwing: error)
+                    } else {
+                        continuation.resume()
+                    }
+                }
+            }
+        }
+        
+        // Add distance if available
+        if let distance = workout.distance {
+            let distanceQuantity = HKQuantity(unit: .meter(), doubleValue: distance)
+            let distanceSample = HKQuantitySample(
+                type: HKQuantityType.quantityType(forIdentifier: .distanceWalkingRunning)!,
+                quantity: distanceQuantity,
+                start: startDate,
+                end: endDate
+            )
+            try await withCheckedThrowingContinuation { (continuation: CheckedContinuation<Void, Error>) in
+                builder.add([distanceSample]) { success, error in
+                    if let error = error {
+                        continuation.resume(throwing: error)
+                    } else {
+                        continuation.resume()
+                    }
+                }
+            }
+        }
+        
+        // End collection and finish workout
+        try await builder.endCollection(at: endDate)
+        let hkWorkout = try await builder.finishWorkout()
+        
+        guard let hkWorkout = hkWorkout else {
+            throw AppError.from(HealthKitError.invalidData)
+        }
         
         // Save workout
         try await withCheckedThrowingContinuation { (continuation: CheckedContinuation<Void, Error>) in
@@ -688,6 +748,186 @@ final class HealthKitManager: HealthKitManaging, ServiceProtocol {
         }
         
         AppLogger.info("Deleted workout from HealthKit", category: .health)
+    }
+    
+    // MARK: - Workout Detection
+    
+    /// Fetches currently active workout if any
+    private func fetchActiveWorkout() async throws -> HKWorkout? {
+        let now = Date()
+        let oneHourAgo = now.addingTimeInterval(-3600)
+        
+        // Create predicate for workouts that started within the last hour and have no end date
+        let startDatePredicate = HKQuery.predicateForSamples(withStart: oneHourAgo, end: now, options: .strictStartDate)
+        let noEndDatePredicate = NSPredicate(format: "endDate == nil")
+        let predicate = NSCompoundPredicate(andPredicateWithSubpredicates: [startDatePredicate, noEndDatePredicate])
+        
+        let workouts = try await withCheckedThrowingContinuation { (continuation: CheckedContinuation<[HKWorkout], Error>) in
+            let query = HKSampleQuery(
+                sampleType: HKObjectType.workoutType(),
+                predicate: predicate,
+                limit: 1,
+                sortDescriptors: [NSSortDescriptor(key: HKSampleSortIdentifierStartDate, ascending: false)]
+            ) { _, samples, error in
+                if let error = error {
+                    continuation.resume(throwing: error)
+                } else {
+                    let workouts = (samples as? [HKWorkout]) ?? []
+                    continuation.resume(returning: workouts)
+                }
+            }
+            healthStore.execute(query)
+        }
+        
+        return workouts.first
+    }
+    
+    /// Fetches activity goals from HealthKit
+    private func fetchActivityGoals() async throws -> (move: Double?, exercise: Int?, stand: Int?) {
+        // Get activity summary for today
+        let calendar = Calendar.current
+        let today = calendar.startOfDay(for: Date())
+        
+        let goalData = try await withCheckedThrowingContinuation { (continuation: CheckedContinuation<(move: Double?, exercise: Int?, stand: Int?), Error>) in
+            let components = calendar.dateComponents([.year, .month, .day], from: today)
+            let endComponents = calendar.dateComponents([.year, .month, .day], from: Date())
+            let predicate = HKQuery.predicate(forActivitySummariesBetweenStart: components, end: endComponents)
+            
+            let query = HKActivitySummaryQuery(predicate: predicate) { _, summaries, error in
+                if let error = error {
+                    continuation.resume(throwing: error)
+                } else if let summary = summaries?.first {
+                    // Extract data within the completion handler
+                    let moveGoal = summary.activeEnergyBurnedGoal.doubleValue(for: HKUnit.kilocalorie())
+                    let exerciseGoal = Int(summary.appleExerciseTimeGoal.doubleValue(for: HKUnit.minute()))
+                    let standGoal = Int(summary.appleStandHoursGoal.doubleValue(for: HKUnit.count()))
+                    
+                    continuation.resume(returning: (
+                        move: moveGoal > 0 ? moveGoal : nil,
+                        exercise: exerciseGoal > 0 ? exerciseGoal : nil,
+                        stand: standGoal > 0 ? standGoal : nil
+                    ))
+                } else {
+                    // No summary found, use defaults
+                    continuation.resume(returning: (move: 500, exercise: 30, stand: 12))
+                }
+            }
+            
+            healthStore.execute(query)
+        }
+        
+        return goalData
+    }
+    
+    /// Calculates heart rate recovery based on recent workout data
+    private func calculateHeartRateRecovery() async -> Int? {
+        // Get recent workouts (last 7 days)
+        let calendar = Calendar.current
+        let endDate = Date()
+        let startDate = calendar.date(byAdding: .day, value: -7, to: endDate) ?? endDate
+        
+        do {
+            let workouts = try await dataFetcher.fetchWorkouts(from: startDate, to: endDate)
+            
+            // Find workouts with heart rate recovery data
+            var recoveryValues: [Int] = []
+            
+            for workout in workouts {
+                // Get heart rate samples during and after workout
+                let workoutEnd = workout.endDate
+                let recoveryWindow = workoutEnd.addingTimeInterval(60) // 1 minute after workout
+                
+                let hrSamples = try await dataFetcher.fetchQuantitySamples(
+                    identifier: .heartRate,
+                    unit: HKUnit.count().unitDivided(by: HKUnit.minute()),
+                    from: workoutEnd,
+                    to: recoveryWindow
+                )
+                
+                // Get peak HR during workout
+                let peakHR = try await dataFetcher.fetchQuantitySamples(
+                    identifier: .heartRate,
+                    unit: HKUnit.count().unitDivided(by: HKUnit.minute()),
+                    from: workout.startDate,
+                    to: workoutEnd
+                ).max(by: { $0.quantity.doubleValue(for: HKUnit.count().unitDivided(by: HKUnit.minute())) < 
+                          $1.quantity.doubleValue(for: HKUnit.count().unitDivided(by: HKUnit.minute())) })
+                
+                guard let peak = peakHR,
+                      let recoveryHR = hrSamples.last else { continue }
+                
+                let peakValue = Int(peak.quantity.doubleValue(for: HKUnit.count().unitDivided(by: HKUnit.minute())))
+                let recoveryValue = Int(recoveryHR.quantity.doubleValue(for: HKUnit.count().unitDivided(by: HKUnit.minute())))
+                let recovery = peakValue - recoveryValue
+                
+                if recovery > 0 {
+                    recoveryValues.append(recovery)
+                }
+            }
+            
+            // Calculate average recovery
+            guard !recoveryValues.isEmpty else { return nil }
+            
+            let avgRecovery = recoveryValues.reduce(0, +) / recoveryValues.count
+            
+            // Return average recovery (beats dropped in 1 minute)
+            return avgRecovery
+            
+        } catch {
+            AppLogger.error("Failed to calculate heart rate recovery: \(error)", category: .health)
+            return nil
+        }
+    }
+    
+    /// Calculates weight trend over the last 30 days
+    private func calculateWeightTrend() async -> BodyMetrics.Trend? {
+        let calendar = Calendar.current
+        let endDate = Date()
+        let startDate = calendar.date(byAdding: .day, value: -30, to: endDate) ?? endDate
+        
+        do {
+            let samples = try await dataFetcher.fetchQuantitySamples(
+                identifier: HKQuantityTypeIdentifier.bodyMass,
+                unit: HKUnit.gramUnit(with: .kilo),
+                from: startDate,
+                to: endDate
+            )
+            
+            guard samples.count >= 2 else { return nil }
+            
+            // Sort by date
+            let sortedSamples = samples.sorted { $0.startDate < $1.startDate }
+            
+            // Get first and last week averages
+            let firstWeek = sortedSamples.prefix(7)
+            let lastWeek = sortedSamples.suffix(7)
+            
+            guard !firstWeek.isEmpty && !lastWeek.isEmpty else { return nil }
+            
+            let firstAvg = firstWeek.reduce(0.0) { sum, sample in
+                sum + sample.quantity.doubleValue(for: HKUnit.gramUnit(with: .kilo))
+            } / Double(firstWeek.count)
+            
+            let lastAvg = lastWeek.reduce(0.0) { sum, sample in
+                sum + sample.quantity.doubleValue(for: HKUnit.gramUnit(with: .kilo))
+            } / Double(lastWeek.count)
+            
+            let change = lastAvg - firstAvg
+            let percentChange = (change / firstAvg) * 100
+            
+            // Determine trend based on change
+            if abs(percentChange) < 1 {
+                return .stable
+            } else if change > 0 {
+                return .increasing
+            } else {
+                return .decreasing
+            }
+            
+        } catch {
+            AppLogger.error("Failed to calculate weight trend: \(error)", category: .health)
+            return nil
+        }
     }
 
 }

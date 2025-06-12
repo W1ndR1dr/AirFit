@@ -89,7 +89,7 @@ public struct EmptyStateView: View {
 }
 
 // MARK: - Card View
-/// Legacy card view for backward compatibility. New code should use StandardCard.
+/// Legacy card view for backward compatibility. New code should use GlassCard.
 public struct Card<Content: View>: View {
     let content: () -> Content
 
@@ -98,8 +98,8 @@ public struct Card<Content: View>: View {
     }
 
     public var body: some View {
-        // Use StandardCard internally for consistency
-        StandardCard(padding: .standard, showShadow: true) {
+        // Use GlassCard internally for consistency
+        GlassCard {
             content()
         }
     }

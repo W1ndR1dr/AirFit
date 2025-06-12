@@ -248,15 +248,38 @@ private extension WorkoutDetailView {
                         )
                     }
                 } else {
-                    StandardButton(
-                        "Generate Analysis",
-                        icon: "sparkles",
-                        style: .secondary,
-                        isEnabled: !viewModel.isGeneratingAnalysis
-                    ) {
+                    Button {
                         HapticService.impact(.medium)
                         Task { await viewModel.generateAIAnalysis(for: workout) }
+                    } label: {
+                        HStack(spacing: AppSpacing.xs) {
+                            Image(systemName: "sparkles")
+                                .font(.system(size: 16, weight: .semibold))
+                            Text("Generate Analysis")
+                                .font(.system(size: 16, weight: .semibold, design: .rounded))
+                        }
+                        .foregroundColor(.white)
+                        .frame(maxWidth: .infinity)
+                        .padding(.vertical, AppSpacing.sm)
+                        .background(
+                            LinearGradient(
+                                colors: viewModel.isGeneratingAnalysis ? 
+                                    [Color.gray.opacity(0.6), Color.gray.opacity(0.4)] :
+                                    gradientManager.active.colors(for: colorScheme),
+                                startPoint: .leading,
+                                endPoint: .trailing
+                            )
+                        )
+                        .clipShape(RoundedRectangle(cornerRadius: 14))
+                        .shadow(
+                            color: viewModel.isGeneratingAnalysis ? 
+                                Color.clear : 
+                                gradientManager.active.colors(for: colorScheme)[0].opacity(0.2),
+                            radius: 8,
+                            y: 2
+                        )
                     }
+                    .disabled(viewModel.isGeneratingAnalysis)
                 }
             }
             .padding(AppSpacing.md)
@@ -296,22 +319,79 @@ private extension WorkoutDetailView {
 
     var actionsSection: some View {
         VStack(spacing: AppSpacing.small) {
-            StandardButton(
-                "Save as Template",
-                icon: "square.and.arrow.down",
-                style: .secondary,
-                isFullWidth: true
-            ) {
+            Button {
+                HapticService.impact(.light)
                 showingTemplateSheet = true
+            } label: {
+                HStack(spacing: AppSpacing.xs) {
+                    Image(systemName: "square.and.arrow.down")
+                        .font(.system(size: 16, weight: .semibold))
+                    Text("Save as Template")
+                        .font(.system(size: 16, weight: .semibold, design: .rounded))
+                }
+                .foregroundColor(.primary)
+                .frame(maxWidth: .infinity)
+                .padding(.vertical, AppSpacing.sm)
+                .background(
+                    LinearGradient(
+                        colors: [
+                            Color.primary.opacity(0.05),
+                            Color.primary.opacity(0.02)
+                        ],
+                        startPoint: .topLeading,
+                        endPoint: .bottomTrailing
+                    )
+                )
+                .overlay(
+                    RoundedRectangle(cornerRadius: 14)
+                        .stroke(
+                            LinearGradient(
+                                colors: gradientManager.active.colors(for: colorScheme).map { $0.opacity(0.3) },
+                                startPoint: .topLeading,
+                                endPoint: .bottomTrailing
+                            ),
+                            lineWidth: 1
+                        )
+                )
+                .clipShape(RoundedRectangle(cornerRadius: 14))
             }
 
-            StandardButton(
-                "Share Workout",
-                icon: "square.and.arrow.up",
-                style: .secondary,
-                isFullWidth: true,
-                action: shareWorkout
-            )
+            Button {
+                HapticService.impact(.light)
+                shareWorkout()
+            } label: {
+                HStack(spacing: AppSpacing.xs) {
+                    Image(systemName: "square.and.arrow.up")
+                        .font(.system(size: 16, weight: .semibold))
+                    Text("Share Workout")
+                        .font(.system(size: 16, weight: .semibold, design: .rounded))
+                }
+                .foregroundColor(.primary)
+                .frame(maxWidth: .infinity)
+                .padding(.vertical, AppSpacing.sm)
+                .background(
+                    LinearGradient(
+                        colors: [
+                            Color.primary.opacity(0.05),
+                            Color.primary.opacity(0.02)
+                        ],
+                        startPoint: .topLeading,
+                        endPoint: .bottomTrailing
+                    )
+                )
+                .overlay(
+                    RoundedRectangle(cornerRadius: 14)
+                        .stroke(
+                            LinearGradient(
+                                colors: gradientManager.active.colors(for: colorScheme).map { $0.opacity(0.3) },
+                                startPoint: .topLeading,
+                                endPoint: .bottomTrailing
+                            ),
+                            lineWidth: 1
+                        )
+                )
+                .clipShape(RoundedRectangle(cornerRadius: 14))
+            }
         }
         .padding(.top)
     }
@@ -702,34 +782,12 @@ private struct SaveAsTemplateView: View {
     }
 
     private func saveTemplate() {
-        let template = UserWorkoutTemplate(
-            name: templateName,
-            workoutType: workout.workoutType,
-            exercises: workout.exercises.map { exercise in
-                TemplateExercise(
-                    name: exercise.name,
-                    muscleGroups: exercise.muscleGroups,
-                    notes: includeNotes ? exercise.notes : nil,
-                    sets: exercise.sets.enumerated().map { index, set in
-                        TemplateSetData(
-                            order: index + 1,
-                            targetReps: set.targetReps ?? set.completedReps,
-                            targetWeight: set.targetWeightKg ?? set.completedWeightKg
-                        )
-                    }
-                )
-            },
-            notes: includeNotes ? workout.notes : nil
-        )
-
-        modelContext.insert(template)
-
-        do {
-            try modelContext.save()
-            dismiss()
-        } catch {
-            AppLogger.error("Failed to save template", error: error, category: .data)
-        }
+        // TODO: Implement template saving when WorkoutTemplate model is ready
+        // let template = WorkoutTemplate(
+        //     name: templateName,
+        //     workoutType: WorkoutType(rawValue: workout.workoutType) ?? .general
+        // )
+        // Add exercises to template...
     }
 }
 

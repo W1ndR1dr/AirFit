@@ -100,14 +100,20 @@ struct AirFitApp: App {
                 VStack(spacing: 20) {
                     ProgressView()
                         .scaleEffect(1.5)
-                        .tint(AppColors.accentColor)
+                        .tint(Color.accentColor)
                     
                     Text("Loading database...")
                         .font(AppFonts.headline)
-                        .foregroundColor(AppColors.textSecondary)
+                        .foregroundColor(.secondary)
                 }
                 .frame(maxWidth: .infinity, maxHeight: .infinity)
-                .background(AppColors.backgroundPrimary)
+                .background(
+                    LinearGradient(
+                        colors: [Color.clear, Color.accentColor.opacity(0.05)],
+                        startPoint: .top,
+                        endPoint: .bottom
+                    )
+                )
                 .task {
                     modelContainer = createModelContainer()
                 }
@@ -116,14 +122,20 @@ struct AirFitApp: App {
                 VStack(spacing: 20) {
                     ProgressView()
                         .scaleEffect(1.5)
-                        .tint(AppColors.accentColor)
+                        .tint(Color.accentColor)
                     
                     Text("Initializing AirFit...")
                         .font(AppFonts.headline)
-                        .foregroundColor(AppColors.textSecondary)
+                        .foregroundColor(.secondary)
                 }
                 .frame(maxWidth: .infinity, maxHeight: .infinity)
-                .background(AppColors.backgroundPrimary)
+                .background(
+                    LinearGradient(
+                        colors: [Color.clear, Color.accentColor.opacity(0.05)],
+                        startPoint: .top,
+                        endPoint: .bottom
+                    )
+                )
                 .task {
                     await initializeApp()
                 }
@@ -143,11 +155,11 @@ struct AirFitApp: App {
                 VStack(spacing: 20) {
                     Image(systemName: "exclamationmark.triangle.fill")
                         .font(.largeTitle)
-                        .foregroundColor(AppColors.errorColor)
+                        .foregroundColor(.red)
                     
                     Text("Failed to initialize")
                         .font(AppFonts.headline)
-                        .foregroundColor(AppColors.textPrimary)
+                        .foregroundColor(.primary)
                     
                     Button("Retry") {
                         containerError = nil
@@ -158,7 +170,13 @@ struct AirFitApp: App {
                     .buttonStyle(.borderedProminent)
                 }
                 .frame(maxWidth: .infinity, maxHeight: .infinity)
-                .background(AppColors.backgroundPrimary)
+                .background(
+                    LinearGradient(
+                        colors: [Color.clear, Color.accentColor.opacity(0.05)],
+                        startPoint: .top,
+                        endPoint: .bottom
+                    )
+                )
             }
         }
     }

@@ -7,101 +7,178 @@ struct LifeSnapshotView: View {
     private let columns = [GridItem(.flexible()), GridItem(.flexible())]
 
     var body: some View {
-        VStack(spacing: AppSpacing.large) {
-            ScrollView {
-                VStack(alignment: .leading, spacing: AppSpacing.large) {
-                    Text(LocalizedStringKey("onboarding.lifeSnapshot.prompt"))
-                        .font(AppFonts.body)
-                        .foregroundColor(AppColors.textPrimary)
-                        .padding(.horizontal, AppSpacing.large)
-                        .accessibilityIdentifier("onboarding.life.prompt")
-
-                    LazyVGrid(columns: columns, alignment: .leading, spacing: AppSpacing.medium) {
-                        checkbox(
-                            text: LocalizedStringKey("onboarding.life.deskJob"),
-                            binding: $viewModel.lifeContext.isDeskJob,
-                            id: "onboarding.life.desk_job"
-                        )
-                        checkbox(
-                            text: LocalizedStringKey("onboarding.life.activeWork"),
-                            binding: $viewModel.lifeContext.isPhysicallyActiveWork,
-                            id: "onboarding.life.active_work"
-                        )
-                        checkbox(
-                            text: LocalizedStringKey("onboarding.life.travel"),
-                            binding: $viewModel.lifeContext.travelsFrequently,
-                            id: "onboarding.life.travel"
-                        )
-                        checkbox(
-                            text: LocalizedStringKey("onboarding.life.familyCare"),
-                            binding: $viewModel.lifeContext.hasChildrenOrFamilyCare,
-                            id: "onboarding.life.family_care"
-                        )
-                        checkbox(
-                            text: LocalizedStringKey(LifeContext.ScheduleType.predictable.displayName),
-                            binding: Binding(
-                                get: { viewModel.lifeContext.scheduleType == .predictable },
-                                set: { if $0 { viewModel.lifeContext.scheduleType = .predictable } }
-                            ),
-                            id: "onboarding.life.schedule_predictable"
-                        )
-                        checkbox(
-                            text: LocalizedStringKey(LifeContext.ScheduleType.unpredictableChaotic.displayName),
-                            binding: Binding(
-                                get: { viewModel.lifeContext.scheduleType == .unpredictableChaotic },
-                                set: { if $0 { viewModel.lifeContext.scheduleType = .unpredictableChaotic } }
-                            ),
-                            id: "onboarding.life.schedule_unpredictable"
-                        )
-                    }
-                    .padding(.horizontal, AppSpacing.large)
-
-                    VStack(alignment: .leading, spacing: AppSpacing.small) {
-                        Text(LocalizedStringKey("onboarding.lifeSnapshot.workoutPrompt"))
-                            .font(AppFonts.headline)
-                            .foregroundColor(AppColors.textPrimary)
-                        ForEach(LifeContext.WorkoutWindow.allCases, id: \.self) { option in
-                            workoutOption(option)
-                        }
-                    }
-                    .padding(.horizontal, AppSpacing.large)
+        BaseScreen {
+            VStack(spacing: 0) {
+                // Title header
+                HStack {
+                    CascadeText("Life Snapshot")
+                        .font(.system(size: 34, weight: .bold, design: .rounded))
+                    Spacer()
                 }
-            }
-            .accessibilityIdentifier("onboarding.lifeSnapshot")
+                .padding(.horizontal, AppSpacing.lg)
+                .padding(.top, AppSpacing.sm)
+                .padding(.bottom, AppSpacing.lg)
+                
+                ScrollView {
+                    VStack(alignment: .leading, spacing: AppSpacing.lg) {
+                        Text(LocalizedStringKey("onboarding.lifeSnapshot.prompt"))
+                            .font(.system(size: 18, weight: .regular, design: .rounded))
+                            .foregroundStyle(.primary)
+                            .padding(.horizontal, AppSpacing.lg)
+                            .accessibilityIdentifier("onboarding.life.prompt")
 
-            OnboardingNavigationButtons(
-                backAction: viewModel.navigateToPreviousScreen,
-                nextAction: viewModel.navigateToNextScreen
-            )
+                        LazyVGrid(columns: columns, alignment: .leading, spacing: AppSpacing.md) {
+                            checkbox(
+                                text: LocalizedStringKey("onboarding.life.deskJob"),
+                                binding: $viewModel.lifeContext.isDeskJob,
+                                id: "onboarding.life.desk_job"
+                            )
+                            checkbox(
+                                text: LocalizedStringKey("onboarding.life.activeWork"),
+                                binding: $viewModel.lifeContext.isPhysicallyActiveWork,
+                                id: "onboarding.life.active_work"
+                            )
+                            checkbox(
+                                text: LocalizedStringKey("onboarding.life.travel"),
+                                binding: $viewModel.lifeContext.travelsFrequently,
+                                id: "onboarding.life.travel"
+                            )
+                            checkbox(
+                                text: LocalizedStringKey("onboarding.life.familyCare"),
+                                binding: $viewModel.lifeContext.hasChildrenOrFamilyCare,
+                                id: "onboarding.life.family_care"
+                            )
+                            checkbox(
+                                text: LocalizedStringKey(LifeContext.ScheduleType.predictable.displayName),
+                                binding: Binding(
+                                    get: { viewModel.lifeContext.scheduleType == .predictable },
+                                    set: { if $0 { viewModel.lifeContext.scheduleType = .predictable } }
+                                ),
+                                id: "onboarding.life.schedule_predictable"
+                            )
+                            checkbox(
+                                text: LocalizedStringKey(LifeContext.ScheduleType.unpredictableChaotic.displayName),
+                                binding: Binding(
+                                    get: { viewModel.lifeContext.scheduleType == .unpredictableChaotic },
+                                    set: { if $0 { viewModel.lifeContext.scheduleType = .unpredictableChaotic } }
+                                ),
+                                id: "onboarding.life.schedule_unpredictable"
+                            )
+                        }
+                        .padding(.horizontal, AppSpacing.lg)
+
+                        VStack(alignment: .leading, spacing: AppSpacing.md) {
+                            Text(LocalizedStringKey("onboarding.lifeSnapshot.workoutPrompt"))
+                                .font(.system(size: 20, weight: .semibold, design: .rounded))
+                                .foregroundStyle(.primary)
+                            
+                            VStack(spacing: AppSpacing.sm) {
+                                ForEach(LifeContext.WorkoutWindow.allCases, id: \.self) { option in
+                                    workoutOption(option)
+                                }
+                            }
+                        }
+                        .padding(.horizontal, AppSpacing.lg)
+                        .padding(.bottom, AppSpacing.lg)
+                    }
+                }
+                .accessibilityIdentifier("onboarding.lifeSnapshot")
+
+                // Navigation buttons
+                HStack(spacing: AppSpacing.md) {
+                    Button {
+                        viewModel.navigateToPreviousScreen()
+                    } label: {
+                        Text("Back")
+                            .font(.system(size: 16, weight: .medium, design: .rounded))
+                            .foregroundColor(.primary)
+                            .frame(maxWidth: .infinity)
+                            .padding(.vertical, AppSpacing.sm)
+                            .background(
+                                RoundedRectangle(cornerRadius: 12)
+                                    .fill(.ultraThinMaterial)
+                                    .overlay(
+                                        RoundedRectangle(cornerRadius: 12)
+                                            .strokeBorder(Color.secondary.opacity(0.2), lineWidth: 1)
+                                    )
+                            )
+                    }
+                    
+                    Button {
+                        viewModel.navigateToNextScreen()
+                    } label: {
+                        Text("Next")
+                            .font(.system(size: 16, weight: .medium, design: .rounded))
+                            .foregroundColor(.white)
+                            .frame(maxWidth: .infinity)
+                            .padding(.vertical, AppSpacing.sm)
+                            .background(
+                                LinearGradient(
+                                    colors: [Color.accentColor, Color.accentColor.opacity(0.8)],
+                                    startPoint: .leading,
+                                    endPoint: .trailing
+                                )
+                            )
+                            .clipShape(RoundedRectangle(cornerRadius: 12))
+                    }
+                }
+                .padding(AppSpacing.lg)
+            }
         }
     }
 
     private func checkbox(text: LocalizedStringKey, binding: Binding<Bool>, id: String) -> some View {
         Toggle(isOn: binding) {
             Text(text)
-                .font(AppFonts.body)
-                .foregroundColor(AppColors.textPrimary)
+                .font(.system(size: 16, weight: .regular, design: .rounded))
+                .foregroundStyle(.primary)
                 .multilineTextAlignment(.leading)
         }
-        .toggleStyle(CheckboxToggleStyle())
+        .toggleStyle(GradientCheckboxToggleStyle())
         .accessibilityIdentifier(id)
     }
 
     private func workoutOption(_ option: LifeContext.WorkoutWindow) -> some View {
-        Button(
-            action: { viewModel.lifeContext.workoutWindowPreference = option },
-            label: {
-                HStack {
-                    Image(systemName: workoutOptionIcon(for: option))
-                        .foregroundColor(AppColors.accentColor)
-                    Text(option.displayName)
-                        .font(AppFonts.body)
-                        .foregroundColor(AppColors.textPrimary)
-                    Spacer()
-                }
-                .padding(.vertical, AppSpacing.xSmall)
+        Button {
+            HapticService.impact(.light)
+            viewModel.lifeContext.workoutWindowPreference = option
+        } label: {
+            HStack {
+                Image(systemName: workoutOptionIcon(for: option))
+                    .font(.system(size: 20))
+                    .foregroundStyle(
+                        viewModel.lifeContext.workoutWindowPreference == option
+                            ? LinearGradient(
+                                colors: [Color.accentColor, Color.accentColor.opacity(0.8)],
+                                startPoint: .topLeading,
+                                endPoint: .bottomTrailing
+                              )
+                            : LinearGradient(
+                                colors: [Color.secondary, Color.secondary],
+                                startPoint: .topLeading,
+                                endPoint: .bottomTrailing
+                              )
+                    )
+                Text(option.displayName)
+                    .font(.system(size: 16, weight: .regular, design: .rounded))
+                    .foregroundStyle(.primary)
+                Spacer()
             }
-        )
+            .padding(AppSpacing.md)
+            .background(
+                RoundedRectangle(cornerRadius: 12)
+                    .fill(.ultraThinMaterial)
+                    .overlay(
+                        RoundedRectangle(cornerRadius: 12)
+                            .strokeBorder(
+                                viewModel.lifeContext.workoutWindowPreference == option
+                                    ? Color.accentColor.opacity(0.5)
+                                    : Color.clear,
+                                lineWidth: 1
+                            )
+                    )
+            )
+        }
         .buttonStyle(.plain)
         .accessibilityIdentifier("onboarding.life.workout_\(option.rawValue)")
     }
@@ -111,22 +188,34 @@ struct LifeSnapshotView: View {
     }
 }
 
-// MARK: - CheckboxToggleStyle
-private struct CheckboxToggleStyle: ToggleStyle {
+// MARK: - GradientCheckboxToggleStyle
+private struct GradientCheckboxToggleStyle: ToggleStyle {
     func makeBody(configuration: Configuration) -> some View {
-        Button(
-            action: { configuration.isOn.toggle() },
-            label: {
-                HStack(alignment: .center, spacing: AppSpacing.xSmall) {
-                    Image(systemName: configuration.isOn ? "checkmark.square.fill" : "square")
-                        .foregroundColor(AppColors.accentColor)
-                    configuration.label
-                }
-                .frame(maxWidth: .infinity, alignment: .leading)
-                .padding(.vertical, AppSpacing.xSmall)
+        Button {
+            HapticService.impact(.light)
+            configuration.isOn.toggle()
+        } label: {
+            HStack(alignment: .center, spacing: AppSpacing.xs) {
+                Image(systemName: configuration.isOn ? "checkmark.square.fill" : "square")
+                    .font(.system(size: 20))
+                    .foregroundStyle(
+                        configuration.isOn
+                            ? LinearGradient(
+                                colors: [Color.accentColor, Color.accentColor.opacity(0.8)],
+                                startPoint: .topLeading,
+                                endPoint: .bottomTrailing
+                              )
+                            : LinearGradient(
+                                colors: [Color.secondary, Color.secondary],
+                                startPoint: .topLeading,
+                                endPoint: .bottomTrailing
+                              )
+                    )
+                configuration.label
             }
-        )
+            .frame(maxWidth: .infinity, alignment: .leading)
+            .padding(.vertical, AppSpacing.xs)
+        }
         .buttonStyle(.plain)
     }
 }
-

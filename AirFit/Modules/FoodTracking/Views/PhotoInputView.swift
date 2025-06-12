@@ -115,7 +115,7 @@ struct PhotoInputView: View {
                     .clipShape(RoundedRectangle(cornerRadius: 20))
                     .overlay(
                         RoundedRectangle(cornerRadius: 20)
-                            .stroke(AppColors.accent, lineWidth: 2)
+                            .stroke(Color.accentColor, lineWidth: 2)
                     )
                     .overlay(alignment: .center) {
                         // Focus indicator with gradient stroke
@@ -888,9 +888,24 @@ struct CameraPlaceholder: View {
                         .opacity(animateIn ? 1 : 0)
                 }
                 
-                StandardButton("Enable Camera", style: .primary, size: .large) {
+                Button {
                     HapticService.impact(.medium)
                     action()
+                } label: {
+                    Text("Enable Camera")
+                        .font(.system(size: 18, weight: .semibold, design: .rounded))
+                        .foregroundColor(.white)
+                        .frame(maxWidth: .infinity)
+                        .padding(.vertical, AppSpacing.md)
+                        .background(
+                            LinearGradient(
+                                colors: gradientManager.active.colors(for: colorScheme),
+                                startPoint: .leading,
+                                endPoint: .trailing
+                            )
+                        )
+                        .clipShape(RoundedRectangle(cornerRadius: 16))
+                        .shadow(color: gradientManager.active.colors(for: colorScheme)[0].opacity(0.3), radius: 12, y: 4)
                 }
                 .opacity(animateIn ? 1 : 0)
                 .offset(y: animateIn ? 0 : 20)

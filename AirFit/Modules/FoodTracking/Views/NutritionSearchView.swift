@@ -120,6 +120,7 @@ struct NutritionSearchView: View {
         }
         .padding(.horizontal, AppSpacing.md)
         .padding(.bottom, AppSpacing.sm)
+    }
 
     // MARK: - Initial Content
     @ViewBuilder
@@ -181,7 +182,7 @@ struct NutritionSearchView: View {
         if viewModel.isLoading {
             VStack(spacing: AppSpacing.sm) {
                 ProgressView()
-                    .progressViewStyle(CircularProgressViewStyle(tint: gradientManager.active.colors(for: colorScheme).first))
+                    .progressViewStyle(CircularProgressViewStyle(tint: gradientManager.active.colors(for: colorScheme).first ?? Color.accentColor))
                     .scaleEffect(1.2)
                 
                 Text("Loading...")
@@ -206,7 +207,7 @@ struct NutritionSearchView: View {
         if viewModel.isLoading && !searchText.isEmpty {
             VStack(spacing: AppSpacing.sm) {
                 ProgressView()
-                    .progressViewStyle(CircularProgressViewStyle(tint: gradientManager.active.colors(for: colorScheme).first))
+                    .progressViewStyle(CircularProgressViewStyle(tint: gradientManager.active.colors(for: colorScheme).first ?? Color.accentColor))
                     .scaleEffect(1.2)
                 
                 CascadeText("Searching...")
@@ -424,7 +425,7 @@ private struct FoodItemRow: View {
                         
                         Text("cal")
                             .font(.system(size: 11, weight: .medium))
-                            .foregroundStyle(AppColors.caloriesColor.opacity(0.8))
+                            .foregroundStyle(Color.orange.opacity(0.8))
                     }
                 }
                 .padding(AppSpacing.sm)

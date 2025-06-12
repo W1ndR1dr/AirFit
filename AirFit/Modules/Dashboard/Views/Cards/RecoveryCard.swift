@@ -5,6 +5,8 @@ struct RecoveryCard: View {
     let recoveryScore: RecoveryScore?
 
     @State private var animateRing = false
+    @Environment(\.colorScheme) private var colorScheme
+    @EnvironmentObject private var gradientManager: GradientManager
 
     private var progress: Double {
         Double(recoveryScore?.score ?? 0) / 100.0
@@ -38,7 +40,7 @@ struct RecoveryCard: View {
     }
 
     var body: some View {
-        StandardCard {
+        GlassCard {
             VStack(alignment: .leading, spacing: AppSpacing.medium) {
                 header
 
@@ -80,13 +82,19 @@ struct RecoveryCard: View {
         HStack {
             Label("Recovery", systemImage: "heart.fill")
                 .font(AppFonts.headline)
-                .foregroundColor(AppColors.textPrimary)
+                .foregroundStyle(.primary)
             Spacer()
             Text("\(recoveryScore?.score ?? 0)")
                 .font(AppFonts.title3)
-                .foregroundColor(recoveryScore?.status.color == "green" ? AppColors.successColor : 
-                                recoveryScore?.status.color == "yellow" ? AppColors.warningColor : 
-                                AppColors.errorColor)
+                .foregroundStyle(
+                    LinearGradient(
+                        colors: recoveryScore?.status.color == "green" ? [Color.green.opacity(0.8), Color.mint] : 
+                                recoveryScore?.status.color == "yellow" ? [Color.yellow.opacity(0.8), Color.orange.opacity(0.6)] : 
+                                [Color.orange.opacity(0.8), Color.red.opacity(0.6)],
+                        startPoint: .topLeading,
+                        endPoint: .bottomTrailing
+                    )
+                )
         }
     }
 
@@ -95,11 +103,17 @@ struct RecoveryCard: View {
             ForEach(recoveryScore?.factors ?? [], id: \.self) { factor in
                 HStack {
                     Image(systemName: "checkmark.circle.fill")
-                        .foregroundColor(AppColors.successColor)
+                        .foregroundStyle(
+                            LinearGradient(
+                                colors: [Color.green.opacity(0.8), Color.mint],
+                                startPoint: .topLeading,
+                                endPoint: .bottomTrailing
+                            )
+                        )
                         .font(.caption)
                     Text(factor)
                         .font(AppFonts.caption)
-                        .foregroundColor(AppColors.textSecondary)
+                        .foregroundStyle(.secondary)
                     Spacer()
                 }
             }
@@ -110,10 +124,10 @@ struct RecoveryCard: View {
         VStack(spacing: AppSpacing.small) {
             Image(systemName: "heart.slash")
                 .font(.title)
-                .foregroundColor(AppColors.textTertiary)
+                .foregroundStyle(.tertiary)
             Text("No recovery data")
                 .font(AppFonts.caption)
-                .foregroundColor(AppColors.textSecondary)
+                .foregroundStyle(.secondary)
         }
         .frame(maxWidth: .infinity)
         .padding(.vertical)
@@ -139,7 +153,7 @@ private struct ProgressRing: View {
     var body: some View {
         ZStack {
             Circle()
-                .stroke(AppColors.dividerColor, lineWidth: lineWidth)
+                .stroke(Color.secondary.opacity(0.2), lineWidth: lineWidth)
             Circle()
                 .trim(from: 0, to: animatedProgress)
                 .stroke(gradient, style: StrokeStyle(lineWidth: lineWidth, lineCap: .round))
@@ -147,7 +161,7 @@ private struct ProgressRing: View {
                 .animation(.spring(response: 0.8, dampingFraction: 0.8), value: animatedProgress)
             Text(label)
                 .font(AppFonts.headline)
-                .foregroundColor(AppColors.textPrimary)
+                .foregroundStyle(.primary)
         }
         .onAppear { animatedProgress = progress }
         .onChange(of: progress) { _, newValue in

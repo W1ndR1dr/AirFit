@@ -49,11 +49,11 @@ extension Text {
 
     func primaryTitle() -> Text {
         self.font(AppFonts.title)
-            .foregroundColor(AppColors.textPrimary)
+            .foregroundColor(.primary)
     }
 
     func secondaryBody() -> Text {
         self.font(AppFonts.body)
-            .foregroundColor(AppColors.textSecondary)
+            .foregroundColor(.secondary)
     }
 }

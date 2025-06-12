@@ -145,13 +145,28 @@ struct WorkoutBuilderView: View {
                                 }
                             }
                             
-                            StandardButton(
-                                "Add Exercise",
-                                icon: "plus.circle.fill",
-                                style: .secondary
-                            ) {
+                            Button {
                                 HapticService.impact(.medium)
                                 showingExercisePicker = true
+                            } label: {
+                                HStack(spacing: AppSpacing.xs) {
+                                    Image(systemName: "plus.circle.fill")
+                                        .font(.system(size: 16, weight: .semibold))
+                                    Text("Add Exercise")
+                                        .font(.system(size: 16, weight: .semibold, design: .rounded))
+                                }
+                                .foregroundColor(.white)
+                                .frame(maxWidth: .infinity)
+                                .padding(.vertical, AppSpacing.sm)
+                                .background(
+                                    LinearGradient(
+                                        colors: gradientManager.active.colors(for: colorScheme),
+                                        startPoint: .leading,
+                                        endPoint: .trailing
+                                    )
+                                )
+                                .clipShape(RoundedRectangle(cornerRadius: 14))
+                                .shadow(color: gradientManager.active.colors(for: colorScheme)[0].opacity(0.2), radius: 8, y: 2)
                             }
                             .padding(.horizontal, AppSpacing.md)
                             .opacity(animateIn ? 1 : 0)
@@ -291,26 +306,12 @@ struct WorkoutBuilderView: View {
 
         // Save as template if requested
         if saveAsTemplate {
-            let template = UserWorkoutTemplate(
-                name: workoutName,
-                workoutType: workoutType.rawValue,
-                exercises: selectedExercises.map { exercise in
-                    TemplateExercise(
-                        name: exercise.name,
-                        muscleGroups: exercise.muscleGroups,
-                        notes: exercise.notes,
-                        sets: exercise.sets.enumerated().map { index, set in
-                            TemplateSetData(
-                                order: index + 1,
-                                targetReps: set.targetReps,
-                                targetWeight: set.targetWeight
-                            )
-                        }
-                    )
-                },
-                notes: notes.isEmpty ? nil : notes
-            )
-            modelContext.insert(template)
+            // TODO: Implement template saving when WorkoutTemplate model is ready
+            // let template = WorkoutTemplate(
+            //     name: workoutName,
+            //     workoutType: workoutType
+            // )
+            // modelContext.insert(template)
         }
 
         do {
@@ -319,10 +320,11 @@ struct WorkoutBuilderView: View {
             dismiss()
 
             // Navigate to active workout
-            NotificationCenter.default.post(
-                name: .startActiveWorkout,
-                object: workout
-            )
+            // TODO: Navigate to active workout view when notification is defined
+            // NotificationCenter.default.post(
+            //     name: .startActiveWorkout,
+            //     object: workout
+            // )
         } catch {
             AppLogger.error("Failed to create workout", error: error, category: .data)
         }
@@ -613,7 +615,7 @@ struct ExercisePickerView: View {
                     if isLoading {
                         Spacer()
                         ProgressView()
-                            .progressViewStyle(CircularProgressViewStyle(tint: gradientManager.active.colors(for: colorScheme).first))
+                            .progressViewStyle(CircularProgressViewStyle(tint: gradientManager.active.colors(for: colorScheme).first ?? Color.accentColor))
                             .scaleEffect(1.2)
                         Spacer()
                     } else {
@@ -734,12 +736,18 @@ private struct ExerciseRow: View {
     @State private var animateIn = false
     
     private var categoryColors: [Color] {
-        switch exercise.category {
-        case .push: return [Color(hex: "#667EEA"), Color(hex: "#764BA2")]
-        case .pull: return [Color(hex: "#52B788"), Color(hex: "#40916C")]
-        case .legs: return [Color(hex: "#F8961E"), Color(hex: "#F3722C")]
-        case .core: return [Color(hex: "#00B4D8"), Color(hex: "#0077B6")]
-        default: return gradientManager.active.colors(for: colorScheme)
+        // Use gradient colors for all categories
+        return gradientManager.active.colors(for: colorScheme)
+    }
+    
+    private func getCategoryIcon(for category: ExerciseCategory) -> String {
+        switch category {
+        case .strength: return "figure.strengthtraining.traditional"
+        case .cardio: return "figure.run"
+        case .flexibility: return "figure.flexibility"
+        case .plyometrics: return "figure.jumprope"
+        case .balance: return "figure.yoga"
+        case .sports: return "sportscourt"
         }
     }
     
@@ -759,7 +767,7 @@ private struct ExerciseRow: View {
                             )
                             .frame(width: 40, height: 40)
                         
-                        Image(systemName: exercise.category.icon)
+                        Image(systemName: getCategoryIcon(for: exercise.category))
                             .font(.system(size: 18, weight: .medium))
                             .foregroundStyle(
                                 LinearGradient(

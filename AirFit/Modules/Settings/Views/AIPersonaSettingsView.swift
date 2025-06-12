@@ -8,18 +8,33 @@ struct AIPersonaSettingsView: View {
     @State private var isGeneratingPreview = false
     
     var body: some View {
-        ScrollView {
-            VStack(spacing: AppSpacing.xl) {
-                personaOverview
-                personaTraits
-                evolutionInsights
-                communicationPreferences
-                personaActions
+        BaseScreen {
+            ScrollView {
+                VStack(spacing: 0) {
+                    // Title header
+                    HStack {
+                        CascadeText("AI Coach Persona")
+                            .font(.system(size: 34, weight: .bold, design: .rounded))
+                        Spacer()
+                    }
+                    .padding(.horizontal, AppSpacing.lg)
+                    .padding(.top, AppSpacing.sm)
+                    .padding(.bottom, AppSpacing.lg)
+                    
+                    VStack(spacing: AppSpacing.xl) {
+                        personaOverview
+                        personaTraits
+                        evolutionInsights
+                        communicationPreferences
+                        personaActions
+                    }
+                    .padding(.horizontal, AppSpacing.lg)
+                    .padding(.bottom, AppSpacing.xl)
+                }
             }
-            .padding()
         }
-        .navigationTitle("AI Coach Persona")
-        .navigationBarTitleDisplayMode(.large)
+        .navigationTitle("")
+        .navigationBarTitleDisplayMode(.inline)
         .sheet(isPresented: $showPersonaRefinement) {
             // Shows conversational refinement flow for synthesized personas
             ConversationalPersonaRefinement(
@@ -30,10 +45,16 @@ struct AIPersonaSettingsView: View {
     }
     
     private var personaOverview: some View {
-        VStack(alignment: .leading, spacing: AppSpacing.md) {
-            SectionHeader(title: "Your Coach", icon: "person.fill")
+        VStack(alignment: .leading, spacing: AppSpacing.sm) {
+            HStack {
+                Text("Your Coach")
+                    .font(.system(size: 13, weight: .medium, design: .rounded))
+                    .textCase(.uppercase)
+                    .foregroundStyle(.secondary.opacity(0.8))
+                Spacer()
+            }
             
-            Card {
+            GlassCard {
                 VStack(alignment: .leading, spacing: AppSpacing.md) {
                     // Coach Identity
                     if let persona = viewModel.coachPersona {
@@ -61,13 +82,13 @@ struct AIPersonaSettingsView: View {
                             // Coach Avatar
                             Circle()
                                 .fill(LinearGradient(
-                                    colors: persona.gradientColors,
+                                    colors: [Color.accentColor, Color.accentColor.opacity(0.7)],
                                     startPoint: .topLeading,
                                     endPoint: .bottomTrailing
                                 ))
                                 .frame(width: 80, height: 80)
                                 .overlay {
-                                    Text(persona.initials)
+                                    Text(persona.identity.name.prefix(2).uppercased())
                                         .font(.title.bold())
                                         .foregroundStyle(.white)
                                 }
@@ -125,10 +146,12 @@ struct AIPersonaSettingsView: View {
                             Text(previewText)
                                 .font(.callout)
                                 .padding()
-                                .background(AppColors.backgroundSecondary)
-                                .clipShape(RoundedRectangle(cornerRadius: AppSpacing.radiusMd))
+                                .background(
+                                    RoundedRectangle(cornerRadius: 12)
+                                        .fill(.ultraThinMaterial)
+                                )
                                 .overlay {
-                                    RoundedRectangle(cornerRadius: AppSpacing.radiusMd)
+                                    RoundedRectangle(cornerRadius: 12)
                                         .strokeBorder(Color.accentColor.opacity(0.3), lineWidth: 1)
                                 }
                         }
@@ -139,10 +162,16 @@ struct AIPersonaSettingsView: View {
     }
     
     private var personaTraits: some View {
-        VStack(alignment: .leading, spacing: AppSpacing.md) {
-            SectionHeader(title: "Personality Traits", icon: "brain")
+        VStack(alignment: .leading, spacing: AppSpacing.sm) {
+            HStack {
+                Text("Personality Traits")
+                    .font(.system(size: 13, weight: .medium, design: .rounded))
+                    .textCase(.uppercase)
+                    .foregroundStyle(.secondary.opacity(0.8))
+                Spacer()
+            }
             
-            Card {
+            GlassCard {
                 if let persona = viewModel.coachPersona {
                     LazyVGrid(columns: [
                         GridItem(.flexible()),
@@ -164,10 +193,16 @@ struct AIPersonaSettingsView: View {
     }
     
     private var evolutionInsights: some View {
-        VStack(alignment: .leading, spacing: AppSpacing.md) {
-            SectionHeader(title: "Persona Evolution", icon: "chart.line.uptrend.xyaxis")
+        VStack(alignment: .leading, spacing: AppSpacing.sm) {
+            HStack {
+                Text("Persona Evolution")
+                    .font(.system(size: 13, weight: .medium, design: .rounded))
+                    .textCase(.uppercase)
+                    .foregroundStyle(.secondary.opacity(0.8))
+                Spacer()
+            }
             
-            Card {
+            GlassCard {
                 VStack(spacing: AppSpacing.md) {
                     // Evolution Status
                     HStack {
@@ -229,10 +264,16 @@ struct AIPersonaSettingsView: View {
     }
     
     private var communicationPreferences: some View {
-        VStack(alignment: .leading, spacing: AppSpacing.md) {
-            SectionHeader(title: "Communication Style", icon: "bubble.left.and.bubble.right.fill")
+        VStack(alignment: .leading, spacing: AppSpacing.sm) {
+            HStack {
+                Text("Communication Style")
+                    .font(.system(size: 13, weight: .medium, design: .rounded))
+                    .textCase(.uppercase)
+                    .foregroundStyle(.secondary.opacity(0.8))
+                Spacer()
+            }
             
-            Card {
+            GlassCard {
                 VStack(spacing: AppSpacing.md) {
                     if let persona = viewModel.coachPersona {
                         CommunicationRow(
@@ -272,31 +313,52 @@ struct AIPersonaSettingsView: View {
     
     private var personaActions: some View {
         VStack(spacing: AppSpacing.md) {
-            StandardButton(
-                "Refine Through Conversation",
-                icon: "bubble.left.and.bubble.right",
-                style: .primary,
-                isFullWidth: true,
-                isEnabled: viewModel.coachPersona != nil
-            ) {
+            Button {
                 showPersonaRefinement = true
+            } label: {
+                Label("Refine Through Conversation", systemImage: "bubble.left.and.bubble.right")
+                    .font(.system(size: 16, weight: .medium, design: .rounded))
+                    .foregroundColor(.white)
+                    .frame(maxWidth: .infinity)
+                    .padding(.vertical, AppSpacing.sm)
+                    .background(
+                        LinearGradient(
+                            colors: [Color.accentColor, Color.accentColor.opacity(0.8)],
+                            startPoint: .leading,
+                            endPoint: .trailing
+                        )
+                    )
+                    .clipShape(RoundedRectangle(cornerRadius: 12))
             }
+            .disabled(viewModel.coachPersona == nil)
             
-            StandardButton(
-                "Generate New Preview",
-                icon: "arrow.clockwise",
-                style: .secondary,
-                isFullWidth: true,
-                isEnabled: !isGeneratingPreview && viewModel.coachPersona != nil,
-                action: generateNewPreview
-            )
+            Button {
+                generateNewPreview()
+            } label: {
+                Label("Generate New Preview", systemImage: "arrow.clockwise")
+                    .font(.system(size: 16, weight: .medium, design: .rounded))
+                    .foregroundColor(.primary)
+                    .frame(maxWidth: .infinity)
+                    .padding(.vertical, AppSpacing.sm)
+                    .background(
+                        RoundedRectangle(cornerRadius: 12)
+                            .fill(.ultraThinMaterial)
+                    )
+            }
+            .disabled(isGeneratingPreview || viewModel.coachPersona == nil)
             
             // Natural Language Adjustment
             NavigationLink(destination: NaturalLanguagePersonaAdjustment(viewModel: viewModel)) {
                 Label("Adjust with Natural Language", systemImage: "text.quote")
+                    .font(.system(size: 16, weight: .medium, design: .rounded))
+                    .foregroundColor(.primary)
                     .frame(maxWidth: .infinity)
+                    .padding(.vertical, AppSpacing.sm)
+                    .background(
+                        RoundedRectangle(cornerRadius: 12)
+                            .fill(.ultraThinMaterial)
+                    )
             }
-            .buttonStyle(.bordered)
             .disabled(viewModel.coachPersona == nil)
         }
     }
@@ -318,7 +380,7 @@ struct AIPersonaSettingsView: View {
                         previewText = preview
                     }
                     isGeneratingPreview = false
-                    // TODO: Add haptic feedback via DI when needed
+                    HapticService.play(.success)
                 }
             } catch {
                 await MainActor.run {
@@ -352,8 +414,10 @@ struct TraitCard: View {
         }
         .padding(AppSpacing.sm)
         .frame(maxWidth: .infinity, alignment: .leading)
-        .background(Color.secondaryBackground)
-        .clipShape(RoundedRectangle(cornerRadius: AppSpacing.radiusSm))
+        .background(
+            RoundedRectangle(cornerRadius: 8)
+                .fill(.ultraThinMaterial)
+        )
     }
 }
 
@@ -387,7 +451,7 @@ struct NaturalLanguagePersonaAdjustment: View {
     var body: some View {
         VStack(spacing: AppSpacing.xl) {
             // Instructions
-            Card {
+            GlassCard {
                 VStack(alignment: .leading, spacing: AppSpacing.sm) {
                     Label("Natural Language Adjustments", systemImage: "text.quote")
                         .font(.headline)
@@ -407,7 +471,7 @@ struct NaturalLanguagePersonaAdjustment: View {
             }
             
             // Input Field
-            Card {
+            GlassCard {
                 VStack(alignment: .leading, spacing: AppSpacing.sm) {
                     Text("Your Adjustment")
                         .font(.subheadline.bold())
@@ -420,15 +484,35 @@ struct NaturalLanguagePersonaAdjustment: View {
             }
             
             // Apply Button
-            StandardButton(
-                "Apply Adjustment",
-                icon: "wand.and.stars",
-                style: .primary,
-                isFullWidth: true,
-                isLoading: isProcessing,
-                isEnabled: !adjustmentText.isEmpty && !isProcessing,
-                action: applyAdjustment
-            )
+            Button {
+                applyAdjustment()
+            } label: {
+                if isProcessing {
+                    ProgressView()
+                        .tint(.white)
+                        .frame(maxWidth: .infinity)
+                        .frame(height: 44)
+                        .background(
+                            RoundedRectangle(cornerRadius: 12)
+                                .fill(Color.accentColor.opacity(0.5))
+                        )
+                } else {
+                    Label("Apply Adjustment", systemImage: "wand.and.stars")
+                        .font(.system(size: 16, weight: .medium, design: .rounded))
+                        .foregroundColor(.white)
+                        .frame(maxWidth: .infinity)
+                        .padding(.vertical, AppSpacing.sm)
+                        .background(
+                            LinearGradient(
+                                colors: [Color.accentColor, Color.accentColor.opacity(0.8)],
+                                startPoint: .leading,
+                                endPoint: .trailing
+                            )
+                        )
+                        .clipShape(RoundedRectangle(cornerRadius: 12))
+                }
+            }
+            .disabled(adjustmentText.isEmpty || isProcessing)
             
             Spacer()
         }
@@ -450,7 +534,7 @@ struct NaturalLanguagePersonaAdjustment: View {
                 await MainActor.run {
                     isProcessing = false
                     adjustmentText = ""
-                    // TODO: Add haptic feedback via DI when needed
+                    HapticService.play(.success)
                     dismiss()
                 }
             } catch {
@@ -543,7 +627,10 @@ struct ConversationalPersonaRefinement: View {
                                         .font(.caption)
                                         .padding(.horizontal, AppSpacing.md)
                                         .padding(.vertical, AppSpacing.sm)
-                                        .background(AppColors.backgroundSecondary)
+                                        .background(
+                                            RoundedRectangle(cornerRadius: 20)
+                                                .fill(.ultraThinMaterial)
+                                        )
                                         .clipShape(Capsule())
                                 }
                             }
@@ -565,17 +652,17 @@ struct ConversationalPersonaRefinement: View {
                             sendMessage(inputText)
                         }
                     
-                    IconButton(
-                        icon: "arrow.up.circle.fill",
-                        style: inputText.isEmpty ? .secondary : .primary,
-                        size: .medium
-                    ) {
+                    Button {
                         sendMessage(inputText)
+                    } label: {
+                        Image(systemName: "arrow.up.circle.fill")
+                            .font(.system(size: 28))
+                            .foregroundStyle(inputText.isEmpty ? Color.secondary : Color.accentColor)
                     }
                     .disabled(inputText.isEmpty)
                 }
                 .padding()
-                .background(Color.secondaryBackground)
+                .background(.ultraThinMaterial)
             }
             .navigationTitle("Refine Your Coach")
             .navigationBarTitleDisplayMode(.inline)
@@ -628,7 +715,7 @@ struct ConversationalPersonaRefinement: View {
                 )
                 messages.append(aiMessage)
                 isTyping = false
-                // TODO: Add haptic feedback via DI when needed
+                HapticService.play(.dataUpdated)
             }
         }
     }
@@ -651,7 +738,7 @@ struct ConversationalPersonaRefinement: View {
     private func applyRefinements() {
         // In a real implementation, this would process the conversation
         // and update the persona accordingly
-        // TODO: Add haptic feedback via DI when needed
+        HapticService.play(.success)
     }
 }
 
@@ -679,7 +766,7 @@ struct RefinementMessageBubble: View {
                     .padding(.horizontal, AppSpacing.md)
                     .padding(.vertical, AppSpacing.sm)
                     .background(
-                        message.isUser ? Color.accentColor : AppColors.backgroundSecondary
+                        message.isUser ? Color.accentColor : Color.primary.opacity(0.05)
                     )
                     .clipShape(
                         RoundedRectangle(cornerRadius: AppSpacing.radiusMd)

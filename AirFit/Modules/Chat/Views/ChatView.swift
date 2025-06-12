@@ -24,7 +24,7 @@ struct Chat: View {
 }
 
 struct ChatView: View {
-    let viewModel: ChatViewModel
+    @ObservedObject var viewModel: ChatViewModel
     let user: User
     @State private var coordinator = ChatCoordinator()
     @FocusState private var isComposerFocused: Bool
@@ -98,79 +98,110 @@ struct ChatView: View {
     private var messagesScrollView: some View {
         ScrollViewReader { proxy in
             ScrollView {
-                LazyVStack(spacing: AppSpacing.sm) {
-                    // Welcome message if no messages
-                    if viewModel.messages.isEmpty && animateIn {
-                        GlassCard {
-                            VStack(spacing: AppSpacing.sm) {
-                                Image(systemName: "sparkles")
-                                    .font(.system(size: 40, weight: .light))
-                                    .foregroundStyle(
-                                        LinearGradient(
-                                            colors: gradientManager.active.colors(for: colorScheme),
-                                            startPoint: .topLeading,
-                                            endPoint: .bottomTrailing
-                                        )
-                                    )
-                                
-                                CascadeText("Welcome! How can I help you today?")
-                                    .font(.system(size: 20, weight: .light, design: .rounded))
-                                    .multilineTextAlignment(.center)
-                                
-                                Text("I'm your personalized AI coach, here to support your fitness journey.")
-                                    .font(.system(size: 14, weight: .light))
-                                    .foregroundColor(.secondary)
-                                    .multilineTextAlignment(.center)
+                messagesList
+                    .scrollDismissesKeyboard(.interactively)
+                    .onAppear { scrollProxy = proxy }
+                    .onChange(of: coordinator.scrollToMessageId) { _, messageId in
+                        if let id = messageId {
+                            withAnimation(MotionToken.standardSpring) {
+                                proxy.scrollTo(id, anchor: .center)
                             }
-                            .padding(AppSpacing.md)
                         }
-                        .padding(AppSpacing.screenPadding)
-                        .transition(.scale.combined(with: .opacity))
                     }
-                    
-                    ForEach(Array(viewModel.messages.enumerated()), id: \.element.id) { index, message in
-                        MessageBubbleView(
-                            message: message,
-                            isStreaming: viewModel.isStreaming && message == viewModel.messages.last,
-                            onAction: { action in
-                                handleMessageAction(action, message: message)
-                            }
-                        )
-                        .id(message.id)
-                        .transition(.asymmetric(
-                            insertion: .push(from: message.isFromUser ? .trailing : .leading).combined(with: .opacity),
-                            removal: .opacity
-                        ))
-                        .opacity(animateIn ? 1 : 0)
-                        .offset(y: animateIn ? 0 : 10)
-                        .animation(
-                            MotionToken.standardSpring.delay(Double(index) * 0.05),
-                            value: animateIn
-                        )
-                    }
-
-                    if viewModel.isStreaming {
-                        HStack {
-                            ChatTypingIndicator()
-                            Spacer()
-                        }
-                        .padding(.leading, AppSpacing.md)
-                        .transition(.scale.combined(with: .opacity))
-                    }
-                }
-                .padding(.vertical, AppSpacing.sm)
-                .padding(.horizontal, AppSpacing.screenPadding)
-            } // End LazyVStack
-            .scrollDismissesKeyboard(.interactively)
-            .onAppear { scrollProxy = proxy }
-            .onChange(of: coordinator.scrollToMessageId) { _, messageId in
-                if let id = messageId {
-                    withAnimation(MotionToken.standardSpring) {
-                        proxy.scrollTo(id, anchor: .center)
-                    }
-                }
             }
         }
+    }
+    
+    @ViewBuilder
+    private var messagesList: some View {
+        LazyVStack(spacing: AppSpacing.sm) {
+            // Welcome message if no messages
+            if viewModel.messages.isEmpty && animateIn {
+                welcomeMessage
+            }
+            
+            ForEach(Array(viewModel.messages.enumerated()), id: \.element.id) { index, message in
+                messageRow(message: message, index: index)
+            }
+
+            if viewModel.isStreaming {
+                typingIndicator
+            }
+        }
+        .padding(.vertical, AppSpacing.sm)
+        .padding(.horizontal, AppSpacing.screenPadding)
+    }
+    
+    @ViewBuilder
+    private var welcomeMessage: some View {
+        GlassCard {
+            VStack(spacing: AppSpacing.sm) {
+                Image(systemName: "sparkles")
+                    .font(.system(size: 40, weight: .light))
+                    .foregroundStyle(gradientIcon)
+                    .accessibilityHidden(true)
+                
+                CascadeText("Welcome! How can I help you today?")
+                    .font(.system(size: 20, weight: .light, design: .rounded))
+                    .multilineTextAlignment(.center)
+                
+                Text("I'm your personalized AI coach, here to support your fitness journey.")
+                    .font(.system(size: 14, weight: .light))
+                    .foregroundColor(.secondary)
+                    .multilineTextAlignment(.center)
+            }
+            .padding(AppSpacing.md)
+        }
+        .padding(AppSpacing.screenPadding)
+        .transition(.scale.combined(with: .opacity))
+        .accessibilityElement(children: .combine)
+        .accessibilityLabel("Welcome message")
+        .accessibilityValue("Welcome! How can I help you today? I'm your personalized AI coach, here to support your fitness journey.")
+    }
+    
+    @ViewBuilder
+    private func messageRow(message: ChatMessage, index: Int) -> some View {
+        MessageBubbleView(
+            message: message,
+            isStreaming: viewModel.isStreaming && message == viewModel.messages.last,
+            onAction: { action in
+                handleMessageAction(action, message: message)
+            }
+        )
+        .id(message.id)
+        .transition(.asymmetric(
+            insertion: .push(from: message.role == "user" ? .trailing : .leading).combined(with: .opacity),
+            removal: .opacity
+        ))
+        .opacity(animateIn ? 1 : 0)
+        .offset(y: animateIn ? 0 : 10)
+        .animation(
+            MotionToken.standardSpring.delay(Double(index) * 0.05),
+            value: animateIn
+        )
+        .accessibilityElement(children: .contain)
+        .accessibilityAddTraits(.isButton)
+        .accessibilityHint("Double tap to show message actions")
+    }
+    
+    @ViewBuilder
+    private var typingIndicator: some View {
+        HStack {
+            ChatTypingIndicator()
+            Spacer()
+        }
+        .padding(.leading, AppSpacing.md)
+        .transition(.scale.combined(with: .opacity))
+        .accessibilityLabel("AI is typing")
+        .accessibilityValue("Generating response")
+    }
+    
+    private var gradientIcon: LinearGradient {
+        LinearGradient(
+            colors: gradientManager.active.colors(for: colorScheme),
+            startPoint: .topLeading,
+            endPoint: .bottomTrailing
+        )
     }
 
     // MARK: - Suggestions Bar
@@ -314,6 +345,7 @@ struct ChatView: View {
             withAnimation { scrollProxy?.scrollTo(last.id, anchor: .bottom) }
         }
     }
+}
 
 // MARK: - Mock Services
 private final class ChatMockCoachEngine: CoachEngineProtocol, @unchecked Sendable {
@@ -348,7 +380,11 @@ private struct SuggestionChip: View {
                         .overlay(
                             Capsule()
                                 .strokeBorder(
-                                    gradientManager.currentGradient(for: colorScheme),
+                                    LinearGradient(
+                                        colors: gradientManager.active.colors(for: colorScheme),
+                                        startPoint: .topLeading,
+                                        endPoint: .bottomTrailing
+                                    ),
                                     lineWidth: isPressed ? 2 : 1
                                 )
                         )
@@ -372,7 +408,11 @@ private struct ChatTypingIndicator: View {
         HStack(spacing: AppSpacing.xs) {
             ForEach(0..<3) { index in
                 Circle()
-                    .fill(gradientManager.currentGradient(for: colorScheme))
+                    .fill(LinearGradient(
+                        colors: gradientManager.active.colors(for: colorScheme),
+                        startPoint: .topLeading,
+                        endPoint: .bottomTrailing
+                    ))
                     .frame(width: 8, height: 8)
                     .scaleEffect(animationScale(for: index))
                     .opacity(animationOpacity(for: index))

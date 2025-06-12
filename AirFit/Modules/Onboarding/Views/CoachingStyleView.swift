@@ -1,62 +1,102 @@
 import SwiftUI
 import Observation
 
-// MARK: - CoachingStyleView (Phase 4 Refactored)
+// MARK: - CoachingStyleView
 struct CoachingStyleView: View {
     @Bindable var viewModel: OnboardingViewModel
 
     var body: some View {
-        VStack(spacing: AppSpacing.large) {
-            ScrollView {
-                VStack(alignment: .leading, spacing: AppSpacing.large) {
-                    VStack(alignment: .leading, spacing: AppSpacing.medium) {
-                        Text(LocalizedStringKey("onboarding.coaching.title"))
-                            .font(AppFonts.headline)
-                            .foregroundColor(AppColors.textPrimary)
-                        
+        BaseScreen {
+            VStack(spacing: 0) {
+                // Title header
+                HStack {
+                    CascadeText("Coaching Style")
+                        .font(.system(size: 34, weight: .bold, design: .rounded))
+                    Spacer()
+                }
+                .padding(.horizontal, AppSpacing.lg)
+                .padding(.top, AppSpacing.sm)
+                .padding(.bottom, AppSpacing.lg)
+                
+                ScrollView {
+                    VStack(alignment: .leading, spacing: AppSpacing.lg) {
                         Text(LocalizedStringKey("onboarding.coaching.prompt"))
-                            .font(AppFonts.body)
-                            .foregroundColor(AppColors.textSecondary)
-                    }
-                    .padding(.horizontal, AppSpacing.large)
-                    .accessibilityIdentifier("onboarding.coaching.header")
+                            .font(.system(size: 18, weight: .regular, design: .rounded))
+                            .foregroundStyle(.primary)
+                            .padding(.horizontal, AppSpacing.lg)
+                            .accessibilityIdentifier("onboarding.coaching.header")
 
-                    LazyVGrid(columns: [
-                        GridItem(.flexible()),
-                        GridItem(.flexible())
-                    ], spacing: AppSpacing.medium) {
-                        ForEach(PersonaMode.allCases, id: \.self) { persona in
-                            PersonaOptionCard(
-                                persona: persona,
-                                isSelected: viewModel.selectedPersonaMode == persona,
-                                onTap: {
-                                    viewModel.selectedPersonaMode = persona
-                                }
-                            )
-                            .accessibilityIdentifier("onboarding.persona.\(persona.rawValue)")
+                        LazyVGrid(columns: [
+                            GridItem(.flexible()),
+                            GridItem(.flexible())
+                        ], spacing: AppSpacing.md) {
+                            ForEach(PersonaMode.allCases, id: \.self) { persona in
+                                PersonaOptionCard(
+                                    persona: persona,
+                                    isSelected: viewModel.selectedPersonaMode == persona,
+                                    onTap: {
+                                        HapticService.impact(.light)
+                                        viewModel.selectedPersonaMode = persona
+                                    }
+                                )
+                                .accessibilityIdentifier("onboarding.persona.\(persona.rawValue)")
+                            }
+                        }
+                        .padding(.horizontal, AppSpacing.lg)
+                        
+                        if viewModel.selectedPersonaMode != .supportiveCoach {
+                            PersonaPreviewCard(preview: PersonaPreview(
+                                name: viewModel.selectedPersonaMode.displayName,
+                                archetype: getArchetype(for: viewModel.selectedPersonaMode),
+                                sampleGreeting: getSampleGreeting(for: viewModel.selectedPersonaMode),
+                                voiceDescription: getVoiceDescription(for: viewModel.selectedPersonaMode)
+                            ))
+                            .padding(.horizontal, AppSpacing.lg)
                         }
                     }
-                    .padding(.horizontal, AppSpacing.large)
+                }
+
+                // Navigation buttons
+                HStack(spacing: AppSpacing.md) {
+                    Button {
+                        viewModel.navigateToPreviousScreen()
+                    } label: {
+                        Text("Back")
+                            .font(.system(size: 16, weight: .medium, design: .rounded))
+                            .foregroundColor(.primary)
+                            .frame(maxWidth: .infinity)
+                            .padding(.vertical, AppSpacing.sm)
+                            .background(
+                                RoundedRectangle(cornerRadius: 12)
+                                    .fill(.ultraThinMaterial)
+                                    .overlay(
+                                        RoundedRectangle(cornerRadius: 12)
+                                            .strokeBorder(Color.secondary.opacity(0.2), lineWidth: 1)
+                                    )
+                            )
+                    }
                     
-                    if viewModel.selectedPersonaMode != .supportiveCoach {
-                        PersonaPreviewCard(preview: PersonaPreview(
-                            name: viewModel.selectedPersonaMode.displayName,
-                            archetype: getArchetype(for: viewModel.selectedPersonaMode),
-                            sampleGreeting: getSampleGreeting(for: viewModel.selectedPersonaMode),
-                            voiceDescription: getVoiceDescription(for: viewModel.selectedPersonaMode)
-                        ))
-                        .padding(.horizontal, AppSpacing.large)
+                    Button {
+                        viewModel.validatePersonaSelection()
+                        viewModel.navigateToNextScreen()
+                    } label: {
+                        Text("Next")
+                            .font(.system(size: 16, weight: .medium, design: .rounded))
+                            .foregroundColor(.white)
+                            .frame(maxWidth: .infinity)
+                            .padding(.vertical, AppSpacing.sm)
+                            .background(
+                                LinearGradient(
+                                    colors: [Color.accentColor, Color.accentColor.opacity(0.8)],
+                                    startPoint: .leading,
+                                    endPoint: .trailing
+                                )
+                            )
+                            .clipShape(RoundedRectangle(cornerRadius: 12))
                     }
                 }
+                .padding(AppSpacing.lg)
             }
-
-            OnboardingNavigationButtons(
-                backAction: viewModel.navigateToPreviousScreen,
-                nextAction: {
-                    viewModel.validatePersonaSelection()
-                    viewModel.navigateToNextScreen()
-                }
-            )
         }
         .accessibilityElement(children: .contain)
         .accessibilityIdentifier("onboarding.coachingStyle")
@@ -71,73 +111,64 @@ private struct PersonaOptionCard: View {
 
     var body: some View {
         Button(action: onTap) {
-            VStack(alignment: .leading, spacing: AppSpacing.small) {
+            VStack(alignment: .leading, spacing: AppSpacing.xs) {
                 HStack {
                     Text(persona.displayName)
-                        .font(AppFonts.bodyBold)
-                        .foregroundColor(AppColors.textPrimary)
+                        .font(.system(size: 16, weight: .semibold, design: .rounded))
+                        .foregroundStyle(.primary)
                     Spacer()
-                    if isSelected {
-                        Image(systemName: "checkmark.circle.fill")
-                            .foregroundColor(AppColors.accentColor)
-                    } else {
-                        Image(systemName: "circle")
-                            .foregroundColor(AppColors.textSecondary)
-                    }
+                    Image(systemName: isSelected ? "checkmark.circle.fill" : "circle")
+                        .foregroundStyle(
+                            isSelected
+                                ? LinearGradient(
+                                    colors: [Color.accentColor, Color.accentColor.opacity(0.8)],
+                                    startPoint: .topLeading,
+                                    endPoint: .bottomTrailing
+                                  )
+                                : LinearGradient(
+                                    colors: [Color.secondary, Color.secondary],
+                                    startPoint: .topLeading,
+                                    endPoint: .bottomTrailing
+                                  )
+                        )
                 }
 
                 Text(persona.description)
-                    .font(AppFonts.caption)
-                    .foregroundColor(AppColors.textSecondary)
+                    .font(.system(size: 13, weight: .regular, design: .rounded))
+                    .foregroundStyle(.secondary)
                     .multilineTextAlignment(.leading)
                     .lineLimit(nil)
                     .fixedSize(horizontal: false, vertical: true)
             }
-            .padding(AppSpacing.medium)
+            .padding(AppSpacing.md)
             .frame(maxWidth: .infinity, alignment: .leading)
             .frame(minHeight: 120)
             .background(
-                RoundedRectangle(cornerRadius: AppConstants.Layout.defaultCornerRadius)
-                    .fill(isSelected ? AppColors.accentColor.opacity(0.1) : AppColors.cardBackground)
-                    .stroke(
-                        isSelected ? AppColors.accentColor : AppColors.dividerColor,
-                        lineWidth: isSelected ? 2 : 1
+                GlassCard {
+                    Color.clear
+                }
+            )
+            .overlay(
+                RoundedRectangle(cornerRadius: 16)
+                    .strokeBorder(
+                        isSelected
+                            ? LinearGradient(
+                                colors: [Color.accentColor, Color.accentColor.opacity(0.8)],
+                                startPoint: .topLeading,
+                                endPoint: .bottomTrailing
+                              )
+                            : LinearGradient(
+                                colors: [Color.clear, Color.clear],
+                                startPoint: .topLeading,
+                                endPoint: .bottomTrailing
+                              ),
+                        lineWidth: 2
                     )
             )
         }
-        .buttonStyle(PlainButtonStyle())
+        .buttonStyle(.plain)
     }
 }
-
-// MARK: - PersonaStylePreviewCard
-private struct PersonaStylePreviewCard: View {
-    let selectedPersona: PersonaMode
-    
-    var body: some View {
-        VStack(alignment: .leading, spacing: AppSpacing.small) {
-            HStack {
-                Image(systemName: "quote.bubble.fill")
-                    .foregroundColor(AppColors.accentColor)
-                Text("Preview: \(selectedPersona.displayName)")
-                    .font(AppFonts.captionBold)
-                    .foregroundColor(AppColors.textPrimary)
-                Spacer()
-            }
-            
-            Text(selectedPersona.description)
-                .font(AppFonts.caption)
-                .foregroundColor(AppColors.textSecondary)
-                .multilineTextAlignment(.leading)
-        }
-        .padding(AppSpacing.medium)
-        .background(
-            RoundedRectangle(cornerRadius: AppConstants.Layout.defaultCornerRadius)
-                .fill(AppColors.accentColor.opacity(0.05))
-                .stroke(AppColors.accentColor.opacity(0.3), lineWidth: 1)
-        )
-    }
-}
-
 
 // MARK: - Helper Functions
 

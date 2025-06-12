@@ -6,6 +6,11 @@ struct ContentView: View {
     private var modelContext
     @Environment(\.diContainer)
     private var diContainer
+    @Environment(\.colorScheme)
+    private var colorScheme
+    @EnvironmentObject
+    private var gradientManager: GradientManager
+    
     @State private var appState: AppState?
     @State private var isRecreatingContainer = false
     
@@ -13,7 +18,7 @@ struct ContentView: View {
     @State private var activeContainer: DIContainer?
 
     var body: some View {
-        VStack {
+        BaseScreen {
             if isRecreatingContainer {
                 LoadingView()
             } else if let appState = appState {
@@ -114,48 +119,86 @@ struct ContentView: View {
 
 // MARK: - Supporting Views
 private struct LoadingView: View {
+    @Environment(\.colorScheme) private var colorScheme
+    @EnvironmentObject private var gradientManager: GradientManager
+    
     var body: some View {
-        VStack(spacing: AppSpacing.large) {
-            ProgressView()
-                .scaleEffect(1.5)
-                .tint(AppColors.accentColor)
+        VStack(spacing: AppSpacing.xl) {
+            // Custom gradient progress indicator
+            ZStack {
+                Circle()
+                    .stroke(
+                        LinearGradient(
+                            colors: gradientManager.active.colors(for: colorScheme).map { $0.opacity(0.3) },
+                            startPoint: .topLeading,
+                            endPoint: .bottomTrailing
+                        ),
+                        lineWidth: 3
+                    )
+                    .frame(width: 48, height: 48)
+                
+                ProgressView()
+                    .scaleEffect(1.2)
+                    .progressViewStyle(CircularProgressViewStyle(tint: gradientManager.active.colors(for: colorScheme)[0]))
+            }
 
-            Text("Loading AirFit...")
-                .font(AppFonts.headline)
-                .foregroundColor(AppColors.textSecondary)
+            Text("Loading ")
+                .font(.system(size: 20, weight: .light))
+                .foregroundStyle(.secondary) +
+            Text("AirFit")
+                .font(.system(size: 20, weight: .medium))
+                .foregroundStyle(
+                    LinearGradient(
+                        colors: gradientManager.active.colors(for: colorScheme),
+                        startPoint: .leading,
+                        endPoint: .trailing
+                    )
+                )
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity)
-        .background(AppColors.backgroundPrimary)
         .accessibilityIdentifier("app.loading")
     }
 }
 
 private struct WelcomeView: View {
     let appState: AppState
+    @Environment(\.colorScheme) private var colorScheme
+    @EnvironmentObject private var gradientManager: GradientManager
 
     var body: some View {
-        VStack(spacing: AppSpacing.xLarge) {
+        VStack(spacing: AppSpacing.xl) {
             Spacer()
 
-            VStack(spacing: AppSpacing.large) {
+            VStack(spacing: AppSpacing.lg) {
                 Text("Welcome to")
-                    .font(AppFonts.title)
-                    .foregroundColor(AppColors.textSecondary)
+                    .font(.system(size: 24, weight: .ultraLight, design: .rounded))
+                    .foregroundStyle(.secondary)
+                    .cascadeAnimation()
 
-                Text("AirFit")
-                    .font(AppFonts.largeTitle)
-                    .fontWeight(.bold)
-                    .foregroundColor(AppColors.accentColor)
+                // Use CascadeText for the hero title
+                CascadeText("AirFit")
+                    .font(.system(size: 56, weight: .bold, design: .rounded))
+                    .foregroundStyle(
+                        LinearGradient(
+                            colors: gradientManager.active.colors(for: colorScheme),
+                            startPoint: .topLeading,
+                            endPoint: .bottomTrailing
+                        )
+                    )
 
                 Text("Your personalized AI fitness coach")
-                    .font(AppFonts.headline)
-                    .foregroundColor(AppColors.textTertiary)
+                    .font(.system(size: 18, weight: .light, design: .rounded))
+                    .foregroundStyle(.secondary.opacity(0.8))
                     .multilineTextAlignment(.center)
+                    .cascadeAnimation()
+                    .padding(.horizontal, AppSpacing.xl)
             }
 
             Spacer()
 
+            // Beautiful gradient button
             Button {
+                HapticService.impact(.light)
                 Task {
                     do {
                         try await appState.createNewUser()
@@ -165,19 +208,24 @@ private struct WelcomeView: View {
                 }
             } label: {
                 Text("Get Started")
-                    .font(AppFonts.headline)
-                    .fontWeight(.semibold)
-                    .foregroundColor(AppColors.textOnAccent)
+                    .font(.system(size: 18, weight: .semibold, design: .rounded))
+                    .foregroundColor(.white)
                     .frame(maxWidth: .infinity)
-                    .padding()
-                    .background(AppColors.accentColor)
-                    .cornerRadius(AppConstants.Layout.defaultCornerRadius)
+                    .padding(.vertical, AppSpacing.md)
+                    .background(
+                        LinearGradient(
+                            colors: gradientManager.active.colors(for: colorScheme),
+                            startPoint: .leading,
+                            endPoint: .trailing
+                        )
+                    )
+                    .clipShape(RoundedRectangle(cornerRadius: 16))
+                    .shadow(color: gradientManager.active.colors(for: colorScheme)[0].opacity(0.3), radius: 12, y: 4)
             }
-            .padding(.horizontal, AppSpacing.large)
-            .padding(.bottom, AppSpacing.xLarge)
+            .padding(.horizontal, AppSpacing.xl)
+            .padding(.bottom, AppSpacing.xl)
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity)
-        .background(AppColors.backgroundPrimary)
         .accessibilityIdentifier("app.welcome")
     }
 }
@@ -185,37 +233,57 @@ private struct WelcomeView: View {
 private struct ErrorView: View {
     let error: Error?
     let onRetry: () -> Void
+    @Environment(\.colorScheme) private var colorScheme
+    @EnvironmentObject private var gradientManager: GradientManager
 
     var body: some View {
-        VStack(spacing: AppSpacing.large) {
+        VStack(spacing: AppSpacing.xl) {
+            // Gradient error icon
             Image(systemName: "exclamationmark.triangle")
-                .font(.system(size: 48))
-                .foregroundColor(AppColors.errorColor)
+                .font(.system(size: 48, weight: .light))
+                .symbolRenderingMode(.hierarchical)
+                .foregroundStyle(
+                    LinearGradient(
+                        colors: [Color.red.opacity(0.8), Color.orange.opacity(0.7)],
+                        startPoint: .topLeading,
+                        endPoint: .bottomTrailing
+                    )
+                )
 
             Text("Something went wrong")
-                .font(AppFonts.title2)
-                .fontWeight(.semibold)
-                .foregroundColor(AppColors.textPrimary)
+                .font(.system(size: 24, weight: .medium, design: .rounded))
+                .foregroundStyle(.primary)
 
             if let error = error {
                 Text(error.localizedDescription)
-                    .font(AppFonts.body)
-                    .foregroundColor(AppColors.textSecondary)
+                    .font(.system(size: 16, weight: .light))
+                    .foregroundStyle(.secondary)
                     .multilineTextAlignment(.center)
-                    .padding(.horizontal)
+                    .padding(.horizontal, AppSpacing.xl)
             }
 
-            Button("Try Again", action: onRetry)
-                .font(AppFonts.headline)
-                .fontWeight(.semibold)
-                .foregroundColor(AppColors.textOnAccent)
-                .padding(.horizontal, AppSpacing.large)
-                .padding(.vertical, AppSpacing.medium)
-                .background(AppColors.accentColor)
-                .cornerRadius(AppConstants.Layout.defaultCornerRadius)
+            Button {
+                HapticService.impact(.light)
+                onRetry()
+            } label: {
+                Text("Try Again")
+                    .font(.system(size: 18, weight: .semibold, design: .rounded))
+                    .foregroundColor(.white)
+                    .padding(.horizontal, AppSpacing.xl)
+                    .padding(.vertical, AppSpacing.md)
+                    .background(
+                        LinearGradient(
+                            colors: gradientManager.active.colors(for: colorScheme),
+                            startPoint: .leading,
+                            endPoint: .trailing
+                        )
+                    )
+                    .clipShape(RoundedRectangle(cornerRadius: 16))
+                    .shadow(color: gradientManager.active.colors(for: colorScheme)[0].opacity(0.3), radius: 12, y: 4)
+            }
+            .padding(.top, AppSpacing.md)
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity)
-        .background(AppColors.backgroundPrimary)
         .accessibilityIdentifier("app.error")
     }
 }

@@ -409,14 +409,28 @@ struct ExerciseDetailSheet: View {
     }
 
     private var actionButton: some View {
-        StandardButton(
-            "Add to Workout",
-            icon: "plus.circle.fill",
-            style: .primary,
-            isFullWidth: true
-        ) {
+        Button {
             HapticService.impact(.medium)
             addToWorkout()
+        } label: {
+            HStack(spacing: AppSpacing.xs) {
+                Image(systemName: "plus.circle.fill")
+                    .font(.system(size: 18, weight: .semibold))
+                Text("Add to Workout")
+                    .font(.system(size: 18, weight: .semibold, design: .rounded))
+            }
+            .foregroundColor(.white)
+            .frame(maxWidth: .infinity)
+            .padding(.vertical, AppSpacing.md)
+            .background(
+                LinearGradient(
+                    colors: gradientManager.active.colors(for: colorScheme),
+                    startPoint: .leading,
+                    endPoint: .trailing
+                )
+            )
+            .clipShape(RoundedRectangle(cornerRadius: 16))
+            .shadow(color: gradientManager.active.colors(for: colorScheme)[0].opacity(0.3), radius: 12, y: 4)
         }
         .padding(.horizontal, AppSpacing.md)
     }
@@ -530,17 +544,44 @@ struct FilterSheet: View {
                         .animation(MotionToken.standardSpring.delay(0.4), value: animateIn)
                         
                         // Clear button
-                        StandardButton(
-                            "Clear All Filters",
-                            icon: "xmark.circle.fill",
-                            style: .secondary,
-                            isFullWidth: true
-                        ) {
+                        Button {
                             HapticService.impact(.medium)
                             selectedCategory = nil
                             selectedMuscleGroup = nil
                             selectedEquipment = nil
                             selectedDifficulty = nil
+                        } label: {
+                            HStack(spacing: AppSpacing.xs) {
+                                Image(systemName: "xmark.circle.fill")
+                                    .font(.system(size: 16, weight: .semibold))
+                                Text("Clear All Filters")
+                                    .font(.system(size: 16, weight: .semibold, design: .rounded))
+                            }
+                            .foregroundColor(.primary)
+                            .frame(maxWidth: .infinity)
+                            .padding(.vertical, AppSpacing.sm)
+                            .background(
+                                LinearGradient(
+                                    colors: [
+                                        Color.primary.opacity(0.05),
+                                        Color.primary.opacity(0.02)
+                                    ],
+                                    startPoint: .topLeading,
+                                    endPoint: .bottomTrailing
+                                )
+                            )
+                            .overlay(
+                                RoundedRectangle(cornerRadius: 14)
+                                    .stroke(
+                                        LinearGradient(
+                                            colors: gradientManager.active.colors(for: colorScheme).map { $0.opacity(0.3) },
+                                            startPoint: .topLeading,
+                                            endPoint: .bottomTrailing
+                                        ),
+                                        lineWidth: 1
+                                    )
+                            )
+                            .clipShape(RoundedRectangle(cornerRadius: 14))
                         }
                         .padding(.horizontal, AppSpacing.md)
                         .padding(.bottom, AppSpacing.xl)

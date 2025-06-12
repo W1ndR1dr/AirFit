@@ -474,7 +474,7 @@ struct WaterTrackingView: View {
 
         Task {
             await viewModel.logWater(amount: amountToAdd, unit: unitToLog)
-            // TODO: Add haptic feedback via DI when needed
+            HapticService.play(.dataUpdated)
             // Reset custom input field after logging
             if useCustomAmount {
                 customAmountString = ""

@@ -28,6 +28,7 @@ struct CascadeText: View {
                     )
             }
         }
+        .fixedSize(horizontal: true, vertical: false) // Prevent text truncation
         .onAppear {
             startAnimation()
         }

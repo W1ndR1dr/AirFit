@@ -101,7 +101,7 @@ actor PreviewCoachEngine: FoodCoachEngineProtocol {
         )
     }
 
-    func analyzeMealPhoto(image: UIImage, context: NutritionContext?) async throws -> MealPhotoAnalysisResult {
+    func analyzeMealPhoto(image: UIImage, context: NutritionContext?, for user: User) async throws -> MealPhotoAnalysisResult {
         let item = ParsedFoodItem(
             name: "Preview Meal",
             brand: nil,
@@ -120,7 +120,7 @@ actor PreviewCoachEngine: FoodCoachEngineProtocol {
         return MealPhotoAnalysisResult(items: [item], confidence: 0.9, processingTime: 0.1)
     }
     
-    func searchFoods(query: String, limit: Int) async throws -> [ParsedFoodItem] {
+    func searchFoods(query: String, limit: Int, for user: User) async throws -> [ParsedFoodItem] {
         // Return mock search results for previews
         return [
             ParsedFoodItem(

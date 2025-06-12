@@ -15,17 +15,32 @@ struct APIConfigurationView: View {
     }
     
     var body: some View {
-        ScrollView {
-            VStack(spacing: AppSpacing.xl) {
-                currentConfiguration
-                providerSelection
-                apiKeyManagement
-                saveButton
+        BaseScreen {
+            ScrollView {
+                VStack(spacing: 0) {
+                    // Title header
+                    HStack {
+                        CascadeText("AI Provider")
+                            .font(.system(size: 34, weight: .bold, design: .rounded))
+                        Spacer()
+                    }
+                    .padding(.horizontal, AppSpacing.lg)
+                    .padding(.top, AppSpacing.sm)
+                    .padding(.bottom, AppSpacing.lg)
+                    
+                    VStack(spacing: AppSpacing.xl) {
+                        currentConfiguration
+                        providerSelection
+                        apiKeyManagement
+                        saveButton
+                    }
+                    .padding(.horizontal, AppSpacing.lg)
+                    .padding(.bottom, AppSpacing.xl)
+                }
             }
-            .padding()
         }
-        .navigationTitle("AI Provider")
-        .navigationBarTitleDisplayMode(.large)
+        .navigationTitle("")
+        .navigationBarTitleDisplayMode(.inline)
         .sheet(isPresented: $showAPIKeyEntry) {
             if let provider = providerToAddKey {
                 APIKeyEntryView(provider: provider, viewModel: viewModel)
@@ -34,10 +49,16 @@ struct APIConfigurationView: View {
     }
     
     private var currentConfiguration: some View {
-        VStack(alignment: .leading, spacing: AppSpacing.md) {
-            SectionHeader(title: "Current Configuration", icon: "cpu")
+        VStack(alignment: .leading, spacing: AppSpacing.sm) {
+            HStack {
+                Text("Current Configuration")
+                    .font(.system(size: 13, weight: .medium, design: .rounded))
+                    .textCase(.uppercase)
+                    .foregroundStyle(.secondary.opacity(0.8))
+                Spacer()
+            }
             
-            Card {
+            GlassCard {
                 VStack(spacing: AppSpacing.md) {
                     ConfigRow(
                         title: "Provider",
@@ -72,10 +93,16 @@ struct APIConfigurationView: View {
     }
     
     private var providerSelection: some View {
-        VStack(alignment: .leading, spacing: AppSpacing.md) {
-            SectionHeader(title: "Select Provider", icon: "rectangle.stack")
+        VStack(alignment: .leading, spacing: AppSpacing.sm) {
+            HStack {
+                Text("Select Provider")
+                    .font(.system(size: 13, weight: .medium, design: .rounded))
+                    .textCase(.uppercase)
+                    .foregroundStyle(.secondary.opacity(0.8))
+                Spacer()
+            }
             
-            Card {
+            GlassCard {
                 VStack(spacing: 0) {
                     ForEach(AIProvider.allCases) { provider in
                         ProviderRow(
@@ -89,7 +116,7 @@ struct APIConfigurationView: View {
                                 selectedProvider = provider
                                 selectedModel = provider.defaultModel
                             }
-                            // TODO: Add haptic feedback via DI when needed
+                            HapticService.play(.listSelection)
                         }
                         
                         if provider != AIProvider.allCases.last {
@@ -103,10 +130,16 @@ struct APIConfigurationView: View {
     }
     
     private var apiKeyManagement: some View {
-        VStack(alignment: .leading, spacing: AppSpacing.md) {
-            SectionHeader(title: "API Keys", icon: "key.fill")
+        VStack(alignment: .leading, spacing: AppSpacing.sm) {
+            HStack {
+                Text("API Keys")
+                    .font(.system(size: 13, weight: .medium, design: .rounded))
+                    .textCase(.uppercase)
+                    .foregroundStyle(.secondary.opacity(0.8))
+                Spacer()
+            }
             
-            Card {
+            GlassCard {
                 VStack(spacing: AppSpacing.md) {
                     ForEach(AIProvider.allCases) { provider in
                         APIKeyRow(
@@ -138,14 +171,24 @@ struct APIConfigurationView: View {
     }
     
     private var saveButton: some View {
-        StandardButton(
-            "Save Configuration",
-            icon: "checkmark.circle.fill",
-            style: .primary,
-            isFullWidth: true,
-            isEnabled: viewModel.installedAPIKeys.contains(selectedProvider),
-            action: saveConfiguration
-        )
+        Button {
+            saveConfiguration()
+        } label: {
+            Label("Save Configuration", systemImage: "checkmark.circle.fill")
+                .font(.system(size: 16, weight: .medium, design: .rounded))
+                .foregroundColor(.white)
+                .frame(maxWidth: .infinity)
+                .padding(.vertical, AppSpacing.sm)
+                .background(
+                    LinearGradient(
+                        colors: [Color.accentColor, Color.accentColor.opacity(0.8)],
+                        startPoint: .leading,
+                        endPoint: .trailing
+                    )
+                )
+                .clipShape(RoundedRectangle(cornerRadius: 12))
+        }
+        .disabled(!viewModel.installedAPIKeys.contains(selectedProvider))
     }
     
     private func saveConfiguration() {
@@ -177,8 +220,20 @@ struct ProviderRow: View {
                     .font(.title2)
                     .foregroundStyle(isSelected ? .white : .primary)
                     .frame(width: 44, height: 44)
-                    .background(isSelected ? Color.accentColor : Color.secondaryBackground)
-                    .clipShape(RoundedRectangle(cornerRadius: AppSpacing.radiusSm))
+                    .background(
+                        isSelected 
+                            ? LinearGradient(
+                                colors: [Color.accentColor, Color.accentColor.opacity(0.8)],
+                                startPoint: .topLeading,
+                                endPoint: .bottomTrailing
+                              )
+                            : LinearGradient(
+                                colors: [Color(.systemGray6), Color(.systemGray6)],
+                                startPoint: .topLeading,
+                                endPoint: .bottomTrailing
+                              )
+                    )
+                    .clipShape(RoundedRectangle(cornerRadius: 10))
                 
                 VStack(alignment: .leading, spacing: AppSpacing.xs) {
                     Text(provider.displayName)
@@ -222,7 +277,7 @@ struct ProviderRow: View {
                                 provider: provider,
                                 onSelect: {
                                     selectedModel = model
-                                    // TODO: Add haptic feedback via DI when needed
+                                    HapticService.play(.listSelection)
                                 }
                             )
                         }
@@ -265,8 +320,10 @@ struct ModelDetailsCard: View {
                 }
                 .font(.caption)
                 .padding(AppSpacing.sm)
-                .background(Color.secondaryBackground)
-                .clipShape(RoundedRectangle(cornerRadius: AppSpacing.radiusSm))
+                .background(
+                    RoundedRectangle(cornerRadius: 8)
+                        .fill(.ultraThinMaterial)
+                )
             }
         }
     }
@@ -351,9 +408,21 @@ struct ModelChip: View {
             }
             .padding(.horizontal, AppSpacing.md)
             .padding(.vertical, AppSpacing.xs)
-            .background(isSelected ? Color.accentColor : Color.secondaryBackground)
+            .background(
+                isSelected 
+                    ? LinearGradient(
+                        colors: [Color.accentColor, Color.accentColor.opacity(0.8)],
+                        startPoint: .leading,
+                        endPoint: .trailing
+                      )
+                    : LinearGradient(
+                        colors: [Color(.systemGray6), Color(.systemGray6)],
+                        startPoint: .leading,
+                        endPoint: .trailing
+                      )
+            )
             .foregroundStyle(isSelected ? .white : .primary)
-            .clipShape(RoundedRectangle(cornerRadius: AppSpacing.radiusSm))
+            .clipShape(RoundedRectangle(cornerRadius: 20))
         }
         .buttonStyle(.plain)
     }
@@ -372,20 +441,36 @@ struct APIKeyRow: View {
             Spacer()
             
             if hasKey {
-                IconButton(
-                    icon: "trash",
-                    style: .destructive,
-                    size: .small,
-                    action: onDelete
-                )
+                Button {
+                    onDelete()
+                } label: {
+                    Image(systemName: "trash")
+                        .font(.system(size: 14))
+                        .foregroundStyle(.red)
+                        .frame(width: 30, height: 30)
+                        .background(
+                            Circle()
+                                .fill(.red.opacity(0.1))
+                        )
+                }
             } else {
-                StandardButton(
-                    "Add Key",
-                    icon: "plus.circle",
-                    style: .primary,
-                    size: .small,
-                    action: onAdd
-                )
+                Button {
+                    onAdd()
+                } label: {
+                    Label("Add Key", systemImage: "plus.circle")
+                        .font(.system(size: 14, weight: .medium, design: .rounded))
+                        .foregroundColor(.white)
+                        .padding(.horizontal, AppSpacing.sm)
+                        .padding(.vertical, 6)
+                        .background(
+                            LinearGradient(
+                                colors: [Color.accentColor, Color.accentColor.opacity(0.8)],
+                                startPoint: .leading,
+                                endPoint: .trailing
+                            )
+                        )
+                        .clipShape(RoundedRectangle(cornerRadius: 8))
+                }
             }
         }
     }

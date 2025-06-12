@@ -7,101 +7,171 @@ struct InitialAPISetupView: View {
     @State private var isValidating = false
     @State private var validationError: String?
     @State private var showingInfo = false
+    @State private var showKey = false
     
     let onCompletion: () -> Void
     
     var body: some View {
-        VStack(spacing: 0) {
-            // Header
-            VStack(spacing: AppSpacing.medium) {
-                Image(systemName: "key.fill")
-                    .font(.system(size: 60))
-                    .foregroundColor(AppColors.accentColor)
-                    .padding(.top, AppSpacing.xLarge)
-                
-                Text("Welcome to AirFit")
-                    .font(AppFonts.largeTitle)
-                    .fontWeight(.bold)
-                
-                Text("To use AI features, you'll need an API key")
-                    .font(AppFonts.body)
-                    .foregroundColor(AppColors.textSecondary)
-                    .multilineTextAlignment(.center)
-                    .padding(.horizontal)
-            }
-            .padding(.bottom, AppSpacing.xLarge)
-            
-            // Provider Selection
-            VStack(alignment: .leading, spacing: AppSpacing.medium) {
-                Text("Select AI Provider")
-                    .font(AppFonts.headline)
-                    .foregroundColor(AppColors.textPrimary)
-                
-                ForEach(AIProvider.allCases, id: \.self) { provider in
-                    ProviderOption(
-                        provider: provider,
-                        isSelected: selectedProvider == provider,
-                        onTap: { selectedProvider = provider }
-                    )
-                }
-            }
-            .padding(.horizontal)
-            .padding(.bottom, AppSpacing.large)
-            
-            // API Key Input
-            VStack(alignment: .leading, spacing: AppSpacing.small) {
-                HStack {
-                    Text("API Key")
-                        .font(AppFonts.headline)
-                        .foregroundColor(AppColors.textPrimary)
+        BaseScreen {
+            VStack(spacing: 0) {
+                // Header
+                VStack(spacing: AppSpacing.md) {
+                    Image(systemName: "key.fill")
+                        .font(.system(size: 60, weight: .light))
+                        .foregroundStyle(
+                            LinearGradient(
+                                colors: [Color.accentColor, Color.accentColor.opacity(0.8)],
+                                startPoint: .topLeading,
+                                endPoint: .bottomTrailing
+                            )
+                        )
+                        .padding(.top, AppSpacing.xl)
                     
-                    IconButton(
-                        icon: "info.circle",
-                        style: .tertiary,
-                        size: .small
-                    ) {
-                        showingInfo = true
+                    CascadeText("Welcome to AirFit")
+                        .font(.system(size: 42, weight: .bold, design: .rounded))
+                    
+                    Text("To use AI features, you'll need an API key")
+                        .font(.system(size: 18, weight: .regular, design: .rounded))
+                        .foregroundStyle(.secondary)
+                        .multilineTextAlignment(.center)
+                        .padding(.horizontal)
+                }
+                .padding(.bottom, AppSpacing.xl)
+                
+                // Provider Selection
+                VStack(alignment: .leading, spacing: AppSpacing.md) {
+                    Text("Select AI Provider")
+                        .font(.system(size: 20, weight: .semibold, design: .rounded))
+                        .foregroundStyle(.primary)
+                    
+                    ForEach(AIProvider.allCases, id: \.self) { provider in
+                        ProviderOption(
+                            provider: provider,
+                            isSelected: selectedProvider == provider,
+                            onTap: {
+                                HapticService.impact(.light)
+                                selectedProvider = provider
+                                apiKey = "" // Clear key when switching providers
+                            }
+                        )
                     }
                 }
+                .padding(.horizontal, AppSpacing.lg)
+                .padding(.bottom, AppSpacing.lg)
                 
-                SecureField("Enter your \(selectedProvider.displayName) API key", text: $apiKey)
-                    .textFieldStyle(.roundedBorder)
-                    .disabled(isValidating)
-                
-                if let error = validationError {
-                    Text(error)
-                        .font(AppFonts.caption)
-                        .foregroundColor(AppColors.errorColor)
+                // API Key Input
+                VStack(alignment: .leading, spacing: AppSpacing.sm) {
+                    HStack {
+                        Text("API Key")
+                            .font(.system(size: 20, weight: .semibold, design: .rounded))
+                            .foregroundStyle(.primary)
+                        
+                        Button {
+                            HapticService.impact(.light)
+                            showingInfo = true
+                        } label: {
+                            Image(systemName: "info.circle")
+                                .font(.system(size: 18, weight: .medium))
+                                .foregroundStyle(
+                                    LinearGradient(
+                                        colors: [Color.accentColor, Color.accentColor.opacity(0.8)],
+                                        startPoint: .topLeading,
+                                        endPoint: .bottomTrailing
+                                    )
+                                )
+                        }
+                    }
+                    
+                    GlassCard {
+                        HStack {
+                            if showKey {
+                                TextField("Enter your \(selectedProvider.displayName) API key", text: $apiKey)
+                                    .textFieldStyle(.plain)
+                                    .font(.system(size: 16, weight: .regular, design: .monospaced))
+                                    .disabled(isValidating)
+                                    .autocorrectionDisabled()
+                                    .textInputAutocapitalization(.never)
+                            } else {
+                                SecureField("Enter your \(selectedProvider.displayName) API key", text: $apiKey)
+                                    .textFieldStyle(.plain)
+                                    .font(.system(size: 16, weight: .regular, design: .monospaced))
+                                    .disabled(isValidating)
+                            }
+                            
+                            Button {
+                                HapticService.impact(.light)
+                                showKey.toggle()
+                            } label: {
+                                Image(systemName: showKey ? "eye.slash" : "eye")
+                                    .font(.system(size: 18, weight: .medium))
+                                    .foregroundStyle(.secondary)
+                            }
+                        }
+                        .padding(AppSpacing.md)
+                    }
+                    
+                    if let error = validationError {
+                        Text(error)
+                            .font(.system(size: 14, weight: .regular, design: .rounded))
+                            .foregroundStyle(.red)
+                    }
                 }
-            }
-            .padding(.horizontal)
-            
-            Spacer()
-            
-            // Action Buttons
-            VStack(spacing: AppSpacing.medium) {
-                StandardButton(
-                    "Configure AI",
-                    style: .primary,
-                    size: .large,
-                    isFullWidth: true,
-                    isLoading: isValidating,
-                    isEnabled: !apiKey.isEmpty && !isValidating,
-                    action: validateAndSave
-                )
+                .padding(.horizontal, AppSpacing.lg)
                 
-                Text("An API key is required to use AirFit")
-                    .font(AppFonts.caption)
-                    .foregroundColor(AppColors.textTertiary)
-                    .multilineTextAlignment(.center)
+                Spacer()
+                
+                // Action Buttons
+                VStack(spacing: AppSpacing.md) {
+                    Button {
+                        HapticService.impact(.medium)
+                        validateAndSave()
+                    } label: {
+                        HStack {
+                            if isValidating {
+                                ProgressView()
+                                    .controlSize(.small)
+                                    .tint(.white)
+                            } else {
+                                Image(systemName: "sparkles")
+                                    .font(.system(size: 16, weight: .medium))
+                            }
+                            Text("Configure AI")
+                                .font(.system(size: 18, weight: .semibold, design: .rounded))
+                        }
+                        .foregroundColor(.white)
+                        .frame(maxWidth: .infinity)
+                        .padding(.vertical, AppSpacing.md)
+                        .background(
+                            LinearGradient(
+                                colors: !apiKey.isEmpty && !isValidating
+                                    ? [Color.accentColor, Color.accentColor.opacity(0.8)]
+                                    : [Color.gray.opacity(0.3), Color.gray.opacity(0.2)],
+                                startPoint: .leading,
+                                endPoint: .trailing
+                            )
+                        )
+                        .clipShape(RoundedRectangle(cornerRadius: 16))
+                        .shadow(
+                            color: !apiKey.isEmpty && !isValidating ? Color.accentColor.opacity(0.3) : Color.clear,
+                            radius: 8,
+                            y: 4
+                        )
+                    }
+                    .disabled(apiKey.isEmpty || isValidating)
+                    
+                    Text("An API key is required to use AirFit")
+                        .font(.system(size: 14, weight: .regular, design: .rounded))
+                        .foregroundStyle(.tertiary)
+                        .multilineTextAlignment(.center)
+                }
+                .padding(.horizontal, AppSpacing.lg)
+                .padding(.bottom, AppSpacing.xl)
             }
-            .padding(.horizontal)
-            .padding(.bottom, AppSpacing.xLarge)
         }
-        .background(AppColors.backgroundPrimary)
         .sheet(isPresented: $showingInfo) {
             APIKeyInfoSheet(provider: selectedProvider)
         }
+        .preferredColorScheme(.light) // Force light mode for better visibility
     }
     
     private func validateAndSave() {
@@ -129,13 +199,13 @@ struct InitialAPISetupView: View {
                 
                 // Success
                 await MainActor.run {
-                    // TODO: Add haptic feedback via DI when needed
+                    HapticService.notification(.success)
                     onCompletion()
                 }
             } catch {
                 await MainActor.run {
                     validationError = error.localizedDescription
-                    // TODO: Add haptic feedback via DI when needed
+                    HapticService.notification(.error)
                     isValidating = false
                 }
             }
@@ -166,31 +236,57 @@ private struct ProviderOption: View {
             HStack {
                 VStack(alignment: .leading, spacing: 4) {
                     Text(provider.displayName)
-                        .font(AppFonts.headline)
-                        .foregroundColor(AppColors.textPrimary)
+                        .font(.system(size: 18, weight: .semibold, design: .rounded))
+                        .foregroundStyle(.primary)
                     
                     Text(providerDescription)
-                        .font(AppFonts.caption)
-                        .foregroundColor(AppColors.textSecondary)
+                        .font(.system(size: 14, weight: .regular, design: .rounded))
+                        .foregroundStyle(.secondary)
                 }
                 
                 Spacer()
                 
                 Image(systemName: isSelected ? "checkmark.circle.fill" : "circle")
-                    .foregroundColor(isSelected ? AppColors.accentColor : AppColors.textTertiary)
-                    .font(.title2)
+                    .font(.system(size: 24))
+                    .foregroundStyle(
+                        isSelected
+                            ? LinearGradient(
+                                colors: [Color.accentColor, Color.accentColor.opacity(0.8)],
+                                startPoint: .topLeading,
+                                endPoint: .bottomTrailing
+                              )
+                            : LinearGradient(
+                                colors: [Color.secondary, Color.secondary],
+                                startPoint: .topLeading,
+                                endPoint: .bottomTrailing
+                              )
+                    )
             }
-            .padding()
+            .padding(AppSpacing.md)
             .background(
-                RoundedRectangle(cornerRadius: AppConstants.Layout.defaultCornerRadius)
-                    .fill(isSelected ? AppColors.accentColor.opacity(0.1) : AppColors.backgroundSecondary)
+                GlassCard {
+                    Color.clear
+                }
             )
             .overlay(
-                RoundedRectangle(cornerRadius: AppConstants.Layout.defaultCornerRadius)
-                    .stroke(isSelected ? AppColors.accentColor : Color.clear, lineWidth: 2)
+                RoundedRectangle(cornerRadius: 16)
+                    .strokeBorder(
+                        isSelected
+                            ? LinearGradient(
+                                colors: [Color.accentColor, Color.accentColor.opacity(0.8)],
+                                startPoint: .topLeading,
+                                endPoint: .bottomTrailing
+                              )
+                            : LinearGradient(
+                                colors: [Color.clear, Color.clear],
+                                startPoint: .topLeading,
+                                endPoint: .bottomTrailing
+                              ),
+                        lineWidth: 2
+                    )
             )
         }
-        .buttonStyle(PlainButtonStyle())
+        .buttonStyle(.plain)
     }
     
     private var providerDescription: String {
@@ -211,39 +307,67 @@ private struct APIKeyInfoSheet: View {
     
     var body: some View {
         NavigationView {
-            ScrollView {
-                VStack(alignment: .leading, spacing: AppSpacing.large) {
-                    Text("How to get your API key")
-                        .font(AppFonts.title2)
-                        .fontWeight(.semibold)
-                        .padding(.top)
-                    
-                    ForEach(instructions, id: \.self) { instruction in
-                        HStack(alignment: .top, spacing: AppSpacing.medium) {
-                            Text("•")
-                                .font(AppFonts.body)
-                            Text(instruction)
-                                .font(AppFonts.body)
-                                .foregroundColor(AppColors.textSecondary)
+            BaseScreen {
+                ScrollView {
+                    VStack(alignment: .leading, spacing: AppSpacing.lg) {
+                        CascadeText("How to get your API key")
+                            .font(.system(size: 28, weight: .bold, design: .rounded))
+                            .padding(.top)
+                        
+                        GlassCard {
+                            VStack(alignment: .leading, spacing: AppSpacing.md) {
+                                ForEach(instructions, id: \.self) { instruction in
+                                    HStack(alignment: .top, spacing: AppSpacing.md) {
+                                        Text("•")
+                                            .font(.system(size: 16, weight: .medium))
+                                            .foregroundStyle(.secondary)
+                                        Text(instruction)
+                                            .font(.system(size: 16, weight: .regular, design: .rounded))
+                                            .foregroundStyle(.primary)
+                                            .fixedSize(horizontal: false, vertical: true)
+                                    }
+                                }
+                            }
+                            .padding(AppSpacing.md)
                         }
-                    }
-                    
-                    Link("Get API Key", destination: providerURL)
-                        .font(AppFonts.headline)
-                        .foregroundColor(.white)
-                        .frame(maxWidth: .infinity)
-                        .padding()
-                        .background(AppColors.accentColor)
-                        .cornerRadius(AppConstants.Layout.defaultCornerRadius)
+                        
+                        Link(destination: providerURL) {
+                            HStack {
+                                Image(systemName: "arrow.up.forward.square")
+                                    .font(.system(size: 18, weight: .medium))
+                                Text("Get API Key")
+                                    .font(.system(size: 18, weight: .semibold, design: .rounded))
+                                Spacer()
+                                Image(systemName: "chevron.right")
+                                    .font(.system(size: 14, weight: .medium))
+                            }
+                            .foregroundColor(.white)
+                            .padding(AppSpacing.md)
+                            .background(
+                                LinearGradient(
+                                    colors: [Color.accentColor, Color.accentColor.opacity(0.8)],
+                                    startPoint: .leading,
+                                    endPoint: .trailing
+                                )
+                            )
+                            .clipShape(RoundedRectangle(cornerRadius: 16))
+                            .shadow(color: Color.accentColor.opacity(0.3), radius: 8, y: 4)
+                        }
                         .padding(.top)
+                    }
+                    .padding(.horizontal, AppSpacing.lg)
+                    .padding(.bottom, AppSpacing.xl)
                 }
-                .padding(.horizontal)
             }
             .navigationTitle("\(provider.displayName) API Key")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .navigationBarTrailing) {
-                    Button("Done") { dismiss() }
+                    Button("Done") {
+                        HapticService.impact(.light)
+                        dismiss()
+                    }
+                    .foregroundStyle(Color.accentColor)
                 }
             }
         }

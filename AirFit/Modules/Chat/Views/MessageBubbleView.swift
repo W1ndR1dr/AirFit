@@ -576,7 +576,7 @@ struct AttachmentThumbnail: View {
                 .scaledToFit()
                 .frame(width: isExpanded ? 100 : 50, height: isExpanded ? 100 : 50)
                 .padding(isExpanded ? 20 : 10)
-                .background(AppColors.cardBackground)
+                .background(Color.primary.opacity(0.05))
                 .cornerRadius(8)
         }
     }
@@ -607,7 +607,7 @@ struct NavigationLinkCard: View {
                     .foregroundStyle(.secondary)
             }
             .padding()
-            .background(RoundedRectangle(cornerRadius: 12).fill(AppColors.cardBackground))
+            .background(RoundedRectangle(cornerRadius: 12).fill(Color.primary.opacity(0.05)))
         }
     }
 }
@@ -643,7 +643,7 @@ struct ReminderCard: View {
                 .foregroundStyle(.secondary)
         }
         .padding()
-        .background(RoundedRectangle(cornerRadius: 12).fill(AppColors.cardBackground))
+        .background(RoundedRectangle(cornerRadius: 12).fill(Color.primary.opacity(0.05)))
     }
 }
 

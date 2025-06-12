@@ -191,10 +191,34 @@ When transforming each screen, ensure:
 - [ ] Spacing uses `AppSpacing` tokens
 - [ ] Buttons call `HapticService` on tap
 
-### 4. Common Fixes
-- [ ] Replace `.foregroundStyle(.tertiary)` with `.foregroundColor(Color.secondary.opacity(0.5))`
-- [ ] Replace `gradientManager.currentGradient(for: colorScheme).colors(for: colorScheme).first` with color selection based on `gradientManager.active`
-- [ ] Fix `onLongPressGesture` to use `pressing:` parameter
+### 4. Common Patterns
+- [ ] Use `.foregroundStyle(.secondary)` for secondary text
+- [ ] Use `gradientManager.active.colors(for: colorScheme)` for gradient colors
+- [ ] Always add `HapticService.impact()` for interactive elements
 - [ ] Ensure proper type matching for Material vs Color
+
+### 5. Button Pattern
+All buttons now use custom gradient implementation:
+```swift
+Button(action: {
+    HapticService.impact(.light)
+    // Action
+}) {
+    Text("Button Title")
+        .font(.system(size: 18, weight: .semibold, design: .rounded))
+        .foregroundColor(.white)
+        .frame(maxWidth: .infinity)
+        .padding(.vertical, AppSpacing.md)
+        .background(
+            LinearGradient(
+                colors: gradientManager.active.colors(for: colorScheme),
+                startPoint: .leading,
+                endPoint: .trailing
+            )
+        )
+        .clipShape(RoundedRectangle(cornerRadius: 16))
+        .shadow(color: gradientManager.active.colors(for: colorScheme)[0].opacity(0.3), radius: 12, y: 4)
+}
+```
 
 Remember: We're creating art, not just code. Every pixel matters.

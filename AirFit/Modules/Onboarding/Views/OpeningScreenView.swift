@@ -53,12 +53,25 @@ struct OpeningScreenView: View {
 
                 // Action buttons
                 VStack(spacing: AppSpacing.sm) {
-                    StandardButton(
-                        "Begin",
-                        style: .primary,
-                        isFullWidth: true
-                    ) {
+                    Button {
+                        HapticService.impact(.light)
                         viewModel.navigateToNextScreen()
+                    } label: {
+                        Text("Begin")
+                            .font(.system(size: 18, weight: .semibold))
+                            .foregroundColor(.white)
+                            .frame(maxWidth: .infinity)
+                            .padding(.vertical, AppSpacing.md)
+                            .background(
+                                LinearGradient(
+                                    colors: gradientManager.active.colors(for: colorScheme),
+                                    startPoint: .leading,
+                                    endPoint: .trailing
+                                )
+                            )
+                            .clipShape(RoundedRectangle(cornerRadius: 16))
+                            .shadow(color: gradientManager.active.colors(for: colorScheme).first?.opacity(0.3) ?? .clear, 
+                                    radius: 8, x: 0, y: 4)
                     }
                     .accessibilityIdentifier("onboarding.begin.button")
 

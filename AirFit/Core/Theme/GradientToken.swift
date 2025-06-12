@@ -47,7 +47,7 @@ enum GradientToken: String, CaseIterable {
             
         // Dark mode gradients - deeper, moodier variants
         case (.peachRose, .dark):
-            return [Color(hex: "#362128"), Color(hex: "#412932")]
+            return [Color(hex: "#4A3642"), Color(hex: "#5A3A4A")]
         case (.mintAqua, .dark):
             return [Color(hex: "#13313D"), Color(hex: "#14444F")]
         case (.lilacBlush, .dark):

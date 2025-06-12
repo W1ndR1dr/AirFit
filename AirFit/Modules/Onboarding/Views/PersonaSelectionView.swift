@@ -12,7 +12,7 @@ struct PersonaSelectionView: View {
                 VStack(alignment: .leading, spacing: AppSpacing.large) {
                     Text(LocalizedStringKey("onboarding.persona.prompt"))
                         .font(AppFonts.body)
-                        .foregroundColor(AppColors.textPrimary)
+                        .foregroundColor(.primary)
                         .padding(.horizontal, AppSpacing.large)
                         .accessibilityIdentifier("onboarding.persona.prompt")
 
@@ -60,20 +60,20 @@ private struct PersonaOptionCard: View {
                 HStack {
                     Text(persona.displayName)
                         .font(AppFonts.bodyBold)
-                        .foregroundColor(AppColors.textPrimary)
+                        .foregroundColor(.primary)
                     Spacer()
                     if isSelected {
                         Image(systemName: "checkmark.circle.fill")
-                            .foregroundColor(AppColors.accentColor)
+                            .foregroundColor(Color.accentColor)
                     } else {
                         Image(systemName: "circle")
-                            .foregroundColor(AppColors.textSecondary)
+                            .foregroundColor(.secondary)
                     }
                 }
 
                 Text(persona.description)
                     .font(AppFonts.caption)
-                    .foregroundColor(AppColors.textSecondary)
+                    .foregroundColor(.secondary)
                     .multilineTextAlignment(.leading)
                     .lineLimit(3)
             }
@@ -81,9 +81,9 @@ private struct PersonaOptionCard: View {
             .frame(maxWidth: .infinity, alignment: .leading)
             .background(
                 RoundedRectangle(cornerRadius: AppConstants.Layout.defaultCornerRadius)
-                    .fill(isSelected ? AppColors.accentColor.opacity(0.1) : AppColors.cardBackground)
+                    .fill(isSelected ? Color.accentColor.opacity(0.1) : Color.primary.opacity(0.05))
                     .stroke(
-                        isSelected ? AppColors.accentColor : AppColors.dividerColor,
+                        isSelected ? Color.accentColor : Color.primary.opacity(0.1),
                         lineWidth: isSelected ? 2 : 1
                     )
             )
@@ -102,10 +102,10 @@ private struct NavigationButtons: View {
             Button(action: backAction) {
                 Text(LocalizedStringKey("action.back"))
                     .font(AppFonts.body)
-                    .foregroundColor(AppColors.textPrimary)
+                    .foregroundColor(.primary)
                     .frame(maxWidth: .infinity)
                     .padding()
-                    .background(AppColors.backgroundSecondary)
+                    .background(Color.primary.opacity(0.05))
                     .cornerRadius(AppConstants.Layout.defaultCornerRadius)
             }
             .accessibilityIdentifier("onboarding.back.button")
@@ -113,10 +113,10 @@ private struct NavigationButtons: View {
             Button(action: nextAction) {
                 Text(LocalizedStringKey("action.next"))
                     .font(AppFonts.bodyBold)
-                    .foregroundColor(AppColors.textOnAccent)
+                    .foregroundColor(.white)
                     .frame(maxWidth: .infinity)
                     .padding()
-                    .background(AppColors.accentColor)
+                    .background(Color.accentColor)
                     .cornerRadius(AppConstants.Layout.defaultCornerRadius)
             }
             .accessibilityIdentifier("onboarding.next.button")

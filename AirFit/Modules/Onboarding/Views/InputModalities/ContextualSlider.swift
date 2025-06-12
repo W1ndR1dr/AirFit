@@ -98,7 +98,7 @@ struct ContextualSlider: View {
                                         let newValue = min + (gesture.location.x / geometry.size.width) * (max - min)
                                         value = round(newValue / step) * step
                                         value = Swift.min(Swift.max(value, min), max)
-                                        // TODO: Add haptic feedback via DI when needed
+                                        HapticService.play(.toggle)
                                     }
                                     .onEnded { _ in
                                         isDragging = false

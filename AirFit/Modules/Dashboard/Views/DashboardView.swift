@@ -5,6 +5,8 @@ import SwiftData
 struct DashboardContent: View {
     @Environment(\.modelContext)
     private var modelContext
+    @Environment(\.colorScheme)
+    private var colorScheme
     @EnvironmentObject private var gradientManager: GradientManager
 
     let viewModel: DashboardViewModel
@@ -60,13 +62,26 @@ struct DashboardContent: View {
     // MARK: - Subviews
     private var loadingView: some View {
         VStack(spacing: AppSpacing.large) {
-            ProgressView()
-                .controlSize(.large)
-                .tint(AppColors.accentColor)
+            ZStack {
+                Circle()
+                    .stroke(
+                        LinearGradient(
+                            colors: gradientManager.active.colors(for: colorScheme).map { $0.opacity(0.3) },
+                            startPoint: .topLeading,
+                            endPoint: .bottomTrailing
+                        ),
+                        lineWidth: 3
+                    )
+                    .frame(width: 48, height: 48)
+                
+                ProgressView()
+                    .scaleEffect(1.2)
+                    .progressViewStyle(CircularProgressViewStyle(tint: gradientManager.active.colors(for: colorScheme)[0]))
+            }
 
             Text("Loading dashboard…")
                 .font(AppFonts.body)
-                .foregroundColor(AppColors.textSecondary)
+                .foregroundStyle(.secondary)
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity)
         .padding(.top, 100)
@@ -77,14 +92,40 @@ struct DashboardContent: View {
         VStack(spacing: AppSpacing.medium) {
             Image(systemName: "exclamationmark.triangle")
                 .font(.largeTitle)
-                .foregroundColor(AppColors.errorColor)
+                .symbolRenderingMode(.hierarchical)
+                .foregroundStyle(
+                    LinearGradient(
+                        colors: [Color.red.opacity(0.8), Color.orange.opacity(0.7)],
+                        startPoint: .topLeading,
+                        endPoint: .bottomTrailing
+                    )
+                )
 
             Text(error.localizedDescription)
                 .font(AppFonts.body)
-                .foregroundColor(AppColors.textSecondary)
+                .foregroundStyle(.secondary)
                 .multilineTextAlignment(.center)
 
-            StandardButton("Retry", style: .primary) { viewModel.refreshDashboard() }
+            Button {
+                HapticService.impact(.light)
+                viewModel.refreshDashboard()
+            } label: {
+                Text("Retry")
+                    .font(.system(size: 18, weight: .semibold, design: .rounded))
+                    .foregroundColor(.white)
+                    .frame(maxWidth: .infinity)
+                    .padding(.vertical, AppSpacing.md)
+                    .background(
+                        LinearGradient(
+                            colors: gradientManager.active.colors(for: colorScheme),
+                            startPoint: .leading,
+                            endPoint: .trailing
+                        )
+                    )
+                    .clipShape(RoundedRectangle(cornerRadius: 16))
+                    .shadow(color: gradientManager.active.colors(for: colorScheme)[0].opacity(0.3), radius: 12, y: 4)
+            }
+            .padding(.horizontal, AppSpacing.large)
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity)
         .padding(.top, 100)
@@ -103,6 +144,9 @@ struct DashboardContent: View {
                     }
                 )
             }
+            .accessibilityElement(children: .contain)
+            .accessibilityLabel("Morning greeting")
+            .accessibilityHint("Shows your personalized morning message and energy level")
             
             GlassCard {
                 NutritionCard(
@@ -110,14 +154,23 @@ struct DashboardContent: View {
                     targets: viewModel.nutritionTargets
                 )
             }
+            .accessibilityElement(children: .contain)
+            .accessibilityLabel("Nutrition tracking")
+            .accessibilityHint("Shows today's nutrition summary and progress")
             
             GlassCard {
                 RecoveryCard(recoveryScore: viewModel.recoveryScore)
             }
+            .accessibilityElement(children: .contain)
+            .accessibilityLabel("Recovery status")
+            .accessibilityHint("Shows your current recovery score")
             
             GlassCard {
                 PerformanceCard(insight: viewModel.performanceInsight)
             }
+            .accessibilityElement(children: .contain)
+            .accessibilityLabel("Performance insights")
+            .accessibilityHint("Shows your recent performance trends")
             
             GlassCard {
                 QuickActionsCard(
@@ -125,6 +178,9 @@ struct DashboardContent: View {
                     onActionTap: handleQuickAction
                 )
             }
+            .accessibilityElement(children: .contain)
+            .accessibilityLabel("Quick actions")
+            .accessibilityHint("Suggested actions based on your current state")
         }
         .padding(.horizontal, AppSpacing.screenPadding)
         .padding(.bottom, AppSpacing.xl)

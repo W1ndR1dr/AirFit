@@ -203,17 +203,17 @@ final class ChatViewModel: ObservableObject, ErrorHandling {
         if isRecording {
             if let transcription = await voiceManager.stopRecording() {
                 composerText += transcription
-                // TODO: Add haptic feedback via DI when needed
+                HapticService.play(.success)
             }
             isRecording = false
         } else {
             do {
                 try await voiceManager.startRecording()
                 isRecording = true
-                // TODO: Add haptic feedback via DI when needed
+                HapticService.play(.dataUpdated)
             } catch {
                 handleError(error)
-                // TODO: Add haptic feedback via DI when needed
+                HapticService.play(.error)
             }
         }
     }
@@ -249,7 +249,7 @@ final class ChatViewModel: ObservableObject, ErrorHandling {
 
     func copyMessage(_ message: ChatMessage) {
         UIPasteboard.general.string = message.content
-        // TODO: Add haptic feedback via DI when needed
+        HapticService.play(.success)
     }
 
     func regenerateResponse(for message: ChatMessage) async {
@@ -321,7 +321,7 @@ final class ChatViewModel: ObservableObject, ErrorHandling {
         
         // Handle specific workout scheduling based on function call
         AppLogger.info("Scheduling workout from message: \(message.id)", category: .chat)
-        // TODO: Add haptic feedback via DI when needed
+        HapticService.play(.success)
     }
     
     func setReminder(from message: ChatMessage) async {
@@ -335,7 +335,7 @@ final class ChatViewModel: ObservableObject, ErrorHandling {
         
         // Handle specific reminder creation based on function call
         AppLogger.info("Setting reminder from message: \(message.id)", category: .chat)
-        // TODO: Add haptic feedback via DI when needed
+        HapticService.play(.success)
     }
     
     private func createGenericWorkout() async {

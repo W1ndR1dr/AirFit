@@ -15,8 +15,9 @@ struct OnboardingContainerView: View {
             if let coordinator = coordinator {
                 ZStack {
                     // Background
-                    Color("BackgroundPrimary")
-                        .ignoresSafeArea()
+                    BaseScreen {
+                        Color.clear
+                    }
                     
                     // Main content with transitions
                     Group {
@@ -97,9 +98,15 @@ struct OnboardingContainerView: View {
                     coordinator.start()
                 }
             } else if isLoading {
-                ProgressView("Initializing...")
-                    .frame(maxWidth: .infinity, maxHeight: .infinity)
-                    .background(Color("BackgroundPrimary"))
+                BaseScreen {
+                    VStack {
+                        Spacer()
+                        ProgressView("Initializing...")
+                            .font(.system(size: 16, weight: .medium, design: .rounded))
+                            .foregroundStyle(.primary)
+                        Spacer()
+                    }
+                }
             } else if let error = loadError {
                 VStack(spacing: 16) {
                     Image(systemName: "exclamationmark.triangle.fill")
@@ -114,15 +121,28 @@ struct OnboardingContainerView: View {
                         .foregroundColor(.secondary)
                         .multilineTextAlignment(.center)
                     
-                    StandardButton("Retry", style: .primary) {
+                    Button {
                         Task {
                             await loadCoordinator()
                         }
+                    } label: {
+                        Text("Retry")
+                            .font(.system(size: 16, weight: .medium, design: .rounded))
+                            .foregroundColor(.white)
+                            .frame(width: 120)
+                            .padding(.vertical, AppSpacing.sm)
+                            .background(
+                                LinearGradient(
+                                    colors: [Color.accentColor, Color.accentColor.opacity(0.8)],
+                                    startPoint: .leading,
+                                    endPoint: .trailing
+                                )
+                            )
+                            .clipShape(RoundedRectangle(cornerRadius: 12))
                     }
                 }
                 .padding()
                 .frame(maxWidth: .infinity, maxHeight: .infinity)
-                .background(Color("BackgroundPrimary"))
             }
         }
         .task {
@@ -161,7 +181,7 @@ private struct WelcomeView: View {
                 .font(.system(size: 100))
                 .foregroundStyle(
                     LinearGradient(
-                        colors: [Color("AccentColor"), Color("AccentSecondary")],
+                        colors: [Color.accentColor, Color.accentColor.opacity(0.8)],
                         startPoint: .topLeading,
                         endPoint: .bottomTrailing
                     )
@@ -169,14 +189,14 @@ private struct WelcomeView: View {
                 .scaleEffect(isAnimating ? 1.0 : 0.8)
                 .animation(.spring(response: 0.8, dampingFraction: 0.5), value: isAnimating)
             
-            VStack(spacing: 16) {
-                Text("Welcome to AirFit")
-                    .font(.largeTitle.bold())
+            VStack(spacing: AppSpacing.md) {
+                CascadeText("Welcome to AirFit")
+                    .font(.system(size: 42, weight: .bold, design: .rounded))
                     .multilineTextAlignment(.center)
                 
                 Text("Let's create your personalized AI fitness coach")
-                    .font(.title3)
-                    .foregroundColor(.secondary)
+                    .font(.system(size: 20, weight: .regular, design: .rounded))
+                    .foregroundStyle(.secondary)
                     .multilineTextAlignment(.center)
             }
             .padding(.horizontal)
@@ -184,21 +204,30 @@ private struct WelcomeView: View {
             Spacer()
             
             // Get started button
-            Button(action: {
+            Button {
+                HapticService.impact(.medium)
                 Task {
                     await coordinator.beginConversation()
                 }
-            }) {
-                HStack {
+            } label: {
+                HStack(spacing: AppSpacing.sm) {
                     Text("Get Started")
-                        .fontWeight(.semibold)
+                        .font(.system(size: 18, weight: .semibold, design: .rounded))
                     Image(systemName: "arrow.right")
+                        .font(.system(size: 16, weight: .semibold))
                 }
-                .frame(maxWidth: .infinity)
-                .padding()
-                .background(Color("AccentColor"))
                 .foregroundColor(.white)
-                .cornerRadius(12)
+                .frame(maxWidth: .infinity)
+                .padding(.vertical, AppSpacing.md)
+                .background(
+                    LinearGradient(
+                        colors: [Color.accentColor, Color.accentColor.opacity(0.8)],
+                        startPoint: .leading,
+                        endPoint: .trailing
+                    )
+                )
+                .clipShape(RoundedRectangle(cornerRadius: 16))
+                .shadow(color: Color.accentColor.opacity(0.3), radius: 8, y: 4)
             }
             .padding(.horizontal, 32)
             .padding(.bottom, 50)
@@ -225,10 +254,24 @@ private struct ConversationFlowView: View {
                 .frame(maxWidth: .infinity, maxHeight: .infinity)
             
             // Complete button for testing
-            StandardButton("Complete Conversation", style: .primary) {
+            Button {
                 Task {
                     await coordinator.completeConversation()
                 }
+            } label: {
+                Text("Complete Conversation")
+                    .font(.system(size: 16, weight: .medium, design: .rounded))
+                    .foregroundColor(.white)
+                    .frame(maxWidth: .infinity)
+                    .padding(.vertical, AppSpacing.sm)
+                    .background(
+                        LinearGradient(
+                            colors: [Color.accentColor, Color.accentColor.opacity(0.8)],
+                            startPoint: .leading,
+                            endPoint: .trailing
+                        )
+                    )
+                    .clipShape(RoundedRectangle(cornerRadius: 12))
             }
             .padding()
         }
@@ -249,7 +292,7 @@ private struct GeneratingPersonaView: View {
             // Animated loading icon
             ProgressView()
                 .scaleEffect(1.5)
-                .progressViewStyle(CircularProgressViewStyle(tint: Color("AccentColor")))
+                .progressViewStyle(CircularProgressViewStyle(tint: Color.accentColor))
             
             VStack(spacing: 8) {
                 Text("Creating Your Coach\(dots)")
@@ -317,13 +360,27 @@ private struct ContainerCompletionView: View {
             
             Spacer()
             
-            Button("Start Training") {
-                // Complete onboarding by accepting the persona
+            Button {
+                HapticService.notification(.success)
                 Task {
                     await coordinator.acceptPersona()
                 }
+            } label: {
+                Text("Start Training")
+                    .font(.system(size: 18, weight: .semibold, design: .rounded))
+                    .foregroundColor(.white)
+                    .frame(maxWidth: .infinity)
+                    .padding(.vertical, AppSpacing.md)
+                    .background(
+                        LinearGradient(
+                            colors: [Color.green, Color.green.opacity(0.8)],
+                            startPoint: .leading,
+                            endPoint: .trailing
+                        )
+                    )
+                    .clipShape(RoundedRectangle(cornerRadius: 16))
+                    .shadow(color: Color.green.opacity(0.3), radius: 8, y: 4)
             }
-            .controlSize(.large)
             .padding(.horizontal, 32)
             .padding(.bottom, 50)
         }
@@ -340,12 +397,18 @@ private struct ContainerProgressBar: View {
             ZStack(alignment: .leading) {
                 // Background
                 RoundedRectangle(cornerRadius: 4)
-                    .fill(Color.gray.opacity(0.2))
+                    .fill(.ultraThinMaterial)
                     .frame(height: 8)
                 
                 // Progress
                 RoundedRectangle(cornerRadius: 4)
-                    .fill(Color("AccentColor"))
+                    .fill(
+                        LinearGradient(
+                            colors: [Color.accentColor, Color.accentColor.opacity(0.8)],
+                            startPoint: .leading,
+                            endPoint: .trailing
+                        )
+                    )
                     .frame(width: geometry.size.width * progress, height: 8)
                     .animation(.smooth, value: progress)
             }

@@ -106,11 +106,7 @@ struct SettingsListView: View {
                             Text("Done")
                                 .font(.system(size: 17, weight: .medium, design: .rounded))
                                 .foregroundStyle(
-                                    LinearGradient(
-                                        colors: gradientManager.currentGradient(for: colorScheme).colors,
-                                        startPoint: .leading,
-                                        endPoint: .trailing
-                                    )
+                                    gradientManager.currentGradient(for: colorScheme)
                                 )
                         }
                     }
@@ -143,7 +139,7 @@ struct SettingsListView: View {
             // Section header
             HStack {
                 Text("AI Configuration")
-                    .font(.system(.footnote, weight: .medium, design: .rounded))
+                    .font(.system(size: 13, weight: .medium, design: .rounded))
                     .textCase(.uppercase)
                     .foregroundStyle(.secondary.opacity(0.8))
                 Spacer()
@@ -160,12 +156,13 @@ struct SettingsListView: View {
                                 .font(.system(size: 20))
                                 .foregroundStyle(
                                     LinearGradient(
-                                        colors: gradientManager.currentGradient(for: colorScheme).colors,
+                                        colors: gradientManager.active.colors(for: colorScheme),
                                         startPoint: .topLeading,
                                         endPoint: .bottomTrailing
                                     )
                                 )
                                 .frame(width: 28, height: 28)
+                                .accessibilityHidden(true)
                             
                             VStack(alignment: .leading, spacing: 4) {
                                 Text("AI Coach Persona")
@@ -180,10 +177,15 @@ struct SettingsListView: View {
                             Image(systemName: "chevron.right")
                                 .font(.system(size: 14, weight: .medium))
                                 .foregroundStyle(.secondary)
+                                .accessibilityHidden(true)
                         }
                         .padding(.vertical, AppSpacing.sm)
                         .padding(.horizontal, AppSpacing.md)
                     }
+                    .accessibilityElement(children: .combine)
+                    .accessibilityLabel("AI Coach Persona")
+                    .accessibilityHint("Customize your coach's personality and coaching style")
+                    .accessibilityAddTraits(.isButton)
                     
                     Divider()
                         .padding(.horizontal, AppSpacing.md)
@@ -195,12 +197,13 @@ struct SettingsListView: View {
                                 .font(.system(size: 20))
                                 .foregroundStyle(
                                     LinearGradient(
-                                        colors: gradientManager.currentGradient(for: colorScheme).colors,
+                                        colors: gradientManager.active.colors(for: colorScheme),
                                         startPoint: .topLeading,
                                         endPoint: .bottomTrailing
                                     )
                                 )
                                 .frame(width: 28, height: 28)
+                                .accessibilityHidden(true)
                             
                             VStack(alignment: .leading, spacing: 4) {
                                 Text("AI Provider")
@@ -215,10 +218,16 @@ struct SettingsListView: View {
                             Image(systemName: "chevron.right")
                                 .font(.system(size: 14, weight: .medium))
                                 .foregroundStyle(.secondary)
+                                .accessibilityHidden(true)
                         }
                         .padding(.vertical, AppSpacing.sm)
                         .padding(.horizontal, AppSpacing.md)
                     }
+                    .accessibilityElement(children: .combine)
+                    .accessibilityLabel("AI Provider")
+                    .accessibilityValue("Currently using \(viewModel.selectedProvider.displayName)")
+                    .accessibilityHint("Configure your AI provider and API settings")
+                    .accessibilityAddTraits(.isButton)
                     
                     Divider()
                         .padding(.horizontal, AppSpacing.md)
@@ -229,7 +238,7 @@ struct SettingsListView: View {
                             .font(.system(size: 20))
                             .foregroundStyle(
                                 LinearGradient(
-                                    colors: gradientManager.currentGradient(for: colorScheme).colors,
+                                    colors: gradientManager.active.colors(for: colorScheme),
                                     startPoint: .topLeading,
                                     endPoint: .bottomTrailing
                                 )
@@ -248,7 +257,7 @@ struct SettingsListView: View {
                         
                         Toggle("", isOn: $viewModel.isDemoModeEnabled)
                             .labelsHidden()
-                            .tint(Color(gradientManager.currentGradient(for: colorScheme).colors.first ?? .accentColor))
+                            .tint(Color(gradientManager.active.colors(for: colorScheme).first ?? .accentColor))
                             .onChange(of: viewModel.isDemoModeEnabled) { _, newValue in
                                 HapticService.impact(.soft)
                                 Task {
@@ -267,7 +276,7 @@ struct SettingsListView: View {
         VStack(spacing: AppSpacing.xs) {
             HStack {
                 Text("Preferences")
-                    .font(.system(.footnote, weight: .medium, design: .rounded))
+                    .font(.system(size: 13, weight: .medium, design: .rounded))
                     .textCase(.uppercase)
                     .foregroundStyle(.secondary.opacity(0.8))
                 Spacer()
@@ -284,7 +293,7 @@ struct SettingsListView: View {
                                 .font(.system(size: 20))
                                 .foregroundStyle(
                                     LinearGradient(
-                                        colors: gradientManager.currentGradient(for: colorScheme).colors,
+                                        colors: gradientManager.active.colors(for: colorScheme),
                                         startPoint: .topLeading,
                                         endPoint: .bottomTrailing
                                     )
@@ -318,7 +327,7 @@ struct SettingsListView: View {
                                 .font(.system(size: 20))
                                 .foregroundStyle(
                                     LinearGradient(
-                                        colors: gradientManager.currentGradient(for: colorScheme).colors,
+                                        colors: gradientManager.active.colors(for: colorScheme),
                                         startPoint: .topLeading,
                                         endPoint: .bottomTrailing
                                     )
@@ -352,7 +361,7 @@ struct SettingsListView: View {
                                 .font(.system(size: 20))
                                 .foregroundStyle(
                                     LinearGradient(
-                                        colors: gradientManager.currentGradient(for: colorScheme).colors,
+                                        colors: gradientManager.active.colors(for: colorScheme),
                                         startPoint: .topLeading,
                                         endPoint: .bottomTrailing
                                     )
@@ -369,7 +378,7 @@ struct SettingsListView: View {
                                     .font(.caption)
                                     .foregroundStyle(
                                         LinearGradient(
-                                            colors: gradientManager.currentGradient(for: colorScheme).colors,
+                                            colors: gradientManager.active.colors(for: colorScheme),
                                             startPoint: .leading,
                                             endPoint: .trailing
                                         )
@@ -393,7 +402,7 @@ struct SettingsListView: View {
                             .font(.system(size: 20))
                             .foregroundStyle(
                                 LinearGradient(
-                                    colors: gradientManager.currentGradient(for: colorScheme).colors,
+                                    colors: gradientManager.active.colors(for: colorScheme),
                                     startPoint: .topLeading,
                                     endPoint: .bottomTrailing
                                 )
@@ -407,7 +416,7 @@ struct SettingsListView: View {
                         
                         Toggle("", isOn: $viewModel.hapticFeedback)
                             .labelsHidden()
-                            .tint(Color(gradientManager.currentGradient(for: colorScheme).colors.first ?? .accentColor))
+                            .tint(Color(gradientManager.active.colors(for: colorScheme).first ?? .accentColor))
                             .onChange(of: viewModel.hapticFeedback) { _, newValue in
                                 HapticService.impact(.soft)
                                 Task {
@@ -429,7 +438,7 @@ struct SettingsListView: View {
         VStack(spacing: AppSpacing.xs) {
             HStack {
                 Text("Privacy & Security")
-                    .font(.system(.footnote, weight: .medium, design: .rounded))
+                    .font(.system(size: 13, weight: .medium, design: .rounded))
                     .textCase(.uppercase)
                     .foregroundStyle(.secondary.opacity(0.8))
                 Spacer()
@@ -446,7 +455,7 @@ struct SettingsListView: View {
                                 .font(.system(size: 20))
                                 .foregroundStyle(
                                     LinearGradient(
-                                        colors: gradientManager.currentGradient(for: colorScheme).colors,
+                                        colors: gradientManager.active.colors(for: colorScheme),
                                         startPoint: .topLeading,
                                         endPoint: .bottomTrailing
                                     )
@@ -475,7 +484,7 @@ struct SettingsListView: View {
                             .font(.system(size: 20))
                             .foregroundStyle(
                                 LinearGradient(
-                                    colors: gradientManager.currentGradient(for: colorScheme).colors,
+                                    colors: gradientManager.active.colors(for: colorScheme),
                                     startPoint: .topLeading,
                                     endPoint: .bottomTrailing
                                 )
@@ -489,7 +498,7 @@ struct SettingsListView: View {
                         
                         Toggle("", isOn: $viewModel.biometricLockEnabled)
                             .labelsHidden()
-                            .tint(Color(gradientManager.currentGradient(for: colorScheme).colors.first ?? .accentColor))
+                            .tint(Color(gradientManager.active.colors(for: colorScheme).first ?? .accentColor))
                             .onChange(of: viewModel.biometricLockEnabled) { _, newValue in
                                 HapticService.impact(.soft)
                                 Task {
@@ -518,7 +527,7 @@ struct SettingsListView: View {
                             .font(.system(size: 20))
                             .foregroundStyle(
                                 LinearGradient(
-                                    colors: gradientManager.currentGradient(for: colorScheme).colors,
+                                    colors: gradientManager.active.colors(for: colorScheme),
                                     startPoint: .topLeading,
                                     endPoint: .bottomTrailing
                                 )
@@ -532,7 +541,7 @@ struct SettingsListView: View {
                         
                         Toggle("", isOn: $viewModel.analyticsEnabled)
                             .labelsHidden()
-                            .tint(Color(gradientManager.currentGradient(for: colorScheme).colors.first ?? .accentColor))
+                            .tint(Color(gradientManager.active.colors(for: colorScheme).first ?? .accentColor))
                             .onChange(of: viewModel.analyticsEnabled) { _, newValue in
                                 HapticService.impact(.soft)
                                 Task {
@@ -551,7 +560,7 @@ struct SettingsListView: View {
         VStack(spacing: AppSpacing.xs) {
             HStack {
                 Text("Data Management")
-                    .font(.system(.footnote, weight: .medium, design: .rounded))
+                    .font(.system(size: 13, weight: .medium, design: .rounded))
                     .textCase(.uppercase)
                     .foregroundStyle(.secondary.opacity(0.8))
                 Spacer()
@@ -568,7 +577,7 @@ struct SettingsListView: View {
                                 .font(.system(size: 20))
                                 .foregroundStyle(
                                     LinearGradient(
-                                        colors: gradientManager.currentGradient(for: colorScheme).colors,
+                                        colors: gradientManager.active.colors(for: colorScheme),
                                         startPoint: .topLeading,
                                         endPoint: .bottomTrailing
                                     )
@@ -628,7 +637,7 @@ struct SettingsListView: View {
         VStack(spacing: AppSpacing.xs) {
             HStack {
                 Text("Support")
-                    .font(.system(.footnote, weight: .medium, design: .rounded))
+                    .font(.system(size: 13, weight: .medium, design: .rounded))
                     .textCase(.uppercase)
                     .foregroundStyle(.secondary.opacity(0.8))
                 Spacer()
@@ -645,7 +654,7 @@ struct SettingsListView: View {
                                 .font(.system(size: 20))
                                 .foregroundStyle(
                                     LinearGradient(
-                                        colors: gradientManager.currentGradient(for: colorScheme).colors,
+                                        colors: gradientManager.active.colors(for: colorScheme),
                                         startPoint: .topLeading,
                                         endPoint: .bottomTrailing
                                     )
@@ -679,7 +688,7 @@ struct SettingsListView: View {
                                 .font(.system(size: 20))
                                 .foregroundStyle(
                                     LinearGradient(
-                                        colors: gradientManager.currentGradient(for: colorScheme).colors,
+                                        colors: gradientManager.active.colors(for: colorScheme),
                                         startPoint: .topLeading,
                                         endPoint: .bottomTrailing
                                     )
@@ -709,7 +718,7 @@ struct SettingsListView: View {
                                 .font(.system(size: 20))
                                 .foregroundStyle(
                                     LinearGradient(
-                                        colors: gradientManager.currentGradient(for: colorScheme).colors,
+                                        colors: gradientManager.active.colors(for: colorScheme),
                                         startPoint: .topLeading,
                                         endPoint: .bottomTrailing
                                     )
@@ -739,7 +748,7 @@ struct SettingsListView: View {
                                 .font(.system(size: 20))
                                 .foregroundStyle(
                                     LinearGradient(
-                                        colors: gradientManager.currentGradient(for: colorScheme).colors,
+                                        colors: gradientManager.active.colors(for: colorScheme),
                                         startPoint: .topLeading,
                                         endPoint: .bottomTrailing
                                     )
@@ -768,7 +777,7 @@ struct SettingsListView: View {
         VStack(spacing: AppSpacing.xs) {
             HStack {
                 Text("Developer")
-                    .font(.system(.footnote, weight: .medium, design: .rounded))
+                    .font(.system(size: 13, weight: .medium, design: .rounded))
                     .textCase(.uppercase)
                     .foregroundStyle(.secondary.opacity(0.8))
                 Spacer()
@@ -783,7 +792,7 @@ struct SettingsListView: View {
                             .font(.system(size: 20))
                             .foregroundStyle(
                                 LinearGradient(
-                                    colors: gradientManager.currentGradient(for: colorScheme).colors,
+                                    colors: gradientManager.active.colors(for: colorScheme),
                                     startPoint: .topLeading,
                                     endPoint: .bottomTrailing
                                 )
@@ -926,20 +935,26 @@ struct PersonaRefinementFlow: View {
                 // Navigation buttons
                 HStack(spacing: AppSpacing.md) {
                     if currentStep > 0 {
-                        StandardButton("Back", style: .secondary) {
+                        Button {
                             withAnimation {
                                 currentStep -= 1
                             }
+                        } label: {
+                            Text("Back")
+                                .font(.system(size: 16, weight: .medium, design: .rounded))
+                                .foregroundColor(.primary)
+                                .frame(minWidth: 80)
+                                .padding(.vertical, AppSpacing.sm)
+                                .background(
+                                    RoundedRectangle(cornerRadius: 12)
+                                        .fill(.ultraThinMaterial)
+                                )
                         }
                     }
                     
                     Spacer()
                     
-                    StandardButton(
-                        currentStep == 2 ? "Apply Changes" : "Next",
-                        style: .primary,
-                        isEnabled: !(currentStep == 1 && refinementOptions.filter(\.isSelected).isEmpty)
-                    ) {
+                    Button {
                         if currentStep == 2 {
                             applyRefinements()
                         } else {
@@ -947,7 +962,22 @@ struct PersonaRefinementFlow: View {
                                 currentStep += 1
                             }
                         }
+                    } label: {
+                        Text(currentStep == 2 ? "Apply Changes" : "Next")
+                            .font(.system(size: 16, weight: .medium, design: .rounded))
+                            .foregroundColor(.white)
+                            .frame(maxWidth: .infinity)
+                            .padding(.vertical, AppSpacing.sm)
+                            .background(
+                                LinearGradient(
+                                    colors: [Color.accentColor, Color.accentColor.opacity(0.8)],
+                                    startPoint: .leading,
+                                    endPoint: .trailing
+                                )
+                            )
+                            .clipShape(RoundedRectangle(cornerRadius: 12))
                     }
+                    .disabled(currentStep == 1 && refinementOptions.filter(\.isSelected).isEmpty)
                 }
                 .padding()
             }
@@ -979,7 +1009,7 @@ struct PersonaRefinementFlow: View {
                 .foregroundStyle(.secondary)
                 .multilineTextAlignment(.center)
             
-            StandardCard {
+            GlassCard {
                 VStack(alignment: .leading, spacing: AppSpacing.sm) {
                     Text("What would you like to change?")
                         .font(.subheadline.bold())
@@ -1024,7 +1054,7 @@ struct PersonaRefinementFlow: View {
             Text("Refinement Summary")
                 .font(.title2.bold())
             
-            StandardCard {
+            GlassCard {
                 VStack(alignment: .leading, spacing: AppSpacing.md) {
                     Label("Your Request", systemImage: "text.quote")
                         .font(.subheadline.bold())
@@ -1101,7 +1131,7 @@ struct PersonaRefinementFlow: View {
             try? await Task.sleep(nanoseconds: 2_000_000_000)
             
             await MainActor.run {
-                // TODO: Add haptic feedback via DI when needed
+                HapticService.play(.success)
                 dismiss()
             }
         }
@@ -1128,7 +1158,7 @@ struct RefinementOptionCard: View {
     @Binding var option: RefinementOption
     
     var body: some View {
-        StandardCard {
+        GlassCard {
             HStack(spacing: AppSpacing.md) {
                 VStack(alignment: .leading, spacing: AppSpacing.xs) {
                     Text(option.title)
@@ -1143,6 +1173,7 @@ struct RefinementOptionCard: View {
                 
                 Toggle("", isOn: $option.isSelected)
                     .labelsHidden()
+                    .tint(Color.accentColor)
             }
         }
     }
@@ -1177,9 +1208,23 @@ struct DataExportProgressView: View {
                             .foregroundStyle(.secondary)
                             .multilineTextAlignment(.center)
                         
-                        StandardButton("Try Again", style: .primary) {
+                        Button {
                             exportError = nil
                             startExport()
+                        } label: {
+                            Text("Try Again")
+                                .font(.system(size: 16, weight: .medium, design: .rounded))
+                                .foregroundColor(.white)
+                                .frame(maxWidth: .infinity)
+                                .padding(.vertical, AppSpacing.sm)
+                                .background(
+                                    LinearGradient(
+                                        colors: [Color.accentColor, Color.accentColor.opacity(0.8)],
+                                        startPoint: .leading,
+                                        endPoint: .trailing
+                                    )
+                                )
+                                .clipShape(RoundedRectangle(cornerRadius: 12))
                         }
                     }
                     .padding()
@@ -1206,17 +1251,36 @@ struct DataExportProgressView: View {
                         }
                         
                         HStack(spacing: AppSpacing.md) {
-                            StandardButton(
-                                "Share",
-                                icon: "square.and.arrow.up",
-                                style: .primary,
-                                isFullWidth: true
-                            ) {
+                            Button {
                                 showShareSheet = true
+                            } label: {
+                                Label("Share", systemImage: "square.and.arrow.up")
+                                    .font(.system(size: 16, weight: .medium, design: .rounded))
+                                    .foregroundColor(.white)
+                                    .frame(maxWidth: .infinity)
+                                    .padding(.vertical, AppSpacing.sm)
+                                    .background(
+                                        LinearGradient(
+                                            colors: [Color.accentColor, Color.accentColor.opacity(0.8)],
+                                            startPoint: .leading,
+                                            endPoint: .trailing
+                                        )
+                                    )
+                                    .clipShape(RoundedRectangle(cornerRadius: 12))
                             }
                             
-                            StandardButton("Done", style: .secondary) {
+                            Button {
                                 dismiss()
+                            } label: {
+                                Text("Done")
+                                    .font(.system(size: 16, weight: .medium, design: .rounded))
+                                    .foregroundColor(.primary)
+                                    .frame(minWidth: 80)
+                                    .padding(.vertical, AppSpacing.sm)
+                                    .background(
+                                        RoundedRectangle(cornerRadius: 12)
+                                            .fill(.ultraThinMaterial)
+                                    )
                             }
                         }
                     }
@@ -1335,12 +1399,12 @@ struct DataExportProgressView: View {
                 await MainActor.run {
                     exportProgress = 1.0
                     exportURL = url
-                    // TODO: Add haptic feedback via DI when needed
+                    HapticService.play(.success)
                 }
             } catch {
                 await MainActor.run {
                     exportError = error
-                    // TODO: Add haptic feedback via DI when needed
+                    HapticService.play(.error)
                 }
             }
         }
@@ -1385,7 +1449,7 @@ struct DeleteAccountView: View {
                     .padding(.top)
                     
                     // What will be deleted
-                    StandardCard {
+                    GlassCard {
                         VStack(alignment: .leading, spacing: AppSpacing.md) {
                             Label("What will be deleted:", systemImage: "trash")
                                 .font(.headline)
@@ -1402,7 +1466,7 @@ struct DeleteAccountView: View {
                     }
                     
                     // What you can keep
-                    StandardCard {
+                    GlassCard {
                         VStack(alignment: .leading, spacing: AppSpacing.md) {
                             Label("Before you go:", systemImage: "square.and.arrow.down")
                                 .font(.headline)
@@ -1418,15 +1482,17 @@ struct DeleteAccountView: View {
                                 }
                                 .frame(maxWidth: .infinity)
                                 .frame(height: 44)
-                                .background(AppColors.backgroundSecondary)
-                                .foregroundColor(AppColors.textPrimary)
-                                .cornerRadius(AppConstants.Layout.defaultCornerRadius)
+                                .background(
+                                    RoundedRectangle(cornerRadius: 12)
+                                        .fill(.ultraThinMaterial)
+                                )
+                                .foregroundColor(.primary)
                             }
                         }
                     }
                     
                     // Confirmation input
-                    StandardCard {
+                    GlassCard {
                         VStack(alignment: .leading, spacing: AppSpacing.md) {
                             Text("To confirm deletion, type \"\(confirmationPhrase)\" below:")
                                 .font(.callout)
@@ -1445,15 +1511,31 @@ struct DeleteAccountView: View {
                     }
                     
                     // Delete button
-                    StandardButton(
-                        "Delete My Account",
-                        style: .destructive,
-                        isFullWidth: true,
-                        isLoading: isDeleting,
-                        isEnabled: confirmationText == confirmationPhrase && !isDeleting
-                    ) {
+                    Button {
                         showFinalConfirmation = true
+                    } label: {
+                        if isDeleting {
+                            ProgressView()
+                                .tint(.white)
+                                .frame(maxWidth: .infinity)
+                                .frame(height: 44)
+                                .background(
+                                    RoundedRectangle(cornerRadius: 12)
+                                        .fill(Color.red.opacity(0.5))
+                                )
+                        } else {
+                            Text("Delete My Account")
+                                .font(.system(size: 16, weight: .medium, design: .rounded))
+                                .foregroundColor(.white)
+                                .frame(maxWidth: .infinity)
+                                .padding(.vertical, AppSpacing.sm)
+                                .background(
+                                    RoundedRectangle(cornerRadius: 12)
+                                        .fill(Color.red)
+                                )
+                        }
                     }
+                    .disabled(confirmationText != confirmationPhrase || isDeleting)
                     
                     // Alternative actions
                     VStack(spacing: AppSpacing.sm) {
@@ -1834,7 +1916,7 @@ struct DebugSettingsView: View {
             await MainActor.run {
                 isProcessing = false
                 statusMessage = "Cache cleared successfully"
-                // TODO: Add haptic feedback via DI when needed
+                HapticService.play(.success)
                 // Clear status after delay
                 Task {
                     try? await Task.sleep(nanoseconds: 3_000_000_000)
@@ -1856,7 +1938,7 @@ struct DebugSettingsView: View {
             await MainActor.run {
                 isProcessing = false
                 statusMessage = "Onboarding reset. Please restart the app."
-                // TODO: Add haptic feedback via DI when needed
+                HapticService.play(.warning)
             }
         }
     }
@@ -1884,7 +1966,7 @@ struct DebugSettingsView: View {
                 isProcessing = false
                 exportedLogsURL = IdentifiableURL(url: tempURL)
                 statusMessage = "Logs exported"
-                // TODO: Add haptic feedback via DI when needed
+                HapticService.play(.success)
             }
         }
     }

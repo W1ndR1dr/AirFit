@@ -84,16 +84,16 @@ struct ChoiceCardsView: View {
             // Single select - replace selection
             selectedIds = [optionId]
         }
-                 // TODO: Add haptic feedback via DI when needed
+        HapticService.play(.listSelection)
     }
     
     private func submitChoices() {
         guard isValid else {
             showError = true
-            // TODO: Add haptic feedback via DI when needed
+            HapticService.play(.error)
             return
         }
-                 // TODO: Add haptic feedback via DI when needed
+        HapticService.play(.success)
         onSubmit(Array(selectedIds))
     }
 }

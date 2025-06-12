@@ -15,109 +15,229 @@ struct SleepAndBoundariesView: View {
     }
 
     var body: some View {
-        VStack(spacing: AppSpacing.large) {
-            ScrollView {
-                VStack(alignment: .leading, spacing: AppSpacing.large) {
-                    VStack(alignment: .leading, spacing: AppSpacing.small) {
-                        Text(LocalizedStringKey("onboarding.sleep.prompt"))
-                            .font(AppFonts.body)
-                            .foregroundColor(AppColors.textPrimary)
-                            .accessibilityIdentifier("onboarding.sleep.prompt")
-                        if viewModel.hasHealthKitIntegration {
-                            HStack {
-                                Image(systemName: "heart.fill")
-                                    .foregroundColor(AppColors.accentColor)
-                                    .font(.caption)
-                                Text("Pre-filled from HealthKit when available")
-                                    .font(AppFonts.caption)
-                                    .foregroundColor(AppColors.textSecondary)
+        BaseScreen {
+            VStack(spacing: 0) {
+                // Title header
+                HStack {
+                    CascadeText("Sleep Schedule")
+                        .font(.system(size: 34, weight: .bold, design: .rounded))
+                    Spacer()
+                }
+                .padding(.horizontal, AppSpacing.lg)
+                .padding(.top, AppSpacing.sm)
+                .padding(.bottom, AppSpacing.lg)
+                
+                ScrollView {
+                    VStack(alignment: .leading, spacing: AppSpacing.xl) {
+                        VStack(alignment: .leading, spacing: AppSpacing.sm) {
+                            Text(LocalizedStringKey("onboarding.sleep.prompt"))
+                                .font(.system(size: 18, weight: .regular, design: .rounded))
+                                .foregroundStyle(.primary)
+                                .accessibilityIdentifier("onboarding.sleep.prompt")
+                            
+                            if viewModel.hasHealthKitIntegration {
+                                HStack(spacing: AppSpacing.xs) {
+                                    Image(systemName: "heart.fill")
+                                        .font(.system(size: 14))
+                                        .foregroundStyle(
+                                            LinearGradient(
+                                                colors: [Color.accentColor, Color.accentColor.opacity(0.8)],
+                                                startPoint: .topLeading,
+                                                endPoint: .bottomTrailing
+                                            )
+                                        )
+                                    Text("Pre-filled from HealthKit when available")
+                                        .font(.system(size: 14, weight: .regular, design: .rounded))
+                                        .foregroundStyle(.secondary)
+                                }
                             }
                         }
-                    }
-                    .padding(.horizontal, AppSpacing.large)
+                        .padding(.horizontal, AppSpacing.lg)
 
-                    timeSlider(
-                        title: LocalizedStringKey("onboarding.sleep.bedtime"),
-                        minutes: $bedMinutes,
-                        id: "onboarding.sleep.bedtime"
-                    )
-                    .onChange(of: bedMinutes) { _, newValue in
-                        viewModel.sleepWindow.bedTime = Self.hhmm(from: newValue)
-                    }
-
-                    timeSlider(
-                        title: LocalizedStringKey("onboarding.sleep.waketime"),
-                        minutes: $wakeMinutes,
-                        id: "onboarding.sleep.waketime"
-                    )
-                    .onChange(of: wakeMinutes) { _, newValue in
-                        viewModel.sleepWindow.wakeTime = Self.hhmm(from: newValue)
-                    }
-
-                    VStack(alignment: .leading, spacing: AppSpacing.small) {
-                        Text(LocalizedStringKey("onboarding.sleep.rhythmPrompt"))
-                            .font(AppFonts.headline)
-                            .foregroundColor(AppColors.textPrimary)
-                        ForEach(SleepWindow.SleepConsistency.allCases, id: \.self) { option in
-                            radioOption(
-                                title: option.displayName,
-                                isSelected: viewModel.sleepWindow.consistency == option,
-                                action: { viewModel.sleepWindow.consistency = option },
-                                id: "onboarding.sleep.consistency.\(option.rawValue)"
+                        // Time Sliders
+                        VStack(spacing: AppSpacing.lg) {
+                            timeSlider(
+                                title: LocalizedStringKey("onboarding.sleep.bedtime"),
+                                icon: "moon.fill",
+                                minutes: $bedMinutes,
+                                id: "onboarding.sleep.bedtime"
                             )
+                            .onChange(of: bedMinutes) { _, newValue in
+                                viewModel.sleepWindow.bedTime = Self.hhmm(from: newValue)
+                            }
+
+                            timeSlider(
+                                title: LocalizedStringKey("onboarding.sleep.waketime"),
+                                icon: "sun.max.fill",
+                                minutes: $wakeMinutes,
+                                id: "onboarding.sleep.waketime"
+                            )
+                            .onChange(of: wakeMinutes) { _, newValue in
+                                viewModel.sleepWindow.wakeTime = Self.hhmm(from: newValue)
+                            }
                         }
+
+                        // Sleep Consistency Section
+                        VStack(alignment: .leading, spacing: AppSpacing.md) {
+                            Text(LocalizedStringKey("onboarding.sleep.rhythmPrompt"))
+                                .font(.system(size: 20, weight: .semibold, design: .rounded))
+                                .foregroundStyle(.primary)
+                                .padding(.horizontal, AppSpacing.lg)
+                            
+                            VStack(spacing: AppSpacing.sm) {
+                                ForEach(SleepWindow.SleepConsistency.allCases, id: \.self) { option in
+                                    radioOption(
+                                        title: option.displayName,
+                                        isSelected: viewModel.sleepWindow.consistency == option,
+                                        action: {
+                                            HapticService.impact(.light)
+                                            viewModel.sleepWindow.consistency = option
+                                        },
+                                        id: "onboarding.sleep.consistency.\(option.rawValue)"
+                                    )
+                                }
+                            }
+                            .padding(.horizontal, AppSpacing.lg)
+                        }
+
+                        // Timezone Info
+                        HStack {
+                            Image(systemName: "globe")
+                                .font(.system(size: 14))
+                                .foregroundStyle(.secondary)
+                            Text("Timezone: \(viewModel.timezone)")
+                                .font(.system(size: 14, weight: .regular, design: .rounded))
+                                .foregroundStyle(.secondary)
+                        }
+                        .padding(.horizontal, AppSpacing.lg)
+                        .padding(.bottom, AppSpacing.lg)
                     }
-                    .padding(.horizontal, AppSpacing.large)
-
-                    Text("Timezone: \(viewModel.timezone)")
-                        .font(AppFonts.caption)
-                        .foregroundColor(AppColors.textSecondary)
-                        .padding(.horizontal, AppSpacing.large)
                 }
-            }
 
-            OnboardingNavigationButtons(
-                backAction: viewModel.navigateToPreviousScreen,
-                nextAction: viewModel.navigateToNextScreen
-            )
+                // Navigation buttons
+                HStack(spacing: AppSpacing.md) {
+                    Button {
+                        viewModel.navigateToPreviousScreen()
+                    } label: {
+                        Text("Back")
+                            .font(.system(size: 16, weight: .medium, design: .rounded))
+                            .foregroundColor(.primary)
+                            .frame(maxWidth: .infinity)
+                            .padding(.vertical, AppSpacing.sm)
+                            .background(
+                                RoundedRectangle(cornerRadius: 12)
+                                    .fill(.ultraThinMaterial)
+                                    .overlay(
+                                        RoundedRectangle(cornerRadius: 12)
+                                            .strokeBorder(Color.secondary.opacity(0.2), lineWidth: 1)
+                                    )
+                            )
+                    }
+                    
+                    Button {
+                        viewModel.navigateToNextScreen()
+                    } label: {
+                        Text("Next")
+                            .font(.system(size: 16, weight: .medium, design: .rounded))
+                            .foregroundColor(.white)
+                            .frame(maxWidth: .infinity)
+                            .padding(.vertical, AppSpacing.sm)
+                            .background(
+                                LinearGradient(
+                                    colors: [Color.accentColor, Color.accentColor.opacity(0.8)],
+                                    startPoint: .leading,
+                                    endPoint: .trailing
+                                )
+                            )
+                            .clipShape(RoundedRectangle(cornerRadius: 12))
+                    }
+                }
+                .padding(AppSpacing.lg)
+            }
         }
         .accessibilityElement(children: .contain)
         .accessibilityIdentifier("onboarding.sleepBoundaries")
     }
 
     // MARK: - Helpers
-    private func timeSlider(title: LocalizedStringKey, minutes: Binding<Double>, id: String) -> some View {
-        VStack(alignment: .leading, spacing: AppSpacing.xSmall) {
+    private func timeSlider(title: LocalizedStringKey, icon: String, minutes: Binding<Double>, id: String) -> some View {
+        VStack(spacing: AppSpacing.sm) {
             HStack {
-                Text(title)
-                    .font(AppFonts.body)
-                    .foregroundColor(AppColors.textPrimary)
+                HStack(spacing: AppSpacing.sm) {
+                    Image(systemName: icon)
+                        .font(.system(size: 18))
+                        .foregroundStyle(
+                            LinearGradient(
+                                colors: [Color.accentColor, Color.accentColor.opacity(0.8)],
+                                startPoint: .topLeading,
+                                endPoint: .bottomTrailing
+                            )
+                        )
+                    Text(title)
+                        .font(.system(size: 16, weight: .medium, design: .rounded))
+                        .foregroundStyle(.primary)
+                }
                 Spacer()
                 Text(displayTime(minutes.wrappedValue))
-                    .font(AppFonts.captionBold)
-                    .foregroundColor(AppColors.textSecondary)
+                    .font(.system(size: 18, weight: .semibold, design: .rounded))
+                    .foregroundStyle(
+                        LinearGradient(
+                            colors: [Color.accentColor, Color.accentColor.opacity(0.8)],
+                            startPoint: .leading,
+                            endPoint: .trailing
+                        )
+                    )
                     .accessibilityLabel("Time: \(displayTime(minutes.wrappedValue))")
             }
 
             Slider(value: minutes, in: 0...1_439, step: 15)
-                .tint(AppColors.accentColor)
+                .tint(Color.accentColor)
                 .accessibilityIdentifier(id)
                 .accessibilityHint("Adjust time by dragging the slider")
         }
-        .padding(.horizontal, AppSpacing.large)
+        .padding(AppSpacing.md)
+        .background(
+            RoundedRectangle(cornerRadius: 12)
+                .fill(.ultraThinMaterial)
+        )
+        .padding(.horizontal, AppSpacing.lg)
     }
 
     private func radioOption(title: String, isSelected: Bool, action: @escaping () -> Void, id: String) -> some View {
         Button(action: action) {
             HStack {
                 Image(systemName: isSelected ? "largecircle.fill.circle" : "circle")
-                    .foregroundColor(AppColors.accentColor)
+                    .font(.system(size: 20))
+                    .foregroundStyle(
+                        isSelected
+                            ? LinearGradient(
+                                colors: [Color.accentColor, Color.accentColor.opacity(0.8)],
+                                startPoint: .topLeading,
+                                endPoint: .bottomTrailing
+                              )
+                            : LinearGradient(
+                                colors: [Color.secondary, Color.secondary],
+                                startPoint: .topLeading,
+                                endPoint: .bottomTrailing
+                              )
+                    )
                 Text(title)
-                    .font(AppFonts.body)
-                    .foregroundColor(AppColors.textPrimary)
+                    .font(.system(size: 16, weight: .regular, design: .rounded))
+                    .foregroundStyle(.primary)
                 Spacer()
             }
-            .padding(.vertical, AppSpacing.xSmall)
+            .padding(AppSpacing.md)
+            .background(
+                RoundedRectangle(cornerRadius: 12)
+                    .fill(.ultraThinMaterial)
+                    .overlay(
+                        RoundedRectangle(cornerRadius: 12)
+                            .strokeBorder(
+                                isSelected ? Color.accentColor.opacity(0.5) : Color.clear,
+                                lineWidth: 1
+                            )
+                    )
+            )
         }
         .buttonStyle(.plain)
         .accessibilityIdentifier(id)

@@ -15,10 +15,7 @@ struct FinalOnboardingFlow: View {
             if let coordinator = coordinator {
                 OnboardingErrorBoundary(content: {
                     NavigationStack {
-                        ZStack {
-                            // Background gradient
-                            backgroundGradient
-                            
+                        BaseScreen {
                             // Content with transitions
                             contentView(for: coordinator)
                                 .transition(.asymmetric(
@@ -33,7 +30,7 @@ struct FinalOnboardingFlow: View {
                                     Button("Exit") {
                                         showingExitConfirmation = true
                                     }
-                                    .foregroundColor(AppColors.textSecondary)
+                                    .foregroundStyle(.secondary)
                                 }
                             }
                         }
@@ -56,33 +53,54 @@ struct FinalOnboardingFlow: View {
                     coordinator.start()
                 }
             } else if isLoading {
-                ProgressView("Setting up...")
-                    .frame(maxWidth: .infinity, maxHeight: .infinity)
-                    .background(AppColors.backgroundPrimary)
-            } else if let error = loadError {
-                VStack(spacing: AppSpacing.large) {
-                    Image(systemName: "exclamationmark.triangle.fill")
-                        .font(.largeTitle)
-                        .foregroundColor(AppColors.errorColor)
-                    
-                    Text("Failed to initialize onboarding")
-                        .font(AppFonts.headline)
-                        .foregroundColor(AppColors.textPrimary)
-                    
-                    Text(error.localizedDescription)
-                        .font(AppFonts.body)
-                        .foregroundColor(AppColors.textSecondary)
-                        .multilineTextAlignment(.center)
-                    
-                    StandardButton("Retry", style: .primary) {
-                        Task {
-                            await loadCoordinator()
-                        }
+                BaseScreen {
+                    VStack {
+                        Spacer()
+                        ProgressView("Setting up...")
+                            .font(.system(size: 16, weight: .medium, design: .rounded))
+                            .foregroundStyle(.primary)
+                        Spacer()
                     }
                 }
-                .padding()
-                .frame(maxWidth: .infinity, maxHeight: .infinity)
-                .background(AppColors.backgroundPrimary)
+            } else if let error = loadError {
+                BaseScreen {
+                    VStack(spacing: AppSpacing.lg) {
+                        Image(systemName: "exclamationmark.triangle.fill")
+                            .font(.largeTitle)
+                            .foregroundStyle(.red)
+                        
+                        Text("Failed to initialize onboarding")
+                            .font(.system(size: 20, weight: .semibold, design: .rounded))
+                            .foregroundStyle(.primary)
+                        
+                        Text(error.localizedDescription)
+                            .font(.system(size: 16, weight: .regular, design: .rounded))
+                            .foregroundStyle(.secondary)
+                            .multilineTextAlignment(.center)
+                        
+                        Button {
+                            Task {
+                                await loadCoordinator()
+                            }
+                        } label: {
+                            Text("Retry")
+                                .font(.system(size: 16, weight: .medium, design: .rounded))
+                                .foregroundColor(.white)
+                                .frame(width: 120)
+                                .padding(.vertical, AppSpacing.sm)
+                                .background(
+                                    LinearGradient(
+                                        colors: [Color.accentColor, Color.accentColor.opacity(0.8)],
+                                        startPoint: .leading,
+                                        endPoint: .trailing
+                                    )
+                                )
+                                .clipShape(RoundedRectangle(cornerRadius: 12))
+                        }
+                    }
+                    .padding()
+                    .frame(maxWidth: .infinity, maxHeight: .infinity)
+                }
             }
         }
         .task {
@@ -136,18 +154,6 @@ struct FinalOnboardingFlow: View {
                 .id("complete")
         }
     }
-    
-    private var backgroundGradient: some View {
-        LinearGradient(
-            colors: [
-                AppColors.backgroundPrimary,
-                AppColors.backgroundSecondary.opacity(0.8)
-            ],
-            startPoint: .topLeading,
-            endPoint: .bottomTrailing
-        )
-        .ignoresSafeArea()
-    }
 }
 
 // MARK: - Welcome View
@@ -157,7 +163,7 @@ private struct WelcomeView: View {
     @State private var animationPhase = 0
     
     var body: some View {
-        VStack(spacing: AppSpacing.xxLarge) {
+        VStack(spacing: AppSpacing.xl) {
             Spacer()
             
             // Logo animation
@@ -165,7 +171,7 @@ private struct WelcomeView: View {
                 .font(.system(size: 120))
                 .foregroundStyle(
                     LinearGradient(
-                        colors: [AppColors.accentColor, AppColors.accentSecondary],
+                        colors: [Color.accentColor, Color.accentColor.opacity(0.8)],
                         startPoint: .topLeading,
                         endPoint: .bottomTrailing
                     )
@@ -174,53 +180,59 @@ private struct WelcomeView: View {
                 .opacity(animationPhase > 0 ? 1.0 : 0.0)
                 .animation(.spring(response: 0.6, dampingFraction: 0.8), value: animationPhase)
             
-            VStack(spacing: AppSpacing.medium) {
-                Text("Welcome to AirFit")
-                    .font(AppFonts.largeTitle)
-                    .foregroundColor(AppColors.textPrimary)
+            VStack(spacing: AppSpacing.md) {
+                CascadeText("Welcome to AirFit")
+                    .font(.system(size: 42, weight: .bold, design: .rounded))
+                    .foregroundStyle(.primary)
                     .opacity(animationPhase > 1 ? 1.0 : 0.0)
                     .offset(y: animationPhase > 1 ? 0 : 20)
                     .animation(.easeOut(duration: 0.5).delay(0.3), value: animationPhase)
                 
                 Text("Your AI-powered fitness journey starts here")
-                    .font(AppFonts.title3)
-                    .foregroundColor(AppColors.textSecondary)
+                    .font(.system(size: 20, weight: .regular, design: .rounded))
+                    .foregroundStyle(.secondary)
                     .multilineTextAlignment(.center)
                     .opacity(animationPhase > 2 ? 1.0 : 0.0)
                     .offset(y: animationPhase > 2 ? 0 : 20)
                     .animation(.easeOut(duration: 0.5).delay(0.5), value: animationPhase)
             }
-            .padding(.horizontal, AppSpacing.xxLarge)
+            .padding(.horizontal, AppSpacing.xl)
             
             Spacer()
             
             // Start button
-            Button(action: {
+            Button {
+                HapticService.impact(.medium)
                 Task {
                     await coordinator.beginConversation()
                 }
-            }) {
-                HStack {
+            } label: {
+                HStack(spacing: AppSpacing.sm) {
                     Text("Let's Get Started")
-                        .font(AppFonts.bodyBold)
+                        .font(.system(size: 18, weight: .semibold, design: .rounded))
                     Image(systemName: "arrow.right")
-                        .font(AppFonts.body)
+                        .font(.system(size: 16, weight: .semibold))
                 }
-                .foregroundColor(AppColors.textOnAccent)
+                .foregroundColor(.white)
                 .frame(maxWidth: .infinity)
-                .padding(.vertical, AppSpacing.medium)
+                .padding(.vertical, AppSpacing.md)
                 .background(
-                    Capsule()
-                        .fill(AppColors.accentColor)
+                    LinearGradient(
+                        colors: [Color.accentColor, Color.accentColor.opacity(0.8)],
+                        startPoint: .leading,
+                        endPoint: .trailing
+                    )
                 )
+                .clipShape(Capsule())
+                .shadow(color: Color.accentColor.opacity(0.3), radius: 8, y: 4)
             }
-            .padding(.horizontal, AppSpacing.xxLarge)
+            .padding(.horizontal, AppSpacing.xl)
             .opacity(animationPhase > 3 ? 1.0 : 0.0)
             .offset(y: animationPhase > 3 ? 0 : 20)
             .animation(.easeOut(duration: 0.5).delay(0.7), value: animationPhase)
             
             Spacer()
-                .frame(height: AppSpacing.xxLarge)
+                .frame(height: AppSpacing.xl)
         }
         .onAppear {
             // Trigger animations
@@ -249,41 +261,68 @@ private struct ConversationFlowView: View {
         VStack(spacing: 0) {
             // Progress indicator
             ProgressBar(progress: coordinator.progress)
-                .padding(.horizontal, AppSpacing.large)
-                .padding(.top, AppSpacing.medium)
+                .padding(.horizontal, AppSpacing.lg)
+                .padding(.top, AppSpacing.md)
             
             // Conversation content
             ScrollView {
-                VStack(spacing: AppSpacing.large) {
+                VStack(spacing: AppSpacing.lg) {
                     // Current conversation UI would go here
                     // This is a placeholder for the actual conversation view
                     Text("Conversation in progress...")
-                        .font(AppFonts.body)
-                        .foregroundColor(AppColors.textSecondary)
-                        .padding(.top, AppSpacing.xxLarge)
+                        .font(.system(size: 16, weight: .regular, design: .rounded))
+                        .foregroundStyle(.secondary)
+                        .padding(.top, AppSpacing.xl)
                 }
-                .padding(AppSpacing.large)
+                .padding(AppSpacing.lg)
             }
             
             // Action buttons
-            HStack(spacing: AppSpacing.medium) {
-                StandardButton("Skip", style: .secondary) {
+            HStack(spacing: AppSpacing.md) {
+                Button {
                     Task {
                         await coordinator.completeConversation()
                     }
+                } label: {
+                    Text("Skip")
+                        .font(.system(size: 16, weight: .medium, design: .rounded))
+                        .foregroundColor(.primary)
+                        .frame(maxWidth: .infinity)
+                        .padding(.vertical, AppSpacing.sm)
+                        .background(
+                            RoundedRectangle(cornerRadius: 12)
+                                .fill(.ultraThinMaterial)
+                                .overlay(
+                                    RoundedRectangle(cornerRadius: 12)
+                                        .strokeBorder(Color.secondary.opacity(0.2), lineWidth: 1)
+                                )
+                        )
                 }
                 
-                StandardButton(
-                    "Continue",
-                    style: .primary,
-                    isEnabled: !coordinator.isLoading
-                ) {
+                Button {
                     Task {
                         await coordinator.completeConversation()
                     }
+                } label: {
+                    Text("Continue")
+                        .font(.system(size: 16, weight: .medium, design: .rounded))
+                        .foregroundColor(.white)
+                        .frame(maxWidth: .infinity)
+                        .padding(.vertical, AppSpacing.sm)
+                        .background(
+                            LinearGradient(
+                                colors: coordinator.isLoading 
+                                    ? [Color.gray.opacity(0.3), Color.gray.opacity(0.2)]
+                                    : [Color.accentColor, Color.accentColor.opacity(0.8)],
+                                startPoint: .leading,
+                                endPoint: .trailing
+                            )
+                        )
+                        .clipShape(RoundedRectangle(cornerRadius: 12))
                 }
+                .disabled(coordinator.isLoading)
             }
-            .padding(AppSpacing.large)
+            .padding(AppSpacing.lg)
         }
     }
 }
@@ -295,27 +334,33 @@ private struct OnboardingCompletionView: View {
     @State private var showingContent = false
     
     var body: some View {
-        VStack(spacing: AppSpacing.xxLarge) {
+        VStack(spacing: AppSpacing.xl) {
             Spacer()
             
             // Success icon
             Image(systemName: "checkmark.circle.fill")
                 .font(.system(size: 100))
-                .foregroundColor(AppColors.successColor)
+                .foregroundStyle(
+                    LinearGradient(
+                        colors: [Color.green, Color.green.opacity(0.8)],
+                        startPoint: .topLeading,
+                        endPoint: .bottomTrailing
+                    )
+                )
                 .scaleEffect(showingContent ? 1.0 : 0.5)
                 .opacity(showingContent ? 1.0 : 0.0)
                 .animation(.spring(response: 0.5, dampingFraction: 0.7), value: showingContent)
             
-            VStack(spacing: AppSpacing.medium) {
-                Text("You're All Set!")
-                    .font(AppFonts.largeTitle)
-                    .foregroundColor(AppColors.textPrimary)
+            VStack(spacing: AppSpacing.md) {
+                CascadeText("You're All Set!")
+                    .font(.system(size: 36, weight: .bold, design: .rounded))
+                    .foregroundStyle(.primary)
                 
                 Text("Your personalized AI coach is ready to help you achieve your fitness goals")
-                    .font(AppFonts.body)
-                    .foregroundColor(AppColors.textSecondary)
+                    .font(.system(size: 18, weight: .regular, design: .rounded))
+                    .foregroundStyle(.secondary)
                     .multilineTextAlignment(.center)
-                    .padding(.horizontal, AppSpacing.xxLarge)
+                    .padding(.horizontal, AppSpacing.xl)
             }
             .opacity(showingContent ? 1.0 : 0.0)
             .offset(y: showingContent ? 0 : 20)
@@ -323,26 +368,32 @@ private struct OnboardingCompletionView: View {
             
             Spacer()
             
-            Button(action: {
+            Button {
+                HapticService.notification(.success)
                 // Dismiss onboarding
-            }) {
+            } label: {
                 Text("Start My Journey")
-                    .font(AppFonts.bodyBold)
-                    .foregroundColor(AppColors.textOnAccent)
+                    .font(.system(size: 18, weight: .semibold, design: .rounded))
+                    .foregroundColor(.white)
                     .frame(maxWidth: .infinity)
-                    .padding(.vertical, AppSpacing.medium)
+                    .padding(.vertical, AppSpacing.md)
                     .background(
-                        Capsule()
-                            .fill(AppColors.accentColor)
+                        LinearGradient(
+                            colors: [Color.accentColor, Color.accentColor.opacity(0.8)],
+                            startPoint: .leading,
+                            endPoint: .trailing
+                        )
                     )
+                    .clipShape(Capsule())
+                    .shadow(color: Color.accentColor.opacity(0.3), radius: 8, y: 4)
             }
-            .padding(.horizontal, AppSpacing.xxLarge)
+            .padding(.horizontal, AppSpacing.xl)
             .opacity(showingContent ? 1.0 : 0.0)
             .offset(y: showingContent ? 0 : 20)
             .animation(.easeOut(duration: 0.5).delay(0.5), value: showingContent)
             
             Spacer()
-                .frame(height: AppSpacing.xxLarge)
+                .frame(height: AppSpacing.xl)
         }
         .onAppear {
             withAnimation {
@@ -367,12 +418,18 @@ private struct ProgressBar: View {
             ZStack(alignment: .leading) {
                 // Background
                 Capsule()
-                    .fill(AppColors.backgroundTertiary)
+                    .fill(.ultraThinMaterial)
                     .frame(height: 6)
                 
                 // Progress
                 Capsule()
-                    .fill(AppColors.accentColor)
+                    .fill(
+                        LinearGradient(
+                            colors: [Color.accentColor, Color.accentColor.opacity(0.8)],
+                            startPoint: .leading,
+                            endPoint: .trailing
+                        )
+                    )
                     .frame(width: geometry.size.width * progress, height: 6)
                     .animation(.spring(response: 0.5, dampingFraction: 0.8), value: progress)
             }

@@ -183,40 +183,89 @@ struct PersonaPreviewView: View {
     private var actionButtons: some View {
         VStack(spacing: AppSpacing.sm) {
             // Accept button
-            StandardButton(
-                "Accept \(persona.name)",
-                icon: "checkmark.circle.fill",
-                style: .primary,
-                isFullWidth: true
-            ) {
+            Button {
+                HapticService.impact(.light)
                 Task {
                     await coordinator.acceptPersona()
                 }
+            } label: {
+                HStack(spacing: 8) {
+                    Image(systemName: "checkmark.circle.fill")
+                        .font(.system(size: 16, weight: .medium))
+                    Text("Accept \(persona.name)")
+                        .font(.system(size: 18, weight: .semibold))
+                }
+                .foregroundColor(.white)
+                .frame(maxWidth: .infinity)
+                .padding(.vertical, AppSpacing.md)
+                .background(
+                    LinearGradient(
+                        colors: gradientManager.active.colors(for: colorScheme),
+                        startPoint: .leading,
+                        endPoint: .trailing
+                    )
+                )
+                .clipShape(RoundedRectangle(cornerRadius: 16))
+                .shadow(color: gradientManager.active.colors(for: colorScheme).first?.opacity(0.3) ?? .clear, 
+                        radius: 8, x: 0, y: 4)
             }
             
             HStack(spacing: AppSpacing.sm) {
                 // Adjust button
-                StandardButton(
-                    "Adjust",
-                    icon: "slider.horizontal.3",
-                    style: .secondary,
-                    size: .medium,
-                    isFullWidth: true
-                ) {
+                Button {
+                    HapticService.impact(.light)
                     showingAdjustmentSheet = true
+                } label: {
+                    HStack(spacing: 8) {
+                        Image(systemName: "slider.horizontal.3")
+                            .font(.system(size: 14, weight: .medium))
+                        Text("Adjust")
+                            .font(.system(size: 16, weight: .semibold))
+                    }
+                    .foregroundColor(.primary)
+                    .frame(maxWidth: .infinity)
+                    .padding(.vertical, AppSpacing.sm)
+                    .background(
+                        RoundedRectangle(cornerRadius: 16)
+                            .fill(.ultraThinMaterial)
+                            .overlay(
+                                RoundedRectangle(cornerRadius: 16)
+                                    .strokeBorder(
+                                        LinearGradient(
+                                            colors: gradientManager.active.colors(for: colorScheme).map { $0.opacity(0.3) },
+                                            startPoint: .leading,
+                                            endPoint: .trailing
+                                        ),
+                                        lineWidth: 1
+                                    )
+                            )
+                    )
                 }
                 
                 // Regenerate button
-                StandardButton(
-                    "Regenerate",
-                    icon: "arrow.clockwise",
-                    style: .tertiary,
-                    size: .medium,
-                    isFullWidth: true
-                ) {
+                Button {
+                    HapticService.impact(.light)
                     Task {
                         await coordinator.regeneratePersona()
                     }
+                } label: {
+                    HStack(spacing: 8) {
+                        Image(systemName: "arrow.clockwise")
+                            .font(.system(size: 14, weight: .medium))
+                        Text("Regenerate")
+                            .font(.system(size: 16, weight: .semibold))
+                    }
+                    .foregroundColor(.primary)
+                    .frame(maxWidth: .infinity)
+                    .padding(.vertical, AppSpacing.sm)
+                    .background(
+                        RoundedRectangle(cornerRadius: 16)
+                            .fill(.clear)
+                            .overlay(
+                                RoundedRectangle(cornerRadius: 16)
+                                    .strokeBorder(Color.primary.opacity(0.2), lineWidth: 1)
+                            )
+                    )
                 }
             }
         }
@@ -327,13 +376,26 @@ struct PreviewPersonaAdjustmentSheet: View {
                 
                     Spacer()
                     
-                    StandardButton(
-                        "Apply Adjustment",
-                        style: .primary,
-                        isFullWidth: true
-                    ) {
+                    Button {
+                        HapticService.impact(.light)
                         onSubmit()
                         dismiss()
+                    } label: {
+                        Text("Apply Adjustment")
+                            .font(.system(size: 18, weight: .semibold))
+                            .foregroundColor(.white)
+                            .frame(maxWidth: .infinity)
+                            .padding(.vertical, AppSpacing.md)
+                            .background(
+                                LinearGradient(
+                                    colors: gradientManager.active.colors(for: colorScheme),
+                                    startPoint: .leading,
+                                    endPoint: .trailing
+                                )
+                            )
+                            .clipShape(RoundedRectangle(cornerRadius: 16))
+                            .shadow(color: gradientManager.active.colors(for: colorScheme).first?.opacity(0.3) ?? .clear, 
+                                    radius: 8, x: 0, y: 4)
                     }
                     .disabled(adjustmentText.isEmpty)
                     .padding(.horizontal, AppSpacing.screenPadding)

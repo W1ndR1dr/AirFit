@@ -11,18 +11,18 @@ extension View {
 
     func cardStyle() -> some View {
         self
-            .background(AppColors.cardBackground)
+            .background(.ultraThinMaterial)
             .cornerRadius(AppConstants.Layout.defaultCornerRadius)
-            .shadow(color: AppColors.shadowColor, radius: 4, x: 0, y: 2)
+            .shadow(color: Color.black.opacity(0.1), radius: 4, x: 0, y: 2)
     }
 
     func primaryButton() -> some View {
         self
             .font(AppFonts.headline)
-            .foregroundColor(AppColors.buttonText)
+            .foregroundColor(.white)
             .frame(maxWidth: .infinity)
             .padding()
-            .background(AppColors.buttonBackground)
+            .background(Color.accentColor)
             .cornerRadius(AppConstants.Layout.defaultCornerRadius)
     }
 

@@ -127,4 +127,68 @@ actor HealthKitDataFetcher: ServiceProtocol {
             ]
         )
     }
+    
+    // MARK: - Additional Data Fetching Methods
+    
+    /// Fetches quantity samples for a given identifier and date range
+    func fetchQuantitySamples(
+        identifier: HKQuantityTypeIdentifier,
+        unit: HKUnit,
+        from startDate: Date,
+        to endDate: Date
+    ) async throws -> [HKQuantitySample] {
+        guard let quantityType = HKQuantityType.quantityType(forIdentifier: identifier) else {
+            throw HealthKitManager.HealthKitError.invalidData
+        }
+        
+        let predicate = HKQuery.predicateForSamples(withStart: startDate, end: endDate, options: .strictStartDate)
+        let sortDescriptor = NSSortDescriptor(key: HKSampleSortIdentifierStartDate, ascending: true)
+        
+        return try await withCheckedThrowingContinuation { continuation in
+            let query = HKSampleQuery(
+                sampleType: quantityType,
+                predicate: predicate,
+                limit: HKObjectQueryNoLimit,
+                sortDescriptors: [sortDescriptor]
+            ) { _, samples, error in
+                if let error = error {
+                    continuation.resume(throwing: HealthKitManager.HealthKitError.queryFailed(error))
+                    return
+                }
+                
+                let quantitySamples = (samples as? [HKQuantitySample]) ?? []
+                continuation.resume(returning: quantitySamples)
+            }
+            
+            healthStore.execute(query)
+        }
+    }
+    
+    /// Fetches workouts for a given date range
+    func fetchWorkouts(
+        from startDate: Date,
+        to endDate: Date
+    ) async throws -> [HKWorkout] {
+        let predicate = HKQuery.predicateForSamples(withStart: startDate, end: endDate, options: .strictStartDate)
+        let sortDescriptor = NSSortDescriptor(key: HKSampleSortIdentifierStartDate, ascending: false)
+        
+        return try await withCheckedThrowingContinuation { continuation in
+            let query = HKSampleQuery(
+                sampleType: HKObjectType.workoutType(),
+                predicate: predicate,
+                limit: HKObjectQueryNoLimit,
+                sortDescriptors: [sortDescriptor]
+            ) { _, samples, error in
+                if let error = error {
+                    continuation.resume(throwing: HealthKitManager.HealthKitError.queryFailed(error))
+                    return
+                }
+                
+                let workouts = (samples as? [HKWorkout]) ?? []
+                continuation.resume(returning: workouts)
+            }
+            
+            healthStore.execute(query)
+        }
+    }
 }

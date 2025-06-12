@@ -64,13 +64,29 @@ struct HealthKitAuthorizationView: View {
                 .padding(.horizontal, AppSpacing.screenPadding)
 
                 // Authorization button
-                StandardButton(
-                    "Authorize HealthKit",
-                    icon: "heart.circle.fill",
-                    style: .primary,
-                    isFullWidth: true
-                ) {
+                Button {
+                    HapticService.impact(.light)
                     Task { await viewModel.requestHealthKitAuthorization() }
+                } label: {
+                    HStack(spacing: 8) {
+                        Image(systemName: "heart.circle.fill")
+                            .font(.system(size: 16, weight: .medium))
+                        Text("Authorize HealthKit")
+                            .font(.system(size: 18, weight: .semibold))
+                    }
+                    .foregroundColor(.white)
+                    .frame(maxWidth: .infinity)
+                    .padding(.vertical, AppSpacing.md)
+                    .background(
+                        LinearGradient(
+                            colors: gradientManager.active.colors(for: colorScheme),
+                            startPoint: .leading,
+                            endPoint: .trailing
+                        )
+                    )
+                    .clipShape(RoundedRectangle(cornerRadius: 16))
+                    .shadow(color: gradientManager.active.colors(for: colorScheme).first?.opacity(0.3) ?? .clear, 
+                            radius: 8, x: 0, y: 4)
                 }
                 .padding(.horizontal, AppSpacing.screenPadding)
                 .opacity(animateIn ? 1 : 0)

@@ -111,7 +111,7 @@ final class DashboardViewModel: ErrorHandling {
             currentEnergyLevel = level
 
             // Haptic feedback
-            // TODO: Add haptic feedback via DI when needed
+            HapticService.play(.dataUpdated)
             // Log analytics
             AppLogger.info("Energy level logged: \(level)", category: .data)
 

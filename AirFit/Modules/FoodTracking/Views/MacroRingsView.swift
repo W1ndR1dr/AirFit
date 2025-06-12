@@ -129,7 +129,7 @@ struct MacroRingsView: View {
                         title: "Protein",
                         value: nutrition.protein,
                         goal: nutrition.proteinGoal,
-                        color: AppColors.proteinColor,
+                        color: Color(hex: "#FF6B6B"),
                         unit: "g",
                         index: 0,
                         animateIn: animateRings
@@ -138,7 +138,7 @@ struct MacroRingsView: View {
                         title: "Carbs",
                         value: nutrition.carbs,
                         goal: nutrition.carbGoal,
-                        color: AppColors.carbsColor,
+                        color: Color(hex: "#4ECDC4"),
                         unit: "g",
                         index: 1,
                         animateIn: animateRings
@@ -147,7 +147,7 @@ struct MacroRingsView: View {
                         title: "Fat",
                         value: nutrition.fat,
                         goal: nutrition.fatGoal,
-                        color: AppColors.fatColor,
+                        color: Color(hex: "#FFD93D"),
                         unit: "g",
                         index: 2,
                         animateIn: animateRings
@@ -179,21 +179,21 @@ struct MacroRingsView: View {
                 label: "P",
                 value: nutrition.protein,
                 goal: nutrition.proteinGoal,
-                color: AppColors.proteinColor,
+                color: Color(hex: "#FF6B6B"),
                 progress: min(nutrition.protein / nutrition.proteinGoal, 1.0)
             ),
             MacroData(
                 label: "C",
                 value: nutrition.carbs,
                 goal: nutrition.carbGoal,
-                color: AppColors.carbsColor,
+                color: Color(hex: "#4ECDC4"),
                 progress: min(nutrition.carbs / nutrition.carbGoal, 1.0)
             ),
             MacroData(
                 label: "F",
                 value: nutrition.fat,
                 goal: nutrition.fatGoal,
-                color: AppColors.fatColor,
+                color: Color(hex: "#FFD93D"),
                 progress: min(nutrition.fat / nutrition.fatGoal, 1.0)
             )
         ]

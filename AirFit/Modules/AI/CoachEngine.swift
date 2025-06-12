@@ -1286,7 +1286,7 @@ extension CoachEngine: FoodCoachEngineProtocol {
         return ["response": .string(currentResponse)]
     }
 
-    func analyzeMealPhoto(image: UIImage, context: NutritionContext?) async throws -> MealPhotoAnalysisResult {
+    func analyzeMealPhoto(image: UIImage, context: NutritionContext?, for user: User) async throws -> MealPhotoAnalysisResult {
         // Create AI function call for meal photo analysis
         let contextString = context != nil ? "User has \(context!.recentMeals.count) recent meals, date: \(context!.currentDate)" : ""
         let functionCall = AIFunctionCall(
@@ -1297,8 +1297,6 @@ extension CoachEngine: FoodCoachEngineProtocol {
             ]
         )
         
-        // TODO: This method needs a user parameter to work properly
-        let user = User() // Temporary placeholder
         _ = try await executeFunction(functionCall, for: user)
         
         // Parse the result to extract detected food items
@@ -1311,7 +1309,7 @@ extension CoachEngine: FoodCoachEngineProtocol {
         )
     }
     
-    func searchFoods(query: String, limit: Int) async throws -> [ParsedFoodItem] {
+    func searchFoods(query: String, limit: Int, for user: User) async throws -> [ParsedFoodItem] {
         // Create AI function call for food search
         let functionCall = AIFunctionCall(
             name: "searchFoods",
@@ -1321,8 +1319,6 @@ extension CoachEngine: FoodCoachEngineProtocol {
             ]
         )
         
-        // TODO: This method needs a user parameter to work properly
-        let user = User() // Temporary placeholder
         _ = try await executeFunction(functionCall, for: user)
         
         // Parse the result to extract food items

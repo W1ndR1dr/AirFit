@@ -63,13 +63,13 @@ private extension NutritionCard {
         HStack {
             Label("Nutrition", systemImage: "fork.knife")
                 .font(AppFonts.headline)
-                .foregroundStyle(AppColors.textPrimary)
+                .foregroundStyle(.primary)
 
             Spacer()
 
             Image(systemName: "chevron.right")
                 .font(.caption)
-                .foregroundStyle(AppColors.textTertiary)
+                .foregroundStyle(.tertiary)
         }
     }
 
@@ -102,7 +102,7 @@ private extension NutritionCard {
                 label: "Protein",
                 value: summary.protein,
                 target: targets.protein,
-                color: AppColors.proteinColor,
+                color: Color(hex: "#FF6B6B"),
                 progress: animateRings ? proteinProgress : 0
             )
 
@@ -110,7 +110,7 @@ private extension NutritionCard {
                 label: "Carbs",
                 value: summary.carbs,
                 target: targets.carbs,
-                color: AppColors.carbsColor,
+                color: Color(hex: "#4ECDC4"),
                 progress: animateRings ? carbsProgress : 0
             )
 
@@ -118,7 +118,7 @@ private extension NutritionCard {
                 label: "Fat",
                 value: summary.fat,
                 target: targets.fat,
-                color: AppColors.fatColor,
+                color: Color(hex: "#FFD93D"),
                 progress: animateRings ? fatProgress : 0
             )
         }
@@ -132,7 +132,7 @@ private extension NutritionCard {
 
             Text("\(summary.waterLiters, specifier: "%.1f")L / \(targets.water, specifier: "%.1f")L")
                 .font(AppFonts.caption)
-                .foregroundStyle(AppColors.textSecondary)
+                .foregroundStyle(.secondary)
 
             Spacer()
 
@@ -159,12 +159,12 @@ private struct MacroRow: View {
 
             Text(label)
                 .font(AppFonts.caption)
-                .foregroundStyle(AppColors.textSecondary)
+                .foregroundStyle(.secondary)
                 .frame(width: 50, alignment: .leading)
 
             Text("\(Int(value))g")
                 .font(AppFonts.caption)
-                .foregroundStyle(AppColors.textPrimary)
+                .foregroundStyle(.primary)
 
             ProgressView(value: progress)
                 .progressViewStyle(LinearProgressViewStyle(tint: color))
@@ -183,7 +183,7 @@ private struct AnimatedRing: View {
     var body: some View {
         ZStack {
             Circle()
-                .stroke(AppColors.dividerColor, lineWidth: lineWidth)
+                .stroke(Color.primary.opacity(0.1), lineWidth: lineWidth)
 
             Circle()
                 .trim(from: 0, to: animatedProgress)

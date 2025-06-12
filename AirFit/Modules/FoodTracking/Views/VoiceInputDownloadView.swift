@@ -4,6 +4,8 @@ import SwiftUI
 struct VoiceInputDownloadView: View {
     let state: VoiceInputState
     let onCancel: (() -> Void)?
+    @EnvironmentObject private var gradientManager: GradientManager
+    @Environment(\.colorScheme) private var colorScheme
     
     var body: some View {
         VStack(spacing: 20) {
@@ -55,7 +57,38 @@ struct VoiceInputDownloadView: View {
                     .frame(maxWidth: 250)
                     
                     if let onCancel {
-                        StandardButton("Cancel", style: .secondary, size: .small, action: onCancel)
+                        Button(action: {
+                            HapticService.impact(.light)
+                            onCancel()
+                        }) {
+                            Text("Cancel")
+                                .font(.system(size: 14, weight: .semibold, design: .rounded))
+                                .foregroundColor(.primary)
+                                .padding(.horizontal, AppSpacing.md)
+                                .padding(.vertical, AppSpacing.xs)
+                                .background(
+                                    LinearGradient(
+                                        colors: [
+                                            Color.primary.opacity(0.05),
+                                            Color.primary.opacity(0.02)
+                                        ],
+                                        startPoint: .topLeading,
+                                        endPoint: .bottomTrailing
+                                    )
+                                )
+                                .overlay(
+                                    RoundedRectangle(cornerRadius: 12)
+                                        .stroke(
+                                            LinearGradient(
+                                                colors: gradientManager.active.colors(for: colorScheme).map { $0.opacity(0.3) },
+                                                startPoint: .topLeading,
+                                                endPoint: .bottomTrailing
+                                            ),
+                                            lineWidth: 1
+                                        )
+                                )
+                                .clipShape(RoundedRectangle(cornerRadius: 12))
+                        }
                     }
                 }
                 
@@ -88,7 +121,25 @@ struct VoiceInputDownloadView: View {
                         .frame(maxWidth: 300)
                     
                     if let onCancel {
-                        StandardButton("Dismiss", style: .primary, size: .small, action: onCancel)
+                        Button(action: {
+                            HapticService.impact(.light)
+                            onCancel()
+                        }) {
+                            Text("Dismiss")
+                                .font(.system(size: 14, weight: .semibold, design: .rounded))
+                                .foregroundColor(.white)
+                                .padding(.horizontal, AppSpacing.md)
+                                .padding(.vertical, AppSpacing.xs)
+                                .background(
+                                    LinearGradient(
+                                        colors: gradientManager.active.colors(for: colorScheme),
+                                        startPoint: .leading,
+                                        endPoint: .trailing
+                                    )
+                                )
+                                .clipShape(RoundedRectangle(cornerRadius: 12))
+                                .shadow(color: gradientManager.active.colors(for: colorScheme)[0].opacity(0.2), radius: 6, y: 2)
+                        }
                     }
                 }
                 

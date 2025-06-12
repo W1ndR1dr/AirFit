@@ -112,12 +112,8 @@ struct CoachProfileReadyView: View {
 
                     // Action buttons
                     VStack(spacing: AppSpacing.sm) {
-                        StandardButton(
-                            "Begin with My AirFit Coach",
-                            icon: "sparkles",
-                            style: .primary,
-                            isFullWidth: true
-                        ) {
+                        Button {
+                            HapticService.impact(.light)
                             Task {
                                 do {
                                     try await viewModel.completeOnboarding()
@@ -127,16 +123,57 @@ struct CoachProfileReadyView: View {
                                                     category: .onboarding)
                                 }
                             }
+                        } label: {
+                            HStack(spacing: 8) {
+                                Image(systemName: "sparkles")
+                                    .font(.system(size: 16, weight: .medium))
+                                Text("Begin with My AirFit Coach")
+                                    .font(.system(size: 18, weight: .semibold))
+                            }
+                            .foregroundColor(.white)
+                            .frame(maxWidth: .infinity)
+                            .padding(.vertical, AppSpacing.md)
+                            .background(
+                                LinearGradient(
+                                    colors: gradientManager.active.colors(for: colorScheme),
+                                    startPoint: .leading,
+                                    endPoint: .trailing
+                                )
+                            )
+                            .clipShape(RoundedRectangle(cornerRadius: 16))
+                            .shadow(color: gradientManager.active.colors(for: colorScheme).first?.opacity(0.3) ?? .clear, 
+                                    radius: 8, x: 0, y: 4)
                         }
                         .accessibilityIdentifier("onboarding.beginCoach.button")
 
-                        StandardButton(
-                            "Review & Refine Profile",
-                            icon: "slider.horizontal.3",
-                            style: .secondary,
-                            isFullWidth: true
-                        ) {
+                        Button {
+                            HapticService.impact(.light)
                             viewModel.navigateToPreviousScreen()
+                        } label: {
+                            HStack(spacing: 8) {
+                                Image(systemName: "slider.horizontal.3")
+                                    .font(.system(size: 16, weight: .medium))
+                                Text("Review & Refine Profile")
+                                    .font(.system(size: 18, weight: .semibold))
+                            }
+                            .foregroundColor(.primary)
+                            .frame(maxWidth: .infinity)
+                            .padding(.vertical, AppSpacing.md)
+                            .background(
+                                RoundedRectangle(cornerRadius: 16)
+                                    .fill(.ultraThinMaterial)
+                                    .overlay(
+                                        RoundedRectangle(cornerRadius: 16)
+                                            .strokeBorder(
+                                                LinearGradient(
+                                                    colors: gradientManager.active.colors(for: colorScheme).map { $0.opacity(0.3) },
+                                                    startPoint: .leading,
+                                                    endPoint: .trailing
+                                                ),
+                                                lineWidth: 1
+                                            )
+                                    )
+                            )
                         }
                         .accessibilityIdentifier("onboarding.reviewProfile.button")
                     }

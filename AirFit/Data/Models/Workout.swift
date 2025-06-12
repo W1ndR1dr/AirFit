@@ -15,6 +15,7 @@ final class Workout: @unchecked Sendable {
     var notes: String?
     var workoutType: String
     var intensity: String? // "low", "moderate", "high"
+    var distance: Double? // Distance in meters
 
     // HealthKit Integration
     var healthKitWorkoutID: String?

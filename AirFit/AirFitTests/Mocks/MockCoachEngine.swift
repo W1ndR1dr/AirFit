@@ -160,7 +160,7 @@ extension MockCoachEngine {
         )
     }
     
-    func analyzeMealPhoto(image: UIImage, context: NutritionContext?) async throws -> MealPhotoAnalysisResult {
+    func analyzeMealPhoto(image: UIImage, context: NutritionContext?, for user: User) async throws -> MealPhotoAnalysisResult {
         if !analyzeMealPhotoShouldSucceed {
             throw errorToThrow
         }
@@ -172,7 +172,7 @@ extension MockCoachEngine {
         )
     }
     
-    func searchFoods(query: String, limit: Int) async throws -> [ParsedFoodItem] {
+    func searchFoods(query: String, limit: Int, for user: User) async throws -> [ParsedFoodItem] {
         searchFoodsCalled = true
         searchFoodsQuery = query
         

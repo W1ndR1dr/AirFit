@@ -8,6 +8,8 @@ struct MorningGreetingCard: View {
 
     @State private var showEnergyPicker = false
     @State private var animateIn = false
+    @Environment(\.colorScheme) private var colorScheme
+    @EnvironmentObject private var gradientManager: GradientManager
 
     var body: some View {
         VStack(alignment: .leading, spacing: AppSpacing.sm) {
@@ -40,14 +42,48 @@ struct MorningGreetingCard: View {
                     HStack {
                         EnergyLevelIndicator(level: energy)
                         Spacer()
-                        StandardButton("Update", style: .secondary) {
+                        Button {
+                            HapticService.impact(.light)
                             showEnergyPicker = true
+                        } label: {
+                            Text("Update")
+                                .font(.system(size: 14, weight: .semibold, design: .rounded))
+                                .foregroundColor(.white)
+                                .padding(.horizontal, AppSpacing.md)
+                                .padding(.vertical, AppSpacing.xs)
+                                .background(
+                                    LinearGradient(
+                                        colors: gradientManager.active.colors(for: colorScheme).map { $0.opacity(0.8) },
+                                        startPoint: .leading,
+                                        endPoint: .trailing
+                                    )
+                                )
+                                .clipShape(RoundedRectangle(cornerRadius: 12))
                         }
-                        .controlSize(.small)
                     }
                 } else {
-                    StandardButton("Log Energy", icon: "bolt.fill", style: .secondary) {
+                    Button {
+                        HapticService.impact(.light)
                         showEnergyPicker = true
+                    } label: {
+                        HStack(spacing: AppSpacing.xs) {
+                            Image(systemName: "bolt.fill")
+                                .font(.system(size: 14, weight: .semibold))
+                            Text("Log Energy")
+                                .font(.system(size: 16, weight: .semibold, design: .rounded))
+                        }
+                        .foregroundColor(.white)
+                        .frame(maxWidth: .infinity)
+                        .padding(.vertical, AppSpacing.sm)
+                        .background(
+                            LinearGradient(
+                                colors: gradientManager.active.colors(for: colorScheme),
+                                startPoint: .leading,
+                                endPoint: .trailing
+                            )
+                        )
+                        .clipShape(RoundedRectangle(cornerRadius: 14))
+                        .shadow(color: gradientManager.active.colors(for: colorScheme)[0].opacity(0.2), radius: 8, y: 2)
                     }
                 }
             }
@@ -148,6 +184,8 @@ struct ContextPill: View {
 
 struct EnergyLevelIndicator: View {
     let level: Int
+    @Environment(\.colorScheme) private var colorScheme
+    @EnvironmentObject private var gradientManager: GradientManager
 
     private var emoji: String {
         switch level {
@@ -179,12 +217,23 @@ struct EnergyLevelIndicator: View {
             VStack(alignment: .leading, spacing: 2) {
                 Text("Energy: \(description)")
                     .font(AppFonts.footnote)
-                    .foregroundColor(AppColors.textPrimary)
+                    .foregroundStyle(.primary)
 
                 HStack(spacing: 2) {
                     ForEach(1...5, id: \.self) { i in
                         RoundedRectangle(cornerRadius: 2)
-                            .fill(i <= level ? AppColors.accentColor : AppColors.dividerColor)
+                            .fill(i <= level ? 
+                                LinearGradient(
+                                    colors: gradientManager.active.colors(for: colorScheme),
+                                    startPoint: .leading,
+                                    endPoint: .trailing
+                                ) : 
+                                LinearGradient(
+                                    colors: [Color.secondary.opacity(0.2)],
+                                    startPoint: .leading,
+                                    endPoint: .trailing
+                                )
+                            )
                             .frame(width: 20, height: 4)
                     }
                 }
@@ -215,7 +264,7 @@ struct EnergyPickerSheet: View {
                             isSelected: selectedLevel == level,
                             onTap: {
                                 selectedLevel = level
-                                // TODO: Add haptic feedback via DI when needed
+                                HapticService.play(.listSelection)
                                 onSelect(level)
                             }
                         )
@@ -245,6 +294,8 @@ struct EnergyOption: View {
     let level: Int
     let isSelected: Bool
     let onTap: () -> Void
+    @Environment(\.colorScheme) private var colorScheme
+    @EnvironmentObject private var gradientManager: GradientManager
 
     private var emoji: String {
         switch level {
@@ -264,20 +315,50 @@ struct EnergyOption: View {
 
             Text("\(level)")
                 .font(AppFonts.caption)
-                .foregroundColor(isSelected ? AppColors.accentColor : AppColors.textSecondary)
+                .foregroundStyle(isSelected ? 
+                    LinearGradient(
+                        colors: gradientManager.active.colors(for: colorScheme),
+                        startPoint: .leading,
+                        endPoint: .trailing
+                    ) : LinearGradient(
+                        colors: [Color.secondary],
+                        startPoint: .leading,
+                        endPoint: .trailing
+                    )
+                )
         }
         .frame(maxWidth: .infinity)
         .padding(.vertical, AppSpacing.medium)
         .background(
             RoundedRectangle(cornerRadius: AppConstants.Layout.defaultCornerRadius)
-                .fill(isSelected ? AppColors.accentColor.opacity(0.1) : AppColors.cardBackground)
+                .fill(isSelected ? 
+                    LinearGradient(
+                        colors: gradientManager.active.colors(for: colorScheme).map { $0.opacity(0.1) },
+                        startPoint: .topLeading,
+                        endPoint: .bottomTrailing
+                    ) : LinearGradient(
+                        colors: [Color(.systemBackground)],
+                        startPoint: .topLeading,
+                        endPoint: .bottomTrailing
+                    )
+                )
                 .overlay(
                     RoundedRectangle(cornerRadius: AppConstants.Layout.defaultCornerRadius)
-                        .stroke(isSelected ? AppColors.accentColor : AppColors.dividerColor, lineWidth: 2)
+                        .stroke(
+                            LinearGradient(
+                                colors: isSelected ? gradientManager.active.colors(for: colorScheme) : [Color.secondary.opacity(0.3)],
+                                startPoint: .topLeading,
+                                endPoint: .bottomTrailing
+                            ),
+                            lineWidth: 2
+                        )
                 )
         )
         .scaleEffect(isSelected ? 1.05 : 1.0)
-        .onTapGesture(perform: onTap)
+        .onTapGesture {
+            HapticService.impact(.light)
+            onTap()
+        }
         .animation(.spring(response: 0.3, dampingFraction: 0.7), value: isSelected)
     }
 }

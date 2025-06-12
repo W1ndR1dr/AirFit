@@ -417,41 +417,43 @@ struct WorkoutStatisticsView: View {
                     .frame(maxWidth: .infinity)
                     .padding(.vertical, AppSpacing.xl)
                 } else {
-                    Chart(Array(muscleGroupData.prefix(8).enumerated()), id: \.offset) { _, item in
-                        BarMark(
-                            x: .value("Count", item.count),
-                            y: .value("Muscle", item.name)
-                        )
-                        .foregroundStyle(
-                            LinearGradient(
-                                colors: gradientManager.active.colors(for: colorScheme),
-                                startPoint: .leading,
-                                endPoint: .trailing
+                    VStack {
+                        Chart(Array(muscleGroupData.prefix(8).enumerated()), id: \.offset) { _, item in
+                            BarMark(
+                                x: .value("Count", item.count),
+                                y: .value("Muscle", item.name)
                             )
-                        )
-                        .cornerRadius(4)
-                        .annotation(position: .trailing) {
-                            GradientNumber(value: Double(item.count))
-                                .font(.system(size: 12, weight: .medium, design: .rounded))
+                            .foregroundStyle(
+                                LinearGradient(
+                                    colors: gradientManager.active.colors(for: colorScheme),
+                                    startPoint: .leading,
+                                    endPoint: .trailing
+                                )
+                            )
+                            .cornerRadius(4)
+                            .annotation(position: .trailing) {
+                                GradientNumber(value: Double(item.count))
+                                    .font(.system(size: 12, weight: .medium, design: .rounded))
+                            }
+                        }
+                        .frame(height: CGFloat(min(muscleGroupData.count, 8)) * 40)
+                        .chartXAxis {
+                            AxisMarks { _ in
+                                AxisGridLine()
+                                    .foregroundStyle(Color.secondary.opacity(0.1))
+                                AxisValueLabel()
+                                    .foregroundStyle(Color.secondary.opacity(0.6))
+                            }
+                        }
+                        .chartYAxis {
+                            AxisMarks { _ in
+                                AxisValueLabel()
+                                    .foregroundStyle(Color.primary.opacity(0.8))
+                            }
                         }
                     }
-                    .frame(height: CGFloat(min(muscleGroupData.count, 8)) * 40)
-                    .chartXAxis {
-                        AxisMarks { _ in
-                            AxisGridLine()
-                                .foregroundStyle(Color.secondary.opacity(0.1))
-                            AxisValueLabel()
-                                .foregroundStyle(Color.secondary.opacity(0.6))
-                        }
-                    }
-                    .chartYAxis {
-                        AxisMarks { _ in
-                            AxisValueLabel()
-                                .foregroundStyle(Color.primary.opacity(0.8))
-                        }
-                    }
+                    .padding(AppSpacing.md)
                 }
-                .padding(AppSpacing.md)
             }
             .padding(.horizontal, AppSpacing.md)
         }
@@ -553,8 +555,8 @@ struct WorkoutStatisticsView: View {
                             }
                         }
                     }
+                    .padding(AppSpacing.md)
                 }
-                .padding(AppSpacing.md)
             }
             .padding(.horizontal, AppSpacing.md)
         }

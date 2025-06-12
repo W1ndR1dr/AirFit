@@ -279,7 +279,7 @@ final class FoodTrackingViewModel: ErrorHandling {
 
         do {
             // Use AI to analyze the photo and identify foods via CoachEngine
-            let analysisResult = try await coachEngine.analyzeMealPhoto(image: image, context: nil)
+            let analysisResult = try await coachEngine.analyzeMealPhoto(image: image, context: nil, for: user)
             
             if !analysisResult.items.isEmpty {
                 self.parsedItems = analysisResult.items
@@ -304,7 +304,8 @@ final class FoodTrackingViewModel: ErrorHandling {
             // Use CoachEngine for AI-powered food search
             let results = try await coachEngine.searchFoods(
                 query: query,
-                limit: 20
+                limit: 20,
+                for: user
             )
             searchResults = results
         } catch {
@@ -374,7 +375,7 @@ final class FoodTrackingViewModel: ErrorHandling {
             transcribedText = ""
 
             coordinator.dismiss()
-            // TODO: Add haptic feedback via DI when needed
+            HapticService.play(.dataAdded)
             AppLogger.info("Saved \(items.count) food items", category: .data)
 
         } catch {
@@ -395,7 +396,7 @@ final class FoodTrackingViewModel: ErrorHandling {
             )
 
             waterIntakeML += amountInML
-             // TODO: Add haptic feedback via DI when needed
+            HapticService.play(.success)
         } catch {
             setError(error)
             AppLogger.error("Failed to log water: \(error)")
@@ -546,10 +547,10 @@ protocol FoodCoachEngineProtocol: Sendable {
     func executeFunction(_ functionCall: AIFunctionCall, for user: User) async throws -> FunctionExecutionResult
 
     /// Analyzes a meal photo and returns detected foods and nutrition data.
-    func analyzeMealPhoto(image: UIImage, context: NutritionContext?) async throws -> MealPhotoAnalysisResult
+    func analyzeMealPhoto(image: UIImage, context: NutritionContext?, for user: User) async throws -> MealPhotoAnalysisResult
 
     /// Searches for foods based on a query and returns a list of food items.
-    func searchFoods(query: String, limit: Int) async throws -> [ParsedFoodItem]
+    func searchFoods(query: String, limit: Int, for user: User) async throws -> [ParsedFoodItem]
     
     /// Parse natural language food descriptions into structured nutrition data using AI
     func parseNaturalLanguageFood(

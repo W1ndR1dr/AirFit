@@ -1,6 +1,6 @@
 import SwiftUI
 
-// MARK: - Settings Card Component (DEPRECATED - Use StandardCard instead)
+// MARK: - Settings Card Component (DEPRECATED - Use GlassCard instead)
 // This is kept for backward compatibility during migration
 struct SettingsCard<Content: View>: View {
     let content: Content
@@ -12,8 +12,8 @@ struct SettingsCard<Content: View>: View {
     }
     
     var body: some View {
-        // Now uses StandardCard internally
-        StandardCard(showShadow: style == .destructive) {
+        // Now uses GlassCard internally
+        GlassCard {
             content
         }
         .overlay {

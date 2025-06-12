@@ -9,7 +9,10 @@ struct ErrorPresentationView: View {
     let dismissAction: (() -> Void)?
     
     @Environment(\.dismiss) private var dismiss
+    @Environment(\.colorScheme) private var colorScheme
+    @EnvironmentObject private var gradientManager: GradientManager
     @State private var isRetrying = false
+    @State private var animateIn = false
     
     // MARK: - Error Style
     enum ErrorStyle {
@@ -18,16 +21,12 @@ struct ErrorPresentationView: View {
         case fullScreen
         case toast
         
-        var backgroundColor: Color {
+        var needsGlassEffect: Bool {
             switch self {
-            case .inline:
-                return Color("ErrorColor").opacity(0.1)
-            case .card:
-                return Color("CardBackground")
-            case .fullScreen:
-                return Color("BackgroundPrimary")
-            case .toast:
-                return Color("BackgroundTertiary")
+            case .inline, .toast:
+                return true
+            case .card, .fullScreen:
+                return false
             }
         }
     }
@@ -54,9 +53,16 @@ struct ErrorPresentationView: View {
             case .card:
                 cardView
             case .fullScreen:
-                fullScreenView
+                BaseScreen {
+                    fullScreenView
+                }
             case .toast:
                 toastView
+            }
+        }
+        .onAppear {
+            withAnimation(MotionToken.standardSpring) {
+                animateIn = true
             }
         }
     }
@@ -64,177 +70,316 @@ struct ErrorPresentationView: View {
     // MARK: - View Styles
     
     private var inlineView: some View {
-        HStack(spacing: AppSpacing.small) {
-            Image(systemName: errorIcon)
-                .foregroundColor(Color("ErrorColor"))
-                .font(.system(size: 16))
-            
-            VStack(alignment: .leading, spacing: AppSpacing.xSmall) {
-                Text(errorTitle)
-                    .font(AppFonts.caption)
-                    .foregroundColor(Color("TextPrimary"))
+        GlassCard {
+            HStack(spacing: AppSpacing.sm) {
+                Image(systemName: errorIcon)
+                    .font(.system(size: 16, weight: .medium))
+                    .foregroundStyle(
+                        LinearGradient(
+                            colors: [Color.red.opacity(0.8), Color.orange.opacity(0.7)],
+                            startPoint: .topLeading,
+                            endPoint: .bottomTrailing
+                        )
+                    )
+                    .symbolRenderingMode(.hierarchical)
                 
-                if let suggestion = recoverySuggestion {
-                    Text(suggestion)
-                        .font(AppFonts.footnote)
-                        .foregroundColor(Color("TextSecondary"))
+                VStack(alignment: .leading, spacing: AppSpacing.xs) {
+                    Text(errorTitle)
+                        .font(.system(size: 14, weight: .medium, design: .rounded))
+                        .foregroundStyle(.primary)
+                    
+                    if let suggestion = recoverySuggestion {
+                        Text(suggestion)
+                            .font(.system(size: 12, weight: .regular, design: .rounded))
+                            .foregroundStyle(.secondary)
+                    }
+                }
+                
+                Spacer()
+                
+                if retryAction != nil {
+                    retryButton
                 }
             }
-            
-            Spacer()
-            
-            if retryAction != nil {
-                retryButton
-            }
         }
-        .padding(AppSpacing.medium)
-        .background(style.backgroundColor)
-        .cornerRadius(AppSpacing.small)
+        .scaleEffect(animateIn ? 1 : 0.95)
+        .opacity(animateIn ? 1 : 0)
     }
     
     private var cardView: some View {
-        VStack(spacing: AppSpacing.medium) {
-            // Icon
-            Image(systemName: errorIcon)
-                .font(.system(size: 48))
-                .foregroundColor(Color("ErrorColor"))
-                .padding(.top, AppSpacing.medium)
-            
-            // Title
-            Text(errorTitle)
-                .font(AppFonts.title3)
-                .foregroundColor(Color("TextPrimary"))
-                .multilineTextAlignment(.center)
-            
-            // Message
-            if let suggestion = recoverySuggestion {
-                Text(suggestion)
-                    .font(AppFonts.body)
-                    .foregroundColor(Color("TextSecondary"))
+        GlassCard {
+            VStack(spacing: AppSpacing.md) {
+                // Icon with gradient
+                Image(systemName: errorIcon)
+                    .font(.system(size: 48, weight: .light))
+                    .foregroundStyle(
+                        LinearGradient(
+                            colors: [Color.red.opacity(0.8), Color.orange.opacity(0.7)],
+                            startPoint: .topLeading,
+                            endPoint: .bottomTrailing
+                        )
+                    )
+                    .symbolRenderingMode(.hierarchical)
+                    .padding(.top, AppSpacing.md)
+                    .scaleEffect(animateIn ? 1 : 0.5)
+                    .animation(MotionToken.standardSpring.delay(0.1), value: animateIn)
+                
+                // Title with cascade effect
+                CascadeText(errorTitle)
+                    .font(.system(size: 20, weight: .semibold, design: .rounded))
                     .multilineTextAlignment(.center)
-                    .padding(.horizontal, AppSpacing.medium)
-            }
-            
-            // Actions
-            HStack(spacing: AppSpacing.medium) {
-                if let dismissAction = dismissAction {
-                    Button("Dismiss") {
-                        dismissAction()
-                    }
-                    .buttonStyle(.bordered)
+                
+                // Message
+                if let suggestion = recoverySuggestion {
+                    Text(suggestion)
+                        .font(.system(size: 16, weight: .regular, design: .rounded))
+                        .foregroundStyle(.secondary)
+                        .multilineTextAlignment(.center)
+                        .padding(.horizontal, AppSpacing.md)
+                        .opacity(animateIn ? 1 : 0)
+                        .animation(MotionToken.standardSpring.delay(0.2), value: animateIn)
                 }
                 
-                if retryAction != nil {
-                    retryButton
-                        .buttonStyle(.borderedProminent)
+                // Actions
+                HStack(spacing: AppSpacing.md) {
+                    if let dismissAction = dismissAction {
+                        Button(action: {
+                            HapticService.impact(.light)
+                            dismissAction()
+                        }) {
+                            Text("Dismiss")
+                                .font(.system(size: 16, weight: .medium, design: .rounded))
+                                .foregroundColor(.primary)
+                                .frame(minWidth: 100)
+                                .padding(.vertical, AppSpacing.sm)
+                                .background(
+                                    RoundedRectangle(cornerRadius: 12)
+                                        .fill(.ultraThinMaterial)
+                                        .overlay(
+                                            RoundedRectangle(cornerRadius: 12)
+                                                .strokeBorder(.white.opacity(0.1), lineWidth: 1)
+                                        )
+                                )
+                        }
+                    }
+                    
+                    if retryAction != nil {
+                        retryButtonStyled
+                    }
                 }
+                .padding(.horizontal, AppSpacing.md)
+                .padding(.bottom, AppSpacing.md)
+                .opacity(animateIn ? 1 : 0)
+                .animation(MotionToken.standardSpring.delay(0.3), value: animateIn)
             }
-            .padding(.horizontal, AppSpacing.medium)
-            .padding(.bottom, AppSpacing.medium)
         }
         .frame(maxWidth: 350)
-        .background(style.backgroundColor)
-        .cornerRadius(AppSpacing.medium)
-        .shadow(radius: AppSpacing.small)
     }
     
     private var fullScreenView: some View {
-        VStack(spacing: AppSpacing.xLarge) {
+        VStack(spacing: AppSpacing.xl) {
             Spacer()
             
-            // Icon
+            // Icon with animated gradient
             Image(systemName: errorIcon)
-                .font(.system(size: 80))
-                .foregroundColor(Color("ErrorColor"))
-                .padding(.bottom, AppSpacing.medium)
+                .font(.system(size: 80, weight: .light))
+                .foregroundStyle(
+                    LinearGradient(
+                        colors: [Color.red.opacity(0.8), Color.orange.opacity(0.7)],
+                        startPoint: .topLeading,
+                        endPoint: .bottomTrailing
+                    )
+                )
+                .symbolRenderingMode(.hierarchical)
+                .padding(.bottom, AppSpacing.md)
+                .scaleEffect(animateIn ? 1 : 0.5)
+                .animation(MotionToken.standardSpring.delay(0.1), value: animateIn)
             
-            // Title
-            Text(errorTitle)
-                .font(AppFonts.largeTitle)
-                .foregroundColor(Color("TextPrimary"))
+            // Title with cascade
+            CascadeText(errorTitle)
+                .font(.system(size: 34, weight: .thin, design: .rounded))
                 .multilineTextAlignment(.center)
             
             // Message
             if let suggestion = recoverySuggestion {
                 Text(suggestion)
-                    .font(AppFonts.title3)
-                    .foregroundColor(Color("TextSecondary"))
+                    .font(.system(size: 20, weight: .regular, design: .rounded))
+                    .foregroundStyle(.secondary)
                     .multilineTextAlignment(.center)
-                    .padding(.horizontal, AppSpacing.xLarge)
+                    .padding(.horizontal, AppSpacing.xl)
+                    .opacity(animateIn ? 1 : 0)
+                    .animation(MotionToken.standardSpring.delay(0.2), value: animateIn)
             }
             
             Spacer()
             
             // Actions
-            VStack(spacing: AppSpacing.medium) {
+            VStack(spacing: AppSpacing.md) {
                 if retryAction != nil {
-                    retryButton
-                        .buttonStyle(.borderedProminent)
-                        .controlSize(.large)
+                    retryButtonLarge
                 }
                 
                 if let dismissAction = dismissAction {
-                    Button("Go Back") {
+                    Button(action: {
+                        HapticService.impact(.light)
                         dismissAction()
+                    }) {
+                        Text("Go Back")
+                            .font(.system(size: 18, weight: .medium, design: .rounded))
+                            .foregroundColor(.primary)
+                            .frame(maxWidth: .infinity)
+                            .padding(.vertical, AppSpacing.md)
+                            .background(
+                                RoundedRectangle(cornerRadius: 16)
+                                    .fill(.ultraThinMaterial)
+                                    .overlay(
+                                        RoundedRectangle(cornerRadius: 16)
+                                            .strokeBorder(.white.opacity(0.1), lineWidth: 1)
+                                    )
+                            )
                     }
-                    .buttonStyle(.bordered)
-                    .controlSize(.large)
                 }
             }
-            .padding(.horizontal, AppSpacing.xLarge)
-            .padding(.bottom, AppSpacing.xLarge)
+            .padding(.horizontal, AppSpacing.xl)
+            .padding(.bottom, AppSpacing.xl)
+            .opacity(animateIn ? 1 : 0)
+            .animation(MotionToken.standardSpring.delay(0.3), value: animateIn)
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity)
-        .background(style.backgroundColor)
     }
     
     private var toastView: some View {
-        HStack(spacing: AppSpacing.small) {
-            Image(systemName: errorIcon)
-                .foregroundColor(Color("ErrorColor"))
-                .font(.system(size: 20))
-            
-            Text(errorTitle)
-                .font(AppFonts.callout)
-                .foregroundColor(Color("TextPrimary"))
-                .lineLimit(2)
-            
-            Spacer()
-            
-            if dismissAction != nil {
-                Button {
-                    dismissAction?()
-                } label: {
-                    Image(systemName: "xmark")
-                        .font(.system(size: 14, weight: .semibold))
-                        .foregroundColor(Color("TextSecondary"))
+        GlassCard {
+            HStack(spacing: AppSpacing.sm) {
+                Image(systemName: errorIcon)
+                    .font(.system(size: 20, weight: .medium))
+                    .foregroundStyle(
+                        LinearGradient(
+                            colors: [Color.red.opacity(0.8), Color.orange.opacity(0.7)],
+                            startPoint: .topLeading,
+                            endPoint: .bottomTrailing
+                        )
+                    )
+                    .symbolRenderingMode(.hierarchical)
+                
+                Text(errorTitle)
+                    .font(.system(size: 16, weight: .medium, design: .rounded))
+                    .foregroundStyle(.primary)
+                    .lineLimit(2)
+                
+                Spacer()
+                
+                if dismissAction != nil {
+                    Button(action: {
+                        HapticService.impact(.soft)
+                        dismissAction?()
+                    }) {
+                        Image(systemName: "xmark.circle.fill")
+                            .font(.system(size: 22, weight: .regular))
+                            .foregroundStyle(.secondary)
+                            .symbolRenderingMode(.hierarchical)
+                    }
                 }
             }
         }
-        .padding(AppSpacing.medium)
-        .background(style.backgroundColor)
-        .cornerRadius(AppSpacing.medium)
-        .shadow(radius: 2)
         .transition(.move(edge: .top).combined(with: .opacity))
+        .scaleEffect(animateIn ? 1 : 0.9)
+        .opacity(animateIn ? 1 : 0)
     }
     
     // MARK: - Components
     
     private var retryButton: some View {
-        Button {
+        Button(action: {
+            HapticService.impact(.light)
             Task {
                 isRetrying = true
                 await retryAction?()
                 isRetrying = false
             }
-        } label: {
+        }) {
             if isRetrying {
                 ProgressView()
-                    .progressViewStyle(CircularProgressViewStyle())
+                    .progressViewStyle(CircularProgressViewStyle(tint: .white))
                     .scaleEffect(0.8)
             } else {
                 Label("Retry", systemImage: "arrow.clockwise")
+                    .font(.system(size: 14, weight: .medium, design: .rounded))
             }
+        }
+        .disabled(isRetrying)
+    }
+    
+    private var retryButtonStyled: some View {
+        Button(action: {
+            HapticService.impact(.medium)
+            Task {
+                isRetrying = true
+                await retryAction?()
+                isRetrying = false
+            }
+        }) {
+            HStack(spacing: AppSpacing.xs) {
+                if isRetrying {
+                    ProgressView()
+                        .progressViewStyle(CircularProgressViewStyle(tint: .white))
+                        .scaleEffect(0.8)
+                } else {
+                    Image(systemName: "arrow.clockwise")
+                        .font(.system(size: 16, weight: .medium))
+                    Text("Retry")
+                        .font(.system(size: 16, weight: .semibold, design: .rounded))
+                }
+            }
+            .foregroundColor(.white)
+            .frame(minWidth: 100)
+            .padding(.vertical, AppSpacing.sm)
+            .background(
+                LinearGradient(
+                    colors: gradientManager.active.colors(for: colorScheme),
+                    startPoint: .leading,
+                    endPoint: .trailing
+                )
+            )
+            .clipShape(RoundedRectangle(cornerRadius: 12))
+            .shadow(color: gradientManager.active.colors(for: colorScheme)[0].opacity(0.3), radius: 8, y: 4)
+        }
+        .disabled(isRetrying)
+    }
+    
+    private var retryButtonLarge: some View {
+        Button(action: {
+            HapticService.impact(.medium)
+            Task {
+                isRetrying = true
+                await retryAction?()
+                isRetrying = false
+            }
+        }) {
+            HStack(spacing: AppSpacing.sm) {
+                if isRetrying {
+                    ProgressView()
+                        .progressViewStyle(CircularProgressViewStyle(tint: .white))
+                        .scaleEffect(1.0)
+                } else {
+                    Image(systemName: "arrow.clockwise")
+                        .font(.system(size: 18, weight: .medium))
+                    Text("Try Again")
+                        .font(.system(size: 18, weight: .semibold, design: .rounded))
+                }
+            }
+            .foregroundColor(.white)
+            .frame(maxWidth: .infinity)
+            .padding(.vertical, AppSpacing.md)
+            .background(
+                LinearGradient(
+                    colors: gradientManager.active.colors(for: colorScheme),
+                    startPoint: .leading,
+                    endPoint: .trailing
+                )
+            )
+            .clipShape(RoundedRectangle(cornerRadius: 16))
+            .shadow(color: gradientManager.active.colors(for: colorScheme)[0].opacity(0.3), radius: 12, y: 4)
         }
         .disabled(isRetrying)
     }
@@ -304,6 +449,7 @@ extension View {
                     Color.black.opacity(0.4)
                         .ignoresSafeArea()
                         .onTapGesture {
+                            HapticService.impact(.soft)
                             error.wrappedValue = nil
                         }
                     

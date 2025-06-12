@@ -117,10 +117,10 @@ struct TextInputView: View {
     private func submitResponse() {
         guard isValid else {
             showError = true
-            // TODO: Add haptic feedback via DI when needed
+            HapticService.play(.error)
             return
         }
-                 // TODO: Add haptic feedback via DI when needed
+        HapticService.play(.success)
         onSubmit(text.trimmingCharacters(in: .whitespacesAndNewlines))
     }
 }

@@ -4,15 +4,17 @@ import SwiftUI
 struct QuickActionsCard: View {
     let suggestedActions: [QuickAction]
     let onActionTap: (QuickAction) -> Void
+    @Environment(\.colorScheme) private var colorScheme
+    @EnvironmentObject private var gradientManager: GradientManager
 
     private let actionColumns: [GridItem] = Array(repeating: GridItem(.flexible()), count: 3)
 
     var body: some View {
-        StandardCard {
+        GlassCard {
             VStack(alignment: .leading, spacing: AppSpacing.medium) {
                 Text("Quick Actions")
                     .font(AppFonts.headline)
-                    .foregroundStyle(AppColors.textPrimary)
+                    .foregroundStyle(.primary)
 
                 LazyVGrid(columns: actionColumns, spacing: AppSpacing.small) {
                     ForEach(suggestedActions) { action in
@@ -30,20 +32,38 @@ struct QuickActionsCard: View {
 private struct QuickActionButton: View {
     let action: QuickAction
     let onTap: () -> Void
+    @Environment(\.colorScheme) private var colorScheme
+    @EnvironmentObject private var gradientManager: GradientManager
 
     var body: some View {
         Button(action: handleTap) {
             VStack(spacing: AppSpacing.xSmall) {
-                Image(systemName: action.systemImage)
-                    .font(.title2)
-                    .foregroundStyle(AppColors.accentColor)
-                    .frame(width: 44, height: 44)
-                    .background(AppColors.accentColor.opacity(0.1))
-                    .clipShape(Circle())
+                ZStack {
+                    Circle()
+                        .fill(
+                            LinearGradient(
+                                colors: gradientManager.active.colors(for: colorScheme).map { $0.opacity(0.15) },
+                                startPoint: .topLeading,
+                                endPoint: .bottomTrailing
+                            )
+                        )
+                        .frame(width: 44, height: 44)
+                    
+                    Image(systemName: action.systemImage)
+                        .font(.title2)
+                        .foregroundStyle(
+                            LinearGradient(
+                                colors: gradientManager.active.colors(for: colorScheme),
+                                startPoint: .topLeading,
+                                endPoint: .bottomTrailing
+                            )
+                        )
+                }
+                
                 Text(action.title)
                     .font(AppFonts.caption)
                     .multilineTextAlignment(.center)
-                    .foregroundStyle(AppColors.textPrimary)
+                    .foregroundStyle(.primary)
             }
             .frame(maxWidth: .infinity)
             .accessibilityElement(children: .combine)
@@ -53,7 +73,7 @@ private struct QuickActionButton: View {
     }
 
     private func handleTap() {
-        // TODO: Add haptic feedback via DI when needed
+        HapticService.impact(.light)
         onTap()
     }
 }

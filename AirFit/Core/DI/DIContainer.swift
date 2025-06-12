@@ -13,9 +13,9 @@ public final class DIContainer: @unchecked Sendable {
     
     // MARK: - Private Properties
     
-    private var registrations: [ObjectIdentifier: Registration] = [:]
-    private var singletonInstances: [ObjectIdentifier: Any] = [:]
-    private var scopedInstances: [ObjectIdentifier: Any] = [:]
+    private var registrations: [String: Registration] = [:]
+    private var singletonInstances: [String: Any] = [:]
+    private var scopedInstances: [String: Any] = [:]
     private let parent: DIContainer?
     
     // MARK: - Initialization
@@ -115,15 +115,15 @@ public final class DIContainer: @unchecked Sendable {
     
     // MARK: - Private Methods
     
-    private func makeKey(type: Any.Type, name: String?) -> ObjectIdentifier {
+    private func makeKey(type: Any.Type, name: String?) -> String {
         if let name = name {
             // Combine type and name for unique key
-            return ObjectIdentifier(type: type, name: name)
+            return "\(ObjectIdentifier(type))-\(name)"
         }
-        return ObjectIdentifier(type)
+        return "\(ObjectIdentifier(type))"
     }
     
-    private func findRegistration(for key: ObjectIdentifier) -> Registration? {
+    private func findRegistration(for key: String) -> Registration? {
         registrations[key] ?? parent?.findRegistration(for: key)
     }
 }

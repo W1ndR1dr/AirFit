@@ -11,23 +11,44 @@ struct UnitsSettingsView: View {
     }
     
     var body: some View {
-        ScrollView {
-            VStack(spacing: AppSpacing.xLarge) {
-                unitSelection
-                examples
-                saveButton
+        BaseScreen {
+            ScrollView {
+                VStack(spacing: 0) {
+                    // Title header
+                    HStack {
+                        CascadeText("Units")
+                            .font(.system(size: 34, weight: .bold, design: .rounded))
+                        Spacer()
+                    }
+                    .padding(.horizontal, AppSpacing.lg)
+                    .padding(.top, AppSpacing.sm)
+                    .padding(.bottom, AppSpacing.lg)
+                    
+                    VStack(spacing: AppSpacing.xl) {
+                        unitSelection
+                        examples
+                        saveButton
+                    }
+                    .padding(.horizontal, AppSpacing.lg)
+                    .padding(.bottom, AppSpacing.xl)
+                }
             }
-            .padding()
         }
-        .navigationTitle("Units")
+        .navigationTitle("")
         .navigationBarTitleDisplayMode(.inline)
     }
     
     private var unitSelection: some View {
-        VStack(alignment: .leading, spacing: AppSpacing.medium) {
-            SectionHeader(title: "Measurement System", icon: "ruler")
+        VStack(alignment: .leading, spacing: AppSpacing.md) {
+            HStack {
+                Text("Measurement System")
+                    .font(.system(size: 13, weight: .medium, design: .rounded))
+                    .textCase(.uppercase)
+                    .foregroundStyle(.secondary.opacity(0.8))
+                Spacer()
+            }
             
-            Card {
+            GlassCard {
                 VStack(spacing: 0) {
                     ForEach(MeasurementSystem.allCases) { system in
                         UnitSystemRow(
@@ -37,7 +58,7 @@ struct UnitsSettingsView: View {
                             withAnimation {
                                 selectedUnits = system
                             }
-                            // TODO: Add haptic feedback via DI when needed
+                            HapticService.impact(.light)
                         }
                         
                         if system != MeasurementSystem.allCases.last {
@@ -50,11 +71,17 @@ struct UnitsSettingsView: View {
     }
     
     private var examples: some View {
-        VStack(alignment: .leading, spacing: AppSpacing.medium) {
-            SectionHeader(title: "Examples", icon: "info.circle")
+        VStack(alignment: .leading, spacing: AppSpacing.md) {
+            HStack {
+                Text("Examples")
+                    .font(.system(size: 13, weight: .medium, design: .rounded))
+                    .textCase(.uppercase)
+                    .foregroundStyle(.secondary.opacity(0.8))
+                Spacer()
+            }
             
-            Card {
-                VStack(spacing: AppSpacing.medium) {
+            GlassCard {
+                VStack(spacing: AppSpacing.md) {
                     ExampleRow(
                         label: "Weight",
                         imperial: "150 lbs",
@@ -94,20 +121,32 @@ struct UnitsSettingsView: View {
     }
     
     private var saveButton: some View {
-        StandardButton(
-            "Save Units",
-            icon: "checkmark.circle.fill",
-            style: .primary,
-            isFullWidth: true,
-            isEnabled: selectedUnits != viewModel.preferredUnits,
-            action: saveUnits
-        )
+        Button {
+            saveUnits()
+        } label: {
+            Label("Save Units", systemImage: "checkmark.circle.fill")
+                .font(.system(size: 16, weight: .medium, design: .rounded))
+                .foregroundColor(.white)
+                .frame(maxWidth: .infinity)
+                .padding(.vertical, AppSpacing.sm)
+                .background(
+                    LinearGradient(
+                        colors: selectedUnits != viewModel.preferredUnits 
+                            ? [Color.accentColor, Color.accentColor.opacity(0.8)]
+                            : [Color.gray.opacity(0.3), Color.gray.opacity(0.2)],
+                        startPoint: .leading,
+                        endPoint: .trailing
+                    )
+                )
+                .clipShape(RoundedRectangle(cornerRadius: 12))
+        }
+        .disabled(selectedUnits == viewModel.preferredUnits)
     }
     
     private func saveUnits() {
         Task {
             try await viewModel.updateUnits(selectedUnits)
-            // TODO: Add haptic feedback via DI when needed
+            HapticService.impact(.medium)
             dismiss()
         }
     }
@@ -122,7 +161,7 @@ struct UnitSystemRow: View {
     var body: some View {
         Button(action: onSelect) {
             HStack {
-                VStack(alignment: .leading, spacing: AppSpacing.xSmall) {
+                VStack(alignment: .leading, spacing: AppSpacing.xs) {
                     Text(system.displayName)
                         .font(.headline)
                     
@@ -141,7 +180,8 @@ struct UnitSystemRow: View {
                         .foregroundStyle(.quaternary)
                 }
             }
-            .padding(.vertical, AppSpacing.small)
+            .padding(.vertical, AppSpacing.sm)
+            .padding(.horizontal, AppSpacing.md)
         }
         .buttonStyle(.plain)
     }
@@ -162,7 +202,9 @@ struct ExampleRow: View {
             
             Text(selectedSystem == .imperial ? imperial : metric)
                 .fontWeight(.medium)
+                .foregroundStyle(Color.primary)
                 .animation(.easeInOut(duration: 0.2), value: selectedSystem)
         }
+        .padding(.vertical, AppSpacing.xs)
     }
 }

@@ -4,7 +4,7 @@ import SwiftUI
 /// Provides gradient background and consistent screen-level styling
 struct BaseScreen<Content: View>: View {
     @Environment(\.colorScheme) private var colorScheme
-    @EnvironmentObject private var gradientManager: GradientManager
+    @StateObject private var fallbackGradientManager = GradientManager()
     
     let content: Content
     let safeAreaIgnored: Bool
@@ -22,8 +22,8 @@ struct BaseScreen<Content: View>: View {
     
     var body: some View {
         ZStack {
-            // Gradient background layer
-            gradientManager.currentGradient(for: colorScheme)
+            // Gradient background layer - always use fallback manager
+            fallbackGradientManager.currentGradient(for: colorScheme)
                 .ignoresSafeArea()
                 .allowsHitTesting(false)
             
@@ -38,7 +38,7 @@ struct BaseScreen<Content: View>: View {
                 content
             }
         }
-        .animation(.easeInOut(duration: 0.6), value: gradientManager.active)
+        .animation(.easeInOut(duration: 0.6), value: fallbackGradientManager.active)
     }
 }
 

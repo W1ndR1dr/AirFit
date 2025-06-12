@@ -42,14 +42,41 @@ struct FoodConfirmationView: View {
                         }
 
                         // Add item button with gradient accent
-                        StandardButton(
-                            "Add Item",
-                            icon: "plus.circle.fill",
-                            style: .secondary,
-                            isFullWidth: true
-                        ) {
+                        Button {
                             HapticService.impact(.light)
                             showAddItem = true
+                        } label: {
+                            HStack(spacing: AppSpacing.xs) {
+                                Image(systemName: "plus.circle.fill")
+                                    .font(.system(size: 16, weight: .semibold))
+                                Text("Add Item")
+                                    .font(.system(size: 16, weight: .semibold, design: .rounded))
+                            }
+                            .foregroundColor(.primary)
+                            .frame(maxWidth: .infinity)
+                            .padding(.vertical, AppSpacing.sm)
+                            .background(
+                                LinearGradient(
+                                    colors: [
+                                        Color.primary.opacity(0.05),
+                                        Color.primary.opacity(0.02)
+                                    ],
+                                    startPoint: .topLeading,
+                                    endPoint: .bottomTrailing
+                                )
+                            )
+                            .overlay(
+                                RoundedRectangle(cornerRadius: 14)
+                                    .stroke(
+                                        LinearGradient(
+                                            colors: gradientManager.active.colors(for: colorScheme).map { $0.opacity(0.3) },
+                                            startPoint: .topLeading,
+                                            endPoint: .bottomTrailing
+                                        ),
+                                        lineWidth: 1
+                                    )
+                            )
+                            .clipShape(RoundedRectangle(cornerRadius: 14))
                         }
                         .padding(.top, AppSpacing.sm)
                         .opacity(animateIn ? 1 : 0)
@@ -161,7 +188,7 @@ struct FoodConfirmationView: View {
                         value: totalCalories,
                         unit: "cal",
                         icon: "flame.fill",
-                        color: AppColors.caloriesColor
+                        color: Color(hex: "#FF9500")
                     )
                     
                     NutrientMetric(
@@ -169,7 +196,7 @@ struct FoodConfirmationView: View {
                         unit: "g",
                         label: "P",
                         icon: "p.square.fill",
-                        color: AppColors.proteinColor
+                        color: Color(hex: "#FF6B6B")
                     )
                     
                     NutrientMetric(
@@ -177,7 +204,7 @@ struct FoodConfirmationView: View {
                         unit: "g",
                         label: "C",
                         icon: "c.square.fill",
-                        color: AppColors.carbsColor
+                        color: Color(hex: "#4ECDC4")
                     )
                     
                     NutrientMetric(
@@ -185,7 +212,7 @@ struct FoodConfirmationView: View {
                         unit: "g",
                         label: "F",
                         icon: "f.square.fill",
-                        color: AppColors.fatColor
+                        color: Color(hex: "#FFD93D")
                     )
                 }
             }
@@ -197,25 +224,71 @@ struct FoodConfirmationView: View {
     // MARK: - Action Buttons
     private var actionButtons: some View {
         HStack(spacing: AppSpacing.sm) {
-            StandardButton(
-                "Cancel",
-                style: .secondary,
-                isFullWidth: true
-            ) {
+            Button {
                 HapticService.impact(.light)
                 dismiss()
+            } label: {
+                Text("Cancel")
+                    .font(.system(size: 16, weight: .semibold, design: .rounded))
+                    .foregroundColor(.primary)
+                    .frame(maxWidth: .infinity)
+                    .padding(.vertical, AppSpacing.sm)
+                    .background(
+                        LinearGradient(
+                            colors: [
+                                Color.primary.opacity(0.05),
+                                Color.primary.opacity(0.02)
+                            ],
+                            startPoint: .topLeading,
+                            endPoint: .bottomTrailing
+                        )
+                    )
+                    .overlay(
+                        RoundedRectangle(cornerRadius: 14)
+                            .stroke(
+                                LinearGradient(
+                                    colors: gradientManager.active.colors(for: colorScheme).map { $0.opacity(0.3) },
+                                    startPoint: .topLeading,
+                                    endPoint: .bottomTrailing
+                                ),
+                                lineWidth: 1
+                            )
+                    )
+                    .clipShape(RoundedRectangle(cornerRadius: 14))
             }
 
-            StandardButton(
-                "Save",
-                icon: "checkmark.circle.fill",
-                style: .primary,
-                isFullWidth: true,
-                isEnabled: !items.isEmpty
-            ) {
+            Button {
                 HapticService.impact(.medium)
                 saveItems()
+            } label: {
+                HStack(spacing: AppSpacing.xs) {
+                    Image(systemName: "checkmark.circle.fill")
+                        .font(.system(size: 16, weight: .semibold))
+                    Text("Save")
+                        .font(.system(size: 16, weight: .semibold, design: .rounded))
+                }
+                .foregroundColor(.white)
+                .frame(maxWidth: .infinity)
+                .padding(.vertical, AppSpacing.sm)
+                .background(
+                    LinearGradient(
+                        colors: items.isEmpty ?
+                            [Color.gray.opacity(0.4), Color.gray.opacity(0.3)] :
+                            gradientManager.active.colors(for: colorScheme),
+                        startPoint: .leading,
+                        endPoint: .trailing
+                    )
+                )
+                .clipShape(RoundedRectangle(cornerRadius: 14))
+                .shadow(
+                    color: items.isEmpty ? 
+                        Color.clear : 
+                        gradientManager.active.colors(for: colorScheme)[0].opacity(0.2),
+                    radius: 8,
+                    y: 2
+                )
             }
+            .disabled(items.isEmpty)
         }
         .padding(AppSpacing.md)
         .background(
@@ -364,28 +437,28 @@ private struct FoodItemCard: View {
                     NutrientCompact(
                         value: Double(item.calories),
                         unit: "cal",
-                        color: AppColors.caloriesColor
+                        color: Color(hex: "#FF9500")
                     )
                     
                     NutrientCompact(
                         value: item.proteinGrams,
                         unit: "g",
                         label: "P",
-                        color: AppColors.proteinColor
+                        color: Color(hex: "#FF6B6B")
                     )
                     
                     NutrientCompact(
                         value: item.carbGrams,
                         unit: "g",
                         label: "C",
-                        color: AppColors.carbsColor
+                        color: Color(hex: "#4ECDC4")
                     )
                     
                     NutrientCompact(
                         value: item.fatGrams,
                         unit: "g",
                         label: "F",
-                        color: AppColors.fatColor
+                        color: Color(hex: "#FFD93D")
                     )
                 }
             }
@@ -494,24 +567,62 @@ private struct FoodItemEditView: View {
                 Spacer()
                 
                 HStack(spacing: AppSpacing.sm) {
-                    StandardButton(
-                        "Cancel",
-                        style: .secondary,
-                        isFullWidth: true
-                    ) {
+                    Button {
                         HapticService.impact(.light)
                         dismiss()
+                    } label: {
+                        Text("Cancel")
+                            .font(.system(size: 16, weight: .semibold, design: .rounded))
+                            .foregroundColor(.primary)
+                            .frame(maxWidth: .infinity)
+                            .padding(.vertical, AppSpacing.sm)
+                            .background(
+                                LinearGradient(
+                                    colors: [
+                                        Color.primary.opacity(0.05),
+                                        Color.primary.opacity(0.02)
+                                    ],
+                                    startPoint: .topLeading,
+                                    endPoint: .bottomTrailing
+                                )
+                            )
+                            .overlay(
+                                RoundedRectangle(cornerRadius: 14)
+                                    .stroke(
+                                        LinearGradient(
+                                            colors: gradientManager.active.colors(for: colorScheme).map { $0.opacity(0.3) },
+                                            startPoint: .topLeading,
+                                            endPoint: .bottomTrailing
+                                        ),
+                                        lineWidth: 1
+                                    )
+                            )
+                            .clipShape(RoundedRectangle(cornerRadius: 14))
                     }
                     
-                    StandardButton(
-                        "Save",
-                        icon: "checkmark.circle.fill",
-                        style: .primary,
-                        isFullWidth: true
-                    ) {
+                    Button {
                         HapticService.impact(.medium)
                         onSave(item)
                         dismiss()
+                    } label: {
+                        HStack(spacing: AppSpacing.xs) {
+                            Image(systemName: "checkmark.circle.fill")
+                                .font(.system(size: 16, weight: .semibold))
+                            Text("Save")
+                                .font(.system(size: 16, weight: .semibold, design: .rounded))
+                        }
+                        .foregroundColor(.white)
+                        .frame(maxWidth: .infinity)
+                        .padding(.vertical, AppSpacing.sm)
+                        .background(
+                            LinearGradient(
+                                colors: gradientManager.active.colors(for: colorScheme),
+                                startPoint: .leading,
+                                endPoint: .trailing
+                            )
+                        )
+                        .clipShape(RoundedRectangle(cornerRadius: 14))
+                        .shadow(color: gradientManager.active.colors(for: colorScheme)[0].opacity(0.2), radius: 8, y: 2)
                     }
                 }
                 .padding(AppSpacing.md)
@@ -590,22 +701,40 @@ private struct ManualFoodEntryView: View {
                 
                 // Action buttons
                 HStack(spacing: AppSpacing.sm) {
-                    StandardButton(
-                        "Cancel",
-                        style: .secondary,
-                        isFullWidth: true
-                    ) {
+                    Button {
                         HapticService.impact(.light)
                         dismiss()
+                    } label: {
+                        Text("Cancel")
+                            .font(.system(size: 16, weight: .semibold, design: .rounded))
+                            .foregroundColor(.primary)
+                            .frame(maxWidth: .infinity)
+                            .padding(.vertical, AppSpacing.sm)
+                            .background(
+                                LinearGradient(
+                                    colors: [
+                                        Color.primary.opacity(0.05),
+                                        Color.primary.opacity(0.02)
+                                    ],
+                                    startPoint: .topLeading,
+                                    endPoint: .bottomTrailing
+                                )
+                            )
+                            .overlay(
+                                RoundedRectangle(cornerRadius: 14)
+                                    .stroke(
+                                        LinearGradient(
+                                            colors: gradientManager.active.colors(for: colorScheme).map { $0.opacity(0.3) },
+                                            startPoint: .topLeading,
+                                            endPoint: .bottomTrailing
+                                        ),
+                                        lineWidth: 1
+                                    )
+                            )
+                            .clipShape(RoundedRectangle(cornerRadius: 14))
                     }
                     
-                    StandardButton(
-                        "Add",
-                        icon: "plus.circle.fill",
-                        style: .primary,
-                        isFullWidth: true,
-                        isEnabled: !name.isEmpty && calories > 0
-                    ) {
+                    Button {
                         HapticService.impact(.medium)
                         let item = ParsedFoodItem(
                             name: name,
@@ -624,7 +753,35 @@ private struct ManualFoodEntryView: View {
                         )
                         onAdd(item)
                         dismiss()
+                    } label: {
+                        HStack(spacing: AppSpacing.xs) {
+                            Image(systemName: "plus.circle.fill")
+                                .font(.system(size: 16, weight: .semibold))
+                            Text("Add")
+                                .font(.system(size: 16, weight: .semibold, design: .rounded))
+                        }
+                        .foregroundColor(.white)
+                        .frame(maxWidth: .infinity)
+                        .padding(.vertical, AppSpacing.sm)
+                        .background(
+                            LinearGradient(
+                                colors: (name.isEmpty || calories <= 0) ?
+                                    [Color.gray.opacity(0.4), Color.gray.opacity(0.3)] :
+                                    gradientManager.active.colors(for: colorScheme),
+                                startPoint: .leading,
+                                endPoint: .trailing
+                            )
+                        )
+                        .clipShape(RoundedRectangle(cornerRadius: 14))
+                        .shadow(
+                            color: (name.isEmpty || calories <= 0) ? 
+                                Color.clear : 
+                                gradientManager.active.colors(for: colorScheme)[0].opacity(0.2),
+                            radius: 8,
+                            y: 2
+                        )
                     }
+                    .disabled(name.isEmpty || calories <= 0)
                 }
                 .padding(AppSpacing.md)
                 .opacity(animateIn ? 1 : 0)
@@ -699,11 +856,11 @@ final class MockCoachEngine: FoodCoachEngineProtocol {
         FunctionExecutionResult(success: true, message: "Mock execution", executionTimeMs: 1, functionName: functionCall.name)
     }
     
-    func analyzeMealPhoto(image: UIImage, context: NutritionContext?) async throws -> MealPhotoAnalysisResult {
+    func analyzeMealPhoto(image: UIImage, context: NutritionContext?, for user: User) async throws -> MealPhotoAnalysisResult {
         MealPhotoAnalysisResult(items: [], confidence: 0.9, processingTime: 0.1)
     }
     
-    func searchFoods(query: String, limit: Int) async throws -> [ParsedFoodItem] {
+    func searchFoods(query: String, limit: Int, for user: User) async throws -> [ParsedFoodItem] {
         []
     }
     

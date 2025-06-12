@@ -12,25 +12,46 @@ struct AppearanceSettingsView: View {
     }
     
     var body: some View {
-        ScrollView {
-            VStack(spacing: AppSpacing.xLarge) {
-                appearanceModeSection
-                themePreview
-                colorAccentSection
-                textSizeSection
-                saveButton
+        BaseScreen {
+            ScrollView {
+                VStack(spacing: 0) {
+                    // Title header
+                    HStack {
+                        CascadeText("Appearance")
+                            .font(.system(size: 34, weight: .bold, design: .rounded))
+                        Spacer()
+                    }
+                    .padding(.horizontal, AppSpacing.lg)
+                    .padding(.top, AppSpacing.sm)
+                    .padding(.bottom, AppSpacing.lg)
+                    
+                    VStack(spacing: AppSpacing.xl) {
+                        appearanceModeSection
+                        themePreview
+                        colorAccentSection
+                        textSizeSection
+                        saveButton
+                    }
+                    .padding(.horizontal, AppSpacing.lg)
+                    .padding(.bottom, AppSpacing.xl)
+                }
             }
-            .padding()
         }
-        .navigationTitle("Appearance")
-        .navigationBarTitleDisplayMode(.large)
+        .navigationTitle("")
+        .navigationBarTitleDisplayMode(.inline)
     }
     
     private var appearanceModeSection: some View {
-        VStack(alignment: .leading, spacing: AppSpacing.medium) {
-            SectionHeader(title: "Theme", icon: "paintbrush")
+        VStack(alignment: .leading, spacing: AppSpacing.sm) {
+            HStack {
+                Text("Theme")
+                    .font(.system(size: 13, weight: .medium, design: .rounded))
+                    .textCase(.uppercase)
+                    .foregroundStyle(.secondary.opacity(0.8))
+                Spacer()
+            }
             
-            Card {
+            GlassCard {
                 VStack(spacing: 0) {
                     ForEach(AppearanceMode.allCases, id: \.self) { mode in
                         AppearanceModeRow(
@@ -40,7 +61,7 @@ struct AppearanceSettingsView: View {
                             withAnimation {
                                 selectedAppearance = mode
                             }
-                            // TODO: Add haptic feedback via DI when needed
+                            HapticService.impact(.light)
                         }
                         
                         if mode != AppearanceMode.allCases.last {
@@ -53,13 +74,13 @@ struct AppearanceSettingsView: View {
     }
     
     private var themePreview: some View {
-        VStack(alignment: .leading, spacing: AppSpacing.medium) {
-            SectionHeader(title: "Preview", icon: "eye")
+        VStack(alignment: .leading, spacing: AppSpacing.md) {
+            // SectionHeader(title: "Preview", icon: "eye")
             
-            Card {
-                VStack(spacing: AppSpacing.medium) {
+            GlassCard {
+                VStack(spacing: AppSpacing.md) {
                     // Mini preview of app appearance
-                    HStack(spacing: AppSpacing.medium) {
+                    HStack(spacing: AppSpacing.md) {
                         PreviewCard(
                             title: "Dashboard",
                             icon: "house.fill",
@@ -73,7 +94,7 @@ struct AppearanceSettingsView: View {
                         )
                     }
                     
-                    HStack(spacing: AppSpacing.medium) {
+                    HStack(spacing: AppSpacing.md) {
                         PreviewCard(
                             title: "Nutrition",
                             icon: "fork.knife",
@@ -92,11 +113,11 @@ struct AppearanceSettingsView: View {
     }
     
     private var colorAccentSection: some View {
-        VStack(alignment: .leading, spacing: AppSpacing.medium) {
-            SectionHeader(title: "Accent Color", icon: "paintpalette")
+        VStack(alignment: .leading, spacing: AppSpacing.md) {
+            // SectionHeader(title: "Accent Color", icon: "paintpalette")
             
-            Card {
-                VStack(spacing: AppSpacing.medium) {
+            GlassCard {
+                VStack(spacing: AppSpacing.md) {
                     HStack {
                         Text("Choose your accent color")
                             .font(.subheadline)
@@ -106,7 +127,7 @@ struct AppearanceSettingsView: View {
                             .frame(width: 24, height: 24)
                     }
                     
-                    HStack(spacing: AppSpacing.small) {
+                    HStack(spacing: AppSpacing.sm) {
                         ForEach(AccentColorOption.allCases, id: \.self) { option in
                             AccentColorButton(
                                 color: option.color,
@@ -115,7 +136,7 @@ struct AppearanceSettingsView: View {
                                 withAnimation {
                                     accentColor = option.color
                                 }
-                                // TODO: Add haptic feedback via DI when needed
+                                HapticService.impact(.light)
                             }
                         }
                     }
@@ -129,42 +150,64 @@ struct AppearanceSettingsView: View {
     }
     
     private var textSizeSection: some View {
-        VStack(alignment: .leading, spacing: AppSpacing.medium) {
-            SectionHeader(title: "Text Size", icon: "textformat.size")
+        VStack(alignment: .leading, spacing: AppSpacing.md) {
+            // SectionHeader(title: "Text Size", icon: "textformat.size")
             
-            Card {
-                VStack(spacing: AppSpacing.medium) {
+            GlassCard {
+                VStack(spacing: AppSpacing.md) {
                     Text("Adjust text size in Settings → Display & Brightness")
                         .font(.callout)
                         .foregroundStyle(.secondary)
                     
-                    StandardButton(
-                        "Open Display Settings",
-                        icon: "arrow.up.forward.square",
-                        style: .secondary,
-                        isFullWidth: true,
-                        action: openDisplaySettings
-                    )
+                    Button {
+                        openDisplaySettings()
+                    } label: {
+                        Label("Open Display Settings", systemImage: "arrow.up.forward.square")
+                            .font(.system(size: 16, weight: .medium, design: .rounded))
+                            .foregroundColor(.primary)
+                            .frame(maxWidth: .infinity)
+                            .padding(.vertical, AppSpacing.sm)
+                            .background(
+                                RoundedRectangle(cornerRadius: 12)
+                                    .fill(.ultraThinMaterial)
+                                    .overlay(
+                                        RoundedRectangle(cornerRadius: 12)
+                                            .strokeBorder(Color.secondary.opacity(0.2), lineWidth: 1)
+                                    )
+                            )
+                    }
                 }
             }
         }
     }
     
     private var saveButton: some View {
-        StandardButton(
-            "Save Appearance",
-            icon: "checkmark.circle.fill",
-            style: .primary,
-            isFullWidth: true,
-            isEnabled: selectedAppearance != viewModel.appearanceMode,
-            action: saveAppearance
-        )
+        Button {
+            saveAppearance()
+        } label: {
+            Label("Save Appearance", systemImage: "checkmark.circle.fill")
+                .font(.system(size: 16, weight: .medium, design: .rounded))
+                .foregroundColor(.white)
+                .frame(maxWidth: .infinity)
+                .padding(.vertical, AppSpacing.sm)
+                .background(
+                    LinearGradient(
+                        colors: selectedAppearance != viewModel.appearanceMode 
+                            ? [Color.accentColor, Color.accentColor.opacity(0.8)]
+                            : [Color.gray.opacity(0.3), Color.gray.opacity(0.2)],
+                        startPoint: .leading,
+                        endPoint: .trailing
+                    )
+                )
+                .clipShape(RoundedRectangle(cornerRadius: 12))
+        }
+        .disabled(selectedAppearance != viewModel.appearanceMode)
     }
     
     private func saveAppearance() {
         Task {
             try await viewModel.updateAppearance(selectedAppearance)
-            // TODO: Add haptic feedback via DI when needed
+            HapticService.impact(.medium)
             dismiss()
         }
     }
@@ -190,7 +233,7 @@ struct AppearanceModeRow: View {
                     .foregroundStyle(.tint)
                     .frame(width: 32)
                 
-                VStack(alignment: .leading, spacing: AppSpacing.xSmall) {
+                VStack(alignment: .leading, spacing: AppSpacing.xs) {
                     Text(mode.displayName)
                         .font(.headline)
                     
@@ -209,7 +252,7 @@ struct AppearanceModeRow: View {
                         .foregroundStyle(.quaternary)
                 }
             }
-            .padding(.vertical, AppSpacing.small)
+            .padding(.vertical, AppSpacing.sm)
         }
         .buttonStyle(.plain)
     }
@@ -221,7 +264,7 @@ struct PreviewCard: View {
     let appearance: AppearanceMode
     
     var body: some View {
-        VStack(spacing: AppSpacing.small) {
+        VStack(spacing: AppSpacing.sm) {
             Image(systemName: icon)
                 .font(.title2)
                 .foregroundStyle(.tint)
@@ -231,13 +274,15 @@ struct PreviewCard: View {
                 .foregroundStyle(.secondary)
         }
         .frame(maxWidth: .infinity)
-        .padding()
-        .background(backgroundColorForAppearance)
-        .clipShape(RoundedRectangle(cornerRadius: 8))
-        .overlay {
-            RoundedRectangle(cornerRadius: 8)
-                .strokeBorder(borderColorForAppearance, lineWidth: 1)
-        }
+        .padding(AppSpacing.md)
+        .background(
+            RoundedRectangle(cornerRadius: 12)
+                .fill(.ultraThinMaterial)
+                .overlay(
+                    RoundedRectangle(cornerRadius: 12)
+                        .strokeBorder(borderColorForAppearance, lineWidth: 1)
+                )
+        )
     }
     
     private var backgroundColorForAppearance: Color {
