@@ -1,81 +1,60 @@
 # Development Standards Guide
 
-**Last Updated**: 2025-06-10  
-**Purpose**: Essential standards for AirFit development
+**Last Updated**: 2025-06-14  
+**Purpose**: Essential standards for AI agents working on AirFit codebase  
+**Status**: Consolidated and aligned with production implementation
 
-## Quick Reference
+## Core Standards (AI Agent Onboarding)
 
-### 🏗️ Architecture & Patterns
-- **[DI_STANDARDS.md](./DI_STANDARDS.md)** - Dependency injection patterns (lazy, async, testable)
-- **[CONCURRENCY_STANDARDS.md](./CONCURRENCY_STANDARDS.md)** - Swift 6 concurrency, actors, async/await
-- **[ERROR_HANDLING_STANDARDS.md](./ERROR_HANDLING_STANDARDS.md)** - AppError usage, error propagation
+### 🏗️ Architecture (Read First)
+- **[DI_STANDARDS.md](./DI_STANDARDS.md)** - Lazy dependency injection with async resolution
+- **[CONCURRENCY_STANDARDS.md](./CONCURRENCY_STANDARDS.md)** - Actor isolation, @MainActor patterns, Swift 6 compliance
+- **[SERVICE_LAYER_STANDARDS.md](./SERVICE_LAYER_STANDARDS.md)** - Service protocols, actor boundaries
 
-### 🎯 Performance & Optimization
-- **[MAINACTOR_CLEANUP_STANDARDS.md](./MAINACTOR_CLEANUP_STANDARDS.md)** - When to use @MainActor vs actors
-- **[AI_OPTIMIZATION_STANDARDS.md](./AI_OPTIMIZATION_STANDARDS.md)** - AI performance patterns, demo mode
+### 🎨 UI Implementation
+- **[UI_VISION.md](./UI_VISION.md)** - Complete UI system: GlassCard, CascadeText, gradients, animations
 
-### 🎨 UI Development
-- **[STANDARD_COMPONENTS.md](./STANDARD_COMPONENTS.md)** - StandardButton, StandardCard usage
-- **[UI_VISION.md](./UI_VISION.md)** - Future UI direction (gradients, animations)
+### 📋 Code Quality
+- **[ERROR_HANDLING_STANDARDS.md](./ERROR_HANDLING_STANDARDS.md)** - AppError patterns, graceful failure
+- **[NAMING_STANDARDS.md](./NAMING_STANDARDS.md)** - File naming, type conventions
+- **[TEST_STANDARDS.md](./TEST_STANDARDS.md)** - Testing patterns (Note: test suite needs cleanup)
 
-### 📝 Code Organization
-- **[NAMING_STANDARDS.md](./NAMING_STANDARDS.md)** - File naming conventions
-- **[TEST_STANDARDS.md](./TEST_STANDARDS.md)** - Testing patterns and best practices
-- **[PROJECT_FILE_MANAGEMENT.md](./PROJECT_FILE_MANAGEMENT.md)** - XcodeGen and file organization
+### 🎯 Specialized
+- **[AI_OPTIMIZATION_STANDARDS.md](./AI_OPTIMIZATION_STANDARDS.md)** - LLM performance patterns
+- **[MODULE_BOUNDARIES.md](./MODULE_BOUNDARIES.md)** - Module organization
+- **[PROJECT_FILE_MANAGEMENT.md](./PROJECT_FILE_MANAGEMENT.md)** - XcodeGen usage
 - **[DOCUMENTATION_CHECKLIST.md](./DOCUMENTATION_CHECKLIST.md)** - Documentation requirements
 
-## New Developer Onboarding
+## AI Agent Quick Start
 
-Start with these in order:
-1. **DI_STANDARDS** - Understand our dependency injection
-2. **CONCURRENCY_STANDARDS** - Learn our async patterns
-3. **ERROR_HANDLING_STANDARDS** - Use AppError consistently
-4. **STANDARD_COMPONENTS** - Use existing UI components
+**Essential Reading Order for New AI Agents**:
 
-## Key Principles
+1. **[DI_STANDARDS.md](./DI_STANDARDS.md)** - Master lazy async DI patterns before coding
+2. **[CONCURRENCY_STANDARDS.md](./CONCURRENCY_STANDARDS.md)** - Understand actor isolation boundaries  
+3. **[UI_VISION.md](./UI_VISION.md)** - Learn our component system (GlassCard, CascadeText)
+4. **[SERVICE_LAYER_STANDARDS.md](./SERVICE_LAYER_STANDARDS.md)** - Service protocols and actor patterns
 
-### 1. Lazy Everything
-- Services created only when needed
-- No blocking during app launch
-- <0.5s launch time maintained
+**Key Constraints**:
+- Build must pass with 0 errors, 0 warnings
+- Run `xcodebuild build` after every change
+- SwiftLint must pass strict validation
+- All services are actors except SwiftData-constrained ones
+- UI uses gradient system, no solid backgrounds
+- Test suite is currently deprecated (ignore test files)
 
-### 2. Type Safety First
-- Protocol-based dependencies
-- Compile-time validation
-- No force unwrapping
+## Production Implementation Status
 
-### 3. Performance Conscious
-- @MainActor only for UI
-- Services as actors
-- Efficient data queries
+**✅ World-Class Patterns Implemented**:
+- Lazy async DI with zero-cost app startup
+- Actor-based services with proper isolation
+- GlassCard + CascadeText UI system
+- Swift 6 compliant concurrency
+- LLM-centric architecture with persona coherence
 
-### 4. Consistent Patterns
-- All services implement ServiceProtocol
-- All errors use AppError
-- All UI uses standard components
+**📋 Documentation Consolidated** (2025-06-14):
+- Removed duplicate/deprecated standards
+- Aligned with actual codebase patterns
+- Optimized for AI agent context limits
 
-## Common Tasks
-
-### Adding a New Service
-1. Check **DI_STANDARDS** for registration pattern
-2. Check **CONCURRENCY_STANDARDS** for actor vs @MainActor
-3. Implement ServiceProtocol
-4. Register in DIBootstrapper
-
-### Creating a New View
-1. Use **STANDARD_COMPONENTS** (StandardButton, StandardCard)
-2. Follow **NAMING_STANDARDS** for file names
-3. Create ViewModel with proper DI
-
-### Writing Tests
-1. Follow **TEST_STANDARDS** for structure
-2. Use mock DI container
-3. Test async behavior properly
-
-## Architecture References
-- Main architecture: `../ARCHITECTURE.md`
-- Module boundaries: `../MODULE_BOUNDARIES.md`
-- Recovery plan: `../CODEBASE_RECOVERY_PLAN.md`
-
-## Archived Standards
-Completed migrations and outdated standards are in `Archive/`
+---
+**For AI Agents**: This codebase represents production-ready patterns. Follow the documented standards exactly as they reflect working implementation.

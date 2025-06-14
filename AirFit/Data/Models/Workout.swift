@@ -21,8 +21,7 @@ final class Workout: @unchecked Sendable {
     var healthKitWorkoutID: String?
     var healthKitSyncedDate: Date?
 
-    // Template Reference
-    var templateID: UUID?
+    // Template reference removed - AI-native generation
 
     // AI Analysis
     var aiAnalysis: String?
@@ -104,32 +103,7 @@ final class Workout: @unchecked Sendable {
         exercise.workout = self
     }
 
-    func createFromTemplate(_ template: WorkoutTemplate) {
-        self.name = template.name
-        self.workoutType = template.workoutType
-        self.templateID = template.id
-
-        // Copy exercises from template
-        for templateExercise in template.exercises {
-            let exercise = Exercise(
-                name: templateExercise.name,
-                muscleGroups: templateExercise.muscleGroups
-            )
-
-            // Copy sets from template
-            for templateSet in templateExercise.sets {
-                let set = ExerciseSet(
-                    setNumber: templateSet.setNumber,
-                    targetReps: templateSet.targetReps,
-                    targetWeightKg: templateSet.targetWeightKg,
-                    targetDurationSeconds: templateSet.targetDurationSeconds
-                )
-                exercise.addSet(set)
-            }
-
-            addExercise(exercise)
-        }
-    }
+    // Template creation method removed - AI generates personalized workouts on-demand
 }
 
 // MARK: - WorkoutType Enum

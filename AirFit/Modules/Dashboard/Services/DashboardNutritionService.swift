@@ -73,7 +73,7 @@ final class DashboardNutritionService: DashboardNutritionServiceProtocol {
             fiberTarget: targets.fiber,
             water: water,
             waterTarget: targets.water,
-            mealCount: entries.filter { $0.mealType != nil }.count
+            mealCount: entries.count
         )
     }
     

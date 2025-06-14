@@ -99,16 +99,16 @@ struct SettingsListView: View {
                 .navigationBarTitleDisplayMode(.inline)
                 .toolbar {
                     ToolbarItem(placement: .navigationBarTrailing) {
-                        Button {
+                        Button(action: {
                             HapticService.impact(.soft)
                             dismiss()
-                        } label: {
+                        }, label: {
                             Text("Done")
                                 .font(.system(size: 17, weight: .medium, design: .rounded))
                                 .foregroundStyle(
                                     gradientManager.currentGradient(for: colorScheme)
                                 )
-                        }
+                        })
                     }
                 }
             }
@@ -608,12 +608,12 @@ struct SettingsListView: View {
                         .padding(.horizontal, AppSpacing.md)
                     
                     // Delete All Data button
-                    Button(role: .destructive) {
+                    Button(role: .destructive, action: {
                         HapticService.impact(.rigid)
                         Task {
                             try await viewModel.deleteAllData()
                         }
-                    } label: {
+                    }, label: {
                         HStack(spacing: AppSpacing.md) {
                             Image(systemName: "trash")
                                 .font(.system(size: 20))
@@ -627,7 +627,7 @@ struct SettingsListView: View {
                         .foregroundStyle(.red)
                         .padding(.vertical, AppSpacing.sm)
                         .padding(.horizontal, AppSpacing.md)
-                    }
+                    })
                 }
             }
         }
@@ -864,7 +864,7 @@ struct SettingsListView: View {
                 primaryButton: .destructive(Text("Delete"), action: action),
                 secondaryButton: .cancel()
             )
-        case .exportSuccess(let url):
+        case .exportSuccess(_):
             return Alert(
                 title: Text("Export Complete"),
                 message: Text("Your data has been exported successfully."),
@@ -935,11 +935,11 @@ struct PersonaRefinementFlow: View {
                 // Navigation buttons
                 HStack(spacing: AppSpacing.md) {
                     if currentStep > 0 {
-                        Button {
+                        Button(action: {
                             withAnimation {
                                 currentStep -= 1
                             }
-                        } label: {
+                        }, label: {
                             Text("Back")
                                 .font(.system(size: 16, weight: .medium, design: .rounded))
                                 .foregroundColor(.primary)
@@ -949,7 +949,7 @@ struct PersonaRefinementFlow: View {
                                     RoundedRectangle(cornerRadius: 12)
                                         .fill(.ultraThinMaterial)
                                 )
-                        }
+                        })
                     }
                     
                     Spacer()
@@ -1692,9 +1692,9 @@ struct AboutView: View {
                     Label("Source Code", systemImage: "chevron.left.forwardslash.chevron.right")
                 }
                 
-                Button(action: { showAcknowledgments = true }) {
+                Button(action: { showAcknowledgments = true }, label: {
                     Label("Acknowledgments", systemImage: "heart.text.square")
-                }
+                })
             }
         }
         .navigationTitle("About AirFit")
@@ -1808,9 +1808,9 @@ struct DebugSettingsView: View {
     var body: some View {
         List {
             Section("Cache Management") {
-                Button(action: { showClearCacheAlert = true }) {
+                Button(action: { showClearCacheAlert = true }, label: {
                     Label("Clear Cache", systemImage: "trash")
-                }
+                })
                 .disabled(isProcessing)
                 
                 HStack {
@@ -1823,14 +1823,14 @@ struct DebugSettingsView: View {
             }
             
             Section("Development Tools") {
-                Button(action: { showResetOnboardingAlert = true }) {
+                Button(action: { showResetOnboardingAlert = true }, label: {
                     Label("Reset Onboarding", systemImage: "arrow.counterclockwise")
-                }
+                })
                 .disabled(isProcessing)
                 
-                Button(action: exportLogs) {
+                Button(action: exportLogs, label: {
                     Label("Export Debug Logs", systemImage: "doc.text.magnifyingglass")
-                }
+                })
                 .disabled(isProcessing)
                 
                 NavigationLink(destination: FeatureFlagsView()) {

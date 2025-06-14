@@ -162,7 +162,7 @@ struct WorkoutListView: View {
                 Button(action: {
                     HapticService.impact(.light)
                     coordinator.navigateTo(.allWorkouts)
-                }) {
+                }, label: {
                     HStack(spacing: 4) {
                         Text("View All")
                             .font(.system(size: 14, weight: .medium))
@@ -176,7 +176,7 @@ struct WorkoutListView: View {
                             endPoint: .trailing
                         )
                     )
-                }
+                })
             }
             .padding(.horizontal, AppSpacing.md)
             
@@ -696,7 +696,7 @@ struct WorkoutExampleText: View {
 
 // MARK: - Preview
 #Preview {
-    let container = try! ModelContainer.preview // swiftlint:disable:this force_try
+    let container = ModelContainer.preview
     let context = container.mainContext
     let user = try! context.fetch(FetchDescriptor<User>()).first! // swiftlint:disable:this force_try
     let vm = WorkoutViewModel(

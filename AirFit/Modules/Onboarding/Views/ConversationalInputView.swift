@@ -61,7 +61,7 @@ struct ConversationalInputView: View {
                     }
                 )
                 
-            case .hybrid(let primary, let secondary):
+            case .hybrid(let primary, _):
                 // For hybrid inputs, show primary by default
                 // Secondary input can be accessed via a toggle or gesture
                 ConversationalInputView(

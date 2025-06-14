@@ -9,6 +9,5 @@ protocol WorkoutServiceProtocol: AnyObject, Sendable {
     func endWorkout(_ workout: Workout) async throws
     func logExercise(_ exercise: Exercise, in workout: Workout) async throws
     func getWorkoutHistory(for user: User, limit: Int) async throws -> [Workout]
-    func getWorkoutTemplates() async throws -> [WorkoutTemplate]
-    func saveWorkoutTemplate(_ template: WorkoutTemplate) async throws
+    // Template methods removed - using AI-native workout generation
 }

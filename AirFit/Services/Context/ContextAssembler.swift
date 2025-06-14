@@ -171,7 +171,7 @@ final class ContextAssembler: ContextAssemblerProtocol, ServiceProtocol {
     private func createMockAppContext(using context: ModelContext) async -> AppSpecificContext {
         let now = Date()
         let sevenDaysAgo = Calendar.current.date(byAdding: .day, value: -7, to: now) ?? now
-        _ = Calendar.current.date(byAdding: .day, value: -14, to: now) ?? now
+        let twoWeeksAgo = Calendar.current.date(byAdding: .day, value: -14, to: now) ?? now
 
         var lastMealTime: Date?
         var lastMealSummary: String?
@@ -314,6 +314,37 @@ final class ContextAssembler: ContextAssemblerProtocol, ServiceProtocol {
 
         let muscleGroups = Set(workout.exercises.flatMap { $0.muscleGroups }).sorted()
 
+        // Build exercise performance data
+        var exercisePerformance: [String: ExercisePerformance] = [:]
+        for exercise in workout.exercises.prefix(3) {
+            let exerciseVolume = exercise.sets.reduce(into: 0.0) { total, set in
+                let weight = set.completedWeightKg ?? set.targetWeightKg ?? 0
+                let reps = Double(set.completedReps ?? set.targetReps ?? 0)
+                total += (weight * reps)
+            }
+            
+            let topSet = exercise.sets.max { set1, set2 in
+                let vol1 = (set1.completedWeightKg ?? set1.targetWeightKg ?? 0) * Double(set1.completedReps ?? set1.targetReps ?? 0)
+                let vol2 = (set2.completedWeightKg ?? set2.targetWeightKg ?? 0) * Double(set2.completedReps ?? set2.targetReps ?? 0)
+                return vol1 < vol2
+            }
+            
+            let topSetPerformance = topSet.map { set in
+                SetPerformance(
+                    weight: set.completedWeightKg ?? set.targetWeightKg ?? 0,
+                    reps: set.completedReps ?? set.targetReps ?? 0,
+                    volume: (set.completedWeightKg ?? set.targetWeightKg ?? 0) * Double(set.completedReps ?? set.targetReps ?? 0)
+                )
+            }
+            
+            exercisePerformance[exercise.name] = ExercisePerformance(
+                exerciseName: exercise.name,
+                volumeTotal: exerciseVolume,
+                topSet: topSetPerformance,
+                contextSummary: "\(exercise.sets.count) sets, top: \(topSetPerformance?.weight ?? 0)kg x \(topSetPerformance?.reps ?? 0)"
+            )
+        }
+
         return CompactWorkout(
             name: workout.name,
             type: workout.workoutTypeEnum?.displayName ?? "Unknown",
@@ -323,7 +354,8 @@ final class ContextAssembler: ContextAssemblerProtocol, ServiceProtocol {
             totalVolume: totalVolume,
             avgRPE: avgRPE.isFinite ? avgRPE : nil,
             muscleGroups: muscleGroups,
-            keyExercises: workout.exercises.prefix(3).map { $0.name } // Top 3 exercises
+            keyExercises: workout.exercises.prefix(3).map { $0.name }, // Top 3 exercises
+            exercisePerformance: exercisePerformance
         )
     }
 

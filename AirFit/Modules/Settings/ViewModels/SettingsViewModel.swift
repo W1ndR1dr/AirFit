@@ -403,9 +403,8 @@ final class SettingsViewModel: ErrorHandling {
                 break
             }
         }
-        let response = responseText
-        if !response.isEmpty {
-            return response
+        if !responseText.isEmpty {
+            return responseText
         }
         
         return "Let's make today count! Ready to push your limits?"
@@ -448,11 +447,9 @@ final class SettingsViewModel: ErrorHandling {
                 break
             }
         }
-        let response = responseText
-        
         // Parse and save the adjusted persona
-        if !response.isEmpty,
-           let adjustedData = response.data(using: .utf8),
+        if !responseText.isEmpty,
+           let adjustedData = responseText.data(using: .utf8),
            let adjustedPersona = try? JSONDecoder().decode(CoachPersona.self, from: adjustedData) {
             
             coachPersona = adjustedPersona

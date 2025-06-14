@@ -214,18 +214,18 @@ struct MessageBubbleView: View {
                 
                 // Action buttons
                 HStack(spacing: 8) {
-                    Button(action: { onAction(.copy) }) {
+                    Button(action: { onAction(.copy) }, label: {
                         Image(systemName: "doc.on.doc")
                             .font(.system(size: 14, weight: .light))
                             .foregroundStyle(.secondary)
-                    }
+                    })
                     .buttonStyle(.plain)
                     
-                    Button(action: { onAction(.regenerate) }) {
+                    Button(action: { onAction(.regenerate) }, label: {
                         Image(systemName: "arrow.clockwise")
                             .font(.system(size: 14, weight: .light))
                             .foregroundStyle(.secondary)
-                    }
+                    })
                     .buttonStyle(.plain)
                 }
             }
@@ -282,36 +282,36 @@ struct MessageBubbleView: View {
     
     @ViewBuilder
     private var messageActions: some View {
-        Button(action: { onAction(.copy) }) {
+        Button(action: { onAction(.copy) }, label: {
             Label("Copy", systemImage: "doc.on.doc")
-        }
+        })
         
         if message.roleEnum == .assistant {
-            Button(action: { onAction(.regenerate) }) {
+            Button(action: { onAction(.regenerate) }, label: {
                 Label("Regenerate", systemImage: "arrow.clockwise")
-            }
+            })
         }
         
-        Button(action: { onAction(.showDetails) }) {
+        Button(action: { onAction(.showDetails) }, label: {
             Label("Details", systemImage: "info.circle")
-        }
+        })
         
         if hasExpandableContent {
             Button(action: { 
                 withAnimation(.spring()) {
                     isExpanded.toggle()
                 }
-            }) {
+            }, label: {
                 Label(isExpanded ? "Collapse" : "Expand", 
                       systemImage: isExpanded ? "chevron.up" : "chevron.down")
-            }
+            })
         }
         
         Divider()
         
-        Button(role: .destructive, action: { onAction(.delete) }) {
+        Button(role: .destructive, action: { onAction(.delete) }, label: {
             Label("Delete", systemImage: "trash")
-        }
+        })
     }
     
     // MARK: - Helper Properties
@@ -666,11 +666,11 @@ struct QuickActionsView: View {
             ForEach(actions) { action in
                 Button(action: {
                     onAction(action.id)
-                }) {
+                }, label: {
                     Text(action.title)
                         .font(.caption)
                         .foregroundStyle(.secondary)
-                }
+                })
                 .buttonStyle(.plain)
             }
         }

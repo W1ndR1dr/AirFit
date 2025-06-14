@@ -107,7 +107,7 @@ final class FunctionCallDispatcher: Sendable {
     private var functionMetrics: [String: FunctionMetrics] = [:]
     private let metricsLock = NSLock()
 
-    // Pre-allocated formatters for performance
+    // Pre-allocated formatters for performance (unused but kept for potential future use)
     private let intFormatter: NumberFormatter = {
         let formatter = NumberFormatter()
         formatter.numberStyle = .none
@@ -472,7 +472,7 @@ final class FunctionCallDispatcher: Sendable {
         modelContext: ModelContext
     ) async throws -> FunctionHandlerResult {
         let metricType = args["metric_type"]?.value as? String ?? "overall"
-        let timePeriod = args["time_period"]?.value as? String ?? "week"
+        let _ = args["time_period"]?.value as? String ?? "week"
 
         // Fetch recent workouts from database
         let calendar = Calendar.current
@@ -488,7 +488,7 @@ final class FunctionCallDispatcher: Sendable {
         let allWorkouts = try modelContext.fetch(descriptor)
         
         // Filter for recent workouts
-        let workouts = allWorkouts.filter { workout in
+        let _ = allWorkouts.filter { workout in
             let workoutDate = workout.completedDate ?? workout.plannedDate ?? Date()
             return workoutDate >= startDate
         }
@@ -533,7 +533,7 @@ final class FunctionCallDispatcher: Sendable {
         let goalType = args["goal_type"]?.value as? String ?? "fitness"
         let timeframe = args["timeframe"]?.value as? String ?? "3 months"
         let currentState = args["current_state"]?.value as? [String: Any] ?? [:]
-        let preferences = args["preferences"]?.value as? [String: Any] ?? [:]
+        let _ = args["preferences"]?.value as? [String: Any] ?? [:]
 
         let result = try await goalService.createOrRefineGoal(
             current: nil,

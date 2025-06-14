@@ -146,7 +146,7 @@ struct ErrorPresentationView: View {
                         Button(action: {
                             HapticService.impact(.light)
                             dismissAction()
-                        }) {
+                        }, label: {
                             Text("Dismiss")
                                 .font(.system(size: 16, weight: .medium, design: .rounded))
                                 .foregroundColor(.primary)
@@ -160,7 +160,7 @@ struct ErrorPresentationView: View {
                                                 .strokeBorder(.white.opacity(0.1), lineWidth: 1)
                                         )
                                 )
-                        }
+                        })
                     }
                     
                     if retryAction != nil {
@@ -223,7 +223,7 @@ struct ErrorPresentationView: View {
                     Button(action: {
                         HapticService.impact(.light)
                         dismissAction()
-                    }) {
+                    }, label: {
                         Text("Go Back")
                             .font(.system(size: 18, weight: .medium, design: .rounded))
                             .foregroundColor(.primary)
@@ -237,7 +237,7 @@ struct ErrorPresentationView: View {
                                             .strokeBorder(.white.opacity(0.1), lineWidth: 1)
                                     )
                             )
-                    }
+                    })
                 }
             }
             .padding(.horizontal, AppSpacing.xl)
@@ -273,12 +273,12 @@ struct ErrorPresentationView: View {
                     Button(action: {
                         HapticService.impact(.soft)
                         dismissAction?()
-                    }) {
+                    }, label: {
                         Image(systemName: "xmark.circle.fill")
                             .font(.system(size: 22, weight: .regular))
                             .foregroundStyle(.secondary)
                             .symbolRenderingMode(.hierarchical)
-                    }
+                    })
                 }
             }
         }
@@ -297,7 +297,7 @@ struct ErrorPresentationView: View {
                 await retryAction?()
                 isRetrying = false
             }
-        }) {
+        }, label: {
             if isRetrying {
                 ProgressView()
                     .progressViewStyle(CircularProgressViewStyle(tint: .white))
@@ -306,7 +306,7 @@ struct ErrorPresentationView: View {
                 Label("Retry", systemImage: "arrow.clockwise")
                     .font(.system(size: 14, weight: .medium, design: .rounded))
             }
-        }
+        })
         .disabled(isRetrying)
     }
     
@@ -318,7 +318,7 @@ struct ErrorPresentationView: View {
                 await retryAction?()
                 isRetrying = false
             }
-        }) {
+        }, label: {
             HStack(spacing: AppSpacing.xs) {
                 if isRetrying {
                     ProgressView()
@@ -343,7 +343,7 @@ struct ErrorPresentationView: View {
             )
             .clipShape(RoundedRectangle(cornerRadius: 12))
             .shadow(color: gradientManager.active.colors(for: colorScheme)[0].opacity(0.3), radius: 8, y: 4)
-        }
+        })
         .disabled(isRetrying)
     }
     
@@ -355,7 +355,7 @@ struct ErrorPresentationView: View {
                 await retryAction?()
                 isRetrying = false
             }
-        }) {
+        }, label: {
             HStack(spacing: AppSpacing.sm) {
                 if isRetrying {
                     ProgressView()
@@ -380,7 +380,7 @@ struct ErrorPresentationView: View {
             )
             .clipShape(RoundedRectangle(cornerRadius: 16))
             .shadow(color: gradientManager.active.colors(for: colorScheme)[0].opacity(0.3), radius: 12, y: 4)
-        }
+        })
         .disabled(isRetrying)
     }
     
@@ -427,6 +427,10 @@ struct ErrorPresentationView: View {
                 return "person.crop.circle.badge.questionmark"
             case .unsupportedProvider:
                 return "cpu.badge.exclamationmark"
+            case .serviceUnavailable:
+                return "network.badge.shield.half.filled"
+            case .invalidInput:
+                return "pencil.circle.badge.exclamationmark"
             }
         } else {
             return "exclamationmark.circle"

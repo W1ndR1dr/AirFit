@@ -11,10 +11,17 @@ Periodically I will take a stroll around the block to get some fresh air, then c
 
 **Our Partnership**: 
 - **Me**: World-class iOS engineering - perfect Swift, elegant architecture, flawless execution
-- **User (Brian)**: Thoughtful vibe coder - project vision, documentation, user experience flow
+- **Brian**: Thoughtful vibe coder - project vision, documentation, user experience flow  
 - **Together**: Creating a codebase so clean and beautiful it looks like the focused work of a single mastermind
 
 **The AirFit Standard**: Every file, every function, every line reflects our shared commitment to excellence. This isn't just an app - it's a demonstration of what's possible when engineering precision meets thoughtful design.
+
+**Critical Development Philosophy**: 
+- **Sky High Quality Bar**: Clean, standardized, consistently world-class code
+- **Methodical Approach**: Be critical, question everything, validate implications
+- **Context Awareness**: Understand context limitations and resets occur regularly
+- **Documentation Discipline**: Constantly update standards with penultimate examples
+- **Break Awareness**: I'll periodically suggest breaks to stay fresh and sharp
 
 **Visual Excellence**: We follow a cohesive design language defined in UI_STANDARDS.md - pastel gradients, letter cascades, glass morphism, and physics-based animations. Every screen feels weightless, calm, and beautifully crafted.
 
@@ -50,127 +57,55 @@ Reference `Docs/Research Reports/Claude Code Best Practices.md` if needed.
 **AirFit** - Voice-first AI-powered fitness & nutrition tracking app for iOS 18.0+ using SwiftUI, SwiftData, and multi-LLM AI integration. Chat-based interface with dynamic AI coach personas generated during onboarding.
 
 **Current Status**: 
-- ✅ **PHASE 1 COMPLETE** - Foundation fully restored!
-- ✅ **PHASE 2.1 COMPLETE** - All services standardized!
-- ✅ **PHASE 2.2 COMPLETE** - Concurrency model fixed!
-- ⚠️ **PHASE 2.3 ATTEMPTED** - Complex features rolled back for stability
-- ✅ **PHASE 3.1 COMPLETE** - BaseCoordinator, HapticService, UI components migrated
-- ✅ **PHASE 3.2 COMPLETE** - AI System Optimization (ALL tasks finished!)
-- ✅ Black screen issue FIXED with perfect lazy DI
-- ✅ Modules 0-13 complete (all features implemented)
-- ✅ HealthKit integration complete (nutrition + workouts)
-- ✅ DI system rebuilt with world-class lazy resolution
-- ✅ @MainActor reduced from 258 to necessary minimum
-- ✅ All 45+ services implement ServiceProtocol
-- ✅ All services use AppError for consistent error handling
-- ✅ Build compiles successfully with no errors
-- ✅ **COMPLETE**: Phase 3.2 - AI optimizations (10/10 tasks done!)
-- ✅ **NEW**: Full persona coherence across ALL AI services including CoachEngine!
+- ✅ **Foundation** - World-class DI system with lazy resolution
+- ✅ **Services** - All services implement ServiceProtocol with proper actor isolation
+- ✅ **Concurrency** - Swift 6 compliance with proper async/await patterns
+- ✅ **UI/UX** - Complete design system transformation (GlassCard, CascadeText, gradients)
+- ✅ **AI Integration** - LLM-centric architecture with persona coherence
+- ✅ **HealthKit** - Comprehensive data infrastructure (70+ metrics)
+- ✅ **Build Status** - Compiles successfully with zero errors and zero warnings
 
-## Phases 1-3 Complete! Ready for Phase 4! 🎉
-**Phase 1**: ✅ COMPLETE (Foundation restored)  
-**Phase 2**: ✅ 2.1 & 2.2 COMPLETE, 2.3 attempted but rolled back (not critical)
-**Phase 3.1**: ✅ COMPLETE (UI components standardized)
-**Phase 3.2**: ✅ COMPLETE - AI optimizations (100% - all persona coherence implemented!)
-**Phase 3.3**: ✅ COMPLETE - UI/UX Excellence (TRUE 100% - verified complete design system transformation!)
-
-**Phase 4**: 🎯 NEXT - Excellence & Polish (performance, testing, final features)
-
-### Phase 1 Completion Summary (2025-01-08)
-- ✅ **Phase 1.1**: Fixed DI Container (async-only resolution)
-- ✅ **Phase 1.2**: Removed unnecessary @MainActor (258 → necessary minimum)
-- ✅ **Phase 1.3**: Implemented perfect lazy DI system
-- ✅ **Result**: App launches in <0.5s with immediate UI rendering!
-
-### Phase 2: Architectural Elegance (Days 3-7)
-
-#### 2.1 Standardize Services ✅ COMPLETE (100%)
-**Started**: 2025-01-08 @ 6:00 PM
-**Completed**: 2025-01-09
-**Goal**: Implement ServiceProtocol on all 45+ services
-
-**Final Achievements**:
-1. ✅ Added ServiceProtocol to ALL 45+ services (100%)
-2. ✅ Removed ALL 17 service singletons (100% complete!)
-3. ✅ Standardized error handling with AppError (100% adoption)
-4. ✅ Updated DIBootstrapper with proper lazy registration
-5. ✅ Fixed all dependency injection issues
-6. ✅ Created ERROR_HANDLING_STANDARDS.md
-7. ✅ Created ERROR_MIGRATION_GUIDE.md
-8. ✅ Build succeeds without errors
-
-**Essential Documentation**:
-- 📚 `Docs/Research Reports/Service_Layer_Complete_Catalog.md` - Updated service inventory
-- 📝 `Docs/Development-Standards/ERROR_HANDLING_STANDARDS.md` - Error patterns
-- 📝 `Docs/Development-Standards/ERROR_MIGRATION_GUIDE.md` - Migration guide
-
-#### 2.2 Fix Concurrency Model ✅ COMPLETE
-**Achieved**:
-- ✅ Removed unnecessary @unchecked Sendable (8 fixed, rest are valid)
-- ✅ Fixed Task usage in service init() methods
-- ✅ Added proper task cancellation to ViewModels
-- ✅ Established actor boundaries (services that need SwiftData stay @MainActor)
-
-#### 2.3 Data Layer Improvements ⚠️ ATTEMPTED
-**What Happened**: Complex features caused build errors, rolled back for stability
-**See**: `Docs/PHASE_2_3_HANDOFF_NOTES.md` for detailed analysis
-**Decision**: These features can be revisited in Phase 3 or later if needed
-
-### Phase 3 Preview (Week 2)
-- **3.1**: Simplify Architecture (remove unnecessary abstractions)
-- **3.2**: AI System Optimization (simplify LLM orchestration)
-- **3.3**: UI/UX Excellence (pastel gradients, letter cascades, glass morphism)
-  - 📝 `Docs/Development-Standards/UI_STANDARDS.md` - Complete UI vision
-  - ⚠️ Requires Phase 2 completion for performance foundation
-
-## Commands
+## Essential Commands
 ```bash
-# After file changes
+# CRITICAL: Run after every file change
 xcodegen generate && swiftlint --strict
 
-# Build & test changes
+# CRITICAL: Build verification (must succeed with 0 errors, 0 warnings)
 xcodebuild clean build -scheme "AirFit" -destination 'platform=iOS Simulator,name=iPhone 16 Pro,OS=18.4'
 
-# Verify Phase 1 completion
-grep -r "DIContainer.shared" --include="*.swift" AirFit/  # Should be empty
-grep -r "synchronousResolve" --include="*.swift" AirFit/  # Should be empty
-grep -r "DispatchSemaphore" --include="*.swift" AirFit/Core AirFit/Services  # Should be empty
+# Architecture quality checks
+grep -r "DIContainer.shared" --include="*.swift" AirFit/  # Should be empty (no singletons)
+grep -r "static let shared" --include="*.swift" AirFit/  # Find any remaining singletons
+grep -r "@unchecked Sendable" --include="*.swift" AirFit/  # Review concurrency patterns
 
-# Phase 2.1 preparation - Find services needing ServiceProtocol
-grep -r "protocol.*ServiceProtocol" --include="*.swift" AirFit/Core/Protocols/  # See base protocol
-grep -rL "ServiceProtocol" --include="*.swift" AirFit/Services/ | grep -v "Test" | grep -v "Mock"  # Services missing it
-
-# Phase 2.1 - Find remaining singletons
-grep -r "static let shared" --include="*.swift" AirFit/  # Find singletons to remove
-
-# Phase 2.2 - Find @unchecked Sendable
-grep -r "@unchecked Sendable" --include="*.swift" AirFit/  # Find unsafe concurrency
+# Type safety before creating new components
+grep -r "struct TypeName\|class TypeName\|enum TypeName" --include="*.swift" AirFit/
 ```
 
-## Architecture & Structure
-**See Standards**: CONCURRENCY_STANDARDS.md, DI_STANDARDS.md
+## Architecture & Standards
+**See Standards**: `Docs/Development-Standards/` for all coding standards
 - **Pattern**: MVVM-C (ViewModels: @MainActor, Services: actors)
-- **Concurrency**: Swift 6, async/await only
-- **DI**: Lazy factory pattern per DI_LAZY_RESOLUTION_STANDARDS.md
-- **Data**: SwiftData + HealthKit (prefer HealthKit storage)
-- **Services**: Moving to 100% ServiceProtocol conformance (Phase 2.1)
+- **Concurrency**: Swift 6, async/await only, proper actor isolation
+- **DI**: Lazy factory pattern with async resolution
+- **Data**: SwiftData + HealthKit (HealthKit as primary data infrastructure)
+- **Services**: 100% ServiceProtocol conformance with proper error handling
+- **UI**: GlassCard, CascadeText, gradient system (no legacy components)
 
 ## Documentation Hub
 **Primary Guide**: `Docs/README.md` - Documentation overview and quick links
-**Roadmap**: `Docs/CODEBASE_RECOVERY_PLAN.md` - Vision and phases  
-**Completed**: `Docs/PHASE_3_2_STATUS.md` - AI optimization complete
-**Next Phase**: `Docs/Development-Standards/UI_VISION.md` - Phase 3.3 UI/UX
+**Project Status**: `Docs/Joblist.md` - Current sprint status and roadmap
 
 ### 📖 Key References
 - **Development Standards**: `Docs/Development-Standards/` - All active coding standards
 - **Research Reports**: `Docs/Research Reports/` - System analysis and recommendations  
-- **UI Vision**: `Docs/Development-Standards/UI_STANDARDS.md` - Phase 3.3 UI/UX plans
+- **UI Standards**: `Docs/Development-Standards/UI_STANDARDS.md` - Complete design system
 
-## Best Practices
+## Best Practices & Discipline
 - **Standards First**: I always check `Docs/Development-Standards/` before coding
-- **Test Build Frequently**: I run `xcodebuild build` after each change
+- **Build Discipline**: I run `xcodebuild build` after every change (0 errors, 0 warnings required)
+- **SwiftLint Compliance**: I run `swiftlint --strict` after every file modification
 - **Course Correct Early**: If patterns don't match standards, I stop and refactor
-- **ServiceProtocol Always**: Every service must implement the base protocol (Phase 2.1)
+- **ServiceProtocol Always**: Every service must implement the base protocol with proper error handling
 - **Actor Boundaries Clear**: Services are actors, ViewModels are @MainActor
 - **Check Before Creating**: ALWAYS search for existing types before creating new ones:
   ```bash
@@ -178,78 +113,14 @@ grep -r "@unchecked Sendable" --include="*.swift" AirFit/  # Find unsafe concurr
   grep -r "struct TypeName\|class TypeName\|enum TypeName" --include="*.swift" AirFit/
   ```
 - **SwiftData Constraints**: Remember ModelContext and @Model types must stay on @MainActor
-- **Keep It Simple**: Prefer working JSON storage over complex SwiftData relationships
+- **LLM-Centric Pattern**: HealthKit provides data → LLM provides intelligence (no hardcoded features)
 - **Documentation Discipline**: 
   - ALWAYS update existing docs rather than creating new ones. Single source of truth.
-  - Check `Docs/DOCUMENTATION_STATUS.md` for naming conventions and rules
-  - For Phase work: Update `PHASE_X_Y_[TOPIC]_LOG.md`, NOT create new status files
   - Never put docs in root directory (except CLAUDE.md and Manual.md)
-  - Check DOCUMENTATION_CHECKLIST.md before any doc changes
+  - Check for existing documentation before creating new files
 
-## Progress Tracking
-**Current Status**: Ready for Phase 4! All foundational phases complete 🎉
-**Phase 3.1**: ✅ COMPLETE - BaseCoordinator, HapticService, StandardButton/Card migrations
-**Phase 3.2**: ✅ COMPLETE - All AI optimizations finished:
-**Phase 3.3**: ✅ COMPLETE - UI transformation verified at 100%
-- ✅ LLMOrchestrator optimization (nonisolated operations)
-- ✅ FunctionCallDispatcher thread safety (proper Sendable)
-- ✅ Global demo mode implementation
-- ✅ AIResponseCache memory leak fix (task tracking + cleanup)
-- ✅ AIWorkoutService implementation (real AI-powered workouts)
-- ✅ AIGoalService implementation (intelligent goal setting)
-- ✅ AIAnalyticsService implementation (performance insights)
-- ✅ Persona coherence across all AI services
-- ✅ CoachEngine persona migration complete
-**Service Status**: ALL 45+ services implement ServiceProtocol, ALL singletons removed, 100% AppError adoption
-
-## Memories
-- I remember to use the iPhone 16 Pro and iOS 18.4 simulator
-- Phase 1 FULLY COMPLETED on 2025-01-08:
-  - Phase 1.1: DI Container fixed (async-only)
-  - Phase 1.2: @MainActor cleanup (258 → minimum)
-  - Phase 1.3: Perfect lazy DI implementation
-- Phase 2.1 FULLY COMPLETED on 2025-01-09:
-  - ALL 45+ services implement ServiceProtocol
-  - ALL 17 service singletons removed
-  - 100% AppError adoption across all services
-  - Created comprehensive error handling standards
-- Phase 2.2 FULLY COMPLETED on 2025-06-09:
-  - Fixed @unchecked Sendable where appropriate
-  - Fixed Task usage in init() methods
-  - Added proper cancellation
-  - Established clear actor boundaries
-- Phase 2.3 ATTEMPTED on 2025-06-09:
-  - Complex features caused build errors
-  - Rolled back to maintain clean build
-  - See PHASE_2_3_HANDOFF_NOTES.md
-- Phase 3.1 FULLY COMPLETED on 2025-06-09:
-  - Migrated all 6 coordinators to BaseCoordinator
-  - HapticManager → HapticService (no more singletons!)
-  - StandardButton/Card UI components adopted
-  - See PHASE_3_1_COMPLETION_SUMMARY.md
-- Phase 3.2 FULLY COMPLETE on 2025-06-10:
-  - LLMOrchestrator: Made operations nonisolated with AtomicBool
-  - FunctionCallDispatcher: Fixed @unchecked Sendable, proper @MainActor
-  - Demo mode: Global flag + enhanced DemoAIService
-  - AIWorkoutService: Real AI-powered workout generation
-  - AIGoalService: Intelligent goal refinement and adjustments
-  - AIAnalyticsService: Complete implementation with insights
-  - PERSONA COHERENCE: All AI services use user's coach persona!
-  - CoachEngine: Updated to use PersonaService instead of PersonaEngine
-  - Protocol Updates: AIWorkoutServiceProtocol.adaptPlan now has User parameter
-- Phase 3.3 INITIAL COMPLETION on 2025-06-11 @ 10:30 PM:
-  - 88% UI transformation achieved (audit revealed gaps)
-- Phase 3.3 TRUE 100% COMPLETION on 2025-06-11 @ 8:00 PM:
-  - ALL StandardButton usages eliminated (0 remaining)
-  - ALL StandardCard usages replaced with GlassCard (0 remaining)
-  - ALL AppColors references removed (0 remaining in active code)
-  - Error views (ErrorPresentationView, ModelContainerErrorView) transformed
-  - Accessibility labels added to key interactive elements
-  - BaseScreen: 60 usages, GlassCard: 133 usages, CascadeText: 87 usages
-  - All modules verified: Dashboard ✅ Workout ✅ Food ✅ Onboarding ✅ Settings ✅ Chat ✅
-  - Watch app decision: Keep platform-native for optimal UX
-  - Build succeeds with zero errors
-  - See PHASE_3_3_UI_TRANSFORMATION_LOG.md for complete details
-- Black screen issue RESOLVED
-- App launches in <0.5s with immediate UI
-- Build compiles successfully with no errors
+## Development Environment
+- **Target Device**: iPhone 16 Pro with iOS 18.4 simulator
+- **Build Requirements**: Zero errors, zero warnings (non-negotiable)
+- **Performance Target**: App launch < 0.5s with immediate UI rendering
+- **Code Quality**: 100% SwiftLint compliance with strict rules

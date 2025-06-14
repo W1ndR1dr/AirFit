@@ -97,7 +97,7 @@ struct MorningContext {
     let sleepQuality: SleepQuality?
     let sleepDuration: TimeInterval?
     let weather: ServiceWeatherData?
-    let plannedWorkout: WorkoutTemplate?
+    let plannedWorkout: Workout? // Changed from WorkoutTemplate - using actual workouts now
     let currentStreak: Int
     let dayOfWeek: Int
     let motivationalStyle: MotivationalStyle

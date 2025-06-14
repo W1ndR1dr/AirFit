@@ -109,6 +109,4 @@ typealias SheetCoordinator<Destination: Hashable, Sheet: Identifiable> = BaseCoo
 
 // MARK: - Empty Types for Unused Features
 
-extension Never: Identifiable {
-    public var id: String { fatalError("Never should not be instantiated") }
-}
+// Never is already Identifiable in Swift - extension removed to avoid redundancy

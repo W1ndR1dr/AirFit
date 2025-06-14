@@ -304,15 +304,7 @@ struct WorkoutBuilderView: View {
 
         modelContext.insert(workout)
 
-        // Save as template if requested
-        if saveAsTemplate {
-            // TODO: Implement template saving when WorkoutTemplate model is ready
-            // let template = WorkoutTemplate(
-            //     name: workoutName,
-            //     workoutType: workoutType
-            // )
-            // modelContext.insert(template)
-        }
+        // Template saving removed - AI generates personalized workouts on-demand
 
         do {
             try modelContext.save()

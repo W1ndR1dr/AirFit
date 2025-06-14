@@ -153,7 +153,7 @@ extension AppError {
             return .networkError(underlying: NSError(domain: "LLM", code: -1001, userInfo: [NSLocalizedDescriptionKey: "Request timed out"]))
         case .cancelled:
             return .unknown(message: "Request was cancelled")
-        case .unsupportedFeature(let feature):
+        case .unsupportedFeature:
             return .unsupportedProvider
         case .contentFilter:
             return .validationError(message: "Content was filtered for safety reasons")

@@ -46,111 +46,16 @@ final class DataManager: ServiceProtocol {
                 print("No existing user found, waiting for onboarding")
             } else {
                 print("Found \(existing.count) existing users")
-                await createSystemTemplatesIfNeeded(context: context)
+                // System templates removed - using AI-native generation
             }
         } catch {
             print("Failed to perform initial setup: \(error)")
         }
     }
 
-    // MARK: - System Templates
-    private func createSystemTemplatesIfNeeded(context: ModelContext) async {
-        do {
-            var descriptor = FetchDescriptor<WorkoutTemplate>()
-            descriptor.predicate = #Predicate { $0.isSystemTemplate == true }
-            let existingTemplates = try context.fetch(descriptor)
-
-            if existingTemplates.isEmpty {
-                print("Creating system workout templates")
-                createDefaultWorkoutTemplates(context: context)
-                try context.save()
-            }
-
-            var mealDescriptor = FetchDescriptor<MealTemplate>()
-            mealDescriptor.predicate = #Predicate { $0.isSystemTemplate == true }
-            let existingMealTemplates = try context.fetch(mealDescriptor)
-
-            if existingMealTemplates.isEmpty {
-                print("Creating system meal templates")
-                createDefaultMealTemplates(context: context)
-                try context.save()
-            }
-        } catch {
-            print("Failed to create system templates: \(error)")
-        }
-    }
-
-    private func createDefaultWorkoutTemplates(context: ModelContext) {
-        let upperBody = WorkoutTemplate(
-            name: "Upper Body Strength",
-            workoutType: .strength,
-            isSystemTemplate: true
-        )
-        upperBody.estimatedDuration = 45 * 60
-        upperBody.difficulty = "intermediate"
-
-        let benchPress = ExerciseTemplate(name: "Bench Press", orderIndex: 0)
-        benchPress.muscleGroups = ["Chest", "Triceps", "Shoulders"]
-        for i in 1...4 {
-            benchPress.sets.append(SetTemplate(setNumber: i, targetReps: 10))
-        }
-        upperBody.exercises.append(benchPress)
-
-        let pullups = ExerciseTemplate(name: "Pull-ups", orderIndex: 1)
-        pullups.muscleGroups = ["Back", "Biceps"]
-        for i in 1...3 {
-            pullups.sets.append(SetTemplate(setNumber: i, targetReps: 8))
-        }
-        upperBody.exercises.append(pullups)
-
-        context.insert(upperBody)
-
-        let hiit = WorkoutTemplate(
-            name: "20-Minute HIIT",
-            workoutType: .hiit,
-            isSystemTemplate: true
-        )
-        hiit.estimatedDuration = 20 * 60
-        hiit.difficulty = "intermediate"
-
-        let burpees = ExerciseTemplate(name: "Burpees", orderIndex: 0)
-        burpees.sets.append(SetTemplate(setNumber: 1, targetDurationSeconds: 45))
-        hiit.exercises.append(burpees)
-
-        context.insert(hiit)
-    }
-
-    private func createDefaultMealTemplates(context: ModelContext) {
-        let breakfast = MealTemplate(
-            name: "Protein Power Breakfast",
-            mealType: .breakfast,
-            isSystemTemplate: true
-        )
-        breakfast.estimatedCalories = 450
-        breakfast.estimatedProtein = 35
-        breakfast.estimatedCarbs = 40
-        breakfast.estimatedFat = 15
-
-        let eggs = FoodItemTemplate(name: "Scrambled Eggs")
-        eggs.quantity = 2
-        eggs.unit = "large"
-        eggs.calories = 140
-        eggs.proteinGrams = 12
-        eggs.carbGrams = 2
-        eggs.fatGrams = 10
-        breakfast.items.append(eggs)
-
-        let toast = FoodItemTemplate(name: "Whole Wheat Toast")
-        toast.quantity = 2
-        toast.unit = "slices"
-        toast.calories = 160
-        toast.proteinGrams = 8
-        toast.carbGrams = 30
-        toast.fatGrams = 2
-        breakfast.items.append(toast)
-
-        context.insert(breakfast)
-    }
+    // MARK: - AI-Native Generation
+    // Template creation removed - AI generates personalized workouts and meals
+    // based on user preferences, goals, and available equipment
 }
 
 // MARK: - ModelContext Helpers

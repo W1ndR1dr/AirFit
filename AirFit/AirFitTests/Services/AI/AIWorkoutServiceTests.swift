@@ -314,33 +314,7 @@ final class AIWorkoutServiceTests: XCTestCase {
         XCTAssertEqual(mockWorkoutService.lastHistoryLimit, 10)
     }
     
-    func test_getWorkoutTemplates_delegatesToWorkoutService() async throws {
-        // Arrange
-        let mockTemplates = [
-            WorkoutTemplate(name: "Push Day", exercises: [], user: testUser),
-            WorkoutTemplate(name: "Pull Day", exercises: [], user: testUser)
-        ]
-        mockWorkoutService.mockTemplates = mockTemplates
-        
-        // Act
-        let templates = try await sut.getWorkoutTemplates()
-        
-        // Assert
-        XCTAssertEqual(templates.count, 2)
-        XCTAssertEqual(mockWorkoutService.getWorkoutTemplatesCallCount, 1)
-    }
-    
-    func test_saveWorkoutTemplate_delegatesToWorkoutService() async throws {
-        // Arrange
-        let template = WorkoutTemplate(name: "Leg Day", exercises: [], user: testUser)
-        
-        // Act
-        try await sut.saveWorkoutTemplate(template)
-        
-        // Assert
-        XCTAssertEqual(mockWorkoutService.saveWorkoutTemplateCallCount, 1)
-        XCTAssertEqual(mockWorkoutService.lastSavedTemplate?.name, "Leg Day")
-    }
+    // Template tests removed - AI generates personalized workouts on-demand
     
     // MARK: - Edge Cases
     

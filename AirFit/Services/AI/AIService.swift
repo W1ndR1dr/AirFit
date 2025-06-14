@@ -160,7 +160,8 @@ actor AIService: AIServiceProtocol {
         AsyncThrowingStream { continuation in
             Task {
                 do {
-                    guard await self.isConfigured else {
+                    let isConfigured = await self.checkConfigurationStatus()
+                    guard isConfigured else {
                         throw AppError.from(ServiceError.notConfigured)
                     }
                     
@@ -199,8 +200,8 @@ actor AIService: AIServiceProtocol {
                     
                     if request.stream {
                         // Stream responses (no caching for streams)
-                        let model = await self.currentModel
-                        let stream = await orchestrator.stream(
+                        let model = await self.getCurrentModel()
+                        let stream = orchestrator.stream(
                             prompt: prompt,
                             task: .coaching,
                             model: LLMModel(rawValue: model),
@@ -219,7 +220,6 @@ actor AIService: AIServiceProtocol {
                                     totalTokens: chunk.usage?.totalTokens ?? 0
                                 )
                                 
-                                // Update cost tracking
                                 // Update cost tracking on actor
                                 await self.updateCost(usage: usage, model: model)
                                 
@@ -335,6 +335,14 @@ actor AIService: AIServiceProtocol {
     }
     
     // MARK: - Private Helpers
+    
+    private func checkConfigurationStatus() -> Bool {
+        return _isConfigured
+    }
+    
+    private func getCurrentModel() -> String {
+        return currentModel
+    }
     
     private func generateCacheKey(for request: AIRequest) -> String {
         let content = request.messages.map { $0.content }.joined(separator: "|")

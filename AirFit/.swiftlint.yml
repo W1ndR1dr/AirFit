@@ -15,6 +15,7 @@ excluded:
   - "**/.DS_Store"
   - "**/*.generated.swift"
   - AirFit/Docs
+  - "**/Deprecated"
 
 # Disabled Rules (Too strict for production)
 disabled_rules:

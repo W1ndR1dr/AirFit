@@ -70,10 +70,10 @@ struct PhotoInputView: View {
                     Button(action: { 
                         HapticService.impact(.light)
                         showingTips = true 
-                    }) {
+                    }, label: {
                         Image(systemName: "questionmark.circle")
                             .foregroundStyle(.white)
-                    }
+                    })
                 }
             }
             .onAppear {
@@ -153,7 +153,7 @@ struct PhotoInputView: View {
             Button(action: {
                 HapticService.impact(.light)
                 cameraManager.toggleFlash()
-            }) {
+            }, label: {
                 Image(systemName: cameraManager.flashMode == .on ? "bolt.fill" : "bolt.slash.fill")
                     .font(.title2)
                     .foregroundStyle(cameraManager.flashMode == .on ? Color.yellow : Color.white)
@@ -171,7 +171,7 @@ struct PhotoInputView: View {
                     .accessibilityValue(cameraManager.flashMode == .on ? "Flash on" : "Flash off")
                     .accessibilityHint("Tap to toggle camera flash")
                     .accessibilityIdentifier("flash_button")
-            }
+            })
             .scaleEffect(cameraManager.flashMode == .on ? 1.1 : 1.0)
             .animation(MotionToken.microAnimation, value: cameraManager.flashMode)
             
@@ -181,7 +181,7 @@ struct PhotoInputView: View {
             Button(action: {
                 HapticService.impact(.light)
                 cameraManager.switchCamera()
-            }) {
+            }, label: {
                 Image(systemName: "camera.rotate")
                     .font(.title2)
                     .foregroundStyle(.white)
@@ -198,7 +198,7 @@ struct PhotoInputView: View {
                     .accessibilityLabel("Switch camera")
                     .accessibilityHint("Tap to switch between front and back camera")
                     .accessibilityIdentifier("camera_switch_button")
-            }
+            })
             .rotationEffect(.degrees(cameraManager.isCapturing ? 180 : 0))
             .animation(MotionToken.standardSpring, value: cameraManager.isCapturing)
         }
@@ -211,7 +211,7 @@ struct PhotoInputView: View {
             Button(action: { 
                 HapticService.impact(.light)
                 showingImagePicker = true 
-            }) {
+            }, label: {
                 Image(systemName: "photo.on.rectangle")
                     .font(.title2)
                     .foregroundStyle(.white)
@@ -228,13 +228,13 @@ struct PhotoInputView: View {
                     .accessibilityLabel("Photo gallery")
                     .accessibilityHint("Tap to select a photo from your gallery")
                     .accessibilityIdentifier("gallery_button")
-            }
+            })
             
             // Capture button - custom camera-specific design
             Button(action: {
                 HapticService.impact(.medium)
                 capturePhoto()
-            }) {
+            }, label: {
                 ZStack {
                     // Outer ring with gradient
                     Circle()
@@ -272,7 +272,7 @@ struct PhotoInputView: View {
                 .accessibilityLabel("Capture photo")
                 .accessibilityHint("Tap to take a photo of your food")
                 .accessibilityIdentifier("capture_button")
-            }
+            })
             .disabled(!cameraManager.isAuthorized || isAnalyzing)
             .scaleEffect(cameraManager.isCapturing ? 0.85 : 1.0)
             .animation(MotionToken.microAnimation, value: cameraManager.isCapturing)
@@ -281,7 +281,7 @@ struct PhotoInputView: View {
             Button(action: {
                 HapticService.impact(.light)
                 toggleAIAnalysis()
-            }) {
+            }, label: {
                 Image(systemName: "brain.head.profile")
                     .font(.title2)
                     .foregroundStyle(
@@ -322,7 +322,7 @@ struct PhotoInputView: View {
                     .shadow(color: .black.opacity(0.3), radius: 10, y: 4)
                     .scaleEffect(cameraManager.aiAnalysisEnabled ? 1.1 : 1.0)
                     .accessibilityLabel("AI analysis toggle")
-            }
+            })
             .animation(MotionToken.standardSpring, value: cameraManager.aiAnalysisEnabled)
         }
     }

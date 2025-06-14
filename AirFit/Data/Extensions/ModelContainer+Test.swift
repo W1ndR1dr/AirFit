@@ -13,17 +13,16 @@ extension ModelContainer {
             Workout.self,
             Exercise.self,
             ExerciseSet.self,
+            TrackedGoal.self,
             CoachMessage.self,
             ChatSession.self,
             ChatMessage.self,
             ChatAttachment.self,
+            ConversationSession.self,
+            ConversationResponse.self,
             NutritionData.self,
-            HealthKitSyncRecord.self,
-            WorkoutTemplate.self,
-            ExerciseTemplate.self,
-            SetTemplate.self,
-            MealTemplate.self,
-            FoodItemTemplate.self
+            HealthKitSyncRecord.self
+            // Template models removed - AI-native generation
         ])
 
         let configuration = ModelConfiguration(

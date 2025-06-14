@@ -83,45 +83,7 @@ extension FetchDescriptor where T == Workout {
     }
 }
 
-extension FetchDescriptor where T == WorkoutTemplate {
-    static var systemTemplates: FetchDescriptor<WorkoutTemplate> {
-        var descriptor = FetchDescriptor<WorkoutTemplate>()
-        descriptor.predicate = #Predicate { template in
-            template.isSystemTemplate == true
-        }
-        descriptor.sortBy = [SortDescriptor(\.name)]
-        return descriptor
-    }
-
-    static var favoriteTemplates: FetchDescriptor<WorkoutTemplate> {
-        var descriptor = FetchDescriptor<WorkoutTemplate>()
-        descriptor.predicate = #Predicate { template in
-            template.isFavorite == true
-        }
-        descriptor.sortBy = [SortDescriptor(\.lastUsedDate, order: .reverse)]
-        return descriptor
-    }
-}
-
-extension FetchDescriptor where T == MealTemplate {
-    static var systemTemplates: FetchDescriptor<MealTemplate> {
-        var descriptor = FetchDescriptor<MealTemplate>()
-        descriptor.predicate = #Predicate { template in
-            template.isSystemTemplate == true
-        }
-        descriptor.sortBy = [SortDescriptor(\.name)]
-        return descriptor
-    }
-
-    static func forMealType(_ mealType: MealType) -> FetchDescriptor<MealTemplate> {
-        var descriptor = FetchDescriptor<MealTemplate>()
-        descriptor.predicate = #Predicate { template in
-            template.mealType == mealType.rawValue
-        }
-        descriptor.sortBy = [SortDescriptor(\.useCount, order: .reverse)]
-        return descriptor
-    }
-}
+// Template extensions removed - AI-native generation
 
 extension FetchDescriptor where T == ChatSession {
     static var activeChats: FetchDescriptor<ChatSession> {

@@ -133,7 +133,7 @@ extension NotificationManager {
     }
     
     private func adjustTriggerForQuietHours(_ trigger: UNCalendarNotificationTrigger, quietHours: QuietHours) -> UNCalendarNotificationTrigger? {
-        guard var dateComponents = trigger.dateComponents.date else { return trigger }
+        guard trigger.dateComponents.date != nil else { return trigger }
         
         let calendar = Calendar.current
         let quietStart = calendar.dateComponents([.hour, .minute], from: quietHours.startTime)

@@ -229,7 +229,7 @@ struct PrivacySecurityView: View {
             
             GlassCard {
                 VStack(spacing: 0) {
-                    Button(action: { showPrivacyPolicy = true }) {
+                    Button(action: { showPrivacyPolicy = true }, label: {
                         HStack {
                             Label("Privacy Policy", systemImage: "hand.raised")
                             Spacer()
@@ -238,12 +238,12 @@ struct PrivacySecurityView: View {
                                 .foregroundStyle(.tertiary)
                         }
                         .padding(.vertical, AppSpacing.sm)
-                    }
+                    })
                     .buttonStyle(.plain)
                     
                     Divider()
                     
-                    Button(action: { showTermsOfService = true }) {
+                    Button(action: { showTermsOfService = true }, label: {
                         HStack {
                             Label("Terms of Service", systemImage: "doc.text")
                             Spacer()
@@ -252,7 +252,7 @@ struct PrivacySecurityView: View {
                                 .foregroundStyle(.tertiary)
                         }
                         .padding(.vertical, AppSpacing.sm)
-                    }
+                    })
                     .buttonStyle(.plain)
                 }
             }

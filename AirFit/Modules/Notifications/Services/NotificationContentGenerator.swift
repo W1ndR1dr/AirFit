@@ -49,7 +49,7 @@ final class NotificationContentGenerator: ServiceProtocol {
     // MARK: - Workout Reminders
     func generateWorkoutReminder(
         for user: User,
-        workout: WorkoutTemplate?
+        workout: Workout?
     ) async throws -> NotificationContent {
         let motivationalStyle = await extractMotivationalStyle(from: user) ?? MotivationalStyle()
         let context = WorkoutReminderContext(
@@ -316,7 +316,7 @@ extension User {
         return 2
     }
     
-    var plannedWorkoutForToday: WorkoutTemplate? {
+    var plannedWorkoutForToday: Workout? {
         // Would fetch from planned workouts
         return nil
     }

@@ -165,6 +165,8 @@ targets:
           fi
         name: "Generate Info.plist if needed"
         showEnvVars: false
+        outputFiles:
+          - "${SRCROOT}/AirFit/Info.plist"
 
   AirFitTests:
     type: bundle.unit-test

@@ -2,7 +2,8 @@ import SwiftUI
 
 struct ModelContainerErrorView: View {
     @EnvironmentObject private var gradientManager: GradientManager
-    @Environment(\.colorScheme) private var colorScheme
+    @Environment(\.colorScheme) 
+private var colorScheme
     @State private var animateIn = false
     
     let error: Error
@@ -65,7 +66,7 @@ struct ModelContainerErrorView: View {
                     Button(action: {
                         HapticService.impact(.medium)
                         onRetry()
-                    }) {
+                    }, label: {
                         HStack(spacing: AppSpacing.sm) {
                             if isRetrying {
                                 ProgressView()
@@ -90,13 +91,13 @@ struct ModelContainerErrorView: View {
                         )
                         .clipShape(RoundedRectangle(cornerRadius: 16))
                         .shadow(color: gradientManager.active.colors(for: colorScheme)[0].opacity(0.3), radius: 12, y: 4)
-                    }
+                    })
                     .disabled(isRetrying)
                 
                     Button(action: {
                         HapticService.impact(.rigid)
                         onReset()
-                    }) {
+                    }, label: {
                         HStack(spacing: AppSpacing.sm) {
                             Image(systemName: "trash")
                                 .font(.system(size: 18, weight: .medium))
@@ -115,13 +116,13 @@ struct ModelContainerErrorView: View {
                         )
                         .clipShape(RoundedRectangle(cornerRadius: 16))
                         .shadow(color: Color.orange.opacity(0.3), radius: 12, y: 4)
-                    }
+                    })
                     .disabled(isRetrying)
                 
                     Button(action: {
                         HapticService.impact(.light)
                         onUseInMemory()
-                    }) {
+                    }, label: {
                         HStack(spacing: AppSpacing.sm) {
                             Image(systemName: "memorychip")
                                 .font(.system(size: 18, weight: .medium))
@@ -139,7 +140,7 @@ struct ModelContainerErrorView: View {
                                         .strokeBorder(.white.opacity(0.1), lineWidth: 1)
                                 )
                         )
-                    }
+                    })
                     .disabled(isRetrying)
                 
                     Text("'Continue Without Saving' will let you use the app, but your data won't be saved when you close it.")

@@ -254,13 +254,7 @@ final class AIWorkoutService: AIWorkoutServiceProtocol, ServiceProtocol {
         return try await workoutService.getWorkoutHistory(for: user, limit: limit)
     }
     
-    func getWorkoutTemplates() async throws -> [WorkoutTemplate] {
-        return try await workoutService.getWorkoutTemplates()
-    }
-    
-    func saveWorkoutTemplate(_ template: WorkoutTemplate) async throws {
-        try await workoutService.saveWorkoutTemplate(template)
-    }
+    // Template methods removed - AI-native workout generation
     
     // MARK: - Private Helper Methods
     

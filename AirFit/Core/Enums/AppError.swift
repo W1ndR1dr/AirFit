@@ -11,6 +11,8 @@ public enum AppError: LocalizedError, Sendable {
     case cameraNotAuthorized
     case userNotFound
     case unsupportedProvider
+    case serviceUnavailable
+    case invalidInput(message: String)
 
     public var errorDescription: String? {
         switch self {
@@ -34,6 +36,10 @@ public enum AppError: LocalizedError, Sendable {
             return "User profile not found"
         case .unsupportedProvider:
             return "This AI provider is not supported"
+        case .serviceUnavailable:
+            return "Service is currently unavailable"
+        case .invalidInput(let message):
+            return message
         }
     }
     
@@ -59,6 +65,10 @@ public enum AppError: LocalizedError, Sendable {
             return "Please complete the setup process"
         case .unsupportedProvider:
             return "Please check your AI provider configuration"
+        case .serviceUnavailable:
+            return "Please try again later"
+        case .invalidInput:
+            return "Please check your input and try again"
         }
     }
 }

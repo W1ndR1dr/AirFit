@@ -179,34 +179,28 @@ struct OnboardingFlowViewDI: View {
     private func createMinimalViewModel() async {
         AppLogger.warning("Creating minimal OnboardingViewModel without full DI", category: .onboarding)
         
-        do {
-            // Create minimal services directly
-            let onboardingService = OnboardingService(modelContext: modelContext)
-            let healthKitManager = HealthKitManager()
-            let healthKitAuthManager = HealthKitAuthManager(healthKitManager: healthKitManager)
-            
-            // Try to get services from container if possible, otherwise use defaults
-            let aiService = (try? await diContainer.resolve(AIServiceProtocol.self)) ?? DemoAIService()
-            let apiKeyManager = try? await diContainer.resolve(APIKeyManagementProtocol.self)
-            let userService = (try? await diContainer.resolve(UserServiceProtocol.self)) ?? UserService(modelContext: modelContext)
-            
-            viewModel = OnboardingViewModel(
-                aiService: aiService,
-                onboardingService: onboardingService,
-                modelContext: modelContext,
-                apiKeyManager: apiKeyManager ?? PreviewAPIKeyManager(),
-                userService: userService,
-                healthKitAuthManager: healthKitAuthManager
-            )
-            
-            viewModel?.onCompletionCallback = onCompletion
-            isLoading = false
-            loadError = nil
-        } catch {
-            loadError = error
-            isLoading = false
-            AppLogger.error("Failed to create minimal onboarding view model", error: error, category: .onboarding)
-        }
+        // Create minimal services directly
+        let onboardingService = OnboardingService(modelContext: modelContext)
+        let healthKitManager = HealthKitManager()
+        let healthKitAuthManager = HealthKitAuthManager(healthKitManager: healthKitManager)
+        
+        // Try to get services from container if possible, otherwise use defaults
+        let aiService = (try? await diContainer.resolve(AIServiceProtocol.self)) ?? DemoAIService()
+        let apiKeyManager = try? await diContainer.resolve(APIKeyManagementProtocol.self)
+        let userService = (try? await diContainer.resolve(UserServiceProtocol.self)) ?? UserService(modelContext: modelContext)
+        
+        viewModel = OnboardingViewModel(
+            aiService: aiService,
+            onboardingService: onboardingService,
+            modelContext: modelContext,
+            apiKeyManager: apiKeyManager ?? PreviewAPIKeyManager(),
+            userService: userService,
+            healthKitAuthManager: healthKitAuthManager
+        )
+        
+        viewModel?.onCompletionCallback = onCompletion
+        isLoading = false
+        loadError = nil
     }
     
     private func shouldShowProgressBar(for screen: OnboardingScreen) -> Bool {

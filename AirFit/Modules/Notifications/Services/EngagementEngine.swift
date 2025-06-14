@@ -164,7 +164,7 @@ final class EngagementEngine: ServiceProtocol {
         let descriptor = FetchDescriptor<User>()
         let users = try modelContext.fetch(descriptor)
         
-        var totalUsers = users.count
+        let totalUsers = users.count
         var activeUsers = 0
         var lapsedUsers = 0
         var churnRiskUsers = 0

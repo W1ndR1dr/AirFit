@@ -43,7 +43,7 @@ struct MessageComposer: View {
                 Button(action: {
                     HapticService.impact(.light)
                     canSend ? onSend() : onVoiceToggle()
-                }) {
+                }, label: {
                     Image(systemName: canSend ? "arrow.up.circle.fill" : "mic.circle.fill")
                         .font(.system(size: 28, weight: .light))
                         .foregroundStyle(
@@ -51,7 +51,7 @@ struct MessageComposer: View {
                         )
                         .animation(MotionToken.standardSpring, value: canSend)
                         .scaleEffect(canSend ? 1.1 : 1.0)
-                }
+                })
                 .disabled(isRecording && !canSend)
                 .scaleEffect(animateIn ? 1 : 0.8)
                 .opacity(animateIn ? 1 : 0)
@@ -99,9 +99,9 @@ struct MessageComposer: View {
             Button(action: { 
                 HapticService.selection()
                 showAttachmentPicker = true 
-            }) {
+            }, label: {
                 Label("Photo", systemImage: "photo")
-            }
+            })
         }, label: {
             Image(systemName: "plus.circle.fill")
                 .font(.system(size: 24, weight: .light))
@@ -130,11 +130,11 @@ struct MessageComposer: View {
             Button(action: {
                 HapticService.impact(.light)
                 onVoiceToggle()
-            }) {
+            }, label: {
                 Image(systemName: "xmark.circle.fill")
                     .font(.system(size: 20, weight: .light))
                     .foregroundStyle(.secondary)
-            }
+            })
 
             VoiceWaveformView(levels: waveform)
                 .frame(height: 30)
@@ -249,7 +249,7 @@ private struct AttachmentPreview: View {
             Button(action: {
                 HapticService.impact(.light)
                 onRemove()
-            }) {
+            }, label: {
                 Image(systemName: "xmark.circle.fill")
                     .font(.system(size: 16))
                     .foregroundStyle(.white)
@@ -257,7 +257,7 @@ private struct AttachmentPreview: View {
                         Circle()
                             .fill(Color.black.opacity(0.6))
                     )
-            }
+            })
             .offset(x: 4, y: -4)
         }
         .scaleEffect(animateIn ? 1 : 0.8)

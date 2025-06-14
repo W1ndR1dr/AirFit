@@ -232,7 +232,7 @@ private extension WorkoutDetailView {
                     Button(action: {
                         HapticService.impact(.light)
                         showingAIAnalysis = true
-                    }) {
+                    }, label: {
                         HStack {
                             Text("Read Full Analysis")
                                 .font(.system(size: 14, weight: .semibold))
@@ -246,7 +246,7 @@ private extension WorkoutDetailView {
                                 endPoint: .trailing
                             )
                         )
-                    }
+                    })
                 } else {
                     Button {
                         HapticService.impact(.medium)
@@ -782,12 +782,7 @@ private struct SaveAsTemplateView: View {
     }
 
     private func saveTemplate() {
-        // TODO: Implement template saving when WorkoutTemplate model is ready
-        // let template = WorkoutTemplate(
-        //     name: templateName,
-        //     workoutType: WorkoutType(rawValue: workout.workoutType) ?? .general
-        // )
-        // Add exercises to template...
+        // Template saving removed - AI generates personalized workouts on-demand
     }
 }
 

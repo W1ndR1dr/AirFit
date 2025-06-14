@@ -36,13 +36,7 @@ actor MockAIWorkoutService: AIWorkoutServiceProtocol {
         return []
     }
     
-    func getWorkoutTemplates() async throws -> [WorkoutTemplate] {
-        return []
-    }
-    
-    func saveWorkoutTemplate(_ template: WorkoutTemplate) async throws {
-        // Mock implementation
-    }
+    // Template methods removed - AI generates personalized workouts on-demand
     
     // MARK: - AIWorkoutServiceProtocol specific methods
     func generatePlan(

@@ -22,61 +22,34 @@ struct AirFitApp: App {
     }
     
     // MARK: - Model Schema
-    private static let modelSchema = Schema([
-        // Core models
-        User.self,
-        OnboardingProfile.self,
-        
-        // Food tracking
-        FoodEntry.self,
-        FoodItem.self,
-        FoodItemTemplate.self,
-        MealTemplate.self,
-        NutritionData.self,
-        
-        // Workout tracking
-        Workout.self,
-        Exercise.self,
-        ExerciseSet.self,
-        ExerciseTemplate.self,
-        WorkoutTemplate.self,
-        SetTemplate.self,
-        
-        // Goals and logs
-        DailyLog.self,
-        TrackedGoal.self,
-        
-        // AI and chat
-        CoachMessage.self,
-        ChatSession.self,
-        ChatMessage.self,
-        ChatAttachment.self,
-        ConversationSession.self,
-        ConversationResponse.self,
-        
-        // Health sync
-        HealthKitSyncRecord.self
-    ])
+    // Using migration plan for proper schema evolution
+    private static let migrationPlan = AirFitMigrationPlan.self
     
     // MARK: - Model Container Creation
     private func createModelContainer(inMemory: Bool = false) -> ModelContainer? {
-        let modelConfiguration = ModelConfiguration(
-            schema: Self.modelSchema,
-            isStoredInMemoryOnly: inMemory
-        )
-        
         do {
-            // Use migration plan for future-proof schema evolution
-            let container = try ModelContainer(
-                for: Self.modelSchema,
-                configurations: [modelConfiguration]
-            )
-            
             if inMemory {
+                // For in-memory containers, use latest schema directly
+                let config = ModelConfiguration(isStoredInMemoryOnly: true)
+                let container = try ModelContainer(
+                    for: User.self, OnboardingProfile.self, DailyLog.self,
+                    FoodEntry.self, FoodItem.self, NutritionData.self,
+                    Workout.self, Exercise.self, ExerciseSet.self,
+                    TrackedGoal.self, CoachMessage.self, ChatSession.self,
+                    ChatMessage.self, ChatAttachment.self, ConversationSession.self,
+                    ConversationResponse.self, HealthKitSyncRecord.self,
+                    configurations: config
+                )
                 AppLogger.warning("Using in-memory database - data will not persist", category: .data)
+                return container
+            } else {
+                // For persistent containers, use migration plan
+                let container = try ModelContainer(
+                    for: User.self, // Need at least one model type
+                    migrationPlan: Self.migrationPlan
+                )
+                return container
             }
-            
-            return container
         } catch {
             self.containerError = error
             AppLogger.error("Failed to create ModelContainer", error: error, category: .data)

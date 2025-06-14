@@ -61,7 +61,7 @@ actor AICoachService: AICoachServiceProtocol, ServiceProtocol {
         
         // Add personalization based on coach persona
         if let personaData = user.coachPersonaData,
-           let persona = try? JSONDecoder().decode(CoachPersona.self, from: personaData) {
+           (try? JSONDecoder().decode(CoachPersona.self, from: personaData)) != nil {
             prompt += "Use a friendly and encouraging tone. "
         }
         

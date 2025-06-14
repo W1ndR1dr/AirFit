@@ -24,15 +24,11 @@ enum DITestHelper {
             ConversationResponse.self,
             DailyLog.self,
             CoachMessage.self,
-            FoodItemTemplate.self,
-            MealTemplate.self,
-            WorkoutTemplate.self,
-            ExerciseTemplate.self,
-            SetTemplate.self,
             ExerciseSet.self,
             HealthKitSyncRecord.self,
             ChatAttachment.self,
             NutritionData.self
+            // Template models removed - AI-native generation
         ])
         
         let configuration = ModelConfiguration(isStoredInMemoryOnly: true)

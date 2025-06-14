@@ -326,19 +326,6 @@ final class FoodTrackingViewModel: ErrorHandling {
         defer { isLoading = false }
 
         do {
-            let foodItems = items.map { parsedItem in
-                FoodItem(
-                    name: parsedItem.name,
-                    brand: parsedItem.brand,
-                    quantity: parsedItem.quantity,
-                    unit: parsedItem.unit,
-                    calories: Double(parsedItem.calories),
-                    proteinGrams: parsedItem.proteinGrams,
-                    carbGrams: parsedItem.carbGrams,
-                    fatGrams: parsedItem.fatGrams
-                )
-            }
-            
             let entry = FoodEntry(
                 loggedAt: currentDate,
                 mealType: selectedMealType,
@@ -352,9 +339,9 @@ final class FoodTrackingViewModel: ErrorHandling {
                     quantity: parsedItem.quantity,
                     unit: parsedItem.unit,
                     calories: Double(parsedItem.calories),
-                    proteinGrams: parsedItem.proteinGrams ?? 0,
-                    carbGrams: parsedItem.carbGrams ?? 0,
-                    fatGrams: parsedItem.fatGrams ?? 0
+                    proteinGrams: parsedItem.proteinGrams,
+                    carbGrams: parsedItem.carbGrams,
+                    fatGrams: parsedItem.fatGrams
                 )
 
                 foodItem.fiberGrams = parsedItem.fiber
@@ -429,7 +416,7 @@ final class FoodTrackingViewModel: ErrorHandling {
                 mealHistory.flatMap { $0.items }.first { $0.name == name }
             }
 
-        _ = hour + dayOfWeek // avoid unused warnings for now
+        _ = (hour, dayOfWeek) // avoid unused warnings
         return Array(frequentFoods)
     }
 
@@ -482,29 +469,19 @@ final class FoodTrackingViewModel: ErrorHandling {
         seconds: TimeInterval,
         operation: @escaping @Sendable () async throws -> T
     ) async throws -> T {
-        try await withCheckedThrowingContinuation { continuation in
-            var finished = false
-
-            let timer = Timer.scheduledTimer(withTimeInterval: seconds, repeats: false) { _ in
-                guard !finished else { return }
-                finished = true
-                continuation.resume(throwing: AppError.unknown(message: "AI processing timed out"))
+        try await withThrowingTaskGroup(of: T.self) { group in
+            group.addTask {
+                try await operation()
             }
-
-            Task {
-                do {
-                    let result = try await operation()
-                    guard !finished else { return }
-                    finished = true
-                    timer.invalidate()
-                    continuation.resume(returning: result)
-                } catch {
-                    guard !finished else { return }
-                    finished = true
-                    timer.invalidate()
-                    continuation.resume(throwing: error)
-                }
+            
+            group.addTask {
+                try await Task.sleep(for: .seconds(seconds))
+                throw AppError.unknown(message: "AI processing timed out")
             }
+            
+            let result = try await group.next()!
+            group.cancelAll()
+            return result
         }
     }
 

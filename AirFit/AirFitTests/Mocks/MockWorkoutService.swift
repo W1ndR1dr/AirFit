@@ -17,7 +17,7 @@ final class MockWorkoutService: WorkoutServiceProtocol, AIWorkoutServiceProtocol
     // MARK: - Stubbed Data
     var stubbedWorkout: Workout?
     var stubbedWorkoutHistory: [Workout] = []
-    var stubbedWorkoutTemplates: [WorkoutTemplate] = []
+    // Template stubbing removed - AI-native generation
     
     // MARK: - State Tracking
     private var activeWorkouts: Set<UUID> = []
@@ -122,40 +122,11 @@ final class MockWorkoutService: WorkoutServiceProtocol, AIWorkoutServiceProtocol
         return []
     }
     
-    func getWorkoutTemplates() async throws -> [WorkoutTemplate] {
-        recordInvocation("getWorkoutTemplates")
-        
-        if shouldThrowError {
-            throw errorToThrow
-        }
-        
-        return stubbedWorkoutTemplates
-    }
-    
-    func saveWorkoutTemplate(_ template: WorkoutTemplate) async throws {
-        recordInvocation("saveWorkoutTemplate", arguments: template.name)
-        
-        if shouldThrowError {
-            throw errorToThrow
-        }
-        
-        stubbedWorkoutTemplates.append(template)
-    }
+    // Template methods removed - AI generates personalized workouts on-demand
     
     // MARK: - Test Helpers
     private func setupDefaultStubs() {
-        // Create default workout templates
-        let pushTemplate = WorkoutTemplate(name: "Push Day")
-        pushTemplate.workoutType = WorkoutType.strength.rawValue
-        pushTemplate.descriptionText = "Target muscles: Chest, Shoulders, Triceps"
-        pushTemplate.difficulty = "intermediate"
-        
-        let cardioTemplate = WorkoutTemplate(name: "HIIT Cardio")
-        cardioTemplate.workoutType = WorkoutType.cardio.rawValue
-        cardioTemplate.estimatedDuration = 30 * 60 // 30 minutes
-        cardioTemplate.difficulty = "advanced"
-        
-        stubbedWorkoutTemplates = [pushTemplate, cardioTemplate]
+        // Template setup removed - AI-native generation
     }
     
     private func calculateMockCalories(_ workout: Workout) -> Double {
@@ -188,9 +159,7 @@ final class MockWorkoutService: WorkoutServiceProtocol, AIWorkoutServiceProtocol
         stubbedWorkoutHistory = history
     }
     
-    func stubTemplates(_ templates: [WorkoutTemplate]) {
-        stubbedWorkoutTemplates = templates
-    }
+    // Template stubbing removed - AI-native generation
     
     func verifyWorkoutStarted(type: WorkoutType) {
         mockLock.lock()

@@ -63,7 +63,7 @@ final class OnboardingOrchestrator: ObservableObject {
         
         state = .paused
         // Track pause as abandonment with current progress
-        if let user = try? await userService.getCurrentUser() {
+        if let user = await userService.getCurrentUser() {
             let userId = user.id
             await analytics.track(.sessionAbandoned(
                 userId: userId,
@@ -80,7 +80,7 @@ final class OnboardingOrchestrator: ObservableObject {
         
         state = .conversationInProgress
         // Track resume
-        if let user = try? await userService.getCurrentUser() {
+        if let user = await userService.getCurrentUser() {
             let userId = user.id
             await analytics.track(.sessionResumed(userId: userId, nodeId: "unknown"))
         }
@@ -92,11 +92,11 @@ final class OnboardingOrchestrator: ObservableObject {
     }
     
     func cancelOnboarding() async {
-        let previousState = state
+        _ = state
         state = .cancelled
         
         // Track cancellation
-        if let user = try? await userService.getCurrentUser() {
+        if let user = await userService.getCurrentUser() {
             let userId = user.id
             await analytics.track(.sessionAbandoned(
                 userId: userId,

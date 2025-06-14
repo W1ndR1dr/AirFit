@@ -4,7 +4,7 @@ import SwiftData
 /// # WorkoutService
 /// 
 /// ## Purpose
-/// Manages workout sessions, exercise logging, templates, and HealthKit synchronization.
+/// Manages workout sessions, exercise logging, and HealthKit synchronization.
 /// Provides the core functionality for workout tracking and history management.
 ///
 /// ## Dependencies
@@ -15,7 +15,7 @@ import SwiftData
 /// - Start, pause, resume, and end workout sessions
 /// - Log exercises with sets, reps, and weights
 /// - Calculate estimated calories burned based on MET values
-/// - Manage workout templates (system and user-created)
+/// - AI-native workout generation (no templates needed)
 /// - Sync completed workouts to HealthKit
 /// - Provide workout history and statistics
 ///
@@ -38,7 +38,7 @@ import SwiftData
 /// - @MainActor isolated for SwiftData compatibility
 /// - HealthKit sync happens asynchronously after workout completion
 /// - Calorie calculations use standard MET values
-/// - Templates support both system and user-created workouts
+/// - AI generates personalized workouts based on user goals and preferences
 @MainActor
 final class WorkoutService: WorkoutServiceProtocol, ServiceProtocol {
     // MARK: - Properties
@@ -220,42 +220,7 @@ final class WorkoutService: WorkoutServiceProtocol, ServiceProtocol {
         }
     }
     
-    func getWorkoutTemplates() async throws -> [WorkoutTemplate] {
-        AppLogger.info("Fetching workout templates", category: .services)
-        
-        // Fetch all templates without sorting (will sort in memory)
-        let descriptor = FetchDescriptor<WorkoutTemplate>()
-        
-        do {
-            let templates = try modelContext.fetch(descriptor)
-            // Sort in memory: system templates first, then by name
-            let sortedTemplates = templates.sorted { first, second in
-                if first.isSystemTemplate != second.isSystemTemplate {
-                    return first.isSystemTemplate
-                }
-                return first.name < second.name
-            }
-            AppLogger.info("Fetched \(sortedTemplates.count) workout templates", category: .services)
-            return sortedTemplates
-        } catch {
-            AppLogger.error("Failed to fetch workout templates", error: error, category: .services)
-            throw AppError.unknown(message: "Database error: \(error.localizedDescription)")
-        }
-    }
-    
-    func saveWorkoutTemplate(_ template: WorkoutTemplate) async throws {
-        AppLogger.info("Saving workout template: \(template.name)", category: .services)
-        
-        modelContext.insert(template)
-        
-        do {
-            try modelContext.save()
-            AppLogger.info("Saved workout template \(template.id)", category: .services)
-        } catch {
-            AppLogger.error("Failed to save workout template", error: error, category: .services)
-            throw AppError.unknown(message: "Database error: \(error.localizedDescription)")
-        }
-    }
+    // Template methods removed - AI-native workout generation handles this now
     
     // MARK: - Private Methods
     private func calculateEstimatedCalories(for workout: Workout) -> Double {

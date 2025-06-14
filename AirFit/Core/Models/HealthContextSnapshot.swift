@@ -295,6 +295,20 @@ struct CompactWorkout: Sendable, Codable {
     let avgRPE: Double?
     let muscleGroups: [String]
     let keyExercises: [String] // Top 3 exercises
+    let exercisePerformance: [String: ExercisePerformance] // Exercise name -> performance data
+}
+
+struct ExercisePerformance: Sendable, Codable {
+    let exerciseName: String
+    let volumeTotal: Double
+    let topSet: SetPerformance?
+    let contextSummary: String
+}
+
+struct SetPerformance: Sendable, Codable {
+    let weight: Double
+    let reps: Int
+    let volume: Double
 }
 
 /// Workout pattern analysis for intelligent coaching

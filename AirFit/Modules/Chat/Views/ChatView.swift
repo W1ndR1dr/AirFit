@@ -233,32 +233,32 @@ struct ChatView: View {
                 Button(action: { 
                     HapticService.selection()
                     coordinator.showSheet(.sessionHistory)
-                }) {
+                }, label: {
                     Label("Chat History", systemImage: "clock")
-                }
+                })
 
                 Button(action: { 
                     HapticService.selection()
                     coordinator.navigateTo(.searchResults)
-                }) {
+                }, label: {
                     Label("Search", systemImage: "magnifyingglass")
-                }
+                })
 
                 Button(action: { 
                     HapticService.selection()
                     coordinator.showSheet(.exportChat)
-                }) {
+                }, label: {
                     Label("Export Chat", systemImage: "square.and.arrow.up")
-                }
+                })
 
                 Divider()
 
                 Button(action: {
                     HapticService.selection()
                     startNewSession()
-                }) {
+                }, label: {
                     Label("New Session", systemImage: "plus.bubble")
-                }
+                })
             }, label: {
                 Image(systemName: "ellipsis.circle")
                     .font(.system(size: 20, weight: .light))

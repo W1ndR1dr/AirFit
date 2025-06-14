@@ -1528,8 +1528,7 @@ private final class PreviewAIWorkoutService: AIWorkoutServiceProtocol {
     func endWorkout(_ workout: Workout) async throws {}
     func logExercise(_ exercise: Exercise, in workout: Workout) async throws {}
     func getWorkoutHistory(for user: User, limit: Int) async throws -> [Workout] { [] }
-    func getWorkoutTemplates() async throws -> [WorkoutTemplate] { [] }
-    func saveWorkoutTemplate(_ template: WorkoutTemplate) async throws {}
+    // Template methods removed - AI generates personalized workouts on-demand
     
     // AI protocol requirements
     func generatePlan(for user: User, goal: String, duration: Int, intensity: String, targetMuscles: [String], equipment: [String], constraints: String?, style: String) async throws -> WorkoutPlanResult {

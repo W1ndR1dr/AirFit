@@ -313,9 +313,9 @@ struct AIPersonaSettingsView: View {
     
     private var personaActions: some View {
         VStack(spacing: AppSpacing.md) {
-            Button {
+            Button(action: {
                 showPersonaRefinement = true
-            } label: {
+            }, label: {
                 Label("Refine Through Conversation", systemImage: "bubble.left.and.bubble.right")
                     .font(.system(size: 16, weight: .medium, design: .rounded))
                     .foregroundColor(.white)
@@ -329,7 +329,7 @@ struct AIPersonaSettingsView: View {
                         )
                     )
                     .clipShape(RoundedRectangle(cornerRadius: 12))
-            }
+            })
             .disabled(viewModel.coachPersona == nil)
             
             Button {
@@ -622,7 +622,7 @@ struct ConversationalPersonaRefinement: View {
                     ScrollView(.horizontal, showsIndicators: false) {
                         HStack(spacing: AppSpacing.sm) {
                             ForEach(suggestions, id: \.self) { suggestion in
-                                Button(action: { sendMessage(suggestion) }) {
+                                Button(action: { sendMessage(suggestion) }, label: {
                                     Text(suggestion)
                                         .font(.caption)
                                         .padding(.horizontal, AppSpacing.md)
@@ -632,7 +632,7 @@ struct ConversationalPersonaRefinement: View {
                                                 .fill(.ultraThinMaterial)
                                         )
                                         .clipShape(Capsule())
-                                }
+                                })
                             }
                         }
                         .padding(.horizontal)

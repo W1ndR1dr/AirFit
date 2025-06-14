@@ -160,7 +160,7 @@ public final class DIViewModelFactory {
     func makeOnboardingFlowCoordinator() async throws -> OnboardingFlowCoordinator {
         let modelContext = try await getModelContext()
         let userService = try await container.resolve(UserServiceProtocol.self)
-        let apiKeyManager = try await container.resolve(APIKeyManagementProtocol.self)
+        let _ = try await container.resolve(APIKeyManagementProtocol.self)
         let llmOrchestrator = try await container.resolve(LLMOrchestrator.self)
         
         let cache = AIResponseCache()

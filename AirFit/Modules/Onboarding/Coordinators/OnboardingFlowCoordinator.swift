@@ -65,23 +65,19 @@ final class OnboardingFlowCoordinator {
         currentView = .conversation
         progress = 0.1
         
-        do {
-            // Check network before starting
-            guard await reachability.isConnected else {
-                await handleError(OnboardingError.networkError(NSError(domain: "NetworkError", code: -1009, userInfo: [NSLocalizedDescriptionKey: "Network unavailable"])))
-                return
-            }
-            
-            // Start new conversation session
-            let userId = await userService.getCurrentUserId()
-            await conversationManager.startNewSession(userId: userId ?? UUID())
-            conversationSession = conversationManager.session
-            
-            // Save initial state for recovery
-            // Recovery state saving - simplified for now
-        } catch {
-            await handleError(error)
+        // Check network before starting
+        guard reachability.isConnected else {
+            await handleError(OnboardingError.networkError(NSError(domain: "NetworkError", code: -1009, userInfo: [NSLocalizedDescriptionKey: "Network unavailable"])))
+            return
         }
+        
+        // Start new conversation session
+        let userId = await userService.getCurrentUserId()
+        await conversationManager.startNewSession(userId: userId ?? UUID())
+        conversationSession = conversationManager.session
+        
+        // Save initial state for recovery
+        // Recovery state saving - simplified for now
     }
     
     func completeConversation() async {
@@ -96,7 +92,7 @@ final class OnboardingFlowCoordinator {
         
         do {
             // Save state before generation
-            let userId = session.userId
+            let _ = session.userId
             if true { // Always execute
                 // Recovery state saving - simplified
                 // TODO: Implement recovery state persistence
@@ -199,7 +195,7 @@ final class OnboardingFlowCoordinator {
         AppLogger.error("Onboarding error", error: error, category: .general)
         
         // Check if we should attempt recovery
-        guard let userId = await userService.getCurrentUserId() else {
+        guard await userService.getCurrentUserId() != nil else {
             return
         }
         
@@ -270,7 +266,7 @@ final class OnboardingFlowCoordinator {
         Task {
             // Monitor network status - simplified
             while true {
-                let status = await reachability.isConnected
+                let status = reachability.isConnected
                 if !status && isLoading {
                     // Network lost during operation
                     await handleError(OnboardingError.networkError(NSError(domain: "NetworkError", code: -1009, userInfo: [NSLocalizedDescriptionKey: "Network unavailable"])))

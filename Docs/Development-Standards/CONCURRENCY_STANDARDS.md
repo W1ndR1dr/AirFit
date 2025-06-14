@@ -1,8 +1,8 @@
 # Concurrency Standards for AirFit
 
-**Last Updated**: 2025-06-09  
-**Status**: Active  
-**Priority**: 🚨 Critical - Addresses black screen and performance issues
+**Last Updated**: 2025-06-14  
+**Status**: Active - Consolidated from MAINACTOR_CLEANUP_STANDARDS.md  
+**Priority**: 🚨 Critical - Zero-cost app startup and optimal performance
 
 ## Table of Contents
 1. [Overview](#overview)
@@ -20,13 +20,14 @@ This document defines concurrency patterns for the AirFit codebase to prevent pe
 
 ## Core Principles
 
-1. **Minimize @MainActor usage** - Only UI components need @MainActor
-2. **Use actors for services** - Services should be actors, not @MainActor classes
+1. **@MainActor ONLY for UI** - ViewModels, Coordinators, UI-coupled services
+2. **Services as actors** - Business logic, network, cache services are actors
 3. **Structured concurrency** - Prefer async/await over unstructured Tasks
-4. **No blocking operations** - Never block threads, especially the main thread
-5. **Clear isolation boundaries** - Each component should have clear actor isolation
+4. **No blocking operations** - Never block threads, especially main thread
+5. **Clear isolation boundaries** - Each component has explicit actor isolation
 6. **Lazy service initialization** - Services created only when first accessed
 7. **Zero-cost app startup** - No service creation during DI registration
+8. **Swift 6 compliance** - Proper sendability and actor isolation
 
 ## Actor Isolation Patterns
 
@@ -103,20 +104,38 @@ actor HealthKitManager: HealthKitManagerProtocol {
 
 ### ✅ ONLY Use @MainActor For:
 
-1. **ViewModels** - They update UI state
-2. **View Components** - Custom view helpers
-3. **UI-Only Managers** - Navigation, presentation
-4. **SwiftUI Environment Objects** - Must be on MainActor
-5. **Services using SwiftData models** - @Model types are not Sendable (Phase 2.2 learning)
-6. **Services using UI frameworks** - LAContext, UIKit components
+1. **ViewModels** - They update UI state (@Published properties)
+2. **Coordinators** - Navigation and presentation logic
+3. **UI-Only Managers** - HapticManager, presentation helpers
+4. **SwiftUI Environment Objects** - Required by framework
+5. **SwiftData services** - Services directly using @Model types (not Sendable)
+6. **UI framework services** - LAContext, UIKit, AVAudioSession
 
 ### ❌ NEVER Use @MainActor For:
 
-1. **Pure computation services** - Use actors instead
-2. **Network clients** - Use actors for better performance
-3. **Cache services** - Use actors for thread safety
-4. **Business logic** - Isolate from UI thread
-5. **Background processing** - Keep off main thread
+1. **Network services** - NetworkManager, APIClient (use actors)
+2. **Cache services** - ResponseCache, ImageCache (use actors)
+3. **AI services** - AIService, LLMOrchestrator (use actors)
+4. **Data processing** - ContextAssembler, parsers (use actors)
+5. **Background services** - Analytics, monitoring (use actors)
+6. **Test classes** - Only specific UI test methods need @MainActor
+
+### 🔄 Services Requiring @MainActor (Framework Constraints):
+
+These services MUST remain @MainActor due to SwiftData/UI framework requirements:
+- **UserService** - Direct ModelContext operations with @Model types
+- **GoalService** - SwiftData CRUD with non-Sendable models
+- **FoodTrackingCoordinator** - Heavy SwiftData integration
+- **OnboardingService** - Stores data to SwiftData during flow
+
+### 🎯 Services Successfully Converted to Actors:
+
+**Production Implementation** (already completed):
+- **AIService** - `actor AIService: AIServiceProtocol`
+- **NetworkManager** - `actor NetworkManager: NetworkManagementProtocol`
+- **HealthKitManager** - `actor HealthKitManager: HealthKitManagerProtocol`
+- **WeatherService** - `actor WeatherService: WeatherServiceProtocol`
+- **VoiceInputManager** - `actor VoiceInputManager: VoiceInputProtocol`
 
 ### Migration Example
 ```swift
@@ -472,25 +491,125 @@ func testCancellation() async throws {
    let (resultA, resultB) = try await (a, b)
    ```
 
+## Service Conversion Guidelines
+
+### Migration Pattern: @MainActor Service → Actor
+```swift
+// BEFORE: Service forced to main thread
+@MainActor
+final class HealthKitManager: ServiceProtocol {
+    private var healthStore = HKHealthStore()
+    @Published var isAuthorized = false
+    
+    func requestAuthorization() async {
+        // Everything runs on main thread - BAD!
+    }
+}
+
+// AFTER: Actor with proper isolation
+actor HealthKitManager: ServiceProtocol {
+    private let healthStore = HKHealthStore()
+    private var _isAuthorized = false
+    
+    // Protocol compliance
+    nonisolated var isConfigured: Bool { true }
+    
+    func requestAuthorization() async {
+        // Runs on actor executor - GOOD!
+        _isAuthorized = true
+        
+        // Only notify UI when needed
+        await MainActor.run {
+            NotificationCenter.default.post(...)
+        }
+    }
+}
+```
+
+### Testing Actor Services
+```swift
+// ❌ WRONG: Entire test class on MainActor
+@MainActor
+final class NetworkManagerTests: XCTestCase {
+    // All tests forced to run sequentially!
+}
+
+// ✅ CORRECT: Only UI tests need MainActor
+final class NetworkManagerTests: XCTestCase {
+    func testNetworkFetch() async {
+        let service = await NetworkManager()
+        let data = try await service.fetch()
+        XCTAssertNotNil(data)
+    }
+    
+    @MainActor  // Only this specific test
+    func testViewModelUpdate() async {
+        // Test UI integration here
+    }
+}
+```
+
+## Performance Validation
+
+### Success Metrics
+- [ ] **Parallel service operations** - Multiple services can run concurrently
+- [ ] **App launch < 0.5s** - Zero blocking during DI container creation
+- [ ] **No Task { @MainActor in }** - Clean async boundaries
+- [ ] **Test performance** - 50%+ improvement in test suite speed
+- [ ] **UI responsiveness** - <50% main thread utilization under load
+
+### Anti-Patterns to Avoid
+```swift
+// ❌ NEVER: Synchronous blocking
+let semaphore = DispatchSemaphore(value: 0)
+Task { await work(); semaphore.signal() }
+semaphore.wait()  // BLOCKS THREAD!
+
+// ❌ NEVER: @MainActor on data types
+@MainActor struct UserData { }  // Forces all usage to main thread
+
+// ❌ NEVER: Forcing async to sync
+MainActor.assumeIsolated { }  // DANGEROUS!
+
+// ❌ AVOID: Services reaching into UI
+actor MyService {
+    func updateUI() async {
+        await MainActor.run {
+            // Services shouldn't know about UI!
+        }
+    }
+}
+```
+
 ## Checklist for Code Review
 
-- [ ] ViewModels are @MainActor, services are actors (unless using SwiftData)
-- [ ] No synchronous blocking (semaphores, wait, etc.)
+### Architecture
+- [ ] ViewModels are @MainActor, services are actors (unless SwiftData constraint)
+- [ ] Services use protocols for testability and DI
+- [ ] Actor isolation boundaries are clear and minimal
 - [ ] No @unchecked Sendable without valid reason (SwiftData models, manual sync)
+
+### Concurrency
+- [ ] No synchronous blocking (semaphores, wait, etc.)
 - [ ] No Tasks in init() methods - use configure() for services
 - [ ] Long-running tasks have cancellation support and deinit cleanup
-- [ ] Button actions don't wrap async calls in unnecessary Task{}
-- [ ] Actor boundaries are clear and minimal
-- [ ] No MainActor.run in services
+- [ ] Button actions use structured concurrency (no unnecessary Task{})
 - [ ] Error handling for critical async operations (voice, network, saving)
+
+### Performance
 - [ ] DI registration uses lazy factories, not eager instances
 - [ ] No service creation during app initialization
+- [ ] Parallel operations use async let or TaskGroup
+- [ ] No MainActor.run in business logic services
 - [ ] Services marked with appropriate actor isolation
 
 ## References
 
 - [Swift Concurrency Guide](https://docs.swift.org/swift-book/documentation/the-swift-programming-language/concurrency)
-- Research Reports: `Concurrency_Model_Analysis.md`
-- Recovery Plan: `CODEBASE_RECOVERY_PLAN.md`
-- DI Standards: `DI_LAZY_RESOLUTION_STANDARDS.md`
-- MainActor Guidelines: `MAINACTOR_CLEANUP_STANDARDS.md`
+- [Swift 6 Migration Guide](https://developer.apple.com/documentation/swift/swift-6-migration-guide)
+- DI Standards: `DI_STANDARDS.md`
+- Service Layer: `SERVICE_LAYER_STANDARDS.md`
+
+---
+**Consolidated from**: `MAINACTOR_CLEANUP_STANDARDS.md` (2025-06-14)  
+**Implementation Status**: Production-ready patterns documented from live codebase
