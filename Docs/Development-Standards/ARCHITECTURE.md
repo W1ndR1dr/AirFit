@@ -13,13 +13,13 @@ AirFit is a voice-first AI-powered fitness & nutrition tracking app built with S
 - Services created only when needed (not at app launch)
 - Views rendered on-demand
 - Models loaded just-in-time
-- Result: <0.5s app launch time
+- Target: Fast app launch with responsive UI
 
 ### 2. Clear Boundaries
-- Modules are self-contained features
-- Services are cross-cutting concerns  
-- Core provides shared utilities
-- Data layer handles persistence
+- Modules are self-contained features with no direct dependencies
+- Services provide cross-cutting functionality via protocols
+- Core layer offers shared utilities and components
+- Data layer abstracts persistence (SwiftData + HealthKit)
 
 ### 3. Type Safety First
 - Strongly typed navigation with coordinators
@@ -64,10 +64,10 @@ AirFit is a voice-first AI-powered fitness & nutrition tracking app built with S
 - **Lifecycle**: Proper task cancellation on deinit
 
 ### 3. Service Layer
-- **Pattern**: ServiceProtocol conformance (100% adoption)
-- **Concurrency**: Actors for thread safety
-- **Initialization**: Async configure() pattern
-- **Health**: Built-in health checks
+- **Pattern**: ServiceProtocol conformance with consistent lifecycle
+- **Concurrency**: Actors for thread safety, @MainActor only when required
+- **Isolation**: SwiftData constraints force some services to @MainActor
+- **Health**: Built-in health checks and error handling
 
 Key Services:
 - **AIService**: Multi-LLM orchestration (actor)
@@ -77,33 +77,22 @@ Key Services:
 - **WorkoutSyncService**: Apple Watch sync (in Workouts module)
 
 ### 4. Data Layer
-- **Technology**: SwiftData with migrations
-- **Models**: @Model classes with relationships
-- **Constraints**: @MainActor for ModelContext
-- **Sync**: HealthKit as source of truth where applicable
+- **Primary**: SwiftData for app-specific data (AI personas, chat history, preferences)
+- **Secondary**: HealthKit for health/fitness data (nutrition, workouts, body metrics)
+- **Constraint**: SwiftData ModelContext forces @MainActor service isolation
+- **Strategy**: Minimize SwiftData usage to maximize actor-based concurrency
 
 ### 5. Navigation Layer  
-- **Pattern**: BaseCoordinator<Destination, Sheet, Alert>
-- **Implementation**: 5 coordinators use BaseCoordinator, 1 uses SimpleCoordinator
-- **Benefits**: 500+ lines of duplicate code removed
-- **Type Safety**: Compile-time navigation validation
-- **Note**: NotificationsCoordinator and flow coordinators are state machines, not navigation
+- **Pattern**: BaseCoordinator<Destination, Sheet, Alert> for module navigation
+- **Implementation**: Type-safe coordinator pattern with enum-based destinations
+- **Coverage**: Core modules use BaseCoordinator, specialized flows use custom patterns
+- **Benefits**: Eliminated navigation code duplication, compile-time route validation
 
 ## Dependency Injection
 
-### Perfect Lazy Pattern
-```swift
-container.register(ServiceProtocol.self, lifetime: .singleton) { resolver in
-    // This closure is stored, NOT executed during registration!
-    await MyService(dependency: await resolver.resolve(DependencyProtocol.self))
-}
-```
+Lazy async dependency injection ensures fast app startup and proper service lifecycle management. Factory closures are registered but not executed until services are needed.
 
-### Key Features:
-- Zero startup cost (closures stored, not executed)
-- Async resolution throughout
-- No singletons or static dependencies
-- Type-safe with compile-time checks
+**Details**: See [DEPENDENCY_INJECTION.md](./DEPENDENCY_INJECTION.md) for complete implementation patterns.
 
 ## Module Architecture
 
@@ -165,56 +154,22 @@ User Request → AIService → LLMOrchestrator → Provider
 
 ## Concurrency Model
 
-### Actor Boundaries
-- **Services**: Actors (except SwiftData-dependent)
-- **ViewModels**: @MainActor
-- **Views**: @MainActor (implicit)
-- **Models**: Sendable where possible
+Swift 6 compliant concurrency with clear actor isolation boundaries.
 
-### Best Practices:
-- No Task in init() - use configure()
-- Proper task cancellation in ViewModels
-- Avoid unnecessary Task wrappers
-- Error handling at boundaries
+**Details**: See [CONCURRENCY.md](./CONCURRENCY.md) for complete patterns and best practices.
 
 ## Error Handling
 
-### Unified AppError Type
-```swift
-enum AppError: LocalizedError {
-    case network(NetworkError)
-    case database(DatabaseError)
-    case validation(ValidationError)
-    case ai(AIError)
-    // ... comprehensive error cases
-}
-```
+Unified AppError system provides consistent error handling across all layers with user-friendly messages and recovery suggestions.
 
-### Features:
-- User-friendly descriptions
-- Recovery suggestions  
-- Detailed debug info
-- Proper error propagation
+**Details**: See [ERROR_HANDLING.md](./ERROR_HANDLING.md) for complete error patterns.
 
-## Performance Optimizations
+## Performance Strategy
 
-### App Launch (<0.5s)
-- Lazy DI system
-- No blocking operations
-- Minimal initial UI
-- Background service configuration
-
-### Runtime Performance
-- Efficient SwiftData queries
-- AI response caching
-- Image loading optimization
-- Background task management
-
-### Memory Management
-- Proper model lifecycle
-- Cache size limits
-- Background memory warnings
-- Efficient data structures
+- **App Launch**: Lazy DI system ensures fast startup with minimal blocking operations
+- **Runtime**: Actor-based concurrency maximizes throughput, efficient data access patterns
+- **Memory**: Careful lifecycle management and cache size limits
+- **AI**: Response caching and background processing for smooth user experience
 
 ## Testing Architecture
 
@@ -244,92 +199,39 @@ enum AppError: LocalizedError {
 - API key rotation support
 - Timeout enforcement
 
-## Current UI Excellence
+## User Interface
 
-### UI Excellence
-- Glass morphism design system
-- Pastel gradient themes
-- Physics-based animations
-- 120Hz optimization
+Glass morphism design system with pastel gradients, physics-based animations, and premium feel.
 
-### Technical Debt
-- Manager consolidations
-- Service simplification
-- SwiftData relationship optimization
-- Test coverage improvement
+**Details**: See [UI.md](./UI.md) for complete design system and component library.
 
-## Architecture Decision Records
+## Key Architectural Decisions
 
-### ADR-001: Lazy DI over Eager
-**Decision**: Store factory closures, not instances  
-**Rationale**: Eliminated app launch delays  
-**Status**: Implemented
+- **Lazy DI**: Factory closures stored, not executed at startup → fast app launch
+- **ServiceProtocol**: Consistent service lifecycle and error handling patterns
+- **Actor Isolation**: Services as actors except when SwiftData constrains to @MainActor
+- **SwiftData Strategy**: Minimize usage, prefer HealthKit for health data
+- **Module Boundaries**: Self-contained features with protocol-based communication
+- **Type Safety**: Compile-time validation preferred over runtime checks
 
-### ADR-002: ServiceProtocol for All Services
-**Decision**: Every service implements ServiceProtocol  
-**Rationale**: Consistent lifecycle and error handling  
-**Status**: 100% adoption
+## Quality Assurance
 
-### ADR-003: BaseCoordinator Pattern
-**Decision**: Generic base coordinator for navigation  
-**Rationale**: Eliminate duplicate navigation code  
-**Status**: Implemented
+- **Service Health**: All services implement health check protocols
+- **Performance**: Launch time, memory usage, and AI response latency monitoring
+- **Testing**: Unit, integration, UI, and performance test coverage
+- **Standards**: Zero-warning builds, SwiftLint compliance, actor isolation validation
 
-### ADR-004: @MainActor Minimization
-**Decision**: Only ViewModels and UI on main actor  
-**Rationale**: Better performance and concurrency  
-**Status**: Significantly reduced (services are actors except SwiftData-dependent)
+## Development Guidelines
 
-### ADR-005: SwiftData Models as Shared Layer
-**Decision**: Data models form an explicit shared layer  
-**Rationale**: Modules can share data without direct dependencies  
-**Status**: Established pattern
+**For New Developers**: Read [README.md](./README.md) for complete AI agent onboarding sequence.
 
-### ADR-006: Nonisolated AI Operations
-**Decision**: Make heavy AI operations nonisolated while keeping UI updates @MainActor  
-**Rationale**: Prevents UI blocking during AI processing, improves performance  
-**Status**: Standard pattern for AI services
+**Key Patterns**:
+- Services implement ServiceProtocol with async configuration
+- Modules are self-contained with coordinator-based navigation  
+- SwiftData usage minimized in favor of HealthKit where applicable
+- Actor isolation maximized except where SwiftData constrains to @MainActor
 
-### ADR-007: Demo Mode at DI Level
-**Decision**: Implement demo mode through DI container, not runtime checks  
-**Rationale**: Zero overhead when disabled, clean separation of concerns  
-**Status**: Available via AppConstants.Configuration.isUsingDemoMode
-
-## Monitoring and Metrics
-
-### Key Metrics Tracked
-- App launch time
-- Service initialization time
-- AI response latency
-- Memory usage
-- Crash rate
-
-### Health Checks
-- All services report health status
-- Background monitoring
-- Automatic error reporting
-- Performance profiling
-
-## Getting Started
-
-### For New Developers
-1. Read MODULE_BOUNDARIES.md
-2. Study DI_STANDARDS.md  
-3. Review ServiceProtocol pattern
-4. Understand coordinator navigation
-
-### Adding a New Feature
-1. Create module structure
-2. Define service protocols
-3. Implement with ServiceProtocol
-4. Add coordinator for navigation
-5. Register in DIBootstrapper
-
-### Common Pitfalls
-- Don't create singletons
-- Don't add unnecessary @MainActor
-- Don't couple modules directly
-- Don't skip error handling
+**Quality Gates**: Zero-warning builds, SwiftLint compliance, proper error handling
 
 ## Conclusion
 
