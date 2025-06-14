@@ -2,7 +2,9 @@ import Foundation
 import SwiftData
 
 /// Service for nutrition-related operations and calculations.
-actor NutritionService: NutritionServiceProtocol, ServiceProtocol {
+/// @MainActor required due to SwiftData ModelContext usage (not thread-safe)
+@MainActor
+final class NutritionService: NutritionServiceProtocol, ServiceProtocol {
     private let modelContext: ModelContext
     private let healthKitManager: HealthKitManaging?
     
@@ -10,9 +12,7 @@ actor NutritionService: NutritionServiceProtocol, ServiceProtocol {
     nonisolated let serviceIdentifier = "nutrition-service"
     private var _isConfigured = false
     nonisolated var isConfigured: Bool {
-        // For actors, we need async access but protocol requires sync
-        // Return true as nutrition service is always ready after init
-        true
+        MainActor.assumeIsolated { _isConfigured }
     }
 
     init(modelContext: ModelContext, healthKitManager: HealthKitManaging? = nil) {
