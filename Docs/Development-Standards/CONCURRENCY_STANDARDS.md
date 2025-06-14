@@ -175,7 +175,7 @@ container.register(ServiceProtocol.self, lifetime: .singleton) { resolver in
 
 ## Task Management
 
-### ✅ Task Lifecycle Management (Updated Phase 2.2)
+### ✅ Task Lifecycle Management
 
 #### Services with async initialization
 ```swift
