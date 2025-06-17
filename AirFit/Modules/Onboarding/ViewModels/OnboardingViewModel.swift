@@ -3,70 +3,71 @@ import SwiftData
 import Observation
 import Combine
 
-
 // MARK: - HealthKit Prefill Protocol
 protocol HealthKitPrefillProviding: AnyObject, Sendable {
     func fetchTypicalSleepWindow() async throws -> (bed: Date, wake: Date)?
+    func fetchCurrentWeight() async throws -> Double?
 }
 
 // MARK: - ViewModel
 @MainActor
 @Observable
 final class OnboardingViewModel: ErrorHandling {
-    // MARK: - Onboarding Flow State
-    enum OnboardingMode {
-        case legacy          // Old 4-persona form flow
-        case conversational  // New AI conversation flow
+    // MARK: - Navigation State
+    enum OnboardingScreen: String, CaseIterable {
+        case opening
+        case healthKit
+        case lifeContext
+        case goals
+        case communicationStyle
+        case synthesis
+        case coachReady
+        
+        var title: String {
+            switch self {
+            case .opening: return "Welcome"
+            case .healthKit: return "Health Data"
+            case .lifeContext: return "About You"
+            case .goals: return "Your Goals"
+            case .communicationStyle: return "Coaching Style"
+            case .synthesis: return "Creating Coach"
+            case .coachReady: return "Coach Ready"
+            }
+        }
     }
     
-    // MARK: - Navigation State
-    private(set) var currentScreen: OnboardingScreen = .openingScreen
+    private(set) var currentScreen: OnboardingScreen = .opening
     private(set) var isLoading = false
     var error: AppError?
     var isShowingError = false
     
-    // MARK: - Integration State
-    private(set) var mode: OnboardingMode = .conversational
-    private(set) var orchestratorState: OnboardingState = .notStarted
-    private(set) var orchestratorProgress: OnboardingProgress = .init()
-    private var orchestrator: OnboardingOrchestrator?
+    // MARK: - Progress
+    var progress: Double {
+        let screens = OnboardingScreen.allCases
+        guard let currentIndex = screens.firstIndex(of: currentScreen) else { return 0 }
+        return Double(currentIndex) / Double(screens.count - 1)
+    }
 
-    // MARK: - Collected Data (Phase 4 Refactored - uses PersonaMode)
-    var lifeContext = LifeContext()
-    var goal = Goal()
-    var selectedPersonaMode: PersonaMode = .supportiveCoach  // Phase 4: Discrete persona selection
-    var engagementPreferences = EngagementPreferences()
-    var sleepWindow = SleepWindow()
-    var motivationalStyle = MotivationalStyle()
-    var timezone: String = TimeZone.current.identifier
-    var baselineModeEnabled = true
-    
-    // MARK: - Multi-Goal Weight Tracking
-    private(set) var currentWeightFromHealthKit: Double?
-    var manualCurrentWeight: Double?
+    // MARK: - Collected Data
+    var userName: String = ""
+    var lifeContext: String = ""
+    var currentWeight: Double?
     var targetWeight: Double?
+    var bodyRecompositionGoals: [BodyRecompositionGoal] = []
+    var functionalGoalsText: String = ""
+    var communicationStyles: [CommunicationStyle] = []
+    var informationPreferences: [InformationStyle] = []
     
-    var currentWeight: Double? {
-        return currentWeightFromHealthKit ?? manualCurrentWeight
-    }
+    // MARK: - Synthesis Results
+    private(set) var synthesizedGoals: LLMGoalSynthesis?
+    private(set) var generatedPersona: PersonaProfile?
     
-    var shouldShowManualWeightInput: Bool {
-        return healthKitAuthorizationStatus != .authorized || currentWeightFromHealthKit == nil
-    }
+    // MARK: - HealthKit
+    private(set) var healthKitData: HealthKitSnapshot?
+    private(set) var healthKitAuthorizationStatus: HealthKitAuthorizationStatus = .notDetermined
     
-    var weightDirection: WeightDirection? {
-        guard let current = currentWeight, let target = targetWeight else { return nil }
-        return current < target ? .gain : current > target ? .lose : .maintain
-    }
-
     // MARK: - Voice Input
     private(set) var isTranscribing = false
-
-    // MARK: - HealthKit Integration
-    var hasHealthKitIntegration: Bool {
-        healthPrefillProvider != nil
-    }
-    private(set) var healthKitAuthorizationStatus: HealthKitAuthorizationStatus = .notDetermined
 
     // MARK: - Dependencies
     private let aiService: AIServiceProtocol
@@ -75,8 +76,8 @@ final class OnboardingViewModel: ErrorHandling {
     private let speechService: WhisperServiceWrapperProtocol?
     private let healthPrefillProvider: HealthKitPrefillProviding?
     private let healthKitAuthManager: HealthKitAuthManager
-    private let apiKeyManager: APIKeyManagementProtocol
     private let userService: UserServiceProtocol
+    private let personaService: PersonaService
     private let analytics: ConversationAnalytics
 
     // MARK: - Completion Callback
@@ -87,151 +88,137 @@ final class OnboardingViewModel: ErrorHandling {
         aiService: AIServiceProtocol,
         onboardingService: OnboardingServiceProtocol,
         modelContext: ModelContext,
-        apiKeyManager: APIKeyManagementProtocol,
         userService: UserServiceProtocol,
+        personaService: PersonaService,
         speechService: WhisperServiceWrapperProtocol? = nil,
         healthPrefillProvider: HealthKitPrefillProviding? = nil,
         healthKitAuthManager: HealthKitAuthManager,
-        analytics: ConversationAnalytics = ConversationAnalytics(),
-        mode: OnboardingMode = .conversational
+        analytics: ConversationAnalytics = ConversationAnalytics()
     ) {
         self.aiService = aiService
         self.onboardingService = onboardingService
         self.modelContext = modelContext
-        self.apiKeyManager = apiKeyManager
         self.userService = userService
+        self.personaService = personaService
         self.speechService = speechService
         self.healthPrefillProvider = healthPrefillProvider
         self.healthKitAuthManager = healthKitAuthManager
         self.analytics = analytics
-        self.mode = mode
-        self.healthKitAuthorizationStatus = healthKitAuthManager.authorizationStatus
-
-        // Initialize orchestrator if using conversational mode
-        if mode == .conversational {
-            setupOrchestrator()
-        }
-
-        Task { await prefillFromHealthKit() }
-    }
-    
-    // MARK: - Orchestrator Setup
-    private func setupOrchestrator() {
-        orchestrator = OnboardingOrchestrator(
-            modelContext: modelContext,
-            apiKeyManager: apiKeyManager,
-            userService: userService,
-            analytics: analytics
-        )
-        
-        // Observe orchestrator state changes
-        Task {
-            for await state in orchestrator!.$state.values {
-                orchestratorState = state
-                handleOrchestratorStateChange(state)
-            }
-        }
-        
-        // Observe progress changes
-        Task {
-            for await progress in orchestrator!.$progress.values {
-                orchestratorProgress = progress
-            }
-        }
-    }
-    
-    // MARK: - DI Support
-    
-    /// Update the model context after initialization (for DI pattern)
-    func updateModelContext(_ newContext: ModelContext) {
-        self.modelContext = newContext
-    }
-    
-    private func handleOrchestratorStateChange(_ state: OnboardingState) {
-        switch state {
-        case .completed:
-            onCompletionCallback?()
-        case .error(let error):
-            handleError(error)
-        default:
-            break
-        }
     }
 
     // MARK: - Navigation
-    func navigateToNextScreen() {
-        // Legacy mode navigation
-        guard mode == .legacy else { return }
-        
-        guard let index = OnboardingScreen.allCases.firstIndex(of: currentScreen),
-              index < OnboardingScreen.allCases.count - 1 else { return }
-        currentScreen = OnboardingScreen.allCases[index + 1]
-        AppLogger.info("Navigated to \(currentScreen)", category: .onboarding)
-    }
-
-    func navigateToPreviousScreen() {
-        // Legacy mode navigation
-        guard mode == .legacy else { return }
-        
-        guard let index = OnboardingScreen.allCases.firstIndex(of: currentScreen),
-              index > 0 else { return }
-        currentScreen = OnboardingScreen.allCases[index - 1]
-        AppLogger.info("Navigated back to \(currentScreen)", category: .onboarding)
+    
+    func beginOnboarding() {
+        currentScreen = .healthKit
+        analytics.trackEvent(.onboardingStarted)
     }
     
-    // MARK: - Conversational Mode Methods
-    func startConversationalOnboarding(userId: UUID) async throws {
-        guard mode == .conversational,
-              let orchestrator = orchestrator else {
-            throw OnboardingOrchestratorError.invalidStateTransition
+    func navigateToNext() {
+        HapticService.impact(.light)
+        
+        switch currentScreen {
+        case .opening:
+            currentScreen = .healthKit
+        case .healthKit:
+            currentScreen = .lifeContext
+        case .lifeContext:
+            currentScreen = .goals
+        case .goals:
+            currentScreen = .communicationStyle
+        case .communicationStyle:
+            Task { await synthesizePersona() }
+        case .synthesis:
+            currentScreen = .coachReady
+        case .coachReady:
+            Task { await completeOnboarding() }
         }
         
-        try await orchestrator.startOnboarding(userId: userId)
+        analytics.trackEvent(.screenTransition(from: currentScreen.rawValue))
     }
     
-    func pauseConversation() async {
-        await orchestrator?.pauseOnboarding()
+    func navigateToPrevious() {
+        HapticService.impact(.light)
+        
+        switch currentScreen {
+        case .opening:
+            break
+        case .healthKit:
+            currentScreen = .opening
+        case .lifeContext:
+            currentScreen = .healthKit
+        case .goals:
+            currentScreen = .lifeContext
+        case .communicationStyle:
+            currentScreen = .goals
+        case .synthesis:
+            currentScreen = .communicationStyle
+        case .coachReady:
+            currentScreen = .communicationStyle
+        }
+    }
+
+    // MARK: - HealthKit
+    
+    func requestHealthKitAuthorization() async {
+        let granted = await healthKitAuthManager.requestAuthorizationIfNeeded()
+        healthKitAuthorizationStatus = healthKitAuthManager.authorizationStatus
+        
+        if granted {
+            await fetchHealthKitData()
+        }
+        
+        analytics.trackEvent(.healthKitAuthorization(granted: granted))
     }
     
-    func resumeConversation() async throws {
-        try await orchestrator?.resumeOnboarding()
-    }
-    
-    func completeConversationalOnboarding() async throws {
-        try await orchestrator?.completeOnboarding()
-    }
-    
-    func adjustPersona(_ adjustments: PersonaAdjustments) async throws {
-        try await orchestrator?.adjustPersona(adjustments)
-    }
-    
-    // MARK: - Mode Switching
-    func switchToLegacyMode() {
-        mode = .legacy
-        orchestrator = nil
-        currentScreen = .openingScreen
-    }
-    
-    func switchToConversationalMode() {
-        mode = .conversational
-        setupOrchestrator()
+    private func fetchHealthKitData() async {
+        guard let provider = healthPrefillProvider else { return }
+        
+        do {
+            // Fetch weight
+            if let weight = try await provider.fetchCurrentWeight() {
+                currentWeight = weight
+            }
+            
+            // Fetch sleep patterns
+            if let sleepWindow = try await provider.fetchTypicalSleepWindow() {
+                // Store sleep data if needed
+            }
+            
+            // Create snapshot
+            healthKitData = HealthKitSnapshot(
+                weight: currentWeight,
+                height: nil, // Add if needed
+                age: nil, // Add if needed
+                sleepSchedule: nil // Add if needed
+            )
+        } catch {
+            AppLogger.error("Failed to fetch HealthKit data", error: error, category: .health)
+        }
     }
 
     // MARK: - Voice Input
-    func startVoiceCapture() {
+    
+    func startVoiceCapture(for field: VoiceInputField) {
         guard let speechService else { return }
+        
         speechService.requestPermission { [weak self] granted in
-            guard let self else { return }
-            guard granted else { return }
+            guard let self, granted else { return }
+            
             self.isTranscribing = true
             speechService.startTranscription { [weak self] result in
                 guard let self else { return }
+                
                 DispatchQueue.main.async {
                     self.isTranscribing = false
+                    
                     switch result {
                     case .success(let transcript):
-                        // Update functional goals text instead of rawText for multi-goal system
-                        self.goal.functionalGoalsText = transcript
+                        switch field {
+                        case .lifeContext:
+                            self.lifeContext = transcript
+                        case .functionalGoals:
+                            self.functionalGoalsText = transcript
+                        }
                     case .failure(let error):
                         self.handleError(error)
                     }
@@ -239,174 +226,259 @@ final class OnboardingViewModel: ErrorHandling {
             }
         }
     }
-
+    
     func stopVoiceCapture() {
         speechService?.stopTranscription()
         isTranscribing = false
     }
+    
+    enum VoiceInputField {
+        case lifeContext
+        case functionalGoals
+    }
 
-    // MARK: - HealthKit Authorization
-    func requestHealthKitAuthorization() async {
-        let granted = await healthKitAuthManager.requestAuthorizationIfNeeded()
-        healthKitAuthorizationStatus = healthKitAuthManager.authorizationStatus
-        if granted {
-            AppLogger.info("HealthKit authorization granted", category: .health)
-            // Fetch weight data after authorization
-            await fetchCurrentWeightFromHealthKit()
+    // MARK: - Multi-Select Helpers
+    
+    func toggleBodyRecompositionGoal(_ goal: BodyRecompositionGoal) {
+        if bodyRecompositionGoals.contains(goal) {
+            bodyRecompositionGoals.removeAll { $0 == goal }
         } else {
-            AppLogger.warning("HealthKit authorization not granted", category: .health)
+            bodyRecompositionGoals.append(goal)
         }
     }
     
-    func fetchCurrentWeightFromHealthKit() async {
-        guard healthKitAuthorizationStatus == .authorized,
-              healthPrefillProvider != nil else {
-            AppLogger.info("HealthKit not authorized or provider unavailable for weight fetch", category: .health)
+    func toggleCommunicationStyle(_ style: CommunicationStyle) {
+        if communicationStyles.contains(style) {
+            communicationStyles.removeAll { $0 == style }
+        } else {
+            communicationStyles.append(style)
+        }
+    }
+    
+    func toggleInformationPreference(_ pref: InformationStyle) {
+        if informationPreferences.contains(pref) {
+            informationPreferences.removeAll { $0 == pref }
+        } else {
+            informationPreferences.append(pref)
+        }
+    }
+
+    // MARK: - Synthesis
+    
+    private func synthesizePersona() async {
+        currentScreen = .synthesis
+        isLoading = true
+        error = nil
+        
+        do {
+            // Create weight objective
+            let weightObjective = WeightObjective(
+                currentWeight: currentWeight,
+                targetWeight: targetWeight,
+                timeframe: nil
+            )
+            
+            // Build raw data for synthesis
+            let rawData = OnboardingRawData(
+                userName: userName.isEmpty ? "Friend" : userName,
+                lifeContextText: lifeContext,
+                weightObjective: weightObjective,
+                bodyRecompositionGoals: bodyRecompositionGoals,
+                functionalGoalsText: functionalGoalsText,
+                communicationStyles: communicationStyles,
+                informationPreferences: informationPreferences,
+                healthKitData: healthKitData,
+                manualHealthData: nil
+            )
+            
+            // Synthesize goals with LLM
+            synthesizedGoals = try await onboardingService.synthesizeGoals(from: rawData)
+            
+            // Generate persona
+            guard let userId = await userService.getCurrentUserId() else {
+                throw AppError.authentication("No user ID found")
+            }
+            
+            let session = ConversationSession(
+                userId: userId,
+                sessionType: .onboarding,
+                startedAt: Date()
+            )
+            session.responses = createResponsesFromData(rawData)
+            
+            generatedPersona = try await personaService.generatePersona(from: session)
+            
+            // Show coach ready screen
+            currentScreen = .coachReady
+            
+        } catch {
+            self.error = error as? AppError ?? .unknown(error)
+            isShowingError = true
+        }
+        
+        isLoading = false
+    }
+    
+    private func createResponsesFromData(_ data: OnboardingRawData) -> [String: String] {
+        var responses: [String: String] = [:]
+        
+        responses["userName"] = data.userName
+        responses["lifeContext"] = data.lifeContextText
+        responses["functionalGoals"] = data.functionalGoalsText
+        
+        if let weight = data.weightObjective {
+            responses["currentWeight"] = weight.currentWeight.map { "\($0)" } ?? ""
+            responses["targetWeight"] = weight.targetWeight.map { "\($0)" } ?? ""
+        }
+        
+        responses["bodyGoals"] = data.bodyRecompositionGoals.map(\.rawValue).joined(separator: ", ")
+        responses["communicationStyles"] = data.communicationStyles.map(\.rawValue).joined(separator: ", ")
+        responses["informationPreferences"] = data.informationPreferences.map(\.rawValue).joined(separator: ", ")
+        
+        return responses
+    }
+
+    // MARK: - Completion
+    
+    private func completeOnboarding() async {
+        guard let persona = generatedPersona,
+              let userId = await userService.getCurrentUserId() else {
+            error = .validation("Missing persona or user")
+            isShowingError = true
             return
         }
-
-        // Use the existing HealthKit infrastructure to fetch weight
-        // This would need to be implemented in the HealthKit provider
-        // For now, we'll leave this as a placeholder that can be implemented
-        // when the HealthKit weight fetching capability is added
-        AppLogger.info("HealthKit weight fetch would be implemented here", category: .health)
-    }
-
-    // MARK: - Multi-Goal Management
-    func toggleBodyRecompositionGoal(_ bodyGoal: BodyRecompositionGoal) {
-        if goal.bodyRecompositionGoals.contains(bodyGoal) {
-            goal.bodyRecompositionGoals.removeAll { $0 == bodyGoal }
-        } else {
-            goal.bodyRecompositionGoals.append(bodyGoal)
-        }
-        AppLogger.info("Body recomposition goals updated: \(goal.bodyRecompositionGoals.map(\.rawValue))", category: .onboarding)
-    }
-    
-    func updateWeightObjective() {
-        // Create weight objective from current tracking data
-        goal.weightObjective = WeightObjective(
-            currentWeight: currentWeight,
-            targetWeight: targetWeight,
-            timeframe: nil // Could add timeframe selection later
-        )
-        AppLogger.info("Weight objective updated: \(String(describing: goal.weightObjective))", category: .onboarding)
-    }
-
-    // MARK: - Business Logic
-    func analyzeGoalText() async {
-        // Update weight objective before analysis
-        updateWeightObjective()
         
-        // Goal analysis is handled by the AI coach after onboarding completion
-        // The raw text is sufficient for the USER_PROFILE_JSON_BLOB
-        AppLogger.info("Multi-goal data captured - Weight: \(String(describing: goal.weightObjective)), Body Comp: \(goal.bodyRecompositionGoals.count) goals, Functional: \(goal.functionalGoalsText)", category: .onboarding)
-    }
-
-    func completeOnboarding() async throws {
-        switch mode {
-        case .conversational:
-            // Conversational mode is handled by the orchestrator
-            try await completeConversationalOnboarding()
+        isLoading = true
+        
+        do {
+            // Save persona
+            try await personaService.savePersona(persona, for: userId)
             
-        case .legacy:
-            // Legacy form-based flow
-            isLoading = true
-            defer { isLoading = false }
-
-            let profileBlob = buildUserProfile()
-            let encoder = JSONEncoder()
-            encoder.dateEncodingStrategy = .iso8601
-            encoder.keyEncodingStrategy = .convertToSnakeCase
-            let data = try encoder.encode(profileBlob)
-
-            let profile = OnboardingProfile(
-                personaPromptData: data,
-                communicationPreferencesData: data,
-                rawFullProfileData: data
-            )
+            // Update user with coach persona
+            let coachPersona = CoachPersona(from: persona)
+            try await userService.setCoachPersona(coachPersona)
             
-            // Let the service handle all SwiftData operations to avoid conflicts
-            try await onboardingService.saveProfile(profile)
-
-            AppLogger.info(
-                "Legacy onboarding completed successfully with persona: \(selectedPersonaMode.displayName) (mode: \(selectedPersonaMode.rawValue), goal: \(goal.family.rawValue))",
-                category: .onboarding
-            )
-
+            // Complete onboarding
+            try await userService.completeOnboarding()
+            
+            // Track completion
+            analytics.trackEvent(.onboardingCompleted)
+            
             // Notify completion
             onCompletionCallback?()
-        }
-    }
-
-    // MARK: - Persona Selection Helpers (Phase 4)
-    
-    /// Preview text for selected persona mode
-    var personaPreviewText: String {
-        return selectedPersonaMode.description
-    }
-    
-    /// Check if user has made persona selection
-    var hasSelectedPersona: Bool {
-        return true  // PersonaMode always has a valid default
-    }
-
-    /// Validate persona selection (replaces validateBlend)
-    func validatePersonaSelection() {
-        // PersonaMode enum ensures valid selection by design
-        // No validation needed - type safety handles this
-        AppLogger.info("Persona validated: \(selectedPersonaMode.displayName)", category: .onboarding)
-    }
-
-    // Legacy method name for UI compatibility during transition
-    func validateBlend() {
-        validatePersonaSelection()
-    }
-
-    // MARK: - Private Helpers
-    private func prefillFromHealthKit() async {
-        guard let provider = healthPrefillProvider else { return }
-        do {
-            if let window = try await provider.fetchTypicalSleepWindow() {
-                sleepWindow.bedTime = Self.formatTime(window.bed)
-                sleepWindow.wakeTime = Self.formatTime(window.wake)
-            }
+            
         } catch {
-            // Non-critical error - just log, don't show to user
-            AppLogger.error("HealthKit prefill failed", error: error, category: .health)
+            self.error = error as? AppError ?? .unknown(error)
+            isShowingError = true
         }
+        
+        isLoading = false
     }
 
-    private func buildUserProfile() -> UserProfileJsonBlob {
-        // Phase 4: Use new PersonaMode-based initializer
-        return PersonaMigrationUtility.createNewProfile(
-            lifeContext: lifeContext,
-            goal: goal,
-            selectedPersonaMode: selectedPersonaMode,
-            engagementPreferences: engagementPreferences,
-            sleepWindow: sleepWindow,
-            motivationalStyle: motivationalStyle,
-            timezone: timezone
-        )
+    // MARK: - Error Handling
+    
+    func handleError(_ error: Error) {
+        self.error = error as? AppError ?? .unknown(error)
+        isShowingError = true
+        HapticService.play(.error)
     }
-
-    private static func formatTime(_ date: Date) -> String {
-        let comps = Calendar.current.dateComponents([.hour, .minute], from: date)
-        let hour = comps.hour ?? 0
-        let minute = comps.minute ?? 0
-        return String(format: "%02d:%02d", hour, minute)
+    
+    func clearError() {
+        error = nil
+        isShowingError = false
     }
 }
 
-// MARK: - Phase 4 Refactor Complete
-//
-// ✅ ELIMINATED:
-// - blend: Blend property (replaced with selectedPersonaMode: PersonaMode)  
-// - validateBlend() method (no longer needed with discrete personas)
-// - Complex blend calculation and normalization logic
-//
-// ✅ REPLACED WITH:
-// - selectedPersonaMode: PersonaMode with clear, discrete options
-// - PersonaMode.allCases for simple UI iteration
-// - PersonaMigrationUtility.createNewProfile() for clean profile creation
-// - Built-in validation through enum type safety
+// MARK: - Supporting Types
 
+struct HealthKitSnapshot: Codable, Sendable {
+    let weight: Double?
+    let height: Double?
+    let age: Int?
+    let sleepSchedule: SleepSchedule?
+}
+
+struct SleepSchedule: Codable, Sendable {
+    let bedtime: Date
+    let waketime: Date
+}
+
+enum HealthKitAuthorizationStatus {
+    case notDetermined
+    case authorized
+    case denied
+}
+
+// Communication styles from the enhancement doc
+enum CommunicationStyle: String, Codable, CaseIterable {
+    case encouraging = "encouraging_supportive"
+    case direct = "direct_no_nonsense"
+    case analytical = "data_driven_analytical"
+    case motivational = "energetic_motivational"
+    case patient = "patient_understanding"
+    case challenging = "challenging_pushing"
+    case educational = "educational_explanatory"
+    case playful = "playful_humorous"
+    
+    var displayName: String {
+        switch self {
+        case .encouraging: return "Encouraging and supportive"
+        case .direct: return "Direct and no-nonsense"
+        case .analytical: return "Data-driven and analytical"
+        case .motivational: return "Energetic and motivational"
+        case .patient: return "Patient with setbacks"
+        case .challenging: return "Challenging and pushing"
+        case .educational: return "Educational and explanatory"
+        case .playful: return "Playful and fun"
+        }
+    }
+    
+    var description: String {
+        switch self {
+        case .encouraging: return "\"You've got this!\""
+        case .direct: return "\"Here's what needs to happen\""
+        case .analytical: return "\"Let's look at the numbers\""
+        case .motivational: return "\"Let's crush these goals!\""
+        case .patient: return "\"Progress isn't always linear\""
+        case .challenging: return "\"I know you can do better\""
+        case .educational: return "\"Here's why this works\""
+        case .playful: return "\"Fitness doesn't have to be serious!\""
+        }
+    }
+}
+
+enum InformationStyle: String, Codable, CaseIterable {
+    case detailed = "detailed_explanations"
+    case keyMetrics = "key_metrics_only"
+    case celebrations = "progress_celebrations"
+    case educational = "educational_content"
+    case quickCheckins = "quick_check_ins"
+    case inDepthAnalysis = "in_depth_analysis"
+    case essentials = "just_essentials"
+    
+    var displayName: String {
+        switch self {
+        case .detailed: return "Detailed explanations"
+        case .keyMetrics: return "Key metrics only"
+        case .celebrations: return "Progress celebrations"
+        case .educational: return "Educational content"
+        case .quickCheckins: return "Quick check-ins"
+        case .inDepthAnalysis: return "In-depth analysis"
+        case .essentials: return "Just the essentials"
+        }
+    }
+}
+
+// Analytics events
+extension ConversationAnalytics {
+    enum OnboardingEvent {
+        case onboardingStarted
+        case screenTransition(from: String)
+        case healthKitAuthorization(granted: Bool)
+        case onboardingCompleted
+    }
+    
+    func trackEvent(_ event: OnboardingEvent) {
+        // Implementation would go here
+    }
+}

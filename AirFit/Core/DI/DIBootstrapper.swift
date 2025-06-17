@@ -337,9 +337,10 @@ public final class DIBootstrapper {
         // Onboarding Service
         container.register(OnboardingServiceProtocol.self, lifetime: .transient) { resolver in
             let modelContainer = try await resolver.resolve(ModelContainer.self)
+            let aiService = try await resolver.resolve(AIServiceProtocol.self)
             
             return await MainActor.run {
-                OnboardingService(modelContext: modelContainer.mainContext)
+                OnboardingService(modelContext: modelContainer.mainContext, aiService: aiService)
             }
         }
         

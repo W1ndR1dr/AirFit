@@ -285,6 +285,64 @@ struct MotivationalStyle: Codable, Sendable {
     }
 }
 
+// MARK: - Onboarding Raw Data (for LLM synthesis)
+struct OnboardingRawData: Codable, Sendable {
+    let userName: String
+    let lifeContextText: String
+    let weightObjective: WeightObjective?
+    let bodyRecompositionGoals: [BodyRecompositionGoal]
+    let functionalGoalsText: String
+    let communicationStyles: [CommunicationStyle]
+    let informationPreferences: [InformationStyle]
+    let healthKitData: HealthKitSnapshot?
+    let manualHealthData: ManualHealthData?
+}
+
+struct ManualHealthData: Codable, Sendable {
+    let weight: Double?
+    let height: Double?
+    let age: Int?
+    let sleepSchedule: SleepSchedule?
+}
+
+// MARK: - LLM Goal Synthesis Output
+struct LLMGoalSynthesis: Codable, Sendable {
+    let parsedFunctionalGoals: [ExtractedGoal]
+    let goalRelationships: [GoalRelationship]
+    let unifiedStrategy: String
+    let recommendedTimeline: String
+    let suggestedPersonaMode: PersonaMode?
+    let coachingFocus: [String]
+    let milestones: [SynthesizedMilestone]
+    let expectedChallenges: [String]
+    let motivationalHooks: [String]
+}
+
+struct ExtractedGoal: Codable, Sendable {
+    let goal: String
+    let context: String
+    let measurableOutcome: String
+}
+
+struct GoalRelationship: Codable, Sendable {
+    let type: RelationshipType
+    let description: String
+    
+    enum RelationshipType: String, Codable {
+        case synergistic, competing, sequential
+    }
+}
+
+struct SynthesizedMilestone: Codable, Sendable {
+    let description: String
+    let timeframe: String
+    let category: MilestoneCategory
+    
+    enum MilestoneCategory: String, Codable {
+        case weight, bodyComposition, functional, performance
+    }
+}
+
 // MARK: - USER_PROFILE_JSON_BLOB (Phase 4 Refactored)
 struct UserProfileJsonBlob: Codable, Sendable {
     let lifeContext: LifeContext
