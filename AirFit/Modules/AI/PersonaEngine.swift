@@ -11,11 +11,12 @@ final class PersonaEngine {
 
     // MARK: - Public Methods
 
-    /// Build optimized system prompt with discrete persona mode
+    /// Build optimized system prompt with discrete persona mode and goal synthesis
     func buildSystemPrompt(
         personaMode: PersonaMode,
         userGoal: String,
         userContext: String,
+        goalSynthesis: GoalSynthesis?,
         healthContext: HealthContextSnapshot,
         conversationHistory: [AIChatMessage],
         availableFunctions: [AIFunctionDefinition]
@@ -39,6 +40,7 @@ final class PersonaEngine {
         let healthContextJSON = try buildCompactHealthContext(healthContext)
         let conversationJSON = try buildCompactConversationHistory(conversationHistory)
         let functionsJSON = try buildCompactFunctionList(availableFunctions)
+        let goalSynthesisJSON = try buildCompactGoalSynthesis(goalSynthesis)
 
         // Get current time efficiently
         let currentDateTime = ISO8601DateFormatter().string(from: Date())
@@ -48,6 +50,7 @@ final class PersonaEngine {
             .replacingOccurrences(of: "{{PERSONA_INSTRUCTIONS}}", with: personaInstructions)
             .replacingOccurrences(of: "{{USER_GOAL}}", with: userGoal)
             .replacingOccurrences(of: "{{USER_CONTEXT}}", with: userContext)
+            .replacingOccurrences(of: "{{GOAL_SYNTHESIS_JSON}}", with: goalSynthesisJSON)
             .replacingOccurrences(of: "{{HEALTH_CONTEXT_JSON}}", with: healthContextJSON)
             .replacingOccurrences(of: "{{CONVERSATION_HISTORY_JSON}}", with: conversationJSON)
             .replacingOccurrences(of: "{{AVAILABLE_FUNCTIONS_JSON}}", with: functionsJSON)
@@ -88,11 +91,12 @@ final class PersonaEngine {
         let userGoal = userProfile.goal.rawText.isEmpty ? userProfile.goal.family.displayName : userProfile.goal.rawText
         let userContext = buildUserContextString(from: userProfile)
         
-        // Use new discrete persona system
+        // Use new discrete persona system (no goal synthesis for legacy method)
         return try buildSystemPrompt(
             personaMode: personaMode,
             userGoal: userGoal,
             userContext: userContext,
+            goalSynthesis: nil,
             healthContext: healthContext,
             conversationHistory: conversationHistory,
             availableFunctions: availableFunctions
@@ -114,6 +118,9 @@ final class PersonaEngine {
 
         ## User Context
         {{USER_CONTEXT}}
+
+        ## Goal Strategy
+        {{GOAL_SYNTHESIS_JSON}}
 
         ## Current Health Data
         {{HEALTH_CONTEXT_JSON}}
@@ -229,6 +236,24 @@ final class PersonaEngine {
 
         let data = try JSONSerialization.data(withJSONObject: compactFunctions)
         return String(data: data, encoding: .utf8) ?? "[]"
+    }
+    
+    private func buildCompactGoalSynthesis(_ goalSynthesis: GoalSynthesis?) throws -> String {
+        guard let synthesis = goalSynthesis else {
+            return "{}"
+        }
+        
+        // Build compact goal synthesis for token efficiency
+        let compactSynthesis: [String: Any] = [
+            "strategy": synthesis.unifiedStrategy,
+            "focus": synthesis.coachingFocus,
+            "timeline": synthesis.timeline,
+            "challenges": synthesis.challenges,
+            "hooks": synthesis.motivationalHooks
+        ]
+        
+        let data = try JSONSerialization.data(withJSONObject: compactSynthesis)
+        return String(data: data, encoding: .utf8) ?? "{}"
     }
 }
 

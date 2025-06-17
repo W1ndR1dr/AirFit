@@ -13,6 +13,8 @@ struct MessageComposer: View {
     @State private var selectedPhoto: PhotosPickerItem?
     @FocusState private var isTextFieldFocused: Bool
     @State private var animateIn = false
+    @State private var recordingStartTime: Date?
+    @State private var recordingDuration: TimeInterval = 0
     @EnvironmentObject private var gradientManager: GradientManager
     @Environment(\.colorScheme) private var colorScheme
 
@@ -29,47 +31,72 @@ struct MessageComposer: View {
             }
 
             HStack(alignment: .bottom, spacing: AppSpacing.sm) {
-                attachmentMenu
-                    .scaleEffect(animateIn ? 1 : 0.8)
-                    .opacity(animateIn ? 1 : 0)
+                if !isRecording {
+                    attachmentMenu
+                        .scaleEffect(animateIn ? 1 : 0.8)
+                        .opacity(animateIn ? 1 : 0)
+                        .transition(.scale.combined(with: .opacity))
+                }
 
                 if isRecording {
                     recordingView
-                        .transition(.scale.combined(with: .opacity))
+                        .transition(.asymmetric(
+                            insertion: .scale(scale: 0.95).combined(with: .opacity),
+                            removal: .scale(scale: 0.95).combined(with: .opacity)
+                        ))
                 } else {
                     textInputView
+                        .transition(.opacity)
                 }
 
                 Button(action: {
                     HapticService.impact(.light)
-                    canSend ? onSend() : onVoiceToggle()
+                    if isRecording {
+                        onVoiceToggle()
+                    } else {
+                        canSend ? onSend() : onVoiceToggle()
+                    }
                 }, label: {
-                    Image(systemName: canSend ? "arrow.up.circle.fill" : "mic.circle.fill")
-                        .font(.system(size: 28, weight: .light))
-                        .foregroundStyle(
-                            canSend ? AnyShapeStyle(gradientManager.currentGradient(for: colorScheme)) : AnyShapeStyle(Color.secondary)
-                        )
-                        .animation(MotionToken.standardSpring, value: canSend)
-                        .scaleEffect(canSend ? 1.1 : 1.0)
+                    if isRecording {
+                        Image(systemName: "stop.circle.fill")
+                            .font(.system(size: 28, weight: .medium))
+                            .foregroundStyle(Color.red)
+                    } else {
+                        Image(systemName: canSend ? "arrow.up.circle.fill" : "mic.circle.fill")
+                            .font(.system(size: 28, weight: .light))
+                            .foregroundStyle(
+                                canSend ? AnyShapeStyle(gradientManager.currentGradient(for: colorScheme)) : AnyShapeStyle(Color.secondary)
+                            )
+                    }
                 })
-                .disabled(isRecording && !canSend)
+                .animation(MotionToken.standardSpring, value: isRecording)
+                .animation(MotionToken.standardSpring, value: canSend)
                 .scaleEffect(animateIn ? 1 : 0.8)
                 .opacity(animateIn ? 1 : 0)
             }
-            .padding(.horizontal, AppSpacing.sm)
-            .padding(.vertical, AppSpacing.xs)
+            .padding(.horizontal, AppSpacing.md)
+            .padding(.vertical, AppSpacing.sm)
             .background(
-                Capsule()
-                    .fill(.ultraThinMaterial)
+                RoundedRectangle(cornerRadius: 24)
+                    .fill(Color(UIColor.systemGray6))
                     .overlay(
-                        Capsule()
-                            .strokeBorder(Color.white.opacity(0.1), lineWidth: 1)
+                        RoundedRectangle(cornerRadius: 24)
+                            .strokeBorder(Color.gray.opacity(0.15), lineWidth: 0.5)
                     )
             )
         }
         .onAppear {
             withAnimation(MotionToken.standardSpring.delay(0.2)) {
                 animateIn = true
+            }
+        }
+        .onChange(of: isRecording) { _, newValue in
+            if newValue {
+                recordingStartTime = Date()
+                startRecordingTimer()
+            } else {
+                recordingStartTime = nil
+                recordingDuration = 0
             }
         }
         .photosPicker(
@@ -95,23 +122,19 @@ struct MessageComposer: View {
     }
 
     private var attachmentMenu: some View {
-        Menu(content: {
-            Button(action: { 
-                HapticService.selection()
-                showAttachmentPicker = true 
-            }, label: {
-                Label("Photo", systemImage: "photo")
-            })
+        Button(action: { 
+            HapticService.selection()
+            showAttachmentPicker = true 
         }, label: {
-            Image(systemName: "plus.circle.fill")
-                .font(.system(size: 24, weight: .light))
-                .foregroundStyle(gradientManager.currentGradient(for: colorScheme))
+            Image(systemName: "plus")
+                .font(.system(size: 20, weight: .medium))
+                .foregroundStyle(.secondary)
         })
     }
 
     private var textInputView: some View {
         TextField("Message your coach...", text: $text, axis: .vertical)
-            .font(.system(size: 16, weight: .light))
+            .font(.system(size: 16, weight: .regular))
             .textFieldStyle(.plain)
             .lineLimit(1...5)
             .focused($isTextFieldFocused)
@@ -127,20 +150,21 @@ struct MessageComposer: View {
 
     private var recordingView: some View {
         HStack(spacing: AppSpacing.sm) {
-            Button(action: {
-                HapticService.impact(.light)
-                onVoiceToggle()
-            }, label: {
-                Image(systemName: "xmark.circle.fill")
-                    .font(.system(size: 20, weight: .light))
-                    .foregroundStyle(.secondary)
-            })
-
-            VoiceWaveformView(levels: waveform)
-                .frame(height: 30)
-
+            // Minimal recording indicator
             RecordingIndicator()
+                .frame(width: 12, height: 12)
+            
+            // Clean waveform visualization
+            VoiceWaveformView(levels: waveform, config: .chat)
+                .frame(height: 24)
+            
+            // Recording time
+            Text(formatDuration(recordingDuration))
+                .font(.system(size: 14, weight: .medium, design: .monospaced))
+                .foregroundStyle(.secondary)
+                .opacity(0.8)
         }
+        .padding(.horizontal, AppSpacing.xs)
     }
 
     private var attachmentsPreview: some View {
@@ -157,61 +181,59 @@ struct MessageComposer: View {
             .padding(.horizontal, AppSpacing.sm)
         }
     }
-}
-
-private struct VoiceWaveformView: View {
-    let levels: [Float]
-    @EnvironmentObject private var gradientManager: GradientManager
-    @Environment(\.colorScheme) private var colorScheme
-
-    var body: some View {
-        GeometryReader { geometry in
-            HStack(spacing: 2) {
-                ForEach(Array(levels.enumerated()), id: \.offset) { index, level in
-                    RoundedRectangle(cornerRadius: 2)
-                        .fill(gradientManager.currentGradient(for: colorScheme))
-                        .frame(width: 3, height: CGFloat(level) * geometry.size.height)
-                        .opacity(0.6 + Double(level) * 0.4)
-                        .animation(
-                            MotionToken.standardSpring.delay(Double(index) * 0.01),
-                            value: level
-                        )
+    
+    // MARK: - Helper Methods
+    
+    private func formatDuration(_ duration: TimeInterval) -> String {
+        let minutes = Int(duration) / 60
+        let seconds = Int(duration) % 60
+        return String(format: "%d:%02d", minutes, seconds)
+    }
+    
+    private func startRecordingTimer() {
+        Task { @MainActor in
+            while self.isRecording {
+                if let startTime = self.recordingStartTime {
+                    self.recordingDuration = Date().timeIntervalSince(startTime)
                 }
+                try? await Task.sleep(for: .milliseconds(100))
             }
-            .frame(maxWidth: .infinity, maxHeight: .infinity)
         }
     }
 }
 
+
 private struct RecordingIndicator: View {
     @State private var isAnimating = false
-    @State private var pulseScale: CGFloat = 1.0
+    @State private var opacity: Double = 1.0
 
     var body: some View {
-        ZStack {
-            Circle()
-                .fill(Color.red.opacity(0.3))
-                .frame(width: 20, height: 20)
-                .scaleEffect(pulseScale)
-                .opacity(isAnimating ? 0 : 0.5)
-            
-            Circle()
-                .fill(Color.red)
-                .frame(width: 12, height: 12)
-                .overlay(
-                    Circle()
-                        .strokeBorder(Color.white.opacity(0.3), lineWidth: 1)
-                )
-        }
-        .onAppear { 
-            withAnimation(
-                .easeInOut(duration: 1.5)
-                .repeatForever(autoreverses: false)
-            ) {
-                isAnimating = true
-                pulseScale = 2.0
+        Circle()
+            .fill(Color.red)
+            .overlay(
+                Circle()
+                    .strokeBorder(Color.red.opacity(0.3), lineWidth: 2)
+                    .scaleEffect(isAnimating ? 1.8 : 1.0)
+                    .opacity(isAnimating ? 0 : 0.8)
+            )
+            .opacity(opacity)
+            .onAppear { 
+                // Gentle pulsing
+                withAnimation(
+                    .easeInOut(duration: 0.8)
+                    .repeatForever(autoreverses: true)
+                ) {
+                    opacity = 0.6
+                }
+                
+                // Expanding ring
+                withAnimation(
+                    .easeOut(duration: 1.5)
+                    .repeatForever(autoreverses: false)
+                ) {
+                    isAnimating = true
+                }
             }
-        }
     }
 }
 

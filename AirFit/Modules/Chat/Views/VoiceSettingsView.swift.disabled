@@ -420,7 +420,7 @@ private struct ModelRow: View {
                                 .font(.system(size: 13, weight: .medium))
                                 .foregroundStyle(.secondary)
                             Spacer()
-                            Text(formatBytes(Int(Double(model.sizeBytes ?? 0) * downloadProgress)) + " / " + model.size)
+                            Text(formatBytes(Int(Double(model.sizeBytes) * downloadProgress)) + " / " + model.size)
                                 .font(.system(size: 12, weight: .regular, design: .monospaced))
                                 .foregroundStyle(.secondary)
                         }

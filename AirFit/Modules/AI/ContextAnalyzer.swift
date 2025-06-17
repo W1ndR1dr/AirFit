@@ -83,8 +83,13 @@ struct ContextAnalyzer {
         }
         let hasRecentFunctions = !recentFunctionCalls.isEmpty
         
-        // Complex if workflow keywords OR recent function activity
-        return hasWorkflowKeywords || hasRecentFunctions
+        // Edge case protections for DirectAI routing failures
+        let hasContextDependency = hasContextDependency(input)
+        let hasSubjectiveMeasurements = hasSubjectiveMeasurements(input)
+        let hasTimeSensitivePlanning = hasTimeSensitivePlanning(input)
+        
+        // Complex if workflow keywords OR recent function activity OR edge cases
+        return hasWorkflowKeywords || hasRecentFunctions || hasContextDependency || hasSubjectiveMeasurements || hasTimeSensitivePlanning
     }
     
     /// Check if input is simple parsing suitable for direct AI
@@ -164,7 +169,7 @@ struct ContextAnalyzer {
     private static func buildChainContext(_ history: [AIChatMessage]) -> ChainContext {
         let recentFunctions = Array(history.suffix(5).compactMap { $0.functionCall?.name })
         let chainProbability = calculateChainProbability(recentFunctions)
-        let workflowActive = recentFunctions.count > 0 && chainProbability > 0.3
+        let workflowActive = !recentFunctions.isEmpty && chainProbability > 0.3
         
         return ChainContext(
             recentFunctions: recentFunctions,
@@ -249,10 +254,8 @@ struct ContextAnalyzer {
         let keywords = ["workout", "nutrition", "food", "exercise", "goals", "progress", "health"]
         let lowerContent = content.lowercased()
         
-        for keyword in keywords {
-            if lowerContent.contains(keyword) {
-                return keyword
-            }
+        for keyword in keywords where lowerContent.contains(keyword) {
+            return keyword
         }
         
         return "general"
@@ -276,6 +279,44 @@ struct ContextAnalyzer {
         }
         
         return 0.3
+    }
+    
+    // MARK: - Edge Case Detection Helpers
+    
+    /// Detects context-dependent references that require conversation history
+    private static func hasContextDependency(_ input: String) -> Bool {
+        let contextWords = ["that", "it", "this", "them", "more", "less", "again", "usual", "instead"]
+        let lowerInput = input.lowercased()
+        
+        // Check for standalone context words or context words with spaces around them
+        for word in contextWords {
+            if lowerInput.contains(" \(word) ") || lowerInput.hasPrefix("\(word) ") || lowerInput.hasSuffix(" \(word)") {
+                return true
+            }
+        }
+        
+        return false
+    }
+    
+    /// Detects subjective measurements that DirectAI cannot quantify accurately
+    private static func hasSubjectiveMeasurements(_ input: String) -> Bool {
+        let subjectiveWords = ["big", "small", "large", "tiny", "huge", "normal", "usual", "some", "a lot"]
+        let lowerInput = input.lowercased()
+        
+        return subjectiveWords.contains { lowerInput.contains($0) }
+    }
+    
+    /// Detects time-sensitive planning that requires workout scheduling context
+    private static func hasTimeSensitivePlanning(_ input: String) -> Bool {
+        let timeWords = ["before", "after", "when should", "what time", "how long before", "minutes", "hours", "pm", "am"]
+        let planningWords = ["workout", "exercise", "train", "gym", "eat", "meal"]
+        let lowerInput = input.lowercased()
+        
+        let hasTime = timeWords.contains { lowerInput.contains($0) }
+        let hasPlanning = planningWords.contains { lowerInput.contains($0) }
+        let hasQuestion = containsQuestions(input)
+        
+        return hasTime && hasPlanning && hasQuestion
     }
     
     private static func getFunctionType(_ functionName: String) -> String {
@@ -366,7 +407,7 @@ struct ChainContext {
         }
         
         // Medium chaining signal if recent function and high probability
-        if recentFunctions.count > 0 && chainProbability > 0.8 {
+        if !recentFunctions.isEmpty && chainProbability > 0.8 {
             return true
         }
         
@@ -382,9 +423,9 @@ struct ChainContext {
 }
 
 enum UrgencyLevel: String, Sendable {
-    case low = "low"
-    case medium = "medium"
-    case high = "high"
+    case low
+    case medium
+    case high
 }
 
 // MARK: - User Context Snapshot
@@ -451,4 +492,4 @@ struct RoutingAnalytics {
             category: .ai
         )
     }
-} 
+}

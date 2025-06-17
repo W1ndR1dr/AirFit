@@ -1,4 +1,4 @@
-# AI Optimization Standards
+# AI System Standards
 
 **Last Updated**: 2025-06-14  
 **Status**: Active  

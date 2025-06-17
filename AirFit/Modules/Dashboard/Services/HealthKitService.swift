@@ -138,9 +138,7 @@ actor HealthKitService: HealthKitServiceProtocol, ServiceProtocol {
             trend: trend,
             metric: "Weekly Active Days",
             value: "\(workoutCount)",
-            insight: workoutCount == 0 
-                ? "Time to get moving! Start with a short walk today."
-                : "You've been active \(workoutCount) days. Total burn: \(Int(totalCalories)) cal"
+            insight: "You've been active \(workoutCount) days. Total burn: \(Int(totalCalories)) cal"
         )
     }
 }

@@ -50,7 +50,7 @@ actor PersonaSynthesizer {
         let (identity, interactionStyle) = try await identityAndStyle
         
         // Generate preview while waiting for system prompt
-        let preview = generatePreview(
+        let _ = generatePreview(
             identity: identity,
             voiceCharacteristics: voiceCharacteristics,
             interactionStyle: interactionStyle

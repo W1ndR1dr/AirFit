@@ -22,15 +22,12 @@ struct BaseScreen<Content: View>: View {
     
     var body: some View {
         ZStack {
-            // Gradient background layer - always use fallback manager
+            // Gradient background layer - ALWAYS full screen edge-to-edge like mockup
             fallbackGradientManager.currentGradient(for: colorScheme)
-                .ignoresSafeArea()
+                .ignoresSafeArea(.all)
                 .allowsHitTesting(false)
             
-            // Subtle animated particles (optional polish - can be added later)
-            // ParticleOverlay()
-            
-            // Content layer
+            // Content layer - only content respects safe areas, not background
             if screenPadding > 0 {
                 content
                     .padding(screenPadding)

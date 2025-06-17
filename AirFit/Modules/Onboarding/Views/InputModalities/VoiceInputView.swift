@@ -137,7 +137,7 @@ struct VoiceInputView: View {
         isRecording = false
         
         Task {
-            if let audioData = await voiceRecorder.stopRecording() {
+            if let _ = await voiceRecorder.stopRecording() {
                 // In real app, transcribe audio here
                 // For now, use placeholder
                 transcription = "This is where your transcribed speech would appear"

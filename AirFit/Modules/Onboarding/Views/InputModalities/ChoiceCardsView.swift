@@ -129,7 +129,13 @@ struct ChoiceCard: View {
                 }
             }
             .frame(maxWidth: .infinity, minHeight: 120)
-            .cardStyle(showShadow: isSelected)
+            .cardStyle()
+            .shadow(
+                color: isSelected ? Color.black.opacity(0.2) : Color.black.opacity(0.1),
+                radius: isSelected ? 8 : 4,
+                x: 0,
+                y: isSelected ? 4 : 2
+            )
             .background(isSelected ? Color.accentColor : Color(.systemGray6))
             .overlay(
                 RoundedRectangle(cornerRadius: AppConstants.Layout.defaultCornerRadius)

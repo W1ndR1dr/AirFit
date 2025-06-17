@@ -143,7 +143,7 @@ struct FoodVoiceInputView: View {
     private var waveformSection: some View {
         Group {
             if viewModel.isRecording {
-                VoiceWaveformView(levels: viewModel.voiceWaveform)
+                VoiceWaveformView(levels: viewModel.voiceWaveform, config: .foodTracking)
                     .frame(height: 40)
                     .padding(.vertical, AppSpacing.small)
                     .transition(.opacity)
@@ -285,25 +285,6 @@ private struct ConfidenceIndicator: View {
     }
 }
 
-private struct VoiceWaveformView: View {
-    let levels: [Float]
-    @EnvironmentObject private var gradientManager: GradientManager
-    @Environment(\.colorScheme) private var colorScheme
-
-    var body: some View {
-        GeometryReader { geometry in
-            HStack(spacing: 2) {
-                ForEach(Array(levels.enumerated()), id: \.offset) { _, level in
-                    RoundedRectangle(cornerRadius: 2)
-                        .fill(gradientManager.currentGradient(for: colorScheme))
-                        .frame(width: 3, height: CGFloat(level) * geometry.size.height)
-                        .animation(.easeInOut(duration: 0.1), value: level)
-                }
-            }
-            .frame(maxWidth: .infinity, maxHeight: .infinity)
-        }
-    }
-}
 
 #if DEBUG
 struct VoiceInputView_Previews: PreviewProvider {

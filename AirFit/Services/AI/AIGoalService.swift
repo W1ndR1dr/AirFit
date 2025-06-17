@@ -50,6 +50,42 @@ final class AIGoalService: AIGoalServiceProtocol, ServiceProtocol {
         )
     }
     
+    // MARK: - Goal Synthesis (Multi-Goal System)
+    
+    func synthesizeGoals(from goal: Goal) async throws -> GoalSynthesis {
+        // Build comprehensive goal analysis prompt
+        let prompt = buildGoalSynthesisPrompt(from: goal)
+        
+        // Create AI request
+        let request = AIRequest(
+            systemPrompt: buildGoalAnalysisSystemPrompt(),
+            messages: [
+                AIChatMessage(role: .user, content: prompt)
+            ],
+            temperature: 0.3,
+            stream: false,
+            user: "goal-synthesis"
+        )
+        
+        // Send request and collect response
+        var responseContent = ""
+        for try await response in aiService.sendRequest(request) {
+            switch response {
+            case .text(let text):
+                responseContent = text
+            case .textDelta(let delta):
+                responseContent += delta
+            case .done:
+                break
+            default:
+                continue
+            }
+        }
+        
+        // Parse structured JSON response
+        return try parseGoalSynthesisResponse(responseContent)
+    }
+    
     // MARK: - AI-specific methods
     
     func createOrRefineGoal(
@@ -535,4 +571,145 @@ final class AIGoalService: AIGoalServiceProtocol, ServiceProtocol {
             )
         }
     }
+    
+    // MARK: - Goal Synthesis Helpers
+    
+    private func buildGoalAnalysisSystemPrompt() -> String {
+        return """
+        You are an expert AI health & fitness coach. Analyze the user's multi-goal fitness context and create a comprehensive strategy.
+        
+        Your capabilities include:
+        - Medical advice related to fitness and health
+        - Injury recovery protocols and pain management
+        - Supplement and nutrition guidance
+        - Health optimization strategies
+        
+        Return ONLY valid JSON matching this structure:
+        {
+          "unifiedStrategy": "string",
+          "goalRelationships": [{"type": "synergistic|competing|sequential", "description": "string"}],
+          "coachingFocus": ["string"],
+          "timeline": "string",
+          "milestones": [{"description": "string", "timeframe": "string", "category": "weight|body_composition|functional|performance"}],
+          "challenges": ["string"],
+          "motivationalHooks": ["string"]
+        }
+        """
+    }
+    
+    private func buildGoalSynthesisPrompt(from goal: Goal) -> String {
+        var prompt = "Analyze this user's fitness goals and create a unified strategy:\n\n"
+        
+        // Legacy goal family
+        prompt += "Primary focus: \(goal.family.displayName)\n"
+        if !goal.rawText.isEmpty {
+            prompt += "Details: \(goal.rawText)\n"
+        }
+        
+        // Weight objective
+        if let weight = goal.weightObjective {
+            prompt += "\nWeight Goal:\n"
+            if let current = weight.currentWeight {
+                prompt += "- Current: \(current) lbs\n"
+            }
+            if let target = weight.targetWeight {
+                prompt += "- Target: \(target) lbs\n"
+            }
+            prompt += "- Direction: \(weight.direction.displayName)\n"
+        }
+        
+        // Body recomposition goals
+        if !goal.bodyRecompositionGoals.isEmpty {
+            prompt += "\nBody Composition Goals:\n"
+            for bodyGoal in goal.bodyRecompositionGoals {
+                prompt += "- \(bodyGoal.displayName)\n"
+            }
+        }
+        
+        // Functional goals
+        if !goal.functionalGoalsText.isEmpty {
+            prompt += "\nFunctional Goals: \(goal.functionalGoalsText)\n"
+        }
+        
+        prompt += "\nPlease analyze these goals and return the structured JSON response."
+        
+        return prompt
+    }
+    
+    private func parseGoalSynthesisResponse(_ response: String) throws -> GoalSynthesis {
+        // Extract JSON from response
+        let jsonString = extractJSONFromResponse(response)
+        
+        guard let jsonData = jsonString.data(using: .utf8) else {
+            throw AppError.decodingError(underlying: NSError(domain: "AIGoalService", code: -1, userInfo: [NSLocalizedDescriptionKey: "Invalid JSON response"]))
+        }
+        
+        struct SynthesisJSON: Codable {
+            let unifiedStrategy: String
+            let goalRelationships: [RelationshipJSON]
+            let coachingFocus: [String]
+            let timeline: String
+            let milestones: [MilestoneJSON]
+            let challenges: [String]
+            let motivationalHooks: [String]
+            
+            struct RelationshipJSON: Codable {
+                let type: String
+                let description: String
+            }
+            
+            struct MilestoneJSON: Codable {
+                let description: String
+                let timeframe: String
+                let category: String
+            }
+        }
+        
+        let synthesisData = try JSONDecoder().decode(SynthesisJSON.self, from: jsonData)
+        
+        return GoalSynthesis(
+            unifiedStrategy: synthesisData.unifiedStrategy,
+            goalRelationships: synthesisData.goalRelationships.map {
+                GoalRelationship(type: $0.type, description: $0.description)
+            },
+            coachingFocus: synthesisData.coachingFocus,
+            timeline: synthesisData.timeline,
+            milestones: synthesisData.milestones.map {
+                SynthesisMilestone(description: $0.description, timeframe: $0.timeframe, category: $0.category)
+            },
+            challenges: synthesisData.challenges,
+            motivationalHooks: synthesisData.motivationalHooks
+        )
+    }
+    
+    private func extractJSONFromResponse(_ response: String) -> String {
+        if let startRange = response.range(of: "{"),
+           let endRange = response.range(of: "}", options: .backwards) {
+            return String(response[startRange.lowerBound...endRange.upperBound])
+        }
+        return response
+    }
+}
+
+// MARK: - Goal Synthesis Models
+
+struct GoalSynthesis: Codable, Sendable {
+    let unifiedStrategy: String
+    let goalRelationships: [GoalRelationship]
+    let coachingFocus: [String]
+    let timeline: String
+    let milestones: [SynthesisMilestone]
+    let challenges: [String]
+    let motivationalHooks: [String]
+}
+
+struct GoalRelationship: Codable, Sendable {
+    let type: String
+    let description: String
+}
+
+struct SynthesisMilestone: Codable, Sendable {
+    let description: String
+    let timeframe: String
+    let category: String
 }

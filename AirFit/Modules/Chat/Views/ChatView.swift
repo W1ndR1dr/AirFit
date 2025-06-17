@@ -114,7 +114,7 @@ struct ChatView: View {
     
     @ViewBuilder
     private var messagesList: some View {
-        LazyVStack(spacing: AppSpacing.sm) {
+        LazyVStack(spacing: 16) {
             // Welcome message if no messages
             if viewModel.messages.isEmpty && animateIn {
                 welcomeMessage
@@ -128,8 +128,7 @@ struct ChatView: View {
                 typingIndicator
             }
         }
-        .padding(.vertical, AppSpacing.sm)
-        .padding(.horizontal, AppSpacing.screenPadding)
+        .padding(.vertical, 20)
     }
     
     @ViewBuilder
@@ -161,7 +160,7 @@ struct ChatView: View {
     
     @ViewBuilder
     private func messageRow(message: ChatMessage, index: Int) -> some View {
-        MessageBubbleView(
+        MinimalMessageBubble(
             message: message,
             isStreaming: viewModel.isStreaming && message == viewModel.messages.last,
             onAction: { action in
@@ -170,13 +169,12 @@ struct ChatView: View {
         )
         .id(message.id)
         .transition(.asymmetric(
-            insertion: .push(from: message.role == "user" ? .trailing : .leading).combined(with: .opacity),
+            insertion: .move(edge: .bottom).combined(with: .opacity),
             removal: .opacity
         ))
         .opacity(animateIn ? 1 : 0)
-        .offset(y: animateIn ? 0 : 10)
         .animation(
-            MotionToken.standardSpring.delay(Double(index) * 0.05),
+            .easeOut(duration: 0.3).delay(Double(index) * 0.05),
             value: animateIn
         )
         .accessibilityElement(children: .contain)
@@ -296,11 +294,19 @@ struct ChatView: View {
         case .exportChat:
             ChatExportView(viewModel: viewModel)
         case .voiceSettings:
-            if let modelManager = viewModel.voiceManager.modelManager as? WhisperModelManager {
-                VoiceSettingsView(modelManager: modelManager)
-            } else {
-                Text("Voice settings unavailable")
+            // Note: Voice settings temporarily unavailable with stub implementation
+            VStack {
+                Image(systemName: "mic.slash")
+                    .font(.system(size: 48))
+                    .foregroundStyle(.secondary)
+                Text("Voice settings temporarily unavailable")
+                    .font(.headline)
+                    .foregroundStyle(.secondary)
+                Text("Using stub implementation for demo purposes")
+                    .font(.caption)
+                    .foregroundStyle(.tertiary)
             }
+            .padding()
         case .imageAttachment:
             ImagePickerView { image in
                 viewModel.attachments.append(

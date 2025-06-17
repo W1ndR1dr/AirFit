@@ -129,7 +129,7 @@ extension AppState {
     }
     
     var shouldShowOnboarding: Bool {
-        !isLoading && !needsAPISetup && currentUser != nil && !hasCompletedOnboarding
+        !isLoading && currentUser != nil && !hasCompletedOnboarding
     }
 
     var healthKitStatus: HealthKitAuthorizationStatus {

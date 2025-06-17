@@ -311,7 +311,7 @@ final class OnboardingFlowCoordinator {
         
         if let userId = await userService.getCurrentUser()?.id {
             await cache.clearSession(userId: userId)
-            await recovery.clearRecoveryState(sessionId: userId.uuidString)
+            recovery.clearRecoveryState(sessionId: userId.uuidString)
         }
     }
 }

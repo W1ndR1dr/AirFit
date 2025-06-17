@@ -12,6 +12,7 @@ struct OpeningScreenView: View {
         BaseScreen {
             VStack(spacing: 0) {
                 Spacer()
+                Spacer()  // Extra spacer for status bar area
 
                 // Animated icon with gradient
                 Image(systemName: "figure.run.circle.fill")
@@ -21,43 +22,35 @@ struct OpeningScreenView: View {
                     .opacity(animateIn ? 1 : 0)
                     .padding(.bottom, AppSpacing.lg)
 
-                // AirFit title with cascade animation
+                // Welcome text with cascade animation
                 if animateIn {
-                    CascadeText("AirFit")
-                        .font(.system(size: 56, weight: .thin, design: .rounded))
-                        .padding(.bottom, AppSpacing.xl)
+                    CascadeText("Welcome to AirFit")
+                        .font(.system(size: 44, weight: .thin, design: .rounded))
+                        .foregroundStyle(gradientManager.currentGradient(for: colorScheme))
+                        .multilineTextAlignment(.center)
+                        .padding(.horizontal, AppSpacing.lg)
+                        .padding(.bottom, AppSpacing.sm)
                 }
-
-                // Glass card for main content
-                GlassCard {
-                    VStack(spacing: AppSpacing.sm) {
-                        Text("Let's design your")
-                            .font(.system(size: 24, weight: .light, design: .rounded))
-                            .foregroundColor(.primary)
-                        
-                        Text("AirFit Coach")
-                            .font(.system(size: 28, weight: .medium, design: .rounded))
-                            .foregroundStyle(gradientManager.currentGradient(for: colorScheme))
-
-                        Text("Est. 3-4 minutes to create your personalized experience")
-                            .font(.system(size: 16, weight: .light))
-                            .foregroundColor(.secondary)
-                            .multilineTextAlignment(.center)
-                            .padding(.top, AppSpacing.xs)
-                    }
-                    .padding(.vertical, AppSpacing.md)
-                }
-                .padding(.horizontal, AppSpacing.screenPadding)
+                
+                // Subtitle - text directly on gradient (o3-inspired)
+                Text("Your personal AI fitness coach")
+                    .font(.system(size: 20, weight: .light, design: .rounded))
+                    .foregroundColor(.primary.opacity(0.8))
+                    .multilineTextAlignment(.center)
+                    .padding(.horizontal, AppSpacing.lg)
+                    .padding(.bottom, AppSpacing.xl)
+                    .opacity(animateIn ? 1 : 0)
+                    .animation(.easeInOut(duration: 0.6).delay(0.3), value: animateIn)
 
                 Spacer()
 
-                // Action buttons
+                // Single action button - simplified
                 VStack(spacing: AppSpacing.sm) {
                     Button {
                         HapticService.impact(.light)
-                        viewModel.navigateToNextScreen()
+                        viewModel.beginOnboarding()
                     } label: {
-                        Text("Begin")
+                        Text("Let's begin")
                             .font(.system(size: 18, weight: .semibold))
                             .foregroundColor(.white)
                             .frame(maxWidth: .infinity)
@@ -74,21 +67,9 @@ struct OpeningScreenView: View {
                                     radius: 8, x: 0, y: 4)
                     }
                     .accessibilityIdentifier("onboarding.begin.button")
-
-                    Button(
-                        action: {
-                            AppLogger.info("Onboarding skipped", category: .onboarding)
-                        },
-                        label: {
-                            Text("Maybe Later")
-                                .font(.system(size: 16, weight: .light))
-                                .foregroundColor(.secondary)
-                        }
-                    )
-                    .accessibilityIdentifier("onboarding.skip.button")
                 }
                 .padding(.horizontal, AppSpacing.screenPadding)
-                .padding(.bottom, AppSpacing.lg)
+                .padding(.bottom, 60)  // Account for home indicator + extra space
                 .opacity(animateIn ? 1 : 0)
                 .offset(y: animateIn ? 0 : 20)
             }

@@ -64,10 +64,17 @@ struct QuietHours: Codable, Equatable {
 
 // MARK: - Data Export
 struct DataExport: Codable, Identifiable {
-    let id = UUID()
+    let id: UUID
     let date: Date
     let size: Int64
     let format: ExportFormat
+    
+    init(date: Date, size: Int64, format: ExportFormat) {
+        self.id = UUID()
+        self.date = date
+        self.size = size
+        self.format = format
+    }
     
     enum ExportFormat: String, Codable {
         case json
@@ -83,7 +90,7 @@ struct PersonaEvolutionTracker {
     
     init(user: User) {
         // Initialize from user data if available
-        self.lastUpdateDate = user.lastActiveAt ?? Date()
+        self.lastUpdateDate = user.lastActiveAt
     }
 }
 

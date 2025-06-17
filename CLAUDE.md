@@ -23,7 +23,15 @@ Periodically I will take a stroll around the block to get some fresh air, then c
 - **Documentation Discipline**: Constantly update standards with penultimate examples
 - **Break Awareness**: I'll periodically suggest breaks to stay fresh and sharp
 
-**Visual Excellence**: We follow a cohesive design language defined in UI_STANDARDS.md - pastel gradients, letter cascades, glass morphism, and physics-based animations. Every screen feels weightless, calm, and beautifully crafted.
+**Visual Excellence**: We follow a cohesive design language defined in `Docs/Development-Standards/UI_STANDARDS.md` - pastel gradients, letter cascades, glass morphism, and physics-based animations. Every screen feels weightless, calm, and beautifully crafted.
+
+**Future UI Refinement**: We're planning an Adaline.ai-inspired UI transformation detailed in `Docs/o3uiconsult.md` that will:
+- Replace GlassCard with GlassSheet (4pt blur instead of 12pt)
+- Remove all card-based layouts - text sits directly on gradients
+- Add ChapterTransition for cinematic navigation (0.55s transitions)
+- Implement gradient evolution - each screen advances the gradient
+- Add StoryScroll for multi-section screens
+Until this transformation is complete, follow current UI_STANDARDS.md.
 
 
 ## Extended Capabilities
@@ -89,7 +97,7 @@ grep -r "struct TypeName\|class TypeName\|enum TypeName" --include="*.swift" Air
 - **DI**: Lazy factory pattern with async resolution
 - **Data**: SwiftData + HealthKit (HealthKit as primary data infrastructure)
 - **Services**: 100% ServiceProtocol conformance with proper error handling
-- **UI**: GlassCard, CascadeText, gradient system (no legacy components)
+- **UI**: GlassCard, CascadeText, gradient system (transitioning to GlassSheet + no cards)
 
 ## Documentation Hub
 **Primary Guide**: `Docs/README.md` - Documentation overview and quick links
@@ -98,7 +106,8 @@ grep -r "struct TypeName\|class TypeName\|enum TypeName" --include="*.swift" Air
 ### 📖 Key References
 - **Development Standards**: `Docs/Development-Standards/` - All active coding standards
 - **Research Reports**: `Docs/Research Reports/` - System analysis and recommendations  
-- **UI Standards**: `Docs/Development-Standards/UI_STANDARDS.md` - Complete design system
+- **UI Standards**: `Docs/Development-Standards/UI_STANDARDS.md` - Current design system
+- **UI Future**: `Docs/o3uiconsult.md` - Planned Adaline.ai-inspired UI transformation
 
 ## Best Practices & Discipline
 - **Standards First**: I always check `Docs/Development-Standards/` before coding

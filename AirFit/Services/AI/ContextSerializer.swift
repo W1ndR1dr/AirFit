@@ -460,7 +460,7 @@ actor ContextSerializer: ServiceProtocol {
         nutrition.append("Activity level: \(activityLevel) (\(Int(activeCalories)) active calories)")
 
         // Body composition goal context
-        if let weight = context.body.weight?.value,
+        if let _ = context.body.weight?.value,
            let trend = context.body.weightTrend {
             let goalContext = trend == .increasing ? "lean gain phase" :
                 trend == .decreasing ? "fat loss phase" : "maintenance phase"

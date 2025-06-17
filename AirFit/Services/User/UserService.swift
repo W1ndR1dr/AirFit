@@ -68,7 +68,7 @@ final class UserService: UserServiceProtocol, ServiceProtocol {
             lastCheckTime: Date(),
             responseTime: nil,
             errorMessage: canAccessData ? nil : "Cannot access SwiftData",
-            metadata: ["modelContext": "\(modelContext != nil)"]
+            metadata: ["modelContext": "true"]
         )
     }
     

@@ -5,17 +5,17 @@ enum MotionToken {
     // MARK: - Letter Cascade Animation
     
     /// Total duration for cascade animation block
-    static let cascadeDuration: Double = 0.60
+    static let cascadeDuration: Double = 1.2
     
     /// Base delay between letter animations (modified by sine curve)
-    static let cascadeStagger: Double = 0.012
+    static let cascadeStagger: Double = 0.08
     
     /// Vertical offset for letter entrance
-    static let cascadeOffsetY: CGFloat = 6
+    static let cascadeOffsetY: CGFloat = 20
     
     /// SF Pro Variable weight animation range
-    static let cascadeWeightFrom: CGFloat = 300
-    static let cascadeWeightTo: CGFloat = 400
+    static let cascadeWeightFrom: CGFloat = 200
+    static let cascadeWeightTo: CGFloat = 500
     
     // MARK: - Spring Animations
     

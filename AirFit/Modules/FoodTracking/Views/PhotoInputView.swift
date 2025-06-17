@@ -721,9 +721,17 @@ final class CameraManager: NSObject, ObservableObject {
             session.addOutput(photoOutput)
             
             // Configure photo output for high quality
-            photoOutput.isHighResolutionCaptureEnabled = true
+            if #available(iOS 16.0, *) {
+                photoOutput.maxPhotoDimensions = CMVideoDimensions(width: 4032, height: 3024)
+            } else {
+                photoOutput.isHighResolutionCaptureEnabled = true
+            }
             if let connection = photoOutput.connection(with: .video) {
-                connection.videoOrientation = .portrait
+                if #available(iOS 17.0, *) {
+                    connection.videoRotationAngle = 90
+                } else {
+                    connection.videoOrientation = .portrait
+                }
             }
         }
         

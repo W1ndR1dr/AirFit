@@ -53,7 +53,8 @@ struct PersonaPreviewCard: View {
                 .animation(.spring(response: 0.6).delay(0.4), value: showContent)
         }
         .frame(maxWidth: .infinity, alignment: .leading)
-        .cardStyle(padding: .large)
+        .padding(24)
+        .cardStyle()
         .onAppear {
             withAnimation {
                 showContent = true

@@ -1,0 +1,72 @@
+{
+  "sourceLanguage" : "en",
+  "strings" : {
+    "onboarding.lifeSnapshot.prompt" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Understanding your daily rhythm helps your coach provide relevant support. Tap what generally applies:"
+          }
+        }
+      }
+    },
+    "onboarding.life.deskJob" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "My work is primarily at a desk"
+          }
+        }
+      }
+    },
+    "onboarding.life.activeWork" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "I'm often on my feet or physically active at work"
+          }
+        }
+      }
+    },
+    "onboarding.life.travel" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "I travel frequently (for work or leisure)"
+          }
+        }
+      }
+    },
+    "onboarding.life.familyCare" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "I have children / significant family care responsibilities"
+          }
+        }
+      }
+    },
+    "onboarding.lifeSnapshot.workoutPrompt" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "My preferred time for workouts is typically:"
+          }
+        }
+      }
+    }
+  },
+  "version" : "1.0"
+}

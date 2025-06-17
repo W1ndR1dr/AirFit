@@ -195,7 +195,7 @@ final class OnboardingRecovery {
         }
         
         // Check if session is recoverable
-        let responses = latestSession.responses.count
+        let _ = latestSession.responses.count
         let lastResponseTime = latestSession.responses.last?.timestamp ?? latestSession.startedAt
         let timeSinceLastResponse = Date().timeIntervalSince(lastResponseTime)
         

@@ -38,7 +38,7 @@ final class OnboardingService: OnboardingServiceProtocol, ServiceProtocol {
             lastCheckTime: Date(),
             responseTime: nil,
             errorMessage: _isConfigured ? nil : "Service not configured",
-            metadata: ["modelContext": "\(modelContext != nil)"]
+            metadata: ["modelContext": "true"]
         )
     }
 

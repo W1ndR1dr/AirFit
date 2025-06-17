@@ -171,7 +171,7 @@ final class ContextAssembler: ContextAssemblerProtocol, ServiceProtocol {
     private func createMockAppContext(using context: ModelContext) async -> AppSpecificContext {
         let now = Date()
         let sevenDaysAgo = Calendar.current.date(byAdding: .day, value: -7, to: now) ?? now
-        let twoWeeksAgo = Calendar.current.date(byAdding: .day, value: -14, to: now) ?? now
+        let _ = Calendar.current.date(byAdding: .day, value: -14, to: now) ?? now
 
         var lastMealTime: Date?
         var lastMealSummary: String?

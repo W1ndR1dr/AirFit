@@ -21,18 +21,18 @@ struct CascadeText: View {
                     .fontWeight(fontWeight(for: index))
                     .opacity(opacity(for: index))
                     .offset(y: offset(for: index))
+                    .scaleEffect(scale(for: index))
                     .animation(
-                        Animation.easeOut(duration: 0.3)
+                        Animation.interpolatingSpring(stiffness: 80, damping: 12)
+                            .speed(0.8)
                             .delay(MotionToken.cascadeDelay(for: index, total: characters.count)),
                         value: visibleCharacters
                     )
             }
         }
-        .fixedSize(horizontal: true, vertical: false) // Prevent text truncation
         .onAppear {
             startAnimation()
         }
-        .drawingGroup() // Optimize for complex animation
     }
     
     private func fontWeight(for index: Int) -> Font.Weight? {
@@ -59,6 +59,10 @@ struct CascadeText: View {
         index < visibleCharacters ? 0 : MotionToken.cascadeOffsetY
     }
     
+    private func scale(for index: Int) -> CGFloat {
+        index < visibleCharacters ? 1.0 : 0.8
+    }
+    
     private func startAnimation() {
         // Initialize weights
         characterWeights = Array(repeating: MotionToken.cascadeWeightFrom, count: characters.count)
@@ -68,7 +72,10 @@ struct CascadeText: View {
             let delay = MotionToken.cascadeDelay(for: index, total: characters.count)
             
             DispatchQueue.main.asyncAfter(deadline: .now() + delay) {
-                withAnimation(.easeOut(duration: 0.3)) {
+                withAnimation(
+                    .interpolatingSpring(stiffness: 80, damping: 12)
+                    .speed(0.8)
+                ) {
                     visibleCharacters = index + 1
                     if index < characterWeights.count {
                         characterWeights[index] = MotionToken.cascadeWeightTo

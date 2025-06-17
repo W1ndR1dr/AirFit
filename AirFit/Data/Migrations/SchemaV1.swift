@@ -1,4 +1,4 @@
-import SwiftData
+@preconcurrency import SwiftData
 import Foundation
 
 // MARK: - Schema Version 1 (Current - AI-Native, No Templates)

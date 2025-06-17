@@ -40,6 +40,24 @@ final class OnboardingViewModel: ErrorHandling {
     var motivationalStyle = MotivationalStyle()
     var timezone: String = TimeZone.current.identifier
     var baselineModeEnabled = true
+    
+    // MARK: - Multi-Goal Weight Tracking
+    private(set) var currentWeightFromHealthKit: Double?
+    var manualCurrentWeight: Double?
+    var targetWeight: Double?
+    
+    var currentWeight: Double? {
+        return currentWeightFromHealthKit ?? manualCurrentWeight
+    }
+    
+    var shouldShowManualWeightInput: Bool {
+        return healthKitAuthorizationStatus != .authorized || currentWeightFromHealthKit == nil
+    }
+    
+    var weightDirection: WeightDirection? {
+        guard let current = currentWeight, let target = targetWeight else { return nil }
+        return current < target ? .gain : current > target ? .lose : .maintain
+    }
 
     // MARK: - Voice Input
     private(set) var isTranscribing = false
@@ -212,7 +230,8 @@ final class OnboardingViewModel: ErrorHandling {
                     self.isTranscribing = false
                     switch result {
                     case .success(let transcript):
-                        self.goal.rawText = transcript
+                        // Update functional goals text instead of rawText for multi-goal system
+                        self.goal.functionalGoalsText = transcript
                     case .failure(let error):
                         self.handleError(error)
                     }
@@ -232,16 +251,55 @@ final class OnboardingViewModel: ErrorHandling {
         healthKitAuthorizationStatus = healthKitAuthManager.authorizationStatus
         if granted {
             AppLogger.info("HealthKit authorization granted", category: .health)
+            // Fetch weight data after authorization
+            await fetchCurrentWeightFromHealthKit()
         } else {
             AppLogger.warning("HealthKit authorization not granted", category: .health)
         }
     }
+    
+    func fetchCurrentWeightFromHealthKit() async {
+        guard healthKitAuthorizationStatus == .authorized,
+              healthPrefillProvider != nil else {
+            AppLogger.info("HealthKit not authorized or provider unavailable for weight fetch", category: .health)
+            return
+        }
+
+        // Use the existing HealthKit infrastructure to fetch weight
+        // This would need to be implemented in the HealthKit provider
+        // For now, we'll leave this as a placeholder that can be implemented
+        // when the HealthKit weight fetching capability is added
+        AppLogger.info("HealthKit weight fetch would be implemented here", category: .health)
+    }
+
+    // MARK: - Multi-Goal Management
+    func toggleBodyRecompositionGoal(_ bodyGoal: BodyRecompositionGoal) {
+        if goal.bodyRecompositionGoals.contains(bodyGoal) {
+            goal.bodyRecompositionGoals.removeAll { $0 == bodyGoal }
+        } else {
+            goal.bodyRecompositionGoals.append(bodyGoal)
+        }
+        AppLogger.info("Body recomposition goals updated: \(goal.bodyRecompositionGoals.map(\.rawValue))", category: .onboarding)
+    }
+    
+    func updateWeightObjective() {
+        // Create weight objective from current tracking data
+        goal.weightObjective = WeightObjective(
+            currentWeight: currentWeight,
+            targetWeight: targetWeight,
+            timeframe: nil // Could add timeframe selection later
+        )
+        AppLogger.info("Weight objective updated: \(String(describing: goal.weightObjective))", category: .onboarding)
+    }
 
     // MARK: - Business Logic
     func analyzeGoalText() async {
+        // Update weight objective before analysis
+        updateWeightObjective()
+        
         // Goal analysis is handled by the AI coach after onboarding completion
         // The raw text is sufficient for the USER_PROFILE_JSON_BLOB
-        AppLogger.info("Goal text captured: \(goal.rawText)", category: .onboarding)
+        AppLogger.info("Multi-goal data captured - Weight: \(String(describing: goal.weightObjective)), Body Comp: \(goal.bodyRecompositionGoals.count) goals, Functional: \(goal.functionalGoalsText)", category: .onboarding)
     }
 
     func completeOnboarding() async throws {
@@ -271,7 +329,7 @@ final class OnboardingViewModel: ErrorHandling {
             try await onboardingService.saveProfile(profile)
 
             AppLogger.info(
-                "Legacy onboarding completed successfully with persona: \(selectedPersonaMode.displayName) (mode: \(selectedPersonaMode.rawValue), goal: \(goal.family.rawValue))", 
+                "Legacy onboarding completed successfully with persona: \(selectedPersonaMode.displayName) (mode: \(selectedPersonaMode.rawValue), goal: \(goal.family.rawValue))",
                 category: .onboarding
             )
 
@@ -351,3 +409,4 @@ final class OnboardingViewModel: ErrorHandling {
 // - PersonaMode.allCases for simple UI iteration
 // - PersonaMigrationUtility.createNewProfile() for clean profile creation
 // - Built-in validation through enum type safety
+

@@ -11,17 +11,19 @@ struct LifeSnapshotView: View {
             VStack(spacing: 0) {
                 // Title header
                 HStack {
-                    CascadeText("Life Snapshot")
-                        .font(.system(size: 34, weight: .bold, design: .rounded))
+                    Text("Life Snapshot")
+                        .font(.system(size: 32, weight: .bold, design: .rounded))
+                        .foregroundColor(.primary)
+                        .multilineTextAlignment(.leading)
                     Spacer()
                 }
                 .padding(.horizontal, AppSpacing.lg)
-                .padding(.top, AppSpacing.sm)
+                .padding(.top, 60)  // Account for status bar + extra space
                 .padding(.bottom, AppSpacing.lg)
                 
                 ScrollView {
                     VStack(alignment: .leading, spacing: AppSpacing.lg) {
-                        Text(LocalizedStringKey("onboarding.lifeSnapshot.prompt"))
+                        Text("Understanding your daily rhythm helps your coach provide relevant support. Tap what generally applies:")
                             .font(.system(size: 18, weight: .regular, design: .rounded))
                             .foregroundStyle(.primary)
                             .padding(.horizontal, AppSpacing.lg)
@@ -29,27 +31,27 @@ struct LifeSnapshotView: View {
 
                         LazyVGrid(columns: columns, alignment: .leading, spacing: AppSpacing.md) {
                             checkbox(
-                                text: LocalizedStringKey("onboarding.life.deskJob"),
+                                text: "My work is primarily at a desk",
                                 binding: $viewModel.lifeContext.isDeskJob,
                                 id: "onboarding.life.desk_job"
                             )
                             checkbox(
-                                text: LocalizedStringKey("onboarding.life.activeWork"),
+                                text: "I'm often on my feet or physically active at work",
                                 binding: $viewModel.lifeContext.isPhysicallyActiveWork,
                                 id: "onboarding.life.active_work"
                             )
                             checkbox(
-                                text: LocalizedStringKey("onboarding.life.travel"),
+                                text: "I travel frequently (for work or leisure)",
                                 binding: $viewModel.lifeContext.travelsFrequently,
                                 id: "onboarding.life.travel"
                             )
                             checkbox(
-                                text: LocalizedStringKey("onboarding.life.familyCare"),
+                                text: "I have children / significant family care responsibilities",
                                 binding: $viewModel.lifeContext.hasChildrenOrFamilyCare,
                                 id: "onboarding.life.family_care"
                             )
                             checkbox(
-                                text: LocalizedStringKey(LifeContext.ScheduleType.predictable.displayName),
+                                text: "My schedule is generally predictable",
                                 binding: Binding(
                                     get: { viewModel.lifeContext.scheduleType == .predictable },
                                     set: { if $0 { viewModel.lifeContext.scheduleType = .predictable } }
@@ -57,7 +59,7 @@ struct LifeSnapshotView: View {
                                 id: "onboarding.life.schedule_predictable"
                             )
                             checkbox(
-                                text: LocalizedStringKey(LifeContext.ScheduleType.unpredictableChaotic.displayName),
+                                text: "My schedule is often unpredictable or chaotic",
                                 binding: Binding(
                                     get: { viewModel.lifeContext.scheduleType == .unpredictableChaotic },
                                     set: { if $0 { viewModel.lifeContext.scheduleType = .unpredictableChaotic } }
@@ -68,7 +70,7 @@ struct LifeSnapshotView: View {
                         .padding(.horizontal, AppSpacing.lg)
 
                         VStack(alignment: .leading, spacing: AppSpacing.md) {
-                            Text(LocalizedStringKey("onboarding.lifeSnapshot.workoutPrompt"))
+                            Text("My preferred time for workouts is typically:")
                                 .font(.system(size: 20, weight: .semibold, design: .rounded))
                                 .foregroundStyle(.primary)
                             
@@ -122,12 +124,13 @@ struct LifeSnapshotView: View {
                             .clipShape(RoundedRectangle(cornerRadius: 12))
                     }
                 }
-                .padding(AppSpacing.lg)
+                .padding(.horizontal, AppSpacing.lg)
+                .padding(.bottom, 40)  // Account for home indicator
             }
         }
     }
 
-    private func checkbox(text: LocalizedStringKey, binding: Binding<Bool>, id: String) -> some View {
+    private func checkbox(text: String, binding: Binding<Bool>, id: String) -> some View {
         Toggle(isOn: binding) {
             Text(text)
                 .font(.system(size: 16, weight: .regular, design: .rounded))

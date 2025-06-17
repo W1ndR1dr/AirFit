@@ -76,10 +76,16 @@ struct LifeContext: Codable, Sendable {
     }
 }
 
-// MARK: - Goal
+// MARK: - Goal (Multi-Goal System)
 struct Goal: Codable, Sendable {
+    // Legacy support
     var family: GoalFamily = .healthWellbeing
     var rawText: String = ""
+    
+    // Multi-goal system
+    var weightObjective: WeightObjective?
+    var bodyRecompositionGoals: [BodyRecompositionGoal] = []
+    var functionalGoalsText: String = ""
 
     enum GoalFamily: String, Codable, CaseIterable, Sendable {
         case strengthTone = "strength_tone"
@@ -96,6 +102,51 @@ struct Goal: Codable, Sendable {
             case .healthWellbeing: return "Cultivate Lasting Health & Wellbeing"
             case .recoveryRehab: return "Support Injury Recovery & Pain-Free Movement"
             }
+        }
+    }
+}
+
+// MARK: - Weight Objectives
+struct WeightObjective: Codable, Sendable {
+    let currentWeight: Double?
+    let targetWeight: Double?
+    let timeframe: TimeInterval?
+    
+    var direction: WeightDirection {
+        guard let current = currentWeight, let target = targetWeight else { return .maintain }
+        return current < target ? .gain : current > target ? .lose : .maintain
+    }
+}
+
+enum WeightDirection: String, Codable, CaseIterable, Sendable {
+    case gain
+    case lose
+    case maintain
+    
+    var displayName: String {
+        switch self {
+        case .gain: return "Gain Weight"
+        case .lose: return "Lose Weight"
+        case .maintain: return "Maintain Weight"
+        }
+    }
+}
+
+// MARK: - Body Recomposition Goals
+enum BodyRecompositionGoal: String, Codable, CaseIterable, Sendable {
+    case loseFat = "lose_fat"
+    case gainMuscle = "gain_muscle"
+    case getToned = "get_toned"
+    case improveDefinition = "improve_definition"
+    case bodyRecomposition = "body_recomposition"
+    
+    var displayName: String {
+        switch self {
+        case .loseFat: return "Lose Body Fat"
+        case .gainMuscle: return "Build Muscle Mass"
+        case .getToned: return "Get More Toned"
+        case .improveDefinition: return "Improve Muscle Definition"
+        case .bodyRecomposition: return "Lose Fat While Building Muscle"
         }
     }
 }

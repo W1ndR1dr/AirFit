@@ -30,11 +30,7 @@ settings:
   DEAD_CODE_STRIPPING: YES
   ENABLE_USER_SCRIPT_SANDBOXING: YES
   ASSETCATALOG_COMPILER_GENERATE_SWIFT_ASSET_SYMBOL_EXTENSIONS: YES
-
-packages:
-  WhisperKit:
-    url: https://github.com/argmaxinc/WhisperKit.git
-    from: "0.9.0"
+  SWIFT_EMIT_LOC_STRINGS: YES
 
 fileGroups:
   - AirFit/Resources
@@ -93,14 +89,12 @@ targets:
       ASSETCATALOG_COMPILER_APPICON_NAME: AppIcon
       ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME: AccentColor
       ASSETCATALOG_COMPILER_GENERATE_SWIFT_ASSET_SYMBOL_EXTENSIONS: YES
+      SWIFT_EMIT_LOC_STRINGS: YES
       TARGETED_DEVICE_FAMILY: "1,2"
       SUPPORTS_MACCATALYST: NO
       SUPPORTS_MAC_DESIGNED_FOR_IPHONE_IPAD: YES
       DEAD_CODE_STRIPPING: YES
       ENABLE_USER_SCRIPT_SANDBOXING: YES
-    
-    dependencies:
-      - package: WhisperKit
     
     preBuildScripts:
       - script: |
