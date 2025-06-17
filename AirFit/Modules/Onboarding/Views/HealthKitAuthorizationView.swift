@@ -1,240 +1,252 @@
 import SwiftUI
-import SwiftData
-import Observation
+import HealthKit
 
-/// Placeholder view for HealthKit authorization during onboarding.
 struct HealthKitAuthorizationView: View {
     @Bindable var viewModel: OnboardingViewModel
-    @State private var animateIn = false
-    @State private var heartBeat: CGFloat = 1.0
     @EnvironmentObject private var gradientManager: GradientManager
     @Environment(\.colorScheme) private var colorScheme
-
+    @State private var animateIn = false
+    @State private var showDataPreview = false
+    @State private var isAuthorizing = false
+    
     var body: some View {
         BaseScreen {
-            VStack(spacing: AppSpacing.lg) {
+            VStack(spacing: 0) {
+                // Back button
+                HStack {
+                    Button {
+                        viewModel.navigateToPrevious()
+                    } label: {
+                        Image(systemName: "chevron.left.circle.fill")
+                            .font(.system(size: 28))
+                            .foregroundStyle(.primary.opacity(0.3))
+                    }
+                    .padding(.leading, AppSpacing.screenPadding)
+                    
+                    Spacer()
+                }
+                .padding(.top, 60)
+                
                 Spacer()
-
-                // Glass card with health data preview
-                GlassCard {
-                    VStack(spacing: AppSpacing.md) {
-                        // Animated heart icon
-                        ZStack {
-                            Circle()
-                                .fill(gradientManager.currentGradient(for: colorScheme))
-                                .frame(width: 100, height: 100)
-                                .opacity(0.2)
-                                .scaleEffect(heartBeat * 1.2)
-                                .blur(radius: 10)
-                            
-                            Image(systemName: "heart.fill")
-                                .font(.system(size: 50, weight: .light))
-                                .foregroundStyle(gradientManager.currentGradient(for: colorScheme))
-                                .scaleEffect(heartBeat)
-                        }
-                        .frame(height: 120)
-                        .opacity(animateIn ? 1 : 0)
+                
+                // Main content
+                VStack(spacing: AppSpacing.lg) {
+                    // Icon
+                    Image(systemName: "heart.text.square.fill")
+                        .font(.system(size: 80, weight: .thin))
+                        .foregroundStyle(gradientManager.currentGradient(for: colorScheme))
                         .scaleEffect(animateIn ? 1 : 0.5)
-                        
-                        // Title with cascade
-                        if animateIn {
-                            CascadeText("Connect HealthKit")
-                                .font(.system(size: 28, weight: .light, design: .rounded))
-                        }
-                        
-                        Text("Allow AirFit to sync with your health data for personalized insights")
-                            .font(.system(size: 16, weight: .light))
-                            .foregroundColor(.secondary)
+                        .opacity(animateIn ? 1 : 0)
+                        .animation(.spring(response: 0.6, dampingFraction: 0.7), value: animateIn)
+                    
+                    // Title with cascade animation
+                    if animateIn {
+                        CascadeText("Now, let's sync your health data")
+                            .font(.system(size: 32, weight: .light, design: .rounded))
                             .multilineTextAlignment(.center)
-                            .fixedSize(horizontal: false, vertical: true)
-                            .opacity(animateIn ? 1 : 0)
-                            .offset(y: animateIn ? 0 : 10)
-                            .animation(MotionToken.standardSpring.delay(0.2), value: animateIn)
-                        
-                        // Data types with icons
+                            .padding(.horizontal, AppSpacing.screenPadding)
+                    }
+                    
+                    // Subtitle
+                    Text("This helps me understand your baseline")
+                        .font(.system(size: 18, weight: .light, design: .rounded))
+                        .foregroundColor(.primary.opacity(0.7))
+                        .multilineTextAlignment(.center)
+                        .padding(.horizontal, AppSpacing.screenPadding)
+                        .opacity(animateIn ? 1 : 0)
+                        .animation(.easeInOut(duration: 0.6).delay(0.5), value: animateIn)
+                }
+                
+                Spacer()
+                
+                // Data preview or action button
+                VStack(spacing: AppSpacing.md) {
+                    if showDataPreview {
+                        // Data preview card
                         VStack(spacing: AppSpacing.sm) {
-                            HealthDataRow(icon: "figure.walk", text: "Activity & Steps", delay: 0.3)
-                            HealthDataRow(icon: "figure.run", text: "Workouts", delay: 0.4)
-                            HealthDataRow(icon: "bed.double.fill", text: "Sleep Analysis", delay: 0.5)
-                            HealthDataRow(icon: "heart.text.square", text: "Health Metrics", delay: 0.6)
+                            Text("Great! Here's what I found:")
+                                .font(.system(size: 18, weight: .medium))
+                                .foregroundColor(.primary)
+                            
+                            if let healthData = viewModel.healthKitData {
+                                HealthDataPreviewView(data: healthData)
+                                    .padding(.vertical, AppSpacing.xs)
+                            } else {
+                                Text("Let's start with the basics")
+                                    .font(.system(size: 16, weight: .light))
+                                    .foregroundColor(.secondary)
+                                
+                                if let weight = viewModel.currentWeight {
+                                    Text("Weight: \(Int(weight)) lbs")
+                                        .font(.system(size: 18, weight: .regular))
+                                        .foregroundColor(.primary)
+                                }
+                            }
                         }
-                        .padding(.top, AppSpacing.xs)
-                    }
-                }
-                .padding(.horizontal, AppSpacing.screenPadding)
-
-                // Authorization button
-                Button {
-                    HapticService.impact(.light)
-                    Task { await viewModel.requestHealthKitAuthorization() }
-                } label: {
-                    HStack(spacing: 8) {
-                        Image(systemName: "heart.circle.fill")
-                            .font(.system(size: 16, weight: .medium))
-                        Text("Authorize HealthKit")
-                            .font(.system(size: 18, weight: .semibold))
-                    }
-                    .foregroundColor(.white)
-                    .frame(maxWidth: .infinity)
-                    .padding(.vertical, AppSpacing.md)
-                    .background(
-                        LinearGradient(
-                            colors: gradientManager.active.colors(for: colorScheme),
-                            startPoint: .leading,
-                            endPoint: .trailing
+                        .padding(AppSpacing.cardPadding)
+                        .frame(maxWidth: .infinity)
+                        .background(
+                            RoundedRectangle(cornerRadius: 16)
+                                .fill(.ultraThinMaterial)
+                                .overlay(
+                                    RoundedRectangle(cornerRadius: 16)
+                                        .stroke(Color.primary.opacity(0.1), lineWidth: 1)
+                                )
                         )
-                    )
-                    .clipShape(RoundedRectangle(cornerRadius: 16))
-                    .shadow(color: gradientManager.active.colors(for: colorScheme).first?.opacity(0.3) ?? .clear, 
-                            radius: 8, x: 0, y: 4)
+                        .padding(.horizontal, AppSpacing.screenPadding)
+                        .transition(.scale.combined(with: .opacity))
+                    } else if viewModel.healthKitAuthorizationStatus == .denied {
+                        // No HealthKit access
+                        VStack(spacing: AppSpacing.xs) {
+                            Text("No problem, we'll figure it out together")
+                                .font(.system(size: 16, weight: .light))
+                                .foregroundColor(.secondary)
+                        }
+                        .padding(.horizontal, AppSpacing.screenPadding)
+                        .transition(.opacity)
+                    }
+                    
+                    // Action button
+                    Button {
+                        if viewModel.healthKitAuthorizationStatus == .notDetermined {
+                            requestHealthKitAccess()
+                        } else {
+                            viewModel.navigateToNext()
+                        }
+                    } label: {
+                        HStack {
+                            if isAuthorizing {
+                                ProgressView()
+                                    .progressViewStyle(CircularProgressViewStyle(tint: .white))
+                                    .scaleEffect(0.8)
+                            } else {
+                                Text(buttonTitle)
+                                    .font(.system(size: 18, weight: .semibold))
+                            }
+                        }
+                        .foregroundColor(.white)
+                        .frame(maxWidth: .infinity)
+                        .padding(.vertical, AppSpacing.md)
+                        .background(
+                            LinearGradient(
+                                colors: gradientManager.active.colors(for: colorScheme),
+                                startPoint: .leading,
+                                endPoint: .trailing
+                            )
+                        )
+                        .clipShape(RoundedRectangle(cornerRadius: 16))
+                        .shadow(color: gradientManager.active.colors(for: colorScheme).first?.opacity(0.3) ?? .clear,
+                                radius: 8, x: 0, y: 4)
+                    }
+                    .disabled(isAuthorizing)
+                    .padding(.horizontal, AppSpacing.screenPadding)
+                    
+                    // Skip option
+                    if viewModel.healthKitAuthorizationStatus == .notDetermined {
+                        Button {
+                            viewModel.navigateToNext()
+                        } label: {
+                            Text("Skip for now")
+                                .font(.system(size: 16, weight: .light))
+                                .foregroundColor(.secondary)
+                        }
+                    }
                 }
-                .padding(.horizontal, AppSpacing.screenPadding)
+                .padding(.bottom, 60)
                 .opacity(animateIn ? 1 : 0)
                 .offset(y: animateIn ? 0 : 20)
-                .animation(MotionToken.standardSpring.delay(0.7), value: animateIn)
-                .accessibilityIdentifier("onboarding.healthkit.authorize")
-                
-                // Skip option
-                Button("Skip for now") {
-                    HapticService.selection()
-                    viewModel.navigateToNextScreen()
-                }
-                .font(.system(size: 16, weight: .light))
-                .foregroundColor(.secondary)
-                .opacity(animateIn ? 1 : 0)
-                .animation(MotionToken.standardSpring.delay(0.8), value: animateIn)
-
-                Spacer()
-
-                // Error state
-                if viewModel.healthKitAuthorizationStatus == .denied {
-                    GlassCard {
-                        HStack(spacing: AppSpacing.sm) {
-                            Image(systemName: "exclamationmark.triangle.fill")
-                                .foregroundStyle(.orange)
-                            
-                            Text("Permission denied. You can enable access in Settings.")
-                                .font(.system(size: 14, weight: .light))
-                                .foregroundColor(.primary)
-                                .fixedSize(horizontal: false, vertical: true)
-                        }
-                    }
-                    .padding(.horizontal, AppSpacing.screenPadding)
-                    .transition(.move(edge: .bottom).combined(with: .opacity))
-                }
+                .animation(.easeOut(duration: 0.6).delay(0.3), value: animateIn)
             }
-            .padding(.vertical, AppSpacing.lg)
         }
         .onAppear {
-            withAnimation(MotionToken.standardSpring) {
-                animateIn = true
+            animateIn = true
+            
+            // Check if we already have authorization
+            if viewModel.healthKitAuthorizationStatus == .authorized {
+                showDataPreview = true
             }
-            startHeartBeatAnimation()
         }
     }
     
-    private func startHeartBeatAnimation() {
-        withAnimation(
-            .easeInOut(duration: 0.8)
-            .repeatForever(autoreverses: true)
-        ) {
-            heartBeat = 1.1
+    private var buttonTitle: String {
+        switch viewModel.healthKitAuthorizationStatus {
+        case .notDetermined:
+            return "Connect Apple Health"
+        case .authorized:
+            return showDataPreview ? "Continue" : "View My Data"
+        case .denied:
+            return "Continue without Health data"
+        }
+    }
+    
+    private func requestHealthKitAccess() {
+        isAuthorizing = true
+        HapticService.impact(.light)
+        
+        Task {
+            await viewModel.requestHealthKitAuthorization()
+            
+            await MainActor.run {
+                isAuthorizing = false
+                
+                if viewModel.healthKitAuthorizationStatus == .authorized {
+                    withAnimation(.spring()) {
+                        showDataPreview = true
+                    }
+                    HapticService.notification(.success)
+                } else if viewModel.healthKitAuthorizationStatus == .denied {
+                    HapticService.notification(.warning)
+                }
+            }
         }
     }
 }
 
-// MARK: - HealthDataRow
-private struct HealthDataRow: View {
-    let icon: String
-    let text: String
-    let delay: Double
-    @State private var animateIn = false
-    @EnvironmentObject private var gradientManager: GradientManager
-    @Environment(\.colorScheme) private var colorScheme
+// MARK: - Health Data Preview
+struct HealthDataPreviewView: View {
+    let data: HealthKitSnapshot
     
     var body: some View {
-        HStack(spacing: AppSpacing.sm) {
-            Image(systemName: icon)
-                .font(.system(size: 20, weight: .light))
-                .foregroundStyle(gradientManager.currentGradient(for: colorScheme))
-                .frame(width: 28)
+        VStack(alignment: .leading, spacing: AppSpacing.xs) {
+            if let weight = data.weight {
+                DataRow(label: "Weight", value: "\(Int(weight)) lbs")
+            }
             
-            Text(text)
-                .font(.system(size: 15, weight: .light))
-                .foregroundColor(.primary)
+            if let height = data.height {
+                let feet = Int(height) / 12
+                let inches = Int(height) % 12
+                DataRow(label: "Height", value: "\(feet)' \(inches)\"")
+            }
+            
+            if let age = data.age {
+                DataRow(label: "Age", value: "\(age) years")
+            }
+            
+            // Additional data could be shown here
+            if let sleep = data.sleepSchedule {
+                let formatter = DateFormatter()
+                formatter.timeStyle = .short
+                DataRow(label: "Sleep", value: "\(formatter.string(from: sleep.bedtime)) - \(formatter.string(from: sleep.waketime))")
+            }
+        }
+    }
+}
+
+struct DataRow: View {
+    let label: String
+    let value: String
+    
+    var body: some View {
+        HStack {
+            Text(label)
+                .font(.system(size: 16, weight: .light))
+                .foregroundColor(.secondary)
             
             Spacer()
             
-            Image(systemName: "checkmark.circle")
-                .font(.system(size: 16))
-                .foregroundStyle(.green.opacity(0.8))
-        }
-        .padding(.horizontal, AppSpacing.sm)
-        .padding(.vertical, AppSpacing.xs)
-        .opacity(animateIn ? 1 : 0)
-        .offset(x: animateIn ? 0 : -20)
-        .onAppear {
-            withAnimation(MotionToken.standardSpring.delay(delay)) {
-                animateIn = true
-            }
+            Text(value)
+                .font(.system(size: 16, weight: .medium))
+                .foregroundColor(.primary)
         }
     }
-}
-
-#Preview {
-    // Simple preview without complex dependencies
-    VStack(spacing: AppSpacing.lg) {
-        Spacer()
-        
-        // Glass card with health data preview
-        VStack(spacing: AppSpacing.md) {
-            ZStack {
-                Circle()
-                    .fill(LinearGradient(colors: [.blue, .purple], startPoint: .topLeading, endPoint: .bottomTrailing))
-                    .frame(width: 100, height: 100)
-                    .opacity(0.2)
-                    .blur(radius: 10)
-                
-                Image(systemName: "heart.fill")
-                    .font(.system(size: 50, weight: .light))
-                    .foregroundStyle(LinearGradient(colors: [.blue, .purple], startPoint: .topLeading, endPoint: .bottomTrailing))
-            }
-            .frame(height: 120)
-            
-            Text("Connect HealthKit")
-                .font(.system(size: 28, weight: .light, design: .rounded))
-            
-            Text("Allow AirFit to sync with your health data for personalized insights")
-                .font(.system(size: 16, weight: .light))
-                .foregroundColor(.secondary)
-                .multilineTextAlignment(.center)
-        }
-        .padding()
-        .background(
-            RoundedRectangle(cornerRadius: 20)
-                .fill(.ultraThinMaterial)
-                .overlay(
-                    RoundedRectangle(cornerRadius: 20)
-                        .strokeBorder(Color.white.opacity(0.2), lineWidth: 1)
-                )
-        )
-        .padding(.horizontal)
-        
-        Button("Authorize HealthKit") {}
-            .font(.system(size: 18, weight: .medium))
-            .foregroundColor(.white)
-            .frame(maxWidth: .infinity)
-            .padding()
-            .background(
-                LinearGradient(colors: [.blue, .purple], startPoint: .leading, endPoint: .trailing)
-            )
-            .cornerRadius(16)
-            .padding(.horizontal)
-        
-        Spacer()
-    }
-    .background(
-        LinearGradient(colors: [.blue.opacity(0.1), .purple.opacity(0.1)], startPoint: .topLeading, endPoint: .bottomTrailing)
-            .ignoresSafeArea()
-    )
 }

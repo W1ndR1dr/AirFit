@@ -1,433 +1,98 @@
 import SwiftUI
-import SwiftData
 
+/// Container view that manages the onboarding flow with gradient transitions
 struct OnboardingContainerView: View {
-    @State private var coordinator: OnboardingFlowCoordinator?
-    @State private var showingError = false
-    @State private var isLoading = true
-    @State private var loadError: Error?
-    @Environment(\.dismiss) private var dismiss
-    @Environment(\.modelContext) private var modelContext
-    @Environment(\.diContainer) private var diContainer
+    @StateObject private var viewModel: OnboardingViewModel
+    @EnvironmentObject private var gradientManager: GradientManager
+    @Environment(\.colorScheme) private var colorScheme
+    @State private var navigationPath = NavigationPath()
+    
+    init(container: DIContainer) {
+        let vm = container.resolveOnboardingViewModel()
+        self._viewModel = StateObject(wrappedValue: vm)
+    }
     
     var body: some View {
-        Group {
-            if let coordinator = coordinator {
-                ZStack {
-                    // Background
-                    BaseScreen {
-                        Color.clear
-                    }
-                    
-                    // Main content with transitions
-                    Group {
-                        switch coordinator.currentView {
-                        case .welcome:
-                            WelcomeView(coordinator: coordinator)
-                                .transition(.asymmetric(
-                                    insertion: .move(edge: .trailing).combined(with: .opacity),
-                                    removal: .move(edge: .leading).combined(with: .opacity)
-                                ))
-                            
-                        case .conversation:
-                            ConversationFlowView(coordinator: coordinator)
-                                .transition(.asymmetric(
-                                    insertion: .move(edge: .trailing).combined(with: .opacity),
-                                    removal: .move(edge: .leading).combined(with: .opacity)
-                                ))
-                            
-                        case .generatingPersona:
-                            GeneratingPersonaView(coordinator: coordinator)
-                                .transition(.opacity.combined(with: .scale(scale: 0.95)))
-                            
-                        case .personaPreview:
-                            PersonaPreviewView(
-                                persona: coordinator.generatedPersona!,
-                                coordinator: coordinator
-                            )
-                            .transition(.asymmetric(
-                                insertion: .scale(scale: 1.1).combined(with: .opacity),
-                                removal: .scale(scale: 0.9).combined(with: .opacity)
-                            ))
-                            
-                        case .complete:
-                            ContainerCompletionView(coordinator: coordinator)
-                                .transition(.asymmetric(
-                                    insertion: .move(edge: .bottom).combined(with: .opacity),
-                                    removal: .opacity
-                                ))
-                        }
-                    }
-                    .animation(.smooth(duration: 0.5), value: coordinator.currentView)
-                    
-                    // Loading overlay
-                    if coordinator.isLoading {
-                        ContainerLoadingOverlay()
-                            .transition(.opacity)
-                            .zIndex(10)
-                    }
-                    
-                    // Progress indicator
-                    VStack {
-                        ContainerProgressBar(progress: coordinator.progress)
-                            .padding(.horizontal)
-                            .padding(.top, 8)
-                        Spacer()
-                    }
-                    .zIndex(5)
+        NavigationStack(path: $navigationPath) {
+            currentScreen
+                .navigationBarHidden(true)
+                .onChange(of: viewModel.currentScreen) { oldScreen, newScreen in
+                    handleScreenTransition(from: oldScreen, to: newScreen)
                 }
-                .alert("Error", isPresented: .constant(coordinator.error != nil)) {
-                    Button("Retry") {
-                        Task {
-                            await coordinator.retryLastAction()
-                        }
-                    }
-                    Button("Cancel", role: .cancel) {
-                        coordinator.clearError()
-                    }
-                } message: {
-                    if let error = coordinator.error {
-                        Text(error.localizedDescription)
-                        if let recovery = (error as? OnboardingError)?.recoverySuggestion {
-                            Text(recovery)
-                                .font(.caption)
-                        }
-                    }
-                }
-                .onAppear {
-                    coordinator.start()
-                }
-            } else if isLoading {
-                BaseScreen {
-                    VStack {
-                        Spacer()
-                        ProgressView("Initializing...")
-                            .font(.system(size: 16, weight: .medium, design: .rounded))
-                            .foregroundStyle(.primary)
-                        Spacer()
-                    }
-                }
-            } else if let error = loadError {
-                VStack(spacing: 16) {
-                    Image(systemName: "exclamationmark.triangle.fill")
-                        .font(.largeTitle)
-                        .foregroundColor(.red)
-                    
-                    Text("Failed to initialize onboarding")
-                        .font(.headline)
-                    
-                    Text(error.localizedDescription)
-                        .font(.body)
-                        .foregroundColor(.secondary)
-                        .multilineTextAlignment(.center)
-                    
-                    Button {
-                        Task {
-                            await loadCoordinator()
-                        }
-                    } label: {
-                        Text("Retry")
-                            .font(.system(size: 16, weight: .medium, design: .rounded))
-                            .foregroundColor(.white)
-                            .frame(width: 120)
-                            .padding(.vertical, AppSpacing.sm)
-                            .background(
-                                LinearGradient(
-                                    colors: [Color.accentColor, Color.accentColor.opacity(0.8)],
-                                    startPoint: .leading,
-                                    endPoint: .trailing
-                                )
-                            )
-                            .clipShape(RoundedRectangle(cornerRadius: 12))
-                    }
-                }
-                .padding()
-                .frame(maxWidth: .infinity, maxHeight: .infinity)
-            }
         }
-        .task {
-            await loadCoordinator()
+        .onAppear {
+            // Set initial gradient for opening screen
+            gradientManager.setGradient(.peachRose, animated: false)
         }
     }
     
-    private func loadCoordinator() async {
-        isLoading = true
-        loadError = nil
+    @ViewBuilder
+    private var currentScreen: some View {
+        switch viewModel.currentScreen {
+        case .opening:
+            OpeningScreenView(viewModel: viewModel)
+        case .healthKit:
+            HealthKitAuthorizationView(viewModel: viewModel)
+        case .lifeContext:
+            LifeContextView(viewModel: viewModel)
+        case .goals:
+            GoalsProgressiveView(viewModel: viewModel)
+        case .communicationStyle:
+            CommunicationStyleView(viewModel: viewModel)
+        case .synthesis:
+            LLMSynthesisView(viewModel: viewModel)
+        case .coachReady:
+            CoachReadyView(viewModel: viewModel)
+        }
+    }
+    
+    private func handleScreenTransition(from oldScreen: OnboardingViewModel.OnboardingScreen, to newScreen: OnboardingViewModel.OnboardingScreen) {
+        // Map screens to specific gradients for consistent journey
+        let gradientMap: [OnboardingViewModel.OnboardingScreen: GradientToken] = [
+            .opening: .peachRose,
+            .healthKit: .mintAqua,
+            .lifeContext: .skyLavender,
+            .goals: .sproutMint,
+            .communicationStyle: .coralMist,
+            .synthesis: .icePeriwinkle, // Will cycle through multiple
+            .coachReady: .sageMelon // User's "home" gradient
+        ]
         
-        do {
-            let factory = DIViewModelFactory(container: diContainer)
-            coordinator = try await factory.makeOnboardingFlowCoordinator()
-            isLoading = false
-        } catch {
-            loadError = error
-            isLoading = false
-            AppLogger.error("Failed to create onboarding coordinator", error: error, category: .onboarding)
-        }
-    }
-}
-
-// MARK: - Welcome View
-
-private struct WelcomeView: View {
-    @Bindable var coordinator: OnboardingFlowCoordinator
-    @State private var isAnimating = false
-    
-    var body: some View {
-        VStack(spacing: 32) {
-            Spacer()
-            
-            // App icon/logo
-            Image(systemName: "figure.run.circle.fill")
-                .font(.system(size: 100))
-                .foregroundStyle(
-                    LinearGradient(
-                        colors: [Color.accentColor, Color.accentColor.opacity(0.8)],
-                        startPoint: .topLeading,
-                        endPoint: .bottomTrailing
-                    )
-                )
-                .scaleEffect(isAnimating ? 1.0 : 0.8)
-                .animation(.spring(response: 0.8, dampingFraction: 0.5), value: isAnimating)
-            
-            VStack(spacing: AppSpacing.md) {
-                CascadeText("Welcome to AirFit")
-                    .font(.system(size: 42, weight: .bold, design: .rounded))
-                    .multilineTextAlignment(.center)
-                
-                Text("Let's create your personalized AI fitness coach")
-                    .font(.system(size: 20, weight: .regular, design: .rounded))
-                    .foregroundStyle(.secondary)
-                    .multilineTextAlignment(.center)
-            }
-            .padding(.horizontal)
-            
-            Spacer()
-            
-            // Get started button
-            Button {
-                HapticService.impact(.medium)
-                Task {
-                    await coordinator.beginConversation()
-                }
-            } label: {
-                HStack(spacing: AppSpacing.sm) {
-                    Text("Get Started")
-                        .font(.system(size: 18, weight: .semibold, design: .rounded))
-                    Image(systemName: "arrow.right")
-                        .font(.system(size: 16, weight: .semibold))
-                }
-                .foregroundColor(.white)
-                .frame(maxWidth: .infinity)
-                .padding(.vertical, AppSpacing.md)
-                .background(
-                    LinearGradient(
-                        colors: [Color.accentColor, Color.accentColor.opacity(0.8)],
-                        startPoint: .leading,
-                        endPoint: .trailing
-                    )
-                )
-                .clipShape(RoundedRectangle(cornerRadius: 16))
-                .shadow(color: Color.accentColor.opacity(0.3), radius: 8, y: 4)
-            }
-            .padding(.horizontal, 32)
-            .padding(.bottom, 50)
-        }
-        .onAppear {
-            withAnimation {
-                isAnimating = true
+        // Only advance gradient when moving forward
+        if newScreen.rawValue > oldScreen.rawValue {
+            if let targetGradient = gradientMap[newScreen] {
+                gradientManager.setGradient(targetGradient)
+            } else {
+                gradientManager.advance()
             }
         }
     }
 }
 
-// MARK: - Conversation Flow View
-
-private struct ConversationFlowView: View {
-    @Bindable var coordinator: OnboardingFlowCoordinator
+// MARK: - Chapter Transition (o3-inspired)
+struct ChapterTransition: ViewModifier {
+    let isPresented: Bool
     
-    var body: some View {
-        VStack {
-            // Conversation content would go here
-            Text("Conversation in progress...")
-                .font(.title2)
-                .foregroundColor(.secondary)
-                .frame(maxWidth: .infinity, maxHeight: .infinity)
-            
-            // Complete button for testing
-            Button {
-                Task {
-                    await coordinator.completeConversation()
-                }
-            } label: {
-                Text("Complete Conversation")
-                    .font(.system(size: 16, weight: .medium, design: .rounded))
-                    .foregroundColor(.white)
-                    .frame(maxWidth: .infinity)
-                    .padding(.vertical, AppSpacing.sm)
-                    .background(
-                        LinearGradient(
-                            colors: [Color.accentColor, Color.accentColor.opacity(0.8)],
-                            startPoint: .leading,
-                            endPoint: .trailing
-                        )
-                    )
-                    .clipShape(RoundedRectangle(cornerRadius: 12))
-            }
-            .padding()
-        }
+    func body(content: Content) -> some View {
+        content
+            .opacity(isPresented ? 1 : 0)
+            .scaleEffect(isPresented ? 1 : 0.94)
+            .blur(radius: isPresented ? 0 : 4)
+            .animation(.easeInOut(duration: 0.55), value: isPresented)
     }
 }
 
-// MARK: - Generating Persona View
-
-private struct GeneratingPersonaView: View {
-    @Bindable var coordinator: OnboardingFlowCoordinator
-    @State private var dots = ""
-    @State private var animationTask: Task<Void, Never>?
-    
-    var body: some View {
-        VStack(spacing: 24) {
-            Spacer()
-            
-            // Animated loading icon
-            ProgressView()
-                .scaleEffect(1.5)
-                .progressViewStyle(CircularProgressViewStyle(tint: Color.accentColor))
-            
-            VStack(spacing: 8) {
-                Text("Creating Your Coach\(dots)")
-                    .font(.title2.bold())
-                
-                Text("This will take just a moment")
-                    .font(.body)
-                    .foregroundColor(.secondary)
-            }
-            
-            Spacer()
-        }
-        .onAppear {
-            animateDots()
-        }
-        .onDisappear {
-            animationTask?.cancel()
-        }
-    }
-    
-    private func animateDots() {
-        animationTask = Task {
-            while !Task.isCancelled {
-                if coordinator.currentView != .generatingPersona {
-                    break
-                }
-                
-                switch dots.count {
-                case 0: dots = "."
-                case 1: dots = ".."
-                case 2: dots = "..."
-                default: dots = ""
-                }
-                
-                try? await Task.sleep(nanoseconds: 500_000_000) // 0.5 seconds
-            }
-        }
+extension View {
+    func chapterTransition(isPresented: Bool) -> some View {
+        modifier(ChapterTransition(isPresented: isPresented))
     }
 }
 
-// MARK: - Completion View
-
-private struct ContainerCompletionView: View {
-    @Bindable var coordinator: OnboardingFlowCoordinator
-    
-    var body: some View {
-        VStack(spacing: 32) {
-            Spacer()
-            
-            // Success icon
-            Image(systemName: "checkmark.circle.fill")
-                .font(.system(size: 80))
-                .foregroundColor(.green)
-            
-            VStack(spacing: 16) {
-                Text("All Set!")
-                    .font(.largeTitle.bold())
-                
-                Text("Your AI coach is ready to help you achieve your fitness goals")
-                    .font(.body)
-                    .foregroundColor(.secondary)
-                    .multilineTextAlignment(.center)
-                    .padding(.horizontal)
-            }
-            
-            Spacer()
-            
-            Button {
-                HapticService.notification(.success)
-                Task {
-                    await coordinator.acceptPersona()
-                }
-            } label: {
-                Text("Start Training")
-                    .font(.system(size: 18, weight: .semibold, design: .rounded))
-                    .foregroundColor(.white)
-                    .frame(maxWidth: .infinity)
-                    .padding(.vertical, AppSpacing.md)
-                    .background(
-                        LinearGradient(
-                            colors: [Color.green, Color.green.opacity(0.8)],
-                            startPoint: .leading,
-                            endPoint: .trailing
-                        )
-                    )
-                    .clipShape(RoundedRectangle(cornerRadius: 16))
-                    .shadow(color: Color.green.opacity(0.3), radius: 8, y: 4)
-            }
-            .padding(.horizontal, 32)
-            .padding(.bottom, 50)
-        }
-    }
-}
-
-// MARK: - Progress Bar
-
-private struct ContainerProgressBar: View {
-    let progress: Double
-    
-    var body: some View {
-        GeometryReader { geometry in
-            ZStack(alignment: .leading) {
-                // Background
-                RoundedRectangle(cornerRadius: 4)
-                    .fill(.ultraThinMaterial)
-                    .frame(height: 8)
-                
-                // Progress
-                RoundedRectangle(cornerRadius: 4)
-                    .fill(
-                        LinearGradient(
-                            colors: [Color.accentColor, Color.accentColor.opacity(0.8)],
-                            startPoint: .leading,
-                            endPoint: .trailing
-                        )
-                    )
-                    .frame(width: geometry.size.width * progress, height: 8)
-                    .animation(.smooth, value: progress)
-            }
-        }
-        .frame(height: 8)
-    }
-}
-
-// MARK: - Loading Overlay
-
-private struct ContainerLoadingOverlay: View {
-    var body: some View {
-        ZStack {
-            Color.black.opacity(0.3)
-                .ignoresSafeArea()
-            
-            ProgressView()
-                .scaleEffect(1.5)
-                .progressViewStyle(CircularProgressViewStyle(tint: .white))
-        }
+// MARK: - DI Extension
+extension DIContainer {
+    func resolveOnboardingViewModel() -> OnboardingViewModel {
+        // This would be implemented in the DI container
+        // For now, returning a placeholder
+        fatalError("Implement resolveOnboardingViewModel in DIContainer")
     }
 }
