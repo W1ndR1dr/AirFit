@@ -25,7 +25,7 @@ struct ContentView: View {
                 if appState.isLoading {
                     LoadingView()
                 } else if appState.shouldShowAPISetup {
-                    InitialAPISetupView { 
+                    InitialAPISetupView {
                         appState.completeAPISetup()
                         // Need to recreate the DI container with the new API key
                         isRecreatingContainer = true
@@ -42,8 +42,9 @@ struct ContentView: View {
                             await appState.completeOnboarding()
                         }
                     })
+                    .withDIContainer(activeContainer ?? diContainer)
                     .onAppear {
-                        AppLogger.info("ContentView: Container from environment ID: \(ObjectIdentifier(diContainer))", category: .app)
+                        AppLogger.info("ContentView: Using container ID: \(ObjectIdentifier(activeContainer ?? diContainer))", category: .app)
                     }
                 } else if appState.shouldShowDashboard, let user = appState.currentUser {
                     DashboardView(user: user)
@@ -110,8 +111,23 @@ struct ContentView: View {
     }
     
     private func recreateContainer() async {
-        // This will be called from the parent app to recreate the container
-        // For now, just reload the app state
+        // Recreate the container with updated API keys
+        AppLogger.info("ContentView: Recreating DI container after API setup", category: .app)
+        
+        // Get the model container from current environment
+        let modelContainer = try? await diContainer.resolve(ModelContainer.self)
+        
+        if let modelContainer = modelContainer {
+            // Create new container with API keys now available
+            let newContainer = DIBootstrapper.createAppContainer(modelContainer: modelContainer)
+            
+            // Update our local reference
+            activeContainer = newContainer
+            
+            // Recreate AppState with new container
+            await createAppState()
+        }
+        
         isRecreatingContainer = false
         await appState?.loadUserState()
     }

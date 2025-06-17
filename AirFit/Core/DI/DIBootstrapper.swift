@@ -299,8 +299,7 @@ public final class DIBootstrapper {
         
         // Voice Input Manager
         container.register(VoiceInputManager.self, lifetime: .singleton) { resolver in
-            let modelManager = try await resolver.resolve(WhisperModelManager.self)
-            return await VoiceInputManager(modelManager: modelManager)
+            return await VoiceInputManager()
         }
         
         // Food Voice Adapter

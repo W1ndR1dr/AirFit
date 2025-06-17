@@ -163,6 +163,17 @@ struct InitialAPISetupView: View {
                         .font(.system(size: 14, weight: .regular, design: .rounded))
                         .foregroundStyle(.tertiary)
                         .multilineTextAlignment(.center)
+                    
+                    Button {
+                        HapticService.impact(.light)
+                        skipAndUseDemoMode()
+                    } label: {
+                        Text("Skip & Use Demo Mode")
+                            .font(.system(size: 16, weight: .regular, design: .rounded))
+                            .foregroundColor(.secondary)
+                            .underline()
+                    }
+                    .padding(.top, AppSpacing.sm)
                 }
                 .padding(.horizontal, AppSpacing.lg)
                 .padding(.bottom, AppSpacing.xl)
@@ -221,6 +232,16 @@ struct InitialAPISetupView: View {
         case .gemini:
             return key.count > 30 // Gemini keys are less structured
         }
+    }
+    
+    private func skipAndUseDemoMode() {
+        // Enable demo mode
+        AppConstants.Configuration.isUsingDemoMode = true
+        AppLogger.info("Demo mode enabled from initial setup", category: .app)
+        
+        // Complete setup
+        HapticService.notification(.success)
+        onCompletion()
     }
 }
 

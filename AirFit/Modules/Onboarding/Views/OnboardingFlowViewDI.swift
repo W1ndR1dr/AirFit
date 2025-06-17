@@ -152,6 +152,17 @@ struct OnboardingFlowViewDI: View {
             let containerToUse = diContainer
             AppLogger.info("OnboardingFlowViewDI: Attempt \(retryCount) using container ID: \(ObjectIdentifier(containerToUse))", category: .onboarding)
             
+            // Check if we have API keys configured
+            let apiKeyManager = try? await containerToUse.resolve(APIKeyManagementProtocol.self)
+            let hasAPIKeys = await apiKeyManager?.getAllConfiguredProviders().isEmpty == false
+            
+            if !hasAPIKeys && AppConstants.Configuration.isUsingDemoMode == false {
+                // If no API keys and not in demo mode, show error
+                loadError = AppError.unknown(message: "API keys not configured. Please restart the app after setting up API keys.")
+                isLoading = false
+                return
+            }
+            
             // Try to create view model through DI, passing model context directly
             let factory = DIViewModelFactory(container: containerToUse)
             viewModel = try await factory.makeOnboardingViewModel(modelContext: modelContext)
@@ -164,6 +175,8 @@ struct OnboardingFlowViewDI: View {
             
             isLoading = false
         } catch {
+            AppLogger.error("Failed to create OnboardingViewModel: \(error)", category: .onboarding)
+            
             // If DI fails, create a minimal view model directly
             if retryCount < 3 {
                 // Retry a few times with increasing delay
