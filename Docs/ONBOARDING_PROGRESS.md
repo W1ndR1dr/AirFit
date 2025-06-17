@@ -173,6 +173,89 @@ Life Context → Goals → Communication → LLM Synthesis → Coach Ready
 3. Create HealthKit authorization with data preview
 4. Build conversational life context screen
 
+## 🏗️ Technical Architecture
+
+### Data Flow
+```
+API Key Setup (pre-onboarding) → Opening → HealthKit → 
+Life Context → Goals → Communication → LLM Synthesis → Coach Ready
+```
+
+### Key Components
+- **OnboardingContainerView** - Main container managing flow and gradient transitions
+- **OnboardingViewModel** - Simplified state management (no dual modes)
+- **OnboardingService** - Handles profile saving and goal synthesis
+- **GoalSynthesisService** - LLM goal analysis (part of OnboardingService)
+- **PersonaSynthesizer** - Coach generation (existing, reused)
+
+### Gradient Evolution Map
+```swift
+.opening: .peachRose          // Warm welcome
+.healthKit: .mintAqua         // Fresh health data
+.lifeContext: .skyLavender    // Calm reflection
+.goals: .sproutMint           // Growth mindset
+.communicationStyle: .coralMist // Warm connection
+.synthesis: .icePeriwinkle    // Cool processing
+.coachReady: .sageMelon       // Balanced completion
+```
+
+### UI Patterns
+- **BaseScreen** with gradient backgrounds
+- **CascadeText** for headings (0.6s total, 0.012s per char)
+- **ChapterTransition** for navigation (0.55s)
+- Text directly on gradients (no cards except where contrast requires)
+- Gradient evolution on forward navigation only
+
+## 🔧 Current Implementation Status
+
+### ✅ Completed Components
+1. **OnboardingViewModel** - Clean single flow, no mode switching
+2. **OnboardingContainerView** - Manages navigation and gradients
+3. **OpeningScreenView** - Welcome with CascadeText
+4. **HealthKitAuthorizationView** - Enhanced with data preview
+5. **Goal synthesis types** - OnboardingRawData, LLMGoalSynthesis
+6. **OnboardingService.synthesizeGoals()** - LLM integration
+
+### 🚧 Pending Components
+1. **LifeContextView** - Text input with voice option
+2. **GoalsProgressiveView** - Free text → structured goals
+3. **CommunicationStyleView** - Mix & match preferences
+4. **LLMSynthesisView** - Processing animation
+5. **CoachReadyView** - Success state
+
+### 📁 File Structure
+```
+AirFit/Modules/Onboarding/
+├── Views/
+│   ├── OnboardingContainerView.swift ✅
+│   ├── OpeningScreenView.swift ✅
+│   ├── HealthKitAuthorizationView.swift ✅
+│   ├── LifeContextView.swift ❌
+│   ├── GoalsProgressiveView.swift ❌
+│   ├── CommunicationStyleView.swift ❌
+│   ├── LLMSynthesisView.swift ❌
+│   └── CoachReadyView.swift ❌
+├── ViewModels/
+│   └── OnboardingViewModel.swift ✅
+├── Models/
+│   └── OnboardingModels.swift ✅
+└── Services/
+    └── OnboardingService.swift ✅
+```
+
+## 🐛 Known Issues
+1. Voice input currently stubbed with WhisperStubs
+2. HealthKit data fetching needs implementation in provider
+3. DIContainer.resolveOnboardingViewModel() needs implementation
+4. Some SwiftLint violations in existing code
+
+## 📝 Next Immediate Tasks
+1. Implement LifeContextView with voice input
+2. Create progressive goal disclosure screens
+3. Build communication style preference screen
+4. Add LLM synthesis visualization
+5. Implement coach ready success screen
+
 ## 🔗 Related Documents
 - `Docs/ONBOARDING_ENHANCEMENT.md` - Complete design spec
 - `Docs/o3uiconsult.md` - UI transformation guide
@@ -185,8 +268,45 @@ Life Context → Goals → Communication → LLM Synthesis → Coach Ready
 - Use atomic commits with clear messages
 - Test on iPhone 16 Pro simulator with iOS 18.4
 - Maintain <6 minute total onboarding time
+- Remember: Text on gradients, minimal cards, conversational tone
+
+## 🚀 How to Continue Implementation
+
+### For Next Session:
+1. Start with this document to understand current state
+2. Review ONBOARDING_ENHANCEMENT.md for design details
+3. Check git log for recent changes: `git log --oneline -10`
+4. Continue with pending screens in order:
+   - LifeContextView (with voice input)
+   - GoalsProgressiveView (multi-goal system)
+   - CommunicationStyleView (checkboxes not radio)
+   - LLMSynthesisView (processing animation)
+   - CoachReadyView (success state)
+
+### Code Patterns to Follow:
+```swift
+// Screen structure
+BaseScreen {
+    VStack {
+        // Back button
+        // Spacer
+        // Main content with CascadeText
+        // Spacer
+        // Action buttons
+    }
+}
+
+// Animations
+.opacity(animateIn ? 1 : 0)
+.scaleEffect(animateIn ? 1 : 0.5)
+.animation(.spring(response: 0.6, dampingFraction: 0.7), value: animateIn)
+
+// Gradient usage
+.foregroundStyle(gradientManager.currentGradient(for: colorScheme))
+```
 
 ---
 
 **Last Updated**: 2025-01-17
+**Remote Branch**: Fully synced with origin/Codex1
 **Next Context Load**: Start with this document + ONBOARDING_ENHANCEMENT.md
