@@ -13,6 +13,8 @@ public enum AppError: LocalizedError, Sendable {
     case unsupportedProvider
     case serviceUnavailable
     case invalidInput(message: String)
+    case llm(String)
+    case authentication(String)
 
     public var errorDescription: String? {
         switch self {
@@ -40,6 +42,10 @@ public enum AppError: LocalizedError, Sendable {
             return "Service is currently unavailable"
         case .invalidInput(let message):
             return message
+        case .llm(let message):
+            return "AI Error: \(message)"
+        case .authentication(let message):
+            return "Authentication Error: \(message)"
         }
     }
     
@@ -69,6 +75,10 @@ public enum AppError: LocalizedError, Sendable {
             return "Please try again later"
         case .invalidInput:
             return "Please check your input and try again"
+        case .llm:
+            return "Please try again or check your AI service configuration"
+        case .authentication:
+            return "Please check your API key configuration"
         }
     }
 }

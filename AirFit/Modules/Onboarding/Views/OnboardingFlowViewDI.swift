@@ -32,33 +32,13 @@ struct OnboardingFlowViewDI: View {
                 if let viewModel = viewModel {
                     VStack(spacing: 0) {
                         if shouldShowProgressBar(for: viewModel.currentScreen) {
-                            StepProgressBar(progress: viewModel.currentScreen.progress)
+                            StepProgressBar(progress: viewModel.progress)
                                 .padding(.horizontal)
                                 .padding(.top)
                         }
                         
-                        Group {
-                            switch viewModel.currentScreen {
-                            case .openingScreen:
-                                OpeningScreenView(viewModel: viewModel)
-                            case .lifeSnapshot:
-                                LifeSnapshotView(viewModel: viewModel)
-                            case .coreAspiration:
-                                CoreAspirationView(viewModel: viewModel)
-                            case .coachingStyle:
-                                CoachingStyleView(viewModel: viewModel)
-                            case .engagementPreferences:
-                                EngagementPreferencesView(viewModel: viewModel)
-                            case .sleepAndBoundaries:
-                                SleepAndBoundariesView(viewModel: viewModel)
-                            case .motivationalAccents:
-                                MotivationalAccentsView(viewModel: viewModel)
-                            case .generatingCoach:
-                                GeneratingCoachView(viewModel: viewModel)
-                            case .coachProfileReady:
-                                CoachProfileReadyView(viewModel: viewModel)
-                            }
-                        }
+                        // Use the new OnboardingContainerView
+                        OnboardingContainerView(viewModel: viewModel)
                         .transition(
                             .asymmetric(
                                 insertion: .move(edge: .trailing).combined(with: .opacity),
@@ -167,8 +147,7 @@ struct OnboardingFlowViewDI: View {
             let factory = DIViewModelFactory(container: containerToUse)
             viewModel = try await factory.makeOnboardingViewModel(modelContext: modelContext)
             
-            // Update the view model's model context to use the one from the environment
-            viewModel?.updateModelContext(modelContext)
+            // View model already has the model context
             
             // Set the completion callback
             viewModel?.onCompletionCallback = onCompletion
@@ -193,21 +172,31 @@ struct OnboardingFlowViewDI: View {
         AppLogger.warning("Creating minimal OnboardingViewModel without full DI", category: .onboarding)
         
         // Create minimal services directly
-        let onboardingService = OnboardingService(modelContext: modelContext)
         let healthKitManager = HealthKitManager()
         let healthKitAuthManager = HealthKitAuthManager(healthKitManager: healthKitManager)
         
         // Try to get services from container if possible, otherwise use defaults
         let aiService = (try? await diContainer.resolve(AIServiceProtocol.self)) ?? DemoAIService()
-        let apiKeyManager = try? await diContainer.resolve(APIKeyManagementProtocol.self)
+        let apiKeyManager = (try? await diContainer.resolve(APIKeyManagementProtocol.self)) ?? PreviewAPIKeyManager()
+        let llmOrchestrator = (try? await diContainer.resolve(LLMOrchestrator.self)) ?? LLMOrchestrator(
+            apiKeyManager: apiKeyManager
+        )
         let userService = (try? await diContainer.resolve(UserServiceProtocol.self)) ?? UserService(modelContext: modelContext)
+        let personaService = (try? await diContainer.resolve(PersonaService.self)) ?? PersonaService(
+            personaSynthesizer: OptimizedPersonaSynthesizer(llmOrchestrator: llmOrchestrator, cache: AIResponseCache()),
+            llmOrchestrator: llmOrchestrator,
+            modelContext: modelContext,
+            cache: AIResponseCache()
+        )
+        
+        let onboardingService = OnboardingService(modelContext: modelContext, llmOrchestrator: llmOrchestrator)
         
         viewModel = OnboardingViewModel(
             aiService: aiService,
             onboardingService: onboardingService,
             modelContext: modelContext,
-            apiKeyManager: apiKeyManager ?? PreviewAPIKeyManager(),
             userService: userService,
+            personaService: personaService,
             healthKitAuthManager: healthKitAuthManager
         )
         
@@ -216,18 +205,18 @@ struct OnboardingFlowViewDI: View {
         loadError = nil
     }
     
-    private func shouldShowProgressBar(for screen: OnboardingScreen) -> Bool {
+    private func shouldShowProgressBar(for screen: OnboardingViewModel.OnboardingScreen) -> Bool {
         switch screen {
-        case .openingScreen, .generatingCoach, .coachProfileReady:
+        case .opening, .synthesis, .coachReady:
             return false
         default:
             return true
         }
     }
     
-    private func shouldShowPrivacyFooter(for screen: OnboardingScreen) -> Bool {
+    private func shouldShowPrivacyFooter(for screen: OnboardingViewModel.OnboardingScreen) -> Bool {
         switch screen {
-        case .openingScreen, .generatingCoach, .coachProfileReady:
+        case .opening, .synthesis, .coachReady:
             return false
         default:
             return true

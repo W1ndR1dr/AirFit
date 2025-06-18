@@ -57,6 +57,8 @@ final class OnboardingViewModel: ErrorHandling {
     var functionalGoalsText: String = ""
     var communicationStyles: [CommunicationStyle] = []
     var informationPreferences: [InformationStyle] = []
+    var sleepWindow: SleepWindow = SleepWindow()
+    var hasHealthKitIntegration: Bool = false
     
     // MARK: - Synthesis Results
     private(set) var synthesizedGoals: LLMGoalSynthesis?
@@ -110,7 +112,8 @@ final class OnboardingViewModel: ErrorHandling {
     
     func beginOnboarding() {
         currentScreen = .healthKit
-        analytics.trackEvent(.onboardingStarted)
+        // Track analytics event
+        // await analytics.trackEvent(.onboardingStarted)
     }
     
     func navigateToNext() {
@@ -133,7 +136,8 @@ final class OnboardingViewModel: ErrorHandling {
             Task { await completeOnboarding() }
         }
         
-        analytics.trackEvent(.screenTransition(from: currentScreen.rawValue))
+        // Track state transition
+        // await analytics.trackEvent(.stateTransition, properties: ["from": currentScreen.rawValue, "to": currentScreen.rawValue])
     }
     
     func navigateToPrevious() {
@@ -167,7 +171,8 @@ final class OnboardingViewModel: ErrorHandling {
             await fetchHealthKitData()
         }
         
-        analytics.trackEvent(.healthKitAuthorization(granted: granted))
+        // Track health kit authorization
+        // await analytics.trackEvent(.stateTransition, properties: ["type": "healthKitAuthorization", "granted": granted])
     }
     
     private func fetchHealthKitData() async {
@@ -180,8 +185,12 @@ final class OnboardingViewModel: ErrorHandling {
             }
             
             // Fetch sleep patterns
-            if let sleepWindow = try await provider.fetchTypicalSleepWindow() {
-                // Store sleep data if needed
+            if let sleepData = try await provider.fetchTypicalSleepWindow() {
+                // Convert to SleepWindow format
+                let formatter = DateFormatter()
+                formatter.dateFormat = "HH:mm"
+                sleepWindow.bedTime = formatter.string(from: sleepData.bed)
+                sleepWindow.wakeTime = formatter.string(from: sleepData.wake)
             }
             
             // Create snapshot
@@ -301,7 +310,6 @@ final class OnboardingViewModel: ErrorHandling {
             
             let session = ConversationSession(
                 userId: userId,
-                sessionType: .onboarding,
                 startedAt: Date()
             )
             session.responses = createResponsesFromData(rawData)
@@ -312,28 +320,44 @@ final class OnboardingViewModel: ErrorHandling {
             currentScreen = .coachReady
             
         } catch {
-            self.error = error as? AppError ?? .unknown(error)
+            self.error = error as? AppError ?? .unknown(message: error.localizedDescription)
             isShowingError = true
         }
         
         isLoading = false
     }
     
-    private func createResponsesFromData(_ data: OnboardingRawData) -> [String: String] {
-        var responses: [String: String] = [:]
+    private func createResponsesFromData(_ data: OnboardingRawData) -> [ConversationResponse] {
+        var responses: [ConversationResponse] = []
+        let sessionId = UUID()
         
-        responses["userName"] = data.userName
-        responses["lifeContext"] = data.lifeContextText
-        responses["functionalGoals"] = data.functionalGoalsText
-        
-        if let weight = data.weightObjective {
-            responses["currentWeight"] = weight.currentWeight.map { "\($0)" } ?? ""
-            responses["targetWeight"] = weight.targetWeight.map { "\($0)" } ?? ""
+        // Helper to create response
+        func addResponse(nodeId: String, value: ResponseValue) {
+            let response = ConversationResponse(
+                sessionId: sessionId,
+                nodeId: nodeId,
+                responseData: try! JSONEncoder().encode(value)
+            )
+            responses.append(response)
         }
         
-        responses["bodyGoals"] = data.bodyRecompositionGoals.map(\.rawValue).joined(separator: ", ")
-        responses["communicationStyles"] = data.communicationStyles.map(\.rawValue).joined(separator: ", ")
-        responses["informationPreferences"] = data.informationPreferences.map(\.rawValue).joined(separator: ", ")
+        // Add responses
+        addResponse(nodeId: "userName", value: .text(data.userName))
+        addResponse(nodeId: "lifeContext", value: .text(data.lifeContextText))
+        addResponse(nodeId: "functionalGoals", value: .text(data.functionalGoalsText))
+        
+        if let weight = data.weightObjective {
+            if let current = weight.currentWeight {
+                addResponse(nodeId: "currentWeight", value: .text("\(current)"))
+            }
+            if let target = weight.targetWeight {
+                addResponse(nodeId: "targetWeight", value: .text("\(target)"))
+            }
+        }
+        
+        addResponse(nodeId: "bodyGoals", value: .multiChoice(data.bodyRecompositionGoals.map(\.rawValue)))
+        addResponse(nodeId: "communicationStyles", value: .multiChoice(data.communicationStyles.map(\.rawValue)))
+        addResponse(nodeId: "informationPreferences", value: .multiChoice(data.informationPreferences.map(\.rawValue)))
         
         return responses
     }
@@ -343,7 +367,7 @@ final class OnboardingViewModel: ErrorHandling {
     private func completeOnboarding() async {
         guard let persona = generatedPersona,
               let userId = await userService.getCurrentUserId() else {
-            error = .validation("Missing persona or user")
+            error = .validationError(message: "Missing persona or user")
             isShowingError = true
             return
         }
@@ -362,13 +386,14 @@ final class OnboardingViewModel: ErrorHandling {
             try await userService.completeOnboarding()
             
             // Track completion
-            analytics.trackEvent(.onboardingCompleted)
+            // Track completion
+            // await analytics.trackEvent(.onboardingCompleted)
             
             // Notify completion
             onCompletionCallback?()
             
         } catch {
-            self.error = error as? AppError ?? .unknown(error)
+            self.error = error as? AppError ?? .unknown(message: error.localizedDescription)
             isShowingError = true
         }
         
@@ -378,7 +403,7 @@ final class OnboardingViewModel: ErrorHandling {
     // MARK: - Error Handling
     
     func handleError(_ error: Error) {
-        self.error = error as? AppError ?? .unknown(error)
+        self.error = error as? AppError ?? .unknown(message: error.localizedDescription)
         isShowingError = true
         HapticService.play(.error)
     }
@@ -403,11 +428,6 @@ struct SleepSchedule: Codable, Sendable {
     let waketime: Date
 }
 
-enum HealthKitAuthorizationStatus {
-    case notDetermined
-    case authorized
-    case denied
-}
 
 // Communication styles from the enhancement doc
 enum CommunicationStyle: String, Codable, CaseIterable {
@@ -469,16 +489,4 @@ enum InformationStyle: String, Codable, CaseIterable {
     }
 }
 
-// Analytics events
-extension ConversationAnalytics {
-    enum OnboardingEvent {
-        case onboardingStarted
-        case screenTransition(from: String)
-        case healthKitAuthorization(granted: Bool)
-        case onboardingCompleted
-    }
-    
-    func trackEvent(_ event: OnboardingEvent) {
-        // Implementation would go here
-    }
-}
+// Analytics events are defined in OnboardingState.swift

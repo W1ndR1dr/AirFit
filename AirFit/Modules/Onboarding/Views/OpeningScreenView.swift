@@ -7,6 +7,19 @@ struct OpeningScreenView: View {
     @Environment(\.colorScheme) private var colorScheme
     @State private var animateIn = false
     @State private var iconScale: CGFloat = 0.5
+    
+    // Compute optimal text colors based on gradient using color theory
+    private var textColor: Color {
+        gradientManager.active.optimalTextColor(for: colorScheme)
+    }
+    
+    private var secondaryTextColor: Color {
+        gradientManager.active.secondaryTextColor(for: colorScheme)
+    }
+    
+    private var accentColor: Color {
+        gradientManager.active.accentColor(for: colorScheme)
+    }
 
     var body: some View {
         BaseScreen {
@@ -26,7 +39,7 @@ struct OpeningScreenView: View {
                 if animateIn {
                     CascadeText("Welcome to AirFit")
                         .font(.system(size: 44, weight: .thin, design: .rounded))
-                        .foregroundStyle(gradientManager.currentGradient(for: colorScheme))
+                        .foregroundColor(textColor)
                         .multilineTextAlignment(.center)
                         .padding(.horizontal, AppSpacing.lg)
                         .padding(.bottom, AppSpacing.sm)
@@ -35,7 +48,7 @@ struct OpeningScreenView: View {
                 // Subtitle - text directly on gradient (o3-inspired)
                 Text("Your personal AI fitness coach")
                     .font(.system(size: 20, weight: .light, design: .rounded))
-                    .foregroundColor(.primary.opacity(0.8))
+                    .foregroundColor(secondaryTextColor)
                     .multilineTextAlignment(.center)
                     .padding(.horizontal, AppSpacing.lg)
                     .padding(.bottom, AppSpacing.xl)
@@ -55,15 +68,9 @@ struct OpeningScreenView: View {
                             .foregroundColor(.white)
                             .frame(maxWidth: .infinity)
                             .padding(.vertical, AppSpacing.md)
-                            .background(
-                                LinearGradient(
-                                    colors: gradientManager.active.colors(for: colorScheme),
-                                    startPoint: .leading,
-                                    endPoint: .trailing
-                                )
-                            )
+                            .background(accentColor)
                             .clipShape(RoundedRectangle(cornerRadius: 16))
-                            .shadow(color: gradientManager.active.colors(for: colorScheme).first?.opacity(0.3) ?? .clear, 
+                            .shadow(color: accentColor.opacity(0.3), 
                                     radius: 8, x: 0, y: 4)
                     }
                     .accessibilityIdentifier("onboarding.begin.button")

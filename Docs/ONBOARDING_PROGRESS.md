@@ -31,6 +31,13 @@
    - Spacing: AppSpacing tokens (xs: 12pt to xl: 48pt)
 
 ### What Was Done (Session 2)
+1. **Fixed Build Errors** ✅
+   - Removed 8 orphaned old onboarding view files (CoreAspirationView, LifeSnapshotView, etc.)
+   - Fixed DIBootstrapper OnboardingService initialization (resolved llmOrchestrator)
+   - Fixed ErrorPresentationView switch exhaustiveness (added .llm and .authentication cases)
+   - **Result**: Build succeeds with 0 errors (only deprecation warnings remain)
+
+### What Was Done (Session 3)
 1. **Simplified Onboarding Architecture** ✅
    - Removed legacy/conversational mode switching from OpeningScreenView
    - Rewrote OnboardingViewModel as single clean flow
@@ -246,8 +253,8 @@ AirFit/Modules/Onboarding/
 ## 🐛 Known Issues
 1. Voice input currently stubbed with WhisperStubs
 2. HealthKit data fetching needs implementation in provider
-3. DIContainer.resolveOnboardingViewModel() needs implementation
-4. Some SwiftLint violations in existing code
+3. Some SwiftLint warnings (mostly deprecation warnings for AVAudioApplication)
+4. Unused variable warnings in DIViewModelFactory and GradientToken
 
 ## 📝 Next Immediate Tasks
 1. Implement LifeContextView with voice input

@@ -132,7 +132,7 @@ extension AppState {
         !isLoading && currentUser != nil && !hasCompletedOnboarding
     }
 
-    var healthKitStatus: HealthKitAuthorizationStatus {
+    var healthKitStatus: AirFit.HealthKitAuthorizationStatus {
         healthKitAuthManager.authorizationStatus
     }
 

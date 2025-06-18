@@ -670,12 +670,12 @@ final class AIGoalService: AIGoalServiceProtocol, ServiceProtocol {
         return GoalSynthesis(
             unifiedStrategy: synthesisData.unifiedStrategy,
             goalRelationships: synthesisData.goalRelationships.map {
-                GoalRelationship(type: $0.type, description: $0.description)
+                AIGoalRelationship(type: $0.type, description: $0.description)
             },
             coachingFocus: synthesisData.coachingFocus,
             timeline: synthesisData.timeline,
             milestones: synthesisData.milestones.map {
-                SynthesisMilestone(description: $0.description, timeframe: $0.timeframe, category: $0.category)
+                AISynthesisMilestone(description: $0.description, timeframe: $0.timeframe, category: $0.category)
             },
             challenges: synthesisData.challenges,
             motivationalHooks: synthesisData.motivationalHooks
@@ -695,20 +695,20 @@ final class AIGoalService: AIGoalServiceProtocol, ServiceProtocol {
 
 struct GoalSynthesis: Codable, Sendable {
     let unifiedStrategy: String
-    let goalRelationships: [GoalRelationship]
+    let goalRelationships: [AIGoalRelationship]
     let coachingFocus: [String]
     let timeline: String
-    let milestones: [SynthesisMilestone]
+    let milestones: [AISynthesisMilestone]
     let challenges: [String]
     let motivationalHooks: [String]
 }
 
-struct GoalRelationship: Codable, Sendable {
+struct AIGoalRelationship: Codable, Sendable {
     let type: String
     let description: String
 }
 
-struct SynthesisMilestone: Codable, Sendable {
+struct AISynthesisMilestone: Codable, Sendable {
     let description: String
     let timeframe: String
     let category: String

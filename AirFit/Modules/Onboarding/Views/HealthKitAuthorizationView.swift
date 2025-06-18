@@ -9,6 +9,19 @@ struct HealthKitAuthorizationView: View {
     @State private var showDataPreview = false
     @State private var isAuthorizing = false
     
+    // Compute optimal text colors based on gradient using color theory
+    private var textColor: Color {
+        gradientManager.active.optimalTextColor(for: colorScheme)
+    }
+    
+    private var secondaryTextColor: Color {
+        gradientManager.active.secondaryTextColor(for: colorScheme)
+    }
+    
+    private var accentColor: Color {
+        gradientManager.active.accentColor(for: colorScheme)
+    }
+    
     var body: some View {
         BaseScreen {
             VStack(spacing: 0) {
@@ -19,7 +32,7 @@ struct HealthKitAuthorizationView: View {
                     } label: {
                         Image(systemName: "chevron.left.circle.fill")
                             .font(.system(size: 28))
-                            .foregroundStyle(.primary.opacity(0.3))
+                            .foregroundStyle(secondaryTextColor.opacity(0.5))
                     }
                     .padding(.leading, AppSpacing.screenPadding)
                     
@@ -43,6 +56,7 @@ struct HealthKitAuthorizationView: View {
                     if animateIn {
                         CascadeText("Now, let's sync your health data")
                             .font(.system(size: 32, weight: .light, design: .rounded))
+                            .foregroundColor(textColor)
                             .multilineTextAlignment(.center)
                             .padding(.horizontal, AppSpacing.screenPadding)
                     }
@@ -50,7 +64,7 @@ struct HealthKitAuthorizationView: View {
                     // Subtitle
                     Text("This helps me understand your baseline")
                         .font(.system(size: 18, weight: .light, design: .rounded))
-                        .foregroundColor(.primary.opacity(0.7))
+                        .foregroundColor(secondaryTextColor)
                         .multilineTextAlignment(.center)
                         .padding(.horizontal, AppSpacing.screenPadding)
                         .opacity(animateIn ? 1 : 0)
@@ -174,7 +188,7 @@ struct HealthKitAuthorizationView: View {
             return "Connect Apple Health"
         case .authorized:
             return showDataPreview ? "Continue" : "View My Data"
-        case .denied:
+        case .denied, .restricted:
             return "Continue without Health data"
         }
     }
@@ -206,6 +220,7 @@ struct HealthKitAuthorizationView: View {
 struct HealthDataPreviewView: View {
     let data: HealthKitSnapshot
     
+    @ViewBuilder
     var body: some View {
         VStack(alignment: .leading, spacing: AppSpacing.xs) {
             if let weight = data.weight {
@@ -224,11 +239,15 @@ struct HealthDataPreviewView: View {
             
             // Additional data could be shown here
             if let sleep = data.sleepSchedule {
-                let formatter = DateFormatter()
-                formatter.timeStyle = .short
-                DataRow(label: "Sleep", value: "\(formatter.string(from: sleep.bedtime)) - \(formatter.string(from: sleep.waketime))")
+                DataRow(label: "Sleep", value: formatSleepTime(sleep))
             }
         }
+    }
+    
+    private func formatSleepTime(_ sleep: SleepSchedule) -> String {
+        let formatter = DateFormatter()
+        formatter.timeStyle = .short
+        return "\(formatter.string(from: sleep.bedtime)) - \(formatter.string(from: sleep.waketime))"
     }
 }
 

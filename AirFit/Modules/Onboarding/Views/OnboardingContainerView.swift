@@ -2,14 +2,13 @@ import SwiftUI
 
 /// Container view that manages the onboarding flow with gradient transitions
 struct OnboardingContainerView: View {
-    @StateObject private var viewModel: OnboardingViewModel
+    let viewModel: OnboardingViewModel
     @EnvironmentObject private var gradientManager: GradientManager
     @Environment(\.colorScheme) private var colorScheme
     @State private var navigationPath = NavigationPath()
     
-    init(container: DIContainer) {
-        let vm = container.resolveOnboardingViewModel()
-        self._viewModel = StateObject(wrappedValue: vm)
+    init(viewModel: OnboardingViewModel) {
+        self.viewModel = viewModel
     }
     
     var body: some View {
@@ -21,8 +20,8 @@ struct OnboardingContainerView: View {
                 }
         }
         .onAppear {
-            // Set initial gradient for opening screen
-            gradientManager.setGradient(.peachRose, animated: false)
+            // Set initial gradient for opening screen (pre-dawn darkness)
+            gradientManager.setGradient(.nightSky, animated: false)
         }
     }
     
@@ -47,15 +46,15 @@ struct OnboardingContainerView: View {
     }
     
     private func handleScreenTransition(from oldScreen: OnboardingViewModel.OnboardingScreen, to newScreen: OnboardingViewModel.OnboardingScreen) {
-        // Map screens to specific gradients for consistent journey
+        // Map screens to specific gradients for sunrise journey
         let gradientMap: [OnboardingViewModel.OnboardingScreen: GradientToken] = [
-            .opening: .peachRose,
-            .healthKit: .mintAqua,
-            .lifeContext: .skyLavender,
-            .goals: .sproutMint,
-            .communicationStyle: .coralMist,
-            .synthesis: .icePeriwinkle, // Will cycle through multiple
-            .coachReady: .sageMelon // User's "home" gradient
+            .opening: .nightSky,              // Pre-dawn darkness
+            .healthKit: .earlyTwilight,       // First hint of light
+            .lifeContext: .morningTwilight,   // Purple twilight
+            .goals: .firstLight,              // Dawn breaking
+            .communicationStyle: .sunrise,    // Actual sunrise
+            .synthesis: .morningGlow,         // Golden hour (will cycle)
+            .coachReady: .brightMorning       // Late morning - user's "home" gradient
         ]
         
         // Only advance gradient when moving forward
@@ -88,11 +87,3 @@ extension View {
     }
 }
 
-// MARK: - DI Extension
-extension DIContainer {
-    func resolveOnboardingViewModel() -> OnboardingViewModel {
-        // This would be implemented in the DI container
-        // For now, returning a placeholder
-        fatalError("Implement resolveOnboardingViewModel in DIContainer")
-    }
-}

@@ -140,9 +140,11 @@ public final class DIViewModelFactory {
         let userService = try await container.resolve(UserServiceProtocol.self)
         let apiKeyManager = try await container.resolve(APIKeyManagementProtocol.self)
         let aiService = try await container.resolve(AIServiceProtocol.self)
+        let llmOrchestrator = try await container.resolve(LLMOrchestrator.self)
+        let personaService = try await container.resolve(PersonaService.self)
         
         // Create onboarding service
-        let onboardingService = OnboardingService(modelContext: context)
+        let onboardingService = OnboardingService(modelContext: context, llmOrchestrator: llmOrchestrator)
         
         // Get HealthKit auth manager from container
         let healthKitAuthManager = try await container.resolve(HealthKitAuthManager.self)
@@ -151,8 +153,8 @@ public final class DIViewModelFactory {
             aiService: aiService,
             onboardingService: onboardingService,
             modelContext: context,
-            apiKeyManager: apiKeyManager,
             userService: userService,
+            personaService: personaService,
             healthKitAuthManager: healthKitAuthManager
         )
     }

@@ -126,7 +126,7 @@ struct GeneratingCoachView: View {
             try? await Task.sleep(for: .milliseconds(500))
             
             // Navigate to the next screen
-            viewModel.navigateToNextScreen()
+            viewModel.navigateToNext()
         }
     }
     

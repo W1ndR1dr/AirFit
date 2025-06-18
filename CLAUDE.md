@@ -127,6 +127,12 @@ grep -r "struct TypeName\|class TypeName\|enum TypeName" --include="*.swift" Air
   - ALWAYS update existing docs rather than creating new ones. Single source of truth.
   - Never put docs in root directory (except CLAUDE.md and Manual.md)
   - Check for existing documentation before creating new files
+- **File Cleanup Discipline**: Clean up old and unused files (only once certain they aren't needed for reference or codebase use)
+- **Commit & Workflow Discipline**:
+  - **Atomic Commits**: Push to Codex1 branch with clear, descriptive commit messages
+  - **Document Carefully**: Update relevant documentation (especially ONBOARDING_PROGRESS.md) with each change
+  - **Analyze Before Coding**: This is SPECIFICALLY designed to be protective against context resets and context limitations
+  - **Measure Thrice, Cut Once**: Do thorough analysis before making any code changes to improve certainty
 
 ## Development Environment
 - **Target Device**: iPhone 16 Pro with iOS 18.4 simulator

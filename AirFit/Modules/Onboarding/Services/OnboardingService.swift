@@ -14,11 +14,11 @@ final class OnboardingService: OnboardingServiceProtocol, ServiceProtocol {
     }
     
     private let modelContext: ModelContext
-    private let aiService: AIServiceProtocol
+    private let llmOrchestrator: LLMOrchestrator
 
-    init(modelContext: ModelContext, aiService: AIServiceProtocol) {
+    init(modelContext: ModelContext, llmOrchestrator: LLMOrchestrator) {
         self.modelContext = modelContext
-        self.aiService = aiService
+        self.llmOrchestrator = llmOrchestrator
     }
     
     // MARK: - ServiceProtocol Methods
@@ -111,10 +111,10 @@ final class OnboardingService: OnboardingServiceProtocol, ServiceProtocol {
     func synthesizeGoals(from rawData: OnboardingRawData) async throws -> LLMGoalSynthesis {
         let prompt = createGoalSynthesisPrompt(from: rawData)
         
-        let response = try await aiService.complete(
+        let response = try await llmOrchestrator.complete(
             prompt: prompt,
-            task: .goalRefinement,
-            preferredModel: nil
+            task: .personalityExtraction,  // Using closest available task
+            temperature: 0.7
         )
         
         // Parse JSON response
