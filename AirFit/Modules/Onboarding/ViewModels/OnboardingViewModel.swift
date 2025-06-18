@@ -362,6 +362,23 @@ final class OnboardingViewModel: ErrorHandling {
         return responses
     }
 
+    // MARK: - Goal Parsing
+    
+    func parseGoalsWithLLM() async -> String {
+        // Early return with fallback if no goals text
+        guard !functionalGoalsText.isEmpty else {
+            return "Let's define your fitness goals together."
+        }
+        
+        do {
+            // Use the onboarding service which has access to LLM
+            return try await onboardingService.parseGoalsConversationally(from: functionalGoalsText)
+        } catch {
+            // Fallback to acknowledging their input
+            return "You want to \(functionalGoalsText). I'll help create a personalized plan for your fitness journey."
+        }
+    }
+
     // MARK: - Completion
     
     private func completeOnboarding() async {

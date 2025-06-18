@@ -215,6 +215,34 @@ final class OnboardingService: OnboardingServiceProtocol, ServiceProtocol {
         
         return parts.isEmpty ? "Limited health data" : parts.joined(separator: ", ")
     }
+    
+    // MARK: - Goal Understanding
+    
+    func parseGoalsConversationally(from goalsText: String) async throws -> String {
+        let prompt = """
+        You are a thoughtful fitness coach having a conversation about goals.
+        
+        The user described their fitness goals as: "\(goalsText)"
+        
+        Based on what they've shared, provide a thoughtful understanding of their goals. 
+        Expand on what they said if it's vague, clarify if needed, and show you understand 
+        their aspirations. Be conversational and encouraging.
+        
+        If they mentioned specific goals like weight loss, muscle gain, or performance, 
+        acknowledge those directly. If they were vague, infer reasonable goals based on 
+        common fitness aspirations.
+        
+        Keep your response to 2-3 sentences that show deep understanding of what they want to achieve.
+        """
+        
+        let response = try await llmOrchestrator.complete(
+            prompt: prompt,
+            task: .personalityExtraction,  // Using closest available task
+            temperature: 0.7
+        )
+        
+        return response.content
+    }
 }
 
 // MARK: - Onboarding Errors

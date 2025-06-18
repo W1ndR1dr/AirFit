@@ -8,22 +8,12 @@ struct GoalsProgressiveView: View {
     @State private var showSuggestions = false
     @State private var isParsing = false
     @FocusState private var textFieldFocused: Bool
-    @State private var parsedPrimaryGoal = ""
-    @State private var selectedGoals: Set<SuggestedGoal> = []
-    @State private var additionalGoalText = ""
-    @State private var showConflictWarning = false
-    @State private var conflictMessage = ""
+    @State private var llmUnderstanding = ""
+    @State private var showRefinement = false
+    @State private var refinementText = ""
+    @State private var isConfirmed = false
     @EnvironmentObject private var gradientManager: GradientManager
     @Environment(\.colorScheme) private var colorScheme
-    
-    // Suggested goals based on common fitness objectives
-    private let suggestedGoals: [SuggestedGoal] = [
-        SuggestedGoal(id: "muscle", text: "Build muscle definition", icon: "figure.strengthtraining.traditional"),
-        SuggestedGoal(id: "cardio", text: "Improve cardio endurance", icon: "figure.run"),
-        SuggestedGoal(id: "energy", text: "Have more energy", icon: "bolt.fill"),
-        SuggestedGoal(id: "sleep", text: "Sleep better", icon: "moon.fill"),
-        SuggestedGoal(id: "stress", text: "Reduce stress", icon: "leaf.fill")
-    ]
     
     // Smart placeholder based on HealthKit data
     private var goalPlaceholder: String {
@@ -141,16 +131,12 @@ struct GoalsProgressiveView: View {
                 scheduleParsingIfNeeded()
             }
         }
-        .onChange(of: selectedGoals) { _, _ in
-            checkForConflicts()
-        }
         .accessibilityIdentifier("onboarding.goals")
     }
     
     // MARK: - View Components
     
-    @ViewBuilder
-    private var goalTextInput: some View {
+    @ViewBuilder private var goalTextInput: some View {
         VStack(spacing: AppSpacing.sm) {
             ZStack(alignment: .topLeading) {
                 // Placeholder
@@ -196,114 +182,97 @@ struct GoalsProgressiveView: View {
         .animation(.spring(response: 0.6, dampingFraction: 0.8).delay(0.8), value: animateIn)
     }
     
-    @ViewBuilder
-    private var suggestionsList: some View {
-        VStack(alignment: .leading, spacing: AppSpacing.lg) {
-            // Parsed primary goal
-            if !parsedPrimaryGoal.isEmpty {
-                Text("I heard: \(parsedPrimaryGoal). What else?")
-                    .font(.system(size: 18, weight: .medium, design: .rounded))
+    @ViewBuilder private var suggestionsList: some View {
+        VStack(alignment: .leading, spacing: AppSpacing.xl) {
+            // LLM's understanding
+            VStack(alignment: .leading, spacing: AppSpacing.md) {
+                Text("Here's what I understand:")
+                    .font(.system(size: 20, weight: .medium, design: .rounded))
                     .foregroundStyle(.primary)
-                    .padding(.horizontal, AppSpacing.screenPadding)
-                    .transition(.opacity.combined(with: .move(edge: .top)))
-            }
-            
-            // Goal checkboxes
-            VStack(spacing: AppSpacing.sm) {
-                ForEach(suggestedGoals) { goal in
-                    GoalCheckbox(
-                        goal: goal,
-                        isSelected: selectedGoals.contains(goal),
-                        onToggle: { toggleGoal(goal) }
-                    )
-                }
                 
-                // Something else option
-                somethingElseOption
+                Text(llmUnderstanding)
+                    .font(.system(size: 18, weight: .regular, design: .rounded))
+                    .foregroundStyle(gradientManager.active.secondaryTextColor(for: colorScheme))
+                    .multilineTextAlignment(.leading)
+                    .fixedSize(horizontal: false, vertical: true)
             }
             .padding(.horizontal, AppSpacing.screenPadding)
+            .transition(.opacity.combined(with: .move(edge: .top)))
             
-            // Conflict warning
-            if showConflictWarning {
-                conflictWarningView
+            // Confirmation or refinement
+            VStack(spacing: AppSpacing.md) {
+                if !showRefinement {
+                    // Initial confirmation buttons
+                    HStack(spacing: AppSpacing.md) {
+                        Button(action: {
+                            withAnimation(.spring(response: 0.3, dampingFraction: 0.8)) {
+                                isConfirmed = true
+                            }
+                        }, label: {
+                            Text("Yes, exactly!")
+                                .font(.system(size: 16, weight: .medium, design: .rounded))
+                                .foregroundColor(.white)
+                                .padding(.horizontal, AppSpacing.lg)
+                                .padding(.vertical, AppSpacing.md)
+                                .background(
+                                    RoundedRectangle(cornerRadius: 12)
+                                        .fill(gradientManager.currentGradient(for: colorScheme))
+                                )
+                        })
+                        
+                        Button(action: {
+                            withAnimation(.spring(response: 0.3, dampingFraction: 0.8)) {
+                                showRefinement = true
+                            }
+                        }, label: {
+                            Text("Let me clarify")
+                                .font(.system(size: 16, weight: .regular, design: .rounded))
+                                .foregroundStyle(gradientManager.active.accentColor(for: colorScheme))
+                                .padding(.horizontal, AppSpacing.lg)
+                                .padding(.vertical, AppSpacing.md)
+                                .background(
+                                    RoundedRectangle(cornerRadius: 12)
+                                        .fill(.ultraThinMaterial)
+                                        .overlay(
+                                            RoundedRectangle(cornerRadius: 12)
+                                                .strokeBorder(gradientManager.active.accentColor(for: colorScheme).opacity(0.3), lineWidth: 1)
+                                        )
+                                )
+                        })
+                    }
+                } else {
+                    // Refinement text field
+                    VStack(spacing: AppSpacing.sm) {
+                        Text("What would you like to add or change?")
+                            .font(.system(size: 16, weight: .regular, design: .rounded))
+                            .foregroundStyle(.secondary)
+                        
+                        TextField("Actually, I also want to...", text: $refinementText)
+                            .font(.system(size: 18, weight: .regular, design: .rounded))
+                            .padding(AppSpacing.md)
+                            .background(
+                                RoundedRectangle(cornerRadius: 12)
+                                    .fill(.ultraThinMaterial)
+                            )
+                            .onSubmit {
+                                Task {
+                                    await refineGoals()
+                                }
+                            }
+                    }
+                    .transition(.opacity.combined(with: .scale))
+                }
             }
+            .padding(.horizontal, AppSpacing.screenPadding)
         }
         .transition(.opacity.combined(with: .move(edge: .bottom)))
-    }
-    
-    @ViewBuilder
-    private var somethingElseOption: some View {
-        VStack(spacing: AppSpacing.xs) {
-            HStack {
-                Image(systemName: selectedGoals.contains(where: { $0.id == "other" }) ? "checkmark.square.fill" : "square")
-                    .font(.system(size: 22))
-                    .foregroundStyle(selectedGoals.contains(where: { $0.id == "other" }) ? 
-                        gradientManager.active.accentColor(for: colorScheme) : .secondary)
-                
-                Text("Something else:")
-                    .font(.system(size: 17, weight: .regular))
-                    .foregroundStyle(.primary)
-                
-                Spacer()
-            }
-            .contentShape(Rectangle())
-            .onTapGesture {
-                toggleOtherGoal()
-            }
-            
-            if selectedGoals.contains(where: { $0.id == "other" }) {
-                TextField("Describe your goal", text: $additionalGoalText)
-                    .font(.system(size: 17, weight: .regular))
-                    .padding(12)
-                    .background(
-                        RoundedRectangle(cornerRadius: 12)
-                            .fill(.ultraThinMaterial)
-                    )
-                    .transition(.opacity.combined(with: .scale))
-            }
-        }
-        .padding(AppSpacing.md)
-        .background(
-            RoundedRectangle(cornerRadius: 16)
-                .fill(.ultraThinMaterial)
-                .overlay(
-                    RoundedRectangle(cornerRadius: 16)
-                        .strokeBorder(
-                            selectedGoals.contains(where: { $0.id == "other" }) ?
-                            gradientManager.active.accentColor(for: colorScheme).opacity(0.5) :
-                            Color.white.opacity(0.1),
-                            lineWidth: 1
-                        )
-                )
-        )
-    }
-    
-    @ViewBuilder
-    private var conflictWarningView: some View {
-        HStack(spacing: AppSpacing.sm) {
-            Image(systemName: "info.circle.fill")
-                .font(.system(size: 16))
-                .foregroundStyle(Color.orange)
-            
-            Text(conflictMessage)
-                .font(.system(size: 14, weight: .regular))
-                .foregroundStyle(.primary)
-                .multilineTextAlignment(.leading)
-        }
-        .padding(AppSpacing.md)
-        .background(
-            RoundedRectangle(cornerRadius: 12)
-                .fill(Color.orange.opacity(0.1))
-        )
-        .padding(.horizontal, AppSpacing.screenPadding)
-        .transition(.opacity.combined(with: .scale))
     }
     
     // MARK: - Computed Properties
     
     private var canContinue: Bool {
         if showSuggestions {
-            return !selectedGoals.isEmpty || !additionalGoalText.isEmpty
+            return isConfirmed || (!showRefinement && !llmUnderstanding.isEmpty)
         } else {
             return !viewModel.functionalGoalsText.isEmpty
         }
@@ -311,8 +280,13 @@ struct GoalsProgressiveView: View {
     
     private var continueButtonText: String {
         if showSuggestions {
-            let count = selectedGoals.count + (additionalGoalText.isEmpty ? 0 : 1)
-            return count > 0 ? "Continue with \(count) goal\(count == 1 ? "" : "s")" : "Continue"
+            if isConfirmed {
+                return "Continue"
+            } else if showRefinement {
+                return "Update goals"
+            } else {
+                return "Continue"
+            }
         } else {
             return "Continue"
         }
@@ -342,140 +316,63 @@ struct GoalsProgressiveView: View {
             textFieldFocused = false
         }
         
-        // Simulate LLM parsing (in real app, call OnboardingService)
-        try? await Task.sleep(for: .seconds(1.5))
-        
-        // Extract primary goal from text
-        let text = viewModel.functionalGoalsText.lowercased()
-        if text.contains("lose") && text.contains("weight") {
-            parsedPrimaryGoal = "lose weight"
-        } else if text.contains("build") && text.contains("muscle") {
-            parsedPrimaryGoal = "build muscle"
-        } else if text.contains("get") && text.contains("fit") {
-            parsedPrimaryGoal = "get fit"
-        } else if text.contains("improve") && text.contains("health") {
-            parsedPrimaryGoal = "improve health"
-        } else {
-            parsedPrimaryGoal = "achieve your fitness goals"
-        }
-        
-        // Show suggestions
-        withAnimation(.spring(response: 0.6, dampingFraction: 0.8)) {
-            isParsing = false
-            showSuggestions = true
+        do {
+            // Use LLM to understand and expand on the user's goals
+            let understanding = await viewModel.parseGoalsWithLLM()
+            
+            // Update UI with LLM's understanding
+            await MainActor.run {
+                llmUnderstanding = understanding
+                
+                // Show the understanding for confirmation
+                withAnimation(.spring(response: 0.6, dampingFraction: 0.8)) {
+                    isParsing = false
+                    showSuggestions = true
+                }
+            }
+        } catch {
+            // On error, create a basic understanding from the text
+            await MainActor.run {
+                // Simple fallback that acknowledges what they wrote
+                llmUnderstanding = "You want to \(viewModel.functionalGoalsText). I'll help create a personalized plan for your fitness journey."
+                
+                withAnimation(.spring(response: 0.6, dampingFraction: 0.8)) {
+                    isParsing = false
+                    showSuggestions = true
+                }
+            }
         }
     }
     
-    private func toggleGoal(_ goal: SuggestedGoal) {
+    private func refineGoals() async {
+        guard !refinementText.isEmpty else { return }
+        
+        // Append refinement to original goals
+        viewModel.functionalGoalsText += ". " + refinementText
+        
+        // Re-parse with updated goals
         withAnimation(.spring(response: 0.3, dampingFraction: 0.8)) {
-            if selectedGoals.contains(goal) {
-                selectedGoals.remove(goal)
-            } else {
-                selectedGoals.insert(goal)
-            }
-        }
-        HapticService.impact(.light)
-    }
-    
-    private func toggleOtherGoal() {
-        let otherGoal = SuggestedGoal(id: "other", text: "Other", icon: "plus.circle")
-        toggleGoal(otherGoal)
-    }
-    
-    private func checkForConflicts() {
-        // Check for truly conflicting goals
-        let hasMuscleGoal = selectedGoals.contains(where: { $0.id == "muscle" })
-        let hasCardioGoal = selectedGoals.contains(where: { $0.id == "cardio" })
-        let hasStressReduction = selectedGoals.contains(where: { $0.id == "stress" })
-        
-        // Example: Heavy cardio focus might conflict with muscle building for some
-        if hasMuscleGoal && hasCardioGoal && selectedGoals.count == 2 {
-            withAnimation(.spring(response: 0.4, dampingFraction: 0.8)) {
-                showConflictWarning = true
-                conflictMessage = "Note: Balancing muscle growth with heavy cardio requires smart programming - I'll help optimize both!"
-            }
-        } else {
-            withAnimation(.spring(response: 0.4, dampingFraction: 0.8)) {
-                showConflictWarning = false
-            }
+            isParsing = true
+            showRefinement = false
+            refinementText = ""
         }
         
-        // Body recomposition is a perfectly valid goal!
-        // No warning needed for muscle + weight loss
+        // Re-run LLM understanding
+        await parseGoals()
     }
     
     private func handleContinue() {
-        // Store selected goals in view model
-        viewModel.bodyRecompositionGoals = selectedGoals.compactMap { goal in
-            switch goal.id {
-            case "muscle": return .gainMuscle
-            case "cardio": return .improveDefinition
-            default: return nil
+        // If user is refining, process the refinement first
+        if showRefinement && !refinementText.isEmpty {
+            Task {
+                await refineGoals()
             }
+            return
         }
         
-        // Add additional goal text if provided
-        if !additionalGoalText.isEmpty {
-            viewModel.functionalGoalsText += ". Also: \(additionalGoalText)"
-        }
-        
+        // The functional goals text already contains everything the user expressed
+        // The LLM will handle all the parsing and understanding during synthesis
         viewModel.navigateToNext()
     }
 }
 
-// MARK: - Supporting Types
-
-struct SuggestedGoal: Identifiable, Hashable {
-    let id: String
-    let text: String
-    let icon: String
-}
-
-// MARK: - Goal Checkbox Component
-
-struct GoalCheckbox: View {
-    let goal: SuggestedGoal
-    let isSelected: Bool
-    let onToggle: () -> Void
-    @EnvironmentObject private var gradientManager: GradientManager
-    @Environment(\.colorScheme) private var colorScheme
-    
-    var body: some View {
-        HStack(spacing: AppSpacing.md) {
-            Image(systemName: isSelected ? "checkmark.square.fill" : "square")
-                .font(.system(size: 22))
-                .foregroundStyle(isSelected ? 
-                    gradientManager.active.accentColor(for: colorScheme) : .secondary)
-            
-            Image(systemName: goal.icon)
-                .font(.system(size: 18))
-                .foregroundStyle(.primary.opacity(0.8))
-            
-            Text(goal.text)
-                .font(.system(size: 17, weight: .regular))
-                .foregroundStyle(.primary)
-            
-            Spacer()
-        }
-        .padding(AppSpacing.md)
-        .background(
-            RoundedRectangle(cornerRadius: 16)
-                .fill(.ultraThinMaterial)
-                .overlay(
-                    RoundedRectangle(cornerRadius: 16)
-                        .strokeBorder(
-                            isSelected ? 
-                            gradientManager.active.accentColor(for: colorScheme).opacity(0.5) :
-                            Color.white.opacity(0.1),
-                            lineWidth: 1
-                        )
-                )
-        )
-        .scaleEffect(isSelected ? 1.02 : 1.0)
-        .contentShape(Rectangle())
-        .onTapGesture {
-            onToggle()
-        }
-        .animation(.spring(response: 0.3, dampingFraction: 0.8), value: isSelected)
-    }
-}
