@@ -379,6 +379,81 @@ final class OnboardingViewModel: ErrorHandling {
         }
     }
 
+    // MARK: - Synthesis Retry
+    
+    func retrySynthesis() async {
+        // Reset previous state
+        synthesizedGoals = nil
+        generatedPersona = nil
+        error = nil
+        
+        // Retry the synthesis
+        await synthesizePersona()
+    }
+    
+    func continueWithDefaultPersona() {
+        // Create a basic persona when synthesis fails
+        let defaultPersona = PersonaProfile(
+            id: UUID(),
+            name: "Coach",
+            archetype: "Supportive Guide",
+            systemPrompt: "You are a supportive fitness coach focused on helping users achieve their health goals.",
+            coreValues: ["Encouragement", "Progress over perfection", "Personalization"],
+            backgroundStory: "I'm here to help you on your fitness journey with patience and support.",
+            voiceCharacteristics: VoiceCharacteristics(
+                energy: .moderate,
+                pace: .natural,
+                warmth: .warm,
+                vocabulary: .moderate,
+                sentenceStructure: .moderate
+            ),
+            interactionStyle: InteractionStyle(
+                greetingStyle: "Hey there! Ready to work on your goals today?",
+                closingStyle: "Looking forward to our next session!",
+                encouragementPhrases: ["You've got this!", "Keep it up!", "Every step counts!"],
+                acknowledgmentStyle: "Great job!",
+                correctionApproach: "Let's adjust and try again",
+                humorLevel: .light,
+                formalityLevel: .balanced,
+                responseLength: .moderate
+            ),
+            adaptationRules: [],
+            metadata: PersonaMetadata(
+                createdAt: Date(),
+                version: "1.0",
+                sourceInsights: ConversationPersonalityInsights(
+                    dominantTraits: ["Supportive", "Patient", "Encouraging"],
+                    communicationStyle: .supportive,
+                    motivationType: .balanced,
+                    energyLevel: .moderate,
+                    preferredComplexity: .moderate,
+                    emotionalTone: ["warm", "encouraging"],
+                    stressResponse: .wantsEncouragement,
+                    preferredTimes: ["morning", "evening"],
+                    extractedAt: Date()
+                ),
+                generationDuration: 0,
+                tokenCount: 0,
+                previewReady: true
+            )
+        )
+        
+        // Set basic synthesized goals
+        synthesizedGoals = LLMGoalSynthesis(
+            parsedFunctionalGoals: [],
+            goalRelationships: [],
+            unifiedStrategy: "Let's work together to achieve your fitness goals!",
+            recommendedTimeline: "We'll adjust as we learn more about you",
+            suggestedPersonaMode: nil,
+            coachingFocus: ["General fitness", "Healthy habits"],
+            milestones: [],
+            expectedChallenges: [],
+            motivationalHooks: ["You've got this!", "Every step counts"]
+        )
+        
+        generatedPersona = defaultPersona
+    }
+    
     // MARK: - Completion
     
     private func completeOnboarding() async {
