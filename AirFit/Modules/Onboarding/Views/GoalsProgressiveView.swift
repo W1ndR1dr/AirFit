@@ -383,20 +383,25 @@ struct GoalsProgressiveView: View {
     }
     
     private func checkForConflicts() {
-        // Check for conflicting goals
+        // Check for truly conflicting goals
         let hasMuscleGoal = selectedGoals.contains(where: { $0.id == "muscle" })
-        let hasWeightLossGoal = parsedPrimaryGoal.contains("lose")
+        let hasCardioGoal = selectedGoals.contains(where: { $0.id == "cardio" })
+        let hasStressReduction = selectedGoals.contains(where: { $0.id == "stress" })
         
-        if hasMuscleGoal && hasWeightLossGoal {
+        // Example: Heavy cardio focus might conflict with muscle building for some
+        if hasMuscleGoal && hasCardioGoal && selectedGoals.count == 2 {
             withAnimation(.spring(response: 0.4, dampingFraction: 0.8)) {
                 showConflictWarning = true
-                conflictMessage = "Note: Building muscle while losing weight requires a careful approach - I'll help balance these goals!"
+                conflictMessage = "Note: Balancing muscle growth with heavy cardio requires smart programming - I'll help optimize both!"
             }
         } else {
             withAnimation(.spring(response: 0.4, dampingFraction: 0.8)) {
                 showConflictWarning = false
             }
         }
+        
+        // Body recomposition is a perfectly valid goal!
+        // No warning needed for muscle + weight loss
     }
     
     private func handleContinue() {

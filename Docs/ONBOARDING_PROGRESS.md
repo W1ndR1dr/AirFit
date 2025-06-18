@@ -81,6 +81,16 @@
    - Added skip option with friendly default text
    - Gradient advances to morningTwilight (purple dawn)
 
+7. **Progressive Goal Disclosure Screen** ✅
+   - Two-phase interaction: free text → parsed suggestions
+   - Smart placeholders based on HealthKit data
+   - Simulated LLM parsing with 1.5s debounce
+   - Checkbox suggestions for common goals
+   - "Something else" option with text field
+   - Conflict detection for competing goals
+   - Dynamic continue button with goal count
+   - Gradient advances to firstLight (dawn breaking)
+
 ### Key Decisions Made
 - Remove dual-mode confusion, commit to single clean flow
 - Use o3-inspired UI patterns from day one (text directly on gradients)
@@ -245,7 +255,7 @@ AirFit/Modules/Onboarding/
 │   ├── OpeningScreenView.swift ✅
 │   ├── HealthKitAuthorizationView.swift ✅
 │   ├── LifeContextView.swift ✅
-│   ├── GoalsProgressiveView.swift ❌
+│   ├── GoalsProgressiveView.swift ✅
 │   ├── CommunicationStyleView.swift ❌
 │   ├── LLMSynthesisView.swift ❌
 │   └── CoachReadyView.swift ❌
