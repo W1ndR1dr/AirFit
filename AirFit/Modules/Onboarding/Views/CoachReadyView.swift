@@ -103,7 +103,7 @@ struct CoachReadyView: View {
                 VStack(spacing: AppSpacing.medium) {
                     // Primary action - complete onboarding
                     Button {
-                        HapticService.shared.impact(.light)
+                        HapticService.impact(.light)
                         Task {
                             await viewModel.completeOnboarding()
                         }
@@ -127,7 +127,7 @@ struct CoachReadyView: View {
                     
                     // Secondary action - learn more
                     Button {
-                        HapticService.shared.impact(.soft)
+                        HapticService.impact(.soft)
                         // TODO: Show coach details or tips
                     } label: {
                         Text("Tell me more")
@@ -146,7 +146,7 @@ struct CoachReadyView: View {
         }
         .onAppear {
             // Gradient has settled on user's home color
-            gradientManager.transitionTo(.sageMelon, duration: 0.8)
+            gradientManager.setGradient(.sageMelon)
             
             // Trigger animations
             animateIn = true
@@ -154,7 +154,7 @@ struct CoachReadyView: View {
             showButtons = true
             
             // Celebration haptic
-            HapticService.shared.notification(.success)
+            HapticService.notification(.success)
         }
     }
     

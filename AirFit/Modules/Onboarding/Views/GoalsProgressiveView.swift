@@ -316,30 +316,17 @@ struct GoalsProgressiveView: View {
             textFieldFocused = false
         }
         
-        do {
-            // Use LLM to understand and expand on the user's goals
-            let understanding = await viewModel.parseGoalsWithLLM()
+        // Use LLM to understand and expand on the user's goals
+        let understanding = await viewModel.parseGoalsWithLLM()
+        
+        // Update UI with LLM's understanding
+        await MainActor.run {
+            llmUnderstanding = understanding
             
-            // Update UI with LLM's understanding
-            await MainActor.run {
-                llmUnderstanding = understanding
-                
-                // Show the understanding for confirmation
-                withAnimation(.spring(response: 0.6, dampingFraction: 0.8)) {
-                    isParsing = false
-                    showSuggestions = true
-                }
-            }
-        } catch {
-            // On error, create a basic understanding from the text
-            await MainActor.run {
-                // Simple fallback that acknowledges what they wrote
-                llmUnderstanding = "You want to \(viewModel.functionalGoalsText). I'll help create a personalized plan for your fitness journey."
-                
-                withAnimation(.spring(response: 0.6, dampingFraction: 0.8)) {
-                    isParsing = false
-                    showSuggestions = true
-                }
+            // Show the understanding for confirmation
+            withAnimation(.spring(response: 0.6, dampingFraction: 0.8)) {
+                isParsing = false
+                showSuggestions = true
             }
         }
     }

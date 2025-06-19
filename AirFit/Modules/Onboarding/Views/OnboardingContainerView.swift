@@ -36,6 +36,10 @@ struct OnboardingContainerView: View {
             LifeContextView(viewModel: viewModel)
         case .goals:
             GoalsProgressiveView(viewModel: viewModel)
+        case .weightObjectives:
+            WeightObjectivesView(viewModel: viewModel)
+        case .bodyComposition:
+            BodyCompositionGoalsView(viewModel: viewModel)
         case .communicationStyle:
             CommunicationStyleView(viewModel: viewModel)
         case .synthesis:
@@ -52,7 +56,9 @@ struct OnboardingContainerView: View {
             .healthKit: .earlyTwilight,       // First hint of light
             .lifeContext: .morningTwilight,   // Purple twilight
             .goals: .firstLight,              // Dawn breaking
-            .communicationStyle: .sunrise,    // Actual sunrise
+            .weightObjectives: .dawnPeach,    // Dawn colors
+            .bodyComposition: .sunrise,       // Warm sunrise
+            .communicationStyle: .morningGlow,// Golden light
             .synthesis: .morningGlow,         // Golden hour (will cycle)
             .coachReady: .brightMorning       // Late morning - user's "home" gradient
         ]

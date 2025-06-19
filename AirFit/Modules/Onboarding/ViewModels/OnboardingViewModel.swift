@@ -19,6 +19,8 @@ final class OnboardingViewModel: ErrorHandling {
         case healthKit
         case lifeContext
         case goals
+        case weightObjectives
+        case bodyComposition
         case communicationStyle
         case synthesis
         case coachReady
@@ -29,6 +31,8 @@ final class OnboardingViewModel: ErrorHandling {
             case .healthKit: return "Health Data"
             case .lifeContext: return "About You"
             case .goals: return "Your Goals"
+            case .weightObjectives: return "Weight Goals"
+            case .bodyComposition: return "Body Goals"
             case .communicationStyle: return "Coaching Style"
             case .synthesis: return "Creating Coach"
             case .coachReady: return "Coach Ready"
@@ -127,6 +131,10 @@ final class OnboardingViewModel: ErrorHandling {
         case .lifeContext:
             currentScreen = .goals
         case .goals:
+            currentScreen = .weightObjectives
+        case .weightObjectives:
+            currentScreen = .bodyComposition
+        case .bodyComposition:
             currentScreen = .communicationStyle
         case .communicationStyle:
             Task { await synthesizePersona() }
@@ -152,8 +160,12 @@ final class OnboardingViewModel: ErrorHandling {
             currentScreen = .healthKit
         case .goals:
             currentScreen = .lifeContext
-        case .communicationStyle:
+        case .weightObjectives:
             currentScreen = .goals
+        case .bodyComposition:
+            currentScreen = .weightObjectives
+        case .communicationStyle:
+            currentScreen = .bodyComposition
         case .synthesis:
             currentScreen = .communicationStyle
         case .coachReady:
@@ -456,7 +468,7 @@ final class OnboardingViewModel: ErrorHandling {
     
     // MARK: - Completion
     
-    private func completeOnboarding() async {
+    func completeOnboarding() async {
         guard let persona = generatedPersona,
               let userId = await userService.getCurrentUserId() else {
             error = .validationError(message: "Missing persona or user")

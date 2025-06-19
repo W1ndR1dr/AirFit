@@ -297,6 +297,7 @@
 		A9A3DA5A713B66F1CE8E0C5E /* AppConstants.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9DEBEA4064236AB5F1AD28C5 /* AppConstants.swift */; };
 		A9A66979218CA9F3C298D17A /* PersonaSynthesisView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6BD39CB4C72A736D7F987738 /* PersonaSynthesisView.swift */; };
 		A9E136B0D8C87DC844DF3984 /* LiveActivityManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0611CFE05B85A678EC3C0247 /* LiveActivityManager.swift */; };
+		AAD512538BA9D8571FB4D88E /* WeightObjectivesView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3826C8A0BABA7C86E92932EE /* WeightObjectivesView.swift */; };
 		ABAE8613C48D9BACC1175724 /* DataManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4E5CB706D892FB3AF4615186 /* DataManager.swift */; };
 		ABBA26E354980101E6DC2CBC /* WorkoutServiceProtocol.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8B55C06A583CE33EC9AE9B20 /* WorkoutServiceProtocol.swift */; };
 		AC9EB106FA4AD8EAF16B047F /* BaseCoordinator.swift in Sources */ = {isa = PBXBuildFile; fileRef = 13A40A209A749116125B96DB /* BaseCoordinator.swift */; };
@@ -316,6 +317,7 @@
 		B8A2170AA8B5BA5F937C610F /* ContextAssembler.swift in Sources */ = {isa = PBXBuildFile; fileRef = 625C4FDB63D455EC5F4DEC79 /* ContextAssembler.swift */; };
 		B8BFCC8429BFDC561CCF81BE /* Color+Fallbacks.swift in Sources */ = {isa = PBXBuildFile; fileRef = 04AB817A11B640E451CE2B8C /* Color+Fallbacks.swift */; };
 		B9121F9D1B030FFACA13A511 /* VoiceInputProtocol.swift in Sources */ = {isa = PBXBuildFile; fileRef = 093F3E8536A849318EB597DC /* VoiceInputProtocol.swift */; };
+		B9739C45AF65CE3E916434F4 /* BodyCompositionGoalsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = D00AA3788BC3A84634958CB2 /* BodyCompositionGoalsView.swift */; };
 		BA231CA86AA9CC10355067D1 /* WorkoutAnalysisEngine.swift in Sources */ = {isa = PBXBuildFile; fileRef = CC91573FB9EBA3B4EF202255 /* WorkoutAnalysisEngine.swift */; };
 		BA3D00247F62644FE7E990EA /* ConversationFlowManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = 95DD4B13D0E2EB79D0630375 /* ConversationFlowManager.swift */; };
 		BC4D37666CBDD0DDDF2C74CC /* Exercise.swift in Sources */ = {isa = PBXBuildFile; fileRef = B2ED62790A106390983F24BB /* Exercise.swift */; };
@@ -564,6 +566,7 @@
 		3748CEC155B24F7155CD1B34 /* CommunicationStyleView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CommunicationStyleView.swift; sourceTree = "<group>"; };
 		375B3AFB08C3C1D266748999 /* ConversationStateManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ConversationStateManager.swift; sourceTree = "<group>"; };
 		37A381524B56ECAC3D046215 /* Workout.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Workout.swift; sourceTree = "<group>"; };
+		3826C8A0BABA7C86E92932EE /* WeightObjectivesView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WeightObjectivesView.swift; sourceTree = "<group>"; };
 		38E0EF801FA7180E03AA59A2 /* NetworkReachability.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NetworkReachability.swift; sourceTree = "<group>"; };
 		38F5C1C01555EA539F09B0C5 /* AIModels.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AIModels.swift; sourceTree = "<group>"; };
 		39F8B8EF7A3FE3412D4B38CA /* FoodLoggingView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FoodLoggingView.swift; sourceTree = "<group>"; };
@@ -810,6 +813,7 @@
 		CF649BA8A82FDA0BCC0106DD /* MockConversationPersistence.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MockConversationPersistence.swift; sourceTree = "<group>"; };
 		CF9120EB83D203284D88E51D /* AIServiceTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AIServiceTests.swift; sourceTree = "<group>"; };
 		CFAB4CE8A63AF5DDBF13B1F9 /* GradientToken.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GradientToken.swift; sourceTree = "<group>"; };
+		D00AA3788BC3A84634958CB2 /* BodyCompositionGoalsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BodyCompositionGoalsView.swift; sourceTree = "<group>"; };
 		D02FDFA4EA109CF910BA3144 /* ServiceConfiguration.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ServiceConfiguration.swift; sourceTree = "<group>"; };
 		D081F6BABB8C7AE75B3210AC /* SettingsViewModelTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SettingsViewModelTests.swift; sourceTree = "<group>"; };
 		D0C29B14385C1BE3A7631BA7 /* AppSpacing.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppSpacing.swift; sourceTree = "<group>"; };
@@ -1578,6 +1582,7 @@
 			isa = PBXGroup;
 			children = (
 				1DE3A2FE01BBBD9F888CD42D /* InputModalities */,
+				D00AA3788BC3A84634958CB2 /* BodyCompositionGoalsView.swift */,
 				5AE0CC5BF7297FC5A7B13740 /* CoachReadyView.swift */,
 				3748CEC155B24F7155CD1B34 /* CommunicationStyleView.swift */,
 				ABCBEB22BFFE7842656F5BD5 /* ConversationalInputView.swift */,
@@ -1599,6 +1604,7 @@
 				B3826F7C98A05398EB91AFC9 /* PersonaPreviewCard.swift */,
 				74527C684A89975292B658B7 /* PersonaPreviewView.swift */,
 				6BD39CB4C72A736D7F987738 /* PersonaSynthesisView.swift */,
+				3826C8A0BABA7C86E92932EE /* WeightObjectivesView.swift */,
 			);
 			path = Views;
 			sourceTree = "<group>";
@@ -2771,6 +2777,7 @@
 				AC9EB106FA4AD8EAF16B047F /* BaseCoordinator.swift in Sources */,
 				09D9970AC6EC189F3E72724E /* BaseScreen.swift in Sources */,
 				0DE1979446C37A5A873DE0AD /* BiometricAuthManager.swift in Sources */,
+				B9739C45AF65CE3E916434F4 /* BodyCompositionGoalsView.swift in Sources */,
 				A86B7C94D45CBF2385E53DDD /* CascadeText.swift in Sources */,
 				F54CE440EAF6B19AE447FC14 /* ChatAttachment.swift in Sources */,
 				32C0D8F71E2E4E94A13E219E /* ChatCoordinator.swift in Sources */,
@@ -3000,6 +3007,7 @@
 				2E51E038B582399E9DF385AD /* WaterTrackingView.swift in Sources */,
 				DCA6B984ACD014A090BF5EC9 /* WeatherService.swift in Sources */,
 				B7D1DBED6F165EB005D17207 /* WeatherServiceProtocol.swift in Sources */,
+				AAD512538BA9D8571FB4D88E /* WeightObjectivesView.swift in Sources */,
 				F802680898633FF0CB602C02 /* WhisperServiceWrapperProtocol.swift in Sources */,
 				A6813FCD46624D39C8616D8A /* WhisperStubs.swift in Sources */,
 				05ABA3AD4A577502DB03EE13 /* Workout.swift in Sources */,
