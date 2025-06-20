@@ -117,11 +117,20 @@ struct LifeContextView: View {
                     // Voice input indicator
                     if showVoiceInput {
                         VStack(spacing: AppSpacing.xs) {
-                            // Simulated waveform for now
-                            VoiceWaveformView(
-                                levels: generateMockLevels(),
-                                config: .chat
-                            )
+                            // Voice visualization placeholder
+                            HStack(spacing: 4) {
+                                ForEach(0..<5) { _ in
+                                    RoundedRectangle(cornerRadius: 2)
+                                        .fill(gradientManager.active.accentColor(for: colorScheme))
+                                        .frame(width: 4, height: CGFloat.random(in: 10...30))
+                                        .animation(
+                                            .easeInOut(duration: 0.5)
+                                            .repeatForever(autoreverses: true)
+                                            .delay(Double.random(in: 0...0.2)),
+                                            value: showVoiceInput
+                                        )
+                                }
+                            }
                             .frame(height: 40)
                             
                             Text("I'm all ears...")
@@ -201,10 +210,5 @@ struct LifeContextView: View {
             // Stop voice capture
             viewModel.stopVoiceCapture()
         }
-    }
-    
-    private func generateMockLevels() -> [Float] {
-        // Generate random levels for visual effect
-        return (0..<10).map { _ in Float.random(in: 0.2...0.8) }
     }
 }

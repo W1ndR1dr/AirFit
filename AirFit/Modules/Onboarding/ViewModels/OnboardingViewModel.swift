@@ -14,31 +14,6 @@ protocol HealthKitPrefillProviding: AnyObject, Sendable {
 @Observable
 final class OnboardingViewModel: ErrorHandling {
     // MARK: - Navigation State
-    enum OnboardingScreen: String, CaseIterable {
-        case opening
-        case healthKit
-        case lifeContext
-        case goals
-        case weightObjectives
-        case bodyComposition
-        case communicationStyle
-        case synthesis
-        case coachReady
-        
-        var title: String {
-            switch self {
-            case .opening: return "Welcome"
-            case .healthKit: return "Health Data"
-            case .lifeContext: return "About You"
-            case .goals: return "Your Goals"
-            case .weightObjectives: return "Weight Goals"
-            case .bodyComposition: return "Body Goals"
-            case .communicationStyle: return "Coaching Style"
-            case .synthesis: return "Creating Coach"
-            case .coachReady: return "Coach Ready"
-            }
-        }
-    }
     
     private(set) var currentScreen: OnboardingScreen = .opening
     private(set) var isLoading = false
@@ -47,9 +22,7 @@ final class OnboardingViewModel: ErrorHandling {
     
     // MARK: - Progress
     var progress: Double {
-        let screens = OnboardingScreen.allCases
-        guard let currentIndex = screens.firstIndex(of: currentScreen) else { return 0 }
-        return Double(currentIndex) / Double(screens.count - 1)
+        return currentScreen.progress
     }
 
     // MARK: - Collected Data
@@ -249,45 +222,7 @@ final class OnboardingViewModel: ErrorHandling {
     }
 
     // MARK: - Voice Input
-    
-    func startVoiceCapture(for field: VoiceInputField) {
-        guard let speechService else { return }
-        
-        speechService.requestPermission { [weak self] granted in
-            guard let self, granted else { return }
-            
-            self.isTranscribing = true
-            speechService.startTranscription { [weak self] result in
-                guard let self else { return }
-                
-                DispatchQueue.main.async {
-                    self.isTranscribing = false
-                    
-                    switch result {
-                    case .success(let transcript):
-                        switch field {
-                        case .lifeContext:
-                            self.lifeContext = transcript
-                        case .functionalGoals:
-                            self.functionalGoalsText = transcript
-                        }
-                    case .failure(let error):
-                        self.handleError(error)
-                    }
-                }
-            }
-        }
-    }
-    
-    func stopVoiceCapture() {
-        speechService?.stopTranscription()
-        isTranscribing = false
-    }
-    
-    enum VoiceInputField {
-        case lifeContext
-        case functionalGoals
-    }
+    // Voice input methods moved to OnboardingViewModel+Voice.swift
 
     // MARK: - Multi-Select Helpers
     
@@ -406,96 +341,10 @@ final class OnboardingViewModel: ErrorHandling {
     }
 
     // MARK: - Goal Parsing
-    
-    func parseGoalsWithLLM() async -> String {
-        // Early return with fallback if no goals text
-        guard !functionalGoalsText.isEmpty else {
-            return "Let's define your fitness goals together."
-        }
-        
-        do {
-            // Use the onboarding service which has access to LLM
-            return try await onboardingService.parseGoalsConversationally(from: functionalGoalsText)
-        } catch {
-            // Fallback to acknowledging their input
-            return "You want to \(functionalGoalsText). I'll help create a personalized plan for your fitness journey."
-        }
-    }
+    // Goal parsing and synthesis methods moved to OnboardingViewModel+Synthesis.swift
 
     // MARK: - Synthesis Retry
-    
-    func retrySynthesis() async {
-        // Reset previous state
-        synthesizedGoals = nil
-        generatedPersona = nil
-        error = nil
-        
-        // Retry the synthesis
-        await synthesizePersona()
-    }
-    
-    func continueWithDefaultPersona() {
-        // Create a basic persona when synthesis fails
-        let defaultPersona = PersonaProfile(
-            id: UUID(),
-            name: "Coach",
-            archetype: "Supportive Guide",
-            systemPrompt: "You are a supportive fitness coach focused on helping users achieve their health goals.",
-            coreValues: ["Encouragement", "Progress over perfection", "Personalization"],
-            backgroundStory: "I'm here to help you on your fitness journey with patience and support.",
-            voiceCharacteristics: VoiceCharacteristics(
-                energy: .moderate,
-                pace: .natural,
-                warmth: .warm,
-                vocabulary: .moderate,
-                sentenceStructure: .moderate
-            ),
-            interactionStyle: InteractionStyle(
-                greetingStyle: "Hey there! Ready to work on your goals today?",
-                closingStyle: "Looking forward to our next session!",
-                encouragementPhrases: ["You've got this!", "Keep it up!", "Every step counts!"],
-                acknowledgmentStyle: "Great job!",
-                correctionApproach: "Let's adjust and try again",
-                humorLevel: .light,
-                formalityLevel: .balanced,
-                responseLength: .moderate
-            ),
-            adaptationRules: [],
-            metadata: PersonaMetadata(
-                createdAt: Date(),
-                version: "1.0",
-                sourceInsights: ConversationPersonalityInsights(
-                    dominantTraits: ["Supportive", "Patient", "Encouraging"],
-                    communicationStyle: .supportive,
-                    motivationType: .balanced,
-                    energyLevel: .moderate,
-                    preferredComplexity: .moderate,
-                    emotionalTone: ["warm", "encouraging"],
-                    stressResponse: .wantsEncouragement,
-                    preferredTimes: ["morning", "evening"],
-                    extractedAt: Date()
-                ),
-                generationDuration: 0,
-                tokenCount: 0,
-                previewReady: true
-            )
-        )
-        
-        // Set basic synthesized goals
-        synthesizedGoals = LLMGoalSynthesis(
-            parsedFunctionalGoals: [],
-            goalRelationships: [],
-            unifiedStrategy: "Let's work together to achieve your fitness goals!",
-            recommendedTimeline: "We'll adjust as we learn more about you",
-            suggestedPersonaMode: nil,
-            coachingFocus: ["General fitness", "Healthy habits"],
-            milestones: [],
-            expectedChallenges: [],
-            motivationalHooks: ["You've got this!", "Every step counts"]
-        )
-        
-        generatedPersona = defaultPersona
-    }
+    // Synthesis retry methods moved to OnboardingViewModel+Synthesis.swift
     
     // MARK: - Completion
     
