@@ -113,8 +113,8 @@ final class OnboardingService: OnboardingServiceProtocol, ServiceProtocol {
         
         let response = try await llmOrchestrator.complete(
             prompt: prompt,
-            task: .personalityExtraction,  // Using closest available task
-            temperature: 0.7
+            task: .personaSynthesis,  // Correct task for synthesis
+            model: nil  // Let orchestrator choose optimal model
         )
         
         // Parse JSON response
@@ -237,8 +237,8 @@ final class OnboardingService: OnboardingServiceProtocol, ServiceProtocol {
         
         let response = try await llmOrchestrator.complete(
             prompt: prompt,
-            task: .personalityExtraction,  // Using closest available task
-            temperature: 0.7
+            task: .quickResponse,  // Appropriate for parsing/understanding
+            model: nil  // Let orchestrator choose optimal model
         )
         
         return response.content

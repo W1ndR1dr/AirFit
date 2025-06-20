@@ -311,9 +311,11 @@ struct LLMSynthesisView: View {
     }
     
     private func continueWithDefaults() {
-        // Continue with default persona
-        viewModel.continueWithDefaultPersona()
-        viewModel.navigateToNext()
+        // Generate minimal persona with what we have
+        Task {
+            await viewModel.generateMinimalPersona()
+            viewModel.navigateToNext()
+        }
     }
 }
 

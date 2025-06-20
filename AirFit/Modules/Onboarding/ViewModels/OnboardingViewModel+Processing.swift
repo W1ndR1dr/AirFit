@@ -52,9 +52,8 @@ extension OnboardingViewModel {
             let synthesis = try await onboardingService.synthesizeGoals(from: rawData)
             self.synthesizedGoals = synthesis
             
-            // Use default persona for now since PersonaService expects ConversationSession
-            // This will be refactored when PersonaService is updated to accept OnboardingRawData
-            continueWithDefaultPersona()
+            // Generate a minimal persona based on collected data
+            await generateMinimalPersona()
             
             // Cancel progress updates
             progressTask.cancel()
@@ -65,8 +64,8 @@ extension OnboardingViewModel {
             
         } catch {
             handleError(error)
-            // Try fallback
-            continueWithDefaultPersona()
+            // Try to generate a minimal persona
+            await generateMinimalPersona()
             currentScreen = .coachReady
         }
         
@@ -83,9 +82,57 @@ extension OnboardingViewModel {
         await synthesizePersona()
     }
     
-    func continueWithDefaultPersona() {
-        // Create a basic persona when synthesis fails
-        let defaultVoice = VoiceCharacteristics(
+    func generateMinimalPersona() async {
+        // Try to generate a persona using minimal collected data
+        guard let llmService = onboardingLLMService else {
+            // If no LLM service, use absolute minimal fallback
+            createAbsoluteMinimalPersona()
+            return
+        }
+        
+        do {
+            // Gather what we have
+            let name = userName.isEmpty ? nil : userName
+            let goals = functionalGoalsText.isEmpty ? nil : functionalGoalsText
+            let styles = communicationStyles.map { $0.rawValue }
+            
+            // Generate persona with LLM
+            let persona = try await llmService.generateFallbackPersona(
+                userName: name,
+                basicGoals: goals,
+                communicationStyles: styles
+            )
+            
+            self.generatedPersona = persona
+            
+            // Create synthesis output based on what we collected
+            let synthesis = LLMGoalSynthesis(
+                parsedFunctionalGoals: [],
+                goalRelationships: [],
+                unifiedStrategy: goals ?? "achieve your fitness goals",
+                recommendedTimeline: "Let's take it one step at a time",
+                suggestedPersonaMode: nil,
+                coachingFocus: determineCoachingFocus(),
+                milestones: [],
+                expectedChallenges: [],
+                motivationalHooks: []
+            )
+            
+            self.synthesizedGoals = synthesis
+            
+        } catch {
+            AppLogger.error("Failed to generate minimal persona: \(error)", category: .app)
+            createAbsoluteMinimalPersona()
+        }
+    }
+    
+    private func createAbsoluteMinimalPersona() {
+        // Absolute last resort - but still uses collected data
+        let name = userName.isEmpty ? "there" : userName
+        let hasWeightGoal = currentWeight != nil && targetWeight != nil
+        let focusArea = hasWeightGoal ? "weight management" : "general fitness"
+        
+        let voice = VoiceCharacteristics(
             energy: .moderate,
             pace: .natural,
             warmth: .warm,
@@ -93,67 +140,89 @@ extension OnboardingViewModel {
             sentenceStructure: .moderate
         )
         
-        let defaultInteraction = InteractionStyle(
-            greetingStyle: "Hey there! Ready to make some progress today?",
-            closingStyle: "Great work today! Keep it up!",
-            encouragementPhrases: ["You've got this!", "Keep pushing!", "Great effort!"],
-            acknowledgmentStyle: "I hear you. Let's work with that.",
-            correctionApproach: "Let's adjust that approach slightly",
+        let interaction = InteractionStyle(
+            greetingStyle: "Hey \(name)! Ready to work on your \(focusArea)?",
+            closingStyle: "Great progress today!",
+            encouragementPhrases: ["Keep it up!", "You're doing great!", "Stay consistent!"],
+            acknowledgmentStyle: "Got it. Let's work with that.",
+            correctionApproach: "Let's try a different approach",
             humorLevel: .moderate,
             formalityLevel: .casual,
             responseLength: .moderate
         )
         
-        let defaultInsights = ConversationPersonalityInsights(
-            dominantTraits: ["Supportive", "Patient", "Encouraging"],
+        let insights = ConversationPersonalityInsights(
+            dominantTraits: ["Supportive"],
             communicationStyle: .conversational,
             motivationType: .health,
             energyLevel: .moderate,
             preferredComplexity: .moderate,
-            emotionalTone: ["warm", "encouraging"],
+            emotionalTone: ["supportive"],
             stressResponse: .needsSupport,
-            preferredTimes: ["morning", "evening"],
+            preferredTimes: ["flexible"],
             extractedAt: Date()
         )
         
-        let defaultMetadata = PersonaMetadata(
+        let metadata = PersonaMetadata(
             createdAt: Date(),
-            version: "1.0",
-            sourceInsights: defaultInsights,
+            version: "1.0-minimal",
+            sourceInsights: insights,
             generationDuration: 0.0,
             tokenCount: 0,
             previewReady: true
         )
         
-        let defaultPersona = PersonaProfile(
+        self.generatedPersona = PersonaProfile(
             id: UUID(),
             name: "Coach",
-            archetype: "Supportive Guide",
-            systemPrompt: "You are a supportive fitness coach focused on helping users achieve their health goals.",
-            coreValues: ["Encouragement", "Progress over perfection", "Personalization"],
-            backgroundStory: "I'm here to help you on your fitness journey with patience and support.",
-            voiceCharacteristics: defaultVoice,
-            interactionStyle: defaultInteraction,
+            archetype: "AI Fitness Coach",
+            systemPrompt: "You are a supportive AI coach helping \(name) with \(focusArea).",
+            coreValues: ["Your progress", "Consistency", "Support"],
+            backgroundStory: "I'm here to help you succeed.",
+            voiceCharacteristics: voice,
+            interactionStyle: interaction,
             adaptationRules: [],
-            metadata: defaultMetadata
+            metadata: metadata
         )
         
-        self.generatedPersona = defaultPersona
-        
-        // Create basic synthesis output
-        let defaultSynthesis = LLMGoalSynthesis(
+        self.synthesizedGoals = LLMGoalSynthesis(
             parsedFunctionalGoals: [],
             goalRelationships: [],
-            unifiedStrategy: "achieve your fitness goals with consistent progress",
-            recommendedTimeline: "Let's start with 12-week cycles",
+            unifiedStrategy: "achieve your \(focusArea) goals",
+            recommendedTimeline: "One day at a time",
             suggestedPersonaMode: nil,
-            coachingFocus: ["Building healthy habits", "Sustainable progress", "Personalized support"],
+            coachingFocus: ["\(focusArea.capitalized)", "Consistency", "Progress"],
             milestones: [],
             expectedChallenges: [],
             motivationalHooks: []
         )
+    }
+    
+    private func determineCoachingFocus() -> [String] {
+        var focus: [String] = []
         
-        self.synthesizedGoals = defaultSynthesis
+        // Add focus based on collected data
+        if currentWeight != nil && targetWeight != nil {
+            if let current = currentWeight, let target = targetWeight {
+                if current > target {
+                    focus.append("Weight loss")
+                } else if current < target {
+                    focus.append("Muscle building")
+                } else {
+                    focus.append("Weight maintenance")
+                }
+            }
+        }
+        
+        if !bodyRecompositionGoals.isEmpty {
+            focus.append(contentsOf: bodyRecompositionGoals.prefix(2).map { $0.displayName })
+        }
+        
+        if focus.isEmpty {
+            focus = ["General fitness", "Healthy habits", "Consistent progress"]
+        }
+        
+        return focus
     }
     
     // MARK: - Completion

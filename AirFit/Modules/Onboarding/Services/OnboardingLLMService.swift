@@ -339,6 +339,142 @@ actor OnboardingLLMService: ServiceProtocol {
             return "Let's continue setting up your personalized coach"
         }
     }
+    
+    // MARK: - Fallback Persona Generation
+    
+    /// Generate a minimal but personalized coach persona when full synthesis fails
+    func generateFallbackPersona(
+        userName: String?,
+        basicGoals: String?,
+        communicationStyles: [String]
+    ) async throws -> PersonaProfile {
+        let nameString = userName ?? "there"
+        let goalsString = basicGoals ?? "your fitness journey"
+        let stylesString = communicationStyles.isEmpty ? "supportive and encouraging" : communicationStyles.joined(separator: ", ")
+        
+        let prompt = """
+        Create a simple fitness coach persona with these constraints:
+        - User's name: \(nameString)
+        - Their goals: \(goalsString)
+        - Preferred communication: \(stylesString)
+        
+        Generate a JSON response with:
+        {
+            "name": "Coach [creative name]",
+            "archetype": "[2-3 word description]",
+            "greeting": "[personalized greeting]",
+            "encouragement": ["phrase1", "phrase2", "phrase3"],
+            "values": ["value1", "value2", "value3"]
+        }
+        
+        Keep it simple but personalized to their context.
+        """
+        
+        do {
+            let response = try await llmOrchestrator.complete(
+                prompt: prompt,
+                task: .quickResponse,
+                model: nil
+            )
+            
+            // Parse the JSON response
+            if let data = response.content.data(using: .utf8),
+               let json = try? JSONSerialization.jsonObject(with: data) as? [String: Any] {
+                
+                let coachName = json["name"] as? String ?? "Coach Alex"
+                let archetype = json["archetype"] as? String ?? "Supportive Guide"
+                let greeting = json["greeting"] as? String ?? "Hey \(nameString)! Ready to work on \(goalsString)?"
+                let encouragement = json["encouragement"] as? [String] ?? ["You've got this!", "Keep pushing!", "Great effort!"]
+                let values = json["values"] as? [String] ?? ["Progress over perfection", "Consistency", "Personal growth"]
+                
+                // Build a minimal but personalized persona
+                return createMinimalPersona(
+                    name: coachName,
+                    archetype: archetype,
+                    greeting: greeting,
+                    encouragement: encouragement,
+                    values: values,
+                    communicationStyles: communicationStyles
+                )
+            }
+        } catch {
+            // If LLM fails, create a very basic persona with user context
+            AppLogger.error("Failed to generate fallback persona: \(error)", category: .app)
+        }
+        
+        // Final fallback - still better than fully hardcoded
+        return createMinimalPersona(
+            name: "Coach",
+            archetype: "Your AI Coach",
+            greeting: "Hey \(nameString)! I'm here to help with \(goalsString).",
+            encouragement: ["Keep going!", "You're doing great!", "Stay consistent!"],
+            values: ["Your success", "Sustainable progress", "Personal growth"],
+            communicationStyles: communicationStyles
+        )
+    }
+    
+    private func createMinimalPersona(
+        name: String,
+        archetype: String,
+        greeting: String,
+        encouragement: [String],
+        values: [String],
+        communicationStyles: [String]
+    ) -> PersonaProfile {
+        // Map communication styles to voice characteristics
+        let voice = VoiceCharacteristics(
+            energy: communicationStyles.contains("challenging") ? .high : .moderate,
+            pace: communicationStyles.contains("patient") ? .measured : .natural,
+            warmth: communicationStyles.contains("encouraging") ? .warm : .neutral,
+            vocabulary: communicationStyles.contains("educational") ? .advanced : .moderate,
+            sentenceStructure: .moderate
+        )
+        
+        let interaction = InteractionStyle(
+            greetingStyle: greeting,
+            closingStyle: "Great work today! See you tomorrow!",
+            encouragementPhrases: encouragement,
+            acknowledgmentStyle: "I understand. Let's work with that.",
+            correctionApproach: "Let's try a different approach",
+            humorLevel: .moderate,
+            formalityLevel: communicationStyles.contains("direct") ? .professional : .casual,
+            responseLength: .moderate
+        )
+        
+        let insights = ConversationPersonalityInsights(
+            dominantTraits: communicationStyles.isEmpty ? ["Supportive"] : communicationStyles.map { $0.capitalized },
+            communicationStyle: .conversational,
+            motivationType: .health,
+            energyLevel: .moderate,
+            preferredComplexity: .moderate,
+            emotionalTone: ["supportive"],
+            stressResponse: .needsSupport,
+            preferredTimes: ["flexible"],
+            extractedAt: Date()
+        )
+        
+        let metadata = PersonaMetadata(
+            createdAt: Date(),
+            version: "1.0-fallback",
+            sourceInsights: insights,
+            generationDuration: 0.1,
+            tokenCount: 100,
+            previewReady: true
+        )
+        
+        return PersonaProfile(
+            id: UUID(),
+            name: name,
+            archetype: archetype,
+            systemPrompt: "You are \(name), a \(archetype) focused on helping the user achieve their fitness goals.",
+            coreValues: values,
+            backgroundStory: "I'm here to support your fitness journey with a personalized approach.",
+            voiceCharacteristics: voice,
+            interactionStyle: interaction,
+            adaptationRules: [],
+            metadata: metadata
+        )
+    }
 }
 
 // MARK: - OnboardingScreen Extension
