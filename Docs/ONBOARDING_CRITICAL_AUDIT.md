@@ -1,10 +1,30 @@
 # Onboarding Critical Audit - Carmack Analysis
-**Date**: 2025-01-20
+**Date**: 2025-01-20 (Updated for LLM-first transformation)
 **Auditor**: Claude (Carmack Mode)
-**Status**: 🚨 CRITICAL BUGS FOUND
+**Status**: 🚨 CRITICAL ARCHITECTURE FLAW + BUGS
 
 ## Executive Summary
-The onboarding system is architecturally sound but functionally broken. Beautiful UI masks critical failures including **complete data loss on app restart**.
+The onboarding system has a **fundamental architecture flaw**: it uses hardcoded logic throughout instead of LLM-driven intelligence. Beautiful UI masks critical failures including **complete data loss on app restart** and **fake LLM integration**.
+
+## 🚨 CRITICAL ARCHITECTURE FLAW
+
+### Hardcoded Logic Instead of LLM Intelligence
+**Severity**: FUNDAMENTAL DESIGN FLAW
+**Location**: `OnboardingContext.swift` and throughout
+**Impact**: Onboarding feels like a form, not intelligent conversation
+**Examples**:
+```swift
+// Current hardcoded approach:
+if steps > 12000 {
+    return "Wow, you're crushing it with \(Int(steps)) steps daily!"
+}
+
+// Should be LLM-driven:
+let prompt = "User health data: \(healthKitSnapshot). Generate insightful prompt."
+return await llmService.generatePrompt(context)
+```
+
+**Required Fix**: Complete transformation to LLM-first architecture per ONBOARDING_PLAN.md
 
 ## Critical Bugs (Ship-Stoppers)
 

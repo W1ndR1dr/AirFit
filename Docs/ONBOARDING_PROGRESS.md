@@ -6,19 +6,19 @@
 **Last Updated**: 2025-01-20 (Day 2 Complete)
 
 ## 🎯 Current Sprint Status
-**Mission**: Implement the missing features to create the "perfect version" of onboarding - beautiful AND minimalistic with rich data collection for LLM magic.
+**Mission**: Transform onboarding from hardcoded logic to LLM-driven intelligence at every step.
 
 **Progress**: 
 - ✅ Core flow implemented (all 9 screens)
 - ✅ Weight objectives screen added
 - ✅ Body composition goals screen added  
 - ✅ HealthKit intelligence WORKING - real data throughout
-- ✅ Smart defaults and context-aware prompts implemented
-- ✅ Activity metrics enhanced for LLM interpretation
 - ✅ Conversational copy COMPLETE - personality throughout
 - ✅ Full LLM synthesis verified - uses ALL data comprehensively
+- ❌ Still using hardcoded logic throughout (if steps > 12000, etc.)
+- ❌ LLM only used at final synthesis, not during journey
 
-**Next Focus**: Day 3 - Clean up fake code, simplify OnboardingViewModel, performance verification.
+**Next Focus**: Implement LLM-first architecture - every screen decision driven by AI, not hardcoded rules.
 
 ## 🚨 CRITICAL: Carmack-Level Audit Results (2025-01-18)
 
@@ -581,6 +581,42 @@ Update OnboardingService to pass ALL data:
 
 **Result**: Build succeeds with 0 errors, onboarding is now production-ready
 
+## 🚀 LLM-First Transformation (Session 9 - Starting)
+
+### Problem Identified
+The current implementation uses hardcoded logic throughout:
+- OnboardingContext.swift has if/then thresholds (steps > 12000, weight > 200)
+- Pre-selection logic based on simple rules
+- Fixed prompts based on activity levels
+- LLM only used at final synthesis, not during journey
+
+### Solution: LLM-First Architecture
+Per ONBOARDING_PLAN.md, we're transforming every screen to be LLM-driven:
+
+1. **Create OnboardingLLMService** - Central service for all LLM interactions
+2. **Remove OnboardingContext.swift** - Contains all hardcoded logic
+3. **Update each screen** to request dynamic content from LLM
+4. **Pass full context** to LLM at each decision point
+
+### Implementation Priority
+1. ✅ Create core LLM infrastructure - DONE
+   - Created OnboardingLLMService
+   - Added to DI container
+   - Integrated with OnboardingViewModel
+2. ✅ Transform LifeContext screen as proof of concept - DONE
+   - Removed hardcoded prompts
+   - Added LLM-generated prompts and placeholders
+   - Build succeeds
+3. Roll out to all screens
+4. Remove all hardcoded logic
+
+### Session 9 Progress
+- Created `OnboardingLLMService` with full ServiceProtocol conformance
+- Added LLM integration to `OnboardingViewModel` via extension
+- Updated `LifeContextView` to use dynamic LLM-generated content
+- Fixed all build errors related to Sendable and actor isolation
+- **Result**: Build succeeds with LLM-first architecture in place for LifeContext screen
+
 ## 🎯 Onboarding Implementation Complete (Day 1-3) 
 
 All three days of onboarding enhancement are now complete:
@@ -598,4 +634,4 @@ The onboarding system is now:
 **Last Updated**: 2025-01-20
 **Remote Branch**: origin/Codex1
 **Implementation Time**: ~1 week for perfect version
-**Next Session**: Start here → Implement weight objectives screen with HealthKit prefill
+**Next Session**: Implement LLM-first onboarding per ONBOARDING_PLAN.md

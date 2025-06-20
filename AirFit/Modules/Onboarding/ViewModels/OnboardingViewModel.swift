@@ -46,7 +46,15 @@ final class OnboardingViewModel: ErrorHandling {
     internal(set) var healthKitAuthorizationStatus: HealthKitAuthorizationStatus = .notDetermined
     
     // MARK: - Voice Input
-    private(set) var isTranscribing = false
+    var isTranscribing = false
+    
+    // MARK: - Weight Text Input
+    var currentWeightText: String = ""
+    var targetWeightText: String = ""
+    
+    // MARK: - Loading States
+    var isHealthKitLoading = false
+    var synthesisProgress: Double = 0.0
     
     // MARK: - Synthesis Task
     private var synthesisTask: Task<Void, Never>?
@@ -61,6 +69,7 @@ final class OnboardingViewModel: ErrorHandling {
     let userService: UserServiceProtocol
     let personaService: PersonaService
     let analytics: ConversationAnalytics
+    let onboardingLLMService: OnboardingLLMService?
 
     // MARK: - Completion Callback
     var onCompletionCallback: (() -> Void)?
@@ -75,7 +84,8 @@ final class OnboardingViewModel: ErrorHandling {
         speechService: WhisperServiceWrapperProtocol? = nil,
         healthPrefillProvider: HealthKitPrefillProviding? = nil,
         healthKitAuthManager: HealthKitAuthManager,
-        analytics: ConversationAnalytics = ConversationAnalytics()
+        analytics: ConversationAnalytics = ConversationAnalytics(),
+        onboardingLLMService: OnboardingLLMService? = nil
     ) {
         self.aiService = aiService
         self.onboardingService = onboardingService
@@ -86,6 +96,7 @@ final class OnboardingViewModel: ErrorHandling {
         self.healthPrefillProvider = healthPrefillProvider
         self.healthKitAuthManager = healthKitAuthManager
         self.analytics = analytics
+        self.onboardingLLMService = onboardingLLMService
     }
 
     // MARK: - Navigation

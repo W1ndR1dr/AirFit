@@ -1,6 +1,6 @@
 import Foundation
 
-// MARK: - Supporting Types
+// MARK: - Supporting Types for OnboardingViewModel
 
 struct HealthKitSnapshot: Codable, Sendable {
     let weight: Double?

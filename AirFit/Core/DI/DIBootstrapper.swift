@@ -339,6 +339,17 @@ public final class DIBootstrapper {
             }
         }
         
+        // Onboarding LLM Service - Provides LLM-driven intelligence for onboarding
+        container.register(OnboardingLLMService.self, lifetime: .transient) { resolver in
+            let llmOrchestrator = try await resolver.resolve(LLMOrchestrator.self)
+            let healthKitManager = try await resolver.resolve(HealthKitManager.self)
+            
+            return OnboardingLLMService(
+                llmOrchestrator: llmOrchestrator,
+                healthKitManager: healthKitManager
+            )
+        }
+        
         // Onboarding Service
         container.register(OnboardingServiceProtocol.self, lifetime: .transient) { resolver in
             let modelContainer = try await resolver.resolve(ModelContainer.self)

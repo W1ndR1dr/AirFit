@@ -7,14 +7,10 @@ struct LifeContextView: View {
     @State private var animateIn = false
     @State private var showVoiceInput = false
     @State private var textOpacity: Double = 0
+    @State private var llmPrompt: String = ""
+    @State private var llmPlaceholder: String = "Like: I'm a desk warrior with two kids, or I travel constantly for work..."
     @EnvironmentObject private var gradientManager: GradientManager
     @Environment(\.colorScheme) private var colorScheme
-    
-    // Smart prompts based on HealthKit data
-    private var contextPrompt: String {
-        let context = viewModel.createContext()
-        return context.activityPrompt
-    }
     
     var body: some View {
         BaseScreen {
@@ -47,8 +43,8 @@ struct LifeContextView: View {
                             .padding(.horizontal, AppSpacing.screenPadding)
                     }
                     
-                    // Smart prompt
-                    Text(contextPrompt)
+                    // Smart prompt (LLM-generated or fallback)
+                    Text(llmPrompt.isEmpty ? getFallbackPrompt() : llmPrompt)
                         .font(.system(size: 17, weight: .regular, design: .rounded))
                         .foregroundStyle(gradientManager.active.secondaryTextColor(for: colorScheme))
                         .multilineTextAlignment(.center)
@@ -59,9 +55,9 @@ struct LifeContextView: View {
                     // Text input area
                     VStack(spacing: AppSpacing.sm) {
                         ZStack(alignment: .topLeading) {
-                            // Placeholder
+                            // Placeholder (LLM-generated or fallback)
                             if viewModel.lifeContext.isEmpty {
-                                Text("Like: I'm a desk warrior with two kids, or I travel constantly for work...")
+                                Text(llmPlaceholder)
                                     .font(.system(size: 20, weight: .regular, design: .rounded))
                                     .foregroundStyle(.primary.opacity(0.3))
                                     .padding(.horizontal, 16)
@@ -172,9 +168,7 @@ struct LifeContextView: View {
             withAnimation(.spring(response: 0.6, dampingFraction: 0.8)) {
                 animateIn = true
             }
-            withAnimation {
-                textOpacity = 1
-            }
+            // Text opacity is now triggered after LLM content loads in task
         }
         .onChange(of: viewModel.lifeContext) { _, newValue in
             // Limit to 500 characters
@@ -183,6 +177,33 @@ struct LifeContextView: View {
             }
         }
         .accessibilityIdentifier("onboarding.lifeContext")
+        .task {
+            // Fetch LLM-generated content when view appears
+            await loadLLMContent()
+        }
+    }
+    
+    private func loadLLMContent() async {
+        // Get LLM prompt
+        let prompt = await viewModel.getLLMPrompt(for: .lifeContext)
+        if !prompt.isEmpty {
+            llmPrompt = prompt
+        }
+        
+        // Get LLM placeholder
+        if let placeholder = await viewModel.getLLMPlaceholder(for: .lifeContext) {
+            llmPlaceholder = placeholder
+        }
+        
+        // Trigger text animation after content loads
+        withAnimation {
+            textOpacity = 1
+        }
+    }
+    
+    private func getFallbackPrompt() -> String {
+        // Use a friendly default if LLM fails
+        return "Tell me a bit about your daily life - work, family, whatever shapes your routine..."
     }
     
     private func toggleVoiceInput() {

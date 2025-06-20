@@ -55,7 +55,7 @@ struct BodyCompositionGoalsView: View {
                                     BodyCompositionGoalRow(
                                         goal: goal,
                                         isSelected: viewModel.bodyRecompositionGoals.contains(goal),
-                                        action: { viewModel.toggleBodyRecompositionGoal(goal) }
+                                        action: { viewModel.toggleBodyGoal(goal) }
                                     )
                                     .opacity(animateIn ? 1 : 0)
                                     .offset(y: animateIn ? 0 : 20)
