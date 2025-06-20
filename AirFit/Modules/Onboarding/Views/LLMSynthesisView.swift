@@ -20,41 +20,40 @@ struct LLMSynthesisView: View {
     
     // Processing steps that appear sequentially
     private var processingSteps: [(text: String, delay: Double)] {
-        let context = viewModel.createContext()
         var steps: [(text: String, delay: Double)] = []
         
         // Health data step
-        if context.healthData != nil {
+        if viewModel.healthKitData != nil {
             steps.append((text: "Looking at your health data...", delay: 0.5))
         } else {
             steps.append((text: "Getting the basics ready...", delay: 0.5))
         }
         
         // Lifestyle step
-        if !context.lifeContext.isEmpty {
+        if !viewModel.lifeContext.isEmpty {
             steps.append((text: "Working around your life...", delay: 1.5))
         } else {
             steps.append((text: "Building flexible routines...", delay: 1.5))
         }
         
         // Goals step
-        if let weight = context.weight {
-            if weight.direction == .lose {
+        if let current = viewModel.currentWeight, let target = viewModel.targetWeight {
+            if current > target {
                 steps.append((text: "Crafting your weight loss journey...", delay: 2.5))
-            } else if weight.direction == .gain {
+            } else if current < target {
                 steps.append((text: "Planning your gains...", delay: 2.5))
             } else {
                 steps.append((text: "Optimizing everything for you...", delay: 2.5))
             }
-        } else if !context.functionalGoals.isEmpty {
+        } else if !viewModel.functionalGoalsText.isEmpty {
             steps.append((text: "Making this perfectly yours...", delay: 2.5))
         } else {
             steps.append((text: "Setting up your foundation...", delay: 2.5))
         }
         
         // Communication step
-        if !context.communicationStyles.isEmpty {
-            let styleCount = context.communicationStyles.count
+        if !viewModel.communicationStyles.isEmpty {
+            let styleCount = viewModel.communicationStyles.count
             steps.append((text: "Mixing your \(styleCount) chosen vibes...", delay: 3.5))
         } else {
             steps.append((text: "Giving your coach personality...", delay: 3.5))

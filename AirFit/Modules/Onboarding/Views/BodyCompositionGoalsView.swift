@@ -5,6 +5,9 @@ struct BodyCompositionGoalsView: View {
     @Bindable var viewModel: OnboardingViewModel
     @State private var animateIn = false
     @State private var showGoals = false
+    @State private var llmPrompt: String = "Any body transformation goals?"
+    @State private var llmSubtitle: String = "Choose what excites you (or none at all!)"
+    @State private var suggestedDefaults: [BodyRecompositionGoal] = []
     @EnvironmentObject private var gradientManager: GradientManager
     @Environment(\.colorScheme) private var colorScheme
     
@@ -31,7 +34,7 @@ struct BodyCompositionGoalsView: View {
                     VStack(spacing: AppSpacing.xl) {
                         // Title with cascade animation
                         if animateIn {
-                            CascadeText("Any body transformation goals?")
+                            CascadeText(llmPrompt)
                                 .font(.system(size: 32, weight: .light, design: .rounded))
                                 .multilineTextAlignment(.center)
                                 .padding(.horizontal, AppSpacing.screenPadding)
@@ -40,7 +43,7 @@ struct BodyCompositionGoalsView: View {
                         
                         // Subtitle
                         if showGoals {
-                            Text(subtitleText)
+                            Text(llmSubtitle)
                                 .font(.system(size: 18, weight: .regular, design: .rounded))
                                 .foregroundStyle(.primary.opacity(0.7))
                                 .multilineTextAlignment(.center)
@@ -114,30 +117,16 @@ struct BodyCompositionGoalsView: View {
                 }
             }
             
-            // Apply smart defaults if no goals selected yet
-            applySmartDefaults()
+            // Load LLM-generated content and smart defaults
+            Task {
+                await loadLLMContent()
+            }
         }
         .accessibilityIdentifier("onboarding.bodyComposition")
     }
     
     // MARK: - Computed Properties
     
-    private var subtitleText: String {
-        let context = viewModel.createContext()
-        
-        // Check if we pre-selected some goals
-        if !viewModel.bodyRecompositionGoals.isEmpty {
-            if let weight = context.weight, weight.direction == .lose {
-                return "Picked a few based on your weight goals - feel free to change!"
-            } else if let metrics = context.healthData?.activityMetrics, 
-                     (metrics.averageDailySteps > 10000 || metrics.weeklyWorkoutCount >= 4) {
-                return "You're pretty active - thought these might appeal to you"
-            }
-        }
-        
-        // Default friendly prompt
-        return "Choose what excites you (or none at all!)"
-    }
     
     private var continueButtonText: String {
         let count = viewModel.bodyRecompositionGoals.count
@@ -164,49 +153,73 @@ struct BodyCompositionGoalsView: View {
         viewModel.navigateToNext()
     }
     
-    private func applySmartDefaults() {
-        // Only apply defaults if nothing selected yet
-        guard viewModel.bodyRecompositionGoals.isEmpty else { return }
+    // MARK: - LLM Content Loading
+    
+    private func loadLLMContent() async {
+        // Get dynamic prompt
+        let prompt = await viewModel.getLLMPrompt(for: .bodyComposition)
+        if !prompt.isEmpty {
+            llmPrompt = prompt
+        }
         
-        let context = viewModel.createContext()
-        
-        // Weight loss goal suggests fat loss
-        if let weight = context.weight, weight.direction == .lose {
-            if !viewModel.bodyRecompositionGoals.contains(.loseFat) {
-                viewModel.bodyRecompositionGoals.append(.loseFat)
+        // Get LLM-suggested defaults
+        let defaults = await viewModel.getLLMDefaults(for: .bodyComposition)
+        if !defaults.isEmpty {
+            // Map string defaults to BodyRecompositionGoal enum
+            let goalDefaults = defaults.compactMap { goalString -> BodyRecompositionGoal? in
+                switch goalString.lowercased() {
+                case "lose fat", "losefat":
+                    return .loseFat
+                case "gain muscle", "gainmuscle", "build muscle":
+                    return .gainMuscle
+                case "get toned", "gettoned", "tone up":
+                    return .getToned
+                case "improve definition", "improvedefinition", "get defined":
+                    return .improveDefinition
+                case "body recomposition", "bodyrecomposition", "recomp":
+                    return .bodyRecomposition
+                default:
+                    return nil
+                }
             }
             
-            // If moderate weight loss, also suggest toning
-            if let current = weight.currentWeight, 
-               let target = weight.targetWeight,
-               current - target <= 20 {
-                if !viewModel.bodyRecompositionGoals.contains(.getToned) {
-                    viewModel.bodyRecompositionGoals.append(.getToned)
+            // Apply smart defaults if nothing selected yet
+            if viewModel.bodyRecompositionGoals.isEmpty && !goalDefaults.isEmpty {
+                viewModel.bodyRecompositionGoals = goalDefaults
+                suggestedDefaults = goalDefaults
+                
+                // Update subtitle to indicate we pre-selected
+                llmSubtitle = "Picked a few based on your profile - feel free to change!"
+            }
+        }
+        
+        // Get LLM-generated subtitle if no defaults were applied
+        if suggestedDefaults.isEmpty {
+            if let llmService = viewModel.onboardingLLMService,
+               let userId = await viewModel.userService.getCurrentUserId() {
+                do {
+                    let responses = viewModel.collectPreviousResponses()
+                    let content = try await llmService.generateScreenContent(
+                        for: .bodyComposition,
+                        userId: userId,
+                        previousResponses: responses.asDictionary
+                    )
+                    
+                    if let placeholder = content.placeholderText {
+                        await MainActor.run {
+                            llmSubtitle = placeholder
+                        }
+                    }
+                } catch {
+                    // Keep default subtitle
                 }
             }
         }
-        
-        // Weight gain suggests muscle building
-        if let weight = context.weight, weight.direction == .gain {
-            if !viewModel.bodyRecompositionGoals.contains(.gainMuscle) {
-                viewModel.bodyRecompositionGoals.append(.gainMuscle)
-            }
-        }
-        
-        // Active users might want definition
-        if let metrics = context.healthData?.activityMetrics,
-           (metrics.averageDailySteps > 10000 || metrics.weeklyWorkoutCount >= 4) {
-            if !viewModel.bodyRecompositionGoals.contains(.improveDefinition) {
-                viewModel.bodyRecompositionGoals.append(.improveDefinition)
-            }
-        }
-        
-        // Add haptic feedback if we selected anything
-        if !viewModel.bodyRecompositionGoals.isEmpty {
-            DispatchQueue.main.asyncAfter(deadline: .now() + 0.8) {
-                HapticService.impact(.light)
-            }
-        }
+    }
+    
+    private func applySmartDefaults() {
+        // This method is now replaced by LLM-driven defaults in loadLLMContent()
+        // Keeping empty method to avoid breaking changes
     }
 }
 

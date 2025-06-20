@@ -12,14 +12,10 @@ struct GoalsProgressiveView: View {
     @State private var showRefinement = false
     @State private var refinementText = ""
     @State private var isConfirmed = false
+    @State private var llmPrompt: String = "What are you hoping to accomplish?"
+    @State private var llmPlaceholder: String = "I want to get stronger and have more energy..."
     @EnvironmentObject private var gradientManager: GradientManager
     @Environment(\.colorScheme) private var colorScheme
-    
-    // Smart placeholder based on HealthKit data
-    private var goalPlaceholder: String {
-        let context = viewModel.createContext()
-        return context.goalPlaceholder
-    }
     
     var body: some View {
         BaseScreen {
@@ -44,7 +40,7 @@ struct GoalsProgressiveView: View {
                     VStack(spacing: AppSpacing.xl) {
                         // Title with cascade animation
                         if animateIn {
-                            CascadeText("What are you hoping to accomplish?")
+                            CascadeText(llmPrompt)
                                 .font(.system(size: 32, weight: .light, design: .rounded))
                                 .multilineTextAlignment(.center)
                                 .padding(.horizontal, AppSpacing.screenPadding)
@@ -107,6 +103,10 @@ struct GoalsProgressiveView: View {
             withAnimation(.spring(response: 0.6, dampingFraction: 0.8)) {
                 animateIn = true
             }
+            // Load LLM-generated content
+            Task {
+                await loadLLMContent()
+            }
         }
         .onChange(of: viewModel.functionalGoalsText) { oldValue, newValue in
             // Limit to 200 characters
@@ -129,7 +129,7 @@ struct GoalsProgressiveView: View {
             ZStack(alignment: .topLeading) {
                 // Placeholder
                 if viewModel.functionalGoalsText.isEmpty {
-                    Text(goalPlaceholder)
+                    Text(llmPlaceholder)
                         .font(.system(size: 20, weight: .regular, design: .rounded))
                         .foregroundStyle(.primary.opacity(0.3))
                         .padding(.horizontal, 16)
@@ -305,7 +305,13 @@ struct GoalsProgressiveView: View {
         }
         
         // Use LLM to understand and expand on the user's goals
-        let understanding = await viewModel.parseGoalsWithLLM()
+        let interpretation = await viewModel.interpretUserInput(viewModel.functionalGoalsText, for: .goals)
+        let understanding: String
+        if let interpretation = interpretation {
+            understanding = interpretation
+        } else {
+            understanding = await viewModel.parseGoalsWithLLM()
+        }
         
         // Update UI with LLM's understanding
         await MainActor.run {
@@ -348,6 +354,21 @@ struct GoalsProgressiveView: View {
         // The functional goals text already contains everything the user expressed
         // The LLM will handle all the parsing and understanding during synthesis
         viewModel.navigateToNext()
+    }
+    
+    // MARK: - LLM Content Loading
+    
+    private func loadLLMContent() async {
+        // Get dynamic prompt based on user's context
+        let prompt = await viewModel.getLLMPrompt(for: .goals)
+        if !prompt.isEmpty {
+            llmPrompt = prompt
+        }
+        
+        // Get personalized placeholder
+        if let placeholder = await viewModel.getLLMPlaceholder(for: .goals) {
+            llmPlaceholder = placeholder
+        }
     }
 }
 

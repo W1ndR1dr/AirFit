@@ -5,6 +5,9 @@ struct CommunicationStyleView: View {
     @Bindable var viewModel: OnboardingViewModel
     @State private var animateIn = false
     @State private var showInformationPreferences = false
+    @State private var llmPrompt: String = "How do you like to be coached?"
+    @State private var llmSubtitle: String = "Mix and match - I'll blend them perfectly"
+    @State private var suggestedStyles: [CommunicationStyle] = []
     @EnvironmentObject private var gradientManager: GradientManager
     @Environment(\.colorScheme)
     private var colorScheme
@@ -32,7 +35,7 @@ struct CommunicationStyleView: View {
                     VStack(spacing: AppSpacing.xl) {
                         // Title with cascade animation
                         if animateIn {
-                            CascadeText("How do you like to be coached?")
+                            CascadeText(llmPrompt)
                                 .font(.system(size: 32, weight: .light, design: .rounded))
                                 .multilineTextAlignment(.center)
                                 .padding(.horizontal, AppSpacing.screenPadding)
@@ -41,7 +44,7 @@ struct CommunicationStyleView: View {
                         
                         // Subtitle
                         if animateIn {
-                            Text("Mix and match - I'll blend them perfectly")
+                            Text(llmSubtitle)
                                 .font(.system(size: 18, weight: .regular, design: .rounded))
                                 .foregroundStyle(gradientManager.active.secondaryTextColor(for: colorScheme))
                                 .multilineTextAlignment(.center)
@@ -104,7 +107,11 @@ struct CommunicationStyleView: View {
             withAnimation(.spring(response: 0.6, dampingFraction: 0.8)) {
                 animateIn = true
             }
-            applySmartDefaults()
+            
+            // Load LLM-generated content
+            Task {
+                await loadLLMContent()
+            }
         }
         .accessibilityIdentifier("onboarding.communicationStyle")
     }
@@ -201,21 +208,45 @@ struct CommunicationStyleView: View {
         viewModel.navigateToNext()
     }
     
-    private func applySmartDefaults() {
-        // Apply smart defaults based on goals
-        guard viewModel.communicationStyles.isEmpty else { return }
+    // MARK: - LLM Content Loading
+    
+    private func loadLLMContent() async {
+        // Get dynamic prompt
+        let prompt = await viewModel.getLLMPrompt(for: .communicationStyle)
+        if !prompt.isEmpty {
+            llmPrompt = prompt
+        }
         
-        // Get intelligent suggestions from context
-        let context = viewModel.createContext()
-        let suggestedStyles = context.suggestedCommunicationStyles
-        
-        // Apply suggestions if we have any
-        if !suggestedStyles.isEmpty {
-            viewModel.communicationStyles = Array(suggestedStyles)
+        // Get LLM-suggested defaults for communication styles
+        let defaults = await viewModel.getLLMDefaults(for: .communicationStyle)
+        if !defaults.isEmpty {
+            // Map string defaults to CommunicationStyle enum
+            let styleDefaults = defaults.compactMap { styleString -> CommunicationStyle? in
+                CommunicationStyle.allCases.first { style in
+                    style.rawValue == styleString.lowercased() || 
+                    style.displayName.lowercased().contains(styleString.lowercased())
+                }
+            }
             
-            // Add a subtle animation to highlight the pre-selected options
-            DispatchQueue.main.asyncAfter(deadline: .now() + 0.8) {
-                HapticService.impact(.light)
+            // Apply smart defaults if nothing selected yet
+            if viewModel.communicationStyles.isEmpty && !styleDefaults.isEmpty {
+                viewModel.communicationStyles = styleDefaults
+                suggestedStyles = styleDefaults
+                
+                // Update subtitle to indicate we pre-selected
+                llmSubtitle = "Based on your goals, I've selected a few - feel free to adjust!"
+                
+                // Add haptic feedback
+                DispatchQueue.main.asyncAfter(deadline: .now() + 0.8) {
+                    HapticService.impact(.light)
+                }
+            }
+        }
+        
+        // Get personalized subtitle if no defaults were applied
+        if suggestedStyles.isEmpty {
+            if let placeholder = await viewModel.getLLMPlaceholder(for: .communicationStyle) {
+                llmSubtitle = placeholder
             }
         }
     }

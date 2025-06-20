@@ -413,7 +413,6 @@
 		F2917489CCA32E3E870A0B85 /* AIGoalServiceTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = B6BFB1AE453132897C43F9C7 /* AIGoalServiceTests.swift */; };
 		F2919CE825CCAF0D2440F5DE /* MockOnboardingService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2E5F25A230AF0F68C429B4FE /* MockOnboardingService.swift */; };
 		F32E0B14BD10ACB7E8D9A466 /* OnboardingLLMService.swift in Sources */ = {isa = PBXBuildFile; fileRef = DF3C791F6B0CAB22C9CBB5A1 /* OnboardingLLMService.swift */; };
-		F353B4A59BC37C25E024C592 /* OnboardingContext.swift in Sources */ = {isa = PBXBuildFile; fileRef = E651D75BC1319EB0221737E3 /* OnboardingContext.swift */; };
 		F44CC526E93C87E64659A796 /* SettingsListView.swift in Sources */ = {isa = PBXBuildFile; fileRef = FB08BCA28825A25927F9B202 /* SettingsListView.swift */; };
 		F491BAAE0586577DAF8F0A4B /* OnboardingPage.swift in Sources */ = {isa = PBXBuildFile; fileRef = 03600328FAC3CFA0F818D72A /* OnboardingPage.swift */; };
 		F54CE440EAF6B19AE447FC14 /* ChatAttachment.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9278F4570BD47581B51EBFA6 /* ChatAttachment.swift */; };
@@ -867,7 +866,6 @@
 		E26D45CF9C50C02EC38B17D2 /* ConversationModels.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ConversationModels.swift; sourceTree = "<group>"; };
 		E4304854031E86DF02880359 /* MockLLMOrchestrator.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MockLLMOrchestrator.swift; sourceTree = "<group>"; };
 		E4B17502ACA8401FA697B77A /* FoodVoiceAdapter.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FoodVoiceAdapter.swift; sourceTree = "<group>"; };
-		E651D75BC1319EB0221737E3 /* OnboardingContext.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OnboardingContext.swift; sourceTree = "<group>"; };
 		E6E799392C2558DF545FD3CC /* DIContainerAsyncTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DIContainerAsyncTests.swift; sourceTree = "<group>"; };
 		E77C4A79AD84BCB4EFF35E9C /* OnboardingFlowUITests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OnboardingFlowUITests.swift; sourceTree = "<group>"; };
 		E890AD52F4C49D644109AF64 /* AICoachService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AICoachService.swift; sourceTree = "<group>"; };
@@ -2221,7 +2219,6 @@
 			isa = PBXGroup;
 			children = (
 				E26D45CF9C50C02EC38B17D2 /* ConversationModels.swift */,
-				E651D75BC1319EB0221737E3 /* OnboardingContext.swift */,
 				C5A78197B39839132DE27A9E /* OnboardingModels.swift */,
 				A638F1586B6016F2CD06E099 /* OnboardingScreen.swift */,
 				E8E6ADC4A9C9691E23093B5F /* PersonalityInsights.swift */,
@@ -2969,7 +2966,6 @@
 				2D1783E7B4020BD6C6F66726 /* OfflineAIService.swift in Sources */,
 				F7785CC13DA50354AA01BC69 /* OnboardingCache.swift in Sources */,
 				14BCFB577917572302BF100D /* OnboardingContainerView.swift in Sources */,
-				F353B4A59BC37C25E024C592 /* OnboardingContext.swift in Sources */,
 				8E5A618A9D9164610ADFDAA2 /* OnboardingCoordinator.swift in Sources */,
 				81EE9FAC470ACAA1567EB592 /* OnboardingErrorBoundary.swift in Sources */,
 				B2EB25FD4D4759314C813E09 /* OnboardingErrorMessages.swift in Sources */,

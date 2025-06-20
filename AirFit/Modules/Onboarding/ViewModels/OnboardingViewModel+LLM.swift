@@ -143,7 +143,7 @@ extension OnboardingViewModel {
     
     // MARK: - Private Helpers
     
-    private func collectPreviousResponses() -> PreviousResponses {
+    func collectPreviousResponses() -> PreviousResponses {
         PreviousResponses(
             name: userName.isEmpty ? nil : userName,
             lifeContext: lifeContext.isEmpty ? nil : lifeContext,

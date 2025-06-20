@@ -9,6 +9,8 @@ struct WeightObjectivesView: View {
     @State private var targetWeightText = ""
     @FocusState private var currentWeightFocused: Bool
     @FocusState private var targetWeightFocused: Bool
+    @State private var llmPrompt: String = "Let's chat about your weight"
+    @State private var llmEncouragement: String = ""
     @EnvironmentObject private var gradientManager: GradientManager
     @Environment(\.colorScheme) private var colorScheme
     
@@ -35,7 +37,7 @@ struct WeightObjectivesView: View {
                     VStack(spacing: AppSpacing.xl) {
                         // Title with cascade animation
                         if animateIn {
-                            CascadeText("Let's chat about your weight")
+                            CascadeText(llmPrompt)
                                 .font(.system(size: 32, weight: .light, design: .rounded))
                                 .multilineTextAlignment(.center)
                                 .padding(.horizontal, AppSpacing.screenPadding)
@@ -138,13 +140,14 @@ struct WeightObjectivesView: View {
                                 }
                                 
                                 // Smart encouragement
-                                if let current = Double(currentWeightText),
-                                   let target = Double(targetWeightText),
-                                   target < current {
-                                    Text("\(Int(current - target)) pounds? Totally doable!")
+                                if !llmEncouragement.isEmpty,
+                                   !currentWeightText.isEmpty,
+                                   !targetWeightText.isEmpty {
+                                    Text(llmEncouragement)
                                         .font(.system(size: 16, weight: .regular, design: .rounded))
                                         .foregroundStyle(gradientManager.active.secondaryTextColor(for: colorScheme))
                                         .padding(.top, AppSpacing.xs)
+                                        .animation(.easeIn(duration: 0.3), value: llmEncouragement)
                                 }
                             }
                             .padding(.horizontal, AppSpacing.screenPadding)
@@ -203,6 +206,11 @@ struct WeightObjectivesView: View {
             withAnimation(.spring(response: 0.6, dampingFraction: 0.8)) {
                 animateIn = true
             }
+            
+            // Load LLM-generated content
+            Task {
+                await loadLLMContent()
+            }
         }
         .onChange(of: currentWeightText) { _, newValue in
             // Update view model
@@ -211,6 +219,13 @@ struct WeightObjectivesView: View {
         .onChange(of: targetWeightText) { _, newValue in
             // Update view model
             viewModel.targetWeight = Double(newValue)
+            
+            // Get LLM encouragement when both weights are set
+            if !currentWeightText.isEmpty && !newValue.isEmpty {
+                Task {
+                    await updateEncouragement()
+                }
+            }
         }
         .onTapGesture {
             // Dismiss keyboard on tap outside
@@ -261,5 +276,55 @@ struct WeightObjectivesView: View {
         
         // Continue without weight goals
         viewModel.navigateToNext()
+    }
+    
+    // MARK: - LLM Content Loading
+    
+    private func loadLLMContent() async {
+        // Get dynamic prompt based on user's context
+        let prompt = await viewModel.getLLMPrompt(for: .weightObjectives)
+        if !prompt.isEmpty {
+            llmPrompt = prompt
+        }
+    }
+    
+    private func updateEncouragement() async {
+        guard let current = Double(currentWeightText),
+              let target = Double(targetWeightText) else { return }
+        
+        // Store weight values for LLM context
+        viewModel.currentWeight = current
+        viewModel.targetWeight = target
+        
+        // Get LLM-generated encouragement
+        if let llmService = viewModel.onboardingLLMService,
+           let userId = await viewModel.userService.getCurrentUserId() {
+            do {
+                let responses = viewModel.collectPreviousResponses()
+                let content = try await llmService.generateScreenContent(
+                    for: .weightObjectives,
+                    userId: userId,
+                    previousResponses: responses.asDictionary
+                )
+                
+                if let encouragement = content.encouragementMessage {
+                    await MainActor.run {
+                        llmEncouragement = encouragement
+                    }
+                }
+            } catch {
+                // Fallback to simple encouragement
+                let difference = abs(current - target)
+                await MainActor.run {
+                    if current > target {
+                        llmEncouragement = "\(Int(difference)) pounds? Totally doable!"
+                    } else if current < target {
+                        llmEncouragement = "Building \(Int(difference)) lbs - let's do this right!"
+                    } else {
+                        llmEncouragement = "Maintaining your weight - excellent goal!"
+                    }
+                }
+            }
+        }
     }
 }
