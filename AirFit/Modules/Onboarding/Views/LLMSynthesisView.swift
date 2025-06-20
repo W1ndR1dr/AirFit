@@ -12,6 +12,12 @@ struct LLMSynthesisView: View {
     @Environment(\.colorScheme)
     private var colorScheme
     
+    // Synthesis progress based on completed steps
+    private var synthesisProgress: Double {
+        guard !processingSteps.isEmpty else { return 0 }
+        return Double(currentStep) / Double(processingSteps.count)
+    }
+    
     // Processing steps that appear sequentially
     private var processingSteps: [(text: String, delay: Double)] {
         let context = viewModel.createContext()
@@ -180,20 +186,26 @@ struct LLMSynthesisView: View {
             
             // Center progress ring
             Circle()
-                .trim(from: 0, to: gradientCycleProgress)
+                .trim(from: 0, to: synthesisProgress)
                 .stroke(
                     gradientManager.currentGradient(for: colorScheme),
                     style: StrokeStyle(lineWidth: 4, lineCap: .round)
                 )
                 .frame(width: 80, height: 80)
                 .rotationEffect(.degrees(-90))
-                .animation(.linear(duration: 4.0), value: gradientCycleProgress)
+                .animation(.spring(response: 0.5, dampingFraction: 0.8), value: synthesisProgress)
             
-            // Center icon
-            Image(systemName: "sparkles")
-                .font(.system(size: 32, weight: .light))
-                .foregroundStyle(gradientManager.active.optimalTextColor(for: colorScheme))
-                .symbolEffect(.pulse, value: currentStep)
+            // Center progress percentage
+            VStack(spacing: 2) {
+                Text("\(Int(synthesisProgress * 100))%")
+                    .font(.system(size: 24, weight: .medium, design: .rounded))
+                    .foregroundStyle(gradientManager.active.optimalTextColor(for: colorScheme))
+                
+                Image(systemName: "sparkles")
+                    .font(.system(size: 16, weight: .light))
+                    .foregroundStyle(gradientManager.active.optimalTextColor(for: colorScheme).opacity(0.8))
+                    .symbolEffect(.pulse, value: currentStep)
+            }
         }
         .onAppear {
             pulsateScale = 1.15

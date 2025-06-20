@@ -138,7 +138,7 @@ public final class DIViewModelFactory {
         }
         
         let userService = try await container.resolve(UserServiceProtocol.self)
-        let apiKeyManager = try await container.resolve(APIKeyManagementProtocol.self)
+        let _ = try await container.resolve(APIKeyManagementProtocol.self)
         let aiService = try await container.resolve(AIServiceProtocol.self)
         let llmOrchestrator = try await container.resolve(LLMOrchestrator.self)
         let personaService = try await container.resolve(PersonaService.self)

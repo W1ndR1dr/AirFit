@@ -56,6 +56,14 @@ struct WeightObjectivesView: View {
                                         .focused($currentWeightFocused)
                                         .multilineTextAlignment(.center)
                                         .frame(maxWidth: 150)
+                                        .onChange(of: currentWeightText) { _, newValue in
+                                            // Validate and limit weight input
+                                            if let weight = Double(newValue), weight > 0 && weight < 1000 {
+                                                viewModel.currentWeight = weight
+                                            } else if newValue.isEmpty {
+                                                viewModel.currentWeight = nil
+                                            }
+                                        }
                                     
                                     Text("lbs")
                                         .font(.system(size: 24, weight: .light, design: .rounded))
@@ -115,6 +123,14 @@ struct WeightObjectivesView: View {
                                         .focused($targetWeightFocused)
                                         .multilineTextAlignment(.center)
                                         .frame(maxWidth: 150)
+                                        .onChange(of: targetWeightText) { _, newValue in
+                                            // Validate and limit weight input
+                                            if let weight = Double(newValue), weight > 0 && weight < 1000 {
+                                                viewModel.targetWeight = weight
+                                            } else if newValue.isEmpty {
+                                                viewModel.targetWeight = nil
+                                            }
+                                        }
                                     
                                     Text("lbs")
                                         .font(.system(size: 24, weight: .light, design: .rounded))
@@ -200,6 +216,13 @@ struct WeightObjectivesView: View {
             // Dismiss keyboard on tap outside
             currentWeightFocused = false
             targetWeightFocused = false
+        }
+        .onAppear {
+            // Auto-populate from HealthKit if available
+            if let weight = viewModel.currentWeight {
+                currentWeightText = String(format: "%.0f", weight)
+            }
+            animateIn = true
         }
         .accessibilityIdentifier("onboarding.weightObjectives")
     }

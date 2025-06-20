@@ -49,9 +49,9 @@ struct OnboardingContainerView: View {
         }
     }
     
-    private func handleScreenTransition(from oldScreen: OnboardingViewModel.OnboardingScreen, to newScreen: OnboardingViewModel.OnboardingScreen) {
+    private func handleScreenTransition(from oldScreen: OnboardingScreen, to newScreen: OnboardingScreen) {
         // Map screens to specific gradients for sunrise journey
-        let gradientMap: [OnboardingViewModel.OnboardingScreen: GradientToken] = [
+        let gradientMap: [OnboardingScreen: GradientToken] = [
             .opening: .nightSky,              // Pre-dawn darkness
             .healthKit: .earlyTwilight,       // First hint of light
             .lifeContext: .morningTwilight,   // Purple twilight

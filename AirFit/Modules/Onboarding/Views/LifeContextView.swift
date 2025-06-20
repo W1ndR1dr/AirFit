@@ -117,24 +117,12 @@ struct LifeContextView: View {
                     // Voice input indicator
                     if showVoiceInput {
                         VStack(spacing: AppSpacing.xs) {
-                            // Voice visualization placeholder
-                            HStack(spacing: 4) {
-                                ForEach(0..<5) { _ in
-                                    RoundedRectangle(cornerRadius: 2)
-                                        .fill(gradientManager.active.accentColor(for: colorScheme))
-                                        .frame(width: 4, height: CGFloat.random(in: 10...30))
-                                        .animation(
-                                            .easeInOut(duration: 0.5)
-                                            .repeatForever(autoreverses: true)
-                                            .delay(Double.random(in: 0...0.2)),
-                                            value: showVoiceInput
-                                        )
-                                }
-                            }
-                            .frame(height: 40)
+                            Text("Voice input coming soon!")
+                                .font(.system(size: 16, weight: .medium))
+                                .foregroundStyle(gradientManager.active.accentColor(for: colorScheme))
                             
-                            Text("I'm all ears...")
-                                .font(.system(size: 14, weight: .medium))
+                            Text("For now, please type your response")
+                                .font(.system(size: 14, weight: .regular))
                                 .foregroundStyle(gradientManager.active.secondaryTextColor(for: colorScheme))
                         }
                         .padding(.horizontal, AppSpacing.xl)
@@ -199,16 +187,17 @@ struct LifeContextView: View {
     
     private func toggleVoiceInput() {
         withAnimation(.spring(response: 0.3, dampingFraction: 0.8)) {
-            showVoiceInput.toggle()
+            showVoiceInput = true
         }
         
-        if showVoiceInput {
-            HapticService.impact(.light)
-            // Start voice capture
-            viewModel.startVoiceCapture(for: .lifeContext)
-        } else {
-            // Stop voice capture
-            viewModel.stopVoiceCapture()
+        HapticService.impact(.light)
+        
+        // Auto-dismiss the message after 3 seconds
+        Task {
+            try? await Task.sleep(nanoseconds: 3_000_000_000)
+            withAnimation(.spring(response: 0.3, dampingFraction: 0.8)) {
+                showVoiceInput = false
+            }
         }
     }
 }

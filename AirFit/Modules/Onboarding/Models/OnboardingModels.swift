@@ -2,8 +2,10 @@ import Foundation
 
 // Phase 4 Refactor: Clean v1 implementation with PersonaMode
 
-// MARK: - Navigation (9 screens per OnboardingFlow.md v3.2)
-enum OnboardingScreen: String, CaseIterable, Sendable {
+// MARK: - Navigation (Legacy 9 screens - DEPRECATED)
+// NOTE: This enum is kept for backward compatibility only.
+// The active onboarding flow uses OnboardingScreen from OnboardingScreen.swift
+enum LegacyOnboardingScreen: String, CaseIterable, Sendable {
     case openingScreen = "opening"
     case lifeSnapshot = "lifeSnapshot"
     case coreAspiration = "coreAspiration"

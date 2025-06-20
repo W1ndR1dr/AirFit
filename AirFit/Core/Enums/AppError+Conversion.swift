@@ -160,20 +160,6 @@ extension AppError {
         }
     }
     
-    // MARK: - Whisper Model Errors
-    
-    /// Creates AppError from WhisperModelManager.ModelError
-    static func from(_ modelError: WhisperModelManager.ModelError) -> AppError {
-        switch modelError {
-        case .modelNotFound:
-            return .unknown(message: "Model not found")
-        case .insufficientStorage:
-            return .validationError(message: "Not enough storage space for model")
-        case .downloadFailed(let reason):
-            return .networkError(underlying: NSError(domain: "WhisperModel", code: 0, userInfo: [NSLocalizedDescriptionKey: "Download failed: \(reason)"]))
-        }
-    }
-    
     // MARK: - Keychain Errors
     
     /// Creates AppError from KeychainError
@@ -596,8 +582,6 @@ extension Result where Failure == Error {
                 return AppError.from(healthKitError)
             } else if let llmError = error as? LLMError {
                 return AppError.from(llmError)
-            } else if let modelError = error as? WhisperModelManager.ModelError {
-                return AppError.from(modelError)
             } else if let optimizerError = error as? RequestOptimizerError {
                 return AppError.from(optimizerError)
             } else if let voiceInputError = error as? VoiceInputError {

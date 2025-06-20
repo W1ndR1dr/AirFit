@@ -7,7 +7,7 @@ import Observation
 @MainActor
 @Observable
 final class OnboardingCoordinator: SimpleCoordinator<OnboardingScreen> {
-    var currentScreen: OnboardingScreen = .openingScreen
+    var currentScreen: OnboardingScreen = .opening
 
     func navigateToNext() {
         let allScreens = OnboardingScreen.allCases
@@ -34,6 +34,6 @@ final class OnboardingCoordinator: SimpleCoordinator<OnboardingScreen> {
 
     func reset() {
         popToRoot()
-        currentScreen = .openingScreen
+        currentScreen = .opening
     }
 }

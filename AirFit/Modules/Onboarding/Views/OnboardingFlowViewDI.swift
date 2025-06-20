@@ -205,7 +205,7 @@ struct OnboardingFlowViewDI: View {
         loadError = nil
     }
     
-    private func shouldShowProgressBar(for screen: OnboardingViewModel.OnboardingScreen) -> Bool {
+    private func shouldShowProgressBar(for screen: OnboardingScreen) -> Bool {
         switch screen {
         case .opening, .synthesis, .coachReady:
             return false
@@ -214,7 +214,7 @@ struct OnboardingFlowViewDI: View {
         }
     }
     
-    private func shouldShowPrivacyFooter(for screen: OnboardingViewModel.OnboardingScreen) -> Bool {
+    private func shouldShowPrivacyFooter(for screen: OnboardingScreen) -> Bool {
         switch screen {
         case .opening, .synthesis, .coachReady:
             return false
