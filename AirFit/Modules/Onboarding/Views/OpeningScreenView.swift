@@ -63,7 +63,7 @@ struct OpeningScreenView: View {
                         HapticService.impact(.light)
                         viewModel.beginOnboarding()
                     } label: {
-                        Text("Let's begin")
+                        Text("Let's get started")
                             .font(.system(size: 18, weight: .semibold))
                             .foregroundColor(.white)
                             .frame(maxWidth: .infinity)

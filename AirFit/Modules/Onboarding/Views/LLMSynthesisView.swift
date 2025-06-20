@@ -13,12 +13,49 @@ struct LLMSynthesisView: View {
     private var colorScheme
     
     // Processing steps that appear sequentially
-    private let processingSteps = [
-        (text: "Analyzing your health data...", delay: 0.5),
-        (text: "Understanding your lifestyle...", delay: 1.5),
-        (text: "Designing your program...", delay: 2.5),
-        (text: "Personalizing communication style...", delay: 3.5)
-    ]
+    private var processingSteps: [(text: String, delay: Double)] {
+        let context = viewModel.createContext()
+        var steps: [(text: String, delay: Double)] = []
+        
+        // Health data step
+        if context.healthData != nil {
+            steps.append((text: "Looking at your health data...", delay: 0.5))
+        } else {
+            steps.append((text: "Getting the basics ready...", delay: 0.5))
+        }
+        
+        // Lifestyle step
+        if !context.lifeContext.isEmpty {
+            steps.append((text: "Working around your life...", delay: 1.5))
+        } else {
+            steps.append((text: "Building flexible routines...", delay: 1.5))
+        }
+        
+        // Goals step
+        if let weight = context.weight {
+            if weight.direction == .lose {
+                steps.append((text: "Crafting your weight loss journey...", delay: 2.5))
+            } else if weight.direction == .gain {
+                steps.append((text: "Planning your gains...", delay: 2.5))
+            } else {
+                steps.append((text: "Optimizing everything for you...", delay: 2.5))
+            }
+        } else if !context.functionalGoals.isEmpty {
+            steps.append((text: "Making this perfectly yours...", delay: 2.5))
+        } else {
+            steps.append((text: "Setting up your foundation...", delay: 2.5))
+        }
+        
+        // Communication step
+        if !context.communicationStyles.isEmpty {
+            let styleCount = context.communicationStyles.count
+            steps.append((text: "Mixing your \(styleCount) chosen vibes...", delay: 3.5))
+        } else {
+            steps.append((text: "Giving your coach personality...", delay: 3.5))
+        }
+        
+        return steps
+    }
     
     // Gradients to cycle through during processing
     private let cyclingGradients: [GradientToken] = [
@@ -43,7 +80,7 @@ struct LLMSynthesisView: View {
                 VStack(spacing: AppSpacing.xl) {
                     // Main title
                     if animateIn {
-                        CascadeText("Creating your personalized coach...")
+                        CascadeText("Working my magic...")
                             .font(.system(size: 32, weight: .light, design: .rounded))
                             .multilineTextAlignment(.center)
                             .padding(.horizontal, AppSpacing.screenPadding)
@@ -85,7 +122,7 @@ struct LLMSynthesisView: View {
                 if processingFailed {
                     VStack(spacing: AppSpacing.md) {
                         Button(action: { retryProcessing() }, label: {
-                            Text("Try again")
+                            Text("Let's try that again")
                                 .font(.system(size: 17, weight: .medium, design: .rounded))
                                 .foregroundColor(.white)
                                 .frame(maxWidth: .infinity)
@@ -98,7 +135,7 @@ struct LLMSynthesisView: View {
                         })
                         
                         Button(action: { continueWithDefaults() }, label: {
-                            Text("Continue anyway")
+                            Text("Skip this for now")
                                 .font(.system(size: 15, weight: .regular, design: .rounded))
                                 .foregroundStyle(gradientManager.active.accentColor(for: colorScheme))
                         })
@@ -169,7 +206,7 @@ struct LLMSynthesisView: View {
                 .font(.system(size: 48, weight: .light))
                 .foregroundStyle(.orange)
             
-            Text("Taking a bit longer than expected...")
+            Text("Hmm, this is taking longer than usual...")
                 .font(.system(size: 18, weight: .regular, design: .rounded))
                 .foregroundStyle(.secondary)
                 .multilineTextAlignment(.center)

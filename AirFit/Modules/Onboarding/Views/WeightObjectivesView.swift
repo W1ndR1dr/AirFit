@@ -35,7 +35,7 @@ struct WeightObjectivesView: View {
                     VStack(spacing: AppSpacing.xl) {
                         // Title with cascade animation
                         if animateIn {
-                            CascadeText("Let's talk about weight goals")
+                            CascadeText("Let's chat about your weight")
                                 .font(.system(size: 32, weight: .light, design: .rounded))
                                 .multilineTextAlignment(.center)
                                 .padding(.horizontal, AppSpacing.screenPadding)
@@ -68,7 +68,7 @@ struct WeightObjectivesView: View {
                                         Image(systemName: "heart.fill")
                                             .font(.system(size: 14))
                                             .foregroundStyle(gradientManager.active.accentColor(for: colorScheme))
-                                        Text("From your Health data")
+                                        Text("Got this from your Health app")
                                             .font(.system(size: 14, weight: .regular))
                                             .foregroundStyle(.secondary)
                                     }
@@ -89,7 +89,7 @@ struct WeightObjectivesView: View {
                                     }
                                 }) {
                                     HStack(spacing: AppSpacing.sm) {
-                                        Text("Add a target weight")
+                                        Text("I have a goal in mind")
                                             .font(.system(size: 17, weight: .regular, design: .rounded))
                                         Image(systemName: "arrow.right.circle")
                                             .font(.system(size: 20))
@@ -125,7 +125,7 @@ struct WeightObjectivesView: View {
                                 if let current = Double(currentWeightText),
                                    let target = Double(targetWeightText),
                                    target < current {
-                                    Text("A \(Int(current - target)) lb journey - you've got this!")
+                                    Text("\(Int(current - target)) pounds? Totally doable!")
                                         .font(.system(size: 16, weight: .regular, design: .rounded))
                                         .foregroundStyle(gradientManager.active.secondaryTextColor(for: colorScheme))
                                         .padding(.top, AppSpacing.xs)
@@ -161,7 +161,7 @@ struct WeightObjectivesView: View {
                     .animation(.easeInOut(duration: 0.2), value: canContinue)
                     
                     Button(action: { skipWeightGoals() }) {
-                        Text("Skip - no weight goals")
+                        Text("I'm happy where I am")
                             .font(.system(size: 16, weight: .regular, design: .rounded))
                             .foregroundStyle(gradientManager.active.secondaryTextColor(for: colorScheme))
                     }
@@ -178,6 +178,10 @@ struct WeightObjectivesView: View {
             // Prefill from HealthKit if available
             if let weight = viewModel.currentWeight {
                 currentWeightText = String(format: "%.0f", weight)
+            } else if let healthWeight = viewModel.healthKitData?.weight {
+                // Try to get from health data if not already set
+                currentWeightText = String(format: "%.0f", healthWeight)
+                viewModel.currentWeight = healthWeight
             }
             
             withAnimation(.spring(response: 0.6, dampingFraction: 0.8)) {
@@ -208,11 +212,11 @@ struct WeightObjectivesView: View {
     
     private var continueButtonText: String {
         if showTargetWeight && !targetWeightText.isEmpty {
-            return "Continue with goals"
+            return "Love it, let's keep going"
         } else if !currentWeightText.isEmpty {
-            return "Continue"
+            return "Next up"
         } else {
-            return "Enter weight"
+            return "What's your current weight?"
         }
     }
     

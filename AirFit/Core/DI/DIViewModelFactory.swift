@@ -148,6 +148,7 @@ public final class DIViewModelFactory {
         
         // Get HealthKit auth manager from container
         let healthKitAuthManager = try await container.resolve(HealthKitAuthManager.self)
+        let healthPrefillProvider = try? await container.resolve(HealthKitPrefillProviding.self)
         
         return OnboardingViewModel(
             aiService: aiService,
@@ -155,6 +156,7 @@ public final class DIViewModelFactory {
             modelContext: context,
             userService: userService,
             personaService: personaService,
+            healthPrefillProvider: healthPrefillProvider,
             healthKitAuthManager: healthKitAuthManager
         )
     }

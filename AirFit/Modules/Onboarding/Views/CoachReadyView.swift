@@ -29,7 +29,7 @@ struct CoachReadyView: View {
                     .animation(.spring(response: 0.6, dampingFraction: 0.6), value: animateIn)
                 
                 // Main heading
-                CascadeText("Your AI coach is ready")
+                CascadeText("We're all set!")
                     .font(.system(size: 32, weight: .light, design: .rounded))
                     .multilineTextAlignment(.center)
                     .foregroundStyle(gradientManager.currentGradient(for: colorScheme))
@@ -55,7 +55,7 @@ struct CoachReadyView: View {
                         // Key focus areas
                         if !synthesis.coachingFocus.isEmpty {
                             VStack(alignment: .leading, spacing: AppSpacing.small) {
-                                Text("I'll help you with:")
+                                Text("Here's what we'll focus on:")
                                     .font(.system(size: 13, weight: .regular, design: .rounded))
                                     .foregroundStyle(.secondary)
                                 
@@ -85,7 +85,7 @@ struct CoachReadyView: View {
                     .padding(.horizontal, AppSpacing.medium)
                 } else {
                     // Fallback description if synthesis failed
-                    Text("I'm your personalized AI fitness coach, ready to help you achieve your goals with a thoughtful, adaptive approach.")
+                    Text("I'm your new AI fitness buddy - thoughtful, adaptive, and ready to help you crush your goals.")
                         .font(.system(size: 17, weight: .regular, design: .rounded))
                         .multilineTextAlignment(.center)
                         .foregroundStyle(.primary)
@@ -109,7 +109,7 @@ struct CoachReadyView: View {
                         }
                     } label: {
                         HStack {
-                            Text("Let's get started")
+                            Text("Let's do this")
                                 .font(.system(size: 17, weight: .semibold, design: .rounded))
                             Image(systemName: "arrow.right")
                                 .font(.footnote)
@@ -130,7 +130,7 @@ struct CoachReadyView: View {
                         HapticService.impact(.soft)
                         // TODO: Show coach details or tips
                     } label: {
-                        Text("Tell me more")
+                        Text("Wait, tell me more")
                             .font(.system(size: 17, weight: .regular, design: .rounded))
                             .foregroundStyle(gradientManager.currentGradient(for: colorScheme))
                     }
@@ -164,9 +164,9 @@ struct CoachReadyView: View {
         
         // Use the persona mode if available, otherwise use a default description
         if let persona = viewModel.generatedPersona {
-            return "I'm your \(persona.name) coach, focused on helping you \(strategy). I'll adapt to your busy schedule and celebrate every victory."
+            return "I'm your \(persona.name) coach, here to help you \(strategy). I'll work around your life and celebrate every win along the way."
         } else {
-            return "I'm your personalized coach, focused on helping you \(strategy). I'll adapt to your busy schedule and celebrate every victory."
+            return "I'm your personal coach, here to help you \(strategy). I'll work around your life and celebrate every win."
         }
     }
 }

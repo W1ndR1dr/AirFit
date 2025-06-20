@@ -234,6 +234,11 @@ public final class DIBootstrapper {
             try await resolver.resolve(HealthKitService.self)
         }
         
+        // HealthKit Prefill Provider
+        container.register(HealthKitPrefillProviding.self, lifetime: .singleton) { _ in
+            HealthKitProvider()
+        }
+        
         
         // KeychainHelper
         container.register(KeychainHelper.self, lifetime: .singleton) { _ in

@@ -176,42 +176,73 @@ final class OnboardingViewModel: ErrorHandling {
     // MARK: - HealthKit
     
     func requestHealthKitAuthorization() async {
-        let granted = await healthKitAuthManager.requestAuthorizationIfNeeded()
-        healthKitAuthorizationStatus = healthKitAuthManager.authorizationStatus
-        
-        if granted {
-            await fetchHealthKitData()
+        // First try the new HealthKitProvider
+        if let provider = healthPrefillProvider as? HealthKitProvider {
+            do {
+                let granted = try await provider.requestAuthorization()
+                healthKitAuthorizationStatus = granted ? .authorized : .denied
+                
+                if granted {
+                    await fetchHealthKitData()
+                }
+            } catch {
+                AppLogger.error("HealthKit authorization failed", error: error, category: .health)
+                healthKitAuthorizationStatus = .denied
+            }
+        } else {
+            // Fallback to existing auth manager
+            let granted = await healthKitAuthManager.requestAuthorizationIfNeeded()
+            healthKitAuthorizationStatus = healthKitAuthManager.authorizationStatus
+            
+            if granted {
+                await fetchHealthKitData()
+            }
         }
         
         // Track health kit authorization
-        // await analytics.trackEvent(.stateTransition, properties: ["type": "healthKitAuthorization", "granted": granted])
+        // await analytics.trackEvent(.stateTransition, properties: ["type": "healthKitAuthorization", "granted": healthKitAuthorizationStatus == .authorized])
     }
     
     private func fetchHealthKitData() async {
         guard let provider = healthPrefillProvider else { return }
         
         do {
-            // Fetch weight
-            if let weight = try await provider.fetchCurrentWeight() {
-                currentWeight = weight
+            // Fetch all health data
+            if let healthProvider = provider as? HealthKitProvider {
+                let snapshot = try await healthProvider.fetchHealthSnapshot()
+                
+                // Update all relevant fields
+                self.healthKitData = snapshot
+                self.currentWeight = snapshot.weight
+                
+                // Update sleep window if available
+                if let sleepSchedule = snapshot.sleepSchedule {
+                    let formatter = DateFormatter()
+                    formatter.dateFormat = "HH:mm"
+                    sleepWindow.bedTime = formatter.string(from: sleepSchedule.bedtime)
+                    sleepWindow.wakeTime = formatter.string(from: sleepSchedule.waketime)
+                }
+            } else {
+                // Fallback to basic fetching
+                if let weight = try await provider.fetchCurrentWeight() {
+                    currentWeight = weight
+                }
+                
+                if let sleepData = try await provider.fetchTypicalSleepWindow() {
+                    let formatter = DateFormatter()
+                    formatter.dateFormat = "HH:mm"
+                    sleepWindow.bedTime = formatter.string(from: sleepData.bed)
+                    sleepWindow.wakeTime = formatter.string(from: sleepData.wake)
+                }
+                
+                healthKitData = HealthKitSnapshot(
+                    weight: currentWeight,
+                    height: nil,
+                    age: nil,
+                    sleepSchedule: nil,
+                    activityMetrics: nil
+                )
             }
-            
-            // Fetch sleep patterns
-            if let sleepData = try await provider.fetchTypicalSleepWindow() {
-                // Convert to SleepWindow format
-                let formatter = DateFormatter()
-                formatter.dateFormat = "HH:mm"
-                sleepWindow.bedTime = formatter.string(from: sleepData.bed)
-                sleepWindow.wakeTime = formatter.string(from: sleepData.wake)
-            }
-            
-            // Create snapshot
-            healthKitData = HealthKitSnapshot(
-                weight: currentWeight,
-                height: nil, // Add if needed
-                age: nil, // Add if needed
-                sleepSchedule: nil // Add if needed
-            )
         } catch {
             AppLogger.error("Failed to fetch HealthKit data", error: error, category: .health)
         }
@@ -525,6 +556,15 @@ struct HealthKitSnapshot: Codable, Sendable {
     let height: Double?
     let age: Int?
     let sleepSchedule: SleepSchedule?
+    let activityMetrics: OnboardingActivityMetrics?
+    
+    init(weight: Double? = nil, height: Double? = nil, age: Int? = nil, sleepSchedule: SleepSchedule? = nil, activityMetrics: OnboardingActivityMetrics? = nil) {
+        self.weight = weight
+        self.height = height
+        self.age = age
+        self.sleepSchedule = sleepSchedule
+        self.activityMetrics = activityMetrics
+    }
 }
 
 struct SleepSchedule: Codable, Sendable {

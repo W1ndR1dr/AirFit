@@ -41,7 +41,7 @@ struct CommunicationStyleView: View {
                         
                         // Subtitle
                         if animateIn {
-                            Text("I can adapt - pick what resonates")
+                            Text("Mix and match - I'll blend them perfectly")
                                 .font(.system(size: 18, weight: .regular, design: .rounded))
                                 .foregroundStyle(gradientManager.active.secondaryTextColor(for: colorScheme))
                                 .multilineTextAlignment(.center)
@@ -85,7 +85,7 @@ struct CommunicationStyleView: View {
                     // Skip option
                     if !showInformationPreferences && viewModel.communicationStyles.isEmpty {
                         Button(action: { skipToNext() }, label: {
-                            Text("Surprise me - adapt as we go")
+                            Text("Figure it out as we go")
                                 .font(.system(size: 15, weight: .regular, design: .rounded))
                                 .foregroundStyle(gradientManager.active.accentColor(for: colorScheme))
                         })
@@ -134,7 +134,7 @@ struct CommunicationStyleView: View {
     @ViewBuilder private var informationPreferencesList: some View {
         VStack(spacing: AppSpacing.md) {
             // Section header
-            Text("What information helps you most?")
+            Text("And what kind of info do you want?")
                 .font(.system(size: 24, weight: .light, design: .rounded))
                 .foregroundStyle(.primary)
                 .multilineTextAlignment(.center)
@@ -173,10 +173,10 @@ struct CommunicationStyleView: View {
     private var continueButtonText: String {
         if showInformationPreferences {
             let count = viewModel.informationPreferences.count
-            return !viewModel.informationPreferences.isEmpty ? "Continue with \(count) preference\(count == 1 ? "" : "s")" : "Continue"
+            return !viewModel.informationPreferences.isEmpty ? "Perfect combo! Let's go" : "Pick at least one"
         } else {
             let count = viewModel.communicationStyles.count
-            return !viewModel.communicationStyles.isEmpty ? "Continue with \(count) style\(count == 1 ? "" : "s")" : "Continue"
+            return !viewModel.communicationStyles.isEmpty ? "Nice picks! What else?" : "Choose your vibe"
         }
     }
     
@@ -205,19 +205,18 @@ struct CommunicationStyleView: View {
         // Apply smart defaults based on goals
         guard viewModel.communicationStyles.isEmpty else { return }
         
-        let goalsText = viewModel.functionalGoalsText.lowercased()
+        // Get intelligent suggestions from context
+        let context = viewModel.createContext()
+        let suggestedStyles = context.suggestedCommunicationStyles
         
-        // Weight loss goals often benefit from encouragement and patience
-        if goalsText.contains("weight") || goalsText.contains("lose") {
-            viewModel.communicationStyles = [.encouraging, .patient]
-        }
-        // Performance goals might prefer direct and data-driven
-        else if goalsText.contains("performance") || goalsText.contains("strength") {
-            viewModel.communicationStyles = [.direct, .analytical]
-        }
-        // General fitness might like balanced approach
-        else if !goalsText.isEmpty {
-            viewModel.communicationStyles = [.encouraging]
+        // Apply suggestions if we have any
+        if !suggestedStyles.isEmpty {
+            viewModel.communicationStyles = Array(suggestedStyles)
+            
+            // Add a subtle animation to highlight the pre-selected options
+            DispatchQueue.main.asyncAfter(deadline: .now() + 0.8) {
+                HapticService.impact(.light)
+            }
         }
     }
 }

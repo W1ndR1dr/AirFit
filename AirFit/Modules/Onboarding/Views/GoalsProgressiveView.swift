@@ -17,20 +17,8 @@ struct GoalsProgressiveView: View {
     
     // Smart placeholder based on HealthKit data
     private var goalPlaceholder: String {
-        if let healthData = viewModel.healthKitData {
-            // Calculate BMI if we have weight and height
-            if let weight = healthData.weight {
-                if weight > 200 {
-                    return "Lose weight, feel healthier..."
-                }
-            }
-            
-            // Check activity patterns
-            if healthData.sleepSchedule == nil {
-                return "Get more active, build strength..."
-            }
-        }
-        return "Take my fitness to the next level..."
+        let context = viewModel.createContext()
+        return context.goalPlaceholder
     }
     
     var body: some View {
@@ -56,7 +44,7 @@ struct GoalsProgressiveView: View {
                     VStack(spacing: AppSpacing.xl) {
                         // Title with cascade animation
                         if animateIn {
-                            CascadeText("What would you like to achieve?")
+                            CascadeText("What are you hoping to accomplish?")
                                 .font(.system(size: 32, weight: .light, design: .rounded))
                                 .multilineTextAlignment(.center)
                                 .padding(.horizontal, AppSpacing.screenPadding)
@@ -73,7 +61,7 @@ struct GoalsProgressiveView: View {
                             HStack(spacing: AppSpacing.sm) {
                                 ProgressView()
                                     .scaleEffect(0.8)
-                                Text("Understanding your goals...")
+                                Text("Let me think about this...")
                                     .font(.system(size: 16, weight: .regular))
                                     .foregroundStyle(gradientManager.active.secondaryTextColor(for: colorScheme))
                             }
@@ -186,7 +174,7 @@ struct GoalsProgressiveView: View {
         VStack(alignment: .leading, spacing: AppSpacing.xl) {
             // LLM's understanding
             VStack(alignment: .leading, spacing: AppSpacing.md) {
-                Text("Here's what I understand:")
+                Text("Got it! So you want to:")
                     .font(.system(size: 20, weight: .medium, design: .rounded))
                     .foregroundStyle(.primary)
                 
@@ -209,7 +197,7 @@ struct GoalsProgressiveView: View {
                                 isConfirmed = true
                             }
                         }, label: {
-                            Text("Yes, exactly!")
+                            Text("That's exactly right!")
                                 .font(.system(size: 16, weight: .medium, design: .rounded))
                                 .foregroundColor(.white)
                                 .padding(.horizontal, AppSpacing.lg)
@@ -225,7 +213,7 @@ struct GoalsProgressiveView: View {
                                 showRefinement = true
                             }
                         }, label: {
-                            Text("Let me clarify")
+                            Text("Actually, there's more...")
                                 .font(.system(size: 16, weight: .regular, design: .rounded))
                                 .foregroundStyle(gradientManager.active.accentColor(for: colorScheme))
                                 .padding(.horizontal, AppSpacing.lg)
@@ -243,7 +231,7 @@ struct GoalsProgressiveView: View {
                 } else {
                     // Refinement text field
                     VStack(spacing: AppSpacing.sm) {
-                        Text("What would you like to add or change?")
+                        Text("Tell me what I missed:")
                             .font(.system(size: 16, weight: .regular, design: .rounded))
                             .foregroundStyle(.secondary)
                         
@@ -281,14 +269,14 @@ struct GoalsProgressiveView: View {
     private var continueButtonText: String {
         if showSuggestions {
             if isConfirmed {
-                return "Continue"
+                return "Perfect, let's continue"
             } else if showRefinement {
-                return "Update goals"
+                return "Got it, update my goals"
             } else {
-                return "Continue"
+                return "Sounds good to me"
             }
         } else {
-            return "Continue"
+            return "Keep going"
         }
     }
     

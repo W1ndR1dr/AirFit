@@ -12,15 +12,8 @@ struct LifeContextView: View {
     
     // Smart prompts based on HealthKit data
     private var contextPrompt: String {
-        if let healthData = viewModel.healthKitData {
-            // Customize prompt based on health data patterns
-            if let weight = healthData.weight, weight > 200 {
-                return "I see you're on a health journey. Tell me about your daily routine and what matters most to you."
-            } else if healthData.sleepSchedule != nil {
-                return "Your sleep data shows interesting patterns. What's your typical day like?"
-            }
-        }
-        return "Tell me about your daily life - work, family, hobbies, whatever shapes your days."
+        let context = viewModel.createContext()
+        return context.activityPrompt
     }
     
     var body: some View {
@@ -48,7 +41,7 @@ struct LifeContextView: View {
                 VStack(spacing: AppSpacing.xl) {
                     // Title with cascade animation
                     if animateIn {
-                        CascadeText("Tell me about your daily life")
+                        CascadeText("What's your day like?")
                             .font(.system(size: 32, weight: .light, design: .rounded))
                             .multilineTextAlignment(.center)
                             .padding(.horizontal, AppSpacing.screenPadding)
@@ -68,7 +61,7 @@ struct LifeContextView: View {
                         ZStack(alignment: .topLeading) {
                             // Placeholder
                             if viewModel.lifeContext.isEmpty {
-                                Text("I work from home, have two kids...")
+                                Text("Like: I'm a desk warrior with two kids, or I travel constantly for work...")
                                     .font(.system(size: 20, weight: .regular, design: .rounded))
                                     .foregroundStyle(.primary.opacity(0.3))
                                     .padding(.horizontal, 16)
@@ -131,7 +124,7 @@ struct LifeContextView: View {
                             )
                             .frame(height: 40)
                             
-                            Text("Listening...")
+                            Text("I'm all ears...")
                                 .font(.system(size: 14, weight: .medium))
                                 .foregroundStyle(gradientManager.active.secondaryTextColor(for: colorScheme))
                         }
@@ -146,7 +139,7 @@ struct LifeContextView: View {
                 VStack(spacing: AppSpacing.sm) {
                     // Continue button
                     Button(action: { viewModel.navigateToNext() }) {
-                        Text("Continue")
+                        Text("Sounds good, let's keep going")
                             .font(.system(size: 17, weight: .medium, design: .rounded))
                             .foregroundColor(.white)
                             .frame(maxWidth: .infinity)
@@ -163,10 +156,10 @@ struct LifeContextView: View {
                     
                     // Skip option
                     Button(action: { 
-                        viewModel.lifeContext = "Prefer not to share"
+                        viewModel.lifeContext = "I'll tell you more as we go"
                         viewModel.navigateToNext() 
                     }) {
-                        Text("Skip for now")
+                        Text("I'll share later")
                             .font(.system(size: 15, weight: .regular, design: .rounded))
                             .foregroundStyle(gradientManager.active.secondaryTextColor(for: colorScheme))
                     }

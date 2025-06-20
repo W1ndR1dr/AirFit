@@ -31,7 +31,7 @@ struct BodyCompositionGoalsView: View {
                     VStack(spacing: AppSpacing.xl) {
                         // Title with cascade animation
                         if animateIn {
-                            CascadeText("What about body composition?")
+                            CascadeText("Any body transformation goals?")
                                 .font(.system(size: 32, weight: .light, design: .rounded))
                                 .multilineTextAlignment(.center)
                                 .padding(.horizontal, AppSpacing.screenPadding)
@@ -40,7 +40,7 @@ struct BodyCompositionGoalsView: View {
                         
                         // Subtitle
                         if showGoals {
-                            Text("Pick any that resonate with you")
+                            Text(subtitleText)
                                 .font(.system(size: 18, weight: .regular, design: .rounded))
                                 .foregroundStyle(.primary.opacity(0.7))
                                 .multilineTextAlignment(.center)
@@ -89,7 +89,7 @@ struct BodyCompositionGoalsView: View {
                     }
                     
                     Button(action: { skipBodyGoals() }) {
-                        Text("Skip - no specific body goals")
+                        Text("Just overall fitness for me")
                             .font(.system(size: 16, weight: .regular, design: .rounded))
                             .foregroundStyle(gradientManager.active.secondaryTextColor(for: colorScheme))
                     }
@@ -113,20 +113,40 @@ struct BodyCompositionGoalsView: View {
                     showGoals = true
                 }
             }
+            
+            // Apply smart defaults if no goals selected yet
+            applySmartDefaults()
         }
         .accessibilityIdentifier("onboarding.bodyComposition")
     }
     
     // MARK: - Computed Properties
     
+    private var subtitleText: String {
+        let context = viewModel.createContext()
+        
+        // Check if we pre-selected some goals
+        if !viewModel.bodyRecompositionGoals.isEmpty {
+            if let weight = context.weight, weight.direction == .lose {
+                return "Picked a few based on your weight goals - feel free to change!"
+            } else if let metrics = context.healthData?.activityMetrics, 
+                     (metrics.averageDailySteps > 10000 || metrics.weeklyWorkoutCount >= 4) {
+                return "You're pretty active - thought these might appeal to you"
+            }
+        }
+        
+        // Default friendly prompt
+        return "Choose what excites you (or none at all!)"
+    }
+    
     private var continueButtonText: String {
         let count = viewModel.bodyRecompositionGoals.count
         if count == 0 {
-            return "Continue"
+            return "Let's move on"
         } else if count == 1 {
-            return "Continue with 1 goal"
+            return "Great choice! Let's continue"
         } else {
-            return "Continue with \(count) goals"
+            return "Love these \(count) goals! Next"
         }
     }
     
@@ -142,6 +162,51 @@ struct BodyCompositionGoalsView: View {
         
         // Continue without body goals
         viewModel.navigateToNext()
+    }
+    
+    private func applySmartDefaults() {
+        // Only apply defaults if nothing selected yet
+        guard viewModel.bodyRecompositionGoals.isEmpty else { return }
+        
+        let context = viewModel.createContext()
+        
+        // Weight loss goal suggests fat loss
+        if let weight = context.weight, weight.direction == .lose {
+            if !viewModel.bodyRecompositionGoals.contains(.loseFat) {
+                viewModel.bodyRecompositionGoals.append(.loseFat)
+            }
+            
+            // If moderate weight loss, also suggest toning
+            if let current = weight.currentWeight, 
+               let target = weight.targetWeight,
+               current - target <= 20 {
+                if !viewModel.bodyRecompositionGoals.contains(.getToned) {
+                    viewModel.bodyRecompositionGoals.append(.getToned)
+                }
+            }
+        }
+        
+        // Weight gain suggests muscle building
+        if let weight = context.weight, weight.direction == .gain {
+            if !viewModel.bodyRecompositionGoals.contains(.gainMuscle) {
+                viewModel.bodyRecompositionGoals.append(.gainMuscle)
+            }
+        }
+        
+        // Active users might want definition
+        if let metrics = context.healthData?.activityMetrics,
+           (metrics.averageDailySteps > 10000 || metrics.weeklyWorkoutCount >= 4) {
+            if !viewModel.bodyRecompositionGoals.contains(.improveDefinition) {
+                viewModel.bodyRecompositionGoals.append(.improveDefinition)
+            }
+        }
+        
+        // Add haptic feedback if we selected anything
+        if !viewModel.bodyRecompositionGoals.isEmpty {
+            DispatchQueue.main.asyncAfter(deadline: .now() + 0.8) {
+                HapticService.impact(.light)
+            }
+        }
     }
 }
 

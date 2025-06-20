@@ -54,7 +54,7 @@ struct HealthKitAuthorizationView: View {
                     
                     // Title with cascade animation
                     if animateIn {
-                        CascadeText("Now, let's sync your health data")
+                        CascadeText("Let's grab your health data")
                             .font(.system(size: 32, weight: .light, design: .rounded))
                             .foregroundColor(textColor)
                             .multilineTextAlignment(.center)
@@ -62,7 +62,7 @@ struct HealthKitAuthorizationView: View {
                     }
                     
                     // Subtitle
-                    Text("This helps me understand your baseline")
+                    Text("I'll use this to personalize everything for you")
                         .font(.system(size: 18, weight: .light, design: .rounded))
                         .foregroundColor(secondaryTextColor)
                         .multilineTextAlignment(.center)
@@ -78,7 +78,7 @@ struct HealthKitAuthorizationView: View {
                     if showDataPreview {
                         // Data preview card
                         VStack(spacing: AppSpacing.sm) {
-                            Text("Great! Here's what I found:")
+                            Text("Nice! Found some good stuff:")
                                 .font(.system(size: 18, weight: .medium))
                                 .foregroundColor(.primary)
                             
@@ -185,11 +185,11 @@ struct HealthKitAuthorizationView: View {
     private var buttonTitle: String {
         switch viewModel.healthKitAuthorizationStatus {
         case .notDetermined:
-            return "Connect Apple Health"
+            return "Connect my health data"
         case .authorized:
-            return showDataPreview ? "Continue" : "View My Data"
+            return showDataPreview ? "Looking good, let's continue" : "Show me what you found"
         case .denied, .restricted:
-            return "Continue without Health data"
+            return "Let's keep going anyway"
         }
     }
     
