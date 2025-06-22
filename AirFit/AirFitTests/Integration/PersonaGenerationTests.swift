@@ -39,7 +39,7 @@ final class PersonaGenerationTests: XCTestCase {
             llmOrchestrator: realLLMOrchestrator
         )
         
-        let optimizedSynthesizer = OptimizedPersonaSynthesizer(
+        let optimizedSynthesizer = PersonaSynthesizer(
             llmOrchestrator: realLLMOrchestrator,
             cache: cache
         )

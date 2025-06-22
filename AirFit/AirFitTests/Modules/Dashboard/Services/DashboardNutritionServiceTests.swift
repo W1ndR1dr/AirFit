@@ -41,20 +41,63 @@ final class DashboardNutritionServiceTests: XCTestCase {
     // MARK: - Test Helpers
     
     private func createTestProfile(for user: User) throws -> OnboardingProfile {
-        let profileData = UserProfileJsonBlob(
+        let coachingPlan = CoachingPlan(
+            understandingSummary: "Test user wants to get healthier",
+            coachingApproach: ["Supportive guidance", "Daily accountability"],
             lifeContext: LifeContext(),
             goal: Goal(family: .healthWellbeing, rawText: "Get healthier"),
-            personaMode: .supportiveCoach,
             engagementPreferences: EngagementPreferences(),
             sleepWindow: SleepWindow(),
             motivationalStyle: MotivationalStyle(),
             timezone: "UTC",
-            baselineModeEnabled: false
+            generatedPersona: PersonaProfile(
+                id: UUID(),
+                name: "Coach AI",
+                archetype: "Supportive Health Coach",
+                systemPrompt: "You are a supportive health coach",
+                coreValues: ["health", "support", "consistency"],
+                backgroundStory: "Dedicated to helping users achieve their health goals",
+                voiceCharacteristics: VoiceCharacteristics(
+                    energy: .moderate,
+                    pace: .natural,
+                    warmth: .warm,
+                    vocabulary: .moderate,
+                    sentenceStructure: .moderate
+                ),
+                interactionStyle: InteractionStyle(
+                    greetingStyle: "Hello!",
+                    closingStyle: "Keep up the great work!",
+                    encouragementPhrases: ["You're doing great!"],
+                    acknowledgmentStyle: "I understand",
+                    correctionApproach: "gentle",
+                    humorLevel: .light,
+                    formalityLevel: .balanced,
+                    responseLength: .moderate
+                ),
+                adaptationRules: [],
+                metadata: PersonaMetadata(
+                    createdAt: Date(),
+                    version: "1.0",
+                    sourceInsights: ConversationPersonalityInsights(
+                        dominantTraits: [],
+                        communicationStyle: .conversational,
+                        motivationType: .health,
+                        energyLevel: .moderate,
+                        preferredComplexity: .moderate,
+                        emotionalTone: ["supportive"],
+                        stressResponse: .needsSupport,
+                        preferredTimes: ["morning", "evening"],
+                        extractedAt: Date()
+                    ),
+                    generationDuration: 0,
+                    tokenCount: 0,
+                    previewReady: true
+                )
+            )
         )
         
         let encoder = JSONEncoder()
-        encoder.keyEncodingStrategy = .convertToSnakeCase
-        let data = try encoder.encode(profileData)
+        let data = try encoder.encode(coachingPlan)
         
         let profile = OnboardingProfile(
             personaPromptData: data,

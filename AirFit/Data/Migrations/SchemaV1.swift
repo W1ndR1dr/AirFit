@@ -3,7 +3,7 @@ import Foundation
 
 // MARK: - Schema Version 1 (Current - AI-Native, No Templates)
 enum SchemaV1: VersionedSchema {
-    nonisolated(unsafe) static let versionIdentifier = Schema.Version(1, 0, 0)
+    static let versionIdentifier = Schema.Version(1, 0, 0)
 
     static var models: [any PersistentModel.Type] {
         [

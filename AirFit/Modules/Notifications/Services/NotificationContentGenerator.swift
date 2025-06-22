@@ -209,18 +209,14 @@ final class NotificationContentGenerator: ServiceProtocol {
             return nil
         }
         
-        // Decode the communication preferences to get motivational style
+        // Try to decode coaching plan from raw profile data
         let decoder = JSONDecoder()
-        if let userProfile = try? decoder.decode(UserProfileJsonBlob.self, from: profile.rawFullProfileData) {
-            return userProfile.motivationalStyle
-        } else if let commPrefs = try? decoder.decode(CommunicationPreferences.self, from: profile.communicationPreferencesData) {
-            // Fallback: create a default motivational style based on communication preferences
-            return MotivationalStyle(
-                celebrationStyle: .subtleAffirming,
-                absenceResponse: commPrefs.absenceResponse == "light_nudge" ? .gentleNudge : .respectSpace
-            )
+        if let coachingPlan = try? decoder.decode(CoachingPlan.self, from: profile.rawFullProfileData) {
+            return coachingPlan.motivationalStyle
         }
-        return nil
+        
+        // Return default if we can't decode
+        return MotivationalStyle()
     }
     
     // MARK: - ServiceProtocol Methods

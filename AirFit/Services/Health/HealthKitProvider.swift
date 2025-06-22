@@ -1,6 +1,18 @@
 import Foundation
 import HealthKit
 
+// MARK: - HealthKitPrefillProviding Protocol
+protocol HealthKitPrefillProviding: Actor {
+    func fetchActivityMetrics() async throws -> OnboardingActivityMetrics
+    func requestAuthorization() async throws -> Bool
+}
+
+// MARK: - HealthKitSnapshot
+struct HealthKitSnapshot: Codable, Sendable {
+    let activityMetrics: OnboardingActivityMetrics
+    let timestamp: Date
+}
+
 // MARK: - OnboardingActivityMetrics
 /// Simplified activity data for onboarding LLM synthesis
 struct OnboardingActivityMetrics: Codable, Sendable {
@@ -156,14 +168,11 @@ actor HealthKitProvider: HealthKitPrefillProviding {
         async let sleepWindow = fetchTypicalSleepWindow()
         async let activityMetrics = fetchActivityMetrics()
         
-        let (weightResult, heightResult, sleepResult, metricsResult) = try await (weight, height, sleepWindow, activityMetrics)
+        let (_, _, _, metricsResult) = try await (weight, height, sleepWindow, activityMetrics)
         
         return HealthKitSnapshot(
-            weight: weightResult,
-            height: heightResult,
-            age: nil, // Could calculate from birthdate if available
-            sleepSchedule: sleepResult.map { SleepSchedule(bedtime: $0.bed, waketime: $0.wake) },
-            activityMetrics: metricsResult
+            activityMetrics: metricsResult,
+            timestamp: Date()
         )
     }
     

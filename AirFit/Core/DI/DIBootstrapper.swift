@@ -62,6 +62,14 @@ public final class DIBootstrapper {
             return await LLMOrchestrator(apiKeyManager: apiKeyManager)
         }
         
+        // Direct AI Processor - Fast path for simple AI operations
+        container.register(DirectAIProcessor.self, lifetime: .singleton) { resolver in
+            let aiService = try await resolver.resolve(AIServiceProtocol.self)
+            return await MainActor.run {
+                DirectAIProcessor(aiService: aiService)
+            }
+        }
+        
         // Main AI Service - Use DemoAIService if in demo mode
         container.register(AIServiceProtocol.self, lifetime: .singleton) { resolver in
             if AppConstants.Configuration.isUsingDemoMode {
@@ -295,6 +303,11 @@ public final class DIBootstrapper {
             await HapticService()
         }
         
+        // Onboarding Intelligence - The brain behind smart onboarding
+        container.register(OnboardingIntelligence.self, lifetime: .transient) { _ in
+            try await OnboardingIntelligence(container: container)
+        }
+        
         // Whisper Model Manager
         container.register(WhisperModelManager.self, lifetime: .singleton) { _ in
             await MainActor.run {
@@ -339,45 +352,16 @@ public final class DIBootstrapper {
             }
         }
         
-        // Onboarding LLM Service - Provides LLM-driven intelligence for onboarding
-        container.register(OnboardingLLMService.self, lifetime: .transient) { resolver in
-            let llmOrchestrator = try await resolver.resolve(LLMOrchestrator.self)
-            let healthKitManager = try await resolver.resolve(HealthKitManager.self)
-            
-            return OnboardingLLMService(
-                llmOrchestrator: llmOrchestrator,
-                healthKitManager: healthKitManager
-            )
-        }
-        
-        // Onboarding Service
-        container.register(OnboardingServiceProtocol.self, lifetime: .transient) { resolver in
-            let modelContainer = try await resolver.resolve(ModelContainer.self)
-            let llmOrchestrator = try await resolver.resolve(LLMOrchestrator.self)
-            
-            return await MainActor.run {
-                OnboardingService(modelContext: modelContainer.mainContext, llmOrchestrator: llmOrchestrator)
-            }
-        }
-        
-        // Conversation Manager
-        container.register(ConversationManager.self, lifetime: .transient) { resolver in
-            let modelContainer = try await resolver.resolve(ModelContainer.self)
-            return await MainActor.run {
-                ConversationManager(modelContext: modelContainer.mainContext)
-            }
-        }
-        
         // AI Response Cache - Used by PersonaService
         container.register(AIResponseCache.self, lifetime: .singleton) { _ in
             AIResponseCache()
         }
         
         // Optimized Persona Synthesizer
-        container.register(OptimizedPersonaSynthesizer.self, lifetime: .singleton) { resolver in
+        container.register(PersonaSynthesizer.self, lifetime: .singleton) { resolver in
             let llmOrchestrator = try await resolver.resolve(LLMOrchestrator.self)
             let cache = try await resolver.resolve(AIResponseCache.self)
-            return OptimizedPersonaSynthesizer(
+            return PersonaSynthesizer(
                 llmOrchestrator: llmOrchestrator,
                 cache: cache
             )
@@ -385,7 +369,7 @@ public final class DIBootstrapper {
         
         // Persona Service - Critical for persona coherence
         container.register(PersonaService.self, lifetime: .singleton) { resolver in
-            let personaSynthesizer = try await resolver.resolve(OptimizedPersonaSynthesizer.self)
+            let personaSynthesizer = try await resolver.resolve(PersonaSynthesizer.self)
             let llmOrchestrator = try await resolver.resolve(LLMOrchestrator.self)
             let modelContainer = try await resolver.resolve(ModelContainer.self)
             let cache = try await resolver.resolve(AIResponseCache.self)

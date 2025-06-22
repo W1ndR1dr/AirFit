@@ -109,10 +109,10 @@ actor AIService: AIServiceProtocol {
             currentModel = LLMModel.gemini25Flash.identifier
         } else if hasAnthropicKey {
             _activeProvider = .anthropic
-            currentModel = LLMModel.claude3Sonnet.identifier
+            currentModel = LLMModel.claude4Sonnet.identifier
         } else if hasOpenAIKey {
             _activeProvider = .openAI
-            currentModel = LLMModel.gpt4Turbo.identifier
+            currentModel = LLMModel.gpt4o.identifier
         }
         
         _isConfigured = true

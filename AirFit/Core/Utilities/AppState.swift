@@ -17,7 +17,7 @@ final class AppState {
     private let modelContext: ModelContext
     private let isUITesting: Bool
     private let healthKitAuthManager: HealthKitAuthManager
-    private let apiKeyManager: APIKeyManagementProtocol?
+    let apiKeyManager: APIKeyManagementProtocol?
 
     // MARK: - Initialization
     init(

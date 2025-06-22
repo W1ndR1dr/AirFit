@@ -125,83 +125,9 @@ public final class DIViewModelFactory {
     
     // MARK: - Onboarding
     
-    func makeOnboardingViewModel(modelContext: ModelContext? = nil) async throws -> OnboardingViewModel {
-        AppLogger.info("DIViewModelFactory: Creating OnboardingViewModel", category: .app)
-        AppLogger.info("DIViewModelFactory: Container ID: \(ObjectIdentifier(container))", category: .app)
-        
-        // Use provided context or get from container
-        let context: ModelContext
-        if let modelContext = modelContext {
-            context = modelContext
-        } else {
-            context = try await getModelContext()
-        }
-        
-        let userService = try await container.resolve(UserServiceProtocol.self)
-        let _ = try await container.resolve(APIKeyManagementProtocol.self)
-        let aiService = try await container.resolve(AIServiceProtocol.self)
-        let llmOrchestrator = try await container.resolve(LLMOrchestrator.self)
-        let personaService = try await container.resolve(PersonaService.self)
-        
-        // Create onboarding service
-        let onboardingService = OnboardingService(modelContext: context, llmOrchestrator: llmOrchestrator)
-        
-        // Get HealthKit auth manager from container
-        let healthKitAuthManager = try await container.resolve(HealthKitAuthManager.self)
-        let healthPrefillProvider = try? await container.resolve(HealthKitPrefillProviding.self)
-        
-        // Get OnboardingLLMService for intelligent prompts
-        let onboardingLLMService = try await container.resolve(OnboardingLLMService.self)
-        
-        return OnboardingViewModel(
-            aiService: aiService,
-            onboardingService: onboardingService,
-            modelContext: context,
-            userService: userService,
-            personaService: personaService,
-            healthPrefillProvider: healthPrefillProvider,
-            healthKitAuthManager: healthKitAuthManager,
-            onboardingLLMService: onboardingLLMService
-        )
-    }
-    
-    func makeOnboardingFlowCoordinator() async throws -> OnboardingFlowCoordinator {
-        let modelContext = try await getModelContext()
-        let userService = try await container.resolve(UserServiceProtocol.self)
-        let _ = try await container.resolve(APIKeyManagementProtocol.self)
-        let llmOrchestrator = try await container.resolve(LLMOrchestrator.self)
-        
-        let cache = AIResponseCache()
-        
-        // Create optimized persona synthesizer
-        let personaSynthesizer = OptimizedPersonaSynthesizer(
-            llmOrchestrator: llmOrchestrator,
-            cache: cache
-        )
-        
-        // Create persona service
-        let personaService = PersonaService(
-            personaSynthesizer: personaSynthesizer,
-            llmOrchestrator: llmOrchestrator,
-            modelContext: modelContext,
-            cache: cache
-        )
-        
-        // Create conversation flow definition
-        let flowDefinition = ConversationFlowData.defaultFlow()
-        
-        // Create conversation manager
-        let conversationManager = ConversationFlowManager(
-            flowDefinition: flowDefinition,
-            modelContext: modelContext
-        )
-        
-        return OnboardingFlowCoordinator(
-            conversationManager: conversationManager,
-            personaService: personaService,
-            userService: userService,
-            modelContext: modelContext
-        )
+    func makeOnboardingIntelligence() async throws -> OnboardingIntelligence {
+        // OnboardingIntelligence is now a simple, self-contained component
+        return try await container.resolve(OnboardingIntelligence.self)
     }
     
     // Removed duplicate - use makeFoodTrackingViewModel(user:) instead

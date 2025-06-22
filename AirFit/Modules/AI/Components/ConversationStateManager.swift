@@ -11,7 +11,7 @@ actor ConversationStateManager {
         let startTime: Date
         var messageCount: Int
         var lastInteraction: Date
-        var activeMode: PersonaMode
+        var activePersonaId: UUID
         var contextWindow: Int
         
         var isStale: Bool {
@@ -29,7 +29,7 @@ actor ConversationStateManager {
     
     func createSession(
         userId: UUID,
-        mode: PersonaMode,
+        personaId: UUID,
         contextWindow: Int? = nil
     ) -> UUID {
         let sessionId = UUID()
@@ -40,7 +40,7 @@ actor ConversationStateManager {
             startTime: Date(),
             messageCount: 0,
             lastInteraction: Date(),
-            activeMode: mode,
+            activePersonaId: personaId,
             contextWindow: contextWindow ?? defaultContextWindow
         )
         
@@ -70,12 +70,12 @@ actor ConversationStateManager {
         sessions[id] = state
     }
     
-    func updateMode(_ id: UUID, mode: PersonaMode) {
+    func updatePersona(_ id: UUID, personaId: UUID) {
         guard var state = sessions[id] else { return }
-        state.activeMode = mode
+        state.activePersonaId = personaId
         sessions[id] = state
         
-        AppLogger.debug("Updated session \(id) mode to: \(mode)", category: .ai)
+        AppLogger.debug("Updated session \(id) persona to: \(personaId)", category: .ai)
     }
     
     func endSession(_ id: UUID) {
@@ -145,7 +145,7 @@ actor ConversationStateManager {
             "totalSessions": sessions.count,
             "activeSessions": activeSessions.count,
             "averageMessages": avgMessageCount,
-            "modes": Dictionary(grouping: sessions.values, by: \.activeMode).mapValues(\.count)
+            "personas": Dictionary(grouping: sessions.values, by: \.activePersonaId).mapValues(\.count)
         ]
     }
 }

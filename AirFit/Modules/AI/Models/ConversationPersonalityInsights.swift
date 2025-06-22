@@ -1,7 +1,7 @@
 import Foundation
 
 /// ConversationPersonalityInsights structure for conversation-based persona generation
-/// This is used by PersonaService and OptimizedPersonaSynthesizer
+/// This is used by PersonaService and PersonaSynthesizer
 struct ConversationPersonalityInsights: Codable, Sendable {
     let dominantTraits: [String]
     let communicationStyle: ConversationCommunicationStyle

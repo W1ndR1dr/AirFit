@@ -137,7 +137,7 @@ actor AnthropicProvider: LLMProvider, ServiceProtocol {
     func validateAPIKey(_ key: String) async throws -> Bool {
         let testRequest = LLMRequest(
             messages: [LLMMessage(role: .user, content: "Hi", name: nil, attachments: nil)],
-            model: LLMModel.claude3Haiku.identifier,
+            model: LLMModel.claude4Sonnet.identifier,
             temperature: 0,
             maxTokens: 1,
             systemPrompt: nil,

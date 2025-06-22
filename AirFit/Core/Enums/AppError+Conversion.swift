@@ -197,56 +197,7 @@ extension AppError {
     }
     
     // MARK: - Onboarding Errors
-    
-    /// Creates AppError from OnboardingError  
-    static func from(_ onboardingError: OnboardingError) -> AppError {
-        switch onboardingError {
-        case .noSession:
-            return .unknown(message: "No onboarding session found")
-        case .noPersona:
-            return .unknown(message: "No persona generated")
-        case .personaGenerationFailed(let details):
-            return .unknown(message: "Persona generation failed: \(details)")
-        case .saveFailed(let details):
-            return .unknown(message: "Failed to save profile: \(details)")
-        case .networkError(let error):
-            return .networkError(underlying: error)
-        case .recoveryFailed(let details):
-            return .unknown(message: "Recovery failed: \(details)")
-        case .noUserFound:
-            return .userNotFound
-        case .invalidProfileData:
-            return .validationError(message: "Invalid profile data")
-        case .missingRequiredField(let field):
-            return .validationError(message: "Missing required field: \(field)")
-        case .conversationStartFailed(let error):
-            return .unknown(message: "Failed to start conversation: \(error.localizedDescription)")
-        }
-    }
-    
-    /// Creates AppError from OnboardingOrchestratorError
-    static func from(_ orchestratorError: OnboardingOrchestratorError) -> AppError {
-        switch orchestratorError {
-        case .conversationStartFailed(let error):
-            return .unknown(message: "Failed to start conversation: \(error.localizedDescription)")
-        case .responseProcessingFailed(let error):
-            return .unknown(message: "Failed to process response: \(error.localizedDescription)")
-        case .synthesisFailed(let error):
-            return .unknown(message: "Failed to generate coach persona: \(error.localizedDescription)")
-        case .saveFailed(let error):
-            return .unknown(message: "Failed to save profile: \(error.localizedDescription)")
-        case .adjustmentFailed(let error):
-            return .unknown(message: "Failed to adjust persona: \(error.localizedDescription)")
-        case .invalidStateTransition:
-            return .unknown(message: "Invalid onboarding state")
-        case .timeout:
-            return .networkError(underlying: NSError(domain: "Onboarding", code: -1001, userInfo: [NSLocalizedDescriptionKey: "Onboarding timed out"]))
-        case .networkError:
-            return .networkError(underlying: NSError(domain: "Onboarding", code: 0, userInfo: [NSLocalizedDescriptionKey: "Network error during onboarding"]))
-        case .userCancelled:
-            return .unknown(message: "Onboarding cancelled")
-        }
-    }
+    // Removed - Onboarding now uses standard AppError types
     
     // MARK: - Food Tracking Errors
     
@@ -558,10 +509,6 @@ extension Result where Failure == Error {
                 return AppError.from(coachError)
             } else if let directAIError = error as? DirectAIError {
                 return AppError.from(directAIError)
-            } else if let onboardingError = error as? OnboardingError {
-                return AppError.from(onboardingError)
-            } else if let orchestratorError = error as? OnboardingOrchestratorError {
-                return AppError.from(orchestratorError)
             } else if let foodError = error as? FoodTrackingError {
                 return AppError.from(foodError)
             } else if let voiceError = error as? FoodVoiceError {

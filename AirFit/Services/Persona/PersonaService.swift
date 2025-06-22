@@ -13,13 +13,13 @@ final class PersonaService: ServiceProtocol {
         MainActor.assumeIsolated { _isConfigured }
     }
     
-    private let personaSynthesizer: OptimizedPersonaSynthesizer
+    private let personaSynthesizer: PersonaSynthesizer
     private let llmOrchestrator: LLMOrchestrator
     private let modelContext: ModelContext
     private let cache: AIResponseCache
     
     init(
-        personaSynthesizer: OptimizedPersonaSynthesizer,
+        personaSynthesizer: PersonaSynthesizer,
         llmOrchestrator: LLMOrchestrator,
         modelContext: ModelContext,
         cache: AIResponseCache? = nil
@@ -99,7 +99,7 @@ final class PersonaService: ServiceProtocol {
         let response = try await llmOrchestrator.complete(
             prompt: adjustmentPrompt,
             task: .personaSynthesis,
-            model: .claude3Haiku,
+            model: .claude4Sonnet,
             temperature: 0.7,
             maxTokens: 2000
         )
@@ -211,7 +211,7 @@ final class PersonaService: ServiceProtocol {
         let response = try await llmOrchestrator.complete(
             prompt: analysisPrompt,
             task: .personaSynthesis,
-            model: .claude3Haiku,
+            model: .claude4Sonnet,
             temperature: 0.5
         )
         

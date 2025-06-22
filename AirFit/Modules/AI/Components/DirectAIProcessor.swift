@@ -99,7 +99,7 @@ final class DirectAIProcessor {
     func generateEducationalContent(
         topic: String,
         userContext: String,
-        userProfile: UserProfileJsonBlob
+        userProfile: CoachingPlan
     ) async throws -> EducationalContent {
         let startTime = CFAbsoluteTimeGetCurrent()
         
@@ -117,7 +117,7 @@ final class DirectAIProcessor {
             let response = try await executeAIRequest(
                 prompt: prompt,
                 config: educationalContentConfig,
-                userId: "edu-\(userProfile.timezone.prefix(8))"
+                userId: "edu-\(userProfile.timezone.replacingOccurrences(of: "/", with: "-"))"
             )
             
             let processingTime = Int((CFAbsoluteTimeGetCurrent() - startTime) * 1_000)
@@ -152,14 +152,14 @@ final class DirectAIProcessor {
     /// Generates simple conversational responses without function calling
     func generateSimpleResponse(
         text: String,
-        userProfile: UserProfileJsonBlob,
+        userProfile: CoachingPlan,
         healthContext: HealthContextSnapshot
     ) async throws -> String {
         let prompt = """
         Respond to this fitness-related question or comment: "\(text)"
         
         User context:
-        - Workout Window: \(userProfile.lifeContext.workoutWindowPreference.displayName)
+        - Work Style: \(userProfile.lifeContext.workStyle)
         - Primary goal: \(userProfile.goal.family.displayName)
         - Recent activity: \(healthContext.appContext.workoutContext?.recentWorkouts.count ?? 0) workouts
         
@@ -175,7 +175,7 @@ final class DirectAIProcessor {
         return try await executeAIRequest(
             prompt: prompt,
             config: config,
-            userId: userProfile.timezone.prefix(8) + "-simple"
+            userId: "\(userProfile.timezone.replacingOccurrences(of: "/", with: "-"))-simple"
         )
     }
     
@@ -250,7 +250,7 @@ final class DirectAIProcessor {
     private func buildEducationalPrompt(
         topic: String,
         userContext: String,
-        userProfile: UserProfileJsonBlob
+        userProfile: CoachingPlan
     ) -> String {
         let cleanTopic = topic.replacingOccurrences(of: "_", with: " ").capitalized
         let contextLine = userContext.isEmpty ? "" : "\nContext: \(userContext)"
@@ -260,7 +260,7 @@ final class DirectAIProcessor {
         
         User Level: Intermediate
         Goals: \(userProfile.goal.family.displayName)
-        Motivation Style: \(userProfile.motivationalStyle.celebrationStyle.displayName)\(contextLine)
+        Motivation Style: \(userProfile.motivationalStyle.styles.first?.rawValue ?? "encouraging")\(contextLine)
         
         Requirements:
         - Explain \(cleanTopic) scientifically but accessibly
@@ -334,12 +334,12 @@ final class DirectAIProcessor {
         max(text.count / 4, 1)
     }
     
-    private func calculatePersonalization(_ content: String, userProfile: UserProfileJsonBlob) -> Double {
+    private func calculatePersonalization(_ content: String, userProfile: CoachingPlan) -> Double {
         var keywords: [String] = []
         
         keywords.append(userProfile.goal.family.displayName.lowercased())
-        keywords.append(userProfile.lifeContext.workoutWindowPreference.displayName.lowercased())
-        keywords.append(userProfile.motivationalStyle.celebrationStyle.displayName.lowercased())
+        keywords.append(userProfile.lifeContext.workStyle.rawValue.lowercased())
+        keywords.append(userProfile.motivationalStyle.styles.first?.rawValue.lowercased() ?? "encouraging")
         
         let mentions = keywords.reduce(0) { count, keyword in
             count + (content.localizedCaseInsensitiveContains(keyword) ? 1 : 0)

@@ -244,19 +244,62 @@ final class DashboardViewModelTests: XCTestCase {
         let sut = try await createSUT(with: user)
 
         // Arrange
-        let blob = UserProfileJsonBlob(
+        let coachingPlan = CoachingPlan(
+            understandingSummary: "Test user wants to improve fitness",
+            coachingApproach: ["Daily check-ins", "Personalized workouts"],
             lifeContext: LifeContext(),
             goal: Goal(),
-            personaMode: .supportiveCoach,
             engagementPreferences: EngagementPreferences(),
             sleepWindow: SleepWindow(),
             motivationalStyle: MotivationalStyle(),
             timezone: "UTC",
-            baselineModeEnabled: true
+            generatedPersona: PersonaProfile(
+                id: UUID(),
+                name: "Test Coach",
+                archetype: "Supportive Fitness Coach",
+                systemPrompt: "You are a supportive fitness coach",
+                coreValues: ["support", "consistency"],
+                backgroundStory: "Experienced fitness coach",
+                voiceCharacteristics: VoiceCharacteristics(
+                    energy: .moderate,
+                    pace: .natural,
+                    warmth: .warm,
+                    vocabulary: .moderate,
+                    sentenceStructure: .moderate
+                ),
+                interactionStyle: InteractionStyle(
+                    greetingStyle: "Hey there!",
+                    closingStyle: "Keep it up!",
+                    encouragementPhrases: ["You've got this!"],
+                    acknowledgmentStyle: "I hear you",
+                    correctionApproach: "gentle",
+                    humorLevel: .light,
+                    formalityLevel: .casual,
+                    responseLength: .moderate
+                ),
+                adaptationRules: [],
+                metadata: PersonaMetadata(
+                    createdAt: Date(),
+                    version: "1.0",
+                    sourceInsights: ConversationPersonalityInsights(
+                        dominantTraits: [],
+                        communicationStyle: .conversational,
+                        motivationType: .balanced,
+                        energyLevel: .moderate,
+                        preferredComplexity: .moderate,
+                        emotionalTone: ["supportive"],
+                        stressResponse: .needsSupport,
+                        preferredTimes: ["morning", "evening"],
+                        extractedAt: Date()
+                    ),
+                    generationDuration: 0,
+                    tokenCount: 0,
+                    previewReady: true
+                )
+            )
         )
         let encoder = JSONEncoder()
-        encoder.keyEncodingStrategy = .convertToSnakeCase
-        let data = try encoder.encode(blob)
+        let data = try encoder.encode(coachingPlan)
         let profile = OnboardingProfile(
             personaPromptData: data,
             communicationPreferencesData: data,

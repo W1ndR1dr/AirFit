@@ -26,6 +26,18 @@ extension AIProvider {
         }
     }
     
+    /// Icon name for UI
+    var iconName: String {
+        switch self {
+        case .openAI:
+            return "cpu"
+        case .anthropic:
+            return "brain"
+        case .gemini:
+            return "sparkle"
+        }
+    }
+    
     /// Default model for each provider
     var defaultModel: String {
         switch self {

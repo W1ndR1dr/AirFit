@@ -36,10 +36,6 @@ extension ErrorHandling {
             self.error = AppError.from(coachError)
         } else if let directAIError = error as? DirectAIError {
             self.error = AppError.from(directAIError)
-        } else if let onboardingError = error as? OnboardingError {
-            self.error = AppError.from(onboardingError)
-        } else if let orchestratorError = error as? OnboardingOrchestratorError {
-            self.error = AppError.from(orchestratorError)
         } else if let foodError = error as? FoodTrackingError {
             self.error = AppError.from(foodError)
         } else if let voiceError = error as? FoodVoiceError {

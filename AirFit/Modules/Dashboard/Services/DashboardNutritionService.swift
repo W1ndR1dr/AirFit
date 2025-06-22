@@ -78,29 +78,23 @@ final class DashboardNutritionService: DashboardNutritionServiceProtocol {
     }
     
     func getTargets(from profile: OnboardingProfile) async throws -> NutritionTargets {
-        // Calculate nutrition targets based on profile
-        let userProfile: UserProfileJsonBlob
+        // Try to decode coaching plan to get goal info
         do {
-            userProfile = try JSONDecoder().decode(UserProfileJsonBlob.self, from: profile.rawFullProfileData)
+            let coachingPlan = try JSONDecoder().decode(CoachingPlan.self, from: profile.rawFullProfileData)
+            // Use goal info to determine targets
+            return calculateTargets(for: coachingPlan.goal)
         } catch {
             // Use default profile if decoding fails
             return NutritionTargets.default
         }
-        
+    }
+    
+    private func calculateTargets(for goal: Goal) -> NutritionTargets {
         // Base calorie calculation
-        var baseCalories = 2000.0 // Default
-        
-        // Use default calories for now - biologicalSex not in LifeContext
-        // TODO: Add biologicalSex to LifeContext or UserProfile if needed
-        baseCalories = 2200.0 // Average between typical male/female values
-        
-        // Adjust based on physical activity
-        if userProfile.lifeContext.isPhysicallyActiveWork {
-            baseCalories *= 1.2
-        }
+        var baseCalories = 2200.0 // Default average
         
         // Adjust based on goal family
-        switch userProfile.goal.family {
+        switch goal.family {
         case .strengthTone:
             baseCalories *= 1.1 // 10% surplus for muscle building
         case .endurance:

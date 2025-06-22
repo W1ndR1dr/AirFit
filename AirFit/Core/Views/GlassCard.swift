@@ -17,7 +17,7 @@ struct GlassCard<Content: View>: View {
         padding: CGFloat = 16,
         cornerRadius: CGFloat = 20,
         strokeOpacity: Double = 0.3,
-        blurRadius: CGFloat = 12,
+        blurRadius: CGFloat = 6,
         enableHaptic: Bool = true,
         @ViewBuilder content: () -> Content
     ) {

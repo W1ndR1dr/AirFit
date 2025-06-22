@@ -7,13 +7,13 @@ final class PersonaEngine {
 
     // MARK: - Cached Components (Performance Optimization)
     private static var cachedPromptTemplate: String?
-    private var cachedPersonaInstructions: [PersonaMode: String] = [:]
+    private var cachedPersonaInstructions: [UUID: String] = [:]
 
     // MARK: - Public Methods
 
-    /// Build optimized system prompt with discrete persona mode and goal synthesis
+    /// Build optimized system prompt with unique persona and goal synthesis
     func buildSystemPrompt(
-        personaMode: PersonaMode,
+        personaProfile: PersonaProfile,
         userGoal: String,
         userContext: String,
         goalSynthesis: GoalSynthesis?,
@@ -24,23 +24,23 @@ final class PersonaEngine {
 
         let startTime = CFAbsoluteTimeGetCurrent()
 
-        // Get cached or build prompt template
-        let template = Self.cachedPromptTemplate ?? Self.buildOptimizedPromptTemplate()
+        // Get template (cached after first use)
+        let template = Self.cachedPromptTemplate ?? Self.promptTemplate()
         if Self.cachedPromptTemplate == nil {
             Self.cachedPromptTemplate = template
         }
 
-        // Get cached or build persona instructions with context adaptation
-        let personaInstructions = cachedPersonaInstructions[personaMode] ?? personaMode.adaptedInstructions(for: healthContext)
-        if cachedPersonaInstructions[personaMode] == nil {
-            cachedPersonaInstructions[personaMode] = personaMode.coreInstructions
+        // Get persona with context adaptations
+        let personaInstructions = cachedPersonaInstructions[personaProfile.id] ?? adaptPersona(personaProfile, for: healthContext)
+        if cachedPersonaInstructions[personaProfile.id] == nil {
+            cachedPersonaInstructions[personaProfile.id] = personaProfile.systemPrompt
         }
 
-        // Build compact context objects
-        let healthContextJSON = try buildCompactHealthContext(healthContext)
-        let conversationJSON = try buildCompactConversationHistory(conversationHistory)
-        let functionsJSON = try buildCompactFunctionList(availableFunctions)
-        let goalSynthesisJSON = try buildCompactGoalSynthesis(goalSynthesis)
+        // Convert to JSON
+        let healthContextJSON = try self.healthContext(healthContext)
+        let conversationJSON = try self.conversationHistory(conversationHistory)
+        let functionsJSON = try self.functionList(availableFunctions)
+        let goalSynthesisJSON = try self.goalSynthesis(goalSynthesis)
 
         // Get current time efficiently
         let currentDateTime = ISO8601DateFormatter().string(from: Date())
@@ -60,7 +60,7 @@ final class PersonaEngine {
         let estimatedTokens = prompt.count / 4 // Rough estimate: 4 chars per token
 
         AppLogger.info(
-            "Built optimized persona prompt: \(estimatedTokens) tokens in \(Int(duration * 1_000))ms (mode: \(personaMode.rawValue))",
+            "Built optimized persona prompt: \(estimatedTokens) tokens in \(Int(duration * 1_000))ms (persona: \(personaProfile.name))",
             category: .ai
         )
 
@@ -76,36 +76,59 @@ final class PersonaEngine {
         return prompt
     }
 
-    /// Legacy method for backward compatibility during migration
-    func buildSystemPrompt(
-        userProfile: UserProfileJsonBlob,
-        healthContext: HealthContextSnapshot,
-        conversationHistory: [AIChatMessage],
-        availableFunctions: [AIFunctionDefinition]
-    ) throws -> String {
-        
-        // Migrate Blend to PersonaMode
-        let personaMode = PersonaMigrationUtility.migrateBlendToPersonaMode(userProfile.blend ?? Blend())
-        
-        // Build user context string
-        let userGoal = userProfile.goal.rawText.isEmpty ? userProfile.goal.family.displayName : userProfile.goal.rawText
-        let userContext = buildUserContextString(from: userProfile)
-        
-        // Use new discrete persona system (no goal synthesis for legacy method)
-        return try buildSystemPrompt(
-            personaMode: personaMode,
-            userGoal: userGoal,
-            userContext: userContext,
-            goalSynthesis: nil,
-            healthContext: healthContext,
-            conversationHistory: conversationHistory,
-            availableFunctions: availableFunctions
-        )
-    }
 
     // MARK: - Private Methods
+    
+    private func adaptPersona(_ persona: PersonaProfile, for healthContext: HealthContextSnapshot) -> String {
+        var adaptations: [String] = []
+        
+        // Energy level adaptations
+        if let energy = healthContext.subjectiveData.energyLevel {
+            switch energy {
+            case 1...2:
+                adaptations.append("User has low energy. Be extra supportive and gentle.")
+            case 4...5:
+                adaptations.append("User has high energy. Match their enthusiasm.")
+            default:
+                break
+            }
+        }
+        
+        // Stress level adaptations
+        if let stress = healthContext.subjectiveData.stress {
+            switch stress {
+            case 4...5:
+                adaptations.append("User reports high stress. Prioritize stress management.")
+            case 1...2:
+                adaptations.append("User reports low stress. Good time for challenges.")
+            default:
+                break
+            }
+        }
+        
+        // Time of day adaptations
+        switch healthContext.environment.timeOfDay {
+        case .earlyMorning, .morning:
+            adaptations.append("It's morning. Keep messages energetic and action-oriented.")
+        case .evening, .night:
+            adaptations.append("It's evening. Keep tone calmer and reflective.")
+        default:
+            break
+        }
+        
+        if adaptations.isEmpty {
+            return persona.systemPrompt
+        } else {
+            return """
+            \(persona.systemPrompt)
+            
+            ## Current Context Adaptations:
+            \(adaptations.joined(separator: "\n"))
+            """
+        }
+    }
 
-    private static func buildOptimizedPromptTemplate() -> String {
+    private static func promptTemplate() -> String {
         return """
         # AirFit Coach System Instructions
 
@@ -141,32 +164,8 @@ final class PersonaEngine {
         """
     }
 
-    private func buildUserContextString(from profile: UserProfileJsonBlob) -> String {
-        var contextParts: [String] = []
 
-        // Life context
-        if profile.lifeContext.isDeskJob {
-            contextParts.append("Has desk job")
-        }
-        if profile.lifeContext.hasChildrenOrFamilyCare {
-            contextParts.append("Family responsibilities")
-        }
-        if profile.lifeContext.travelsFrequently {
-            contextParts.append("Travels frequently")
-        }
-
-        // Schedule and workout preferences
-        contextParts.append("Schedule: \(profile.lifeContext.scheduleType.displayName)")
-        contextParts.append("Workout window: \(profile.lifeContext.workoutWindowPreference.displayName)")
-
-        // Engagement preferences
-        contextParts.append("Tracking: \(profile.engagementPreferences.trackingStyle.displayName)")
-        contextParts.append("Updates: \(profile.engagementPreferences.updateFrequency.displayName)")
-
-        return contextParts.joined(separator: " | ")
-    }
-
-    private func buildCompactHealthContext(_ healthContext: HealthContextSnapshot) throws -> String {
+    private func healthContext(_ healthContext: HealthContextSnapshot) throws -> String {
         // Build minimal, essential health context for token efficiency
         var compactContext: [String: Any] = [:]
 
@@ -212,7 +211,7 @@ final class PersonaEngine {
         return String(data: data, encoding: .utf8) ?? "{}"
     }
 
-    private func buildCompactConversationHistory(_ history: [AIChatMessage]) throws -> String {
+    private func conversationHistory(_ history: [AIChatMessage]) throws -> String {
         // Include only last 5 messages to save tokens
         let recentHistory = Array(history.suffix(5)).map { message in
             [
@@ -225,7 +224,7 @@ final class PersonaEngine {
         return String(data: data, encoding: .utf8) ?? "[]"
     }
 
-    private func buildCompactFunctionList(_ functions: [AIFunctionDefinition]) throws -> String {
+    private func functionList(_ functions: [AIFunctionDefinition]) throws -> String {
         // Include only function names and brief descriptions
         let compactFunctions = functions.map { function in
             [
@@ -238,7 +237,7 @@ final class PersonaEngine {
         return String(data: data, encoding: .utf8) ?? "[]"
     }
     
-    private func buildCompactGoalSynthesis(_ goalSynthesis: GoalSynthesis?) throws -> String {
+    private func goalSynthesis(_ goalSynthesis: GoalSynthesis?) throws -> String {
         guard let synthesis = goalSynthesis else {
             return "{}"
         }
@@ -275,23 +274,11 @@ enum PersonaEngineError: LocalizedError {
     }
 }
 
-// MARK: - Migration Support
-// PersonaMigrationUtility moved to Core/Utilities/PersonaMigrationUtility.swift
-
-// MARK: - Phase 4 Refactor Complete
+// MARK: - LLM-First Persona System
 //
-// ✅ ELIMINATED (200+ lines of over-engineering):
-// - Complex mathematical blending system (Blend struct calculations)
-// - 6 imperceptible micro-adjustment methods (±0.05-0.20 changes)
-// - Verbose system prompt template (~2000 tokens)
-// - buildPersonaInstructions(from blend:) with string-based trait matching
-// - getBaseInstructions(for trait:) with switch-case duplication
-// - buildContextAdaptations(for trait:) with repeated logic
-//
-// ✅ REPLACED WITH:
-// - Discrete PersonaMode enum with rich, readable instructions
-// - Intelligent context adaptation through PersonaMode.adaptedInstructions()
-// - 70% token reduction (600 tokens vs 2000 tokens)
-// - Performance caching for persona instructions and templates
-// - Clean migration path for existing users via PersonaMigrationUtility
-// - Backward-compatible legacy method during transition period
+// ✅ CURRENT ARCHITECTURE:
+// - PersonaProfile: Rich, unique personas generated by LLM
+// - No preset archetypes or modes - each persona is completely unique
+// - Context-aware adaptation based on health data and user state
+// - Efficient token usage through compact prompt building
+// - Performance caching for templates and instructions

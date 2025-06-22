@@ -137,7 +137,7 @@ actor OpenAIProvider: LLMProvider, ServiceProtocol {
     func validateAPIKey(_ key: String) async throws -> Bool {
         let testRequest = LLMRequest(
             messages: [LLMMessage(role: .user, content: "Hi", name: nil, attachments: nil)],
-            model: LLMModel.gpt35Turbo.identifier,
+            model: LLMModel.o4Mini.identifier,
             temperature: 0,
             maxTokens: 1,
             systemPrompt: nil,

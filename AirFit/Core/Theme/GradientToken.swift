@@ -166,7 +166,7 @@ enum GradientToken: String, CaseIterable {
     /// Computes optimal text color based on gradient using color theory and perceptual luminance
     func optimalTextColor(for colorScheme: ColorScheme) -> Color {
         let colors = self.colors(for: colorScheme)
-        guard let firstColor = colors.first else { return .primary }
+        guard !colors.isEmpty else { return .primary }
         
         // Get the average color of the gradient for text color calculation
         let averageColor = averageColor(from: colors)

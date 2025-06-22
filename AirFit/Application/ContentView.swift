@@ -25,27 +25,29 @@ struct ContentView: View {
                 if appState.isLoading {
                     LoadingView()
                 } else if appState.shouldShowAPISetup {
-                    InitialAPISetupView {
-                        appState.completeAPISetup()
-                        // Need to recreate the DI container with the new API key
-                        isRecreatingContainer = true
-                        Task {
-                            await recreateContainer()
+                    APISetupView(apiKeyManager: appState.apiKeyManager)
+                        .onDisappear {
+                            appState.completeAPISetup()
+                            // Need to recreate the DI container with the new API key
+                            isRecreatingContainer = true
+                            Task {
+                                await recreateContainer()
+                            }
                         }
-                    }
                 } else if appState.shouldCreateUser {
                     WelcomeView(appState: appState)
                 } else if appState.shouldShowOnboarding {
-                    // Use the new DI-based onboarding flow
-                    OnboardingFlowViewDI(onCompletion: {
-                        Task {
-                            await appState.completeOnboarding()
+                    // Use the new 3-file onboarding flow from the manifesto
+                    OnboardingContainerView()
+                        .withDIContainer(activeContainer ?? diContainer)
+                        .onAppear {
+                            AppLogger.info("ContentView: Using manifesto onboarding with container ID: \(ObjectIdentifier(activeContainer ?? diContainer))", category: .app)
                         }
-                    })
-                    .withDIContainer(activeContainer ?? diContainer)
-                    .onAppear {
-                        AppLogger.info("ContentView: Using container ID: \(ObjectIdentifier(activeContainer ?? diContainer))", category: .app)
-                    }
+                        .onReceive(NotificationCenter.default.publisher(for: .onboardingCompleted)) { _ in
+                            Task {
+                                await appState.completeOnboarding()
+                            }
+                        }
                 } else if appState.shouldShowDashboard, let user = appState.currentUser {
                     DashboardView(user: user)
                 } else {
@@ -189,7 +191,7 @@ private struct WelcomeView: View {
                 Text("Welcome to")
                     .font(.system(size: 24, weight: .ultraLight, design: .rounded))
                     .foregroundStyle(.secondary)
-                    .cascadeAnimation()
+                    .cascadeIn()
 
                 // Use CascadeText for the hero title
                 CascadeText("AirFit")
@@ -206,8 +208,8 @@ private struct WelcomeView: View {
                     .font(.system(size: 18, weight: .light, design: .rounded))
                     .foregroundStyle(.secondary.opacity(0.8))
                     .multilineTextAlignment(.center)
-                    .cascadeAnimation()
-                    .padding(.horizontal, AppSpacing.xl)
+                    .cascadeIn(delay: 0.2)
+                    .padding(.horizontal, 48)
             }
 
             Spacer()

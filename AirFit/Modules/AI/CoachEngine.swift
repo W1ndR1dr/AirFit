@@ -168,13 +168,7 @@ final class CoachEngine {
         // Set up streaming delegate
         self.streamingHandler.delegate = self
 
-        // Initialize with a new conversation
-        Task {
-            self.activeConversationId = await stateManager.createSession(
-                userId: UUID(), // Will be updated with actual user ID
-                mode: .supportiveCoach
-            )
-        }
+        // Conversation will be initialized when first message is processed
     }
 
     // MARK: - Private Helpers
@@ -209,11 +203,13 @@ final class CoachEngine {
         await startProcessing()
 
         do {
-            // Ensure we have an active conversation
+            // Ensure we have an active conversation with user's persona
             if activeConversationId == nil {
+                // Get user's active persona
+                let persona = try await personaService.getActivePersona(for: user.id)
                 activeConversationId = await stateManager.createSession(
                     userId: user.id,
-                    mode: .supportiveCoach
+                    personaId: persona.id
                 )
             }
             
@@ -262,10 +258,7 @@ final class CoachEngine {
                 await stateManager.endSession(oldId)
             }
             
-            activeConversationId = await stateManager.createSession(
-                userId: UUID(), // Will be updated with actual user
-                mode: .supportiveCoach
-            )
+            // Conversation will be created when a user sends a message
             currentResponse = ""
             streamingTokens = []
             lastFunctionCall = nil
@@ -1083,7 +1076,7 @@ final class CoachEngine {
     }
 
 
-    private func getUserProfile(for user: User) async throws -> UserProfileJsonBlob {
+    private func getUserProfile(for user: User) async throws -> CoachingPlan {
         // Note: This method is now primarily used for direct AI processing fallback.
         // The main persona functionality uses PersonaService.getActivePersona()
         guard let onboardingProfile = user.onboardingProfile else {
@@ -1092,7 +1085,7 @@ final class CoachEngine {
 
         do {
             let decoder = JSONDecoder()
-            let profile = try decoder.decode(UserProfileJsonBlob.self, from: onboardingProfile.rawFullProfileData)
+            let profile = try decoder.decode(CoachingPlan.self, from: onboardingProfile.rawFullProfileData)
             return profile
         } catch {
             AppLogger.warning("Failed to decode user profile, using default", category: .ai)
@@ -1114,22 +1107,79 @@ final class CoachEngine {
         }
     }
 
-    private func createDefaultProfile() -> UserProfileJsonBlob {
+    private func createDefaultProfile() -> CoachingPlan {
         // Create a basic default profile if user hasn't completed onboarding
-        return UserProfileJsonBlob(
-            lifeContext: LifeContext(),
-            goal: Goal(),
-            blend: Blend(
-                authoritativeDirect: 0.3,
-                encouragingEmpathetic: 0.4,
-                analyticalInsightful: 0.15,
-                playfullyProvocative: 0.15
+        return CoachingPlan(
+            understandingSummary: "I'll help you improve your health and fitness with a personalized approach.",
+            coachingApproach: [
+                "Focus on building sustainable habits",
+                "Daily check-ins to keep you motivated",
+                "Adapt to your energy levels and schedule"
+            ],
+            lifeContext: LifeContext(
+                workStyle: .moderate,
+                fitnessLevel: .intermediate
             ),
-            engagementPreferences: EngagementPreferences(),
-            sleepWindow: SleepWindow(),
-            motivationalStyle: MotivationalStyle(),
+            goal: Goal(
+                family: .healthWellbeing,
+                rawText: "Improve overall health and fitness"
+            ),
+            engagementPreferences: EngagementPreferences(
+                checkInFrequency: .daily,
+                preferredTimes: ["morning", "evening"]
+            ),
+            sleepWindow: SleepWindow(
+                bedtime: "10:30 PM",
+                waketime: "6:30 AM"
+            ),
+            motivationalStyle: MotivationalStyle(
+                styles: [.encouraging]
+            ),
             timezone: TimeZone.current.identifier,
-            baselineModeEnabled: false
+            generatedPersona: PersonaProfile(
+                id: UUID(),
+                name: "AirFit Coach",
+                archetype: "Supportive Mentor",
+                systemPrompt: "You are a supportive fitness coach focused on building sustainable habits.",
+                coreValues: ["empathy", "knowledge", "encouragement"],
+                backgroundStory: "I'm here to help you achieve your health and fitness goals through personalized guidance.",
+                voiceCharacteristics: VoiceCharacteristics(
+                    energy: .moderate,
+                    pace: .natural,
+                    warmth: .warm,
+                    vocabulary: .moderate,
+                    sentenceStructure: .moderate
+                ),
+                interactionStyle: InteractionStyle(
+                    greetingStyle: "Hey there!",
+                    closingStyle: "Keep pushing forward!",
+                    encouragementPhrases: ["Let's make progress together", "Every step counts", "You've got this!"],
+                    acknowledgmentStyle: "I hear you",
+                    correctionApproach: "gentle",
+                    humorLevel: .light,
+                    formalityLevel: .balanced,
+                    responseLength: .moderate
+                ),
+                adaptationRules: [],
+                metadata: PersonaMetadata(
+                    createdAt: Date(),
+                    version: "1.0",
+                    sourceInsights: ConversationPersonalityInsights(
+                        dominantTraits: ["supportive", "knowledgeable", "encouraging"],
+                        communicationStyle: .supportive,
+                        motivationType: .health,
+                        energyLevel: .moderate,
+                        preferredComplexity: .moderate,
+                        emotionalTone: ["warm", "understanding"],
+                        stressResponse: .needsSupport,
+                        preferredTimes: ["morning", "evening"],
+                        extractedAt: Date()
+                    ),
+                    generationDuration: 0.0,
+                    tokenCount: 0,
+                    previewReady: true
+                )
+            )
         )
     }
 
@@ -1241,7 +1291,7 @@ extension CoachEngine {
         // Create minimal persona service
         let llmOrchestrator = LLMOrchestrator(apiKeyManager: PreviewAPIKeyManager())
         let cache = AIResponseCache()
-        let personaSynthesizer = OptimizedPersonaSynthesizer(
+        let personaSynthesizer = PersonaSynthesizer(
             llmOrchestrator: llmOrchestrator,
             cache: cache
         )
