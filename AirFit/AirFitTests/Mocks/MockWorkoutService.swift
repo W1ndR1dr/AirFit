@@ -25,7 +25,7 @@ final class MockWorkoutService: WorkoutServiceProtocol, AIWorkoutServiceProtocol
     
     init() {
         // Setup default stubbed data
-        setupDefaultStubs()
+        setupStubs()
     }
     
     // MARK: - WorkoutServiceProtocol
@@ -125,7 +125,7 @@ final class MockWorkoutService: WorkoutServiceProtocol, AIWorkoutServiceProtocol
     // Template methods removed - AI generates personalized workouts on-demand
     
     // MARK: - Test Helpers
-    private func setupDefaultStubs() {
+    private func setupStubs() {
         // Template setup removed - AI-native generation
     }
     

@@ -40,7 +40,7 @@ final class ChatSuggestionsEngineTests: XCTestCase {
         super.tearDown()
     }
 
-    func test_generateSuggestions_withoutHistory_returnsDefaultPrompts() async {
+    func test_generateSuggestions_withoutHistory_returnsPrompts() async {
         let result = await engine.generateSuggestions(messages: [], userContext: user)
         XCTAssertGreaterThanOrEqual(result.quick.count, 4)
     }

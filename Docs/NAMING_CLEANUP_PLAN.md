@@ -7,6 +7,7 @@ Systematic plan to remove verbose naming patterns from the codebase. **One file 
 - PersonaEngine methods already cleaned up (buildOptimizedPromptTemplate → promptTemplate, etc.)
 - Onboarding simplified from 13,000+ lines to 1,722 lines
 - Build currently succeeds with 0 errors, 0 warnings
+- **Phase 1 Complete**: OptimizedPersonaSynthesizer → PersonaSynthesizer (merged to Codex1)
 
 ## Safety Protocol (FOLLOW EVERY TIME)
 ```bash
@@ -21,11 +22,15 @@ Systematic plan to remove verbose naming patterns from the codebase. **One file 
 ## Priority Order (High Impact, Low Risk)
 
 ### Phase 1: Isolated Classes (Low Risk)
-- [ ] `OptimizedPersonaSynthesizer` → `PersonaSynthesizer`
-  - Files to update:
-    1. `AirFit/Modules/AI/PersonaSynthesis/OptimizedPersonaSynthesizer.swift` - rename file too!
-    2. `AirFit/Core/DI/DIBootstrapper.swift` (2 occurrences)
-    3. `AirFit/AirFitTests/Integration/PersonaGenerationTests.swift` (2 occurrences)
+- [x] `OptimizedPersonaSynthesizer` → `PersonaSynthesizer` ✅ COMPLETED
+  - Files updated:
+    1. ✅ `AirFit/Modules/AI/PersonaSynthesis/OptimizedPersonaSynthesizer.swift` → `PersonaSynthesizer.swift`
+    2. ✅ `AirFit/Core/DI/DIBootstrapper.swift` (3 occurrences updated)
+    3. ✅ `AirFit/AirFitTests/Integration/PersonaGenerationTests.swift` (2 occurrences updated)
+    4. ✅ `AirFit/Modules/AI/CoachEngine.swift` (1 occurrence updated)
+    5. ✅ `AirFit/Services/Persona/PersonaService.swift` (2 occurrences updated)
+    6. ✅ `AirFit/Modules/AI/Models/ConversationPersonalityInsights.swift` (comment updated)
+    7. ✅ Added missing `PersonaPreview` struct to `PersonaSynthesizer.swift`
   - Commands:
     ```bash
     # Find all occurrences first
@@ -87,8 +92,8 @@ grep -r "func build" --include="*.swift" AirFit/ | wc -l
 ```
 
 ## Progress Tracking
-- [ ] Create branch: `refactor/naming-cleanup`
-- [ ] Phase 1: OptimizedPersonaSynthesizer
+- [x] Create branch: `refactor/naming-cleanup` ✅
+- [x] Phase 1: OptimizedPersonaSynthesizer ✅ (Merged to Codex1)
 - [ ] Phase 3: Test helpers (2 methods)
 - [ ] Phase 4: CompactWorkout 
 - [ ] Phase 5: Method prefixes (assess count first)
