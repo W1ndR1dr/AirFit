@@ -272,18 +272,6 @@ extension WatchWorkoutPlanReceiver: WCSessionDelegate {
     }
 }
 
-// MARK: - Notification Names
-
-extension Notification.Name {
-    /// Posted when a planned workout is received from iOS
-    static let plannedWorkoutReceived = Notification.Name("plannedWorkoutReceived")
-
-    /// Posted when a planned workout is started
-    static let plannedWorkoutStarted = Notification.Name("plannedWorkoutStarted")
-
-    /// Posted when the available planned workout is cleared
-    static let plannedWorkoutCleared = Notification.Name("plannedWorkoutCleared")
-}
 
 // MARK: - Preview Support
 
