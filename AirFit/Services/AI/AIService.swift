@@ -165,46 +165,42 @@ actor AIService: AIServiceProtocol {
                         throw AppError.from(ServiceError.notConfigured)
                     }
                     
-                    // Convert AIRequest messages to LLMMessage format
-                    let llmMessages = request.messages.map { msg in
-                        LLMMessage(
-                            role: LLMMessage.Role(rawValue: msg.role.rawValue) ?? .user,
-                            content: msg.content,
-                            name: msg.name,
-                            attachments: nil
-                        )
-                    }
-                    
-                    // Create LLMRequest
-                    let model = await self.currentModel
-                    _ = LLMRequest(
-                        messages: llmMessages,
-                        model: model,
-                        temperature: request.temperature,
-                        maxTokens: request.maxTokens,
-                        systemPrompt: request.systemPrompt,
-                        responseFormat: nil,
-                        stream: request.stream,
-                        metadata: [:],
-                        thinkingBudgetTokens: nil
-                    )
-                    
-                    // Build prompt from messages
+                    // Build a better prompt that preserves conversation structure
                     var prompt = ""
+                    
+                    // Add system prompt if present
                     if !request.systemPrompt.isEmpty {
-                        prompt += "System: \(request.systemPrompt)\n\n"
+                        prompt += request.systemPrompt + "\n\n"
                     }
-                    for message in request.messages {
-                        prompt += "\(message.role.rawValue.capitalized): \(message.content)\n"
+                    
+                    // Add conversation history with clear role markers
+                    if request.messages.count > 1 {
+                        prompt += "Conversation history:\n"
+                        for (index, message) in request.messages.dropLast().enumerated() {
+                            let role = message.role == .user ? "User" : "Assistant"
+                            prompt += "\(role): \(message.content)\n"
+                            if index < request.messages.count - 2 {
+                                prompt += "\n"
+                            }
+                        }
+                        prompt += "\n---\n\n"
                     }
+                    
+                    // Add the current message
+                    if let lastMessage = request.messages.last {
+                        let role = lastMessage.role == .user ? "User" : "Assistant"
+                        prompt += "Current message:\n\(role): \(lastMessage.content)"
+                    }
+                    
+                    // Determine the task type based on context
+                    let task: AITask = request.user == "onboarding" ? .conversationAnalysis : .coaching
                     
                     if request.stream {
-                        // Stream responses (no caching for streams)
+                        // Stream responses
                         let model = await self.getCurrentModel()
                         let stream = orchestrator.stream(
                             prompt: prompt,
-                            task: .coaching,
-                            model: LLMModel(rawValue: model),
+                            task: task,
                             temperature: request.temperature
                         )
                         
@@ -230,7 +226,7 @@ actor AIService: AIServiceProtocol {
                         // Single response
                         let llmResponse = try await orchestrator.complete(
                             prompt: prompt,
-                            task: .coaching,
+                            task: task,
                             temperature: request.temperature,
                             maxTokens: request.maxTokens
                         )
@@ -279,7 +275,7 @@ actor AIService: AIServiceProtocol {
         }
         
         let systemPrompt = """
-        You are a fitness and nutrition coach. Analyze the user's goal and provide brief, 
+        You are a fitness and nutrition coach. Analyze the user's goal and provide brief,
         actionable advice. Keep your response under 3 sentences and focus on practical steps.
         """
         
@@ -353,8 +349,8 @@ actor AIService: AIServiceProtocol {
     
     private func updateCost(usage: AITokenUsage, model: String) {
         if let llmModel = LLMModel(rawValue: model) {
-            let cost = Double(usage.promptTokens) / 1000.0 * llmModel.cost.input +
-                       Double(usage.completionTokens) / 1000.0 * llmModel.cost.output
+            let cost = Double(usage.promptTokens) / 1_000.0 * llmModel.cost.input +
+                       Double(usage.completionTokens) / 1_000.0 * llmModel.cost.output
             totalCost += cost
         }
     }
