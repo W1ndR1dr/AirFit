@@ -3,14 +3,14 @@ import SwiftUI
 /// Turn-based onboarding - simple, clean, effective
 struct OnboardingView: View {
     @ObservedObject var intelligence: OnboardingIntelligence
-    @State private var phase = Phase.apiKeySetup
+    @State private var phase = Phase.healthPermission
     @State private var userInput = ""
     @State private var conversationCount = 0
+    @State private var hasSelectedModel = false
     @EnvironmentObject private var gradientManager: GradientManager
     @Environment(\.diContainer) private var diContainer: DIContainer
     
     enum Phase {
-        case apiKeySetup
         case healthPermission
         case conversation
         case generating
@@ -21,25 +21,16 @@ struct OnboardingView: View {
         BaseScreen {
             Group {
                 switch phase {
-                case .apiKeySetup:
-                    APISetupView()
-                        .task {
-                            // Check periodically if keys are saved
-                            while phase == .apiKeySetup {
-                                try? await Task.sleep(nanoseconds: 500_000_000)
-                                if await intelligence.hasValidAPIKeys() {
-                                    phase = .healthPermission
-                                    break
-                                }
-                            }
-                        }
-                    
                 case .healthPermission:
                     HealthPermissionView(
                         onAccept: {
                             Task {
+                                // Move to conversation immediately
+                                await MainActor.run {
+                                    phase = .conversation
+                                }
+                                // Then analyze health data in background
                                 await intelligence.startHealthAnalysis()
-                                phase = .conversation
                             }
                         },
                         onSkip: {
@@ -56,14 +47,20 @@ struct OnboardingView: View {
                             Task {
                                 await intelligence.analyzeConversation(userInput)
                                 conversationCount += 1
+                                userInput = ""
                                 
-                                // Check if we should continue or generate
-                                if intelligence.contextQuality.overall >= 0.8 || conversationCount >= 10 {
+                                // Minimum 3 exchanges before generating
+                                if conversationCount < 3 {
+                                    // Always ask follow-up questions early
+                                    if let followUp = intelligence.followUpQuestion {
+                                        intelligence.currentPrompt = followUp
+                                    }
+                                } else if intelligence.contextQuality.overall >= 0.8 || conversationCount >= 10 {
+                                    // Have enough context or reached max
                                     phase = .generating
                                 } else if let followUp = intelligence.followUpQuestion {
-                                    // Update prompt with follow-up
+                                    // Continue gathering context
                                     intelligence.currentPrompt = followUp
-                                    userInput = ""
                                 } else {
                                     // Ready to generate
                                     phase = .generating
@@ -84,6 +81,8 @@ struct OnboardingView: View {
                         plan: intelligence.coachingPlan,
                         onAccept: completeOnboarding,
                         onRefine: {
+                            // Update prompt for refinement
+                            intelligence.currentPrompt = "Is there anything else you'd like me to know? Any specific concerns, preferences, or goals I should consider when crafting your coaching experience?"
                             phase = .conversation
                             userInput = ""
                         }
@@ -372,7 +371,7 @@ private struct ConfirmationView: View {
                 }
                 
                 Button(action: onRefine) {
-                    Text("I'd like to share more")
+                    Text("Add more details")
                         .foregroundStyle(.secondary)
                         .font(.subheadline)
                 }
