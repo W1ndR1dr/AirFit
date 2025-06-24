@@ -144,6 +144,8 @@ final class OnboardingIntelligence: ObservableObject {
         let healthSummary = buildHealthSummary()
         
         let prompt = """
+        Analyze this user input for fitness coaching context quality.
+        
         User said: "\(input)"
         
         Previous conversation:
@@ -151,28 +153,42 @@ final class OnboardingIntelligence: ObservableObject {
         
         Health data: \(healthSummary)
         
-        Score these context components (0-1):
-        - goalClarity: How specific and measurable?
-        - obstacles: What's blocking them?
-        - exercisePreferences: What they enjoy?
-        - currentState: Fitness baseline?
-        - lifestyle: Schedule/commitments?
-        - nutritionReadiness: Willing to track food?
-        - communicationStyle: How they want coaching?
-        - pastPatterns: What worked/failed?
-        - energyPatterns: When they feel best?
-        - supportSystem: Who helps/hinders?
+        Return ONLY valid JSON in this exact format (no other text):
+        {
+          "scores": {
+            "goalClarity": 0.5,
+            "obstacles": 0.3,
+            "exercisePreferences": 0.4,
+            "currentState": 0.6,
+            "lifestyle": 0.5,
+            "nutritionReadiness": 0.3,
+            "communicationStyle": 0.4,
+            "pastPatterns": 0.2,
+            "energyPatterns": 0.3,
+            "supportSystem": 0.2
+          }
+        }
         
-        Return JSON with scores and suggested follow-up if overall < 0.8.
+        Each score should be 0.0 to 1.0 based on:
+        - goalClarity: How specific and measurable are their goals?
+        - obstacles: Have they mentioned what blocks them?
+        - exercisePreferences: Do we know what activities they enjoy?
+        - currentState: Do we know their fitness baseline?
+        - lifestyle: Understanding of schedule/commitments?
+        - nutritionReadiness: Willingness to track food?
+        - communicationStyle: How they prefer to be coached?
+        - pastPatterns: What has worked/failed before?
+        - energyPatterns: When they feel most energetic?
+        - supportSystem: Who helps or hinders them?
         """
         
         do {
             AppLogger.info("Sending context analysis request to AI service", category: .ai)
             let request = AIRequest(
-                systemPrompt: "Analyze fitness coaching context. Return only JSON.",
+                systemPrompt: "You are a JSON generator. Return ONLY valid JSON, no other text.",
                 messages: [AIChatMessage(role: .user, content: prompt)],
-                temperature: 0.3,
-                maxTokens: 500,
+                temperature: 0.1,  // Lower temperature for more consistent JSON
+                maxTokens: 200,    // Don't need much for JSON response
                 stream: false,
                 user: "onboarding"
             )
@@ -180,19 +196,24 @@ final class OnboardingIntelligence: ObservableObject {
             var response = ""
             for try await chunk in aiService.sendRequest(request) {
                 if case .text(let text) = chunk { 
-                    response = text 
-                    AppLogger.info("Received AI response: \(text.prefix(100))...", category: .ai)
+                    response = text.trimmingCharacters(in: .whitespacesAndNewlines)
                 }
             }
             
-            if let data = response.data(using: .utf8) {
-                parseContextScores(data)
-            } else {
-                AppLogger.warning("Failed to parse AI response as JSON", category: .ai)
+            // Try to extract JSON if there's extra text
+            if let jsonStart = response.firstIndex(of: "{"),
+               let jsonEnd = response.lastIndex(of: "}") {
+                let jsonSubstring = response[jsonStart...jsonEnd]
+                if let data = String(jsonSubstring).data(using: .utf8) {
+                    parseContextScores(data)
+                    return
+                }
             }
+            
+            AppLogger.warning("Could not extract valid JSON from response: \(response.prefix(100))...", category: .ai)
+            updateContextHeuristically(input)
         } catch {
             AppLogger.error("AI context analysis failed", error: error, category: .ai)
-            // Simple fallback scoring
             updateContextHeuristically(input)
         }
     }
@@ -449,25 +470,42 @@ final class OnboardingIntelligence: ObservableObject {
     }
     
     private func updateContextHeuristically(_ input: String) {
-        // Simple fallback scoring based on keywords and length
-        let words = input.split(separator: " ").count
-        let hasNumbers = input.contains(where: { $0.isNumber })
-        let hasGoalKeywords = ["lose", "gain", "build", "improve"].contains {
-            input.lowercased().contains($0)
-        }
+        // More intelligent fallback scoring based on conversation analysis
+        let lowercased = input.lowercased()
+        let allConversation = (conversationHistory + [input]).joined(separator: " ").lowercased()
         
+        // Analyze for specific context components
+        let goalKeywords = ["lose", "gain", "build", "improve", "pounds", "weight", "muscle", "stronger", "fitter", "healthier"]
+        let hasSpecificGoal = goalKeywords.contains { allConversation.contains($0) }
+        let hasNumbers = allConversation.contains(where: { $0.isNumber })
+        
+        let obstacleKeywords = ["can't", "hard", "difficult", "struggle", "fail", "busy", "tired", "stress", "time"]
+        let hasObstacles = obstacleKeywords.contains { allConversation.contains($0) }
+        
+        let exerciseKeywords = ["run", "walk", "gym", "yoga", "swim", "bike", "lift", "cardio", "workout", "exercise"]
+        let hasExercisePrefs = exerciseKeywords.contains { allConversation.contains($0) }
+        
+        let scheduleKeywords = ["morning", "evening", "night", "lunch", "work", "schedule", "time", "day", "week"]
+        let hasSchedule = scheduleKeywords.contains { allConversation.contains($0) }
+        
+        let nutritionKeywords = ["eat", "food", "diet", "meal", "nutrition", "calories", "track", "healthy"]
+        let hasNutrition = nutritionKeywords.contains { allConversation.contains($0) }
+        
+        // Update scores based on conversation content and health data
         contextQuality = ContextComponents(
-            goalClarity: hasGoalKeywords && hasNumbers ? 0.8 : 0.3,
-            obstacles: healthContext != nil ? 0.6 : 0.2,
-            exercisePreferences: 0.3,
-            currentState: healthContext != nil ? 0.8 : 0.2,
-            lifestyle: healthContext != nil ? 0.6 : 0.2,
-            nutritionReadiness: 0.2,
-            communicationStyle: words > 20 ? 0.6 : 0.3,
-            pastPatterns: 0.2,
-            energyPatterns: 0.2,
-            supportSystem: 0.1
+            goalClarity: hasSpecificGoal && hasNumbers ? 0.7 : (hasSpecificGoal ? 0.4 : 0.2),
+            obstacles: hasObstacles ? 0.6 : 0.2,
+            exercisePreferences: hasExercisePrefs ? 0.6 : 0.2,
+            currentState: healthContext != nil ? 0.8 : (hasExercisePrefs ? 0.4 : 0.2),
+            lifestyle: hasSchedule ? 0.6 : (healthContext != nil ? 0.5 : 0.2),
+            nutritionReadiness: hasNutrition ? 0.5 : 0.2,
+            communicationStyle: allConversation.count > 200 ? 0.6 : 0.3,
+            pastPatterns: allConversation.contains("before") || allConversation.contains("used to") ? 0.5 : 0.2,
+            energyPatterns: hasSchedule ? 0.4 : 0.2,
+            supportSystem: allConversation.contains("friend") || allConversation.contains("family") ? 0.4 : 0.1
         )
+        
+        AppLogger.info("Heuristic context scores - overall: \(contextQuality.overall)", category: .ai)
     }
     
     private func setDefaultSuggestions() {
