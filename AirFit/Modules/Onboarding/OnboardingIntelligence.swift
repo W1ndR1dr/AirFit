@@ -35,7 +35,7 @@ final class OnboardingIntelligence: ObservableObject {
     private let cache: OnboardingCache
     
     private var healthContext: HealthContextSnapshot?
-    private var conversationHistory: [String] = []
+    var conversationHistory: [String] = []
     private var conversationTurnCount = 0
     private var currentUserId: UUID?
     
@@ -533,7 +533,7 @@ final class OnboardingIntelligence: ObservableObject {
         }
     }
     
-    private func createFallbackPlan() -> CoachingPlan {
+    func createFallbackPlan() -> CoachingPlan {
         // Create a more intelligent fallback based on actual conversation data
         let conversation = conversationHistory.joined(separator: " ").lowercased()
         

@@ -7,6 +7,8 @@ struct OnboardingView: View {
     @State private var userInput = ""
     @State private var conversationCount = 0
     @State private var hasSelectedModel = false
+    @State private var error: Error?
+    @State private var isRetrying = false
     @EnvironmentObject private var gradientManager: GradientManager
     @Environment(\.diContainer) private var diContainer: DIContainer
     
@@ -20,7 +22,15 @@ struct OnboardingView: View {
     var body: some View {
         BaseScreen {
             Group {
-                switch phase {
+                if let error = error {
+                    ErrorRecoveryView(
+                        error: error,
+                        isRetrying: isRetrying,
+                        onRetry: retryLastAction,
+                        onSkip: skipToFallback
+                    )
+                } else {
+                    switch phase {
                 case .healthPermission:
                     HealthPermissionView(
                         onAccept: {
@@ -45,31 +55,37 @@ struct OnboardingView: View {
                         input: $userInput,
                         onSubmit: {
                             Task {
-                                await intelligence.analyzeConversation(userInput)
-                                conversationCount += 1
-                                userInput = ""
-                                
-                                // Conversation flow logic with clear boundaries
-                                if conversationCount < 3 {
-                                    // Early phase: Always continue gathering context
-                                    if let followUp = intelligence.followUpQuestion {
+                                do {
+                                    await intelligence.analyzeConversation(userInput)
+                                    conversationCount += 1
+                                    userInput = ""
+                                    
+                                    // Conversation flow logic with clear boundaries
+                                    if conversationCount < 3 {
+                                        // Early phase: Always continue gathering context
+                                        if let followUp = intelligence.followUpQuestion {
+                                            intelligence.currentPrompt = followUp
+                                        } else {
+                                            // Generate a follow-up if none provided
+                                            intelligence.currentPrompt = "Tell me more about your fitness journey."
+                                        }
+                                    } else if conversationCount >= 10 {
+                                        // Hard limit reached: Generate persona regardless of context quality
+                                        phase = .generating
+                                    } else if intelligence.contextQuality.overall >= 0.8 {
+                                        // Sufficient context: Ready to generate
+                                        phase = .generating
+                                    } else if let followUp = intelligence.followUpQuestion {
+                                        // Still gathering: Use AI-generated follow-up
                                         intelligence.currentPrompt = followUp
                                     } else {
-                                        // Generate a follow-up if none provided
-                                        intelligence.currentPrompt = "Tell me more about your fitness journey."
+                                        // No follow-up but context insufficient: Force generation
+                                        phase = .generating
                                     }
-                                } else if conversationCount >= 10 {
-                                    // Hard limit reached: Generate persona regardless of context quality
-                                    phase = .generating
-                                } else if intelligence.contextQuality.overall >= 0.8 {
-                                    // Sufficient context: Ready to generate
-                                    phase = .generating
-                                } else if let followUp = intelligence.followUpQuestion {
-                                    // Still gathering: Use AI-generated follow-up
-                                    intelligence.currentPrompt = followUp
-                                } else {
-                                    // No follow-up but context insufficient: Force generation
-                                    phase = .generating
+                                } catch {
+                                    await MainActor.run {
+                                        self.error = error
+                                    }
                                 }
                             }
                         }
@@ -78,8 +94,21 @@ struct OnboardingView: View {
                 case .generating:
                     GeneratingView()
                         .task {
-                            await intelligence.generatePersona()
-                            phase = .confirmation
+                            do {
+                                await intelligence.generatePersona()
+                                if intelligence.coachingPlan != nil {
+                                    phase = .confirmation
+                                } else {
+                                    // Fallback if generation returns no plan
+                                    await MainActor.run {
+                                        self.error = AppError.ai(description: "Failed to generate coaching plan")
+                                    }
+                                }
+                            } catch {
+                                await MainActor.run {
+                                    self.error = error
+                                }
+                            }
                         }
                     
                 case .confirmation:
@@ -93,6 +122,7 @@ struct OnboardingView: View {
                             userInput = ""
                         }
                     )
+                    }
                 }
             }
             .animation(.easeInOut(duration: 0.3), value: phase)
@@ -137,7 +167,51 @@ struct OnboardingView: View {
                 }
             } catch {
                 AppLogger.error("Failed to save onboarding", error: error, category: .onboarding)
+                await MainActor.run {
+                    self.error = error
+                }
             }
+        }
+    }
+    
+    private func retryLastAction() {
+        isRetrying = true
+        error = nil
+        
+        Task {
+            // Retry based on current phase
+            switch phase {
+            case .healthPermission:
+                // Health permission doesn't fail in a way that needs retry
+                isRetrying = false
+            case .conversation:
+                // Re-analyze last conversation
+                if let lastInput = intelligence.conversationHistory.last {
+                    await intelligence.analyzeConversation(lastInput)
+                }
+                isRetrying = false
+            case .generating:
+                // Retry persona generation
+                await intelligence.generatePersona()
+                if intelligence.coachingPlan != nil {
+                    phase = .confirmation
+                }
+                isRetrying = false
+            case .confirmation:
+                // Retry saving
+                completeOnboarding()
+                isRetrying = false
+            }
+        }
+    }
+    
+    private func skipToFallback() {
+        error = nil
+        
+        // Force fallback persona generation
+        Task {
+            intelligence.coachingPlan = intelligence.createFallbackPlan()
+            phase = .confirmation
         }
     }
 }
@@ -384,6 +458,69 @@ private struct ConfirmationView: View {
                         .foregroundStyle(.secondary)
                         .font(.subheadline)
                 }
+            }
+            .padding(.horizontal, 24)
+            .padding(.bottom, 40)
+        }
+    }
+}
+
+// MARK: - Error Recovery
+
+private struct ErrorRecoveryView: View {
+    let error: Error
+    let isRetrying: Bool
+    let onRetry: () -> Void
+    let onSkip: () -> Void
+    
+    var body: some View {
+        VStack(spacing: 32) {
+            Spacer()
+            
+            Image(systemName: "exclamationmark.triangle")
+                .font(.system(size: 64))
+                .foregroundStyle(.orange.gradient)
+                .symbolEffect(.pulse)
+            
+            VStack(spacing: 16) {
+                Text("Oops, something went wrong")
+                    .font(.system(size: 28, weight: .light, design: .rounded))
+                    .foregroundStyle(.primary)
+                
+                Text(error.localizedDescription)
+                    .font(.system(size: 16, weight: .light))
+                    .foregroundStyle(.secondary)
+                    .multilineTextAlignment(.center)
+                    .padding(.horizontal, 32)
+            }
+            
+            Spacer()
+            
+            VStack(spacing: 12) {
+                Button(action: onRetry) {
+                    HStack {
+                        if isRetrying {
+                            ProgressView()
+                                .scaleEffect(0.8)
+                        } else {
+                            Image(systemName: "arrow.clockwise")
+                        }
+                        Text("Try Again")
+                    }
+                    .frame(maxWidth: .infinity)
+                    .padding(.vertical, 16)
+                    .background(Color.accentColor)
+                    .foregroundColor(.white)
+                    .clipShape(RoundedRectangle(cornerRadius: 14, style: .continuous))
+                }
+                .disabled(isRetrying)
+                
+                Button(action: onSkip) {
+                    Text("Continue without AI")
+                        .foregroundStyle(.secondary)
+                        .font(.subheadline)
+                }
+                .disabled(isRetrying)
             }
             .padding(.horizontal, 24)
             .padding(.bottom, 40)
