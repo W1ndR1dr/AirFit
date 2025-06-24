@@ -525,67 +525,110 @@ final class OnboardingIntelligence: ObservableObject {
     }
     
     private func createFallbackPlan() -> CoachingPlan {
-        // Minimal viable coaching plan if AI fails
-        CoachingPlan(
-            understandingSummary: "I'll help you improve your fitness with a personalized approach.",
-            coachingApproach: [
-                "Focus on sustainable habits",
-                "Daily check-ins to keep you motivated",
-                "Adapt to your schedule and energy"
-            ],
+        // Create a more intelligent fallback based on actual conversation data
+        let conversation = conversationHistory.joined(separator: " ").lowercased()
+        
+        // Analyze conversation for patterns
+        let hasWeightGoal = conversation.contains("weight") || conversation.contains("lose") || conversation.contains("pounds")
+        let hasMuscleGoal = conversation.contains("muscle") || conversation.contains("strength") || conversation.contains("stronger")
+        let hasEnduranceGoal = conversation.contains("run") || conversation.contains("cardio") || conversation.contains("endurance")
+        let isBeginner = conversation.contains("beginner") || conversation.contains("new to") || conversation.contains("never")
+        let isBusy = conversation.contains("busy") || conversation.contains("time") || conversation.contains("schedule")
+        
+        // Determine coach personality based on conversation tone
+        let needsMotivation = conversation.contains("motivation") || conversation.contains("lazy") || conversation.contains("struggle")
+        let prefersSoft = conversation.contains("gentle") || conversation.contains("easy") || conversation.contains("slow")
+        
+        // Generate personalized elements
+        let coachName = needsMotivation ? "Max" : (prefersSoft ? "Sarah" : "Alex")
+        let archetype = needsMotivation ? "Motivational Energizer" : (prefersSoft ? "Gentle Guide" : "Balanced Mentor")
+        
+        let coachingApproach = [
+            hasWeightGoal ? "Guide you toward sustainable weight management" : "Help you achieve your fitness goals",
+            isBusy ? "Work around your busy schedule with flexible workout plans" : "Create a consistent routine that fits your life",
+            needsMotivation ? "Keep you motivated with daily encouragement" : "Support your progress with regular check-ins",
+            healthContext != nil ? "Leverage your health data for personalized insights" : "Track your progress and adapt as you grow",
+            isBeginner ? "Start with the basics and build gradually" : "Challenge you appropriately based on your level"
+        ]
+        
+        // Build system prompt from conversation insights
+        let systemPrompt = """
+        You are \(coachName), a \(archetype.lowercased()) focused on helping the user with their fitness journey.
+        
+        Based on our conversation:
+        \(conversationHistory.isEmpty ? "The user is looking for general fitness guidance." : conversationHistory.joined(separator: "\n"))
+        
+        Key focus areas:
+        - \(hasWeightGoal ? "Weight management and healthy habits" : hasMuscleGoal ? "Strength building and muscle development" : "Overall fitness and wellbeing")
+        - \(isBusy ? "Time-efficient workouts for busy schedules" : "Consistent routine development")
+        - \(needsMotivation ? "High-energy motivation and accountability" : "Supportive guidance and encouragement")
+        
+        Communication style:
+        - \(prefersSoft ? "Gentle and understanding" : needsMotivation ? "Energetic and enthusiastic" : "Balanced and supportive")
+        - Focus on progress over perfection
+        - Celebrate small wins
+        """
+        
+        return CoachingPlan(
+            understandingSummary: buildUnderstandingSummary(),
+            coachingApproach: coachingApproach,
             lifeContext: LifeContext(
-                workStyle: .moderate,
-                fitnessLevel: .intermediate,
-                workoutWindowPreference: .morning
+                workStyle: isBusy ? .high : .moderate,
+                fitnessLevel: isBeginner ? .beginner : .intermediate,
+                workoutWindowPreference: detectWorkoutPreference()
             ),
             goal: Goal(
-                family: .healthWellbeing,
+                family: hasWeightGoal ? .weightManagement : (hasMuscleGoal ? .strengthMuscle : .healthWellbeing),
                 rawText: conversationHistory.joined(separator: " ")
             ),
             engagementPreferences: EngagementPreferences(
-                checkInFrequency: .daily,
-                preferredTimes: ["morning", "evening"]
+                checkInFrequency: needsMotivation ? .daily : .moderate,
+                preferredTimes: detectPreferredTimes()
             ),
             sleepWindow: SleepWindow(),
-            motivationalStyle: MotivationalStyle(styles: [.encouraging]),
+            motivationalStyle: MotivationalStyle(
+                styles: needsMotivation ? [.motivational, .celebratory] : (prefersSoft ? [.gentle, .encouraging] : [.encouraging, .balanced])
+            ),
             timezone: TimeZone.current.identifier,
             generatedPersona: PersonaProfile(
                 id: UUID(),
-                name: "Coach",
-                archetype: "Supportive Guide",
-                systemPrompt: "You are a supportive fitness coach focused on sustainable progress.",
-                coreValues: ["consistency", "progress", "balance"],
-                backgroundStory: "I'm here to help you achieve lasting fitness success.",
+                name: coachName,
+                archetype: archetype,
+                systemPrompt: systemPrompt,
+                coreValues: needsMotivation ? ["energy", "progress", "celebration"] : ["consistency", "balance", "growth"],
+                backgroundStory: "I'm here to help you transform your fitness journey into a sustainable lifestyle.",
                 voiceCharacteristics: VoiceCharacteristics(
-                    energy: .moderate,
-                    pace: .natural,
+                    energy: needsMotivation ? .high : (prefersSoft ? .calm : .moderate),
+                    pace: prefersSoft ? .slow : .natural,
                     warmth: .warm,
                     vocabulary: .moderate,
                     sentenceStructure: .moderate
                 ),
                 interactionStyle: InteractionStyle(
-                    greetingStyle: "Hey there!",
-                    closingStyle: "Keep up the great work!",
-                    encouragementPhrases: ["You've got this!", "Great progress!"],
-                    acknowledgmentStyle: "I hear you",
-                    correctionApproach: "gentle",
-                    humorLevel: .light,
+                    greetingStyle: needsMotivation ? "Hey champion!" : (prefersSoft ? "Hello there" : "Hey!"),
+                    closingStyle: needsMotivation ? "Keep crushing it!" : "Keep up the great work!",
+                    encouragementPhrases: needsMotivation ? 
+                        ["You're unstoppable!", "That's what I'm talking about!", "Champion mode activated!"] :
+                        ["You've got this!", "Great progress!", "Well done!"],
+                    acknowledgmentStyle: prefersSoft ? "I understand" : "I hear you",
+                    correctionApproach: prefersSoft ? "very gentle" : "gentle",
+                    humorLevel: needsMotivation ? .medium : .light,
                     formalityLevel: .balanced,
                     responseLength: .moderate
                 ),
                 adaptationRules: [],
                 metadata: PersonaMetadata(
                     createdAt: Date(),
-                    version: "1.0",
+                    version: "1.0-fallback",
                     sourceInsights: ConversationPersonalityInsights(
-                        dominantTraits: ["supportive"],
+                        dominantTraits: needsMotivation ? ["energetic", "motivational"] : ["supportive", "balanced"],
                         communicationStyle: .conversational,
-                        motivationType: .balanced,
-                        energyLevel: .moderate,
+                        motivationType: needsMotivation ? .cheerleader : .balanced,
+                        energyLevel: needsMotivation ? .high : .moderate,
                         preferredComplexity: .moderate,
-                        emotionalTone: ["encouraging"],
+                        emotionalTone: ["encouraging", "positive"],
                         stressResponse: .needsSupport,
-                        preferredTimes: ["morning", "evening"],
+                        preferredTimes: detectPreferredTimes(),
                         extractedAt: Date()
                     ),
                     generationDuration: 0,
@@ -594,5 +637,33 @@ final class OnboardingIntelligence: ObservableObject {
                 )
             )
         )
+    }
+    
+    private func buildUnderstandingSummary() -> String {
+        let components = [
+            contextQuality.goalClarity > 0.5 ? "I understand your fitness goals" : "I'm here to help you clarify your fitness goals",
+            healthContext != nil ? "and I've reviewed your health data" : nil,
+            contextQuality.obstacles > 0.5 ? "I know what challenges you're facing" : nil,
+            "Let's work together to create lasting change."
+        ].compactMap { $0 }
+        
+        return components.joined(separator: ", ") + "."
+    }
+    
+    private func detectWorkoutPreference() -> WorkoutTimePreference {
+        let conversation = conversationHistory.joined(separator: " ").lowercased()
+        if conversation.contains("morning") { return .morning }
+        if conversation.contains("evening") || conversation.contains("night") { return .evening }
+        if conversation.contains("lunch") { return .lunchtime }
+        return .flexible
+    }
+    
+    private func detectPreferredTimes() -> [String] {
+        let conversation = conversationHistory.joined(separator: " ").lowercased()
+        var times: [String] = []
+        if conversation.contains("morning") { times.append("morning") }
+        if conversation.contains("evening") { times.append("evening") }
+        if conversation.contains("night") { times.append("night") }
+        return times.isEmpty ? ["morning", "evening"] : times
     }
 }
