@@ -43,7 +43,7 @@ final class OnboardingIntelligence: ObservableObject {
         self.aiService = try await container.resolve(AIServiceProtocol.self)
         self.contextAssembler = try await container.resolve(ContextAssembler.self)
         self.llmOrchestrator = try await container.resolve(LLMOrchestrator.self)
-        self.healthKitProvider = try await container.resolve(HealthKitProvider.self)
+        self.healthKitProvider = try await container.resolve(HealthKitPrefillProviding.self) as! HealthKitProvider
     }
     
     // MARK: - Public API
@@ -56,17 +56,32 @@ final class OnboardingIntelligence: ObservableObject {
     
     /// Start health analysis in background during permission screen
     func startHealthAnalysis() async {
+        AppLogger.info("Starting HealthKit authorization request", category: .health)
+        
+        // Request authorization without artificial timeout - let system handle it
         do {
-            _ = try await healthKitProvider.requestAuthorization()
-            healthContext = await contextAssembler.assembleContext()
+            _ = try await self.healthKitProvider.requestAuthorization()
+            AppLogger.info("HealthKit authorization completed, fetching context", category: .health)
             
-            if let context = healthContext {
-                updatePromptsFromHealth(context)
-                await generateSmartSuggestions(context)
+            // Fetch health context in background - don't block onboarding
+            Task { @MainActor in
+                do {
+                    if let context = await self.contextAssembler.assembleContext() {
+                        self.healthContext = context
+                        self.updatePromptsFromHealth(context)
+                        await self.generateSmartSuggestions(context)
+                        AppLogger.info("Health context loaded successfully", category: .health)
+                    } else {
+                        AppLogger.info("No health context available, proceeding without it", category: .health)
+                    }
+                } catch {
+                    AppLogger.error("Failed to fetch health context", error: error, category: .health)
+                    // Continue without health data - not critical for onboarding
+                }
             }
         } catch {
-            // Continue without health data
-            AppLogger.error("Health analysis failed", error: error, category: .health)
+            AppLogger.error("HealthKit authorization failed", error: error, category: .health)
+            // Continue without health data - user can connect later
         }
     }
     
@@ -108,7 +123,7 @@ final class OnboardingIntelligence: ObservableObject {
                 task: .personaSynthesis,
                 model: .claude4Opus,
                 temperature: 0.7,
-                maxTokens: 2000
+                maxTokens: 2_000
             )
             
             if let planData = response.content.data(using: .utf8),
@@ -152,6 +167,7 @@ final class OnboardingIntelligence: ObservableObject {
         """
         
         do {
+            AppLogger.info("Sending context analysis request to AI service", category: .ai)
             let request = AIRequest(
                 systemPrompt: "Analyze fitness coaching context. Return only JSON.",
                 messages: [AIChatMessage(role: .user, content: prompt)],
@@ -163,13 +179,19 @@ final class OnboardingIntelligence: ObservableObject {
             
             var response = ""
             for try await chunk in aiService.sendRequest(request) {
-                if case .text(let text) = chunk { response = text }
+                if case .text(let text) = chunk { 
+                    response = text 
+                    AppLogger.info("Received AI response: \(text.prefix(100))...", category: .ai)
+                }
             }
             
             if let data = response.data(using: .utf8) {
                 parseContextScores(data)
+            } else {
+                AppLogger.warning("Failed to parse AI response as JSON", category: .ai)
             }
         } catch {
+            AppLogger.error("AI context analysis failed", error: error, category: .ai)
             // Simple fallback scoring
             updateContextHeuristically(input)
         }
@@ -177,7 +199,7 @@ final class OnboardingIntelligence: ObservableObject {
     
     private func generateFollowUpQuestion() async -> String? {
         // Find ALL components that need improvement
-        var lowComponents = [(String, Double)]() 
+        var lowComponents = [(String, Double)]()
         if contextQuality.goalClarity < 0.7 { lowComponents.append(("goals", contextQuality.goalClarity)) }
         if contextQuality.obstacles < 0.7 { lowComponents.append(("obstacles", contextQuality.obstacles)) }
         if contextQuality.exercisePreferences < 0.6 { lowComponents.append(("preferences", contextQuality.exercisePreferences)) }
@@ -237,11 +259,11 @@ final class OnboardingIntelligence: ObservableObject {
     private func updatePromptsFromHealth(_ context: HealthContextSnapshot) {
         let avgSteps = context.activity.steps ?? 0
         
-        if avgSteps < 3000 {
+        if avgSteps < 3_000 {
             currentPrompt = "I see you're ready to\nstart moving more."
-        } else if avgSteps < 6000 {
+        } else if avgSteps < 6_000 {
             currentPrompt = "Let's take your fitness\nto the next level."
-        } else if avgSteps < 10000 {
+        } else if avgSteps < 10_000 {
             currentPrompt = "You're already active.\nWhat's next?"
         } else {
             currentPrompt = "You're crushing it.\nHow can I help?"
@@ -260,7 +282,7 @@ final class OnboardingIntelligence: ObservableObject {
         
         Examples:
         - If low steps: "Walk 8,000 steps daily"
-        - If poor sleep: "Improve sleep quality"  
+        - If poor sleep: "Improve sleep quality"
         - If declining weight trend: "Stabilize weight"
         - If well recovered: "Increase workout intensity"
         """
@@ -348,7 +370,7 @@ final class OnboardingIntelligence: ObservableObject {
         
         // Sleep quality
         if let sleep = health.sleep.lastNight {
-            let hours = (sleep.totalSleepTime ?? 0) / 3600
+            let hours = (sleep.totalSleepTime ?? 0) / 3_600
             summary.append("Sleep: \(String(format: "%.1f", hours))h")
             if let efficiency = sleep.efficiency {
                 summary.append("Sleep efficiency: \(Int(efficiency))%")
@@ -430,8 +452,8 @@ final class OnboardingIntelligence: ObservableObject {
         // Simple fallback scoring based on keywords and length
         let words = input.split(separator: " ").count
         let hasNumbers = input.contains(where: { $0.isNumber })
-        let hasGoalKeywords = ["lose", "gain", "build", "improve"].contains { 
-            input.lowercased().contains($0) 
+        let hasGoalKeywords = ["lose", "gain", "build", "improve"].contains {
+            input.lowercased().contains($0)
         }
         
         contextQuality = ContextComponents(
@@ -452,9 +474,9 @@ final class OnboardingIntelligence: ObservableObject {
         if let health = healthContext {
             let avgSteps = health.activity.steps ?? 0
             
-            if avgSteps < 3000 {
+            if avgSteps < 3_000 {
                 contextualSuggestions = ["Lose 20 pounds", "Get back in shape", "Start exercising", "Feel more energetic"]
-            } else if avgSteps < 10000 {
+            } else if avgSteps < 10_000 {
                 contextualSuggestions = ["Drop 15 pounds", "Build muscle", "Run a 5K", "Get stronger"]
             } else {
                 contextualSuggestions = ["Run faster", "Build lean muscle", "Train for marathon", "Optimize recovery"]
