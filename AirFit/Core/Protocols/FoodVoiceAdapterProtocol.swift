@@ -25,4 +25,4 @@ protocol FoodVoiceAdapterProtocol: AnyObject, Sendable {
     
     /// Stop recording and return transcribed text
     func stopRecording() async -> String?
-} 
+}

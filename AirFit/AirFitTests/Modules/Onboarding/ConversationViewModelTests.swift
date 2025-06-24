@@ -58,7 +58,7 @@ final class ConversationViewModelTests: XCTestCase {
         XCTAssertEqual(mockFlowManager.startNewSessionCallCount, 1)
         XCTAssertEqual(mockFlowManager.lastStartedUserId, testUserId)
         XCTAssertEqual(mockAnalytics.trackedEvents.count, 1)
-        XCTAssertTrue(mockAnalytics.trackedEvents.contains { 
+        XCTAssertTrue(mockAnalytics.trackedEvents.contains {
             if case .sessionStarted(let userId) = $0 {
                 return userId == testUserId
             }

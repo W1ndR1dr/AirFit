@@ -59,7 +59,7 @@ final class HealthKitServiceTests: XCTestCase {
             activity: ActivityMetrics(
                 activeEnergyBurned: Measurement(value: 450, unit: .kilocalories),
                 basalEnergyBurned: nil,
-                steps: 8500,
+                steps: 8_500,
                 distance: nil,
                 flightsClimbed: nil,
                 exerciseMinutes: 35,
@@ -74,20 +74,20 @@ final class HealthKitServiceTests: XCTestCase {
             ),
             sleep: SleepAnalysis(
                 lastNight: SleepAnalysis.SleepSession(
-                    bedtime: Date().addingTimeInterval(-28800), // 8 hours ago
+                    bedtime: Date().addingTimeInterval(-28_800), // 8 hours ago
                     wakeTime: Date(),
-                    totalSleepTime: 25200, // 7 hours
-                    timeInBed: 28800, // 8 hours
+                    totalSleepTime: 25_200, // 7 hours
+                    timeInBed: 28_800, // 8 hours
                     efficiency: 87.5,
-                    remTime: 5400,
-                    coreTime: 12600,
-                    deepTime: 7200,
-                    awakeTime: 3600
+                    remTime: 5_400,
+                    coreTime: 12_600,
+                    deepTime: 7_200,
+                    awakeTime: 3_600
                 ),
                 weeklyAverage: SleepAnalysis.SleepAverages(
                     averageBedtime: nil,
                     averageWakeTime: nil,
-                    averageDuration: 25920, // 7.2 hours
+                    averageDuration: 25_920, // 7.2 hours
                     averageEfficiency: 85.0,
                     consistency: 85.0
                 )
@@ -139,7 +139,7 @@ final class HealthKitServiceTests: XCTestCase {
         XCTAssertEqual(context.yesterdayEnergyLevel, 7)
         XCTAssertEqual(context.currentHeartRate, 65)
         XCTAssertEqual(context.hrv, 55.0)
-        XCTAssertEqual(context.steps, 8500)
+        XCTAssertEqual(context.steps, 8_500)
     }
     
     func test_getCurrentContext_withMinimalData_handlesNilsGracefully() async throws {
@@ -237,9 +237,9 @@ final class HealthKitServiceTests: XCTestCase {
             activity: ActivityMetrics(),
             sleep: SleepAnalysis(
                 lastNight: SleepAnalysis.SleepSession(
-                    bedtime: Date().addingTimeInterval(-32400), // 9 hours ago
+                    bedtime: Date().addingTimeInterval(-32_400), // 9 hours ago
                     wakeTime: Date(),
-                    totalSleepTime: 30600, // 8.5 hours
+                    totalSleepTime: 30_600, // 8.5 hours
                     timeInBed: nil,
                     efficiency: nil,
                     remTime: nil,
@@ -274,7 +274,7 @@ final class HealthKitServiceTests: XCTestCase {
             activity: ActivityMetrics(
                 activeEnergyBurned: Measurement(value: 300, unit: .kilocalories),
                 basalEnergyBurned: nil,
-                steps: 5000,
+                steps: 5_000,
                 distance: nil,
                 flightsClimbed: nil,
                 exerciseMinutes: 20,
@@ -289,20 +289,20 @@ final class HealthKitServiceTests: XCTestCase {
             ),
             sleep: SleepAnalysis(
                 lastNight: SleepAnalysis.SleepSession(
-                    bedtime: Date().addingTimeInterval(-28800),
+                    bedtime: Date().addingTimeInterval(-28_800),
                     wakeTime: Date(),
-                    totalSleepTime: 28800, // 8 hours - perfect
-                    timeInBed: 32400,
+                    totalSleepTime: 28_800, // 8 hours - perfect
+                    timeInBed: 32_400,
                     efficiency: 90.0,
-                    remTime: 5400,
-                    coreTime: 13200,
-                    deepTime: 7200,
-                    awakeTime: 3200
+                    remTime: 5_400,
+                    coreTime: 13_200,
+                    deepTime: 7_200,
+                    awakeTime: 3_200
                 ),
                 weeklyAverage: SleepAnalysis.SleepAverages(
                     averageBedtime: nil,
                     averageWakeTime: nil,
-                    averageDuration: 27000, // 7.5 hours
+                    averageDuration: 27_000, // 7.5 hours
                     averageEfficiency: 88.0,
                     consistency: 90.0
                 )
@@ -355,7 +355,7 @@ final class HealthKitServiceTests: XCTestCase {
             activity: ActivityMetrics(
                 activeEnergyBurned: Measurement(value: 150, unit: .kilocalories),
                 basalEnergyBurned: nil,
-                steps: 2000,
+                steps: 2_000,
                 distance: nil,
                 flightsClimbed: nil,
                 exerciseMinutes: 0,
@@ -370,20 +370,20 @@ final class HealthKitServiceTests: XCTestCase {
             ),
             sleep: SleepAnalysis(
                 lastNight: SleepAnalysis.SleepSession(
-                    bedtime: Date().addingTimeInterval(-18000),
+                    bedtime: Date().addingTimeInterval(-18_000),
                     wakeTime: Date(),
-                    totalSleepTime: 14400, // 4 hours - poor
-                    timeInBed: 18000,
+                    totalSleepTime: 14_400, // 4 hours - poor
+                    timeInBed: 18_000,
                     efficiency: 65.0,
-                    remTime: 1800,
-                    coreTime: 8400,
-                    deepTime: 3600,
+                    remTime: 1_800,
+                    coreTime: 8_400,
+                    deepTime: 3_600,
                     awakeTime: 600
                 ),
                 weeklyAverage: SleepAnalysis.SleepAverages(
                     averageBedtime: nil,
                     averageWakeTime: nil,
-                    averageDuration: 19800, // 5.5 hours
+                    averageDuration: 19_800, // 5.5 hours
                     averageEfficiency: 70.0,
                     consistency: 60.0
                 )
@@ -435,7 +435,7 @@ final class HealthKitServiceTests: XCTestCase {
             activity: ActivityMetrics(
                 activeEnergyBurned: Measurement(value: 800, unit: .kilocalories), // High activity yesterday
                 basalEnergyBurned: nil,
-                steps: 15000,
+                steps: 15_000,
                 distance: nil,
                 flightsClimbed: nil,
                 exerciseMinutes: 90,
@@ -450,20 +450,20 @@ final class HealthKitServiceTests: XCTestCase {
             ),
             sleep: SleepAnalysis(
                 lastNight: SleepAnalysis.SleepSession(
-                    bedtime: Date().addingTimeInterval(-25200),
+                    bedtime: Date().addingTimeInterval(-25_200),
                     wakeTime: Date(),
-                    totalSleepTime: 25200, // 7 hours
-                    timeInBed: 28800,
+                    totalSleepTime: 25_200, // 7 hours
+                    timeInBed: 28_800,
                     efficiency: 85.0,
-                    remTime: 4800,
-                    coreTime: 12600,
-                    deepTime: 6000,
-                    awakeTime: 1800
+                    remTime: 4_800,
+                    coreTime: 12_600,
+                    deepTime: 6_000,
+                    awakeTime: 1_800
                 ),
                 weeklyAverage: SleepAnalysis.SleepAverages(
                     averageBedtime: nil,
                     averageWakeTime: nil,
-                    averageDuration: 25200, // 7.0 hours
+                    averageDuration: 25_200, // 7.0 hours
                     averageEfficiency: 83.0,
                     consistency: 80.0
                 )
@@ -516,7 +516,7 @@ final class HealthKitServiceTests: XCTestCase {
             activity: ActivityMetrics(
                 activeEnergyBurned: Measurement(value: 400, unit: .kilocalories),
                 basalEnergyBurned: nil,
-                steps: 7000,
+                steps: 7_000,
                 distance: nil,
                 flightsClimbed: nil,
                 exerciseMinutes: 30,
@@ -531,20 +531,20 @@ final class HealthKitServiceTests: XCTestCase {
             ),
             sleep: SleepAnalysis(
                 lastNight: SleepAnalysis.SleepSession(
-                    bedtime: Date().addingTimeInterval(-21600),
+                    bedtime: Date().addingTimeInterval(-21_600),
                     wakeTime: Date(),
-                    totalSleepTime: 21600, // 6 hours
-                    timeInBed: 25200,
+                    totalSleepTime: 21_600, // 6 hours
+                    timeInBed: 25_200,
                     efficiency: 80.0,
-                    remTime: 4200,
-                    coreTime: 10800,
-                    deepTime: 5400,
-                    awakeTime: 1200
+                    remTime: 4_200,
+                    coreTime: 10_800,
+                    deepTime: 5_400,
+                    awakeTime: 1_200
                 ),
                 weeklyAverage: SleepAnalysis.SleepAverages(
                     averageBedtime: nil,
                     averageWakeTime: nil,
-                    averageDuration: 23400, // 6.5 hours
+                    averageDuration: 23_400, // 6.5 hours
                     averageEfficiency: 78.0,
                     consistency: 75.0
                 )
@@ -691,9 +691,9 @@ final class HealthKitServiceTests: XCTestCase {
                 airQualityIndex: 500
             ),
             activity: ActivityMetrics(
-                activeEnergyBurned: Measurement(value: 2000, unit: .kilocalories), // Very high
+                activeEnergyBurned: Measurement(value: 2_000, unit: .kilocalories), // Very high
                 basalEnergyBurned: nil,
-                steps: 50000, // Very high
+                steps: 50_000, // Very high
                 distance: nil,
                 flightsClimbed: nil,
                 exerciseMinutes: 300, // 5 hours
@@ -708,20 +708,20 @@ final class HealthKitServiceTests: XCTestCase {
             ),
             sleep: SleepAnalysis(
                 lastNight: SleepAnalysis.SleepSession(
-                    bedtime: Date().addingTimeInterval(-43200), // 12 hours ago
+                    bedtime: Date().addingTimeInterval(-43_200), // 12 hours ago
                     wakeTime: Date(),
-                    totalSleepTime: 43200, // 12 hours - very long
-                    timeInBed: 43200,
+                    totalSleepTime: 43_200, // 12 hours - very long
+                    timeInBed: 43_200,
                     efficiency: 100.0,
-                    remTime: 10800,
-                    coreTime: 18000,
-                    deepTime: 14400,
+                    remTime: 10_800,
+                    coreTime: 18_000,
+                    deepTime: 14_400,
                     awakeTime: 0
                 ),
                 weeklyAverage: SleepAnalysis.SleepAverages(
                     averageBedtime: nil,
                     averageWakeTime: nil,
-                    averageDuration: 36000, // 10.0 hours
+                    averageDuration: 36_000, // 10.0 hours
                     averageEfficiency: 98.0,
                     consistency: 100.0
                 )
@@ -763,7 +763,7 @@ final class HealthKitServiceTests: XCTestCase {
         XCTAssertEqual(context.sleepQuality, 100)
         XCTAssertEqual(context.currentHeartRate, 150)
         XCTAssertEqual(context.hrv, 200.0)
-        XCTAssertEqual(context.steps, 50000)
+        XCTAssertEqual(context.steps, 50_000)
         XCTAssertEqual(context.currentTemperatureCelsius, 50.0)
     }
     
@@ -775,7 +775,7 @@ final class HealthKitServiceTests: XCTestCase {
             activity: ActivityMetrics(
                 activeEnergyBurned: Measurement(value: 200, unit: .kilocalories), // Low activity
                 basalEnergyBurned: nil,
-                steps: 3000,
+                steps: 3_000,
                 distance: nil,
                 flightsClimbed: nil,
                 exerciseMinutes: 15,
@@ -790,20 +790,20 @@ final class HealthKitServiceTests: XCTestCase {
             ),
             sleep: SleepAnalysis(
                 lastNight: SleepAnalysis.SleepSession(
-                    bedtime: Date().addingTimeInterval(-36000),
+                    bedtime: Date().addingTimeInterval(-36_000),
                     wakeTime: Date(),
-                    totalSleepTime: 36000, // 10 hours - more than perfect
-                    timeInBed: 38000,
+                    totalSleepTime: 36_000, // 10 hours - more than perfect
+                    timeInBed: 38_000,
                     efficiency: 95.0,
-                    remTime: 9000,
-                    coreTime: 15000,
-                    deepTime: 12000,
+                    remTime: 9_000,
+                    coreTime: 15_000,
+                    deepTime: 12_000,
                     awakeTime: 0
                 ),
                 weeklyAverage: SleepAnalysis.SleepAverages(
                     averageBedtime: nil,
                     averageWakeTime: nil,
-                    averageDuration: 32400, // 9.0 hours
+                    averageDuration: 32_400, // 9.0 hours
                     averageEfficiency: 92.0,
                     consistency: 95.0
                 )
@@ -897,7 +897,7 @@ final class HealthKitServiceTests: XCTestCase {
             activity: ActivityMetrics(
                 activeEnergyBurned: Measurement(value: 420, unit: .kilocalories),
                 basalEnergyBurned: nil,
-                steps: 8000,
+                steps: 8_000,
                 distance: nil,
                 flightsClimbed: nil,
                 exerciseMinutes: 32,
@@ -912,20 +912,20 @@ final class HealthKitServiceTests: XCTestCase {
             ),
             sleep: SleepAnalysis(
                 lastNight: SleepAnalysis.SleepSession(
-                    bedtime: Date().addingTimeInterval(-25200),
+                    bedtime: Date().addingTimeInterval(-25_200),
                     wakeTime: Date(),
-                    totalSleepTime: 25200,
-                    timeInBed: 28800,
+                    totalSleepTime: 25_200,
+                    timeInBed: 28_800,
                     efficiency: 87.5,
-                    remTime: 5040,
-                    coreTime: 12600,
-                    deepTime: 6300,
-                    awakeTime: 3060
+                    remTime: 5_040,
+                    coreTime: 12_600,
+                    deepTime: 6_300,
+                    awakeTime: 3_060
                 ),
                 weeklyAverage: SleepAnalysis.SleepAverages(
                     averageBedtime: nil,
                     averageWakeTime: nil,
-                    averageDuration: 25920, // 7.2 hours
+                    averageDuration: 25_920, // 7.2 hours
                     averageEfficiency: 86.0,
                     consistency: 85.0
                 )

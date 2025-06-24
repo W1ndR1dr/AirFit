@@ -43,19 +43,19 @@ final class MockNutritionService: NutritionServiceProtocol, MockProtocol, @unche
             fiber: 0,
             sugar: 0,
             sodium: 0,
-            calorieGoal: 2000,
+            calorieGoal: 2_000,
             proteinGoal: 150,
             carbGoal: 250,
             fatGoal: 65
         )
         
         stubbedTargets = NutritionTargets(
-            calories: 2000,
+            calories: 2_000,
             protein: 150,
             carbs: 250,
             fat: 65,
             fiber: 25,
-            water: 3000
+            water: 3_000
         )
     }
     
@@ -102,7 +102,7 @@ final class MockNutritionService: NutritionServiceProtocol, MockProtocol, @unche
         
         let calendar = Calendar.current
         return foodEntries.values.filter { entry in
-            entry.user?.id == user.id && 
+            entry.user?.id == user.id &&
             calendar.isDate(entry.loggedAt, inSameDayAs: date)
         }.sorted { $0.loggedAt < $1.loggedAt }
     }
@@ -118,7 +118,7 @@ final class MockNutritionService: NutritionServiceProtocol, MockProtocol, @unche
             fiber: 0,
             sugar: 0,
             sodium: 0,
-            calorieGoal: 2000,
+            calorieGoal: 2_000,
             proteinGoal: 150,
             carbGoal: 250,
             fatGoal: 65
@@ -134,7 +134,7 @@ final class MockNutritionService: NutritionServiceProtocol, MockProtocol, @unche
             for item in entry.items {
                 summary.fiber += item.fiberGrams ?? 0
                 summary.sugar += item.sugarGrams ?? 0
-                summary.sodium += (item.sodiumMg ?? 0) / 1000.0 // Convert mg to g for consistency
+                summary.sodium += (item.sodiumMg ?? 0) / 1_000.0 // Convert mg to g for consistency
             }
         }
         
@@ -238,12 +238,12 @@ final class MockNutritionService: NutritionServiceProtocol, MockProtocol, @unche
     nonisolated func getTargets(from profile: OnboardingProfile?) -> NutritionTargets {
         // Return stubbed targets or defaults
         return NutritionTargets(
-            calories: 2000,
+            calories: 2_000,
             protein: 150,
             carbs: 250,
             fat: 65,
             fiber: 25,
-            water: 3000
+            water: 3_000
         )
     }
     

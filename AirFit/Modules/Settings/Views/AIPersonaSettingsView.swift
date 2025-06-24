@@ -672,9 +672,9 @@ struct ConversationalPersonaRefinement: View {
                 }
                 
                 ToolbarItem(placement: .confirmationAction) {
-                    Button("Done") { 
+                    Button("Done") {
                         applyRefinements()
-                        dismiss() 
+                        dismiss()
                     }
                     .disabled(messages.isEmpty)
                 }

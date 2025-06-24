@@ -1,9 +1,5 @@
 import Foundation
 
-import Foundation
-
-/// Handles streaming AI responses with clean abstraction
-/// Single responsibility: Process async AI response streams
 @MainActor
 final class StreamingResponseHandler {
     // MARK: - Types

@@ -107,7 +107,7 @@ actor AIRequestBuilder: ServiceProtocol {
             "messages": messages,
             "stream": request.stream,
             "temperature": request.temperature,
-            "max_tokens": request.maxTokens ?? 2048
+            "max_tokens": request.maxTokens ?? 2_048
         ]
         
         // Add functions if available
@@ -133,7 +133,7 @@ actor AIRequestBuilder: ServiceProtocol {
         model: String
     ) -> [String: Any] {
         var messages: [[String: Any]] = []
-        var systemPrompt: String? = nil
+        var systemPrompt: String?
         
         // Extract system prompt and convert messages
         for message in request.messages {
@@ -151,7 +151,7 @@ actor AIRequestBuilder: ServiceProtocol {
             "model": model,
             "messages": messages,
             "stream": request.stream,
-            "max_tokens": request.maxTokens ?? 2048
+            "max_tokens": request.maxTokens ?? 2_048
         ]
         
         let systemToUse = systemPrompt ?? request.systemPrompt
@@ -180,7 +180,7 @@ actor AIRequestBuilder: ServiceProtocol {
         model: String
     ) -> [String: Any] {
         var contents: [[String: Any]] = []
-        var systemInstruction: String? = nil
+        var systemInstruction: String?
         
         // Convert messages to Gemini format
         for message in request.messages {
@@ -198,7 +198,7 @@ actor AIRequestBuilder: ServiceProtocol {
             "contents": contents,
             "generationConfig": [
                 "temperature": request.temperature,
-                "maxOutputTokens": request.maxTokens ?? 2048,
+                "maxOutputTokens": request.maxTokens ?? 2_048,
                 "topP": 0.95,
                 "topK": 20
             ]

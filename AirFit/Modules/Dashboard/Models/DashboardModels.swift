@@ -20,7 +20,7 @@ struct NutritionSummary: Sendable {
     
     init(
         calories: Double = 0,
-        caloriesTarget: Double = 2000,
+        caloriesTarget: Double = 2_000,
         protein: Double = 0,
         proteinTarget: Double = 150,
         carbs: Double = 0,
@@ -63,7 +63,7 @@ struct NutritionTargets: Sendable {
     let water: Double
     
     static let `default` = NutritionTargets(
-        calories: 2000,
+        calories: 2_000,
         protein: 150,
         carbs: 250,
         fat: 65,

@@ -15,7 +15,7 @@ actor ConversationStateManager {
         var contextWindow: Int
         
         var isStale: Bool {
-            Date().timeIntervalSince(lastInteraction) > 1800 // 30 minutes
+            Date().timeIntervalSince(lastInteraction) > 1_800 // 30 minutes
         }
     }
     
@@ -103,7 +103,7 @@ actor ConversationStateManager {
         guard let state = sessions[sessionId] else { return true }
         
         // Reset if conversation is very stale (>2 hours)
-        return Date().timeIntervalSince(state.lastInteraction) > 7200
+        return Date().timeIntervalSince(state.lastInteraction) > 7_200
     }
     
     // MARK: - Cleanup

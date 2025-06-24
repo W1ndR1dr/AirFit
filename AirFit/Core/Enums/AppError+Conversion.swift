@@ -12,7 +12,7 @@ extension AppError {
         case .networkError(let message):
             return .networkError(underlying: NSError(domain: "AI", code: 0, userInfo: [NSLocalizedDescriptionKey: message]))
         case .rateLimitExceeded(let retryAfter):
-            let message = retryAfter.map { "Rate limit exceeded. Try again in \(Int($0)) seconds." } 
+            let message = retryAfter.map { "Rate limit exceeded. Try again in \(Int($0)) seconds." }
                 ?? "Rate limit exceeded. Please try again later."
             return .serverError(code: 429, message: message)
         case .invalidResponse(let message):
@@ -38,7 +38,7 @@ extension AppError {
         case .invalidResponse, .emptyResponse:
             return .decodingError(underlying: NSError(domain: "DirectAI", code: 0))
         case .timeout:
-            return .networkError(underlying: NSError(domain: "DirectAI", code: -1001))
+            return .networkError(underlying: NSError(domain: "DirectAI", code: -1_001))
         case .invalidJSONResponse(let response):
             return .decodingError(underlying: NSError(domain: "DirectAI", code: 0, userInfo: [NSLocalizedDescriptionKey: response]))
         case .invalidNutritionValues(let details):
@@ -64,7 +64,7 @@ extension AppError {
         case .networkError(let error):
             return .networkError(underlying: error)
         case .timeout:
-            return .networkError(underlying: NSError(domain: "Network", code: -1001, userInfo: [NSLocalizedDescriptionKey: "Request timed out"]))
+            return .networkError(underlying: NSError(domain: "Network", code: -1_001, userInfo: [NSLocalizedDescriptionKey: "Request timed out"]))
         }
     }
     
@@ -82,7 +82,7 @@ extension AppError {
         case .authenticationFailed:
             return .unauthorized
         case .rateLimitExceeded(let retryAfter):
-            let message = retryAfter.map { "Rate limit exceeded. Retry after \(Int($0)) seconds" } 
+            let message = retryAfter.map { "Rate limit exceeded. Retry after \(Int($0)) seconds" }
                 ?? "Rate limit exceeded"
             return .serverError(code: 429, message: message)
         case .invalidResponse(let detail):
@@ -90,7 +90,7 @@ extension AppError {
         case .streamingError(let detail):
             return .unknown(message: "Streaming error: \(detail)")
         case .timeout:
-            return .networkError(underlying: NSError(domain: "Service", code: -1001, userInfo: [NSLocalizedDescriptionKey: "Request timed out"]))
+            return .networkError(underlying: NSError(domain: "Service", code: -1_001, userInfo: [NSLocalizedDescriptionKey: "Request timed out"]))
         case .cancelled:
             return .unknown(message: "Request was cancelled")
         case .providerError(let code, let message):
@@ -150,7 +150,7 @@ extension AppError {
         case .serverError(let statusCode, let message):
             return .serverError(code: statusCode, message: message)
         case .timeout:
-            return .networkError(underlying: NSError(domain: "LLM", code: -1001, userInfo: [NSLocalizedDescriptionKey: "Request timed out"]))
+            return .networkError(underlying: NSError(domain: "LLM", code: -1_001, userInfo: [NSLocalizedDescriptionKey: "Request timed out"]))
         case .cancelled:
             return .unknown(message: "Request was cancelled")
         case .unsupportedFeature:
@@ -217,7 +217,7 @@ extension AppError {
         case .permissionDenied:
             return .unauthorized
         case .aiProcessingTimeout:
-            return .networkError(underlying: NSError(domain: "FoodTracking", code: -1001, userInfo: [NSLocalizedDescriptionKey: "AI processing timed out"]))
+            return .networkError(underlying: NSError(domain: "FoodTracking", code: -1_001, userInfo: [NSLocalizedDescriptionKey: "AI processing timed out"]))
         case .invalidNutritionResponse:
             return .decodingError(underlying: NSError(domain: "FoodTracking", code: 0, userInfo: [NSLocalizedDescriptionKey: "Invalid nutrition data from AI"]))
         case .invalidNutritionData:
@@ -343,7 +343,7 @@ extension AppError {
         case .aiServiceUnavailable:
             return .unknown(message: "AI service unavailable")
         case .streamingTimeout:
-            return .networkError(underlying: NSError(domain: "Streaming", code: -1001))
+            return .networkError(underlying: NSError(domain: "Streaming", code: -1_001))
         case .functionExecutionFailed(let details):
             return .unknown(message: "Function execution failed: \(details)")
         case .contextAssemblyFailed:
@@ -365,9 +365,9 @@ extension AppError {
         case .offline:
             return .networkError(underlying: NSError(domain: "RequestOptimizer", code: 0, userInfo: [NSLocalizedDescriptionKey: "No internet connection"]))
         case .timeout:
-            return .networkError(underlying: NSError(domain: "RequestOptimizer", code: -1001, userInfo: [NSLocalizedDescriptionKey: "Request timed out"]))
+            return .networkError(underlying: NSError(domain: "RequestOptimizer", code: -1_001, userInfo: [NSLocalizedDescriptionKey: "Request timed out"]))
         case .connectionLost:
-            return .networkError(underlying: NSError(domain: "RequestOptimizer", code: -1005, userInfo: [NSLocalizedDescriptionKey: "Connection lost"]))
+            return .networkError(underlying: NSError(domain: "RequestOptimizer", code: -1_005, userInfo: [NSLocalizedDescriptionKey: "Connection lost"]))
         case .duplicate:
             return .unknown(message: "Request already in progress")
         case .invalidResponse:

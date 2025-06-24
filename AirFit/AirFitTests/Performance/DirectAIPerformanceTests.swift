@@ -52,7 +52,7 @@ final class DirectAIPerformanceTests: XCTestCase {
         // Given - variety of nutrition parsing scenarios
         let testCases = [
             "apple and banana",
-            "grilled chicken with rice", 
+            "grilled chicken with rice",
             "protein shake 30g whey",
             "oatmeal with blueberries and honey",
             "salmon 6oz with quinoa and vegetables",
@@ -80,7 +80,7 @@ final class DirectAIPerformanceTests: XCTestCase {
                 tokenUsageTotal += result.tokenCount
                 
                 // Validate performance characteristics
-                XCTAssertLessThan(result.processingTimeMs, 5000, "Direct AI parsing should complete within 5 seconds")
+                XCTAssertLessThan(result.processingTimeMs, 5_000, "Direct AI parsing should complete within 5 seconds")
                 XCTAssertGreaterThan(result.items.count, 0, "Should parse at least one item")
                 XCTAssertLessThan(result.tokenCount, 300, "Should be token-efficient")
                 
@@ -99,7 +99,7 @@ final class DirectAIPerformanceTests: XCTestCase {
         
         print("🚀 Direct AI Nutrition Performance:")
         print("   Success Rate: \(successCount)/\(testCases.count) (100%)")
-        print("   Average Time: \(Int(averageExecutionTime * 1000))ms")
+        print("   Average Time: \(Int(averageExecutionTime * 1_000))ms")
         print("   Average Tokens: \(Int(averageTokenUsage))")
     }
     
@@ -107,7 +107,7 @@ final class DirectAIPerformanceTests: XCTestCase {
         // Given - variety of educational topics
         let topics = [
             "progressive_overload",
-            "nutrition_timing", 
+            "nutrition_timing",
             "recovery_science",
             "hydration",
             "sleep_optimization"
@@ -135,7 +135,7 @@ final class DirectAIPerformanceTests: XCTestCase {
                 
                 // Validate content quality and performance
                 XCTAssertGreaterThan(result.content.count, 200, "Content should be substantial")
-                XCTAssertLessThan(result.content.count, 1500, "Content should be concise")
+                XCTAssertLessThan(result.content.count, 1_500, "Content should be concise")
                 XCTAssertGreaterThan(result.personalizationLevel, 0.1, "Should have meaningful personalization")
                 XCTAssertLessThan(result.tokenCount, 600, "Should be token-efficient")
                 
@@ -154,7 +154,7 @@ final class DirectAIPerformanceTests: XCTestCase {
         
         print("📚 Direct AI Educational Content Performance:")
         print("   Success Rate: \(successCount)/\(topics.count) (100%)")
-        print("   Average Time: \(Int(averageExecutionTime * 1000))ms")
+        print("   Average Time: \(Int(averageExecutionTime * 1_000))ms")
         print("   Average Tokens: \(Int(averageTokenUsage))")
     }
     
@@ -209,7 +209,7 @@ final class DirectAIPerformanceTests: XCTestCase {
         let testInputs = [
             "chicken and rice",
             "protein shake",
-            "salmon salad", 
+            "salmon salad",
             "oatmeal breakfast",
             "turkey sandwich"
         ]
@@ -248,8 +248,8 @@ final class DirectAIPerformanceTests: XCTestCase {
         XCTAssertLessThan(totalTime, 10.0, "Concurrent requests should complete within 10 seconds")
         
         print("⚡ Concurrent Request Performance:")
-        print("   \(concurrentRequests) requests completed in \(Int(totalTime * 1000))ms")
-        print("   Average per request: \(Int(totalTime * 1000 / Double(concurrentRequests)))ms")
+        print("   \(concurrentRequests) requests completed in \(Int(totalTime * 1_000))ms")
+        print("   Average per request: \(Int(totalTime * 1_000 / Double(concurrentRequests)))ms")
     }
     
     // MARK: - Regression Performance Tests
@@ -286,7 +286,7 @@ final class DirectAIPerformanceTests: XCTestCase {
         XCTAssertLessThan(averageTokens, 300, "Baseline token usage should be under 300")
         
         print("📊 Performance Baseline Established:")
-        print("   Average Execution Time: \(Int(averageTime * 1000))ms")
+        print("   Average Execution Time: \(Int(averageTime * 1_000))ms")
         print("   Average Token Count: \(Int(averageTokens))")
         print("   Standard Input: '\(standardInput)'")
         
@@ -332,7 +332,7 @@ final class DirectAIPerformanceTests: XCTestCase {
                 extractedAt: Date()
             ),
             generationDuration: 2.5,
-            tokenCount: 1500,
+            tokenCount: 1_500,
             previewReady: true
         )
         
@@ -369,4 +369,4 @@ extension DirectAIPerformanceTests {
         
         return (result, executionTime)
     }
-} 
+}

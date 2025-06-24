@@ -274,5 +274,3 @@ extension HapticService {
         }
     }
 }
-
-

@@ -211,9 +211,9 @@ struct WorkoutBuilderView: View {
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) {
-                    Button("Cancel") { 
+                    Button("Cancel") {
                         HapticService.impact(.light)
-                        dismiss() 
+                        dismiss()
                     }
                     .foregroundStyle(
                         LinearGradient(
@@ -225,9 +225,9 @@ struct WorkoutBuilderView: View {
                 }
 
                 ToolbarItem(placement: .confirmationAction) {
-                    Button("Start") { 
+                    Button("Start") {
                         HapticService.impact(.medium)
-                        startWorkout() 
+                        startWorkout()
                     }
                     .fontWeight(.semibold)
                     .disabled(!isValid)
@@ -632,9 +632,9 @@ struct ExercisePickerView: View {
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) {
-                    Button("Cancel") { 
+                    Button("Cancel") {
                         HapticService.impact(.light)
-                        dismiss() 
+                        dismiss()
                     }
                     .foregroundStyle(
                         LinearGradient(

@@ -23,7 +23,7 @@ final class MockAnalyticsService: AnalyticsServiceProtocol, @preconcurrency Mock
     var shouldThrowError = false
     var mockInsights = UserInsights(
         workoutFrequency: 3.5,
-        averageWorkoutDuration: 3600,
+        averageWorkoutDuration: 3_600,
         caloriesTrend: Trend(direction: .up, changePercentage: 5.0),
         macroBalance: MacroBalance(proteinPercentage: 30, carbsPercentage: 45, fatPercentage: 25),
         streakDays: 7,
@@ -96,7 +96,7 @@ final class MockAnalyticsService: AnalyticsServiceProtocol, @preconcurrency Mock
         shouldThrowError = false
         mockInsights = UserInsights(
             workoutFrequency: 3.5,
-            averageWorkoutDuration: 3600,
+            averageWorkoutDuration: 3_600,
             caloriesTrend: Trend(direction: .up, changePercentage: 5.0),
             macroBalance: MacroBalance(proteinPercentage: 30, carbsPercentage: 45, fatPercentage: 25),
             streakDays: 7,

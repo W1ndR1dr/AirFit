@@ -126,7 +126,7 @@ final class MockAIAnalyticsService: AIAnalyticsServiceProtocol, @preconcurrency 
         
         return UserInsights(
             workoutFrequency: 4.5,
-            averageWorkoutDuration: 3600,
+            averageWorkoutDuration: 3_600,
             caloriesTrend: Trend(direction: .stable, changePercentage: 2.3),
             macroBalance: MacroBalance(
                 proteinPercentage: 30,

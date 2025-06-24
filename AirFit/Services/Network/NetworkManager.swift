@@ -39,17 +39,17 @@ import Combine
 /// - Actor-isolated for thread safety
 /// - Automatically monitors network changes
 /// - Provides appropriate error types for network failures
-actor NetworkManager: NetworkManagementProtocol, ServiceProtocol {    
+actor NetworkManager: NetworkManagementProtocol, ServiceProtocol {
     // Actor-isolated state
     private var _isReachable: Bool = true
     private var _currentNetworkType: NetworkType = .unknown
     
     // Public accessors
-    nonisolated var isReachable: Bool { 
+    nonisolated var isReachable: Bool {
         // For now, return a default value. In production, consider using AsyncStream for updates
         return true
     }
-    nonisolated var currentNetworkType: NetworkType { 
+    nonisolated var currentNetworkType: NetworkType {
         // For now, return a default value. In production, consider using AsyncStream for updates
         return .unknown
     }

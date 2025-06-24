@@ -32,10 +32,12 @@ final class OnboardingIntelligence: ObservableObject {
     private let contextAssembler: ContextAssembler
     private let llmOrchestrator: LLMOrchestrator
     private let healthKitProvider: HealthKitProvider
+    private let cache: OnboardingCache
     
     private var healthContext: HealthContextSnapshot?
     private var conversationHistory: [String] = []
     private var conversationTurnCount = 0
+    private var currentUserId: UUID?
     
     // MARK: - Initialization
     
@@ -44,6 +46,10 @@ final class OnboardingIntelligence: ObservableObject {
         self.contextAssembler = try await container.resolve(ContextAssembler.self)
         self.llmOrchestrator = try await container.resolve(LLMOrchestrator.self)
         self.healthKitProvider = try await container.resolve(HealthKitPrefillProviding.self) as! HealthKitProvider
+        self.cache = try await container.resolve(OnboardingCache.self)
+        
+        // Try to restore previous session
+        await restoreSessionIfAvailable()
     }
     
     // MARK: - Public API
@@ -106,6 +112,9 @@ final class OnboardingIntelligence: ObservableObject {
             // Ready for persona generation
             followUpQuestion = nil
         }
+        
+        // Save session state after each conversation turn
+        await saveSessionState()
     }
     
     /// Generate final coaching plan when context is sufficient
@@ -665,5 +674,86 @@ final class OnboardingIntelligence: ObservableObject {
         if conversation.contains("evening") { times.append("evening") }
         if conversation.contains("night") { times.append("night") }
         return times.isEmpty ? ["morning", "evening"] : times
+    }
+    
+    // MARK: - Session Persistence
+    
+    private func saveSessionState() async {
+        // Create or use existing user ID
+        if currentUserId == nil {
+            currentUserId = UUID()
+        }
+        
+        guard let userId = currentUserId else { return }
+        
+        // Create conversation data
+        let conversationData = ConversationData(
+            messages: conversationHistory.enumerated().map { index, message in
+                ConversationMessage(
+                    role: .user,
+                    content: message,
+                    timestamp: Date().addingTimeInterval(Double(index * -60)) // Approximate timestamps
+                )
+            },
+            currentNodeId: "onboarding",
+            variables: [:]
+        )
+        
+        // Create partial insights if we have enough context
+        let insights: PersonalityInsights? = contextQuality.overall > 0.3 ? PersonalityInsights(
+            dominantTraits: [],
+            communicationStyle: .conversational,
+            motivationType: .balanced,
+            energyLevel: .moderate,
+            preferredComplexity: .moderate,
+            emotionalTone: ["supportive"],
+            stressResponse: .needsSupport,
+            preferredTimes: detectPreferredTimes(),
+            extractedAt: Date()
+        ) : nil
+        
+        // Save current state
+        await cache.saveSession(
+            userId: userId,
+            conversationData: conversationData,
+            insights: insights,
+            currentStep: "conversation-\(conversationTurnCount)",
+            responses: []
+        )
+    }
+    
+    private func restoreSessionIfAvailable() async {
+        // Check for any active sessions
+        let activeSessions = await cache.getActiveSessions()
+        
+        // Use the most recent session if available
+        if let (userId, _) = activeSessions.max(by: { $0.value < $1.value }) {
+            if let session = await cache.restoreSession(userId: userId) {
+                currentUserId = userId
+                
+                // Restore conversation history
+                conversationHistory = session.conversationData.messages.map { $0.content }
+                conversationTurnCount = conversationHistory.count
+                
+                // Restore current prompt based on where we left off
+                if conversationTurnCount > 0 {
+                    currentPrompt = "Welcome back! Let's continue where we left off."
+                    
+                    // Re-analyze the last input to restore context quality
+                    if let lastInput = conversationHistory.last {
+                        await analyzeContextQuality(lastInput)
+                    }
+                }
+                
+                AppLogger.info("Restored onboarding session with \(conversationTurnCount) messages", category: .onboarding)
+            }
+        }
+    }
+    
+    /// Clear session after successful completion
+    func clearSession() async {
+        if let userId = currentUserId {
+            await cache.clearSession(userId: userId)
+        }
     }
 }

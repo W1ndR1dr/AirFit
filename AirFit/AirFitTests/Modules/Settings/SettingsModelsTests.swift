@@ -57,12 +57,12 @@ final class SettingsModelsTests: XCTestCase {
     func test_dataExport_initialization_shouldSetProperties() {
         let export = DataExport(
             date: Date(),
-            size: 1024,
+            size: 1_024,
             format: .json
         )
         
         XCTAssertNotNil(export.id)
-        XCTAssertEqual(export.size, 1024)
+        XCTAssertEqual(export.size, 1_024)
         XCTAssertEqual(export.format, .json)
     }
     

@@ -144,4 +144,3 @@ final class UserModelTests: XCTestCase {
         XCTAssertEqual(recentMeals[1].id, yesterday.id)
     }
 }
-

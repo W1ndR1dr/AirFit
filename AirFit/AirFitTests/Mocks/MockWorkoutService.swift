@@ -131,7 +131,7 @@ final class MockWorkoutService: WorkoutServiceProtocol, AIWorkoutServiceProtocol
     
     private func calculateMockCalories(_ workout: Workout) -> Double {
         // Simple mock calculation based on duration and type
-        let duration = (workout.durationSeconds ?? 1800) / 60 // Default 30 min
+        let duration = (workout.durationSeconds ?? 1_800) / 60 // Default 30 min
         let caloriesPerMinute: Double = {
             let type = WorkoutType(rawValue: workout.workoutType) ?? .general
             switch type {

@@ -88,8 +88,8 @@ struct RecoveryCard: View {
                 .font(AppFonts.title3)
                 .foregroundStyle(
                     LinearGradient(
-                        colors: recoveryScore?.status.color == "green" ? [Color.green.opacity(0.8), Color.mint] : 
-                                recoveryScore?.status.color == "yellow" ? [Color.yellow.opacity(0.8), Color.orange.opacity(0.6)] : 
+                        colors: recoveryScore?.status.color == "green" ? [Color.green.opacity(0.8), Color.mint] :
+                                recoveryScore?.status.color == "yellow" ? [Color.yellow.opacity(0.8), Color.orange.opacity(0.6)] :
                                 [Color.orange.opacity(0.8), Color.red.opacity(0.6)],
                         startPoint: .topLeading,
                         endPoint: .bottomTrailing

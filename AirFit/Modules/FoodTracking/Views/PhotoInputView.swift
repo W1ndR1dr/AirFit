@@ -59,17 +59,17 @@ struct PhotoInputView: View {
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) {
-                    Button("Cancel") { 
+                    Button("Cancel") {
                         HapticService.impact(.light)
-                        dismiss() 
+                        dismiss()
                     }
                     .foregroundStyle(.white)
                 }
                 
                 ToolbarItem(placement: .primaryAction) {
-                    Button(action: { 
+                    Button(action: {
                         HapticService.impact(.light)
-                        showingTips = true 
+                        showingTips = true
                     }, label: {
                         Image(systemName: "questionmark.circle")
                             .foregroundStyle(.white)
@@ -208,9 +208,9 @@ struct PhotoInputView: View {
     private var bottomControls: some View {
         HStack(spacing: AppSpacing.xl) {
             // Photo library with glass morphism
-            Button(action: { 
+            Button(action: {
                 HapticService.impact(.light)
-                showingImagePicker = true 
+                showingImagePicker = true
             }, label: {
                 Image(systemName: "photo.on.rectangle")
                     .font(.title2)
@@ -240,8 +240,8 @@ struct PhotoInputView: View {
                     Circle()
                         .stroke(
                             LinearGradient(
-                                colors: cameraManager.isAuthorized ? 
-                                    gradientManager.active.colors(for: colorScheme) : 
+                                colors: cameraManager.isAuthorized ?
+                                    gradientManager.active.colors(for: colorScheme) :
                                     [Color.gray, Color.gray.opacity(0.5)],
                                 startPoint: .topLeading,
                                 endPoint: .bottomTrailing
@@ -259,8 +259,8 @@ struct PhotoInputView: View {
                     // Center dot indicator
                     Circle()
                         .fill(
-                            cameraManager.isCapturing ? 
-                            AnyShapeStyle(Color.red) : 
+                            cameraManager.isCapturing ?
+                            AnyShapeStyle(Color.red) :
                             AnyShapeStyle(LinearGradient(
                                 colors: gradientManager.active.colors(for: colorScheme),
                                 startPoint: .topLeading,
@@ -285,12 +285,12 @@ struct PhotoInputView: View {
                 Image(systemName: "brain.head.profile")
                     .font(.title2)
                     .foregroundStyle(
-                        cameraManager.aiAnalysisEnabled ? 
+                        cameraManager.aiAnalysisEnabled ?
                         LinearGradient(
                             colors: gradientManager.active.colors(for: colorScheme),
                             startPoint: .topLeading,
                             endPoint: .bottomTrailing
-                        ) : 
+                        ) :
                         LinearGradient(
                             colors: [Color.white, Color.white],
                             startPoint: .topLeading,
@@ -449,7 +449,7 @@ struct PhotoInputView: View {
                 await updateProgress(to: 0.5, message: "Detecting food items...")
                 
                 // AI-powered food analysis
-                let _ = try await performAIFoodAnalysis(image: image, visionResults: visionResults)
+                _ = try await performAIFoodAnalysis(image: image, visionResults: visionResults)
                 await updateProgress(to: 0.9, message: "Calculating nutrition...")
                 
                 // Final processing
@@ -722,7 +722,7 @@ final class CameraManager: NSObject, ObservableObject {
             
             // Configure photo output for high quality
             if #available(iOS 16.0, *) {
-                photoOutput.maxPhotoDimensions = CMVideoDimensions(width: 4032, height: 3024)
+                photoOutput.maxPhotoDimensions = CMVideoDimensions(width: 4_032, height: 3_024)
             } else {
                 photoOutput.isHighResolutionCaptureEnabled = true
             }
@@ -1035,9 +1035,9 @@ struct PhotoTipsView: View {
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .confirmationAction) {
-                    Button("Done") { 
+                    Button("Done") {
                         HapticService.impact(.light)
-                        dismiss() 
+                        dismiss()
                     }
                     .foregroundStyle(
                         LinearGradient(
@@ -1130,4 +1130,4 @@ enum PhotoAnalysisError: LocalizedError {
             return "Analysis timed out"
         }
     }
-} 
+}

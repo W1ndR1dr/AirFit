@@ -2,7 +2,7 @@ import SwiftUI
 
 struct ModelContainerErrorView: View {
     @EnvironmentObject private var gradientManager: GradientManager
-    @Environment(\.colorScheme) 
+    @Environment(\.colorScheme)
 private var colorScheme
     @State private var animateIn = false
     

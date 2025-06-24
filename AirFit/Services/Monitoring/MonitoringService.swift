@@ -181,7 +181,7 @@ actor MonitoringService: ServiceProtocol {
         ))
         
         // Keep only recent errors
-        let cutoff = Date().addingTimeInterval(-3600) // 1 hour
+        let cutoff = Date().addingTimeInterval(-3_600) // 1 hour
         metrics.errors.removeAll { $0.timestamp < cutoff }
         
         logger.error("Error in \(context): \(error.localizedDescription)")
@@ -248,7 +248,7 @@ actor MonitoringService: ServiceProtocol {
     
     private func checkForAnomalies(in metrics: ProductionMetrics) {
         // Check for sudden spike in errors
-        let recentErrors = metrics.errors.filter { 
+        let recentErrors = metrics.errors.filter {
             $0.timestamp > Date().addingTimeInterval(-300) // Last 5 minutes
         }
         
@@ -288,7 +288,7 @@ actor MonitoringService: ServiceProtocol {
         alerts.append(alert)
         
         // Keep only recent alerts
-        let cutoff = Date().addingTimeInterval(-86400) // 24 hours
+        let cutoff = Date().addingTimeInterval(-86_400) // 24 hours
         alerts.removeAll { $0.timestamp < cutoff }
         
         // Log based on severity

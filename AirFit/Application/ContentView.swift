@@ -25,15 +25,15 @@ struct ContentView: View {
                 if appState.isLoading {
                     LoadingView()
                 } else if appState.shouldShowAPISetup {
-                    APISetupView(apiKeyManager: appState.apiKeyManager)
-                        .onDisappear {
-                            appState.completeAPISetup()
-                            // Need to recreate the DI container with the new API key
-                            isRecreatingContainer = true
-                            Task {
-                                await recreateContainer()
-                            }
+                    APISetupView(apiKeyManager: appState.apiKeyManager) { 
+                        // Completion handler - only called when user explicitly continues
+                        appState.completeAPISetup()
+                        // Need to recreate the DI container with the new API key
+                        isRecreatingContainer = true
+                        Task {
+                            await recreateContainer()
                         }
+                    }
                 } else if appState.shouldCreateUser {
                     WelcomeView(appState: appState)
                 } else if appState.shouldShowOnboarding {
@@ -160,18 +160,23 @@ private struct LoadingView: View {
                     .progressViewStyle(CircularProgressViewStyle(tint: gradientManager.active.colors(for: colorScheme)[0]))
             }
 
-            Text("Loading ")
-                .font(.system(size: 20, weight: .light))
-                .foregroundStyle(.secondary) +
-            Text("AirFit")
-                .font(.system(size: 20, weight: .medium))
-                .foregroundStyle(
-                    LinearGradient(
-                        colors: gradientManager.active.colors(for: colorScheme),
-                        startPoint: .leading,
-                        endPoint: .trailing
+            HStack(spacing: 0) {
+                Text("Loading ")
+                    .font(.system(size: 20, weight: .light))
+                    .foregroundStyle(.secondary)
+                
+                Text("AirFit")
+                    .font(.system(size: 20, weight: .medium))
+                    .foregroundStyle(
+                        LinearGradient(
+                            colors: gradientManager.active.colors(for: colorScheme),
+                            startPoint: .leading,
+                            endPoint: .trailing
+                        )
                     )
-                )
+                    .shadow(color: .black.opacity(0.2), radius: 2, x: 0, y: 1)
+                    .shadow(color: .black.opacity(0.1), radius: 4, x: 0, y: 2)
+            }
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity)
         .accessibilityIdentifier("app.loading")
@@ -203,6 +208,8 @@ private struct WelcomeView: View {
                             endPoint: .bottomTrailing
                         )
                     )
+                    .shadow(color: .black.opacity(0.2), radius: 3, x: 0, y: 2)
+                    .shadow(color: .black.opacity(0.1), radius: 6, x: 0, y: 3)
 
                 Text("Your personalized AI fitness coach")
                     .font(.system(size: 18, weight: .light, design: .rounded))

@@ -20,8 +20,8 @@ final class AIWorkoutService: AIWorkoutServiceProtocol, ServiceProtocol {
     private let personaService: PersonaService
     
     init(
-        workoutService: WorkoutServiceProtocol, 
-        aiService: AIServiceProtocol, 
+        workoutService: WorkoutServiceProtocol,
+        aiService: AIServiceProtocol,
         exerciseDatabase: ExerciseDatabase,
         personaService: PersonaService
     ) {

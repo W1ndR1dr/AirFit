@@ -38,14 +38,14 @@ final class MockAIService: AIServiceProtocol, MockProtocol {
             id: "gpt-4",
             name: "GPT-4",
             provider: .openAI,
-            contextWindow: 8192,
+            contextWindow: 8_192,
             costPerThousandTokens: AIModel.TokenCost(input: 0.03, output: 0.06)
         ),
         AIModel(
             id: "claude-3",
             name: "Claude 3",
             provider: .anthropic,
-            contextWindow: 100000,
+            contextWindow: 100_000,
             costPerThousandTokens: AIModel.TokenCost(input: 0.015, output: 0.075)
         )
     ]
@@ -94,4 +94,3 @@ final class MockAIService: AIServiceProtocol, MockProtocol {
         case notSet
     }
 }
-

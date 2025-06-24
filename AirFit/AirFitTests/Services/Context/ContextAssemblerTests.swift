@@ -320,7 +320,7 @@ final class ContextAssemblerTests: XCTestCase {
         let averageTime = totalTime / Double(iterations)
 
         // Assert - Performance requirements
-        XCTAssertLessThan(averageTime, 0.050, "assembleSnapshot should complete in under 50ms with large dataset, took \(averageTime * 1000)ms")
+        XCTAssertLessThan(averageTime, 0.050, "assembleSnapshot should complete in under 50ms with large dataset, took \(averageTime * 1_000)ms")
 
         // Verify functionality with large dataset
         let snapshot = await sut.assembleSnapshot(modelContext: modelContext)

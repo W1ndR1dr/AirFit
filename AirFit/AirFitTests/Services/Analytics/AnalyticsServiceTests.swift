@@ -169,7 +169,7 @@ final class AnalyticsServiceTests: XCTestCase {
         // Arrange
         let workout = Workout(name: "Morning Run", user: testUser)
         workout.workoutType = WorkoutType.running.rawValue
-        workout.duration = 1800 // 30 minutes
+        workout.duration = 1_800 // 30 minutes
         workout.caloriesBurned = 350
         workout.completedDate = Date()
         modelContext.insert(workout)
@@ -261,7 +261,7 @@ final class AnalyticsServiceTests: XCTestCase {
             if let workoutDate = calendar.date(byAdding: .day, value: -daysAgo, to: today) {
                 let workout = Workout(name: "Workout \(daysAgo)", user: testUser)
                 workout.workoutType = WorkoutType.running.rawValue
-                workout.duration = TimeInterval(1800 + (daysAgo * 300)) // Varying durations
+                workout.duration = TimeInterval(1_800 + (daysAgo * 300)) // Varying durations
                 workout.caloriesBurned = 300 + (daysAgo * 50)
                 workout.completedDate = workoutDate
                 modelContext.insert(workout)
@@ -368,7 +368,7 @@ final class AnalyticsServiceTests: XCTestCase {
         for daysAgo in 0..<7 {
             if let mealDate = calendar.date(byAdding: .day, value: -daysAgo, to: today) {
                 let meal = FoodEntry(date: mealDate, user: testUser)
-                let baseCalories = 2000 + (daysAgo * 100) // Increasing calories
+                let baseCalories = 2_000 + (daysAgo * 100) // Increasing calories
                 
                 let food = FoodItem(
                     name: "Daily Food",
@@ -448,10 +448,10 @@ final class AnalyticsServiceTests: XCTestCase {
         // Arrange - Create substantial data
         for i in 0..<30 { // 30 days of data
             let workout = Workout(name: "Workout \(i)", user: testUser)
-            workout.completedDate = Date().addingTimeInterval(TimeInterval(-i * 86400))
+            workout.completedDate = Date().addingTimeInterval(TimeInterval(-i * 86_400))
             modelContext.insert(workout)
             
-            let meal = FoodEntry(date: Date().addingTimeInterval(TimeInterval(-i * 86400)), user: testUser)
+            let meal = FoodEntry(date: Date().addingTimeInterval(TimeInterval(-i * 86_400)), user: testUser)
             modelContext.insert(meal)
         }
         
@@ -470,7 +470,7 @@ final class AnalyticsServiceTests: XCTestCase {
     
     func test_trackEvent_withVeryLongProperties_handlesGracefully() async {
         // Arrange
-        let longString = String(repeating: "a", count: 10000)
+        let longString = String(repeating: "a", count: 10_000)
         let event = AnalyticsEvent(
             name: "edge_case_test",
             properties: ["long_value": longString],

@@ -307,7 +307,7 @@ final class AIServiceTests: XCTestCase {
         mockOrchestrator.mockResponse = LLMResponse(
             content: "Test response",
             model: "claude-3-sonnet",
-            usage: LLMTokenUsage(promptTokens: 1000, completionTokens: 500, totalTokens: 1500),
+            usage: LLMTokenUsage(promptTokens: 1_000, completionTokens: 500, totalTokens: 1_500),
             finishReason: .stop
         )
         
@@ -331,7 +331,7 @@ final class AIServiceTests: XCTestCase {
         mockOrchestrator.mockResponse = LLMResponse(
             content: "Test",
             model: "claude-3-sonnet",
-            usage: LLMTokenUsage(promptTokens: 1000, completionTokens: 1000, totalTokens: 2000),
+            usage: LLMTokenUsage(promptTokens: 1_000, completionTokens: 1_000, totalTokens: 2_000),
             finishReason: .stop
         )
         
@@ -354,7 +354,7 @@ final class AIServiceTests: XCTestCase {
         mockOrchestrator.mockResponse = LLMResponse(
             content: "Test",
             model: "claude-3-sonnet",
-            usage: LLMTokenUsage(promptTokens: 1000, completionTokens: 1000, totalTokens: 2000),
+            usage: LLMTokenUsage(promptTokens: 1_000, completionTokens: 1_000, totalTokens: 2_000),
             finishReason: .stop
         )
         

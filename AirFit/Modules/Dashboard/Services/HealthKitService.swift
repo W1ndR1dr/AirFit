@@ -51,7 +51,7 @@ actor HealthKitService: HealthKitServiceProtocol, ServiceProtocol {
         
         // Map to the lightweight dashboard context
         let sleepHours: Double? = if let duration = snapshot.sleep.lastNight?.totalSleepTime {
-            duration / 3600
+            duration / 3_600
         } else {
             nil
         }
@@ -76,7 +76,7 @@ actor HealthKitService: HealthKitServiceProtocol, ServiceProtocol {
         
         // Sleep contribution (up to 30 points)
         if let duration = context.sleep.lastNight?.totalSleepTime {
-            let hours = duration / 3600
+            let hours = duration / 3_600
             let sleepScore = min(30, Int(hours / 8.0 * 30))
             score += sleepScore
         }
@@ -107,7 +107,7 @@ actor HealthKitService: HealthKitServiceProtocol, ServiceProtocol {
             score: score,
             status: status,
             factors: [
-                "Sleep duration: \((context.sleep.lastNight?.totalSleepTime.map { ($0 / 3600).rounded(toPlaces: 1) } ?? 0)) hrs",
+                "Sleep duration: \((context.sleep.lastNight?.totalSleepTime.map { ($0 / 3_600).rounded(toPlaces: 1) } ?? 0)) hrs",
                 "HRV: \((context.heartHealth.hrv?.converted(to: .milliseconds).value.rounded(toPlaces: 0) ?? 0)) ms"
             ]
         )
@@ -116,7 +116,7 @@ actor HealthKitService: HealthKitServiceProtocol, ServiceProtocol {
     func getPerformanceInsight(for user: User, days: Int) async throws -> PerformanceInsight {
         // Get recent workout data
         let endDate = Date()
-        let _ = Calendar.current.date(byAdding: .day, value: -days, to: endDate) ?? endDate
+        _ = Calendar.current.date(byAdding: .day, value: -days, to: endDate) ?? endDate
         
         // TODO: Fetch workout count and average intensity when getWorkoutData is added to protocol
         // let workoutData = await healthKitManager.getWorkoutData(from: startDate, to: endDate)
@@ -132,7 +132,7 @@ actor HealthKitService: HealthKitServiceProtocol, ServiceProtocol {
             trend = .stable
         }
         
-        let totalCalories = 1500.0 // Placeholder
+        let totalCalories = 1_500.0 // Placeholder
         
         return PerformanceInsight(
             trend: trend,

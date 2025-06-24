@@ -205,7 +205,7 @@ final class NotificationContentGenerator: ServiceProtocol {
     // MARK: - Helper to extract MotivationalStyle from OnboardingProfile
     private func extractMotivationalStyle(from user: User) async -> MotivationalStyle? {
         guard let profile = user.onboardingProfile,
-              profile.communicationPreferencesData.count > 0 else {
+              !profile.communicationPreferencesData.isEmpty else {
             return nil
         }
         

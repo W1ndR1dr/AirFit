@@ -101,7 +101,7 @@ final class PersonaService: ServiceProtocol {
             task: .personaSynthesis,
             model: .claude4Sonnet,
             temperature: 0.7,
-            maxTokens: 2000
+            maxTokens: 2_000
         )
         
         // Parse adjusted persona from response

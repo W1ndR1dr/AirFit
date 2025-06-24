@@ -221,7 +221,7 @@ struct ProviderRow: View {
                     .foregroundStyle(isSelected ? .white : .primary)
                     .frame(width: 44, height: 44)
                     .background(
-                        isSelected 
+                        isSelected
                             ? LinearGradient(
                                 colors: [Color.accentColor, Color.accentColor.opacity(0.8)],
                                 startPoint: .topLeading,
@@ -409,7 +409,7 @@ struct ModelChip: View {
             .padding(.horizontal, AppSpacing.md)
             .padding(.vertical, AppSpacing.xs)
             .background(
-                isSelected 
+                isSelected
                     ? LinearGradient(
                         colors: [Color.accentColor, Color.accentColor.opacity(0.8)],
                         startPoint: .leading,

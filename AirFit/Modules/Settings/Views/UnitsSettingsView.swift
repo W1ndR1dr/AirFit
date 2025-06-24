@@ -131,7 +131,7 @@ struct UnitsSettingsView: View {
                 .padding(.vertical, AppSpacing.sm)
                 .background(
                     LinearGradient(
-                        colors: selectedUnits != viewModel.preferredUnits 
+                        colors: selectedUnits != viewModel.preferredUnits
                             ? [Color.accentColor, Color.accentColor.opacity(0.8)]
                             : [Color.gray.opacity(0.3), Color.gray.opacity(0.2)],
                         startPoint: .leading,

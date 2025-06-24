@@ -348,4 +348,3 @@ final class ChatViewModel: ObservableObject, ErrorHandling {
         AppLogger.info("Creating generic reminder", category: .chat)
     }
 }
-

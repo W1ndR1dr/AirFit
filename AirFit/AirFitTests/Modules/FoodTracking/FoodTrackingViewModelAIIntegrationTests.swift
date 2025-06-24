@@ -325,7 +325,7 @@ final class FoodTrackingViewModelAIIntegrationTests: XCTestCase {
         XCTAssertFalse(sut.isProcessingAI, "Should complete processing")
         XCTAssertNotNil(sut.error, "Should set error when AI parsing fails")
         
-        if let error = sut.error as? AppError, 
+        if let error = sut.error as? AppError,
            case .unknown(let message) = error {
             XCTAssertEqual(message, "AI parsing failed", "Should preserve AI parsing error")
         } else {

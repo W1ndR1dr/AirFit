@@ -48,7 +48,7 @@ final class ConversationManagerPerformanceTests: XCTestCase {
 
     func test_getRecentMessages_withLargeDataset_shouldMeetStrictPerformanceTargets() async throws {
         // Arrange - Create 1000+ messages across multiple conversations (Task 2.5 requirement)
-        let totalMessages = 1200
+        let totalMessages = 1_200
         let conversationsCount = 10
         let messagesPerConversation = totalMessages / conversationsCount
         
@@ -160,8 +160,8 @@ final class ConversationManagerPerformanceTests: XCTestCase {
         
         // TASK 2.5 REQUIREMENT: <100ms for stats calculation
         XCTAssertLessThan(
-            executionTime, 
-            0.1, 
+            executionTime,
+            0.1,
             "❌ PERFORMANCE FAILURE: Stats calculation took \(String(format: "%.3f", executionTime * 1_000))ms, exceeds 100ms target"
         )
 
@@ -224,8 +224,8 @@ final class ConversationManagerPerformanceTests: XCTestCase {
         
         // TASK 2.5 REQUIREMENT: Pruning should complete efficiently
         XCTAssertLessThan(
-            executionTime, 
-            2.0, 
+            executionTime,
+            2.0,
             "❌ PERFORMANCE FAILURE: Pruning took \(String(format: "%.3f", executionTime * 1_000))ms, exceeds 2s target"
         )
 
@@ -250,7 +250,7 @@ final class ConversationManagerPerformanceTests: XCTestCase {
 
     func test_queryPerformance_comparisonWithBenchmarks() async throws {
         // Arrange - Create benchmark dataset
-        let messageCount = 1000
+        let messageCount = 1_000
         print("📊 Performance Comparison Test: Creating \(messageCount) message benchmark dataset...")
         
         // Create messages with varied content sizes
@@ -291,8 +291,8 @@ final class ConversationManagerPerformanceTests: XCTestCase {
         // All queries should be well under 50ms
         for (query, time) in results {
             XCTAssertLessThan(
-                time, 
-                0.05, 
+                time,
+                0.05,
                 "❌ Query '\(query)' took \(String(format: "%.1f", time * 1_000))ms, exceeds 50ms target"
             )
         }

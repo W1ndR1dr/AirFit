@@ -263,7 +263,7 @@ private extension WorkoutDetailView {
                         .padding(.vertical, AppSpacing.sm)
                         .background(
                             LinearGradient(
-                                colors: viewModel.isGeneratingAnalysis ? 
+                                colors: viewModel.isGeneratingAnalysis ?
                                     [Color.gray.opacity(0.6), Color.gray.opacity(0.4)] :
                                     gradientManager.active.colors(for: colorScheme),
                                 startPoint: .leading,
@@ -272,8 +272,8 @@ private extension WorkoutDetailView {
                         )
                         .clipShape(RoundedRectangle(cornerRadius: 14))
                         .shadow(
-                            color: viewModel.isGeneratingAnalysis ? 
-                                Color.clear : 
+                            color: viewModel.isGeneratingAnalysis ?
+                                Color.clear :
                                 gradientManager.active.colors(for: colorScheme)[0].opacity(0.2),
                             radius: 8,
                             y: 2
@@ -741,9 +741,9 @@ private struct SaveAsTemplateView: View {
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) {
-                    Button("Cancel") { 
+                    Button("Cancel") {
                         HapticService.impact(.light)
-                        dismiss() 
+                        dismiss()
                     }
                     .foregroundStyle(
                         LinearGradient(
@@ -755,9 +755,9 @@ private struct SaveAsTemplateView: View {
                 }
 
                 ToolbarItem(placement: .confirmationAction) {
-                    Button("Save") { 
+                    Button("Save") {
                         HapticService.impact(.medium)
-                        saveTemplate() 
+                        saveTemplate()
                     }
                     .fontWeight(.semibold)
                     .disabled(templateName.isEmpty)
@@ -851,9 +851,9 @@ private struct AIAnalysisView: View {
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .confirmationAction) {
-                    Button("Done") { 
+                    Button("Done") {
                         HapticService.impact(.light)
-                        dismiss() 
+                        dismiss()
                     }
                     .foregroundStyle(
                         LinearGradient(
@@ -1079,9 +1079,9 @@ private struct ExerciseDetailView: View {
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .confirmationAction) {
-                    Button("Done") { 
+                    Button("Done") {
                         HapticService.impact(.light)
-                        dismiss() 
+                        dismiss()
                     }
                     .foregroundStyle(
                         LinearGradient(

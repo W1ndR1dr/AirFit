@@ -249,7 +249,7 @@ final class FunctionCallDispatcherTests: XCTestCase {
         let remainingFunctions = [
             "generatePersonalizedWorkoutPlan",
             "adaptPlanBasedOnFeedback",
-            "analyzePerformanceTrends", 
+            "analyzePerformanceTrends",
             "assistGoalSettingOrRefinement"
         ]
         
@@ -270,7 +270,7 @@ final class FunctionCallDispatcherTests: XCTestCase {
             let result = try await dispatcher.execute(functionCall, for: testUser, context: testContext)
             
             // Should execute (might fail due to missing params, but shouldn't be unknown function)
-            XCTAssertFalse(result.message.contains("don't recognize"), 
+            XCTAssertFalse(result.message.contains("don't recognize"),
                          "Remaining function \(functionName) should still be recognized")
         }
         

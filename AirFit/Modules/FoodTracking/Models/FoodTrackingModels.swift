@@ -18,7 +18,7 @@ struct FoodNutritionSummary: Sendable {
     var sodium: Double = 0
 
     /// Daily calorie goal.
-    var calorieGoal: Double = 2000
+    var calorieGoal: Double = 2_000
     /// Daily protein goal in grams.
     var proteinGoal: Double = 150
     /// Daily carbohydrate goal in grams.
@@ -214,4 +214,3 @@ struct FoodSearchResult: Identifiable, Sendable {
     let fat: Double
     let servingSize: String
 }
-

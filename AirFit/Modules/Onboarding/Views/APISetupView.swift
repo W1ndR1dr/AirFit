@@ -5,8 +5,10 @@ struct APISetupView: View {
     @Environment(\.dismiss) private var dismiss
     @Environment(\.diContainer) private var diContainer
     @State private var selectedProvider: AIProvider = .anthropic
+    private let onComplete: (() -> Void)?
     
-    init(apiKeyManager: APIKeyManagementProtocol? = nil) {
+    init(apiKeyManager: APIKeyManagementProtocol? = nil, onComplete: (() -> Void)? = nil) {
+        self.onComplete = onComplete
         if let manager = apiKeyManager {
             _viewModel = StateObject(wrappedValue: APISetupViewModel(apiKeyManager: manager))
         } else {
@@ -63,13 +65,72 @@ struct APISetupView: View {
                         if !viewModel.configuredProviders.isEmpty {
                             ConfiguredProvidersList(viewModel: viewModel)
                                 .padding(.horizontal)
+                            
+                            // Active provider selection
+                            VStack(alignment: .leading, spacing: 12) {
+                                Text("Select Active Provider")
+                                    .font(.headline)
+                                    .padding(.horizontal)
+                                
+                                Text("Choose which AI model to use for your coaching experience:")
+                                    .font(.subheadline)
+                                    .foregroundColor(.secondary)
+                                    .padding(.horizontal)
+                                
+                                ForEach(viewModel.configuredProviders, id: \.provider) { config in
+                                    Button(action: {
+                                        viewModel.selectedActiveProvider = config
+                                    }) {
+                                        HStack {
+                                            Image(systemName: config.provider == .anthropic ? "a.circle.fill" : 
+                                                            config.provider == .openAI ? "o.circle.fill" : "g.circle.fill")
+                                                .font(.title2)
+                                                .foregroundColor(config.provider == .anthropic ? .purple : 
+                                                               config.provider == .openAI ? .green : .orange)
+                                            
+                                            VStack(alignment: .leading) {
+                                                Text(config.provider.displayName)
+                                                    .font(.headline)
+                                                Text(config.model)
+                                                    .font(.caption)
+                                                    .foregroundColor(.secondary)
+                                            }
+                                            
+                                            Spacer()
+                                            
+                                            if viewModel.selectedActiveProvider?.provider == config.provider {
+                                                Image(systemName: "checkmark.circle.fill")
+                                                    .foregroundColor(.blue)
+                                            }
+                                        }
+                                        .padding()
+                                        .background(
+                                            RoundedRectangle(cornerRadius: 12)
+                                                .stroke(viewModel.selectedActiveProvider?.provider == config.provider ? 
+                                                       Color.blue : Color.gray.opacity(0.3), lineWidth: 2)
+                                                .background(
+                                                    RoundedRectangle(cornerRadius: 12)
+                                                        .fill(viewModel.selectedActiveProvider?.provider == config.provider ?
+                                                             Color.blue.opacity(0.05) : Color.clear)
+                                                )
+                                        )
+                                    }
+                                    .buttonStyle(PlainButtonStyle())
+                                    .padding(.horizontal)
+                                }
+                            }
+                            .padding(.vertical)
                         }
                         
                         // Continue button
-                        if !viewModel.configuredProviders.isEmpty {
+                        if !viewModel.configuredProviders.isEmpty && viewModel.selectedActiveProvider != nil {
                             Button(action: {
                                 viewModel.saveAndContinue()
-                                dismiss()
+                                if let onComplete = onComplete {
+                                    onComplete()
+                                } else {
+                                    dismiss()
+                                }
                             }) {
                                 Label("Continue to Onboarding", systemImage: "arrow.right.circle.fill")
                                     .font(.headline)
@@ -81,6 +142,21 @@ struct APISetupView: View {
                                             .fill(Color.purple.gradient)
                                     )
                             }
+                            .padding(.horizontal)
+                        } else if !viewModel.configuredProviders.isEmpty {
+                            // Show disabled state when no provider selected
+                            HStack {
+                                Image(systemName: "exclamationmark.circle")
+                                Text("Please select an active AI provider to continue")
+                            }
+                            .font(.subheadline)
+                            .foregroundColor(.orange)
+                            .padding()
+                            .frame(maxWidth: .infinity)
+                            .background(
+                                RoundedRectangle(cornerRadius: 12)
+                                    .fill(Color.orange.opacity(0.1))
+                            )
                             .padding(.horizontal)
                         }
                     }

@@ -109,7 +109,7 @@ extension PersonaProfile {
                     extractedAt: Date()
                 ),
                 generationDuration: 2.5,
-                tokenCount: 1500,
+                tokenCount: 1_500,
                 previewReady: true
             )
         )

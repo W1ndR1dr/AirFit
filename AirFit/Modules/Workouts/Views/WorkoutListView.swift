@@ -83,9 +83,9 @@ struct WorkoutListView: View {
             .navigationTitle("")
             .navigationBarTitleDisplayMode(.inline)
             .searchable(text: $searchText, placement: .navigationBarDrawer(displayMode: .always))
-            .refreshable { 
+            .refreshable {
                 HapticService.impact(.light)
-                await viewModel.loadWorkouts() 
+                await viewModel.loadWorkouts()
             }
             .navigationDestination(for: WorkoutCoordinator.WorkoutDestination.self) { destination in
                 destinationView(for: destination)

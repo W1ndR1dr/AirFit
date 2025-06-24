@@ -19,4 +19,4 @@ struct NutritionPreferences: Sendable {
         carbGoal: nil,
         fatGoal: nil
     )
-} 
+}

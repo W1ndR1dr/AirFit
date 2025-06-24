@@ -18,7 +18,7 @@ final class AIGoalService: AIGoalServiceProtocol, ServiceProtocol {
     private let personaService: PersonaService
     
     init(
-        goalService: GoalServiceProtocol, 
+        goalService: GoalServiceProtocol,
         aiService: AIServiceProtocol,
         personaService: PersonaService
     ) {

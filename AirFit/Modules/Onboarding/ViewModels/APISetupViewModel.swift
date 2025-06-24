@@ -12,6 +12,7 @@ final class APISetupViewModel: ObservableObject {
     @Published var configuredProviders: [APIConfiguration] = []
     @Published var isValidating = false
     @Published var error: String?
+    @Published var selectedActiveProvider: APIConfiguration?
     
     private let keychain = KeychainManager()
     private let apiKeyManager: APIKeyManagementProtocol
@@ -94,10 +95,15 @@ final class APISetupViewModel: ObservableObject {
         // Mark API setup as complete
         UserDefaults.standard.set(true, forKey: "api_setup_complete")
         
-        // If we have at least one configured provider, set it as default
-        if let firstConfig = configuredProviders.first {
+        // Use the selected provider, or fall back to first configured
+        if let activeProvider = selectedActiveProvider {
+            UserDefaults.standard.set(activeProvider.provider.rawValue, forKey: "default_ai_provider")
+            UserDefaults.standard.set(activeProvider.model, forKey: "default_ai_model")
+            AppLogger.info("Set active provider: \(activeProvider.provider.displayName) with model: \(activeProvider.model)", category: .app)
+        } else if let firstConfig = configuredProviders.first {
             UserDefaults.standard.set(firstConfig.provider.rawValue, forKey: "default_ai_provider")
             UserDefaults.standard.set(firstConfig.model, forKey: "default_ai_model")
+            AppLogger.info("No active provider selected, using first: \(firstConfig.provider.displayName)", category: .app)
         }
     }
     

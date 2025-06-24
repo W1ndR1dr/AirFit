@@ -162,4 +162,3 @@ final class FoodVoiceAdapter: ObservableObject, FoodVoiceAdapterProtocol, Servic
 
 // MARK: - FoodVoiceServiceProtocol Conformance
 extension FoodVoiceAdapter: FoodVoiceServiceProtocol {}
-

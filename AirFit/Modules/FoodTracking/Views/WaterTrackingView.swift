@@ -17,7 +17,7 @@ struct WaterTrackingView: View {
 
     // Configuration
     private let quickAmountsInML: [Double] = [250, 350, 500, 750] // Common amounts in mL
-    private let dailyWaterGoalInML: Double = 2000 // Default daily goal, can be dynamic later
+    private let dailyWaterGoalInML: Double = 2_000 // Default daily goal, can be dynamic later
 
     // Animation states
     @State private var waterLevel: CGFloat = 0
@@ -58,9 +58,9 @@ struct WaterTrackingView: View {
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) {
-                    Button("Done") { 
+                    Button("Done") {
                         HapticService.impact(.light)
-                        dismiss() 
+                        dismiss()
                     }
                     .foregroundStyle(
                         LinearGradient(
@@ -80,7 +80,7 @@ struct WaterTrackingView: View {
                     }
                     .disabled(isAddButtonDisabled)
                     .foregroundStyle(
-                        isAddButtonDisabled ? 
+                        isAddButtonDisabled ?
                         AnyShapeStyle(Color.secondary.opacity(0.5)) :
                         AnyShapeStyle(LinearGradient(
                             colors: gradientManager.active.colors(for: colorScheme),
@@ -329,12 +329,12 @@ struct WaterTrackingView: View {
                         .overlay(
                             RoundedRectangle(cornerRadius: 12)
                                 .stroke(
-                                    useCustomAmount ? 
+                                    useCustomAmount ?
                                     LinearGradient(
                                         colors: gradientManager.active.colors(for: colorScheme),
                                         startPoint: .topLeading,
                                         endPoint: .bottomTrailing
-                                    ) : 
+                                    ) :
                                     LinearGradient(
                                         colors: [Color.clear, Color.clear],
                                         startPoint: .topLeading,
@@ -651,9 +651,9 @@ struct HydrationTipsView: View {
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .confirmationAction) {
-                    Button("Done") { 
+                    Button("Done") {
                         HapticService.impact(.light)
-                        dismiss() 
+                        dismiss()
                     }
                     .foregroundStyle(
                         LinearGradient(

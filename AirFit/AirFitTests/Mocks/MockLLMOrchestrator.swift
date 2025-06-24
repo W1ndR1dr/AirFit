@@ -118,7 +118,7 @@ final class MockLLMOrchestrator {
         }
     }
     
-    func estimateCost(for prompt: String, model: LLMModel, responseTokens: Int = 1000) -> Double {
+    func estimateCost(for prompt: String, model: LLMModel, responseTokens: Int = 1_000) -> Double {
         estimateCostCallCount += 1
         // Simple mock cost calculation
         return Double(prompt.count + responseTokens) * 0.00001

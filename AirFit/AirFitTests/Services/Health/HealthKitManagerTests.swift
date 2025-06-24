@@ -77,7 +77,7 @@ final class HealthKitManagerTests: XCTestCase {
     func test_saveNutritionToHealthKit_withValidData_savesSuccessfully() async throws {
         // Arrange
         let nutrition = NutritionData()
-        nutrition.targetCalories = 2000
+        nutrition.targetCalories = 2_000
         nutrition.targetProtein = 150
         nutrition.targetCarbs = 250
         nutrition.targetFat = 65
@@ -267,14 +267,14 @@ final class HealthKitManagerTests: XCTestCase {
     func test_getNutritionData_forToday_returnsSummary() async throws {
         // Arrange
         let expectedSummary = HealthKitNutritionSummary(
-            calories: 2000,
+            calories: 2_000,
             protein: 80,
             carbs: 250,
             fat: 70,
             fiber: 25,
             sugar: 50,
-            sodium: 2300,
-            water: 2500,
+            sodium: 2_300,
+            water: 2_500,
             date: Date()
         )
         mockHealthKitManager.stubbedResults["getNutritionData"] = expectedSummary
@@ -295,9 +295,9 @@ final class HealthKitManagerTests: XCTestCase {
         // Arrange
         let workout = Workout(name: "Morning Run", user: testUser)
         workout.workoutType = WorkoutType.cardio.rawValue
-        workout.durationSeconds = 1800 // 30 minutes
+        workout.durationSeconds = 1_800 // 30 minutes
         workout.caloriesBurned = 300
-        workout.plannedDate = Date().addingTimeInterval(-1800)
+        workout.plannedDate = Date().addingTimeInterval(-1_800)
         workout.completedDate = Date()
         modelContext.insert(workout)
         try modelContext.save()
@@ -421,7 +421,7 @@ final class HealthKitManagerTests: XCTestCase {
         // Arrange
         let workout = Workout(name: "Yoga", user: testUser)
         workout.workoutType = WorkoutType.yoga.rawValue
-        workout.durationSeconds = 3600
+        workout.durationSeconds = 3_600
         workout.caloriesBurned = nil // No calorie data
         modelContext.insert(workout)
         try modelContext.save()

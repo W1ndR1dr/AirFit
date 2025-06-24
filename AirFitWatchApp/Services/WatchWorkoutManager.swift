@@ -138,9 +138,7 @@ final class WatchWorkoutManager: NSObject {
 
         #if os(watchOS)
 
-
         WKInterfaceDevice.current().play(.stop)
-
 
         #endif
         AppLogger.info("Workout paused", category: .health)
@@ -156,9 +154,7 @@ final class WatchWorkoutManager: NSObject {
 
         #if os(watchOS)
 
-
         WKInterfaceDevice.current().play(.start)
-
 
         #endif
         AppLogger.info("Workout resumed", category: .health)
@@ -223,9 +219,7 @@ final class WatchWorkoutManager: NSObject {
 
         #if os(watchOS)
 
-
         WKInterfaceDevice.current().play(.click)
-
 
         #endif
         AppLogger.info("Started exercise: \(name)", category: .health)

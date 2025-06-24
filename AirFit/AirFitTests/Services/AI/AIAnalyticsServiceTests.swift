@@ -263,7 +263,7 @@ final class AIAnalyticsServiceTests: XCTestCase {
     func test_trackWorkoutCompleted_delegatesToAnalyticsService() async {
         // Arrange
         let workout = Workout(name: "Morning Run", user: testUser)
-        workout.duration = 1800
+        workout.duration = 1_800
         workout.caloriesBurned = 300
         
         // Act
@@ -291,7 +291,7 @@ final class AIAnalyticsServiceTests: XCTestCase {
         // Arrange
         let mockInsights = UserInsights(
             workoutFrequency: 5.0,
-            averageWorkoutDuration: 2700,
+            averageWorkoutDuration: 2_700,
             caloriesTrend: Trend(direction: .up, changePercentage: 8.5),
             macroBalance: MacroBalance(proteinPercentage: 35, carbsPercentage: 40, fatPercentage: 25),
             streakDays: 14,

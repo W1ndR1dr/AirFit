@@ -104,7 +104,7 @@ final class VoiceInputManagerTests: XCTestCase {
         try? await Task.sleep(nanoseconds: 1_000_000_000) // 1s
         
         // Assert
-        XCTAssertTrue(progressUpdates.count > 0)
+        XCTAssertTrue(!progressUpdates.isEmpty)
         XCTAssertTrue(progressUpdates.first ?? 1.0 < progressUpdates.last ?? 0.0)
     }
     
@@ -309,4 +309,3 @@ final class VoiceInputManagerTests: XCTestCase {
         XCTAssertNotNil(errorReceived)
     }
 }
-

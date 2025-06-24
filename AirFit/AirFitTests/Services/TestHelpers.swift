@@ -10,7 +10,7 @@ enum TestDataGenerators {
         systemPrompt: String = "You are a helpful assistant",
         userMessage: String = "Hello, how are you?",
         temperature: Double = 0.7,
-        maxTokens: Int? = 2048,
+        maxTokens: Int? = 2_048,
         stream: Bool = true,
         functions: [AIFunctionDefinition]? = nil
     ) -> AIRequest {
@@ -369,7 +369,7 @@ extension AIRequest {
         systemPrompt: String = "You are a helpful assistant",
         userMessage: String = "Hello",
         temperature: Double = 0.7,
-        maxTokens: Int? = 2048,
+        maxTokens: Int? = 2_048,
         stream: Bool = true,
         functionSchemas: [FunctionSchema]? = nil
     ) -> AIRequest {

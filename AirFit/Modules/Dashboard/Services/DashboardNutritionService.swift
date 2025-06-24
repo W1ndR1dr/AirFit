@@ -91,7 +91,7 @@ final class DashboardNutritionService: DashboardNutritionServiceProtocol {
     
     private func calculateTargets(for goal: Goal) -> NutritionTargets {
         // Base calorie calculation
-        var baseCalories = 2200.0 // Default average
+        var baseCalories = 2_200.0 // Default average
         
         // Adjust based on goal family
         switch goal.family {

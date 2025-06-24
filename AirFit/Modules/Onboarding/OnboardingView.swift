@@ -128,6 +128,9 @@ struct OnboardingView: View {
                 let user = try await userService.createUser(from: profile)
                 try await personaService.savePersona(plan.generatedPersona, for: user.id)
                 
+                // Clear cached session on successful completion
+                await intelligence.clearSession()
+                
                 // Notify completion
                 await MainActor.run {
                     NotificationCenter.default.post(name: .onboardingCompleted, object: nil)

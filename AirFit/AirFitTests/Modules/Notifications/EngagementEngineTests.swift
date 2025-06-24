@@ -127,7 +127,7 @@ final class EngagementEngineTests: XCTestCase {
         activeUser.lastActiveAt = Date()
         modelContext.insert(activeUser)
         
-        let lapsedUser = User(email: "lapsed@example.com", name: "Lapsed User") 
+        let lapsedUser = User(email: "lapsed@example.com", name: "Lapsed User")
         lapsedUser.lastActiveAt = Date().addingTimeInterval(-5 * 24 * 60 * 60)
         modelContext.insert(lapsedUser)
         

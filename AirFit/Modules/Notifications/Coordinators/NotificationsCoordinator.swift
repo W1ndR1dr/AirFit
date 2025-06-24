@@ -10,7 +10,7 @@ final class NotificationsCoordinator: ObservableObject {
     private let liveActivityManager: LiveActivityManager
     private let notificationContentGenerator: NotificationContentGenerator
     
-    init(modelContext: ModelContext, 
+    init(modelContext: ModelContext,
          coachEngine: CoachEngine,
          notificationManager: NotificationManager,
          liveActivityManager: LiveActivityManager) {

@@ -416,14 +416,14 @@ struct MacroData {
 #Preview("Full Style") {
     MacroRingsView(
         nutrition: FoodNutritionSummary(
-            calories: 1850,
+            calories: 1_850,
             protein: 120,
             carbs: 180,
             fat: 65,
             fiber: 25,
             sugar: 45,
-            sodium: 2100,
-            calorieGoal: 2000,
+            sodium: 2_100,
+            calorieGoal: 2_000,
             proteinGoal: 150,
             carbGoal: 200,
             fatGoal: 70
@@ -436,14 +436,14 @@ struct MacroData {
 #Preview("Compact Style") {
     MacroRingsView(
         nutrition: FoodNutritionSummary(
-            calories: 1850,
+            calories: 1_850,
             protein: 120,
             carbs: 180,
             fat: 65,
             fiber: 25,
             sugar: 45,
-            sodium: 2100,
-            calorieGoal: 2000,
+            sodium: 2_100,
+            calorieGoal: 2_000,
             proteinGoal: 150,
             carbGoal: 200,
             fatGoal: 70

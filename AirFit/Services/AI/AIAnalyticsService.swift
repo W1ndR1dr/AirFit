@@ -17,7 +17,7 @@ actor AIAnalyticsService: AIAnalyticsServiceProtocol, ServiceProtocol {
     private let personaService: PersonaService
     
     init(
-        analyticsService: AnalyticsServiceProtocol, 
+        analyticsService: AnalyticsServiceProtocol,
         aiService: AIServiceProtocol,
         personaService: PersonaService
     ) {

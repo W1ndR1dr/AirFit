@@ -68,4 +68,3 @@ final class MockUserService: UserServiceProtocol, MockProtocol, @unchecked Senda
         }
     }
 }
-

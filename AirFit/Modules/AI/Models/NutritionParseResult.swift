@@ -52,4 +52,4 @@ struct EducationalContent: Sendable {
         case motivation = "motivation"
         case general = "general"
     }
-} 
+}

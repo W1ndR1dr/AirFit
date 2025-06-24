@@ -87,7 +87,7 @@ public final class DIBootstrapper {
             let aiService = try await resolver.resolve(AIServiceProtocol.self)
             let personaService = try await resolver.resolve(PersonaService.self)
             return await AIGoalService(
-                goalService: goalService, 
+                goalService: goalService,
                 aiService: aiService,
                 personaService: personaService
             )
@@ -113,7 +113,7 @@ public final class DIBootstrapper {
             let aiService = try await resolver.resolve(AIServiceProtocol.self)
             let personaService = try await resolver.resolve(PersonaService.self)
             return AIAnalyticsService(
-                analyticsService: analyticsService, 
+                analyticsService: analyticsService,
                 aiService: aiService,
                 personaService: personaService
             )
@@ -286,6 +286,11 @@ public final class DIBootstrapper {
             MonitoringService()
         }
         
+        // Onboarding Cache - Fast session persistence
+        container.register(OnboardingCache.self, lifetime: .singleton) { _ in
+            await OnboardingCache()
+        }
+        
     }
     
     // MARK: - UI Services
@@ -304,8 +309,8 @@ public final class DIBootstrapper {
         }
         
         // Onboarding Intelligence - The brain behind smart onboarding
-        container.register(OnboardingIntelligence.self, lifetime: .transient) { _ in
-            try await OnboardingIntelligence(container: container)
+        container.register(OnboardingIntelligence.self, lifetime: .transient) { resolver in
+            try await OnboardingIntelligence(container: resolver)
         }
         
         // Whisper Model Manager
@@ -441,8 +446,8 @@ private final class TestModeAPIKeyManager: APIKeyManagementProtocol {
 
 private final class PreviewAPIKeyManager: APIKeyManagementProtocol {
     func saveAPIKey(_ key: String, for provider: AIProvider) async throws {}
-    func getAPIKey(for provider: AIProvider) async throws -> String { 
-        throw AppError.unauthorized 
+    func getAPIKey(for provider: AIProvider) async throws -> String {
+        throw AppError.unauthorized
     }
     func deleteAPIKey(for provider: AIProvider) async throws {}
     func hasAPIKey(for provider: AIProvider) async -> Bool { false }

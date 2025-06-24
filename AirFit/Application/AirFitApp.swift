@@ -202,7 +202,7 @@ struct AirFitApp: App {
         
         Task {
             // Delete the database file
-            let documentsPath = FileManager.default.urls(for: .documentDirectory, 
+            let documentsPath = FileManager.default.urls(for: .documentDirectory,
                                                         in: .userDomainMask).first!
             let dbPath = documentsPath.appendingPathComponent("default.store")
             

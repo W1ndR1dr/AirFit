@@ -221,4 +221,4 @@ final class MockVoiceInputManager: @preconcurrency MockProtocol, VoiceInputProto
         onError = nil
         onStateChange = nil
     }
-} 
+}

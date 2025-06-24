@@ -50,7 +50,7 @@ final class UserServiceTests: XCTestCase {
             preferredWorkoutDuration: 45,
             sleepSchedule: SleepSchedule(
                 bedtime: Date(),
-                wakeTime: Date().addingTimeInterval(28800) // 8 hours later
+                wakeTime: Date().addingTimeInterval(28_800) // 8 hours later
             ),
             stressLevel: .medium,
             hasCompletedOnboarding: false,

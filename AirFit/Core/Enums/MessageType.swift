@@ -39,4 +39,4 @@ public enum MessageType: String, Codable, CaseIterable, Sendable {
             return "Quick command requiring minimal context for immediate action"
         }
     }
-} 
+}

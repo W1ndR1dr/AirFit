@@ -105,7 +105,7 @@ final class LLMOrchestrator: ObservableObject, ServiceProtocol {
     }
     
     nonisolated func healthCheck() async -> ServiceHealth {
-        let (providerSet, cost) = await MainActor.run { 
+        let (providerSet, cost) = await MainActor.run {
             (availableProviders, totalCost)
         }
         let healthyProviders = providerSet.count
@@ -178,12 +178,12 @@ final class LLMOrchestrator: ObservableObject, ServiceProtocol {
         }
     }
     
-    nonisolated func estimateCost(for prompt: String, model: LLMModel, responseTokens: Int = 1000) -> Double {
+    nonisolated func estimateCost(for prompt: String, model: LLMModel, responseTokens: Int = 1_000) -> Double {
         let promptTokens = estimateTokenCount(prompt)
         let rates = model.cost
         
-        let inputCost = Double(promptTokens) / 1000.0 * rates.input
-        let outputCost = Double(responseTokens) / 1000.0 * rates.output
+        let inputCost = Double(promptTokens) / 1_000.0 * rates.input
+        let outputCost = Double(responseTokens) / 1_000.0 * rates.output
         
         return inputCost + outputCost
     }
@@ -365,11 +365,11 @@ final class LLMOrchestrator: ObservableObject, ServiceProtocol {
                 // Start with low budget and tune based on task
                 switch task {
                 case .personaSynthesis:
-                    return 8192 // Higher budget for complex creative tasks
+                    return 8_192 // Higher budget for complex creative tasks
                 case .personalityExtraction, .conversationAnalysis:
-                    return 4096 // Medium budget for analysis
+                    return 4_096 // Medium budget for analysis
                 case .coaching, .quickResponse:
-                    return 1024 // Lower budget for quick responses
+                    return 1_024 // Lower budget for quick responses
                 }
             }
             return nil
@@ -425,19 +425,19 @@ final class LLMOrchestrator: ObservableObject, ServiceProtocol {
         switch task {
         case .personalityExtraction:
             // Personality extraction results should be cached for consistency
-            return 3600 * 6 // 6 hours
+            return 3_600 * 6 // 6 hours
         case .personaSynthesis:
             // Persona synthesis is expensive and results are stable
-            return 3600 * 24 // 24 hours
+            return 3_600 * 24 // 24 hours
         case .conversationAnalysis:
             // Conversation analysis can be cached moderately
-            return 3600 * 4 // 4 hours
+            return 3_600 * 4 // 4 hours
         case .coaching:
             // Coach responses should be fresh and personalized
-            return 3600 // 1 hour
+            return 3_600 // 1 hour
         case .quickResponse:
             // Quick responses should be somewhat fresh
-            return 1800 // 30 minutes
+            return 1_800 // 30 minutes
         }
     }
     
@@ -502,8 +502,8 @@ private actor OrchestratorState {
         usageHistory.append(record)
         
         // Keep only last 1000 records
-        if usageHistory.count > 1000 {
-            usageHistory.removeFirst(usageHistory.count - 1000)
+        if usageHistory.count > 1_000 {
+            usageHistory.removeFirst(usageHistory.count - 1_000)
         }
     }
     

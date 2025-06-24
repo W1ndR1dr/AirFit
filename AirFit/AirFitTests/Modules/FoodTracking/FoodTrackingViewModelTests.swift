@@ -467,7 +467,7 @@ final class FoodTrackingViewModelTests: XCTestCase {
         sut.todaysMealsByType[.breakfast] = entry
         
         sut.dailyTargets = NutritionTargets(
-            calories: 2000,
+            calories: 2_000,
             protein: 150,
             carbs: 250,
             fat: 65,

@@ -199,8 +199,8 @@ final class AIGoalServiceTests: XCTestCase {
         let goal = ServiceGoal(
             id: UUID(),
             type: .stepCount,
-            target: 10000,
-            currentValue: 12000,
+            target: 10_000,
+            currentValue: 12_000,
             deadline: nil,
             createdAt: Date(),
             updatedAt: Date()
@@ -261,8 +261,8 @@ final class AIGoalServiceTests: XCTestCase {
         let goal = ServiceGoal(
             id: UUID(),
             type: .calorieIntake,
-            target: 2000,
-            currentValue: 1800,
+            target: 2_000,
+            currentValue: 1_800,
             deadline: nil,
             createdAt: Date(),
             updatedAt: Date()
@@ -293,8 +293,8 @@ final class AIGoalServiceTests: XCTestCase {
             ServiceGoal(
                 id: UUID(),
                 type: .stepCount,
-                target: 10000,
-                currentValue: 5000,
+                target: 10_000,
+                currentValue: 5_000,
                 deadline: nil,
                 createdAt: Date(),
                 updatedAt: Date()
@@ -315,7 +315,7 @@ final class AIGoalServiceTests: XCTestCase {
         let goal = ServiceGoal(
             id: UUID(),
             type: .waterIntake,
-            target: 2000,
+            target: 2_000,
             currentValue: 500,
             deadline: nil,
             createdAt: Date(),

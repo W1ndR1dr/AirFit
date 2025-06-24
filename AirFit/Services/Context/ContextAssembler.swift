@@ -25,11 +25,9 @@ final class ContextAssembler: ContextAssemblerProtocol, ServiceProtocol {
     
     /// Simplified context assembly for dashboard
     func assembleContext() async -> HealthContextSnapshot {
-        let modelContext = try? ModelContainer(for: User.self).mainContext
-        if let context = modelContext {
-            return await assembleSnapshot(modelContext: context)
-        } else {
-            // Return minimal context if no model context available
+        // Create model container with background context for heavy operations
+        guard let container = try? ModelContainer(for: User.self) else {
+            // Return minimal context if no model container available
             return HealthContextSnapshot(
                 subjectiveData: SubjectiveData(),
                 environment: createMockEnvironmentContext(),
@@ -41,6 +39,12 @@ final class ContextAssembler: ContextAssemblerProtocol, ServiceProtocol {
                 trends: HealthTrends(weeklyActivityChange: nil)
             )
         }
+        
+        // Create a background context for SwiftData operations
+        let backgroundContext = ModelContext(container)
+        backgroundContext.autosaveEnabled = false
+        
+        return await assembleSnapshot(modelContext: backgroundContext)
     }
 
     /// Creates a `HealthContextSnapshot` using data from HealthKit and SwiftData models.
@@ -124,37 +128,35 @@ final class ContextAssembler: ContextAssemblerProtocol, ServiceProtocol {
     }
 
     private func fetchSubjectiveData(using context: ModelContext) async -> SubjectiveData {
-        return await MainActor.run {
-            do {
-        let todayStart = Calendar.current.startOfDay(for: Date())
-                
-                // Use a simpler, safer approach to avoid SwiftData predicate issues
-                let descriptor = FetchDescriptor<DailyLog>(
-                    sortBy: [SortDescriptor(\.date, order: .reverse)]
-                )
-                
-                let allLogs = try context.fetch(descriptor)
-                
-                // Filter in memory to avoid complex predicate issues
-                if let todayLog = allLogs.first(where: { log in
-                    Calendar.current.isDate(log.date, inSameDayAs: todayStart)
-                }) {
+        do {
+            let todayStart = Calendar.current.startOfDay(for: Date())
+            
+            // Use a simpler, safer approach to avoid SwiftData predicate issues
+            let descriptor = FetchDescriptor<DailyLog>(
+                sortBy: [SortDescriptor(\.date, order: .reverse)]
+            )
+            
+            let allLogs = try context.fetch(descriptor)
+            
+            // Filter in memory to avoid complex predicate issues
+            if let todayLog = allLogs.first(where: { log in
+                Calendar.current.isDate(log.date, inSameDayAs: todayStart)
+            }) {
                 return SubjectiveData(
-                        energyLevel: todayLog.subjectiveEnergyLevel,
+                    energyLevel: todayLog.subjectiveEnergyLevel,
                     mood: nil, // Mood tracking TBD
-                        stress: todayLog.stressLevel,
+                    stress: todayLog.stressLevel,
                     motivation: nil,
                     soreness: nil,
-                        notes: todayLog.notes
+                    notes: todayLog.notes
                 )
             }
-                
-                return SubjectiveData()
-                
+            
+            return SubjectiveData()
+            
         } catch {
             AppLogger.error("Failed to fetch today's DailyLog", error: error, category: .data)
-                return SubjectiveData()
-            }
+            return SubjectiveData()
         }
     }
 
@@ -171,7 +173,7 @@ final class ContextAssembler: ContextAssemblerProtocol, ServiceProtocol {
     private func createMockAppContext(using context: ModelContext) async -> AppSpecificContext {
         let now = Date()
         let sevenDaysAgo = Calendar.current.date(byAdding: .day, value: -7, to: now) ?? now
-        let _ = Calendar.current.date(byAdding: .day, value: -14, to: now) ?? now
+        _ = Calendar.current.date(byAdding: .day, value: -14, to: now) ?? now
 
         var lastMealTime: Date?
         var lastMealSummary: String?
@@ -187,7 +189,11 @@ final class ContextAssembler: ContextAssemblerProtocol, ServiceProtocol {
                 sortBy: [SortDescriptor(\.loggedAt, order: .reverse)]
             )
             mealDescriptor.fetchLimit = 1
-            if let meal = try context.fetch(mealDescriptor).first {
+            
+            // Fetch meals more efficiently 
+            let meals = try context.fetch(mealDescriptor)
+            
+            if let meal = meals.first {
                 lastMealTime = meal.loggedAt
                 let itemCount = meal.items.count
                 let mealName = meal.mealTypeEnum?.displayName ?? "Meal"
@@ -212,7 +218,11 @@ final class ContextAssembler: ContextAssemblerProtocol, ServiceProtocol {
                 let userDescriptor = FetchDescriptor<User>(
                     sortBy: [SortDescriptor(\.lastActiveDate, order: .reverse)]
                 )
-                if let currentUser = try context.fetch(userDescriptor).first {
+                
+                // Fetch user without detached task for simple query
+                let users = try context.fetch(userDescriptor)
+                
+                if let currentUser = users.first {
                     goalsContext = try await goalService.getGoalsContext(for: currentUser.id)
                 }
             }
@@ -246,8 +256,9 @@ final class ContextAssembler: ContextAssemblerProtocol, ServiceProtocol {
             var allWorkoutsDescriptor = FetchDescriptor<Workout>(
                 sortBy: [SortDescriptor(\.completedDate, order: .reverse)]
             )
-            allWorkoutsDescriptor.fetchLimit = 50 // Reasonable limit
+            allWorkoutsDescriptor.fetchLimit = 20 // Reduced limit for faster loading
 
+            // Fetch workouts without detached task
             let allWorkouts = try context.fetch(allWorkoutsDescriptor)
 
             // Filter recent completed workouts in memory
@@ -256,7 +267,7 @@ final class ContextAssembler: ContextAssemblerProtocol, ServiceProtocol {
                     guard let completedDate = workout.completedDate else { return false }
                     return completedDate >= sevenDaysAgo && completedDate <= now
                 }
-                .prefix(10)
+                .prefix(5)  // Reduce to 5 recent workouts for context
 
             // Find active workout (no completed date)
             let activeWorkout = allWorkouts.first { workout in
@@ -272,7 +283,7 @@ final class ContextAssembler: ContextAssemblerProtocol, ServiceProtocol {
                     return plannedDate > now && plannedDate <= threeDaysFromNow
                 }
                 .sorted { ($0.plannedDate ?? Date()) < ($1.plannedDate ?? Date()) }
-                .prefix(3)
+                .prefix(2)  // Only 2 upcoming workouts needed
 
             // Calculate workout streak
             let streak = calculateWorkoutStreak(context: context, endDate: now)
@@ -368,8 +379,9 @@ final class ContextAssembler: ContextAssemblerProtocol, ServiceProtocol {
             var descriptor = FetchDescriptor<Workout>(
                 sortBy: [SortDescriptor(\.completedDate, order: .reverse)]
             )
-            descriptor.fetchLimit = 50
+            descriptor.fetchLimit = 30  // Limit for streak calculation
 
+            // Fetch workouts for streak calculation
             let allWorkouts = try context.fetch(descriptor)
 
             // Filter in memory to avoid predicate issues
@@ -496,8 +508,6 @@ final class ContextAssembler: ContextAssemblerProtocol, ServiceProtocol {
         sleep: SleepAnalysis.SleepSession?,
         context: ModelContext
     ) async -> HealthTrends {
-        // Ensure all SwiftData operations happen on the main actor
-        return await MainActor.run {
             var weeklyChange: Double?
 
             // Defensive programming: Only fetch what we need with proper date bounds
@@ -511,6 +521,7 @@ final class ContextAssembler: ContextAssemblerProtocol, ServiceProtocol {
             // Fetch with error handling
             let allLogs: [DailyLog]
             do {
+                // Fetch logs without detached task
                 allLogs = try context.fetch(descriptor)
             } catch {
                 AppLogger.error("Failed to fetch DailyLog for trends", error: error, category: .data)
@@ -558,7 +569,6 @@ final class ContextAssembler: ContextAssemblerProtocol, ServiceProtocol {
             }
 
             return HealthTrends(weeklyActivityChange: weeklyChange)
-        }
     }
     
     // MARK: - ServiceProtocol Methods

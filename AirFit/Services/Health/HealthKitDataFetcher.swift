@@ -70,18 +70,22 @@ actor HealthKitDataFetcher: ServiceProtocol {
     /// Fetches the latest quantity sample for a given identifier
     func fetchLatestQuantitySample(
         identifier: HKQuantityTypeIdentifier,
-        unit: HKUnit
+        unit: HKUnit,
+        daysBack: Int = 7  // Limit how far back we look
     ) async throws -> Double? {
         guard let quantityType = HKQuantityType.quantityType(forIdentifier: identifier) else {
             throw HealthKitManager.HealthKitError.invalidData
         }
 
+        // Only look for recent data to avoid scanning entire history
+        let startDate = Calendar.current.date(byAdding: .day, value: -daysBack, to: Date()) ?? Date()
+        let predicate = HKQuery.predicateForSamples(withStart: startDate, end: Date(), options: .strictStartDate)
         let sortDescriptor = NSSortDescriptor(key: HKSampleSortIdentifierEndDate, ascending: false)
 
         return try await withCheckedThrowingContinuation { continuation in
             let query = HKSampleQuery(
                 sampleType: quantityType,
-                predicate: nil,
+                predicate: predicate,
                 limit: 1,
                 sortDescriptors: [sortDescriptor]
             ) { _, samples, error in

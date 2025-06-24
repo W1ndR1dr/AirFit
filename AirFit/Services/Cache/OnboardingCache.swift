@@ -20,7 +20,7 @@ actor OnboardingCache: ServiceProtocol {
         
         var isValid: Bool {
             // Sessions expire after 24 hours
-            Date().timeIntervalSince(timestamp) < 86400
+            Date().timeIntervalSince(timestamp) < 86_400
         }
     }
     
@@ -175,4 +175,3 @@ actor OnboardingCache: ServiceProtocol {
         )
     }
 }
-

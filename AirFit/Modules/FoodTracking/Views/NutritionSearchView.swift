@@ -55,9 +55,9 @@ struct NutritionSearchView: View {
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) {
-                    Button("Cancel") { 
+                    Button("Cancel") {
                         HapticService.impact(.light)
-                        dismiss() 
+                        dismiss()
                     }
                     .foregroundStyle(
                         LinearGradient(
@@ -466,7 +466,7 @@ private struct CategoryChip: View {
             .padding(.horizontal, AppSpacing.md)
             .padding(.vertical, AppSpacing.xs)
             .foregroundStyle(
-                isSelected ? 
+                isSelected ?
                 AnyShapeStyle(Color.white) :
                 AnyShapeStyle(LinearGradient(
                     colors: gradientManager.active.colors(for: colorScheme),

@@ -50,10 +50,8 @@ public final class DIContainer: @unchecked Sendable {
         registrations[key] = Registration(lifetime: .singleton, factory: { _ in instance })
         singletonInstances[key] = instance
         
-        // Debug logging for ModelContainer
-        if String(describing: type).contains("ModelContainer") {
-            AppLogger.info("DI: Registered \(type) with key: \(key)", category: .app)
-        }
+        // Debug logging
+        AppLogger.info("DI: Registered \(String(describing: type)) with key: \(key)", category: .app)
     }
     
     // MARK: - Resolution
@@ -62,13 +60,8 @@ public final class DIContainer: @unchecked Sendable {
     public func resolve<T>(_ type: T.Type, name: String? = nil) async throws -> T {
         let key = makeKey(type: type, name: name)
         
-        // Debug logging for ModelContainer
-        if String(describing: type).contains("ModelContainer") {
-            AppLogger.info("DI: Resolving ModelContainer", category: .app)
-            AppLogger.info("DI: Key: \(key)", category: .app)
-            AppLogger.info("DI: Registrations count: \(registrations.count)", category: .app)
-            AppLogger.info("DI: Has registration: \(registrations[key] != nil)", category: .app)
-        }
+        // Debug logging
+        AppLogger.info("DI: Resolving \(String(describing: type)) with key: \(key)", category: .app)
         
         // Check if we have a registration
         guard let registration = findRegistration(for: key) else {
@@ -116,11 +109,12 @@ public final class DIContainer: @unchecked Sendable {
     // MARK: - Private Methods
     
     private func makeKey(type: Any.Type, name: String?) -> String {
+        let typeKey = String(describing: type)
         if let name = name {
             // Combine type and name for unique key
-            return "\(ObjectIdentifier(type))-\(name)"
+            return "\(typeKey)-\(name)"
         }
-        return "\(ObjectIdentifier(type))"
+        return typeKey
     }
     
     private func findRegistration(for key: String) -> Registration? {
@@ -133,14 +127,6 @@ public final class DIContainer: @unchecked Sendable {
 private struct Registration {
     let lifetime: DIContainer.Lifetime
     let factory: @Sendable (DIContainer) async throws -> Any
-}
-
-private extension ObjectIdentifier {
-    init(type: Any.Type, name: String) {
-        // Create a unique identifier combining type and name
-        let combined = "\(type)-\(name)"
-        self.init(combined as AnyObject)
-    }
 }
 
 // MARK: - Errors
@@ -181,5 +167,3 @@ public extension View {
         environment(\.diContainer, container)
     }
 }
-
-

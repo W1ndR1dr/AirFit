@@ -160,7 +160,7 @@ actor GeminiProvider: LLMProvider, ServiceProtocol {
             contents: contents,
             generationConfig: GeminiGenerationConfig(
                 temperature: request.temperature,
-                maxOutputTokens: request.maxTokens ?? 2048,
+                maxOutputTokens: request.maxTokens ?? 2_048,
                 topP: 1.0, // Default top-P since it's not in LLMRequest
                 candidateCount: 1,
                 thinkingBudgetTokens: request.thinkingBudgetTokens

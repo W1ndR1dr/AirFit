@@ -10,7 +10,7 @@ final class AppState {
     private(set) var isLoading = true
     private(set) var currentUser: User?
     private(set) var hasCompletedOnboarding = false
-    private(set) var needsAPISetup = false
+    private(set) var needsAPISetup = true
     private(set) var error: Error?
 
     // MARK: - Dependencies
@@ -45,10 +45,24 @@ final class AppState {
         defer { isLoading = false }
 
         do {
-            // Check API configuration status
+            // Check API configuration status FIRST
             if let apiKeyManager = apiKeyManager {
                 let configuredProviders = await apiKeyManager.getAllConfiguredProviders()
                 needsAPISetup = configuredProviders.isEmpty
+                
+                // Debug: Log which providers are configured
+                for provider in configuredProviders {
+                    AppLogger.info("Found configured API key for: \(provider.displayName)", category: .app)
+                }
+                
+                AppLogger.info("API setup check - configured providers: \(configuredProviders.count), needs setup: \(needsAPISetup)", category: .app)
+                
+                // For testing: uncomment the next line to force API setup screen
+                // needsAPISetup = true
+            } else {
+                // If no API key manager, assume we need setup
+                needsAPISetup = true
+                AppLogger.warning("No API key manager available, assuming API setup needed", category: .app)
             }
             
             // Fetch the current user
@@ -63,7 +77,7 @@ final class AppState {
                 hasCompletedOnboarding = user.onboardingProfile != nil
                 user.updateActivity()
                 try modelContext.save()
-                AppLogger.info("User state loaded - onboarding: \(hasCompletedOnboarding)", category: .app)
+                AppLogger.info("User state loaded - onboarding: \(hasCompletedOnboarding), API setup needed: \(needsAPISetup)", category: .app)
             } else {
                 hasCompletedOnboarding = false
                 AppLogger.info("No existing user found", category: .app)
@@ -129,7 +143,7 @@ extension AppState {
     }
     
     var shouldShowOnboarding: Bool {
-        !isLoading && currentUser != nil && !hasCompletedOnboarding
+        !isLoading && !needsAPISetup && currentUser != nil && !hasCompletedOnboarding
     }
 
     var healthKitStatus: AirFit.HealthKitAuthorizationStatus {

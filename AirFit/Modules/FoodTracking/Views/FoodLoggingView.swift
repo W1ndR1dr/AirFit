@@ -148,8 +148,8 @@ struct FoodLoggingView: View {
                 Image(systemName: "chevron.right")
                     .font(.system(size: 20, weight: .light))
                     .foregroundStyle(
-                        Calendar.current.isDateInToday(viewModel.currentDate) ? 
-                        AnyShapeStyle(Color.secondary.opacity(0.3)) : 
+                        Calendar.current.isDateInToday(viewModel.currentDate) ?
+                        AnyShapeStyle(Color.secondary.opacity(0.3)) :
                         AnyShapeStyle(gradientManager.currentGradient(for: colorScheme))
                     )
             }

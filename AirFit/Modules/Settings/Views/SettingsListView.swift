@@ -1,5 +1,8 @@
 import SwiftUI
 import SwiftData
+#if DEBUG
+import HealthKit
+#endif
 
 // MARK: - Identifiable URL Wrapper
 struct IdentifiableURL: Identifiable {
@@ -864,7 +867,7 @@ struct SettingsListView: View {
                 primaryButton: .destructive(Text("Delete"), action: action),
                 secondaryButton: .cancel()
             )
-        case .exportSuccess(_):
+        case .exportSuccess:
             return Alert(
                 title: Text("Export Complete"),
                 message: Text("Your data has been exported successfully."),
@@ -1804,6 +1807,7 @@ struct DebugSettingsView: View {
     @State private var exportedLogsURL: IdentifiableURL?
     @State private var isProcessing = false
     @State private var statusMessage = ""
+    @Environment(\.diContainer) private var container
     
     var body: some View {
         List {
@@ -1835,6 +1839,27 @@ struct DebugSettingsView: View {
                 
                 NavigationLink(destination: FeatureFlagsView()) {
                     Label("Feature Flags", systemImage: "flag")
+                }
+            }
+            
+            Section("HealthKit Test Data") {
+                Button(action: generateHealthKitTestData, label: {
+                    Label("Generate Today's Data", systemImage: "heart.text.square")
+                })
+                .disabled(isProcessing)
+                
+                Button(action: { generateHealthKitHistoricalData(days: 7) }, label: {
+                    Label("Generate 7 Days History", systemImage: "calendar")
+                })
+                .disabled(isProcessing)
+                
+                Button(action: { generateHealthKitHistoricalData(days: 30) }, label: {
+                    Label("Generate 30 Days History", systemImage: "calendar.badge.clock")
+                })
+                .disabled(isProcessing)
+                
+                NavigationLink(destination: HealthKitTestDataDetailView()) {
+                    Label("Custom Data Generator", systemImage: "slider.horizontal.3")
                 }
             }
             
@@ -1996,6 +2021,88 @@ struct DebugSettingsView: View {
         )
         statusMessage = "Memory warning simulated"
     }
+    
+    // MARK: - HealthKit Test Data Methods
+    
+    private func generateHealthKitTestData() {
+        isProcessing = true
+        statusMessage = "Generating HealthKit test data..."
+        
+        Task {
+            do {
+                // Get HealthKit manager from DI container
+                let healthKitManager = try await container.resolve(HealthKitManaging.self)
+                
+                // Request authorization if needed
+                if let manager = healthKitManager as? HealthKitManager,
+                   manager.authorizationStatus != .authorized {
+                    try await manager.requestAuthorization()
+                }
+                
+                // Generate test data
+                let generator = HealthKitTestDataGenerator(healthStore: HKHealthStore())
+                try await generator.generateTestDataForToday()
+                
+                await MainActor.run {
+                    isProcessing = false
+                    statusMessage = "Successfully generated today's test data"
+                    HapticService.play(.success)
+                    
+                    // Clear status after delay
+                    Task {
+                        try? await Task.sleep(nanoseconds: 3_000_000_000)
+                        statusMessage = ""
+                    }
+                }
+            } catch {
+                await MainActor.run {
+                    isProcessing = false
+                    statusMessage = "Failed to generate test data: \(error.localizedDescription)"
+                    HapticService.play(.error)
+                }
+            }
+        }
+    }
+    
+    private func generateHealthKitHistoricalData(days: Int) {
+        isProcessing = true
+        statusMessage = "Generating \(days) days of HealthKit test data..."
+        
+        Task {
+            do {
+                // Get HealthKit manager from DI container
+                let healthKitManager = try await container.resolve(HealthKitManaging.self)
+                
+                // Request authorization if needed
+                if let manager = healthKitManager as? HealthKitManager,
+                   manager.authorizationStatus != .authorized {
+                    try await manager.requestAuthorization()
+                }
+                
+                // Generate test data
+                let generator = HealthKitTestDataGenerator(healthStore: HKHealthStore())
+                try await generator.generateHistoricalData(days: days)
+                
+                await MainActor.run {
+                    isProcessing = false
+                    statusMessage = "Successfully generated \(days) days of test data"
+                    HapticService.play(.success)
+                    
+                    // Clear status after delay
+                    Task {
+                        try? await Task.sleep(nanoseconds: 3_000_000_000)
+                        statusMessage = ""
+                    }
+                }
+            } catch {
+                await MainActor.run {
+                    isProcessing = false
+                    statusMessage = "Failed to generate test data: \(error.localizedDescription)"
+                    HapticService.play(.error)
+                }
+            }
+        }
+    }
 }
 
 struct FeatureFlagsView: View {
@@ -2031,4 +2138,3 @@ private struct SettingsShareSheet: UIViewControllerRepresentable {
     
     func updateUIViewController(_ uiViewController: UIActivityViewController, context: Context) {}
 }
-

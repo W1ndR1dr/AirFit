@@ -202,7 +202,7 @@ private struct AnimatedRing: View {
     NutritionCard(
         summary: NutritionSummary(
             calories: 850,
-            caloriesTarget: 2000,
+            caloriesTarget: 2_000,
             protein: 40,
             proteinTarget: 150,
             carbs: 120,

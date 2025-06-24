@@ -191,7 +191,7 @@ final class UserService: UserServiceProtocol, ServiceProtocol {
                     extractedAt: persona.generatedAt
                 ),
                 generationDuration: 2.5,
-                tokenCount: 1000,
+                tokenCount: 1_000,
                 previewReady: true
             )
         )

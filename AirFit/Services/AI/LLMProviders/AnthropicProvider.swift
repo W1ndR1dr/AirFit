@@ -173,7 +173,7 @@ actor AnthropicProvider: LLMProvider, ServiceProtocol {
         return AnthropicRequest(
             model: request.model,
             messages: messages,
-            max_tokens: request.maxTokens ?? 4096,
+            max_tokens: request.maxTokens ?? 4_096,
             temperature: request.temperature,
             stream: request.stream
         )

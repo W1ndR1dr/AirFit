@@ -209,7 +209,7 @@ struct ChatView: View {
                 ForEach(viewModel.quickSuggestions) { suggestion in
                     SuggestionChip(
                         suggestion: suggestion,
-                        onTap: { 
+                        onTap: {
                             HapticService.selection()
                             viewModel.selectSuggestion(suggestion)
                         }
@@ -228,21 +228,21 @@ struct ChatView: View {
     private var toolbarContent: some ToolbarContent {
         ToolbarItem(placement: .navigationBarTrailing) {
             Menu(content: {
-                Button(action: { 
+                Button(action: {
                     HapticService.selection()
                     coordinator.showSheet(.sessionHistory)
                 }, label: {
                     Label("Chat History", systemImage: "clock")
                 })
 
-                Button(action: { 
+                Button(action: {
                     HapticService.selection()
                     coordinator.navigateTo(.searchResults)
                 }, label: {
                     Label("Search", systemImage: "magnifyingglass")
                 })
 
-                Button(action: { 
+                Button(action: {
                     HapticService.selection()
                     coordinator.showSheet(.exportChat)
                 }, label: {

@@ -168,4 +168,3 @@ actor PreviewCoachEngine: FoodCoachEngineProtocol {
 }
 
 #endif
-

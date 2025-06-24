@@ -114,7 +114,7 @@ struct FoodVoiceInputView: View {
             // Main button
             ZStack {
                 Circle()
-                    .fill(viewModel.isRecording ? 
+                    .fill(viewModel.isRecording ?
                         LinearGradient(colors: [.red, .red.opacity(0.8)], startPoint: .topLeading, endPoint: .bottomTrailing) :
                         gradientManager.currentGradient(for: colorScheme)
                     )

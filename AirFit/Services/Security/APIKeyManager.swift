@@ -39,9 +39,9 @@ actor APIKeyManager: APIKeyManagementProtocol, ServiceProtocol {
     private let keychainPrefix = "com.airfit.apikey."
     
     // MARK: - ServiceProtocol
-    nonisolated var isConfigured: Bool { 
+    nonisolated var isConfigured: Bool {
         // For APIKeyManager, we're always configured if we can access keychain
-        true 
+        true
     }
     nonisolated let serviceIdentifier = "api-key-manager"
     

@@ -336,7 +336,7 @@ final class NutritionServiceTests: XCTestCase {
         let yesterday = Calendar.current.date(byAdding: .day, value: -1, to: today)!
         
         // Act
-        try await sut.logWaterIntake(for: testUser, amountML: 1000, date: yesterday)
+        try await sut.logWaterIntake(for: testUser, amountML: 1_000, date: yesterday)
         try await sut.logWaterIntake(for: testUser, amountML: 500, date: today)
         
         // Assert
@@ -344,7 +344,7 @@ final class NutritionServiceTests: XCTestCase {
         let yesterdayIntake = try await sut.getWaterIntake(for: testUser, date: yesterday)
         
         XCTAssertEqual(todayIntake, 500)
-        XCTAssertEqual(yesterdayIntake, 1000)
+        XCTAssertEqual(yesterdayIntake, 1_000)
     }
     
     // MARK: - Recent Foods Tests
@@ -470,7 +470,7 @@ final class NutritionServiceTests: XCTestCase {
         let targets = sut.getTargets(from: mockProfile)
         
         // Assert - Should return default values
-        XCTAssertEqual(targets.calories, 2000)
+        XCTAssertEqual(targets.calories, 2_000)
         XCTAssertEqual(targets.protein, 150)
         XCTAssertEqual(targets.carbs, 250)
         XCTAssertEqual(targets.fat, 65)
@@ -483,7 +483,7 @@ final class NutritionServiceTests: XCTestCase {
         let targets = sut.getTargets(from: nil)
         
         // Assert
-        XCTAssertEqual(targets.calories, 2000)
+        XCTAssertEqual(targets.calories, 2_000)
         XCTAssertEqual(targets.protein, 150)
         XCTAssertEqual(targets.carbs, 250)
         XCTAssertEqual(targets.fat, 65)

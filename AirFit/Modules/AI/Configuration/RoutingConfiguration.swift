@@ -255,4 +255,4 @@ struct RoutingMetrics: Sendable {
         self.fallbackUsed = fallbackUsed
         self.timestamp = Date()
     }
-} 
+}

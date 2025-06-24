@@ -306,7 +306,7 @@ final class DirectAIProcessor {
     
     private func validateNutritionItems(_ items: [NutritionItem]) -> [NutritionItem] {
         items.filter { item in
-            let isValid = item.calories > 0 && item.calories < 10000 &&
+            let isValid = item.calories > 0 && item.calories < 10_000 &&
                          item.protein >= 0 && item.carbs >= 0 && item.fat >= 0 &&
                          (item.protein * 4 + item.carbs * 4 + item.fat * 9) <= item.calories * 1.3
             

@@ -12,28 +12,6 @@ struct ConversationPersonalityInsights: Codable, Sendable {
     let stressResponse: ConversationStressResponse
     let preferredTimes: [String]
     let extractedAt: Date
-    
-    init(
-        dominantTraits: [String],
-        communicationStyle: ConversationCommunicationStyle,
-        motivationType: ConversationMotivationType,
-        energyLevel: ConversationEnergyLevel,
-        preferredComplexity: ConversationComplexity,
-        emotionalTone: [String],
-        stressResponse: ConversationStressResponse,
-        preferredTimes: [String],
-        extractedAt: Date
-    ) {
-        self.dominantTraits = dominantTraits
-        self.communicationStyle = communicationStyle
-        self.motivationType = motivationType
-        self.energyLevel = energyLevel
-        self.preferredComplexity = preferredComplexity
-        self.emotionalTone = emotionalTone
-        self.stressResponse = stressResponse
-        self.preferredTimes = preferredTimes
-        self.extractedAt = extractedAt
-    }
 }
 
 enum ConversationCommunicationStyle: String, Codable, CaseIterable {

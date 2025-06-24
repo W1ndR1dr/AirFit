@@ -222,12 +222,12 @@ struct EnergyLevelIndicator: View {
                 HStack(spacing: 2) {
                     ForEach(1...5, id: \.self) { i in
                         RoundedRectangle(cornerRadius: 2)
-                            .fill(i <= level ? 
+                            .fill(i <= level ?
                                 LinearGradient(
                                     colors: gradientManager.active.colors(for: colorScheme),
                                     startPoint: .leading,
                                     endPoint: .trailing
-                                ) : 
+                                ) :
                                 LinearGradient(
                                     colors: [Color.secondary.opacity(0.2)],
                                     startPoint: .leading,
@@ -315,7 +315,7 @@ struct EnergyOption: View {
 
             Text("\(level)")
                 .font(AppFonts.caption)
-                .foregroundStyle(isSelected ? 
+                .foregroundStyle(isSelected ?
                     LinearGradient(
                         colors: gradientManager.active.colors(for: colorScheme),
                         startPoint: .leading,
@@ -331,7 +331,7 @@ struct EnergyOption: View {
         .padding(.vertical, AppSpacing.medium)
         .background(
             RoundedRectangle(cornerRadius: AppConstants.Layout.defaultCornerRadius)
-                .fill(isSelected ? 
+                .fill(isSelected ?
                     LinearGradient(
                         colors: gradientManager.active.colors(for: colorScheme).map { $0.opacity(0.1) },
                         startPoint: .topLeading,

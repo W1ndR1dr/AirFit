@@ -13,7 +13,7 @@ final class MockHealthKitManager: HealthKitManaging, MockProtocol, @unchecked Se
     // Test configuration options
     var simulateDelay: TimeInterval = 0
     var callCount = 0
-    var shouldFailAfterCalls: Int? = nil
+    var shouldFailAfterCalls: Int?
     var shouldThrowError = false
     var errorToThrow: Error = HealthKitManager.HealthKitError.queryFailed(NSError(domain: "MockError", code: -1))
 

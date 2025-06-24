@@ -122,9 +122,9 @@ struct MessageComposer: View {
     }
 
     private var attachmentMenu: some View {
-        Button(action: { 
+        Button(action: {
             HapticService.selection()
-            showAttachmentPicker = true 
+            showAttachmentPicker = true
         }, label: {
             Image(systemName: "plus")
                 .font(.system(size: 20, weight: .medium))
@@ -138,11 +138,11 @@ struct MessageComposer: View {
             .textFieldStyle(.plain)
             .lineLimit(1...5)
             .focused($isTextFieldFocused)
-            .onSubmit { 
-                if canSend { 
+            .onSubmit {
+                if canSend {
                     HapticService.impact(.light)
-                    onSend() 
-                } 
+                    onSend()
+                }
             }
             .opacity(animateIn ? 1 : 0)
             .animation(MotionToken.standardSpring.delay(0.1), value: animateIn)
@@ -217,7 +217,7 @@ private struct RecordingIndicator: View {
                     .opacity(isAnimating ? 0 : 0.8)
             )
             .opacity(opacity)
-            .onAppear { 
+            .onAppear {
                 // Gentle pulsing
                 withAnimation(
                     .easeInOut(duration: 0.8)

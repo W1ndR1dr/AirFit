@@ -191,7 +191,7 @@ actor PersonaSynthesizer {
         )
         
         // Cache for future
-        await cache.set(request: request, response: response, ttl: 3600)
+        await cache.set(request: request, response: response, ttl: 3_600)
         
         return try parseCreativeContent(from: response.content)
     }

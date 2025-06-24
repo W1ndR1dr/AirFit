@@ -200,7 +200,7 @@ final class FoodTrackingFlowUITests: XCTestCase {
         photoLibraryButton.tap()
         
         // Handle photo library permission if it appears - tap it to interact with system alerts
-        app.tap() 
+        app.tap()
         
         // Select a photo (this part is highly dependent on simulator state and iOS version)
         // Typically, you'd tap on the first photo in the library.
@@ -354,8 +354,7 @@ final class FoodTrackingFlowUITests: XCTestCase {
             XCTAssertTrue(app.otherElements[VoiceInputViewIDs.view].waitForExistence(timeout: 2), "Voice input view failed to appear quickly.")
             // Tap cancel to dismiss for repeated measures
             let cancelButton = app.buttons[VoiceInputViewIDs.cancelButton]
-            if cancelButton.exists { cancelButton.tap() }
-            else { app.navigationBars.buttons.firstMatch.tap() } // General back
+            if cancelButton.exists { cancelButton.tap() } else { app.navigationBars.buttons.firstMatch.tap() } // General back
         }
     }
     
@@ -373,8 +372,7 @@ final class FoodTrackingFlowUITests: XCTestCase {
         
         // Clean up by dismissing the voice input view
         let cancelButton = app.buttons[VoiceInputViewIDs.cancelButton]
-        if cancelButton.exists { cancelButton.tap() }
-        else { app.navigationBars.buttons.firstMatch.tap() }
+        if cancelButton.exists { cancelButton.tap() } else { app.navigationBars.buttons.firstMatch.tap() }
     }
 }
 

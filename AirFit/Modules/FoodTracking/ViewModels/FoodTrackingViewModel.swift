@@ -78,7 +78,7 @@ final class FoodTrackingViewModel: ErrorHandling {
     // Legacy error handling - replaced by ErrorHandling protocol
     private var currentError: Error? {
         get { error }
-        set { 
+        set {
             if let newValue {
                 handleError(newValue)
             } else {
@@ -508,7 +508,7 @@ enum WaterUnit: String, CaseIterable {
         case .milliliters: return amount
         case .oz: return amount * 29.5735
         case .cups: return amount * 236.588
-        case .liters: return amount * 1000
+        case .liters: return amount * 1_000
         }
     }
 }
@@ -536,4 +536,3 @@ protocol FoodCoachEngineProtocol: Sendable {
         for user: User
     ) async throws -> [ParsedFoodItem]
 }
-

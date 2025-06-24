@@ -377,10 +377,10 @@ final class AINutritionParsingTests: XCTestCase {
             brand: nil,
             quantity: 1.0,
             unit: "serving",
-            calories: 10000, // Invalid: too high
+            calories: 10_000, // Invalid: too high
             proteinGrams: 500, // Invalid: too high
-            carbGrams: 2000, // Invalid: too high
-            fatGrams: 1000, // Invalid: too high
+            carbGrams: 2_000, // Invalid: too high
+            fatGrams: 1_000, // Invalid: too high
             fiberGrams: 0.0,
             sugarGrams: 0.0,
             sodiumMilligrams: 0.0,
@@ -401,7 +401,7 @@ final class AINutritionParsingTests: XCTestCase {
         // Should return fallback item instead of invalid data
         XCTAssertEqual(result.count, 1)
         XCTAssertEqual(result[0].name, "magic")
-        XCTAssertLessThan(result[0].calories, 5000)
+        XCTAssertLessThan(result[0].calories, 5_000)
         XCTAssertEqual(result[0].confidence, 0.3, accuracy: 0.01) // Fallback confidence
     }
 
@@ -731,9 +731,9 @@ final class MockFoodCoachEngine: CoachEngineProtocol, FoodCoachEngineProtocol {
 
     private func validateNutritionValues(_ items: [ParsedFoodItem]) -> [ParsedFoodItem] {
         return items.compactMap { item in
-            guard item.calories > 0 && item.calories < 5000,
+            guard item.calories > 0 && item.calories < 5_000,
                   item.proteinGrams >= 0 && item.proteinGrams < 300,
-                  item.carbGrams >= 0 && item.carbGrams < 1000,
+                  item.carbGrams >= 0 && item.carbGrams < 1_000,
                   item.fatGrams >= 0 && item.fatGrams < 500 else {
                 return nil
             }

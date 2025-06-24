@@ -131,9 +131,9 @@ final class AINutritionParsingIntegrationTests: XCTestCase {
         
         // Then
         let item = result[0]
-        XCTAssertLessThan(item.calories, 5000, "Calories should be within reasonable range")
+        XCTAssertLessThan(item.calories, 5_000, "Calories should be within reasonable range")
         XCTAssertLessThan(item.proteinGrams, 300, "Protein should be within reasonable range")
-        XCTAssertLessThan(item.carbGrams, 1000, "Carbs should be within reasonable range")
+        XCTAssertLessThan(item.carbGrams, 1_000, "Carbs should be within reasonable range")
         XCTAssertLessThan(item.fatGrams, 500, "Fat should be within reasonable range")
     }
 
@@ -154,4 +154,4 @@ final class AINutritionParsingIntegrationTests: XCTestCase {
         XCTAssertFalse(result.isEmpty, "Should return results")
         XCTAssertLessThan(duration, 1.0, "Should complete within 1 second for fallback")
     }
-} 
+}

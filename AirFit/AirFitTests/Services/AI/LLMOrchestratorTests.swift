@@ -69,7 +69,7 @@ final class LLMOrchestratorTests: XCTestCase {
         // Assert
         // Claude 3.5 Sonnet: $0.003/1K input, $0.015/1K output
         // ~250 input tokens + 500 output tokens
-        let expectedCost = (250.0/1000.0 * 0.003) + (500.0/1000.0 * 0.015)
+        let expectedCost = (250.0 / 1_000.0 * 0.003) + (500.0 / 1_000.0 * 0.015)
         XCTAssertEqual(cost, expectedCost, accuracy: 0.001)
     }
     
@@ -77,7 +77,7 @@ final class LLMOrchestratorTests: XCTestCase {
         // Arrange
         let prompt = String(repeating: "test ", count: 400) // ~2000 chars = ~500 tokens
         let model = LLMModel.gpt4o
-        let responseTokens = 1000
+        let responseTokens = 1_000
         
         // Act
         let cost = sut.estimateCost(for: prompt, model: model, responseTokens: responseTokens)
@@ -85,15 +85,15 @@ final class LLMOrchestratorTests: XCTestCase {
         // Assert
         // GPT-4o: $0.003/1K input, $0.020/1K output
         // ~500 input tokens + 1000 output tokens
-        let expectedCost = (500.0/1000.0 * 0.003) + (1000.0/1000.0 * 0.020)
+        let expectedCost = (500.0 / 1_000.0 * 0.003) + (1_000.0 / 1_000.0 * 0.020)
         XCTAssertEqual(cost, expectedCost, accuracy: 0.001)
     }
     
     func test_estimateCost_withGeminiModel_calculatesCorrectly() {
         // Arrange
-        let prompt = String(repeating: "hello ", count: 1000) // ~6000 chars = ~1500 tokens
+        let prompt = String(repeating: "hello ", count: 1_000) // ~6000 chars = ~1500 tokens
         let model = LLMModel.gemini15Flash
-        let responseTokens = 2000
+        let responseTokens = 2_000
         
         // Act
         let cost = sut.estimateCost(for: prompt, model: model, responseTokens: responseTokens)
@@ -101,7 +101,7 @@ final class LLMOrchestratorTests: XCTestCase {
         // Assert
         // Gemini 1.5 Flash: $0.0002/1K input, $0.001/1K output
         // ~1500 input tokens + 2000 output tokens
-        let expectedCost = (1500.0/1000.0 * 0.0002) + (2000.0/1000.0 * 0.001)
+        let expectedCost = (1_500.0 / 1_000.0 * 0.0002) + (2_000.0 / 1_000.0 * 0.001)
         XCTAssertEqual(cost, expectedCost, accuracy: 0.0001)
     }
     
@@ -120,9 +120,9 @@ final class LLMOrchestratorTests: XCTestCase {
     
     func test_estimateCost_withVeryLongPrompt_handlesCorrectly() {
         // Arrange
-        let prompt = String(repeating: "This is a very long prompt. ", count: 10000) // ~280K chars = ~70K tokens
+        let prompt = String(repeating: "This is a very long prompt. ", count: 10_000) // ~280K chars = ~70K tokens
         let model = LLMModel.claude3Opus
-        let responseTokens = 5000
+        let responseTokens = 5_000
         
         // Act
         let cost = sut.estimateCost(for: prompt, model: model, responseTokens: responseTokens)
@@ -130,7 +130,7 @@ final class LLMOrchestratorTests: XCTestCase {
         // Assert
         // Claude 3 Opus: $0.015/1K input, $0.075/1K output
         // ~70000 input tokens + 5000 output tokens
-        let expectedCost = (70000.0/1000.0 * 0.015) + (5000.0/1000.0 * 0.075)
+        let expectedCost = (70_000.0 / 1_000.0 * 0.015) + (5_000.0 / 1_000.0 * 0.075)
         XCTAssertEqual(cost, expectedCost, accuracy: 0.01)
     }
     
@@ -284,7 +284,7 @@ final class LLMOrchestratorTests: XCTestCase {
     
     func test_estimateCost_performance() {
         // Arrange
-        let longPrompt = String(repeating: "performance test ", count: 10000)
+        let longPrompt = String(repeating: "performance test ", count: 10_000)
         let model = LLMModel.claude35Sonnet
         
         // Act & Measure

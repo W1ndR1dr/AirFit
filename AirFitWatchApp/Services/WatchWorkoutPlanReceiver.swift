@@ -272,7 +272,6 @@ extension WatchWorkoutPlanReceiver: WCSessionDelegate {
     }
 }
 
-
 // MARK: - Preview Support
 
 #if DEBUG

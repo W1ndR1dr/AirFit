@@ -19,7 +19,7 @@ struct ServiceConfiguration: Sendable {
             maxRetries: 3,
             timeout: 30,
             cacheEnabled: true,
-            cacheDuration: 3600, // 1 hour
+            cacheDuration: 3_600, // 1 hour
             streamingEnabled: true,
             costTrackingEnabled: true
         )
@@ -82,7 +82,7 @@ struct ServiceConfiguration: Sendable {
         static let `default` = AnalyticsConfiguration(
             enabled: true,
             debugLogging: false,
-            sessionTimeout: 1800, // 30 minutes
+            sessionTimeout: 1_800, // 30 minutes
             flushInterval: 60, // 1 minute
             maxEventsPerBatch: 100
         )

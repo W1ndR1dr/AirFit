@@ -84,7 +84,7 @@ final class PersonaGenerationTests: XCTestCase {
         let responseData2 = try JSONEncoder().encode(ResponseValue.text("I'm a beginner, just starting out"))
         let response2 = ConversationResponse(
             sessionId: session.id,
-            nodeId: "experience", 
+            nodeId: "experience",
             responseData: responseData2
         )
         

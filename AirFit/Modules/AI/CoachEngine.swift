@@ -703,9 +703,6 @@ final class CoachEngine {
     
     // MARK: - Direct AI Helpers
     
-    
-     
-     
 
     /// Enhanced version of streamAIResponse with routing metrics
     private func streamAIResponseWithMetrics(
@@ -1421,7 +1418,7 @@ extension CoachEngine: FoodCoachEngineProtocol {
             
             let duration = CFAbsoluteTimeGetCurrent() - startTime
             AppLogger.info(
-                "AI nutrition parsing: \(validatedResult.count) items in \(Int(duration * 1000))ms | Input: '\(text)' | Validation: \(validatedResult.allSatisfy { $0.calories > 0 })",
+                "AI nutrition parsing: \(validatedResult.count) items in \(Int(duration * 1_000))ms | Input: '\(text)' | Validation: \(validatedResult.allSatisfy { $0.calories > 0 })",
                 category: .ai
             )
             
@@ -1464,7 +1461,7 @@ extension CoachEngine: FoodCoachEngineProtocol {
         Rules:
         - Use USDA nutrition database accuracy
         - If multiple items mentioned, include all
-        - Estimate quantities if not specified  
+        - Estimate quantities if not specified
         - Return realistic nutrition values (not 100 calories for everything!)
         - Confidence 0.9+ for common foods, lower for ambiguous items
         - No explanations or extra text, just JSON
@@ -1510,9 +1507,9 @@ extension CoachEngine: FoodCoachEngineProtocol {
     private func validateNutritionValues(_ items: [ParsedFoodItem]) -> [ParsedFoodItem] {
         return items.compactMap { item in
             // Reject obviously wrong values
-            guard item.calories > 0 && item.calories < 5000,
+            guard item.calories > 0 && item.calories < 5_000,
                   item.proteinGrams >= 0 && item.proteinGrams < 300,
-                  item.carbGrams >= 0 && item.carbGrams < 1000,
+                  item.carbGrams >= 0 && item.carbGrams < 1_000,
                   item.fatGrams >= 0 && item.fatGrams < 500 else {
                 AppLogger.warning("Rejected invalid nutrition values for \(item.name)", category: .ai)
                 return nil
@@ -1609,7 +1606,7 @@ private final class PreviewAIAnalyticsService: AIAnalyticsServiceProtocol {
     func getInsights(for user: User) async throws -> UserInsights {
         UserInsights(
             workoutFrequency: 3.5,
-            averageWorkoutDuration: 3600,
+            averageWorkoutDuration: 3_600,
             caloriesTrend: Trend(direction: .up, changePercentage: 5),
             macroBalance: MacroBalance(proteinPercentage: 0.3, carbsPercentage: 0.4, fatPercentage: 0.3),
             streakDays: 7,

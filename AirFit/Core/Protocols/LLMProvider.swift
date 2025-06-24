@@ -88,8 +88,8 @@ struct LLMResponse: Sendable {
         var totalTokens: Int { promptTokens + completionTokens }
         
         func cost(at rates: (input: Double, output: Double)) -> Double {
-            let inputCost = Double(promptTokens) / 1000.0 * rates.input
-            let outputCost = Double(completionTokens) / 1000.0 * rates.output
+            let inputCost = Double(promptTokens) / 1_000.0 * rates.input
+            let outputCost = Double(completionTokens) / 1_000.0 * rates.output
             return inputCost + outputCost
         }
     }

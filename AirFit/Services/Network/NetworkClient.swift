@@ -1,6 +1,6 @@
 import Foundation
 
-final class NetworkClient: NetworkClientProtocol, ServiceProtocol {    
+final class NetworkClient: NetworkClientProtocol, ServiceProtocol {
     private let session: URLSession
     private let decoder: JSONDecoder
     private let encoder: JSONEncoder
@@ -8,7 +8,7 @@ final class NetworkClient: NetworkClientProtocol, ServiceProtocol {
     // MARK: - ServiceProtocol
     let serviceIdentifier = "network-client"
     @MainActor private var _isConfigured = false
-    var isConfigured: Bool { 
+    var isConfigured: Bool {
         MainActor.assumeIsolated { _isConfigured }
     }
 

@@ -678,7 +678,7 @@ final class ChatViewModelTests: XCTestCase {
         await sut!.loadOrCreateSession()
         
         // Create a large number of messages
-        let messageCount = 1000
+        let messageCount = 1_000
         for i in 0..<messageCount {
             let message = ChatMessage(
                 session: sut!.currentSession!,
@@ -775,4 +775,4 @@ final class ChatViewModelTests: XCTestCase {
         XCTAssertEqual(receivedUpdates.last?.count, 5)
         XCTAssertEqual(receivedUpdates.last?.last, 0.3)
     }
-} 
+}

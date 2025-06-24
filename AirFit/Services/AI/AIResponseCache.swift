@@ -12,8 +12,8 @@ actor AIResponseCache: ServiceProtocol {
     private var memoryCache: [String: CacheEntry] = [:]
     private var diskCachePath: URL
     private let maxMemoryCacheSize = 100
-    private let maxDiskCacheSize = 1000
-    private let defaultTTL: TimeInterval = 3600 // 1 hour
+    private let maxDiskCacheSize = 1_000
+    private let defaultTTL: TimeInterval = 3_600 // 1 hour
     
     // Cache statistics
     private var hitCount = 0
@@ -169,8 +169,8 @@ actor AIResponseCache: ServiceProtocol {
     
     /// Get cache statistics
     func getStatistics() -> CacheStatistics {
-        let hitRate = hitCount + missCount > 0 
-            ? Double(hitCount) / Double(hitCount + missCount) 
+        let hitRate = hitCount + missCount > 0
+            ? Double(hitCount) / Double(hitCount + missCount)
             : 0
         
         let memorySize = memoryCache.values.reduce(0) { $0 + $1.size }
@@ -241,8 +241,8 @@ actor AIResponseCache: ServiceProtocol {
     }
     
     private func evictLRUEntry() async {
-        guard let lruEntry = memoryCache.values.min(by: { 
-            $0.accessCount < $1.accessCount || 
+        guard let lruEntry = memoryCache.values.min(by: {
+            $0.accessCount < $1.accessCount ||
             ($0.accessCount == $1.accessCount && $0.timestamp < $1.timestamp)
         }) else { return }
         
@@ -400,7 +400,7 @@ actor AIResponseCache: ServiceProtocol {
             metadata: [
                 "hitRate": String(format: "%.2f%%", stats.hitRate * 100),
                 "memoryEntries": "\(stats.memoryEntries)",
-                "memorySizeMB": String(format: "%.2f", Double(stats.memorySizeBytes) / 1024 / 1024),
+                "memorySizeMB": String(format: "%.2f", Double(stats.memorySizeBytes) / 1_024 / 1_024),
                 "evictionCount": "\(stats.evictionCount)"
             ]
         )

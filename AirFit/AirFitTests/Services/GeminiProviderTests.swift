@@ -31,7 +31,7 @@ final class GeminiProviderTests: XCTestCase {
             task: .personaSynthesis
         )
         
-        XCTAssertEqual(request.thinkingBudgetTokens, 8192)
+        XCTAssertEqual(request.thinkingBudgetTokens, 8_192)
     }
     
     func testMultimodalMessageSupport() {
@@ -117,11 +117,11 @@ extension LLMOrchestrator {
             if model == .gemini25FlashThinking {
                 switch task {
                 case .personaSynthesis:
-                    return 8192
+                    return 8_192
                 case .personalityExtraction, .conversationAnalysis:
-                    return 4096
+                    return 4_096
                 case .coaching, .quickResponse:
-                    return 1024
+                    return 1_024
                 }
             }
             return nil

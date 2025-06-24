@@ -141,7 +141,7 @@ final class CoachEngineTests: XCTestCase {
         // Then
         XCTAssertGreaterThan(result.items.count, 0, "Should parse at least one item")
         XCTAssertGreaterThan(result.totalCalories, 100, "Should have realistic calories")
-        XCTAssertLessThan(result.totalCalories, 1000, "Should not have excessive calories")
+        XCTAssertLessThan(result.totalCalories, 1_000, "Should not have excessive calories")
         XCTAssertGreaterThan(result.confidence, 0.5, "Should have reasonable confidence")
         XCTAssertEqual(result.parseStrategy, .directAI, "Should use direct AI strategy")
         XCTAssertGreaterThan(result.tokenCount, 0, "Should track token usage")
@@ -180,7 +180,7 @@ final class CoachEngineTests: XCTestCase {
         // Then
         XCTAssertEqual(result.topic, topic, "Should preserve topic")
         XCTAssertGreaterThan(result.content.count, 100, "Should generate meaningful content")
-        XCTAssertLessThan(result.content.count, 2000, "Should not be excessively long")
+        XCTAssertLessThan(result.content.count, 2_000, "Should not be excessively long")
         XCTAssertGreaterThan(result.tokenCount, 0, "Should track token usage")
         XCTAssertGreaterThan(result.personalizationLevel, 0.1, "Should have some personalization")
         XCTAssertNotEqual(result.contentType, .general, "Should classify content type appropriately")

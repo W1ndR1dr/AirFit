@@ -102,9 +102,9 @@ struct FoodConfirmationView: View {
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) {
-                    Button("Cancel") { 
+                    Button("Cancel") {
                         HapticService.impact(.light)
-                        dismiss() 
+                        dismiss()
                     }
                     .foregroundStyle(
                         LinearGradient(
@@ -281,8 +281,8 @@ struct FoodConfirmationView: View {
                 )
                 .clipShape(RoundedRectangle(cornerRadius: 14))
                 .shadow(
-                    color: items.isEmpty ? 
-                        Color.clear : 
+                    color: items.isEmpty ?
+                        Color.clear :
                         gradientManager.active.colors(for: colorScheme)[0].opacity(0.2),
                     radius: 8,
                     y: 2
@@ -471,7 +471,7 @@ private struct FoodItemCard: View {
 private struct NutrientMetric: View {
     let value: Double
     let unit: String
-    var label: String? = nil
+    var label: String?
     let icon: String
     let color: Color
     
@@ -499,7 +499,7 @@ private struct NutrientMetric: View {
 private struct NutrientCompact: View {
     let value: Double
     let unit: String
-    var label: String? = nil
+    var label: String?
     let color: Color
 
     var body: some View {
@@ -774,8 +774,8 @@ private struct ManualFoodEntryView: View {
                         )
                         .clipShape(RoundedRectangle(cornerRadius: 14))
                         .shadow(
-                            color: (name.isEmpty || calories <= 0) ? 
-                                Color.clear : 
+                            color: (name.isEmpty || calories <= 0) ?
+                                Color.clear :
                                 gradientManager.active.colors(for: colorScheme)[0].opacity(0.2),
                             radius: 8,
                             y: 2

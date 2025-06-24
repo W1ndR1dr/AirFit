@@ -297,12 +297,12 @@ struct MessageBubbleView: View {
         })
         
         if hasExpandableContent {
-            Button(action: { 
+            Button(action: {
                 withAnimation(.spring()) {
                     isExpanded.toggle()
                 }
             }, label: {
-                Label(isExpanded ? "Collapse" : "Expand", 
+                Label(isExpanded ? "Collapse" : "Expand",
                       systemImage: isExpanded ? "chevron.up" : "chevron.down")
             })
         }
@@ -676,4 +676,3 @@ struct QuickActionsView: View {
         }
     }
 }
-

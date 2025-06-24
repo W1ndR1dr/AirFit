@@ -26,20 +26,20 @@ actor TestModeAIService: @preconcurrency AIServiceProtocol {
     
     // MARK: - AIServiceProtocol
     var activeProvider: AIProvider { .openAI }
-    var availableModels: [AIModel] { 
+    var availableModels: [AIModel] {
         [
             AIModel(
                 id: "gpt-4",
                 name: "GPT-4",
                 provider: .openAI,
-                contextWindow: 8192,
+                contextWindow: 8_192,
                 costPerThousandTokens: AIModel.TokenCost(input: 0.03, output: 0.06)
             ),
             AIModel(
                 id: "gpt-3.5-turbo",
                 name: "GPT-3.5 Turbo",
                 provider: .openAI,
-                contextWindow: 4096,
+                contextWindow: 4_096,
                 costPerThousandTokens: AIModel.TokenCost(input: 0.001, output: 0.002)
             )
         ]

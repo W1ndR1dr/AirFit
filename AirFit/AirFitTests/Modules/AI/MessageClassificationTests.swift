@@ -66,7 +66,7 @@ final class MessageClassificationTests: XCTestCase {
             "log my breakfast today",
             "add some chicken to my meal",
             "track my daily water intake",
-            "record today's gym session", 
+            "record today's gym session",
             "show me my dashboard",
             "open the workout section",
             "start a new workout"
@@ -103,7 +103,7 @@ final class MessageClassificationTests: XCTestCase {
         let patternCommands = [
             "1500 calories",
             "50g protein powder",
-            "2 cups rice", 
+            "2 cups rice",
             "500ml water",
             "thanks",
             "got it"
@@ -352,4 +352,4 @@ final class MessageClassificationTests: XCTestCase {
         )
         return try modelContext.fetch(descriptor)
     }
-} 
+}

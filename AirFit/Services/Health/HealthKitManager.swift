@@ -145,25 +145,40 @@ final class HealthKitManager: HealthKitManaging, ServiceProtocol {
 
     // MARK: - Authorization
     func requestAuthorization() async throws {
+        AppLogger.info("HealthKit: Starting authorization request", category: .health)
+        
         guard HKHealthStore.isHealthDataAvailable() else {
             authorizationStatus = .restricted
+            AppLogger.error("HealthKit: Not available on this device", category: .health)
             throw AppError.from(HealthKitError.notAvailable)
         }
 
         do {
+            AppLogger.info("HealthKit: Requesting authorization for \(HealthKitDataTypes.readTypes.count) read types and \(HealthKitDataTypes.writeTypes.count) write types", category: .health)
+            
             try await healthStore.requestAuthorization(
                 toShare: HealthKitDataTypes.writeTypes,
                 read: HealthKitDataTypes.readTypes
             )
-            authorizationStatus = .authorized
-            AppLogger.info("HealthKit authorization granted", category: .health)
+            
+            // Check actual authorization status after request
+            refreshAuthorizationStatus()
+            
+            AppLogger.info("HealthKit: Authorization request completed, status: \(authorizationStatus)", category: .health)
 
             // Enable background delivery after successful authorization
-            do {
-                try await dataFetcher.enableBackgroundDelivery()
-            } catch {
-                AppLogger.error("Failed to enable HealthKit background delivery", error: error, category: .health)
+            if authorizationStatus == .authorized {
+                do {
+                    try await dataFetcher.enableBackgroundDelivery()
+                    AppLogger.info("HealthKit: Background delivery enabled", category: .health)
+                } catch {
+                    AppLogger.error("Failed to enable HealthKit background delivery", error: error, category: .health)
+                }
             }
+        } catch let error as NSError {
+            authorizationStatus = .denied
+            AppLogger.error("HealthKit authorization failed with NSError code: \(error.code), domain: \(error.domain), description: \(error.localizedDescription)", category: .health)
+            throw error
         } catch {
             authorizationStatus = .denied
             AppLogger.error("HealthKit authorization failed", error: error, category: .health)
@@ -230,7 +245,9 @@ final class HealthKitManager: HealthKitManaging, ServiceProtocol {
             identifier: .appleMoveTime, start: startDate, end: endDate, unit: HKUnit.minute()
         )
         async let currentHR = dataFetcher.fetchLatestQuantitySample(
-            identifier: .heartRate, unit: HKUnit.count().unitDivided(by: HKUnit.minute())
+            identifier: .heartRate, 
+            unit: HKUnit.count().unitDivided(by: HKUnit.minute()),
+            daysBack: 1  // Only look at today's HR
         )
 
         var metrics = ActivityMetrics()
@@ -267,43 +284,38 @@ final class HealthKitManager: HealthKitManaging, ServiceProtocol {
 
     /// Fetches heart health metrics
     func fetchHeartHealthMetrics() async throws -> HeartHealthMetrics {
+        // Fetch only the most critical metrics with tight time bounds
         async let restingHR = dataFetcher.fetchLatestQuantitySample(
             identifier: .restingHeartRate,
-            unit: HKUnit.count().unitDivided(by: HKUnit.minute())
+            unit: HKUnit.count().unitDivided(by: HKUnit.minute()),
+            daysBack: 3  // Only look at last 3 days
         )
 
         async let hrv = dataFetcher.fetchLatestQuantitySample(
             identifier: .heartRateVariabilitySDNN,
-            unit: HKUnit.secondUnit(with: .milli)
+            unit: HKUnit.secondUnit(with: .milli),
+            daysBack: 3  // HRV from last 3 days is sufficient
         )
 
-        async let respiratoryRate = dataFetcher.fetchLatestQuantitySample(
-            identifier: .respiratoryRate,
-            unit: HKUnit.count().unitDivided(by: HKUnit.minute())
-        )
-
-        async let vo2Max = dataFetcher.fetchLatestQuantitySample(
-            identifier: .vo2Max,
-            unit: HKUnit.literUnit(with: .milli)
-                .unitDivided(by: HKUnit.gramUnit(with: .kilo))
-                .unitDivided(by: HKUnit.minute())
-        )
-
-        async let recovery = dataFetcher.fetchLatestQuantitySample(
-            identifier: .heartRateRecoveryOneMinute,
-            unit: HKUnit.count().unitDivided(by: HKUnit.minute())
-        )
+        // Skip less critical metrics for initial load
+        let respiratoryRate: Double? = nil
+        let vo2Max: Double? = nil
+        let recovery: Double? = nil
+        
+        // Await only the critical metrics
+        let restingHRValue = try await restingHR
+        let hrvValue = try await hrv
 
         return HeartHealthMetrics(
-            restingHeartRate: (try await restingHR).map { Int($0) },
-            hrv: (try await hrv).map { Measurement(value: $0, unit: UnitDuration.milliseconds) },
-            respiratoryRate: try await respiratoryRate,
-            vo2Max: try await vo2Max,
-            cardioFitness: (try await vo2Max).flatMap {
+            restingHeartRate: restingHRValue.map { Int($0) },
+            hrv: hrvValue.map { Measurement(value: $0, unit: UnitDuration.milliseconds) },
+            respiratoryRate: respiratoryRate,
+            vo2Max: vo2Max,
+            cardioFitness: vo2Max.flatMap {
                 HeartHealthMetrics.CardioFitnessLevel.from(vo2Max: $0)
             },
-            recoveryHeartRate: (try await recovery).map { Int($0) },
-            heartRateRecovery: await calculateHeartRateRecovery()
+            recoveryHeartRate: recovery.map { Int($0) },
+            heartRateRecovery: nil  // Skip expensive calculation for initial load
         )
     }
 
@@ -348,7 +360,8 @@ final class HealthKitManager: HealthKitManaging, ServiceProtocol {
         let startDate = calendar.date(byAdding: .day, value: -1, to: calendar.startOfDay(for: now)) ?? now
         let endDate = calendar.date(byAdding: .hour, value: 12, to: calendar.startOfDay(for: now)) ?? now
 
-        return try await sleepAnalyzer.analyzeSleepSamples(from: startDate, to: endDate)
+        // Limit sleep analysis to reduce data volume
+        return try await sleepAnalyzer.analyzeSleepSamples(from: startDate, to: endDate, limit: 100)
     }
     
     /// Fetches workout data within date range
@@ -367,7 +380,7 @@ final class HealthKitManager: HealthKitManaging, ServiceProtocol {
                 let query = HKSampleQuery(
                     sampleType: workoutType,
                     predicate: predicate,
-                    limit: HKObjectQueryNoLimit,
+                    limit: 20,  // Limit to recent 20 workouts instead of unlimited
                     sortDescriptors: [sortDescriptor]
                 ) { (_, samples, error) in
                     if let error = error {
@@ -394,7 +407,7 @@ final class HealthKitManager: HealthKitManaging, ServiceProtocol {
                 }
                 
                 healthStore.execute(query)
-            }
+        }
     }
     
     // MARK: - Nutrition Writing
@@ -755,7 +768,7 @@ final class HealthKitManager: HealthKitManaging, ServiceProtocol {
     /// Fetches currently active workout if any
     private func fetchActiveWorkout() async throws -> HKWorkout? {
         let now = Date()
-        let oneHourAgo = now.addingTimeInterval(-3600)
+        let oneHourAgo = now.addingTimeInterval(-3_600)
         
         // Create predicate for workouts that started within the last hour and have no end date
         let startDatePredicate = HKQuery.predicateForSamples(withStart: oneHourAgo, end: now, options: .strictStartDate)
@@ -850,7 +863,7 @@ final class HealthKitManager: HealthKitManaging, ServiceProtocol {
                     unit: HKUnit.count().unitDivided(by: HKUnit.minute()),
                     from: workout.startDate,
                     to: workoutEnd
-                ).max(by: { $0.quantity.doubleValue(for: HKUnit.count().unitDivided(by: HKUnit.minute())) < 
+                ).max(by: { $0.quantity.doubleValue(for: HKUnit.count().unitDivided(by: HKUnit.minute())) <
                           $1.quantity.doubleValue(for: HKUnit.count().unitDivided(by: HKUnit.minute())) })
                 
                 guard let peak = peakHR,

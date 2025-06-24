@@ -178,7 +178,7 @@ final class DashboardNutritionServiceTests: XCTestCase {
         let summary = try await sut.getTodayNutritionSummary(for: testUser)
         
         // Assert
-        XCTAssertEqual(summary.calories, 1000) // 350 + 450 + 200
+        XCTAssertEqual(summary.calories, 1_000) // 350 + 450 + 200
         XCTAssertEqual(summary.protein, 72)    // 12 + 35 + 25
         XCTAssertEqual(summary.carbs, 105)     // 60 + 30 + 15
         XCTAssertEqual(summary.fat, 33)        // 8 + 20 + 5
