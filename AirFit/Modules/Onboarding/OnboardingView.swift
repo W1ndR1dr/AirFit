@@ -49,20 +49,26 @@ struct OnboardingView: View {
                                 conversationCount += 1
                                 userInput = ""
                                 
-                                // Minimum 3 exchanges before generating
+                                // Conversation flow logic with clear boundaries
                                 if conversationCount < 3 {
-                                    // Always ask follow-up questions early
+                                    // Early phase: Always continue gathering context
                                     if let followUp = intelligence.followUpQuestion {
                                         intelligence.currentPrompt = followUp
+                                    } else {
+                                        // Generate a follow-up if none provided
+                                        intelligence.currentPrompt = "Tell me more about your fitness journey."
                                     }
-                                } else if intelligence.contextQuality.overall >= 0.8 || conversationCount >= 10 {
-                                    // Have enough context or reached max
+                                } else if conversationCount >= 10 {
+                                    // Hard limit reached: Generate persona regardless of context quality
+                                    phase = .generating
+                                } else if intelligence.contextQuality.overall >= 0.8 {
+                                    // Sufficient context: Ready to generate
                                     phase = .generating
                                 } else if let followUp = intelligence.followUpQuestion {
-                                    // Continue gathering context
+                                    // Still gathering: Use AI-generated follow-up
                                     intelligence.currentPrompt = followUp
                                 } else {
-                                    // Ready to generate
+                                    // No follow-up but context insufficient: Force generation
                                     phase = .generating
                                 }
                             }
