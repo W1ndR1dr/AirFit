@@ -209,15 +209,41 @@ struct DashboardContent: View {
     @ViewBuilder
     private func destinationView(for destination: DashboardDestination) -> some View {
         switch destination {
-        case .placeholder:
-            Text("Destination")
+        case .nutritionDetail:
+            // TODO: Navigate to nutrition detail view
+            Text("Nutrition Detail")
+                .font(.largeTitle)
+                .foregroundStyle(.secondary)
+        case .workoutHistory:
+            // TODO: Navigate to workout history view
+            Text("Workout History")
+                .font(.largeTitle)
+                .foregroundStyle(.secondary)
+        case .recoveryDetail:
+            // TODO: Navigate to recovery detail view
+            Text("Recovery Detail")
+                .font(.largeTitle)
+                .foregroundStyle(.secondary)
         case .settings:
             SettingsView(user: user)
         }
     }
 
     private func handleQuickAction(_ action: QuickAction) {
-        coordinator.navigate(to: .nutritionDetail)
+        switch action.action {
+        case .logMeal:
+            // Navigate to nutrition/food logging
+            coordinator.navigate(to: .nutritionDetail)
+        case .startWorkout:
+            // Navigate to workout view
+            coordinator.navigate(to: .workoutHistory)
+        case .logWater:
+            // For now, navigate to nutrition detail
+            coordinator.navigate(to: .nutritionDetail)
+        case .checkIn:
+            // Navigate to recovery/check-in view
+            coordinator.navigate(to: .recoveryDetail)
+        }
     }
 }
 
@@ -234,7 +260,9 @@ struct DashboardContent: View {
 
 // MARK: - Dashboard Destinations
 enum DashboardDestination: Hashable {
-    case placeholder
+    case nutritionDetail
+    case workoutHistory
+    case recoveryDetail
     case settings
 }
 
