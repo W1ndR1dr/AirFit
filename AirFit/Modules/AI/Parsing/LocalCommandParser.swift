@@ -1,7 +1,7 @@
 import Foundation
 import RegexBuilder
 
-enum LocalCommand: Equatable {
+public enum LocalCommand: Equatable {
     case showDashboard
     case navigateToTab(AppTab)
     case logWater(amount: Double, unit: WaterUnit)
@@ -12,13 +12,13 @@ enum LocalCommand: Equatable {
     case help
     case none
 
-    enum WaterUnit: String {
+    public enum WaterUnit: String {
         case ounces = "oz"
         case milliliters = "ml"
         case liters = "l"
         case cups = "cup"
 
-        var toMilliliters: Double {
+        public var toMilliliters: Double {
             switch self {
             case .ounces: return 29.5735
             case .milliliters: return 1.0
@@ -28,7 +28,7 @@ enum LocalCommand: Equatable {
         }
     }
 
-    enum QuickLogType: Equatable {
+    public enum QuickLogType: Equatable {
         case meal(MealType)
         case mood
         case energy

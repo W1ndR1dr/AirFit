@@ -151,18 +151,26 @@ struct PerformanceInsight: Sendable {
 }
 
 // MARK: - Quick Action
-struct QuickAction: Sendable, Identifiable {
-    let id = UUID()
-    let title: String
-    let subtitle: String
-    let systemImage: String
-    let color: String
-    let action: QuickActionType
+public struct QuickAction: Sendable, Identifiable {
+    public let id = UUID()
+    public let title: String
+    public let subtitle: String
+    public let systemImage: String
+    public let color: String
+    public let action: QuickActionType
 
-    enum QuickActionType: Sendable {
+    public enum QuickActionType: Sendable, Equatable, Hashable {
         case logMeal(type: MealType)
         case startWorkout
         case logWater
         case checkIn
+    }
+    
+    public init(title: String, subtitle: String, systemImage: String, color: String, action: QuickActionType) {
+        self.title = title
+        self.subtitle = subtitle
+        self.systemImage = systemImage
+        self.color = color
+        self.action = action
     }
 }

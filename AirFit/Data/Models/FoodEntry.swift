@@ -132,7 +132,7 @@ final class FoodEntry: @unchecked Sendable {
 }
 
 // MARK: - MealType Enum
-enum MealType: String, Codable, CaseIterable, Sendable {
+public enum MealType: String, Codable, CaseIterable, Sendable {
     case breakfast
     case lunch
     case dinner
@@ -140,7 +140,7 @@ enum MealType: String, Codable, CaseIterable, Sendable {
     case preWorkout = "pre_workout"
     case postWorkout = "post_workout"
 
-    var displayName: String {
+    public var displayName: String {
         switch self {
         case .breakfast: return "Breakfast"
         case .lunch: return "Lunch"

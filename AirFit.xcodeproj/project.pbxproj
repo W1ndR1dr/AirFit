@@ -211,6 +211,7 @@
 		79D13C16521D81F3670CCA73 /* ChatCoordinatorTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = BE4D91B242B615A8FC3DB43F /* ChatCoordinatorTests.swift */; };
 		7BD31D71003155A1C97C8A4F /* MockAICoachService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 54EEF93765F397D095816FD5 /* MockAICoachService.swift */; };
 		7CA60C61A1A3E32814AC2178 /* ChatSuggestionsEngine.swift in Sources */ = {isa = PBXBuildFile; fileRef = B31A093172ADE42B714F7755 /* ChatSuggestionsEngine.swift */; };
+		7E88F5E0B20B611AE1FBA09E /* NavigationState.swift in Sources */ = {isa = PBXBuildFile; fileRef = D376B0AD7C8A3F94B856B55E /* NavigationState.swift */; };
 		7FE2B9FD129CF4728FF31F7D /* MockAIWorkoutService.swift in Sources */ = {isa = PBXBuildFile; fileRef = F9685BBF26A91538F4A2881C /* MockAIWorkoutService.swift */; };
 		80B0CA77A2C668072ECCC9AD /* HealthKitManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = 17579FBA18D9D400F1D5B2A8 /* HealthKitManager.swift */; };
 		818F47E890A31403CCA6FBBD /* PlannedWorkoutData.swift in Sources */ = {isa = PBXBuildFile; fileRef = 58C16840E028FDD4A8192ED9 /* PlannedWorkoutData.swift */; };
@@ -353,6 +354,7 @@
 		E7F300906EAE7D68899310BD /* DailyLog.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6DBBF997EE860EFC5A0AC13C /* DailyLog.swift */; };
 		E95C8CD9EB0A97CB7FD3F44F /* OnboardingFlowViewTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4C66D6D258BBCC0FED0934DE /* OnboardingFlowViewTests.swift */; };
 		EA35687301E52F9E550861E0 /* ContextAssemblerTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = C8478BBFF0FCF8A0B07565A4 /* ContextAssemblerTests.swift */; };
+		EB0C9144CD7866C32738D0DF /* MainTabView.swift in Sources */ = {isa = PBXBuildFile; fileRef = A13B7BC49873443C74E5C7E8 /* MainTabView.swift */; };
 		EB7273FC292E4C5C0266A147 /* DIExample.swift in Sources */ = {isa = PBXBuildFile; fileRef = F0027A8E658C8709F7FF6EC9 /* DIExample.swift */; };
 		EB8FDE6CB86928ADE653C1FC /* MockViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 18331BD6080B8F163E979962 /* MockViewModel.swift */; };
 		EB9A3F01CA5C8C07D9095C0B /* AIProvider+Settings.swift in Sources */ = {isa = PBXBuildFile; fileRef = 92770D0F205A9D16DCBB6883 /* AIProvider+Settings.swift */; };
@@ -670,6 +672,7 @@
 		A04681F45161F1B797167C03 /* ContextAnalyzer.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ContextAnalyzer.swift; sourceTree = "<group>"; };
 		A0CC10B59E8E8EBB1DC0AA0C /* User.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = User.swift; sourceTree = "<group>"; };
 		A0D3257B9D106EBC644468FB /* VoiceInputManagerTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = VoiceInputManagerTests.swift; sourceTree = "<group>"; };
+		A13B7BC49873443C74E5C7E8 /* MainTabView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MainTabView.swift; sourceTree = "<group>"; };
 		A1EC9BC0ADE4166E51528DBF /* MessageBubbleView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MessageBubbleView.swift; sourceTree = "<group>"; };
 		A4249579030D206AD3DA1391 /* NetworkManagerTests.swift.disabled */ = {isa = PBXFileReference; path = NetworkManagerTests.swift.disabled; sourceTree = "<group>"; };
 		A4555893E7FC21989E4F8ACF /* MockAIService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MockAIService.swift; sourceTree = "<group>"; };
@@ -751,6 +754,7 @@
 		D0F26646605D52C022B9D5D3 /* GeminiProvider.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GeminiProvider.swift; sourceTree = "<group>"; };
 		D175263D463CCB6EF4BCE843 /* NotificationPreferencesView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NotificationPreferencesView.swift; sourceTree = "<group>"; };
 		D36A6604938988E21B88A8D3 /* WorkoutService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WorkoutService.swift; sourceTree = "<group>"; };
+		D376B0AD7C8A3F94B856B55E /* NavigationState.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NavigationState.swift; sourceTree = "<group>"; };
 		D3DCDC1D8223A239A00F65CC /* UserModelTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = UserModelTests.swift; sourceTree = "<group>"; };
 		D4231059A4A4F50151752F90 /* LLMOrchestrator.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LLMOrchestrator.swift; sourceTree = "<group>"; };
 		D4C9549B6809BF920E3E4FF0 /* UserServiceProtocol.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = UserServiceProtocol.swift; sourceTree = "<group>"; };
@@ -1019,6 +1023,8 @@
 				291C16B8E03DD41AEF454C78 /* AirFitApp_DiagnosticDetailed.swift.bak */,
 				11CE381FE74CD28EE148284E /* AirFitApp.swift */,
 				3022C56AFFA9EE63D365C6C2 /* ContentView.swift */,
+				A13B7BC49873443C74E5C7E8 /* MainTabView.swift */,
+				D376B0AD7C8A3F94B856B55E /* NavigationState.swift */,
 			);
 			path = Application;
 			sourceTree = "<group>";
@@ -2749,6 +2755,7 @@
 				A9E136B0D8C87DC844DF3984 /* LiveActivityManager.swift in Sources */,
 				104A4BA0F335DDFDC38D9C26 /* LocalCommandParser.swift in Sources */,
 				F6763FAB16ADAD3C7634C3CB /* MacroRingsView.swift in Sources */,
+				EB0C9144CD7866C32738D0DF /* MainTabView.swift in Sources */,
 				A1CE6C21608BBCFBF93B1B2C /* MessageBubbleView.swift in Sources */,
 				E57F871B9CA16B3DEE90E5FF /* MessageComposer.swift in Sources */,
 				EDEF7668DBE9E5E856B62434 /* MessageProcessor.swift in Sources */,
@@ -2763,6 +2770,7 @@
 				FF48A0C4CDDFC68AA9973377 /* MonitoringService.swift in Sources */,
 				D17847A126C26B3495FF7538 /* MorningGreetingCard.swift in Sources */,
 				141DA1A1586C75174B3EB04D /* MotionToken.swift in Sources */,
+				7E88F5E0B20B611AE1FBA09E /* NavigationState.swift in Sources */,
 				3F4F5D0C573C737E38275D57 /* NetworkClient.swift in Sources */,
 				64D589A3A8C6EB190A27769A /* NetworkClientProtocol.swift in Sources */,
 				41589D55733728912972E1B0 /* NetworkManagementProtocol.swift in Sources */,

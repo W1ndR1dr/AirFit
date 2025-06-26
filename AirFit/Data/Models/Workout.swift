@@ -107,7 +107,7 @@ final class Workout: @unchecked Sendable {
 }
 
 // MARK: - WorkoutType Enum
-enum WorkoutType: String, Codable, CaseIterable, Sendable {
+public enum WorkoutType: String, Codable, CaseIterable, Sendable {
     case strength
     case cardio
     case flexibility
@@ -117,7 +117,7 @@ enum WorkoutType: String, Codable, CaseIterable, Sendable {
     case yoga
     case pilates
 
-    var displayName: String {
+    public var displayName: String {
         switch self {
         case .strength: return "Strength Training"
         case .cardio: return "Cardio"
