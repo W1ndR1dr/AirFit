@@ -7,39 +7,39 @@ final class PreviewGenerator: ObservableObject {
     @Published private(set) var preview: PersonaPreview?
     @Published private(set) var progress: Double = 0
     @Published private(set) var error: Error?
-    
+
     private let synthesizer: PersonaSynthesizer
     private var synthesisTask: Task<Void, Never>?
-    
+
     init(synthesizer: PersonaSynthesizer) {
         self.synthesizer = synthesizer
     }
-    
+
     deinit {
         synthesisTask?.cancel()
     }
-    
+
     // MARK: - Public API
-    
+
     func startSynthesis(
         insights: PersonalityInsights,
         conversationData: ConversationData
     ) {
         synthesisTask?.cancel()
-        
+
         synthesisTask = Task {
             await performSynthesis(insights: insights, conversationData: conversationData)
         }
     }
-    
+
     func cancelSynthesis() {
         synthesisTask?.cancel()
         currentStage = .cancelled
         progress = 0
     }
-    
+
     // MARK: - Private Implementation
-    
+
     private func performSynthesis(
         insights: PersonalityInsights,
         conversationData: ConversationData
@@ -48,7 +48,7 @@ final class PreviewGenerator: ObservableObject {
             // Stage 1: Analyzing personality
             updateStage(.analyzingPersonality)
             try await Task.sleep(nanoseconds: 500_000_000) // 0.5s for effect
-            
+
             // Create initial preview during analysis
             preview = PersonaPreview(
                 name: "Analyzing...",
@@ -56,10 +56,10 @@ final class PreviewGenerator: ObservableObject {
                 sampleGreeting: "Getting to know you...",
                 voiceDescription: "Understanding your preferences"
             )
-            
+
             // Stage 2: Creating identity
             updateStage(.creatingIdentity)
-            
+
             // Simulate streaming effect with preview updates
             let placeholderNames = ["Creating", "Creating your", "Creating your unique", "Creating your unique coach..."]
             for (index, text) in placeholderNames.enumerated() {
@@ -72,10 +72,10 @@ final class PreviewGenerator: ObservableObject {
                 progress = 0.2 + (Double(index) / Double(placeholderNames.count)) * 0.2
                 try await Task.sleep(nanoseconds: 200_000_000)
             }
-            
+
             // Stage 3: Building personality
             updateStage(.buildingPersonality)
-            
+
             // Convert PersonalityInsights to ConversationPersonalityInsights
             let conversationInsights = ConversationPersonalityInsights(
                 dominantTraits: insights.dominantTraits,
@@ -88,13 +88,13 @@ final class PreviewGenerator: ObservableObject {
                 preferredTimes: insights.preferredTimes,
                 extractedAt: Date()
             )
-            
+
             // Generate actual persona
             let persona = try await synthesizer.synthesizePersona(
                 from: conversationData,
                 insights: conversationInsights
             )
-            
+
             // Update preview with real data
             // Update preview with real data
             preview = PersonaPreview(
@@ -104,15 +104,15 @@ final class PreviewGenerator: ObservableObject {
                 voiceDescription: generateVoiceDescription(for: persona)
             )
             progress = 0.7
-            
+
             // Stage 4: Finalizing
             updateStage(.finalizing)
             try await Task.sleep(nanoseconds: 1_000_000_000) // 1s
-            
+
             // Stage 5: Complete
             updateStage(.complete(persona))
             progress = 1.0
-            
+
             // Update final preview
             preview = PersonaPreview(
                 name: persona.name,
@@ -120,7 +120,7 @@ final class PreviewGenerator: ObservableObject {
                 sampleGreeting: generateFinalGreeting(for: persona),
                 voiceDescription: generateFinalVoiceDescription(for: persona)
             )
-            
+
         } catch {
             if error is CancellationError {
                 currentStage = .cancelled
@@ -131,10 +131,10 @@ final class PreviewGenerator: ObservableObject {
             progress = 0
         }
     }
-    
+
     private func updateStage(_ stage: SynthesisStage) {
         currentStage = stage
-        
+
         // Update progress based on stage
         switch stage {
         case .notStarted:
@@ -153,7 +153,7 @@ final class PreviewGenerator: ObservableObject {
             break // Keep current progress
         }
     }
-    
+
     private func extractTopTraits(from insights: PersonalityInsights) -> [String] {
         insights.traits
             .sorted { abs($0.value) > abs($1.value) }
@@ -162,7 +162,7 @@ final class PreviewGenerator: ObservableObject {
                 formatTrait(dimension: dimension, score: score)
             }
     }
-    
+
     private func formatTrait(dimension: PersonalityDimension, score: Double) -> String {
         switch dimension {
         case .authorityPreference:
@@ -179,33 +179,33 @@ final class PreviewGenerator: ObservableObject {
             return score > 0.5 ? "Supportive" : "Direct"
         }
     }
-    
+
     private func generateSampleGreeting(for persona: PersonaProfile) -> String {
         let greetings = [
             "Meet \(persona.name), your \(persona.archetype) coach!",
             "\(persona.name) is ready to guide your fitness journey!",
             "Say hello to \(persona.name) - \(persona.archetype)!"
         ]
-        
+
         return greetings.randomElement() ?? "Your coach is ready!"
     }
-    
+
     private func generateVoiceDescription(for persona: PersonaProfile) -> String {
         let energy = persona.voiceCharacteristics.energy.rawValue
         let warmth = persona.voiceCharacteristics.warmth.rawValue
         return "\(energy.capitalized) energy with \(warmth) tone"
     }
-    
+
     private func generateFinalGreeting(for persona: PersonaProfile) -> String {
         return "\(persona.interactionStyle.greetingStyle) I'm \(persona.name), and I'm excited to help you reach your goals!"
     }
-    
+
     private func generateFinalVoiceDescription(for persona: PersonaProfile) -> String {
         return persona.interactionStyle.greetingStyle
     }
-    
+
     // MARK: - Mapping Functions
-    
+
     private func convertMotivationType(_ motivation: MotivationType) -> ConversationMotivationType {
         switch motivation {
         case .achievement:
@@ -214,20 +214,22 @@ final class PreviewGenerator: ObservableObject {
             return .health
         case .social:
             return .social
+        case .enjoyment:
+            return .balanced  // Map enjoyment to balanced
         }
     }
-    
+
     private func convertComplexity(_ complexity: ComplexityLevel) -> ConversationComplexity {
         switch complexity {
         case .simple:
             return .simple
         case .moderate:
             return .moderate
-        case .detailed:
+        case .complex, .detailed:
             return .detailed
         }
     }
-    
+
     private func convertStressResponse(_ response: StressResponseType) -> ConversationStressResponse {
         switch response {
         case .needsSupport:
@@ -236,6 +238,8 @@ final class PreviewGenerator: ObservableObject {
             return .prefersDirectness
         case .independent:
             return .requiresBreakdown
+        case .balanced:
+            return .needsSupport  // Map balanced to needsSupport
         }
     }
 }
@@ -251,7 +255,7 @@ enum SynthesisStage: Equatable {
     case complete(PersonaProfile)
     case failed(Error)
     case cancelled
-    
+
     var displayText: String {
         switch self {
         case .notStarted:
@@ -272,7 +276,7 @@ enum SynthesisStage: Equatable {
             return "Synthesis cancelled"
         }
     }
-    
+
     var isActive: Bool {
         switch self {
         case .analyzingPersonality, .creatingIdentity, .buildingPersonality, .finalizing:
@@ -281,7 +285,7 @@ enum SynthesisStage: Equatable {
             return false
         }
     }
-    
+
     static func == (lhs: SynthesisStage, rhs: SynthesisStage) -> Bool {
         switch (lhs, rhs) {
         case (.notStarted, .notStarted),

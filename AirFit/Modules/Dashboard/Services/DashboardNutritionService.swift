@@ -5,35 +5,35 @@ import SwiftData
 @MainActor
 final class DashboardNutritionService: DashboardNutritionServiceProtocol {
     private let modelContext: ModelContext
-    
+
     init(modelContext: ModelContext) {
         self.modelContext = modelContext
     }
-    
+
     func getTodaysSummary(for user: User) async throws -> NutritionSummary {
         // Fetch today's food entries
         let calendar = Calendar.current
         let startOfDay = calendar.startOfDay(for: Date())
         let endOfDay = calendar.date(byAdding: .day, value: 1, to: startOfDay) ?? Date()
-        
+
         let userID = user.id
         let predicate = #Predicate<FoodEntry> { entry in
             if let entryUser = entry.user {
                 return entryUser.id == userID &&
-                       entry.loggedAt >= startOfDay &&
-                       entry.loggedAt < endOfDay
+                    entry.loggedAt >= startOfDay &&
+                    entry.loggedAt < endOfDay
             } else {
                 return false
             }
         }
-        
+
         let descriptor = FetchDescriptor<FoodEntry>(
             predicate: predicate,
             sortBy: [SortDescriptor(\.loggedAt)]
         )
-        
+
         let entries = try modelContext.fetch(descriptor)
-        
+
         // Calculate totals
         var calories = 0.0
         var protein = 0.0
@@ -41,13 +41,13 @@ final class DashboardNutritionService: DashboardNutritionServiceProtocol {
         var fat = 0.0
         var fiber = 0.0
         var water = 0.0
-        
+
         for entry in entries {
             calories += Double(entry.totalCalories)
             protein += entry.totalProtein
             carbs += entry.totalCarbs
             fat += entry.totalFat
-            
+
             // Check for water entries in food items
             for item in entry.items {
                 if item.name.lowercased().contains("water") {
@@ -56,10 +56,10 @@ final class DashboardNutritionService: DashboardNutritionServiceProtocol {
                 fiber += item.fiberGrams ?? 0
             }
         }
-        
+
         // Get targets
         let targets = try await getTargets(from: user.onboardingProfile!)
-        
+
         return NutritionSummary(
             calories: calories,
             caloriesTarget: targets.calories,
@@ -76,7 +76,7 @@ final class DashboardNutritionService: DashboardNutritionServiceProtocol {
             mealCount: entries.count
         )
     }
-    
+
     func getTargets(from profile: OnboardingProfile) async throws -> NutritionTargets {
         // Try to decode coaching plan to get goal info
         do {
@@ -88,11 +88,11 @@ final class DashboardNutritionService: DashboardNutritionServiceProtocol {
             return NutritionTargets.default
         }
     }
-    
+
     private func calculateTargets(for goal: Goal) -> NutritionTargets {
         // Base calorie calculation
         var baseCalories = 2_200.0 // Default average
-        
+
         // Adjust based on goal family
         switch goal.family {
         case .strengthTone:
@@ -104,12 +104,12 @@ final class DashboardNutritionService: DashboardNutritionServiceProtocol {
         case .healthWellbeing, .recoveryRehab:
             break // No adjustment - maintenance calories
         }
-        
+
         // Calculate macros (default balanced approach)
         let proteinCalories = baseCalories * 0.30
         let carbCalories = baseCalories * 0.40
         let fatCalories = baseCalories * 0.30
-        
+
         return NutritionTargets(
             calories: baseCalories,
             protein: proteinCalories / 4, // 4 cal per gram

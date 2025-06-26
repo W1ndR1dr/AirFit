@@ -18,7 +18,7 @@ protocol AIWorkoutServiceProtocol: WorkoutServiceProtocol {
         constraints: String?,
         style: String
     ) async throws -> WorkoutPlanResult
-    
+
     /// Adapt an existing plan based on user feedback
     func adaptPlan(
         _ plan: WorkoutPlanResult,
@@ -39,7 +39,7 @@ protocol AIAnalyticsServiceProtocol: AnalyticsServiceProtocol {
         includeRecommendations: Bool,
         for user: User
     ) async throws -> PerformanceAnalysisResult
-    
+
     /// Generate predictive insights
     func generatePredictiveInsights(
         for user: User,
@@ -60,7 +60,7 @@ protocol AIGoalServiceProtocol: GoalServiceProtocol {
         goalType: String?,
         for user: User
     ) async throws -> GoalResult
-    
+
     /// Suggest goal adjustments based on progress
     func suggestGoalAdjustments(
         for goal: TrackedGoal,
@@ -78,7 +78,7 @@ struct WorkoutPlanResult: Sendable {
     let summary: String
     let difficulty: WorkoutDifficulty
     let focusAreas: [String]
-    
+
     enum WorkoutDifficulty: String, Sendable {
         case beginner, intermediate, advanced, expert
     }
@@ -108,7 +108,7 @@ struct AIPerformanceInsight: Sendable {
     let finding: String
     let impact: ImpactLevel
     let evidence: [String]
-    
+
     enum ImpactLevel: String, Sendable {
         case low, medium, high, critical
     }
@@ -119,7 +119,7 @@ struct PerformanceTrend: Sendable {
     let direction: TrendDirection
     let magnitude: Double
     let timeframe: String
-    
+
     enum TrendDirection: String, Sendable {
         case improving, stable, declining, volatile
     }
@@ -140,7 +140,7 @@ struct GoalResult: Sendable {
     let metrics: [GoalMetric]
     let milestones: [GoalMilestone]
     let smartCriteria: SMARTCriteria
-    
+
     struct SMARTCriteria: Sendable {
         let specific: String
         let measurable: String
@@ -169,7 +169,7 @@ struct GoalAdjustment: Sendable {
     let reason: String
     let suggestedChange: String
     let impact: String
-    
+
     enum AdjustmentType: String, Sendable {
         case timeline, target, approach, intensity
     }

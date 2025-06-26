@@ -5,14 +5,14 @@ import SwiftUI
 struct GlassCard<Content: View>: View {
     @Environment(\.colorScheme) private var colorScheme
     @State private var isVisible = false
-    
+
     let content: Content
     let padding: CGFloat
     let cornerRadius: CGFloat
     let strokeOpacity: Double
     let blurRadius: CGFloat
     let enableHaptic: Bool
-    
+
     init(
         padding: CGFloat = 16,
         cornerRadius: CGFloat = 20,
@@ -28,7 +28,7 @@ struct GlassCard<Content: View>: View {
         self.enableHaptic = enableHaptic
         self.content = content()
     }
-    
+
     var body: some View {
         content
             .padding(padding)
@@ -41,7 +41,7 @@ struct GlassCard<Content: View>: View {
                 }
             }
     }
-    
+
     @ViewBuilder
     private var glassBackground: some View {
         ZStack {
@@ -55,7 +55,7 @@ struct GlassCard<Content: View>: View {
                             lineWidth: 1
                         )
                 )
-            
+
             // Subtle inner glow for depth
             RoundedRectangle(cornerRadius: cornerRadius, style: .continuous)
                 .fill(
@@ -84,10 +84,10 @@ struct GlassCard<Content: View>: View {
 /// Glass card with tap interaction and haptic feedback
 struct InteractiveGlassCard<Content: View>: View {
     @State private var isPressed = false
-    
+
     let content: Content
     let action: () -> Void
-    
+
     init(
         action: @escaping () -> Void,
         @ViewBuilder content: () -> Content
@@ -95,7 +95,7 @@ struct InteractiveGlassCard<Content: View>: View {
         self.action = action
         self.content = content()
     }
-    
+
     var body: some View {
         GlassCard {
             content
@@ -104,12 +104,12 @@ struct InteractiveGlassCard<Content: View>: View {
         .onTapGesture {
             // Haptic feedback
             HapticService.impact(.soft)
-            
+
             // Visual feedback
             withAnimation(.easeInOut(duration: 0.1)) {
                 isPressed = true
             }
-            
+
             // Execute action
             DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
                 withAnimation(.easeInOut(duration: 0.1)) {
@@ -127,10 +127,10 @@ struct InteractiveGlassCard<Content: View>: View {
 struct FloatingGlassCard<Content: View>: View {
     @State private var offset = CGSize.zero
     @State private var isDragging = false
-    
+
     let content: Content
     let floatAmplitude: CGFloat
-    
+
     init(
         floatAmplitude: CGFloat = 4,
         @ViewBuilder content: () -> Content
@@ -138,7 +138,7 @@ struct FloatingGlassCard<Content: View>: View {
         self.floatAmplitude = floatAmplitude
         self.content = content()
     }
-    
+
     var body: some View {
         GlassCard {
             content
@@ -175,7 +175,7 @@ extension View {
             self
         }
     }
-    
+
     /// Wraps any view in an interactive glass card
     func interactiveGlassCard(
         action: @escaping () -> Void

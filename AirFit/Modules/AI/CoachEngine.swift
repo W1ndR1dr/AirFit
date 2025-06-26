@@ -13,7 +13,7 @@ enum DirectAIError: Error, LocalizedError {
     case emptyResponse
     case invalidJSONResponse(String)
     case invalidNutritionValues(String)
-    
+
     var errorDescription: String? {
         switch self {
         case .nutritionParsingFailed(let reason):
@@ -34,7 +34,7 @@ enum DirectAIError: Error, LocalizedError {
             return "Invalid nutrition values: \(details)"
         }
     }
-    
+
     var userFriendlyMessage: String {
         switch self {
         case .nutritionParsingFailed:
@@ -128,7 +128,7 @@ final class CoachEngine {
     private let contextAssembler: ContextAssembler
     private let modelContext: ModelContext
     private let routingConfiguration: RoutingConfiguration
-    
+
     // MARK: - Components
     private let messageProcessor: MessageProcessor
     private let stateManager: ConversationStateManager
@@ -158,13 +158,13 @@ final class CoachEngine {
         self.contextAssembler = contextAssembler
         self.modelContext = modelContext
         self.routingConfiguration = routingConfiguration
-        
+
         // Initialize components
         self.messageProcessor = MessageProcessor(localCommandParser: localCommandParser)
         self.stateManager = ConversationStateManager()
         self.directAIProcessor = DirectAIProcessor(aiService: aiService)
         self.streamingHandler = StreamingResponseHandler(routingConfiguration: routingConfiguration)
-        
+
         // Set up streaming delegate
         self.streamingHandler.delegate = self
 
@@ -172,7 +172,7 @@ final class CoachEngine {
     }
 
     // MARK: - Private Helpers
-    
+
     /// Helper to collect all text from an AI response stream
     private func collectAIResponse(from request: AIRequest) async -> String {
         var result = ""
@@ -190,7 +190,7 @@ final class CoachEngine {
         }
         return result
     }
-    
+
     // MARK: - Public Methods
 
     /// Processes a user message through the complete AI coaching pipeline
@@ -212,7 +212,7 @@ final class CoachEngine {
                     personaId: persona.id
                 )
             }
-            
+
             guard let conversationId = activeConversationId else {
                 throw CoachEngineError.noActiveConversation
             }
@@ -227,11 +227,11 @@ final class CoachEngine {
                 for: user,
                 conversationId: conversationId
             )
-            
+
             // Update message with classification
             savedMessage.messageType = messageType
             try modelContext.save()
-            
+
             // Update state manager
             await stateManager.updateSession(conversationId, messageProcessed: true)
 
@@ -257,7 +257,7 @@ final class CoachEngine {
             if let oldId = activeConversationId {
                 await stateManager.endSession(oldId)
             }
-            
+
             // Conversation will be created when a user sends a message
             currentResponse = ""
             streamingTokens = []
@@ -302,12 +302,12 @@ final class CoachEngine {
     /// Generates AI-powered post-workout analysis
     func generatePostWorkoutAnalysis(_ request: PostWorkoutAnalysisRequest) async -> String {
         let analysisPrompt = buildWorkoutAnalysisPrompt(request)
-        
+
         // Get user's persona for consistent voice
         var systemPrompt = "You are a fitness coach providing post-workout analysis. Be encouraging, specific, and actionable."
         let user = request.workout.user
         let userId = user?.id ?? UUID()
-        
+
         if let user = user {
             do {
                 let persona = try await personaService.getActivePersona(for: user.id)
@@ -316,7 +316,7 @@ final class CoachEngine {
                 AppLogger.warning("Failed to get user persona for workout analysis, using default", category: .ai)
             }
         }
-        
+
         let aiRequest = AIRequest(
             systemPrompt: systemPrompt,
             messages: [
@@ -329,7 +329,7 @@ final class CoachEngine {
             functions: [],
             user: userId.uuidString
         )
-        
+
         let analysisResult = await collectAIResponse(from: aiRequest)
         return analysisResult.isEmpty ? "Great workout! Keep up the excellent work." : analysisResult
     }
@@ -443,7 +443,7 @@ final class CoachEngine {
                 timeOfDay: messageProcessor.getCurrentTimeOfDay(),
                 isNewUser: user.onboardingProfile == nil
             )
-            
+
             let aiMessages = conversationHistory.map { aiMessage in
                 AIChatMessage(
                     id: aiMessage.id,
@@ -452,7 +452,7 @@ final class CoachEngine {
                     timestamp: aiMessage.timestamp
                 )
             }
-            
+
             let routingStrategy = routingConfiguration.determineRoutingStrategy(
                 userInput: text,
                 conversationHistory: aiMessages,
@@ -477,7 +477,7 @@ final class CoachEngine {
                     routingStrategy: routingStrategy,
                     startTime: startTime
                 )
-                
+
             case .functionCalling, .hybrid:
                 await processWithFunctionCalling(
                     text: text,
@@ -494,9 +494,9 @@ final class CoachEngine {
             await handleError(error)
         }
     }
-    
+
     // MARK: - Hybrid Routing Implementation
-    
+
     /// Processes request using direct AI for simple tasks (nutrition parsing, educational content)
     private func processWithDirectAI(
         text: String,
@@ -508,15 +508,15 @@ final class CoachEngine {
         startTime: CFAbsoluteTime
     ) async {
         let directAIStartTime = CFAbsoluteTimeGetCurrent()
-        
+
         do {
             // Detect specific direct AI task types
             let isNutritionParsing = messageProcessor.detectsNutritionParsing(text)
             let isEducationalContent = messageProcessor.detectsEducationalContent(text)
-            
+
             var responseContent: String
             var metrics: RoutingMetrics
-            
+
             if isNutritionParsing {
                 // Direct nutrition parsing
                 let result = try await directAIProcessor.parseNutrition(
@@ -524,9 +524,9 @@ final class CoachEngine {
                     context: "",
                     user: user
                 )
-                
+
                 responseContent = buildNutritionParsingResponse(result)
-                
+
                 metrics = RoutingMetrics(
                     route: .directAI,
                     executionTimeMs: result.processingTimeMs,
@@ -535,7 +535,7 @@ final class CoachEngine {
                     confidence: result.confidence,
                     fallbackUsed: false
                 )
-                
+
             } else if isEducationalContent {
                 // Direct educational content generation
                 let topic = messageProcessor.extractEducationalTopic(from: text)
@@ -545,9 +545,9 @@ final class CoachEngine {
                     userContext: text,
                     userProfile: userProfile
                 )
-                
+
                 responseContent = content.content
-                
+
                 metrics = RoutingMetrics(
                     route: .directAI,
                     executionTimeMs: Int((CFAbsoluteTimeGetCurrent() - directAIStartTime) * 1_000),
@@ -556,7 +556,7 @@ final class CoachEngine {
                     confidence: content.personalizationLevel,
                     fallbackUsed: false
                 )
-                
+
             } else {
                 // General direct AI conversation (fallback to function calling if complex)
                 if routingStrategy.fallbackEnabled && text.count > 150 {
@@ -576,7 +576,7 @@ final class CoachEngine {
                     )
                     return
                 }
-                
+
                 // Simple conversational response
                 let userProfile = try await getUserProfile(for: user)
                 responseContent = try await directAIProcessor.generateSimpleResponse(
@@ -584,7 +584,7 @@ final class CoachEngine {
                     userProfile: userProfile,
                     healthContext: healthContext
                 )
-                
+
                 metrics = RoutingMetrics(
                     route: .directAI,
                     executionTimeMs: Int((CFAbsoluteTimeGetCurrent() - directAIStartTime) * 1_000),
@@ -594,7 +594,7 @@ final class CoachEngine {
                     fallbackUsed: false
                 )
             }
-            
+
             // Save AI response
             _ = try await conversationManager.createAssistantMessage(
                 responseContent,
@@ -604,29 +604,29 @@ final class CoachEngine {
                 isLocalCommand: false,
                 isError: false
             )
-            
+
             currentResponse = responseContent
-            
-                         // Record performance metrics
-             routingConfiguration.recordRoutingMetrics(metrics)
-            
+
+            // Record performance metrics
+            routingConfiguration.recordRoutingMetrics(metrics)
+
             await finishProcessing()
-            
+
         } catch {
             AppLogger.error("Direct AI processing failed", error: error, category: .ai)
-            
+
             // Intelligent fallback to function calling
             if routingStrategy.fallbackEnabled {
                 AppLogger.info("Direct AI failed, falling back to function calling", category: .ai)
-                
+
                 let fallbackMetrics = RoutingMetrics(
                     route: .directAI,
                     executionTimeMs: Int((CFAbsoluteTimeGetCurrent() - directAIStartTime) * 1_000),
                     success: false,
                     fallbackUsed: true
                 )
-                                 routingConfiguration.recordRoutingMetrics(fallbackMetrics)
-                
+                routingConfiguration.recordRoutingMetrics(fallbackMetrics)
+
                 await processWithFunctionCalling(
                     text: text,
                     user: user,
@@ -645,7 +645,7 @@ final class CoachEngine {
             }
         }
     }
-    
+
     /// Processes request using traditional function calling system for complex workflows
     private func processWithFunctionCalling(
         text: String,
@@ -657,11 +657,11 @@ final class CoachEngine {
         startTime: CFAbsoluteTime
     ) async {
         let functionCallStartTime = CFAbsoluteTimeGetCurrent()
-        
+
         do {
             // Get user's persona for consistent coaching voice
             let persona = try await personaService.getActivePersona(for: user.id)
-            
+
             // Add task context to system prompt
             let systemPrompt = persona.systemPrompt + "\n\nTask context: General conversation with access to functions."
 
@@ -690,19 +690,19 @@ final class CoachEngine {
             )
 
         } catch {
-                         let metrics = RoutingMetrics(
-                 route: routingStrategy.route,
-                 executionTimeMs: Int((CFAbsoluteTimeGetCurrent() - functionCallStartTime) * 1_000),
-                 success: false
-             )
-             routingConfiguration.recordRoutingMetrics(metrics)
-            
+            let metrics = RoutingMetrics(
+                route: routingStrategy.route,
+                executionTimeMs: Int((CFAbsoluteTimeGetCurrent() - functionCallStartTime) * 1_000),
+                success: false
+            )
+            routingConfiguration.recordRoutingMetrics(metrics)
+
             await handleError(error)
         }
     }
-    
+
     // MARK: - Direct AI Helpers
-    
+
 
     /// Enhanced version of streamAIResponse with routing metrics
     private func streamAIResponseWithMetrics(
@@ -715,17 +715,17 @@ final class CoachEngine {
         do {
             // Create streaming response
             let responseStream = aiService.sendRequest(request)
-            
+
             // Process using streaming handler
             let result = try await streamingHandler.handleStream(
                 responseStream,
                 routingStrategy: routingStrategy
             )
-            
+
             // Update state from result
             currentResponse = result.fullResponse
             lastFunctionCall = result.functionCall?.name
-            
+
             // Save AI response
             let assistantMessage = try await conversationManager.createAssistantMessage(
                 result.fullResponse,
@@ -750,7 +750,7 @@ final class CoachEngine {
                     originalMessage: assistantMessage
                 )
             }
-            
+
             await finishProcessing()
 
         } catch {
@@ -857,10 +857,10 @@ final class CoachEngine {
         switch functionCall.name {
         case "parseAndLogComplexNutrition":
             await handleDirectNutritionParsing(functionCall, for: user, conversationId: conversationId, startTime: startTime)
-            
+
         case "generateEducationalInsight":
             await handleDirectEducationalContent(functionCall, for: user, conversationId: conversationId, startTime: startTime)
-            
+
         default:
             // Use function dispatcher for remaining complex functions
             do {
@@ -871,7 +871,7 @@ final class CoachEngine {
             }
         }
     }
-    
+
     /// Handles nutrition parsing via direct AI (3x performance improvement)
     private func handleDirectNutritionParsing(
         _ functionCall: AIFunctionCall,
@@ -882,19 +882,19 @@ final class CoachEngine {
         do {
             let foodText = extractString(functionCall.arguments["food_text"]) ?? ""
             let context = extractString(functionCall.arguments["context"]) ?? ""
-            
+
             let result = try await parseAndLogNutritionDirect(
                 foodText: foodText,
                 context: context,
                 for: user,
                 conversationId: conversationId
             )
-            
+
             let executionTime = CFAbsoluteTimeGetCurrent() - startTime
             AppLogger.info("Direct nutrition parsing completed in \(Int(executionTime * 1_000))ms (vs ~\(Int(executionTime * 3_000))ms via dispatcher)", category: .ai)
-            
+
             let followUpResponse = buildNutritionParsingResponse(result)
-            
+
             // Save function result as assistant message
             _ = try await conversationManager.createAssistantMessage(
                 followUpResponse,
@@ -907,15 +907,15 @@ final class CoachEngine {
                 isLocalCommand: false,
                 isError: false
             )
-            
+
             currentResponse += "\n\n" + followUpResponse
-            
+
         } catch {
             AppLogger.error("Direct nutrition parsing failed", error: error, category: .ai)
             await handleFunctionError(error, for: user, conversationId: conversationId)
         }
     }
-    
+
     /// Handles educational content generation via direct AI (80% token reduction)
     private func handleDirectEducationalContent(
         _ functionCall: AIFunctionCall,
@@ -926,18 +926,18 @@ final class CoachEngine {
         do {
             let topic = extractString(functionCall.arguments["topic"]) ?? ""
             let userContext = extractString(functionCall.arguments["userContext"]) ?? ""
-            
+
             let content = try await generateEducationalContentDirect(
                 topic: topic,
                 userContext: userContext,
                 for: user
             )
-            
+
             let executionTime = CFAbsoluteTimeGetCurrent() - startTime
             AppLogger.info("Direct educational content generated in \(Int(executionTime * 1_000))ms with \(content.tokenCount) tokens", category: .ai)
-            
+
             let followUpResponse = content.content
-            
+
             // Save function result as assistant message
             _ = try await conversationManager.createAssistantMessage(
                 followUpResponse,
@@ -950,15 +950,15 @@ final class CoachEngine {
                 isLocalCommand: false,
                 isError: false
             )
-            
+
             currentResponse += "\n\n" + followUpResponse
-            
+
         } catch {
             AppLogger.error("Direct educational content generation failed", error: error, category: .ai)
             await handleFunctionError(error, for: user, conversationId: conversationId)
         }
     }
-    
+
     /// Handles complex functions via traditional function dispatcher
     private func handleDispatcherFunction(
         _ functionCall: AIFunctionCall,
@@ -976,12 +976,12 @@ final class CoachEngine {
                 ),
                 modelContext: modelContext
             )
-            
+
             let executionTime = CFAbsoluteTimeGetCurrent() - startTime
             AppLogger.info("Dispatcher function executed in \(Int(executionTime * 1_000))ms", category: .ai)
-            
+
             let followUpResponse = generateFunctionFollowUp(result)
-            
+
             // Save function result as assistant message
             _ = try await conversationManager.createAssistantMessage(
                 followUpResponse,
@@ -994,14 +994,14 @@ final class CoachEngine {
                 isLocalCommand: false,
                 isError: !result.success
             )
-            
+
             currentResponse += "\n\n" + followUpResponse
-            
+
         } catch {
             throw error // Re-throw to be handled by main catch block
         }
     }
-    
+
     /// Builds response for nutrition parsing results
     private func buildNutritionParsingResponse(_ result: NutritionParseResult) -> String {
         let itemsDescription = result.items
@@ -1009,17 +1009,17 @@ final class CoachEngine {
                 "\(item.name) (\(item.quantity)): \(Int(item.calories)) cal, \(String(format: "%.1f", item.protein))g protein"
             }
             .joined(separator: "\n")
-        
+
         return """
         I've logged your nutrition data:
-        
+
         \(itemsDescription)
-        
+
         Total: \(Int(result.totalCalories)) calories
         Confidence: \(String(format: "%.0f", result.confidence * 100))%
         """
     }
-    
+
     /// Handles function execution errors with user-friendly messages
     private func handleFunctionError(
         _ error: Error,
@@ -1027,13 +1027,13 @@ final class CoachEngine {
         conversationId: UUID
     ) async {
         let errorResponse: String
-        
+
         if let directError = error as? DirectAIError {
             errorResponse = directError.userFriendlyMessage
         } else {
             errorResponse = "I encountered an issue while executing that action. Please try again or contact support if the problem persists."
         }
-        
+
         do {
             _ = try await conversationManager.createAssistantMessage(
                 errorResponse,
@@ -1043,17 +1043,17 @@ final class CoachEngine {
                 isLocalCommand: false,
                 isError: true
             )
-            
+
             currentResponse += "\n\n" + errorResponse
         } catch {
             await handleError(error)
         }
     }
-    
+
     /// Extracts string value from AIAnyCodable arguments
     private func extractString(_ value: AIAnyCodable?) -> String? {
         guard let value = value else { return nil }
-        
+
         switch value.value {
         case let string as String:
             return string
@@ -1191,12 +1191,12 @@ final class CoachEngine {
             conversationId: UUID(), // Temporary conversation for standalone function calls
             userId: user.id
         )
-        
+
         return try await functionDispatcher.execute(functionCall, for: user, context: context, modelContext: modelContext)
     }
-    
+
     // MARK: - Direct AI Methods (Delegates to DirectAIProcessor)
-    
+
     /// Parses nutrition data using direct AI (bypassing function dispatcher)
     /// Provides 3x performance improvement over dispatcher-based approach
     public func parseAndLogNutritionDirect(
@@ -1212,7 +1212,7 @@ final class CoachEngine {
             conversationId: conversationId
         )
     }
-    
+
     /// Generates educational content using direct AI (bypassing function dispatcher)
     /// Provides 80% token reduction compared to function calling approach
     public func generateEducationalContentDirect(
@@ -1236,16 +1236,16 @@ extension CoachEngine: StreamingResponseDelegate {
         streamingTokens.append(text)
         currentResponse = accumulated
     }
-    
+
     func streamingDidDetectFunction(_ function: AIFunctionCall) async {
         lastFunctionCall = function.name
     }
-    
+
     func streamingDidComplete(fullResponse: String, tokenUsage: Int) async {
         currentResponse = fullResponse
         AppLogger.debug("Streaming completed with \(tokenUsage) tokens", category: .ai)
     }
-    
+
     func streamingDidFail(with error: Error) async {
         self.error = error
         await handleError(error)
@@ -1284,7 +1284,7 @@ extension CoachEngine {
         let previewWorkoutService = PreviewAIWorkoutService()
         let previewAnalyticsService = PreviewAIAnalyticsService()
         let previewGoalService = PreviewAIGoalService()
-        
+
         // Create minimal persona service
         let llmOrchestrator = LLMOrchestrator(apiKeyManager: PreviewAPIKeyManager())
         let cache = AIResponseCache()
@@ -1300,7 +1300,7 @@ extension CoachEngine {
                 cache: cache
             )
         }
-        
+
         return CoachEngine(
             localCommandParser: LocalCommandParser(),
             functionDispatcher: FunctionCallDispatcher(
@@ -1316,7 +1316,7 @@ extension CoachEngine {
             routingConfiguration: await MainActor.run { RoutingConfiguration() }
         )
     }
-    
+
 }
 
 // MARK: - CoachEngineProtocol Conformance
@@ -1343,19 +1343,19 @@ extension CoachEngine: FoodCoachEngineProtocol {
                 "context": AIAnyCodable(contextString)
             ]
         )
-        
+
         _ = try await executeFunction(functionCall, for: user)
-        
+
         // Parse the result to extract detected food items
         let items: [ParsedFoodItem] = [] // Placeholder - would parse from result.data
-        
+
         return MealPhotoAnalysisResult(
             items: items,
             confidence: 0.8,
             processingTime: 0.5
         )
     }
-    
+
     func searchFoods(query: String, limit: Int, for user: User) async throws -> [ParsedFoodItem] {
         // Create AI function call for food search
         let functionCall = AIFunctionCall(
@@ -1365,23 +1365,23 @@ extension CoachEngine: FoodCoachEngineProtocol {
                 "limit": AIAnyCodable(limit)
             ]
         )
-        
+
         _ = try await executeFunction(functionCall, for: user)
-        
+
         // Parse the result to extract food items
         // For now, return empty array as placeholder
         return []
     }
-    
+
     func parseNaturalLanguageFood(
         text: String,
         mealType: MealType,
         for user: User
     ) async throws -> [ParsedFoodItem] {
         let startTime = CFAbsoluteTimeGetCurrent()
-        
+
         let prompt = buildNutritionParsingPrompt(text: text, mealType: mealType, user: user)
-        
+
         do {
             let aiRequest = AIRequest(
                 systemPrompt: "You are a nutrition expert providing accurate food parsing. Return only valid JSON.",
@@ -1390,10 +1390,10 @@ extension CoachEngine: FoodCoachEngineProtocol {
                 maxTokens: 600,
                 user: "nutrition-parsing"
             )
-            
+
             var fullResponse = ""
             let responseStream = aiService.sendRequest(aiRequest)
-            
+
             do {
                 for try await response in responseStream {
                     switch response {
@@ -1412,32 +1412,32 @@ extension CoachEngine: FoodCoachEngineProtocol {
                 AppLogger.error("AI nutrition parsing failed", error: error, category: .ai)
                 throw error
             }
-            
+
             let result = try parseNutritionJSON(fullResponse)
             let validatedResult = validateNutritionValues(result)
-            
+
             let duration = CFAbsoluteTimeGetCurrent() - startTime
             AppLogger.info(
                 "AI nutrition parsing: \(validatedResult.count) items in \(Int(duration * 1_000))ms | Input: '\(text)' | Validation: \(validatedResult.allSatisfy { $0.calories > 0 })",
                 category: .ai
             )
-            
+
             return validatedResult
-            
+
         } catch {
             AppLogger.error("AI nutrition parsing failed", error: error, category: .ai)
             // Intelligent fallback rather than failing completely
             return [createFallbackFoodItem(from: text, mealType: mealType)]
         }
     }
-    
+
     // MARK: - Private Nutrition Parsing Methods
-    
+
     private func buildNutritionParsingPrompt(text: String, mealType: MealType, user: User) -> String {
         return """
         Parse this food description into accurate nutrition data: "\(text)"
         Meal type: \(mealType.rawValue)
-        
+
         Return ONLY valid JSON with this exact structure:
         {
             "items": [
@@ -1457,7 +1457,7 @@ extension CoachEngine: FoodCoachEngineProtocol {
                 }
             ]
         }
-        
+
         Rules:
         - Use USDA nutrition database accuracy
         - If multiple items mentioned, include all
@@ -1467,14 +1467,14 @@ extension CoachEngine: FoodCoachEngineProtocol {
         - No explanations or extra text, just JSON
         """
     }
-    
+
     private func parseNutritionJSON(_ jsonString: String) throws -> [ParsedFoodItem] {
         guard let data = jsonString.data(using: .utf8),
               let json = try JSONSerialization.jsonObject(with: data) as? [String: Any],
               let itemsArray = json["items"] as? [[String: Any]] else {
             throw FoodTrackingError.invalidNutritionResponse
         }
-        
+
         return try itemsArray.map { itemDict in
             guard let name = itemDict["name"] as? String,
                   let quantity = itemDict["quantity"] as? Double,
@@ -1485,7 +1485,7 @@ extension CoachEngine: FoodCoachEngineProtocol {
                   let fat = itemDict["fatGrams"] as? Double else {
                 throw FoodTrackingError.invalidNutritionData
             }
-            
+
             return ParsedFoodItem(
                 name: name,
                 brand: itemDict["brand"] as? String,
@@ -1503,7 +1503,7 @@ extension CoachEngine: FoodCoachEngineProtocol {
             )
         }
     }
-    
+
     private func validateNutritionValues(_ items: [ParsedFoodItem]) -> [ParsedFoodItem] {
         return items.compactMap { item in
             // Reject obviously wrong values
@@ -1517,12 +1517,12 @@ extension CoachEngine: FoodCoachEngineProtocol {
             return item
         }
     }
-    
+
     private func createFallbackFoodItem(from text: String, mealType: MealType) -> ParsedFoodItem {
         // Extract basic food name from text
         let foodName = text.components(separatedBy: .whitespacesAndNewlines)
             .first(where: { $0.count > 2 }) ?? "Unknown Food"
-        
+
         // Reasonable default values based on meal type
         let defaultCalories: Int = {
             switch mealType {
@@ -1534,7 +1534,7 @@ extension CoachEngine: FoodCoachEngineProtocol {
             case .postWorkout: return 300
             }
         }()
-        
+
         return ParsedFoodItem(
             name: foodName,
             brand: nil,
@@ -1542,7 +1542,7 @@ extension CoachEngine: FoodCoachEngineProtocol {
             unit: "serving",
             calories: defaultCalories,
             proteinGrams: Double(defaultCalories) * 0.15 / 4, // 15% protein
-            carbGrams: Double(defaultCalories) * 0.50 / 4,    // 50% carbs  
+            carbGrams: Double(defaultCalories) * 0.50 / 4,    // 50% carbs
             fatGrams: Double(defaultCalories) * 0.35 / 9,     // 35% fat
             fiberGrams: 3.0,
             sugarGrams: nil,
@@ -1576,7 +1576,7 @@ private final class PreviewAIWorkoutService: AIWorkoutServiceProtocol {
     func logExercise(_ exercise: Exercise, in workout: Workout) async throws {}
     func getWorkoutHistory(for user: User, limit: Int) async throws -> [Workout] { [] }
     // Template methods removed - AI generates personalized workouts on-demand
-    
+
     // AI protocol requirements
     func generatePlan(for user: User, goal: String, duration: Int, intensity: String, targetMuscles: [String], equipment: [String], constraints: String?, style: String) async throws -> WorkoutPlanResult {
         WorkoutPlanResult(
@@ -1589,7 +1589,7 @@ private final class PreviewAIWorkoutService: AIWorkoutServiceProtocol {
             focusAreas: targetMuscles
         )
     }
-    
+
     func adaptPlan(_ plan: WorkoutPlanResult, feedback: String, adjustments: [String: Any], for user: User) async throws -> WorkoutPlanResult {
         plan
     }
@@ -1613,7 +1613,7 @@ private final class PreviewAIAnalyticsService: AIAnalyticsServiceProtocol {
             achievements: []
         )
     }
-    
+
     // AI protocol requirements
     func analyzePerformance(query: String, metrics: [String], days: Int, depth: String, includeRecommendations: Bool, for user: User) async throws -> PerformanceAnalysisResult {
         PerformanceAnalysisResult(
@@ -1625,7 +1625,7 @@ private final class PreviewAIAnalyticsService: AIAnalyticsServiceProtocol {
             confidence: 0.5
         )
     }
-    
+
     func generatePredictiveInsights(for user: User, timeframe: Int) async throws -> PredictiveInsights {
         PredictiveInsights(
             projections: [:],
@@ -1668,7 +1668,7 @@ private final class PreviewAIGoalService: AIGoalServiceProtocol {
             currentStreak: 0
         )
     }
-    
+
     // AI protocol requirements
     func createOrRefineGoal(current: String?, aspirations: String, timeframe: String?, fitnessLevel: String?, constraints: [String], motivations: [String], goalType: String?, for user: User) async throws -> GoalResult {
         GoalResult(
@@ -1687,7 +1687,7 @@ private final class PreviewAIGoalService: AIGoalServiceProtocol {
             )
         )
     }
-    
+
     func suggestGoalAdjustments(for goal: TrackedGoal, user: User) async throws -> [GoalAdjustment] {
         []
     }

@@ -14,7 +14,7 @@ struct DashboardContent: View {
     @State private var coordinator = DashboardCoordinator()
 
     @State private var hasAppeared = false
-    
+
     let user: User
 
     private let columns: [GridItem] = [
@@ -32,7 +32,7 @@ struct DashboardContent: View {
                             .padding(.horizontal, AppSpacing.screenPadding)
                             .padding(.top, AppSpacing.md)
                             .padding(.bottom, AppSpacing.lg)
-                        
+
                         if viewModel.isLoading {
                             loadingView
                         } else if let error = viewModel.error {
@@ -73,7 +73,7 @@ struct DashboardContent: View {
                         lineWidth: 3
                     )
                     .frame(width: 48, height: 48)
-                
+
                 ProgressView()
                     .scaleEffect(1.2)
                     .progressViewStyle(CircularProgressViewStyle(tint: gradientManager.active.colors(for: colorScheme)[0]))
@@ -147,7 +147,7 @@ struct DashboardContent: View {
             .accessibilityElement(children: .contain)
             .accessibilityLabel("Morning greeting")
             .accessibilityHint("Shows your personalized morning message and energy level")
-            
+
             GlassCard {
                 NutritionCard(
                     summary: viewModel.nutritionSummary,
@@ -157,21 +157,21 @@ struct DashboardContent: View {
             .accessibilityElement(children: .contain)
             .accessibilityLabel("Nutrition tracking")
             .accessibilityHint("Shows today's nutrition summary and progress")
-            
+
             GlassCard {
                 RecoveryCard(recoveryScore: viewModel.recoveryScore)
             }
             .accessibilityElement(children: .contain)
             .accessibilityLabel("Recovery status")
             .accessibilityHint("Shows your current recovery score")
-            
+
             GlassCard {
                 PerformanceCard(insight: viewModel.performanceInsight)
             }
             .accessibilityElement(children: .contain)
             .accessibilityLabel("Performance insights")
             .accessibilityHint("Shows your recent performance trends")
-            
+
             GlassCard {
                 QuickActionsCard(
                     suggestedActions: viewModel.suggestedActions,
@@ -205,7 +205,7 @@ struct DashboardContent: View {
     let container = try! ModelContainer(for: User.self) // swiftlint:disable:this force_try
     let user = User(name: "Preview")
     container.mainContext.insert(user)
-    
+
     return DashboardView(user: user)
         .withDIContainer(DIContainer()) // Empty container for preview
         .modelContainer(container)
@@ -261,7 +261,7 @@ struct DashboardView: View {
     let user: User
     @State private var viewModel: DashboardViewModel?
     @Environment(\.diContainer) private var container
-    
+
     var body: some View {
         Group {
             if let viewModel = viewModel {

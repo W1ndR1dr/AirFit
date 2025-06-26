@@ -4,16 +4,16 @@ import Foundation
 enum MeasurementSystem: String, Codable, CaseIterable, Identifiable {
     case imperial
     case metric
-    
+
     var id: String { rawValue }
-    
+
     var displayName: String {
         switch self {
         case .imperial: return "Imperial (US)"
         case .metric: return "Metric"
         }
     }
-    
+
     var description: String {
         switch self {
         case .imperial: return "Pounds, feet, miles, Fahrenheit"
@@ -27,7 +27,7 @@ enum AppearanceMode: String, Codable, CaseIterable {
     case light
     case dark
     case system
-    
+
     var displayName: String {
         switch self {
         case .light: return "Light"
@@ -44,17 +44,17 @@ struct QuietHours: Codable, Equatable {
     var enabled: Bool = false
     var startTime: Date
     var endTime: Date
-    
+
     init() {
         let calendar = Calendar.current
         let now = Date()
-        
+
         // Default quiet hours: 10 PM to 7 AM
         var startComponents = calendar.dateComponents([.year, .month, .day], from: now)
         startComponents.hour = 22
         startComponents.minute = 0
         self.startTime = calendar.date(from: startComponents) ?? now
-        
+
         var endComponents = calendar.dateComponents([.year, .month, .day], from: now)
         endComponents.hour = 7
         endComponents.minute = 0
@@ -68,14 +68,14 @@ struct DataExport: Codable, Identifiable {
     let date: Date
     let size: Int64
     let format: ExportFormat
-    
+
     init(date: Date, size: Int64, format: ExportFormat) {
         self.id = UUID()
         self.date = date
         self.size = size
         self.format = format
     }
-    
+
     enum ExportFormat: String, Codable {
         case json
         case csv
@@ -87,7 +87,7 @@ struct PersonaEvolutionTracker {
     var adaptationLevel: Int = 0
     var lastUpdateDate: Date = Date()
     var recentAdaptations: [PersonaAdaptation] = []
-    
+
     init(user: User) {
         // Initialize from user data if available
         self.lastUpdateDate = user.lastActiveAt
@@ -100,7 +100,7 @@ struct PersonaAdaptation: Identifiable {
     let type: AdaptationType
     let description: String
     let icon: String
-    
+
     enum AdaptationType {
         case naturalLanguage
         case behaviorLearning
@@ -115,7 +115,7 @@ enum PreviewScenario {
     case nutritionGuidance
     case recoveryCheck
     case goalSetting
-    
+
     static func randomScenario() -> PreviewScenario {
         let scenarios: [PreviewScenario] = [
             .morningGreeting,
@@ -144,7 +144,7 @@ enum SettingsError: LocalizedError {
     case exportFailed(String)
     case personaNotConfigured
     case personaAdjustmentFailed(String)
-    
+
     var errorDescription: String? {
         switch self {
         case .missingAPIKey(let provider):

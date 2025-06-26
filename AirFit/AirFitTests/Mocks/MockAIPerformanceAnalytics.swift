@@ -6,17 +6,17 @@ import Foundation
 
 @MainActor
 final class MockAIPerformanceAnalytics {
-    
+
     // MARK: - Mock State
     private(set) var analyzePerformanceCalls = 0
     private(set) var generatePredictiveInsightsCalls = 0
-    
+
     // MARK: - Mock Methods
     func analyzePerformance(query: String, for user: User) async throws -> String {
         analyzePerformanceCalls += 1
         return "Mock performance analysis for: \(query)"
     }
-    
+
     func generatePredictiveInsights(for user: User, timeframe: Int) async throws -> [String] {
         generatePredictiveInsightsCalls += 1
         return [
@@ -25,7 +25,7 @@ final class MockAIPerformanceAnalytics {
             "Your workout consistency is improving"
         ]
     }
-    
+
     // MARK: - Test Helpers
     func reset() {
         analyzePerformanceCalls = 0

@@ -7,10 +7,10 @@ import Foundation
 protocol ErrorHandling: AnyObject {
     var error: AppError? { get set }
     var isShowingError: Bool { get set }
-    
+
     /// Handles an error with proper conversion to AppError
     func handleError(_ error: Error)
-    
+
     /// Clears the current error state
     func clearError()
 }
@@ -55,13 +55,13 @@ extension ErrorHandling {
         } else {
             self.error = AppError.networkError(underlying: error)
         }
-        
+
         self.isShowingError = true
-        
+
         // Log the error
         AppLogger.error("Error handled", error: error, category: .app)
     }
-    
+
     func clearError() {
         self.error = nil
         self.isShowingError = false
@@ -84,7 +84,7 @@ extension ErrorHandling {
             return nil
         }
     }
-    
+
     /// Executes an async operation with error handling and loading state
     func withErrorHandling<T: Sendable>(
         setLoading: @MainActor @escaping (Bool) -> Void,
@@ -92,7 +92,7 @@ extension ErrorHandling {
     ) async -> T? {
         await MainActor.run { setLoading(true) }
         defer { Task { @MainActor in setLoading(false) } }
-        
+
         do {
             return try await operation()
         } catch {
@@ -112,7 +112,7 @@ struct ErrorAlertModifier: ViewModifier {
     @Binding var error: AppError?
     @Binding var isPresented: Bool
     let onDismiss: (() -> Void)?
-    
+
     func body(content: Content) -> some View {
         content
             .alert(
@@ -179,7 +179,7 @@ extension ServiceErrorHandling {
             return try await operation()
         } catch {
             AppLogger.error("\(context) failed", error: error, category: .services)
-            
+
             // Convert to AppError if needed
             if let appError = error as? AppError {
                 throw appError

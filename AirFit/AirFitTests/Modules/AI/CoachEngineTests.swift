@@ -13,7 +13,7 @@ final class CoachEngineTests: XCTestCase {
     // MARK: - Setup & Teardown
     override func setUp() async throws {
         try super.setUp()
-        
+
         // Create in-memory model container for testing
         let schema = Schema([
             User.self,
@@ -53,7 +53,7 @@ final class CoachEngineTests: XCTestCase {
 
     // MARK: - Local Command Integration Tests
 
-        func test_processUserMessage_withWaterLogCommand_shouldUseLocalParser() async throws {
+    func test_processUserMessage_withWaterLogCommand_shouldUseLocalParser() async throws {
         // Given - water logging command
         let waterLogText = "log 16 oz water"
 
@@ -67,7 +67,7 @@ final class CoachEngineTests: XCTestCase {
         XCTAssertTrue(sut.currentResponse.contains("logged"))
     }
 
-        func test_processUserMessage_withHelpCommand_shouldProvideHelpResponse() async throws {
+    func test_processUserMessage_withHelpCommand_shouldProvideHelpResponse() async throws {
         // Given - help command
         let helpText = "help"
 
@@ -83,7 +83,7 @@ final class CoachEngineTests: XCTestCase {
 
     // MARK: - Conversation Management Tests
 
-        func test_clearConversation_shouldResetState() async throws {
+    func test_clearConversation_shouldResetState() async throws {
         // Given - simulate having some state
         let originalConversationId = sut.activeConversationId
 
@@ -99,7 +99,7 @@ final class CoachEngineTests: XCTestCase {
         XCTAssertNil(sut.error)
     }
 
-        func test_regenerateLastResponse_withNoConversation_shouldSetError() async throws {
+    func test_regenerateLastResponse_withNoConversation_shouldSetError() async throws {
         // Given - fresh CoachEngine with no conversation history
 
         // When
@@ -112,7 +112,7 @@ final class CoachEngineTests: XCTestCase {
 
     // MARK: - Performance Tests
 
-        func test_localCommandProcessing_shouldCompleteQuickly() async throws {
+    func test_localCommandProcessing_shouldCompleteQuickly() async throws {
         // Given
         let startTime = CFAbsoluteTimeGetCurrent()
 
@@ -127,7 +127,7 @@ final class CoachEngineTests: XCTestCase {
 
     // MARK: - Direct AI Methods Tests (Phase 3 Implementation)
 
-        func test_parseAndLogNutritionDirect_basicFood_success() async throws {
+    func test_parseAndLogNutritionDirect_basicFood_success() async throws {
         // Given
         let foodText = "2 slices whole wheat bread with peanut butter"
 
@@ -148,7 +148,7 @@ final class CoachEngineTests: XCTestCase {
         XCTAssertGreaterThan(result.processingTimeMs, 0, "Should track processing time")
     }
 
-        func test_parseAndLogNutritionDirect_emptyInput_throwsError() async throws {
+    func test_parseAndLogNutritionDirect_emptyInput_throwsError() async throws {
         // Given
         let invalidInput = ""
 
@@ -165,7 +165,7 @@ final class CoachEngineTests: XCTestCase {
         }
     }
 
-        func test_generateEducationalContentDirect_basicTopic_success() async throws {
+    func test_generateEducationalContentDirect_basicTopic_success() async throws {
         // Given
         let topic = "progressive_overload"
         let userContext = "I'm not seeing strength gains anymore"
@@ -186,7 +186,7 @@ final class CoachEngineTests: XCTestCase {
         XCTAssertNotEqual(result.contentType, .general, "Should classify content type appropriately")
     }
 
-        func test_generateEducationalContentDirect_exerciseTopic_classifiesCorrectly() async throws {
+    func test_generateEducationalContentDirect_exerciseTopic_classifiesCorrectly() async throws {
         // Given
         let topic = "deadlift_form"
         let userContext = "I want to improve my deadlift technique"
@@ -202,7 +202,7 @@ final class CoachEngineTests: XCTestCase {
         XCTAssertEqual(result.contentType, .exercise, "Should classify as exercise content")
         XCTAssertTrue(
             result.content.localizedCaseInsensitiveContains("deadlift") ||
-            result.content.localizedCaseInsensitiveContains("form"),
+                result.content.localizedCaseInsensitiveContains("form"),
             "Content should relate to the topic"
         )
     }

@@ -33,7 +33,7 @@ final class MockWhisperServiceWrapper: WhisperServiceWrapperProtocol, @unchecked
             }
         }
     }
-    
+
     func reset() {
         isAvailable.send(true)
         isTranscribing.send(false)

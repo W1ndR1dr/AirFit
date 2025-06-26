@@ -4,37 +4,37 @@ import Foundation
 /// Mock LLMOrchestrator for testing
 @MainActor
 final class MockLLMOrchestrator {
-    
+
     // MARK: - Mock Properties
     var mockResponse: LLMResponse?
     var mockStreamChunks: [LLMStreamChunk] = []
     var shouldThrowError = false
     var mockError: Error = LLMError.invalidResponse("Mock error")
-    
+
     // MARK: - Tracking Properties
     var completeCallCount = 0
     var streamCallCount = 0
     var lastPrompt = ""
     var lastRequest: LLMRequest?
     var estimateCostCallCount = 0
-    
+
     // MARK: - Mock Available Providers
     var mockAvailableProviders: Set<LLMProviderIdentifier> = [.anthropic, .openai, .google]
-    
+
     let apiKeyManager: APIKeyManagementProtocol
-    
+
     init(apiKeyManager: APIKeyManagementProtocol = MockAPIKeyManager()) {
         self.apiKeyManager = apiKeyManager
     }
-    
+
     // MARK: - Test Helper Methods
-    
+
     func setShouldThrowError(_ value: Bool) {
         self.shouldThrowError = value
     }
-    
+
     // MARK: - LLMOrchestrator-like Methods
-    
+
     func complete(
         prompt: String,
         task: AITask,
@@ -44,11 +44,11 @@ final class MockLLMOrchestrator {
     ) async throws -> LLMResponse {
         completeCallCount += 1
         lastPrompt = prompt
-        
+
         if shouldThrowError {
             throw mockError
         }
-        
+
         // Track the request
         lastRequest = LLMRequest(
             messages: [LLMMessage(role: .user, content: prompt, name: nil, attachments: nil)],
@@ -61,7 +61,7 @@ final class MockLLMOrchestrator {
             metadata: ["task": String(describing: task)],
             thinkingBudgetTokens: nil
         )
-        
+
         return mockResponse ?? LLMResponse(
             content: """
             {
@@ -78,7 +78,7 @@ final class MockLLMOrchestrator {
             metadata: [:]
         )
     }
-    
+
     func stream(
         prompt: String,
         task: AITask,
@@ -87,14 +87,14 @@ final class MockLLMOrchestrator {
     ) -> AsyncThrowingStream<LLMStreamChunk, Error> {
         streamCallCount += 1
         lastPrompt = prompt
-        
+
         return AsyncThrowingStream { continuation in
             Task {
                 if self.shouldThrowError {
                     continuation.finish(throwing: self.mockError)
                     return
                 }
-                
+
                 // Use mockStreamChunks if provided
                 if !self.mockStreamChunks.isEmpty {
                     for chunk in self.mockStreamChunks {
@@ -112,20 +112,20 @@ final class MockLLMOrchestrator {
                         ))
                     }
                 }
-                
+
                 continuation.finish()
             }
         }
     }
-    
+
     func estimateCost(for prompt: String, model: LLMModel, responseTokens: Int = 1_000) -> Double {
         estimateCostCallCount += 1
         // Simple mock cost calculation
         return Double(prompt.count + responseTokens) * 0.00001
     }
-    
+
     // MARK: - Test Helpers
-    
+
     func reset() {
         completeCallCount = 0
         streamCallCount = 0

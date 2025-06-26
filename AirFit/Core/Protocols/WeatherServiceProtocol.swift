@@ -6,13 +6,13 @@ protocol WeatherServiceProtocol: ServiceProtocol, Sendable {
         latitude: Double,
         longitude: Double
     ) async throws -> ServiceWeatherData
-    
+
     func getForecast(
         latitude: Double,
         longitude: Double,
         days: Int
     ) async throws -> WeatherForecast
-    
+
     func getCachedWeather(
         latitude: Double,
         longitude: Double

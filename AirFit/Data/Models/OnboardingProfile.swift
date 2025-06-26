@@ -10,18 +10,18 @@ final class OnboardingProfile: @unchecked Sendable {
     var communicationPreferencesData: Data
     @Attribute(.externalStorage)
     var rawFullProfileData: Data
-    
+
     // Additional properties for UserService
     var name: String?
     var email: String?
     var isComplete: Bool = false
-    
+
     // Persona data (stored as JSON)
     var personaData: Data?
 
     // MARK: - Relationships
     var user: User?
-    
+
     // MARK: - Computed Properties
     var persona: PersonaProfile? {
         get {

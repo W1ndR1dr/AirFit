@@ -5,7 +5,7 @@ import Foundation
 // This is the AI-based workout generation service, different from MockWorkoutService
 
 actor MockAIWorkoutService: AIWorkoutServiceProtocol {
-    
+
     // MARK: - WorkoutServiceProtocol conformance (base protocol)
     func startWorkout(type: WorkoutType, user: User) async throws -> Workout {
         let workout = Workout(name: "AI Generated Workout")
@@ -14,30 +14,30 @@ actor MockAIWorkoutService: AIWorkoutServiceProtocol {
         workout.user = user
         return workout
     }
-    
+
     func pauseWorkout(_ workout: Workout) async throws {
         // Mock implementation
     }
-    
+
     func resumeWorkout(_ workout: Workout) async throws {
         // Mock implementation
     }
-    
+
     func endWorkout(_ workout: Workout) async throws {
         workout.completedDate = Date()
         workout.caloriesBurned = 250
     }
-    
+
     func logExercise(_ exercise: Exercise, in workout: Workout) async throws {
         workout.exercises.append(exercise)
     }
-    
+
     func getWorkoutHistory(for user: User, limit: Int) async throws -> [Workout] {
         return []
     }
-    
+
     // Template methods removed - AI generates personalized workouts on-demand
-    
+
     // MARK: - AIWorkoutServiceProtocol specific methods
     func generatePlan(
         for user: User,
@@ -66,7 +66,7 @@ actor MockAIWorkoutService: AIWorkoutServiceProtocol {
             duration: duration,
             intensity: intensity
         )
-        
+
         let difficulty: WorkoutPlanResult.WorkoutDifficulty = switch intensity {
         case "light": .beginner
         case "moderate": .intermediate
@@ -74,7 +74,7 @@ actor MockAIWorkoutService: AIWorkoutServiceProtocol {
         case "extreme": .expert
         default: .intermediate
         }
-        
+
         let focusAreas = targetMuscles // Use the input target muscles as focus areas
 
         return WorkoutPlanResult(
@@ -87,7 +87,7 @@ actor MockAIWorkoutService: AIWorkoutServiceProtocol {
             focusAreas: focusAreas
         )
     }
-    
+
     nonisolated func adaptPlan(
         _ plan: WorkoutPlanResult,
         feedback: String,
@@ -247,13 +247,13 @@ actor MockAIWorkoutService: AIWorkoutServiceProtocol {
             let musclesString = String(notes[range.upperBound...])
             return musclesString.split(separator: ",").map { $0.trimmingCharacters(in: .whitespaces) }
         }.flatMap { $0 }
-        
+
         let primaryMuscles = Set(muscleGroups).prefix(3).joined(separator: ", ")
         return "A \(duration)-minute \(goal) workout targeting \(primaryMuscles) with \(exercises.count) exercises."
     }
-    
+
     // MARK: - Reset
-    
+
     func reset() {
         // This is an actor, so no state to reset
         // All methods return fresh data each time

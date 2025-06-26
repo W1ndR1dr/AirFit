@@ -12,12 +12,12 @@ final class PersonaService: ServiceProtocol {
     nonisolated var isConfigured: Bool {
         MainActor.assumeIsolated { _isConfigured }
     }
-    
+
     private let personaSynthesizer: PersonaSynthesizer
     private let llmOrchestrator: LLMOrchestrator
     private let modelContext: ModelContext
     private let cache: AIResponseCache
-    
+
     init(
         personaSynthesizer: PersonaSynthesizer,
         llmOrchestrator: LLMOrchestrator,
@@ -29,21 +29,21 @@ final class PersonaService: ServiceProtocol {
         self.modelContext = modelContext
         self.cache = cache ?? AIResponseCache()
     }
-    
+
     // MARK: - ServiceProtocol Methods
-    
+
     func configure() async throws {
         guard !_isConfigured else { return }
         _isConfigured = true
         AppLogger.info("\(serviceIdentifier) configured", category: .services)
     }
-    
+
     func reset() async {
         _isConfigured = false
         await cache.clear()
         AppLogger.info("\(serviceIdentifier) reset", category: .services)
     }
-    
+
     func healthCheck() async -> ServiceHealth {
         ServiceHealth(
             status: _isConfigured ? .healthy : .unhealthy,
@@ -56,31 +56,42 @@ final class PersonaService: ServiceProtocol {
             ]
         )
     }
-    
+
     func generatePersona(from session: ConversationSession) async throws -> PersonaProfile {
         // Extract conversation data from session
         let userName = extractUserName(from: session.responses)
         let primaryGoal = extractPrimaryGoal(from: session.responses)
         let responsesDict = convertResponsesToDict(session.responses)
-        
+
+        // Convert responses to conversation messages
+        let messages = session.responses.map { response in
+            ConversationMessage(
+                role: .user,
+                content: String(describing: response.responseData),
+                timestamp: response.timestamp
+            )
+        }
+
         let conversationData = ConversationData(
-            userName: userName,
-            primaryGoal: primaryGoal,
-            responses: responsesDict
+            messages: messages,
+            variables: [
+                "userName": userName,
+                "primary_goal": primaryGoal
+            ]
         )
-        
+
         // Extract personality insights from responses
         let insights = try await extractPersonalityInsights(from: session.responses)
-        
+
         // Synthesize persona
         let persona = try await personaSynthesizer.synthesizePersona(
             from: conversationData,
             insights: insights
         )
-        
+
         return persona
     }
-    
+
     func adjustPersona(_ persona: PersonaProfile, adjustment: String) async throws -> PersonaProfile {
         // Create adjustment request
         let adjustmentPrompt = """
@@ -89,13 +100,13 @@ final class PersonaService: ServiceProtocol {
         Current voice energy: \(persona.voiceCharacteristics.energy.rawValue)
         Current voice warmth: \(persona.voiceCharacteristics.warmth.rawValue)
         Current formality: \(persona.interactionStyle.formalityLevel.rawValue)
-        
+
         User requested adjustment: "\(adjustment)"
-        
+
         Modify the persona to incorporate this feedback while maintaining core personality.
         Return updated persona details.
         """
-        
+
         let response = try await llmOrchestrator.complete(
             prompt: adjustmentPrompt,
             task: .personaSynthesis,
@@ -103,11 +114,11 @@ final class PersonaService: ServiceProtocol {
             temperature: 0.7,
             maxTokens: 2_000
         )
-        
+
         // Parse adjusted persona from response
         return try parseAdjustedPersona(from: response, original: persona)
     }
-    
+
     func savePersona(_ persona: PersonaProfile, for userId: UUID) async throws {
         // First get the user
         let userDescriptor = FetchDescriptor<User>(
@@ -119,7 +130,7 @@ final class PersonaService: ServiceProtocol {
         guard let user = users.first else {
             throw AppError.userNotFound
         }
-        
+
         // Get the user's onboarding profile
         if let existingProfile = user.onboardingProfile {
             // Update existing profile
@@ -140,10 +151,10 @@ final class PersonaService: ServiceProtocol {
             user.onboardingProfile = profile
             modelContext.insert(profile)
         }
-        
+
         try modelContext.save()
     }
-    
+
     func getActivePersona(for userId: UUID) async throws -> PersonaProfile {
         // Fetch the user and their onboarding profile
         let userDescriptor = FetchDescriptor<User>(
@@ -155,19 +166,19 @@ final class PersonaService: ServiceProtocol {
         guard let user = users.first else {
             throw AppError.userNotFound
         }
-        
+
         guard let onboardingProfile = user.onboardingProfile,
               let personaData = onboardingProfile.personaData else {
             throw AppError.validationError(message: "No persona found for user")
         }
-        
+
         // Decode the persona profile
         let persona = try JSONDecoder().decode(PersonaProfile.self, from: personaData)
         return persona
     }
-    
+
     // MARK: - Private Methods
-    
+
     private func extractPersonalityInsights(from responses: [ConversationResponse]) async throws -> ConversationPersonalityInsights {
         // Convert responses to readable format
         var responseTexts: [String] = []
@@ -189,12 +200,12 @@ final class PersonaService: ServiceProtocol {
                 responseTexts.append("Node: \(response.nodeId)\nResponse: \(responseText)")
             }
         }
-        
+
         let analysisPrompt = """
         Analyze these conversation responses to extract personality insights:
-        
+
         \(responseTexts.joined(separator: "\n\n"))
-        
+
         Extract:
         1. Dominant personality traits (2-3)
         2. Communication style preference
@@ -204,27 +215,27 @@ final class PersonaService: ServiceProtocol {
         6. Emotional tone preferences
         7. Stress response patterns
         8. Preferred times for interaction
-        
+
         Return as structured JSON.
         """
-        
+
         let response = try await llmOrchestrator.complete(
             prompt: analysisPrompt,
             task: .personaSynthesis,
             model: .claude4Sonnet,
             temperature: 0.5
         )
-        
+
         // Parse insights from response
         return try parsePersonalityInsights(from: response)
     }
-    
+
     private func parsePersonalityInsights(from response: LLMResponse) throws -> ConversationPersonalityInsights {
         let content = response.content
         guard let data = content.data(using: .utf8) else {
             throw PersonaError.invalidResponse("Invalid response content")
         }
-        
+
         struct InsightsResponse: Codable {
             let dominantTraits: [String]
             let communicationStyle: String
@@ -235,9 +246,9 @@ final class PersonaService: ServiceProtocol {
             let stressResponse: String
             let preferredTimes: [String]
         }
-        
+
         let decoded = try JSONDecoder().decode(InsightsResponse.self, from: data)
-        
+
         return ConversationPersonalityInsights(
             dominantTraits: decoded.dominantTraits,
             communicationStyle: ConversationCommunicationStyle(rawValue: decoded.communicationStyle) ?? .conversational,
@@ -250,13 +261,13 @@ final class PersonaService: ServiceProtocol {
             extractedAt: Date()
         )
     }
-    
+
     private func parseAdjustedPersona(from response: LLMResponse, original: PersonaProfile) throws -> PersonaProfile {
         let content = response.content
         guard let data = content.data(using: .utf8) else {
             throw PersonaError.invalidResponse("Invalid response content")
         }
-        
+
         struct AdjustmentResponse: Codable {
             let name: String?
             let archetype: String?
@@ -266,9 +277,9 @@ final class PersonaService: ServiceProtocol {
             let humorLevel: String?
             let encouragementPhrases: [String]?
         }
-        
+
         let decoded = try JSONDecoder().decode(AdjustmentResponse.self, from: data)
-        
+
         // Create new voice characteristics if needed
         var newVoiceCharacteristics = original.voiceCharacteristics
         if let energy = decoded.energy,
@@ -281,7 +292,7 @@ final class PersonaService: ServiceProtocol {
                 sentenceStructure: original.voiceCharacteristics.sentenceStructure
             )
         }
-        
+
         // Create new interaction style if needed
         var newInteractionStyle = original.interactionStyle
         if decoded.formality != nil || decoded.humorLevel != nil || decoded.encouragementPhrases != nil {
@@ -296,7 +307,7 @@ final class PersonaService: ServiceProtocol {
                 responseLength: original.interactionStyle.responseLength
             )
         }
-        
+
         // Create adjusted persona
         let adjusted = PersonaProfile(
             id: original.id,
@@ -317,7 +328,7 @@ final class PersonaService: ServiceProtocol {
                 previewReady: true
             )
         )
-        
+
         return adjusted
     }
 }
@@ -341,7 +352,7 @@ extension PersonaService {
         }
         return "Friend"
     }
-    
+
     private func extractPrimaryGoal(from responses: [ConversationResponse]) -> String {
         // Look for goal in responses
         for response in responses {
@@ -354,10 +365,10 @@ extension PersonaService {
         }
         return "improve fitness"
     }
-    
+
     private func convertResponsesToDict(_ responses: [ConversationResponse]) -> [String: Any] {
         var dict: [String: Any] = [:]
-        
+
         for response in responses {
             if let value = try? JSONDecoder().decode(ResponseValue.self, from: response.responseData) {
                 switch value {
@@ -374,7 +385,7 @@ extension PersonaService {
                 }
             }
         }
-        
+
         return dict
     }
 }
@@ -384,21 +395,21 @@ extension PersonaService {
 extension ConversationSession {
     // Note: completionPercentage is now a stored property in the model
     // to support assignment in ConversationFlowManager
-    
+
     var sessionId: UUID {
         return id
     }
-    
+
     var nodeCount: Int {
         // This would be set by ConversationFlowManager
         return 12
     }
-    
+
     var summary: String? {
         // Generate summary from responses
         return nil
     }
-    
+
     var extractedData: [String: Any]? {
         // This would be populated by ResponseAnalyzer
         return nil

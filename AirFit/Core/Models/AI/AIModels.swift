@@ -9,12 +9,12 @@ struct AIModel: Sendable, Codable {
     let provider: AIProvider
     let contextWindow: Int
     let costPerThousandTokens: TokenCost
-    
+
     struct TokenCost: Sendable, Codable {
         let input: Double
         let output: Double
     }
-    
+
     init(
         id: String,
         name: String,
@@ -178,7 +178,7 @@ struct AIRequest: Sendable {
     let maxTokens: Int?
     let stream: Bool
     let user: String
-    
+
     // Provider-specific features
     let enableGrounding: Bool  // Google Gemini grounding
     let cacheKey: String?      // Anthropic context caching

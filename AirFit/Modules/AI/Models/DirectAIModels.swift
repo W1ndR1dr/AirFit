@@ -11,7 +11,7 @@ struct LegacyNutritionParseResult: Sendable {
     let parseMethod: ParseMethod
     let processingTimeMs: Int
     let tokenCount: Int?
-    
+
     init(
         items: [ParsedNutritionItem],
         totalCalories: Double? = nil,
@@ -39,17 +39,17 @@ struct ParsedNutritionItem: Sendable {
     let fatGrams: Double
     let fiberGrams: Double?
     let confidence: Double
-    
+
     /// Validates nutrition values for reasonableness
     var isValid: Bool {
         calories > 0 && calories < 5_000 &&
-        proteinGrams >= 0 && proteinGrams < 300 &&
-        carbGrams >= 0 && carbGrams < 1_000 &&
-        fatGrams >= 0 && fatGrams < 500
+            proteinGrams >= 0 && proteinGrams < 300 &&
+            carbGrams >= 0 && carbGrams < 1_000 &&
+            fatGrams >= 0 && fatGrams < 500
     }
 }
 
-/// Legacy educational content type - kept for backward compatibility  
+/// Legacy educational content type - kept for backward compatibility
 /// New implementations use EducationalContent from NutritionParseResult.swift
 struct LegacyEducationalContent: Sendable {
     let topic: String
@@ -59,7 +59,7 @@ struct LegacyEducationalContent: Sendable {
     let generatedAt: Date
     let processingTimeMs: Int
     let tokenCount: Int?
-    
+
     /// Content quality score based on length and structure
     var qualityScore: Double {
         let lengthScore = min(Double(content.count) / 500.0, 1.0) // Target 500+ chars
@@ -73,7 +73,7 @@ enum ParseMethod: String, Sendable {
     case directAI = "direct_ai"
     case functionDispatcher = "function_dispatcher"
     case hybrid = "hybrid"
-    
+
     var description: String {
         switch self {
         case .directAI: return "Direct AI"
@@ -84,4 +84,4 @@ enum ParseMethod: String, Sendable {
 }
 
 // MARK: - Error Types
-// Note: DirectAIError is now defined in CoachEngine.swift to avoid duplication 
+// Note: DirectAIError is now defined in CoachEngine.swift to avoid duplication

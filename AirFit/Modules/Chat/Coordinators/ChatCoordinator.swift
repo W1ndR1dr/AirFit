@@ -29,7 +29,7 @@ enum ChatSheet: Identifiable {
 enum ChatAlert: Identifiable {
     case deleteMessage(messageId: String)
     case clearHistory
-    
+
     var id: String {
         switch self {
         case .deleteMessage(let id): return "delete_\(id)"

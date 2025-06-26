@@ -12,7 +12,7 @@ struct ServiceConfiguration: Sendable {
         let cacheDuration: TimeInterval
         let streamingEnabled: Bool
         let costTrackingEnabled: Bool
-        
+
         static let `default` = AIConfiguration(
             defaultProvider: .openAI,
             defaultModel: "gpt-4o-mini",
@@ -24,7 +24,7 @@ struct ServiceConfiguration: Sendable {
             costTrackingEnabled: true
         )
     }
-    
+
     // MARK: - Weather Service Configuration
     struct WeatherConfiguration: Sendable {
         let apiProvider: WeatherProvider
@@ -32,17 +32,17 @@ struct ServiceConfiguration: Sendable {
         let cacheEnabled: Bool
         let cacheDuration: TimeInterval
         let defaultUnits: WeatherUnits
-        
+
         enum WeatherProvider: String, Sendable {
             case openWeather = "OpenWeatherMap"
             case weatherAPI = "WeatherAPI"
         }
-        
+
         enum WeatherUnits: String, Sendable {
             case metric
             case imperial
         }
-        
+
         static let `default` = WeatherConfiguration(
             apiProvider: .openWeather,
             updateInterval: 900, // 15 minutes
@@ -51,7 +51,7 @@ struct ServiceConfiguration: Sendable {
             defaultUnits: .imperial
         )
     }
-    
+
     // MARK: - Network Configuration
     struct NetworkConfiguration: Sendable {
         let maxConcurrentRequests: Int
@@ -60,7 +60,7 @@ struct ServiceConfiguration: Sendable {
         let retryCount: Int
         let retryDelay: TimeInterval
         let enableLogging: Bool
-        
+
         static let `default` = NetworkConfiguration(
             maxConcurrentRequests: 4,
             requestTimeout: 30,
@@ -70,7 +70,7 @@ struct ServiceConfiguration: Sendable {
             enableLogging: true
         )
     }
-    
+
     // MARK: - Analytics Configuration
     struct AnalyticsConfiguration: Sendable {
         let enabled: Bool
@@ -78,7 +78,7 @@ struct ServiceConfiguration: Sendable {
         let sessionTimeout: TimeInterval
         let flushInterval: TimeInterval
         let maxEventsPerBatch: Int
-        
+
         static let `default` = AnalyticsConfiguration(
             enabled: true,
             debugLogging: false,
@@ -87,20 +87,20 @@ struct ServiceConfiguration: Sendable {
             maxEventsPerBatch: 100
         )
     }
-    
+
     // MARK: - Properties
     let ai: AIConfiguration
     let weather: WeatherConfiguration
     let network: NetworkConfiguration
     let analytics: AnalyticsConfiguration
     let environment: Environment
-    
+
     // MARK: - Environment
     enum Environment: String, Sendable {
         case development
         case staging
         case production
-        
+
         var baseURL: String {
             switch self {
             case .development:
@@ -111,12 +111,12 @@ struct ServiceConfiguration: Sendable {
                 return "https://api.airfit.app"
             }
         }
-        
+
         var isDebug: Bool {
             self != .production
         }
     }
-    
+
     // MARK: - Initialization
     static func detectEnvironment() -> Environment {
         #if DEBUG

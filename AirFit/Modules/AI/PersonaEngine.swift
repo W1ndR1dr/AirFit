@@ -78,10 +78,10 @@ final class PersonaEngine {
 
 
     // MARK: - Private Methods
-    
+
     private func adaptPersona(_ persona: PersonaProfile, for healthContext: HealthContextSnapshot) -> String {
         var adaptations: [String] = []
-        
+
         // Energy level adaptations
         if let energy = healthContext.subjectiveData.energyLevel {
             switch energy {
@@ -93,7 +93,7 @@ final class PersonaEngine {
                 break
             }
         }
-        
+
         // Stress level adaptations
         if let stress = healthContext.subjectiveData.stress {
             switch stress {
@@ -105,7 +105,7 @@ final class PersonaEngine {
                 break
             }
         }
-        
+
         // Time of day adaptations
         switch healthContext.environment.timeOfDay {
         case .earlyMorning, .morning:
@@ -115,13 +115,13 @@ final class PersonaEngine {
         default:
             break
         }
-        
+
         if adaptations.isEmpty {
             return persona.systemPrompt
         } else {
             return """
             \(persona.systemPrompt)
-            
+
             ## Current Context Adaptations:
             \(adaptations.joined(separator: "\n"))
             """
@@ -236,12 +236,12 @@ final class PersonaEngine {
         let data = try JSONSerialization.data(withJSONObject: compactFunctions)
         return String(data: data, encoding: .utf8) ?? "[]"
     }
-    
+
     private func goalSynthesis(_ goalSynthesis: GoalSynthesis?) throws -> String {
         guard let synthesis = goalSynthesis else {
             return "{}"
         }
-        
+
         // Build compact goal synthesis for token efficiency
         let compactSynthesis: [String: Any] = [
             "strategy": synthesis.unifiedStrategy,
@@ -250,7 +250,7 @@ final class PersonaEngine {
             "challenges": synthesis.challenges,
             "hooks": synthesis.motivationalHooks
         ]
-        
+
         let data = try JSONSerialization.data(withJSONObject: compactSynthesis)
         return String(data: data, encoding: .utf8) ?? "{}"
     }

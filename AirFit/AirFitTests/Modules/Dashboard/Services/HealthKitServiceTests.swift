@@ -9,26 +9,26 @@ final class HealthKitServiceTests: XCTestCase {
     private var mockHealthKitManager: MockHealthKitManager!
     private var mockContextAssembler: MockContextAssembler!
     private var testUser: User!
-    
+
     // MARK: - Setup
     override func setUp() async throws {
         try super.setUp()
-        
+
         // Create test user
         testUser = User(email: "test@example.com", name: "Test User")
         testUser.baselineHRV = 50.0 // Set baseline for recovery score calculation
-        
+
         // Create mocks
         mockHealthKitManager = MockHealthKitManager()
         mockContextAssembler = MockContextAssembler()
-        
+
         // Create service
         sut = HealthKitService(
             healthKitManager: mockHealthKitManager,
             mockContextAssembler: mockContextAssembler
         )
     }
-    
+
     override func tearDown() async throws {
         sut = nil
         mockHealthKitManager = nil
@@ -36,9 +36,9 @@ final class HealthKitServiceTests: XCTestCase {
         testUser = nil
         try super.tearDown()
     }
-    
+
     // MARK: - Get Current Context Tests
-    
+
     func test_getCurrentContext_withFullData_mapsCorrectly() async throws {
         // Arrange
         let mockSnapshot = HealthContextSnapshot(
@@ -127,10 +127,10 @@ final class HealthKitServiceTests: XCTestCase {
             )
         )
         mockContextAssembler.mockSnapshot = mockSnapshot
-        
+
         // Act
         let context = try await sut.getCurrentContext()
-        
+
         // Assert
         XCTAssertEqual(context.lastNightSleepDurationHours, 7.0)
         XCTAssertEqual(context.sleepQuality, 87)
@@ -141,7 +141,7 @@ final class HealthKitServiceTests: XCTestCase {
         XCTAssertEqual(context.hrv, 55.0)
         XCTAssertEqual(context.steps, 8_500)
     }
-    
+
     func test_getCurrentContext_withMinimalData_handlesNilsGracefully() async throws {
         // Arrange
         let mockSnapshot = HealthContextSnapshot(
@@ -214,10 +214,10 @@ final class HealthKitServiceTests: XCTestCase {
             )
         )
         mockContextAssembler.mockSnapshot = mockSnapshot
-        
+
         // Act
         let context = try await sut.getCurrentContext()
-        
+
         // Assert
         XCTAssertNil(context.lastNightSleepDurationHours)
         XCTAssertNil(context.sleepQuality)
@@ -228,7 +228,7 @@ final class HealthKitServiceTests: XCTestCase {
         XCTAssertNil(context.hrv)
         XCTAssertNil(context.steps)
     }
-    
+
     func test_getCurrentContext_withPartialSleepData_calculatesHoursCorrectly() async throws {
         // Arrange
         let mockSnapshot = HealthContextSnapshot(
@@ -255,17 +255,17 @@ final class HealthKitServiceTests: XCTestCase {
             trends: HealthTrends()
         )
         mockContextAssembler.mockSnapshot = mockSnapshot
-        
+
         // Act
         let context = try await sut.getCurrentContext()
-        
+
         // Assert
         XCTAssertEqual(context.lastNightSleepDurationHours, 8.5)
         XCTAssertNil(context.sleepQuality) // Efficiency was nil
     }
-    
+
     // MARK: - Calculate Recovery Score Tests
-    
+
     func test_calculateRecoveryScore_withGoodSleepAndHRV_returnsHighScore() async throws {
         // Arrange
         let mockSnapshot = HealthContextSnapshot(
@@ -335,10 +335,10 @@ final class HealthKitServiceTests: XCTestCase {
             )
         )
         mockContextAssembler.mockSnapshot = mockSnapshot
-        
+
         // Act
         let score = try await sut.calculateRecoveryScore(for: testUser)
-        
+
         // Assert
         XCTAssertEqual(score.score, 100) // Base 50 + Sleep 30 + HRV 20 (60/50 * 20 = 24, capped at 20)
         XCTAssertEqual(score.status, .good)
@@ -346,7 +346,7 @@ final class HealthKitServiceTests: XCTestCase {
         XCTAssertTrue(score.factors[0].contains("8.0 hrs"))
         XCTAssertTrue(score.factors[1].contains("60 ms"))
     }
-    
+
     func test_calculateRecoveryScore_withPoorSleep_returnsLowScore() async throws {
         // Arrange
         let mockSnapshot = HealthContextSnapshot(
@@ -416,17 +416,17 @@ final class HealthKitServiceTests: XCTestCase {
             )
         )
         mockContextAssembler.mockSnapshot = mockSnapshot
-        
+
         // Act
         let score = try await sut.calculateRecoveryScore(for: testUser)
-        
+
         // Assert
         XCTAssertEqual(score.score, 81) // Base 50 + Sleep 15 (4/8 * 30) + HRV 16 (40/50 * 20)
         XCTAssertEqual(score.status, .good) // Still above 70
         XCTAssertTrue(score.factors[0].contains("4.0 hrs"))
         XCTAssertTrue(score.factors[1].contains("40 ms"))
     }
-    
+
     func test_calculateRecoveryScore_withHighYesterdayActivity_reducesScore() async throws {
         // Arrange
         let mockSnapshot = HealthContextSnapshot(
@@ -496,20 +496,20 @@ final class HealthKitServiceTests: XCTestCase {
             )
         )
         mockContextAssembler.mockSnapshot = mockSnapshot
-        
+
         // Act
         let score = try await sut.calculateRecoveryScore(for: testUser)
-        
+
         // Assert
         // Base 50 + Sleep 26 (7/8 * 30) + HRV 20 (50/50 * 20) - Activity 10 = 86
         XCTAssertEqual(score.score, 86)
         XCTAssertEqual(score.status, .good)
     }
-    
+
     func test_calculateRecoveryScore_withNoHRVBaseline_skipssHRVContribution() async throws {
         // Arrange
         testUser.baselineHRV = nil // No baseline
-        
+
         let mockSnapshot = HealthContextSnapshot(
             subjectiveData: SubjectiveData(),
             environment: EnvironmentContext(),
@@ -577,61 +577,61 @@ final class HealthKitServiceTests: XCTestCase {
             )
         )
         mockContextAssembler.mockSnapshot = mockSnapshot
-        
+
         // Act
         let score = try await sut.calculateRecoveryScore(for: testUser)
-        
+
         // Assert
         // Base 50 + Sleep 22 (6/8 * 30) + HRV 0 (no baseline) = 72
         XCTAssertEqual(score.score, 72)
         XCTAssertEqual(score.status, .good)
     }
-    
+
     func test_calculateRecoveryScore_withNoData_returnsBaseScore() async throws {
         // Arrange
         let mockSnapshot = HealthContextSnapshot()
         mockContextAssembler.mockSnapshot = mockSnapshot
-        
+
         // Act
         let score = try await sut.calculateRecoveryScore(for: testUser)
-        
+
         // Assert
         XCTAssertEqual(score.score, 50) // Just base score
         XCTAssertEqual(score.status, .moderate)
         XCTAssertTrue(score.factors[0].contains("0.0 hrs"))
         XCTAssertTrue(score.factors[1].contains("0 ms"))
     }
-    
+
     // MARK: - Get Performance Insight Tests
-    
+
     func test_getPerformanceInsight_withHighActivity_returnsImprovingTrend() async throws {
         // Arrange
         let days = 7
         // Current implementation uses placeholder data, so we can't mock actual workout data yet
-        
+
         // Act
         let insight = try await sut.getPerformanceInsight(for: testUser, days: days)
-        
+
         // Assert
         XCTAssertNotNil(insight)
         XCTAssertEqual(insight.metric, "Weekly Active Days")
         XCTAssertNotNil(insight.value)
         XCTAssertFalse(insight.insight.isEmpty)
-        
+
         // With current placeholder implementation:
         // workoutCount = 3, days = 7
         // 3 > 7/2 (3.5) is false, 3 < 7/4 (1.75) is false, so trend should be stable
         XCTAssertEqual(insight.trend, .stable)
     }
-    
+
     func test_getPerformanceInsight_withZeroWorkouts_returnsEncouragingMessage() async throws {
         // Arrange
         let days = 14
         // With current implementation, we can't control workout count
-        
+
         // Act
         let insight = try await sut.getPerformanceInsight(for: testUser, days: days)
-        
+
         // Assert
         XCTAssertNotNil(insight)
         // Current implementation returns workoutCount = 3, so message won't be the zero-activity one
@@ -642,19 +642,19 @@ final class HealthKitServiceTests: XCTestCase {
             XCTAssertTrue(insight.insight.contains("cal"))
         }
     }
-    
+
     func test_getPerformanceInsight_withDifferentDayRanges_adjustsTrend() async throws {
         // Test different day ranges
         let dayRanges = [3, 7, 14, 30]
-        
+
         for days in dayRanges {
             // Act
             let insight = try await sut.getPerformanceInsight(for: testUser, days: days)
-            
+
             // Assert
             XCTAssertNotNil(insight)
             XCTAssertEqual(insight.metric, "Weekly Active Days")
-            
+
             // With placeholder workoutCount = 3:
             // days = 3: 3 > 1.5 = true -> improving
             // days = 7: 3 > 3.5 = false, 3 < 1.75 = false -> stable
@@ -670,9 +670,9 @@ final class HealthKitServiceTests: XCTestCase {
             }
         }
     }
-    
+
     // MARK: - Edge Cases
-    
+
     func test_getCurrentContext_withExtremeValues_handlesCorrectly() async throws {
         // Arrange
         let mockSnapshot = HealthContextSnapshot(
@@ -754,10 +754,10 @@ final class HealthKitServiceTests: XCTestCase {
             )
         )
         mockContextAssembler.mockSnapshot = mockSnapshot
-        
+
         // Act
         let context = try await sut.getCurrentContext()
-        
+
         // Assert - Should handle extreme values without crashing
         XCTAssertEqual(context.lastNightSleepDurationHours, 12.0)
         XCTAssertEqual(context.sleepQuality, 100)
@@ -766,7 +766,7 @@ final class HealthKitServiceTests: XCTestCase {
         XCTAssertEqual(context.steps, 50_000)
         XCTAssertEqual(context.currentTemperatureCelsius, 50.0)
     }
-    
+
     func test_calculateRecoveryScore_withExtremeValues_capsAtBounds() async throws {
         // Arrange
         let mockSnapshot = HealthContextSnapshot(
@@ -836,48 +836,48 @@ final class HealthKitServiceTests: XCTestCase {
             )
         )
         mockContextAssembler.mockSnapshot = mockSnapshot
-        
+
         // Act
         let score = try await sut.calculateRecoveryScore(for: testUser)
-        
+
         // Assert
         // Base 50 + Sleep 30 (capped) + HRV 20 (capped) = 100
         XCTAssertEqual(score.score, 100) // Capped at 100
         XCTAssertEqual(score.status, .good)
     }
-    
+
     // MARK: - Performance Tests
-    
+
     func test_getCurrentContext_performance() async throws {
         // Arrange
         let mockSnapshot = createFullSnapshot()
         mockContextAssembler.mockSnapshot = mockSnapshot
-        
+
         // Act & Measure
         let startTime = CFAbsoluteTimeGetCurrent()
         _ = try await sut.getCurrentContext()
         let duration = CFAbsoluteTimeGetCurrent() - startTime
-        
+
         // Assert
         XCTAssertLessThan(duration, 0.1, "Context mapping should be fast")
     }
-    
+
     func test_calculateRecoveryScore_performance() async throws {
         // Arrange
         let mockSnapshot = createFullSnapshot()
         mockContextAssembler.mockSnapshot = mockSnapshot
-        
+
         // Act & Measure
         let startTime = CFAbsoluteTimeGetCurrent()
         _ = try await sut.calculateRecoveryScore(for: testUser)
         let duration = CFAbsoluteTimeGetCurrent() - startTime
-        
+
         // Assert
         XCTAssertLessThan(duration, 0.1, "Recovery score calculation should be fast")
     }
-    
+
     // MARK: - Helper Methods
-    
+
     private func createFullSnapshot() -> HealthContextSnapshot {
         return HealthContextSnapshot(
             subjectiveData: SubjectiveData(
@@ -965,9 +965,9 @@ final class HealthKitServiceTests: XCTestCase {
 @MainActor
 final class MockContextAssembler: ContextAssemblerProtocol {
     var mockSnapshot: HealthContextSnapshot = HealthContextSnapshot()
-    
+
     var assembleContextCallCount = 0
-    
+
     func assembleContext() async -> HealthContextSnapshot {
         assembleContextCallCount += 1
         return mockSnapshot

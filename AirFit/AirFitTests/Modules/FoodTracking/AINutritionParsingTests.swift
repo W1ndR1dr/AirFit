@@ -11,19 +11,19 @@ final class AINutritionParsingTests: XCTestCase {
 
     override func setUp() async throws {
         try super.setUp()
-        
+
         // Create in-memory model container
         let schema = Schema([User.self, FoodEntry.self, FoodItem.self])
         let configuration = ModelConfiguration(schema: schema, isStoredInMemoryOnly: true)
         modelContainer = try ModelContainer(for: schema, configurations: [configuration])
         modelContext = ModelContext(modelContainer)
-        
+
         // Create test user
         testUser = User(
             email: "test@example.com",
             name: "Test User"
         )
-        
+
         // Create onboarding profile with test data
         let coachingPlan = CoachingPlan(
             understandingSummary: "Test user wants to maintain weight",
@@ -81,7 +81,7 @@ final class AINutritionParsingTests: XCTestCase {
         )
         let encoder = JSONEncoder()
         let data = try encoder.encode(coachingPlan)
-        
+
         let onboardingProfile = OnboardingProfile(
             personaPromptData: data,
             communicationPreferencesData: data,
@@ -89,7 +89,7 @@ final class AINutritionParsingTests: XCTestCase {
             user: testUser
         )
         testUser.onboardingProfile = onboardingProfile
-        
+
         modelContext.insert(testUser)
         modelContext.insert(onboardingProfile)
         do {
@@ -101,7 +101,7 @@ final class AINutritionParsingTests: XCTestCase {
             XCTFail("Failed to save test context: \(error)")
 
         }
-        
+
         // Create mock coach engine
         coachEngine = MockFoodCoachEngine()
     }
@@ -410,105 +410,105 @@ final class AINutritionParsingTests: XCTestCase {
     func test_parseNaturalLanguageFood_withLunchMealType_shouldReturnCorrectFallback() async throws {
         // Arrange
         coachEngine.shouldThrowError = true
-        
+
         // Act
         let result = try await coachEngine.parseNaturalLanguageFood(
             text: "mystery food",
             mealType: MealType.lunch,
             for: testUser
         )
-        
+
         // Assert
         XCTAssertEqual(result.count, 1)
         XCTAssertEqual(result.first?.calories, 400)
     }
-    
+
     func test_parseNaturalLanguageFood_withDinnerMealType_shouldReturnCorrectFallback() async throws {
         // Arrange
         coachEngine.shouldThrowError = true
-        
+
         // Act
         let result = try await coachEngine.parseNaturalLanguageFood(
             text: "unknown dinner",
             mealType: MealType.dinner,
             for: testUser
         )
-        
+
         // Assert
         XCTAssertEqual(result.count, 1)
         XCTAssertEqual(result.first?.calories, 500)
     }
-    
+
     func test_parseNaturalLanguageFood_withMultipleFoods_shouldReturnMultipleItems() async throws {
         // Arrange
         coachEngine.mockParseResult = [
             ParsedFoodItem(name: "Apple", brand: nil, quantity: 1, unit: "medium", calories: 95, proteinGrams: 0.5, carbGrams: 25, fatGrams: 0.3, fiberGrams: 4, sugarGrams: 19, sodiumMilligrams: 1, databaseId: nil, confidence: 0.9),
             ParsedFoodItem(name: "Banana", brand: nil, quantity: 1, unit: "medium", calories: 105, proteinGrams: 1.3, carbGrams: 27, fatGrams: 0.4, fiberGrams: 3, sugarGrams: 12, sodiumMilligrams: 1, databaseId: nil, confidence: 0.8)
         ]
-        
+
         // Act
         let result = try await coachEngine.parseNaturalLanguageFood(
             text: "apple and banana",
             mealType: MealType.lunch,
             for: testUser
         )
-        
+
         // Assert
         XCTAssertEqual(result.count, 2)
         XCTAssertEqual(result[0].name, "Apple")
         XCTAssertEqual(result[1].name, "Banana")
     }
-    
+
     func test_parseNaturalLanguageFood_withSnackMealType_shouldReturnCorrectFallback() async throws {
         // Arrange
         coachEngine.shouldThrowError = true
-        
+
         // Act
         let result = try await coachEngine.parseNaturalLanguageFood(
             text: "unknown snack",
             mealType: MealType.snack,
             for: testUser
         )
-        
+
         // Assert
         XCTAssertEqual(result.count, 1)
         XCTAssertEqual(result.first?.calories, 150)
     }
-    
+
     func test_parseNaturalLanguageFood_withBreakfastMealType_shouldReturnCorrectFallback() async throws {
         // Arrange
         coachEngine.shouldThrowError = true
-        
+
         // Act
         let result = try await coachEngine.parseNaturalLanguageFood(
             text: "unknown breakfast",
             mealType: MealType.breakfast,
             for: testUser
         )
-        
+
         // Assert
         XCTAssertEqual(result.count, 1)
         XCTAssertTrue(coachEngine.lastMealType == MealType.breakfast)
         XCTAssertEqual(result.first?.calories, 250)
     }
-    
+
     func test_parseNaturalLanguageFood_withPerformanceRequirement_shouldCompleteUnder3Seconds() async throws {
         // Arrange
         let startTime = CFAbsoluteTimeGetCurrent()
-        
+
         // Act
         let result = try await coachEngine.parseNaturalLanguageFood(
             text: "chicken breast with rice",
             mealType: MealType.dinner,
             for: testUser
         )
-        
+
         // Assert
         let duration = CFAbsoluteTimeGetCurrent() - startTime
         XCTAssertLessThan(duration, 3.0, "Parsing should complete under 3 seconds")
         XCTAssertFalse(result.isEmpty)
     }
-    
+
     func test_parseNaturalLanguageFood_withComplexMeal_shouldParseCorrectly() async throws {
         // Arrange
         coachEngine.mockParseResult = [
@@ -516,14 +516,14 @@ final class AINutritionParsingTests: XCTestCase {
             ParsedFoodItem(name: "Brown Rice", brand: nil, quantity: 1, unit: "cup", calories: 220, proteinGrams: 5, carbGrams: 45, fatGrams: 2, fiberGrams: 4, sugarGrams: 1, sodiumMilligrams: 10, databaseId: nil, confidence: 0.9),
             ParsedFoodItem(name: "Steamed Broccoli", brand: nil, quantity: 1, unit: "cup", calories: 25, proteinGrams: 3, carbGrams: 5, fatGrams: 0, fiberGrams: 2, sugarGrams: 2, sodiumMilligrams: 30, databaseId: nil, confidence: 0.85)
         ]
-        
+
         // Act
         let result = try await coachEngine.parseNaturalLanguageFood(
             text: "6 oz grilled chicken with 1 cup brown rice and steamed broccoli",
             mealType: MealType.lunch,
             for: testUser
         )
-        
+
         // Assert
         XCTAssertEqual(result.count, 3)
         let totalCalories = result.reduce(0) { $0 + $1.calories }
@@ -534,14 +534,14 @@ final class AINutritionParsingTests: XCTestCase {
     func test_parseNaturalLanguageFood_snackParsing_returnsFallbackItem() async throws {
         // Arrange
         coachEngine.shouldThrowError = true
-        
+
         // Act
         let result = try await coachEngine.parseNaturalLanguageFood(
             text: "apple",
             mealType: MealType.snack,
             for: testUser
         )
-        
+
         // Assert
         XCTAssertEqual(result.count, 1)
         XCTAssertEqual(result.first?.calories, 150)
@@ -564,12 +564,12 @@ final class MockFoodCoachEngine: CoachEngineProtocol, FoodCoachEngineProtocol {
     func processUserMessage(_ message: String, context: HealthContextSnapshot?) async throws -> [String: SendableValue] {
         return [:]
     }
-    
+
     // CoachEngineProtocol required methods
     func generatePostWorkoutAnalysis(_ request: PostWorkoutAnalysisRequest) async throws -> String {
         return "Mock workout analysis"
     }
-    
+
     func processUserMessage(_ text: String, for user: User) async {
         lastText = text
         lastUser = user
@@ -577,34 +577,34 @@ final class MockFoodCoachEngine: CoachEngineProtocol, FoodCoachEngineProtocol {
         currentResponse = "Mock response for: \(text)"
         isProcessing = false
     }
-    
+
     // CoachEngineProtocol methods
     private(set) var isProcessing = false
     private(set) var currentResponse = ""
     private(set) var error: Error?
     private(set) var activeConversationId: UUID?
     private(set) var streamingTokens: [String] = []
-    
+
     func processMessage(_ message: String, context: Any? = nil) async throws -> String {
         return "Mock response"
     }
-    
+
     func regenerateLastMessage() async throws -> String {
         return "Regenerated response"
     }
-    
+
     func handleFunctionResult(functionName: String, result: Any) async throws {
         // Mock implementation
     }
-    
+
     func generateSuggestions(for context: Any? = nil) async -> [String] {
         return ["Mock suggestion"]
     }
-    
+
     func cancelStreaming() {
         isProcessing = false
     }
-    
+
     func reset() {
         isProcessing = false
         currentResponse = ""
@@ -664,7 +664,7 @@ final class MockFoodCoachEngine: CoachEngineProtocol, FoodCoachEngineProtocol {
             case .postWorkout:
                 fallbackCalories = 300
             }
-            
+
             return [ParsedFoodItem(
                 name: "Unknown Food",
                 brand: nil,

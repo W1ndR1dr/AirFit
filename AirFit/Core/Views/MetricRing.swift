@@ -5,25 +5,25 @@ import SwiftUI
 struct MetricRing: View {
     @Environment(\.colorScheme) private var colorScheme
     @EnvironmentObject private var gradientManager: GradientManager
-    
+
     let value: Double
     let goal: Double
     let lineWidth: CGFloat
     let size: CGFloat
     let showPercentage: Bool
     let animation: Bool
-    
+
     @State private var animatedValue: Double = 0
-    
+
     private var progress: Double {
         guard goal > 0 else { return 0 }
         return min(animatedValue / goal, 1.0)
     }
-    
+
     private var percentage: Int {
         Int(progress * 100)
     }
-    
+
     init(
         value: Double,
         goal: Double,
@@ -39,7 +39,7 @@ struct MetricRing: View {
         self.showPercentage = showPercentage
         self.animation = animation
     }
-    
+
     var body: some View {
         ZStack {
             // Background ring
@@ -48,7 +48,7 @@ struct MetricRing: View {
                     Color.primary.opacity(0.1),
                     lineWidth: lineWidth
                 )
-            
+
             // Progress ring
             Circle()
                 .trim(from: 0, to: progress)
@@ -65,7 +65,7 @@ struct MetricRing: View {
                     animation ? .spring(response: 0.6, dampingFraction: 0.7) : nil,
                     value: animatedValue
                 )
-            
+
             // Center content
             if showPercentage {
                 VStack(spacing: 2) {
@@ -75,7 +75,7 @@ struct MetricRing: View {
                             gradientManager.currentGradient(for: colorScheme)
                         )
                         .contentTransition(.numericText(value: Double(percentage)))
-                    
+
                     Text("%")
                         .font(.system(size: size * 0.15, weight: .medium, design: .rounded))
                         .foregroundColor(.secondary)
@@ -110,7 +110,7 @@ struct MetricRingWithLabel: View {
     let label: String
     let icon: String?
     let size: CGFloat
-    
+
     init(
         value: Double,
         goal: Double,
@@ -124,7 +124,7 @@ struct MetricRingWithLabel: View {
         self.icon = icon
         self.size = size
     }
-    
+
     var body: some View {
         VStack(spacing: AppSpacing.xs) {
             MetricRing(
@@ -140,13 +140,13 @@ struct MetricRingWithLabel: View {
                             .font(.system(size: size * 0.2, weight: .medium))
                             .foregroundColor(.secondary)
                     }
-                    
+
                     Text("\(Int(value))")
                         .font(.system(size: size * 0.25, weight: .bold, design: .rounded))
                         .contentTransition(.numericText(value: value))
                 }
             }
-            
+
             Text(label)
                 .font(.caption)
                 .fontWeight(.medium)
@@ -159,7 +159,7 @@ struct MetricRingWithLabel: View {
 
 struct TripleMetricRings: View {
     @Environment(\.colorScheme) private var colorScheme
-    
+
     let moveValue: Double
     let moveGoal: Double
     let exerciseValue: Double
@@ -167,7 +167,7 @@ struct TripleMetricRings: View {
     let standValue: Double
     let standGoal: Double
     let size: CGFloat
-    
+
     init(
         moveValue: Double,
         moveGoal: Double,
@@ -185,7 +185,7 @@ struct TripleMetricRings: View {
         self.standGoal = standGoal
         self.size = size
     }
-    
+
     var body: some View {
         ZStack {
             // Move ring (largest)
@@ -196,7 +196,7 @@ struct TripleMetricRings: View {
                 size: size,
                 showPercentage: false
             )
-            
+
             // Exercise ring (middle)
             MetricRing(
                 value: exerciseValue,
@@ -205,7 +205,7 @@ struct TripleMetricRings: View {
                 size: size * 0.75,
                 showPercentage: false
             )
-            
+
             // Stand ring (smallest)
             MetricRing(
                 value: standValue,

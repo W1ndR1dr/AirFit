@@ -112,7 +112,7 @@ final class ConversationManager {
         limit: Int = 20
     ) async throws -> [AIChatMessage] {
         let startTime = CFAbsoluteTimeGetCurrent()
-        
+
         // PHASE 2 FIX: Filter by BOTH userID AND conversationID in database predicate
         // This eliminates memory filtering and achieves 10x performance improvement
         let userId = user.id // Capture user ID outside predicate
@@ -125,7 +125,7 @@ final class ConversationManager {
         descriptor.fetchLimit = limit
 
         let messages = try modelContext.fetch(descriptor)
-        
+
         let queryTime = CFAbsoluteTimeGetCurrent() - startTime
         AppLogger.debug(
             "Query completed in \(Int(queryTime * 1_000))ms for \(messages.count) messages",
@@ -165,7 +165,7 @@ final class ConversationManager {
         conversationId: UUID
     ) async throws -> ConversationStats {
         let startTime = CFAbsoluteTimeGetCurrent()
-        
+
         // PHASE 2 FIX: Filter by BOTH userID AND conversationID in database predicate
         let userId = user.id // Capture user ID outside predicate
         let descriptor = FetchDescriptor<CoachMessage>(
@@ -175,7 +175,7 @@ final class ConversationManager {
         )
 
         let messages = try modelContext.fetch(descriptor)
-        
+
         let queryTime = CFAbsoluteTimeGetCurrent() - startTime
         AppLogger.debug(
             "Stats query completed in \(Int(queryTime * 1_000))ms for \(messages.count) messages",
@@ -207,7 +207,7 @@ final class ConversationManager {
         keepLast: Int = 5
     ) async throws {
         let startTime = CFAbsoluteTimeGetCurrent()
-        
+
         // Get conversation IDs efficiently using our optimized method
         let conversationIds = try await getConversationIds(for: user)
         let idsToDelete = Array(conversationIds.dropFirst(keepLast))
@@ -218,7 +218,7 @@ final class ConversationManager {
         }
 
         var totalMessagesDeleted = 0
-        
+
         // PHASE 2 FIX: Delete messages using userID + conversationID predicate filtering
         let userId = user.id // Capture user ID outside predicate
         for conversationId in idsToDelete {
@@ -227,9 +227,9 @@ final class ConversationManager {
                     message.userID == userId && message.conversationID == conversationId
                 }
             )
-            
+
             let messages = try modelContext.fetch(descriptor)
-            
+
             for message in messages {
                 modelContext.delete(message)
             }
@@ -252,7 +252,7 @@ final class ConversationManager {
         conversationId: UUID
     ) async throws {
         let startTime = CFAbsoluteTimeGetCurrent()
-        
+
         // PHASE 2 FIX: Filter by BOTH userID AND conversationID in database predicate
         let userId = user.id // Capture user ID outside predicate
         let descriptor = FetchDescriptor<CoachMessage>(
@@ -280,7 +280,7 @@ final class ConversationManager {
     /// PERFORMANCE OPTIMIZED: Uses SwiftData predicate with userID filtering
     func getConversationIds(for user: User) async throws -> [UUID] {
         let startTime = CFAbsoluteTimeGetCurrent()
-        
+
         // PHASE 2 FIX: Filter by userID AND non-null conversationID in database predicate
         let userId = user.id // Capture user ID outside predicate
         let descriptor = FetchDescriptor<CoachMessage>(
@@ -291,7 +291,7 @@ final class ConversationManager {
         )
 
         let userMessages = try modelContext.fetch(descriptor)
-        
+
         let queryTime = CFAbsoluteTimeGetCurrent() - startTime
         AppLogger.debug(
             "Conversation IDs query completed in \(Int(queryTime * 1_000))ms for \(userMessages.count) messages",

@@ -223,16 +223,16 @@ struct EnergyLevelIndicator: View {
                     ForEach(1...5, id: \.self) { i in
                         RoundedRectangle(cornerRadius: 2)
                             .fill(i <= level ?
-                                LinearGradient(
-                                    colors: gradientManager.active.colors(for: colorScheme),
-                                    startPoint: .leading,
-                                    endPoint: .trailing
-                                ) :
-                                LinearGradient(
-                                    colors: [Color.secondary.opacity(0.2)],
-                                    startPoint: .leading,
-                                    endPoint: .trailing
-                                )
+                                    LinearGradient(
+                                        colors: gradientManager.active.colors(for: colorScheme),
+                                        startPoint: .leading,
+                                        endPoint: .trailing
+                                    ) :
+                                    LinearGradient(
+                                        colors: [Color.secondary.opacity(0.2)],
+                                        startPoint: .leading,
+                                        endPoint: .trailing
+                                    )
                             )
                             .frame(width: 20, height: 4)
                     }
@@ -316,15 +316,15 @@ struct EnergyOption: View {
             Text("\(level)")
                 .font(AppFonts.caption)
                 .foregroundStyle(isSelected ?
-                    LinearGradient(
-                        colors: gradientManager.active.colors(for: colorScheme),
-                        startPoint: .leading,
-                        endPoint: .trailing
-                    ) : LinearGradient(
-                        colors: [Color.secondary],
-                        startPoint: .leading,
-                        endPoint: .trailing
-                    )
+                                    LinearGradient(
+                                        colors: gradientManager.active.colors(for: colorScheme),
+                                        startPoint: .leading,
+                                        endPoint: .trailing
+                                    ) : LinearGradient(
+                                        colors: [Color.secondary],
+                                        startPoint: .leading,
+                                        endPoint: .trailing
+                                    )
                 )
         }
         .frame(maxWidth: .infinity)
@@ -332,15 +332,15 @@ struct EnergyOption: View {
         .background(
             RoundedRectangle(cornerRadius: AppConstants.Layout.defaultCornerRadius)
                 .fill(isSelected ?
-                    LinearGradient(
-                        colors: gradientManager.active.colors(for: colorScheme).map { $0.opacity(0.1) },
-                        startPoint: .topLeading,
-                        endPoint: .bottomTrailing
-                    ) : LinearGradient(
-                        colors: [Color(.systemBackground)],
-                        startPoint: .topLeading,
-                        endPoint: .bottomTrailing
-                    )
+                        LinearGradient(
+                            colors: gradientManager.active.colors(for: colorScheme).map { $0.opacity(0.1) },
+                            startPoint: .topLeading,
+                            endPoint: .bottomTrailing
+                        ) : LinearGradient(
+                            colors: [Color(.systemBackground)],
+                            startPoint: .topLeading,
+                            endPoint: .bottomTrailing
+                        )
                 )
                 .overlay(
                     RoundedRectangle(cornerRadius: AppConstants.Layout.defaultCornerRadius)

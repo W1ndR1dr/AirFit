@@ -8,7 +8,7 @@ final class MockAIAnalyticsService: AIAnalyticsServiceProtocol, @preconcurrency 
     var invocations: [String: [Any]] = [:]
     var stubbedResults: [String: Any] = [:]
     let mockLock = NSLock()
-    
+
     // MARK: - Mock Results
     var mockAnalysisResult = PerformanceAnalysisResult(
         summary: "Mock analysis summary",
@@ -38,7 +38,7 @@ final class MockAIAnalyticsService: AIAnalyticsServiceProtocol, @preconcurrency 
         dataPoints: 100,
         confidence: 0.85
     )
-    
+
     // MARK: - AIAnalyticsServiceProtocol
     func analyzePerformance(
         query: String,
@@ -56,14 +56,14 @@ final class MockAIAnalyticsService: AIAnalyticsServiceProtocol, @preconcurrency 
             "includeRecommendations": includeRecommendations,
             "user": user.id
         ])
-        
+
         if let stubbed = stubbedResults[#function] as? PerformanceAnalysisResult {
             return stubbed
         }
-        
+
         return mockAnalysisResult
     }
-    
+
     func generatePredictiveInsights(
         for user: User,
         timeframe: Int
@@ -72,11 +72,11 @@ final class MockAIAnalyticsService: AIAnalyticsServiceProtocol, @preconcurrency 
             "user": user.id,
             "timeframe": timeframe
         ])
-        
+
         if let stubbed = stubbedResults[#function] as? PredictiveInsights {
             return stubbed
         }
-        
+
         return PredictiveInsights(
             projections: [
                 "weightLoss": 8.5,
@@ -94,36 +94,36 @@ final class MockAIAnalyticsService: AIAnalyticsServiceProtocol, @preconcurrency 
             confidence: 0.75
         )
     }
-    
+
     // MARK: - AnalyticsServiceProtocol
-    
+
     func trackEvent(_ event: AnalyticsEvent) async {
         recordInvocation(#function, arguments: event)
     }
-    
+
     func trackScreen(_ screen: String, properties: [String: String]?) async {
         recordInvocation(#function, arguments: screen, properties ?? [:])
     }
-    
+
     func setUserProperties(_ properties: [String: String]) async {
         recordInvocation(#function, arguments: properties)
     }
-    
+
     func trackWorkoutCompleted(_ workout: Workout) async {
         recordInvocation(#function, arguments: workout.id)
     }
-    
+
     func trackMealLogged(_ meal: FoodEntry) async {
         recordInvocation(#function, arguments: meal.id)
     }
-    
+
     func getInsights(for user: User) async throws -> UserInsights {
         recordInvocation(#function, arguments: user.id)
-        
+
         if let stubbed = stubbedResults[#function] as? UserInsights {
             return stubbed
         }
-        
+
         return UserInsights(
             workoutFrequency: 4.5,
             averageWorkoutDuration: 3_600,

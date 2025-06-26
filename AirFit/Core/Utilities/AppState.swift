@@ -49,14 +49,14 @@ final class AppState {
             if let apiKeyManager = apiKeyManager {
                 let configuredProviders = await apiKeyManager.getAllConfiguredProviders()
                 needsAPISetup = configuredProviders.isEmpty
-                
+
                 // Debug: Log which providers are configured
                 for provider in configuredProviders {
                     AppLogger.info("Found configured API key for: \(provider.displayName)", category: .app)
                 }
-                
+
                 AppLogger.info("API setup check - configured providers: \(configuredProviders.count), needs setup: \(needsAPISetup)", category: .app)
-                
+
                 // For testing: uncomment the next line to force API setup screen
                 // needsAPISetup = true
             } else {
@@ -64,7 +64,7 @@ final class AppState {
                 needsAPISetup = true
                 AppLogger.warning("No API key manager available, assuming API setup needed", category: .app)
             }
-            
+
             // Fetch the current user
             let userDescriptor = FetchDescriptor<User>(
                 sortBy: [SortDescriptor(\.createdAt, order: .reverse)]
@@ -97,7 +97,7 @@ final class AppState {
         isLoading = false
         AppLogger.info("New user created", category: .app)
     }
-    
+
     func completeAPISetup() {
         needsAPISetup = false
         AppLogger.info("API setup completed", category: .app)
@@ -141,7 +141,7 @@ extension AppState {
     var shouldShowAPISetup: Bool {
         !isLoading && needsAPISetup
     }
-    
+
     var shouldShowOnboarding: Bool {
         !isLoading && !needsAPISetup && currentUser != nil && !hasCompletedOnboarding
     }

@@ -114,7 +114,7 @@ struct FoodConfirmationView: View {
                         )
                     )
                 }
-                
+
                 ToolbarItem(placement: .principal) {
                     CascadeText("Confirm Food")
                         .font(.system(size: 18, weight: .semibold, design: .rounded))
@@ -182,7 +182,7 @@ struct FoodConfirmationView: View {
 
                     Spacer()
                 }
-                
+
                 HStack(spacing: AppSpacing.lg) {
                     NutrientMetric(
                         value: totalCalories,
@@ -190,7 +190,7 @@ struct FoodConfirmationView: View {
                         icon: "flame.fill",
                         color: Color(hex: "#FF9500")
                     )
-                    
+
                     NutrientMetric(
                         value: totalProtein,
                         unit: "g",
@@ -198,7 +198,7 @@ struct FoodConfirmationView: View {
                         icon: "p.square.fill",
                         color: Color(hex: "#FF6B6B")
                     )
-                    
+
                     NutrientMetric(
                         value: totalCarbs,
                         unit: "g",
@@ -206,7 +206,7 @@ struct FoodConfirmationView: View {
                         icon: "c.square.fill",
                         color: Color(hex: "#4ECDC4")
                     )
-                    
+
                     NutrientMetric(
                         value: totalFat,
                         unit: "g",
@@ -342,7 +342,7 @@ private struct FoodItemCard: View {
     let index: Int
     let onEdit: () -> Void
     let onDelete: () -> Void
-    
+
     @EnvironmentObject private var gradientManager: GradientManager
     @Environment(\.colorScheme) private var colorScheme
 
@@ -439,21 +439,21 @@ private struct FoodItemCard: View {
                         unit: "cal",
                         color: Color(hex: "#FF9500")
                     )
-                    
+
                     NutrientCompact(
                         value: item.proteinGrams,
                         unit: "g",
                         label: "P",
                         color: Color(hex: "#FF6B6B")
                     )
-                    
+
                     NutrientCompact(
                         value: item.carbGrams,
                         unit: "g",
                         label: "C",
                         color: Color(hex: "#4ECDC4")
                     )
-                    
+
                     NutrientCompact(
                         value: item.fatGrams,
                         unit: "g",
@@ -474,7 +474,7 @@ private struct NutrientMetric: View {
     var label: String?
     let icon: String
     let color: Color
-    
+
     @EnvironmentObject private var gradientManager: GradientManager
     @Environment(\.colorScheme) private var colorScheme
 
@@ -483,11 +483,11 @@ private struct NutrientMetric: View {
             Image(systemName: icon)
                 .font(.system(size: 16))
                 .foregroundStyle(color.gradient)
-            
+
             VStack(spacing: 0) {
                 GradientNumber(value: value)
                     .font(.system(size: 20, weight: .bold, design: .rounded))
-                
+
                 Text(unit)
                     .font(.system(size: 10, weight: .medium))
                     .foregroundStyle(Color.secondary)
@@ -509,11 +509,11 @@ private struct NutrientCompact: View {
                     .foregroundStyle(color)
                     .font(.system(size: 12, weight: .semibold))
             }
-            
+
             Text("\(Int(value))")
                 .font(.system(size: 14, weight: .bold, design: .rounded))
                 .foregroundStyle(color)
-            
+
             Text(unit)
                 .font(.system(size: 10))
                 .foregroundStyle(color.opacity(0.8))
@@ -550,7 +550,7 @@ private struct FoodItemEditView: View {
                 CascadeText("Edit Food")
                     .font(.system(size: 28, weight: .bold, design: .rounded))
                     .padding(.top, AppSpacing.lg)
-                
+
                 GlassCard {
                     VStack(spacing: AppSpacing.sm) {
                         Text("Editing functionality")
@@ -563,9 +563,9 @@ private struct FoodItemEditView: View {
                 .padding(.horizontal, AppSpacing.md)
                 .opacity(animateIn ? 1 : 0)
                 .offset(y: animateIn ? 0 : 20)
-                
+
                 Spacer()
-                
+
                 HStack(spacing: AppSpacing.sm) {
                     Button {
                         HapticService.impact(.light)
@@ -599,7 +599,7 @@ private struct FoodItemEditView: View {
                             )
                             .clipShape(RoundedRectangle(cornerRadius: 14))
                     }
-                    
+
                     Button {
                         HapticService.impact(.medium)
                         onSave(item)
@@ -656,7 +656,7 @@ private struct ManualFoodEntryView: View {
                     .font(.system(size: 28, weight: .bold, design: .rounded))
                     .padding(.top, AppSpacing.lg)
                     .opacity(animateIn ? 1 : 0)
-                
+
                 GlassCard {
                     VStack(spacing: AppSpacing.md) {
                         // Food name field
@@ -664,7 +664,7 @@ private struct ManualFoodEntryView: View {
                             Text("Food Name")
                                 .font(.caption)
                                 .foregroundStyle(Color.secondary)
-                            
+
                             TextField("e.g., Apple", text: $name)
                                 .textFieldStyle(.plain)
                                 .padding(AppSpacing.sm)
@@ -673,13 +673,13 @@ private struct ManualFoodEntryView: View {
                                         .fill(Color.primary.opacity(0.05))
                                 )
                         }
-                        
+
                         // Calories field
                         VStack(alignment: .leading, spacing: AppSpacing.xs) {
                             Text("Calories")
                                 .font(.caption)
                                 .foregroundStyle(Color.secondary)
-                            
+
                             TextField("0", value: $calories, formatter: NumberFormatter())
                                 .textFieldStyle(.plain)
                                 .padding(AppSpacing.sm)
@@ -696,9 +696,9 @@ private struct ManualFoodEntryView: View {
                 .opacity(animateIn ? 1 : 0)
                 .offset(y: animateIn ? 0 : 20)
                 .animation(MotionToken.standardSpring.delay(0.2), value: animateIn)
-                
+
                 Spacer()
-                
+
                 // Action buttons
                 HStack(spacing: AppSpacing.sm) {
                     Button {
@@ -733,7 +733,7 @@ private struct ManualFoodEntryView: View {
                             )
                             .clipShape(RoundedRectangle(cornerRadius: 14))
                     }
-                    
+
                     Button {
                         HapticService.impact(.medium)
                         let item = ParsedFoodItem(
@@ -799,37 +799,37 @@ private struct ManualFoodEntryView: View {
 
 #if DEBUG
 /*
-#Preview {
-    let container = ModelContainer.preview
-    let context = container.mainContext
-    let user = try! context.fetch(FetchDescriptor<User>()).first!
-    let parsed = ParsedFoodItem(
-        name: "Apple", 
-        brand: nil, 
-        quantity: 1, 
-        unit: "item", 
-        calories: 95, 
-        proteinGrams: 0.5, 
-        carbGrams: 25, 
-        fatGrams: 0.3, 
-        fiberGrams: nil,
-        sugarGrams: nil,
-        sodiumMilligrams: nil,
-        databaseId: nil,
-        confidence: 1.0
-    )
-    let vm = FoodTrackingViewModel(
-        modelContext: context,
-        user: user,
-        foodVoiceAdapter: FoodVoiceAdapter(),
-        nutritionService: MockNutritionService(),
-        coachEngine: MockCoachEngine(),
-        coordinator: FoodTrackingCoordinator()
-    )
-    FoodConfirmationView(items: [parsed], viewModel: vm)
-        .modelContainer(container)
-}
-*/
+ #Preview {
+ let container = ModelContainer.preview
+ let context = container.mainContext
+ let user = try! context.fetch(FetchDescriptor<User>()).first!
+ let parsed = ParsedFoodItem(
+ name: "Apple",
+ brand: nil,
+ quantity: 1,
+ unit: "item",
+ calories: 95,
+ proteinGrams: 0.5,
+ carbGrams: 25,
+ fatGrams: 0.3,
+ fiberGrams: nil,
+ sugarGrams: nil,
+ sodiumMilligrams: nil,
+ databaseId: nil,
+ confidence: 1.0
+ )
+ let vm = FoodTrackingViewModel(
+ modelContext: context,
+ user: user,
+ foodVoiceAdapter: FoodVoiceAdapter(),
+ nutritionService: MockNutritionService(),
+ coachEngine: MockCoachEngine(),
+ coordinator: FoodTrackingCoordinator()
+ )
+ FoodConfirmationView(items: [parsed], viewModel: vm)
+ .modelContainer(container)
+ }
+ */
 
 @MainActor
 final class MockNutritionService: NutritionServiceProtocol {
@@ -851,19 +851,19 @@ final class MockCoachEngine: FoodCoachEngineProtocol {
     func processUserMessage(_ message: String, context: HealthContextSnapshot?) async throws -> [String: SendableValue] {
         ["response": .string("Mock response")]
     }
-    
+
     func executeFunction(_ functionCall: AIFunctionCall, for user: User) async throws -> FunctionExecutionResult {
         FunctionExecutionResult(success: true, message: "Mock execution", executionTimeMs: 1, functionName: functionCall.name)
     }
-    
+
     func analyzeMealPhoto(image: UIImage, context: NutritionContext?, for user: User) async throws -> MealPhotoAnalysisResult {
         MealPhotoAnalysisResult(items: [], confidence: 0.9, processingTime: 0.1)
     }
-    
+
     func searchFoods(query: String, limit: Int, for user: User) async throws -> [ParsedFoodItem] {
         []
     }
-    
+
     func parseNaturalLanguageFood(
         text: String,
         mealType: MealType,

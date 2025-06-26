@@ -9,43 +9,43 @@ final class NotificationContentGenerator: ServiceProtocol {
     nonisolated var isConfigured: Bool {
         MainActor.assumeIsolated { _isConfigured }
     }
-    
+
     private let coachEngine: CoachEngine
     private let modelContext: ModelContext
-    
+
     // Content templates for fallback
     private let fallbackTemplates = NotificationTemplates()
-    
+
     init(coachEngine: CoachEngine, modelContext: ModelContext) {
         self.coachEngine = coachEngine
         self.modelContext = modelContext
     }
-    
+
     // MARK: - Morning Greeting
     func generateMorningGreeting(for user: User) async throws -> NotificationContent {
         // Gather context
         let context = await gatherMorningContext(for: user)
-        
+
         do {
             // Try AI generation
             let aiContent = try await coachEngine.generateNotificationContent(
                 type: .morningGreeting,
                 context: context
             )
-            
+
             return NotificationContent(
                 title: "Good morning, \(user.name ?? "there")! ☀️",
                 body: aiContent,
                 imageKey: selectMorningImage(context: context)
             )
-            
+
         } catch {
             // Fallback to template
             AppLogger.error("AI generation failed, using template", error: error, category: .ai)
             return fallbackTemplates.morningGreeting(user: user, context: context)
         }
     }
-    
+
     // MARK: - Workout Reminders
     func generateWorkoutReminder(
         for user: User,
@@ -59,13 +59,13 @@ final class NotificationContentGenerator: ServiceProtocol {
             streak: user.workoutStreak,
             motivationalStyle: motivationalStyle
         )
-        
+
         do {
             let aiContent = try await coachEngine.generateNotificationContent(
                 type: .workoutReminder,
                 context: context
             )
-            
+
             return NotificationContent(
                 title: selectWorkoutTitle(context: context),
                 body: aiContent,
@@ -74,12 +74,12 @@ final class NotificationContentGenerator: ServiceProtocol {
                     NotificationAction(id: "SNOOZE_30", title: "In 30 min")
                 ]
             )
-            
+
         } catch {
             return fallbackTemplates.workoutReminder(context: context)
         }
     }
-    
+
     // MARK: - Meal Reminders
     func generateMealReminder(
         for user: User,
@@ -92,13 +92,13 @@ final class NotificationContentGenerator: ServiceProtocol {
             lastMealLogged: user.lastMealLoggedTime,
             favoritesFoods: user.favoriteFoods
         )
-        
+
         do {
             let aiContent = try await coachEngine.generateNotificationContent(
                 type: .mealReminder(mealType),
                 context: context
             )
-            
+
             return NotificationContent(
                 title: "\(mealType.emoji) \(mealType.displayName) time!",
                 body: aiContent,
@@ -107,12 +107,12 @@ final class NotificationContentGenerator: ServiceProtocol {
                     NotificationAction(id: "QUICK_ADD", title: "Quick Add")
                 ]
             )
-            
+
         } catch {
             return fallbackTemplates.mealReminder(mealType: mealType, context: context)
         }
     }
-    
+
     // MARK: - Achievement Notifications
     func generateAchievementNotification(
         for user: User,
@@ -125,25 +125,25 @@ final class NotificationContentGenerator: ServiceProtocol {
             streak: achievement.streak,
             personalBest: achievement.isPersonalBest
         )
-        
+
         do {
             let aiContent = try await coachEngine.generateNotificationContent(
                 type: .achievement,
                 context: context
             )
-            
+
             return NotificationContent(
                 title: "🎉 Achievement Unlocked!",
                 body: aiContent,
                 imageKey: achievement.imageKey,
                 sound: .achievement
             )
-            
+
         } catch {
             return fallbackTemplates.achievement(achievement: achievement, context: context)
         }
     }
-    
+
     // MARK: - Context Gathering
     private func gatherMorningContext(for user: User) async -> MorningContext {
         // Fetch recent data
@@ -152,7 +152,7 @@ final class NotificationContentGenerator: ServiceProtocol {
         let todaysWorkout = user.plannedWorkoutForToday
         let currentStreak = user.overallStreak
         let motivationalStyle = await extractMotivationalStyle(from: user) ?? MotivationalStyle()
-        
+
         return MorningContext(
             userName: user.name ?? "there",
             sleepQuality: sleepData?.quality,
@@ -164,7 +164,7 @@ final class NotificationContentGenerator: ServiceProtocol {
             motivationalStyle: motivationalStyle
         )
     }
-    
+
     // MARK: - Helper Methods
     private func selectMorningImage(context: MorningContext) -> String {
         if let weather = context.weather {
@@ -178,7 +178,7 @@ final class NotificationContentGenerator: ServiceProtocol {
         }
         return "morning_default"
     }
-    
+
     private func selectWorkoutTitle(context: WorkoutReminderContext) -> String {
         let titles = [
             "Time to crush your \(context.workoutType)! 💪",
@@ -186,52 +186,52 @@ final class NotificationContentGenerator: ServiceProtocol {
             "Your \(context.workoutType) awaits! 🏋️",
             "Let's make today count! 🎯"
         ]
-        
+
         // Use streak to select title for variety
         let index = context.streak % titles.count
         return titles[index]
     }
-    
+
     private func fetchLastNightSleep(for user: User) async throws -> SleepData? {
         // Would integrate with HealthKit
         return nil
     }
-    
+
     private func fetchCurrentWeather() async throws -> ServiceWeatherData? {
         // Would integrate with weather service
         return nil
     }
-    
+
     // MARK: - Helper to extract MotivationalStyle from OnboardingProfile
     private func extractMotivationalStyle(from user: User) async -> MotivationalStyle? {
         guard let profile = user.onboardingProfile,
               !profile.communicationPreferencesData.isEmpty else {
             return nil
         }
-        
+
         // Try to decode coaching plan from raw profile data
         let decoder = JSONDecoder()
         if let coachingPlan = try? decoder.decode(CoachingPlan.self, from: profile.rawFullProfileData) {
             return coachingPlan.motivationalStyle
         }
-        
+
         // Return default if we can't decode
         return MotivationalStyle()
     }
-    
+
     // MARK: - ServiceProtocol Methods
-    
+
     func configure() async throws {
         guard !_isConfigured else { return }
         _isConfigured = true
         AppLogger.info("\(serviceIdentifier) configured", category: .services)
     }
-    
+
     func reset() async {
         _isConfigured = false
         AppLogger.info("\(serviceIdentifier) reset", category: .services)
     }
-    
+
     func healthCheck() async -> ServiceHealth {
         ServiceHealth(
             status: _isConfigured ? .healthy : .unhealthy,
@@ -255,15 +255,15 @@ struct NotificationTemplates {
             "A new day, new opportunities! What will you achieve today?",
             "Morning champion! Let's make today count."
         ]
-        
+
         let body = greetings.randomElement() ?? greetings[0]
-        
+
         return NotificationContent(
             title: "Good morning, \(user.name ?? "there")! ☀️",
             body: body
         )
     }
-    
+
     func workoutReminder(context: WorkoutReminderContext) -> NotificationContent {
         let messages = [
             "Your \(context.workoutType) is waiting! Keep that \(context.streak)-day streak going! 🔥",
@@ -271,13 +271,13 @@ struct NotificationTemplates {
             "Ready to feel amazing? Your \(context.workoutType) starts now!",
             "Let's go! Every workout counts towards your goals."
         ]
-        
+
         return NotificationContent(
             title: "Workout Time! 🏋️",
             body: messages.randomElement() ?? messages[0]
         )
     }
-    
+
     func mealReminder(mealType: MealType, context: MealReminderContext) -> NotificationContent {
         let messages = [
             "Time to fuel your body with a nutritious \(mealType.displayName.lowercased())!",
@@ -285,13 +285,13 @@ struct NotificationTemplates {
             "Hungry? Let's track that \(mealType.displayName.lowercased()) and stay on top of your nutrition.",
             "\(mealType.displayName) time! Quick tip: log it now while it's fresh in your mind."
         ]
-        
+
         return NotificationContent(
             title: "\(mealType.emoji) \(mealType.displayName) Reminder",
             body: messages.randomElement() ?? messages[0]
         )
     }
-    
+
     func achievement(achievement: Achievement, context: AchievementContext) -> NotificationContent {
         return NotificationContent(
             title: "🎉 Achievement Unlocked!",
@@ -306,32 +306,32 @@ extension User {
         // Would calculate from workout history
         return 5
     }
-    
+
     var daysSinceLastWorkout: Int {
         // Would calculate from last workout date
         return 2
     }
-    
+
     var plannedWorkoutForToday: Workout? {
         // Would fetch from planned workouts
         return nil
     }
-    
+
     var overallStreak: Int {
         // Would calculate from daily logs
         return 10
     }
-    
+
     var nutritionGoals: NutritionGoals? {
         // Would fetch from user profile
         return nil
     }
-    
+
     var lastMealLoggedTime: Date? {
         // Would fetch from food entries
         return nil
     }
-    
+
     var favoriteFoods: [String] {
         // Would fetch from food history
         return []
@@ -346,7 +346,7 @@ extension CoachEngine {
         case mealReminder(MealType)
         case achievement
     }
-    
+
     func generateNotificationContent<T>(type: NotificationContentType, context: T) async throws -> String {
         // Placeholder - would call AI service with appropriate prompts
         switch type {

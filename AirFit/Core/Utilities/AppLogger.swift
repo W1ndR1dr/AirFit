@@ -164,9 +164,9 @@ extension AppLogger {
         }
         return try await operation()
     }
-    
+
     // MARK: - Log Export
-    
+
     /// Export logs to a temporary file
     static func exportLogs() -> URL? {
         // For now, return nil as we don't have actual log storage

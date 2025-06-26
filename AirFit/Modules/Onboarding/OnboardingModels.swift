@@ -14,24 +14,24 @@ struct ContextComponents: Sendable {
     let pastPatterns: Double             // 0.03 weight - Historical context
     let energyPatterns: Double           // 0.01 weight - Minor optimization
     let supportSystem: Double            // 0.01 weight - Minimal direct impact
-    
+
     /// Weighted overall score - must be > 0.8 for quality coaching
     var overall: Double {
         (goalClarity * 0.25) +
-        (obstacles * 0.25) +
-        (exercisePreferences * 0.15) +
-        (currentState * 0.10) +
-        (lifestyle * 0.10) +
-        (nutritionReadiness * 0.05) +
-        (communicationStyle * 0.05) +
-        (pastPatterns * 0.03) +
-        (energyPatterns * 0.01) +
-        (supportSystem * 0.01)
+            (obstacles * 0.25) +
+            (exercisePreferences * 0.15) +
+            (currentState * 0.10) +
+            (lifestyle * 0.10) +
+            (nutritionReadiness * 0.05) +
+            (communicationStyle * 0.05) +
+            (pastPatterns * 0.03) +
+            (energyPatterns * 0.01) +
+            (supportSystem * 0.01)
     }
-    
+
     /// Ready to proceed with coaching
     var readyForCoaching: Bool { overall > 0.8 }
-    
+
     /// Components that need improvement (with higher standards)
     var missingCritical: [String] {
         var missing: [String] = []
@@ -45,7 +45,7 @@ struct ContextComponents: Sendable {
         if pastPatterns < 0.5 { missing.append("past experience") }
         return missing
     }
-    
+
     /// Which component needs the most work
     var lowestComponent: String {
         let components = [
@@ -67,7 +67,7 @@ struct ContextComponents: Sendable {
 struct CoachingPlan: Codable {
     let understandingSummary: String  // 2-3 sentences showing we understand them
     let coachingApproach: [String]    // 3-4 bullet points about how we'll coach
-    
+
     // User profile data needed for the app
     let lifeContext: LifeContext
     let goal: Goal
@@ -75,7 +75,7 @@ struct CoachingPlan: Codable {
     let sleepWindow: SleepWindow
     let motivationalStyle: MotivationalStyle
     let timezone: String              // User's timezone identifier
-    
+
     // Generated persona profile - completely unique, not based on archetypes
     let generatedPersona: PersonaProfile
 }
@@ -84,19 +84,19 @@ struct CoachingPlan: Codable {
 struct Goal: Codable, Sendable {
     var family: GoalFamily = .healthWellbeing
     var rawText: String = ""
-    
+
     // Extended properties for compatibility
     var weightObjective: WeightObjective?
     var bodyRecompositionGoals: [BodyRecompositionGoal] = []
     var functionalGoalsText: String = ""
-    
+
     enum GoalFamily: String, Codable, CaseIterable, Sendable {
         case strengthTone = "strength_tone"
         case endurance = "endurance"
         case performance = "performance"
         case healthWellbeing = "health_wellbeing"
         case recoveryRehab = "recovery_rehab"
-        
+
         var displayName: String {
             switch self {
             case .strengthTone: return "Build Strength"
@@ -114,12 +114,12 @@ struct WeightObjective: Codable, Sendable {
     var currentWeight: Double?
     var targetWeight: Double?
     var direction: WeightDirection = .maintain
-    
+
     enum WeightDirection: String, Codable, CaseIterable {
         case lose = "lose"
         case gain = "gain"
         case maintain = "maintain"
-        
+
         var displayName: String {
             switch self {
             case .lose: return "Lose Weight"
@@ -136,7 +136,7 @@ enum BodyRecompositionGoal: String, Codable, CaseIterable, Sendable {
     case loseFat = "lose_fat"
     case improveTone = "improve_tone"
     case coreStrength = "core_strength"
-    
+
     var displayName: String {
         switch self {
         case .buildMuscle: return "Build Muscle"
@@ -152,21 +152,21 @@ struct LifeContext: Codable, Sendable {
     var workStyle: WorkStyle = .moderate
     var fitnessLevel: FitnessLevel = .intermediate
     var workoutWindowPreference: WorkoutWindow = .morning
-    
+
     enum WorkStyle: String, Codable, CaseIterable {
         case sedentary = "sedentary"
         case moderate = "moderate"
         case active = "active"
         case veryActive = "very_active"
     }
-    
+
     enum FitnessLevel: String, Codable, CaseIterable {
         case beginner = "beginner"
         case intermediate = "intermediate"
         case advanced = "advanced"
         case athlete = "athlete"
     }
-    
+
     enum WorkoutWindow: String, Codable, CaseIterable {
         case earlyMorning = "early_morning"  // 5-7 AM
         case morning = "morning"              // 7-9 AM
@@ -174,7 +174,7 @@ struct LifeContext: Codable, Sendable {
         case afternoon = "afternoon"          // 2-5 PM
         case evening = "evening"              // 5-8 PM
         case night = "night"                  // 8-10 PM
-        
+
         var displayName: String {
             switch self {
             case .earlyMorning: return "Early Morning (5-7 AM)"
@@ -192,7 +192,7 @@ struct LifeContext: Codable, Sendable {
 struct EngagementPreferences: Codable, Sendable {
     var checkInFrequency: CheckInFrequency = .daily
     var preferredTimes: [String] = ["morning", "evening"]
-    
+
     enum CheckInFrequency: String, Codable, CaseIterable {
         case multiple = "multiple_daily"
         case daily = "daily"
@@ -210,7 +210,7 @@ struct SleepWindow: Codable, Sendable {
 // MARK: - Motivational Style
 struct MotivationalStyle: Codable, Sendable {
     var styles: [Style] = [.encouraging]
-    
+
     enum Style: String, Codable, CaseIterable {
         case tough = "tough_love"
         case encouraging = "encouraging"

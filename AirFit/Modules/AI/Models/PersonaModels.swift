@@ -6,7 +6,7 @@ enum PersonaError: LocalizedError {
     case invalidResponse(String)
     case missingField(String)
     case invalidFormat(String, expected: String)
-    
+
     var errorDescription: String? {
         switch self {
         case .invalidResponse(let message):
@@ -21,40 +21,72 @@ enum PersonaError: LocalizedError {
 
 // MARK: - Conversation Data Models
 
-/// Raw conversation data from the onboarding flow
+/// Raw conversation data from the onboarding flow - simple and LLM-friendly
 struct ConversationData: Codable, Sendable {
-    let userName: String
-    let primaryGoal: String
-    let responses: [String: AnyCodable]
-    let summary: String
-    let nodeCount: Int
-    
-    init(userName: String, primaryGoal: String, responses: [String: Any]) {
-        self.userName = userName
-        self.primaryGoal = primaryGoal
-        self.responses = responses.mapValues { AnyCodable($0) }
-        self.summary = Self.generateSummary(from: responses, userName: userName, goal: primaryGoal)
-        self.nodeCount = responses.count
+    let messages: [ConversationMessage]
+    let currentNodeId: String?
+    let variables: [String: String] // Just strings, let LLM handle complexity
+
+    init(messages: [ConversationMessage], currentNodeId: String? = nil, variables: [String: String] = [:]) {
+        self.messages = messages
+        self.currentNodeId = currentNodeId
+        self.variables = variables
     }
-    
-    private static func generateSummary(from responses: [String: Any], userName: String, goal: String) -> String {
-        var summary = "\(userName) wants to \(goal). "
-        
-        // Extract key information from responses
-        if let lifestyle = responses["lifestyle"] as? String {
-            summary += "Lifestyle: \(lifestyle). "
-        }
-        if let experience = responses["experience"] as? String {
-            summary += "Experience: \(experience). "
-        }
-        if let preferences = responses["preferences"] as? [String] {
-            summary += "Preferences: \(preferences.joined(separator: ", ")). "
-        }
-        
-        return summary
+
+    // Helper to get conversation as text
+    var conversationText: String {
+        messages.map { "\($0.role.rawValue): \($0.content)" }.joined(separator: "\n")
     }
-    
-    // Codable conformance is now automatic with AnyCodable
+
+    // Helper to get just user messages
+    var userMessages: [String] {
+        messages.filter { $0.role == .user }.map { $0.content }
+    }
+
+    // Helper to get user name (with fallback)
+    var userName: String {
+        variables["userName"] ?? "there"
+    }
+
+    // Helper to get primary goal
+    var primaryGoal: String {
+        variables["primary_goal"] ?? "improve fitness"
+    }
+}
+
+struct ConversationMessage: Codable, Sendable {
+    let role: ConversationRole
+    let content: String
+    let timestamp: Date
+
+    enum ConversationRole: String, Codable {
+        case user = "user"
+        case assistant = "assistant"
+        case system = "system"
+    }
+}
+
+// MARK: - Missing Type Definitions
+
+enum MotivationType: String, Codable, Sendable {
+    case achievement
+    case health
+    case social
+    case enjoyment
+}
+
+enum ComplexityLevel: String, Codable, Sendable {
+    case simple
+    case moderate
+    case complex
+    case detailed
+}
+
+enum StressResponseType: String, Codable, Sendable {
+    case needsSupport
+    case needsDirection
+    case independent
+    case balanced
 }
 
 // MARK: - Enhanced Personality Insights
@@ -70,7 +102,7 @@ extension PersonalityInsights {
                 formatTrait(dimension: dimension, score: score)
             }
     }
-    
+
     var conversationCommunicationStyle: ConversationCommunicationStyle {
         switch communicationStyle.preferredTone {
         case .formal, .balanced:
@@ -81,7 +113,7 @@ extension PersonalityInsights {
             return .energetic
         }
     }
-    
+
     var motivationType: MotivationType {
         if motivationalDrivers.contains(.achievement) || motivationalDrivers.contains(.performance) {
             return .achievement
@@ -91,7 +123,7 @@ extension PersonalityInsights {
             return .health
         }
     }
-    
+
     var conversationEnergyLevel: ConversationEnergyLevel {
         if let intensity = traits[.intensityPreference], intensity > 0.5 {
             return .high
@@ -100,7 +132,7 @@ extension PersonalityInsights {
         }
         return .moderate
     }
-    
+
     var emotionalTone: [String] {
         var tones: [String] = []
         if let support = traits[.emotionalSupport], support > 0.5 {
@@ -111,7 +143,7 @@ extension PersonalityInsights {
         }
         return tones
     }
-    
+
     var preferredComplexity: ComplexityLevel {
         switch communicationStyle.detailLevel {
         case .minimal:
@@ -122,12 +154,12 @@ extension PersonalityInsights {
             return .detailed
         }
     }
-    
+
     var preferredTimes: [String] {
         // This would be extracted from conversation data
         ["morning", "evening"]
     }
-    
+
     var stressResponse: StressResponseType {
         if let copingStyle = stressResponses.values.first {
             switch copingStyle {
@@ -141,7 +173,7 @@ extension PersonalityInsights {
         }
         return .needsSupport
     }
-    
+
     private func formatTrait(dimension: PersonalityDimension, score: Double) -> String {
         switch dimension {
         case .authorityPreference:
@@ -161,22 +193,29 @@ extension PersonalityInsights {
 }
 
 // Supporting enums and types for PersonalityInsights extensions
-enum MotivationType: String, Codable {
-    case achievement
-    case health
-    case social
-}
-
-enum ComplexityLevel: String, Codable {
-    case simple
+enum WorkStyle: String, Codable {
+    case sedentary
     case moderate
-    case detailed
+    case high
 }
 
-enum StressResponseType: String, Codable {
-    case needsSupport
-    case needsDirection
-    case independent
+enum FitnessLevel: String, Codable {
+    case beginner
+    case intermediate
+    case advanced
+}
+
+enum WorkoutTimePreference: String, Codable {
+    case morning
+    case lunchtime
+    case evening
+    case flexible
+}
+
+enum CheckInFrequency: String, Codable {
+    case daily
+    case moderate
+    case minimal
 }
 
 // MARK: - Persona Components
@@ -196,31 +235,31 @@ struct VoiceCharacteristics: Codable, Sendable {
     let warmth: Warmth
     let vocabulary: Vocabulary
     let sentenceStructure: SentenceStructure
-    
+
     enum Energy: String, Codable {
         case high
         case moderate
         case calm
     }
-    
+
     enum Pace: String, Codable {
         case brisk
         case measured
         case natural
     }
-    
+
     enum Warmth: String, Codable {
         case warm
         case neutral
         case friendly
     }
-    
+
     enum Vocabulary: String, Codable {
         case simple
         case moderate
         case advanced
     }
-    
+
     enum SentenceStructure: String, Codable {
         case simple
         case moderate
@@ -238,20 +277,20 @@ struct InteractionStyle: Codable, Sendable {
     let humorLevel: HumorLevel
     let formalityLevel: FormalityLevel
     let responseLength: ResponseLength
-    
+
     enum HumorLevel: String, Codable {
         case none
         case light
         case moderate
         case playful
     }
-    
+
     enum FormalityLevel: String, Codable {
         case casual
         case balanced
         case professional
     }
-    
+
     enum ResponseLength: String, Codable {
         case concise
         case moderate
@@ -264,7 +303,7 @@ struct AdaptationRule: Codable, Sendable {
     let trigger: Trigger
     let condition: String
     let adjustment: String
-    
+
     enum Trigger: String, Codable {
         case timeOfDay
         case stress
@@ -310,7 +349,7 @@ struct CoachPersona: Codable, Sendable {
     let profile: PersonalityInsights
     let systemPrompt: String
     let generatedAt: Date
-    
+
     init(from personaProfile: PersonaProfile) {
         self.id = personaProfile.id
         self.identity = PersonaIdentity(

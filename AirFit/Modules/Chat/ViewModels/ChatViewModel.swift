@@ -52,7 +52,7 @@ final class ChatViewModel: ObservableObject, ErrorHandling {
 
         setupVoiceManager()
     }
-    
+
     deinit {
         streamTask?.cancel()
     }
@@ -139,22 +139,22 @@ final class ChatViewModel: ObservableObject, ErrorHandling {
             do {
                 // Process the message through CoachEngine
                 await coachEngine.processUserMessage(userInput, for: user)
-                
+
                 // The CoachEngine will handle saving the response through ConversationManager
                 // We need to fetch the latest assistant message from the conversation
                 let descriptor = FetchDescriptor<ChatMessage>(
                     sortBy: [SortDescriptor(\.timestamp, order: .reverse)]
                 )
-                
+
                 // Wait a moment for the CoachEngine to save its response
                 try await Task.sleep(nanoseconds: 500_000_000) // 500ms
-                
+
                 // Fetch the assistant's response
                 let latestMessages = try modelContext.fetch(descriptor)
                 let filteredMessages = latestMessages.filter { msg in
                     msg.session == currentSession && msg.role == "assistant"
                 }
-                
+
                 if let latestAssistantMessage = filteredMessages.first {
                     // Update our local assistant message with the actual response
                     assistantMessage.content = latestAssistantMessage.content
@@ -163,7 +163,7 @@ final class ChatViewModel: ObservableObject, ErrorHandling {
                     // Fallback if we can't find the response
                     assistantMessage.content = "I've processed your request. Please check the conversation history."
                 }
-                
+
                 try? modelContext.save()
                 await refreshSuggestions()
             } catch {
@@ -272,7 +272,7 @@ final class ChatViewModel: ObservableObject, ErrorHandling {
             ))
             return allMessages.filter { message in
                 message.content.localizedStandardContains(query) &&
-                message.session?.user?.id == user.id
+                    message.session?.user?.id == user.id
             }
         } catch {
             AppLogger.error("Search failed", error: error, category: .chat)
@@ -308,7 +308,7 @@ final class ChatViewModel: ObservableObject, ErrorHandling {
             AppLogger.warning("Unknown function call: \(name)", category: .chat)
         }
     }
-    
+
     // MARK: - Advanced Message Actions
     func scheduleWorkout(from message: ChatMessage) async {
         // Check if this message contains workout-related function call
@@ -318,12 +318,12 @@ final class ChatViewModel: ObservableObject, ErrorHandling {
             await createGenericWorkout()
             return
         }
-        
+
         // Handle specific workout scheduling based on function call
         AppLogger.info("Scheduling workout from message: \(message.id)", category: .chat)
         HapticService.play(.success)
     }
-    
+
     func setReminder(from message: ChatMessage) async {
         // Check if this message contains reminder-related function call
         guard let functionName = message.functionCallName,
@@ -332,17 +332,17 @@ final class ChatViewModel: ObservableObject, ErrorHandling {
             await createGenericReminder()
             return
         }
-        
+
         // Handle specific reminder creation based on function call
         AppLogger.info("Setting reminder from message: \(message.id)", category: .chat)
         HapticService.play(.success)
     }
-    
+
     private func createGenericWorkout() async {
         // Placeholder for workout creation
         AppLogger.info("Creating generic workout", category: .chat)
     }
-    
+
     private func createGenericReminder() async {
         // Placeholder for reminder creation
         AppLogger.info("Creating generic reminder", category: .chat)

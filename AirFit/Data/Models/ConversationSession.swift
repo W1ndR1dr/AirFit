@@ -10,7 +10,7 @@ final class ConversationSession {
     var currentNodeId: String?
     var isComplete: Bool
     @Relationship(deleteRule: .cascade) var responses: [ConversationResponse]
-    
+
     init(
         id: UUID = UUID(),
         userId: UUID,
@@ -28,7 +28,7 @@ final class ConversationSession {
         self.isComplete = isComplete
         self.responses = responses
     }
-    
+
     // Additional properties used by the conversation flow
     var extractedInsights: Data?
     var responseType: String = ""

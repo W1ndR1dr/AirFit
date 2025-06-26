@@ -8,9 +8,9 @@ struct InitialAPISetupView: View {
     @State private var validationError: String?
     @State private var showingInfo = false
     @State private var showKey = false
-    
+
     let onCompletion: () -> Void
-    
+
     var body: some View {
         BaseScreen {
             VStack(spacing: 0) {
@@ -26,10 +26,10 @@ struct InitialAPISetupView: View {
                             )
                         )
                         .padding(.top, AppSpacing.xl)
-                    
+
                     CascadeText("Welcome to AirFit")
                         .font(.system(size: 42, weight: .bold, design: .rounded))
-                    
+
                     Text("To use AI features, you'll need an API key")
                         .font(.system(size: 18, weight: .regular, design: .rounded))
                         .foregroundStyle(.secondary)
@@ -37,13 +37,13 @@ struct InitialAPISetupView: View {
                         .padding(.horizontal)
                 }
                 .padding(.bottom, AppSpacing.xl)
-                
+
                 // Provider Selection
                 VStack(alignment: .leading, spacing: AppSpacing.md) {
                     Text("Select AI Provider")
                         .font(.system(size: 20, weight: .semibold, design: .rounded))
                         .foregroundStyle(.primary)
-                    
+
                     ForEach(AIProvider.allCases, id: \.self) { provider in
                         ProviderOption(
                             provider: provider,
@@ -58,14 +58,14 @@ struct InitialAPISetupView: View {
                 }
                 .padding(.horizontal, AppSpacing.lg)
                 .padding(.bottom, AppSpacing.lg)
-                
+
                 // API Key Input
                 VStack(alignment: .leading, spacing: AppSpacing.sm) {
                     HStack {
                         Text("API Key")
                             .font(.system(size: 20, weight: .semibold, design: .rounded))
                             .foregroundStyle(.primary)
-                        
+
                         Button {
                             HapticService.impact(.light)
                             showingInfo = true
@@ -81,7 +81,7 @@ struct InitialAPISetupView: View {
                                 )
                         }
                     }
-                    
+
                     GlassCard {
                         HStack {
                             if showKey {
@@ -97,7 +97,7 @@ struct InitialAPISetupView: View {
                                     .font(.system(size: 16, weight: .regular, design: .monospaced))
                                     .disabled(isValidating)
                             }
-                            
+
                             Button {
                                 HapticService.impact(.light)
                                 showKey.toggle()
@@ -109,7 +109,7 @@ struct InitialAPISetupView: View {
                         }
                         .padding(AppSpacing.md)
                     }
-                    
+
                     if let error = validationError {
                         Text(error)
                             .font(.system(size: 14, weight: .regular, design: .rounded))
@@ -117,9 +117,9 @@ struct InitialAPISetupView: View {
                     }
                 }
                 .padding(.horizontal, AppSpacing.lg)
-                
+
                 Spacer()
-                
+
                 // Action Buttons
                 VStack(spacing: AppSpacing.md) {
                     Button {
@@ -158,12 +158,12 @@ struct InitialAPISetupView: View {
                         )
                     }
                     .disabled(apiKey.isEmpty || isValidating)
-                    
+
                     Text("An API key is required to use AirFit")
                         .font(.system(size: 14, weight: .regular, design: .rounded))
                         .foregroundStyle(.tertiary)
                         .multilineTextAlignment(.center)
-                    
+
                     Button {
                         HapticService.impact(.light)
                         skipAndUseDemoMode()
@@ -184,30 +184,30 @@ struct InitialAPISetupView: View {
         }
         .preferredColorScheme(.light) // Force light mode for better visibility
     }
-    
+
     private func validateAndSave() {
         isValidating = true
         validationError = nil
-        
+
         Task {
             do {
                 // Get API key manager from DI
                 let apiKeyManager = try await diContainer.resolve(APIKeyManagementProtocol.self)
-                
+
                 // Validate format
                 guard isValidAPIKeyFormat(apiKey, for: selectedProvider) else {
                     validationError = "Invalid API key format"
                     isValidating = false
                     return
                 }
-                
+
                 // Save the key
                 try await apiKeyManager.saveAPIKey(apiKey, for: selectedProvider)
-                
+
                 // Configure AI service
                 let aiService = try await diContainer.resolve(AIServiceProtocol.self)
                 try await aiService.configure()
-                
+
                 // Success
                 await MainActor.run {
                     HapticService.notification(.success)
@@ -222,7 +222,7 @@ struct InitialAPISetupView: View {
             }
         }
     }
-    
+
     private func isValidAPIKeyFormat(_ key: String, for provider: AIProvider) -> Bool {
         switch provider {
         case .anthropic:
@@ -233,12 +233,12 @@ struct InitialAPISetupView: View {
             return key.count > 30 // Gemini keys are less structured
         }
     }
-    
+
     private func skipAndUseDemoMode() {
         // Enable demo mode
         AppConstants.Configuration.isUsingDemoMode = true
         AppLogger.info("Demo mode enabled from initial setup", category: .app)
-        
+
         // Complete setup
         HapticService.notification(.success)
         onCompletion()
@@ -251,7 +251,7 @@ private struct ProviderOption: View {
     let provider: AIProvider
     let isSelected: Bool
     let onTap: () -> Void
-    
+
     var body: some View {
         Button(action: onTap) {
             HStack {
@@ -259,14 +259,14 @@ private struct ProviderOption: View {
                     Text(provider.displayName)
                         .font(.system(size: 18, weight: .semibold, design: .rounded))
                         .foregroundStyle(.primary)
-                    
+
                     Text(providerDescription)
                         .font(.system(size: 14, weight: .regular, design: .rounded))
                         .foregroundStyle(.secondary)
                 }
-                
+
                 Spacer()
-                
+
                 Image(systemName: isSelected ? "checkmark.circle.fill" : "circle")
                     .font(.system(size: 24))
                     .foregroundStyle(
@@ -275,12 +275,12 @@ private struct ProviderOption: View {
                                 colors: [Color.accentColor, Color.accentColor.opacity(0.8)],
                                 startPoint: .topLeading,
                                 endPoint: .bottomTrailing
-                              )
+                            )
                             : LinearGradient(
                                 colors: [Color.secondary, Color.secondary],
                                 startPoint: .topLeading,
                                 endPoint: .bottomTrailing
-                              )
+                            )
                     )
             }
             .padding(AppSpacing.md)
@@ -297,19 +297,19 @@ private struct ProviderOption: View {
                                 colors: [Color.accentColor, Color.accentColor.opacity(0.8)],
                                 startPoint: .topLeading,
                                 endPoint: .bottomTrailing
-                              )
+                            )
                             : LinearGradient(
                                 colors: [Color.clear, Color.clear],
                                 startPoint: .topLeading,
                                 endPoint: .bottomTrailing
-                              ),
+                            ),
                         lineWidth: 2
                     )
             )
         }
         .buttonStyle(.plain)
     }
-    
+
     private var providerDescription: String {
         switch provider {
         case .anthropic:
@@ -325,7 +325,7 @@ private struct ProviderOption: View {
 private struct APIKeyInfoSheet: View {
     let provider: AIProvider
     @Environment(\.dismiss) private var dismiss
-    
+
     var body: some View {
         NavigationView {
             BaseScreen {
@@ -334,7 +334,7 @@ private struct APIKeyInfoSheet: View {
                         CascadeText("How to get your API key")
                             .font(.system(size: 28, weight: .bold, design: .rounded))
                             .padding(.top)
-                        
+
                         GlassCard {
                             VStack(alignment: .leading, spacing: AppSpacing.md) {
                                 ForEach(instructions, id: \.self) { instruction in
@@ -351,7 +351,7 @@ private struct APIKeyInfoSheet: View {
                             }
                             .padding(AppSpacing.md)
                         }
-                        
+
                         Link(destination: providerURL) {
                             HStack {
                                 Image(systemName: "arrow.up.forward.square")
@@ -393,7 +393,7 @@ private struct APIKeyInfoSheet: View {
             }
         }
     }
-    
+
     private var instructions: [String] {
         switch provider {
         case .anthropic:
@@ -425,7 +425,7 @@ private struct APIKeyInfoSheet: View {
             ]
         }
     }
-    
+
     private var providerURL: URL {
         switch provider {
         case .anthropic:

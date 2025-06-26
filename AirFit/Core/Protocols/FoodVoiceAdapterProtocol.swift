@@ -8,21 +8,21 @@ protocol FoodVoiceAdapterProtocol: AnyObject, Sendable {
     var onError: ((Error) -> Void)? { get set }
     var onStateChange: ((VoiceInputState) -> Void)? { get set }
     var onWaveformUpdate: (([Float]) -> Void)? { get set }
-    
+
     /// Recording state
     var isRecording: Bool { get }
     var transcribedText: String { get }
     var voiceWaveform: [Float] { get }
-    
+
     /// Initialize voice input system
     func initialize() async
-    
+
     /// Request microphone permission
     func requestPermission() async throws -> Bool
-    
+
     /// Start recording voice input
     func startRecording() async throws
-    
+
     /// Stop recording and return transcribed text
     func stopRecording() async -> String?
 }

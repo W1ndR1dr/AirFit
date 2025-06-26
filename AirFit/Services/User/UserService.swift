@@ -2,7 +2,7 @@ import Foundation
 import SwiftData
 
 /// # UserService
-/// 
+///
 /// ## Purpose
 /// Core service responsible for managing user data, profiles, and onboarding state.
 /// Provides the primary interface for user-related operations throughout the app.
@@ -21,7 +21,7 @@ import SwiftData
 /// ```swift
 /// let userService = await container.resolve(UserServiceProtocol.self)
 /// let currentUser = await userService.getCurrentUser()
-/// 
+///
 /// // Update user profile
 /// let updates = ProfileUpdate(email: "new@email.com", preferredUnits: .metric)
 /// try await userService.updateProfile(updates)
@@ -39,30 +39,30 @@ final class UserService: UserServiceProtocol, ServiceProtocol {
     nonisolated var isConfigured: Bool {
         MainActor.assumeIsolated { _isConfigured }
     }
-    
+
     private let modelContext: ModelContext
-    
+
     init(modelContext: ModelContext) {
         self.modelContext = modelContext
     }
-    
+
     // MARK: - ServiceProtocol Methods
-    
+
     func configure() async throws {
         guard !_isConfigured else { return }
         _isConfigured = true
         AppLogger.info("\(serviceIdentifier) configured", category: .services)
     }
-    
+
     func reset() async {
         _isConfigured = false
         AppLogger.info("\(serviceIdentifier) reset", category: .services)
     }
-    
+
     func healthCheck() async -> ServiceHealth {
         // Check if we can access SwiftData
         let canAccessData = (try? modelContext.fetch(FetchDescriptor<User>())) != nil
-        
+
         return ServiceHealth(
             status: canAccessData ? .healthy : .degraded,
             lastCheckTime: Date(),
@@ -71,7 +71,7 @@ final class UserService: UserServiceProtocol, ServiceProtocol {
             metadata: ["modelContext": "true"]
         )
     }
-    
+
     func createUser(from profile: OnboardingProfile) async throws -> User {
         // Create new user from onboarding profile
         let user = User(name: profile.name ?? "User")
@@ -79,20 +79,20 @@ final class UserService: UserServiceProtocol, ServiceProtocol {
         user.onboardingProfile = profile
         user.isOnboarded = profile.isComplete
         user.lastActiveDate = Date()
-        
+
         // Save to SwiftData
         modelContext.insert(user)
         try modelContext.save()
-        
+
         AppLogger.info("Created new user: \(user.name ?? "Unknown")", category: .data)
         return user
     }
-    
+
     func updateProfile(_ updates: ProfileUpdate) async throws {
         guard let user = await getCurrentUser() else {
             throw AppError.userNotFound
         }
-        
+
         // Apply updates
         if let email = updates.email {
             user.email = email
@@ -103,20 +103,20 @@ final class UserService: UserServiceProtocol, ServiceProtocol {
         if let preferredUnits = updates.preferredUnits {
             user.preferredUnits = preferredUnits
         }
-        
+
         user.lastModifiedDate = Date()
-        
+
         // Save changes
         try modelContext.save()
-        
+
         AppLogger.info("Updated user profile", category: .data)
     }
-    
+
     func getCurrentUser() async -> User? {
         let descriptor = FetchDescriptor<User>(
             sortBy: [SortDescriptor(\.createdDate, order: .reverse)]
         )
-        
+
         do {
             let users = try modelContext.fetch(descriptor)
             return users.first
@@ -125,37 +125,37 @@ final class UserService: UserServiceProtocol, ServiceProtocol {
             return nil
         }
     }
-    
+
     func getCurrentUserId() async -> UUID? {
         await getCurrentUser()?.id
     }
-    
+
     func deleteUser(_ user: User) async throws {
         modelContext.delete(user)
         try modelContext.save()
-        
+
         AppLogger.info("Deleted user: \(user.name ?? "Unknown")", category: .data)
     }
-    
+
     func completeOnboarding() async throws {
         guard let user = await getCurrentUser() else {
             throw AppError.userNotFound
         }
-        
+
         user.isOnboarded = true
         user.onboardingCompletedDate = Date()
         user.lastActiveDate = Date()
-        
+
         try modelContext.save()
-        
+
         AppLogger.info("Completed onboarding for user: \(user.name ?? "Unknown")", category: .app)
     }
-    
+
     func setCoachPersona(_ persona: CoachPersona) async throws {
         guard let user = await getCurrentUser() else {
             throw AppError.userNotFound
         }
-        
+
         // Store persona data
         user.onboardingProfile?.persona = PersonaProfile(
             id: persona.id,
@@ -195,9 +195,9 @@ final class UserService: UserServiceProtocol, ServiceProtocol {
                 previewReady: true
             )
         )
-        
+
         try modelContext.save()
-        
+
         AppLogger.info("Set coach persona: \(persona.identity.name)", category: .app)
     }
 }

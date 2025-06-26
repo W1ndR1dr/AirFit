@@ -5,15 +5,15 @@ actor TestModeAIService: @preconcurrency AIServiceProtocol {
     // MARK: - ServiceProtocol
     var isConfigured: Bool { true }
     var serviceIdentifier: String { "test_mode_ai_service" }
-    
+
     func configure() async throws {
         // Already configured for test mode
     }
-    
+
     func reset() async {
         // No-op for test service
     }
-    
+
     func healthCheck() async -> ServiceHealth {
         ServiceHealth(
             status: .healthy,
@@ -23,7 +23,7 @@ actor TestModeAIService: @preconcurrency AIServiceProtocol {
             metadata: ["mode": "test"]
         )
     }
-    
+
     // MARK: - AIServiceProtocol
     var activeProvider: AIProvider { .openAI }
     var availableModels: [AIModel] {
@@ -44,28 +44,28 @@ actor TestModeAIService: @preconcurrency AIServiceProtocol {
             )
         ]
     }
-    
+
     func configure(provider: AIProvider, apiKey: String, model: String?) async throws {
         // No-op - always configured in test mode
     }
-    
+
     func sendRequest(_ request: AIRequest) -> AsyncThrowingStream<AIResponse, Error> {
         AsyncThrowingStream { continuation in
             Task {
                 // Simulate API delay
                 try? await Task.sleep(nanoseconds: 500_000_000) // 0.5 seconds
-                
+
                 // Generate appropriate response based on the request
                 if let lastMessage = request.messages.last {
                     let response = generateMockResponse(for: lastMessage.content, functions: request.functions)
-                    
+
                     // Simulate streaming response
                     let words = response.split(separator: " ")
                     for word in words {
                         try? await Task.sleep(nanoseconds: 50_000_000) // 0.05 seconds
                         continuation.yield(.textDelta(String(word) + " "))
                     }
-                    
+
                     // If there are functions defined and the response suggests calling one
                     if let functions = request.functions, !functions.isEmpty {
                         // Sometimes simulate a function call
@@ -82,36 +82,36 @@ actor TestModeAIService: @preconcurrency AIServiceProtocol {
                         }
                     }
                 }
-                
+
                 // Send completion with usage info
                 continuation.yield(.done(usage: AITokenUsage(
                     promptTokens: 100,
                     completionTokens: 50,
                     totalTokens: 150
                 )))
-                
+
                 continuation.finish()
             }
         }
     }
-    
+
     func validateConfiguration() async throws -> Bool {
         true
     }
-    
+
     func checkHealth() async -> ServiceHealth {
         await healthCheck()
     }
-    
+
     func estimateTokenCount(for text: String) -> Int {
         text.count / 4
     }
-    
+
     // MARK: - Mock Data Generation
-    
+
     private func generateMockResponse(for message: String, functions: [AIFunctionDefinition]?) -> String {
         let lowercased = message.lowercased()
-        
+
         if lowercased.contains("hello") || lowercased.contains("hi") {
             return "Hey there! Great to see you! How are you feeling today? Ready to crush some fitness goals?"
         } else if lowercased.contains("workout") {

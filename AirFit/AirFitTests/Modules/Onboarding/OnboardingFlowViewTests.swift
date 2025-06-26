@@ -13,7 +13,7 @@ final class OnboardingFlowViewTests: XCTestCase {
 
     override func setUp() async throws {
         try super.setUp()
-        
+
         modelContainer = try ModelContainer.createTestContainer()
         modelContext = modelContainer.mainContext
         mockAIService = MockAIService()
@@ -186,7 +186,7 @@ final class OnboardingFlowViewTests: XCTestCase {
         // Arrange
         let mockAPIKeyManager = MockAPIKeyManager()
         let mockUserService = MockUserService()
-        
+
         let viewModel = OnboardingViewModel(
             aiService: mockAIService,
             onboardingService: mockOnboardingService,

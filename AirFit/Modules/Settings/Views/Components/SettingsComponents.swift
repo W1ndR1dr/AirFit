@@ -5,12 +5,12 @@ import SwiftUI
 struct SettingsCard<Content: View>: View {
     let content: Content
     let style: CardStyle
-    
+
     init(style: CardStyle = .normal, @ViewBuilder content: () -> Content) {
         self.style = style
         self.content = content()
     }
-    
+
     var body: some View {
         // Now uses GlassCard internally
         GlassCard {
@@ -23,7 +23,7 @@ struct SettingsCard<Content: View>: View {
             }
         }
     }
-    
+
     enum CardStyle {
         case normal
         case destructive
@@ -39,7 +39,7 @@ extension ButtonStyle where Self == PrimaryProminentButtonStyle {
 
 struct PrimaryProminentButtonStyle: ButtonStyle {
     @Environment(\.isEnabled) private var isEnabled
-    
+
     func makeBody(configuration: Configuration) -> some View {
         configuration.label
             .font(.headline)
@@ -95,11 +95,11 @@ struct DestructiveButtonStyle: ButtonStyle {
 // MARK: - Share Sheet
 struct ShareSheet: UIViewControllerRepresentable {
     let items: [Any]
-    
+
     func makeUIViewController(context: Context) -> UIActivityViewController {
         UIActivityViewController(activityItems: items, applicationActivities: nil)
     }
-    
+
     func updateUIViewController(_ uiViewController: UIActivityViewController, context: Context) {}
 }
 

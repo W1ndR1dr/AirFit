@@ -4,40 +4,40 @@ import SwiftData
 
 @MainActor
 final class MessageClassificationTests: XCTestCase {
-    
+
     // MARK: - Test Properties
     private var modelContext: ModelContext!
     private var coachEngine: CoachEngine!
     private var testUser: User!
-    
+
     // MARK: - Setup & Teardown
-    
+
     override func setUp() async throws {
         try super.setUp()
-        
+
         // Create in-memory model container for testing
         let configuration = ModelConfiguration(isStoredInMemoryOnly: true)
         let container = try ModelContainer(for: User.self, CoachMessage.self, configurations: configuration)
         modelContext = ModelContext(container)
-        
+
         // Create test user
         testUser = User()
         modelContext.insert(testUser)
         try modelContext.save()
-        
+
         // Create CoachEngine with minimal dependencies for testing
         coachEngine = CoachEngine.createDefault(modelContext: modelContext)
     }
-    
+
     override func tearDown() async throws {
         modelContext = nil
         coachEngine = nil
         testUser = nil
         try super.tearDown()
     }
-    
+
     // MARK: - Command Classification Tests
-    
+
     @MainActor
     func test_classifyMessage_detectsShortCommands() async throws {
         // Arrange
@@ -51,14 +51,14 @@ final class MessageClassificationTests: XCTestCase {
             "ok",
             "2 apples"
         ]
-        
+
         // Act & Assert
         for command in shortCommands {
             let messageType = await classifyTestMessage(command)
             XCTAssertEqual(messageType, MessageType.command, "Failed to classify '\(command)' as command")
         }
     }
-    
+
     @MainActor
     func test_classifyMessage_detectsCommandStarters() async throws {
         // Arrange
@@ -71,14 +71,14 @@ final class MessageClassificationTests: XCTestCase {
             "open the workout section",
             "start a new workout"
         ]
-        
+
         // Act & Assert
         for command in commandStarters {
             let messageType = await classifyTestMessage(command)
             XCTAssertEqual(messageType, MessageType.command, "Failed to classify '\(command)' as command")
         }
     }
-    
+
     @MainActor
     func test_classifyMessage_detectsNutritionCommands() async throws {
         // Arrange
@@ -89,14 +89,14 @@ final class MessageClassificationTests: XCTestCase {
             "2000ml water",
             "track 10k steps"
         ]
-        
+
         // Act & Assert
         for command in nutritionCommands {
             let messageType = await classifyTestMessage(command)
             XCTAssertEqual(messageType, MessageType.command, "Failed to classify nutrition command '\(command)'")
         }
     }
-    
+
     @MainActor
     func test_classifyMessage_detectsPatternBasedCommands() async throws {
         // Arrange
@@ -108,16 +108,16 @@ final class MessageClassificationTests: XCTestCase {
             "thanks",
             "got it"
         ]
-        
+
         // Act & Assert
         for command in patternCommands {
             let messageType = await classifyTestMessage(command)
             XCTAssertEqual(messageType, MessageType.command, "Failed to classify pattern command '\(command)'")
         }
     }
-    
+
     // MARK: - Conversation Classification Tests
-    
+
     @MainActor
     func test_classifyMessage_detectsConversations() async throws {
         // Arrange
@@ -129,26 +129,26 @@ final class MessageClassificationTests: XCTestCase {
             "Can you explain the difference between complex and simple carbohydrates?",
             "I've been feeling tired lately. Could it be related to my diet?"
         ]
-        
+
         // Act & Assert
         for conversation in conversations {
             let messageType = await classifyTestMessage(conversation)
             XCTAssertEqual(messageType, MessageType.conversation, "Failed to classify '\(conversation)' as conversation")
         }
     }
-    
+
     @MainActor
     func test_classifyMessage_longMessagesAreConversations() async throws {
         // Arrange
         let longMessage = "I've been trying to get back into fitness after a long break due to work stress. I used to be quite active but haven't worked out consistently in over a year. Now I want to create a sustainable routine that fits my current lifestyle and helps me regain my strength and energy."
-        
+
         // Act & Assert
         let messageType = await classifyTestMessage(longMessage)
         XCTAssertEqual(messageType, MessageType.conversation, "Long messages should be classified as conversations")
     }
-    
+
     // MARK: - Edge Case Tests
-    
+
     @MainActor
     func test_classifyMessage_edgeCases() async throws {
         // Arrange
@@ -159,50 +159,50 @@ final class MessageClassificationTests: XCTestCase {
             ("log", MessageType.command), // Command word alone
             ("calories protein carbs but this is a longer discussion about nutrition", MessageType.conversation) // Keywords in long text
         ]
-        
+
         // Act & Assert
         for (message, expectedType) in edgeCases {
             let messageType = await classifyTestMessage(message)
             XCTAssertEqual(messageType, expectedType, "Edge case '\(message)' should be \(expectedType.rawValue)")
         }
     }
-    
+
     // MARK: - History Limit Tests
-    
+
     func test_messageType_contextLimits() {
         // Arrange & Act & Assert
         XCTAssertEqual(MessageType.command.contextLimit, 5, "Commands should use 5 message history limit")
         XCTAssertEqual(MessageType.conversation.contextLimit, 20, "Conversations should use 20 message history limit")
-        
+
         XCTAssertFalse(MessageType.command.requiresHistory, "Commands should not require full history")
         XCTAssertTrue(MessageType.conversation.requiresHistory, "Conversations should require full history")
     }
-    
+
     // MARK: - Integration Tests
-    
+
     @MainActor
     func test_processUserMessage_storesCorrectClassification() async throws {
         // Arrange
         let commandMessage = "log 500 calories"
         let conversationMessage = "How should I plan my workout schedule?"
-        
+
         // Act
         _ = await coachEngine.processUserMessage(commandMessage, for: testUser)
         _ = await coachEngine.processUserMessage(conversationMessage, for: testUser)
-        
+
         // Assert
         let messages = try await getAllMessages()
-        
+
         let commandMessages = messages.filter { $0.content == commandMessage }
         let conversationMessages = messages.filter { $0.content == conversationMessage }
-        
+
         XCTAssertEqual(commandMessages.count, 1, "Should have saved one command message")
         XCTAssertEqual(conversationMessages.count, 1, "Should have saved one conversation message")
-        
+
         XCTAssertEqual(commandMessages.first?.messageType, MessageType.command, "Command message should be classified correctly")
         XCTAssertEqual(conversationMessages.first?.messageType, MessageType.conversation, "Conversation message should be classified correctly")
     }
-    
+
     @MainActor
     func test_processUserMessage_usesOptimizedHistoryLimits() async throws {
         // Arrange - Create conversation history with multiple messages
@@ -225,10 +225,10 @@ final class MessageClassificationTests: XCTestCase {
             XCTFail("Failed to save test context: \(error)")
 
         }
-        
+
         // Act - Process a command (should use limit of 5)
         _ = await coachEngine.processUserMessage("log 300 calories", for: testUser)
-        
+
         // Verify through conversation manager (indirect test since classifyMessage is private)
         let conversationManager = ConversationManager(modelContext: modelContext)
         let recentMessages = try await conversationManager.getRecentMessages(
@@ -236,13 +236,13 @@ final class MessageClassificationTests: XCTestCase {
             conversationId: coachEngine.activeConversationId!,
             limit: 5 // Command limit
         )
-        
+
         // Assert
         XCTAssertLessThanOrEqual(recentMessages.count, 5, "Command processing should use minimal history")
     }
-    
+
     // MARK: - Performance Tests
-    
+
     @MainActor
     func test_classifyMessage_performance() async throws {
         // Arrange
@@ -254,22 +254,22 @@ final class MessageClassificationTests: XCTestCase {
             "2 apples",
             "What's the best time to eat carbohydrates for optimal energy?"
         ]
-        
+
         // Act
         let startTime = CFAbsoluteTimeGetCurrent()
-        
+
         for message in testMessages {
             _ = await classifyTestMessage(message)
         }
-        
+
         let duration = CFAbsoluteTimeGetCurrent() - startTime
-        
+
         // Assert - Classification should be very fast
         XCTAssertLessThan(duration, 0.001, "Message classification should complete in under 1ms")
-        
+
         print("Message classification performance: \(Int(duration * 1_000_000))μs for \(testMessages.count) messages")
     }
-    
+
     @MainActor
     func test_classifyMessage_accuracyMetrics() async throws {
         // Arrange - Test dataset with known classifications
@@ -285,7 +285,7 @@ final class MessageClassificationTests: XCTestCase {
             ("no", MessageType.command),
             ("thanks", MessageType.command),
             ("500ml water", MessageType.command),
-            
+
             // Conversations
             ("How can I improve my workout routine?", MessageType.conversation),
             ("I need help with meal planning", MessageType.conversation),
@@ -298,10 +298,10 @@ final class MessageClassificationTests: XCTestCase {
             ("Can you recommend a weekly workout split?", MessageType.conversation),
             ("How do I track my progress effectively?", MessageType.conversation)
         ]
-        
+
         // Act
         var correctClassifications = 0
-        
+
         for (message, expectedType) in testDataset {
             let actualType = await classifyTestMessage(message)
             if actualType == expectedType {
@@ -310,41 +310,41 @@ final class MessageClassificationTests: XCTestCase {
                 print("Misclassified: '\(message)' - Expected: \(expectedType), Got: \(actualType)")
             }
         }
-        
+
         let accuracy = Double(correctClassifications) / Double(testDataset.count)
-        
+
         // Assert - Should achieve 90%+ accuracy
         XCTAssertGreaterThanOrEqual(accuracy, 0.9, "Classification accuracy should be at least 90%")
-        
+
         print("Classification accuracy: \(Int(accuracy * 100))% (\(correctClassifications)/\(testDataset.count))")
     }
-    
+
     // MARK: - Helper Methods
-    
+
     /// Helper to access the private classifyMessage method for testing
     @MainActor
     private func classifyTestMessage(_ text: String) async -> MessageType {
         // Since classifyMessage is private, we test it indirectly through processUserMessage
         // and check the stored message type
         let originalMessageCount = await getMessageCount()
-        
+
         _ = await coachEngine.processUserMessage(text, for: testUser)
-        
+
         let messages = try! await getAllMessages()
         let newMessages = Array(messages.dropFirst(originalMessageCount))
-        
+
         // Find the user message (not assistant response)
         let userMessage = newMessages.first { $0.role == MessageRole.user.rawValue && $0.content == text }
-        
+
         return userMessage?.messageType ?? MessageType.conversation
     }
-    
+
     @MainActor
     private func getMessageCount() async -> Int {
         let descriptor = FetchDescriptor<CoachMessage>()
         return (try? modelContext.fetch(descriptor).count) ?? 0
     }
-    
+
     @MainActor
     private func getAllMessages() async throws -> [CoachMessage] {
         let descriptor = FetchDescriptor<CoachMessage>(

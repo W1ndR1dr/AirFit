@@ -5,18 +5,18 @@ enum LLMModel: CaseIterable {
     // Anthropic - Claude 4 Series (2025)
     case claude4Opus
     case claude4Sonnet
-    
+
     // OpenAI - Latest Models (2025)
     case gpt4o
     case o3
     case o3Mini
     case o4Mini
-    
+
     // Google Gemini - 2.5 Series (2025)
     case gemini25Pro
     case gemini25Flash
     case gemini25FlashThinking
-    
+
     var identifier: String {
         switch self {
         // Anthropic - Claude 4 Series
@@ -33,7 +33,7 @@ enum LLMModel: CaseIterable {
         case .gemini25FlashThinking: return "gemini-2.5-flash-thinking-preview-05-20"
         }
     }
-    
+
     init?(rawValue: String) {
         if let model = LLMModel.allCases.first(where: { $0.identifier == rawValue }) {
             self = model
@@ -41,7 +41,7 @@ enum LLMModel: CaseIterable {
             return nil
         }
     }
-    
+
     var provider: LLMProviderIdentifier {
         switch self {
         case .claude4Opus, .claude4Sonnet:
@@ -52,7 +52,7 @@ enum LLMModel: CaseIterable {
             return .google
         }
     }
-    
+
     var contextWindow: Int {
         switch self {
         // Anthropic - Claude 4 has 200K context
@@ -72,7 +72,7 @@ enum LLMModel: CaseIterable {
             return 1_048_576  // 1M tokens
         }
     }
-    
+
     // Cost per 1K tokens (input, output) in USD - Updated Jan 2025
     var cost: (input: Double, output: Double) {
         switch self {
@@ -99,7 +99,7 @@ enum LLMModel: CaseIterable {
             return (0.00015, 0.0003)  // Same pricing, thinking counts as input
         }
     }
-    
+
     var displayName: String {
         switch self {
         // Anthropic Claude 4
@@ -116,7 +116,7 @@ enum LLMModel: CaseIterable {
         case .gemini25FlashThinking: return "Gemini 2.5 Flash Thinking"
         }
     }
-    
+
     var description: String {
         switch self {
         // Anthropic Claude 4
@@ -133,7 +133,7 @@ enum LLMModel: CaseIterable {
         case .gemini25FlashThinking: return "Step-by-step reasoning with thinking budget"
         }
     }
-    
+
     var specialFeatures: [String] {
         switch self {
         case .claude4Opus, .claude4Sonnet:
@@ -152,7 +152,7 @@ enum LLMModel: CaseIterable {
             return ["Thinking budget (≤24,576 tokens)", "Step-by-step reasoning", "Multimodal"]
         }
     }
-    
+
 }
 
 // MARK: - Task-Based Model Selection
@@ -162,7 +162,7 @@ enum AITask {
     case conversationAnalysis
     case coaching
     case quickResponse
-    
+
     var recommendedModels: [LLMModel] {
         switch self {
         case .personalityExtraction:
@@ -190,7 +190,7 @@ struct LLMProviderConfig {
     let baseURL: URL?
     let timeout: TimeInterval
     let maxRetries: Int
-    
+
     init(
         apiKey: String,
         baseURL: URL? = nil,

@@ -78,7 +78,7 @@ final class FoodTrackingFlowUITests: XCTestCase {
         addUIInterruptionMonitor(withDescription: "System Permission Alert") { alert -> Bool in
             let microphonePermission = "microphone" // Adjust based on actual alert text
             let cameraPermission = "camera"
-            
+
             if alert.label.lowercased().contains(microphonePermission) || alert.label.lowercased().contains(cameraPermission) {
                 if alert.buttons["Allow"].exists {
                     alert.buttons["Allow"].tap()
@@ -126,17 +126,17 @@ final class FoodTrackingFlowUITests: XCTestCase {
         // For a "Carmack" level test, the app would need a debug mechanism to inject transcribed text.
         let recordButton = app.buttons[VoiceInputViewIDs.recordButton]
         XCTAssertTrue(recordButton.exists, "Record button not found")
-        
+
         // Simulate holding the record button (long press) then releasing
         recordButton.press(forDuration: 2.5) // Simulate 2.5s recording
-        
+
         // Performance: Measure time until transcription appears or processing indicator shows
         let transcriptionExpectation = expectation(for: NSPredicate(format: "exists == 1"), evaluatedWith: app.staticTexts[VoiceInputViewIDs.transcriptionText], handler: nil)
         let processingIndicator = app.activityIndicators[VoiceInputViewIDs.processingIndicator] // Or other element
-        
+
         // Check for processing indicator or transcribed text
         let result = XCTWaiter.wait(for: [transcriptionExpectation], timeout: 7.0) // Increased timeout for AI
-        
+
         if result == .timedOut {
             // If transcription didn't appear directly, check for processing indicator
             XCTAssertTrue(processingIndicator.exists, "Processing indicator or transcription should appear after recording.")
@@ -174,7 +174,7 @@ final class FoodTrackingFlowUITests: XCTestCase {
         let macroRings = app.otherElements[FoodLoggingViewIDs.macroRingsView]
         // XCTWaiter().wait(for: [expectation(description: "Macro rings updated")], timeout: 3) // Needs specific condition
         XCTAssertTrue(macroRings.exists, "Macro rings should be visible.")
-        
+
         // Accessibility: Check basic label presence for key elements
         XCTAssertNotEqual(voiceButton.label, "", "Voice button should have an accessibility label.")
         XCTAssertNotEqual(recordButton.label, "", "Record button should have an accessibility label.")
@@ -198,10 +198,10 @@ final class FoodTrackingFlowUITests: XCTestCase {
         let photoLibraryButton = app.buttons[PhotoInputViewIDs.photoLibraryButton]
         XCTAssertTrue(photoLibraryButton.exists, "Photo library button not found")
         photoLibraryButton.tap()
-        
+
         // Handle photo library permission if it appears - tap it to interact with system alerts
         app.tap()
-        
+
         // Select a photo (this part is highly dependent on simulator state and iOS version)
         // Typically, you'd tap on the first photo in the library.
         // This needs a robust way to select a specific image for consistent testing.
@@ -217,7 +217,7 @@ final class FoodTrackingFlowUITests: XCTestCase {
             if photoPickerCancel.exists { photoPickerCancel.tap() }
             return // End test if photo cannot be selected
         }
-        
+
         // 3. Meal Recognition & Confirmation
         // After image selection, app should process it.
         // Wait for confirmation view, similar to voice flow.
@@ -253,7 +253,7 @@ final class FoodTrackingFlowUITests: XCTestCase {
         // 2. Perform Search
         let searchField = app.textFields[NutritionSearchViewIDs.searchField]
         XCTAssertTrue(searchField.exists, "Search field not found")
-        
+
         // Performance: Measure search responsiveness
         measure(metrics: [XCTApplicationLaunchMetric(waitUntilResponsive: true)]) {
             searchField.tap()
@@ -284,33 +284,33 @@ final class FoodTrackingFlowUITests: XCTestCase {
         XCTAssertTrue(app.otherElements[FoodLoggingViewIDs.view].waitForExistence(timeout: 5), "Did not return to Food Logging View after saving.")
         // Add checks for UI update
     }
-    
+
     // MARK: - Edge Cases & Robustness
-    
+
     func testMicrophonePermissionDenied() {
         // This test requires a way to launch the app with microphone permission denied state.
         // Or, if the permission alert is the first interaction:
         app.launchArguments += ["-resetMicrophonePermission"] // Hypothetical launch arg
         app.terminate()
         app.launch()
-        
+
         navigateToFoodLogging()
         let voiceButton = app.buttons[FoodLoggingViewIDs.voiceInputButton]
         XCTAssertTrue(voiceButton.waitForExistence(timeout: 5))
         voiceButton.tap()
-        
+
         // Now, interact with the system alert to deny permission.
         // This part is tricky and relies on the UIInterruptionMonitor.
         // For this specific test, we might need to ensure the monitor *denies*.
         // Alternatively, the app should show its own "permission denied" UI.
-        
+
         // For "Carmack level", the app should have a clear UI state for denied permissions.
         // XCTAssertTrue(app.staticTexts["Microphone permission is required."].waitForExistence(timeout: 5))
-        
+
         // For now, we'll just tap the app to trigger the interruption monitor.
         // If the monitor is set up to "Allow", this test won't correctly test denial.
         // A better approach is to have a specific monitor for this test that taps "Don't Allow".
-        
+
         // This test needs a more robust setup for permission handling in UI tests.
         // For now, it serves as a placeholder for the scenario.
         // A simple check: voice input view should not fully appear or should show an error.
@@ -320,23 +320,23 @@ final class FoodTrackingFlowUITests: XCTestCase {
         // XCTAssertFalse(voiceInputView.waitForExistence(timeout: 3), "Voice input view should not appear or should show error if permission denied.")
         // Or:
         // XCTAssertTrue(app.alerts["Permission Denied"].waitForExistence(timeout: 3) || app.staticTexts["Please enable microphone"].exists)
-        
+
         // This is a conceptual test due to complexities of permission handling in XCUITest.
         NSLog("testMicrophonePermissionDenied: Manual verification or more robust setup needed for permission denial testing in UI tests.")
     }
-    
+
     func testInvalidSearchQuery() {
         navigateToFoodLogging()
         let searchButton = app.buttons[FoodLoggingViewIDs.searchInputButton]
         searchButton.tap()
-        
+
         let searchView = app.otherElements[NutritionSearchViewIDs.view]
         XCTAssertTrue(searchView.waitForExistence(timeout: 5))
-        
+
         let searchField = app.textFields[NutritionSearchViewIDs.searchField]
         searchField.tap()
         searchField.typeText("zxqjw_nonexistent_food_123\n") // Highly unlikely to exist
-        
+
         XCTAssertTrue(app.staticTexts[NutritionSearchViewIDs.noResultsText].waitForExistence(timeout: 5), "No Results message should appear for invalid search.")
     }
 
@@ -348,7 +348,7 @@ final class FoodTrackingFlowUITests: XCTestCase {
     func testVoiceInputResponsivenessPerformance() {
         navigateToFoodLogging()
         let voiceButton = app.buttons[FoodLoggingViewIDs.voiceInputButton]
-        
+
         measure {
             voiceButton.tap()
             XCTAssertTrue(app.otherElements[VoiceInputViewIDs.view].waitForExistence(timeout: 2), "Voice input view failed to appear quickly.")
@@ -357,19 +357,19 @@ final class FoodTrackingFlowUITests: XCTestCase {
             if cancelButton.exists { cancelButton.tap() } else { app.navigationBars.buttons.firstMatch.tap() } // General back
         }
     }
-    
+
     // MARK: - Accessibility Placeholders
     // True VoiceOver testing is manual or uses specialized tools.
     // We can check for presence of labels and identifiers.
     func testAccessibilityLabelsPresent() {
         navigateToFoodLogging()
-        
+
         XCTAssertNotEqual(app.buttons[FoodLoggingViewIDs.voiceInputButton].label, "", "Voice button label missing.")
         app.buttons[FoodLoggingViewIDs.voiceInputButton].tap()
         XCTAssertTrue(app.otherElements[VoiceInputViewIDs.view].waitForExistence(timeout: 2))
         XCTAssertNotEqual(app.buttons[VoiceInputViewIDs.recordButton].label, "", "Record button label missing.")
         // ... more checks for other key elements
-        
+
         // Clean up by dismissing the voice input view
         let cancelButton = app.buttons[VoiceInputViewIDs.cancelButton]
         if cancelButton.exists { cancelButton.tap() } else { app.navigationBars.buttons.firstMatch.tap() }

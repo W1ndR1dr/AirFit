@@ -7,7 +7,7 @@ actor HealthKitSleepAnalyzer: ServiceProtocol {
     nonisolated let serviceIdentifier = "healthkit-sleep-analyzer"
     private var _isConfigured = false
     nonisolated var isConfigured: Bool { true } // Always ready when health store is available
-    
+
     private let healthStore: HKHealthStore
 
     init(healthStore: HKHealthStore) {
@@ -106,20 +106,20 @@ actor HealthKitSleepAnalyzer: ServiceProtocol {
             awakeTime: awakeTime > 0 ? awakeTime : nil
         )
     }
-    
+
     // MARK: - ServiceProtocol Methods
-    
+
     func configure() async throws {
         guard !_isConfigured else { return }
         _isConfigured = true
         AppLogger.info("\(serviceIdentifier) configured", category: .services)
     }
-    
+
     func reset() async {
         _isConfigured = false
         AppLogger.info("\(serviceIdentifier) reset", category: .services)
     }
-    
+
     func healthCheck() async -> ServiceHealth {
         ServiceHealth(
             status: HKHealthStore.isHealthDataAvailable() ? .healthy : .unhealthy,

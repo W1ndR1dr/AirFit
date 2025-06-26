@@ -5,23 +5,23 @@ struct MinimalMessageBubble: View {
     let message: ChatMessage
     let isStreaming: Bool
     let onAction: (MessageAction) -> Void
-    
+
     @State private var animateIn = false
     @EnvironmentObject private var gradientManager: GradientManager
     @Environment(\.colorScheme) private var colorScheme
-    
+
     var body: some View {
         HStack(alignment: .top, spacing: 0) {
             if message.roleEnum == .user {
                 Spacer(minLength: 40)
             }
-            
+
             VStack(alignment: message.roleEnum == .user ? .trailing : .leading, spacing: 4) {
                 // Clean bubble without cards or glass effects
                 messageBubble
                     .scaleEffect(animateIn ? 1.0 : 0.95)
                     .opacity(animateIn ? 1.0 : 0.0)
-                
+
                 // Minimal metadata
                 if message.roleEnum == .assistant && hasSource {
                     sourceLink
@@ -29,7 +29,7 @@ struct MinimalMessageBubble: View {
                         .animation(.easeInOut(duration: 0.3).delay(0.1), value: animateIn)
                 }
             }
-            
+
             if message.roleEnum == .assistant {
                 Spacer(minLength: 40)
             }
@@ -41,7 +41,7 @@ struct MinimalMessageBubble: View {
             }
         }
     }
-    
+
     private var messageBubble: some View {
         VStack(alignment: .leading, spacing: 0) {
             // Text content with streaming support
@@ -65,7 +65,7 @@ struct MinimalMessageBubble: View {
             Button(action: { onAction(.copy) }) {
                 Label("Copy", systemImage: "doc.on.doc")
             }
-            
+
             if message.roleEnum == .assistant {
                 Button(action: { onAction(.regenerate) }) {
                     Label("Regenerate", systemImage: "arrow.clockwise")
@@ -73,7 +73,7 @@ struct MinimalMessageBubble: View {
             }
         }
     }
-    
+
     @ViewBuilder
     private var bubbleBackground: some View {
         if message.roleEnum == .user {
@@ -91,7 +91,7 @@ struct MinimalMessageBubble: View {
             Color(UIColor.systemGray6)
         }
     }
-    
+
     private var sourceLink: some View {
         Button(action: {
             HapticService.selection()
@@ -109,7 +109,7 @@ struct MinimalMessageBubble: View {
         }
         .buttonStyle(.plain)
     }
-    
+
     private var hasSource: Bool {
         // Check if message has source metadata or function calls
         message.functionCallName != nil
@@ -120,24 +120,24 @@ struct MinimalMessageBubble: View {
 private struct StreamingText: View {
     let text: String
     let style: StreamingStyle
-    
+
     @State private var displayedText = ""
     @State private var currentIndex = 0
-    
+
     enum StreamingStyle {
         case user, assistant
-        
+
         var font: Font {
             .system(size: 16, weight: .regular)
         }
-        
+
         var color: Color {
             switch self {
             case .user: return .white
             case .assistant: return .primary
             }
         }
-        
+
         var speed: Int {
             switch self {
             case .user: return 10 // Faster for user
@@ -145,7 +145,7 @@ private struct StreamingText: View {
             }
         }
     }
-    
+
     var body: some View {
         Text(displayedText)
             .font(style.font)
@@ -155,16 +155,16 @@ private struct StreamingText: View {
                 await streamText()
             }
     }
-    
+
     private func streamText() async {
         displayedText = ""
         currentIndex = 0
-        
+
         let characters = Array(text)
         for (index, character) in characters.enumerated() {
             displayedText.append(character)
             currentIndex = index
-            
+
             // Variable delay for more natural streaming
             let delay = character == " " ? style.speed / 2 : style.speed
             try? await Task.sleep(for: .milliseconds(delay))

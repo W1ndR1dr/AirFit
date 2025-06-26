@@ -6,7 +6,7 @@ struct VoiceInputDownloadView: View {
     let onCancel: (() -> Void)?
     @EnvironmentObject private var gradientManager: GradientManager
     @Environment(\.colorScheme) private var colorScheme
-    
+
     var body: some View {
         VStack(spacing: 20) {
             switch state {
@@ -15,31 +15,31 @@ struct VoiceInputDownloadView: View {
                     .progressViewStyle(CircularProgressViewStyle())
                 Text("Initializing voice input...")
                     .font(.headline)
-                
+
             case .downloadingModel(let progress, let modelName):
                 VStack(spacing: 16) {
                     Image(systemName: "arrow.down.circle")
                         .font(.system(size: 48))
                         .foregroundStyle(.blue)
-                    
+
                     Text("Downloading Voice Model")
                         .font(.headline)
-                    
+
                     Text(modelName)
                         .font(.subheadline)
                         .foregroundStyle(.secondary)
-                    
+
                     ProgressView(value: progress)
                         .progressViewStyle(LinearProgressViewStyle())
                         .frame(maxWidth: 250)
-                    
+
                     HStack {
                         Text("\(Int(progress * 100))%")
                             .font(.caption)
                             .foregroundStyle(.secondary)
-                        
+
                         Spacer()
-                        
+
                         if progress < 0.3 {
                             Text("This may take a few minutes...")
                                 .font(.caption)
@@ -55,7 +55,7 @@ struct VoiceInputDownloadView: View {
                         }
                     }
                     .frame(maxWidth: 250)
-                    
+
                     if let onCancel {
                         Button(action: {
                             HapticService.impact(.light)
@@ -91,35 +91,35 @@ struct VoiceInputDownloadView: View {
                         }
                     }
                 }
-                
+
             case .preparingModel:
                 VStack(spacing: 16) {
                     ProgressView()
                         .progressViewStyle(CircularProgressViewStyle())
-                    
+
                     Text("Preparing voice model...")
                         .font(.headline)
-                    
+
                     Text("This only happens once")
                         .font(.caption)
                         .foregroundStyle(.secondary)
                 }
-                
+
             case .error(let error):
                 VStack(spacing: 16) {
                     Image(systemName: "exclamationmark.triangle")
                         .font(.system(size: 48))
                         .foregroundStyle(.red)
-                    
+
                     Text("Download Failed")
                         .font(.headline)
-                    
+
                     Text(error.localizedDescription)
                         .font(.subheadline)
                         .foregroundStyle(.secondary)
                         .multilineTextAlignment(.center)
                         .frame(maxWidth: 300)
-                    
+
                     if let onCancel {
                         Button(action: {
                             HapticService.impact(.light)
@@ -142,7 +142,7 @@ struct VoiceInputDownloadView: View {
                         }
                     }
                 }
-                
+
             default:
                 EmptyView()
             }
@@ -159,7 +159,7 @@ struct VoiceInputDownloadView: View {
 struct VoiceInputDownloadOverlay: ViewModifier {
     @Binding var voiceInputState: VoiceInputState
     let onCancel: (() -> Void)?
-    
+
     private var shouldShow: Bool {
         switch voiceInputState {
         case .idle, .downloadingModel, .preparingModel, .error:
@@ -168,7 +168,7 @@ struct VoiceInputDownloadOverlay: ViewModifier {
             return false
         }
     }
-    
+
     func body(content: Content) -> some View {
         content
             .overlay(
@@ -177,7 +177,7 @@ struct VoiceInputDownloadOverlay: ViewModifier {
                         Color.black.opacity(0.3)
                             .ignoresSafeArea()
                             .transition(.opacity)
-                        
+
                         VoiceInputDownloadView(
                             state: voiceInputState,
                             onCancel: onCancel
@@ -221,17 +221,17 @@ extension View {
             state: .idle,
             onCancel: nil
         )
-        
+
         VoiceInputDownloadView(
             state: .downloadingModel(progress: 0.65, modelName: "Base (74 MB)"),
             onCancel: {}
         )
-        
+
         VoiceInputDownloadView(
             state: .preparingModel,
             onCancel: nil
         )
-        
+
         VoiceInputDownloadView(
             state: .error(.modelDownloadFailed("Network connection lost")),
             onCancel: {}

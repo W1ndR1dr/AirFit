@@ -2,7 +2,7 @@ import Foundation
 import SwiftData
 
 /// # WorkoutService
-/// 
+///
 /// ## Purpose
 /// Manages workout sessions, exercise logging, and HealthKit synchronization.
 /// Provides the core functionality for workout tracking and history management.
@@ -22,14 +22,14 @@ import SwiftData
 /// ## Usage
 /// ```swift
 /// let workoutService = await container.resolve(WorkoutServiceProtocol.self)
-/// 
+///
 /// // Start a workout
 /// let workout = try await workoutService.startWorkout(type: .strength, user: currentUser)
-/// 
+///
 /// // Log an exercise
 /// let exercise = Exercise(name: "Bench Press", category: .chest)
 /// try await workoutService.logExercise(exercise, in: workout)
-/// 
+///
 /// // End workout (auto-syncs to HealthKit)
 /// try await workoutService.endWorkout(workout)
 /// ```
@@ -44,33 +44,33 @@ final class WorkoutService: WorkoutServiceProtocol, ServiceProtocol {
     // MARK: - Properties
     private let modelContext: ModelContext
     private let healthKitManager: HealthKitManaging?
-    
+
     // MARK: - ServiceProtocol
     nonisolated let serviceIdentifier = "workout-service"
     private var _isConfigured = false
     nonisolated var isConfigured: Bool {
         MainActor.assumeIsolated { _isConfigured }
     }
-    
+
     // MARK: - Initialization
     init(modelContext: ModelContext, healthKitManager: HealthKitManaging? = nil) {
         self.modelContext = modelContext
         self.healthKitManager = healthKitManager
     }
-    
+
     // MARK: - ServiceProtocol Methods
-    
+
     func configure() async throws {
         guard !_isConfigured else { return }
         _isConfigured = true
         AppLogger.info("WorkoutService configured", category: .services)
     }
-    
+
     func reset() async {
         _isConfigured = false
         AppLogger.info("WorkoutService reset", category: .services)
     }
-    
+
     nonisolated func healthCheck() async -> ServiceHealth {
         await MainActor.run {
             return ServiceHealth(
@@ -84,21 +84,21 @@ final class WorkoutService: WorkoutServiceProtocol, ServiceProtocol {
             )
         }
     }
-    
+
     // MARK: - WorkoutServiceProtocol
     func startWorkout(type: WorkoutType, user: User) async throws -> Workout {
         AppLogger.info("Starting \(type.displayName) workout for user \(user.id)", category: .services)
-        
+
         let workout = Workout(
             name: "\(type.displayName) - \(Date().formatted(date: .abbreviated, time: .shortened))",
             workoutType: type,
             plannedDate: Date(),
             user: user
         )
-        
+
         workout.startWorkout()
         modelContext.insert(workout)
-        
+
         do {
             try modelContext.save()
             AppLogger.info("Started workout \(workout.id)", category: .services)
@@ -108,14 +108,14 @@ final class WorkoutService: WorkoutServiceProtocol, ServiceProtocol {
             throw AppError.unknown(message: "Database error: \(error.localizedDescription)")
         }
     }
-    
+
     func pauseWorkout(_ workout: Workout) async throws {
         AppLogger.info("Pausing workout \(workout.id)", category: .services)
-        
+
         // Mark pause time in notes for now (could be extended with proper pause tracking)
         let pauseTime = Date().formatted(date: .omitted, time: .standard)
         workout.notes = (workout.notes ?? "") + "\nPaused at \(pauseTime)"
-        
+
         do {
             try modelContext.save()
             AppLogger.info("Paused workout \(workout.id)", category: .services)
@@ -124,14 +124,14 @@ final class WorkoutService: WorkoutServiceProtocol, ServiceProtocol {
             throw AppError.unknown(message: "Database error: \(error.localizedDescription)")
         }
     }
-    
+
     func resumeWorkout(_ workout: Workout) async throws {
         AppLogger.info("Resuming workout \(workout.id)", category: .services)
-        
+
         // Mark resume time in notes
         let resumeTime = Date().formatted(date: .omitted, time: .standard)
         workout.notes = (workout.notes ?? "") + "\nResumed at \(resumeTime)"
-        
+
         do {
             try modelContext.save()
             AppLogger.info("Resumed workout \(workout.id)", category: .services)
@@ -140,21 +140,21 @@ final class WorkoutService: WorkoutServiceProtocol, ServiceProtocol {
             throw AppError.unknown(message: "Database error: \(error.localizedDescription)")
         }
     }
-    
+
     func endWorkout(_ workout: Workout) async throws {
         AppLogger.info("Ending workout \(workout.id)", category: .services)
-        
+
         workout.completeWorkout()
-        
+
         // Calculate calories if not already set
         if workout.caloriesBurned == nil {
             workout.caloriesBurned = calculateEstimatedCalories(for: workout)
         }
-        
+
         do {
             // Save to SwiftData first
             try modelContext.save()
-            
+
             // Save to HealthKit (non-blocking)
             if workout.healthKitWorkoutID == nil {
                 Task {
@@ -176,19 +176,19 @@ final class WorkoutService: WorkoutServiceProtocol, ServiceProtocol {
                     }
                 }
             }
-            
+
             AppLogger.info("Ended workout \(workout.id) - Duration: \(workout.formattedDuration ?? "unknown")", category: .services)
         } catch {
             AppLogger.error("Failed to end workout", error: error, category: .services)
             throw AppError.unknown(message: "Database error: \(error.localizedDescription)")
         }
     }
-    
+
     func logExercise(_ exercise: Exercise, in workout: Workout) async throws {
         AppLogger.info("Logging exercise \(exercise.name) in workout \(workout.id)", category: .services)
-        
+
         workout.addExercise(exercise)
-        
+
         do {
             try modelContext.save()
             AppLogger.info("Logged exercise \(exercise.id) with \(exercise.sets.count) sets", category: .services)
@@ -197,21 +197,21 @@ final class WorkoutService: WorkoutServiceProtocol, ServiceProtocol {
             throw AppError.unknown(message: "Database error: \(error.localizedDescription)")
         }
     }
-    
+
     func getWorkoutHistory(for user: User, limit: Int) async throws -> [Workout] {
         AppLogger.info("Fetching workout history for user \(user.id)", category: .services)
-        
+
         // Fetch all workouts and filter in memory to avoid SwiftData predicate issues
         let descriptor = FetchDescriptor<Workout>(
             sortBy: [SortDescriptor(\.completedDate, order: .reverse)]
         )
-        
+
         do {
             let allWorkouts = try modelContext.fetch(descriptor)
             let userWorkouts = Array(allWorkouts
-                .filter { $0.user?.id == user.id }
-                .prefix(limit))
-            
+                                        .filter { $0.user?.id == user.id }
+                                        .prefix(limit))
+
             AppLogger.info("Fetched \(userWorkouts.count) workouts for user", category: .services)
             return userWorkouts
         } catch {
@@ -219,15 +219,15 @@ final class WorkoutService: WorkoutServiceProtocol, ServiceProtocol {
             throw AppError.unknown(message: "Database error: \(error.localizedDescription)")
         }
     }
-    
+
     // Template methods removed - AI-native workout generation handles this now
-    
+
     // MARK: - Private Methods
     private func calculateEstimatedCalories(for workout: Workout) -> Double {
         // Basic calorie estimation based on workout type and duration
         guard let duration = workout.durationSeconds else { return 0 }
         let minutes = duration / 60.0
-        
+
         // Basic MET values for different workout types
         let metValue: Double = switch workout.workoutTypeEnum {
         case .strength: 3.5
@@ -239,10 +239,10 @@ final class WorkoutService: WorkoutServiceProtocol, ServiceProtocol {
         case .sports: 6.0
         case .general, .none: 4.0
         }
-        
+
         // Assume average weight of 70kg for now (should come from user profile)
         let weightKg = 70.0
-        
+
         // Calories = METs × weight in kg × time in hours
         let hours = minutes / 60.0
         return metValue * weightKg * hours

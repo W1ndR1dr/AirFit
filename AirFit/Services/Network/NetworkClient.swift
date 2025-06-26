@@ -4,7 +4,7 @@ final class NetworkClient: NetworkClientProtocol, ServiceProtocol {
     private let session: URLSession
     private let decoder: JSONDecoder
     private let encoder: JSONEncoder
-    
+
     // MARK: - ServiceProtocol
     let serviceIdentifier = "network-client"
     @MainActor private var _isConfigured = false
@@ -23,9 +23,9 @@ final class NetworkClient: NetworkClientProtocol, ServiceProtocol {
         self.encoder.dateEncodingStrategy = .iso8601
         self.encoder.keyEncodingStrategy = .convertToSnakeCase
     }
-    
+
     // MARK: - ServiceProtocol Methods
-    
+
     func configure() async throws {
         await MainActor.run {
             guard !_isConfigured else { return }
@@ -33,24 +33,24 @@ final class NetworkClient: NetworkClientProtocol, ServiceProtocol {
         }
         AppLogger.info("NetworkClient configured", category: .networking)
     }
-    
+
     func reset() async {
         await MainActor.run {
             _isConfigured = false
         }
         AppLogger.info("NetworkClient reset", category: .networking)
     }
-    
+
     func healthCheck() async -> ServiceHealth {
         // Test connectivity with a simple request
         let testURL = URL(string: "https://www.apple.com")!
         let request = URLRequest(url: testURL, timeoutInterval: 5.0)
-        
+
         let startTime = Date()
         do {
             let (_, response) = try await session.data(for: request)
             let responseTime = Date().timeIntervalSince(startTime)
-            
+
             if let httpResponse = response as? HTTPURLResponse,
                (200...299).contains(httpResponse.statusCode) {
                 return ServiceHealth(

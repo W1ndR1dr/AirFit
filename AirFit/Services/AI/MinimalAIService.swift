@@ -7,15 +7,15 @@ final class MinimalAIAPIService: AIServiceProtocol, Sendable {
     let isConfigured = true
     let activeProvider: AIProvider = .anthropic
     let availableModels: [AIModel] = []
-    
+
     func configure() async throws {
         // No-op for minimal implementation
     }
-    
+
     func reset() async {
         // No-op for minimal implementation
     }
-    
+
     func healthCheck() async -> ServiceHealth {
         ServiceHealth(
             status: .healthy,
@@ -25,11 +25,11 @@ final class MinimalAIAPIService: AIServiceProtocol, Sendable {
             metadata: ["type": "minimal"]
         )
     }
-    
+
     func configure(provider: AIProvider, apiKey: String, model: String?) async throws {
         // No-op for minimal implementation - this is a stub service
     }
-    
+
     func sendRequest(_ request: AIRequest) -> AsyncThrowingStream<AIResponse, Error> {
         AsyncThrowingStream { continuation in
             Task {
@@ -40,15 +40,15 @@ final class MinimalAIAPIService: AIServiceProtocol, Sendable {
             }
         }
     }
-    
+
     func validateConfiguration() async throws -> Bool {
         return true
     }
-    
+
     func checkHealth() async -> ServiceHealth {
         return await healthCheck()
     }
-    
+
     func estimateTokenCount(for text: String) -> Int {
         // Rough estimation: ~4 characters per token
         return max(1, text.count / 4)

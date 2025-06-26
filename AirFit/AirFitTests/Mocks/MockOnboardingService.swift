@@ -19,11 +19,11 @@ final class MockOnboardingService: OnboardingServiceProtocol, @preconcurrency Mo
     func saveProfile(_ profile: OnboardingProfile) async throws {
         recordInvocation(#function, arguments: profile)
         saveProfileCalled = true
-        
+
         if let error = saveProfileError {
             throw error
         }
-        
+
         // Actually save to context if provided (for realistic testing)
         if let context = modelContext {
             // Find or create a user
@@ -31,7 +31,7 @@ final class MockOnboardingService: OnboardingServiceProtocol, @preconcurrency Mo
                 sortBy: [SortDescriptor(\.createdAt, order: .reverse)]
             )
             let users = try modelContext.fetch(userDescriptor)
-            
+
             let currentUser: User
             if let existingUser = users.first {
                 currentUser = existingUser
@@ -43,17 +43,17 @@ final class MockOnboardingService: OnboardingServiceProtocol, @preconcurrency Mo
                 )
                 modelContext.insert(currentUser)
             }
-            
+
             // Link the profile to the user
             profile.user = currentUser
             currentUser.onboardingProfile = profile
-            
+
             // Save to SwiftData
             modelContext.insert(profile)
             try modelContext.save()
         }
     }
-    
+
     func reset() {
         invocations.removeAll()
         stubbedResults.removeAll()

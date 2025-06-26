@@ -14,7 +14,7 @@ enum ServiceError: LocalizedError {
     case cancelled
     case providerError(code: String, message: String)
     case unknown(Error)
-    
+
     var errorDescription: String? {
         switch self {
         case .notConfigured:

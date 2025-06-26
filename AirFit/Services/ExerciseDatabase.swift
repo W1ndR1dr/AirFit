@@ -126,7 +126,7 @@ final class ExerciseDatabase: ObservableObject, ServiceProtocol {
     private let container: ModelContainer
     private var exercises: [ExerciseDefinition] = []
     private let cacheQueue = DispatchQueue(label: "exercise.cache", qos: .utility)
-    
+
     // MARK: - ServiceProtocol
     nonisolated let serviceIdentifier = "exercise-database"
     private var _isConfigured = false
@@ -142,27 +142,27 @@ final class ExerciseDatabase: ObservableObject, ServiceProtocol {
             fatalError("Failed to initialize ExerciseDatabase: \(error)")
         }
     }
-    
+
     // MARK: - ServiceProtocol Methods
-    
+
     func configure() async throws {
         guard !_isConfigured else { return }
         await initializeDatabase()
         _isConfigured = true
         AppLogger.info("ExerciseDatabase configured", category: .data)
     }
-    
+
     func reset() async {
         exercises.removeAll()
         _isConfigured = false
         AppLogger.info("ExerciseDatabase reset", category: .data)
     }
-    
+
     nonisolated func healthCheck() async -> ServiceHealth {
         await MainActor.run {
             let hasExercises = !exercises.isEmpty
             let status: ServiceHealth.Status = hasExercises ? .healthy : .degraded
-            
+
             return ServiceHealth(
                 status: status,
                 lastCheckTime: Date(),
@@ -229,12 +229,12 @@ final class ExerciseDatabase: ObservableObject, ServiceProtocol {
         }
         return try? container.mainContext.fetch(FetchDescriptor(predicate: predicate)).first
     }
-    
+
     // MARK: - AI Service Support
-    
+
     func filterExercises(equipment: [String]? = nil, primaryMuscles: [String]? = nil) async -> [ExerciseInfo] {
         var filteredExercises = exercises
-        
+
         // Filter by equipment if specified
         if let equipment = equipment, !equipment.isEmpty {
             let equipmentSet = Set(equipment.map { $0.lowercased() })
@@ -244,7 +244,7 @@ final class ExerciseDatabase: ObservableObject, ServiceProtocol {
                 }
             }
         }
-        
+
         // Filter by primary muscles if specified
         if let muscles = primaryMuscles, !muscles.isEmpty {
             let muscleSet = Set(muscles.map { $0.lowercased() })
@@ -254,7 +254,7 @@ final class ExerciseDatabase: ObservableObject, ServiceProtocol {
                 }
             }
         }
-        
+
         // Convert to ExerciseInfo for AI service
         return filteredExercises.map { exercise in
             ExerciseInfo(

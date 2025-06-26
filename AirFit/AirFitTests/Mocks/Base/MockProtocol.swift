@@ -16,7 +16,7 @@ extension MockProtocol {
     func recordInvocation(_ method: String, arguments: Any...) {
         mockLock.lock()
         defer { mockLock.unlock() }
-        
+
         if invocations[method] == nil {
             invocations[method] = []
         }
@@ -26,7 +26,7 @@ extension MockProtocol {
     func stub<T>(_ method: String, with result: T) {
         mockLock.lock()
         defer { mockLock.unlock() }
-        
+
         stubbedResults[method] = result
     }
 
@@ -34,14 +34,14 @@ extension MockProtocol {
         mockLock.lock()
         let actual = invocations[method]?.count ?? 0
         mockLock.unlock()
-        
+
         XCTAssertEqual(actual, times, "\(method) was called \(actual) times, expected \(times)")
     }
 
     func reset() {
         mockLock.lock()
         defer { mockLock.unlock() }
-        
+
         invocations.removeAll()
         stubbedResults.removeAll()
     }

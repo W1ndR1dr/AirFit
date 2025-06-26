@@ -10,7 +10,7 @@ final class WorkoutSyncService: ServiceProtocol {
 
     private let session: WCSession
     private var pendingWorkouts: [WorkoutBuilderData] = []
-    
+
     // MARK: - ServiceProtocol
     nonisolated let serviceIdentifier = "workout-sync-service"
     private var _isConfigured = false
@@ -21,31 +21,31 @@ final class WorkoutSyncService: ServiceProtocol {
     init() {
         self.session = WCSession.default
     }
-    
+
     // MARK: - ServiceProtocol Methods
-    
+
     func configure() async throws {
         guard !_isConfigured else { return }
         setupSession()
         _isConfigured = true
         AppLogger.info("WorkoutSyncService configured", category: .services)
     }
-    
+
     func reset() async {
         pendingWorkouts.removeAll()
         _isConfigured = false
         AppLogger.info("WorkoutSyncService reset", category: .services)
     }
-    
+
     nonisolated func healthCheck() async -> ServiceHealth {
         await MainActor.run {
             let isSupported = WCSession.isSupported()
             let sessionState = session.activationState
             let isReachable = session.isReachable
-            
+
             let status: ServiceHealth.Status
             let errorMessage: String?
-            
+
             if !isSupported {
                 status = .unhealthy
                 errorMessage = "WatchConnectivity not supported"
@@ -59,7 +59,7 @@ final class WorkoutSyncService: ServiceProtocol {
                 status = .healthy
                 errorMessage = nil
             }
-            
+
             return ServiceHealth(
                 status: status,
                 lastCheckTime: Date(),
@@ -73,7 +73,7 @@ final class WorkoutSyncService: ServiceProtocol {
             )
         }
     }
-    
+
     private func setupSession() {
         if WCSession.isSupported() {
             delegateHandler.configure(with: self)
@@ -105,14 +105,14 @@ final class WorkoutSyncService: ServiceProtocol {
             AppLogger.error("Failed to encode workout data", error: error, category: .data)
         }
     }
-    
+
     // MARK: - Retry Pending Workouts
     func retryPendingWorkouts() async {
         guard session.isReachable, !pendingWorkouts.isEmpty else { return }
-        
+
         let workoutsToRetry = pendingWorkouts
         pendingWorkouts.removeAll()
-        
+
         for workout in workoutsToRetry {
             await sendWorkoutData(workout)
         }
@@ -130,7 +130,7 @@ final class WorkoutSyncService: ServiceProtocol {
         workout.completedDate = data.endTime
         workout.caloriesBurned = data.totalCalories
         workout.durationSeconds = data.duration
-        
+
         // Link to existing HealthKit workout if from Watch
         if let healthKitID = data.healthKitWorkoutID {
             workout.healthKitWorkoutID = healthKitID
@@ -165,12 +165,12 @@ final class WorkoutSyncService: ServiceProtocol {
 
         AppLogger.info("Workout processed and saved", category: .data)
     }
-    
+
     // Helper method for delegate
     func addPendingWorkout(_ data: WorkoutBuilderData) {
         pendingWorkouts.append(data)
     }
-    
+
     // Called by delegate when message received
     func handleReceivedMessageData(_ messageData: Data) {
         do {
@@ -192,11 +192,11 @@ final class WorkoutSyncService: ServiceProtocol {
 @MainActor
 final class WorkoutSyncDelegateHandler: NSObject, WCSessionDelegate {
     private weak var service: WorkoutSyncService?
-    
+
     func configure(with service: WorkoutSyncService) {
         self.service = service
     }
-    
+
     nonisolated func session(_ session: WCSession, activationDidCompleteWith activationState: WCSessionActivationState, error: Error?) {
         if let error = error {
             AppLogger.error("WCSession activation failed", error: error, category: .data)

@@ -65,7 +65,7 @@ struct MacroRingsView: View {
                         .frame(width: 240, height: 240)
                         .blur(radius: 20)
                         .opacity(animateRings ? 1 : 0)
-                    
+
                     // Background rings with glass effect
                     ForEach(0..<3, id: \.self) { index in
                         Circle()
@@ -96,7 +96,7 @@ struct MacroRingsView: View {
                     VStack(spacing: 4) {
                         GradientNumber(value: Double(nutrition.calories))
                             .font(.system(size: 42, weight: .bold, design: .rounded))
-                        
+
                         Text("calories")
                             .font(.system(size: 14, weight: .medium))
                             .foregroundStyle(Color.secondary)
@@ -215,7 +215,7 @@ struct MacroLegendItem: View {
     let unit: String
     let index: Int
     let animateIn: Bool
-    
+
     @State private var isPressed = false
 
     private var progress: Double {
@@ -337,7 +337,7 @@ struct CompactRingView: View {
                     .frame(width: 60, height: 60)
                     .blur(radius: 8)
                     .opacity(animateProgress ? 1 : 0)
-                
+
                 // Background ring with glass effect
                 Circle()
                     .stroke(Color.primary.opacity(0.08), lineWidth: 8)
@@ -371,7 +371,7 @@ struct CompactRingView: View {
             VStack(spacing: 0) {
                 GradientNumber(value: macro.value)
                     .font(.system(size: 16, weight: .bold, design: .rounded))
-                
+
                 Text("g")
                     .font(.system(size: 11, weight: .medium))
                     .foregroundStyle(Color.secondary.opacity(0.8))

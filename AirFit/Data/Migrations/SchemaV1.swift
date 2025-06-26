@@ -11,20 +11,20 @@ enum SchemaV1: VersionedSchema {
             User.self,
             OnboardingProfile.self,
             DailyLog.self,
-            
+
             // Food Tracking
             FoodEntry.self,
             FoodItem.self,
             NutritionData.self,
-            
+
             // Workout Models
             Workout.self,
             Exercise.self,
             ExerciseSet.self,
-            
+
             // Goals
             TrackedGoal.self,
-            
+
             // Chat/AI Models
             CoachMessage.self,
             ChatSession.self,
@@ -32,10 +32,10 @@ enum SchemaV1: VersionedSchema {
             ChatAttachment.self,
             ConversationSession.self,
             ConversationResponse.self,
-            
+
             // Sync Records
             HealthKitSyncRecord.self
-            
+
             // NOTE: No template models - AI-native generation only
         ]
     }

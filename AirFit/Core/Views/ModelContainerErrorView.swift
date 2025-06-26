@@ -3,20 +3,20 @@ import SwiftUI
 struct ModelContainerErrorView: View {
     @EnvironmentObject private var gradientManager: GradientManager
     @Environment(\.colorScheme)
-private var colorScheme
+    private var colorScheme
     @State private var animateIn = false
-    
+
     let error: Error
     let isRetrying: Bool
     let onRetry: () -> Void
     let onReset: () -> Void
     let onUseInMemory: () -> Void
-    
+
     var body: some View {
         BaseScreen {
             VStack(spacing: AppSpacing.lg) {
                 Spacer()
-                
+
                 // Error icon and title
                 VStack(spacing: AppSpacing.md) {
                     Image(systemName: "exclamationmark.icloud.fill")
@@ -31,24 +31,24 @@ private var colorScheme
                         .symbolRenderingMode(.hierarchical)
                         .scaleEffect(animateIn ? 1 : 0.5)
                         .animation(MotionToken.standardSpring.delay(0.1), value: animateIn)
-                    
+
                     CascadeText("Database Error")
                         .font(.system(size: 32, weight: .thin, design: .rounded))
-                    
+
                     Text("We couldn't load your data")
                         .font(.system(size: 18, weight: .regular, design: .rounded))
                         .foregroundStyle(.secondary)
                         .opacity(animateIn ? 1 : 0)
                         .animation(MotionToken.standardSpring.delay(0.2), value: animateIn)
                 }
-            
+
                 // Error details
                 GlassCard {
                     VStack(alignment: .leading, spacing: AppSpacing.sm) {
                         Text("Error Details:")
                             .font(.system(size: 14, weight: .medium, design: .rounded))
                             .foregroundStyle(.secondary)
-                        
+
                         Text(error.localizedDescription)
                             .font(.system(size: 12, weight: .regular, design: .rounded))
                             .foregroundStyle(.secondary.opacity(0.8))
@@ -58,9 +58,9 @@ private var colorScheme
                 .padding(.horizontal, AppSpacing.screenPadding)
                 .opacity(animateIn ? 1 : 0)
                 .animation(MotionToken.standardSpring.delay(0.3), value: animateIn)
-            
-            Spacer()
-            
+
+                Spacer()
+
                 // Recovery options
                 VStack(spacing: AppSpacing.md) {
                     Button(action: {
@@ -93,7 +93,7 @@ private var colorScheme
                         .shadow(color: gradientManager.active.colors(for: colorScheme)[0].opacity(0.3), radius: 12, y: 4)
                     })
                     .disabled(isRetrying)
-                
+
                     Button(action: {
                         HapticService.impact(.rigid)
                         onReset()
@@ -118,7 +118,7 @@ private var colorScheme
                         .shadow(color: Color.orange.opacity(0.3), radius: 12, y: 4)
                     })
                     .disabled(isRetrying)
-                
+
                     Button(action: {
                         HapticService.impact(.light)
                         onUseInMemory()
@@ -142,7 +142,7 @@ private var colorScheme
                         )
                     })
                     .disabled(isRetrying)
-                
+
                     Text("'Continue Without Saving' will let you use the app, but your data won't be saved when you close it.")
                         .font(.system(size: 14, weight: .regular, design: .rounded))
                         .foregroundStyle(.secondary.opacity(0.8))
@@ -152,7 +152,7 @@ private var colorScheme
                 .padding(.horizontal, AppSpacing.screenPadding)
                 .opacity(animateIn ? 1 : 0)
                 .animation(MotionToken.standardSpring.delay(0.4), value: animateIn)
-                
+
                 Spacer()
             }
         }

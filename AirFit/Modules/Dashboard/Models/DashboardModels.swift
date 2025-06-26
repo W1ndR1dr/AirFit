@@ -17,7 +17,7 @@ struct NutritionSummary: Sendable {
     let waterLiters: Double
     let mealCount: Int
     let meals: [FoodEntry]
-    
+
     init(
         calories: Double = 0,
         caloriesTarget: Double = 2_000,
@@ -61,7 +61,7 @@ struct NutritionTargets: Sendable {
     let fat: Double
     let fiber: Double
     let water: Double
-    
+
     static let `default` = NutritionTargets(
         calories: 2_000,
         protein: 150,
@@ -83,7 +83,7 @@ struct GreetingContext: Sendable {
     let energyYesterday: String?
     let dayOfWeek: String
     let recentAchievements: [String]
-    
+
     init(
         userName: String = "",
         sleepHours: Double? = nil,
@@ -113,7 +113,7 @@ struct RecoveryScore: Sendable {
         case poor = "Poor"
         case moderate = "Moderate"
         case good = "Good"
-        
+
         var color: String {
             switch self {
             case .poor: return "red"
@@ -122,7 +122,7 @@ struct RecoveryScore: Sendable {
             }
         }
     }
-    
+
     let score: Int
     let status: Status
     let factors: [String]
@@ -134,7 +134,7 @@ struct PerformanceInsight: Sendable {
         case improving = "Improving"
         case stable = "Stable"
         case declining = "Declining"
-        
+
         var systemImage: String {
             switch self {
             case .improving: return "arrow.up.circle.fill"
@@ -143,7 +143,7 @@ struct PerformanceInsight: Sendable {
             }
         }
     }
-    
+
     let trend: Trend
     let metric: String
     let value: String
@@ -158,7 +158,7 @@ struct QuickAction: Sendable, Identifiable {
     let systemImage: String
     let color: String
     let action: QuickActionType
-    
+
     enum QuickActionType: Sendable {
         case logMeal(type: MealType)
         case startWorkout

@@ -8,7 +8,7 @@ final class MockAPIKeyManager: APIKeyManagementProtocol, MockProtocol {
     nonisolated(unsafe) var invocations: [String: [Any]] = [:]
     nonisolated(unsafe) var stubbedResults: [String: Any] = [:]
     let mockLock = NSLock()
-    
+
     // Stubbed responses
     var stubbedSaveAPIKeyError: Error?
     var stubbedGetAPIKeyResult: String = "test-api-key"
@@ -16,18 +16,18 @@ final class MockAPIKeyManager: APIKeyManagementProtocol, MockProtocol {
     var stubbedDeleteAPIKeyError: Error?
     var stubbedHasAPIKeyResult: Bool = true
     var stubbedGetAllConfiguredProvidersResult: [AIProvider] = []
-    
+
     // Provider-specific results for testing
     var getAPIKeyResults: [AIProvider: String] = [:]
     var hasKeyResults: [AIProvider: Bool] = [:]
-    
+
     func saveAPIKey(_ key: String, for provider: AIProvider) async throws {
         recordInvocation("saveAPIKey", arguments: key, provider)
         if let error = stubbedSaveAPIKeyError {
             throw error
         }
     }
-    
+
     func getAPIKey(for provider: AIProvider) async throws -> String {
         recordInvocation("getAPIKey", arguments: provider)
         if let error = stubbedGetAPIKeyError {
@@ -39,14 +39,14 @@ final class MockAPIKeyManager: APIKeyManagementProtocol, MockProtocol {
         }
         return stubbedGetAPIKeyResult
     }
-    
+
     func deleteAPIKey(for provider: AIProvider) async throws {
         recordInvocation("deleteAPIKey", arguments: provider)
         if let error = stubbedDeleteAPIKeyError {
             throw error
         }
     }
-    
+
     func hasAPIKey(for provider: AIProvider) async -> Bool {
         recordInvocation("hasAPIKey", arguments: provider)
         // Check provider-specific results first
@@ -55,7 +55,7 @@ final class MockAPIKeyManager: APIKeyManagementProtocol, MockProtocol {
         }
         return stubbedHasAPIKeyResult
     }
-    
+
     func getAllConfiguredProviders() async -> [AIProvider] {
         recordInvocation("getAllConfiguredProviders")
         return stubbedGetAllConfiguredProvidersResult

@@ -10,27 +10,27 @@ final class BiometricAuthManager: ServiceProtocol {
     nonisolated var isConfigured: Bool {
         get { false } // Return false as default for nonisolated access
     }
-    
+
     private var context = LAContext()
-    
+
     /// Check if biometric authentication is available
     var canUseBiometrics: Bool {
         checkBiometrics()
     }
-    
+
     private func checkBiometrics() -> Bool {
         var error: NSError?
         return context.canEvaluatePolicy(.deviceOwnerAuthenticationWithBiometrics, error: &error)
     }
-    
+
     /// The type of biometric authentication available
     var biometricType: BiometricType {
         getBiometricType()
     }
-    
+
     private func getBiometricType() -> BiometricType {
         guard checkBiometrics() else { return .none }
-        
+
         switch context.biometryType {
         case .faceID:
             return .faceID
@@ -44,13 +44,13 @@ final class BiometricAuthManager: ServiceProtocol {
             return .none
         }
     }
-    
+
     /// Authenticate using biometrics
     func authenticate(reason: String) async throws -> Bool {
         guard checkBiometrics() else {
             throw BiometricError.notAvailable
         }
-        
+
         return try await withCheckedThrowingContinuation { continuation in
             context.evaluatePolicy(
                 .deviceOwnerAuthenticationWithBiometrics,
@@ -64,27 +64,27 @@ final class BiometricAuthManager: ServiceProtocol {
             }
         }
     }
-    
+
     /// Reset the authentication context
     func resetContext() {
         context.invalidate()
         context = LAContext()
     }
-    
+
     // MARK: - ServiceProtocol Methods
-    
+
     func configure() async throws {
         guard !_isConfigured else { return }
         _isConfigured = true
         AppLogger.info("\(serviceIdentifier) configured", category: .services)
     }
-    
+
     func reset() async {
         resetContext()
         _isConfigured = false
         AppLogger.info("\(serviceIdentifier) reset", category: .services)
     }
-    
+
     func healthCheck() async -> ServiceHealth {
         ServiceHealth(
             status: checkBiometrics() ? .healthy : .degraded,
@@ -105,7 +105,7 @@ enum BiometricType {
     case touchID
     case opticID
     case none
-    
+
     var displayName: String {
         switch self {
         case .faceID: return "Face ID"
@@ -114,7 +114,7 @@ enum BiometricType {
         case .none: return "Not Available"
         }
     }
-    
+
     var icon: String {
         switch self {
         case .faceID: return "faceid"
@@ -136,7 +136,7 @@ enum BiometricError: LocalizedError {
     case biometryNotEnrolled
     case biometryLockout
     case other(String)
-    
+
     static func fromLAError(_ error: LAError) -> BiometricError {
         switch error.code {
         case .authenticationFailed:
@@ -159,7 +159,7 @@ enum BiometricError: LocalizedError {
             return .other(error.localizedDescription)
         }
     }
-    
+
     var errorDescription: String? {
         switch self {
         case .notAvailable:

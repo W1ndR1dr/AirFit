@@ -7,13 +7,13 @@ struct APIConfigurationView: View {
     @State private var selectedModel: String
     @State private var showAPIKeyEntry = false
     @State private var providerToAddKey: AIProvider?
-    
+
     init(viewModel: SettingsViewModel) {
         self.viewModel = viewModel
         _selectedProvider = State(initialValue: viewModel.selectedProvider)
         _selectedModel = State(initialValue: viewModel.selectedModel)
     }
-    
+
     var body: some View {
         BaseScreen {
             ScrollView {
@@ -27,7 +27,7 @@ struct APIConfigurationView: View {
                     .padding(.horizontal, AppSpacing.lg)
                     .padding(.top, AppSpacing.sm)
                     .padding(.bottom, AppSpacing.lg)
-                    
+
                     VStack(spacing: AppSpacing.xl) {
                         currentConfiguration
                         providerSelection
@@ -47,7 +47,7 @@ struct APIConfigurationView: View {
             }
         }
     }
-    
+
     private var currentConfiguration: some View {
         VStack(alignment: .leading, spacing: AppSpacing.sm) {
             HStack {
@@ -57,7 +57,7 @@ struct APIConfigurationView: View {
                     .foregroundStyle(.secondary.opacity(0.8))
                 Spacer()
             }
-            
+
             GlassCard {
                 VStack(spacing: AppSpacing.md) {
                     ConfigRow(
@@ -65,13 +65,13 @@ struct APIConfigurationView: View {
                         value: viewModel.selectedProvider.displayName,
                         icon: viewModel.selectedProvider.icon
                     )
-                    
+
                     ConfigRow(
                         title: "Model",
                         value: viewModel.selectedModel,
                         icon: "brain"
                     )
-                    
+
                     if let pricing = viewModel.selectedProvider.pricing(for: viewModel.selectedModel) {
                         ConfigRow(
                             title: "Pricing (per 1M tokens)",
@@ -80,7 +80,7 @@ struct APIConfigurationView: View {
                             valueColor: pricing.input == 0 ? .green : .primary
                         )
                     }
-                    
+
                     ConfigRow(
                         title: "Status",
                         value: viewModel.installedAPIKeys.contains(viewModel.selectedProvider) ? "Active" : "No API Key",
@@ -91,7 +91,7 @@ struct APIConfigurationView: View {
             }
         }
     }
-    
+
     private var providerSelection: some View {
         VStack(alignment: .leading, spacing: AppSpacing.sm) {
             HStack {
@@ -101,7 +101,7 @@ struct APIConfigurationView: View {
                     .foregroundStyle(.secondary.opacity(0.8))
                 Spacer()
             }
-            
+
             GlassCard {
                 VStack(spacing: 0) {
                     ForEach(AIProvider.allCases) { provider in
@@ -118,7 +118,7 @@ struct APIConfigurationView: View {
                             }
                             HapticService.play(.listSelection)
                         }
-                        
+
                         if provider != AIProvider.allCases.last {
                             Divider()
                                 .padding(.vertical, AppSpacing.xs)
@@ -128,7 +128,7 @@ struct APIConfigurationView: View {
             }
         }
     }
-    
+
     private var apiKeyManagement: some View {
         VStack(alignment: .leading, spacing: AppSpacing.sm) {
             HStack {
@@ -138,7 +138,7 @@ struct APIConfigurationView: View {
                     .foregroundStyle(.secondary.opacity(0.8))
                 Spacer()
             }
-            
+
             GlassCard {
                 VStack(spacing: AppSpacing.md) {
                     ForEach(AIProvider.allCases) { provider in
@@ -155,21 +155,21 @@ struct APIConfigurationView: View {
                                 }
                             }
                         )
-                        
+
                         if provider != AIProvider.allCases.last {
                             Divider()
                         }
                     }
                 }
             }
-            
+
             Text("API keys are stored securely in your device's keychain")
                 .font(.caption)
                 .foregroundStyle(.secondary)
                 .padding(.horizontal)
         }
     }
-    
+
     private var saveButton: some View {
         Button {
             saveConfiguration()
@@ -190,7 +190,7 @@ struct APIConfigurationView: View {
         }
         .disabled(!viewModel.installedAPIKeys.contains(selectedProvider))
     }
-    
+
     private func saveConfiguration() {
         Task {
             do {
@@ -212,7 +212,7 @@ struct ProviderRow: View {
     let models: [String]
     @Binding var selectedModel: String
     let onSelect: () -> Void
-    
+
     var body: some View {
         Button(action: onSelect) {
             HStack(spacing: AppSpacing.md) {
@@ -226,32 +226,32 @@ struct ProviderRow: View {
                                 colors: [Color.accentColor, Color.accentColor.opacity(0.8)],
                                 startPoint: .topLeading,
                                 endPoint: .bottomTrailing
-                              )
+                            )
                             : LinearGradient(
                                 colors: [Color(.systemGray6), Color(.systemGray6)],
                                 startPoint: .topLeading,
                                 endPoint: .bottomTrailing
-                              )
+                            )
                     )
                     .clipShape(RoundedRectangle(cornerRadius: 10))
-                
+
                 VStack(alignment: .leading, spacing: AppSpacing.xs) {
                     Text(provider.displayName)
                         .font(.headline)
-                    
+
                     Text("\(models.count) models available")
                         .font(.caption)
                         .foregroundStyle(.secondary)
                 }
-                
+
                 Spacer()
-                
+
                 if hasAPIKey {
                     Image(systemName: "key.fill")
                         .font(.caption)
                         .foregroundStyle(.green)
                 }
-                
+
                 if isSelected {
                     Image(systemName: "checkmark")
                         .foregroundStyle(Color.accentColor)
@@ -260,14 +260,14 @@ struct ProviderRow: View {
             .padding(.vertical, AppSpacing.xs)
         }
         .buttonStyle(.plain)
-        
+
         // Model selection (shown when selected)
         if isSelected {
             VStack(alignment: .leading, spacing: AppSpacing.sm) {
                 Text("Model")
                     .font(.caption)
                     .foregroundStyle(.secondary)
-                
+
                 ScrollView(.horizontal, showsIndicators: false) {
                     HStack(spacing: AppSpacing.sm) {
                         ForEach(models, id: \.self) { model in
@@ -285,7 +285,7 @@ struct ProviderRow: View {
                 }
             }
             .padding(.top, AppSpacing.sm)
-            
+
             // Show model details when selected
             if let selectedModelDetails = models.first(where: { $0 == selectedModel }) {
                 ModelDetailsCard(model: selectedModelDetails, provider: provider)
@@ -298,22 +298,22 @@ struct ProviderRow: View {
 struct ModelDetailsCard: View {
     let model: String
     let provider: AIProvider
-    
+
     private var modelEnum: LLMModel? {
         LLMModel.allCases.first { $0.identifier == model }
     }
-    
+
     var body: some View {
         if let modelEnum = modelEnum {
             VStack(alignment: .leading, spacing: AppSpacing.sm) {
                 Text("Model Details")
                     .font(.caption)
                     .foregroundStyle(.secondary)
-                
+
                 VStack(alignment: .leading, spacing: AppSpacing.xs) {
                     DetailRow(label: "Context Window", value: formatTokenCount(modelEnum.contextWindow))
                     DetailRow(label: "Description", value: modelEnum.description)
-                    
+
                     if !modelEnum.specialFeatures.isEmpty {
                         DetailRow(label: "Features", value: modelEnum.specialFeatures.joined(separator: ", "))
                     }
@@ -327,7 +327,7 @@ struct ModelDetailsCard: View {
             }
         }
     }
-    
+
     private func formatTokenCount(_ count: Int) -> String {
         if count >= 1_000_000 {
             return "\(count / 1_000_000)M tokens"
@@ -342,7 +342,7 @@ struct ModelDetailsCard: View {
 struct DetailRow: View {
     let label: String
     let value: String
-    
+
     var body: some View {
         VStack(alignment: .leading, spacing: 2) {
             Text(label)
@@ -358,11 +358,11 @@ struct ModelChip: View {
     let isSelected: Bool
     let provider: AIProvider
     let onSelect: () -> Void
-    
+
     private var pricing: (input: Double, output: Double)? {
         provider.pricing(for: model)
     }
-    
+
     private var displayName: String {
         // Extract display name from model identifier
         switch model {
@@ -384,7 +384,7 @@ struct ModelChip: View {
         default: return model
         }
     }
-    
+
     private var priceString: String? {
         guard let pricing = pricing else { return nil }
         if pricing.input == 0 && pricing.output == 0 {
@@ -392,14 +392,14 @@ struct ModelChip: View {
         }
         return String(format: "$%.2f/$%.2f", pricing.input, pricing.output)
     }
-    
+
     var body: some View {
         Button(action: onSelect) {
             VStack(alignment: .leading, spacing: 2) {
                 Text(displayName)
                     .font(.caption)
                     .fontWeight(isSelected ? .medium : .regular)
-                
+
                 if let priceString = priceString {
                     Text(priceString)
                         .font(.system(size: 10))
@@ -414,12 +414,12 @@ struct ModelChip: View {
                         colors: [Color.accentColor, Color.accentColor.opacity(0.8)],
                         startPoint: .leading,
                         endPoint: .trailing
-                      )
+                    )
                     : LinearGradient(
                         colors: [Color(.systemGray6), Color(.systemGray6)],
                         startPoint: .leading,
                         endPoint: .trailing
-                      )
+                    )
             )
             .foregroundStyle(isSelected ? .white : .primary)
             .clipShape(RoundedRectangle(cornerRadius: 20))
@@ -433,13 +433,13 @@ struct APIKeyRow: View {
     let hasKey: Bool
     let onAdd: () -> Void
     let onDelete: () -> Void
-    
+
     var body: some View {
         HStack {
             Label(provider.displayName, systemImage: provider.icon)
-            
+
             Spacer()
-            
+
             if hasKey {
                 Button {
                     onDelete()
@@ -481,7 +481,7 @@ struct ConfigRow: View {
     let value: String
     let icon: String
     var valueColor: Color = .primary
-    
+
     var body: some View {
         HStack {
             Label(title, systemImage: icon)

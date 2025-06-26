@@ -10,7 +10,7 @@ final class FoodVoiceAdapter: ObservableObject, FoodVoiceAdapterProtocol, Servic
     nonisolated var isConfigured: Bool {
         MainActor.assumeIsolated { _isConfigured }
     }
-    
+
     // MARK: - Dependencies
     private let voiceInputManager: VoiceInputProtocol
 
@@ -31,16 +31,16 @@ final class FoodVoiceAdapter: ObservableObject, FoodVoiceAdapterProtocol, Servic
         self.voiceInputManager = voiceInputManager
         setupCallbacks()
     }
-    
+
     // MARK: - ServiceProtocol Methods
-    
+
     func configure() async throws {
         guard !_isConfigured else { return }
         await voiceInputManager.initialize()
         _isConfigured = true
         AppLogger.info("\(serviceIdentifier) configured", category: .services)
     }
-    
+
     func reset() async {
         transcribedText = ""
         voiceWaveform = []
@@ -50,7 +50,7 @@ final class FoodVoiceAdapter: ObservableObject, FoodVoiceAdapterProtocol, Servic
         _isConfigured = false
         AppLogger.info("\(serviceIdentifier) reset", category: .services)
     }
-    
+
     func healthCheck() async -> ServiceHealth {
         let voiceState = voiceInputManager.state
         let isHealthy: Bool
@@ -59,7 +59,7 @@ final class FoodVoiceAdapter: ObservableObject, FoodVoiceAdapterProtocol, Servic
         } else {
             isHealthy = true
         }
-        
+
         return ServiceHealth(
             status: isHealthy ? .healthy : .degraded,
             lastCheckTime: Date(),
@@ -95,7 +95,7 @@ final class FoodVoiceAdapter: ObservableObject, FoodVoiceAdapterProtocol, Servic
             guard let self else { return }
             self.onError?(error)
         }
-        
+
         voiceInputManager.onStateChange = { [weak self] state in
             guard let self else { return }
             self.onStateChange?(state)
@@ -106,7 +106,7 @@ final class FoodVoiceAdapter: ObservableObject, FoodVoiceAdapterProtocol, Servic
     func initialize() async {
         await voiceInputManager.initialize()
     }
-    
+
     func requestPermission() async throws -> Bool {
         try await voiceInputManager.requestPermission()
     }

@@ -11,22 +11,22 @@ final class ConversationViewModelTests: XCTestCase {
     private var mockPersistence: MockConversationPersistence!
     private var mockAnalytics: MockConversationAnalytics!
     private var testUserId: UUID!
-    
+
     // MARK: - Setup
     override func setUp() async throws {
         try super.setUp()
-        
+
         // Create test container
         container = try await DITestHelper.createTestContainer()
-        
+
         testUserId = UUID()
-        
+
         // Note: These services are not in DIContainer yet, so we create them manually
         // This is acceptable as per our migration strategy
         mockFlowManager = MockConversationFlowManager()
         mockPersistence = MockConversationPersistence()
         mockAnalytics = MockConversationAnalytics()
-        
+
         viewModel = ConversationViewModel(
             flowManager: mockFlowManager,
             persistence: mockPersistence,
@@ -34,7 +34,7 @@ final class ConversationViewModelTests: XCTestCase {
             userId: testUserId
         )
     }
-    
+
     override func tearDown() async throws {
         viewModel = nil
         mockFlowManager = nil
@@ -44,16 +44,16 @@ final class ConversationViewModelTests: XCTestCase {
         container = nil
         try super.tearDown()
     }
-    
+
     // MARK: - Start Tests
-    
+
     func test_start_withNoExistingSession_startsNewSession() async {
         // Arrange
         mockPersistence.mockSession = nil
-        
+
         // Act
         await viewModel.start()
-        
+
         // Assert
         XCTAssertEqual(mockFlowManager.startNewSessionCallCount, 1)
         XCTAssertEqual(mockFlowManager.lastStartedUserId, testUserId)
@@ -65,7 +65,7 @@ final class ConversationViewModelTests: XCTestCase {
             return false
         })
     }
-    
+
     func test_start_withExistingSession_resumesSession() async {
         // Arrange
         let existingSession = ConversationSession(
@@ -75,10 +75,10 @@ final class ConversationViewModelTests: XCTestCase {
             currentNodeId: "test-node"
         )
         mockPersistence.mockSession = existingSession
-        
+
         // Act
         await viewModel.start()
-        
+
         // Assert
         XCTAssertEqual(mockFlowManager.resumeSessionCallCount, 1)
         XCTAssertEqual(mockFlowManager.lastResumedSession?.id, existingSession.id)
@@ -90,27 +90,27 @@ final class ConversationViewModelTests: XCTestCase {
             return false
         })
     }
-    
+
     func test_start_multipleCalls_onlyStartsOnce() async {
         // Arrange
         mockPersistence.mockSession = nil
-        
+
         // Act
         await viewModel.start()
         await viewModel.start()
         await viewModel.start()
-        
+
         // Assert
         XCTAssertEqual(mockFlowManager.startNewSessionCallCount, 1)
     }
-    
+
     func test_start_withPersistenceError_setsError() async {
         // Arrange
         mockPersistence.shouldThrowError = true
-        
+
         // Act
         await viewModel.start()
-        
+
         // Assert
         XCTAssertNotNil(viewModel.error)
         XCTAssertEqual(mockAnalytics.trackedEvents.count, 2)
@@ -121,19 +121,19 @@ final class ConversationViewModelTests: XCTestCase {
             return false
         })
     }
-    
+
     // MARK: - Submit Response Tests
-    
+
     func test_submitResponse_withCurrentNode_submitsToFlowManager() async {
         // Arrange
         let testNode = ConversationNode.mock
         viewModel.currentNode = testNode
         mockFlowManager.currentNode = testNode
         let response = ResponseValue.text("Test response")
-        
+
         // Act
         await viewModel.submitResponse(response)
-        
+
         // Assert
         XCTAssertEqual(mockFlowManager.submitResponseCallCount, 1)
         XCTAssertEqual(mockFlowManager.lastSubmittedResponse, response)
@@ -145,30 +145,30 @@ final class ConversationViewModelTests: XCTestCase {
             return false
         })
     }
-    
+
     func test_submitResponse_withNoCurrentNode_doesNothing() async {
         // Arrange
         viewModel.currentNode = nil
         let response = ResponseValue.text("Test response")
-        
+
         // Act
         await viewModel.submitResponse(response)
-        
+
         // Assert
         XCTAssertEqual(mockFlowManager.submitResponseCallCount, 0)
         XCTAssertEqual(mockAnalytics.trackedEvents.count, 0)
     }
-    
+
     func test_submitResponse_withError_setsError() async {
         // Arrange
         let testNode = ConversationNode.mock
         viewModel.currentNode = testNode
         mockFlowManager.shouldThrowError = true
         let response = ResponseValue.text("Test response")
-        
+
         // Act
         await viewModel.submitResponse(response)
-        
+
         // Assert
         XCTAssertNotNil(viewModel.error)
         XCTAssertFalse(viewModel.isLoading)
@@ -179,42 +179,42 @@ final class ConversationViewModelTests: XCTestCase {
             return false
         })
     }
-    
+
     func test_submitResponse_completesConversation_callsCompletion() async {
         // Arrange
         let testNode = ConversationNode.mock
         viewModel.currentNode = testNode
         mockFlowManager.currentNode = nil // Will be nil after submission
         mockFlowManager.mockInsights = PersonalityInsights.mock
-        
+
         var completionCalled = false
         var receivedInsights: PersonalityInsights?
         viewModel.onCompletion = { insights in
             completionCalled = true
             receivedInsights = insights
         }
-        
+
         let response = ResponseValue.text("Test response")
-        
+
         // Act
         await viewModel.submitResponse(response)
-        
+
         // Assert
         XCTAssertTrue(completionCalled)
         XCTAssertNotNil(receivedInsights)
         XCTAssertEqual(receivedInsights?.traits.count, PersonalityInsights.mock.traits.count)
     }
-    
+
     // MARK: - Skip Tests
-    
+
     func test_skipCurrentQuestion_withCurrentNode_skipsInFlowManager() async {
         // Arrange
         let testNode = ConversationNode.mock
         viewModel.currentNode = testNode
-        
+
         // Act
         await viewModel.skipCurrentQuestion()
-        
+
         // Assert
         XCTAssertEqual(mockFlowManager.skipCurrentNodeCallCount, 1)
         XCTAssertTrue(mockAnalytics.trackedEvents.contains {
@@ -224,20 +224,20 @@ final class ConversationViewModelTests: XCTestCase {
             return false
         })
     }
-    
+
     // MARK: - Progress Tests
-    
+
     func test_progressTracking_updatesCorrectly() {
         // Arrange
         let expectation = expectation(description: "Progress updated")
-        
+
         // Act
         mockFlowManager.simulateProgressUpdate(0.5)
-        
+
         DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
             expectation.fulfill()
         }
-        
+
         // Assert
         wait(for: [expectation], timeout: 1.0)
         XCTAssertEqual(viewModel.completionPercentage, 0.5, accuracy: 0.01)

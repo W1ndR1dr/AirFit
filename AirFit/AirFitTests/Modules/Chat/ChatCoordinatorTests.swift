@@ -11,7 +11,7 @@ final class ChatCoordinatorTests: XCTestCase {
         super.setUp()
         coordinator = ChatCoordinator()
     }
-    
+
     override func tearDown() {
         coordinator = nil
         super.tearDown()

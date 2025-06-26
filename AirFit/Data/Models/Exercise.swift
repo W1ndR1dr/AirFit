@@ -17,7 +17,7 @@ final class Exercise: @unchecked Sendable {
     var sets: [ExerciseSet] = []
 
     var workout: Workout?
-    
+
 
     // MARK: - Computed Properties
 

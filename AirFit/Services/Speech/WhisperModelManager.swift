@@ -9,7 +9,7 @@ final class WhisperModelManager {
         case insufficientStorage
         case downloadFailed(reason: String)
     }
-    
+
     init() {
         AppLogger.info("WhisperModelManager initialized (stub)", category: .services)
     }

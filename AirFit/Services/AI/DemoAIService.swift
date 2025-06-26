@@ -2,7 +2,7 @@ import Foundation
 
 /// Demo AI service that provides canned responses for testing without API keys
 actor DemoAIService: AIServiceProtocol {
-    
+
     // MARK: - Properties
     nonisolated let serviceIdentifier = "demo-ai-service"
     private var _isConfigured: Bool = true
@@ -17,9 +17,9 @@ actor DemoAIService: AIServiceProtocol {
     nonisolated var availableModels: [AIModel] {
         get { [] } // Return empty for nonisolated access
     }
-    
+
     private var responseDelay: TimeInterval = 1.0
-    
+
     // Demo responses for different contexts
     private let demoResponses: [String] = [
         "Welcome! I'm excited to be part of your fitness journey. Let's start by getting to know you better.",
@@ -28,7 +28,7 @@ actor DemoAIService: AIServiceProtocol {
         "Got it! I'll keep your preferences in mind as we build your personalized plan.",
         "I can see what drives you! I'll use this insight to keep you motivated throughout your journey."
     ]
-    
+
     // Context-aware responses for different types of queries
     private let contextResponses: [String: [String]] = [
         "workout": [
@@ -60,7 +60,7 @@ actor DemoAIService: AIServiceProtocol {
             "Excellent point! Here's my take on that..."
         ]
     ]
-    
+
     // MARK: - Initialization
     init() {
         self._availableModels = [
@@ -73,17 +73,17 @@ actor DemoAIService: AIServiceProtocol {
             )
         ]
     }
-    
+
     // MARK: - ServiceProtocol
-    
+
     func configure() async throws {
         _isConfigured = true
     }
-    
+
     func reset() async {
         // Nothing to reset in demo mode
     }
-    
+
     func healthCheck() async -> ServiceHealth {
         ServiceHealth(
             status: .healthy,
@@ -93,9 +93,9 @@ actor DemoAIService: AIServiceProtocol {
             metadata: ["mode": "demo"]
         )
     }
-    
+
     // MARK: - AIServiceProtocol
-    
+
     func configure(
         provider: AIProvider,
         apiKey: String,
@@ -104,13 +104,13 @@ actor DemoAIService: AIServiceProtocol {
         // Demo mode doesn't need configuration
         _isConfigured = true
     }
-    
+
     nonisolated func sendRequest(_ request: AIRequest) -> AsyncThrowingStream<AIResponse, Error> {
         AsyncThrowingStream { continuation in
             Task {
                 // Simulate network delay
                 try await Task.sleep(nanoseconds: UInt64(responseDelay * 1_000_000_000))
-                
+
                 // Check if this is a function-calling request
                 if let functions = request.functions, !functions.isEmpty, let functionCall = await self.checkForFunctionCall(request: request) {
                     // Return a function call response
@@ -123,7 +123,7 @@ actor DemoAIService: AIServiceProtocol {
                 } else {
                     // Determine context from the request
                     let response = await self.getContextAwareResponse(for: request)
-                    
+
                     // Simulate streaming response
                     let words = response.split(separator: " ")
                     for (index, word) in words.enumerated() {
@@ -133,7 +133,7 @@ actor DemoAIService: AIServiceProtocol {
                         continuation.yield(.textDelta(String(word)))
                         try await Task.sleep(nanoseconds: 50_000_000) // 50ms between words
                     }
-                    
+
                     // Send done with mock usage
                     continuation.yield(.done(usage: AITokenUsage(
                         promptTokens: 100,
@@ -141,18 +141,18 @@ actor DemoAIService: AIServiceProtocol {
                         totalTokens: 150
                     )))
                 }
-                
+
                 continuation.finish()
             }
         }
     }
-    
+
     private func getContextAwareResponse(for request: AIRequest) -> String {
         // Analyze the last user message to determine context
         guard let lastMessage = request.messages.last?.content.lowercased() else {
             return demoResponses.randomElement() ?? demoResponses[0]
         }
-        
+
         // Check for keywords to determine context
         if lastMessage.contains("workout") || lastMessage.contains("exercise") || lastMessage.contains("training") {
             return contextResponses["workout"]?.randomElement() ?? demoResponses[0]
@@ -167,16 +167,16 @@ actor DemoAIService: AIServiceProtocol {
             return contextResponses["general"]?.randomElement() ?? demoResponses.randomElement()!
         }
     }
-    
+
     func validateConfiguration() async throws -> Bool {
         // Demo mode is always valid
         return true
     }
-    
+
     func checkHealth() async -> ServiceHealth {
         await healthCheck()
     }
-    
+
     nonisolated func estimateTokenCount(for text: String) -> Int {
         // Rough estimate: 1 token per 4 characters
         return text.count / 4
@@ -190,7 +190,7 @@ extension DemoAIService {
     func generateDemoPersona() async -> PersonaProfile {
         // Simulate generation delay
         try? await Task.sleep(nanoseconds: 2_000_000_000) // 2 seconds
-        
+
         return PersonaProfile(
             id: UUID(),
             name: "Coach Demo",
@@ -240,13 +240,13 @@ extension DemoAIService {
             )
         )
     }
-    
+
     /// Check if we should simulate a function call based on the request
     private func checkForFunctionCall(request: AIRequest) -> AIFunctionCall? {
         guard let lastMessage = request.messages.last?.content.lowercased() else {
             return nil
         }
-        
+
         // Simulate function calls for specific keywords
         if lastMessage.contains("workout plan") || lastMessage.contains("create workout") {
             return AIFunctionCall(
@@ -275,7 +275,7 @@ extension DemoAIService {
                 ]
             )
         }
-        
+
         return nil
     }
 }

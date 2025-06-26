@@ -3,9 +3,9 @@ import Foundation
 // MARK: - AppError Extensions for Error Type Consolidation
 
 extension AppError {
-    
+
     // MARK: - AI Errors
-    
+
     /// Creates AppError from AIError
     static func from(_ aiError: AIError) -> AppError {
         switch aiError {
@@ -25,7 +25,7 @@ extension AppError {
             return .unauthorized
         }
     }
-    
+
     /// Creates AppError from DirectAIError
     static func from(_ directAIError: DirectAIError) -> AppError {
         switch directAIError {
@@ -45,9 +45,9 @@ extension AppError {
             return .validationError(message: "Invalid nutrition values: \(details)")
         }
     }
-    
+
     // MARK: - Network Errors
-    
+
     /// Creates AppError from NetworkError
     static func from(_ networkError: NetworkError) -> AppError {
         switch networkError {
@@ -67,9 +67,9 @@ extension AppError {
             return .networkError(underlying: NSError(domain: "Network", code: -1_001, userInfo: [NSLocalizedDescriptionKey: "Request timed out"]))
         }
     }
-    
+
     // MARK: - Service Errors
-    
+
     /// Creates AppError from ServiceError
     static func from(_ serviceError: ServiceError) -> AppError {
         switch serviceError {
@@ -99,9 +99,9 @@ extension AppError {
             return .unknown(message: error.localizedDescription)
         }
     }
-    
+
     // MARK: - Workout Errors
-    
+
     /// Creates AppError from WorkoutError
     static func from(_ workoutError: WorkoutError) -> AppError {
         switch workoutError {
@@ -111,9 +111,9 @@ extension AppError {
             return .networkError(underlying: NSError(domain: "WorkoutSync", code: 0, userInfo: [NSLocalizedDescriptionKey: "Failed to sync workout data"]))
         }
     }
-    
+
     // MARK: - HealthKit Errors
-    
+
     /// Creates AppError from HealthKitError
     static func from(_ healthKitError: HealthKitManager.HealthKitError) -> AppError {
         switch healthKitError {
@@ -129,9 +129,9 @@ extension AppError {
             return .validationError(message: "Invalid health data format")
         }
     }
-    
+
     // MARK: - LLM Errors
-    
+
     /// Creates AppError from LLMError
     static func from(_ llmError: LLMError) -> AppError {
         switch llmError {
@@ -159,9 +159,9 @@ extension AppError {
             return .validationError(message: "Content was filtered for safety reasons")
         }
     }
-    
+
     // MARK: - Keychain Errors
-    
+
     /// Creates AppError from KeychainError
     static func from(_ keychainError: KeychainError) -> AppError {
         switch keychainError {
@@ -175,7 +175,7 @@ extension AppError {
             return .unknown(message: "Keychain error: \(status)")
         }
     }
-    
+
     /// Creates AppError from KeychainHelperError
     static func from(_ keychainHelperError: KeychainHelperError) -> AppError {
         switch keychainHelperError {
@@ -195,12 +195,12 @@ extension AppError {
             return .unknown(message: "Keychain error: \(status)")
         }
     }
-    
+
     // MARK: - Onboarding Errors
     // Removed - Onboarding now uses standard AppError types
-    
+
     // MARK: - Food Tracking Errors
-    
+
     /// Creates AppError from FoodTrackingError
     static func from(_ foodError: FoodTrackingError) -> AppError {
         switch foodError {
@@ -224,7 +224,7 @@ extension AppError {
             return .validationError(message: "Malformed nutrition information")
         }
     }
-    
+
     /// Creates AppError from FoodVoiceError
     static func from(_ voiceError: FoodVoiceError) -> AppError {
         switch voiceError {
@@ -236,9 +236,9 @@ extension AppError {
             return .cameraNotAuthorized // Using similar auth error type
         }
     }
-    
+
     // MARK: - Chat Errors
-    
+
     /// Creates AppError from ChatError
     static func from(_ chatError: ChatError) -> AppError {
         switch chatError {
@@ -250,9 +250,9 @@ extension AppError {
             return .unknown(message: "Voice recognition is not available")
         }
     }
-    
+
     // MARK: - Settings Errors
-    
+
     /// Creates AppError from SettingsError
     static func from(_ settingsError: SettingsError) -> AppError {
         switch settingsError {
@@ -272,9 +272,9 @@ extension AppError {
             return .unknown(message: "Failed to adjust persona: \(reason)")
         }
     }
-    
+
     // MARK: - AI Module Errors
-    
+
     /// Creates AppError from ConversationManagerError
     static func from(_ conversationError: ConversationManagerError) -> AppError {
         switch conversationError {
@@ -290,11 +290,11 @@ extension AppError {
             return .unknown(message: "Failed to save message: \(error.localizedDescription)")
         }
     }
-    
+
     // MARK: - FunctionError conversion removed
     // FunctionError enum has been removed from the codebase as part of Phase 3 simplification
     // Function execution errors are now handled directly by AppError
-    
+
     /// Creates AppError from PersonaEngineError
     static func from(_ personaEngineError: PersonaEngineError) -> AppError {
         switch personaEngineError {
@@ -306,7 +306,7 @@ extension AppError {
             return .decodingError(underlying: NSError(domain: "PersonaEngine", code: 0, userInfo: [NSLocalizedDescriptionKey: "Failed to encode profile data"]))
         }
     }
-    
+
     /// Creates AppError from PersonaError
     static func from(_ personaError: PersonaError) -> AppError {
         switch personaError {
@@ -318,9 +318,9 @@ extension AppError {
             return .validationError(message: "Invalid format for \(field). Expected: \(expected)")
         }
     }
-    
+
     // MARK: - Notifications Errors
-    
+
     /// Creates AppError from LiveActivityError
     static func from(_ liveActivityError: LiveActivityError) -> AppError {
         switch liveActivityError {
@@ -330,9 +330,9 @@ extension AppError {
             return .unknown(message: "Failed to start activity: \(error.localizedDescription)")
         }
     }
-    
+
     // MARK: - Coach Engine Errors
-    
+
     /// Creates AppError from CoachEngineError
     static func from(_ coachError: CoachEngineError) -> AppError {
         switch coachError {
@@ -356,9 +356,9 @@ extension AppError {
             return .unknown(message: "Educational content failed: \(details)")
         }
     }
-    
+
     // MARK: - Request Optimizer Errors
-    
+
     /// Creates AppError from RequestOptimizerError
     static func from(_ optimizerError: RequestOptimizerError) -> AppError {
         switch optimizerError {
@@ -379,9 +379,9 @@ extension AppError {
             return .serverError(code: 429, message: message)
         }
     }
-    
+
     // MARK: - Voice Input Errors
-    
+
     /// Creates AppError from VoiceInputError
     static func from(_ voiceInputError: VoiceInputError) -> AppError {
         switch voiceInputError {
@@ -417,7 +417,7 @@ extension AppError {
             return false
         }
     }
-    
+
     /// Determines if the error should trigger a retry
     var shouldRetry: Bool {
         switch self {
@@ -429,7 +429,7 @@ extension AppError {
             return false
         }
     }
-    
+
     /// Suggested retry delay in seconds
     var retryDelay: TimeInterval? {
         switch self {
@@ -454,7 +454,7 @@ struct ErrorContext: Sendable {
     let function: String
     let line: Int
     let additionalInfo: [String: String]? // Changed to Sendable type
-    
+
     init(
         error: AppError,
         file: String = #file,

@@ -3,7 +3,7 @@ import Foundation
 /// Comprehensive registry of all AI functions available to the CoachEngine.
 /// Defines function schemas for workout planning, performance analysis,
 /// plan adaptation, and goal setting.
-/// 
+///
 /// NOTE: parseAndLogComplexNutrition and generateEducationalInsight have been migrated
 /// to direct AI implementation in CoachEngine for improved performance and reduced token usage.
 enum FunctionRegistry {

@@ -11,7 +11,7 @@ struct NutritionSearchView: View {
     @State private var selectedCategory: FoodCategory?
     @State private var debounceTimer: Timer?
     @State private var animateIn = false
-    
+
     private let foodCategories: [FoodCategory] = [
         FoodCategory(name: "Fruits", icon: "apple"),
         FoodCategory(name: "Vegetables", icon: "carrot"),
@@ -20,7 +20,7 @@ struct NutritionSearchView: View {
         FoodCategory(name: "Dairy", icon: "drop"),
         FoodCategory(name: "Snacks", icon: "takeoutbag.and.cup.and.straw")
     ]
-    
+
     var body: some View {
         NavigationStack {
             BaseScreen {
@@ -31,12 +31,12 @@ struct NutritionSearchView: View {
                         .padding(.top, AppSpacing.md)
                         .padding(.bottom, AppSpacing.sm)
                         .opacity(animateIn ? 1 : 0)
-                    
+
                     searchBar
                         .opacity(animateIn ? 1 : 0)
                         .offset(y: animateIn ? 0 : 20)
                         .animation(MotionToken.standardSpring.delay(0.2), value: animateIn)
-                    
+
                     ScrollView {
                         LazyVStack(spacing: AppSpacing.md) {
                             if searchText.isEmpty && selectedCategory == nil {
@@ -75,7 +75,7 @@ struct NutritionSearchView: View {
             }
         }
     }
-    
+
     // MARK: - Search Bar
     private var searchBar: some View {
         GlassCard {
@@ -89,7 +89,7 @@ struct NutritionSearchView: View {
                         )
                     )
                     .font(.system(size: 18))
-                
+
                 TextField("Search foods...", text: $searchText)
                     .textFieldStyle(.plain)
                     .font(.system(size: 16, weight: .medium))
@@ -100,7 +100,7 @@ struct NutritionSearchView: View {
                     .onChange(of: searchText) { _, newValue in
                         triggerSearch()
                     }
-                
+
                 if !searchText.isEmpty {
                     Button {
                         HapticService.impact(.light)
@@ -130,7 +130,7 @@ struct NutritionSearchView: View {
             .opacity(animateIn ? 1 : 0)
             .offset(y: animateIn ? 0 : 20)
             .animation(MotionToken.standardSpring.delay(0.3), value: animateIn)
-        
+
         HStack {
             CascadeText("Recent Foods")
                 .font(.system(size: 20, weight: .semibold, design: .rounded))
@@ -140,7 +140,7 @@ struct NutritionSearchView: View {
         .padding(.top, AppSpacing.sm)
         .opacity(animateIn ? 1 : 0)
         .animation(MotionToken.standardSpring.delay(0.4), value: animateIn)
-        
+
         if viewModel.recentFoods.isEmpty {
             EmptyStateView(
                 icon: "clock.arrow.circlepath",
@@ -160,7 +160,7 @@ struct NutritionSearchView: View {
             }
         }
     }
-    
+
     // MARK: - Category Results Content
     @ViewBuilder
     private var categoryResultsContent: some View {
@@ -178,13 +178,13 @@ struct NutritionSearchView: View {
             .font(.footnote)
             .foregroundColor(.secondary)
         }
-        
+
         if viewModel.isLoading {
             VStack(spacing: AppSpacing.sm) {
                 ProgressView()
                     .progressViewStyle(CircularProgressViewStyle(tint: gradientManager.active.colors(for: colorScheme).first ?? Color.accentColor))
                     .scaleEffect(1.2)
-                
+
                 Text("Loading...")
                     .font(.system(size: 14, weight: .medium))
                     .foregroundStyle(Color.secondary)
@@ -209,7 +209,7 @@ struct NutritionSearchView: View {
                 ProgressView()
                     .progressViewStyle(CircularProgressViewStyle(tint: gradientManager.active.colors(for: colorScheme).first ?? Color.accentColor))
                     .scaleEffect(1.2)
-                
+
                 CascadeText("Searching...")
                     .font(.system(size: 16, weight: .medium, design: .rounded))
                     .foregroundStyle(Color.secondary)
@@ -225,15 +225,15 @@ struct NutritionSearchView: View {
             .padding()
         }
     }
-    
+
     // MARK: - Helper Functions
     private func triggerSearch() {
         debounceTimer?.invalidate()
-        
+
         guard !searchText.isEmpty || selectedCategory != nil else {
             return
         }
-        
+
         if searchText.count > 2 || selectedCategory != nil {
             Task { await performSearch() }
         } else {
@@ -286,7 +286,7 @@ private struct CategoriesSection: View {
                     .font(.system(size: 20, weight: .semibold, design: .rounded))
                 Spacer()
             }
-            
+
             ScrollView(.horizontal, showsIndicators: false) {
                 HStack(spacing: AppSpacing.sm) {
                     ForEach(Array(categories.enumerated()), id: \.element.id) { index, category in
@@ -328,7 +328,7 @@ enum FoodListItem: Identifiable {
         case .databaseItem(let item): return item.name
         }
     }
-    
+
     var brand: String? {
         switch self {
         case .recentItem(let item): return item.brand
@@ -342,21 +342,21 @@ enum FoodListItem: Identifiable {
         case .databaseItem(let item): return item.caloriesPerServing
         }
     }
-    
+
     var protein: Double? {
         switch self {
         case .recentItem(let item): return item.proteinGrams
         case .databaseItem(let item): return item.proteinPerServing
         }
     }
-    
+
     var carbs: Double? {
         switch self {
         case .recentItem(let item): return item.carbGrams
         case .databaseItem(let item): return item.carbsPerServing
         }
     }
-    
+
     var fat: Double? {
         switch self {
         case .recentItem(let item): return item.fatGrams
@@ -411,7 +411,7 @@ private struct FoodItemRow: View {
                                 .foregroundStyle(Color.secondary.opacity(0.8))
                                 .lineLimit(1)
                         }
-                        
+
                         Text("\(food.quantity?.formatted() ?? "1") \(food.unit ?? "serving")")
                             .font(.system(size: 11, weight: .medium))
                             .foregroundStyle(Color.secondary.opacity(0.6))
@@ -422,7 +422,7 @@ private struct FoodItemRow: View {
                     VStack(alignment: .trailing, spacing: 2) {
                         GradientNumber(value: Double(food.calories ?? 0))
                             .font(.system(size: 20, weight: .bold, design: .rounded))
-                        
+
                         Text("cal")
                             .font(.system(size: 11, weight: .medium))
                             .foregroundStyle(Color.orange.opacity(0.8))
@@ -467,12 +467,12 @@ private struct CategoryChip: View {
             .padding(.vertical, AppSpacing.xs)
             .foregroundStyle(
                 isSelected ?
-                AnyShapeStyle(Color.white) :
-                AnyShapeStyle(LinearGradient(
-                    colors: gradientManager.active.colors(for: colorScheme),
-                    startPoint: .topLeading,
-                    endPoint: .bottomTrailing
-                ))
+                    AnyShapeStyle(Color.white) :
+                    AnyShapeStyle(LinearGradient(
+                        colors: gradientManager.active.colors(for: colorScheme),
+                        startPoint: .topLeading,
+                        endPoint: .bottomTrailing
+                    ))
             )
             .background {
                 if isSelected {

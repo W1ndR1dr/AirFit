@@ -9,7 +9,7 @@ struct NutritionParseResult: Sendable {
     let tokenCount: Int
     let processingTimeMs: Int
     let parseStrategy: ParseStrategy
-    
+
     enum ParseStrategy: String, Sendable {
         case directAI = "direct_ai"
         case functionCall = "function_call"
@@ -27,11 +27,11 @@ struct NutritionItem: Sendable {
     let carbs: Double
     let fat: Double
     let confidence: Double
-    
+
     var formattedCalories: String {
         return "\(Int(calories)) cal"
     }
-    
+
     var formattedMacros: String {
         return "P: \(String(format: "%.1f", protein))g, C: \(String(format: "%.1f", carbs))g, F: \(String(format: "%.1f", fat))g"
     }
@@ -44,7 +44,7 @@ struct EducationalContent: Sendable {
     let tokenCount: Int
     let personalizationLevel: Double
     let contentType: ContentType
-    
+
     enum ContentType: String, Sendable {
         case exercise = "exercise"
         case nutrition = "nutrition"

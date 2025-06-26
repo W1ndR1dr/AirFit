@@ -7,7 +7,7 @@ struct ExerciseCard: View {
     @EnvironmentObject private var gradientManager: GradientManager
     @Environment(\.colorScheme) private var colorScheme
     @State private var isPressed = false
-    
+
     private var categoryColors: [Color] {
         switch exercise.category {
         case .strength: return [Color(hex: "#667EEA"), Color(hex: "#764BA2")]
@@ -67,7 +67,7 @@ struct ExerciseCard: View {
                     )
                 )
                 .frame(height: 120)
-            
+
             // Gradient glow behind icon
             Circle()
                 .fill(
@@ -108,7 +108,7 @@ struct ExerciseDetailSheet: View {
     let exercise: ExerciseDefinition
     @State private var selectedImageIndex = 0
     @State private var animateIn = false
-    
+
     private var categoryColors: [Color] {
         switch exercise.category {
         case .strength: return [Color(hex: "#667EEA"), Color(hex: "#764BA2")]
@@ -206,7 +206,7 @@ struct ExerciseDetailSheet: View {
                         startPoint: .topLeading,
                         endPoint: .bottomTrailing
                     )
-                    
+
                     // Gradient glow
                     Circle()
                         .fill(
@@ -255,7 +255,7 @@ struct ExerciseDetailSheet: View {
                 MuscleGroupWrap(muscleGroups: exercise.muscleGroups)
                     .environmentObject(gradientManager)
                     .padding(.horizontal, AppSpacing.md)
-                    
+
                 EquipmentTags(equipment: exercise.equipment)
                     .environmentObject(gradientManager)
                     .padding(.horizontal, AppSpacing.md)
@@ -463,7 +463,7 @@ struct FilterSheet: View {
                             .padding(.top, AppSpacing.md)
                             .opacity(animateIn ? 1 : 0)
                             .offset(y: animateIn ? 0 : -20)
-                        
+
                         // Category
                         FilterSection(
                             title: "Category",
@@ -474,7 +474,7 @@ struct FilterSheet: View {
                             index: 0
                         )
                         .environmentObject(gradientManager)
-                        
+
                         // Muscle Group
                         FilterSection(
                             title: "Muscle Group",
@@ -485,7 +485,7 @@ struct FilterSheet: View {
                             index: 1
                         )
                         .environmentObject(gradientManager)
-                        
+
                         // Equipment
                         FilterSection(
                             title: "Equipment",
@@ -496,7 +496,7 @@ struct FilterSheet: View {
                             index: 2
                         )
                         .environmentObject(gradientManager)
-                        
+
                         // Difficulty
                         VStack(alignment: .leading, spacing: AppSpacing.sm) {
                             HStack {
@@ -515,7 +515,7 @@ struct FilterSheet: View {
                                 }
                                 Spacer()
                             }
-                            
+
                             HStack(spacing: AppSpacing.sm) {
                                 FilterPill(
                                     text: "All",
@@ -525,7 +525,7 @@ struct FilterSheet: View {
                                     HapticService.impact(.light)
                                     selectedDifficulty = nil
                                 }
-                                
+
                                 ForEach(Difficulty.allCases, id: \.self) { difficulty in
                                     FilterPill(
                                         text: difficulty.displayName,
@@ -542,7 +542,7 @@ struct FilterSheet: View {
                         .opacity(animateIn ? 1 : 0)
                         .offset(y: animateIn ? 0 : 20)
                         .animation(MotionToken.standardSpring.delay(0.4), value: animateIn)
-                        
+
                         // Clear button
                         Button {
                             HapticService.impact(.medium)
@@ -628,7 +628,7 @@ private struct FilterSection<T: Hashable & CaseIterable>: View where T.AllCases:
     @EnvironmentObject private var gradientManager: GradientManager
     @Environment(\.colorScheme) private var colorScheme
     @State private var animateIn = false
-    
+
     var body: some View {
         GlassCard {
             VStack(alignment: .leading, spacing: AppSpacing.sm) {
@@ -648,7 +648,7 @@ private struct FilterSection<T: Hashable & CaseIterable>: View where T.AllCases:
                     }
                     Spacer()
                 }
-                
+
                 ScrollView(.horizontal, showsIndicators: false) {
                     HStack(spacing: AppSpacing.sm) {
                         FilterPill(
@@ -659,7 +659,7 @@ private struct FilterSection<T: Hashable & CaseIterable>: View where T.AllCases:
                             HapticService.impact(.light)
                             selection = nil
                         }
-                        
+
                         ForEach(Array(options), id: \.self) { option in
                             if let displayable = option as? any DisplayNameProviding {
                                 FilterPill(
@@ -694,7 +694,7 @@ private struct FilterPill: View {
     let isSelected: Bool
     let color: Color
     let action: () -> Void
-    
+
     var body: some View {
         Button(action: action) {
             Text(text)
@@ -757,7 +757,7 @@ struct CategoryBadge: View {
     let category: ExerciseCategory
     @EnvironmentObject private var gradientManager: GradientManager
     @Environment(\.colorScheme) private var colorScheme
-    
+
     private var categoryColors: [Color] {
         switch category {
         case .strength: return [Color(hex: "#667EEA"), Color(hex: "#764BA2")]
@@ -789,7 +789,7 @@ struct CategoryBadge: View {
 struct CompoundBadge: View {
     @EnvironmentObject private var gradientManager: GradientManager
     @Environment(\.colorScheme) private var colorScheme
-    
+
     var body: some View {
         Text("Compound")
             .font(.system(size: 11, weight: .semibold))

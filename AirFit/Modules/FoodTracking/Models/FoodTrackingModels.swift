@@ -149,7 +149,7 @@ enum FoodTrackingError: LocalizedError {
     case aiProcessingTimeout
     case invalidNutritionResponse
     case invalidNutritionData
-    
+
     var errorDescription: String? {
         switch self {
         case .transcriptionFailed:
@@ -196,7 +196,7 @@ struct NutritionContext: Sendable {
     let userGoals: NutritionTargets?
     let recentMeals: [FoodEntry]
     let currentDate: Date
-    
+
     init(userGoals: NutritionTargets? = nil, recentMeals: [FoodEntry] = [], currentDate: Date = Date()) {
         self.userGoals = userGoals
         self.recentMeals = recentMeals

@@ -32,34 +32,34 @@ final class MockConversationFlowManager: ObservableObject {
     @Published private(set) var isLoading = false
     @Published private(set) var error: Error?
     @Published var progress: Double = 0.0
-    
+
     // MARK: - Mock Configuration
     var shouldThrowError = false
     var errorToThrow: Error = AppError.unknown(message: "Mock error")
     var mockInsights = PersonalityInsights.mock
     var nodeToReturn: ConversationNode?
-    
+
     // MARK: - Call Recording
     var startNewSessionCallCount = 0
     var resumeSessionCallCount = 0
     var submitResponseCallCount = 0
     var skipCurrentNodeCallCount = 0
     var generateInsightsCallCount = 0
-    
+
     var lastStartedUserId: UUID?
     var lastResumedSession: ConversationSession?
     var lastSubmittedResponse: ResponseValue?
-    
+
     // MARK: - Mock Methods
     func startNewSession(userId: UUID) async {
         startNewSessionCallCount += 1
         lastStartedUserId = userId
-        
+
         if shouldThrowError {
             error = errorToThrow
             return
         }
-        
+
         // Create a mock session
         session = ConversationSession(userId: userId)
         currentNode = nodeToReturn ?? ConversationNode(
@@ -75,12 +75,12 @@ final class MockConversationFlowManager: ObservableObject {
             validationRules: ValidationRules()
         )
     }
-    
+
     func resumeSession(_ existingSession: ConversationSession) async {
         resumeSessionCallCount += 1
         lastResumedSession = existingSession
         session = existingSession
-        
+
         currentNode = nodeToReturn ?? ConversationNode(
             nodeType: .opening,
             question: ConversationQuestion(
@@ -94,56 +94,56 @@ final class MockConversationFlowManager: ObservableObject {
             validationRules: ValidationRules()
         )
     }
-    
+
     func submitResponse(_ response: ResponseValue) async throws {
         submitResponseCallCount += 1
         lastSubmittedResponse = response
-        
+
         if shouldThrowError {
             throw errorToThrow
         }
-        
+
         // Simulate progress update
         progress = min(1.0, progress + 0.1)
     }
-    
+
     func skipCurrentNode() async {
         skipCurrentNodeCallCount += 1
         // Simulate moving to next node
         progress = min(1.0, progress + 0.1)
     }
-    
+
     func generateInsights() -> PersonalityInsights {
         generateInsightsCallCount += 1
         return mockInsights
     }
-    
+
     // MARK: - Test Helpers
     func simulateProgressUpdate(_ newProgress: Double) {
         progress = newProgress
     }
-    
+
     func simulateError(_ error: Error) {
         self.error = error
     }
-    
+
     func simulateLoading(_ loading: Bool) {
         isLoading = loading
     }
-    
+
     func reset() {
         currentNode = nil
         session = nil
         isLoading = false
         error = nil
         progress = 0.0
-        
+
         startNewSessionCallCount = 0
         resumeSessionCallCount = 0
         submitResponseCallCount = 0
         skipCurrentNodeCallCount = 0
         generateInsightsCallCount = 0
-        
+
         lastStartedUserId = nil
         lastResumedSession = nil
         lastSubmittedResponse = nil

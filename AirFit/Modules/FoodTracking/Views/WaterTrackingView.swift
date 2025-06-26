@@ -81,15 +81,15 @@ struct WaterTrackingView: View {
                     .disabled(isAddButtonDisabled)
                     .foregroundStyle(
                         isAddButtonDisabled ?
-                        AnyShapeStyle(Color.secondary.opacity(0.5)) :
-                        AnyShapeStyle(LinearGradient(
-                            colors: gradientManager.active.colors(for: colorScheme),
-                            startPoint: .topLeading,
-                            endPoint: .bottomTrailing
-                        ))
+                            AnyShapeStyle(Color.secondary.opacity(0.5)) :
+                            AnyShapeStyle(LinearGradient(
+                                colors: gradientManager.active.colors(for: colorScheme),
+                                startPoint: .topLeading,
+                                endPoint: .bottomTrailing
+                            ))
                     )
                 }
-                
+
                 ToolbarItem(placement: .principal) {
                     CascadeText("Hydration")
                         .font(.system(size: 18, weight: .semibold, design: .rounded))
@@ -127,7 +127,7 @@ struct WaterTrackingView: View {
         guard dailyWaterGoalInML > 0 else { return 0 }
         return min(viewModel.waterIntakeML / dailyWaterGoalInML, 1.0) // Cap at 100% for main display
     }
-    
+
     private var overGoalProgress: Double {
         guard dailyWaterGoalInML > 0 else { return 0 }
         let rawProgress = viewModel.waterIntakeML / dailyWaterGoalInML
@@ -159,7 +159,7 @@ struct WaterTrackingView: View {
                         .frame(width: 220, height: 220)
                         .blur(radius: 20)
                         .opacity(waterLevel > 0 ? 1 : 0)
-                    
+
                     // Background track for the ring
                     Circle()
                         .stroke(Color.primary.opacity(0.1), lineWidth: 24)
@@ -182,7 +182,7 @@ struct WaterTrackingView: View {
                         .frame(width: 180, height: 180)
                         .rotationEffect(.degrees(-90))
                         .shadow(color: Color(hex: "#00B4D8").opacity(0.5), radius: 10, y: 5)
-                    
+
                     // Overage progress ring (dashed)
                     if overGoalProgress > 0 && waterLevel >= 1.0 {
                         Circle()
@@ -238,7 +238,7 @@ struct WaterTrackingView: View {
                 }
                 .frame(width: 220, height: 220)
                 .padding(.bottom, AppSpacing.sm)
-                
+
                 // Goal status with gradient when complete
                 if progressTowardsGoal >= 1.0 {
                     Text(goalStatusText)
@@ -264,7 +264,7 @@ struct WaterTrackingView: View {
             .padding(AppSpacing.lg)
         }
     }
-    
+
     private var goalStatusText: String {
         if progressTowardsGoal >= 1.0 {
             let percentageOver = Int(( (viewModel.waterIntakeML / dailyWaterGoalInML) - 1.0) * 100)
@@ -285,7 +285,7 @@ struct WaterTrackingView: View {
                     .font(.system(size: 20, weight: .semibold, design: .rounded))
                 Spacer()
             }
-            
+
             LazyVGrid(columns: [GridItem(.flexible()), GridItem(.flexible())], spacing: AppSpacing.md) {
                 ForEach(Array(quickAmountsInML.enumerated()), id: \.element) { index, amount in
                     QuickWaterButton(
@@ -330,16 +330,16 @@ struct WaterTrackingView: View {
                             RoundedRectangle(cornerRadius: 12)
                                 .stroke(
                                     useCustomAmount ?
-                                    LinearGradient(
-                                        colors: gradientManager.active.colors(for: colorScheme),
-                                        startPoint: .topLeading,
-                                        endPoint: .bottomTrailing
-                                    ) :
-                                    LinearGradient(
-                                        colors: [Color.clear, Color.clear],
-                                        startPoint: .topLeading,
-                                        endPoint: .bottomTrailing
-                                    ),
+                                        LinearGradient(
+                                            colors: gradientManager.active.colors(for: colorScheme),
+                                            startPoint: .topLeading,
+                                            endPoint: .bottomTrailing
+                                        ) :
+                                        LinearGradient(
+                                            colors: [Color.clear, Color.clear],
+                                            startPoint: .topLeading,
+                                            endPoint: .bottomTrailing
+                                        ),
                                     lineWidth: useCustomAmount ? 2 : 0
                                 )
                         )
@@ -390,7 +390,7 @@ struct WaterTrackingView: View {
                         )
                 }
             }
-            
+
             GlassCard {
                 HStack(spacing: AppSpacing.sm) {
                     Image(systemName: "lightbulb.fill")
@@ -405,7 +405,7 @@ struct WaterTrackingView: View {
                                 endPoint: .bottom
                             )
                         )
-                    
+
                     Text("Carry a water bottle throughout the day as a visual reminder to drink.")
                         .font(.system(size: 14, weight: .medium))
                         .foregroundStyle(Color.secondary)
@@ -429,7 +429,7 @@ struct WaterTrackingView: View {
             }
         }
     }
-    
+
     // Placeholder for Historical Insights - Future Enhancement
     // private var historicalInsightsSection: some View { ... }
 
@@ -447,7 +447,7 @@ struct WaterTrackingView: View {
             selectedUnit = .milliliters
         }
     }
-    
+
     private func updateWaterLevelAnimation(intake: Double) {
         let rawProgress = (dailyWaterGoalInML > 0) ? (intake / dailyWaterGoalInML) : 0
         withAnimation(.spring(response: 0.8, dampingFraction: 0.7, blendDuration: 0.8)) {
@@ -493,7 +493,7 @@ struct QuickWaterButton: View {
     let isSelected: Bool
     let index: Int
     let action: () -> Void
-    
+
     @EnvironmentObject private var gradientManager: GradientManager
     @Environment(\.colorScheme) private var colorScheme
     @State private var isPressed = false
@@ -510,19 +510,19 @@ struct QuickWaterButton: View {
                         .font(.system(size: 28))
                         .foregroundStyle(
                             isSelected ?
-                            AnyShapeStyle(Color.white) :
-                            AnyShapeStyle(LinearGradient(
-                                colors: [
-                                    Color(hex: "#00B4D8"),
-                                    Color(hex: "#0077B6")
-                                ],
-                                startPoint: .top,
-                                endPoint: .bottom
-                            ))
+                                AnyShapeStyle(Color.white) :
+                                AnyShapeStyle(LinearGradient(
+                                    colors: [
+                                        Color(hex: "#00B4D8"),
+                                        Color(hex: "#0077B6")
+                                    ],
+                                    startPoint: .top,
+                                    endPoint: .bottom
+                                ))
                         )
                         .scaleEffect(isSelected ? 1.2 : 1.0)
                         .animation(MotionToken.microAnimation, value: isSelected)
-                    
+
                     Text(displayText)
                         .font(.system(size: 16, weight: .semibold, design: .rounded))
                         .foregroundStyle(isSelected ? Color.white : Color.primary)
@@ -583,7 +583,7 @@ struct HydrationTipsView: View {
     @EnvironmentObject private var gradientManager: GradientManager
     @Environment(\.colorScheme) private var colorScheme
     @State private var animateIn = false
-    
+
     private let tips = [
         ("Start Early", "Drink a glass of water when you wake up.", "sunrise.fill"),
         ("Flavor It Up", "Add lemon, cucumber, or berries to your water.", "leaf.fill"),
@@ -593,7 +593,7 @@ struct HydrationTipsView: View {
         ("Track Your Intake", "Use this app to monitor your progress!", "chart.line.uptrend.xyaxis"),
         ("Listen to Your Body", "Drink when you feel thirsty, and check urine color (pale yellow is good).", "figure.walk")
     ]
-    
+
     var body: some View {
         NavigationStack {
             BaseScreen {
@@ -603,7 +603,7 @@ struct HydrationTipsView: View {
                             .font(.system(size: 32, weight: .bold, design: .rounded))
                             .padding(.top, AppSpacing.md)
                             .padding(.horizontal, AppSpacing.md)
-                        
+
                         LazyVStack(spacing: AppSpacing.sm) {
                             ForEach(Array(tips.enumerated()), id: \.element.0) { index, tip in
                                 GlassCard {
@@ -621,18 +621,18 @@ struct HydrationTipsView: View {
                                                 )
                                             )
                                             .frame(width: 32)
-                                        
+
                                         VStack(alignment: .leading, spacing: AppSpacing.xs) {
                                             Text(tip.0)
                                                 .font(.system(size: 18, weight: .semibold, design: .rounded))
                                                 .foregroundStyle(Color.primary)
-                                            
+
                                             Text(tip.1)
                                                 .font(.system(size: 14, weight: .medium))
                                                 .foregroundStyle(Color.secondary)
                                                 .fixedSize(horizontal: false, vertical: true)
                                         }
-                                        
+
                                         Spacer()
                                     }
                                     .padding(AppSpacing.md)

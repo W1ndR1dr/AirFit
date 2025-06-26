@@ -34,19 +34,19 @@ final class WorkoutCoordinator: SheetCoordinator<WorkoutCoordinator.WorkoutDesti
     }
 
     // MARK: - Compatibility Methods (for existing code)
-    
+
     func resetNavigation() {
         popToRoot()
     }
-    
+
     func dismissSheet() {
         activeSheet = nil
     }
-    
+
     var presentedSheet: WorkoutSheet? {
         get { activeSheet }
         set { activeSheet = newValue }
     }
-    
+
     // Note: navigateTo, pop, showSheet, and handleDeepLink are inherited from BaseCoordinator
 }

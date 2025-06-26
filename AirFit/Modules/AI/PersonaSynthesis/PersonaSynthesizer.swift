@@ -8,44 +8,59 @@ struct PersonaPreview {
     let voiceDescription: String
 }
 
-/// Ultra-optimized PersonaSynthesizer - John Carmack style
-/// Target: <3s typical, <5s worst case
+/// Quality-First PersonaSynthesizer - Creating magical, unique personas
+/// Using frontier models for the best possible coaching experience
 actor PersonaSynthesizer {
     private let llmOrchestrator: LLMOrchestrator
     private let cache: AIResponseCache
-    
-    // Pre-computed templates for instant generation
-    private let voiceTemplates: [String: VoiceCharacteristics] = [
-        "high-energy": VoiceCharacteristics(energy: .high, pace: .brisk, warmth: .warm, vocabulary: .moderate, sentenceStructure: .simple),
-        "calm-supportive": VoiceCharacteristics(energy: .calm, pace: .measured, warmth: .warm, vocabulary: .moderate, sentenceStructure: .moderate),
-        "balanced": VoiceCharacteristics(energy: .moderate, pace: .natural, warmth: .friendly, vocabulary: .moderate, sentenceStructure: .moderate)
+    private var progressReporter: PersonaSynthesisProgressReporter?
+
+    // Recommended models for persona synthesis (quality-first)
+    static let recommendedModels: [(LLMModel, String)] = [
+        (.claude4Opus, "Most nuanced understanding of personality"),
+        (.o3, "Advanced reasoning for complex personas"),
+        (.gemini25Pro, "Excellent creative generation")
     ]
-    
+
     init(llmOrchestrator: LLMOrchestrator, cache: AIResponseCache) {
         self.llmOrchestrator = llmOrchestrator
         self.cache = cache
     }
-    
-    /// Generate persona in <3s typical case
+
+    /// Create a progress stream for monitoring synthesis
+    func createProgressStream() async -> AsyncStream<PersonaSynthesisProgress> {
+        let reporter = PersonaSynthesisProgressReporter()
+        self.progressReporter = reporter
+        return await reporter.makeProgressStream()
+    }
+
+    /// Generate a high-quality persona using frontier models
+    /// Quality > Speed: This is a one-time experience that defines the entire journey
     func synthesizePersona(
         from conversationData: ConversationData,
-        insights: ConversationPersonalityInsights
+        insights: ConversationPersonalityInsights,
+        preferredModel: LLMModel? = nil
     ) async throws -> PersonaProfile {
         let startTime = CFAbsoluteTimeGetCurrent()
-        
-        // Step 1: Generate everything we can locally (0ms)
-        let voiceCharacteristics = selectVoiceCharacteristics(insights: insights)
-        let adaptationRules = generateAdaptationRules(insights: insights)
-        let baseArchetype = selectArchetype(insights: insights)
-        
-        // Step 2: Single optimized LLM call for all creative content
+
+        // Report initial progress
+        await reportProgress(.preparing, progress: 0.0)
+
+        // Use user's preferred model or default to best quality
+        let model = preferredModel ?? .claude4Opus
+
+        await reportProgress(.preparing, progress: 0.05, message: "Using \(model.displayName)")
+
+        // Generate everything through the LLM for coherence and uniqueness
         let creativeContent = try await generateAllCreativeContent(
             conversationData: conversationData,
             insights: insights,
-            baseArchetype: baseArchetype
+            model: model
         )
-        
-        // Step 3: Assemble final persona
+
+        await reportProgress(.finalizing, progress: 0.95, message: "Assembling your coach")
+
+        // Assemble final persona
         let persona = PersonaProfile(
             id: UUID(),
             name: creativeContent.name,
@@ -53,177 +68,247 @@ actor PersonaSynthesizer {
             systemPrompt: creativeContent.systemPrompt,
             coreValues: creativeContent.coreValues,
             backgroundStory: creativeContent.backgroundStory,
-            voiceCharacteristics: voiceCharacteristics,
+            voiceCharacteristics: creativeContent.voiceCharacteristics,
             interactionStyle: creativeContent.interactionStyle,
-            adaptationRules: adaptationRules,
+            adaptationRules: creativeContent.adaptationRules,
             metadata: PersonaMetadata(
                 createdAt: Date(),
-                version: "3.0-optimized",
+                version: "4.0-quality",
                 sourceInsights: insights,
                 generationDuration: CFAbsoluteTimeGetCurrent() - startTime,
                 tokenCount: creativeContent.systemPrompt.count / 4,
                 previewReady: true
             )
         )
-        
+
         let duration = CFAbsoluteTimeGetCurrent() - startTime
-        AppLogger.info("Persona generated in \(String(format: "%.2f", duration))s", category: .ai)
-        
+        AppLogger.info("High-quality persona generated in \(String(format: "%.2f", duration))s using \(model.displayName)", category: .ai)
+
+        // Report completion
+        await reportProgress(.finalizing, progress: 1.0, message: "Your coach is ready!", isComplete: true)
+
         return persona
     }
-    
-    // MARK: - Local Generation (0ms)
-    
-    private func selectVoiceCharacteristics(insights: ConversationPersonalityInsights) -> VoiceCharacteristics {
-        // Direct mapping, no LLM needed
-        if insights.energyLevel == .high && insights.emotionalTone.contains("supportive") {
-            return voiceTemplates["high-energy"]!
-        } else if insights.energyLevel == .low {
-            return voiceTemplates["calm-supportive"]!
-        }
-        return voiceTemplates["balanced"]!
+
+    // MARK: - Progress Reporting
+
+    private func reportProgress(
+        _ phase: PersonaSynthesisPhase,
+        progress: Double,
+        message: String? = nil,
+        isComplete: Bool = false
+    ) async {
+        let progress = PersonaSynthesisProgress(
+            phase: phase,
+            progress: progress,
+            message: message ?? phase.displayName,
+            isComplete: isComplete
+        )
+        await progressReporter?.reportProgress(progress)
     }
-    
-    private func selectArchetype(insights: ConversationPersonalityInsights) -> String {
-        // Direct archetype mapping
-        switch (insights.motivationType, insights.dominantTraits.first ?? "") {
-        case (.achievement, _): return "The Achievement Coach"
-        case (.health, _): return "The Wellness Guide"
-        case (.social, _): return "The Team Player"
-        default: return "The Balanced Mentor"
+
+    // MARK: - Model Recommendation
+
+    /// Get the best model available from user's configured providers
+    func getBestAvailableModel() async -> LLMModel {
+        // Check which providers are configured
+        let providers = await llmOrchestrator.availableProviders
+
+        // Priority order for quality
+        let qualityOrder: [LLMModel] = [.claude4Opus, .o3, .gemini25Pro, .claude4Sonnet, .gpt4o]
+
+        for model in qualityOrder {
+            if providers.contains(model.provider) {
+                return model
+            }
         }
+
+        // Fallback to any available model
+        return LLMModel.claude4Sonnet
     }
-    
-    private func generateAdaptationRules(insights: ConversationPersonalityInsights) -> [AdaptationRule] {
-        // Pre-computed rules based on insights
-        var rules: [AdaptationRule] = []
-        
-        if insights.preferredTimes.contains("morning") {
-            rules.append(AdaptationRule(
-                trigger: .timeOfDay,
-                condition: "6-10am",
-                adjustment: "Higher energy, motivational tone"
-            ))
-        }
-        
-        if insights.stressResponse == .needsSupport {
-            rules.append(AdaptationRule(
-                trigger: .stress,
-                condition: "detected",
-                adjustment: "Increase warmth and empathy"
-            ))
-        }
-        
-        return rules
-    }
-    
+
     // MARK: - Single Optimized LLM Call
-    
+
     private struct CreativeContent {
         let name: String
         let archetype: String
         let coreValues: [String]
         let backgroundStory: String
         let systemPrompt: String
+        let voiceCharacteristics: VoiceCharacteristics
         let interactionStyle: InteractionStyle
+        let adaptationRules: [AdaptationRule]
     }
-    
+
     private func generateAllCreativeContent(
         conversationData: ConversationData,
         insights: ConversationPersonalityInsights,
-        baseArchetype: String
+        model: LLMModel
     ) async throws -> CreativeContent {
-        // Ultra-optimized prompt that generates everything in one shot
+        // Report analysis phase
+        await reportProgress(.analyzingPersonality, progress: 0.10, message: "Analyzing conversation patterns")
+
+        // Comprehensive prompt for quality-first persona generation
         let prompt = """
-        Create a fitness coach persona. Be concise and specific.
-        
-        User profile:
-        - Name: \(conversationData.userName)
-        - Goal: \(conversationData.primaryGoal)
-        - Style: \(insights.communicationStyle.rawValue), \(insights.energyLevel.rawValue) energy
-        - Type: \(baseArchetype)
-        
-        Generate JSON:
+        You are creating a unique AI fitness coach persona based on deep analysis of a user's conversation.
+        This persona will be their companion throughout their fitness journey, so it must feel authentic,
+        coherent, and perfectly matched to their personality and needs.
+
+        ## User Analysis
+
+        **Conversation Summary:**
+        \(conversationData.conversationText)
+
+        **Key Insights:**
+        - Communication Style: \(insights.communicationStyle.rawValue)
+        - Energy Level: \(insights.energyLevel.rawValue)
+        - Dominant Traits: \(insights.dominantTraits.joined(separator: ", "))
+        - Emotional Tone: \(insights.emotionalTone)
+        - Stress Response: \(insights.stressResponse.rawValue)
+        - Motivation Type: \(insights.motivationType.rawValue)
+        - Goals: \(conversationData.variables["primary_goal"] ?? "fitness improvement")
+        - Obstacles: \(conversationData.variables["obstacles"] ?? "not specified")
+
+        ## Task
+
+        Create a COMPLETELY UNIQUE coach persona. Do not use generic archetypes or templates.
+        The persona should feel like a real individual with depth, quirks, and a coherent personality.
+
+        Generate a JSON response with the following structure:
+
         {
-          "name": "Coach [unique name]",
-          "archetype": "\(baseArchetype) - [specific twist]",
-          "coreValues": ["value1", "value2", "value3"],
-          "backgroundStory": "[50 words max backstory]",
-          "systemPrompt": "[150 words max - how this coach behaves and speaks]",
-          "greetingStyle": "[their greeting]",
-          "closingStyle": "[their signoff]",
-          "encouragementPhrases": ["phrase1", "phrase2", "phrase3"],
-          "acknowledgmentStyle": "[how they acknowledge]",
-          "correctionApproach": "[how they correct]"
+          "name": "A unique, memorable coach name that fits their personality",
+          "archetype": "A creative, specific description of their coaching style (not generic)",
+          "coreValues": ["3-4 core values that drive this coach's approach"],
+          "backgroundStory": "A rich 100-150 word backstory that explains who they are, why they coach, and what makes them unique. Include specific details that make them feel real.",
+          "systemPrompt": "A comprehensive 200-300 word instruction for how this AI coach should behave. Include their speaking style, personality quirks, coaching philosophy, how they motivate, how they handle setbacks, their unique phrases or expressions, and how they adapt to the user's mood.",
+          "voiceCharacteristics": {
+            "energy": "high/moderate/calm - based on what complements the user",
+            "pace": "brisk/natural/measured - matching user preference",
+            "warmth": "warm/friendly/neutral - based on user's needs",
+            "vocabulary": "simple/moderate/advanced - matching user's style",
+            "sentenceStructure": "simple/moderate/complex - for clarity"
+          },
+          "interactionStyle": {
+            "greetingStyle": "Their unique way of saying hello",
+            "closingStyle": "Their signature sign-off",
+            "encouragementPhrases": ["5-7 unique phrases they use to motivate"],
+            "acknowledgmentStyle": "How they celebrate wins (be specific)",
+            "correctionApproach": "How they handle mistakes or suggest improvements",
+            "humorLevel": "none/light/moderate - based on user preference",
+            "formalityLevel": "casual/balanced/formal - matching user",
+            "responseLength": "concise/moderate/detailed - user preference"
+          },
+          "adaptationRules": [
+            {
+              "trigger": "timeOfDay/stress/progress/mood",
+              "condition": "specific condition description",
+              "adjustment": "how the coach adapts their style"
+            }
+          ],
+          "uniqueQuirks": ["2-3 distinctive personality traits or habits that make them memorable"],
+          "coachingPhilosophy": "A 2-3 sentence summary of their core coaching belief"
         }
+
+        Remember: This coach should feel like a real person with depth, not a generic fitness bot.
+        Make them memorable, authentic, and perfectly suited to this specific user.
         """
-        
-        // Create request with caching
-        let request = LLMRequest(
-            messages: [LLMMessage(
-                role: .user,
-                content: prompt,
-                name: nil,
-                attachments: nil
-            )],
-            model: "claude-3-haiku-20240307", // Fast model
-            temperature: 0.7,
-            maxTokens: 600,
-            systemPrompt: nil,
-            responseFormat: .json(),
-            stream: false,
-            metadata: ["task": "persona-synthesis", "context": "onboarding"],
-            thinkingBudgetTokens: nil
-        )
-        
-        // Check cache first
-        if let cached = await cache.get(request: request) {
-            return try parseCreativeContent(from: cached.content)
-        }
-        
-        // Generate new
+
+        await reportProgress(.understandingGoals, progress: 0.20, message: "Processing your fitness goals")
+
+        // More granular progress updates
+        try? await Task.sleep(for: .milliseconds(300))
+        await reportProgress(.understandingGoals, progress: 0.25, message: "Analyzing obstacles and challenges")
+
+        try? await Task.sleep(for: .milliseconds(300))
+        await reportProgress(.understandingGoals, progress: 0.30, message: "Understanding your preferences")
+
+        try? await Task.sleep(for: .milliseconds(300))
+        await reportProgress(.craftingVoice, progress: 0.35, message: "Creating unique voice characteristics")
+
+        try? await Task.sleep(for: .milliseconds(300))
+        await reportProgress(.craftingVoice, progress: 0.45, message: "Personalizing communication style")
+
+        try? await Task.sleep(for: .milliseconds(300))
+        await reportProgress(.buildingStrategies, progress: 0.55, message: "Developing coaching strategies")
+
+        try? await Task.sleep(for: .milliseconds(300))
+        await reportProgress(.buildingStrategies, progress: 0.65, message: "Tailoring motivation techniques")
+
+        // Generate comprehensive content with a single LLM call
+        await reportProgress(.generatingContent, progress: 0.75, message: "Generating personalized content")
+
+        // Quality-first: No caching for this one-time, critical generation
         let response = try await llmOrchestrator.complete(
             prompt: prompt,
             task: .personaSynthesis,
-            model: .claude4Sonnet,
-            temperature: 0.7,
-            maxTokens: 600
+            model: model,  // Use the selected frontier model
+            temperature: 0.8,  // Slightly higher for more creative personas
+            maxTokens: 1_500   // Increased for richer content
         )
-        
-        // Cache for future
-        await cache.set(request: request, response: response, ttl: 3_600)
-        
+
+        await reportProgress(.generatingContent, progress: 0.85, message: "Processing AI response")
+
+        try? await Task.sleep(for: .milliseconds(200))
+        await reportProgress(.finalizing, progress: 0.90, message: "Assembling your coach")
+
         return try parseCreativeContent(from: response.content)
     }
-    
+
     private func parseCreativeContent(from json: String) throws -> CreativeContent {
         guard let data = json.data(using: .utf8) else {
             throw PersonaError.invalidResponse("Unable to convert response to data")
         }
-        
+
         guard let parsed = try JSONSerialization.jsonObject(with: data) as? [String: Any] else {
             throw PersonaError.invalidResponse("Response is not a valid JSON object")
         }
-        
+
+        // Parse voice characteristics
+        let voiceDict = parsed["voiceCharacteristics"] as? [String: String] ?? [:]
+        let voiceCharacteristics = VoiceCharacteristics(
+            energy: VoiceCharacteristics.Energy(rawValue: voiceDict["energy"] ?? "moderate") ?? .moderate,
+            pace: VoiceCharacteristics.Pace(rawValue: voiceDict["pace"] ?? "natural") ?? .natural,
+            warmth: VoiceCharacteristics.Warmth(rawValue: voiceDict["warmth"] ?? "friendly") ?? .friendly,
+            vocabulary: VoiceCharacteristics.Vocabulary(rawValue: voiceDict["vocabulary"] ?? "moderate") ?? .moderate,
+            sentenceStructure: VoiceCharacteristics.SentenceStructure(rawValue: voiceDict["sentenceStructure"] ?? "moderate") ?? .moderate
+        )
+
+        // Parse interaction style
+        let styleDict = parsed["interactionStyle"] as? [String: Any] ?? [:]
+        let interactionStyle = InteractionStyle(
+            greetingStyle: styleDict["greetingStyle"] as? String ?? "Hey there!",
+            closingStyle: styleDict["closingStyle"] as? String ?? "Keep pushing!",
+            encouragementPhrases: styleDict["encouragementPhrases"] as? [String] ?? ["You've got this!"],
+            acknowledgmentStyle: styleDict["acknowledgmentStyle"] as? String ?? "Great work!",
+            correctionApproach: styleDict["correctionApproach"] as? String ?? "Let's adjust",
+            humorLevel: InteractionStyle.HumorLevel(rawValue: styleDict["humorLevel"] as? String ?? "light") ?? .light,
+            formalityLevel: InteractionStyle.FormalityLevel(rawValue: styleDict["formalityLevel"] as? String ?? "balanced") ?? .balanced,
+            responseLength: InteractionStyle.ResponseLength(rawValue: styleDict["responseLength"] as? String ?? "moderate") ?? .moderate
+        )
+
+        // Parse adaptation rules
+        let rulesArray = parsed["adaptationRules"] as? [[String: String]] ?? []
+        let adaptationRules = rulesArray.compactMap { dict -> AdaptationRule? in
+            guard let triggerStr = dict["trigger"],
+                  let trigger = AdaptationRule.Trigger(rawValue: triggerStr),
+                  let condition = dict["condition"],
+                  let adjustment = dict["adjustment"] else { return nil }
+            return AdaptationRule(trigger: trigger, condition: condition, adjustment: adjustment)
+        }
+
         return CreativeContent(
             name: parsed["name"] as? String ?? "Coach",
             archetype: parsed["archetype"] as? String ?? "Supportive Coach",
             coreValues: parsed["coreValues"] as? [String] ?? ["Progress", "Balance", "Consistency"],
             backgroundStory: parsed["backgroundStory"] as? String ?? "Experienced fitness coach",
             systemPrompt: parsed["systemPrompt"] as? String ?? generateDefaultSystemPrompt(),
-            interactionStyle: InteractionStyle(
-                greetingStyle: parsed["greetingStyle"] as? String ?? "Hey there!",
-                closingStyle: parsed["closingStyle"] as? String ?? "Keep pushing!",
-                encouragementPhrases: parsed["encouragementPhrases"] as? [String] ?? ["You've got this!"],
-                acknowledgmentStyle: parsed["acknowledgmentStyle"] as? String ?? "Great work!",
-                correctionApproach: parsed["correctionApproach"] as? String ?? "Let's adjust",
-                humorLevel: .light,
-                formalityLevel: .balanced,
-                responseLength: .moderate
-            )
+            voiceCharacteristics: voiceCharacteristics,
+            interactionStyle: interactionStyle,
+            adaptationRules: adaptationRules
         )
     }
-    
+
     private func generateDefaultSystemPrompt() -> String {
         "You are a supportive fitness coach who helps users achieve their goals with encouragement and expertise."
     }
@@ -242,7 +327,7 @@ extension PersonaSynthesizer {
                     try? await self.synthesizePersona(from: data, insights: insights)
                 }
             }
-            
+
             var results: [PersonaProfile] = []
             for await persona in group {
                 if let persona = persona {

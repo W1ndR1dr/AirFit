@@ -1,7 +1,7 @@
 import Foundation
 
 /// # AIService
-/// 
+///
 /// ## Purpose
 /// Production AI service that provides the primary interface for all AI operations in AirFit.
 /// Manages provider switching, model selection, cost tracking, and response caching.
@@ -23,7 +23,7 @@ import Foundation
 /// ```swift
 /// let aiService = await container.resolve(AIServiceProtocol.self)
 /// try await aiService.configure()
-/// 
+///
 /// // Send a request
 /// let request = AIRequest(systemPrompt: "You are a fitness coach", messages: [...])
 /// for try await response in aiService.sendRequest(request) {
@@ -31,7 +31,7 @@ import Foundation
 /// }
 /// ```
 actor AIService: AIServiceProtocol {
-    
+
     // MARK: - Properties
     nonisolated let serviceIdentifier = "production-ai-service"
     private var _isConfigured: Bool = false
@@ -46,25 +46,25 @@ actor AIService: AIServiceProtocol {
     nonisolated var availableModels: [AIModel] {
         get { [] } // Return empty for nonisolated access
     }
-    
+
     private let orchestrator: LLMOrchestrator
     private let apiKeyManager: APIKeyManagementProtocol
     private let cache: AIResponseCache
     private var currentModel: String = LLMModel.gemini25Flash.identifier
-    
+
     // Cost tracking
     private(set) var totalCost: Double = 0
-    
+
     // Fallback providers
     private var fallbackProviders: [AIProvider] = [.openAI, .gemini, .anthropic]
     private var cacheEnabled = true
-    
+
     // MARK: - Initialization
     init(llmOrchestrator: LLMOrchestrator) {
         self.orchestrator = llmOrchestrator
         self.apiKeyManager = llmOrchestrator.apiKeyManager
         self.cache = AIResponseCache()
-        
+
         // Initialize available models
         self._availableModels = [
             AIModel(
@@ -90,18 +90,18 @@ actor AIService: AIServiceProtocol {
             )
         ]
     }
-    
+
     // MARK: - ServiceProtocol
     func configure() async throws {
         // Check which providers have API keys
         let hasAnthropicKey = await apiKeyManager.hasAPIKey(for: .anthropic)
         let hasOpenAIKey = await apiKeyManager.hasAPIKey(for: .openAI)
         let hasGeminiKey = await apiKeyManager.hasAPIKey(for: .gemini)
-        
+
         guard hasAnthropicKey || hasOpenAIKey || hasGeminiKey else {
             throw AppError.from(ServiceError.notConfigured)
         }
-        
+
         // Set active provider and model based on available keys
         // Default to Gemini 2.5 Flash if available
         if hasGeminiKey {
@@ -114,16 +114,16 @@ actor AIService: AIServiceProtocol {
             _activeProvider = .openAI
             currentModel = LLMModel.gpt4o.identifier
         }
-        
+
         _isConfigured = true
         AppLogger.info("Production AI Service configured with provider: \(_activeProvider.rawValue)", category: .ai)
     }
-    
+
     func reset() async {
         _isConfigured = false
         _activeProvider = .anthropic
     }
-    
+
     func healthCheck() async -> ServiceHealth {
         guard _isConfigured else {
             return ServiceHealth(
@@ -134,7 +134,7 @@ actor AIService: AIServiceProtocol {
                 metadata: [:]
             )
         }
-        
+
         return ServiceHealth(
             status: .healthy,
             lastCheckTime: Date(),
@@ -143,19 +143,19 @@ actor AIService: AIServiceProtocol {
             metadata: ["provider": _activeProvider.rawValue]
         )
     }
-    
+
     // MARK: - AIServiceProtocol
     func configure(provider: AIProvider, apiKey: String, model: String?) async throws {
         // Save the API key
         try await apiKeyManager.saveAPIKey(apiKey, for: provider)
-        
+
         // Update active provider
         _activeProvider = provider
-        
+
         // Configure the service
         try await configure()
     }
-    
+
     nonisolated func sendRequest(_ request: AIRequest) -> AsyncThrowingStream<AIResponse, Error> {
         AsyncThrowingStream { continuation in
             Task {
@@ -164,15 +164,15 @@ actor AIService: AIServiceProtocol {
                     guard isConfigured else {
                         throw AppError.from(ServiceError.notConfigured)
                     }
-                    
+
                     // Build a better prompt that preserves conversation structure
                     var prompt = ""
-                    
+
                     // Add system prompt if present
                     if !request.systemPrompt.isEmpty {
                         prompt += request.systemPrompt + "\n\n"
                     }
-                    
+
                     // Add conversation history with clear role markers
                     if request.messages.count > 1 {
                         prompt += "Conversation history:\n"
@@ -185,16 +185,16 @@ actor AIService: AIServiceProtocol {
                         }
                         prompt += "\n---\n\n"
                     }
-                    
+
                     // Add the current message
                     if let lastMessage = request.messages.last {
                         let role = lastMessage.role == .user ? "User" : "Assistant"
                         prompt += "Current message:\n\(role): \(lastMessage.content)"
                     }
-                    
+
                     // Determine the task type based on context
                     let task: AITask = request.user == "onboarding" ? .conversationAnalysis : .coaching
-                    
+
                     if request.stream {
                         // Stream responses
                         let model = await self.getCurrentModel()
@@ -203,22 +203,22 @@ actor AIService: AIServiceProtocol {
                             task: task,
                             temperature: request.temperature
                         )
-                        
+
                         var fullResponse = ""
                         for try await chunk in stream {
                             fullResponse += chunk.delta
                             continuation.yield(.textDelta(chunk.delta))
-                            
+
                             if chunk.isFinished {
                                 let usage = AITokenUsage(
                                     promptTokens: chunk.usage?.promptTokens ?? 0,
                                     completionTokens: chunk.usage?.completionTokens ?? 0,
                                     totalTokens: chunk.usage?.totalTokens ?? 0
                                 )
-                                
+
                                 // Update cost tracking on actor
                                 await self.updateCost(usage: usage, model: model)
-                                
+
                                 continuation.yield(.done(usage: usage))
                             }
                         }
@@ -231,7 +231,7 @@ actor AIService: AIServiceProtocol {
                             maxTokens: request.maxTokens
                         )
                         continuation.yield(.text(llmResponse.content))
-                        
+
                         let usage = AITokenUsage(
                             promptTokens: llmResponse.usage.promptTokens,
                             completionTokens: llmResponse.usage.completionTokens,
@@ -239,7 +239,7 @@ actor AIService: AIServiceProtocol {
                         )
                         continuation.yield(.done(usage: usage))
                     }
-                    
+
                     continuation.finish()
                 } catch {
                     continuation.finish(throwing: error)
@@ -247,38 +247,38 @@ actor AIService: AIServiceProtocol {
             }
         }
     }
-    
+
     func validateConfiguration() async throws -> Bool {
         guard _isConfigured else {
             return false
         }
-        
+
         // Check if the current provider has a valid API key
         return await apiKeyManager.hasAPIKey(for: _activeProvider)
     }
-    
+
     func checkHealth() async -> ServiceHealth {
         return await healthCheck()
     }
-    
+
     nonisolated func estimateTokenCount(for text: String) -> Int {
         // Simple estimation: ~4 characters per token
         return text.count / 4
     }
-    
+
     // MARK: - Legacy Support
-    
+
     /// Analyze a goal using AI (legacy method for backward compatibility)
     func analyzeGoal(_ goalText: String) async throws -> String {
         guard _isConfigured else {
             throw AppError.from(ServiceError.notConfigured)
         }
-        
+
         let systemPrompt = """
         You are a fitness and nutrition coach. Analyze the user's goal and provide brief,
         actionable advice. Keep your response under 3 sentences and focus on practical steps.
         """
-        
+
         let request = AIRequest(
             systemPrompt: systemPrompt,
             messages: [AIChatMessage(role: .user, content: goalText, name: nil)],
@@ -288,7 +288,7 @@ actor AIService: AIServiceProtocol {
             stream: false,
             user: "user"
         )
-        
+
         var responseText = ""
         for try await response in sendRequest(request) {
             switch response {
@@ -300,57 +300,57 @@ actor AIService: AIServiceProtocol {
                 break
             }
         }
-        
+
         return responseText.isEmpty ? "I'll help you achieve your fitness goals! Let's create a personalized plan together." : responseText
     }
-    
+
     // MARK: - Cache Control
-    
+
     func setCacheEnabled(_ enabled: Bool) {
         cacheEnabled = enabled
     }
-    
+
     func clearCache() async {
         await cache.clear()
     }
-    
+
     func getCacheStatistics() async -> (hits: Int, misses: Int, size: Int) {
         let stats = await cache.getStatistics()
         return (hits: stats.hitCount, misses: stats.missCount, size: stats.memorySizeBytes)
     }
-    
+
     // MARK: - Cost Tracking
-    
+
     func resetCostTracking() {
         totalCost = 0
     }
-    
+
     func getCostBreakdown() -> [(provider: AIProvider, cost: Double)] {
         // Simple breakdown - in future could track per provider
         return [(_activeProvider, totalCost)]
     }
-    
+
     // MARK: - Private Helpers
-    
+
     private func checkConfigurationStatus() -> Bool {
         return _isConfigured
     }
-    
+
     private func getCurrentModel() -> String {
         return currentModel
     }
-    
+
     private func generateCacheKey(for request: AIRequest) -> String {
         let content = request.messages.map { $0.content }.joined(separator: "|")
         let systemPromptPart = request.systemPrompt
         let key = "\(systemPromptPart)-\(content)-\(request.temperature)"
         return key.data(using: .utf8)?.base64EncodedString() ?? key
     }
-    
+
     private func updateCost(usage: AITokenUsage, model: String) {
         if let llmModel = LLMModel(rawValue: model) {
             let cost = Double(usage.promptTokens) / 1_000.0 * llmModel.cost.input +
-                       Double(usage.completionTokens) / 1_000.0 * llmModel.cost.output
+                Double(usage.completionTokens) / 1_000.0 * llmModel.cost.output
             totalCost += cost
         }
     }

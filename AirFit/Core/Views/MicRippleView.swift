@@ -5,16 +5,16 @@ import SwiftUI
 struct MicRippleView: View {
     @Environment(\.colorScheme) private var colorScheme
     @EnvironmentObject private var gradientManager: GradientManager
-    
+
     @State private var rippleScale: CGFloat = 0.5
     @State private var rippleOpacity: Double = 0.0
     @State private var secondaryRippleScale: CGFloat = 0.5
     @State private var secondaryRippleOpacity: Double = 0.0
     @State private var isAnimating = false
-    
+
     let isRecording: Bool
     let size: CGFloat
-    
+
     init(
         isRecording: Bool = false,
         size: CGFloat = 120
@@ -22,7 +22,7 @@ struct MicRippleView: View {
         self.isRecording = isRecording
         self.size = size
     }
-    
+
     var body: some View {
         ZStack {
             // Background ripples
@@ -34,7 +34,7 @@ struct MicRippleView: View {
                     )
                     .scaleEffect(rippleScale)
                     .opacity(rippleOpacity)
-                
+
                 Circle()
                     .stroke(
                         gradientManager.currentGradient(for: colorScheme),
@@ -43,7 +43,7 @@ struct MicRippleView: View {
                     .scaleEffect(secondaryRippleScale)
                     .opacity(secondaryRippleOpacity)
             }
-            
+
             // Center microphone icon
             ZStack {
                 Circle()
@@ -55,7 +55,7 @@ struct MicRippleView: View {
                                 lineWidth: 1
                             )
                     )
-                
+
                 Image(systemName: isRecording ? "mic.fill" : "mic")
                     .font(.system(size: size * 0.3, weight: .medium))
                     .foregroundStyle(
@@ -88,10 +88,10 @@ struct MicRippleView: View {
             }
         }
     }
-    
+
     private func startRippleAnimation() {
         isAnimating = true
-        
+
         // Primary ripple
         withAnimation(
             Animation.easeOut(duration: 2.0)
@@ -100,7 +100,7 @@ struct MicRippleView: View {
             rippleScale = 2.0
             rippleOpacity = 0.0
         }
-        
+
         // Delayed secondary ripple
         DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) {
             if isAnimating {
@@ -113,12 +113,12 @@ struct MicRippleView: View {
                 }
             }
         }
-        
+
         // Initial opacity animation
         withAnimation(.easeIn(duration: 0.3)) {
             rippleOpacity = 0.6
         }
-        
+
         DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) {
             if isAnimating {
                 withAnimation(.easeIn(duration: 0.3)) {
@@ -127,10 +127,10 @@ struct MicRippleView: View {
             }
         }
     }
-    
+
     private func stopRippleAnimation() {
         isAnimating = false
-        
+
         withAnimation(.easeOut(duration: 0.3)) {
             rippleScale = 0.5
             rippleOpacity = 0.0
@@ -144,20 +144,20 @@ struct MicRippleView: View {
 
 struct VoiceInputButton: View {
     @State private var isPressed = false
-    
+
     let isRecording: Bool
     let action: () -> Void
-    
+
     var body: some View {
         MicRippleView(isRecording: isRecording)
             .scaleEffect(isPressed ? 0.95 : 1.0)
             .onTapGesture {
                 HapticService.impact(.medium)
-                
+
                 withAnimation(.easeInOut(duration: 0.1)) {
                     isPressed = true
                 }
-                
+
                 DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
                     withAnimation(.easeInOut(duration: 0.1)) {
                         isPressed = false

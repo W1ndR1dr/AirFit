@@ -2,7 +2,7 @@ import SwiftUI
 
 struct NutritionCard: View {
     @EnvironmentObject private var gradientManager: GradientManager
-    
+
     let summary: NutritionSummary
     let targets: NutritionTargets
     var onTap: (() -> Void)?

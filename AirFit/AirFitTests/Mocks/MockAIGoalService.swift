@@ -5,9 +5,9 @@ import Foundation
 // This is the AI-based goal creation and refinement service
 
 actor MockAIGoalService: AIGoalServiceProtocol {
-    
+
     // MARK: - GoalServiceProtocol (base protocol)
-    
+
     func createGoal(_ goalData: GoalCreationData, for user: User) async throws -> ServiceGoal {
         return ServiceGoal(
             id: UUID(),
@@ -19,17 +19,17 @@ actor MockAIGoalService: AIGoalServiceProtocol {
             updatedAt: Date()
         )
     }
-    
+
     func updateGoal(_ goal: ServiceGoal, updates: GoalUpdate) async throws {
         // Mock implementation - just acknowledge
         print("Mock: Updated goal \(goal.id)")
     }
-    
+
     func deleteGoal(_ goal: ServiceGoal) async throws {
         // Mock implementation - just acknowledge
         print("Mock: Deleted goal \(goal.id)")
     }
-    
+
     func getActiveGoals(for user: User) async throws -> [ServiceGoal] {
         // Return some mock goals
         return [
@@ -53,17 +53,17 @@ actor MockAIGoalService: AIGoalServiceProtocol {
             )
         ]
     }
-    
+
     func trackProgress(for goal: ServiceGoal, value: Double) async throws {
         // Mock implementation - just acknowledge
         print("Mock: Tracked progress \(value) for goal \(goal.id)")
     }
-    
+
     func checkGoalCompletion(_ goal: ServiceGoal) async -> Bool {
         // Simple check
         return goal.currentValue >= goal.target
     }
-    
+
     // MARK: - AIGoalServiceProtocol methods
 
     func createOrRefineGoal(
@@ -149,9 +149,9 @@ actor MockAIGoalService: AIGoalServiceProtocol {
 
     private func generateMilestones(for title: String, timeframe: String?) -> [GoalMilestone] {
         let startDate = Date()
-        
+
         var milestones: [GoalMilestone] = []
-        
+
         // Create baseline milestones
         milestones.append(GoalMilestone(
             title: "Complete initial fitness assessment",
@@ -159,14 +159,14 @@ actor MockAIGoalService: AIGoalServiceProtocol {
             criteria: "Complete all baseline measurements and tests",
             reward: "Unlock personalized workout plan"
         ))
-        
+
         milestones.append(GoalMilestone(
             title: "Establish consistent workout routine",
             targetDate: startDate.addingTimeInterval(TimeInterval(30 * 24 * 60 * 60)),
             criteria: "Complete 3+ workouts per week for 4 weeks",
             reward: "Earn consistency badge"
         ))
-        
+
         // Add goal-specific milestones
         if title.contains("Weight") {
             milestones.append(GoalMilestone(
@@ -190,7 +190,7 @@ actor MockAIGoalService: AIGoalServiceProtocol {
                 reward: "Celebrate progress milestone"
             ))
         }
-        
+
         return milestones
     }
 
@@ -256,16 +256,16 @@ actor MockAIGoalService: AIGoalServiceProtocol {
         let numbers = text.components(separatedBy: CharacterSet.decimalDigits.inverted)
         return numbers.compactMap { Int($0) }.first
     }
-    
+
     func suggestGoalAdjustments(
         for goal: ServiceGoal,
         user: User
     ) async throws -> [GoalAdjustment] {
         // Generate mock adjustments based on goal progress
         var adjustments: [GoalAdjustment] = []
-        
+
         let progressPercentage = (goal.currentValue / goal.target) * 100
-        
+
         if progressPercentage < 25 && goal.deadline != nil {
             adjustments.append(GoalAdjustment(
                 type: .timeline,
@@ -274,7 +274,7 @@ actor MockAIGoalService: AIGoalServiceProtocol {
                 impact: "Increases likelihood of sustainable success"
             ))
         }
-        
+
         if progressPercentage > 80 {
             adjustments.append(GoalAdjustment(
                 type: .target,
@@ -283,7 +283,7 @@ actor MockAIGoalService: AIGoalServiceProtocol {
                 impact: "Continue challenging yourself for better results"
             ))
         }
-        
+
         if goal.type == .workoutFrequency && goal.currentValue < goal.target * 0.5 {
             adjustments.append(GoalAdjustment(
                 type: .approach,
@@ -292,12 +292,12 @@ actor MockAIGoalService: AIGoalServiceProtocol {
                 impact: "Build consistency before increasing intensity"
             ))
         }
-        
+
         return adjustments
     }
-    
+
     // MARK: - Reset
-    
+
     func reset() {
         // This is an actor, so no state to reset
         // All methods return fresh data each time

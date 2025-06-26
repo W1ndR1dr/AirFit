@@ -34,7 +34,7 @@ struct WorkoutBuilderView: View {
                             .padding(.top, AppSpacing.md)
                             .opacity(animateIn ? 1 : 0)
                             .offset(y: animateIn ? 0 : -20)
-                        
+
                         // Workout Details
                         GlassCard {
                             VStack(spacing: AppSpacing.md) {
@@ -42,7 +42,7 @@ struct WorkoutBuilderView: View {
                                     Text("Workout Name")
                                         .font(.system(size: 14, weight: .medium))
                                         .foregroundStyle(Color.secondary)
-                                    
+
                                     TextField("Enter name", text: $workoutName)
                                         .font(.system(size: 18, weight: .medium, design: .rounded))
                                         .padding(AppSpacing.sm)
@@ -54,13 +54,13 @@ struct WorkoutBuilderView: View {
                                             HapticService.impact(.light)
                                         }
                                 }
-                                
+
                                 // Workout type selector
                                 VStack(alignment: .leading, spacing: AppSpacing.xs) {
                                     Text("Workout Type")
                                         .font(.system(size: 14, weight: .medium))
                                         .foregroundStyle(Color.secondary)
-                                    
+
                                     ScrollView(.horizontal, showsIndicators: false) {
                                         HStack(spacing: AppSpacing.sm) {
                                             ForEach(WorkoutType.allCases, id: \.self) { type in
@@ -75,13 +75,13 @@ struct WorkoutBuilderView: View {
                                         }
                                     }
                                 }
-                                
+
                                 // Notes
                                 VStack(alignment: .leading, spacing: AppSpacing.xs) {
                                     Text("Notes (optional)")
                                         .font(.system(size: 14, weight: .medium))
                                         .foregroundStyle(Color.secondary)
-                                    
+
                                     TextField("Add any notes...", text: $notes, axis: .vertical)
                                         .font(.system(size: 16, weight: .medium))
                                         .lineLimit(3...6)
@@ -98,7 +98,7 @@ struct WorkoutBuilderView: View {
                         .opacity(animateIn ? 1 : 0)
                         .offset(y: animateIn ? 0 : 20)
                         .animation(MotionToken.standardSpring.delay(0.1), value: animateIn)
-                        
+
                         // Exercises section
                         VStack(alignment: .leading, spacing: AppSpacing.md) {
                             HStack {
@@ -121,7 +121,7 @@ struct WorkoutBuilderView: View {
                             .opacity(animateIn ? 1 : 0)
                             .offset(y: animateIn ? 0 : 20)
                             .animation(MotionToken.standardSpring.delay(0.2), value: animateIn)
-                            
+
                             if selectedExercises.isEmpty {
                                 EmptyStateView(
                                     icon: "figure.strengthtraining.traditional",
@@ -144,7 +144,7 @@ struct WorkoutBuilderView: View {
                                     .padding(.horizontal, AppSpacing.md)
                                 }
                             }
-                            
+
                             Button {
                                 HapticService.impact(.medium)
                                 showingExercisePicker = true
@@ -173,7 +173,7 @@ struct WorkoutBuilderView: View {
                             .offset(y: animateIn ? 0 : 20)
                             .animation(MotionToken.standardSpring.delay(0.3), value: animateIn)
                         }
-                        
+
                         // Save as template option
                         GlassCard {
                             HStack {
@@ -184,9 +184,9 @@ struct WorkoutBuilderView: View {
                                         .font(.system(size: 12, weight: .medium))
                                         .foregroundStyle(Color.secondary.opacity(0.8))
                                 }
-                                
+
                                 Spacer()
-                                
+
                                 Toggle("", isOn: $saveAsTemplate)
                                     .labelsHidden()
                                     .tint(
@@ -233,12 +233,12 @@ struct WorkoutBuilderView: View {
                     .disabled(!isValid)
                     .foregroundStyle(
                         !isValid ?
-                        AnyShapeStyle(Color.secondary.opacity(0.5)) :
-                        AnyShapeStyle(LinearGradient(
-                            colors: gradientManager.active.colors(for: colorScheme),
-                            startPoint: .topLeading,
-                            endPoint: .bottomTrailing
-                        ))
+                            AnyShapeStyle(Color.secondary.opacity(0.5)) :
+                            AnyShapeStyle(LinearGradient(
+                                colors: gradientManager.active.colors(for: colorScheme),
+                                startPoint: .topLeading,
+                                endPoint: .bottomTrailing
+                            ))
                     )
                 }
             }
@@ -391,7 +391,7 @@ struct ExerciseBuilderRow: View {
                     }
                     .buttonStyle(.plain)
                 }
-                
+
                 Rectangle()
                     .fill(
                         LinearGradient(
@@ -421,7 +421,7 @@ struct ExerciseBuilderRow: View {
                                         )
                                     )
                                     .frame(width: 6, height: 6)
-                                
+
                                 Text("Set \(setIndex + 1)")
                                     .font(.system(size: 14, weight: .medium))
                                     .foregroundStyle(Color.secondary)
@@ -442,7 +442,7 @@ struct ExerciseBuilderRow: View {
                                     .onTapGesture {
                                         HapticService.impact(.light)
                                     }
-                                
+
                                 Text("reps")
                                     .font(.system(size: 12, weight: .medium))
                                     .foregroundStyle(Color.secondary.opacity(0.8))
@@ -561,7 +561,7 @@ struct ExercisePickerView: View {
                         .padding(.horizontal, AppSpacing.md)
                         .opacity(animateIn ? 1 : 0)
                         .offset(y: animateIn ? 0 : -20)
-                    
+
                     // Search bar
                     GlassCard {
                         HStack(spacing: AppSpacing.sm) {
@@ -574,14 +574,14 @@ struct ExercisePickerView: View {
                                     )
                                 )
                                 .font(.system(size: 18))
-                            
+
                             TextField("Search exercises...", text: $searchText)
                                 .textFieldStyle(.plain)
                                 .font(.system(size: 16, weight: .medium))
                                 .onTapGesture {
                                     HapticService.impact(.light)
                                 }
-                            
+
                             if !searchText.isEmpty {
                                 Button {
                                     HapticService.impact(.light)
@@ -603,7 +603,7 @@ struct ExercisePickerView: View {
                     .opacity(animateIn ? 1 : 0)
                     .offset(y: animateIn ? 0 : 20)
                     .animation(MotionToken.standardSpring.delay(0.1), value: animateIn)
-                    
+
                     if isLoading {
                         Spacer()
                         ProgressView()
@@ -667,7 +667,7 @@ private struct WorkoutTypeChip: View {
     let action: () -> Void
     @EnvironmentObject private var gradientManager: GradientManager
     @Environment(\.colorScheme) private var colorScheme
-    
+
     var body: some View {
         Button(action: action) {
             HStack(spacing: AppSpacing.xs) {
@@ -680,12 +680,12 @@ private struct WorkoutTypeChip: View {
             .padding(.vertical, AppSpacing.xs)
             .foregroundStyle(
                 isSelected ?
-                AnyShapeStyle(Color.white) :
-                AnyShapeStyle(LinearGradient(
-                    colors: gradientManager.active.colors(for: colorScheme),
-                    startPoint: .topLeading,
-                    endPoint: .bottomTrailing
-                ))
+                    AnyShapeStyle(Color.white) :
+                    AnyShapeStyle(LinearGradient(
+                        colors: gradientManager.active.colors(for: colorScheme),
+                        startPoint: .topLeading,
+                        endPoint: .bottomTrailing
+                    ))
             )
             .background {
                 if isSelected {
@@ -726,12 +726,12 @@ private struct ExerciseRow: View {
     @Environment(\.colorScheme) private var colorScheme
     @State private var isPressed = false
     @State private var animateIn = false
-    
+
     private var categoryColors: [Color] {
         // Use gradient colors for all categories
         return gradientManager.active.colors(for: colorScheme)
     }
-    
+
     private func getCategoryIcon(for category: ExerciseCategory) -> String {
         switch category {
         case .strength: return "figure.strengthtraining.traditional"
@@ -742,7 +742,7 @@ private struct ExerciseRow: View {
         case .sports: return "sportscourt"
         }
     }
-    
+
     var body: some View {
         Button(action: action) {
             GlassCard {
@@ -758,7 +758,7 @@ private struct ExerciseRow: View {
                                 )
                             )
                             .frame(width: 40, height: 40)
-                        
+
                         Image(systemName: getCategoryIcon(for: exercise.category))
                             .font(.system(size: 18, weight: .medium))
                             .foregroundStyle(
@@ -769,7 +769,7 @@ private struct ExerciseRow: View {
                                 )
                             )
                     }
-                    
+
                     VStack(alignment: .leading, spacing: AppSpacing.xs) {
                         Text(exercise.name)
                             .font(.system(size: 16, weight: .semibold, design: .rounded))
@@ -795,9 +795,9 @@ private struct ExerciseRow: View {
                                 .lineLimit(1)
                         }
                     }
-                    
+
                     Spacer()
-                    
+
                     Image(systemName: "chevron.right")
                         .font(.system(size: 14))
                         .foregroundStyle(Color.secondary.opacity(0.3))

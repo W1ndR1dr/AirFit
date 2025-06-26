@@ -15,7 +15,7 @@ final class FoodEntry: @unchecked Sendable {
     var parsingModelUsed: String?
     var parsingConfidence: Double?
     var parsingTimestamp: Date?
-    
+
     // HealthKit Integration
     var healthKitSampleIDs: [String] = []
     var healthKitSyncDate: Date?
@@ -27,7 +27,7 @@ final class FoodEntry: @unchecked Sendable {
     var nutritionData: NutritionData?
 
     var user: User?
-    
+
 
     // MARK: - Computed Properties
     var totalCalories: Int {
@@ -97,7 +97,7 @@ final class FoodEntry: @unchecked Sendable {
         self.parsingConfidence = confidence
         self.parsingTimestamp = Date()
     }
-    
+
     func duplicate() -> FoodEntry {
         let duplicateEntry = FoodEntry(
             loggedAt: self.loggedAt,
@@ -107,7 +107,7 @@ final class FoodEntry: @unchecked Sendable {
             notes: self.notes,
             user: self.user
         )
-        
+
         // Duplicate all food items
         for item in self.items {
             let duplicateItem = FoodItem(
@@ -126,7 +126,7 @@ final class FoodEntry: @unchecked Sendable {
             duplicateItem.barcode = item.barcode
             duplicateEntry.addItem(duplicateItem)
         }
-        
+
         return duplicateEntry
     }
 }
@@ -161,7 +161,7 @@ enum MealType: String, Codable, CaseIterable, Sendable {
         case .postWorkout: return DateComponents(hour: 19, minute: 0)
         }
     }
-    
+
     var emoji: String {
         switch self {
         case .breakfast: return "🍳"

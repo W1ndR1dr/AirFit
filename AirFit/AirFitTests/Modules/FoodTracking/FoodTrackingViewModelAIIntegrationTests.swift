@@ -16,19 +16,19 @@ final class FoodTrackingViewModelAIIntegrationTests: XCTestCase {
 
     override func setUp() {
         super.setUp()
-        
+
         // Create in-memory model container
         let schema = Schema([User.self, FoodEntry.self, FoodItem.self])
         let configuration = ModelConfiguration(schema: schema, isStoredInMemoryOnly: true)
         modelContainer = try ModelContainer(for: schema, configurations: [configuration])
         let modelContext = ModelContext(modelContainer)
-        
+
         // Create test user
         testUser = User(
             email: "test@example.com",
             name: "Test User"
         )
-        
+
         modelContext.insert(testUser)
         do {
 
@@ -39,7 +39,7 @@ final class FoodTrackingViewModelAIIntegrationTests: XCTestCase {
             XCTFail("Failed to save test context: \(error)")
 
         }
-        
+
         // Create mocks
         mockCoachEngine = LocalMockCoachEngine()
         // Use real VoiceInputManager since it's a final class
@@ -48,7 +48,7 @@ final class FoodTrackingViewModelAIIntegrationTests: XCTestCase {
         mockVoiceInputManager = MockVoiceInputManager() // Keep for reference but not used directly
         mockNutritionService = MockNutritionService()
         coordinator = FoodTrackingCoordinator()
-        
+
         // Create SUT
         sut = FoodTrackingViewModel(
             modelContext: modelContext,
@@ -104,7 +104,7 @@ final class FoodTrackingViewModelAIIntegrationTests: XCTestCase {
         // Then
         XCTAssertFalse(sut.isProcessingAI, "Should complete AI processing")
         XCTAssertEqual(sut.parsedItems.count, 1, "Should parse single item")
-        
+
         let parsedItem = sut.parsedItems.first!
         XCTAssertEqual(parsedItem.name, "banana", "Should parse correct food name")
         XCTAssertEqual(parsedItem.calories, 105, "Should have realistic calories, not hardcoded 100")
@@ -112,7 +112,7 @@ final class FoodTrackingViewModelAIIntegrationTests: XCTestCase {
         XCTAssertNotEqual(parsedItem.carbGrams, 15.0, "Should not have hardcoded 15g carbs")
         XCTAssertNotEqual(parsedItem.fatGrams, 3.0, "Should not have hardcoded 3g fat")
         XCTAssertGreaterThan(parsedItem.confidence, 0.9, "Should have high confidence for common food")
-        
+
         // Verify coordination to confirmation screen
         if case .confirmation(let items) = coordinator.activeFullScreenCover {
             XCTAssertEqual(items.count, 1, "Coordinator should receive parsed items")
@@ -166,18 +166,18 @@ final class FoodTrackingViewModelAIIntegrationTests: XCTestCase {
         // Then
         XCTAssertFalse(sut.isProcessingAI)
         XCTAssertEqual(sut.parsedItems.count, 2, "Should parse multiple items")
-        
+
         // Verify first item (eggs)
         let eggs = sut.parsedItems.first { $0.name == "eggs" }
         XCTAssertNotNil(eggs, "Should parse eggs")
         XCTAssertEqual(eggs?.calories, 140, "Eggs should have realistic calories")
         XCTAssertEqual(eggs?.quantity, 2.0, "Should preserve quantity")
-        
+
         // Verify second item (toast)
         let toast = sut.parsedItems.first { $0.name == "toast" }
         XCTAssertNotNil(toast, "Should parse toast")
         XCTAssertEqual(toast?.calories, 80, "Toast should have different calories than eggs")
-        
+
         // Verify different foods have different nutrition profiles
         XCTAssertNotEqual(eggs?.calories, toast?.calories, "Different foods should have different calories")
         XCTAssertNotEqual(eggs?.proteinGrams, toast?.proteinGrams, "Different foods should have different protein")
@@ -187,7 +187,7 @@ final class FoodTrackingViewModelAIIntegrationTests: XCTestCase {
         // Given
         mockVoiceInputManager.mockTranscriptionResult = "grilled chicken breast with quinoa and steamed vegetables"
         sut.selectedMealType = .dinner
-        
+
         let complexItems = [
             ParsedFoodItem(
                 name: "grilled chicken breast",
@@ -244,14 +244,14 @@ final class FoodTrackingViewModelAIIntegrationTests: XCTestCase {
         // Then
         XCTAssertFalse(sut.isProcessingAI)
         XCTAssertEqual(sut.parsedItems.count, 3, "Should parse all complex components")
-        
+
         // Verify meal type context was preserved
         XCTAssertEqual(mockCoachEngine.lastMealType, MealType.dinner, "Should pass meal type context to AI")
-        
+
         // Verify cooking method is preserved
         let chicken = sut.parsedItems.first { $0.name.contains("grilled") }
         XCTAssertNotNil(chicken, "Should preserve cooking method in food name")
-        
+
         // Verify total nutrition makes sense for a dinner
         let totalCalories = sut.parsedItems.reduce(0) { $0 + $1.calories }
         XCTAssertGreaterThan(totalCalories, 300, "Dinner should have substantial calories")
@@ -324,14 +324,14 @@ final class FoodTrackingViewModelAIIntegrationTests: XCTestCase {
         // Then
         XCTAssertFalse(sut.isProcessingAI, "Should complete processing")
         XCTAssertNotNil(sut.error, "Should set error when AI parsing fails")
-        
+
         if let error = sut.error as? AppError,
            case .unknown(let message) = error {
             XCTAssertEqual(message, "AI parsing failed", "Should preserve AI parsing error")
         } else {
             XCTFail("Error should be AppError.unknown with AI parsing failed message")
         }
-        
+
         XCTAssertEqual(sut.parsedItems.count, 0, "Should not have parsed items on error")
         XCTAssertNil(coordinator.activeFullScreenCover, "Should not show confirmation on error")
     }
@@ -349,7 +349,7 @@ final class FoodTrackingViewModelAIIntegrationTests: XCTestCase {
         // Then
         XCTAssertFalse(sut.isProcessingAI)
         XCTAssertNotNil(sut.error)
-        
+
         if let error = sut.error as? AppError,
            case .networkError = error {
             XCTAssertTrue(true, "Should handle network errors")
@@ -370,14 +370,14 @@ final class FoodTrackingViewModelAIIntegrationTests: XCTestCase {
         // Then
         XCTAssertFalse(sut.isProcessingAI)
         XCTAssertNotNil(sut.error)
-        
+
         if let error = sut.error as? AppError,
            case .validationError(let message) = error {
             XCTAssertEqual(message, "No food detected", "Should show error when no food is detected")
         } else {
             XCTFail("Should show noFoodFound error")
         }
-        
+
         XCTAssertEqual(sut.parsedItems.count, 0, "Should have no parsed items")
         XCTAssertNil(coordinator.activeFullScreenCover, "Should not show confirmation when no food found")
     }
@@ -386,7 +386,7 @@ final class FoodTrackingViewModelAIIntegrationTests: XCTestCase {
 
     func test_processTranscription_preservesMealTypeContext() async throws {
         let mealTypeTests: [MealType] = [.breakfast, .lunch, .dinner, .snack]
-        
+
         for mealType in mealTypeTests {
             // Given
             sut.selectedMealType = mealType
@@ -408,7 +408,7 @@ final class FoodTrackingViewModelAIIntegrationTests: XCTestCase {
                     confidence: 0.75
                 )
             ]
-            
+
             // Reset mock state
             mockCoachEngine.lastMealType = nil
             mockCoachEngine.wasParseNaturalLanguageFoodCalled = false
@@ -453,7 +453,7 @@ final class FoodTrackingViewModelAIIntegrationTests: XCTestCase {
         // Then
         XCTAssertEqual(sut.parsedItems.count, 1)
         let item = sut.parsedItems.first!
-        
+
         // Verify realistic nutrition values
         XCTAssertGreaterThan(item.calories, 0, "Calories should be positive")
         XCTAssertLessThan(item.calories, 200, "Apple calories should be reasonable")
@@ -471,7 +471,7 @@ final class FoodTrackingViewModelAIIntegrationTests: XCTestCase {
             ("chicken breast", 280),
             ("brown rice", 216)
         ]
-        
+
         for (food, expectedCalories) in testFoods {
             // Given
             mockVoiceInputManager.mockTranscriptionResult = food
@@ -492,7 +492,7 @@ final class FoodTrackingViewModelAIIntegrationTests: XCTestCase {
                     confidence: 0.90
                 )
             ]
-            
+
             // When
             await sut.startRecording()
             await sut.stopRecording()
@@ -500,13 +500,13 @@ final class FoodTrackingViewModelAIIntegrationTests: XCTestCase {
             // Then
             XCTAssertEqual(sut.parsedItems.count, 1, "Should parse \(food)")
             let item = sut.parsedItems.first!
-            
+
             // Verify no hardcoded placeholder values
             XCTAssertNotEqual(item.calories, 100, "\(food) should not have hardcoded 100 calories")
             XCTAssertNotEqual(item.proteinGrams, 5.0, "\(food) should not always have 5g protein")
             XCTAssertNotEqual(item.carbGrams, 15.0, "\(food) should not always have 15g carbs")
             XCTAssertNotEqual(item.fatGrams, 3.0, "\(food) should not always have 3g fat")
-            
+
             // Verify expected realistic values
             XCTAssertEqual(item.calories, expectedCalories, "\(food) should have expected calories")
         }
@@ -538,16 +538,16 @@ final class FoodTrackingViewModelAIIntegrationTests: XCTestCase {
 
         // When/Then
         XCTAssertFalse(sut.isProcessingAI, "Should start with isProcessingAI false")
-        
+
         let processingTask = Task {
             await sut.startRecording()
             await sut.stopRecording()
         }
-        
+
         // Give a small delay to let processing start
         try await Task.sleep(nanoseconds: 100_000_000) // 0.1 seconds
         XCTAssertTrue(sut.isProcessingAI, "Should set isProcessingAI true during processing")
-        
+
         await processingTask.value
         XCTAssertFalse(sut.isProcessingAI, "Should set isProcessingAI false after completion")
     }
@@ -639,11 +639,11 @@ class LocalMockCoachEngine: FoodCoachEngineProtocol {
     var lastMealType: MealType?
     var lastUserPassed: User?
     var wasParseNaturalLanguageFoodCalled = false
-    
+
     func processUserMessage(_ message: String, context: HealthContextSnapshot?) async throws -> [String: SendableValue] {
         return [:]
     }
-    
+
     func executeFunction(_ functionCall: AIFunctionCall, for user: User) async throws -> FunctionExecutionResult {
         return FunctionExecutionResult(
             success: true,
@@ -653,7 +653,7 @@ class LocalMockCoachEngine: FoodCoachEngineProtocol {
             functionName: functionCall.name
         )
     }
-    
+
     func analyzeMealPhoto(image: UIImage, context: NutritionContext?) async throws -> MealPhotoAnalysisResult {
         return MealPhotoAnalysisResult(
             items: mockParseResult,
@@ -661,11 +661,11 @@ class LocalMockCoachEngine: FoodCoachEngineProtocol {
             processingTime: 0.5
         )
     }
-    
+
     func searchFoods(query: String, limit: Int) async throws -> [ParsedFoodItem] {
         return mockParseResult
     }
-    
+
     func parseNaturalLanguageFood(
         text: String,
         mealType: MealType,
@@ -674,15 +674,15 @@ class LocalMockCoachEngine: FoodCoachEngineProtocol {
         wasParseNaturalLanguageFoodCalled = true
         lastMealType = mealType
         lastUserPassed = user
-        
+
         if shouldThrowError {
             throw errorToThrow
         }
-        
+
         if simulateDelay > 0 {
             try await Task.sleep(nanoseconds: UInt64(simulateDelay * 1_000_000_000))
         }
-        
+
         return mockParseResult
     }
 }

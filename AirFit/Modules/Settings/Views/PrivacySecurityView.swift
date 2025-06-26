@@ -5,7 +5,7 @@ struct PrivacySecurityView: View {
     @Bindable var viewModel: SettingsViewModel
     @State private var showPrivacyPolicy = false
     @State private var showTermsOfService = false
-    
+
     var body: some View {
         BaseScreen {
             ScrollView {
@@ -19,7 +19,7 @@ struct PrivacySecurityView: View {
                     .padding(.horizontal, AppSpacing.lg)
                     .padding(.top, AppSpacing.sm)
                     .padding(.bottom, AppSpacing.lg)
-                    
+
                     VStack(spacing: AppSpacing.xl) {
                         biometricSection
                         dataPrivacySection
@@ -40,7 +40,7 @@ struct PrivacySecurityView: View {
             SafariView(url: URL(string: AppConstants.termsOfServiceURL)!)
         }
     }
-    
+
     private var biometricSection: some View {
         VStack(alignment: .leading, spacing: AppSpacing.md) {
             HStack {
@@ -50,7 +50,7 @@ struct PrivacySecurityView: View {
                     .foregroundStyle(.secondary.opacity(0.8))
                 Spacer()
             }
-            
+
             GlassCard {
                 VStack(spacing: AppSpacing.md) {
                     Toggle(isOn: $viewModel.biometricLockEnabled) {
@@ -81,10 +81,10 @@ struct PrivacySecurityView: View {
                             }
                         }
                     }
-                    
+
                     if viewModel.biometricLockEnabled {
                         Divider()
-                        
+
                         Label {
                             Text("Face ID will be required when opening the app")
                                 .font(.caption)
@@ -99,7 +99,7 @@ struct PrivacySecurityView: View {
             }
         }
     }
-    
+
     private var dataPrivacySection: some View {
         VStack(alignment: .leading, spacing: AppSpacing.md) {
             HStack {
@@ -109,7 +109,7 @@ struct PrivacySecurityView: View {
                     .foregroundStyle(.secondary.opacity(0.8))
                 Spacer()
             }
-            
+
             GlassCard {
                 VStack(spacing: AppSpacing.md) {
                     PrivacyRow(
@@ -118,27 +118,27 @@ struct PrivacySecurityView: View {
                         icon: "heart.text.square",
                         status: .secure
                     )
-                    
+
                     Divider()
-                    
+
                     PrivacyRow(
                         title: "AI Conversations",
                         description: "Chat history is encrypted and stored on device",
                         icon: "bubble.left.and.bubble.right",
                         status: .secure
                     )
-                    
+
                     Divider()
-                    
+
                     PrivacyRow(
                         title: "API Keys",
                         description: "Stored securely in device keychain",
                         icon: "key.fill",
                         status: .secure
                     )
-                    
+
                     Divider()
-                    
+
                     PrivacyRow(
                         title: "Location Data",
                         description: "Not collected or used",
@@ -149,7 +149,7 @@ struct PrivacySecurityView: View {
             }
         }
     }
-    
+
     private var analyticsSection: some View {
         VStack(alignment: .leading, spacing: AppSpacing.md) {
             HStack {
@@ -159,7 +159,7 @@ struct PrivacySecurityView: View {
                     .foregroundStyle(.secondary.opacity(0.8))
                 Spacer()
             }
-            
+
             GlassCard {
                 VStack(spacing: AppSpacing.md) {
                     Toggle(isOn: $viewModel.analyticsEnabled) {
@@ -181,15 +181,15 @@ struct PrivacySecurityView: View {
                             try await viewModel.updateAnalytics(newValue)
                         }
                     }
-                    
+
                     if viewModel.analyticsEnabled {
                         Divider()
-                        
+
                         VStack(alignment: .leading, spacing: AppSpacing.sm) {
                             Label("What we collect:", systemImage: "info.circle")
                                 .font(.caption.bold())
                                 .foregroundStyle(.secondary)
-                            
+
                             VStack(alignment: .leading, spacing: AppSpacing.xs) {
                                 Text("• App crashes and errors")
                                 Text("• Feature usage statistics")
@@ -197,12 +197,12 @@ struct PrivacySecurityView: View {
                             }
                             .font(.caption2)
                             .foregroundStyle(.secondary)
-                            
+
                             Label("What we don't collect:", systemImage: "xmark.circle")
                                 .font(.caption.bold())
                                 .foregroundStyle(.secondary)
                                 .padding(.top, AppSpacing.xs)
-                            
+
                             VStack(alignment: .leading, spacing: AppSpacing.xs) {
                                 Text("• Personal health data")
                                 Text("• AI conversation content")
@@ -216,7 +216,7 @@ struct PrivacySecurityView: View {
             }
         }
     }
-    
+
     private var legalSection: some View {
         VStack(alignment: .leading, spacing: AppSpacing.md) {
             HStack {
@@ -226,7 +226,7 @@ struct PrivacySecurityView: View {
                     .foregroundStyle(.secondary.opacity(0.8))
                 Spacer()
             }
-            
+
             GlassCard {
                 VStack(spacing: 0) {
                     Button(action: { showPrivacyPolicy = true }, label: {
@@ -240,9 +240,9 @@ struct PrivacySecurityView: View {
                         .padding(.vertical, AppSpacing.sm)
                     })
                     .buttonStyle(.plain)
-                    
+
                     Divider()
-                    
+
                     Button(action: { showTermsOfService = true }, label: {
                         HStack {
                             Label("Terms of Service", systemImage: "doc.text")
@@ -266,18 +266,18 @@ struct PrivacyRow: View {
     let description: String
     let icon: String
     let status: PrivacyStatus
-    
+
     enum PrivacyStatus {
         case secure
         case notCollected
-        
+
         var color: Color {
             switch self {
             case .secure: return .green
             case .notCollected: return .blue
             }
         }
-        
+
         var statusIcon: String {
             switch self {
             case .secure: return "lock.fill"
@@ -285,25 +285,25 @@ struct PrivacyRow: View {
             }
         }
     }
-    
+
     var body: some View {
         HStack(alignment: .top, spacing: AppSpacing.md) {
             Image(systemName: icon)
                 .font(.title3)
                 .foregroundStyle(.tint)
                 .frame(width: 28)
-            
+
             VStack(alignment: .leading, spacing: AppSpacing.xs) {
                 Text(title)
                     .font(.subheadline.bold())
-                
+
                 Text(description)
                     .font(.caption)
                     .foregroundStyle(.secondary)
             }
-            
+
             Spacer()
-            
+
             Image(systemName: status.statusIcon)
                 .font(.caption)
                 .foregroundStyle(status.color)
@@ -314,10 +314,10 @@ struct PrivacyRow: View {
 // MARK: - Safari View
 struct SafariView: UIViewControllerRepresentable {
     let url: URL
-    
+
     func makeUIViewController(context: Context) -> SFSafariViewController {
         SFSafariViewController(url: url)
     }
-    
+
     func updateUIViewController(_ uiViewController: SFSafariViewController, context: Context) {}
 }

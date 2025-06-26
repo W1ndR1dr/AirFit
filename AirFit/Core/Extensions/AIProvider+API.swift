@@ -1,7 +1,7 @@
 import Foundation
 
 extension AIProvider {
-    
+
     /// Base URL for each AI provider's API
     var baseURL: URL {
         switch self {
@@ -13,7 +13,7 @@ extension AIProvider {
             return URL(string: "https://generativelanguage.googleapis.com")!
         }
     }
-    
+
     /// Display name for UI
     var displayName: String {
         switch self {
@@ -25,7 +25,7 @@ extension AIProvider {
             return "Google Gemini"
         }
     }
-    
+
     /// Icon name for UI
     var iconName: String {
         switch self {
@@ -37,7 +37,7 @@ extension AIProvider {
             return "sparkle"
         }
     }
-    
+
     /// Default model for each provider
     var defaultModel: String {
         switch self {
@@ -49,7 +49,7 @@ extension AIProvider {
             return "gemini-1.5-flash-002"
         }
     }
-    
+
     /// Available models for each provider
     var availableModels: [String] {
         switch self {
@@ -79,7 +79,7 @@ extension AIProvider {
             ]
         }
     }
-    
+
     /// Maximum context window for default model
     var defaultContextWindow: Int {
         switch self {
@@ -91,7 +91,7 @@ extension AIProvider {
             return 30_720 // Gemini Pro
         }
     }
-    
+
     /// Whether the provider supports function calling
     var supportsFunctionCalling: Bool {
         switch self {
@@ -99,7 +99,7 @@ extension AIProvider {
             return true
         }
     }
-    
+
     /// Whether the provider supports vision/image inputs
     var supportsVision: Bool {
         switch self {
@@ -107,7 +107,7 @@ extension AIProvider {
             return true
         }
     }
-    
+
     /// Rate limit (requests per minute) for free tier
     var freeRateLimit: Int? {
         switch self {
@@ -119,7 +119,7 @@ extension AIProvider {
             return 60 // Gemini free tier
         }
     }
-    
+
     /// Required headers for authentication
     func authHeaders(apiKey: String) -> [String: String] {
         switch self {
@@ -134,7 +134,7 @@ extension AIProvider {
             return ["x-goog-api-key": apiKey]
         }
     }
-    
+
     /// Streaming endpoint path
     func streamingEndpoint(for model: String) -> String {
         switch self {
@@ -146,7 +146,7 @@ extension AIProvider {
             return "v1beta/models/\(model):streamGenerateContent"
         }
     }
-    
+
     /// Parse model pricing ($ per 1M tokens)
     func pricing(for model: String) -> (input: Double, output: Double)? {
         switch self {
@@ -195,12 +195,12 @@ extension AIProvider {
             }
         }
     }
-    
+
     /// Validate if a model string is valid for this provider
     func isValidModel(_ model: String) -> Bool {
         availableModels.contains(model)
     }
-    
+
     /// Get a descriptive error message for common provider errors
     func errorMessage(for code: String) -> String? {
         switch self {

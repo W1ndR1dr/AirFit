@@ -10,31 +10,31 @@ final class AICoachServiceTests: XCTestCase {
     private var mockCoachEngine: MockCoachEngine!
     private var modelContext: ModelContext!
     private var testUser: User!
-    
+
     // MARK: - Setup
     override func setUp() async throws {
         try super.setUp()
-        
+
         // Create test container
         container = try await DITestHelper.createTestContainer()
-        
+
         // Get model context from container
         let modelContainer = try await container.resolve(ModelContainer.self)
         modelContext = modelContainer.mainContext
-        
+
         // Create test user
         testUser = User(email: "test@example.com", name: "Test User")
         modelContext.insert(testUser)
         try modelContext.save()
-        
+
         // Get mock from container
         mockCoachEngine = try await container.resolve(CoachEngineProtocol.self) as? MockCoachEngine
         XCTAssertNotNil(mockCoachEngine, "Expected MockCoachEngine from test container")
-        
+
         // Create service with injected dependencies
         sut = AICoachService(coachEngine: mockCoachEngine)
     }
-    
+
     override func tearDown() async throws {
         mockCoachEngine?.reset()
         sut = nil
@@ -44,25 +44,25 @@ final class AICoachServiceTests: XCTestCase {
         testUser = nil
         try super.tearDown()
     }
-    
+
     // MARK: - Basic Greeting Tests
-    
+
     func test_generateMorningGreeting_withMinimalContext_returnsGreeting() async throws {
         // Arrange
         let modelContext = GreetingContext(
             userName: testUser.name,
             dayOfWeek: "Monday"
         )
-        
+
         // Act
         let greeting = try await sut.generateMorningGreeting(for: testUser, context: context)
-        
+
         // Assert
         XCTAssertFalse(greeting.isEmpty)
         XCTAssertEqual(greeting, "Good morning! Let's make today great.")
         XCTAssertEqual(mockCoachEngine.processMessageCalls.count, 1)
     }
-    
+
     func test_generateMorningGreeting_withFullContext_buildsCompletePrompt() async throws {
         // Arrange
         let modelContext = GreetingContext(
@@ -76,14 +76,14 @@ final class AICoachServiceTests: XCTestCase {
             dayOfWeek: "Tuesday",
             recentAchievements: ["5-day workout streak", "New PR on bench press"]
         )
-        
+
         // Act
         let greeting = try await sut.generateMorningGreeting(for: testUser, context: context)
-        
+
         // Assert
         XCTAssertFalse(greeting.isEmpty)
         XCTAssertEqual(mockCoachEngine.processMessageCalls.count, 1)
-        
+
         // Verify the prompt contains context elements
         let sentPrompt = mockCoachEngine.processMessageCalls.first?.message ?? ""
         XCTAssertTrue(sentPrompt.contains("Test User"))
@@ -91,7 +91,7 @@ final class AICoachServiceTests: XCTestCase {
         XCTAssertTrue(sentPrompt.contains("Sunny, 22°C"))
         XCTAssertTrue(sentPrompt.contains("Chest workout at 6 PM"))
     }
-    
+
     func test_generateMorningGreeting_withSleepContext_includesSleepInfo() async throws {
         // Arrange
         let modelContext = GreetingContext(
@@ -100,16 +100,16 @@ final class AICoachServiceTests: XCTestCase {
             sleepQuality: "Poor",
             dayOfWeek: "Wednesday"
         )
-        
+
         // Act
         let greeting = try await sut.generateMorningGreeting(for: testUser, context: context)
-        
+
         // Assert
         XCTAssertFalse(greeting.isEmpty)
         let sentPrompt = mockCoachEngine.processMessageCalls.first?.message ?? ""
         XCTAssertTrue(sentPrompt.contains("5.2 hours"))
     }
-    
+
     func test_generateMorningGreeting_withWeatherContext_includesWeather() async throws {
         // Arrange
         let modelContext = GreetingContext(
@@ -118,16 +118,16 @@ final class AICoachServiceTests: XCTestCase {
             temperature: 15.0,
             dayOfWeek: "Thursday"
         )
-        
+
         // Act
         let greeting = try await sut.generateMorningGreeting(for: testUser, context: context)
-        
+
         // Assert
         XCTAssertFalse(greeting.isEmpty)
         let sentPrompt = mockCoachEngine.processMessageCalls.first?.message ?? ""
         XCTAssertTrue(sentPrompt.contains("Rainy, 15°C"))
     }
-    
+
     func test_generateMorningGreeting_withScheduleContext_includesSchedule() async throws {
         // Arrange
         let modelContext = GreetingContext(
@@ -135,18 +135,18 @@ final class AICoachServiceTests: XCTestCase {
             todaysSchedule: "Morning run, then leg day workout",
             dayOfWeek: "Friday"
         )
-        
+
         // Act
         let greeting = try await sut.generateMorningGreeting(for: testUser, context: context)
-        
+
         // Assert
         XCTAssertFalse(greeting.isEmpty)
         let sentPrompt = mockCoachEngine.processMessageCalls.first?.message ?? ""
         XCTAssertTrue(sentPrompt.contains("Morning run, then leg day workout"))
     }
-    
+
     // MARK: - Persona Integration Tests
-    
+
     func test_generateMorningGreeting_withCoachPersona_includesPersonaContext() async throws {
         // Arrange
         let persona = CoachPersona(
@@ -164,21 +164,21 @@ final class AICoachServiceTests: XCTestCase {
         )
         let personaData = try JSONEncoder().encode(persona)
         testUser.coachPersonaData = personaData
-        
+
         let modelContext = GreetingContext(
             userName: testUser.name,
             dayOfWeek: "Saturday"
         )
-        
+
         // Act
         let greeting = try await sut.generateMorningGreeting(for: testUser, context: context)
-        
+
         // Assert
         XCTAssertFalse(greeting.isEmpty)
         let sentPrompt = mockCoachEngine.processMessageCalls.first?.message ?? ""
         XCTAssertTrue(sentPrompt.contains("friendly and encouraging tone"))
     }
-    
+
     func test_generateMorningGreeting_withNilUserName_stillGeneratesGreeting() async throws {
         // Arrange
         testUser.name = nil
@@ -186,28 +186,28 @@ final class AICoachServiceTests: XCTestCase {
             userName: "",
             dayOfWeek: "Sunday"
         )
-        
+
         // Act
         let greeting = try await sut.generateMorningGreeting(for: testUser, context: context)
-        
+
         // Assert
         XCTAssertFalse(greeting.isEmpty)
         let sentPrompt = mockCoachEngine.processMessageCalls.first?.message ?? ""
         XCTAssertTrue(sentPrompt.contains("the user"))
     }
-    
+
     // MARK: - Error Handling Tests
-    
+
     func test_generateMorningGreeting_whenCoachEngineThrows_propagatesError() async throws {
         // Arrange
         mockCoachEngine.shouldThrowError = true
         mockCoachEngine.errorToThrow = CoachEngineError.aiServiceUnavailable
-        
+
         let modelContext = GreetingContext(
             userName: testUser.name,
             dayOfWeek: "Monday"
         )
-        
+
         // Act & Assert
         do {
             _ = try await sut.generateMorningGreeting(for: testUser, context: context)
@@ -216,7 +216,7 @@ final class AICoachServiceTests: XCTestCase {
             XCTAssertEqual(error as? CoachEngineError, .aiServiceUnavailable)
         }
     }
-    
+
     func test_generateMorningGreeting_withInvalidPersonaData_handlesGracefully() async throws {
         // Arrange
         testUser.coachPersonaData = Data("invalid json".utf8)
@@ -224,18 +224,18 @@ final class AICoachServiceTests: XCTestCase {
             userName: testUser.name,
             dayOfWeek: "Monday"
         )
-        
+
         // Act
         let greeting = try await sut.generateMorningGreeting(for: testUser, context: context)
-        
+
         // Assert
         XCTAssertFalse(greeting.isEmpty)
         // Should still generate greeting even with invalid persona data
         XCTAssertEqual(greeting, "Good morning! Let's make today great.")
     }
-    
+
     // MARK: - Edge Cases
-    
+
     func test_generateMorningGreeting_withVeryLongContext_truncatesGracefully() async throws {
         // Arrange
         let veryLongSchedule = String(repeating: "Workout, ", count: 100)
@@ -245,16 +245,16 @@ final class AICoachServiceTests: XCTestCase {
             dayOfWeek: "Monday",
             recentAchievements: Array(repeating: "Achievement", count: 50)
         )
-        
+
         // Act
         let greeting = try await sut.generateMorningGreeting(for: testUser, context: context)
-        
+
         // Assert
         XCTAssertFalse(greeting.isEmpty)
         // Verify it still processes without crashing
         XCTAssertEqual(mockCoachEngine.processMessageCalls.count, 1)
     }
-    
+
     func test_generateMorningGreeting_withSpecialCharactersInName_handlesCorrectly() async throws {
         // Arrange
         testUser.name = "Test@User#123"
@@ -262,35 +262,35 @@ final class AICoachServiceTests: XCTestCase {
             userName: testUser.name,
             dayOfWeek: "Monday"
         )
-        
+
         // Act
         let greeting = try await sut.generateMorningGreeting(for: testUser, context: context)
-        
+
         // Assert
         XCTAssertFalse(greeting.isEmpty)
         let sentPrompt = mockCoachEngine.processMessageCalls.first?.message ?? ""
         XCTAssertTrue(sentPrompt.contains("Test@User#123"))
     }
-    
+
     func test_generateMorningGreeting_withEmptyContext_stillGeneratesValidPrompt() async throws {
         // Arrange
         let modelContext = GreetingContext()  // All defaults
-        
+
         // Act
         let greeting = try await sut.generateMorningGreeting(for: testUser, context: context)
-        
+
         // Assert
         XCTAssertFalse(greeting.isEmpty)
         XCTAssertEqual(mockCoachEngine.processMessageCalls.count, 1)
-        
+
         // Verify basic prompt structure
         let sentPrompt = mockCoachEngine.processMessageCalls.first?.message ?? ""
         XCTAssertTrue(sentPrompt.contains("Generate a brief, personalized morning greeting"))
         XCTAssertTrue(sentPrompt.contains("Keep it under 2 sentences"))
     }
-    
+
     // MARK: - Performance Tests
-    
+
     func test_generateMorningGreeting_performance() async throws {
         // Arrange
         let modelContext = GreetingContext(
@@ -300,16 +300,16 @@ final class AICoachServiceTests: XCTestCase {
             todaysSchedule: "Workout day",
             dayOfWeek: "Monday"
         )
-        
+
         // Act & Measure
         let startTime = CFAbsoluteTimeGetCurrent()
         _ = try await sut.generateMorningGreeting(for: testUser, context: context)
         let duration = CFAbsoluteTimeGetCurrent() - startTime
-        
+
         // Assert
         XCTAssertLessThan(duration, 0.1, "Greeting generation should be fast")
     }
-    
+
     func test_generateMorningGreeting_multipleCallsConcurrently_handlesCorrectly() async throws {
         // Arrange
         let contexts = (0..<5).map { i in
@@ -318,7 +318,7 @@ final class AICoachServiceTests: XCTestCase {
                 dayOfWeek: "Monday"
             )
         }
-        
+
         // Act
         let greetings = await withTaskGroup(of: String?.self) { group in
             for (index, context) in contexts.enumerated() {
@@ -329,7 +329,7 @@ final class AICoachServiceTests: XCTestCase {
                     )
                 }
             }
-            
+
             var results: [String] = []
             for await greeting in group {
                 if let greeting = greeting {
@@ -338,15 +338,15 @@ final class AICoachServiceTests: XCTestCase {
             }
             return results
         }
-        
+
         // Assert
         XCTAssertEqual(greetings.count, 5)
         XCTAssertEqual(mockCoachEngine.processMessageCalls.count, 5)
         greetings.forEach { XCTAssertFalse($0.isEmpty) }
     }
-    
+
     // MARK: - Integration Tests
-    
+
     func test_generateMorningGreeting_withRealWorldScenario_monday() async throws {
         // Arrange - Monday morning, poor sleep, rainy day
         let modelContext = GreetingContext(
@@ -360,10 +360,10 @@ final class AICoachServiceTests: XCTestCase {
             dayOfWeek: "Monday",
             recentAchievements: []
         )
-        
+
         // Act
         let greeting = try await sut.generateMorningGreeting(for: testUser, context: context)
-        
+
         // Assert
         XCTAssertFalse(greeting.isEmpty)
         let sentPrompt = mockCoachEngine.processMessageCalls.first?.message ?? ""
@@ -373,7 +373,7 @@ final class AICoachServiceTests: XCTestCase {
         XCTAssertTrue(sentPrompt.contains("Rainy, 10°C"))
         XCTAssertTrue(sentPrompt.contains("Rest day"))
     }
-    
+
     func test_generateMorningGreeting_withRealWorldScenario_friday() async throws {
         // Arrange - Friday morning, great sleep, nice weather, workout day
         let modelContext = GreetingContext(
@@ -387,10 +387,10 @@ final class AICoachServiceTests: XCTestCase {
             dayOfWeek: "Friday",
             recentAchievements: ["10-day streak", "New deadlift PR"]
         )
-        
+
         // Act
         let greeting = try await sut.generateMorningGreeting(for: testUser, context: context)
-        
+
         // Assert
         XCTAssertFalse(greeting.isEmpty)
         let sentPrompt = mockCoachEngine.processMessageCalls.first?.message ?? ""

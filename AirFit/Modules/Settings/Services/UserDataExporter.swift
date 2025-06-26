@@ -10,50 +10,50 @@ final class UserDataExporter: ServiceProtocol {
     nonisolated var isConfigured: Bool {
         MainActor.assumeIsolated { _isConfigured }
     }
-    
+
     private let modelContext: ModelContext
-    
+
     init(modelContext: ModelContext) {
         self.modelContext = modelContext
     }
-    
+
     /// Export all user data as JSON
     func exportAllData(for user: User) async throws -> URL {
         let exportData = try await gatherUserData(for: user)
         let jsonData = try JSONEncoder.formatted.encode(exportData)
-        
+
         // Create temporary file
         let fileName = "AirFit_Export_\(DateFormatter.fileNameFormatter.string(from: Date())).json"
         let tempURL = FileManager.default.temporaryDirectory.appendingPathComponent(fileName)
-        
+
         try jsonData.write(to: tempURL)
-        
+
         AppLogger.info("Exported user data: \(ByteCountFormatter().string(fromByteCount: Int64(jsonData.count)))", category: .data)
-        
+
         return tempURL
     }
-    
+
     /// Export data in CSV format
     func exportAsCSV(for user: User, dataType: ExportDataType) async throws -> URL {
         let csvData = try await generateCSV(for: user, dataType: dataType)
-        
+
         let fileName = "AirFit_\(dataType.rawValue)_\(DateFormatter.fileNameFormatter.string(from: Date())).csv"
         let tempURL = FileManager.default.temporaryDirectory.appendingPathComponent(fileName)
-        
+
         try csvData.write(to: tempURL, atomically: true, encoding: .utf8)
-        
+
         return tempURL
     }
-    
+
     // MARK: - Private Methods
-    
+
     private func gatherUserData(for user: User) async throws -> UserDataExport {
         // Fetch all related data
         let workouts = try await fetchWorkouts(for: user)
         let foodEntries = try await fetchFoodEntries(for: user)
         let dailyLogs = try await fetchDailyLogs(for: user)
         let chatSessions = try await fetchChatSessions(for: user)
-        
+
         return UserDataExport(
             exportDate: Date(),
             appVersion: AppConstants.appVersionString,
@@ -65,7 +65,7 @@ final class UserDataExporter: ServiceProtocol {
             settings: UserSettingsExport(from: user)
         )
     }
-    
+
     private func fetchWorkouts(for user: User) async throws -> [Workout] {
         let descriptor = FetchDescriptor<Workout>(
             // TODO: Fix predicate for Swift 6
@@ -74,7 +74,7 @@ final class UserDataExporter: ServiceProtocol {
         )
         return try modelContext.fetch(descriptor)
     }
-    
+
     private func fetchFoodEntries(for user: User) async throws -> [FoodEntry] {
         let descriptor = FetchDescriptor<FoodEntry>(
             // TODO: Fix predicate for Swift 6
@@ -83,7 +83,7 @@ final class UserDataExporter: ServiceProtocol {
         )
         return try modelContext.fetch(descriptor)
     }
-    
+
     private func fetchDailyLogs(for user: User) async throws -> [DailyLog] {
         let descriptor = FetchDescriptor<DailyLog>(
             // TODO: Fix predicate for Swift 6
@@ -92,7 +92,7 @@ final class UserDataExporter: ServiceProtocol {
         )
         return try modelContext.fetch(descriptor)
     }
-    
+
     private func fetchChatSessions(for user: User) async throws -> [ChatSession] {
         let descriptor = FetchDescriptor<ChatSession>(
             // TODO: Fix predicate for Swift 6
@@ -101,7 +101,7 @@ final class UserDataExporter: ServiceProtocol {
         )
         return try modelContext.fetch(descriptor)
     }
-    
+
     private func generateCSV(for user: User, dataType: ExportDataType) async throws -> String {
         switch dataType {
         case .workouts:
@@ -112,29 +112,29 @@ final class UserDataExporter: ServiceProtocol {
             return try await generateProgressCSV(for: user)
         }
     }
-    
+
     private func generateWorkoutsCSV(for user: User) async throws -> String {
         let workouts = try await fetchWorkouts(for: user)
-        
+
         var csv = "Date,Type,Duration,Calories,Exercises,Notes\n"
-        
+
         for workout in workouts {
             let date = DateFormatter.shortFormatter.string(from: workout.completedDate ?? workout.plannedDate ?? Date())
             let duration = formatDuration(workout.durationSeconds ?? 0)
             let exercises = workout.exercises.map { $0.name }.joined(separator: "; ")
             let notes = workout.notes ?? ""
-            
+
             csv += "\(date),\(workout.workoutType),\(duration),\(workout.caloriesBurned ?? 0),\"\(exercises)\",\"\(notes)\"\n"
         }
-        
+
         return csv
     }
-    
+
     private func generateNutritionCSV(for user: User) async throws -> String {
         let entries = try await fetchFoodEntries(for: user)
-        
+
         var csv = "Date,Time,Food,Calories,Protein,Carbs,Fat,Notes\n"
-        
+
         for entry in entries {
             let date = DateFormatter.shortFormatter.string(from: entry.loggedAt)
             let time = DateFormatter.timeFormatter.string(from: entry.loggedAt)
@@ -144,18 +144,18 @@ final class UserDataExporter: ServiceProtocol {
             let carbs = entry.totalCarbs
             let fat = entry.totalFat
             let notes = entry.notes ?? ""
-            
+
             csv += "\(date),\(time),\"\(food)\",\(calories),\(protein),\(carbs),\(fat),\"\(notes)\"\n"
         }
-        
+
         return csv
     }
-    
+
     private func generateProgressCSV(for user: User) async throws -> String {
         let logs = try await fetchDailyLogs(for: user)
-        
+
         var csv = "Date,Weight,Body Fat %,Sleep Hours,Steps,Calories In,Calories Out,Mood,Energy,Notes\n"
-        
+
         for log in logs {
             let date = DateFormatter.shortFormatter.string(from: log.date)
             let weight = log.weight ?? 0
@@ -167,37 +167,37 @@ final class UserDataExporter: ServiceProtocol {
             let mood = log.mood ?? ""
             let energy = log.subjectiveEnergyLevel ?? 0
             let notes = log.notes ?? ""
-            
+
             csv += "\(date),\(weight),\(bodyFat),\(sleep),\(steps),\(caloriesIn),\(caloriesOut),\"\(mood)\",\(energy),\"\(notes)\"\n"
         }
-        
+
         return csv
     }
-    
+
     private func formatDuration(_ seconds: TimeInterval) -> String {
         let hours = Int(seconds) / 3_600
         let minutes = (Int(seconds) % 3_600) / 60
-        
+
         if hours > 0 {
             return "\(hours)h \(minutes)m"
         } else {
             return "\(minutes)m"
         }
     }
-    
+
     // MARK: - ServiceProtocol Methods
-    
+
     func configure() async throws {
         guard !_isConfigured else { return }
         _isConfigured = true
         AppLogger.info("\(serviceIdentifier) configured", category: .services)
     }
-    
+
     func reset() async {
         _isConfigured = false
         AppLogger.info("\(serviceIdentifier) reset", category: .services)
     }
-    
+
     func healthCheck() async -> ServiceHealth {
         ServiceHealth(
             status: _isConfigured ? .healthy : .unhealthy,
@@ -236,7 +236,7 @@ struct UserExportData: Codable {
     let email: String?
     let createdAt: Date
     let lastActiveAt: Date?
-    
+
     init(from user: User) {
         self.id = user.id
         self.name = user.name ?? "Unknown User"
@@ -254,7 +254,7 @@ struct WorkoutExportData: Codable {
     let totalCalories: Double?
     let exercises: [ExerciseExportData]
     let notes: String?
-    
+
     init(from workout: Workout) {
         self.id = workout.id
         self.type = workout.workoutType
@@ -271,7 +271,7 @@ struct ExerciseExportData: Codable {
     let sets: Int
     let reps: [Int]
     let weight: [Double]
-    
+
     init(from exercise: Exercise) {
         self.name = exercise.name
         self.sets = exercise.sets.count
@@ -289,7 +289,7 @@ struct FoodEntryExportData: Codable {
     let carbs: Double
     let fat: Double
     let notes: String?
-    
+
     init(from entry: FoodEntry) {
         self.id = entry.id
         self.name = entry.mealDisplayName
@@ -311,7 +311,7 @@ struct DailyLogExportData: Codable {
     let mood: String?
     let energyLevel: Int?
     let notes: String?
-    
+
     init(from log: DailyLog) {
         self.date = log.date
         self.weight = log.weight
@@ -329,7 +329,7 @@ struct ChatSessionExportData: Codable {
     let createdAt: Date
     let messageCount: Int
     let title: String?
-    
+
     init(from session: ChatSession) {
         self.id = session.id
         self.createdAt = session.createdAt
@@ -342,7 +342,7 @@ struct UserSettingsExport: Codable {
     let preferredUnits: String
     let notificationsEnabled: Bool
     let selectedAIProvider: String?
-    
+
     init(from user: User) {
         self.preferredUnits = user.preferredUnits
         self.notificationsEnabled = user.notificationPreferences?.systemEnabled ?? false
@@ -357,14 +357,14 @@ private extension DateFormatter {
         formatter.dateFormat = "yyyy-MM-dd_HHmmss"
         return formatter
     }()
-    
+
     static let shortFormatter: DateFormatter = {
         let formatter = DateFormatter()
         formatter.dateStyle = .short
         formatter.timeStyle = .none
         return formatter
     }()
-    
+
     static let timeFormatter: DateFormatter = {
         let formatter = DateFormatter()
         formatter.dateStyle = .none

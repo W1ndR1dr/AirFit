@@ -16,7 +16,7 @@ enum GradientToken: String, CaseIterable {
     case sproutMint     // Growth mindset
     case dawnPeach      // New beginnings
     case duskBerry      // Reflection time
-    
+
     // Sunrise journey tokens
     case nightSky       // Pre-dawn darkness (deep blue/purple)
     case earlyTwilight  // First hint of light (dark purple/blue)
@@ -25,7 +25,7 @@ enum GradientToken: String, CaseIterable {
     case sunrise        // Actual sunrise (orange/pink)
     case morningGlow    // Golden hour (pink/yellow)
     case brightMorning  // Late morning (yellow/light blue)
-    
+
     /// Returns the gradient colors for the current color scheme
     func colors(for colorScheme: ColorScheme) -> [Color] {
         switch (self, colorScheme) {
@@ -54,7 +54,7 @@ enum GradientToken: String, CaseIterable {
             return [Color(hex: "#FDE6D4"), Color(hex: "#F7E1FD")]
         case (.duskBerry, .light):
             return [Color(hex: "#F3D8F2"), Color(hex: "#D8E1FF")]
-            
+
         // Sunrise journey gradients - light mode
         case (.nightSky, .light):
             return [Color(hex: "#1A1B3A"), Color(hex: "#2D2B5F")]  // Deep blue/purple - white text
@@ -70,7 +70,7 @@ enum GradientToken: String, CaseIterable {
             return [Color(hex: "#FFD4E5"), Color(hex: "#FFF4B6")]  // Pink/yellow - dark text
         case (.brightMorning, .light):
             return [Color(hex: "#FFF4B6"), Color(hex: "#E3F2FD")]  // Yellow/light blue - dark text
-            
+
         // Dark mode gradients - deeper, moodier variants
         case (.peachRose, .dark):
             return [Color(hex: "#4A3642"), Color(hex: "#5A3A4A")]
@@ -96,7 +96,7 @@ enum GradientToken: String, CaseIterable {
             return [Color(hex: "#3D2720"), Color(hex: "#2F233A")]
         case (.duskBerry, .dark):
             return [Color(hex: "#3A2638"), Color(hex: "#212849")]
-            
+
         // Sunrise journey gradients - dark mode
         case (.nightSky, .dark):
             return [Color(hex: "#0A0B1A"), Color(hex: "#15162F")]
@@ -112,13 +112,13 @@ enum GradientToken: String, CaseIterable {
             return [Color(hex: "#7F6A72"), Color(hex: "#7F7A5B")]
         case (.brightMorning, .dark):
             return [Color(hex: "#7F7A5B"), Color(hex: "#71797E")]
-            
+
         @unknown default:
             // Fallback to peach rose if unknown color scheme
             return [Color(hex: "#FDE4D2"), Color(hex: "#F9C7D6")]
         }
     }
-    
+
     /// Creates a linear gradient for this token
     func linearGradient(for colorScheme: ColorScheme) -> LinearGradient {
         LinearGradient(
@@ -127,7 +127,7 @@ enum GradientToken: String, CaseIterable {
             endPoint: .bottomTrailing
         )
     }
-    
+
     /// Creates a radial gradient for special effects
     func radialGradient(for colorScheme: ColorScheme) -> RadialGradient {
         RadialGradient(
@@ -137,7 +137,7 @@ enum GradientToken: String, CaseIterable {
             endRadius: 200
         )
     }
-    
+
     /// Human-readable name for debugging
     var displayName: String {
         switch self {
@@ -162,18 +162,18 @@ enum GradientToken: String, CaseIterable {
         case .brightMorning: return "Bright Morning"
         }
     }
-    
+
     /// Computes optimal text color based on gradient using color theory and perceptual luminance
     func optimalTextColor(for colorScheme: ColorScheme) -> Color {
         let colors = self.colors(for: colorScheme)
         guard !colors.isEmpty else { return .primary }
-        
+
         // Get the average color of the gradient for text color calculation
         let averageColor = averageColor(from: colors)
-        
+
         // Calculate perceptual luminance using WCAG formula
         let luminance = perceptualLuminance(of: averageColor)
-        
+
         // For very dark backgrounds, calculate a warm-tinted light color
         if luminance < 0.15 {
             // Extract hue from average color and create a warm white
@@ -182,14 +182,14 @@ enum GradientToken: String, CaseIterable {
             var saturation: CGFloat = 0
             var brightness: CGFloat = 0
             var alpha: CGFloat = 0
-            
+
             uiColor.getHue(&hue, saturation: &saturation, brightness: &brightness, alpha: &alpha)
-            
+
             // Shift hue slightly towards warm (yellow/orange range: 0.08-0.16)
             let warmHue = hue * 0.3 + 0.08
             return Color(hue: warmHue, saturation: 0.1, brightness: 0.98)
         }
-        
+
         // For mid-tone backgrounds, use high contrast color based on hue
         if luminance < 0.5 {
             // Get the dominant hue and create a deep, saturated version
@@ -198,26 +198,26 @@ enum GradientToken: String, CaseIterable {
             var saturation: CGFloat = 0
             var brightness: CGFloat = 0
             var alpha: CGFloat = 0
-            
+
             uiColor.getHue(&hue, saturation: &saturation, brightness: &brightness, alpha: &alpha)
-            
+
             // Shift hue slightly for better contrast
             let contrastHue = (hue + 0.15).truncatingRemainder(dividingBy: 1.0)
             return Color(hue: contrastHue, saturation: 0.7, brightness: 0.25)
         }
-        
+
         // For bright backgrounds, calculate complementary dark color
         let uiColor = UIColor(averageColor)
         var hue: CGFloat = 0
         var saturation: CGFloat = 0
         var brightness: CGFloat = 0
         var alpha: CGFloat = 0
-        
+
         uiColor.getHue(&hue, saturation: &saturation, brightness: &brightness, alpha: &alpha)
-        
+
         // Use analogous color (30-60 degrees shift) for harmony
         let analogousHue = (hue + 0.12).truncatingRemainder(dividingBy: 1.0)
-        
+
         // Create a deep, rich color
         return Color(
             hue: analogousHue,
@@ -225,7 +225,7 @@ enum GradientToken: String, CaseIterable {
             brightness: 0.2 + (1.0 - luminance) * 0.15
         )
     }
-    
+
     /// Calculate perceptual luminance using WCAG formula
     private func perceptualLuminance(of color: Color) -> Double {
         let uiColor = UIColor(color)
@@ -233,39 +233,39 @@ enum GradientToken: String, CaseIterable {
         var green: CGFloat = 0
         var blue: CGFloat = 0
         var alpha: CGFloat = 0
-        
+
         uiColor.getRed(&red, green: &green, blue: &blue, alpha: &alpha)
-        
+
         // Apply gamma correction
         let r = red <= 0.03928 ? red / 12.92 : pow((red + 0.055) / 1.055, 2.4)
         let g = green <= 0.03928 ? green / 12.92 : pow((green + 0.055) / 1.055, 2.4)
         let b = blue <= 0.03928 ? blue / 12.92 : pow((blue + 0.055) / 1.055, 2.4)
-        
+
         // Calculate relative luminance
         return 0.2126 * r + 0.7152 * g + 0.0722 * b
     }
-    
+
     /// Calculate average color from gradient colors
     private func averageColor(from colors: [Color]) -> Color {
         guard !colors.isEmpty else { return .gray }
-        
+
         var totalRed: CGFloat = 0
         var totalGreen: CGFloat = 0
         var totalBlue: CGFloat = 0
-        
+
         for color in colors {
             let uiColor = UIColor(color)
             var red: CGFloat = 0
             var green: CGFloat = 0
             var blue: CGFloat = 0
             var alpha: CGFloat = 0
-            
+
             uiColor.getRed(&red, green: &green, blue: &blue, alpha: &alpha)
             totalRed += red
             totalGreen += green
             totalBlue += blue
         }
-        
+
         let count = CGFloat(colors.count)
         return Color(
             red: totalRed / count,
@@ -273,29 +273,29 @@ enum GradientToken: String, CaseIterable {
             blue: totalBlue / count
         )
     }
-    
+
     /// Get secondary text color (for subtitles, descriptions)
     func secondaryTextColor(for colorScheme: ColorScheme) -> Color {
         let primary = optimalTextColor(for: colorScheme)
         // Add opacity to primary color for hierarchy
         return primary.opacity(0.75)
     }
-    
+
     /// Get accent color for interactive elements
     func accentColor(for colorScheme: ColorScheme) -> Color {
         let colors = self.colors(for: colorScheme)
         let averageColor = averageColor(from: colors)
         let luminance = perceptualLuminance(of: averageColor)
-        
+
         // Use color wheel theory to find complementary accent
         let uiColor = UIColor(averageColor)
         var hue: CGFloat = 0
         var saturation: CGFloat = 0
         var brightness: CGFloat = 0
         var alpha: CGFloat = 0
-        
+
         uiColor.getHue(&hue, saturation: &saturation, brightness: &brightness, alpha: &alpha)
-        
+
         // For dark backgrounds, use a bright complementary color
         if luminance < 0.3 {
             // Shift hue by 150-210° for interesting contrast
@@ -306,7 +306,7 @@ enum GradientToken: String, CaseIterable {
                 brightness: 0.7 + luminance
             )
         }
-        
+
         // For mid-tone backgrounds, use split-complementary
         if luminance < 0.6 {
             // Split complementary: 150° shift
@@ -317,7 +317,7 @@ enum GradientToken: String, CaseIterable {
                 brightness: 0.5 + (0.6 - luminance) * 0.5
             )
         }
-        
+
         // For bright backgrounds, use triadic harmony
         let triadicHue = (hue + 0.333).truncatingRemainder(dividingBy: 1.0)
         return Color(

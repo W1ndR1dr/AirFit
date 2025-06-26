@@ -6,7 +6,7 @@ struct OnboardingContainerView: View {
     @State private var intelligence: OnboardingIntelligence?
     @State private var isLoading = true
     @State private var error: Error?
-    
+
     var body: some View {
         Group {
             if isLoading {
@@ -19,16 +19,16 @@ struct OnboardingContainerView: View {
                     Image(systemName: "exclamationmark.triangle")
                         .font(.largeTitle)
                         .foregroundColor(.red)
-                    
+
                     Text("Failed to initialize onboarding")
                         .font(.headline)
-                    
+
                     Text(error.localizedDescription)
                         .font(.caption)
                         .foregroundColor(.secondary)
                         .multilineTextAlignment(.center)
                         .padding(.horizontal)
-                    
+
                     Button("Retry") {
                         Task {
                             await loadIntelligence()
@@ -43,11 +43,11 @@ struct OnboardingContainerView: View {
             await loadIntelligence()
         }
     }
-    
+
     private func loadIntelligence() async {
         isLoading = true
         error = nil
-        
+
         do {
             intelligence = try await diContainer.resolve(OnboardingIntelligence.self)
             isLoading = false

@@ -34,7 +34,7 @@ struct Trend: Sendable {
         case down
         case stable
     }
-    
+
     let direction: Direction
     let changePercentage: Double
 }

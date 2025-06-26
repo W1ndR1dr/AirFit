@@ -5,12 +5,12 @@ struct AppearanceSettingsView: View {
     @Environment(\.dismiss) private var dismiss
     @State private var selectedAppearance: AppearanceMode
     @State private var accentColor: Color = .accentColor
-    
+
     init(viewModel: SettingsViewModel) {
         self.viewModel = viewModel
         _selectedAppearance = State(initialValue: viewModel.appearanceMode)
     }
-    
+
     var body: some View {
         BaseScreen {
             ScrollView {
@@ -24,7 +24,7 @@ struct AppearanceSettingsView: View {
                     .padding(.horizontal, AppSpacing.lg)
                     .padding(.top, AppSpacing.sm)
                     .padding(.bottom, AppSpacing.lg)
-                    
+
                     VStack(spacing: AppSpacing.xl) {
                         appearanceModeSection
                         themePreview
@@ -40,7 +40,7 @@ struct AppearanceSettingsView: View {
         .navigationTitle("")
         .navigationBarTitleDisplayMode(.inline)
     }
-    
+
     private var appearanceModeSection: some View {
         VStack(alignment: .leading, spacing: AppSpacing.sm) {
             HStack {
@@ -50,7 +50,7 @@ struct AppearanceSettingsView: View {
                     .foregroundStyle(.secondary.opacity(0.8))
                 Spacer()
             }
-            
+
             GlassCard {
                 VStack(spacing: 0) {
                     ForEach(AppearanceMode.allCases, id: \.self) { mode in
@@ -63,7 +63,7 @@ struct AppearanceSettingsView: View {
                             }
                             HapticService.impact(.light)
                         }
-                        
+
                         if mode != AppearanceMode.allCases.last {
                             Divider()
                         }
@@ -72,11 +72,11 @@ struct AppearanceSettingsView: View {
             }
         }
     }
-    
+
     private var themePreview: some View {
         VStack(alignment: .leading, spacing: AppSpacing.md) {
             // SectionHeader(title: "Preview", icon: "eye")
-            
+
             GlassCard {
                 VStack(spacing: AppSpacing.md) {
                     // Mini preview of app appearance
@@ -86,21 +86,21 @@ struct AppearanceSettingsView: View {
                             icon: "house.fill",
                             appearance: selectedAppearance
                         )
-                        
+
                         PreviewCard(
                             title: "Workouts",
                             icon: "figure.run",
                             appearance: selectedAppearance
                         )
                     }
-                    
+
                     HStack(spacing: AppSpacing.md) {
                         PreviewCard(
                             title: "Nutrition",
                             icon: "fork.knife",
                             appearance: selectedAppearance
                         )
-                        
+
                         PreviewCard(
                             title: "Chat",
                             icon: "bubble.left.and.bubble.right.fill",
@@ -111,11 +111,11 @@ struct AppearanceSettingsView: View {
             }
         }
     }
-    
+
     private var colorAccentSection: some View {
         VStack(alignment: .leading, spacing: AppSpacing.md) {
             // SectionHeader(title: "Accent Color", icon: "paintpalette")
-            
+
             GlassCard {
                 VStack(spacing: AppSpacing.md) {
                     HStack {
@@ -126,7 +126,7 @@ struct AppearanceSettingsView: View {
                             .fill(accentColor)
                             .frame(width: 24, height: 24)
                     }
-                    
+
                     HStack(spacing: AppSpacing.sm) {
                         ForEach(AccentColorOption.allCases, id: \.self) { option in
                             AccentColorButton(
@@ -140,7 +140,7 @@ struct AppearanceSettingsView: View {
                             }
                         }
                     }
-                    
+
                     Text("Note: Custom accent colors will be available in a future update")
                         .font(.caption)
                         .foregroundStyle(.secondary)
@@ -148,17 +148,17 @@ struct AppearanceSettingsView: View {
             }
         }
     }
-    
+
     private var textSizeSection: some View {
         VStack(alignment: .leading, spacing: AppSpacing.md) {
             // SectionHeader(title: "Text Size", icon: "textformat.size")
-            
+
             GlassCard {
                 VStack(spacing: AppSpacing.md) {
                     Text("Adjust text size in Settings → Display & Brightness")
                         .font(.callout)
                         .foregroundStyle(.secondary)
-                    
+
                     Button {
                         openDisplaySettings()
                     } label: {
@@ -180,7 +180,7 @@ struct AppearanceSettingsView: View {
             }
         }
     }
-    
+
     private var saveButton: some View {
         Button {
             saveAppearance()
@@ -203,7 +203,7 @@ struct AppearanceSettingsView: View {
         }
         .disabled(selectedAppearance != viewModel.appearanceMode)
     }
-    
+
     private func saveAppearance() {
         Task {
             try await viewModel.updateAppearance(selectedAppearance)
@@ -211,7 +211,7 @@ struct AppearanceSettingsView: View {
             dismiss()
         }
     }
-    
+
     private func openDisplaySettings() {
         if let url = URL(string: UIApplication.openSettingsURLString) {
             UIApplication.shared.open(url)
@@ -224,7 +224,7 @@ struct AppearanceModeRow: View {
     let mode: AppearanceMode
     let isSelected: Bool
     let onSelect: () -> Void
-    
+
     var body: some View {
         Button(action: onSelect) {
             HStack {
@@ -232,18 +232,18 @@ struct AppearanceModeRow: View {
                     .font(.title3)
                     .foregroundStyle(.tint)
                     .frame(width: 32)
-                
+
                 VStack(alignment: .leading, spacing: AppSpacing.xs) {
                     Text(mode.displayName)
                         .font(.headline)
-                    
+
                     Text(mode.description)
                         .font(.caption)
                         .foregroundStyle(.secondary)
                 }
-                
+
                 Spacer()
-                
+
                 if isSelected {
                     Image(systemName: "checkmark.circle.fill")
                         .foregroundStyle(Color.accentColor)
@@ -262,13 +262,13 @@ struct PreviewCard: View {
     let title: String
     let icon: String
     let appearance: AppearanceMode
-    
+
     var body: some View {
         VStack(spacing: AppSpacing.sm) {
             Image(systemName: icon)
                 .font(.title2)
                 .foregroundStyle(.tint)
-            
+
             Text(title)
                 .font(.caption)
                 .foregroundStyle(.secondary)
@@ -284,7 +284,7 @@ struct PreviewCard: View {
                 )
         )
     }
-    
+
     private var backgroundColorForAppearance: Color {
         switch appearance {
         case .light:
@@ -295,7 +295,7 @@ struct PreviewCard: View {
             return Color(uiColor: .systemBackground)
         }
     }
-    
+
     private var borderColorForAppearance: Color {
         switch appearance {
         case .light:
@@ -312,7 +312,7 @@ struct AccentColorButton: View {
     let color: Color
     let isSelected: Bool
     let onSelect: () -> Void
-    
+
     var body: some View {
         Button(action: onSelect) {
             Circle()
@@ -341,7 +341,7 @@ extension AppearanceMode {
         case .system: return "circle.lefthalf.filled"
         }
     }
-    
+
     var description: String {
         switch self {
         case .light: return "Always use light appearance"
@@ -358,7 +358,7 @@ enum AccentColorOption: String, CaseIterable {
     case orange
     case red
     case pink
-    
+
     var color: Color {
         switch self {
         case .blue: return .blue

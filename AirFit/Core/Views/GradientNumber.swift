@@ -5,15 +5,15 @@ import SwiftUI
 struct GradientNumber: View {
     @Environment(\.colorScheme) private var colorScheme
     @EnvironmentObject private var gradientManager: GradientManager
-    
+
     let value: Double
     let format: String
     let fontSize: CGFloat
     let fontWeight: Font.Weight
     let animation: Bool
-    
+
     @State private var displayValue: Double = 0
-    
+
     init(
         value: Double,
         format: String = "%.0f",
@@ -27,7 +27,7 @@ struct GradientNumber: View {
         self.fontWeight = fontWeight
         self.animation = animation
     }
-    
+
     var body: some View {
         Text(String(format: format, displayValue))
             .font(.system(size: fontSize, weight: fontWeight, design: .rounded))
@@ -61,13 +61,13 @@ struct GradientNumber: View {
 struct GradientNumberWithUnit: View {
     @Environment(\.colorScheme) private var colorScheme
     @EnvironmentObject private var gradientManager: GradientManager
-    
+
     let value: Double
     let unit: String
     let format: String
     let numberSize: CGFloat
     let unitSize: CGFloat
-    
+
     init(
         value: Double,
         unit: String,
@@ -81,7 +81,7 @@ struct GradientNumberWithUnit: View {
         self.numberSize = numberSize
         self.unitSize = unitSize
     }
-    
+
     var body: some View {
         HStack(alignment: .lastTextBaseline, spacing: 4) {
             GradientNumber(
@@ -89,7 +89,7 @@ struct GradientNumberWithUnit: View {
                 format: format,
                 fontSize: numberSize
             )
-            
+
             Text(unit)
                 .font(.system(size: unitSize, weight: .medium, design: .rounded))
                 .foregroundStyle(
@@ -108,9 +108,9 @@ struct AnimatedNumberCounter: View {
     let duration: Double
     let format: String
     let fontSize: CGFloat
-    
+
     @State private var value: Double = 0
-    
+
     init(
         from: Double = 0,
         to: Double,
@@ -124,7 +124,7 @@ struct AnimatedNumberCounter: View {
         self.format = format
         self.fontSize = fontSize
     }
-    
+
     var body: some View {
         GradientNumber(
             value: value,

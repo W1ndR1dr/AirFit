@@ -7,7 +7,7 @@ struct FoodTrackingView: View {
     let user: User
     @State private var viewModel: FoodTrackingViewModel?
     @Environment(\.diContainer) private var container
-    
+
     var body: some View {
         Group {
             if let viewModel = viewModel {
@@ -50,31 +50,31 @@ struct FoodLoggingView: View {
                                 .padding(.horizontal, AppSpacing.screenPadding)
                                 .padding(.top, AppSpacing.md)
                         }
-                        
+
                         datePicker
                             .padding(.top, AppSpacing.sm)
                             .opacity(animateIn ? 1 : 0)
                             .offset(y: animateIn ? 0 : 10)
                             .animation(MotionToken.standardSpring.delay(0.2), value: animateIn)
-                        
+
                         macroSummaryCard
                             .padding(.horizontal, AppSpacing.screenPadding)
                             .padding(.top, AppSpacing.md)
                             .opacity(animateIn ? 1 : 0)
                             .offset(y: animateIn ? 0 : 20)
                             .animation(MotionToken.standardSpring.delay(0.3), value: animateIn)
-                        
+
                         quickActionsSection
                             .padding(.horizontal, AppSpacing.screenPadding)
                             .padding(.top, AppSpacing.lg)
                             .opacity(animateIn ? 1 : 0)
                             .offset(y: animateIn ? 0 : 20)
                             .animation(MotionToken.standardSpring.delay(0.4), value: animateIn)
-                        
+
                         mealsSection
                             .padding(.horizontal, AppSpacing.screenPadding)
                             .padding(.top, AppSpacing.lg)
-                        
+
                         if !viewModel.suggestedFoods.isEmpty {
                             suggestionsSection
                                 .padding(.top, AppSpacing.lg)
@@ -133,13 +133,13 @@ struct FoodLoggingView: View {
                     .font(.system(size: 20, weight: .light))
                     .foregroundStyle(gradientManager.currentGradient(for: colorScheme))
             }
-            
+
             Spacer()
-            
+
             Text(viewModel.currentDate.formatted(date: .abbreviated, time: .omitted))
                 .font(.system(size: 18, weight: .medium, design: .rounded))
                 .foregroundColor(.primary)
-            
+
             Spacer()
             Button(action: {
                 HapticService.selection()
@@ -149,8 +149,8 @@ struct FoodLoggingView: View {
                     .font(.system(size: 20, weight: .light))
                     .foregroundStyle(
                         Calendar.current.isDateInToday(viewModel.currentDate) ?
-                        AnyShapeStyle(Color.secondary.opacity(0.3)) :
-                        AnyShapeStyle(gradientManager.currentGradient(for: colorScheme))
+                            AnyShapeStyle(Color.secondary.opacity(0.3)) :
+                            AnyShapeStyle(gradientManager.currentGradient(for: colorScheme))
                     )
             }
             .disabled(Calendar.current.isDateInToday(viewModel.currentDate))
@@ -167,9 +167,9 @@ struct FoodLoggingView: View {
                     Text("Today's Nutrition")
                         .font(.system(size: 20, weight: .medium, design: .rounded))
                         .foregroundColor(.primary)
-                    
+
                     Spacer()
-                    
+
                     NavigationLink(value: FoodTrackingDestination.insights) {
                         HStack(spacing: 4) {
                             Text("Details")
@@ -180,7 +180,7 @@ struct FoodLoggingView: View {
                         .foregroundStyle(gradientManager.currentGradient(for: colorScheme))
                     }
                 }
-                
+
                 // Macro rings visualization
                 HStack(spacing: AppSpacing.lg) {
                     MacroMetric(
@@ -190,7 +190,7 @@ struct FoodLoggingView: View {
                         color: gradientManager.active == .peachRose ? Color.orange : Color.blue,
                         icon: "flame.fill"
                     )
-                    
+
                     MacroMetric(
                         title: "Protein",
                         value: Int(viewModel.todaysNutrition.protein),
@@ -198,7 +198,7 @@ struct FoodLoggingView: View {
                         color: .purple,
                         icon: "p.square.fill"
                     )
-                    
+
                     MacroMetric(
                         title: "Carbs",
                         value: Int(viewModel.todaysNutrition.carbs),
@@ -206,7 +206,7 @@ struct FoodLoggingView: View {
                         color: .green,
                         icon: "c.square.fill"
                     )
-                    
+
                     MacroMetric(
                         title: "Fat",
                         value: Int(viewModel.todaysNutrition.fat),
@@ -215,7 +215,7 @@ struct FoodLoggingView: View {
                         icon: "f.square.fill"
                     )
                 }
-                
+
                 // Bottom stats bar
                 HStack {
                     HStack(spacing: AppSpacing.xs) {
@@ -226,9 +226,9 @@ struct FoodLoggingView: View {
                             .font(.system(size: 14, weight: .medium))
                             .foregroundColor(.primary)
                     }
-                    
+
                     Spacer()
-                    
+
                     HStack(spacing: AppSpacing.xs) {
                         Image(systemName: "drop.fill")
                             .font(.system(size: 14))
@@ -249,29 +249,29 @@ struct FoodLoggingView: View {
             Text("Quick Add")
                 .font(.system(size: 18, weight: .medium, design: .rounded))
                 .foregroundColor(.primary)
-            
+
             ScrollView(.horizontal, showsIndicators: false) {
                 HStack(spacing: AppSpacing.sm) {
                     QuickActionCard(title: "Voice", icon: "mic.fill", gradientColors: [.blue, .purple]) {
                         HapticService.impact(.light)
                         Task { await viewModel.startVoiceInput() }
                     }
-                    
+
                     QuickActionCard(title: "Photo", icon: "camera.fill", gradientColors: [.orange, .pink]) {
                         HapticService.impact(.light)
                         coordinator.showSheet(.photoCapture)
                     }
-                    
+
                     QuickActionCard(title: "Search", icon: "magnifyingglass", gradientColors: [.green, .teal]) {
                         HapticService.impact(.light)
                         coordinator.showSheet(.foodSearch)
                     }
-                    
+
                     QuickActionCard(title: "Water", icon: "drop.fill", gradientColors: [.blue, .cyan]) {
                         HapticService.impact(.light)
                         coordinator.showSheet(.waterTracking)
                     }
-                    
+
                     QuickActionCard(title: "Manual", icon: "square.and.pencil", gradientColors: [.purple, .indigo]) {
                         HapticService.impact(.light)
                         coordinator.showSheet(.manualEntry)
@@ -287,7 +287,7 @@ struct FoodLoggingView: View {
             Text("Today's Meals")
                 .font(.system(size: 18, weight: .medium, design: .rounded))
                 .foregroundColor(.primary)
-            
+
             VStack(spacing: AppSpacing.sm) {
                 ForEach(Array(MealType.allCases.enumerated()), id: \.element) { index, mealType in
                     MealCard(
@@ -321,7 +321,7 @@ struct FoodLoggingView: View {
                 .font(.system(size: 18, weight: .medium, design: .rounded))
                 .foregroundColor(.primary)
                 .padding(.horizontal, AppSpacing.screenPadding)
-            
+
             ScrollView(.horizontal, showsIndicators: false) {
                 HStack(spacing: AppSpacing.sm) {
                     ForEach(viewModel.suggestedFoods) { food in
@@ -425,7 +425,7 @@ private struct MacroMetric: View {
     let color: Color
     let icon: String
     @State private var animateIn = false
-    
+
     var body: some View {
         VStack(spacing: AppSpacing.xs) {
             Image(systemName: icon)
@@ -433,14 +433,14 @@ private struct MacroMetric: View {
                 .foregroundColor(color)
                 .scaleEffect(animateIn ? 1 : 0.5)
                 .opacity(animateIn ? 1 : 0)
-            
+
             GradientNumber(value: Double(value))
                 .font(.system(size: 24, weight: .bold, design: .rounded))
-            
+
             Text(title)
                 .font(.system(size: 12, weight: .light))
                 .foregroundColor(.secondary)
-            
+
             if !unit.isEmpty {
                 Text(unit)
                     .font(.system(size: 10, weight: .light))
@@ -462,7 +462,7 @@ private struct QuickActionCard: View {
     let gradientColors: [Color]
     let action: () -> Void
     @State private var isPressed = false
-    
+
     var body: some View {
         Button(action: action) {
             VStack(spacing: AppSpacing.xs) {
@@ -476,12 +476,12 @@ private struct QuickActionCard: View {
                             )
                         )
                         .frame(width: 56, height: 56)
-                    
+
                     Image(systemName: icon)
                         .font(.system(size: 24, weight: .light))
                         .foregroundColor(.white)
                 }
-                
+
                 Text(title)
                     .font(.system(size: 13, weight: .light))
                     .foregroundColor(.primary)
@@ -517,31 +517,31 @@ private struct MealCard: View {
                         Image(systemName: mealType.icon)
                             .font(.system(size: 18, weight: .light))
                             .foregroundStyle(gradientForMealType(mealType))
-                        
+
                         Text(mealType.displayName)
                             .font(.system(size: 18, weight: .medium, design: .rounded))
                             .foregroundColor(.primary)
                     }
-                    
+
                     Spacer()
-                    
+
                     if !entries.isEmpty {
                         Text("\(totalCalories) cal")
                             .font(.system(size: 14, weight: .light))
                             .foregroundStyle(.secondary)
                     }
-                    
+
                     Button(action: onAdd) {
                         Image(systemName: "plus.circle.fill")
                             .font(.system(size: 22, weight: .light))
                             .foregroundStyle(gradientManager.currentGradient(for: colorScheme))
                     }
                 }
-                
+
                 if !entries.isEmpty {
                     Divider()
                         .background(Color.white.opacity(0.1))
-                    
+
                     VStack(alignment: .leading, spacing: AppSpacing.xs) {
                         ForEach(entries, id: \.id) { entry in
                             Button(action: { onTapEntry(entry) }) {
@@ -549,13 +549,13 @@ private struct MealCard: View {
                                     Text(entry.mealDisplayName)
                                         .font(.system(size: 15, weight: .light))
                                         .foregroundStyle(.primary)
-                                    
+
                                     Spacer()
-                                    
+
                                     Text("\(entry.totalCalories) cal")
                                         .font(.system(size: 13, weight: .light))
                                         .foregroundStyle(.secondary)
-                                    
+
                                     Image(systemName: "chevron.right")
                                         .font(.system(size: 12, weight: .light))
                                         .foregroundStyle(.tertiary)
@@ -567,7 +567,7 @@ private struct MealCard: View {
             }
         }
     }
-    
+
     private func gradientForMealType(_ type: MealType) -> LinearGradient {
         switch type {
         case .breakfast:
@@ -600,7 +600,7 @@ private struct SuggestionCard: View {
                     .font(.system(size: 15, weight: .medium))
                     .foregroundColor(.primary)
                     .lineLimit(1)
-                
+
                 HStack(spacing: AppSpacing.xs) {
                     HStack(spacing: 4) {
                         Image(systemName: "flame.fill")
@@ -608,10 +608,10 @@ private struct SuggestionCard: View {
                             .foregroundStyle(.orange)
                         Text("\(Int(food.calories ?? 0))")
                     }
-                    
+
                     Text("•")
                         .foregroundStyle(.tertiary)
-                    
+
                     Text(food.displayQuantity)
                 }
                 .font(.system(size: 12, weight: .light))
@@ -647,12 +647,12 @@ private struct PlaceholderView: View {
     @State private var animateIn = false
     @EnvironmentObject private var gradientManager: GradientManager
     @Environment(\.colorScheme) private var colorScheme
-    
+
     var body: some View {
         BaseScreen {
             VStack(spacing: AppSpacing.lg) {
                 Spacer()
-                
+
                 ZStack {
                     Circle()
                         .fill(gradientManager.currentGradient(for: colorScheme))
@@ -660,19 +660,19 @@ private struct PlaceholderView: View {
                         .opacity(0.2)
                         .blur(radius: 20)
                         .scaleEffect(animateIn ? 1.2 : 0.8)
-                    
+
                     Image(systemName: "fork.knife.circle")
                         .font(.system(size: 60, weight: .light))
                         .foregroundStyle(gradientManager.currentGradient(for: colorScheme))
                         .scaleEffect(animateIn ? 1 : 0.5)
                 }
-                
+
                 VStack(spacing: AppSpacing.sm) {
                     if animateIn {
                         CascadeText(title)
                             .font(.system(size: 28, weight: .light, design: .rounded))
                     }
-                    
+
                     Text(subtitle)
                         .font(.system(size: 16, weight: .light))
                         .foregroundStyle(.secondary)
@@ -681,7 +681,7 @@ private struct PlaceholderView: View {
                         .offset(y: animateIn ? 0 : 10)
                 }
                 .padding(.horizontal, AppSpacing.screenPadding)
-                
+
                 Spacer()
             }
         }
@@ -733,7 +733,7 @@ private extension FoodItem {
             coordinator: FoodTrackingCoordinator()
         )
     }()
-    
+
     FoodLoggingView(viewModel: vm)
         .modelContainer(ModelContainer.preview)
 }

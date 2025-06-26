@@ -10,7 +10,7 @@ final class ContextAssembler: ContextAssemblerProtocol, ServiceProtocol {
     nonisolated var isConfigured: Bool {
         MainActor.assumeIsolated { _isConfigured }
     }
-    
+
     private let healthKitManager: HealthKitManaging
     private let goalService: GoalServiceProtocol?
     // Future: private let weatherService: WeatherServiceProtocol
@@ -22,7 +22,7 @@ final class ContextAssembler: ContextAssemblerProtocol, ServiceProtocol {
         self.healthKitManager = healthKitManager
         self.goalService = goalService
     }
-    
+
     /// Simplified context assembly for dashboard
     func assembleContext() async -> HealthContextSnapshot {
         // Create model container with background context for heavy operations
@@ -39,11 +39,11 @@ final class ContextAssembler: ContextAssemblerProtocol, ServiceProtocol {
                 trends: HealthTrends(weeklyActivityChange: nil)
             )
         }
-        
+
         // Create a background context for SwiftData operations
         let backgroundContext = ModelContext(container)
         backgroundContext.autosaveEnabled = false
-        
+
         return await assembleSnapshot(modelContext: backgroundContext)
     }
 
@@ -130,14 +130,14 @@ final class ContextAssembler: ContextAssemblerProtocol, ServiceProtocol {
     private func fetchSubjectiveData(using context: ModelContext) async -> SubjectiveData {
         do {
             let todayStart = Calendar.current.startOfDay(for: Date())
-            
+
             // Use a simpler, safer approach to avoid SwiftData predicate issues
             let descriptor = FetchDescriptor<DailyLog>(
                 sortBy: [SortDescriptor(\.date, order: .reverse)]
             )
-            
+
             let allLogs = try context.fetch(descriptor)
-            
+
             // Filter in memory to avoid complex predicate issues
             if let todayLog = allLogs.first(where: { log in
                 Calendar.current.isDate(log.date, inSameDayAs: todayStart)
@@ -151,9 +151,9 @@ final class ContextAssembler: ContextAssemblerProtocol, ServiceProtocol {
                     notes: todayLog.notes
                 )
             }
-            
+
             return SubjectiveData()
-            
+
         } catch {
             AppLogger.error("Failed to fetch today's DailyLog", error: error, category: .data)
             return SubjectiveData()
@@ -189,10 +189,10 @@ final class ContextAssembler: ContextAssemblerProtocol, ServiceProtocol {
                 sortBy: [SortDescriptor(\.loggedAt, order: .reverse)]
             )
             mealDescriptor.fetchLimit = 1
-            
-            // Fetch meals more efficiently 
+
+            // Fetch meals more efficiently
             let meals = try context.fetch(mealDescriptor)
-            
+
             if let meal = meals.first {
                 lastMealTime = meal.loggedAt
                 let itemCount = meal.items.count
@@ -218,10 +218,10 @@ final class ContextAssembler: ContextAssemblerProtocol, ServiceProtocol {
                 let userDescriptor = FetchDescriptor<User>(
                     sortBy: [SortDescriptor(\.lastActiveDate, order: .reverse)]
                 )
-                
+
                 // Fetch user without detached task for simple query
                 let users = try context.fetch(userDescriptor)
-                
+
                 if let currentUser = users.first {
                     goalsContext = try await goalService.getGoalsContext(for: currentUser.id)
                 }
@@ -333,13 +333,13 @@ final class ContextAssembler: ContextAssemblerProtocol, ServiceProtocol {
                 let reps = Double(set.completedReps ?? set.targetReps ?? 0)
                 total += (weight * reps)
             }
-            
+
             let topSet = exercise.sets.max { set1, set2 in
                 let vol1 = (set1.completedWeightKg ?? set1.targetWeightKg ?? 0) * Double(set1.completedReps ?? set1.targetReps ?? 0)
                 let vol2 = (set2.completedWeightKg ?? set2.targetWeightKg ?? 0) * Double(set2.completedReps ?? set2.targetReps ?? 0)
                 return vol1 < vol2
             }
-            
+
             let topSetPerformance = topSet.map { set in
                 SetPerformance(
                     weight: set.completedWeightKg ?? set.targetWeightKg ?? 0,
@@ -347,7 +347,7 @@ final class ContextAssembler: ContextAssemblerProtocol, ServiceProtocol {
                     volume: (set.completedWeightKg ?? set.targetWeightKg ?? 0) * Double(set.completedReps ?? set.targetReps ?? 0)
                 )
             }
-            
+
             exercisePerformance[exercise.name] = ExercisePerformance(
                 exerciseName: exercise.name,
                 volumeTotal: exerciseVolume,
@@ -508,82 +508,82 @@ final class ContextAssembler: ContextAssemblerProtocol, ServiceProtocol {
         sleep: SleepAnalysis.SleepSession?,
         context: ModelContext
     ) async -> HealthTrends {
-            var weeklyChange: Double?
+        var weeklyChange: Double?
 
-            // Defensive programming: Only fetch what we need with proper date bounds
-            let fourteenDaysAgo = Calendar.current.date(byAdding: .day, value: -14, to: Date()) ?? Date()
+        // Defensive programming: Only fetch what we need with proper date bounds
+        let fourteenDaysAgo = Calendar.current.date(byAdding: .day, value: -14, to: Date()) ?? Date()
 
-            // Create a simple, safe descriptor
-            let descriptor = FetchDescriptor<DailyLog>(
-                sortBy: [SortDescriptor(\.date, order: .reverse)]
-            )
+        // Create a simple, safe descriptor
+        let descriptor = FetchDescriptor<DailyLog>(
+            sortBy: [SortDescriptor(\.date, order: .reverse)]
+        )
 
-            // Fetch with error handling
-            let allLogs: [DailyLog]
-            do {
-                // Fetch logs without detached task
-                allLogs = try context.fetch(descriptor)
-            } catch {
-                AppLogger.error("Failed to fetch DailyLog for trends", error: error, category: .data)
-                return HealthTrends(weeklyActivityChange: nil)
-            }
+        // Fetch with error handling
+        let allLogs: [DailyLog]
+        do {
+            // Fetch logs without detached task
+            allLogs = try context.fetch(descriptor)
+        } catch {
+            AppLogger.error("Failed to fetch DailyLog for trends", error: error, category: .data)
+            return HealthTrends(weeklyActivityChange: nil)
+        }
 
-            // Filter in memory to avoid predicate issues
-            let logs = allLogs.filter { log in
-                guard let steps = log.steps, steps > 0 else { return false }
-                return log.date >= fourteenDaysAgo
-            }
+        // Filter in memory to avoid predicate issues
+        let logs = allLogs.filter { log in
+            guard let steps = log.steps, steps > 0 else { return false }
+            return log.date >= fourteenDaysAgo
+        }
 
-            // Bulletproof data validation
-            guard logs.count >= 7 else {
-                AppLogger.info("Insufficient data for trend calculation: \(logs.count) logs", category: .data)
-                return HealthTrends(weeklyActivityChange: nil)
-            }
+        // Bulletproof data validation
+        guard logs.count >= 7 else {
+            AppLogger.info("Insufficient data for trend calculation: \(logs.count) logs", category: .data)
+            return HealthTrends(weeklyActivityChange: nil)
+        }
 
-            let sevenDaysAgo = Calendar.current.date(byAdding: .day, value: -7, to: Date()) ?? Date()
+        let sevenDaysAgo = Calendar.current.date(byAdding: .day, value: -7, to: Date()) ?? Date()
 
-            let recentLogs = logs.filter { $0.date >= sevenDaysAgo }
-            let previousLogs = logs.filter { $0.date < sevenDaysAgo }
+        let recentLogs = logs.filter { $0.date >= sevenDaysAgo }
+        let previousLogs = logs.filter { $0.date < sevenDaysAgo }
 
-            let recentSteps = recentLogs.compactMap(\.steps).filter { $0 > 0 }
-            let previousSteps = previousLogs.compactMap(\.steps).filter { $0 > 0 }
+        let recentSteps = recentLogs.compactMap(\.steps).filter { $0 > 0 }
+        let previousSteps = previousLogs.compactMap(\.steps).filter { $0 > 0 }
 
-            guard !recentSteps.isEmpty, !previousSteps.isEmpty else {
-                AppLogger.info("No valid step data for trend calculation", category: .data)
-                return HealthTrends(weeklyActivityChange: nil)
-            }
+        guard !recentSteps.isEmpty, !previousSteps.isEmpty else {
+            AppLogger.info("No valid step data for trend calculation", category: .data)
+            return HealthTrends(weeklyActivityChange: nil)
+        }
 
-            let recentAvg = Double(recentSteps.reduce(0, +)) / Double(recentSteps.count)
-            let previousAvg = Double(previousSteps.reduce(0, +)) / Double(previousSteps.count)
+        let recentAvg = Double(recentSteps.reduce(0, +)) / Double(recentSteps.count)
+        let previousAvg = Double(previousSteps.reduce(0, +)) / Double(previousSteps.count)
 
-            guard previousAvg > 0 else {
-                AppLogger.info("Previous average is zero, cannot calculate percentage change", category: .data)
-                return HealthTrends(weeklyActivityChange: nil)
-            }
+        guard previousAvg > 0 else {
+            AppLogger.info("Previous average is zero, cannot calculate percentage change", category: .data)
+            return HealthTrends(weeklyActivityChange: nil)
+        }
 
-            weeklyChange = ((recentAvg - previousAvg) / previousAvg) * 100.0
+        weeklyChange = ((recentAvg - previousAvg) / previousAvg) * 100.0
 
-            // Sanity check: Cap extreme values
-            if let change = weeklyChange {
-                weeklyChange = max(-500.0, min(500.0, change))
-            }
+        // Sanity check: Cap extreme values
+        if let change = weeklyChange {
+            weeklyChange = max(-500.0, min(500.0, change))
+        }
 
-            return HealthTrends(weeklyActivityChange: weeklyChange)
+        return HealthTrends(weeklyActivityChange: weeklyChange)
     }
-    
+
     // MARK: - ServiceProtocol Methods
-    
+
     func configure() async throws {
         guard !_isConfigured else { return }
         _isConfigured = true
         AppLogger.info("\(serviceIdentifier) configured", category: .services)
     }
-    
+
     func reset() async {
         _isConfigured = false
         AppLogger.info("\(serviceIdentifier) reset", category: .services)
     }
-    
+
     func healthCheck() async -> ServiceHealth {
         ServiceHealth(
             status: _isConfigured ? .healthy : .unhealthy,

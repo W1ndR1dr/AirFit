@@ -23,7 +23,7 @@ enum NotificationSound {
     case achievement
     case reminder
     case urgent
-    
+
     var fileName: String? {
         switch self {
         case .default: return nil
@@ -42,7 +42,7 @@ struct EngagementMetrics {
     let churnRiskUsers: Int
     let avgSessionsPerWeek: Double
     let avgSessionDuration: TimeInterval
-    
+
     var engagementRate: Double {
         guard totalUsers > 0 else { return 0 }
         return Double(activeUsers) / Double(totalUsers)

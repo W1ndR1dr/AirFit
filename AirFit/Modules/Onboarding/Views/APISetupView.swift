@@ -6,7 +6,7 @@ struct APISetupView: View {
     @Environment(\.diContainer) private var diContainer
     @State private var selectedProvider: AIProvider = .anthropic
     private let onComplete: (() -> Void)?
-    
+
     init(apiKeyManager: APIKeyManagementProtocol? = nil, onComplete: (() -> Void)? = nil) {
         self.onComplete = onComplete
         if let manager = apiKeyManager {
@@ -17,7 +17,7 @@ struct APISetupView: View {
             _viewModel = StateObject(wrappedValue: APISetupViewModel(apiKeyManager: mockManager))
         }
     }
-    
+
     var body: some View {
         NavigationView {
             ZStack {
@@ -31,7 +31,7 @@ struct APISetupView: View {
                     endPoint: .bottomTrailing
                 )
                 .ignoresSafeArea()
-                
+
                 ScrollView {
                     VStack(spacing: 24) {
                         // Header
@@ -39,55 +39,55 @@ struct APISetupView: View {
                             Image(systemName: "sparkles")
                                 .font(.system(size: 50))
                                 .foregroundStyle(.purple.gradient)
-                            
+
                             Text("Power Your AI Coach")
                                 .font(.system(size: 28, weight: .bold, design: .rounded))
-                            
+
                             Text("Add API keys to unlock AI-powered coaching")
                                 .font(.subheadline)
                                 .foregroundColor(.secondary)
                                 .multilineTextAlignment(.center)
                         }
                         .padding(.top, 20)
-                        
+
                         // Provider selection
                         ProviderSelector(selectedProvider: $selectedProvider)
                             .padding(.horizontal)
-                        
+
                         // API Key input for selected provider
                         APIKeyInputCard(
                             provider: selectedProvider,
                             viewModel: viewModel
                         )
                         .padding(.horizontal)
-                        
+
                         // Configured providers list
                         if !viewModel.configuredProviders.isEmpty {
                             ConfiguredProvidersList(viewModel: viewModel)
                                 .padding(.horizontal)
-                            
+
                             // Active provider selection
                             VStack(alignment: .leading, spacing: 12) {
                                 Text("Select Active Provider")
                                     .font(.headline)
                                     .padding(.horizontal)
-                                
+
                                 Text("Choose which AI model to use for your coaching experience:")
                                     .font(.subheadline)
                                     .foregroundColor(.secondary)
                                     .padding(.horizontal)
-                                
+
                                 ForEach(viewModel.configuredProviders, id: \.provider) { config in
                                     Button(action: {
                                         viewModel.selectedActiveProvider = config
                                     }) {
                                         HStack {
-                                            Image(systemName: config.provider == .anthropic ? "a.circle.fill" : 
-                                                            config.provider == .openAI ? "o.circle.fill" : "g.circle.fill")
+                                            Image(systemName: config.provider == .anthropic ? "a.circle.fill" :
+                                                    config.provider == .openAI ? "o.circle.fill" : "g.circle.fill")
                                                 .font(.title2)
-                                                .foregroundColor(config.provider == .anthropic ? .purple : 
-                                                               config.provider == .openAI ? .green : .orange)
-                                            
+                                                .foregroundColor(config.provider == .anthropic ? .purple :
+                                                                    config.provider == .openAI ? .green : .orange)
+
                                             VStack(alignment: .leading) {
                                                 Text(config.provider.displayName)
                                                     .font(.headline)
@@ -95,9 +95,9 @@ struct APISetupView: View {
                                                     .font(.caption)
                                                     .foregroundColor(.secondary)
                                             }
-                                            
+
                                             Spacer()
-                                            
+
                                             if viewModel.selectedActiveProvider?.provider == config.provider {
                                                 Image(systemName: "checkmark.circle.fill")
                                                     .foregroundColor(.blue)
@@ -106,12 +106,12 @@ struct APISetupView: View {
                                         .padding()
                                         .background(
                                             RoundedRectangle(cornerRadius: 12)
-                                                .stroke(viewModel.selectedActiveProvider?.provider == config.provider ? 
-                                                       Color.blue : Color.gray.opacity(0.3), lineWidth: 2)
+                                                .stroke(viewModel.selectedActiveProvider?.provider == config.provider ?
+                                                            Color.blue : Color.gray.opacity(0.3), lineWidth: 2)
                                                 .background(
                                                     RoundedRectangle(cornerRadius: 12)
                                                         .fill(viewModel.selectedActiveProvider?.provider == config.provider ?
-                                                             Color.blue.opacity(0.05) : Color.clear)
+                                                                Color.blue.opacity(0.05) : Color.clear)
                                                 )
                                         )
                                     }
@@ -121,7 +121,7 @@ struct APISetupView: View {
                             }
                             .padding(.vertical)
                         }
-                        
+
                         // Continue button
                         if !viewModel.configuredProviders.isEmpty && viewModel.selectedActiveProvider != nil {
                             Button(action: {
@@ -170,13 +170,13 @@ struct APISetupView: View {
 
 struct ProviderSelector: View {
     @Binding var selectedProvider: AIProvider
-    
+
     let providers: [(AIProvider, String, String)] = [
         (.anthropic, "Anthropic", "Claude 4 Series"),
         (.openAI, "OpenAI", "o3 & o4 Series"),
         (.gemini, "Google", "Gemini 2.5 Series")
     ]
-    
+
     var body: some View {
         HStack(spacing: 12) {
             ForEach(providers, id: \.0) { provider, name, models in
@@ -198,18 +198,18 @@ struct ProviderButton: View {
     let models: String
     let isSelected: Bool
     let action: () -> Void
-    
+
     var body: some View {
         Button(action: action) {
             VStack(spacing: 4) {
                 Image(systemName: iconName)
                     .font(.title2)
                     .foregroundColor(isSelected ? .white : .purple)
-                
+
                 Text(name)
                     .font(.caption.bold())
                     .foregroundColor(isSelected ? .white : .primary)
-                
+
                 Text(models)
                     .font(.caption2)
                     .foregroundColor(isSelected ? .white.opacity(0.8) : .secondary)
@@ -226,7 +226,7 @@ struct ProviderButton: View {
         }
         .buttonStyle(PlainButtonStyle())
     }
-    
+
     var iconName: String {
         switch provider {
         case .anthropic: return "brain"
@@ -243,7 +243,7 @@ struct APIKeyInputCard: View {
     @State private var selectedModel = ""
     @State private var isValidating = false
     @State private var validationResult: ValidationResult?
-    
+
     var availableModels: [(id: String, display: String)] {
         switch provider {
         case .anthropic:
@@ -265,7 +265,7 @@ struct APIKeyInputCard: View {
             ]
         }
     }
-    
+
     var body: some View {
         VStack(alignment: .leading, spacing: 16) {
             // Provider header
@@ -273,24 +273,24 @@ struct APIKeyInputCard: View {
                 Image(systemName: providerIcon)
                     .font(.title3)
                     .foregroundColor(.purple)
-                
+
                 Text("\(provider.displayName) Configuration")
                     .font(.headline)
-                
+
                 Spacer()
-                
+
                 if let result = validationResult {
                     Image(systemName: result.isValid ? "checkmark.circle.fill" : "xmark.circle.fill")
                         .foregroundColor(result.isValid ? .green : .red)
                 }
             }
-            
+
             // Model selection
             VStack(alignment: .leading, spacing: 8) {
                 Text("Select Model")
                     .font(.subheadline)
                     .foregroundColor(.secondary)
-                
+
                 ScrollView(.horizontal, showsIndicators: false) {
                     HStack(spacing: 8) {
                         ForEach(availableModels, id: \.id) { model in
@@ -303,18 +303,18 @@ struct APIKeyInputCard: View {
                     }
                 }
             }
-            
+
             // API Key input
             VStack(alignment: .leading, spacing: 8) {
                 Text("API Key")
                     .font(.subheadline)
                     .foregroundColor(.secondary)
-                
+
                 HStack {
                     SecureField("Paste your API key here", text: $apiKey)
                         .textFieldStyle(PlainTextFieldStyle())
                         .font(.system(.body, design: .monospaced))
-                    
+
                     if isValidating {
                         ProgressView()
                             .scaleEffect(0.8)
@@ -325,14 +325,14 @@ struct APIKeyInputCard: View {
                     RoundedRectangle(cornerRadius: 8)
                         .fill(Color.gray.opacity(0.1))
                 )
-                
+
                 if let error = validationResult?.error {
                     Text(error)
                         .font(.caption)
                         .foregroundColor(.red)
                 }
             }
-            
+
             // Action buttons
             HStack(spacing: 12) {
                 Button(action: validateKey) {
@@ -341,7 +341,7 @@ struct APIKeyInputCard: View {
                 }
                 .buttonStyle(APISetupSecondaryButtonStyle())
                 .disabled(apiKey.isEmpty || selectedModel.isEmpty || isValidating)
-                
+
                 Button(action: saveKey) {
                     Label("Save", systemImage: "lock.fill")
                         .font(.subheadline)
@@ -360,7 +360,7 @@ struct APIKeyInputCard: View {
             selectedModel = availableModels.first?.id ?? ""
         }
     }
-    
+
     var providerIcon: String {
         switch provider {
         case .anthropic: return "brain"
@@ -368,11 +368,11 @@ struct APIKeyInputCard: View {
         case .gemini: return "sparkle"
         }
     }
-    
+
     func validateKey() {
         isValidating = true
         validationResult = nil
-        
+
         Task {
             do {
                 let isValid = try await viewModel.validateAPIKey(apiKey, for: provider, model: selectedModel)
@@ -394,12 +394,12 @@ struct APIKeyInputCard: View {
             }
         }
     }
-    
+
     func saveKey() {
         guard validationResult?.isValid == true else { return }
-        
+
         viewModel.saveAPIKey(apiKey, for: provider, model: selectedModel)
-        
+
         // Clear the form
         apiKey = ""
         validationResult = nil
@@ -410,7 +410,7 @@ struct APIModelChip: View {
     let model: String
     let isSelected: Bool
     let action: () -> Void
-    
+
     var body: some View {
         Button(action: action) {
             Text(model)
@@ -430,28 +430,28 @@ struct APIModelChip: View {
 
 struct ConfiguredProvidersList: View {
     @ObservedObject var viewModel: APISetupViewModel
-    
+
     var body: some View {
         VStack(alignment: .leading, spacing: 12) {
             Text("Configured Providers")
                 .font(.headline)
-            
+
             ForEach(viewModel.configuredProviders, id: \.provider) { config in
                 HStack {
                     Image(systemName: config.provider.iconName)
                         .foregroundColor(.green)
-                    
+
                     VStack(alignment: .leading) {
                         Text(config.provider.displayName)
                             .font(.subheadline.bold())
-                        
+
                         Text(config.model)
                             .font(.caption)
                             .foregroundColor(.secondary)
                     }
-                    
+
                     Spacer()
-                    
+
                     Button(action: {
                         viewModel.removeConfiguration(for: config.provider)
                     }) {

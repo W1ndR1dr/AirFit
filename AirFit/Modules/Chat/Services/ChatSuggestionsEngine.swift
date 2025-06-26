@@ -74,20 +74,20 @@ final class ChatSuggestionsEngine: ServiceProtocol {
             QuickSuggestion(text: "Set a new fitness goal", autoSend: false)
         ]
     }
-    
+
     // MARK: - ServiceProtocol Methods
-    
+
     func configure() async throws {
         guard !_isConfigured else { return }
         _isConfigured = true
         AppLogger.info("\(serviceIdentifier) configured", category: .services)
     }
-    
+
     func reset() async {
         _isConfigured = false
         AppLogger.info("\(serviceIdentifier) reset", category: .services)
     }
-    
+
     func healthCheck() async -> ServiceHealth {
         ServiceHealth(
             status: _isConfigured ? .healthy : .unhealthy,

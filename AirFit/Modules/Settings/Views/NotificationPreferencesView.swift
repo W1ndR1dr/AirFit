@@ -4,13 +4,13 @@ struct NotificationPreferencesView: View {
     var viewModel: SettingsViewModel
     @State private var preferences: NotificationPreferences
     @State private var quietHours: QuietHours
-    
+
     init(viewModel: SettingsViewModel) {
         self.viewModel = viewModel
         _preferences = State(initialValue: viewModel.notificationPreferences)
         _quietHours = State(initialValue: viewModel.quietHours)
     }
-    
+
     var body: some View {
         BaseScreen {
             ScrollView {
@@ -24,7 +24,7 @@ struct NotificationPreferencesView: View {
                     .padding(.horizontal, AppSpacing.lg)
                     .padding(.top, AppSpacing.sm)
                     .padding(.bottom, AppSpacing.lg)
-                    
+
                     VStack(spacing: AppSpacing.xl) {
                         systemNotificationStatus
                         notificationTypes
@@ -39,7 +39,7 @@ struct NotificationPreferencesView: View {
         .navigationTitle("")
         .navigationBarTitleDisplayMode(.inline)
     }
-    
+
     private var systemNotificationStatus: some View {
         VStack(alignment: .leading, spacing: AppSpacing.md) {
             HStack {
@@ -49,7 +49,7 @@ struct NotificationPreferencesView: View {
                     .foregroundStyle(.secondary.opacity(0.8))
                 Spacer()
             }
-            
+
             GlassCard {
                 VStack(spacing: AppSpacing.md) {
                     HStack {
@@ -60,9 +60,9 @@ struct NotificationPreferencesView: View {
                                 .font(.caption)
                                 .foregroundStyle(preferences.systemEnabled ? .green : .red)
                         }
-                        
+
                         Spacer()
-                        
+
                         Button {
                             viewModel.openSystemNotificationSettings()
                         } label: {
@@ -81,7 +81,7 @@ struct NotificationPreferencesView: View {
                                 )
                         }
                     }
-                    
+
                     if !preferences.systemEnabled {
                         Label {
                             Text("Enable notifications in Settings to receive alerts from AirFit")
@@ -95,7 +95,7 @@ struct NotificationPreferencesView: View {
             }
         }
     }
-    
+
     private var notificationTypes: some View {
         VStack(alignment: .leading, spacing: AppSpacing.md) {
             HStack {
@@ -105,7 +105,7 @@ struct NotificationPreferencesView: View {
                     .foregroundStyle(.secondary.opacity(0.8))
                 Spacer()
             }
-            
+
             GlassCard {
                 VStack(spacing: AppSpacing.md) {
                     NotificationToggle(
@@ -114,36 +114,36 @@ struct NotificationPreferencesView: View {
                         icon: "figure.run",
                         isOn: $preferences.workoutReminders
                     )
-                    
+
                     Divider()
-                    
+
                     NotificationToggle(
                         title: "Meal Reminders",
                         description: "Track your nutrition on time",
                         icon: "fork.knife",
                         isOn: $preferences.mealReminders
                     )
-                    
+
                     Divider()
-                    
+
                     NotificationToggle(
                         title: "Daily Check-ins",
                         description: "Log your progress and mood",
                         icon: "checkmark.square",
                         isOn: $preferences.dailyCheckins
                     )
-                    
+
                     Divider()
-                    
+
                     NotificationToggle(
                         title: "Achievement Alerts",
                         description: "Celebrate your milestones",
                         icon: "trophy",
                         isOn: $preferences.achievementAlerts
                     )
-                    
+
                     Divider()
-                    
+
                     NotificationToggle(
                         title: "Coach Messages",
                         description: "Personalized guidance from your AI coach",
@@ -155,7 +155,7 @@ struct NotificationPreferencesView: View {
             .disabled(!preferences.systemEnabled)
         }
     }
-    
+
     private var quietHoursSection: some View {
         VStack(alignment: .leading, spacing: AppSpacing.md) {
             HStack {
@@ -165,7 +165,7 @@ struct NotificationPreferencesView: View {
                     .foregroundStyle(.secondary.opacity(0.8))
                 Spacer()
             }
-            
+
             GlassCard {
                 VStack(spacing: AppSpacing.md) {
                     Toggle(isOn: $quietHours.enabled) {
@@ -182,17 +182,17 @@ struct NotificationPreferencesView: View {
                                 .foregroundStyle(.tint)
                         }
                     }
-                    
+
                     if quietHours.enabled {
                         Divider()
-                        
+
                         VStack(spacing: AppSpacing.md) {
                             DatePicker(
                                 "Start Time",
                                 selection: $quietHours.startTime,
                                 displayedComponents: .hourAndMinute
                             )
-                            
+
                             DatePicker(
                                 "End Time",
                                 selection: $quietHours.endTime,
@@ -205,7 +205,7 @@ struct NotificationPreferencesView: View {
             }
         }
     }
-    
+
     private var saveButton: some View {
         Button {
             savePreferences()
@@ -228,7 +228,7 @@ struct NotificationPreferencesView: View {
         }
         .disabled(!(preferences != viewModel.notificationPreferences || quietHours != viewModel.quietHours))
     }
-    
+
     private func savePreferences() {
         Task {
             do {
@@ -249,7 +249,7 @@ struct NotificationToggle: View {
     let description: String
     let icon: String
     @Binding var isOn: Bool
-    
+
     var body: some View {
         Toggle(isOn: $isOn) {
             Label {
@@ -274,11 +274,11 @@ struct NotificationToggle: View {
 
 // QuietHours already conforms to Equatable
 /*extension QuietHours: Equatable {
-    static func == (lhs: QuietHours, rhs: QuietHours) -> Bool {
-        lhs.enabled == rhs.enabled &&
-        Calendar.current.dateComponents([.hour, .minute], from: lhs.startTime) ==
-        Calendar.current.dateComponents([.hour, .minute], from: rhs.startTime) &&
-        Calendar.current.dateComponents([.hour, .minute], from: lhs.endTime) ==
-        Calendar.current.dateComponents([.hour, .minute], from: rhs.endTime)
-    }
-}*/
+ static func == (lhs: QuietHours, rhs: QuietHours) -> Bool {
+ lhs.enabled == rhs.enabled &&
+ Calendar.current.dateComponents([.hour, .minute], from: lhs.startTime) ==
+ Calendar.current.dateComponents([.hour, .minute], from: rhs.startTime) &&
+ Calendar.current.dateComponents([.hour, .minute], from: lhs.endTime) ==
+ Calendar.current.dateComponents([.hour, .minute], from: rhs.endTime)
+ }
+ }*/

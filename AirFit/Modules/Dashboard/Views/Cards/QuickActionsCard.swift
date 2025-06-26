@@ -48,7 +48,7 @@ private struct QuickActionButton: View {
                             )
                         )
                         .frame(width: 44, height: 44)
-                    
+
                     Image(systemName: action.systemImage)
                         .font(.title2)
                         .foregroundStyle(
@@ -59,7 +59,7 @@ private struct QuickActionButton: View {
                             )
                         )
                 }
-                
+
                 Text(action.title)
                     .font(AppFonts.caption)
                     .multilineTextAlignment(.center)

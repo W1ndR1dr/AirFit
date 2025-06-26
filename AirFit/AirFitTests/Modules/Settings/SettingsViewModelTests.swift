@@ -17,27 +17,27 @@ final class SettingsViewModelTests: XCTestCase {
     // MARK: - Setup
     override func setUp() async throws {
         try super.setUp()
-        
+
         // Create test container
         container = try await DITestHelper.createTestContainer()
-        
+
         // Get model context from container
         let modelContainer = try await container.resolve(ModelContainer.self)
         modelContext = modelContainer.mainContext
-        
+
         // Create test user
         testUser = User(name: "Test User")
         modelContext.insert(testUser)
         try modelContext.save()
-        
+
         // Get mocks from container
         mockAPIKeyManager = try await container.resolve(APIKeyManagementProtocol.self) as? MockAPIKeyManager
         mockAIService = try await container.resolve(AIServiceProtocol.self) as? MockAIService
         mockNotificationManager = try await container.resolve(NotificationManager.self) as? MockNotificationManager
-        
+
         // Create coordinator manually (not in DI container yet)
         coordinator = SettingsCoordinator()
-        
+
         // Create SUT
         sut = SettingsViewModel(
             modelContext: modelContext,

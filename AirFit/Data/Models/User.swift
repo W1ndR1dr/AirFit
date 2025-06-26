@@ -11,15 +11,15 @@ final class User: @unchecked Sendable {
     var email: String?
     var name: String?
     var preferredUnits: String // "imperial" or "metric"
-    
+
     // Health baseline data
     var baselineHRV: Double?
-    
+
     // Onboarding status
     var isOnboarded: Bool = false
     var onboardingCompletedDate: Date?
     var lastActiveDate: Date = Date()
-    
+
     // Additional timestamps
     var lastModifiedDate: Date = Date()
     var createdDate: Date = Date()

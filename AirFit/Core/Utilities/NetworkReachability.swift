@@ -7,18 +7,18 @@ import Combine
 final class NetworkReachability: ObservableObject {
     // MARK: - Singleton
     static let shared = NetworkReachability()
-    
+
     // MARK: - Published Properties
     @Published private(set) var isConnected: Bool = true
     @Published private(set) var connectionType: ConnectionType = .unknown
     @Published private(set) var isExpensive: Bool = false
     @Published private(set) var isConstrained: Bool = false
-    
+
     // MARK: - Private Properties
     private let monitor: NWPathMonitor
     private let queue = DispatchQueue(label: "com.airfit.networkmonitor")
     private var cancellables = Set<AnyCancellable>()
-    
+
     // MARK: - Types
     enum ConnectionType: String, CaseIterable {
         case wifi = "WiFi"
@@ -26,7 +26,7 @@ final class NetworkReachability: ObservableObject {
         case ethernet = "Ethernet"
         case unknown = "Unknown"
         case none = "None"
-        
+
         var icon: String {
             switch self {
             case .wifi: return "wifi"
@@ -36,7 +36,7 @@ final class NetworkReachability: ObservableObject {
             case .none: return "wifi.slash"
             }
         }
-        
+
         var displayName: String {
             switch self {
             case .wifi: return "Wi-Fi"
@@ -47,19 +47,19 @@ final class NetworkReachability: ObservableObject {
             }
         }
     }
-    
+
     // MARK: - Initialization
     private init() {
         monitor = NWPathMonitor()
         startMonitoring()
     }
-    
+
     deinit {
         monitor.cancel()
     }
-    
+
     // MARK: - Public Methods
-    
+
     /// Starts monitoring network connectivity
     func startMonitoring() {
         monitor.pathUpdateHandler = { [weak self] path in
@@ -69,16 +69,16 @@ final class NetworkReachability: ObservableObject {
         }
         monitor.start(queue: queue)
     }
-    
+
     /// Stops monitoring network connectivity
     func stopMonitoring() {
         monitor.cancel()
     }
-    
+
     /// Checks if a specific host is reachable
     func isHostReachable(_ host: String) async -> Bool {
         guard isConnected else { return false }
-        
+
         do {
             let url = URL(string: "https://\(host)")!
             let (_, response) = try await URLSession.shared.data(from: url)
@@ -90,13 +90,13 @@ final class NetworkReachability: ObservableObject {
             return false
         }
     }
-    
+
     /// Waits for connectivity with optional timeout
     func waitForConnectivity(timeout: TimeInterval = 30) async throws {
         if isConnected { return }
-        
+
         let startTime = Date()
-        
+
         while !isConnected {
             if Date().timeIntervalSince(startTime) > timeout {
                 throw ReachabilityError.timeout
@@ -104,7 +104,7 @@ final class NetworkReachability: ObservableObject {
             try await Task.sleep(nanoseconds: 100_000_000) // 0.1 seconds
         }
     }
-    
+
     /// Returns current connection quality
     var connectionQuality: ConnectionQuality {
         switch connectionType {
@@ -118,14 +118,14 @@ final class NetworkReachability: ObservableObject {
             return .none
         }
     }
-    
+
     // MARK: - Private Methods
-    
+
     private func updateConnectionStatus(_ path: NWPath) {
         isConnected = path.status == .satisfied
         isExpensive = path.isExpensive
         isConstrained = path.isConstrained
-        
+
         if path.usesInterfaceType(.wifi) {
             connectionType = .wifi
         } else if path.usesInterfaceType(.cellular) {
@@ -137,10 +137,10 @@ final class NetworkReachability: ObservableObject {
         } else {
             connectionType = .none
         }
-        
+
         logConnectionChange()
     }
-    
+
     private func logConnectionChange() {
         AppLogger.info("""
             Network status changed:
@@ -161,7 +161,7 @@ extension NetworkReachability {
         case poor = "Poor"
         case unknown = "Unknown"
         case none = "No Connection"
-        
+
         var color: String {
             switch self {
             case .good: return "SuccessColor"
@@ -171,7 +171,7 @@ extension NetworkReachability {
             case .none: return "ErrorColor"
             }
         }
-        
+
         var recommendation: String {
             switch self {
             case .good:
@@ -196,7 +196,7 @@ enum ReachabilityError: LocalizedError {
     case timeout
     case hostUnreachable(String)
     case poorConnection
-    
+
     var errorDescription: String? {
         switch self {
         case .noConnection:
@@ -209,7 +209,7 @@ enum ReachabilityError: LocalizedError {
             return "Poor network connection detected"
         }
     }
-    
+
     var recoverySuggestion: String? {
         switch self {
         case .noConnection:
@@ -235,12 +235,12 @@ extension NetworkReachability {
             return "No Connection"
         }
     }
-    
+
     /// Convenience property for showing alerts
     var shouldShowOfflineAlert: Bool {
         !isConnected
     }
-    
+
     /// Convenience method for retry logic
     func performWithConnectivity<T: Sendable>(
         timeout: TimeInterval = 30,
@@ -260,14 +260,14 @@ extension NetworkReachability {
             .removeDuplicates()
             .eraseToAnyPublisher()
     }
-    
+
     /// Publisher for connection type changes
     var connectionTypePublisher: AnyPublisher<ConnectionType, Never> {
         $connectionType
             .removeDuplicates()
             .eraseToAnyPublisher()
     }
-    
+
     /// Publisher for connection quality changes
     var connectionQualityPublisher: AnyPublisher<ConnectionQuality, Never> {
         Publishers.CombineLatest3($connectionType, $isExpensive, $isConstrained)

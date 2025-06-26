@@ -99,7 +99,7 @@ final class WorkoutViewModel: ErrorHandling {
         do {
             // Assemble context snapshot for AI analysis
             _ = await contextAssembler.assembleSnapshot(modelContext: modelContext)
-            
+
             let request = PostWorkoutAnalysisRequest(
                 workout: workout,
                 recentWorkouts: Array(workouts.prefix(5)),

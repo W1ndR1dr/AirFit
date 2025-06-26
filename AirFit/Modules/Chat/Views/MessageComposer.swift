@@ -153,11 +153,11 @@ struct MessageComposer: View {
             // Minimal recording indicator
             RecordingIndicator()
                 .frame(width: 12, height: 12)
-            
+
             // Clean waveform visualization
             VoiceWaveformView(levels: waveform, config: .chat)
                 .frame(height: 24)
-            
+
             // Recording time
             Text(formatDuration(recordingDuration))
                 .font(.system(size: 14, weight: .medium, design: .monospaced))
@@ -181,15 +181,15 @@ struct MessageComposer: View {
             .padding(.horizontal, AppSpacing.sm)
         }
     }
-    
+
     // MARK: - Helper Methods
-    
+
     private func formatDuration(_ duration: TimeInterval) -> String {
         let minutes = Int(duration) / 60
         let seconds = Int(duration) % 60
         return String(format: "%d:%02d", minutes, seconds)
     }
-    
+
     private func startRecordingTimer() {
         Task { @MainActor in
             while self.isRecording {
@@ -221,15 +221,15 @@ private struct RecordingIndicator: View {
                 // Gentle pulsing
                 withAnimation(
                     .easeInOut(duration: 0.8)
-                    .repeatForever(autoreverses: true)
+                        .repeatForever(autoreverses: true)
                 ) {
                     opacity = 0.6
                 }
-                
+
                 // Expanding ring
                 withAnimation(
                     .easeOut(duration: 1.5)
-                    .repeatForever(autoreverses: false)
+                        .repeatForever(autoreverses: false)
                 ) {
                     isAnimating = true
                 }

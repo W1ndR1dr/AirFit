@@ -4,7 +4,7 @@ import SwiftData
 // MARK: - User Settings Extensions
 extension User {
     // MARK: - Settings Properties (Transient - stored in UserDefaults)
-    
+
     /// Appearance mode preference
     var appearanceMode: AppearanceMode? {
         get {
@@ -19,7 +19,7 @@ extension User {
             }
         }
     }
-    
+
     /// Haptic feedback enabled
     var hapticFeedbackEnabled: Bool {
         get {
@@ -29,7 +29,7 @@ extension User {
             UserDefaults.standard.set(newValue, forKey: userDefaultsKey("hapticFeedback"))
         }
     }
-    
+
     /// Analytics enabled
     var analyticsEnabled: Bool {
         get {
@@ -39,7 +39,7 @@ extension User {
             UserDefaults.standard.set(newValue, forKey: userDefaultsKey("analytics"))
         }
     }
-    
+
     /// Selected AI provider
     var selectedAIProvider: AIProvider? {
         get {
@@ -54,7 +54,7 @@ extension User {
             }
         }
     }
-    
+
     /// Selected AI model
     var selectedAIModel: String? {
         get {
@@ -68,7 +68,7 @@ extension User {
             }
         }
     }
-    
+
     /// Biometric lock enabled
     var biometricLockEnabled: Bool {
         get {
@@ -78,7 +78,7 @@ extension User {
             UserDefaults.standard.set(newValue, forKey: userDefaultsKey("biometricLock"))
         }
     }
-    
+
     /// Coach persona data
     var coachPersonaData: Data? {
         get {
@@ -92,7 +92,7 @@ extension User {
             }
         }
     }
-    
+
     /// Notification preferences
     var notificationPreferences: NotificationPreferences? {
         get {
@@ -108,7 +108,7 @@ extension User {
             }
         }
     }
-    
+
     /// Quiet hours settings
     var quietHours: QuietHours? {
         get {
@@ -124,7 +124,7 @@ extension User {
             }
         }
     }
-    
+
     /// Data export history
     var dataExports: [DataExport] {
         get {
@@ -137,39 +137,39 @@ extension User {
             }
         }
     }
-    
+
     /// Current context for AI
     var currentContext: String {
         // Build context from recent activity
         let recentWorkouts = getRecentWorkouts(days: 3).count
         let recentMeals = getRecentMeals(days: 1).count
         let todayLog = getTodaysLog()
-        
+
         var context = "User has logged \(recentWorkouts) workouts in the last 3 days"
         context += " and \(recentMeals) meals today."
-        
+
         if let mood = todayLog?.mood {
             context += " Current mood: \(mood)."
         }
-        
+
         if let energy = todayLog?.subjectiveEnergyLevel {
             context += " Energy level: \(energy)/5."
         }
-        
+
         return context
     }
-    
+
     // MARK: - Helper Methods
-    
+
     private func userDefaultsKey(_ key: String) -> String {
         "airfit.user.\(id.uuidString).\(key)"
     }
-    
+
     /// Update preferred units with proper type
     func updatePreferredUnits(_ system: MeasurementSystem) {
         self.preferredUnits = system.rawValue
     }
-    
+
     /// Get preferred units as enum
     var preferredUnitsEnum: MeasurementSystem {
         MeasurementSystem(rawValue: preferredUnits) ?? .imperial

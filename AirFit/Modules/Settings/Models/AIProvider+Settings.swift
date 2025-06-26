@@ -4,7 +4,7 @@ import SwiftUI
 // MARK: - AIProvider Extensions for Settings
 extension AIProvider: Identifiable {
     var id: String { rawValue }
-    
+
     var icon: String {
         switch self {
         case .openAI: return "cpu"
@@ -12,7 +12,7 @@ extension AIProvider: Identifiable {
         case .gemini: return "sparkles"
         }
     }
-    
+
     var keyInstructions: [String] {
         switch self {
         case .openAI:
@@ -41,7 +41,7 @@ extension AIProvider: Identifiable {
             ]
         }
     }
-    
+
     var apiKeyURL: URL? {
         switch self {
         case .openAI:

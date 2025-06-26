@@ -73,7 +73,7 @@ final class DashboardViewModelTests: XCTestCase {
     func test_loadDashboardData_loadsDashboardData() async throws {
         let user = createTestUser()
         let sut = try await createSUT(with: user)
-        
+
         // Get mocks from container
         let mockHealthKitService = try await diContainer.resolve(HealthKitServiceProtocol.self) as! MockHealthKitService
         let mockNutritionService = try await diContainer.resolve(DashboardNutritionServiceProtocol.self) as! MockDashboardNutritionService
@@ -106,7 +106,7 @@ final class DashboardViewModelTests: XCTestCase {
 
         // Act - Call loadDashboardData directly for deterministic testing
         await sut.loadDashboardData()
-        
+
         // Carmack Fix: Test the outcome, not the implementation
         // If the data is loaded correctly, the services were called
         XCTAssertFalse(sut.isLoading, "Loading should be complete")
@@ -114,7 +114,7 @@ final class DashboardViewModelTests: XCTestCase {
         XCTAssertEqual(sut.nutritionSummary.calories, 500, "Nutrition data should be loaded")
         XCTAssertEqual(sut.recoveryScore?.score, 85, "Recovery score should be loaded")
         XCTAssertEqual(sut.performanceInsight?.trend, .improving, "Performance insight should be loaded")
-        
+
         // The fact that these values are set proves the services were called
         // This is more reliable than mock verification in async contexts
     }
@@ -122,7 +122,7 @@ final class DashboardViewModelTests: XCTestCase {
     func test_onAppear_triggersDataLoad() async throws {
         let user = createTestUser()
         let sut = try await createSUT(with: user)
-        
+
         // Get mocks from container
         let mockHealthKitService = try await diContainer.resolve(HealthKitServiceProtocol.self) as! MockHealthKitService
         let mockNutritionService = try await diContainer.resolve(DashboardNutritionServiceProtocol.self) as! MockDashboardNutritionService
@@ -157,7 +157,7 @@ final class DashboardViewModelTests: XCTestCase {
 
     func test_aiFailure_usesFallbackGreeting() async throws {
         let user = createTestUser()
-        
+
         // Get mocks from container
         let mockHealthKitService = try await diContainer.resolve(HealthKitServiceProtocol.self) as! MockHealthKitService
         let mockNutritionService = try await diContainer.resolve(DashboardNutritionServiceProtocol.self) as! MockDashboardNutritionService
@@ -338,7 +338,7 @@ final class DashboardViewModelTests: XCTestCase {
         // If the targets are loaded correctly, getTargets was called
         XCTAssertEqual(sut.nutritionTargets.calories, 2_500, "Nutrition targets should be loaded from profile")
         XCTAssertFalse(sut.isLoading, "Loading should be complete")
-        
+
         // The fact that custom targets are set proves getTargets was called
         // This is more reliable than mock verification in async contexts
     }
@@ -369,7 +369,7 @@ final class DashboardViewModelTests: XCTestCase {
         }
         let mockAICoachService = try await diContainer.resolve(AICoachServiceProtocol.self) as! MockAICoachService
         let mockNutritionService = try await diContainer.resolve(DashboardNutritionServiceProtocol.self) as! MockDashboardNutritionService
-        
+
         let sut = DashboardViewModel(
             user: user,
             modelContext: modelContext,

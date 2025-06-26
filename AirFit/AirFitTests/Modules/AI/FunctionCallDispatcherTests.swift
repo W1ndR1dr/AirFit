@@ -12,7 +12,7 @@ final class FunctionCallDispatcherTests: XCTestCase {
 
     override func setUp() async throws {
         try super.setUp()
-        
+
         // Create in-memory model container for testing
         modelContainer = try ModelContainer.createTestContainer()
 
@@ -126,7 +126,7 @@ final class FunctionCallDispatcherTests: XCTestCase {
     }
 
     // MARK: - Removed Function Tests
-    // NOTE: parseAndLogComplexNutrition and generateEducationalInsight have been migrated 
+    // NOTE: parseAndLogComplexNutrition and generateEducationalInsight have been migrated
     // to direct AI implementation in CoachEngine for improved performance and reduced token usage.
     // These functions are now tested in CoachEngineTests with direct AI methods.
 
@@ -227,11 +227,11 @@ final class FunctionCallDispatcherTests: XCTestCase {
             "parseAndLogComplexNutrition",
             "generateEducationalInsight"
         ]
-        
+
         for functionName in removedFunctions {
             let functionCall = AIFunctionCall(name: functionName, arguments: [:])
             let result = try await dispatcher.execute(functionCall, for: testUser, context: testContext)
-            
+
             XCTAssertFalse(result.success, "Function \(functionName) should now be unknown")
             XCTAssertTrue(result.message.contains("don't recognize"), "Should indicate unknown function")
         }
@@ -245,35 +245,35 @@ final class FunctionCallDispatcherTests: XCTestCase {
             "parseAndLogComplexNutrition",
             "generateEducationalInsight"
         ]
-        
+
         let remainingFunctions = [
             "generatePersonalizedWorkoutPlan",
             "adaptPlanBasedOnFeedback",
             "analyzePerformanceTrends",
             "assistGoalSettingOrRefinement"
         ]
-        
+
         // When/Then - verify removed functions are no longer available
         for functionName in removedFunctions {
             let functionCall = AIFunctionCall(name: functionName, arguments: [:])
             let result = try await dispatcher.execute(functionCall, for: testUser, context: testContext)
-            
+
             XCTAssertFalse(result.success, "Removed function \(functionName) should not be available")
             XCTAssertTrue(result.message.contains("don't recognize"), "Should return unknown function error")
         }
-        
+
         // Verify remaining functions still work
         for functionName in remainingFunctions {
             let functionCall = AIFunctionCall(name: functionName, arguments: [
                 "testParam": AIAnyCodable("test_value")
             ])
             let result = try await dispatcher.execute(functionCall, for: testUser, context: testContext)
-            
+
             // Should execute (might fail due to missing params, but shouldn't be unknown function)
             XCTAssertFalse(result.message.contains("don't recognize"),
-                         "Remaining function \(functionName) should still be recognized")
+                           "Remaining function \(functionName) should still be recognized")
         }
-        
+
         print("✅ Phase 3 Function Removal Validation:")
         print("   Removed: \(removedFunctions.joined(separator: ", "))")
         print("   Remaining: \(remainingFunctions.joined(separator: ", "))")
@@ -283,15 +283,15 @@ final class FunctionCallDispatcherTests: XCTestCase {
     func test_phase3_codeReductionMetrics() async throws {
         // Validate that Phase 3 achieved code reduction goals
         // Note: In a real implementation, this might analyze actual file sizes
-        
+
         let originalFunctionCount = 6 // Before Phase 3
         let currentFunctionCount = 4  // After Phase 3 (verified by remaining functions test)
-        
+
         let reductionPercentage = Double(originalFunctionCount - currentFunctionCount) / Double(originalFunctionCount)
-        
+
         XCTAssertEqual(currentFunctionCount, 4, "Should have exactly 4 remaining functions")
         XCTAssertGreaterThan(reductionPercentage, 0.3, "Should achieve at least 30% function reduction")
-        
+
         print("📊 Phase 3 Code Reduction Metrics:")
         print("   Original Functions: \(originalFunctionCount)")
         print("   Current Functions: \(currentFunctionCount)")

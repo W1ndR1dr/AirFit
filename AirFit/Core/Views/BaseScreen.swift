@@ -5,11 +5,11 @@ import SwiftUI
 struct BaseScreen<Content: View>: View {
     @Environment(\.colorScheme) private var colorScheme
     @StateObject private var fallbackGradientManager = GradientManager()
-    
+
     let content: Content
     let safeAreaIgnored: Bool
     let screenPadding: CGFloat
-    
+
     init(
         safeAreaIgnored: Bool = true,
         screenPadding: CGFloat = 0,
@@ -19,14 +19,14 @@ struct BaseScreen<Content: View>: View {
         self.screenPadding = screenPadding
         self.content = content()
     }
-    
+
     var body: some View {
         ZStack {
             // Gradient background layer - ALWAYS full screen edge-to-edge like mockup
             fallbackGradientManager.currentGradient(for: colorScheme)
                 .ignoresSafeArea(.all)
                 .allowsHitTesting(false)
-            
+
             // Content layer - only content respects safe areas, not background
             if screenPadding > 0 {
                 content
@@ -67,7 +67,7 @@ extension View {
 
 private struct AdvanceGradientModifier: ViewModifier {
     @EnvironmentObject private var gradientManager: GradientManager
-    
+
     func body(content: Content) -> some View {
         content
             .onAppear {

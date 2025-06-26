@@ -119,7 +119,7 @@ actor PreviewCoachEngine: FoodCoachEngineProtocol {
         )
         return MealPhotoAnalysisResult(items: [item], confidence: 0.9, processingTime: 0.1)
     }
-    
+
     func searchFoods(query: String, limit: Int, for user: User) async throws -> [ParsedFoodItem] {
         // Return mock search results for previews
         return [
@@ -140,7 +140,7 @@ actor PreviewCoachEngine: FoodCoachEngineProtocol {
             )
         ]
     }
-    
+
     func parseNaturalLanguageFood(
         text: String,
         mealType: MealType,

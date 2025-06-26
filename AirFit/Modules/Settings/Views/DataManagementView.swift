@@ -5,7 +5,7 @@ struct DataManagementView: View {
     @State private var showExportProgress = false
     @State private var exportURL: URL?
     @State private var showShareSheet = false
-    
+
     var body: some View {
         BaseScreen {
             ScrollView {
@@ -19,7 +19,7 @@ struct DataManagementView: View {
                     .padding(.horizontal, AppSpacing.lg)
                     .padding(.top, AppSpacing.sm)
                     .padding(.bottom, AppSpacing.lg)
-                    
+
                     VStack(spacing: AppSpacing.xl) {
                         exportSection
                         exportHistory
@@ -41,7 +41,7 @@ struct DataManagementView: View {
             }
         }
     }
-    
+
     private var exportSection: some View {
         VStack(alignment: .leading, spacing: AppSpacing.md) {
             HStack {
@@ -51,13 +51,13 @@ struct DataManagementView: View {
                     .foregroundStyle(.secondary.opacity(0.8))
                 Spacer()
             }
-            
+
             GlassCard {
                 VStack(alignment: .leading, spacing: AppSpacing.md) {
                     Text("Export all your AirFit data including workouts, meals, and health metrics in a portable JSON format.")
                         .font(.callout)
                         .foregroundStyle(.secondary)
-                    
+
                     Button {
                         startExport()
                     } label: {
@@ -79,7 +79,7 @@ struct DataManagementView: View {
             }
         }
     }
-    
+
     private var exportHistory: some View {
         VStack(alignment: .leading, spacing: AppSpacing.md) {
             HStack {
@@ -89,7 +89,7 @@ struct DataManagementView: View {
                     .foregroundStyle(.secondary.opacity(0.8))
                 Spacer()
             }
-            
+
             if viewModel.exportHistory.isEmpty {
                 GlassCard {
                     Text("No previous exports")
@@ -104,14 +104,14 @@ struct DataManagementView: View {
                             VStack(alignment: .leading, spacing: AppSpacing.xs) {
                                 Text(export.date.formatted(date: .abbreviated, time: .shortened))
                                     .font(.callout)
-                                
+
                                 Text(ByteCountFormatter().string(fromByteCount: export.size))
                                     .font(.caption)
                                     .foregroundStyle(.secondary)
                             }
-                            
+
                             Spacer()
-                            
+
                             Image(systemName: "doc.zipper")
                                 .foregroundStyle(.secondary)
                         }
@@ -120,7 +120,7 @@ struct DataManagementView: View {
             }
         }
     }
-    
+
     private var deleteSection: some View {
         VStack(alignment: .leading, spacing: AppSpacing.md) {
             HStack {
@@ -130,7 +130,7 @@ struct DataManagementView: View {
                     .foregroundStyle(.secondary.opacity(0.8))
                 Spacer()
             }
-            
+
             GlassCard {
                 VStack(alignment: .leading, spacing: AppSpacing.md) {
                     Label {
@@ -138,7 +138,7 @@ struct DataManagementView: View {
                             Text("Delete All Data")
                                 .font(.headline)
                                 .foregroundStyle(.red)
-                            
+
                             Text("Permanently delete all your AirFit data. This cannot be undone.")
                                 .font(.caption)
                                 .foregroundStyle(.secondary)
@@ -147,7 +147,7 @@ struct DataManagementView: View {
                         Image(systemName: "exclamationmark.triangle.fill")
                             .foregroundStyle(.red)
                     }
-                    
+
                     Button {
                         confirmDelete()
                     } label: {
@@ -169,10 +169,10 @@ struct DataManagementView: View {
             }
         }
     }
-    
+
     private func startExport() {
         showExportProgress = true
-        
+
         Task {
             do {
                 let url = try await viewModel.exportUserData()
@@ -190,7 +190,7 @@ struct DataManagementView: View {
             }
         }
     }
-    
+
     private func confirmDelete() {
         viewModel.showAlert(.confirmDelete {
             Task {
@@ -207,18 +207,18 @@ struct DataExportProgressSheet: View {
     @Environment(\.dismiss) private var dismiss
     @State private var progress: Double = 0
     @State private var currentStep = "Preparing export..."
-    
+
     var body: some View {
         NavigationStack {
             VStack(spacing: AppSpacing.xl) {
                 Spacer()
-                
+
                 // Progress indicator
                 ZStack {
                     Circle()
                         .stroke(Color.secondary.opacity(0.2), lineWidth: 8)
                         .frame(width: 120, height: 120)
-                    
+
                     Circle()
                         .trim(from: 0, to: progress)
                         .stroke(
@@ -232,7 +232,7 @@ struct DataExportProgressSheet: View {
                         .frame(width: 120, height: 120)
                         .rotationEffect(.degrees(-90))
                         .animation(.easeInOut(duration: 0.5), value: progress)
-                    
+
                     VStack {
                         Text("\(Int(progress * 100))%")
                             .font(.title2.bold())
@@ -241,18 +241,18 @@ struct DataExportProgressSheet: View {
                             .foregroundStyle(.secondary)
                     }
                 }
-                
+
                 VStack(spacing: AppSpacing.sm) {
                     Text("Exporting Your Data")
                         .font(.headline)
-                    
+
                     Text(currentStep)
                         .font(.caption)
                         .foregroundStyle(.secondary)
                 }
-                
+
                 Spacer()
-                
+
                 Button {
                     dismiss()
                 } label: {
@@ -280,7 +280,7 @@ struct DataExportProgressSheet: View {
             simulateProgress()
         }
     }
-    
+
     private func simulateProgress() {
         Task {
             // Simulate progress steps
@@ -291,7 +291,7 @@ struct DataExportProgressSheet: View {
                 (0.8, "Exporting chat history..."),
                 (1.0, "Finalizing export...")
             ]
-            
+
             for (progressValue, step) in steps {
                 await MainActor.run {
                     currentStep = step
@@ -301,7 +301,7 @@ struct DataExportProgressSheet: View {
                 }
                 try? await Task.sleep(nanoseconds: 500_000_000) // 0.5 seconds
             }
-            
+
             // Export should be done by now
             await MainActor.run {
                 dismiss()

@@ -72,13 +72,13 @@ enum AppConstants {
                 AppLogger.info("Demo mode \(newValue ? "enabled" : "disabled")", category: .app)
             }
         }
-        
+
         /// Check if running in test mode (for unit tests)
         static var isTestMode: Bool {
             ProcessInfo.processInfo.arguments.contains("--test-mode") ||
-            ProcessInfo.processInfo.environment["AIRFIT_TEST_MODE"] == "1"
+                ProcessInfo.processInfo.environment["AIRFIT_TEST_MODE"] == "1"
         }
-        
+
         /// Check if running in preview mode (for SwiftUI previews)
         static var isPreviewMode: Bool {
             ProcessInfo.processInfo.environment["XCODE_RUNNING_FOR_PREVIEWS"] == "1"

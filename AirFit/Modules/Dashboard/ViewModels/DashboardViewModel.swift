@@ -132,11 +132,16 @@ final class DashboardViewModel: ErrorHandling {
         isLoading = true
         defer { isLoading = false }
 
-        // Execute loading operations sequentially to avoid race conditions
-        await loadMorningGreeting()
-        await loadEnergyLevel()
-        await loadNutritionData()
-        await loadHealthInsights()
+        // Load independent data in parallel for better performance
+        async let greetingTask: Void = loadMorningGreeting()
+        async let energyTask: Void = loadEnergyLevel()
+        async let nutritionTask: Void = loadNutritionData()
+        async let healthTask: Void = loadHealthInsights()
+
+        // Wait for all parallel tasks to complete
+        _ = await (greetingTask, energyTask, nutritionTask, healthTask)
+
+        // Load quick actions after nutrition data is available (has dependency)
         await loadQuickActions(for: Date())
     }
 

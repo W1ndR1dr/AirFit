@@ -34,7 +34,7 @@ enum FoodTrackingSheet: Identifiable {
 enum FoodTrackingAlert: Identifiable {
     case deleteEntry(entryId: String)
     case nutritionWarning(message: String)
-    
+
     var id: String {
         switch self {
         case .deleteEntry(let id): return "delete_\(id)"
@@ -48,7 +48,7 @@ enum FoodTrackingAlert: Identifiable {
 final class FoodTrackingCoordinator: BaseCoordinator<FoodTrackingDestination, FoodTrackingSheet, FoodTrackingAlert>, FoodTrackingCoordinatorProtocol {
     typealias SheetType = FoodTrackingSheet
     typealias CoverType = FoodTrackingFullScreenCover
-    
+
     // MARK: - Additional State
     var activeFullScreenCover: FoodTrackingFullScreenCover?
 

@@ -5,33 +5,33 @@ struct MessageBubbleView: View {
     let message: ChatMessage
     let isStreaming: Bool
     let onAction: (MessageAction) -> Void
-    
+
     @State private var showActions = false
     @State private var isExpanded = false
     @State private var animateIn = false
     @State private var selectedReaction: String?
     @EnvironmentObject private var gradientManager: GradientManager
     @Environment(\.colorScheme) private var colorScheme
-    
+
     var body: some View {
         HStack(alignment: .bottom, spacing: AppSpacing.sm) {
             if message.roleEnum == .user {
                 Spacer(minLength: 60)
             }
-            
+
             VStack(alignment: message.roleEnum == .user ? .trailing : .leading, spacing: AppSpacing.xs) {
                 // Message bubble with glass morphism
                 bubble
                     .scaleEffect(animateIn ? 1.0 : 0.9)
                     .opacity(animateIn ? 1.0 : 0.0)
                     .animation(MotionToken.standardSpring, value: animateIn)
-                
+
                 // Timestamp and status
                 messageFooter
                     .opacity(animateIn ? 1 : 0)
                     .animation(MotionToken.standardSpring.delay(0.1), value: animateIn)
             }
-            
+
             if message.roleEnum == .assistant {
                 Spacer(minLength: 60)
             }
@@ -42,14 +42,14 @@ struct MessageBubbleView: View {
             }
         }
     }
-    
+
     private var bubble: some View {
         VStack(alignment: .leading, spacing: AppSpacing.sm) {
             // Attachments
             if !message.attachments.isEmpty {
                 attachmentsView
             }
-            
+
             // Message content
             if !message.content.isEmpty {
                 MessageContent(
@@ -58,10 +58,10 @@ struct MessageBubbleView: View {
                     role: message.roleEnum
                 )
             }
-            
+
             // Rich content (charts, buttons, etc)
             richContent
-            
+
             // Interactive elements
             if message.roleEnum == .assistant {
                 interactiveElements
@@ -95,7 +95,7 @@ struct MessageBubbleView: View {
             }
         }
     }
-    
+
     @ViewBuilder
     private var bubbleBackground: some View {
         if message.roleEnum == .user {
@@ -112,7 +112,7 @@ struct MessageBubbleView: View {
                 )
         }
     }
-    
+
     @ViewBuilder
     private var attachmentsView: some View {
         ScrollView(.horizontal, showsIndicators: false) {
@@ -128,7 +128,7 @@ struct MessageBubbleView: View {
             .padding(.horizontal, 2)
         }
     }
-    
+
     @ViewBuilder
     private var richContent: some View {
         if message.roleEnum == .assistant {
@@ -159,7 +159,7 @@ struct MessageBubbleView: View {
                         EmptyView()
                     }
                 }
-                
+
                 // Progress indicators for function calls
                 if message.functionCallName != nil {
                     ProgressCard(
@@ -167,7 +167,7 @@ struct MessageBubbleView: View {
                         isExpanded: isExpanded
                     )
                 }
-                
+
                 // Quick actions for assistant messages
                 if message.roleEnum == .assistant {
                     QuickActionsView(
@@ -184,7 +184,7 @@ struct MessageBubbleView: View {
             }
         }
     }
-    
+
     @ViewBuilder
     private var interactiveElements: some View {
         if message.roleEnum == .assistant && !isStreaming {
@@ -196,22 +196,22 @@ struct MessageBubbleView: View {
                         isSelected: selectedReaction == "👍",
                         onTap: { toggleReaction("👍") }
                     )
-                    
+
                     ReactionButton(
                         emoji: "👎",
                         isSelected: selectedReaction == "👎",
                         onTap: { toggleReaction("👎") }
                     )
-                    
+
                     ReactionButton(
                         emoji: "❤️",
                         isSelected: selectedReaction == "❤️",
                         onTap: { toggleReaction("❤️") }
                     )
                 }
-                
+
                 Spacer()
-                
+
                 // Action buttons
                 HStack(spacing: 8) {
                     Button(action: { onAction(.copy) }, label: {
@@ -220,7 +220,7 @@ struct MessageBubbleView: View {
                             .foregroundStyle(.secondary)
                     })
                     .buttonStyle(.plain)
-                    
+
                     Button(action: { onAction(.regenerate) }, label: {
                         Image(systemName: "arrow.clockwise")
                             .font(.system(size: 14, weight: .light))
@@ -233,7 +233,7 @@ struct MessageBubbleView: View {
             .opacity(0.7)
         }
     }
-    
+
     private var messageFooter: some View {
         HStack(spacing: AppSpacing.xs) {
             if message.roleEnum == .user && isStreaming {
@@ -242,17 +242,17 @@ struct MessageBubbleView: View {
                     .scaleEffect(0.8)
                     .tint(gradientManager.active == .peachRose ? Color.pink : Color.blue)
             }
-            
+
             // Timestamp
             Text(formatTimestamp(message.timestamp))
                 .font(.system(size: 11, weight: .light))
                 .foregroundStyle(.secondary)
-            
+
             // Message status indicators
             if message.roleEnum == .user {
                 messageStatusIcon
             }
-            
+
             // Token count for assistant messages
             if message.roleEnum == .assistant,
                let tokenCount = message.tokenCount {
@@ -262,7 +262,7 @@ struct MessageBubbleView: View {
             }
         }
     }
-    
+
     @ViewBuilder
     private var messageStatusIcon: some View {
         if isStreaming {
@@ -279,23 +279,23 @@ struct MessageBubbleView: View {
                 .foregroundStyle(.green)
         }
     }
-    
+
     @ViewBuilder
     private var messageActions: some View {
         Button(action: { onAction(.copy) }, label: {
             Label("Copy", systemImage: "doc.on.doc")
         })
-        
+
         if message.roleEnum == .assistant {
             Button(action: { onAction(.regenerate) }, label: {
                 Label("Regenerate", systemImage: "arrow.clockwise")
             })
         }
-        
+
         Button(action: { onAction(.showDetails) }, label: {
             Label("Details", systemImage: "info.circle")
         })
-        
+
         if hasExpandableContent {
             Button(action: {
                 withAnimation(.spring()) {
@@ -306,26 +306,26 @@ struct MessageBubbleView: View {
                       systemImage: isExpanded ? "chevron.up" : "chevron.down")
             })
         }
-        
+
         Divider()
-        
+
         Button(role: .destructive, action: { onAction(.delete) }, label: {
             Label("Delete", systemImage: "trash")
         })
     }
-    
+
     // MARK: - Helper Properties
-    
+
     private var hasExpandableContent: Bool {
         // Check if message has function calls or attachments that can be expanded
         return message.functionCallName != nil || !message.attachments.isEmpty
     }
-    
+
     // MARK: - Helper Methods
-    
+
     private func formatTimestamp(_ date: Date) -> String {
         let calendar = Calendar.current
-        
+
         if calendar.isDateInToday(date) {
             return date.formatted(.dateTime.hour().minute())
         } else if calendar.isDateInYesterday(date) {
@@ -334,7 +334,7 @@ struct MessageBubbleView: View {
             return date.formatted(.dateTime.month().day().hour().minute())
         }
     }
-    
+
     private func toggleReaction(_ emoji: String) {
         // Simple reaction toggle - in a real app this would persist to the message
         if selectedReaction == emoji {
@@ -342,10 +342,10 @@ struct MessageBubbleView: View {
         } else {
             selectedReaction = emoji
         }
-        
+
         HapticService.selection()
     }
-    
+
     private func handleQuickAction(_ actionId: String) {
         // Handle quick action taps
         switch actionId {
@@ -365,13 +365,13 @@ struct MessageBubbleView: View {
 
 struct ChatBubbleShape: Shape {
     let role: ChatMessage.MessageType
-    
+
     func path(in rect: CGRect) -> Path {
         let radius: CGFloat = 18
         let tailSize: CGFloat = 8
-        
+
         var path = Path()
-        
+
         if role == .user {
             // User bubble (right side with tail)
             path.move(to: CGPoint(x: radius, y: 0))
@@ -383,7 +383,7 @@ struct ChatBubbleShape: Shape {
                 endAngle: .degrees(0),
                 clockwise: false
             )
-            
+
             // Tail
             path.addLine(to: CGPoint(x: rect.width - tailSize, y: rect.height - radius))
             path.addQuadCurve(
@@ -391,7 +391,7 @@ struct ChatBubbleShape: Shape {
                 control: CGPoint(x: rect.width - tailSize, y: rect.height)
             )
             path.addLine(to: CGPoint(x: rect.width - tailSize - radius, y: rect.height))
-            
+
             path.addArc(
                 center: CGPoint(x: rect.width - tailSize - radius, y: rect.height - radius),
                 radius: radius,
@@ -399,7 +399,7 @@ struct ChatBubbleShape: Shape {
                 endAngle: .degrees(180),
                 clockwise: false
             )
-            
+
             path.addLine(to: CGPoint(x: radius, y: rect.height - radius))
             path.addArc(
                 center: CGPoint(x: radius, y: rect.height - radius),
@@ -408,7 +408,7 @@ struct ChatBubbleShape: Shape {
                 endAngle: .degrees(270),
                 clockwise: false
             )
-            
+
             path.addLine(to: CGPoint(x: rect.width - radius - tailSize, y: radius))
             path.addArc(
                 center: CGPoint(x: radius, y: radius),
@@ -417,7 +417,7 @@ struct ChatBubbleShape: Shape {
                 endAngle: .degrees(180),
                 clockwise: true
             )
-            
+
         } else {
             // Assistant bubble (left side with tail)
             path.move(to: CGPoint(x: radius + tailSize, y: 0))
@@ -429,7 +429,7 @@ struct ChatBubbleShape: Shape {
                 endAngle: .degrees(0),
                 clockwise: false
             )
-            
+
             path.addLine(to: CGPoint(x: rect.width, y: rect.height - radius))
             path.addArc(
                 center: CGPoint(x: rect.width - radius, y: rect.height - radius),
@@ -438,7 +438,7 @@ struct ChatBubbleShape: Shape {
                 endAngle: .degrees(90),
                 clockwise: false
             )
-            
+
             path.addLine(to: CGPoint(x: radius + tailSize, y: rect.height))
             path.addArc(
                 center: CGPoint(x: radius + tailSize, y: rect.height - radius),
@@ -447,7 +447,7 @@ struct ChatBubbleShape: Shape {
                 endAngle: .degrees(180),
                 clockwise: false
             )
-            
+
             // Tail
             path.addLine(to: CGPoint(x: tailSize, y: rect.height - radius))
             path.addQuadCurve(
@@ -455,7 +455,7 @@ struct ChatBubbleShape: Shape {
                 control: CGPoint(x: tailSize, y: rect.height)
             )
             path.addLine(to: CGPoint(x: tailSize, y: radius))
-            
+
             path.addArc(
                 center: CGPoint(x: radius + tailSize, y: radius),
                 radius: radius,
@@ -464,7 +464,7 @@ struct ChatBubbleShape: Shape {
                 clockwise: false
             )
         }
-        
+
         path.closeSubpath()
         return path
     }
@@ -476,7 +476,7 @@ struct ReactionButton: View {
     let onTap: () -> Void
     @EnvironmentObject private var gradientManager: GradientManager
     @Environment(\.colorScheme) private var colorScheme
-    
+
     var body: some View {
         Button(action: onTap) {
             Text(emoji)

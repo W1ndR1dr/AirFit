@@ -6,14 +6,14 @@ import Observation
 @MainActor
 @Observable
 final class SettingsCoordinator: BaseCoordinator<SettingsDestination, SettingsCoordinator.SettingsSheet, SettingsCoordinator.SettingsAlert> {
-    
+
     // MARK: - Sheet Types
     enum SettingsSheet: Identifiable {
         case personaRefinement
         case apiKeyEntry(provider: AIProvider)
         case dataExport
         case deleteAccount
-        
+
         var id: String {
             switch self {
             case .personaRefinement: return "persona"
@@ -23,7 +23,7 @@ final class SettingsCoordinator: BaseCoordinator<SettingsDestination, SettingsCo
             }
         }
     }
-    
+
     // MARK: - Alert Types
     enum SettingsAlert: Identifiable {
         case confirmDelete(action: () -> Void)
@@ -32,7 +32,7 @@ final class SettingsCoordinator: BaseCoordinator<SettingsDestination, SettingsCo
         case error(message: String)
         case demoModeEnabled
         case demoModeDisabled
-        
+
         var id: String {
             switch self {
             case .confirmDelete: return "delete"
@@ -44,13 +44,13 @@ final class SettingsCoordinator: BaseCoordinator<SettingsDestination, SettingsCo
             }
         }
     }
-    
+
     // MARK: - Compatibility Methods
-    
+
     func navigateBack() {
         pop()
     }
-    
+
     func navigateToRoot() {
         popToRoot()
     }

@@ -3,7 +3,7 @@ import Network
 import Combine
 
 /// # NetworkManager
-/// 
+///
 /// ## Purpose
 /// Central networking service that handles all HTTP requests, monitors network connectivity,
 /// and provides streaming support for AI responses.
@@ -23,11 +23,11 @@ import Combine
 /// ## Usage
 /// ```swift
 /// let network = await container.resolve(NetworkManagementProtocol.self)
-/// 
+///
 /// // Build and perform request
 /// let request = network.buildRequest(url: apiURL, method: "POST")
 /// let response: APIResponse = try await network.performRequest(request, expecting: APIResponse.self)
-/// 
+///
 /// // Stream data
 /// let stream = network.performStreamingRequest(request)
 /// for try await chunk in stream {
@@ -43,7 +43,7 @@ actor NetworkManager: NetworkManagementProtocol, ServiceProtocol {
     // Actor-isolated state
     private var _isReachable: Bool = true
     private var _currentNetworkType: NetworkType = .unknown
-    
+
     // Public accessors
     nonisolated var isReachable: Bool {
         // For now, return a default value. In production, consider using AsyncStream for updates
@@ -53,43 +53,43 @@ actor NetworkManager: NetworkManagementProtocol, ServiceProtocol {
         // For now, return a default value. In production, consider using AsyncStream for updates
         return .unknown
     }
-    
+
     // MARK: - ServiceProtocol
     private var _isConfigured: Bool = false
     nonisolated let serviceIdentifier = "network-manager"
-    
+
     // Nonisolated computed property for protocol conformance
     nonisolated var isConfigured: Bool {
         // For read-only access, we can use a simple flag
         // In production, might use AsyncStream or other mechanism
         true // Simplified for now
     }
-    
+
     private let session: URLSession
     private let monitor: NWPathMonitor
     private let monitorQueue = DispatchQueue(label: "com.airfit.networkmonitor")
     private var cancellables = Set<AnyCancellable>()
-    
+
     init(session: URLSession = .shared) {
         self.session = session
         self.monitor = NWPathMonitor()
         // Network monitoring setup moved to configure()
     }
-    
+
     // MARK: - ServiceProtocol
-    
+
     func configure() async throws {
         guard !_isConfigured else { return }
         await setupNetworkMonitoring()
         _isConfigured = true
         AppLogger.info("NetworkManager configured", category: .networking)
     }
-    
+
     func reset() async {
         // Nothing to reset for network manager
         AppLogger.info("NetworkManager reset", category: .networking)
     }
-    
+
     func healthCheck() async -> ServiceHealth {
         ServiceHealth(
             status: isReachable ? .healthy : .unhealthy,
@@ -102,26 +102,26 @@ actor NetworkManager: NetworkManagementProtocol, ServiceProtocol {
             ]
         )
     }
-    
+
     // MARK: - NetworkManagementProtocol
-    
+
     nonisolated func buildRequest(url: URL, method: String = "GET", headers: [String: String] = [:]) -> URLRequest {
         var request = URLRequest(url: url)
         request.httpMethod = method
         request.timeoutInterval = 30
-        
+
         // Default headers
         request.setValue("application/json", forHTTPHeaderField: "Content-Type")
         request.setValue("application/json", forHTTPHeaderField: "Accept")
-        
+
         // Custom headers
         for (key, value) in headers {
             request.setValue(value, forHTTPHeaderField: key)
         }
-        
+
         return request
     }
-    
+
     func performRequest<T: Decodable & Sendable>(
         _ request: URLRequest,
         expecting: T.Type
@@ -129,22 +129,22 @@ actor NetworkManager: NetworkManagementProtocol, ServiceProtocol {
         guard isReachable else {
             throw ServiceError.networkUnavailable
         }
-        
+
         let startTime = Date()
-        
+
         do {
             let (data, response) = try await session.data(for: request)
-            
+
             guard let httpResponse = response as? HTTPURLResponse else {
                 throw ServiceError.invalidResponse("Response is not HTTP")
             }
-            
+
             // Log response time
             let responseTime = Date().timeIntervalSince(startTime)
             AppLogger.debug("Request completed in \(responseTime)s", category: .networking)
-            
+
             try validateHTTPResponse(httpResponse, data: data)
-            
+
             do {
                 let decoder = JSONDecoder()
                 decoder.dateDecodingStrategy = .iso8601
@@ -159,7 +159,7 @@ actor NetworkManager: NetworkManagementProtocol, ServiceProtocol {
             throw ServiceError.unknown(error)
         }
     }
-    
+
     nonisolated func performStreamingRequest(
         _ request: URLRequest
     ) -> AsyncThrowingStream<Data, Error> {
@@ -169,15 +169,15 @@ actor NetworkManager: NetworkManagementProtocol, ServiceProtocol {
                     continuation.finish(throwing: AppError.from(ServiceError.networkUnavailable))
                     return
                 }
-                
+
                 do {
                     let (bytes, response) = try await session.bytes(for: request)
-                    
+
                     guard let httpResponse = response as? HTTPURLResponse else {
                         continuation.finish(throwing: AppError.from(ServiceError.invalidResponse("Response is not HTTP")))
                         return
                     }
-                    
+
                     if !(200...299).contains(httpResponse.statusCode) {
                         continuation.finish(throwing: AppError.from(ServiceError.providerError(
                             code: "\(httpResponse.statusCode)",
@@ -185,18 +185,18 @@ actor NetworkManager: NetworkManagementProtocol, ServiceProtocol {
                         )))
                         return
                     }
-                    
+
                     for try await line in bytes.lines {
                         guard !Task.isCancelled else {
                             continuation.finish(throwing: ServiceError.cancelled)
                             return
                         }
-                        
+
                         if let data = line.data(using: .utf8) {
                             continuation.yield(data)
                         }
                     }
-                    
+
                     continuation.finish()
                 } catch {
                     continuation.finish(throwing: error)
@@ -204,21 +204,21 @@ actor NetworkManager: NetworkManagementProtocol, ServiceProtocol {
             }
         }
     }
-    
+
     func downloadData(from url: URL) async throws -> Data {
         guard isReachable else {
             throw ServiceError.networkUnavailable
         }
-        
+
         do {
             let (data, response) = try await session.data(from: url)
-            
+
             guard let httpResponse = response as? HTTPURLResponse else {
                 throw ServiceError.invalidResponse("Response is not HTTP")
             }
-            
+
             try validateHTTPResponse(httpResponse, data: data)
-            
+
             return data
         } catch {
             if let serviceError = error as? ServiceError {
@@ -227,25 +227,25 @@ actor NetworkManager: NetworkManagementProtocol, ServiceProtocol {
             throw ServiceError.unknown(error)
         }
     }
-    
+
     func uploadData(_ data: Data, to url: URL) async throws -> URLResponse {
         guard isReachable else {
             throw ServiceError.networkUnavailable
         }
-        
+
         var request = URLRequest(url: url)
         request.httpMethod = "POST"
         request.httpBody = data
-        
+
         do {
             let (_, response) = try await session.data(for: request)
-            
+
             guard let httpResponse = response as? HTTPURLResponse else {
                 throw ServiceError.invalidResponse("Response is not HTTP")
             }
-            
+
             try validateHTTPResponse(httpResponse, data: nil)
-            
+
             return response
         } catch {
             if let serviceError = error as? ServiceError {
@@ -254,22 +254,22 @@ actor NetworkManager: NetworkManagementProtocol, ServiceProtocol {
             throw ServiceError.unknown(error)
         }
     }
-    
+
     // MARK: - Private Methods
-    
+
     private func setupNetworkMonitoring() async {
         monitor.pathUpdateHandler = { [weak self] path in
             Task {
                 await self?.updateNetworkStatus(path)
             }
         }
-        
+
         monitor.start(queue: monitorQueue)
     }
-    
+
     private func updateNetworkStatus(_ path: NWPath) {
         _isReachable = path.status == .satisfied
-        
+
         if path.usesInterfaceType(.wifi) {
             _currentNetworkType = .wifi
         } else if path.usesInterfaceType(.cellular) {
@@ -281,11 +281,11 @@ actor NetworkManager: NetworkManagementProtocol, ServiceProtocol {
         } else {
             _currentNetworkType = .none
         }
-        
+
         // Cache values for notification
         let isReachableValue = _isReachable
         let networkTypeValue = _currentNetworkType
-        
+
         // Notify observers on MainActor if needed
         Task { @MainActor in
             NotificationCenter.default.post(
@@ -294,10 +294,10 @@ actor NetworkManager: NetworkManagementProtocol, ServiceProtocol {
                 userInfo: ["isReachable": isReachableValue, "type": networkTypeValue]
             )
         }
-        
+
         AppLogger.debug("Network status updated: \(currentNetworkType.rawValue)", category: .networking)
     }
-    
+
     private func validateHTTPResponse(_ response: HTTPURLResponse, data: Data?) throws {
         switch response.statusCode {
         case 200...299:
@@ -319,7 +319,7 @@ actor NetworkManager: NetworkManagementProtocol, ServiceProtocol {
             throw AppError.from(ServiceError.invalidResponse("Unexpected status code: \(response.statusCode)"))
         }
     }
-    
+
     deinit {
         monitor.cancel()
     }
@@ -337,22 +337,22 @@ extension NetworkManager {
         var request = URLRequest(url: url)
         request.httpMethod = method
         request.timeoutInterval = timeout
-        
+
         // Default headers
         request.setValue("application/json", forHTTPHeaderField: "Content-Type")
         request.setValue("application/json", forHTTPHeaderField: "Accept")
         request.setValue(userAgent, forHTTPHeaderField: "User-Agent")
-        
+
         // Custom headers
         headers?.forEach { key, value in
             request.setValue(value, forHTTPHeaderField: key)
         }
-        
+
         request.httpBody = body
-        
+
         return request
     }
-    
+
     private var userAgent: String {
         let appVersion = AppConstants.appVersion
         let buildNumber = AppConstants.buildNumber
@@ -376,7 +376,7 @@ extension NetworkManager {
         configuration.timeoutIntervalForResource = 60
         configuration.waitsForConnectivity = true
         configuration.requestCachePolicy = .useProtocolCachePolicy
-        
+
         return URLSession(
             configuration: configuration,
             delegate: delegate,

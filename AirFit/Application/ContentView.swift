@@ -10,10 +10,10 @@ struct ContentView: View {
     private var colorScheme
     @EnvironmentObject
     private var gradientManager: GradientManager
-    
+
     @State private var appState: AppState?
     @State private var isRecreatingContainer = false
-    
+
     // Store the container we receive to ensure consistency
     @State private var activeContainer: DIContainer?
 
@@ -25,7 +25,7 @@ struct ContentView: View {
                 if appState.isLoading {
                     LoadingView()
                 } else if appState.shouldShowAPISetup {
-                    APISetupView(apiKeyManager: appState.apiKeyManager) { 
+                    APISetupView(apiKeyManager: appState.apiKeyManager) {
                         // Completion handler - only called when user explicitly continues
                         appState.completeAPISetup()
                         // Need to recreate the DI container with the new API key
@@ -72,7 +72,7 @@ struct ContentView: View {
                 activeContainer = diContainer
                 AppLogger.info("ContentView: Captured container ID: \(ObjectIdentifier(diContainer))", category: .app)
             }
-            
+
             if appState == nil {
                 AppLogger.info("ContentView.onAppear: appState is nil, creating it", category: .app)
                 Task {
@@ -82,22 +82,30 @@ struct ContentView: View {
                 AppLogger.info("ContentView.onAppear: appState already exists", category: .app)
             }
         }
+        .onReceive(NotificationCenter.default.publisher(for: .appResetForTesting)) { _ in
+            AppLogger.info("ContentView: Received app reset notification", category: .app)
+            // Reset app state and reload
+            appState = nil
+            Task {
+                await createAppState()
+            }
+        }
         .accessibilityIdentifier("app.content")
     }
-    
+
     private func createAppState() async {
         AppLogger.info("ContentView.createAppState: Starting", category: .app)
         do {
             // Use the container from environment
             let containerToUse = activeContainer ?? diContainer
             AppLogger.info("ContentView.createAppState: Using container ID: \(ObjectIdentifier(containerToUse))", category: .app)
-            
+
             AppLogger.info("ContentView.createAppState: Resolving dependencies", category: .app)
-            let apiKeyManager = try await containerToUse.resolve(APIKeyManagementProtocol.self)
-            let healthKitAuthManager = try await containerToUse.resolve(HealthKitAuthManager.self)
-            AppLogger.info("ContentView.createAppState: Dependencies resolved successfully", category: .app)
-            
-            appState = AppState(
+            // Resolve dependencies in parallel for better performance
+            async let apiKeyManager = containerToUse.resolve(APIKeyManagementProtocol.self)
+            async let healthKitAuthManager = containerToUse.resolve(HealthKitAuthManager.self)
+
+            appState = try await AppState(
                 modelContext: modelContext,
                 healthKitAuthManager: healthKitAuthManager,
                 apiKeyManager: apiKeyManager
@@ -111,25 +119,25 @@ struct ContentView: View {
             AppLogger.info("ContentView.createAppState: Created AppState without APIKeyManager", category: .app)
         }
     }
-    
+
     private func recreateContainer() async {
         // Recreate the container with updated API keys
         AppLogger.info("ContentView: Recreating DI container after API setup", category: .app)
-        
+
         // Get the model container from current environment
         let modelContainer = try? await diContainer.resolve(ModelContainer.self)
-        
+
         if let modelContainer = modelContainer {
             // Create new container with API keys now available
             let newContainer = DIBootstrapper.createAppContainer(modelContainer: modelContainer)
-            
+
             // Update our local reference
             activeContainer = newContainer
-            
+
             // Recreate AppState with new container
             await createAppState()
         }
-        
+
         isRecreatingContainer = false
         await appState?.loadUserState()
     }
@@ -139,7 +147,7 @@ struct ContentView: View {
 private struct LoadingView: View {
     @Environment(\.colorScheme) private var colorScheme
     @EnvironmentObject private var gradientManager: GradientManager
-    
+
     var body: some View {
         VStack(spacing: AppSpacing.xl) {
             // Custom gradient progress indicator
@@ -154,7 +162,7 @@ private struct LoadingView: View {
                         lineWidth: 3
                     )
                     .frame(width: 48, height: 48)
-                
+
                 ProgressView()
                     .scaleEffect(1.2)
                     .progressViewStyle(CircularProgressViewStyle(tint: gradientManager.active.colors(for: colorScheme)[0]))
@@ -164,7 +172,7 @@ private struct LoadingView: View {
                 Text("Loading ")
                     .font(.system(size: 20, weight: .light))
                     .foregroundStyle(.secondary)
-                
+
                 Text("AirFit")
                     .font(.system(size: 20, weight: .medium))
                     .foregroundStyle(

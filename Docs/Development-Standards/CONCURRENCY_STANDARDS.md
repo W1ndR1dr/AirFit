@@ -353,12 +353,49 @@ class DIBootstrapper {
     }
 }
 
+// ❌ BAD: Heavy sequential DI resolution in @MainActor init
+@MainActor
+final class OnboardingIntelligence: ObservableObject {
+    init(container: DIContainer) async throws {
+        // This blocks main thread for 300-600ms!
+        self.aiService = try await container.resolve(AIServiceProtocol.self)
+        self.contextAssembler = try await container.resolve(ContextAssembler.self)
+        self.llmOrchestrator = try await container.resolve(LLMOrchestrator.self)
+        self.healthKitProvider = try await container.resolve(HealthKitPrefillProviding.self)
+        self.cache = try await container.resolve(OnboardingCache.self)
+        self.personaSynthesizer = try await container.resolve(PersonaSynthesizer.self)
+    }
+}
+
 // ✅ GOOD: Simple init, explicit loading
 class AppState {
     init() {}
     
     func initialize() async throws {
         // Explicit, can show loading UI
+    }
+}
+
+// ✅ GOOD: Factory pattern for heavy @MainActor initialization
+@MainActor
+final class OnboardingIntelligence: ObservableObject {
+    private init(/* dependencies */) {
+        // Quick synchronous init
+    }
+    
+    static func create(from container: DIContainer) async throws -> OnboardingIntelligence {
+        // Heavy work off main thread
+        let deps = try await Task.detached {
+            async let aiService = container.resolve(AIServiceProtocol.self)
+            async let contextAssembler = container.resolve(ContextAssembler.self)
+            // ... parallel resolution
+            return try await (aiService, contextAssembler, ...)
+        }.value
+        
+        // Quick init on main thread
+        return await MainActor.run {
+            OnboardingIntelligence(aiService: deps.0, contextAssembler: deps.1, ...)
+        }
     }
 }
 
@@ -485,7 +522,12 @@ func testCancellation() async throws {
 
 3. **Use async let for parallelism**
    ```swift
-   // Parallel fetching
+   // ❌ BAD: Sequential dependency resolution
+   let service1 = try await container.resolve(Service1.self)
+   let service2 = try await container.resolve(Service2.self)
+   let service3 = try await container.resolve(Service3.self)
+   
+   // ✅ GOOD: Parallel fetching
    async let a = fetchA()
    async let b = fetchB()
    let (resultA, resultB) = try await (a, b)
@@ -557,6 +599,7 @@ final class NetworkManagerTests: XCTestCase {
 - [ ] **No Task { @MainActor in }** - Clean async boundaries
 - [ ] **Test performance** - 50%+ improvement in test suite speed
 - [ ] **UI responsiveness** - <50% main thread utilization under load
+- [ ] **No hang timer warnings** - Main thread never blocked >250ms (iOS threshold)
 
 ### Anti-Patterns to Avoid
 ```swift

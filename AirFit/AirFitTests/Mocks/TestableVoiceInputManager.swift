@@ -58,7 +58,7 @@ final class TestableVoiceInputManager: NSObject {
         guard isRecording else { return nil }
         stopWaveformTimer()
         isRecording = false
-        
+
         do {
             let text = try await transcribeAudio()
             currentTranscription = text
@@ -76,7 +76,7 @@ final class TestableVoiceInputManager: NSObject {
         guard mockWhisper != nil else { throw VoiceInputError.whisperNotReady }
         isTranscribing = true
         startWaveformTimer()
-        
+
         // Simulate streaming transcription
         Task {
             try await Task.sleep(nanoseconds: 100_000_000) // 0.1 seconds
@@ -103,7 +103,7 @@ final class TestableVoiceInputManager: NSObject {
             }
             return
         }
-        
+
         mockWhisper = MockWhisperKit()
         if let result = modelManager.getTranscriptionResult() {
             mockWhisper?.stubTranscriptionResult([MockWhisperKit.TranscriptionResult(text: result)])
@@ -120,11 +120,11 @@ final class TestableVoiceInputManager: NSObject {
     // MARK: - Transcription
     private func transcribeAudio() async throws -> String {
         guard let whisper = mockWhisper else { throw VoiceInputError.whisperNotReady }
-        
+
         if let error = modelManager.getTranscriptionError() {
             throw error
         }
-        
+
         let result = try await whisper.transcribe(audioPath: "test_path")
         guard !result.isEmpty else { throw VoiceInputError.transcriptionFailed }
         let text = result.map { $0.text }.joined(separator: " ")

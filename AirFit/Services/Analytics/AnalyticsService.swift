@@ -2,7 +2,7 @@ import Foundation
 import SwiftData
 
 /// # AnalyticsService
-/// 
+///
 /// ## Purpose
 /// Tracks user behavior, app usage, and generates insights for personalized coaching.
 /// Provides analytics data that helps the AI coach understand user patterns and progress.
@@ -20,10 +20,10 @@ import SwiftData
 /// ## Usage
 /// ```swift
 /// let analytics = await container.resolve(AnalyticsServiceProtocol.self)
-/// 
+///
 /// // Track an event
 /// await analytics.trackWorkoutCompleted(workout)
-/// 
+///
 /// // Get user insights
 /// let insights = try await analytics.getInsights(for: user)
 /// ```
@@ -42,30 +42,30 @@ final class AnalyticsService: AnalyticsServiceProtocol, ServiceProtocol {
         // The actual state is tracked in _isConfigured
         true
     }
-    
+
     // MARK: - Properties
     private let modelContext: ModelContext
     private var eventQueue: [AnalyticsEvent] = []
-    
+
     // MARK: - Initialization
     init(modelContext: ModelContext) {
         self.modelContext = modelContext
     }
-    
+
     // MARK: - ServiceProtocol Methods
-    
+
     func configure() async throws {
         guard !_isConfigured else { return }
         _isConfigured = true
         AppLogger.info("\(serviceIdentifier) configured", category: .services)
     }
-    
+
     func reset() async {
         eventQueue.removeAll()
         _isConfigured = false
         AppLogger.info("\(serviceIdentifier) reset", category: .services)
     }
-    
+
     func healthCheck() async -> ServiceHealth {
         ServiceHealth(
             status: .healthy,
@@ -78,19 +78,19 @@ final class AnalyticsService: AnalyticsServiceProtocol, ServiceProtocol {
             ]
         )
     }
-    
+
     // MARK: - AnalyticsServiceProtocol
     func trackEvent(_ event: AnalyticsEvent) async {
         AppLogger.debug("Analytics event: \(event.name) - \(event.properties)", category: .services)
         eventQueue.append(event)
-        
+
         // In a production app, this would send to an analytics service
         // For now, we just log it
         if eventQueue.count > 100 {
             eventQueue.removeFirst(50) // Keep queue manageable
         }
     }
-    
+
     func trackScreen(_ screen: String, properties: [String: String]?) async {
         let event = AnalyticsEvent(
             name: "screen_view",
@@ -99,12 +99,12 @@ final class AnalyticsService: AnalyticsServiceProtocol, ServiceProtocol {
         )
         await trackEvent(event)
     }
-    
+
     func setUserProperties(_ properties: [String: String]) async {
         AppLogger.debug("Setting user properties: \(properties)", category: .services)
         // In production, this would update user profile in analytics service
     }
-    
+
     func trackWorkoutCompleted(_ workout: Workout) async {
         let properties: [String: String] = [
             "workout_id": workout.id.uuidString,
@@ -114,7 +114,7 @@ final class AnalyticsService: AnalyticsServiceProtocol, ServiceProtocol {
             "sets": String(workout.totalSets),
             "volume": String(Int(workout.totalVolume))
         ]
-        
+
         let event = AnalyticsEvent(
             name: "workout_completed",
             properties: properties,
@@ -122,7 +122,7 @@ final class AnalyticsService: AnalyticsServiceProtocol, ServiceProtocol {
         )
         await trackEvent(event)
     }
-    
+
     func trackMealLogged(_ meal: FoodEntry) async {
         let properties: [String: String] = [
             "meal_id": meal.id.uuidString,
@@ -132,7 +132,7 @@ final class AnalyticsService: AnalyticsServiceProtocol, ServiceProtocol {
             "carbs": String(Int(meal.totalCarbs)),
             "fat": String(Int(meal.totalFat))
         ]
-        
+
         let event = AnalyticsEvent(
             name: "meal_logged",
             properties: properties,
@@ -140,31 +140,31 @@ final class AnalyticsService: AnalyticsServiceProtocol, ServiceProtocol {
         )
         await trackEvent(event)
     }
-    
+
     func getInsights(for user: User) async throws -> UserInsights {
         AppLogger.info("Generating insights for user \(user.id)", category: .services)
-        
+
         // Calculate workout frequency (workouts per week)
         let recentWorkouts = user.getRecentWorkouts(days: 30)
         let workoutFrequency = Double(recentWorkouts.count) / 4.3 // Average weeks in a month
-        
+
         // Calculate average workout duration
         let totalDuration = recentWorkouts.compactMap { $0.durationSeconds }.reduce(0, +)
         let averageWorkoutDuration = recentWorkouts.isEmpty ? 0 : totalDuration / Double(recentWorkouts.count)
-        
+
         // Calculate calorie trend
         let recentMeals = user.getRecentMeals(days: 14)
         let caloriesTrend = calculateCalorieTrend(from: recentMeals)
-        
+
         // Calculate macro balance
         let macroBalance = calculateMacroBalance(from: recentMeals)
-        
+
         // Calculate streak
         let streakDays = calculateStreakDays(for: user)
-        
+
         // Generate achievements
         let achievements = generateAchievements(for: user, workouts: recentWorkouts, meals: recentMeals)
-        
+
         return UserInsights(
             workoutFrequency: workoutFrequency,
             averageWorkoutDuration: averageWorkoutDuration,
@@ -174,24 +174,24 @@ final class AnalyticsService: AnalyticsServiceProtocol, ServiceProtocol {
             achievements: achievements
         )
     }
-    
+
     // MARK: - Private Methods
     private func calculateCalorieTrend(from meals: [FoodEntry]) -> Trend {
         guard meals.count >= 7 else {
             return Trend(direction: .stable, changePercentage: 0)
         }
-        
+
         let sorted = meals.sorted { $0.loggedAt < $1.loggedAt }
         let midpoint = sorted.count / 2
-        
+
         let firstHalf = sorted.prefix(midpoint)
         let secondHalf = sorted.suffix(sorted.count - midpoint)
-        
+
         let firstHalfAvg = Double(firstHalf.map(\.totalCalories).reduce(0, +)) / Double(firstHalf.count)
         let secondHalfAvg = Double(secondHalf.map(\.totalCalories).reduce(0, +)) / Double(secondHalf.count)
-        
+
         let changePercentage = ((secondHalfAvg - firstHalfAvg) / firstHalfAvg) * 100
-        
+
         let direction: Trend.Direction = {
             if abs(changePercentage) < 5 {
                 return .stable
@@ -201,36 +201,36 @@ final class AnalyticsService: AnalyticsServiceProtocol, ServiceProtocol {
                 return .down
             }
         }()
-        
+
         return Trend(direction: direction, changePercentage: abs(changePercentage))
     }
-    
+
     private func calculateMacroBalance(from meals: [FoodEntry]) -> MacroBalance {
         let totalProtein = meals.map(\.totalProtein).reduce(0, +)
         let totalCarbs = meals.map(\.totalCarbs).reduce(0, +)
         let totalFat = meals.map(\.totalFat).reduce(0, +)
-        
+
         let total = totalProtein + totalCarbs + totalFat
         guard total > 0 else {
             return MacroBalance(proteinPercentage: 33.3, carbsPercentage: 33.3, fatPercentage: 33.3)
         }
-        
+
         return MacroBalance(
             proteinPercentage: (totalProtein / total) * 100,
             carbsPercentage: (totalCarbs / total) * 100,
             fatPercentage: (totalFat / total) * 100
         )
     }
-    
+
     private func calculateStreakDays(for user: User) -> Int {
         let logs = user.dailyLogs.sorted { $0.date > $1.date }
         var streak = 0
         let calendar = Calendar.current
         var currentDate = calendar.startOfDay(for: Date())
-        
+
         for log in logs {
             let logDate = calendar.startOfDay(for: log.date)
-            
+
             if logDate == currentDate {
                 streak += 1
                 currentDate = calendar.date(byAdding: .day, value: -1, to: currentDate)!
@@ -239,13 +239,13 @@ final class AnalyticsService: AnalyticsServiceProtocol, ServiceProtocol {
                 break
             }
         }
-        
+
         return streak
     }
-    
+
     private func generateAchievements(for user: User, workouts: [Workout], meals: [FoodEntry]) -> [UserAchievement] {
         var achievements: [UserAchievement] = []
-        
+
         // First workout achievement
         if !workouts.isEmpty {
             achievements.append(UserAchievement(
@@ -256,7 +256,7 @@ final class AnalyticsService: AnalyticsServiceProtocol, ServiceProtocol {
                 icon: "figure.run"
             ))
         }
-        
+
         // 7-day streak achievement
         if calculateStreakDays(for: user) >= 7 {
             achievements.append(UserAchievement(
@@ -267,7 +267,7 @@ final class AnalyticsService: AnalyticsServiceProtocol, ServiceProtocol {
                 icon: "flame.fill"
             ))
         }
-        
+
         // 10 workouts achievement
         if user.workouts.count >= 10 {
             achievements.append(UserAchievement(
@@ -278,12 +278,12 @@ final class AnalyticsService: AnalyticsServiceProtocol, ServiceProtocol {
                 icon: "star.fill"
             ))
         }
-        
+
         // Balanced nutrition achievement
         let macroBalance = calculateMacroBalance(from: meals)
         if abs(macroBalance.proteinPercentage - 30) < 10 &&
-           abs(macroBalance.carbsPercentage - 40) < 10 &&
-           abs(macroBalance.fatPercentage - 30) < 10 {
+            abs(macroBalance.carbsPercentage - 40) < 10 &&
+            abs(macroBalance.fatPercentage - 30) < 10 {
             achievements.append(UserAchievement(
                 id: "balanced_nutrition",
                 title: "Balanced Eater",
@@ -292,7 +292,7 @@ final class AnalyticsService: AnalyticsServiceProtocol, ServiceProtocol {
                 icon: "leaf.fill"
             ))
         }
-        
+
         return achievements
     }
 }

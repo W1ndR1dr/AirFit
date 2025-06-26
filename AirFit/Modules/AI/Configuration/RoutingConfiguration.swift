@@ -6,58 +6,58 @@ import Foundation
 @MainActor
 @Observable
 final class RoutingConfiguration {
-    
+
     // MARK: - Feature Flags
-    
+
     /// Master toggle for hybrid routing system
     private(set) var hybridRoutingEnabled: Bool = true
-    
+
     /// A/B testing percentage for hybrid routing (0.0 to 1.0)
     private(set) var hybridRoutingPercentage: Double = 1.0
-    
+
     /// Force specific routing for testing/debugging
     private(set) var forcedRoute: ProcessingRoute?
-    
+
     /// Performance monitoring enabled
     private(set) var performanceMonitoringEnabled: Bool = true
-    
+
     /// Fallback to function calling on direct AI failures
     private(set) var enableIntelligentFallback: Bool = true
-    
+
     // MARK: - Performance Thresholds
-    
+
     /// Maximum allowed direct AI response time (ms)
     private(set) var directAITimeoutMs: Int = 5_000
-    
+
     /// Token usage threshold for switching to direct AI
     private(set) var tokenEfficiencyThreshold: Int = 500
-    
+
     /// Confidence threshold for nutrition parsing
     private(set) var nutritionConfidenceThreshold: Double = 0.7
-    
+
     // MARK: - A/B Testing
-    
+
     /// Determines if user should receive hybrid routing based on A/B test
     func shouldUseHybridRouting(for userId: UUID) -> Bool {
         guard hybridRoutingEnabled else { return false }
-        
+
         if let forced = forcedRoute {
             AppLogger.info("Using forced routing: \(forced.description)", category: .ai)
             return forced != .functionCalling
         }
-        
+
         // Consistent A/B testing based on user ID hash
         let userHash = abs(userId.hashValue) % 100
         let isInTestGroup = Double(userHash) < (hybridRoutingPercentage * 100)
-        
+
         AppLogger.debug(
             "A/B routing decision for user \(userId.uuidString.prefix(8)): \(isInTestGroup ? "hybrid" : "function-only") (hash: \(userHash), threshold: \(Int(hybridRoutingPercentage * 100)))",
             category: .ai
         )
-        
+
         return isInTestGroup
     }
-    
+
     /// Determines routing strategy for a specific request
     func determineRoutingStrategy(
         userInput: String,
@@ -65,10 +65,10 @@ final class RoutingConfiguration {
         userContext: UserContextSnapshot,
         userId: UUID
     ) -> RoutingStrategy {
-        
+
         // Check if user is in hybrid routing A/B test
         let useHybridRouting = shouldUseHybridRouting(for: userId)
-        
+
         if !useHybridRouting {
             return RoutingStrategy(
                 route: .functionCalling,
@@ -76,30 +76,30 @@ final class RoutingConfiguration {
                 fallbackEnabled: false
             )
         }
-        
+
         // Use context analyzer for hybrid routing group
         let recommendedRoute = ContextAnalyzer.determineOptimalRoute(
             userInput: userInput,
             conversationHistory: conversationHistory,
             userState: userContext
         )
-        
+
         let strategy = RoutingStrategy(
             route: recommendedRoute,
             reason: "Context analysis recommendation",
             fallbackEnabled: enableIntelligentFallback
         )
-        
+
         AppLogger.info(
             "Routing strategy: \(strategy.route.description) | Reason: \(strategy.reason) | Fallback: \(strategy.fallbackEnabled)",
             category: .ai
         )
-        
+
         return strategy
     }
-    
+
     // MARK: - Configuration Updates
-    
+
     /// Updates configuration from remote config or user preferences
     func updateConfiguration(
         hybridRoutingEnabled: Bool? = nil,
@@ -115,49 +115,49 @@ final class RoutingConfiguration {
             self.hybridRoutingEnabled = enabled
             AppLogger.info("Updated hybrid routing enabled: \(enabled)", category: .ai)
         }
-        
+
         if let percentage = hybridRoutingPercentage {
             self.hybridRoutingPercentage = max(0.0, min(1.0, percentage))
             AppLogger.info("Updated hybrid routing percentage: \(self.hybridRoutingPercentage * 100)%", category: .ai)
         }
-        
+
         if let forced = forcedRoute {
             self.forcedRoute = forced
             AppLogger.info("Updated forced route: \(forced.description)", category: .ai)
         }
-        
+
         if let monitoring = performanceMonitoringEnabled {
             self.performanceMonitoringEnabled = monitoring
         }
-        
+
         if let fallback = enableIntelligentFallback {
             self.enableIntelligentFallback = fallback
         }
-        
+
         if let timeout = directAITimeoutMs {
             self.directAITimeoutMs = max(1_000, min(30_000, timeout))
         }
-        
+
         if let threshold = tokenEfficiencyThreshold {
             self.tokenEfficiencyThreshold = max(100, threshold)
         }
-        
+
         if let confidence = nutritionConfidenceThreshold {
             self.nutritionConfidenceThreshold = max(0.1, min(1.0, confidence))
         }
     }
-    
+
     // MARK: - Performance Monitoring
-    
+
     /// Records routing performance metrics
     func recordRoutingMetrics(_ metrics: RoutingMetrics) {
         guard performanceMonitoringEnabled else { return }
-        
+
         AppLogger.info(
             "Routing metrics: \(metrics.route.description) | \(metrics.executionTimeMs)ms | Success: \(metrics.success) | Tokens: \(metrics.tokenUsage ?? 0) | Confidence: \(String(format: "%.2f", metrics.confidence ?? 0.0)) | Fallback: \(metrics.fallbackUsed)",
             category: .ai
         )
-        
+
         // Track performance degradation
         if metrics.executionTimeMs > directAITimeoutMs {
             AppLogger.warning(
@@ -166,18 +166,18 @@ final class RoutingConfiguration {
             )
         }
     }
-    
+
     // MARK: - Initialization
-    
+
     init() {
         // Load configuration from UserDefaults or remote config
         loadConfiguration()
     }
-    
+
     private func loadConfiguration() {
         // Load from UserDefaults for persistence across app launches
         let defaults = UserDefaults.standard
-        
+
         hybridRoutingEnabled = defaults.object(forKey: "HybridRoutingEnabled") as? Bool ?? true
         hybridRoutingPercentage = defaults.object(forKey: "HybridRoutingPercentage") as? Double ?? 1.0
         performanceMonitoringEnabled = defaults.object(forKey: "PerformanceMonitoringEnabled") as? Bool ?? true
@@ -185,20 +185,20 @@ final class RoutingConfiguration {
         directAITimeoutMs = defaults.object(forKey: "DirectAITimeoutMs") as? Int ?? 5_000
         tokenEfficiencyThreshold = defaults.object(forKey: "TokenEfficiencyThreshold") as? Int ?? 500
         nutritionConfidenceThreshold = defaults.object(forKey: "NutritionConfidenceThreshold") as? Double ?? 0.7
-        
+
         if let forcedRouteString = defaults.string(forKey: "ForcedRoute") {
             forcedRoute = ProcessingRoute(rawValue: forcedRouteString)
         }
-        
+
         AppLogger.info(
             "Loaded routing configuration: hybrid=\(hybridRoutingEnabled), percentage=\(hybridRoutingPercentage * 100)%, monitoring=\(performanceMonitoringEnabled)",
             category: .ai
         )
     }
-    
+
     private func saveConfiguration() {
         let defaults = UserDefaults.standard
-        
+
         defaults.set(hybridRoutingEnabled, forKey: "HybridRoutingEnabled")
         defaults.set(hybridRoutingPercentage, forKey: "HybridRoutingPercentage")
         defaults.set(performanceMonitoringEnabled, forKey: "PerformanceMonitoringEnabled")
@@ -218,7 +218,7 @@ struct RoutingStrategy: Sendable {
     let reason: String
     let fallbackEnabled: Bool
     let timestamp: Date
-    
+
     init(route: ProcessingRoute, reason: String, fallbackEnabled: Bool) {
         self.route = route
         self.reason = reason
@@ -238,7 +238,7 @@ struct RoutingMetrics: Sendable {
     let confidence: Double?
     let fallbackUsed: Bool
     let timestamp: Date
-    
+
     init(
         route: ProcessingRoute,
         executionTimeMs: Int,

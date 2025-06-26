@@ -17,15 +17,15 @@ extension AppColors {
     static var safeBackgroundPrimary: Color {
         Color.asset("BackgroundPrimary", fallback: Color(UIColor.systemBackground))
     }
-    
+
     static var safeAccentColor: Color {
         Color.asset("AccentColor", fallback: .blue)
     }
-    
+
     static var safeTextPrimary: Color {
         Color.asset("TextPrimary", fallback: Color(UIColor.label))
     }
-    
+
     static var safeTextSecondary: Color {
         Color.asset("TextSecondary", fallback: Color(UIColor.secondaryLabel))
     }

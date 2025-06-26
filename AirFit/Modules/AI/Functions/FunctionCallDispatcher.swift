@@ -24,7 +24,7 @@ struct FunctionContext: Sendable {
     let conversationId: UUID
     let userId: UUID
     let timestamp = Date()
-    
+
     // ModelContext is passed separately to ensure MainActor isolation
 }
 
@@ -102,7 +102,7 @@ final class FunctionCallDispatcher {
     private let analyticsService: AIAnalyticsServiceProtocol
     private let goalService: AIGoalServiceProtocol
     // ModelContext will be passed in when needed
-    
+
     // MARK: - Performance Tracking (Optimized)
     private var functionMetrics: [String: FunctionMetrics] = [:]
     private let metricsLock = NSLock()
@@ -120,7 +120,7 @@ final class FunctionCallDispatcher {
         let message: String
         let data: [String: SendableValue]
     }
-    
+
     // Function handler type
     typealias FunctionHandler = @MainActor @Sendable (FunctionCallDispatcher, [String: AIAnyCodable], User, FunctionContext, ModelContext) async throws -> FunctionHandlerResult
 
@@ -228,7 +228,7 @@ final class FunctionCallDispatcher {
     func getMetrics(for functionName: String? = nil) -> [String: Any] {
         metricsLock.lock()
         defer { metricsLock.unlock() }
-        
+
         if let functionName = functionName {
             guard let metrics = functionMetrics[functionName] else {
                 return ["error": "No metrics available for function: \(functionName)"]
@@ -262,7 +262,7 @@ final class FunctionCallDispatcher {
     private func updateMetrics(for functionName: String, executionTime: TimeInterval, success: Bool) {
         metricsLock.lock()
         defer { metricsLock.unlock() }
-        
+
         var metrics = functionMetrics[functionName] ?? FunctionMetrics()
         metrics.totalCalls += 1
         metrics.totalExecutionTime += executionTime
@@ -327,7 +327,7 @@ final class FunctionCallDispatcher {
                 equipment: [], // PlannedExercise doesn't have equipment
                 orderIndex: index
             )
-            
+
             // Add default sets based on the planned exercise
             for setNum in 1...exercise.sets {
                 // Parse reps from string (e.g., "8-12" -> 10)
@@ -340,7 +340,7 @@ final class FunctionCallDispatcher {
                 )
                 exerciseModel.addSet(set)
             }
-            
+
             exerciseModel.restSeconds = TimeInterval(exercise.restSeconds)
             workout.exercises.append(exerciseModel)
         }
@@ -356,7 +356,7 @@ final class FunctionCallDispatcher {
                 "restSeconds": .int(exercise.restSeconds)
             ])
         }
-        
+
         let result: [String: SendableValue] = [
             "workoutId": .string(workout.id.uuidString),
             "planName": .string(plan.summary),
@@ -380,7 +380,7 @@ final class FunctionCallDispatcher {
         let workoutId = args["workout_id"]?.value as? String ?? ""
         let feedback = args["feedback"]?.value as? String ?? ""
         let performanceDataRaw = args["performance_data"]?.value as? [String: Any] ?? [:]
-        
+
         // Convert to Sendable format
         let performanceData = performanceDataRaw.mapValues { value in
             String(describing: value)
@@ -409,7 +409,7 @@ final class FunctionCallDispatcher {
             difficulty: .intermediate,
             focusAreas: []
         )
-        
+
         // Adapt the plan based on feedback
         let adaptedPlan = try await workoutService.adaptPlan(
             currentPlan,
@@ -433,7 +433,7 @@ final class FunctionCallDispatcher {
                 equipment: [], // PlannedExercise doesn't have equipment
                 orderIndex: index
             )
-            
+
             // Add default sets based on the planned exercise
             for setNum in 1...exercise.sets {
                 let targetReps = parseRepsFromString(exercise.reps)
@@ -445,7 +445,7 @@ final class FunctionCallDispatcher {
                 )
                 exerciseModel.addSet(set)
             }
-            
+
             exerciseModel.restSeconds = TimeInterval(exercise.restSeconds)
             workout.exercises.append(exerciseModel)
         }
@@ -486,7 +486,7 @@ final class FunctionCallDispatcher {
             }
         )
         let allWorkouts = try modelContext.fetch(descriptor)
-        
+
         // Filter for recent workouts
         _ = allWorkouts.filter { workout in
             let workoutDate = workout.completedDate ?? workout.plannedDate ?? Date()
@@ -510,7 +510,7 @@ final class FunctionCallDispatcher {
                 "timeframe": .string(trend.timeframe)
             ])
         }
-        
+
         let result: [String: SendableValue] = [
             "trends": .array(trendsData),
             "insights": .array(analysis.insights.map { .string($0.finding) }),
@@ -570,7 +570,7 @@ final class FunctionCallDispatcher {
                 "criteria": .string(milestone.criteria)
             ])
         }
-        
+
         let metricsData: [SendableValue] = result.metrics.map { metric in
             SendableValue.dictionary([
                 "name": .string(metric.name),
@@ -579,7 +579,7 @@ final class FunctionCallDispatcher {
                 "unit": .string(metric.unit)
             ])
         }
-        
+
         let savedGoal: [String: SendableValue] = [
             "goalId": .string(goal.id.uuidString),
             "title": .string(result.title),
@@ -592,9 +592,9 @@ final class FunctionCallDispatcher {
             data: savedGoal
         )
     }
-    
+
     // MARK: - Helper Methods
-    
+
     /// Parse reps from string format (e.g., "8-12" -> 10, "15" -> 15)
     private func parseRepsFromString(_ repsString: String) -> Int {
         // Handle range format "8-12"
@@ -605,7 +605,7 @@ final class FunctionCallDispatcher {
                 return (components[0] + components[1]) / 2
             }
         }
-        
+
         // Try to parse as single number
         return Int(repsString.trimmingCharacters(in: .whitespaces)) ?? 10
     }

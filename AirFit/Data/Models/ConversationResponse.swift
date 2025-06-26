@@ -12,7 +12,7 @@ final class ConversationResponse {
     var responseType: String = ""
     var processingTime: TimeInterval = 0.0
     @Relationship(inverse: \ConversationSession.responses) var session: ConversationSession?
-    
+
     init(
         id: UUID = UUID(),
         sessionId: UUID,
@@ -46,7 +46,7 @@ extension ConversationResponse {
     func getValue() throws -> ResponseValue {
         return try JSONDecoder().decode(ResponseValue.self, from: responseData)
     }
-    
+
     func setValue(_ value: ResponseValue) throws {
         self.responseData = try JSONEncoder().encode(value)
     }

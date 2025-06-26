@@ -6,25 +6,25 @@ struct AirFitApp: App {
     // MARK: - DI Container
     @State private var diContainer: DIContainer?
     @State private var isInitializing = true
-    
+
     // MARK: - Model Container State
     @State private var modelContainer: ModelContainer?
     @State private var containerError: Error?
     @State private var isRetrying = false
-    
+
     // MARK: - UI State
     @State private var gradientManager: GradientManager?
-    
+
     // MARK: - Test Mode Detection
     private var isTestMode: Bool {
         ProcessInfo.processInfo.arguments.contains("--test-mode") ||
-        ProcessInfo.processInfo.environment["AIRFIT_TEST_MODE"] == "1"
+            ProcessInfo.processInfo.environment["AIRFIT_TEST_MODE"] == "1"
     }
-    
+
     // MARK: - Model Schema
     // Using migration plan for proper schema evolution
     private static let migrationPlan = AirFitMigrationPlan.self
-    
+
     // MARK: - Model Container Creation
     private func createModelContainer(inMemory: Bool = false) -> ModelContainer? {
         do {
@@ -74,7 +74,7 @@ struct AirFitApp: App {
                     ProgressView()
                         .scaleEffect(1.5)
                         .tint(Color.accentColor)
-                    
+
                     Text("Loading database...")
                         .font(AppFonts.headline)
                         .foregroundColor(.secondary)
@@ -96,7 +96,7 @@ struct AirFitApp: App {
                     ProgressView()
                         .scaleEffect(1.5)
                         .tint(Color.accentColor)
-                    
+
                     Text("Initializing AirFit...")
                         .font(AppFonts.headline)
                         .foregroundColor(.secondary)
@@ -129,11 +129,11 @@ struct AirFitApp: App {
                     Image(systemName: "exclamationmark.triangle.fill")
                         .font(.largeTitle)
                         .foregroundColor(.red)
-                    
+
                     Text("Failed to initialize")
                         .font(AppFonts.headline)
                         .foregroundColor(.primary)
-                    
+
                     Button("Retry") {
                         containerError = nil
                         modelContainer = nil
@@ -153,15 +153,15 @@ struct AirFitApp: App {
             }
         }
     }
-    
+
     private func initializeApp() async {
         guard let modelContainer = modelContainer else {
             AppLogger.error("Cannot initialize DI without model container", category: .app)
             return
         }
-        
+
         isInitializing = true
-        
+
         // Create DI container with perfect lazy resolution
         // This is FAST - just registers factories, doesn't create services
         if isTestMode {
@@ -176,43 +176,43 @@ struct AirFitApp: App {
             )
             AppLogger.info("AirFitApp: DI container created instantly", category: .app)
         }
-        
+
         // UI can render immediately - services will be created lazily as needed
         isInitializing = false
     }
-    
+
     // MARK: - Error Recovery Methods
     private func retryContainerCreation() {
         isRetrying = true
         containerError = nil
-        
+
         Task {
             // Small delay for UI feedback
             try? await Task.sleep(for: .seconds(0.5))
-            
+
             await MainActor.run {
                 modelContainer = createModelContainer()
                 isRetrying = false
             }
         }
     }
-    
+
     private func resetDatabaseAndRetry() {
         isRetrying = true
-        
+
         Task {
             // Delete the database file
             let documentsPath = FileManager.default.urls(for: .documentDirectory,
-                                                        in: .userDomainMask).first!
+                                                         in: .userDomainMask).first!
             let dbPath = documentsPath.appendingPathComponent("default.store")
-            
+
             do {
                 try FileManager.default.removeItem(at: dbPath)
                 AppLogger.info("Deleted corrupted database", category: .data)
             } catch {
                 AppLogger.error("Failed to delete database", error: error, category: .data)
             }
-            
+
             await MainActor.run {
                 containerError = nil
                 modelContainer = createModelContainer()
@@ -220,16 +220,16 @@ struct AirFitApp: App {
             }
         }
     }
-    
+
     private func useInMemoryDatabase() {
         isRetrying = true
         containerError = nil
-        
+
         Task {
             await MainActor.run {
                 modelContainer = createModelContainer(inMemory: true)
                 isRetrying = false
-                
+
                 if modelContainer != nil {
                     // Show warning to user about data not persisting
                     // This could be done via an alert or banner

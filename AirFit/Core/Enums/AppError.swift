@@ -48,7 +48,7 @@ public enum AppError: LocalizedError, Sendable {
             return "Authentication Error: \(message)"
         }
     }
-    
+
     public var recoverySuggestion: String? {
         switch self {
         case .networkError:

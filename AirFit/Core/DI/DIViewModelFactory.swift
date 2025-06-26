@@ -6,30 +6,33 @@ import SwiftUI
 @MainActor
 public final class DIViewModelFactory {
     private let container: DIContainer
-    
+
     public init(container: DIContainer) {
         self.container = container
     }
-    
+
     private func getModelContext() async throws -> ModelContext {
         // Since we're @MainActor, we can safely get the ModelContainer
         let modelContainer = try await container.resolve(ModelContainer.self)
         // mainContext is accessed on MainActor
         return modelContainer.mainContext
     }
-    
+
     // MARK: - Dashboard
-    
+
     func makeDashboardViewModel(user: User) async throws -> DashboardViewModel {
+        // Get ModelContext first (not Sendable)
         let modelContext = try await getModelContext()
-        let healthKitService = try await container.resolve(HealthKitServiceProtocol.self)
-        let nutritionService = try await container.resolve(DashboardNutritionServiceProtocol.self)
-        
-        // Create user-specific CoachEngine and AICoachService
-        let coachEngine = try await makeCoachEngine(for: user)
-        let aiCoachService = AICoachService(coachEngine: coachEngine)
-        
-        return DashboardViewModel(
+
+        // Resolve other dependencies in parallel
+        async let healthKitService = container.resolve(HealthKitServiceProtocol.self)
+        async let nutritionService = container.resolve(DashboardNutritionServiceProtocol.self)
+        async let coachEngine = makeCoachEngine(for: user)
+
+        // Create AICoachService with resolved engine
+        let aiCoachService = AICoachService(coachEngine: try await coachEngine)
+
+        return try await DashboardViewModel(
             user: user,
             modelContext: modelContext,
             healthKitService: healthKitService,
@@ -37,17 +40,21 @@ public final class DIViewModelFactory {
             nutritionService: nutritionService
         )
     }
-    
+
     // MARK: - Settings
-    
+
     func makeSettingsViewModel(user: User) async throws -> SettingsViewModel {
+        // Get ModelContext first (not Sendable)
         let modelContext = try await getModelContext()
-        let apiKeyManager = try await container.resolve(APIKeyManagementProtocol.self)
-        let aiService = try await container.resolve(AIServiceProtocol.self)
-        let notificationManager = try await container.resolve(NotificationManager.self)
+
+        // Resolve other dependencies in parallel
+        async let apiKeyManager = container.resolve(APIKeyManagementProtocol.self)
+        async let aiService = container.resolve(AIServiceProtocol.self)
+        async let notificationManager = container.resolve(NotificationManager.self)
+
         let coordinator = SettingsCoordinator()
-        
-        return SettingsViewModel(
+
+        return try await SettingsViewModel(
             modelContext: modelContext,
             user: user,
             apiKeyManager: apiKeyManager,
@@ -56,19 +63,20 @@ public final class DIViewModelFactory {
             coordinator: coordinator
         )
     }
-    
+
     // MARK: - Workouts
-    
+
     func makeWorkoutViewModel(user: User) async throws -> WorkoutViewModel {
+        // Get ModelContext first (not Sendable)
         let modelContext = try await getModelContext()
-        let healthKitManager = try await container.resolve(HealthKitManager.self)
-        let exerciseDatabase = try await container.resolve(ExerciseDatabase.self)
-        let workoutSyncService = try await container.resolve(WorkoutSyncService.self)
-        
-        // Create user-specific CoachEngine
-        let coachEngine = try await makeCoachEngine(for: user)
-        
-        return WorkoutViewModel(
+
+        // Resolve other dependencies in parallel
+        async let healthKitManager = container.resolve(HealthKitManager.self)
+        async let exerciseDatabase = container.resolve(ExerciseDatabase.self)
+        async let workoutSyncService = container.resolve(WorkoutSyncService.self)
+        async let coachEngine = makeCoachEngine(for: user)
+
+        return try await WorkoutViewModel(
             modelContext: modelContext,
             user: user,
             coachEngine: coachEngine,
@@ -77,18 +85,20 @@ public final class DIViewModelFactory {
             workoutSyncService: workoutSyncService
         )
     }
-    
+
     // MARK: - Chat
-    
+
     func makeChatViewModel(user: User) async throws -> ChatViewModel {
+        // Get ModelContext first (not Sendable)
         let modelContext = try await getModelContext()
-        let aiService = try await container.resolve(AIServiceProtocol.self, name: "adaptive")
-        let voiceManager = try await container.resolve(VoiceInputManager.self)
-        
-        // Create user-specific CoachEngine
-        let coachEngine = try await makeCoachEngine(for: user)
-        
-        return ChatViewModel(
+
+        // Resolve other dependencies in parallel
+        async let aiService = container.resolve(AIServiceProtocol.self, name: "adaptive")
+        async let voiceManager = container.resolve(VoiceInputManager.self)
+        async let coachEngine = makeCoachEngine(for: user)
+
+        // Await all at once and create ViewModel
+        return try await ChatViewModel(
             modelContext: modelContext,
             user: user,
             coachEngine: coachEngine,
@@ -97,68 +107,67 @@ public final class DIViewModelFactory {
             voiceManager: voiceManager
         )
     }
-    
+
     // MARK: - Food Tracking
-    
+
     func makeFoodTrackingViewModel(user: User) async throws -> FoodTrackingViewModel {
+        // Get ModelContext first (not Sendable)
         let modelContext = try await getModelContext()
-        let voiceInputManager = try await container.resolve(VoiceInputManager.self)
-        let nutritionService = try await container.resolve(NutritionServiceProtocol.self)
-        let coordinator = FoodTrackingCoordinator()
-        
-        // Create food voice adapter
-        let foodVoiceAdapter = FoodVoiceAdapter(voiceInputManager: voiceInputManager)
-        
-        // Create coach engine
-        let coachEngine = try await makeCoachEngine(for: user)
-        
-        return FoodTrackingViewModel(
+
+        // Resolve other dependencies in parallel
+        async let voiceInputManager = container.resolve(VoiceInputManager.self)
+        async let nutritionService = container.resolve(NutritionServiceProtocol.self)
+        async let coachEngine = makeCoachEngine(for: user)
+
+        // Create adapter with resolved voice manager
+        let foodVoiceAdapter = FoodVoiceAdapter(voiceInputManager: try await voiceInputManager)
+
+        return try await FoodTrackingViewModel(
             modelContext: modelContext,
             user: user,
             foodVoiceAdapter: foodVoiceAdapter,
             nutritionService: nutritionService,
             coachEngine: coachEngine,
-            coordinator: coordinator
+            coordinator: FoodTrackingCoordinator()
         )
     }
-    
-    
+
+
     // MARK: - Onboarding
-    
+
     func makeOnboardingIntelligence() async throws -> OnboardingIntelligence {
         // OnboardingIntelligence is now a simple, self-contained component
         return try await container.resolve(OnboardingIntelligence.self)
     }
-    
+
     // Removed duplicate - use makeFoodTrackingViewModel(user:) instead
-    
+
     // MARK: - Private Helpers
-    
+
     private func makeCoachEngine(for user: User) async throws -> CoachEngine {
+        // Get ModelContext first (not Sendable)
         let modelContext = try await getModelContext()
-        let aiService = try await container.resolve(AIServiceProtocol.self)
-        
-        // Create required components
+
+        // Resolve all other dependencies in parallel for faster initialization
+        async let aiService = container.resolve(AIServiceProtocol.self)
+        async let personaService = container.resolve(PersonaService.self)
+        async let contextAssembler = container.resolve(ContextAssembler.self)
+        async let goalService = container.resolve(AIGoalServiceProtocol.self)
+        async let workoutService = container.resolve(AIWorkoutServiceProtocol.self)
+        async let analyticsService = container.resolve(AIAnalyticsServiceProtocol.self)
+        async let routingConfiguration = container.resolve(RoutingConfiguration.self)
+
+        // Create components that don't need async resolution
         let localCommandParser = LocalCommandParser()
-        let personaService = try await container.resolve(PersonaService.self)
         let conversationManager = ConversationManager(modelContext: modelContext)
-        let contextAssembler = try await container.resolve(ContextAssembler.self)
-        
-        // Create AI services for FunctionCallDispatcher
-        let goalService = try await container.resolve(AIGoalServiceProtocol.self)
-        let workoutService = try await container.resolve(AIWorkoutServiceProtocol.self)
-        let analyticsService = try await container.resolve(AIAnalyticsServiceProtocol.self)
-        
+
         let functionDispatcher = FunctionCallDispatcher(
-            workoutService: workoutService,
-            analyticsService: analyticsService,
-            goalService: goalService
+            workoutService: try await workoutService,
+            analyticsService: try await analyticsService,
+            goalService: try await goalService
         )
-        
-        // Get routing configuration
-        let routingConfiguration = try await container.resolve(RoutingConfiguration.self)
-        
-        return CoachEngine(
+
+        return try await CoachEngine(
             localCommandParser: localCommandParser,
             functionDispatcher: functionDispatcher,
             personaService: personaService,
@@ -169,7 +178,7 @@ public final class DIViewModelFactory {
             routingConfiguration: routingConfiguration
         )
     }
-    
+
     private func makeConversationManager(for user: User) async throws -> ConversationManager {
         let modelContext = try await getModelContext()
         return ConversationManager(modelContext: modelContext)
@@ -178,6 +187,6 @@ public final class DIViewModelFactory {
 
 // MARK: - SwiftUI View Extension
 
-// Note: The withViewModel helper was removed because @Observable types 
+// Note: The withViewModel helper was removed because @Observable types
 // don't conform to ObservableObject. Views should manually create their
 // ViewModels using the DIViewModelFactory from the environment container.

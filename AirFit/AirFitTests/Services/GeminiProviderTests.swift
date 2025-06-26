@@ -2,25 +2,25 @@ import XCTest
 @testable import AirFit
 
 final class GeminiProviderTests: XCTestCase {
-    
+
     func testGemini25FlashModelSupport() {
         // Test that Gemini 2.5 Flash models are properly configured
         XCTAssertEqual(LLMModel.gemini25Flash.identifier, "gemini-2.5-flash-preview-05-20")
         XCTAssertEqual(LLMModel.gemini25FlashThinking.identifier, "gemini-2.5-flash-thinking-preview-05-20")
-        
+
         // Test context window
         XCTAssertEqual(LLMModel.gemini25Flash.contextWindow, 1_048_576)
         XCTAssertEqual(LLMModel.gemini25FlashThinking.contextWindow, 1_048_576)
-        
+
         // Test special features
         XCTAssertTrue(LLMModel.gemini25Flash.specialFeatures.contains("Multimodal input"))
         XCTAssertTrue(LLMModel.gemini25FlashThinking.specialFeatures.contains("Thinking budget (≤24,576 tokens)"))
     }
-    
+
     func testThinkingBudgetInRequest() async {
         // Test that thinking budget is properly set for Gemini 2.5 Flash Thinking
         let orchestrator = await LLMOrchestrator(apiKeyManager: LocalMockAPIKeyManager())
-        
+
         // Test persona synthesis task (should get 8192 thinking budget)
         let request = await orchestrator.buildRequest(
             prompt: "Test prompt",
@@ -30,10 +30,10 @@ final class GeminiProviderTests: XCTestCase {
             stream: false,
             task: .personaSynthesis
         )
-        
+
         XCTAssertEqual(request.thinkingBudgetTokens, 8_192)
     }
-    
+
     func testMultimodalMessageSupport() {
         // Test that LLMMessage supports attachments
         let imageData = Data([0xFF, 0xD8, 0xFF]) // Fake JPEG header
@@ -42,34 +42,34 @@ final class GeminiProviderTests: XCTestCase {
             data: imageData,
             mimeType: "image/jpeg"
         )
-        
+
         let message = LLMMessage(
             role: .user,
             content: "What's in this image?",
             name: nil,
             attachments: [attachment]
         )
-        
+
         XCTAssertEqual(message.attachments?.count, 1)
         XCTAssertEqual(message.attachments?.first?.type, .image)
         XCTAssertEqual(message.attachments?.first?.mimeType, "image/jpeg")
     }
-    
+
     func testGeminiProviderInitialization() async throws {
         let provider = GeminiProvider(apiKey: "test-key")
-        
+
         // Test capabilities
         let capabilities = await provider.capabilities
         XCTAssertTrue(capabilities.supportsVision)
         XCTAssertTrue(capabilities.supportsJSON)
         XCTAssertTrue(capabilities.supportsFunctionCalling)
         XCTAssertTrue(capabilities.supportsStreaming)
-        
+
         // Test supported models
         XCTAssertTrue(GeminiProvider.supportedModels.contains("gemini-2.5-flash-preview-05-20"))
         XCTAssertTrue(GeminiProvider.supportedModels.contains("gemini-2.5-flash-thinking-preview-05-20"))
     }
-    
+
     func testStructuredOutputConfiguration() throws {
         // Test JSON response format configuration
         let request = LLMRequest(
@@ -90,7 +90,7 @@ final class GeminiProviderTests: XCTestCase {
             metadata: [:],
             thinkingBudgetTokens: nil
         )
-        
+
         XCTAssertNotNil(request.responseFormat)
         if case .json(let schema) = request.responseFormat {
             XCTAssertNotNil(schema)
@@ -126,7 +126,7 @@ extension LLMOrchestrator {
             }
             return nil
         }()
-        
+
         return LLMRequest(
             messages: [LLMMessage(role: .user, content: prompt, name: nil, attachments: nil)],
             model: model.identifier,
@@ -147,19 +147,19 @@ private final class LocalMockAPIKeyManager: APIKeyManagementProtocol {
     func saveAPIKey(_ key: String, for provider: AIProvider) async throws {
         // No-op for testing
     }
-    
+
     func getAPIKey(for provider: AIProvider) async throws -> String {
         return "test-key"
     }
-    
+
     func deleteAPIKey(for provider: AIProvider) async throws {
         // No-op for testing
     }
-    
+
     func hasAPIKey(for provider: AIProvider) async -> Bool {
         return true
     }
-    
+
     func getAllConfiguredProviders() async -> [AIProvider] {
         return [.gemini]
     }

@@ -7,26 +7,26 @@ final class MockPersonaService: @preconcurrency MockProtocol {
     var invocations: [String: [Any]] = [:]
     var stubbedResults: [String: Any] = [:]
     let mockLock = NSLock()
-    
+
     // MARK: - Stubbed Results
     var stubbedGeneratePersonaResult: Result<PersonaProfile, Error> = .success(PersonaProfile.mock)
     var stubbedAdjustPersonaResult: Result<PersonaProfile, Error> = .success(PersonaProfile.mock)
     var stubbedSavePersonaResult: Result<Void, Error> = .success(())
-    
+
     // MARK: - Configuration
     var generationDelay: TimeInterval = 0.0
     var shouldSimulateProgress = false
     var progressUpdates: [Double] = []
-    
+
     // MARK: - Public Methods
     func generatePersona(from session: ConversationSession) async throws -> PersonaProfile {
         recordInvocation(#function, arguments: session)
-        
+
         // Simulate delay if configured
         if generationDelay > 0 {
             try await Task.sleep(nanoseconds: UInt64(generationDelay * 1_000_000_000))
         }
-        
+
         // Simulate progress updates
         if shouldSimulateProgress {
             for progress in progressUpdates {
@@ -34,7 +34,7 @@ final class MockPersonaService: @preconcurrency MockProtocol {
                 try await Task.sleep(nanoseconds: 100_000_000) // 0.1s between updates
             }
         }
-        
+
         switch stubbedGeneratePersonaResult {
         case .success(let persona):
             return persona
@@ -42,10 +42,10 @@ final class MockPersonaService: @preconcurrency MockProtocol {
             throw error
         }
     }
-    
+
     func adjustPersona(_ persona: PersonaProfile, adjustment: String) async throws -> PersonaProfile {
         recordInvocation(#function, arguments: persona, adjustment)
-        
+
         switch stubbedAdjustPersonaResult {
         case .success(let adjustedPersona):
             return adjustedPersona
@@ -53,10 +53,10 @@ final class MockPersonaService: @preconcurrency MockProtocol {
             throw error
         }
     }
-    
+
     func savePersona(_ persona: PersonaProfile, for userId: UUID) async throws {
         recordInvocation(#function, arguments: persona, userId)
-        
+
         switch stubbedSavePersonaResult {
         case .success:
             return
@@ -114,7 +114,7 @@ extension PersonaProfile {
             )
         )
     }
-    
+
     static func mockWithName(_ name: String) -> PersonaProfile {
         PersonaProfile(
             id: UUID(),
@@ -129,7 +129,7 @@ extension PersonaProfile {
             metadata: mock.metadata
         )
     }
-    
+
     static func mockWithArchetype(_ archetype: String) -> PersonaProfile {
         PersonaProfile(
             id: UUID(),

@@ -13,14 +13,14 @@ final class OnboardingServiceTests: XCTestCase {
     // MARK: - Setup
     override func setUp() async throws {
         try super.setUp()
-        
+
         // Create test container
         container = try await DITestHelper.createTestContainer()
-        
+
         // Get model context from container
         let modelContainer = try await container.resolve(ModelContainer.self)
         modelContext = modelContainer.mainContext
-        
+
         // Create service
         sut = OnboardingService(modelContext: modelContext)
 
@@ -39,7 +39,7 @@ final class OnboardingServiceTests: XCTestCase {
     }
 
     // MARK: - Profile Saving Tests
-    
+
     func test_saveProfile_givenValidProfile_shouldPersistSuccessfully() async throws {
         // Arrange
         let profileData = createValidProfileData()
@@ -164,7 +164,7 @@ final class OnboardingServiceTests: XCTestCase {
     }
 
     // MARK: - Error Handling Tests
-    
+
     func test_onboardingError_localizedDescriptions() {
         // Test error descriptions exist (they use NSLocalizedString)
         XCTAssertNotNil(OnboardingError.noUserFound.errorDescription)
@@ -235,14 +235,14 @@ final class OnboardingServiceValidationTests: XCTestCase {
     // MARK: - Setup
     override func setUp() async throws {
         try super.setUp()
-        
+
         // Create test container
         container = try await DITestHelper.createTestContainer()
-        
+
         // Get model context from container
         let modelContainer = try await container.resolve(ModelContainer.self)
         modelContext = modelContainer.mainContext
-        
+
         // Create service
         sut = OnboardingService(modelContext: modelContext)
 

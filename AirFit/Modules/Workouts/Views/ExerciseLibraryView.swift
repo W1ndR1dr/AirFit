@@ -64,7 +64,7 @@ struct ExerciseLibraryView: View {
                         .padding(.bottom, AppSpacing.sm)
                         .opacity(animateIn ? 1 : 0)
                         .offset(y: animateIn ? 0 : -20)
-                    
+
                     // Search bar
                     GlassCard {
                         HStack(spacing: AppSpacing.sm) {
@@ -77,14 +77,14 @@ struct ExerciseLibraryView: View {
                                     )
                                 )
                                 .font(.system(size: 18))
-                            
+
                             TextField("Search exercises...", text: $searchText)
                                 .textFieldStyle(.plain)
                                 .font(.system(size: 16, weight: .medium))
                                 .onTapGesture {
                                     HapticService.impact(.light)
                                 }
-                            
+
                             if !searchText.isEmpty {
                                 Button {
                                     HapticService.impact(.light)
@@ -106,7 +106,7 @@ struct ExerciseLibraryView: View {
                     .opacity(animateIn ? 1 : 0)
                     .offset(y: animateIn ? 0 : 20)
                     .animation(MotionToken.standardSpring.delay(0.1), value: animateIn)
-                    
+
                     // Active filters indicator
                     if hasActiveFilters {
                         ScrollView(.horizontal, showsIndicators: false) {
@@ -114,7 +114,7 @@ struct ExerciseLibraryView: View {
                                 Text("Active filters:")
                                     .font(.system(size: 12, weight: .medium))
                                     .foregroundStyle(Color.secondary)
-                                
+
                                 if let category = selectedCategory {
                                     FilterChip(text: category.displayName, type: .category)
                                 }
@@ -133,7 +133,7 @@ struct ExerciseLibraryView: View {
                         .padding(.bottom, AppSpacing.sm)
                         .transition(.move(edge: .top).combined(with: .opacity))
                     }
-                    
+
                     // Content
                     Group {
                         if exerciseDatabase?.isLoading ?? false {
@@ -157,12 +157,12 @@ struct ExerciseLibraryView: View {
                         Image(systemName: "line.3.horizontal.decrease.circle")
                             .foregroundStyle(
                                 hasActiveFilters ?
-                                AnyShapeStyle(LinearGradient(
-                                    colors: gradientManager.active.colors(for: colorScheme),
-                                    startPoint: .topLeading,
-                                    endPoint: .bottomTrailing
-                                )) :
-                                AnyShapeStyle(Color.secondary)
+                                    AnyShapeStyle(LinearGradient(
+                                        colors: gradientManager.active.colors(for: colorScheme),
+                                        startPoint: .topLeading,
+                                        endPoint: .bottomTrailing
+                                    )) :
+                                    AnyShapeStyle(Color.secondary)
                             )
                     }
                 }
@@ -210,7 +210,7 @@ struct ExerciseLibraryView: View {
                 Circle()
                     .stroke(Color.primary.opacity(0.1), lineWidth: 6)
                     .frame(width: 100, height: 100)
-                
+
                 Circle()
                     .trim(from: 0, to: exerciseDatabase?.loadingProgress ?? 0)
                     .stroke(
@@ -224,7 +224,7 @@ struct ExerciseLibraryView: View {
                     .frame(width: 100, height: 100)
                     .rotationEffect(.degrees(-90))
                     .animation(MotionToken.standardSpring, value: exerciseDatabase?.loadingProgress)
-                
+
                 VStack(spacing: 2) {
                     GradientNumber(value: Double(Int((exerciseDatabase?.loadingProgress ?? 0) * 100)))
                         .font(.system(size: 28, weight: .bold, design: .rounded))
@@ -296,10 +296,10 @@ private struct FilterChip: View {
     let type: FilterType
     @EnvironmentObject private var gradientManager: GradientManager
     @Environment(\.colorScheme) private var colorScheme
-    
+
     enum FilterType {
         case category, muscle, equipment, difficulty
-        
+
         var icon: String {
             switch self {
             case .category: return "square.grid.2x2"
@@ -309,7 +309,7 @@ private struct FilterChip: View {
             }
         }
     }
-    
+
     var body: some View {
         HStack(spacing: 4) {
             Image(systemName: type.icon)

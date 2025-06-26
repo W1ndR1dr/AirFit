@@ -27,7 +27,7 @@ struct WorkoutDetailView: View {
                         .padding(.top, AppSpacing.md)
                         .opacity(animateIn ? 1 : 0)
                         .offset(y: animateIn ? 0 : -20)
-                    
+
                     // Workout header
                     workoutHeaderSection
                         .padding(.horizontal, AppSpacing.md)
@@ -108,7 +108,7 @@ private extension WorkoutDetailView {
                             )
                             .frame(width: 56, height: 56)
                             .blur(radius: 8)
-                        
+
                         Image(systemName: workout.workoutTypeEnum?.systemImage ?? "figure.strengthtraining.traditional")
                             .font(.system(size: 28, weight: .medium))
                             .foregroundStyle(
@@ -148,7 +148,7 @@ private extension WorkoutDetailView {
                         )
                         .frame(height: 1)
                         .padding(.vertical, AppSpacing.xs)
-                    
+
                     Text(notes)
                         .font(.system(size: 14, weight: .medium))
                         .foregroundStyle(Color.secondary)
@@ -445,7 +445,7 @@ private struct SummaryStatCard: View {
     @EnvironmentObject private var gradientManager: GradientManager
     @Environment(\.colorScheme) private var colorScheme
     @State private var animateIn = false
-    
+
     private var gradientColors: [Color] {
         switch icon {
         case "timer": return [Color(hex: "#667EEA"), Color(hex: "#764BA2")]
@@ -651,7 +651,7 @@ private struct SaveAsTemplateView: View {
                             .padding(.top, AppSpacing.md)
                             .opacity(animateIn ? 1 : 0)
                             .offset(y: animateIn ? 0 : -20)
-                        
+
                         // Template details
                         GlassCard {
                             VStack(spacing: AppSpacing.md) {
@@ -659,7 +659,7 @@ private struct SaveAsTemplateView: View {
                                     Text("Template Name")
                                         .font(.system(size: 14, weight: .medium))
                                         .foregroundStyle(Color.secondary)
-                                    
+
                                     TextField("Enter name", text: $templateName)
                                         .font(.system(size: 18, weight: .medium, design: .rounded))
                                         .padding(AppSpacing.sm)
@@ -668,7 +668,7 @@ private struct SaveAsTemplateView: View {
                                                 .fill(Color.primary.opacity(0.05))
                                         )
                                 }
-                                
+
                                 HStack {
                                     Text("Include Notes")
                                         .font(.system(size: 16, weight: .medium))
@@ -691,7 +691,7 @@ private struct SaveAsTemplateView: View {
                         .opacity(animateIn ? 1 : 0)
                         .offset(y: animateIn ? 0 : 20)
                         .animation(MotionToken.standardSpring.delay(0.1), value: animateIn)
-                        
+
                         // Exercises preview
                         VStack(alignment: .leading, spacing: AppSpacing.sm) {
                             HStack {
@@ -700,7 +700,7 @@ private struct SaveAsTemplateView: View {
                                 Spacer()
                             }
                             .padding(.horizontal, AppSpacing.md)
-                            
+
                             ForEach(Array(workout.exercises.enumerated()), id: \.element.id) { index, exercise in
                                 HStack(spacing: AppSpacing.sm) {
                                     Image(systemName: "checkmark.circle.fill")
@@ -715,13 +715,13 @@ private struct SaveAsTemplateView: View {
                                                 endPoint: .bottomTrailing
                                             )
                                         )
-                                    
+
                                     Text(exercise.name)
                                         .font(.system(size: 16, weight: .medium, design: .rounded))
                                         .foregroundStyle(Color.primary)
-                                    
+
                                     Spacer()
-                                    
+
                                     Text("\(exercise.sets.count) sets")
                                         .font(.system(size: 14, weight: .medium))
                                         .foregroundStyle(Color.secondary.opacity(0.8))
@@ -763,12 +763,12 @@ private struct SaveAsTemplateView: View {
                     .disabled(templateName.isEmpty)
                     .foregroundStyle(
                         templateName.isEmpty ?
-                        AnyShapeStyle(Color.secondary.opacity(0.5)) :
-                        AnyShapeStyle(LinearGradient(
-                            colors: gradientManager.active.colors(for: colorScheme),
-                            startPoint: .topLeading,
-                            endPoint: .bottomTrailing
-                        ))
+                            AnyShapeStyle(Color.secondary.opacity(0.5)) :
+                            AnyShapeStyle(LinearGradient(
+                                colors: gradientManager.active.colors(for: colorScheme),
+                                startPoint: .topLeading,
+                                endPoint: .bottomTrailing
+                            ))
                     )
                 }
             }
@@ -813,12 +813,12 @@ private struct AIAnalysisView: View {
                                 )
                                 .scaleEffect(animateIn ? 1 : 0.8)
                                 .opacity(animateIn ? 1 : 0)
-                            
+
                             CascadeText("AI Analysis")
                                 .font(.system(size: 28, weight: .bold, design: .rounded))
                         }
                         .padding(.top, AppSpacing.md)
-                        
+
                         // Analysis content
                         GlassCard {
                             Text(analysis)
@@ -831,7 +831,7 @@ private struct AIAnalysisView: View {
                         .opacity(animateIn ? 1 : 0)
                         .offset(y: animateIn ? 0 : 20)
                         .animation(MotionToken.standardSpring.delay(0.2), value: animateIn)
-                        
+
                         // AI disclaimer
                         HStack(spacing: AppSpacing.xs) {
                             Image(systemName: "info.circle")
@@ -894,7 +894,7 @@ private struct ExerciseDetailView: View {
                             .padding(.top, AppSpacing.md)
                             .opacity(animateIn ? 1 : 0)
                             .offset(y: animateIn ? 0 : -20)
-                        
+
                         // Exercise info
                         if !exercise.muscleGroups.isEmpty || exercise.notes != nil {
                             GlassCard {
@@ -904,7 +904,7 @@ private struct ExerciseDetailView: View {
                                             Text("Muscle Groups")
                                                 .font(.system(size: 14, weight: .medium))
                                                 .foregroundStyle(Color.secondary)
-                                            
+
                                             HStack(spacing: AppSpacing.xs) {
                                                 ForEach(exercise.muscleGroups, id: \.self) { muscle in
                                                     Text(muscle)
@@ -923,7 +923,7 @@ private struct ExerciseDetailView: View {
                                             }
                                         }
                                     }
-                                    
+
                                     if let notes = exercise.notes {
                                         VStack(alignment: .leading, spacing: AppSpacing.xs) {
                                             Text("Notes")
@@ -942,7 +942,7 @@ private struct ExerciseDetailView: View {
                             .offset(y: animateIn ? 0 : 20)
                             .animation(MotionToken.standardSpring.delay(0.1), value: animateIn)
                         }
-                        
+
                         // Sets breakdown
                         VStack(alignment: .leading, spacing: AppSpacing.sm) {
                             HStack {
@@ -951,7 +951,7 @@ private struct ExerciseDetailView: View {
                                 Spacer()
                             }
                             .padding(.horizontal, AppSpacing.md)
-                            
+
                             VStack(spacing: AppSpacing.sm) {
                                 ForEach(Array(exercise.sets.enumerated()), id: \.element.id) { index, set in
                                     GlassCard {
@@ -966,7 +966,7 @@ private struct ExerciseDetailView: View {
                                                         )
                                                     )
                                                     .frame(width: 8, height: 8)
-                                                
+
                                                 Text("Set \(index + 1)")
                                                     .font(.system(size: 16, weight: .semibold, design: .rounded))
                                             }
@@ -986,7 +986,7 @@ private struct ExerciseDetailView: View {
                                                     Text("×")
                                                         .font(.system(size: 14, weight: .medium))
                                                         .foregroundStyle(Color.secondary.opacity(0.6))
-                                                    
+
                                                     GradientNumber(value: weight)
                                                         .font(.system(size: 18, weight: .bold, design: .rounded))
                                                     Text("kg")
@@ -1014,7 +1014,7 @@ private struct ExerciseDetailView: View {
                                 }
                             }
                         }
-                        
+
                         // Summary
                         GlassCard {
                             VStack(spacing: AppSpacing.md) {
@@ -1023,7 +1023,7 @@ private struct ExerciseDetailView: View {
                                     let weight = set.completedWeightKg ?? set.targetWeightKg ?? 0
                                     return total + (reps * weight)
                                 }
-                                
+
                                 HStack {
                                     VStack(alignment: .leading, spacing: AppSpacing.xs) {
                                         Text("Total Sets")
@@ -1032,9 +1032,9 @@ private struct ExerciseDetailView: View {
                                         GradientNumber(value: Double(exercise.sets.count))
                                             .font(.system(size: 24, weight: .bold, design: .rounded))
                                     }
-                                    
+
                                     Spacer()
-                                    
+
                                     Rectangle()
                                         .fill(
                                             LinearGradient(
@@ -1048,9 +1048,9 @@ private struct ExerciseDetailView: View {
                                             )
                                         )
                                         .frame(width: 1, height: 40)
-                                    
+
                                     Spacer()
-                                    
+
                                     VStack(alignment: .trailing, spacing: AppSpacing.xs) {
                                         Text("Total Volume")
                                             .font(.system(size: 14, weight: .medium))

@@ -110,13 +110,13 @@ struct FoodVoiceInputView: View {
                 isRecording: viewModel.isRecording,
                 size: 300
             )
-            
+
             // Main button
             ZStack {
                 Circle()
                     .fill(viewModel.isRecording ?
-                        LinearGradient(colors: [.red, .red.opacity(0.8)], startPoint: .topLeading, endPoint: .bottomTrailing) :
-                        gradientManager.currentGradient(for: colorScheme)
+                            LinearGradient(colors: [.red, .red.opacity(0.8)], startPoint: .topLeading, endPoint: .bottomTrailing) :
+                            gradientManager.currentGradient(for: colorScheme)
                     )
                     .frame(width: 120, height: 120)
                     .shadow(color: viewModel.isRecording ? .red.opacity(0.3) : (gradientManager.active == .peachRose ? Color.pink.opacity(0.3) : Color.blue.opacity(0.3)), radius: 20, x: 0, y: 10)

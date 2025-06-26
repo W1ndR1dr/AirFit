@@ -16,17 +16,17 @@ struct HealthKitTestDataDetailView: View {
     @Environment(\.diContainer) private var container
     @Environment(\.colorScheme) private var colorScheme
     @EnvironmentObject private var gradientManager: GradientManager
-    
+
     enum DateRange: String, CaseIterable {
         case today = "Today"
         case yesterday = "Yesterday"
         case lastWeek = "Last 7 Days"
         case lastMonth = "Last 30 Days"
         case custom = "Custom Range"
-        
+
         var displayName: String { rawValue }
     }
-    
+
     enum HealthKitDataType: String, CaseIterable, Identifiable {
         case activity = "Activity Data"
         case nutrition = "Nutrition"
@@ -34,9 +34,9 @@ struct HealthKitTestDataDetailView: View {
         case workouts = "Workouts"
         case sleep = "Sleep"
         case heartHealth = "Heart Health"
-        
+
         var id: String { rawValue }
-        
+
         var icon: String {
             switch self {
             case .activity: return "figure.walk"
@@ -47,7 +47,7 @@ struct HealthKitTestDataDetailView: View {
             case .heartHealth: return "heart.fill"
             }
         }
-        
+
         var description: String {
             switch self {
             case .activity: return "Steps, calories, distance, stand hours"
@@ -59,7 +59,7 @@ struct HealthKitTestDataDetailView: View {
             }
         }
     }
-    
+
     var body: some View {
         BaseScreen {
             ScrollView {
@@ -76,25 +76,25 @@ struct HealthKitTestDataDetailView: View {
                                         endPoint: .bottomTrailing
                                     )
                                 )
-                            
+
                             Spacer()
                         }
-                        
+
                         Text("Custom Test Data Generator")
                             .font(.title2.bold())
-                        
+
                         Text("Select the types of data you want to generate and the date range")
                             .font(.callout)
                             .foregroundStyle(.secondary)
                     }
                     .padding(.horizontal)
-                    
+
                     // Data Type Selection
                     VStack(alignment: .leading, spacing: AppSpacing.sm) {
                         Text("Data Types")
                             .font(.headline)
                             .padding(.horizontal)
-                        
+
                         VStack(spacing: AppSpacing.sm) {
                             ForEach(HealthKitDataType.allCases) { dataType in
                                 GlassCard {
@@ -103,14 +103,14 @@ struct HealthKitTestDataDetailView: View {
                                             .font(.title3)
                                             .foregroundStyle(
                                                 selectedDataTypes.contains(dataType) ?
-                                                LinearGradient(
-                                                    colors: gradientManager.active.colors(for: colorScheme),
-                                                    startPoint: .topLeading,
-                                                    endPoint: .bottomTrailing
-                                                ) : LinearGradient(colors: [.secondary], startPoint: .leading, endPoint: .trailing)
+                                                    LinearGradient(
+                                                        colors: gradientManager.active.colors(for: colorScheme),
+                                                        startPoint: .topLeading,
+                                                        endPoint: .bottomTrailing
+                                                    ) : LinearGradient(colors: [.secondary], startPoint: .leading, endPoint: .trailing)
                                             )
                                             .frame(width: 32)
-                                        
+
                                         VStack(alignment: .leading, spacing: 4) {
                                             Text(dataType.rawValue)
                                                 .font(.subheadline.weight(.medium))
@@ -118,9 +118,9 @@ struct HealthKitTestDataDetailView: View {
                                                 .font(.caption)
                                                 .foregroundStyle(.secondary)
                                         }
-                                        
+
                                         Spacer()
-                                        
+
                                         Toggle("", isOn: Binding(
                                             get: { selectedDataTypes.contains(dataType) },
                                             set: { isSelected in
@@ -140,13 +140,13 @@ struct HealthKitTestDataDetailView: View {
                             }
                         }
                     }
-                    
+
                     // Date Range Selection
                     VStack(alignment: .leading, spacing: AppSpacing.sm) {
                         Text("Date Range")
                             .font(.headline)
                             .padding(.horizontal)
-                        
+
                         GlassCard {
                             VStack(spacing: 0) {
                                 Picker("Date Range", selection: $dateRange) {
@@ -156,7 +156,7 @@ struct HealthKitTestDataDetailView: View {
                                 }
                                 .pickerStyle(.segmented)
                                 .padding(.bottom, AppSpacing.sm)
-                                
+
                                 if dateRange == .custom {
                                     VStack(spacing: AppSpacing.sm) {
                                         DatePicker(
@@ -165,7 +165,7 @@ struct HealthKitTestDataDetailView: View {
                                             in: ...Date(),
                                             displayedComponents: .date
                                         )
-                                        
+
                                         DatePicker(
                                             "End Date",
                                             selection: $customEndDate,
@@ -179,13 +179,13 @@ struct HealthKitTestDataDetailView: View {
                         }
                         .padding(.horizontal)
                     }
-                    
+
                     // Quick Actions
                     VStack(alignment: .leading, spacing: AppSpacing.sm) {
                         Text("Quick Actions")
                             .font(.headline)
                             .padding(.horizontal)
-                        
+
                         HStack(spacing: AppSpacing.sm) {
                             Button(action: selectAll) {
                                 Text("Select All")
@@ -197,7 +197,7 @@ struct HealthKitTestDataDetailView: View {
                                             .fill(.ultraThinMaterial)
                                     )
                             }
-                            
+
                             Button(action: deselectAll) {
                                 Text("Deselect All")
                                     .font(.caption.weight(.medium))
@@ -208,12 +208,12 @@ struct HealthKitTestDataDetailView: View {
                                             .fill(.ultraThinMaterial)
                                     )
                             }
-                            
+
                             Spacer()
                         }
                         .padding(.horizontal)
                     }
-                    
+
                     // Generate Button
                     Button(action: generateData) {
                         HStack {
@@ -224,7 +224,7 @@ struct HealthKitTestDataDetailView: View {
                             } else {
                                 Image(systemName: "wand.and.stars")
                             }
-                            
+
                             Text(isGenerating ? "Generating..." : "Generate Test Data")
                                 .font(.system(size: 16, weight: .medium, design: .rounded))
                         }
@@ -243,7 +243,7 @@ struct HealthKitTestDataDetailView: View {
                     }
                     .disabled(selectedDataTypes.isEmpty || isGenerating)
                     .padding(.horizontal)
-                    
+
                     // Status Message
                     if !statusMessage.isEmpty {
                         HStack {
@@ -261,13 +261,13 @@ struct HealthKitTestDataDetailView: View {
                         )
                         .padding(.horizontal)
                     }
-                    
+
                     // Info Card
                     GlassCard {
                         VStack(alignment: .leading, spacing: AppSpacing.sm) {
                             Label("Important Notes", systemImage: "info.circle")
                                 .font(.subheadline.bold())
-                            
+
                             VStack(alignment: .leading, spacing: AppSpacing.xs) {
                                 bulletPoint("Test data is marked with metadata for easy identification")
                                 bulletPoint("Data generation may take a few moments")
@@ -294,7 +294,7 @@ struct HealthKitTestDataDetailView: View {
             Text(errorMessage)
         }
     }
-    
+
     private func bulletPoint(_ text: String) -> some View {
         HStack(alignment: .top, spacing: AppSpacing.sm) {
             Text("•")
@@ -304,41 +304,41 @@ struct HealthKitTestDataDetailView: View {
                 .foregroundStyle(.secondary)
         }
     }
-    
+
     private func selectAll() {
         selectedDataTypes = Set(HealthKitDataType.allCases)
         HapticService.impact(.soft)
     }
-    
+
     private func deselectAll() {
         selectedDataTypes.removeAll()
         HapticService.impact(.soft)
     }
-    
+
     private func generateData() {
         isGenerating = true
         statusMessage = "Requesting HealthKit authorization..."
-        
+
         Task {
             do {
                 // Get HealthKit manager from DI container
                 let healthKitManager = try await container.resolve(HealthKitManaging.self)
-                
+
                 // Request authorization if needed
                 if let manager = healthKitManager as? HealthKitManager,
                    manager.authorizationStatus != .authorized {
                     try await manager.requestAuthorization()
                 }
-                
+
                 statusMessage = "Generating test data..."
-                
+
                 // Create generator
                 let generator = HealthKitTestDataGenerator(healthStore: HKHealthStore())
-                
+
                 // Determine date range
                 let calendar = Calendar.current
                 let dates: [Date]
-                
+
                 switch dateRange {
                 case .today:
                     dates = [Date()]
@@ -352,14 +352,14 @@ struct HealthKitTestDataDetailView: View {
                     let daysBetween = calendar.dateComponents([.day], from: customStartDate, to: customEndDate).day ?? 0
                     dates = (0...daysBetween).compactMap { calendar.date(byAdding: .day, value: $0, to: customStartDate) }
                 }
-                
+
                 // Generate data for each selected type and date
                 for (index, date) in dates.enumerated() {
                     let progress = Double(index + 1) / Double(dates.count)
                     await MainActor.run {
                         statusMessage = "Generating data... \(Int(progress * 100))%"
                     }
-                    
+
                     // Use reflection to call appropriate methods based on selected types
                     // This is a simplified approach - in production, you'd want more granular control
                     for dataType in selectedDataTypes {
@@ -383,7 +383,7 @@ struct HealthKitTestDataDetailView: View {
                         }
                     }
                 }
-                
+
                 await MainActor.run {
                     isGenerating = false
                     statusMessage = ""

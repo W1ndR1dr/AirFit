@@ -9,7 +9,7 @@ enum VoiceInputState: Equatable, Sendable {
     case recording
     case transcribing
     case error(VoiceInputError)
-    
+
     var isInteractable: Bool {
         switch self {
         case .ready, .recording, .transcribing:
@@ -18,7 +18,7 @@ enum VoiceInputState: Equatable, Sendable {
             return false
         }
     }
-    
+
     var statusMessage: String {
         switch self {
         case .idle:
@@ -48,7 +48,7 @@ enum VoiceInputError: LocalizedError, Equatable {
     case transcriptionFailed
     case recordingFailed(String)
     case noAudioDetected
-    
+
     var errorDescription: String? {
         switch self {
         case .notAuthorized:

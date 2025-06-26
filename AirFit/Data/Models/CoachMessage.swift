@@ -8,31 +8,31 @@ final class CoachMessage: @unchecked Sendable {
     // PHASE 2 FIX: Direct userID property for efficient database filtering
     // Composite indexes for the most common query patterns: (userID+conversationID+timestamp)
     #Index<CoachMessage>([\.userID], [\.timestamp], [\.role], [\.conversationID], [\.messageTypeRawValue], [\.userID, \.conversationID], [\.userID, \.conversationID, \.timestamp])
-    
+
     // MARK: - Properties
     var id: UUID
-    
+
     // Indexed for all temporal queries and sorting operations
     var timestamp: Date
-    
+
     // Indexed for filtering user vs assistant messages
     var role: String
-    
+
     @Attribute(.externalStorage)
     var content: String
-    
+
     // PHASE 2 FIX: Direct userID for efficient SwiftData predicate filtering
     // This eliminates the need for relationship-based filtering in predicates
     var userID: UUID
-    
+
     // Indexed for conversation-specific queries
     var conversationID: UUID?
-    
+
     // FUTURE: Message type classification for performance optimization
     // Commands need minimal history (5 messages), conversations need full history (20 messages)
     // Using raw value storage for SwiftData compatibility with enum indexing
     private var messageTypeRawValue: String = MessageType.conversation.rawValue
-    
+
     // MARK: - Message Type Accessor
     var messageType: MessageType {
         get { MessageType(rawValue: messageTypeRawValue) ?? .conversation }
@@ -64,7 +64,7 @@ final class CoachMessage: @unchecked Sendable {
     var messageRole: MessageRole? {
         MessageRole(rawValue: role)
     }
-    
+
     // FUTURE: Convenience property for message classification
     var isCommand: Bool {
         messageType == .command

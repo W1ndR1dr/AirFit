@@ -11,7 +11,7 @@ import UIKit
 //
 // ✅ REMOVED: All broken parsing methods (~75 lines of hardcoded garbage)
 //    - parseLocalCommand() - returned 100 calories for everything
-//    - parseSimpleFood() - duplicate of parseLocalCommand with same hardcoded values  
+//    - parseSimpleFood() - duplicate of parseLocalCommand with same hardcoded values
 //    - parseWithLocalFallback() - pointless chaining method
 //
 // ✅ REPLACED: processTranscription() now uses single AI call via CoachEngine.parseNaturalLanguageFood()
@@ -87,16 +87,16 @@ final class FoodTrackingViewModel: ErrorHandling {
             }
         }
     }
-    
+
     var hasError: Bool {
         error != nil
     }
-    
+
     func clearError() {
         error = nil
         isShowingError = false
     }
-    
+
     private func setError(_ error: Error) {
         handleError(error)
     }
@@ -133,20 +133,20 @@ final class FoodTrackingViewModel: ErrorHandling {
                 self?.handleError(error)
             }
         }
-        
+
         foodVoiceAdapter.onStateChange = { [weak self] state in
             Task { @MainActor in
                 self?.voiceInputState = state
             }
         }
-        
+
         foodVoiceAdapter.onWaveformUpdate = { [weak self] waveform in
             Task { @MainActor in
                 self?.voiceWaveform = waveform
             }
         }
     }
-    
+
     // MARK: - Voice Input Management
     func initializeVoiceInput() async {
         await foodVoiceAdapter.initialize()
@@ -236,7 +236,7 @@ final class FoodTrackingViewModel: ErrorHandling {
 
     // MARK: - AI Processing
     /// Processes voice transcription using AI-powered nutrition parsing
-    /// 
+    ///
     /// This method replaces the previous hardcoded parsing system that returned
     /// placeholder values (100 calories for everything). Now provides realistic
     /// nutrition data based on USDA standards.
@@ -280,7 +280,7 @@ final class FoodTrackingViewModel: ErrorHandling {
         do {
             // Use AI to analyze the photo and identify foods via CoachEngine
             let analysisResult = try await coachEngine.analyzeMealPhoto(image: image, context: nil, for: user)
-            
+
             if !analysisResult.items.isEmpty {
                 self.parsedItems = analysisResult.items
                 coordinator.dismiss()
@@ -408,7 +408,7 @@ final class FoodTrackingViewModel: ErrorHandling {
                 foodFrequency[item.name, default: 0] += 1
             }
         }
-        
+
         let frequentFoods = foodFrequency
             .sorted { $0.value > $1.value }
             .prefix(5)
@@ -473,12 +473,12 @@ final class FoodTrackingViewModel: ErrorHandling {
             group.addTask {
                 try await operation()
             }
-            
+
             group.addTask {
                 try await Task.sleep(for: .seconds(seconds))
                 throw AppError.unknown(message: "AI processing timed out")
             }
-            
+
             let result = try await group.next()!
             group.cancelAll()
             return result
@@ -486,11 +486,11 @@ final class FoodTrackingViewModel: ErrorHandling {
     }
 
     // MARK: - Public Methods
-    
+
     func setSelectedMealType(_ mealType: MealType) {
         selectedMealType = mealType
     }
-    
+
     func setParsedItems(_ items: [ParsedFoodItem]) {
         parsedItems = items
     }
@@ -528,7 +528,7 @@ protocol FoodCoachEngineProtocol: Sendable {
 
     /// Searches for foods based on a query and returns a list of food items.
     func searchFoods(query: String, limit: Int, for user: User) async throws -> [ParsedFoodItem]
-    
+
     /// Parse natural language food descriptions into structured nutrition data using AI
     func parseNaturalLanguageFood(
         text: String,

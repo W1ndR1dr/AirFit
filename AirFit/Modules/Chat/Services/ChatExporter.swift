@@ -70,7 +70,7 @@ struct ChatExporter {
                 )
             }
         )
-        
+
         let encoder = JSONEncoder()
         encoder.outputFormatting = [.prettyPrinted, .sortedKeys]
         let data = try encoder.encode(exportData)
@@ -88,21 +88,21 @@ struct ChatExporter {
 
         ---
         """
-        
+
         let formatter = DateFormatter()
         formatter.dateStyle = .none
         formatter.timeStyle = .short
-        
+
         for message in messages {
             let role = message.role == "user" ? "You" : "AI Coach"
             let time = formatter.string(from: message.timestamp)
             markdown += "\n**\(role)** _(\(time))_\n\(message.content)\n"
-            
+
             if !message.attachments.isEmpty {
                 markdown += "_[Attachments: \(message.attachments.count)]_\n"
             }
         }
-        
+
         return markdown
     }
 
@@ -116,17 +116,17 @@ struct ChatExporter {
 
         =====================================
         """
-        
+
         let formatter = DateFormatter()
         formatter.dateStyle = .none
         formatter.timeStyle = .short
-        
+
         for message in messages {
             let role = message.role == "user" ? "You" : "AI Coach"
             let time = formatter.string(from: message.timestamp)
             text += "\n[\(time)] \(role):\n\(message.content)\n"
         }
-        
+
         return text
     }
 }

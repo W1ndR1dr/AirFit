@@ -73,7 +73,7 @@ struct WorkoutStatisticsView: View {
                         .padding(.top, AppSpacing.md)
                         .opacity(animateIn ? 1 : 0)
                         .offset(y: animateIn ? 0 : -20)
-                    
+
                     // Time Range Selector
                     ScrollView(.horizontal, showsIndicators: false) {
                         HStack(spacing: AppSpacing.sm) {
@@ -507,7 +507,7 @@ struct WorkoutStatisticsView: View {
                                                     )
                                                 )
                                                 .frame(width: 32, height: 32)
-                                            
+
                                             Image(systemName: item.type.systemImage)
                                                 .font(.system(size: 16, weight: .medium))
                                                 .foregroundStyle(item.type.color)
@@ -536,7 +536,7 @@ struct WorkoutStatisticsView: View {
                                             .fill(Color.primary.opacity(0.05))
                                             .frame(height: 8)
                                             .clipShape(Capsule())
-                                        
+
                                         Rectangle()
                                             .fill(
                                                 LinearGradient(
@@ -667,12 +667,12 @@ private struct TimeRangeChip: View {
                 .padding(.vertical, AppSpacing.xs)
                 .foregroundStyle(
                     isSelected ?
-                    AnyShapeStyle(Color.white) :
-                    AnyShapeStyle(LinearGradient(
-                        colors: gradientManager.active.colors(for: colorScheme),
-                        startPoint: .topLeading,
-                        endPoint: .bottomTrailing
-                    ))
+                        AnyShapeStyle(Color.white) :
+                        AnyShapeStyle(LinearGradient(
+                            colors: gradientManager.active.colors(for: colorScheme),
+                            startPoint: .topLeading,
+                            endPoint: .bottomTrailing
+                        ))
                 )
                 .background {
                     if isSelected {
@@ -733,12 +733,12 @@ private struct MetricChip: View {
             .padding(.vertical, AppSpacing.xs)
             .foregroundStyle(
                 isSelected ?
-                AnyShapeStyle(Color.white) :
-                AnyShapeStyle(LinearGradient(
-                    colors: gradientManager.active.colors(for: colorScheme),
-                    startPoint: .topLeading,
-                    endPoint: .bottomTrailing
-                ))
+                    AnyShapeStyle(Color.white) :
+                    AnyShapeStyle(LinearGradient(
+                        colors: gradientManager.active.colors(for: colorScheme),
+                        startPoint: .topLeading,
+                        endPoint: .bottomTrailing
+                    ))
             )
             .background {
                 if isSelected {
@@ -864,7 +864,7 @@ private struct PersonalRecordRow: View {
                             )
                         )
                         .frame(width: 48, height: 48)
-                    
+
                     Image(systemName: icon)
                         .font(.system(size: 22, weight: .medium))
                         .foregroundStyle(
@@ -880,11 +880,11 @@ private struct PersonalRecordRow: View {
                     Text(title)
                         .font(.system(size: 12, weight: .medium))
                         .foregroundStyle(Color.secondary.opacity(0.8))
-                    
+
                     Text(value)
                         .font(.system(size: 20, weight: .bold, design: .rounded))
                         .foregroundStyle(Color.primary)
-                    
+
                     Text(subtitle)
                         .font(.system(size: 12, weight: .medium))
                         .foregroundStyle(Color.secondary.opacity(0.7))

@@ -5,13 +5,15 @@ import HealthKit
 @MainActor
 final class OnboardingIntelligence: ObservableObject {
     // MARK: - Published State
-    
+
     @Published var currentPrompt = "What's your main\nfitness goal?"
     @Published var contextualSuggestions: [String] = []
     @Published var isAnalyzing = false
     @Published var coachingPlan: CoachingPlan?
     @Published var followUpQuestion: String?
-    
+    @Published var extractedInsights: ExtractedInsights?
+    @Published var personaSynthesisProgress: PersonaSynthesisProgress?
+
     // Context quality - the only metric that matters
     @Published var contextQuality = ContextComponents(
         goalClarity: 0,
@@ -25,61 +27,109 @@ final class OnboardingIntelligence: ObservableObject {
         energyPatterns: 0,
         supportSystem: 0
     )
-    
+
     // MARK: - Dependencies
-    
+
     private let aiService: AIServiceProtocol
     private let contextAssembler: ContextAssembler
     private let llmOrchestrator: LLMOrchestrator
     private let healthKitProvider: HealthKitProvider
     private let cache: OnboardingCache
-    
+    private let personaSynthesizer: PersonaSynthesizer
+
     private var healthContext: HealthContextSnapshot?
     var conversationHistory: [String] = []
     private var conversationTurnCount = 0
     private var currentUserId: UUID?
-    
+
+    // Model selection for persona synthesis
+    @Published var selectedModel: LLMModel?
+
     // MARK: - Initialization
-    
-    init(container: DIContainer) async throws {
-        self.aiService = try await container.resolve(AIServiceProtocol.self)
-        self.contextAssembler = try await container.resolve(ContextAssembler.self)
-        self.llmOrchestrator = try await container.resolve(LLMOrchestrator.self)
-        self.healthKitProvider = try await container.resolve(HealthKitPrefillProviding.self) as! HealthKitProvider
-        self.cache = try await container.resolve(OnboardingCache.self)
-        
-        // Try to restore previous session
-        await restoreSessionIfAvailable()
+
+    private init(
+        aiService: AIServiceProtocol,
+        contextAssembler: ContextAssembler,
+        llmOrchestrator: LLMOrchestrator,
+        healthKitProvider: HealthKitProvider,
+        cache: OnboardingCache,
+        personaSynthesizer: PersonaSynthesizer
+    ) {
+        self.aiService = aiService
+        self.contextAssembler = contextAssembler
+        self.llmOrchestrator = llmOrchestrator
+        self.healthKitProvider = healthKitProvider
+        self.cache = cache
+        self.personaSynthesizer = personaSynthesizer
     }
-    
+
+    /// Factory method that performs heavy initialization off main thread
+    static func create(from container: DIContainer) async throws -> OnboardingIntelligence {
+        // Do heavy dependency resolution off main thread
+        let dependencies = try await Task.detached(priority: .userInitiated) {
+            // Resolve all dependencies in parallel
+            async let aiService = container.resolve(AIServiceProtocol.self)
+            async let contextAssembler = container.resolve(ContextAssembler.self)
+            async let llmOrchestrator = container.resolve(LLMOrchestrator.self)
+            async let healthKitProvider = container.resolve(HealthKitPrefillProviding.self)
+            async let cache = container.resolve(OnboardingCache.self)
+            async let personaSynthesizer = container.resolve(PersonaSynthesizer.self)
+
+            return try await (
+                aiService: aiService,
+                contextAssembler: contextAssembler,
+                llmOrchestrator: llmOrchestrator,
+                healthKitProvider: healthKitProvider as! HealthKitProvider,
+                cache: cache,
+                personaSynthesizer: personaSynthesizer
+            )
+        }.value
+
+        // Quick initialization on main thread
+        return await MainActor.run {
+            let intelligence = OnboardingIntelligence(
+                aiService: dependencies.aiService,
+                contextAssembler: dependencies.contextAssembler,
+                llmOrchestrator: dependencies.llmOrchestrator,
+                healthKitProvider: dependencies.healthKitProvider,
+                cache: dependencies.cache,
+                personaSynthesizer: dependencies.personaSynthesizer
+            )
+
+            // Restore session on main thread
+            Task {
+                await intelligence.restoreSessionIfAvailable()
+            }
+
+            return intelligence
+        }
+    }
+
     // MARK: - Public API
-    
+
     /// Check if we have valid API keys
     func hasValidAPIKeys() async -> Bool {
         let configuredProviders = await llmOrchestrator.apiKeyManager.getAllConfiguredProviders()
         return !configuredProviders.isEmpty
     }
-    
+
     /// Start health analysis in background during permission screen
     func startHealthAnalysis() async {
         AppLogger.info("Starting HealthKit authorization request", category: .health)
-        
+
         // Request authorization without artificial timeout - let system handle it
         do {
             _ = try await self.healthKitProvider.requestAuthorization()
             AppLogger.info("HealthKit authorization completed, fetching context", category: .health)
-            
+
             // Fetch health context in background - don't block onboarding
-            Task { @MainActor in
+            Task {
                 do {
-                    if let context = await self.contextAssembler.assembleContext() {
-                        self.healthContext = context
-                        self.updatePromptsFromHealth(context)
-                        await self.generateSmartSuggestions(context)
-                        AppLogger.info("Health context loaded successfully", category: .health)
-                    } else {
-                        AppLogger.info("No health context available, proceeding without it", category: .health)
-                    }
+                    let context = await self.contextAssembler.assembleContext()
+                    self.healthContext = context
+                    self.updatePromptsFromHealth(context)
+                    await self.generateSmartSuggestions(context)
+                    AppLogger.info("Health context loaded successfully", category: .health)
                 } catch {
                     AppLogger.error("Failed to fetch health context", error: error, category: .health)
                     // Continue without health data - not critical for onboarding
@@ -90,21 +140,24 @@ final class OnboardingIntelligence: ObservableObject {
             // Continue without health data - user can connect later
         }
     }
-    
+
     /// Analyze user input and determine next step
     func analyzeConversation(_ input: String) async {
         guard !input.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty else { return }
-        
+
         isAnalyzing = true
         defer { isAnalyzing = false }
-        
+
         // Add to conversation history
         conversationHistory.append(input)
         conversationTurnCount += 1
-        
+
         // Analyze context quality
         await analyzeContextQuality(input)
-        
+
+        // Extract insights for confirmation
+        extractInsightsFromConversation()
+
         // Generate follow-up if needed
         if contextQuality.overall < 0.8 && conversationTurnCount < 10 {
             followUpQuestion = await generateFollowUpQuestion()
@@ -112,56 +165,97 @@ final class OnboardingIntelligence: ObservableObject {
             // Ready for persona generation
             followUpQuestion = nil
         }
-        
+
         // Save session state after each conversation turn
         await saveSessionState()
     }
-    
+
     /// Generate final coaching plan when context is sufficient
     func generatePersona() async {
         guard contextQuality.overall >= 0.8 || conversationTurnCount >= 10 else { return }
-        
+
         isAnalyzing = true
         defer { isAnalyzing = false }
-        
+
         do {
-            let prompt = buildPersonaPrompt()
-            
-            let response = try await llmOrchestrator.complete(
-                prompt: prompt,
-                task: .personaSynthesis,
-                model: .claude4Opus,
-                temperature: 0.7,
-                maxTokens: 2_000
+            // Create conversation data for persona synthesis
+            let conversationData = ConversationData(
+                messages: conversationHistory.enumerated().map { index, message in
+                    ConversationMessage(
+                        role: index % 2 == 0 ? .assistant : .user,
+                        content: message,
+                        timestamp: Date()
+                    )
+                },
+                variables: [
+                    "primary_goal": extractGoal(from: conversationHistory),
+                    "obstacles": extractObstacles(from: conversationHistory),
+                    "userName": extractUserName(from: conversationHistory) ?? "there"
+                ]
             )
-            
-            if let planData = response.content.data(using: .utf8),
-               let plan = try? JSONDecoder().decode(CoachingPlan.self, from: planData) {
-                self.coachingPlan = plan
-            } else {
-                self.coachingPlan = createFallbackPlan()
+
+            // Convert context quality to personality insights
+            let insights = ConversationPersonalityInsights(
+                dominantTraits: extractDominantTraits(),
+                communicationStyle: detectCommunicationStyle(),
+                motivationType: detectConversationMotivationType(),
+                energyLevel: detectConversationEnergyLevel(),
+                preferredComplexity: .moderate,
+                emotionalTone: ["supportive", "encouraging"],
+                stressResponse: .needsSupport,
+                preferredTimes: detectPreferredTimes(),
+                extractedAt: Date()
+            )
+
+            // Determine best model if not already selected
+            if selectedModel == nil {
+                selectedModel = await personaSynthesizer.getBestAvailableModel()
             }
+
+            // Create progress stream
+            let progressStream = await personaSynthesizer.createProgressStream()
+
+            // Start monitoring progress in background
+            Task {
+                for await progress in progressStream {
+                    // Update published property on main thread
+                    await MainActor.run {
+                        self.personaSynthesisProgress = progress
+                    }
+                }
+            }
+
+            // Generate high-quality persona
+            let persona = try await personaSynthesizer.synthesizePersona(
+                from: conversationData,
+                insights: insights,
+                preferredModel: selectedModel
+            )
+
+            // Create coaching plan with the generated persona
+            self.coachingPlan = createCoachingPlan(with: persona, conversationData: conversationData)
+
         } catch {
             AppLogger.error("Persona generation failed", error: error, category: .ai)
             self.coachingPlan = createFallbackPlan()
         }
     }
-    
+
     // MARK: - Private Methods
-    
+
     private func analyzeContextQuality(_ input: String) async {
         let healthSummary = buildHealthSummary()
-        
+
         let prompt = """
         Analyze this user input for fitness coaching context quality.
-        
+
         User said: "\(input)"
-        
+
         Previous conversation:
         \(conversationHistory.dropLast().isEmpty ? "None" : conversationHistory.dropLast().joined(separator: "\n"))
-        
+
         Health data: \(healthSummary)
-        
+
         Return ONLY valid JSON in this exact format (no other text):
         {
           "scores": {
@@ -177,20 +271,23 @@ final class OnboardingIntelligence: ObservableObject {
             "supportSystem": 0.2
           }
         }
-        
+
         Each score should be 0.0 to 1.0 based on:
         - goalClarity: How specific and measurable are their goals?
         - obstacles: Have they mentioned what blocks them?
         - exercisePreferences: Do we know what activities they enjoy?
-        - currentState: Do we know their fitness baseline?
+        - currentState: Do we know their fitness baseline? (Consider both conversation AND richness of health data)
         - lifestyle: Understanding of schedule/commitments?
         - nutritionReadiness: Willingness to track food?
         - communicationStyle: How they prefer to be coached?
         - pastPatterns: What has worked/failed before?
         - energyPatterns: When they feel most energetic?
         - supportSystem: Who helps or hinders them?
+
+        For currentState: If health data is "No health data" or minimal, rely more on conversation.
+        Rich health data (steps, sleep, weight, etc.) provides higher confidence.
         """
-        
+
         do {
             AppLogger.info("Sending context analysis request to AI service", category: .ai)
             let request = AIRequest(
@@ -201,14 +298,14 @@ final class OnboardingIntelligence: ObservableObject {
                 stream: false,
                 user: "onboarding"
             )
-            
+
             var response = ""
             for try await chunk in aiService.sendRequest(request) {
-                if case .text(let text) = chunk { 
+                if case .text(let text) = chunk {
                     response = text.trimmingCharacters(in: .whitespacesAndNewlines)
                 }
             }
-            
+
             // Try to extract JSON if there's extra text
             if let jsonStart = response.firstIndex(of: "{"),
                let jsonEnd = response.lastIndex(of: "}") {
@@ -218,7 +315,7 @@ final class OnboardingIntelligence: ObservableObject {
                     return
                 }
             }
-            
+
             AppLogger.warning("Could not extract valid JSON from response: \(response.prefix(100))...", category: .ai)
             updateContextHeuristically(input)
         } catch {
@@ -226,7 +323,7 @@ final class OnboardingIntelligence: ObservableObject {
             updateContextHeuristically(input)
         }
     }
-    
+
     private func generateFollowUpQuestion() async -> String? {
         // Find ALL components that need improvement
         var lowComponents = [(String, Double)]()
@@ -238,22 +335,22 @@ final class OnboardingIntelligence: ObservableObject {
         if contextQuality.nutritionReadiness < 0.5 { lowComponents.append(("nutrition", contextQuality.nutritionReadiness)) }
         if contextQuality.communicationStyle < 0.5 { lowComponents.append(("coaching style", contextQuality.communicationStyle)) }
         if contextQuality.pastPatterns < 0.5 { lowComponents.append(("past experience", contextQuality.pastPatterns)) }
-        
+
         // Sort by lowest score first
         lowComponents.sort { $0.1 < $1.1 }
         let weakest = lowComponents.first?.0 ?? "goals"
-        
+
         let prompt = """
         The user needs clarity on: \(weakest)
-        
+
         Conversation so far:
         \(conversationHistory.joined(separator: "\n"))
-        
+
         Health data: \(buildHealthSummary())
-        
+
         Generate ONE natural follow-up question to understand their \(weakest).
         Be conversational and specific. 20 words max.
-        
+
         Examples for each category:
         - goals: "How much weight are you hoping to lose, and by when?"
         - obstacles: "What's stopped you from sticking to fitness routines before?"
@@ -264,7 +361,7 @@ final class OnboardingIntelligence: ObservableObject {
         - coaching style: "Do you prefer gentle encouragement or tough love?"
         - past experience: "What's worked well for you in the past?"
         """
-        
+
         do {
             let request = AIRequest(
                 systemPrompt: "Generate a natural follow-up question.",
@@ -274,21 +371,21 @@ final class OnboardingIntelligence: ObservableObject {
                 stream: false,
                 user: "onboarding"
             )
-            
+
             var response = ""
             for try await chunk in aiService.sendRequest(request) {
                 if case .text(let text) = chunk { response = text }
             }
-            
+
             return response.isEmpty ? nil : response
         } catch {
             return nil
         }
     }
-    
+
     private func updatePromptsFromHealth(_ context: HealthContextSnapshot) {
         let avgSteps = context.activity.steps ?? 0
-        
+
         if avgSteps < 3_000 {
             currentPrompt = "I see you're ready to\nstart moving more."
         } else if avgSteps < 6_000 {
@@ -299,24 +396,24 @@ final class OnboardingIntelligence: ObservableObject {
             currentPrompt = "You're crushing it.\nHow can I help?"
         }
     }
-    
+
     private func generateSmartSuggestions(_ health: HealthContextSnapshot) async {
         let healthSummary = buildHealthSummary()
         let prompt = """
         Health data: \(healthSummary)
-        
+
         Generate 4-6 relevant fitness goals based on their current state.
         Consider their activity level, recovery status, trends, and overall health.
         2-5 words each, specific and actionable.
         Return as JSON array.
-        
+
         Examples:
         - If low steps: "Walk 8,000 steps daily"
         - If poor sleep: "Improve sleep quality"
         - If declining weight trend: "Stabilize weight"
         - If well recovered: "Increase workout intensity"
         """
-        
+
         do {
             let request = AIRequest(
                 systemPrompt: "Generate fitness goals as JSON array.",
@@ -326,12 +423,12 @@ final class OnboardingIntelligence: ObservableObject {
                 stream: false,
                 user: "onboarding"
             )
-            
+
             var response = ""
             for try await chunk in aiService.sendRequest(request) {
                 if case .text(let text) = chunk { response = text }
             }
-            
+
             if let data = response.data(using: .utf8),
                let suggestions = try? JSONDecoder().decode([String].self, from: data) {
                 contextualSuggestions = suggestions
@@ -340,53 +437,95 @@ final class OnboardingIntelligence: ObservableObject {
             setDefaultSuggestions()
         }
     }
-    
+
     private func buildPersonaPrompt() -> String {
         """
-        Create a unique fitness coach persona.
-        
+        Create a unique fitness coach persona based on this conversation.
+
         Conversation:
         \(conversationHistory.joined(separator: "\n"))
-        
+
         Health data: \(buildHealthSummary())
-        
-        Context scores:
-        - Goal clarity: \(contextQuality.goalClarity)
-        - Obstacles: \(contextQuality.obstacles)
-        - Preferences: \(contextQuality.exercisePreferences)
-        - Current state: \(contextQuality.currentState)
-        - Lifestyle: \(contextQuality.lifestyle)
-        
-        Generate complete CoachingPlan JSON with:
-        1. understandingSummary: 2-3 sentences showing deep understanding
-        2. coachingApproach: 5-7 specific points about how you'll help them
-        3. generatedPersona: {
-           - name: Unique coach name (not generic like "Coach")
-           - archetype: Descriptive title (e.g. "The Pragmatic Motivator")
-           - systemPrompt: DETAILED 300+ word system prompt that captures:
-             * Their specific goals and obstacles
-             * Their communication preferences
-             * Their lifestyle constraints
-             * Specific motivational approaches that will work
-             * Personality quirks that make the coach feel real
-             * How to adapt based on their energy/mood
-           - coreValues: 3-5 values aligned with user needs
-           - backgroundStory: Brief coach backstory (2-3 sentences)
-           - voiceCharacteristics: Match their energy level
-           - interactionStyle: Align with their preferences
+
+        Generate a JSON response with YOUR OWN values based on the conversation.
+        Return ONLY valid JSON matching this exact structure (the values shown are examples):
+        {
+          "understandingSummary": "[YOUR 2-3 sentences showing understanding]",
+          "coachingApproach": ["[YOUR point 1]", "[YOUR point 2]", "[YOUR point 3]", "[YOUR point 4]", "[YOUR point 5]"],
+          "lifeContext": {
+            "workStyle": "[CHOOSE: sedentary, moderate, active, very_active]",
+            "fitnessLevel": "[CHOOSE: beginner, intermediate, advanced, athlete]",
+            "workoutWindowPreference": "[CHOOSE: early_morning, morning, midday, afternoon, evening, night]"
+          },
+          "goal": {
+            "family": "[CHOOSE: strength_tone, endurance, performance, health_wellbeing, recovery_rehab]",
+            "rawText": "[INSERT their actual goal from conversation]"
+          },
+          "engagementPreferences": {
+            "checkInFrequency": "[CHOOSE: multiple_daily, daily, few_times_weekly, weekly]",
+            "preferredTimes": ["[CHOOSE from: morning, evening, afternoon, night]"]
+          },
+          "sleepWindow": {
+            "bedtime": "[INFER from conversation or use 10:30 PM]",
+            "waketime": "[INFER from conversation or use 6:30 AM]"
+          },
+          "motivationalStyle": {
+            "styles": ["[CHOOSE 1-2 from: tough_love, encouraging, analytical, buddy]"]
+          },
+          "timezone": "\(TimeZone.current.identifier)",
+          "generatedPersona": {
+            "id": "[GENERATE any valid UUID]",
+            "name": "[CREATE unique coach name like Maya, Marcus, etc]",
+            "archetype": "[CREATE descriptive title like 'The Gentle Motivator']",
+            "systemPrompt": "[WRITE 300+ word detailed prompt starting with 'You are...' that captures ALL conversation insights]",
+            "coreValues": ["[3-5 values that align with user needs]"],
+            "backgroundStory": "[CREATE 2-3 sentence backstory]",
+            "voiceCharacteristics": {
+              "energy": "[CHOOSE: high, moderate, calm based on user energy]",
+              "pace": "[CHOOSE: brisk, measured, natural based on user preference]",
+              "warmth": "[CHOOSE: warm, neutral, friendly based on conversation tone]",
+              "vocabulary": "[CHOOSE: simple, moderate, advanced based on user language]",
+              "sentenceStructure": "[CHOOSE: simple, moderate, complex based on user style]"
+            },
+            "interactionStyle": {
+              "greetingStyle": "[CREATE greeting that matches persona]",
+              "closingStyle": "[CREATE sign-off that matches persona]",
+              "encouragementPhrases": ["[CREATE 2-3 phrases]"],
+              "acknowledgmentStyle": "[CREATE acknowledgment style]",
+              "correctionApproach": "[CHOOSE: very gentle, gentle, direct]",
+              "humorLevel": "[CHOOSE: none, light, moderate, playful]",
+              "formalityLevel": "[CHOOSE: casual, balanced, professional]",
+              "responseLength": "[CHOOSE: concise, moderate, detailed]"
+            },
+            "adaptationRules": [],
+            "metadata": {
+              "createdAt": "2024-01-01T00:00:00Z",
+              "version": "1.0",
+              "sourceInsights": {
+                "dominantTraits": ["supportive", "analytical"],
+                "communicationStyle": "conversational",
+                "motivationType": "balanced",
+                "energyLevel": "moderate",
+                "preferredComplexity": "moderate",
+                "emotionalTone": ["encouraging"],
+                "stressResponse": "needsSupport",
+                "preferredTimes": ["morning"],
+                "extractedAt": "2024-01-01T00:00:00Z"
+              },
+              "generationDuration": 0.5,
+              "tokenCount": 1000,
+              "previewReady": true
+            }
+          }
         }
-        4. Life context, goals, and preferences
-        
-        The systemPrompt should be rich and detailed for maximum personalization,
-        but the understandingSummary should be simple and clear.
         """
     }
-    
+
     private func buildHealthSummary() -> String {
         guard let health = healthContext else { return "No health data" }
-        
+
         var summary = [String]()
-        
+
         // Activity level
         if let steps = health.activity.steps {
             summary.append("Steps: \(steps)/day")
@@ -397,7 +536,7 @@ final class OnboardingIntelligence: ObservableObject {
         if let exerciseMinutes = health.activity.exerciseMinutes {
             summary.append("Exercise: \(exerciseMinutes)min")
         }
-        
+
         // Sleep quality
         if let sleep = health.sleep.lastNight {
             let hours = (sleep.totalSleepTime ?? 0) / 3_600
@@ -406,7 +545,7 @@ final class OnboardingIntelligence: ObservableObject {
                 summary.append("Sleep efficiency: \(Int(efficiency))%")
             }
         }
-        
+
         // Heart health
         if let hrv = health.heartHealth.hrv {
             summary.append("HRV: \(Int(hrv.value))ms")
@@ -417,7 +556,7 @@ final class OnboardingIntelligence: ObservableObject {
         if let vo2 = health.heartHealth.vo2Max {
             summary.append("VO2Max: \(Int(vo2))")
         }
-        
+
         // Body metrics
         if let weight = health.body.weight {
             summary.append("Weight: \(String(format: "%.1f", weight.converted(to: .pounds).value))lbs")
@@ -425,7 +564,7 @@ final class OnboardingIntelligence: ObservableObject {
         if let trend = health.body.weightTrend {
             summary.append("Weight trend: \(trend.rawValue)")
         }
-        
+
         // Workout context
         if let workouts = health.appContext.workoutContext?.recentWorkouts {
             summary.append("Workouts this week: \(workouts.count)")
@@ -436,15 +575,15 @@ final class OnboardingIntelligence: ObservableObject {
         if let streak = health.appContext.workoutContext?.streakDays {
             summary.append("Streak: \(streak) days")
         }
-        
+
         // Recovery status
         if let recovery = health.appContext.workoutContext?.recoveryStatus {
             summary.append("Recovery: \(recovery.rawValue)")
         }
-        
+
         return summary.isEmpty ? "No health data" : summary.joined(separator: ", ")
     }
-    
+
     private func parseContextScores(_ data: Data) {
         struct Response: Decodable {
             struct Scores: Decodable {
@@ -461,7 +600,7 @@ final class OnboardingIntelligence: ObservableObject {
             }
             let scores: Scores
         }
-        
+
         if let response = try? JSONDecoder().decode(Response.self, from: data) {
             contextQuality = ContextComponents(
                 goalClarity: response.scores.goalClarity,
@@ -477,50 +616,64 @@ final class OnboardingIntelligence: ObservableObject {
             )
         }
     }
-    
+
     private func updateContextHeuristically(_ input: String) {
         // More intelligent fallback scoring based on conversation analysis
         let lowercased = input.lowercased()
         let allConversation = (conversationHistory + [input]).joined(separator: " ").lowercased()
-        
+
         // Analyze for specific context components
         let goalKeywords = ["lose", "gain", "build", "improve", "pounds", "weight", "muscle", "stronger", "fitter", "healthier"]
         let hasSpecificGoal = goalKeywords.contains { allConversation.contains($0) }
         let hasNumbers = allConversation.contains(where: { $0.isNumber })
-        
+
         let obstacleKeywords = ["can't", "hard", "difficult", "struggle", "fail", "busy", "tired", "stress", "time"]
         let hasObstacles = obstacleKeywords.contains { allConversation.contains($0) }
-        
+
         let exerciseKeywords = ["run", "walk", "gym", "yoga", "swim", "bike", "lift", "cardio", "workout", "exercise"]
         let hasExercisePrefs = exerciseKeywords.contains { allConversation.contains($0) }
-        
+
         let scheduleKeywords = ["morning", "evening", "night", "lunch", "work", "schedule", "time", "day", "week"]
         let hasSchedule = scheduleKeywords.contains { allConversation.contains($0) }
-        
+
         let nutritionKeywords = ["eat", "food", "diet", "meal", "nutrition", "calories", "track", "healthy"]
         let hasNutrition = nutritionKeywords.contains { allConversation.contains($0) }
-        
+
+        // Calculate health data quality score based on actual data available
+        var healthDataQuality = 0.0
+        if let health = healthContext {
+            var dataPoints = 0
+            if health.activity.steps != nil { dataPoints += 1 }
+            if health.activity.activeEnergyBurned != nil { dataPoints += 1 }
+            if health.activity.exerciseMinutes != nil { dataPoints += 1 }
+            if health.sleep.lastNight != nil { dataPoints += 1 }
+            if health.heartHealth.restingHeartRate != nil { dataPoints += 1 }
+            if health.body.weight != nil { dataPoints += 1 }
+            // Score from 0.2 (minimal data) to 0.8 (rich data)
+            healthDataQuality = min(0.2 + (Double(dataPoints) * 0.1), 0.8)
+        }
+
         // Update scores based on conversation content and health data
         contextQuality = ContextComponents(
             goalClarity: hasSpecificGoal && hasNumbers ? 0.7 : (hasSpecificGoal ? 0.4 : 0.2),
             obstacles: hasObstacles ? 0.6 : 0.2,
             exercisePreferences: hasExercisePrefs ? 0.6 : 0.2,
-            currentState: healthContext != nil ? 0.8 : (hasExercisePrefs ? 0.4 : 0.2),
-            lifestyle: hasSchedule ? 0.6 : (healthContext != nil ? 0.5 : 0.2),
+            currentState: healthDataQuality > 0 ? healthDataQuality : (hasExercisePrefs ? 0.4 : 0.2),
+            lifestyle: hasSchedule ? 0.6 : (healthDataQuality > 0.4 ? 0.5 : 0.2),
             nutritionReadiness: hasNutrition ? 0.5 : 0.2,
             communicationStyle: allConversation.count > 200 ? 0.6 : 0.3,
             pastPatterns: allConversation.contains("before") || allConversation.contains("used to") ? 0.5 : 0.2,
             energyPatterns: hasSchedule ? 0.4 : 0.2,
             supportSystem: allConversation.contains("friend") || allConversation.contains("family") ? 0.4 : 0.1
         )
-        
+
         AppLogger.info("Heuristic context scores - overall: \(contextQuality.overall)", category: .ai)
     }
-    
+
     private func setDefaultSuggestions() {
         if let health = healthContext {
             let avgSteps = health.activity.steps ?? 0
-            
+
             if avgSteps < 3_000 {
                 contextualSuggestions = ["Lose 20 pounds", "Get back in shape", "Start exercising", "Feel more energetic"]
             } else if avgSteps < 10_000 {
@@ -532,26 +685,26 @@ final class OnboardingIntelligence: ObservableObject {
             contextualSuggestions = ["Lose weight", "Build muscle", "Get healthier", "Start running"]
         }
     }
-    
+
     func createFallbackPlan() -> CoachingPlan {
         // Create a more intelligent fallback based on actual conversation data
         let conversation = conversationHistory.joined(separator: " ").lowercased()
-        
+
         // Analyze conversation for patterns
         let hasWeightGoal = conversation.contains("weight") || conversation.contains("lose") || conversation.contains("pounds")
         let hasMuscleGoal = conversation.contains("muscle") || conversation.contains("strength") || conversation.contains("stronger")
         let hasEnduranceGoal = conversation.contains("run") || conversation.contains("cardio") || conversation.contains("endurance")
         let isBeginner = conversation.contains("beginner") || conversation.contains("new to") || conversation.contains("never")
         let isBusy = conversation.contains("busy") || conversation.contains("time") || conversation.contains("schedule")
-        
+
         // Determine coach personality based on conversation tone
         let needsMotivation = conversation.contains("motivation") || conversation.contains("lazy") || conversation.contains("struggle")
         let prefersSoft = conversation.contains("gentle") || conversation.contains("easy") || conversation.contains("slow")
-        
+
         // Generate personalized elements
         let coachName = needsMotivation ? "Max" : (prefersSoft ? "Sarah" : "Alex")
         let archetype = needsMotivation ? "Motivational Energizer" : (prefersSoft ? "Gentle Guide" : "Balanced Mentor")
-        
+
         let coachingApproach = [
             hasWeightGoal ? "Guide you toward sustainable weight management" : "Help you achieve your fitness goals",
             isBusy ? "Work around your busy schedule with flexible workout plans" : "Create a consistent routine that fits your life",
@@ -559,44 +712,44 @@ final class OnboardingIntelligence: ObservableObject {
             healthContext != nil ? "Leverage your health data for personalized insights" : "Track your progress and adapt as you grow",
             isBeginner ? "Start with the basics and build gradually" : "Challenge you appropriately based on your level"
         ]
-        
+
         // Build system prompt from conversation insights
         let systemPrompt = """
         You are \(coachName), a \(archetype.lowercased()) focused on helping the user with their fitness journey.
-        
+
         Based on our conversation:
         \(conversationHistory.isEmpty ? "The user is looking for general fitness guidance." : conversationHistory.joined(separator: "\n"))
-        
+
         Key focus areas:
         - \(hasWeightGoal ? "Weight management and healthy habits" : hasMuscleGoal ? "Strength building and muscle development" : "Overall fitness and wellbeing")
         - \(isBusy ? "Time-efficient workouts for busy schedules" : "Consistent routine development")
         - \(needsMotivation ? "High-energy motivation and accountability" : "Supportive guidance and encouragement")
-        
+
         Communication style:
         - \(prefersSoft ? "Gentle and understanding" : needsMotivation ? "Energetic and enthusiastic" : "Balanced and supportive")
         - Focus on progress over perfection
         - Celebrate small wins
         """
-        
+
         return CoachingPlan(
             understandingSummary: buildUnderstandingSummary(),
             coachingApproach: coachingApproach,
             lifeContext: LifeContext(
-                workStyle: isBusy ? .high : .moderate,
+                workStyle: isBusy ? .active : .moderate,
                 fitnessLevel: isBeginner ? .beginner : .intermediate,
-                workoutWindowPreference: detectWorkoutPreference()
+                workoutWindowPreference: detectWorkoutWindowPreference()
             ),
             goal: Goal(
-                family: hasWeightGoal ? .weightManagement : (hasMuscleGoal ? .strengthMuscle : .healthWellbeing),
+                family: hasWeightGoal ? .strengthTone : (hasMuscleGoal ? .strengthTone : .healthWellbeing),
                 rawText: conversationHistory.joined(separator: " ")
             ),
             engagementPreferences: EngagementPreferences(
-                checkInFrequency: needsMotivation ? .daily : .moderate,
+                checkInFrequency: needsMotivation ? .daily : .fewTimes,
                 preferredTimes: detectPreferredTimes()
             ),
             sleepWindow: SleepWindow(),
             motivationalStyle: MotivationalStyle(
-                styles: needsMotivation ? [.motivational, .celebratory] : (prefersSoft ? [.gentle, .encouraging] : [.encouraging, .balanced])
+                styles: needsMotivation ? [.tough, .encouraging] : (prefersSoft ? [.encouraging] : [.encouraging, .analytical])
             ),
             timezone: TimeZone.current.identifier,
             generatedPersona: PersonaProfile(
@@ -608,7 +761,7 @@ final class OnboardingIntelligence: ObservableObject {
                 backgroundStory: "I'm here to help you transform your fitness journey into a sustainable lifestyle.",
                 voiceCharacteristics: VoiceCharacteristics(
                     energy: needsMotivation ? .high : (prefersSoft ? .calm : .moderate),
-                    pace: prefersSoft ? .slow : .natural,
+                    pace: prefersSoft ? .measured : .natural,
                     warmth: .warm,
                     vocabulary: .moderate,
                     sentenceStructure: .moderate
@@ -616,12 +769,12 @@ final class OnboardingIntelligence: ObservableObject {
                 interactionStyle: InteractionStyle(
                     greetingStyle: needsMotivation ? "Hey champion!" : (prefersSoft ? "Hello there" : "Hey!"),
                     closingStyle: needsMotivation ? "Keep crushing it!" : "Keep up the great work!",
-                    encouragementPhrases: needsMotivation ? 
+                    encouragementPhrases: needsMotivation ?
                         ["You're unstoppable!", "That's what I'm talking about!", "Champion mode activated!"] :
                         ["You've got this!", "Great progress!", "Well done!"],
                     acknowledgmentStyle: prefersSoft ? "I understand" : "I hear you",
                     correctionApproach: prefersSoft ? "very gentle" : "gentle",
-                    humorLevel: needsMotivation ? .medium : .light,
+                    humorLevel: needsMotivation ? .moderate : .light,
                     formalityLevel: .balanced,
                     responseLength: .moderate
                 ),
@@ -632,7 +785,7 @@ final class OnboardingIntelligence: ObservableObject {
                     sourceInsights: ConversationPersonalityInsights(
                         dominantTraits: needsMotivation ? ["energetic", "motivational"] : ["supportive", "balanced"],
                         communicationStyle: .conversational,
-                        motivationType: needsMotivation ? .cheerleader : .balanced,
+                        motivationType: needsMotivation ? .achievement : .balanced,
                         energyLevel: needsMotivation ? .high : .moderate,
                         preferredComplexity: .moderate,
                         emotionalTone: ["encouraging", "positive"],
@@ -647,7 +800,7 @@ final class OnboardingIntelligence: ObservableObject {
             )
         )
     }
-    
+
     private func buildUnderstandingSummary() -> String {
         let components = [
             contextQuality.goalClarity > 0.5 ? "I understand your fitness goals" : "I'm here to help you clarify your fitness goals",
@@ -655,10 +808,10 @@ final class OnboardingIntelligence: ObservableObject {
             contextQuality.obstacles > 0.5 ? "I know what challenges you're facing" : nil,
             "Let's work together to create lasting change."
         ].compactMap { $0 }
-        
+
         return components.joined(separator: ", ") + "."
     }
-    
+
     private func detectWorkoutPreference() -> WorkoutTimePreference {
         let conversation = conversationHistory.joined(separator: " ").lowercased()
         if conversation.contains("morning") { return .morning }
@@ -666,7 +819,7 @@ final class OnboardingIntelligence: ObservableObject {
         if conversation.contains("lunch") { return .lunchtime }
         return .flexible
     }
-    
+
     private func detectPreferredTimes() -> [String] {
         let conversation = conversationHistory.joined(separator: " ").lowercased()
         var times: [String] = []
@@ -675,17 +828,17 @@ final class OnboardingIntelligence: ObservableObject {
         if conversation.contains("night") { times.append("night") }
         return times.isEmpty ? ["morning", "evening"] : times
     }
-    
+
     // MARK: - Session Persistence
-    
+
     private func saveSessionState() async {
         // Create or use existing user ID
         if currentUserId == nil {
             currentUserId = UUID()
         }
-        
+
         guard let userId = currentUserId else { return }
-        
+
         // Create conversation data
         let conversationData = ConversationData(
             messages: conversationHistory.enumerated().map { index, message in
@@ -698,20 +851,19 @@ final class OnboardingIntelligence: ObservableObject {
             currentNodeId: "onboarding",
             variables: [:]
         )
-        
+
         // Create partial insights if we have enough context
-        let insights: PersonalityInsights? = contextQuality.overall > 0.3 ? PersonalityInsights(
-            dominantTraits: [],
-            communicationStyle: .conversational,
-            motivationType: .balanced,
-            energyLevel: .moderate,
-            preferredComplexity: .moderate,
-            emotionalTone: ["supportive"],
-            stressResponse: .needsSupport,
-            preferredTimes: detectPreferredTimes(),
-            extractedAt: Date()
-        ) : nil
-        
+        let insights: PersonalityInsights? = contextQuality.overall > 0.3 ? {
+            var pi = PersonalityInsights()
+            pi.traits = [
+                .socialOrientation: 0.7,
+                .dataOrientation: 0.5
+            ]
+            pi.motivationalDrivers = [.achievement]
+            pi.lastUpdated = Date()
+            return pi
+        }() : nil
+
         // Save current state
         await cache.saveSession(
             userId: userId,
@@ -721,39 +873,273 @@ final class OnboardingIntelligence: ObservableObject {
             responses: []
         )
     }
-    
+
     private func restoreSessionIfAvailable() async {
         // Check for any active sessions
         let activeSessions = await cache.getActiveSessions()
-        
+
         // Use the most recent session if available
         if let (userId, _) = activeSessions.max(by: { $0.value < $1.value }) {
             if let session = await cache.restoreSession(userId: userId) {
                 currentUserId = userId
-                
+
                 // Restore conversation history
                 conversationHistory = session.conversationData.messages.map { $0.content }
                 conversationTurnCount = conversationHistory.count
-                
+
                 // Restore current prompt based on where we left off
                 if conversationTurnCount > 0 {
                     currentPrompt = "Welcome back! Let's continue where we left off."
-                    
+
                     // Re-analyze the last input to restore context quality
                     if let lastInput = conversationHistory.last {
                         await analyzeContextQuality(lastInput)
                     }
                 }
-                
+
                 AppLogger.info("Restored onboarding session with \(conversationTurnCount) messages", category: .onboarding)
             }
         }
     }
-    
+
     /// Clear session after successful completion
     func clearSession() async {
         if let userId = currentUserId {
             await cache.clearSession(userId: userId)
         }
+    }
+
+    // MARK: - Helper Methods for Persona Generation
+
+    private func extractGoal(from history: [String]) -> String {
+        let conversation = history.joined(separator: " ").lowercased()
+        if conversation.contains("lose") && conversation.contains("weight") {
+            return "weight loss"
+        } else if conversation.contains("muscle") || conversation.contains("strength") {
+            return "build muscle"
+        } else if conversation.contains("run") || conversation.contains("marathon") {
+            return "improve endurance"
+        }
+        return "improve fitness"
+    }
+
+    private func extractObstacles(from history: [String]) -> String {
+        let conversation = history.joined(separator: " ").lowercased()
+        var obstacles: [String] = []
+        if conversation.contains("time") || conversation.contains("busy") {
+            obstacles.append("limited time")
+        }
+        if conversation.contains("motivation") {
+            obstacles.append("staying motivated")
+        }
+        if conversation.contains("injury") || conversation.contains("pain") {
+            obstacles.append("past injuries")
+        }
+        return obstacles.isEmpty ? "none specified" : obstacles.joined(separator: ", ")
+    }
+
+    private func extractUserName(from history: [String]) -> String? {
+        // Simple heuristic - look for "my name is" or "I'm [name]"
+        let conversation = history.joined(separator: " ")
+        if let range = conversation.range(of: "my name is ", options: .caseInsensitive) {
+            let afterName = String(conversation[range.upperBound...])
+            let name = afterName.split(separator: " ").first ?? ""
+            return String(name).trimmingCharacters(in: .punctuationCharacters)
+        }
+        return nil
+    }
+
+    private func extractDominantTraits() -> [String] {
+        var traits: [String] = []
+        if contextQuality.goalClarity > 0.7 { traits.append("goal-oriented") }
+        if contextQuality.obstacles > 0.6 { traits.append("self-aware") }
+        if contextQuality.exercisePreferences > 0.6 { traits.append("activity-focused") }
+        return traits.isEmpty ? ["balanced"] : traits
+    }
+
+    private func detectCommunicationStyle() -> ConversationCommunicationStyle {
+        let avgMessageLength = conversationHistory.reduce(0) { $0 + $1.count } / max(conversationHistory.count, 1)
+        if avgMessageLength > 100 { return .analytical }
+        if avgMessageLength < 30 { return .energetic }
+        return .conversational
+    }
+
+    private func detectConversationMotivationType() -> ConversationMotivationType {
+        let conversation = conversationHistory.joined(separator: " ").lowercased()
+        if conversation.contains("compete") || conversation.contains("win") || conversation.contains("best") {
+            return .achievement
+        }
+        if conversation.contains("friend") || conversation.contains("group") || conversation.contains("together") {
+            return .social
+        }
+        if conversation.contains("perform") || conversation.contains("race") {
+            return .performance
+        }
+        return .health
+    }
+
+    private func detectMotivationType() -> MotivationType {
+        let conversation = conversationHistory.joined(separator: " ").lowercased()
+        if conversation.contains("compete") || conversation.contains("win") || conversation.contains("best") {
+            return .achievement
+        }
+        if conversation.contains("friend") || conversation.contains("group") || conversation.contains("together") {
+            return .social
+        }
+        return .health
+    }
+
+    private func detectConversationEnergyLevel() -> ConversationEnergyLevel {
+        let conversation = conversationHistory.joined(separator: " ").lowercased()
+        let highEnergyWords = ["excited", "pumped", "ready", "motivated", "can't wait"]
+        let lowEnergyWords = ["tired", "slow", "gentle", "easy", "relaxed"]
+
+        let highCount = highEnergyWords.filter { conversation.contains($0) }.count
+        let lowCount = lowEnergyWords.filter { conversation.contains($0) }.count
+
+        if highCount > lowCount { return .high }
+        if lowCount > highCount { return .low }
+        return .moderate
+    }
+
+    private func detectEnergyLevel() -> ConversationEnergyLevel {
+        return detectConversationEnergyLevel()
+    }
+
+    private func detectWorkoutWindowPreference() -> LifeContext.WorkoutWindow {
+        let conversation = conversationHistory.joined(separator: " ").lowercased()
+        if conversation.contains("early") || conversation.contains("5am") || conversation.contains("6am") {
+            return .earlyMorning
+        }
+        if conversation.contains("morning") || conversation.contains("7am") || conversation.contains("8am") {
+            return .morning
+        }
+        if conversation.contains("lunch") || conversation.contains("noon") || conversation.contains("midday") {
+            return .midday
+        }
+        if conversation.contains("evening") || conversation.contains("after work") {
+            return .evening
+        }
+        return .morning  // Default
+    }
+
+    private func extractInsightsFromConversation() {
+        let conversation = conversationHistory.joined(separator: " ")
+
+        // Extract goal
+        let primaryGoal = extractGoal(from: conversationHistory)
+
+        // Extract obstacles
+        var obstacles: [String] = []
+        let lowerConvo = conversation.lowercased()
+        if lowerConvo.contains("busy") || lowerConvo.contains("time") {
+            obstacles.append("limited time")
+        }
+        if lowerConvo.contains("motivation") || lowerConvo.contains("lazy") {
+            obstacles.append("staying motivated")
+        }
+        if lowerConvo.contains("injury") || lowerConvo.contains("pain") {
+            obstacles.append("managing injuries")
+        }
+
+        // Extract exercise preferences
+        var exercisePrefs: [String] = []
+        if lowerConvo.contains("run") { exercisePrefs.append("running") }
+        if lowerConvo.contains("walk") { exercisePrefs.append("walking") }
+        if lowerConvo.contains("gym") { exercisePrefs.append("gym workouts") }
+        if lowerConvo.contains("yoga") { exercisePrefs.append("yoga") }
+        if lowerConvo.contains("swim") { exercisePrefs.append("swimming") }
+        if lowerConvo.contains("bike") || lowerConvo.contains("cycling") { exercisePrefs.append("cycling") }
+
+        // Determine fitness level
+        let fitnessLevel: String
+        if lowerConvo.contains("beginner") || lowerConvo.contains("new to") || lowerConvo.contains("just starting") {
+            fitnessLevel = "beginner"
+        } else if lowerConvo.contains("advanced") || lowerConvo.contains("experienced") {
+            fitnessLevel = "advanced"
+        } else {
+            fitnessLevel = "intermediate"
+        }
+
+        // Extract schedule
+        let schedule: String
+        if lowerConvo.contains("busy") {
+            schedule = "busy schedule with limited time"
+        } else if lowerConvo.contains("flexible") {
+            schedule = "flexible schedule"
+        } else if lowerConvo.contains("work from home") || lowerConvo.contains("remote") {
+            schedule = "work from home with flexible hours"
+        } else {
+            schedule = "standard work schedule"
+        }
+
+        // Extract motivational needs
+        var motivationalNeeds: [String] = []
+        if lowerConvo.contains("accountability") { motivationalNeeds.append("accountability") }
+        if lowerConvo.contains("encouragement") || lowerConvo.contains("support") { motivationalNeeds.append("encouragement") }
+        if lowerConvo.contains("track") || lowerConvo.contains("progress") { motivationalNeeds.append("progress tracking") }
+        if lowerConvo.contains("celebrate") || lowerConvo.contains("wins") { motivationalNeeds.append("celebrating achievements") }
+
+        // Determine communication style
+        let communicationStyle: String
+        if contextQuality.communicationStyle > 0.5 {
+            communicationStyle = "detailed and analytical"
+        } else if lowerConvo.contains("simple") || lowerConvo.contains("easy") {
+            communicationStyle = "simple and straightforward"
+        } else {
+            communicationStyle = "balanced and supportive"
+        }
+
+        // Create insights object
+        extractedInsights = ExtractedInsights(
+            primaryGoal: primaryGoal,
+            keyObstacles: obstacles,
+            exercisePreferences: exercisePrefs,
+            currentFitnessLevel: fitnessLevel,
+            dailySchedule: schedule,
+            motivationalNeeds: motivationalNeeds,
+            communicationStyle: communicationStyle
+        )
+    }
+
+    private func createCoachingPlan(with persona: PersonaProfile, conversationData: ConversationData) -> CoachingPlan {
+        let conversation = conversationHistory.joined(separator: " ").lowercased()
+
+        // Extract understanding from conversation
+        let understandingSummary = "I understand you want to \(extractGoal(from: conversationHistory))"
+            + (contextQuality.obstacles > 0.5 ? " while managing \(extractObstacles(from: conversationHistory))." : ".")
+            + " Let's create a sustainable plan that fits your lifestyle."
+
+        // Generate coaching approach based on persona
+        let coachingApproach = [
+            "I'll be your \(persona.archetype), focusing on \(persona.coreValues.first ?? "progress")",
+            "We'll work at a \(persona.voiceCharacteristics.pace.rawValue) pace that feels right for you",
+            "I'll adapt my coaching style based on your energy and progress",
+            "Together, we'll build habits that last beyond any single goal"
+        ]
+
+        return CoachingPlan(
+            understandingSummary: understandingSummary,
+            coachingApproach: coachingApproach,
+            lifeContext: LifeContext(
+                workStyle: conversation.contains("active") ? .active : .moderate,
+                fitnessLevel: conversation.contains("beginner") ? .beginner : .intermediate,
+                workoutWindowPreference: detectWorkoutWindowPreference()
+            ),
+            goal: Goal(
+                family: conversation.contains("strength") ? .strengthTone : .healthWellbeing,
+                rawText: extractGoal(from: conversationHistory)
+            ),
+            engagementPreferences: EngagementPreferences(
+                checkInFrequency: persona.voiceCharacteristics.energy == .high ? .daily : .fewTimes,
+                preferredTimes: detectPreferredTimes()
+            ),
+            sleepWindow: SleepWindow(),
+            motivationalStyle: MotivationalStyle(
+                styles: persona.voiceCharacteristics.energy == .high ? [.tough, .encouraging] : [.encouraging]
+            ),
+            timezone: TimeZone.current.identifier,
+            generatedPersona: persona
+        )
     }
 }

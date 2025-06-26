@@ -9,22 +9,22 @@ final class DataManager: ServiceProtocol {
     nonisolated var isConfigured: Bool {
         MainActor.assumeIsolated { _isConfigured }
     }
-    
+
     init() {}
-    
+
     // MARK: - ServiceProtocol Methods
-    
+
     func configure() async throws {
         guard !_isConfigured else { return }
         _isConfigured = true
         AppLogger.info("\(serviceIdentifier) configured", category: .services)
     }
-    
+
     func reset() async {
         _isConfigured = false
         AppLogger.info("\(serviceIdentifier) reset", category: .services)
     }
-    
+
     func healthCheck() async -> ServiceHealth {
         ServiceHealth(
             status: .healthy,
@@ -95,14 +95,14 @@ extension DataManager {
             ConversationSession.self,
             ConversationResponse.self
         ])
-        
+
         let configuration = ModelConfiguration(isStoredInMemoryOnly: true)
         if let container = try? ModelContainer(for: schema, configurations: [configuration]) {
             manager._previewContainer = container
         }
         return manager
     }
-    
+
     static var previewContainer: ModelContainer {
         // Create in-memory container
         do {
@@ -112,12 +112,12 @@ extension DataManager {
             fatalError("Failed to create preview container: \(error)")
         }
     }
-    
+
     private var _previewContainer: ModelContainer? {
         get { nil }
         set { }
     }
-    
+
     var modelContext: ModelContext {
         _previewContainer?.mainContext ?? ModelContainer.createMemoryContainer().mainContext
     }
@@ -136,7 +136,7 @@ extension ModelContainer {
             ConversationSession.self,
             ConversationResponse.self
         ])
-        
+
         let configuration = ModelConfiguration(isStoredInMemoryOnly: true)
         return try! ModelContainer(for: schema, configurations: [configuration])
     }

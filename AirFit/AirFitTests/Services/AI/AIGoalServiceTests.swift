@@ -10,18 +10,18 @@ final class AIGoalServiceTests: XCTestCase {
     private var mockGoalService: MockGoalService!
     private var modelContext: ModelContext!
     private var testUser: User!
-    
+
     // MARK: - Setup
     override func setUp() async throws {
         try super.setUp()
-        
+
         // Create test container
         container = try await DITestHelper.createTestContainer()
-        
+
         // Get model context from container
         let modelContainer = try await container.resolve(ModelContainer.self)
         modelContext = modelContainer.mainContext
-        
+
         // Create test user
         testUser = User(email: "test@example.com", name: "Test User")
         testUser.weight = 80 // kg
@@ -29,15 +29,15 @@ final class AIGoalServiceTests: XCTestCase {
         testUser.fitnessLevel = "intermediate"
         modelContext.insert(testUser)
         try modelContext.save()
-        
+
         // Get mock from container
         mockGoalService = try await container.resolve(GoalServiceProtocol.self) as? MockGoalService
         XCTAssertNotNil(mockGoalService, "Expected MockGoalService from test container")
-        
+
         // Create service with injected dependencies
         sut = AIGoalService(goalService: mockGoalService)
     }
-    
+
     override func tearDown() async throws {
         mockGoalService?.reset()
         sut = nil
@@ -47,13 +47,13 @@ final class AIGoalServiceTests: XCTestCase {
         container = nil
         try super.tearDown()
     }
-    
+
     // MARK: - Create or Refine Goal Tests
-    
+
     func test_createOrRefineGoal_withBasicAspirations_returnsGoal() async throws {
         // Arrange
         let aspirations = "I want to lose 10 pounds"
-        
+
         // Act
         let result = try await sut.createOrRefineGoal(
             current: nil,
@@ -65,7 +65,7 @@ final class AIGoalServiceTests: XCTestCase {
             goalType: nil,
             for: testUser
         )
-        
+
         // Assert
         XCTAssertNotNil(result)
         XCTAssertEqual(result.title, aspirations)
@@ -74,7 +74,7 @@ final class AIGoalServiceTests: XCTestCase {
         XCTAssertEqual(result.smartCriteria.specific, aspirations)
         XCTAssertEqual(result.smartCriteria.timeBound, "30 days")
     }
-    
+
     func test_createOrRefineGoal_withCompleteParameters_includesAllInformation() async throws {
         // Arrange
         let current = "Current goal: exercise 3 times per week"
@@ -84,7 +84,7 @@ final class AIGoalServiceTests: XCTestCase {
         let constraints = ["Bad knee", "Limited time"]
         let motivations = ["Feel stronger", "Look better", "Health"]
         let goalType = "performance"
-        
+
         // Act
         let result = try await sut.createOrRefineGoal(
             current: current,
@@ -96,7 +96,7 @@ final class AIGoalServiceTests: XCTestCase {
             goalType: goalType,
             for: testUser
         )
-        
+
         // Assert
         XCTAssertNotNil(result)
         XCTAssertEqual(result.title, aspirations)
@@ -104,12 +104,12 @@ final class AIGoalServiceTests: XCTestCase {
         XCTAssertTrue(result.smartCriteria.relevant.contains("motivations"))
         XCTAssertEqual(result.smartCriteria.timeBound, timeframe)
     }
-    
+
     func test_createOrRefineGoal_withDifferentTimeframes_setsCorrectDate() async throws {
         // Arrange
         let timeframes = ["1 week", "2 months", "6 months", "1 year", nil]
         let baseDate = Date()
-        
+
         for timeframe in timeframes {
             // Act
             let result = try await sut.createOrRefineGoal(
@@ -122,16 +122,16 @@ final class AIGoalServiceTests: XCTestCase {
                 goalType: nil,
                 for: testUser
             )
-            
+
             // Assert
             XCTAssertNotNil(result.targetDate)
-            
+
             // Verify date is approximately 30 days from now (placeholder always returns 30 days)
             let daysDifference = Calendar.current.dateComponents([.day], from: baseDate, to: result.targetDate!).day ?? 0
             XCTAssertEqual(daysDifference, 30, accuracy: 1)
         }
     }
-    
+
     func test_createOrRefineGoal_withEmptyAspirations_stillCreatesGoal() async throws {
         // Act
         let result = try await sut.createOrRefineGoal(
@@ -144,18 +144,18 @@ final class AIGoalServiceTests: XCTestCase {
             goalType: nil,
             for: testUser
         )
-        
+
         // Assert
         XCTAssertNotNil(result)
         XCTAssertTrue(result.title.isEmpty)
         XCTAssertTrue(result.metrics.isEmpty)
         XCTAssertTrue(result.milestones.isEmpty)
     }
-    
+
     func test_createOrRefineGoal_withLongAspirations_handlesGracefully() async throws {
         // Arrange
         let longAspirations = String(repeating: "I want to achieve amazing fitness goals ", count: 50)
-        
+
         // Act
         let result = try await sut.createOrRefineGoal(
             current: nil,
@@ -167,14 +167,14 @@ final class AIGoalServiceTests: XCTestCase {
             goalType: nil,
             for: testUser
         )
-        
+
         // Assert
         XCTAssertNotNil(result)
         XCTAssertEqual(result.title, longAspirations)
     }
-    
+
     // MARK: - Suggest Goal Adjustments Tests
-    
+
     func test_suggestGoalAdjustments_returnsEmptyArray() async throws {
         // Arrange
         let goal = ServiceGoal(
@@ -186,14 +186,14 @@ final class AIGoalServiceTests: XCTestCase {
             createdAt: Date(),
             updatedAt: Date()
         )
-        
+
         // Act
         let adjustments = try await sut.suggestGoalAdjustments(for: goal, user: testUser)
-        
+
         // Assert
         XCTAssertTrue(adjustments.isEmpty) // Placeholder returns empty
     }
-    
+
     func test_suggestGoalAdjustments_withCompletedGoal_returnsEmptyArray() async throws {
         // Arrange
         let goal = ServiceGoal(
@@ -205,16 +205,16 @@ final class AIGoalServiceTests: XCTestCase {
             createdAt: Date(),
             updatedAt: Date()
         )
-        
+
         // Act
         let adjustments = try await sut.suggestGoalAdjustments(for: goal, user: testUser)
-        
+
         // Assert
         XCTAssertTrue(adjustments.isEmpty)
     }
-    
+
     // MARK: - Goal Service Delegation Tests
-    
+
     func test_createGoal_delegatesToGoalService() async throws {
         // Arrange
         let goalData = GoalCreationData(
@@ -223,16 +223,16 @@ final class AIGoalServiceTests: XCTestCase {
             deadline: Date().addingTimeInterval(90 * 24 * 60 * 60),
             description: "Gain 5 pounds of muscle"
         )
-        
+
         // Act
         let goal = try await sut.createGoal(goalData, for: testUser)
-        
+
         // Assert
         XCTAssertNotNil(goal)
         mockGoalService.verifyGoalCreated(type: .muscleGain, target: 5)
         XCTAssertEqual(mockGoalService.invocationCount(for: "createGoal"), 1)
     }
-    
+
     func test_updateGoal_delegatesToGoalService() async throws {
         // Arrange
         let goal = ServiceGoal(
@@ -245,17 +245,17 @@ final class AIGoalServiceTests: XCTestCase {
             updatedAt: Date()
         )
         let updates = GoalUpdate(target: 5, deadline: nil, description: "Updated target")
-        
+
         // Add goal to mock service
         mockGoalService.goals[goal.id] = goal
-        
+
         // Act
         try await sut.updateGoal(goal, updates: updates)
-        
+
         // Assert
         XCTAssertEqual(mockGoalService.invocationCount(for: "updateGoal"), 1)
     }
-    
+
     func test_deleteGoal_delegatesToGoalService() async throws {
         // Arrange
         let goal = ServiceGoal(
@@ -267,17 +267,17 @@ final class AIGoalServiceTests: XCTestCase {
             createdAt: Date(),
             updatedAt: Date()
         )
-        
+
         // Add goal to mock service
         mockGoalService.goals[goal.id] = goal
-        
+
         // Act
         try await sut.deleteGoal(goal)
-        
+
         // Assert
         XCTAssertEqual(mockGoalService.invocationCount(for: "deleteGoal"), 1)
     }
-    
+
     func test_getActiveGoals_delegatesToGoalService() async throws {
         // Arrange
         let mockGoals = [
@@ -301,15 +301,15 @@ final class AIGoalServiceTests: XCTestCase {
             )
         ]
         mockGoalService.stubActiveGoals(mockGoals)
-        
+
         // Act
         let goals = try await sut.getActiveGoals(for: testUser)
-        
+
         // Assert
         XCTAssertEqual(goals.count, 2)
         XCTAssertEqual(mockGoalService.invocationCount(for: "getActiveGoals"), 1)
     }
-    
+
     func test_trackProgress_delegatesToGoalService() async throws {
         // Arrange
         let goal = ServiceGoal(
@@ -322,18 +322,18 @@ final class AIGoalServiceTests: XCTestCase {
             updatedAt: Date()
         )
         let progressValue = 250.0
-        
+
         // Add goal to mock service
         mockGoalService.goals[goal.id] = goal
-        
+
         // Act
         try await sut.trackProgress(for: goal, value: progressValue)
-        
+
         // Assert
         mockGoalService.verifyProgressTracked(goalId: goal.id, value: progressValue)
         XCTAssertEqual(mockGoalService.invocationCount(for: "trackProgress"), 1)
     }
-    
+
     func test_checkGoalCompletion_delegatesToGoalService() async {
         // Arrange
         let goal = ServiceGoal(
@@ -346,21 +346,21 @@ final class AIGoalServiceTests: XCTestCase {
             updatedAt: Date()
         )
         mockGoalService.stubCompletionStatus(true)
-        
+
         // Act
         let isCompleted = await sut.checkGoalCompletion(goal)
-        
+
         // Assert
         XCTAssertTrue(isCompleted)
         XCTAssertEqual(mockGoalService.invocationCount(for: "checkGoalCompletion"), 1)
     }
-    
+
     // MARK: - Edge Cases
-    
+
     func test_createOrRefineGoal_withSpecialCharacters_handlesCorrectly() async throws {
         // Arrange
         let aspirations = "Lose 10kg & gain 💪 muscle! #FitnessGoals @gym"
-        
+
         // Act
         let result = try await sut.createOrRefineGoal(
             current: nil,
@@ -372,17 +372,17 @@ final class AIGoalServiceTests: XCTestCase {
             goalType: nil,
             for: testUser
         )
-        
+
         // Assert
         XCTAssertNotNil(result)
         XCTAssertEqual(result.title, aspirations)
         XCTAssertTrue(result.description.contains(aspirations))
     }
-    
+
     func test_createOrRefineGoal_withManyConstraints_includesAll() async throws {
         // Arrange
         let constraints = Array(repeating: "Constraint", count: 20)
-        
+
         // Act
         let result = try await sut.createOrRefineGoal(
             current: nil,
@@ -394,14 +394,14 @@ final class AIGoalServiceTests: XCTestCase {
             goalType: nil,
             for: testUser
         )
-        
+
         // Assert
         XCTAssertNotNil(result)
         // Should handle many constraints without issues
     }
-    
+
     // MARK: - Error Handling Tests
-    
+
     func test_createGoal_whenServiceThrows_propagatesError() async throws {
         // Arrange
         mockGoalService.shouldThrowError = true
@@ -411,7 +411,7 @@ final class AIGoalServiceTests: XCTestCase {
             deadline: nil,
             description: nil
         )
-        
+
         // Act & Assert
         do {
             _ = try await sut.createGoal(goalData, for: testUser)
@@ -420,7 +420,7 @@ final class AIGoalServiceTests: XCTestCase {
             XCTAssertNotNil(error)
         }
     }
-    
+
     func test_updateGoal_whenServiceThrows_propagatesError() async throws {
         // Arrange
         mockGoalService.shouldThrowError = true
@@ -434,7 +434,7 @@ final class AIGoalServiceTests: XCTestCase {
             updatedAt: Date()
         )
         let updates = GoalUpdate(target: 5, deadline: nil, description: nil)
-        
+
         // Act & Assert
         do {
             try await sut.updateGoal(goal, updates: updates)
@@ -443,13 +443,13 @@ final class AIGoalServiceTests: XCTestCase {
             XCTAssertNotNil(error)
         }
     }
-    
+
     // MARK: - Performance Tests
-    
+
     func test_createOrRefineGoal_performance() async throws {
         // Measure time to create multiple goals
         let startTime = CFAbsoluteTimeGetCurrent()
-        
+
         for i in 0..<10 {
             _ = try await sut.createOrRefineGoal(
                 current: nil,
@@ -462,15 +462,15 @@ final class AIGoalServiceTests: XCTestCase {
                 for: testUser
             )
         }
-        
+
         let duration = CFAbsoluteTimeGetCurrent() - startTime
-        
+
         // Assert - Should be very fast for placeholder implementation
         XCTAssertLessThan(duration, 0.1, "Creating 10 goals should take less than 100ms")
     }
-    
+
     // MARK: - Integration Tests
-    
+
     func test_fullGoalLifecycle() async throws {
         // Create goal
         let goalData = GoalCreationData(
@@ -481,30 +481,30 @@ final class AIGoalServiceTests: XCTestCase {
         )
         let goal = try await sut.createGoal(goalData, for: testUser)
         XCTAssertNotNil(goal)
-        
+
         // Track progress
         try await sut.trackProgress(for: goal, value: 2.5)
         try await sut.trackProgress(for: goal, value: 3.0)
-        
+
         // Check completion status
         let isCompleted = await sut.checkGoalCompletion(goal)
         XCTAssertFalse(isCompleted) // 5.5 < 10
-        
+
         // Update goal
         let updates = GoalUpdate(target: 5, deadline: nil, description: "Adjusted target")
         try await sut.updateGoal(goal, updates: updates)
-        
+
         // Get active goals
         let activeGoals = try await sut.getActiveGoals(for: testUser)
         XCTAssertFalse(activeGoals.isEmpty)
-        
+
         // Suggest adjustments (placeholder returns empty)
         let adjustments = try await sut.suggestGoalAdjustments(for: goal, user: testUser)
         XCTAssertTrue(adjustments.isEmpty)
-        
+
         // Delete goal
         try await sut.deleteGoal(goal)
-        
+
         // Verify all operations were recorded
         XCTAssertEqual(mockGoalService.invocationCount(for: "createGoal"), 1)
         XCTAssertEqual(mockGoalService.invocationCount(for: "trackProgress"), 2)
@@ -513,7 +513,7 @@ final class AIGoalServiceTests: XCTestCase {
         XCTAssertEqual(mockGoalService.invocationCount(for: "getActiveGoals"), 1)
         XCTAssertEqual(mockGoalService.invocationCount(for: "deleteGoal"), 1)
     }
-    
+
     func test_concurrentGoalOperations() async throws {
         // Create multiple goals concurrently
         await withTaskGroup(of: ServiceGoal?.self) { group in
@@ -528,17 +528,17 @@ final class AIGoalServiceTests: XCTestCase {
                     return try? await self.sut.createGoal(goalData, for: self.testUser)
                 }
             }
-            
+
             var createdGoals: [ServiceGoal] = []
             for await goal in group {
                 if let goal = goal {
                     createdGoals.append(goal)
                 }
             }
-            
+
             XCTAssertEqual(createdGoals.count, 5)
         }
-        
+
         // Verify all operations completed
         XCTAssertEqual(mockGoalService.invocationCount(for: "createGoal"), 5)
     }

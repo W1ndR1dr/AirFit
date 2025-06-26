@@ -13,17 +13,17 @@ final class ContextAssemblerTests: XCTestCase {
     // MARK: - Setup
     override func setUp() async throws {
         try super.setUp()
-        
+
         // Create test container
         container = try await DITestHelper.createTestContainer()
-        
+
         // Get model context from container
         let modelContainer = try await container.resolve(ModelContainer.self)
         modelContext = modelContainer.mainContext
-        
+
         // Get mock from container
         mockHealthKit = try await container.resolve(HealthKitManagerProtocol.self) as? MockHealthKitManager
-        
+
         // Create SUT
         sut = ContextAssembler(healthKitManager: mockHealthKit)
     }

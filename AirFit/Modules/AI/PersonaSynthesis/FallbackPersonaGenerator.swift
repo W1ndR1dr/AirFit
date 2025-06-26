@@ -2,44 +2,44 @@ import Foundation
 
 /// Fallback persona generator for error recovery - generates basic personas when main system fails
 actor FallbackPersonaGenerator {
-    
+
     private let cache: AIResponseCache
-    
+
     init(cache: AIResponseCache) {
         self.cache = cache
     }
-    
+
     /// Generate a basic persona from minimal data
     func generateBasicPersona(
         userName: String,
         primaryGoal: String,
         responses: [String: Any]
     ) async -> PersonaProfile {
-        
+
         // Extract basic preferences from responses
         let fitnessLevel = extractFitnessLevel(from: responses)
         let timePreference = extractTimePreference(from: responses)
         let motivationStyle = extractMotivationStyle(from: responses)
-        
+
         // Select archetype based on primary goal
         let archetype = selectArchetype(for: primaryGoal, fitnessLevel: fitnessLevel)
-        
+
         // Generate deterministic persona based on inputs
         let name = generateCoachName(archetype: archetype, style: motivationStyle)
-        
+
         // Create voice characteristics
         let voiceCharacteristics = generateVoiceCharacteristics(
             archetype: archetype,
             motivationStyle: motivationStyle
         )
-        
+
         // Create interaction style
         let interactionStyle = generateInteractionStyle(
             archetype: archetype,
             timePreference: timePreference,
             motivationStyle: motivationStyle
         )
-        
+
         // Generate system prompt
         let systemPrompt = generateSystemPrompt(
             name: name,
@@ -47,7 +47,7 @@ actor FallbackPersonaGenerator {
             userName: userName,
             primaryGoal: primaryGoal
         )
-        
+
         // Create persona
         return PersonaProfile(
             id: UUID(),
@@ -69,9 +69,9 @@ actor FallbackPersonaGenerator {
             )
         )
     }
-    
+
     // MARK: - Extraction Methods
-    
+
     private func extractFitnessLevel(from responses: [String: Any]) -> String {
         if let level = responses["fitnessLevel"] as? String {
             return level
@@ -81,7 +81,7 @@ actor FallbackPersonaGenerator {
         }
         return "intermediate"
     }
-    
+
     private func extractTimePreference(from responses: [String: Any]) -> String {
         if let time = responses["preferredTime"] as? String {
             return time
@@ -92,7 +92,7 @@ actor FallbackPersonaGenerator {
         }
         return "flexible"
     }
-    
+
     private func extractMotivationStyle(from responses: [String: Any]) -> String {
         if let style = responses["motivationStyle"] as? String {
             return style
@@ -107,12 +107,12 @@ actor FallbackPersonaGenerator {
         }
         return "balanced"
     }
-    
+
     // MARK: - Generation Methods
-    
+
     private func selectArchetype(for goal: String, fitnessLevel: String) -> String {
         let lowercaseGoal = goal.lowercased()
-        
+
         if lowercaseGoal.contains("weight") || lowercaseGoal.contains("lose") {
             return "The Transformation Coach"
         } else if lowercaseGoal.contains("muscle") || lowercaseGoal.contains("strength") {
@@ -125,7 +125,7 @@ actor FallbackPersonaGenerator {
             return "The Balanced Coach"
         }
     }
-    
+
     private func generateCoachName(archetype: String, style: String) -> String {
         let names: [String: [String]] = [
             "The Transformation Coach": ["Alex Chen", "Jordan Rivera", "Sam Mitchell"],
@@ -134,19 +134,19 @@ actor FallbackPersonaGenerator {
             "The Wellness Guide": ["Sage Wellness", "River Calm", "Sky Balance"],
             "The Balanced Coach": ["Taylor Coach", "Jamie Fit", "Chris Active"]
         ]
-        
+
         let nameList = names[archetype] ?? ["Coach AI"]
         let index = abs(style.hashValue) % nameList.count
         return nameList[index]
     }
-    
+
     private func generateVoiceCharacteristics(
         archetype: String,
         motivationStyle: String
     ) -> VoiceCharacteristics {
         let energy: VoiceCharacteristics.Energy
         let warmth: VoiceCharacteristics.Warmth
-        
+
         switch motivationStyle {
         case "challenging":
             energy = .high
@@ -158,7 +158,7 @@ actor FallbackPersonaGenerator {
             energy = .moderate
             warmth = .friendly
         }
-        
+
         return VoiceCharacteristics(
             energy: energy,
             pace: .measured,
@@ -167,7 +167,7 @@ actor FallbackPersonaGenerator {
             sentenceStructure: .moderate
         )
     }
-    
+
     private func generateInteractionStyle(
         archetype: String,
         timePreference: String,
@@ -175,7 +175,7 @@ actor FallbackPersonaGenerator {
     ) -> InteractionStyle {
         let greetings = generateGreetings(timePreference: timePreference)
         let encouragements = generateEncouragements(motivationStyle: motivationStyle)
-        
+
         return InteractionStyle(
             greetingStyle: greetings.first ?? "Hello!",
             closingStyle: "Keep it up!",
@@ -187,7 +187,7 @@ actor FallbackPersonaGenerator {
             responseLength: .moderate
         )
     }
-    
+
     private func generateGreetings(timePreference: String) -> [String] {
         switch timePreference {
         case "morning":
@@ -198,7 +198,7 @@ actor FallbackPersonaGenerator {
             return ["Hey there! Ready to get moving?", "Welcome back! Let's do this!", "Hi! Time to work on those goals!"]
         }
     }
-    
+
     private func generateEncouragements(motivationStyle: String) -> [String] {
         switch motivationStyle {
         case "challenging":
@@ -209,7 +209,7 @@ actor FallbackPersonaGenerator {
             return ["Great effort!", "Keep it up!", "You're making progress!"]
         }
     }
-    
+
     private func generateSystemPrompt(
         name: String,
         archetype: String,
@@ -218,9 +218,9 @@ actor FallbackPersonaGenerator {
     ) -> String {
         """
         You are \(name), a personalized AI fitness coach with the archetype "\(archetype)".
-        
+
         Your primary role is to help \(userName) achieve their goal: \(primaryGoal).
-        
+
         Core behaviors:
         - Be encouraging and supportive
         - Provide clear, actionable advice
@@ -228,14 +228,14 @@ actor FallbackPersonaGenerator {
         - Focus on sustainable progress
         - Celebrate achievements
         - Be understanding of setbacks
-        
+
         Always maintain a positive, professional demeanor while being personable and relatable.
         """
     }
-    
+
     private func generateCoreValues(archetype: String) -> [String] {
         let baseValues = ["progress over perfection", "consistency is key", "listen to your body"]
-        
+
         switch archetype {
         case "The Transformation Coach":
             return baseValues + ["sustainable change", "holistic wellness"]
@@ -249,7 +249,7 @@ actor FallbackPersonaGenerator {
             return baseValues + ["find your rhythm", "enjoy the journey"]
         }
     }
-    
+
     private func generateBackgroundStory(archetype: String) -> String {
         switch archetype {
         case "The Transformation Coach":
@@ -264,7 +264,7 @@ actor FallbackPersonaGenerator {
             return "I'm passionate about helping people discover the joy of movement and achieve their fitness goals in a balanced, sustainable way."
         }
     }
-    
+
     private func generateAdaptationRules() -> [AdaptationRule] {
         [
             AdaptationRule(
@@ -289,7 +289,7 @@ actor FallbackPersonaGenerator {
             )
         ]
     }
-    
+
     private func createFallbackInsights() -> ConversationPersonalityInsights {
         ConversationPersonalityInsights(
             dominantTraits: ["supportive", "balanced", "encouraging"],

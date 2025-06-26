@@ -4,12 +4,12 @@ struct UnitsSettingsView: View {
     var viewModel: SettingsViewModel
     @Environment(\.dismiss) private var dismiss
     @State private var selectedUnits: MeasurementSystem
-    
+
     init(viewModel: SettingsViewModel) {
         self.viewModel = viewModel
         _selectedUnits = State(initialValue: viewModel.preferredUnits)
     }
-    
+
     var body: some View {
         BaseScreen {
             ScrollView {
@@ -23,7 +23,7 @@ struct UnitsSettingsView: View {
                     .padding(.horizontal, AppSpacing.lg)
                     .padding(.top, AppSpacing.sm)
                     .padding(.bottom, AppSpacing.lg)
-                    
+
                     VStack(spacing: AppSpacing.xl) {
                         unitSelection
                         examples
@@ -37,7 +37,7 @@ struct UnitsSettingsView: View {
         .navigationTitle("")
         .navigationBarTitleDisplayMode(.inline)
     }
-    
+
     private var unitSelection: some View {
         VStack(alignment: .leading, spacing: AppSpacing.md) {
             HStack {
@@ -47,7 +47,7 @@ struct UnitsSettingsView: View {
                     .foregroundStyle(.secondary.opacity(0.8))
                 Spacer()
             }
-            
+
             GlassCard {
                 VStack(spacing: 0) {
                     ForEach(MeasurementSystem.allCases) { system in
@@ -60,7 +60,7 @@ struct UnitsSettingsView: View {
                             }
                             HapticService.impact(.light)
                         }
-                        
+
                         if system != MeasurementSystem.allCases.last {
                             Divider()
                         }
@@ -69,7 +69,7 @@ struct UnitsSettingsView: View {
             }
         }
     }
-    
+
     private var examples: some View {
         VStack(alignment: .leading, spacing: AppSpacing.md) {
             HStack {
@@ -79,7 +79,7 @@ struct UnitsSettingsView: View {
                     .foregroundStyle(.secondary.opacity(0.8))
                 Spacer()
             }
-            
+
             GlassCard {
                 VStack(spacing: AppSpacing.md) {
                     ExampleRow(
@@ -88,27 +88,27 @@ struct UnitsSettingsView: View {
                         metric: "68 kg",
                         selectedSystem: selectedUnits
                     )
-                    
+
                     Divider()
-                    
+
                     ExampleRow(
                         label: "Height",
                         imperial: "5'10\"",
                         metric: "178 cm",
                         selectedSystem: selectedUnits
                     )
-                    
+
                     Divider()
-                    
+
                     ExampleRow(
                         label: "Distance",
                         imperial: "3 miles",
                         metric: "5 km",
                         selectedSystem: selectedUnits
                     )
-                    
+
                     Divider()
-                    
+
                     ExampleRow(
                         label: "Temperature",
                         imperial: "72°F",
@@ -119,7 +119,7 @@ struct UnitsSettingsView: View {
             }
         }
     }
-    
+
     private var saveButton: some View {
         Button {
             saveUnits()
@@ -142,7 +142,7 @@ struct UnitsSettingsView: View {
         }
         .disabled(selectedUnits == viewModel.preferredUnits)
     }
-    
+
     private func saveUnits() {
         Task {
             try await viewModel.updateUnits(selectedUnits)
@@ -157,21 +157,21 @@ struct UnitSystemRow: View {
     let system: MeasurementSystem
     let isSelected: Bool
     let onSelect: () -> Void
-    
+
     var body: some View {
         Button(action: onSelect) {
             HStack {
                 VStack(alignment: .leading, spacing: AppSpacing.xs) {
                     Text(system.displayName)
                         .font(.headline)
-                    
+
                     Text(system.description)
                         .font(.caption)
                         .foregroundStyle(.secondary)
                 }
-                
+
                 Spacer()
-                
+
                 if isSelected {
                     Image(systemName: "checkmark.circle.fill")
                         .foregroundStyle(Color.accentColor)
@@ -192,14 +192,14 @@ struct ExampleRow: View {
     let imperial: String
     let metric: String
     let selectedSystem: MeasurementSystem
-    
+
     var body: some View {
         HStack {
             Text(label)
                 .foregroundStyle(.secondary)
-            
+
             Spacer()
-            
+
             Text(selectedSystem == .imperial ? imperial : metric)
                 .fontWeight(.medium)
                 .foregroundStyle(Color.primary)

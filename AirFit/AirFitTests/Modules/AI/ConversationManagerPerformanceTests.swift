@@ -51,27 +51,27 @@ final class ConversationManagerPerformanceTests: XCTestCase {
         let totalMessages = 1_200
         let conversationsCount = 10
         let messagesPerConversation = totalMessages / conversationsCount
-        
+
         print("📊 Performance Test: Creating \(totalMessages) messages across \(conversationsCount) conversations...")
-        
+
         let setupStartTime = CFAbsoluteTimeGetCurrent()
-        
+
         // Create messages across multiple conversations
         var conversationIds: [UUID] = []
         for i in 0..<conversationsCount {
             let conversationId = i == 0 ? testConversationId : UUID()
             conversationIds.append(conversationId!)
-            
+
             for j in 1...messagesPerConversation {
                 let messageContent = "Conv\(i) Message\(j) - \(String(repeating: "data", count: 10))"
                 let messageType: MessageType = j % 3 == 0 ? .command : .conversation
-                
+
                 try await sut.saveUserMessage(
                     messageContent,
                     for: testUser,
                     conversationId: conversationId!
                 )
-                
+
                 // Add some assistant responses
                 if j % 2 == 0 {
                     _ = try await sut.createAssistantMessage(
@@ -82,10 +82,10 @@ final class ConversationManagerPerformanceTests: XCTestCase {
                 }
             }
         }
-        
+
         let setupTime = CFAbsoluteTimeGetCurrent() - setupStartTime
         print("📊 Performance Test: Dataset setup completed in \(String(format: "%.3f", setupTime))s")
-        
+
         // Act - Test query performance with strict 50ms target (Task 2.5 requirement)
         let queryStartTime = CFAbsoluteTimeGetCurrent()
         let messages = try await sut.getRecentMessages(
@@ -94,22 +94,22 @@ final class ConversationManagerPerformanceTests: XCTestCase {
             limit: 20
         )
         let queryTime = CFAbsoluteTimeGetCurrent() - queryStartTime
-        
+
         // Assert - Strict performance requirements
         XCTAssertEqual(messages.count, 20)
-        
+
         // TASK 2.5 REQUIREMENT: <50ms target for getRecentMessages
         XCTAssertLessThan(
             queryTime,
             0.05,
             "❌ PERFORMANCE FAILURE: Query took \(String(format: "%.3f", queryTime * 1_000))ms, exceeds 50ms target"
         )
-        
+
         print("✅ Performance Test: Query completed in \(String(format: "%.1f", queryTime * 1_000))ms (Target: <50ms)")
-        
+
         // Verify data integrity
         XCTAssertTrue(messages.allSatisfy { $0.content.contains("Conv0") })
-        
+
         // Performance comparison documentation (Task 2.5 requirement)
         let messagesPerMs = Double(totalMessages) / (queryTime * 1_000)
         print("📊 Performance Metrics:")
@@ -117,7 +117,7 @@ final class ConversationManagerPerformanceTests: XCTestCase {
         print("   • Throughput: \(String(format: "%.0f", messagesPerMs)) messages/ms")
         print("   • Dataset Size: \(totalMessages) messages")
         print("   • Target Achievement: \(queryTime < 0.05 ? "✅ PASSED" : "❌ FAILED")")
-        
+
         // Validate 10x improvement over theoretical fetch-all approach
         let estimatedOldQueryTime = setupTime / 10 // Old approach would be similar to setup time
         let improvementFactor = estimatedOldQueryTime / queryTime
@@ -128,7 +128,7 @@ final class ConversationManagerPerformanceTests: XCTestCase {
         // Arrange - Create 500 messages with realistic metadata (Task 2.5 requirement)
         let messageCount = 500
         print("📊 Performance Test: Creating \(messageCount) messages with AI metadata...")
-        
+
         for i in 1...messageCount {
             let message = try await sut.createAssistantMessage(
                 "Assistant message \(i) with detailed response content - \(String(repeating: "token", count: 20))",
@@ -157,7 +157,7 @@ final class ConversationManagerPerformanceTests: XCTestCase {
         // Assert - Performance requirements for large datasets
         XCTAssertEqual(stats.totalMessages, messageCount)
         XCTAssertGreaterThan(stats.totalTokens, 75_000) // Realistic token count
-        
+
         // TASK 2.5 REQUIREMENT: <100ms for stats calculation
         XCTAssertLessThan(
             executionTime,
@@ -166,12 +166,12 @@ final class ConversationManagerPerformanceTests: XCTestCase {
         )
 
         print("✅ Performance Test: Stats calculation for \(messageCount) messages completed in \(String(format: "%.1f", executionTime * 1_000))ms (Target: <100ms)")
-        
+
         // Verify accuracy
         XCTAssertEqual(stats.assistantMessages, messageCount)
         XCTAssertEqual(stats.userMessages, 0)
         XCTAssertGreaterThan(stats.estimatedCost, 0)
-        
+
         // Performance documentation
         print("📊 Stats Performance Metrics:")
         print("   • Messages Analyzed: \(stats.totalMessages)")
@@ -187,9 +187,9 @@ final class ConversationManagerPerformanceTests: XCTestCase {
         let totalMessages = totalConversations * messagesPerConversation
 
         print("📊 Performance Test: Creating \(totalConversations) conversations with \(totalMessages) total messages...")
-        
+
         let setupStartTime = CFAbsoluteTimeGetCurrent()
-        
+
         for i in 1...totalConversations {
             let convId = UUID()
             for j in 1...messagesPerConversation {
@@ -209,7 +209,7 @@ final class ConversationManagerPerformanceTests: XCTestCase {
                 }
             }
         }
-        
+
         let setupTime = CFAbsoluteTimeGetCurrent() - setupStartTime
         print("📊 Performance Test: Created dataset in \(String(format: "%.3f", setupTime))s")
 
@@ -221,7 +221,7 @@ final class ConversationManagerPerformanceTests: XCTestCase {
         // Assert - Performance requirements
         let remainingIds = try await sut.getConversationIds(for: testUser)
         XCTAssertEqual(remainingIds.count, 20)
-        
+
         // TASK 2.5 REQUIREMENT: Pruning should complete efficiently
         XCTAssertLessThan(
             executionTime,
@@ -252,42 +252,42 @@ final class ConversationManagerPerformanceTests: XCTestCase {
         // Arrange - Create benchmark dataset
         let messageCount = 1_000
         print("📊 Performance Comparison Test: Creating \(messageCount) message benchmark dataset...")
-        
+
         // Create messages with varied content sizes
         for i in 1...messageCount {
             let contentSize = (i % 10) * 10 + 50 // Vary content size 50-140 chars
             let content = "Benchmark message \(i): " + String(repeating: "x", count: contentSize)
-            
+
             try await sut.saveUserMessage(
                 content,
                 for: testUser,
                 conversationId: testConversationId
             )
         }
-        
+
         // Benchmark multiple query patterns
         var results: [String: TimeInterval] = [:]
-        
+
         // Test 1: Small limit queries (typical chat interface)
         let smallQueryStart = CFAbsoluteTimeGetCurrent()
         let small = try await sut.getRecentMessages(for: testUser, conversationId: testConversationId, limit: 10)
         results["10_messages"] = CFAbsoluteTimeGetCurrent() - smallQueryStart
-        
+
         // Test 2: Medium limit queries (AI context)
         let mediumQueryStart = CFAbsoluteTimeGetCurrent()
         let medium = try await sut.getRecentMessages(for: testUser, conversationId: testConversationId, limit: 50)
         results["50_messages"] = CFAbsoluteTimeGetCurrent() - mediumQueryStart
-        
+
         // Test 3: Large limit queries (full conversation)
         let largeQueryStart = CFAbsoluteTimeGetCurrent()
         let large = try await sut.getRecentMessages(for: testUser, conversationId: testConversationId, limit: 200)
         results["200_messages"] = CFAbsoluteTimeGetCurrent() - largeQueryStart
-        
+
         // Assert all meet performance targets
         XCTAssertEqual(small.count, 10)
         XCTAssertEqual(medium.count, 50)
         XCTAssertEqual(large.count, 200)
-        
+
         // All queries should be well under 50ms
         for (query, time) in results {
             XCTAssertLessThan(
@@ -296,7 +296,7 @@ final class ConversationManagerPerformanceTests: XCTestCase {
                 "❌ Query '\(query)' took \(String(format: "%.1f", time * 1_000))ms, exceeds 50ms target"
             )
         }
-        
+
         // Performance comparison documentation (Task 2.5 requirement)
         print("📊 TASK 2.5 Performance Comparison Results:")
         print("   Dataset: \(messageCount) messages")
@@ -305,12 +305,12 @@ final class ConversationManagerPerformanceTests: XCTestCase {
             let status = time < 0.05 ? "✅" : "❌"
             print("     • \(query): \(String(format: "%.1f", time * 1_000))ms \(status)")
         }
-        
+
         // Calculate performance improvement estimate
         let avgQueryTime = results.values.reduce(0, +) / Double(results.count)
         let estimatedOldQueryTime = Double(messageCount) * 0.001 // Estimate 1ms per message for fetch-all
         let improvementFactor = estimatedOldQueryTime / avgQueryTime
-        
+
         print("   Performance Analysis:")
         print("     • Average Query Time: \(String(format: "%.1f", avgQueryTime * 1_000))ms")
         print("     • Estimated Old Query Time: \(String(format: "%.1f", estimatedOldQueryTime * 1_000))ms")

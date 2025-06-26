@@ -9,7 +9,7 @@ protocol HealthKitManaging: AnyObject, Sendable {
     func fetchHeartHealthMetrics() async throws -> HeartHealthMetrics
     func fetchLatestBodyMetrics() async throws -> BodyMetrics
     func fetchLastNightSleep() async throws -> SleepAnalysis.SleepSession?
-    
+
     // New HealthKit integration methods
     func getWorkoutData(from startDate: Date, to endDate: Date) async -> [WorkoutData]
     func saveFoodEntry(_ entry: FoodEntry) async throws -> [String]

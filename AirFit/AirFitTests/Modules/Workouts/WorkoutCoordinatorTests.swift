@@ -11,7 +11,7 @@ final class WorkoutCoordinatorTests: XCTestCase {
         try super.setUp()
         coordinator = WorkoutCoordinator()
     }
-    
+
     override func tearDown() throws {
         coordinator = nil
         try super.tearDown()
@@ -20,7 +20,7 @@ final class WorkoutCoordinatorTests: XCTestCase {
     func test_navigateToPushesDestination() {
         // Act
         coordinator.navigateTo(.exerciseLibrary)
-        
+
         // Assert
         XCTAssertEqual(coordinator.path.count, 1)
     }
@@ -29,7 +29,7 @@ final class WorkoutCoordinatorTests: XCTestCase {
         // Act & Assert - Show sheet
         coordinator.showSheet(.templatePicker)
         XCTAssertEqual(coordinator.presentedSheet, .templatePicker)
-        
+
         // Act & Assert - Dismiss sheet
         coordinator.dismissSheet()
         XCTAssertNil(coordinator.presentedSheet)
@@ -39,10 +39,10 @@ final class WorkoutCoordinatorTests: XCTestCase {
         // Arrange
         coordinator.navigateTo(.exerciseLibrary)
         coordinator.navigateTo(.allWorkouts)
-        
+
         // Act
         coordinator.handleDeepLink(.statistics)
-        
+
         // Assert
         XCTAssertEqual(coordinator.path.count, 1)
     }

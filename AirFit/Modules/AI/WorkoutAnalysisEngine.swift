@@ -35,7 +35,7 @@ final class WorkoutAnalysisEngine {
 
         // Get AI response
         var analysisResult = ""
-        
+
         do {
             for try await response in aiService.sendRequest(aiRequest) {
                 switch response {

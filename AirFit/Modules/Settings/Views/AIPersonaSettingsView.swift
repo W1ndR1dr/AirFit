@@ -6,7 +6,7 @@ struct AIPersonaSettingsView: View {
     @State private var showPersonaRefinement = false
     @State private var previewText = "Let's crush today's workout! I see you're feeling energized - perfect timing for that strength session we planned."
     @State private var isGeneratingPreview = false
-    
+
     var body: some View {
         BaseScreen {
             ScrollView {
@@ -20,7 +20,7 @@ struct AIPersonaSettingsView: View {
                     .padding(.horizontal, AppSpacing.lg)
                     .padding(.top, AppSpacing.sm)
                     .padding(.bottom, AppSpacing.lg)
-                    
+
                     VStack(spacing: AppSpacing.xl) {
                         personaOverview
                         personaTraits
@@ -43,7 +43,7 @@ struct AIPersonaSettingsView: View {
             )
         }
     }
-    
+
     private var personaOverview: some View {
         VStack(alignment: .leading, spacing: AppSpacing.sm) {
             HStack {
@@ -53,7 +53,7 @@ struct AIPersonaSettingsView: View {
                     .foregroundStyle(.secondary.opacity(0.8))
                 Spacer()
             }
-            
+
             GlassCard {
                 VStack(alignment: .leading, spacing: AppSpacing.md) {
                     // Coach Identity
@@ -62,11 +62,11 @@ struct AIPersonaSettingsView: View {
                             VStack(alignment: .leading, spacing: AppSpacing.xs) {
                                 Text(persona.identity.name)
                                     .font(.title2.bold())
-                                
+
                                 Text(persona.identity.archetype)
                                     .font(.subheadline)
                                     .foregroundStyle(.secondary)
-                                
+
                                 // Uniqueness Score
                                 HStack(spacing: AppSpacing.xs) {
                                     Image(systemName: "sparkles")
@@ -76,9 +76,9 @@ struct AIPersonaSettingsView: View {
                                 }
                                 .foregroundStyle(Color.accentColor)
                             }
-                            
+
                             Spacer()
-                            
+
                             // Coach Avatar
                             Circle()
                                 .fill(LinearGradient(
@@ -93,15 +93,15 @@ struct AIPersonaSettingsView: View {
                                         .foregroundStyle(.white)
                                 }
                         }
-                        
+
                         Divider()
-                        
+
                         // Core Philosophy
                         VStack(alignment: .leading, spacing: AppSpacing.sm) {
                             Label("Core Philosophy", systemImage: "quote.bubble")
                                 .font(.subheadline)
                                 .foregroundStyle(.secondary)
-                            
+
                             Text(persona.coachingPhilosophy.core)
                                 .font(.callout)
                                 .italic()
@@ -112,10 +112,10 @@ struct AIPersonaSettingsView: View {
                             Image(systemName: "person.crop.circle.badge.questionmark")
                                 .font(.system(size: 60))
                                 .foregroundStyle(.secondary)
-                            
+
                             Text("No Coach Persona Configured")
                                 .font(.headline)
-                            
+
                             Text("Complete onboarding to generate your personalized AI coach")
                                 .font(.caption)
                                 .foregroundStyle(.secondary)
@@ -124,25 +124,25 @@ struct AIPersonaSettingsView: View {
                         .frame(maxWidth: .infinity)
                         .padding(.vertical)
                     }
-                    
+
                     if viewModel.coachPersona != nil {
                         Divider()
-                        
+
                         // Live Preview
                         VStack(alignment: .leading, spacing: AppSpacing.sm) {
                             HStack {
                                 Label("Live Preview", systemImage: "waveform")
                                     .font(.subheadline)
                                     .foregroundStyle(.secondary)
-                                
+
                                 Spacer()
-                                
+
                                 if isGeneratingPreview {
                                     ProgressView()
                                         .controlSize(.small)
                                 }
                             }
-                            
+
                             Text(previewText)
                                 .font(.callout)
                                 .padding()
@@ -160,7 +160,7 @@ struct AIPersonaSettingsView: View {
             }
         }
     }
-    
+
     private var personaTraits: some View {
         VStack(alignment: .leading, spacing: AppSpacing.sm) {
             HStack {
@@ -170,7 +170,7 @@ struct AIPersonaSettingsView: View {
                     .foregroundStyle(.secondary.opacity(0.8))
                 Spacer()
             }
-            
+
             GlassCard {
                 if let persona = viewModel.coachPersona {
                     LazyVGrid(columns: [
@@ -191,7 +191,7 @@ struct AIPersonaSettingsView: View {
             }
         }
     }
-    
+
     private var evolutionInsights: some View {
         VStack(alignment: .leading, spacing: AppSpacing.sm) {
             HStack {
@@ -201,7 +201,7 @@ struct AIPersonaSettingsView: View {
                     .foregroundStyle(.secondary.opacity(0.8))
                 Spacer()
             }
-            
+
             GlassCard {
                 VStack(spacing: AppSpacing.md) {
                     // Evolution Status
@@ -210,31 +210,31 @@ struct AIPersonaSettingsView: View {
                             Text("Adaptation Level")
                                 .font(.subheadline)
                                 .foregroundStyle(.secondary)
-                            
+
                             Text("\(viewModel.personaEvolution.adaptationLevel)/5")
                                 .font(.title3.bold())
                         }
-                        
+
                         Spacer()
-                        
+
                         VStack(alignment: .trailing, spacing: AppSpacing.xs) {
                             Text("Last Updated")
                                 .font(.subheadline)
                                 .foregroundStyle(.secondary)
-                            
+
                             Text(viewModel.personaEvolution.lastUpdateDate.formatted(.relative(presentation: .named)))
                                 .font(.caption)
                         }
                     }
-                    
+
                     Divider()
-                    
+
                     // Recent Adaptations
                     VStack(alignment: .leading, spacing: AppSpacing.sm) {
                         Text("Recent Adaptations")
                             .font(.subheadline)
                             .foregroundStyle(.secondary)
-                        
+
                         if viewModel.personaEvolution.recentAdaptations.isEmpty {
                             Text("No recent adaptations")
                                 .font(.caption)
@@ -245,12 +245,12 @@ struct AIPersonaSettingsView: View {
                                     Image(systemName: adaptation.icon)
                                         .font(.caption)
                                         .foregroundStyle(Color.accentColor)
-                                    
+
                                     Text(adaptation.description)
                                         .font(.caption)
-                                    
+
                                     Spacer()
-                                    
+
                                     Text(adaptation.date.formatted(.relative(presentation: .named)))
                                         .font(.caption2)
                                         .foregroundStyle(.tertiary)
@@ -262,7 +262,7 @@ struct AIPersonaSettingsView: View {
             }
         }
     }
-    
+
     private var communicationPreferences: some View {
         VStack(alignment: .leading, spacing: AppSpacing.sm) {
             HStack {
@@ -272,7 +272,7 @@ struct AIPersonaSettingsView: View {
                     .foregroundStyle(.secondary.opacity(0.8))
                 Spacer()
             }
-            
+
             GlassCard {
                 VStack(spacing: AppSpacing.md) {
                     if let persona = viewModel.coachPersona {
@@ -281,19 +281,19 @@ struct AIPersonaSettingsView: View {
                             value: persona.communicationStyle.tone.displayName,
                             icon: "speaker.wave.2"
                         )
-                        
+
                         CommunicationRow(
                             title: "Energy Level",
                             value: persona.communicationStyle.energyLevel.displayName,
                             icon: "bolt"
                         )
-                        
+
                         CommunicationRow(
                             title: "Detail Level",
                             value: persona.communicationStyle.detailLevel.displayName,
                             icon: "doc.text"
                         )
-                        
+
                         CommunicationRow(
                             title: "Humor Style",
                             value: String(describing: persona.communicationStyle.humorStyle),
@@ -310,7 +310,7 @@ struct AIPersonaSettingsView: View {
             }
         }
     }
-    
+
     private var personaActions: some View {
         VStack(spacing: AppSpacing.md) {
             Button(action: {
@@ -331,7 +331,7 @@ struct AIPersonaSettingsView: View {
                     .clipShape(RoundedRectangle(cornerRadius: 12))
             })
             .disabled(viewModel.coachPersona == nil)
-            
+
             Button {
                 generateNewPreview()
             } label: {
@@ -346,7 +346,7 @@ struct AIPersonaSettingsView: View {
                     )
             }
             .disabled(isGeneratingPreview || viewModel.coachPersona == nil)
-            
+
             // Natural Language Adjustment
             NavigationLink(destination: NaturalLanguagePersonaAdjustment(viewModel: viewModel)) {
                 Label("Adjust with Natural Language", systemImage: "text.quote")
@@ -362,19 +362,19 @@ struct AIPersonaSettingsView: View {
             .disabled(viewModel.coachPersona == nil)
         }
     }
-    
+
     private func generateNewPreview() {
         guard viewModel.coachPersona != nil else { return }
-        
+
         isGeneratingPreview = true
-        
+
         Task {
             do {
                 // Generate preview using actual coach persona
                 let preview = try await viewModel.generatePersonaPreview(
                     scenario: PreviewScenario.randomScenario()
                 )
-                
+
                 await MainActor.run {
                     withAnimation {
                         previewText = preview
@@ -395,18 +395,18 @@ struct AIPersonaSettingsView: View {
 // MARK: - Supporting Views
 struct TraitCard: View {
     let trait: PersonalityTrait
-    
+
     var body: some View {
         VStack(alignment: .leading, spacing: AppSpacing.xs) {
             HStack {
                 Image(systemName: trait.icon)
                     .font(.caption)
                     .foregroundStyle(Color.accentColor)
-                
+
                 Text(trait.name)
                     .font(.subheadline.bold())
             }
-            
+
             Text(trait.description)
                 .font(.caption2)
                 .foregroundStyle(.secondary)
@@ -425,14 +425,14 @@ struct CommunicationRow: View {
     let title: String
     let value: String
     let icon: String
-    
+
     var body: some View {
         HStack {
             Label(title, systemImage: icon)
                 .foregroundStyle(.primary)
-            
+
             Spacer()
-            
+
             Text(value)
                 .foregroundStyle(.secondary)
                 .fontWeight(.medium)
@@ -447,7 +447,7 @@ struct NaturalLanguagePersonaAdjustment: View {
     @State private var isProcessing = false
     @FocusState private var isTextFieldFocused: Bool
     @Environment(\.dismiss) private var dismiss
-    
+
     var body: some View {
         VStack(spacing: AppSpacing.xl) {
             // Instructions
@@ -455,11 +455,11 @@ struct NaturalLanguagePersonaAdjustment: View {
                 VStack(alignment: .leading, spacing: AppSpacing.sm) {
                     Label("Natural Language Adjustments", systemImage: "text.quote")
                         .font(.headline)
-                    
+
                     Text("Describe how you'd like your coach to change. For example:")
                         .font(.callout)
                         .foregroundStyle(.secondary)
-                    
+
                     VStack(alignment: .leading, spacing: AppSpacing.xs) {
                         Text("• \"Be more encouraging and less intense\"")
                         Text("• \"Use more data and analytics in your feedback\"")
@@ -469,20 +469,20 @@ struct NaturalLanguagePersonaAdjustment: View {
                     .foregroundStyle(.secondary)
                 }
             }
-            
+
             // Input Field
             GlassCard {
                 VStack(alignment: .leading, spacing: AppSpacing.sm) {
                     Text("Your Adjustment")
                         .font(.subheadline.bold())
-                    
+
                     TextField("Describe the change...", text: $adjustmentText, axis: .vertical)
                         .textFieldStyle(.plain)
                         .lineLimit(3...6)
                         .focused($isTextFieldFocused)
                 }
             }
-            
+
             // Apply Button
             Button {
                 applyAdjustment()
@@ -513,7 +513,7 @@ struct NaturalLanguagePersonaAdjustment: View {
                 }
             }
             .disabled(adjustmentText.isEmpty || isProcessing)
-            
+
             Spacer()
         }
         .padding()
@@ -523,14 +523,14 @@ struct NaturalLanguagePersonaAdjustment: View {
             isTextFieldFocused = true
         }
     }
-    
+
     private func applyAdjustment() {
         isProcessing = true
-        
+
         Task {
             do {
                 try await viewModel.applyNaturalLanguageAdjustment(adjustmentText)
-                
+
                 await MainActor.run {
                     isProcessing = false
                     adjustmentText = ""
@@ -558,7 +558,7 @@ struct ConversationalPersonaRefinement: View {
     @State private var isTyping = false
     @State private var showSuggestions = true
     @FocusState private var isInputFocused: Bool
-    
+
     private let suggestions = [
         "Be more encouraging and supportive",
         "Use simpler language, less jargon",
@@ -566,7 +566,7 @@ struct ConversationalPersonaRefinement: View {
         "Be more data-driven in your feedback",
         "Push me harder during workouts"
     ]
-    
+
     var body: some View {
         NavigationStack {
             VStack(spacing: 0) {
@@ -584,7 +584,7 @@ struct ConversationalPersonaRefinement: View {
                                 ),
                                 currentPersona: currentPersona
                             )
-                            
+
                             // Conversation messages
                             ForEach(messages) { message in
                                 RefinementMessageBubble(
@@ -592,7 +592,7 @@ struct ConversationalPersonaRefinement: View {
                                     currentPersona: currentPersona
                                 )
                             }
-                            
+
                             // Typing indicator
                             if isTyping {
                                 HStack {
@@ -601,7 +601,7 @@ struct ConversationalPersonaRefinement: View {
                                     Spacer()
                                 }
                             }
-                            
+
                             Color.clear
                                 .frame(height: 1)
                                 .id("bottom")
@@ -614,9 +614,9 @@ struct ConversationalPersonaRefinement: View {
                         }
                     }
                 }
-                
+
                 Divider()
-                
+
                 // Suggestions
                 if showSuggestions && messages.isEmpty {
                     ScrollView(.horizontal, showsIndicators: false) {
@@ -638,10 +638,10 @@ struct ConversationalPersonaRefinement: View {
                         .padding(.horizontal)
                         .padding(.vertical, AppSpacing.sm)
                     }
-                    
+
                     Divider()
                 }
-                
+
                 // Input area
                 HStack(spacing: AppSpacing.md) {
                     TextField("Type your refinement request...", text: $inputText, axis: .vertical)
@@ -651,7 +651,7 @@ struct ConversationalPersonaRefinement: View {
                         .onSubmit {
                             sendMessage(inputText)
                         }
-                    
+
                     Button {
                         sendMessage(inputText)
                     } label: {
@@ -670,7 +670,7 @@ struct ConversationalPersonaRefinement: View {
                 ToolbarItem(placement: .cancellationAction) {
                     Button("Cancel") { dismiss() }
                 }
-                
+
                 ToolbarItem(placement: .confirmationAction) {
                     Button("Done") {
                         applyRefinements()
@@ -684,10 +684,10 @@ struct ConversationalPersonaRefinement: View {
             }
         }
     }
-    
+
     private func sendMessage(_ text: String) {
         guard !text.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty else { return }
-        
+
         // Add user message
         let userMessage = RefinementMessage(
             id: UUID(),
@@ -698,13 +698,13 @@ struct ConversationalPersonaRefinement: View {
         messages.append(userMessage)
         inputText = ""
         showSuggestions = false
-        
+
         // Simulate AI response
         isTyping = true
-        
+
         Task {
             try? await Task.sleep(nanoseconds: 2_000_000_000) // 2 seconds
-            
+
             await MainActor.run {
                 let response = generateResponse(for: text)
                 let aiMessage = RefinementMessage(
@@ -719,7 +719,7 @@ struct ConversationalPersonaRefinement: View {
             }
         }
     }
-    
+
     private func generateResponse(for input: String) -> String {
         // Simulate intelligent responses based on input
         if input.lowercased().contains("encouraging") {
@@ -734,7 +734,7 @@ struct ConversationalPersonaRefinement: View {
             return "I understand! I'll adjust my coaching style based on your feedback. These changes will help me be a better coach for you. Is there anything else you'd like me to adjust?"
         }
     }
-    
+
     private func applyRefinements() {
         // In a real implementation, this would process the conversation
         // and update the persona accordingly
@@ -752,13 +752,13 @@ struct RefinementMessage: Identifiable {
 struct RefinementMessageBubble: View {
     let message: RefinementMessage
     let currentPersona: CoachPersona?
-    
+
     var body: some View {
         HStack {
             if message.isUser {
                 Spacer()
             }
-            
+
             VStack(alignment: message.isUser ? .trailing : .leading, spacing: AppSpacing.xs) {
                 Text(message.content)
                     .font(.callout)
@@ -771,13 +771,13 @@ struct RefinementMessageBubble: View {
                     .clipShape(
                         RoundedRectangle(cornerRadius: AppSpacing.radiusMd)
                     )
-                
+
                 Text(message.timestamp.formatted(date: .omitted, time: .shortened))
                     .font(.caption2)
                     .foregroundStyle(.secondary)
             }
             .frame(maxWidth: 280, alignment: message.isUser ? .trailing : .leading)
-            
+
             if !message.isUser {
                 Spacer()
             }
@@ -787,7 +787,7 @@ struct RefinementMessageBubble: View {
 
 struct TypingIndicator: View {
     @State private var animationPhase = 0
-    
+
     var body: some View {
         HStack(spacing: AppSpacing.xs) {
             ForEach(0..<3) { index in

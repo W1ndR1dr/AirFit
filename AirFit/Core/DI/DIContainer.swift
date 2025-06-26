@@ -10,22 +10,22 @@ public final class DIContainer: @unchecked Sendable {
         case transient  // New instance each time
         case scoped     // Shared within a scope (e.g., per-screen)
     }
-    
+
     // MARK: - Private Properties
-    
+
     private var registrations: [String: Registration] = [:]
     private var singletonInstances: [String: Any] = [:]
     private var scopedInstances: [String: Any] = [:]
     private let parent: DIContainer?
-    
+
     // MARK: - Initialization
-    
+
     public init(parent: DIContainer? = nil) {
         self.parent = parent
     }
-    
+
     // MARK: - Registration
-    
+
     /// Register a factory for a service type
     public func register<T>(
         _ type: T.Type,
@@ -39,7 +39,7 @@ public final class DIContainer: @unchecked Sendable {
             factory: { container in try await factory(container) }
         )
     }
-    
+
     /// Register a singleton instance directly
     public func registerSingleton<T: Sendable>(
         _ type: T.Type,
@@ -49,25 +49,25 @@ public final class DIContainer: @unchecked Sendable {
         let key = makeKey(type: type, name: name)
         registrations[key] = Registration(lifetime: .singleton, factory: { _ in instance })
         singletonInstances[key] = instance
-        
+
         // Debug logging
         AppLogger.info("DI: Registered \(String(describing: type)) with key: \(key)", category: .app)
     }
-    
+
     // MARK: - Resolution
-    
+
     /// Resolve a dependency
     public func resolve<T>(_ type: T.Type, name: String? = nil) async throws -> T {
         let key = makeKey(type: type, name: name)
-        
+
         // Debug logging
         AppLogger.info("DI: Resolving \(String(describing: type)) with key: \(key)", category: .app)
-        
+
         // Check if we have a registration
         guard let registration = findRegistration(for: key) else {
             throw DIError.notRegistered(String(describing: type))
         }
-        
+
         // Return existing instance if available
         switch registration.lifetime {
         case .singleton:
@@ -81,13 +81,13 @@ public final class DIContainer: @unchecked Sendable {
         case .transient:
             break
         }
-        
+
         // Create new instance
         let instance = try await registration.factory(self)
         guard let typedInstance = instance as? T else {
             throw DIError.invalidType(String(describing: type))
         }
-        
+
         // Store if needed
         switch registration.lifetime {
         case .singleton:
@@ -97,17 +97,17 @@ public final class DIContainer: @unchecked Sendable {
         case .transient:
             break
         }
-        
+
         return typedInstance
     }
-    
+
     /// Create a child container for scoped dependencies
     public func createScope() -> DIContainer {
         return DIContainer(parent: self)
     }
-    
+
     // MARK: - Private Methods
-    
+
     private func makeKey(type: Any.Type, name: String?) -> String {
         let typeKey = String(describing: type)
         if let name = name {
@@ -116,7 +116,7 @@ public final class DIContainer: @unchecked Sendable {
         }
         return typeKey
     }
-    
+
     private func findRegistration(for key: String) -> Registration? {
         registrations[key] ?? parent?.findRegistration(for: key)
     }
@@ -135,7 +135,7 @@ public enum DIError: LocalizedError {
     case notRegistered(String)
     case invalidType(String)
     case resolutionFailed(String)
-    
+
     public var errorDescription: String? {
         switch self {
         case .notRegistered(let type):

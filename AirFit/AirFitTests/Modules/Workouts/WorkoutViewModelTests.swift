@@ -16,28 +16,28 @@ final class WorkoutViewModelTests: XCTestCase {
     // MARK: - Setup
     override func setUp() throws {
         try super.setUp()
-        
+
         let expectation = XCTestExpectation(description: "Setup complete")
-        
+
         Task { @MainActor in
             // Create test container
             container = try await DITestHelper.createTestContainer()
-            
+
             // Get model context from container
             let modelContainer = try await container.resolve(ModelContainer.self)
             modelContext = modelContainer.mainContext
-            
+
             // Create test user
             user = User(name: "Tester")
             modelContext.insert(user)
             try modelContext.save()
-            
+
             // Get mocks from container
             // Create mock coach directly - not registered in DI
             mockCoach = MockWorkoutCoachEngine()
             mockHealthKitManager = try await container.resolve(HealthKitManaging.self) as? MockHealthKitManager
             mockWorkoutService = try await container.resolve(WorkoutServiceProtocol.self) as? MockWorkoutService
-            
+
             // Create SUT
             sut = WorkoutViewModel(
                 modelContext: modelContext,
@@ -47,16 +47,16 @@ final class WorkoutViewModelTests: XCTestCase {
                 exerciseDatabase: ExerciseDatabase.shared,
                 workoutSyncService: WorkoutSyncService.shared
             )
-            
+
             expectation.fulfill()
         }
-        
+
         wait(for: [expectation], timeout: 5.0)
     }
 
     override func tearDown() throws {
         let expectation = XCTestExpectation(description: "Teardown complete")
-        
+
         Task { @MainActor in
             mockCoach?.reset()
             await mockHealthKitManager?.reset()
@@ -70,13 +70,13 @@ final class WorkoutViewModelTests: XCTestCase {
             container = nil
             expectation.fulfill()
         }
-        
+
         wait(for: [expectation], timeout: 5.0)
         try super.tearDown()
     }
 
     // MARK: - Workout Loading Tests
-    
+
     func test_loadWorkouts_withNoWorkouts_shouldReturnEmptyArray() async throws {
         // Act
         await sut.loadWorkouts()
@@ -352,7 +352,7 @@ final class WorkoutViewModelTests: XCTestCase {
         XCTAssertEqual(sut.aiWorkoutSummary, "Progressive improvement", "AI analysis should be set")
         XCTAssertTrue(mockCoach.didGenerateAnalysis, "Coach engine should have been called")
         XCTAssertFalse(sut.isGeneratingAnalysis, "Loading state should be false after completion")
-        
+
         // The fact that we got the analysis proves the coach was called correctly
         // This is more reliable than mock verification in async contexts
     }
@@ -631,11 +631,11 @@ final class MockWorkoutCoachEngine: CoachEngineProtocol, @unchecked Sendable {
     nonisolated(unsafe) var didGenerateAnalysis: Bool = false
     nonisolated(unsafe) var shouldThrowError: Bool = false
     nonisolated(unsafe) var processUserMessageCalled: Bool = false
-    
+
     func processUserMessage(_ text: String, for user: User) async {
         processUserMessageCalled = true
     }
-    
+
     func generatePostWorkoutAnalysis(_ request: PostWorkoutAnalysisRequest) async throws -> String {
         didGenerateAnalysis = true
         if shouldThrowError {
@@ -643,13 +643,13 @@ final class MockWorkoutCoachEngine: CoachEngineProtocol, @unchecked Sendable {
         }
         return mockAnalysis
     }
-    
+
     func reset() {
         mockAnalysis = "Mock analysis"
         didGenerateAnalysis = false
         shouldThrowError = false
         processUserMessageCalled = false
     }
-    
+
     struct TestError: Error {}
 }

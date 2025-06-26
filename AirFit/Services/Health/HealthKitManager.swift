@@ -3,7 +3,7 @@ import HealthKit
 import Observation
 
 /// # HealthKitManager
-/// 
+///
 /// ## Purpose
 /// Comprehensive health data integration service that manages all HealthKit operations.
 /// Provides bidirectional sync between AirFit and Apple Health for fitness and nutrition data.
@@ -24,13 +24,13 @@ import Observation
 /// ## Usage
 /// ```swift
 /// let healthKit = await container.resolve(HealthKitManagerProtocol.self)
-/// 
+///
 /// // Request authorization
 /// try await healthKit.requestAuthorization()
-/// 
+///
 /// // Fetch today's metrics
 /// let activity = try await healthKit.fetchTodayActivityMetrics()
-/// 
+///
 /// // Save nutrition data
 /// let sampleIDs = try await healthKit.saveFoodEntry(foodEntry)
 /// ```
@@ -47,7 +47,7 @@ final class HealthKitManager: HealthKitManaging, ServiceProtocol {
     private let dataFetcher: HealthKitDataFetcher
     private let sleepAnalyzer: HealthKitSleepAnalyzer
     private(set) var authorizationStatus: AuthorizationStatus = .notDetermined
-    
+
     // MARK: - ServiceProtocol
     nonisolated let serviceIdentifier = "healthkit-manager"
     private var _isConfigured = false
@@ -93,32 +93,32 @@ final class HealthKitManager: HealthKitManaging, ServiceProtocol {
         self.dataFetcher = HealthKitDataFetcher(healthStore: healthStore)
         self.sleepAnalyzer = HealthKitSleepAnalyzer(healthStore: healthStore)
     }
-    
+
     // MARK: - ServiceProtocol Methods
-    
+
     func configure() async throws {
         guard !_isConfigured else { return }
-        
+
         refreshAuthorizationStatus()
         _isConfigured = true
-        
+
         AppLogger.info("HealthKitManager configured", category: .health)
     }
-    
+
     func reset() async {
         authorizationStatus = .notDetermined
         _isConfigured = false
         AppLogger.info("HealthKitManager reset", category: .health)
     }
-    
+
     nonisolated func healthCheck() async -> ServiceHealth {
         await MainActor.run {
             let canAccessHealthKit = HKHealthStore.isHealthDataAvailable()
             let hasAuthorization = authorizationStatus == .authorized
-            
+
             let status: ServiceHealth.Status
             let errorMessage: String?
-            
+
             if !canAccessHealthKit {
                 status = .unhealthy
                 errorMessage = "HealthKit not available on this device"
@@ -129,7 +129,7 @@ final class HealthKitManager: HealthKitManaging, ServiceProtocol {
                 status = .healthy
                 errorMessage = nil
             }
-            
+
             return ServiceHealth(
                 status: status,
                 lastCheckTime: Date(),
@@ -146,7 +146,7 @@ final class HealthKitManager: HealthKitManaging, ServiceProtocol {
     // MARK: - Authorization
     func requestAuthorization() async throws {
         AppLogger.info("HealthKit: Starting authorization request", category: .health)
-        
+
         guard HKHealthStore.isHealthDataAvailable() else {
             authorizationStatus = .restricted
             AppLogger.error("HealthKit: Not available on this device", category: .health)
@@ -155,15 +155,15 @@ final class HealthKitManager: HealthKitManaging, ServiceProtocol {
 
         do {
             AppLogger.info("HealthKit: Requesting authorization for \(HealthKitDataTypes.readTypes.count) read types and \(HealthKitDataTypes.writeTypes.count) write types", category: .health)
-            
+
             try await healthStore.requestAuthorization(
                 toShare: HealthKitDataTypes.writeTypes,
                 read: HealthKitDataTypes.readTypes
             )
-            
+
             // Check actual authorization status after request
             refreshAuthorizationStatus()
-            
+
             AppLogger.info("HealthKit: Authorization request completed, status: \(authorizationStatus)", category: .health)
 
             // Enable background delivery after successful authorization
@@ -245,7 +245,7 @@ final class HealthKitManager: HealthKitManaging, ServiceProtocol {
             identifier: .appleMoveTime, start: startDate, end: endDate, unit: HKUnit.minute()
         )
         async let currentHR = dataFetcher.fetchLatestQuantitySample(
-            identifier: .heartRate, 
+            identifier: .heartRate,
             unit: HKUnit.count().unitDivided(by: HKUnit.minute()),
             daysBack: 1  // Only look at today's HR
         )
@@ -266,15 +266,15 @@ final class HealthKitManager: HealthKitManaging, ServiceProtocol {
         metrics.workoutType = activeWorkout?.workoutActivityType
         // Calculate progress from goals
         let (moveGoal, exerciseGoal, standGoal) = try await fetchActivityGoals()
-        
+
         if let calories = metrics.activeEnergyBurned?.value, let goal = moveGoal {
             metrics.moveProgress = calories / goal
         }
-        
+
         if let minutes = metrics.exerciseMinutes, let goal = exerciseGoal {
             metrics.exerciseProgress = Double(minutes) / Double(goal)
         }
-        
+
         if let hours = metrics.standHours, let goal = standGoal {
             metrics.standProgress = Double(hours) / Double(goal)
         }
@@ -301,7 +301,7 @@ final class HealthKitManager: HealthKitManaging, ServiceProtocol {
         let respiratoryRate: Double? = nil
         let vo2Max: Double? = nil
         let recovery: Double? = nil
-        
+
         // Await only the critical metrics
         let restingHRValue = try await restingHR
         let hrvValue = try await hrv
@@ -363,60 +363,60 @@ final class HealthKitManager: HealthKitManaging, ServiceProtocol {
         // Limit sleep analysis to reduce data volume
         return try await sleepAnalyzer.analyzeSleepSamples(from: startDate, to: endDate, limit: 100)
     }
-    
+
     /// Fetches workout data within date range
     func getWorkoutData(from startDate: Date, to endDate: Date) async -> [WorkoutData] {
         // Create predicate for date range
         let predicate = HKQuery.predicateForSamples(withStart: startDate, end: endDate, options: .strictStartDate)
-        
+
         // Create query
         let sortDescriptor = NSSortDescriptor(key: HKSampleSortIdentifierStartDate, ascending: false)
-        
+
         // Use HKWorkoutType
         let workoutType = HKObjectType.workoutType()
-        
+
         // Execute query with async/await
         return await withCheckedContinuation { continuation in
-                let query = HKSampleQuery(
-                    sampleType: workoutType,
-                    predicate: predicate,
-                    limit: 20,  // Limit to recent 20 workouts instead of unlimited
-                    sortDescriptors: [sortDescriptor]
-                ) { (_, samples, error) in
-                    if let error = error {
-                        AppLogger.error("Failed to fetch workouts", error: error, category: .health)
-                        continuation.resume(returning: [])
-                        return
-                    }
-                    
-                    let workouts = (samples as? [HKWorkout] ?? []).map { workout in
-                        // Use statistics for activeEnergyBurned instead of deprecated totalEnergyBurned
-                        let activeEnergy = workout.statistics(for: HKQuantityType(.activeEnergyBurned))?.sumQuantity()
-                        
-                        return WorkoutData(
-                            id: workout.uuid,
-                            duration: workout.duration,
-                            totalCalories: activeEnergy?.doubleValue(for: .kilocalorie()),
-                            workoutType: workout.workoutActivityType,
-                            startDate: workout.startDate,
-                            endDate: workout.endDate
-                        )
-                    }
-                    
-                    continuation.resume(returning: workouts)
+            let query = HKSampleQuery(
+                sampleType: workoutType,
+                predicate: predicate,
+                limit: 20,  // Limit to recent 20 workouts instead of unlimited
+                sortDescriptors: [sortDescriptor]
+            ) { (_, samples, error) in
+                if let error = error {
+                    AppLogger.error("Failed to fetch workouts", error: error, category: .health)
+                    continuation.resume(returning: [])
+                    return
                 }
-                
-                healthStore.execute(query)
+
+                let workouts = (samples as? [HKWorkout] ?? []).map { workout in
+                    // Use statistics for activeEnergyBurned instead of deprecated totalEnergyBurned
+                    let activeEnergy = workout.statistics(for: HKQuantityType(.activeEnergyBurned))?.sumQuantity()
+
+                    return WorkoutData(
+                        id: workout.uuid,
+                        duration: workout.duration,
+                        totalCalories: activeEnergy?.doubleValue(for: .kilocalorie()),
+                        workoutType: workout.workoutActivityType,
+                        startDate: workout.startDate,
+                        endDate: workout.endDate
+                    )
+                }
+
+                continuation.resume(returning: workouts)
+            }
+
+            healthStore.execute(query)
         }
     }
-    
+
     // MARK: - Nutrition Writing
-    
+
     /// Saves nutrition data from a food entry to HealthKit
     func saveFoodEntry(_ entry: FoodEntry) async throws -> [String] {
         var savedSampleIDs: [String] = []
         var samples: [HKQuantitySample] = []
-        
+
         // Calculate totals from all food items
         var totalCalories: Double = 0
         var totalProtein: Double = 0
@@ -425,7 +425,7 @@ final class HealthKitManager: HealthKitManaging, ServiceProtocol {
         var totalFiber: Double = 0
         var totalSugar: Double = 0
         var totalSodium: Double = 0
-        
+
         for item in entry.items {
             totalCalories += item.calories ?? 0
             totalProtein += item.proteinGrams ?? 0
@@ -435,16 +435,16 @@ final class HealthKitManager: HealthKitManaging, ServiceProtocol {
             totalSugar += item.sugarGrams ?? 0
             totalSodium += item.sodiumMg ?? 0
         }
-        
+
         let metadata: [String: Any] = [
             "AirFitFoodEntryID": entry.id.uuidString,
             "AirFitMealType": entry.mealType,
             "AirFitSource": "User Input",
             "AirFitItemCount": entry.items.count
         ]
-        
+
         let date = entry.loggedAt
-        
+
         // Create samples for each nutrient
         if totalCalories > 0,
            let type = HKQuantityType.quantityType(forIdentifier: .dietaryEnergyConsumed) {
@@ -452,55 +452,55 @@ final class HealthKitManager: HealthKitManaging, ServiceProtocol {
             let sample = HKQuantitySample(type: type, quantity: quantity, start: date, end: date, metadata: metadata)
             samples.append(sample)
         }
-        
+
         if totalProtein > 0,
            let type = HKQuantityType.quantityType(forIdentifier: .dietaryProtein) {
             let quantity = HKQuantity(unit: .gram(), doubleValue: totalProtein)
             let sample = HKQuantitySample(type: type, quantity: quantity, start: date, end: date, metadata: metadata)
             samples.append(sample)
         }
-        
+
         if totalCarbs > 0,
            let type = HKQuantityType.quantityType(forIdentifier: .dietaryCarbohydrates) {
             let quantity = HKQuantity(unit: .gram(), doubleValue: totalCarbs)
             let sample = HKQuantitySample(type: type, quantity: quantity, start: date, end: date, metadata: metadata)
             samples.append(sample)
         }
-        
+
         if totalFat > 0,
            let type = HKQuantityType.quantityType(forIdentifier: .dietaryFatTotal) {
             let quantity = HKQuantity(unit: .gram(), doubleValue: totalFat)
             let sample = HKQuantitySample(type: type, quantity: quantity, start: date, end: date, metadata: metadata)
             samples.append(sample)
         }
-        
+
         if totalFiber > 0,
            let type = HKQuantityType.quantityType(forIdentifier: .dietaryFiber) {
             let quantity = HKQuantity(unit: .gram(), doubleValue: totalFiber)
             let sample = HKQuantitySample(type: type, quantity: quantity, start: date, end: date, metadata: metadata)
             samples.append(sample)
         }
-        
+
         if totalSugar > 0,
            let type = HKQuantityType.quantityType(forIdentifier: .dietarySugar) {
             let quantity = HKQuantity(unit: .gram(), doubleValue: totalSugar)
             let sample = HKQuantitySample(type: type, quantity: quantity, start: date, end: date, metadata: metadata)
             samples.append(sample)
         }
-        
+
         if totalSodium > 0,
            let type = HKQuantityType.quantityType(forIdentifier: .dietarySodium) {
             let quantity = HKQuantity(unit: .gramUnit(with: .milli), doubleValue: totalSodium)
             let sample = HKQuantitySample(type: type, quantity: quantity, start: date, end: date, metadata: metadata)
             samples.append(sample)
         }
-        
+
         // Save all samples
         guard !samples.isEmpty else {
             AppLogger.warning("No nutrition data to save for food entry", category: .health)
             return []
         }
-        
+
         try await withCheckedThrowingContinuation { (continuation: CheckedContinuation<Void, Error>) in
             healthStore.save(samples) { success, error in
                 if let error = error {
@@ -512,28 +512,28 @@ final class HealthKitManager: HealthKitManaging, ServiceProtocol {
                 }
             }
         }
-        
+
         // Collect sample IDs
         savedSampleIDs = samples.map { $0.uuid.uuidString }
-        
+
         AppLogger.info("Saved \(samples.count) nutrition samples to HealthKit for food entry", category: .health)
         return savedSampleIDs
     }
-    
+
     /// Saves water intake to HealthKit
     func saveWaterIntake(amountML: Double, date: Date = Date()) async throws -> String? {
         guard let type = HKQuantityType.quantityType(forIdentifier: .dietaryWater) else {
             throw AppError.from(HealthKitError.notAvailable)
         }
-        
+
         let quantity = HKQuantity(unit: .literUnit(with: .milli), doubleValue: amountML)
         let metadata: [String: Any] = [
             "AirFitSource": "Water Tracking",
             "AirFitTimestamp": date.timeIntervalSince1970
         ]
-        
+
         let sample = HKQuantitySample(type: type, quantity: quantity, start: date, end: date, metadata: metadata)
-        
+
         try await withCheckedThrowingContinuation { (continuation: CheckedContinuation<Void, Error>) in
             healthStore.save(sample) { success, error in
                 if let error = error {
@@ -545,25 +545,25 @@ final class HealthKitManager: HealthKitManaging, ServiceProtocol {
                 }
             }
         }
-        
+
         AppLogger.info("Saved water intake of \(amountML)ml to HealthKit", category: .health)
         return sample.uuid.uuidString
     }
-    
+
     // MARK: - Nutrition Reading
-    
+
     /// Fetches nutrition data for a specific date
     func getNutritionData(for date: Date) async throws -> HealthKitNutritionSummary {
         let calendar = Calendar.current
         let startOfDay = calendar.startOfDay(for: date)
         let endOfDay = calendar.date(byAdding: .day, value: 1, to: startOfDay) ?? date
-        
+
         let predicate = HKQuery.predicateForSamples(
             withStart: startOfDay,
             end: endOfDay,
             options: .strictStartDate
         )
-        
+
         // Fetch all nutrition types
         let calories = try await fetchNutritionSum(for: .dietaryEnergyConsumed, unit: .kilocalorie(), predicate: predicate)
         let protein = try await fetchNutritionSum(for: .dietaryProtein, unit: .gram(), predicate: predicate)
@@ -573,7 +573,7 @@ final class HealthKitManager: HealthKitManaging, ServiceProtocol {
         let sugar = try await fetchNutritionSum(for: .dietarySugar, unit: .gram(), predicate: predicate)
         let sodium = try await fetchNutritionSum(for: .dietarySodium, unit: .gramUnit(with: .milli), predicate: predicate)
         let water = try await fetchNutritionSum(for: .dietaryWater, unit: .literUnit(with: .milli), predicate: predicate)
-        
+
         return HealthKitNutritionSummary(
             calories: calories,
             protein: protein,
@@ -586,7 +586,7 @@ final class HealthKitManager: HealthKitManaging, ServiceProtocol {
             date: date
         )
     }
-    
+
     private nonisolated func fetchNutritionSum(
         for identifier: HKQuantityTypeIdentifier,
         unit: HKUnit,
@@ -595,7 +595,7 @@ final class HealthKitManager: HealthKitManaging, ServiceProtocol {
         guard let type = HKQuantityType.quantityType(forIdentifier: identifier) else {
             return 0
         }
-        
+
         return try await withCheckedThrowingContinuation { continuation in
             let query = HKStatisticsQuery(
                 quantityType: type,
@@ -610,29 +610,29 @@ final class HealthKitManager: HealthKitManaging, ServiceProtocol {
                     continuation.resume(returning: 0)
                 }
             }
-            
+
             HKHealthStore().execute(query)
         }
     }
-    
+
     // MARK: - Workout Writing
-    
+
     /// Saves a workout to HealthKit
     func saveWorkout(_ workout: Workout) async throws -> String {
         guard let workoutType = workout.workoutTypeEnum else {
             throw AppError.from(HealthKitError.invalidData)
         }
-        
+
         let hkWorkoutType = workoutType.toHealthKitType()
         let startDate = workout.plannedDate ?? Date()
         let endDate = workout.completedDate ?? Date()
-        
+
         // Create energy burned quantity
         var totalEnergy: HKQuantity?
         if let calories = workout.caloriesBurned {
             totalEnergy = HKQuantity(unit: .kilocalorie(), doubleValue: calories)
         }
-        
+
         // Create workout metadata
         let metadata: [String: Any] = [
             "AirFitWorkoutID": workout.id.uuidString,
@@ -640,18 +640,18 @@ final class HealthKitManager: HealthKitManaging, ServiceProtocol {
             "AirFitIntensity": workout.intensity ?? "moderate",
             "AirFitSource": "AirFit App"
         ]
-        
+
         // Create workout using HKWorkoutBuilder for iOS 17+
         let configuration = HKWorkoutConfiguration()
         configuration.activityType = hkWorkoutType
-        
+
         let builder = HKWorkoutBuilder(healthStore: healthStore, configuration: configuration, device: nil)
-        
+
         try await builder.beginCollection(at: startDate)
-        
+
         // Add metadata
         try await builder.addMetadata(metadata)
-        
+
         // Add energy burned if available
         if let totalEnergy = totalEnergy {
             let energySample = HKQuantitySample(
@@ -670,7 +670,7 @@ final class HealthKitManager: HealthKitManaging, ServiceProtocol {
                 }
             }
         }
-        
+
         // Add distance if available
         if let distance = workout.distance {
             let distanceQuantity = HKQuantity(unit: .meter(), doubleValue: distance)
@@ -690,15 +690,15 @@ final class HealthKitManager: HealthKitManaging, ServiceProtocol {
                 }
             }
         }
-        
+
         // End collection and finish workout
         try await builder.endCollection(at: endDate)
         let hkWorkout = try await builder.finishWorkout()
-        
+
         guard let hkWorkout = hkWorkout else {
             throw AppError.from(HealthKitError.invalidData)
         }
-        
+
         // Save workout
         try await withCheckedThrowingContinuation { (continuation: CheckedContinuation<Void, Error>) in
             healthStore.save(hkWorkout) { success, error in
@@ -711,20 +711,20 @@ final class HealthKitManager: HealthKitManaging, ServiceProtocol {
                 }
             }
         }
-        
+
         AppLogger.info("Saved workout to HealthKit: \(workout.name)", category: .health)
         return hkWorkout.uuid.uuidString
     }
-    
+
     /// Deletes a workout from HealthKit
     func deleteWorkout(healthKitID: String) async throws {
         guard let uuid = UUID(uuidString: healthKitID) else {
             throw AppError.from(HealthKitError.invalidData)
         }
-        
+
         // Create predicate to find the workout
         let predicate = HKQuery.predicateForObject(with: uuid)
-        
+
         // Query for the workout
         let workouts = try await withCheckedThrowingContinuation { (continuation: CheckedContinuation<[HKWorkout], Error>) in
             let query = HKSampleQuery(
@@ -742,11 +742,11 @@ final class HealthKitManager: HealthKitManaging, ServiceProtocol {
             }
             healthStore.execute(query)
         }
-        
+
         guard let workout = workouts.first else {
             throw AppError.from(HealthKitError.dataNotFound)
         }
-        
+
         // Delete the workout
         try await withCheckedThrowingContinuation { (continuation: CheckedContinuation<Void, Error>) in
             healthStore.delete(workout) { success, error in
@@ -759,22 +759,22 @@ final class HealthKitManager: HealthKitManaging, ServiceProtocol {
                 }
             }
         }
-        
+
         AppLogger.info("Deleted workout from HealthKit", category: .health)
     }
-    
+
     // MARK: - Workout Detection
-    
+
     /// Fetches currently active workout if any
     private func fetchActiveWorkout() async throws -> HKWorkout? {
         let now = Date()
         let oneHourAgo = now.addingTimeInterval(-3_600)
-        
+
         // Create predicate for workouts that started within the last hour and have no end date
         let startDatePredicate = HKQuery.predicateForSamples(withStart: oneHourAgo, end: now, options: .strictStartDate)
         let noEndDatePredicate = NSPredicate(format: "endDate == nil")
         let predicate = NSCompoundPredicate(andPredicateWithSubpredicates: [startDatePredicate, noEndDatePredicate])
-        
+
         let workouts = try await withCheckedThrowingContinuation { (continuation: CheckedContinuation<[HKWorkout], Error>) in
             let query = HKSampleQuery(
                 sampleType: HKObjectType.workoutType(),
@@ -791,21 +791,21 @@ final class HealthKitManager: HealthKitManaging, ServiceProtocol {
             }
             healthStore.execute(query)
         }
-        
+
         return workouts.first
     }
-    
+
     /// Fetches activity goals from HealthKit
     private func fetchActivityGoals() async throws -> (move: Double?, exercise: Int?, stand: Int?) {
         // Get activity summary for today
         let calendar = Calendar.current
         let today = calendar.startOfDay(for: Date())
-        
+
         let goalData = try await withCheckedThrowingContinuation { (continuation: CheckedContinuation<(move: Double?, exercise: Int?, stand: Int?), Error>) in
             let components = calendar.dateComponents([.year, .month, .day], from: today)
             let endComponents = calendar.dateComponents([.year, .month, .day], from: Date())
             let predicate = HKQuery.predicate(forActivitySummariesBetweenStart: components, end: endComponents)
-            
+
             let query = HKActivitySummaryQuery(predicate: predicate) { _, summaries, error in
                 if let error = error {
                     continuation.resume(throwing: error)
@@ -814,7 +814,7 @@ final class HealthKitManager: HealthKitManaging, ServiceProtocol {
                     let moveGoal = summary.activeEnergyBurnedGoal.doubleValue(for: HKUnit.kilocalorie())
                     let exerciseGoal = Int(summary.appleExerciseTimeGoal.doubleValue(for: HKUnit.minute()))
                     let standGoal = Int(summary.appleStandHoursGoal.doubleValue(for: HKUnit.count()))
-                    
+
                     continuation.resume(returning: (
                         move: moveGoal > 0 ? moveGoal : nil,
                         exercise: exerciseGoal > 0 ? exerciseGoal : nil,
@@ -825,38 +825,38 @@ final class HealthKitManager: HealthKitManaging, ServiceProtocol {
                     continuation.resume(returning: (move: 500, exercise: 30, stand: 12))
                 }
             }
-            
+
             healthStore.execute(query)
         }
-        
+
         return goalData
     }
-    
+
     /// Calculates heart rate recovery based on recent workout data
     private func calculateHeartRateRecovery() async -> Int? {
         // Get recent workouts (last 7 days)
         let calendar = Calendar.current
         let endDate = Date()
         let startDate = calendar.date(byAdding: .day, value: -7, to: endDate) ?? endDate
-        
+
         do {
             let workouts = try await dataFetcher.fetchWorkouts(from: startDate, to: endDate)
-            
+
             // Find workouts with heart rate recovery data
             var recoveryValues: [Int] = []
-            
+
             for workout in workouts {
                 // Get heart rate samples during and after workout
                 let workoutEnd = workout.endDate
                 let recoveryWindow = workoutEnd.addingTimeInterval(60) // 1 minute after workout
-                
+
                 let hrSamples = try await dataFetcher.fetchQuantitySamples(
                     identifier: .heartRate,
                     unit: HKUnit.count().unitDivided(by: HKUnit.minute()),
                     from: workoutEnd,
                     to: recoveryWindow
                 )
-                
+
                 // Get peak HR during workout
                 let peakHR = try await dataFetcher.fetchQuantitySamples(
                     identifier: .heartRate,
@@ -864,40 +864,40 @@ final class HealthKitManager: HealthKitManaging, ServiceProtocol {
                     from: workout.startDate,
                     to: workoutEnd
                 ).max(by: { $0.quantity.doubleValue(for: HKUnit.count().unitDivided(by: HKUnit.minute())) <
-                          $1.quantity.doubleValue(for: HKUnit.count().unitDivided(by: HKUnit.minute())) })
-                
+                        $1.quantity.doubleValue(for: HKUnit.count().unitDivided(by: HKUnit.minute())) })
+
                 guard let peak = peakHR,
                       let recoveryHR = hrSamples.last else { continue }
-                
+
                 let peakValue = Int(peak.quantity.doubleValue(for: HKUnit.count().unitDivided(by: HKUnit.minute())))
                 let recoveryValue = Int(recoveryHR.quantity.doubleValue(for: HKUnit.count().unitDivided(by: HKUnit.minute())))
                 let recovery = peakValue - recoveryValue
-                
+
                 if recovery > 0 {
                     recoveryValues.append(recovery)
                 }
             }
-            
+
             // Calculate average recovery
             guard !recoveryValues.isEmpty else { return nil }
-            
+
             let avgRecovery = recoveryValues.reduce(0, +) / recoveryValues.count
-            
+
             // Return average recovery (beats dropped in 1 minute)
             return avgRecovery
-            
+
         } catch {
             AppLogger.error("Failed to calculate heart rate recovery: \(error)", category: .health)
             return nil
         }
     }
-    
+
     /// Calculates weight trend over the last 30 days
     private func calculateWeightTrend() async -> BodyMetrics.Trend? {
         let calendar = Calendar.current
         let endDate = Date()
         let startDate = calendar.date(byAdding: .day, value: -30, to: endDate) ?? endDate
-        
+
         do {
             let samples = try await dataFetcher.fetchQuantitySamples(
                 identifier: HKQuantityTypeIdentifier.bodyMass,
@@ -905,29 +905,29 @@ final class HealthKitManager: HealthKitManaging, ServiceProtocol {
                 from: startDate,
                 to: endDate
             )
-            
+
             guard samples.count >= 2 else { return nil }
-            
+
             // Sort by date
             let sortedSamples = samples.sorted { $0.startDate < $1.startDate }
-            
+
             // Get first and last week averages
             let firstWeek = sortedSamples.prefix(7)
             let lastWeek = sortedSamples.suffix(7)
-            
+
             guard !firstWeek.isEmpty && !lastWeek.isEmpty else { return nil }
-            
+
             let firstAvg = firstWeek.reduce(0.0) { sum, sample in
                 sum + sample.quantity.doubleValue(for: HKUnit.gramUnit(with: .kilo))
             } / Double(firstWeek.count)
-            
+
             let lastAvg = lastWeek.reduce(0.0) { sum, sample in
                 sum + sample.quantity.doubleValue(for: HKUnit.gramUnit(with: .kilo))
             } / Double(lastWeek.count)
-            
+
             let change = lastAvg - firstAvg
             let percentChange = (change / firstAvg) * 100
-            
+
             // Determine trend based on change
             if abs(percentChange) < 1 {
                 return .stable
@@ -936,7 +936,7 @@ final class HealthKitManager: HealthKitManaging, ServiceProtocol {
             } else {
                 return .decreasing
             }
-            
+
         } catch {
             AppLogger.error("Failed to calculate weight trend: \(error)", category: .health)
             return nil
@@ -948,7 +948,7 @@ final class HealthKitManager: HealthKitManaging, ServiceProtocol {
 // MARK: - Authorization Status Extension
 extension HealthKitManager.AuthorizationStatus: RawRepresentable {
     public typealias RawValue = String
-    
+
     public init?(rawValue: String) {
         switch rawValue {
         case "notDetermined": self = .notDetermined
@@ -958,7 +958,7 @@ extension HealthKitManager.AuthorizationStatus: RawRepresentable {
         default: return nil
         }
     }
-    
+
     public var rawValue: String {
         switch self {
         case .notDetermined: return "notDetermined"

@@ -9,11 +9,11 @@ struct PersonalityTrait: Identifiable {
     let icon: String
     let dimension: PersonalityDimension
     let value: Double
-    
+
     init(dimension: PersonalityDimension, value: Double) {
         self.dimension = dimension
         self.value = value
-        
+
         switch dimension {
         case .authorityPreference:
             self.name = "Authority Style"
@@ -48,13 +48,13 @@ extension CoachPersona {
     /// Extract dominant traits for settings display
     var dominantTraits: [PersonalityTrait] {
         let insights = profile
-        
+
         return insights.traits
             .sorted { $0.value > $1.value }
             .prefix(4)
             .map { PersonalityTrait(dimension: $0.key, value: $0.value) }
     }
-    
+
     /// Generate a unique initials for avatar display
     var initials: String {
         let words = identity.name.split(separator: " ")
@@ -65,43 +65,43 @@ extension CoachPersona {
         }
         return "AI"
     }
-    
+
     /// Generate gradient colors based on personality
     var gradientColors: [Color] {
         // Use personality traits to determine color scheme
         let baseHue = (profile.traits[.intensityPreference] ?? 0.5) * 360
         let saturation = (profile.traits[.emotionalSupport] ?? 0.5) * 0.5 + 0.5
-        
+
         return [
             Color(hue: baseHue / 360, saturation: saturation, brightness: 0.9),
             Color(hue: (baseHue + 30) / 360, saturation: saturation * 0.8, brightness: 0.7)
         ]
     }
-    
+
     /// Calculate uniqueness score (0-1)
     var uniquenessScore: Double {
         // Calculate based on variance from average values
         let insights = profile
-        
+
         let traitVariances = insights.traits.values.map { abs($0 - 0.5) }
         let avgVariance = traitVariances.reduce(0, +) / Double(traitVariances.count)
-        
+
         // More variance = more unique
         return min(avgVariance * 2, 1.0)
     }
-    
+
     /// Calculate difference from another persona
     func calculateDifference(from other: CoachPersona) -> Double {
         let myTraits = profile.traits
         let otherTraits = other.profile.traits
-        
+
         var totalDiff = 0.0
         for (dimension, myValue) in myTraits {
             if let otherValue = otherTraits[dimension] {
                 totalDiff += abs(myValue - otherValue)
             }
         }
-        
+
         return totalDiff / Double(myTraits.count)
     }
 }
@@ -118,7 +118,7 @@ extension VoiceCharacteristics {
             return vocabulary == .advanced ? .formal : .balanced
         }
     }
-    
+
     var energyLevel: EnergyLevel {
         switch energy {
         case .high: return .high
@@ -126,7 +126,7 @@ extension VoiceCharacteristics {
         case .calm: return .low
         }
     }
-    
+
     var detailLevel: DetailLevel {
         switch vocabulary {
         case .advanced: return .comprehensive
@@ -134,7 +134,7 @@ extension VoiceCharacteristics {
         case .simple: return .minimal
         }
     }
-    
+
     var humorStyle: HumorStyle {
         // Infer from warmth and energy
         switch (warmth, energy) {
@@ -151,7 +151,7 @@ enum EnergyLevel: String, CaseIterable {
     case high = "High"
     case medium = "Medium"
     case low = "Low"
-    
+
     var displayName: String { rawValue }
 }
 
@@ -160,7 +160,7 @@ enum HumorStyle: String, CaseIterable {
     case light = "Light"
     case occasional = "Occasional"
     case minimal = "Minimal"
-    
+
     var displayName: String { rawValue }
 }
 
@@ -181,7 +181,7 @@ extension CoachPersona {
             humorStyle: communication.humorStyle
         )
     }
-    
+
     var coachingPhilosophy: CoachingPhilosophyDisplay {
         CoachingPhilosophyDisplay(
             core: philosophy.approach,

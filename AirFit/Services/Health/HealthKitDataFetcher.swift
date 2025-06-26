@@ -7,7 +7,7 @@ actor HealthKitDataFetcher: ServiceProtocol {
     nonisolated let serviceIdentifier = "healthkit-data-fetcher"
     private var _isConfigured = false
     nonisolated var isConfigured: Bool { true } // Always ready when health store is available
-    
+
     private let healthStore: HKHealthStore
 
     init(healthStore: HKHealthStore) {
@@ -106,20 +106,20 @@ actor HealthKitDataFetcher: ServiceProtocol {
             healthStore.execute(query)
         }
     }
-    
+
     // MARK: - ServiceProtocol Methods
-    
+
     func configure() async throws {
         guard !_isConfigured else { return }
         _isConfigured = true
         AppLogger.info("\(serviceIdentifier) configured", category: .services)
     }
-    
+
     func reset() async {
         _isConfigured = false
         AppLogger.info("\(serviceIdentifier) reset", category: .services)
     }
-    
+
     func healthCheck() async -> ServiceHealth {
         ServiceHealth(
             status: HKHealthStore.isHealthDataAvailable() ? .healthy : .unhealthy,
@@ -131,9 +131,9 @@ actor HealthKitDataFetcher: ServiceProtocol {
             ]
         )
     }
-    
+
     // MARK: - Additional Data Fetching Methods
-    
+
     /// Fetches quantity samples for a given identifier and date range
     func fetchQuantitySamples(
         identifier: HKQuantityTypeIdentifier,
@@ -144,10 +144,10 @@ actor HealthKitDataFetcher: ServiceProtocol {
         guard let quantityType = HKQuantityType.quantityType(forIdentifier: identifier) else {
             throw HealthKitManager.HealthKitError.invalidData
         }
-        
+
         let predicate = HKQuery.predicateForSamples(withStart: startDate, end: endDate, options: .strictStartDate)
         let sortDescriptor = NSSortDescriptor(key: HKSampleSortIdentifierStartDate, ascending: true)
-        
+
         return try await withCheckedThrowingContinuation { continuation in
             let query = HKSampleQuery(
                 sampleType: quantityType,
@@ -159,15 +159,15 @@ actor HealthKitDataFetcher: ServiceProtocol {
                     continuation.resume(throwing: HealthKitManager.HealthKitError.queryFailed(error))
                     return
                 }
-                
+
                 let quantitySamples = (samples as? [HKQuantitySample]) ?? []
                 continuation.resume(returning: quantitySamples)
             }
-            
+
             healthStore.execute(query)
         }
     }
-    
+
     /// Fetches workouts for a given date range
     func fetchWorkouts(
         from startDate: Date,
@@ -175,7 +175,7 @@ actor HealthKitDataFetcher: ServiceProtocol {
     ) async throws -> [HKWorkout] {
         let predicate = HKQuery.predicateForSamples(withStart: startDate, end: endDate, options: .strictStartDate)
         let sortDescriptor = NSSortDescriptor(key: HKSampleSortIdentifierStartDate, ascending: false)
-        
+
         return try await withCheckedThrowingContinuation { continuation in
             let query = HKSampleQuery(
                 sampleType: HKObjectType.workoutType(),
@@ -187,11 +187,11 @@ actor HealthKitDataFetcher: ServiceProtocol {
                     continuation.resume(throwing: HealthKitManager.HealthKitError.queryFailed(error))
                     return
                 }
-                
+
                 let workouts = (samples as? [HKWorkout]) ?? []
                 continuation.resume(returning: workouts)
             }
-            
+
             healthStore.execute(query)
         }
     }

@@ -127,7 +127,7 @@ final class OnboardingErrorRecoveryTests: XCTestCase {
         for (error, expectedMessage) in errors {
             let plan = recovery.createRecoveryPlan(for: error, sessionId: sessionId)
             XCTAssertTrue(plan.userMessage.contains(expectedMessage),
-                         "User message for \(error) should contain: \(expectedMessage)")
+                          "User message for \(error) should contain: \(expectedMessage)")
         }
     }
 }

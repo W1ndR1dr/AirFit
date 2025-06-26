@@ -13,25 +13,25 @@ final class ChatSuggestionsEngineTests: XCTestCase {
     // MARK: - Setup
     override func setUp() {
         super.setUp()
-        
+
         // Create test container
         container = DITestHelper.createTestContainer()
-        
+
         // Get model context from container
         let modelContainer = try! container.resolve(ModelContainer.self)
         modelContext = modelContainer.mainContext
-        
+
         // Create test user
         user = User(email: "test@example.com", name: "Test User")
         modelContext.insert(user)
         try! modelContext.save()
-        
+
         // Create engine
         let healthKitManager = MockHealthKitManager()
         let contextAssembler = ContextAssembler(healthKitManager: healthKitManager)
         engine = ChatSuggestionsEngine(user: user, contextAssembler: contextAssembler)
     }
-    
+
     override func tearDown() {
         engine = nil
         user = nil

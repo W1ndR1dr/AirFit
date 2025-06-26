@@ -7,20 +7,20 @@ struct ErrorPresentationView: View {
     let style: ErrorStyle
     let retryAction: (() async -> Void)?
     let dismissAction: (() -> Void)?
-    
+
     @Environment(\.dismiss) private var dismiss
     @Environment(\.colorScheme) private var colorScheme
     @EnvironmentObject private var gradientManager: GradientManager
     @State private var isRetrying = false
     @State private var animateIn = false
-    
+
     // MARK: - Error Style
     enum ErrorStyle {
         case inline
         case card
         case fullScreen
         case toast
-        
+
         var needsGlassEffect: Bool {
             switch self {
             case .inline, .toast:
@@ -30,7 +30,7 @@ struct ErrorPresentationView: View {
             }
         }
     }
-    
+
     // MARK: - Initialization
     init(
         error: Error,
@@ -43,7 +43,7 @@ struct ErrorPresentationView: View {
         self.retryAction = retryAction
         self.dismissAction = dismissAction
     }
-    
+
     // MARK: - Body
     var body: some View {
         Group {
@@ -66,9 +66,9 @@ struct ErrorPresentationView: View {
             }
         }
     }
-    
+
     // MARK: - View Styles
-    
+
     private var inlineView: some View {
         GlassCard {
             HStack(spacing: AppSpacing.sm) {
@@ -82,21 +82,21 @@ struct ErrorPresentationView: View {
                         )
                     )
                     .symbolRenderingMode(.hierarchical)
-                
+
                 VStack(alignment: .leading, spacing: AppSpacing.xs) {
                     Text(errorTitle)
                         .font(.system(size: 14, weight: .medium, design: .rounded))
                         .foregroundStyle(.primary)
-                    
+
                     if let suggestion = recoverySuggestion {
                         Text(suggestion)
                             .font(.system(size: 12, weight: .regular, design: .rounded))
                             .foregroundStyle(.secondary)
                     }
                 }
-                
+
                 Spacer()
-                
+
                 if retryAction != nil {
                     retryButton
                 }
@@ -105,7 +105,7 @@ struct ErrorPresentationView: View {
         .scaleEffect(animateIn ? 1 : 0.95)
         .opacity(animateIn ? 1 : 0)
     }
-    
+
     private var cardView: some View {
         GlassCard {
             VStack(spacing: AppSpacing.md) {
@@ -123,12 +123,12 @@ struct ErrorPresentationView: View {
                     .padding(.top, AppSpacing.md)
                     .scaleEffect(animateIn ? 1 : 0.5)
                     .animation(MotionToken.standardSpring.delay(0.1), value: animateIn)
-                
+
                 // Title with cascade effect
                 CascadeText(errorTitle)
                     .font(.system(size: 20, weight: .semibold, design: .rounded))
                     .multilineTextAlignment(.center)
-                
+
                 // Message
                 if let suggestion = recoverySuggestion {
                     Text(suggestion)
@@ -139,7 +139,7 @@ struct ErrorPresentationView: View {
                         .opacity(animateIn ? 1 : 0)
                         .animation(MotionToken.standardSpring.delay(0.2), value: animateIn)
                 }
-                
+
                 // Actions
                 HStack(spacing: AppSpacing.md) {
                     if let dismissAction = dismissAction {
@@ -162,7 +162,7 @@ struct ErrorPresentationView: View {
                                 )
                         })
                     }
-                    
+
                     if retryAction != nil {
                         retryButtonStyled
                     }
@@ -175,11 +175,11 @@ struct ErrorPresentationView: View {
         }
         .frame(maxWidth: 350)
     }
-    
+
     private var fullScreenView: some View {
         VStack(spacing: AppSpacing.xl) {
             Spacer()
-            
+
             // Icon with animated gradient
             Image(systemName: errorIcon)
                 .font(.system(size: 80, weight: .light))
@@ -194,12 +194,12 @@ struct ErrorPresentationView: View {
                 .padding(.bottom, AppSpacing.md)
                 .scaleEffect(animateIn ? 1 : 0.5)
                 .animation(MotionToken.standardSpring.delay(0.1), value: animateIn)
-            
+
             // Title with cascade
             CascadeText(errorTitle)
                 .font(.system(size: 34, weight: .thin, design: .rounded))
                 .multilineTextAlignment(.center)
-            
+
             // Message
             if let suggestion = recoverySuggestion {
                 Text(suggestion)
@@ -210,15 +210,15 @@ struct ErrorPresentationView: View {
                     .opacity(animateIn ? 1 : 0)
                     .animation(MotionToken.standardSpring.delay(0.2), value: animateIn)
             }
-            
+
             Spacer()
-            
+
             // Actions
             VStack(spacing: AppSpacing.md) {
                 if retryAction != nil {
                     retryButtonLarge
                 }
-                
+
                 if let dismissAction = dismissAction {
                     Button(action: {
                         HapticService.impact(.light)
@@ -247,7 +247,7 @@ struct ErrorPresentationView: View {
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity)
     }
-    
+
     private var toastView: some View {
         GlassCard {
             HStack(spacing: AppSpacing.sm) {
@@ -261,14 +261,14 @@ struct ErrorPresentationView: View {
                         )
                     )
                     .symbolRenderingMode(.hierarchical)
-                
+
                 Text(errorTitle)
                     .font(.system(size: 16, weight: .medium, design: .rounded))
                     .foregroundStyle(.primary)
                     .lineLimit(2)
-                
+
                 Spacer()
-                
+
                 if dismissAction != nil {
                     Button(action: {
                         HapticService.impact(.soft)
@@ -286,9 +286,9 @@ struct ErrorPresentationView: View {
         .scaleEffect(animateIn ? 1 : 0.9)
         .opacity(animateIn ? 1 : 0)
     }
-    
+
     // MARK: - Components
-    
+
     private var retryButton: some View {
         Button(action: {
             HapticService.impact(.light)
@@ -309,7 +309,7 @@ struct ErrorPresentationView: View {
         })
         .disabled(isRetrying)
     }
-    
+
     private var retryButtonStyled: some View {
         Button(action: {
             HapticService.impact(.medium)
@@ -346,7 +346,7 @@ struct ErrorPresentationView: View {
         })
         .disabled(isRetrying)
     }
-    
+
     private var retryButtonLarge: some View {
         Button(action: {
             HapticService.impact(.medium)
@@ -383,9 +383,9 @@ struct ErrorPresentationView: View {
         })
         .disabled(isRetrying)
     }
-    
+
     // MARK: - Computed Properties
-    
+
     private var errorTitle: String {
         if let localizedError = error as? LocalizedError {
             return localizedError.errorDescription ?? "Something went wrong"
@@ -393,7 +393,7 @@ struct ErrorPresentationView: View {
             return "An error occurred"
         }
     }
-    
+
     private var recoverySuggestion: String? {
         if let localizedError = error as? LocalizedError {
             return localizedError.recoverySuggestion
@@ -403,7 +403,7 @@ struct ErrorPresentationView: View {
             return "Please try again or contact support if the issue persists."
         }
     }
-    
+
     private var errorIcon: String {
         if let appError = error as? AppError {
             switch appError {
@@ -460,7 +460,7 @@ extension View {
                             HapticService.impact(.soft)
                             error.wrappedValue = nil
                         }
-                    
+
                     ErrorPresentationView(
                         error: errorValue,
                         style: style,
@@ -475,7 +475,7 @@ extension View {
             .animation(.easeInOut(duration: 0.2), value: error.wrappedValue != nil)
         )
     }
-    
+
     /// Presents an error as a toast
     func errorToast(
         error: Binding<Error?>,
@@ -537,7 +537,7 @@ struct ErrorPresentationView_Previews: PreviewProvider {
                 style: .inline,
                 retryAction: { }
             )
-            
+
             // Card style
             ErrorPresentationView(
                 error: AppError.networkError(underlying: NSError(domain: "Network", code: -1, userInfo: [NSLocalizedDescriptionKey: "Unable to connect to server"])),
@@ -545,7 +545,7 @@ struct ErrorPresentationView_Previews: PreviewProvider {
                 retryAction: { },
                 dismissAction: { }
             )
-            
+
             // Toast style
             ErrorPresentationView(
                 error: AppError.validationError(message: "Invalid email format"),
@@ -555,7 +555,7 @@ struct ErrorPresentationView_Previews: PreviewProvider {
         }
         .padding()
         .background(Color("BackgroundPrimary"))
-        
+
         // Full screen style
         ErrorPresentationView(
             error: AppError.serverError(code: 500, message: "Internal server error"),

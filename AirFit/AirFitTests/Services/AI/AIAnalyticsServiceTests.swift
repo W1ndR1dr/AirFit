@@ -10,18 +10,18 @@ final class AIAnalyticsServiceTests: XCTestCase {
     private var mockAnalyticsService: MockAnalyticsService!
     private var modelContext: ModelContext!
     private var testUser: User!
-    
+
     // MARK: - Setup
     override func setUp() async throws {
         try super.setUp()
-        
+
         // Create test container
         container = try await DITestHelper.createTestContainer()
-        
+
         // Get model context from container
         let modelContainer = try await container.resolve(ModelContainer.self)
         modelContext = modelContainer.mainContext
-        
+
         // Create test user
         testUser = User(email: "test@example.com", name: "Test User")
         testUser.weight = 75 // kg
@@ -29,15 +29,15 @@ final class AIAnalyticsServiceTests: XCTestCase {
         testUser.fitnessLevel = "advanced"
         modelContext.insert(testUser)
         try modelContext.save()
-        
+
         // Get mock from container
         mockAnalyticsService = try await container.resolve(AnalyticsServiceProtocol.self) as? MockAnalyticsService
         XCTAssertNotNil(mockAnalyticsService, "Expected MockAnalyticsService from test container")
-        
+
         // Create service with injected dependencies
         sut = AIAnalyticsService(analyticsService: mockAnalyticsService)
     }
-    
+
     override func tearDown() async throws {
         mockAnalyticsService?.reset()
         sut = nil
@@ -47,9 +47,9 @@ final class AIAnalyticsServiceTests: XCTestCase {
         container = nil
         try super.tearDown()
     }
-    
+
     // MARK: - Analyze Performance Tests
-    
+
     func test_analyzePerformance_withBasicQuery_returnsAnalysis() async throws {
         // Arrange
         let query = "How am I doing with my strength training?"
@@ -57,7 +57,7 @@ final class AIAnalyticsServiceTests: XCTestCase {
         let days = 30
         let depth = "basic"
         let includeRecommendations = true
-        
+
         // Act
         let result = try await sut.analyzePerformance(
             query: query,
@@ -67,7 +67,7 @@ final class AIAnalyticsServiceTests: XCTestCase {
             includeRecommendations: includeRecommendations,
             for: testUser
         )
-        
+
         // Assert
         XCTAssertNotNil(result)
         XCTAssertTrue(result.summary.contains("Performance analysis"))
@@ -76,7 +76,7 @@ final class AIAnalyticsServiceTests: XCTestCase {
         XCTAssertFalse(result.recommendations.isEmpty)
         XCTAssertEqual(result.recommendations.first, "Keep up the good work!")
     }
-    
+
     func test_analyzePerformance_withoutRecommendations_excludesRecommendations() async throws {
         // Arrange
         let query = "Show me my workout trends"
@@ -84,7 +84,7 @@ final class AIAnalyticsServiceTests: XCTestCase {
         let days = 7
         let depth = "detailed"
         let includeRecommendations = false
-        
+
         // Act
         let result = try await sut.analyzePerformance(
             query: query,
@@ -94,16 +94,16 @@ final class AIAnalyticsServiceTests: XCTestCase {
             includeRecommendations: includeRecommendations,
             for: testUser
         )
-        
+
         // Assert
         XCTAssertTrue(result.recommendations.isEmpty)
         XCTAssertEqual(result.confidence, 0.8)
     }
-    
+
     func test_analyzePerformance_withMultipleMetrics_includesAllInQuery() async throws {
         // Arrange
         let metrics = ["strength", "endurance", "flexibility", "recovery", "consistency"]
-        
+
         // Act
         let result = try await sut.analyzePerformance(
             query: "Comprehensive fitness analysis",
@@ -113,17 +113,17 @@ final class AIAnalyticsServiceTests: XCTestCase {
             includeRecommendations: true,
             for: testUser
         )
-        
+
         // Assert
         XCTAssertNotNil(result)
         XCTAssertEqual(result.dataPoints, 0) // Placeholder returns 0
         XCTAssertEqual(metrics.count, 5)
     }
-    
+
     func test_analyzePerformance_withLongTimeframe_handlesCorrectly() async throws {
         // Arrange
         let days = 365 // Full year
-        
+
         // Act
         let result = try await sut.analyzePerformance(
             query: "Year in review",
@@ -133,12 +133,12 @@ final class AIAnalyticsServiceTests: XCTestCase {
             includeRecommendations: true,
             for: testUser
         )
-        
+
         // Assert
         XCTAssertNotNil(result)
         XCTAssertTrue(result.summary.contains("Year in review"))
     }
-    
+
     func test_analyzePerformance_withMinimalParameters_returnsValidResult() async throws {
         // Act
         let result = try await sut.analyzePerformance(
@@ -149,26 +149,26 @@ final class AIAnalyticsServiceTests: XCTestCase {
             includeRecommendations: false,
             for: testUser
         )
-        
+
         // Assert
         XCTAssertNotNil(result)
         XCTAssertTrue(result.insights.isEmpty) // Placeholder returns empty
         XCTAssertTrue(result.trends.isEmpty)
         XCTAssertTrue(result.recommendations.isEmpty)
     }
-    
+
     // MARK: - Generate Predictive Insights Tests
-    
+
     func test_generatePredictiveInsights_withShortTimeframe_returnsInsights() async throws {
         // Arrange
         let timeframe = 7 // One week
-        
+
         // Act
         let insights = try await sut.generatePredictiveInsights(
             for: testUser,
             timeframe: timeframe
         )
-        
+
         // Assert
         XCTAssertNotNil(insights)
         XCTAssertEqual(insights.confidence, 0.7)
@@ -176,26 +176,26 @@ final class AIAnalyticsServiceTests: XCTestCase {
         XCTAssertTrue(insights.risks.isEmpty)
         XCTAssertTrue(insights.opportunities.isEmpty)
     }
-    
+
     func test_generatePredictiveInsights_withLongTimeframe_returnsInsights() async throws {
         // Arrange
         let timeframe = 90 // Three months
-        
+
         // Act
         let insights = try await sut.generatePredictiveInsights(
             for: testUser,
             timeframe: timeframe
         )
-        
+
         // Assert
         XCTAssertNotNil(insights)
         XCTAssertEqual(insights.confidence, 0.7)
     }
-    
+
     func test_generatePredictiveInsights_multipleCallsWithDifferentTimeframes() async throws {
         // Arrange
         let timeframes = [7, 14, 30, 60, 90]
-        
+
         // Act
         var allInsights: [PredictiveInsights] = []
         for timeframe in timeframes {
@@ -205,16 +205,16 @@ final class AIAnalyticsServiceTests: XCTestCase {
             )
             allInsights.append(insights)
         }
-        
+
         // Assert
         XCTAssertEqual(allInsights.count, 5)
         allInsights.forEach { insights in
             XCTAssertEqual(insights.confidence, 0.7)
         }
     }
-    
+
     // MARK: - Analytics Delegation Tests
-    
+
     func test_trackEvent_delegatesToAnalyticsService() async {
         // Arrange
         let event = AnalyticsEvent(
@@ -222,28 +222,28 @@ final class AIAnalyticsServiceTests: XCTestCase {
             properties: ["type": "strength"],
             timestamp: Date()
         )
-        
+
         // Act
         await sut.trackEvent(event)
-        
+
         // Assert
         XCTAssertEqual(mockAnalyticsService.trackEventCallCount, 1)
         XCTAssertEqual(mockAnalyticsService.getLastTrackedEvent()?.name, "workout_started")
     }
-    
+
     func test_trackScreen_delegatesToAnalyticsService() async {
         // Arrange
         let screenName = "DashboardView"
         let properties = ["user_id": testUser.id.uuidString]
-        
+
         // Act
         await sut.trackScreen(screenName, properties: properties)
-        
+
         // Assert
         XCTAssertEqual(mockAnalyticsService.trackScreenCallCount, 1)
         XCTAssertTrue(mockAnalyticsService.verifyScreenTracked(screen: screenName))
     }
-    
+
     func test_setUserProperties_delegatesToAnalyticsService() async {
         // Arrange
         let properties = [
@@ -251,42 +251,42 @@ final class AIAnalyticsServiceTests: XCTestCase {
             "subscription": "premium",
             "app_version": "2.0.0"
         ]
-        
+
         // Act
         await sut.setUserProperties(properties)
-        
+
         // Assert
         XCTAssertEqual(mockAnalyticsService.setUserPropertiesCallCount, 1)
         XCTAssertEqual(mockAnalyticsService.userProperties["fitness_level"], "advanced")
     }
-    
+
     func test_trackWorkoutCompleted_delegatesToAnalyticsService() async {
         // Arrange
         let workout = Workout(name: "Morning Run", user: testUser)
         workout.duration = 1_800
         workout.caloriesBurned = 300
-        
+
         // Act
         await sut.trackWorkoutCompleted(workout)
-        
+
         // Assert
         XCTAssertEqual(mockAnalyticsService.trackWorkoutCompletedCallCount, 1)
         XCTAssertEqual(mockAnalyticsService.trackedWorkouts.first?.id, workout.id)
     }
-    
+
     func test_trackMealLogged_delegatesToAnalyticsService() async {
         // Arrange
         let meal = FoodEntry(date: Date(), user: testUser)
         meal.mealType = MealType.breakfast.rawValue
-        
+
         // Act
         await sut.trackMealLogged(meal)
-        
+
         // Assert
         XCTAssertEqual(mockAnalyticsService.trackMealLoggedCallCount, 1)
         XCTAssertEqual(mockAnalyticsService.trackedMeals.first?.id, meal.id)
     }
-    
+
     func test_getInsights_delegatesToAnalyticsService() async throws {
         // Arrange
         let mockInsights = UserInsights(
@@ -298,18 +298,18 @@ final class AIAnalyticsServiceTests: XCTestCase {
             achievements: []
         )
         mockAnalyticsService.mockInsights = mockInsights
-        
+
         // Act
         let insights = try await sut.getInsights(for: testUser)
-        
+
         // Assert
         XCTAssertEqual(insights.workoutFrequency, 5.0)
         XCTAssertEqual(insights.streakDays, 14)
         XCTAssertEqual(mockAnalyticsService.getInsightsCallCount, 1)
     }
-    
+
     // MARK: - Edge Cases
-    
+
     func test_analyzePerformance_withEmptyQuery_stillReturnsResult() async throws {
         // Act
         let result = try await sut.analyzePerformance(
@@ -320,16 +320,16 @@ final class AIAnalyticsServiceTests: XCTestCase {
             includeRecommendations: true,
             for: testUser
         )
-        
+
         // Assert
         XCTAssertNotNil(result)
         XCTAssertTrue(result.summary.contains("Performance analysis"))
     }
-    
+
     func test_analyzePerformance_withSpecialCharactersInQuery_handlesCorrectly() async throws {
         // Arrange
         let query = "How's my performance? 💪 #gains @gym"
-        
+
         // Act
         let result = try await sut.analyzePerformance(
             query: query,
@@ -339,42 +339,42 @@ final class AIAnalyticsServiceTests: XCTestCase {
             includeRecommendations: false,
             for: testUser
         )
-        
+
         // Assert
         XCTAssertNotNil(result)
         XCTAssertTrue(result.summary.contains(query))
     }
-    
+
     func test_generatePredictiveInsights_withZeroTimeframe_returnsValidInsights() async throws {
         // Act
         let insights = try await sut.generatePredictiveInsights(
             for: testUser,
             timeframe: 0
         )
-        
+
         // Assert
         XCTAssertNotNil(insights)
         XCTAssertEqual(insights.confidence, 0.7)
     }
-    
+
     func test_generatePredictiveInsights_withNegativeTimeframe_returnsValidInsights() async throws {
         // Act
         let insights = try await sut.generatePredictiveInsights(
             for: testUser,
             timeframe: -30
         )
-        
+
         // Assert
         XCTAssertNotNil(insights)
         // Should handle negative timeframe gracefully
     }
-    
+
     // MARK: - Performance Tests
-    
+
     func test_analyzePerformance_performance() async throws {
         // Measure time for multiple analyses
         let startTime = CFAbsoluteTimeGetCurrent()
-        
+
         for i in 0..<10 {
             _ = try await sut.analyzePerformance(
                 query: "Analysis \(i)",
@@ -385,17 +385,17 @@ final class AIAnalyticsServiceTests: XCTestCase {
                 for: testUser
             )
         }
-        
+
         let duration = CFAbsoluteTimeGetCurrent() - startTime
-        
+
         // Assert - Should be very fast for placeholder implementation
         XCTAssertLessThan(duration, 0.1, "10 analyses should complete within 100ms")
     }
-    
+
     func test_concurrentOperations_maintainIntegrity() async throws {
         // Arrange
         let operations = 5
-        
+
         // Act - Run multiple operations concurrently
         await withTaskGroup(of: Void.self) { group in
             // Track events
@@ -409,7 +409,7 @@ final class AIAnalyticsServiceTests: XCTestCase {
                     await self.sut.trackEvent(event)
                 }
             }
-            
+
             // Analyze performance
             for i in 0..<operations {
                 group.addTask {
@@ -423,7 +423,7 @@ final class AIAnalyticsServiceTests: XCTestCase {
                     )
                 }
             }
-            
+
             // Generate insights
             for i in 0..<operations {
                 group.addTask {
@@ -434,17 +434,17 @@ final class AIAnalyticsServiceTests: XCTestCase {
                 }
             }
         }
-        
+
         // Assert - Verify all operations completed
         XCTAssertEqual(mockAnalyticsService.trackEventCallCount, operations)
     }
-    
+
     // MARK: - Error Handling Tests
-    
+
     func test_getInsights_whenServiceThrows_propagatesError() async throws {
         // Arrange
         mockAnalyticsService.shouldThrowError = true
-        
+
         // Act & Assert
         do {
             _ = try await sut.getInsights(for: testUser)
@@ -453,9 +453,9 @@ final class AIAnalyticsServiceTests: XCTestCase {
             XCTAssertNotNil(error)
         }
     }
-    
+
     // MARK: - Integration Tests
-    
+
     func test_fullAnalyticsFlow_tracksThenAnalyzes() async throws {
         // Track some events
         for i in 0..<5 {
@@ -466,18 +466,18 @@ final class AIAnalyticsServiceTests: XCTestCase {
             )
             await sut.trackEvent(event)
         }
-        
+
         // Track workout
         let workout = Workout(name: "Test Workout", user: testUser)
         await sut.trackWorkoutCompleted(workout)
-        
+
         // Track meal
         let meal = FoodEntry(date: Date(), user: testUser)
         await sut.trackMealLogged(meal)
-        
+
         // Set user properties
         await sut.setUserProperties(["goal": "muscle_gain"])
-        
+
         // Analyze performance
         let analysis = try await sut.analyzePerformance(
             query: "How did I do this week?",
@@ -487,16 +487,16 @@ final class AIAnalyticsServiceTests: XCTestCase {
             includeRecommendations: true,
             for: testUser
         )
-        
+
         // Generate predictions
         let predictions = try await sut.generatePredictiveInsights(
             for: testUser,
             timeframe: 30
         )
-        
+
         // Get insights
         let insights = try await sut.getInsights(for: testUser)
-        
+
         // Assert all operations completed
         XCTAssertEqual(mockAnalyticsService.trackEventCallCount, 5)
         XCTAssertEqual(mockAnalyticsService.trackWorkoutCompletedCallCount, 1)

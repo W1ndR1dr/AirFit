@@ -4,12 +4,12 @@ struct APIKeyEntryView: View {
     let provider: AIProvider
     @Bindable var viewModel: SettingsViewModel
     @Environment(\.dismiss) private var dismiss
-    
+
     @State private var apiKey = ""
     @State private var isValidating = false
     @State private var showKey = false
     @FocusState private var isKeyFieldFocused: Bool
-    
+
     var body: some View {
         NavigationStack {
             BaseScreen {
@@ -24,7 +24,7 @@ struct APIKeyEntryView: View {
                         .padding(.horizontal, AppSpacing.lg)
                         .padding(.top, AppSpacing.sm)
                         .padding(.bottom, AppSpacing.lg)
-                        
+
                         VStack(spacing: AppSpacing.xl) {
                             providerInfo
                             keyInput
@@ -44,7 +44,7 @@ struct APIKeyEntryView: View {
                     }
                     .foregroundStyle(.secondary)
                 }
-                
+
                 ToolbarItem(placement: .confirmationAction) {
                     Button("Save") {
                         HapticService.impact(.medium)
@@ -57,7 +57,7 @@ struct APIKeyEntryView: View {
             .interactiveDismissDisabled(isValidating)
         }
     }
-    
+
     private var providerInfo: some View {
         GlassCard {
             HStack(spacing: AppSpacing.md) {
@@ -70,23 +70,23 @@ struct APIKeyEntryView: View {
                             endPoint: .bottomTrailing
                         )
                     )
-                
+
                 VStack(alignment: .leading, spacing: AppSpacing.xs) {
                     Text(provider.displayName)
                         .font(.system(size: 20, weight: .semibold, design: .rounded))
                         .foregroundStyle(.primary)
-                    
+
                     Text("API Key Required")
                         .font(.system(size: 14, weight: .regular, design: .rounded))
                         .foregroundStyle(.secondary)
                 }
-                
+
                 Spacer()
             }
             .padding(AppSpacing.md)
         }
     }
-    
+
     private var keyInput: some View {
         VStack(alignment: .leading, spacing: AppSpacing.md) {
             HStack(spacing: AppSpacing.sm) {
@@ -103,7 +103,7 @@ struct APIKeyEntryView: View {
                     .font(.system(size: 18, weight: .semibold, design: .rounded))
                     .foregroundStyle(.primary)
             }
-            
+
             GlassCard {
                 VStack(alignment: .leading, spacing: AppSpacing.sm) {
                     HStack {
@@ -120,7 +120,7 @@ struct APIKeyEntryView: View {
                                 .font(.system(size: 16, weight: .regular, design: .monospaced))
                                 .focused($isKeyFieldFocused)
                         }
-                        
+
                         Button {
                             HapticService.impact(.light)
                             showKey.toggle()
@@ -130,7 +130,7 @@ struct APIKeyEntryView: View {
                                 .foregroundStyle(.secondary)
                         }
                     }
-                    
+
                     if isValidating {
                         HStack(spacing: AppSpacing.sm) {
                             ProgressView()
@@ -149,7 +149,7 @@ struct APIKeyEntryView: View {
             }
         }
     }
-    
+
     private var instructions: some View {
         VStack(alignment: .leading, spacing: AppSpacing.md) {
             HStack(spacing: AppSpacing.sm) {
@@ -166,7 +166,7 @@ struct APIKeyEntryView: View {
                     .font(.system(size: 18, weight: .semibold, design: .rounded))
                     .foregroundStyle(.primary)
             }
-            
+
             GlassCard {
                 VStack(alignment: .leading, spacing: AppSpacing.md) {
                     ForEach(provider.keyInstructions, id: \.self) { instruction in
@@ -180,7 +180,7 @@ struct APIKeyEntryView: View {
                                 .fixedSize(horizontal: false, vertical: true)
                         }
                     }
-                    
+
                     if let url = provider.apiKeyURL {
                         Link(destination: url) {
                             HStack(spacing: AppSpacing.sm) {
@@ -213,10 +213,10 @@ struct APIKeyEntryView: View {
             }
         }
     }
-    
+
     private func saveKey() {
         isValidating = true
-        
+
         Task {
             do {
                 try await viewModel.saveAPIKey(apiKey, for: provider)

@@ -7,7 +7,7 @@ struct WorkoutView: View {
     let user: User
     @State private var viewModel: WorkoutViewModel?
     @Environment(\.diContainer) private var container
-    
+
     var body: some View {
         Group {
             if let viewModel = viewModel {
@@ -52,7 +52,7 @@ struct WorkoutListView: View {
                             .padding(.top, AppSpacing.md)
                             .opacity(animateIn ? 1 : 0)
                             .offset(y: animateIn ? 0 : -20)
-                        
+
                         WeeklySummaryCard(stats: viewModel.weeklyStats)
                             .padding(.horizontal, AppSpacing.md)
                             .padding(.top, AppSpacing.sm)
@@ -134,7 +134,7 @@ struct WorkoutListView: View {
                     )
             }
             .padding(.horizontal, AppSpacing.md)
-            
+
             HStack(spacing: AppSpacing.md) {
                 QuickActionCard(title: "Start Workout", icon: "mic.fill", index: 0) {
                     HapticService.impact(.medium)
@@ -142,7 +142,7 @@ struct WorkoutListView: View {
                     coordinator.showSheet(.voiceWorkoutInput)
                 }
                 .environmentObject(gradientManager)
-                
+
                 QuickActionCard(title: "Exercise Library", icon: "books.vertical.fill", index: 1) {
                     HapticService.impact(.medium)
                     coordinator.navigateTo(.exerciseLibrary)
@@ -179,7 +179,7 @@ struct WorkoutListView: View {
                 })
             }
             .padding(.horizontal, AppSpacing.md)
-            
+
             ForEach(Array(filteredWorkouts.prefix(5).enumerated()), id: \.element.id) { index, workout in
                 WorkoutRow(workout: workout, index: index) {
                     HapticService.impact(.light)
@@ -259,9 +259,9 @@ private struct WeeklySummaryCard: View {
                         CascadeText("This Week")
                             .font(.system(size: 20, weight: .semibold, design: .rounded))
                     }
-                    
+
                     Spacer()
-                    
+
                     NavigationLink(value: WorkoutCoordinator.WorkoutDestination.statistics) {
                         HStack(spacing: 4) {
                             Text("View Stats")
@@ -337,7 +337,7 @@ private struct StatItem: View {
     let animate: Bool
     @EnvironmentObject private var gradientManager: GradientManager
     @Environment(\.colorScheme) private var colorScheme
-    
+
     private var gradientColors: [Color] {
         switch index {
         case 0: return [Color(hex: "#667EEA"), Color(hex: "#764BA2")]
@@ -362,14 +362,14 @@ private struct StatItem: View {
                     .scaleEffect(animate ? 1 : 0.8)
                     .opacity(animate ? 1 : 0)
                     .animation(MotionToken.standardSpring.delay(Double(index) * 0.1), value: animate)
-                
+
                 GradientNumber(value: Double(value.components(separatedBy: CharacterSet.decimalDigits.inverted).joined()) ?? 0)
                     .font(.system(size: 20, weight: .bold, design: .rounded))
                     .opacity(animate ? 1 : 0)
                     .offset(y: animate ? 0 : 10)
                     .animation(MotionToken.standardSpring.delay(Double(index) * 0.1 + 0.1), value: animate)
             }
-            
+
             Text(label)
                 .font(.system(size: 12, weight: .medium))
                 .foregroundStyle(Color.secondary.opacity(0.8))
@@ -412,11 +412,11 @@ private struct WorkoutRow: View {
                                 .font(.system(size: 18, weight: .semibold, design: .rounded))
                                 .foregroundStyle(Color.primary)
                         }
-                        
+
                         Text(dateText)
                             .font(.system(size: 12, weight: .medium))
                             .foregroundStyle(Color.secondary.opacity(0.8))
-                        
+
                         HStack(spacing: AppSpacing.md) {
                             HStack(spacing: 4) {
                                 Image(systemName: "timer")
@@ -425,7 +425,7 @@ private struct WorkoutRow: View {
                                     .font(.system(size: 12, weight: .medium))
                             }
                             .foregroundStyle(Color.secondary.opacity(0.7))
-                            
+
                             HStack(spacing: 4) {
                                 Image(systemName: "list.bullet")
                                     .font(.system(size: 11))
@@ -433,7 +433,7 @@ private struct WorkoutRow: View {
                                     .font(.system(size: 12, weight: .medium))
                             }
                             .foregroundStyle(Color.secondary.opacity(0.7))
-                            
+
                             if let calories = workout.caloriesBurned, calories > 0 {
                                 HStack(spacing: 4) {
                                     Image(systemName: "flame.fill")
@@ -451,9 +451,9 @@ private struct WorkoutRow: View {
                             }
                         }
                     }
-                    
+
                     Spacer()
-                    
+
                     Image(systemName: "chevron.right")
                         .font(.system(size: 14))
                         .foregroundStyle(Color.secondary.opacity(0.3))
@@ -481,7 +481,7 @@ private struct QuickActionCard: View {
     @Environment(\.colorScheme) private var colorScheme
     @State private var isPressed = false
     @State private var animateIn = false
-    
+
     private var gradientColors: [Color] {
         switch icon {
         case "play.fill": return [Color(hex: "#52B788"), Color(hex: "#40916C")]
@@ -505,7 +505,7 @@ private struct QuickActionCard: View {
                             )
                             .frame(width: 56, height: 56)
                             .blur(radius: 8)
-                        
+
                         Image(systemName: icon)
                             .font(.system(size: 28, weight: .medium))
                             .foregroundStyle(
@@ -518,7 +518,7 @@ private struct QuickActionCard: View {
                             .scaleEffect(animateIn ? 1 : 0.8)
                             .opacity(animateIn ? 1 : 0)
                     }
-                    
+
                     Text(title)
                         .font(.system(size: 14, weight: .medium, design: .rounded))
                         .multilineTextAlignment(.center)
@@ -553,13 +553,13 @@ struct VoiceWorkoutInputPlaceholder: View {
     @Environment(\.colorScheme) private var colorScheme
     @Environment(\.dismiss) private var dismiss
     @State private var animateIn = false
-    
+
     var body: some View {
         NavigationStack {
             BaseScreen {
                 VStack(spacing: AppSpacing.xl) {
                     Spacer()
-                    
+
                     // Icon with ripple effect
                     ZStack {
                         Circle()
@@ -578,7 +578,7 @@ struct VoiceWorkoutInputPlaceholder: View {
                                     .repeatForever(autoreverses: true),
                                 value: animateIn
                             )
-                        
+
                         Image(systemName: "mic.fill")
                             .font(.system(size: 50))
                             .foregroundStyle(
@@ -591,17 +591,17 @@ struct VoiceWorkoutInputPlaceholder: View {
                             .scaleEffect(animateIn ? 1.0 : 0.9)
                     }
                     .padding(.bottom, AppSpacing.lg)
-                    
+
                     CascadeText("Chat with Your AI Coach")
                         .font(.system(size: 28, weight: .semibold, design: .rounded))
                         .multilineTextAlignment(.center)
-                    
+
                     Text("Type or speak your workout request:")
                         .font(.system(size: 18, weight: .light, design: .rounded))
                         .foregroundStyle(.secondary)
                         .multilineTextAlignment(.center)
                         .padding(.horizontal, AppSpacing.xl)
-                    
+
                     VStack(alignment: .leading, spacing: AppSpacing.sm) {
                         WorkoutExampleText("\"I want to do a 30-minute upper body workout\"")
                         WorkoutExampleText("\"Let's do some cardio for 20 minutes\"")
@@ -614,9 +614,9 @@ struct VoiceWorkoutInputPlaceholder: View {
                             .fill(.ultraThinMaterial)
                     )
                     .padding(.horizontal, AppSpacing.lg)
-                    
+
                     Spacer()
-                    
+
                     Text("Go to Chat")
                         .font(.system(size: 18, weight: .medium, design: .rounded))
                         .foregroundColor(.white)
@@ -636,7 +636,7 @@ struct VoiceWorkoutInputPlaceholder: View {
                             // TODO: Navigate to chat with workout context
                             dismiss()
                         }
-                    
+
                     Text("The AI will create a personalized workout based on your fitness level, recent activity, and current energy.")
                         .font(.system(size: 14, weight: .light, design: .rounded))
                         .foregroundStyle(.secondary)
@@ -673,22 +673,22 @@ struct VoiceWorkoutInputPlaceholder: View {
 
 struct WorkoutExampleText: View {
     let text: String
-    
+
     init(_ text: String) {
         self.text = text
     }
-    
+
     var body: some View {
         HStack {
             Image(systemName: "quote.opening")
                 .font(.caption)
                 .foregroundStyle(.secondary)
-            
+
             Text(text)
                 .font(.system(size: 15, weight: .light, design: .rounded))
                 .foregroundStyle(.primary.opacity(0.8))
                 .italic()
-            
+
             Spacer()
         }
     }
@@ -720,7 +720,7 @@ final class PreviewHealthKitManager: HealthKitManaging {
     func fetchHeartHealthMetrics() async throws -> HeartHealthMetrics { HeartHealthMetrics() }
     func fetchLatestBodyMetrics() async throws -> BodyMetrics { BodyMetrics() }
     func fetchLastNightSleep() async throws -> SleepAnalysis.SleepSession? { nil }
-    
+
     // New HealthKit integration methods
     func getWorkoutData(from startDate: Date, to endDate: Date) async -> [WorkoutData] { [] }
     func saveFoodEntry(_ entry: FoodEntry) async throws -> [String] { [] }
@@ -747,7 +747,7 @@ final class WorkoutMockCoachEngine: CoachEngineProtocol {
     func processUserMessage(_ text: String, for user: User) async {
         // Mock implementation - no-op
     }
-    
+
     func generatePostWorkoutAnalysis(_ request: PostWorkoutAnalysisRequest) async throws -> String {
         "Mock post-workout analysis"
     }

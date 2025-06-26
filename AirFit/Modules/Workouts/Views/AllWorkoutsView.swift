@@ -88,7 +88,7 @@ struct AllWorkoutsView: View {
                         .padding(.top, AppSpacing.md)
                         .opacity(animateIn ? 1 : 0)
                         .offset(y: animateIn ? 0 : -20)
-                    
+
                     // Search bar
                     GlassCard {
                         HStack(spacing: AppSpacing.sm) {
@@ -101,14 +101,14 @@ struct AllWorkoutsView: View {
                                     )
                                 )
                                 .font(.system(size: 18))
-                            
+
                             TextField("Search workouts or exercises...", text: $searchText)
                                 .textFieldStyle(.plain)
                                 .font(.system(size: 16, weight: .medium))
                                 .onTapGesture {
                                     HapticService.impact(.light)
                                 }
-                            
+
                             if !searchText.isEmpty {
                                 Button {
                                     HapticService.impact(.light)
@@ -130,7 +130,7 @@ struct AllWorkoutsView: View {
                     .offset(y: animateIn ? 0 : 20)
                     .animation(MotionToken.standardSpring.delay(0.1), value: animateIn)
                 }
-                
+
                 ScrollView {
                     VStack(spacing: AppSpacing.lg) {
                         // Stats Summary
@@ -310,7 +310,7 @@ private struct WorkoutHistoryStats: View {
                         animate: animateStats
                     )
                     .environmentObject(gradientManager)
-                    
+
                     StatCard(
                         value: totalDuration.formattedDuration(),
                         label: "Total Time",
@@ -319,7 +319,7 @@ private struct WorkoutHistoryStats: View {
                         animate: animateStats
                     )
                     .environmentObject(gradientManager)
-                    
+
                     StatCard(
                         value: "\(Int(totalCalories))",
                         label: "Calories",
@@ -328,7 +328,7 @@ private struct WorkoutHistoryStats: View {
                         animate: animateStats
                     )
                     .environmentObject(gradientManager)
-                    
+
                     StatCard(
                         value: averageDuration.formattedDuration(),
                         label: "Avg Duration",
@@ -358,7 +358,7 @@ private struct StatCard: View {
     let animate: Bool
     @EnvironmentObject private var gradientManager: GradientManager
     @Environment(\.colorScheme) private var colorScheme
-    
+
     private var gradientColors: [Color] {
         switch index {
         case 0: return [Color(hex: "#667EEA"), Color(hex: "#764BA2")]
@@ -384,14 +384,14 @@ private struct StatCard: View {
                     .scaleEffect(animate ? 1 : 0.8)
                     .opacity(animate ? 1 : 0)
                     .animation(MotionToken.standardSpring.delay(Double(index) * 0.1), value: animate)
-                
+
                 GradientNumber(value: Double(value.components(separatedBy: CharacterSet.decimalDigits.inverted).joined()) ?? 0)
                     .font(.system(size: 20, weight: .bold, design: .rounded))
                     .opacity(animate ? 1 : 0)
                     .offset(y: animate ? 0 : 10)
                     .animation(MotionToken.standardSpring.delay(Double(index) * 0.1 + 0.1), value: animate)
             }
-            
+
             Text(label)
                 .font(.system(size: 12, weight: .medium))
                 .foregroundStyle(Color.secondary.opacity(0.8))
@@ -420,12 +420,12 @@ private struct FilterChip: View {
                 .padding(.vertical, AppSpacing.xs)
                 .foregroundStyle(
                     isSelected ?
-                    AnyShapeStyle(Color.white) :
-                    AnyShapeStyle(LinearGradient(
-                        colors: gradientManager.active.colors(for: colorScheme),
-                        startPoint: .topLeading,
-                        endPoint: .bottomTrailing
-                    ))
+                        AnyShapeStyle(Color.white) :
+                        AnyShapeStyle(LinearGradient(
+                            colors: gradientManager.active.colors(for: colorScheme),
+                            startPoint: .topLeading,
+                            endPoint: .bottomTrailing
+                        ))
                 )
                 .background {
                     if isSelected {
@@ -498,7 +498,7 @@ private struct WorkoutHistoryRow: View {
                                 )
                             )
                             .frame(width: 40, height: 40)
-                        
+
                         Image(systemName: workout.workoutTypeEnum?.systemImage ?? "figure.strengthtraining.traditional")
                             .font(.system(size: 18, weight: .medium))
                             .foregroundStyle(
@@ -509,7 +509,7 @@ private struct WorkoutHistoryRow: View {
                                 )
                             )
                     }
-                    
+
                     VStack(alignment: .leading, spacing: 2) {
                         Text(workout.name)
                             .font(.system(size: 18, weight: .semibold, design: .rounded))

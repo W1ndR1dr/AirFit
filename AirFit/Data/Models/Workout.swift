@@ -155,7 +155,7 @@ enum WorkoutType: String, Codable, CaseIterable, Sendable {
         case .pilates: return .teal
         }
     }
-    
+
     /// Converts WorkoutType to HKWorkoutActivityType
     func toHealthKitType() -> HKWorkoutActivityType {
         switch self {

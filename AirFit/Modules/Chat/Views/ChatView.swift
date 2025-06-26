@@ -7,7 +7,7 @@ struct Chat: View {
     let user: User
     @State private var viewModel: ChatViewModel?
     @Environment(\.diContainer) private var container
-    
+
     var body: some View {
         Group {
             if let viewModel = viewModel {
@@ -42,7 +42,7 @@ struct ChatView: View {
                         VStack(spacing: AppSpacing.xs) {
                             CascadeText("AI Coach")
                                 .font(.system(size: 24, weight: .light, design: .rounded))
-                            
+
                             Text("Your Personal Fitness Guide")
                                 .font(.system(size: 14, weight: .light))
                                 .foregroundColor(.secondary)
@@ -51,7 +51,7 @@ struct ChatView: View {
                         .frame(maxWidth: .infinity)
                         .background(.ultraThinMaterial)
                     }
-                    
+
                     messagesScrollView
 
                     if !viewModel.quickSuggestions.isEmpty {
@@ -111,7 +111,7 @@ struct ChatView: View {
             }
         }
     }
-    
+
     @ViewBuilder
     private var messagesList: some View {
         LazyVStack(spacing: 16) {
@@ -119,7 +119,7 @@ struct ChatView: View {
             if viewModel.messages.isEmpty && animateIn {
                 welcomeMessage
             }
-            
+
             ForEach(Array(viewModel.messages.enumerated()), id: \.element.id) { index, message in
                 messageRow(message: message, index: index)
             }
@@ -130,7 +130,7 @@ struct ChatView: View {
         }
         .padding(.vertical, 20)
     }
-    
+
     @ViewBuilder
     private var welcomeMessage: some View {
         GlassCard {
@@ -139,11 +139,11 @@ struct ChatView: View {
                     .font(.system(size: 40, weight: .light))
                     .foregroundStyle(gradientIcon)
                     .accessibilityHidden(true)
-                
+
                 CascadeText("Welcome! How can I help you today?")
                     .font(.system(size: 20, weight: .light, design: .rounded))
                     .multilineTextAlignment(.center)
-                
+
                 Text("I'm your personalized AI coach, here to support your fitness journey.")
                     .font(.system(size: 14, weight: .light))
                     .foregroundColor(.secondary)
@@ -157,7 +157,7 @@ struct ChatView: View {
         .accessibilityLabel("Welcome message")
         .accessibilityValue("Welcome! How can I help you today? I'm your personalized AI coach, here to support your fitness journey.")
     }
-    
+
     @ViewBuilder
     private func messageRow(message: ChatMessage, index: Int) -> some View {
         MinimalMessageBubble(
@@ -181,7 +181,7 @@ struct ChatView: View {
         .accessibilityAddTraits(.isButton)
         .accessibilityHint("Double tap to show message actions")
     }
-    
+
     @ViewBuilder
     private var typingIndicator: some View {
         HStack {
@@ -193,7 +193,7 @@ struct ChatView: View {
         .accessibilityLabel("AI is typing")
         .accessibilityValue("Generating response")
     }
-    
+
     private var gradientIcon: LinearGradient {
         LinearGradient(
             colors: gradientManager.active.colors(for: colorScheme),
@@ -358,7 +358,7 @@ private final class ChatMockCoachEngine: CoachEngineProtocol, @unchecked Sendabl
     func generatePostWorkoutAnalysis(_ request: PostWorkoutAnalysisRequest) async throws -> String {
         return "Great workout! You completed \(request.workout.exercises.count) exercises. Keep up the excellent work!"
     }
-    
+
     func processUserMessage(_ text: String, for user: User) async {
         // Mock implementation - no-op for preview
     }
@@ -409,7 +409,7 @@ private struct ChatTypingIndicator: View {
     @State private var animationPhase: CGFloat = 0
     @EnvironmentObject private var gradientManager: GradientManager
     @Environment(\.colorScheme) private var colorScheme
-    
+
     var body: some View {
         HStack(spacing: AppSpacing.xs) {
             ForEach(0..<3) { index in
@@ -433,17 +433,17 @@ private struct ChatTypingIndicator: View {
         .onAppear {
             withAnimation(
                 .easeInOut(duration: 1.4)
-                .repeatForever(autoreverses: false)
+                    .repeatForever(autoreverses: false)
             ) {
                 animationPhase = 3
             }
         }
     }
-    
+
     private func animationScale(for index: Int) -> CGFloat {
         let phase = animationPhase - CGFloat(index) * 0.3
         let normalizedPhase = (phase.truncatingRemainder(dividingBy: 3) + 3).truncatingRemainder(dividingBy: 3)
-        
+
         if normalizedPhase < 1 {
             return 1 + normalizedPhase * 0.3
         } else if normalizedPhase < 2 {
@@ -452,7 +452,7 @@ private struct ChatTypingIndicator: View {
             return 1
         }
     }
-    
+
     private func animationOpacity(for index: Int) -> Double {
         let scale = animationScale(for: index)
         return scale > 1 ? 1 : 0.6
