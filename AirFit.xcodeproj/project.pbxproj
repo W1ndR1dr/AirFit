@@ -44,6 +44,7 @@
 		108DDF3EC5340F2675738600 /* ValidatorsTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA8441A8D258CA6E804F2944 /* ValidatorsTests.swift */; };
 		11AF3965C310C40F2A42B8F3 /* MinimalMessageBubble.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4FBDA2ED30E5CC40F14DC174 /* MinimalMessageBubble.swift */; };
 		11E2ED54B99885EB56E99489 /* ChatSuggestionsEngineTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 534C69A4F5B8C16E70BABAD5 /* ChatSuggestionsEngineTests.swift */; };
+		1372D1181D8BEE2E92372C75 /* ModelRecommendationView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6F7C6AD7F422D3C0EEB45217 /* ModelRecommendationView.swift */; };
 		139541EFBEFDABED1A8E8C8F /* ContextAnalyzer.swift in Sources */ = {isa = PBXBuildFile; fileRef = A04681F45161F1B797167C03 /* ContextAnalyzer.swift */; };
 		141DA1A1586C75174B3EB04D /* MotionToken.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0BDAD48BAAD2EBD1531477F6 /* MotionToken.swift */; };
 		14BCFB577917572302BF100D /* OnboardingContainerView.swift in Sources */ = {isa = PBXBuildFile; fileRef = F72E79054BC0702BE75F6C56 /* OnboardingContainerView.swift */; };
@@ -597,6 +598,7 @@
 		6DBBF997EE860EFC5A0AC13C /* DailyLog.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DailyLog.swift; sourceTree = "<group>"; };
 		6E8A8EF5101FD5B19625C2AE /* MockCoachEngine.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MockCoachEngine.swift; sourceTree = "<group>"; };
 		6F34FA86548FC5B0C9510877 /* MockFoodTrackingCoordinator.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MockFoodTrackingCoordinator.swift; sourceTree = "<group>"; };
+		6F7C6AD7F422D3C0EEB45217 /* ModelRecommendationView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ModelRecommendationView.swift; sourceTree = "<group>"; };
 		706EA0E12259FE2DB44E8C2A /* MockNetworkClient.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MockNetworkClient.swift; sourceTree = "<group>"; };
 		71057842E0CCDAA55AB1BD84 /* PersonaService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PersonaService.swift; sourceTree = "<group>"; };
 		72242C4E6C72ECAD33CB6147 /* ExerciseLibraryComponents.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ExerciseLibraryComponents.swift; sourceTree = "<group>"; };
@@ -1934,6 +1936,7 @@
 				765D9BFE2E4C73CBBD441C02 /* DataManagementView.swift */,
 				5D937284F580454584626E74 /* HealthKitTestDataDetailView.swift */,
 				9BF3D4C7416898CC0ACA7719 /* InitialAPISetupView.swift */,
+				6F7C6AD7F422D3C0EEB45217 /* ModelRecommendationView.swift */,
 				D175263D463CCB6EF4BCE843 /* NotificationPreferencesView.swift */,
 				9CAD88E31D30431D2E40AF19 /* PrivacySecurityView.swift */,
 				FB08BCA28825A25927F9B202 /* SettingsListView.swift */,
@@ -2767,6 +2770,7 @@
 				060EA8AF8F1CAABDD4D3AA97 /* MockAPIKeyManager.swift in Sources */,
 				1EB013DA64C50C74ED7C4D48 /* ModelContainer+Test.swift in Sources */,
 				7205ACA79294856614639263 /* ModelContainerErrorView.swift in Sources */,
+				1372D1181D8BEE2E92372C75 /* ModelRecommendationView.swift in Sources */,
 				FF48A0C4CDDFC68AA9973377 /* MonitoringService.swift in Sources */,
 				D17847A126C26B3495FF7538 /* MorningGreetingCard.swift in Sources */,
 				141DA1A1586C75174B3EB04D /* MotionToken.swift in Sources */,

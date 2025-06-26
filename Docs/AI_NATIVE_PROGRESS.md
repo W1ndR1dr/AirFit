@@ -41,6 +41,18 @@ This document tracks our progress implementing AI-native architecture in AirFit,
   - Limits responses to 30 words for notification brevity
 - **Status**: Fully implemented and compiling successfully
 
+#### 5. API Key Validation Enhancement
+- **What Changed**:
+  - Updated `APISetupViewModel.validateAPIKey` to make actual API calls instead of just format checking
+  - Updated `InitialAPISetupView.validateAndSave` to use proper validation with error handling
+  - Added visual feedback during validation ("Validating Key..." with progress indicator)
+  - Improved error messages to distinguish between invalid format, authentication failure, and network errors
+- **Key Features**:
+  - Actually tests API keys by making a minimal request to the provider
+  - Provides clear feedback about validation status
+  - Prevents users from proceeding with invalid keys
+- **Status**: Fully implemented and tested
+
 ### 🚧 In Progress
 
 *None currently*
@@ -101,12 +113,26 @@ Ask these questions:
 - Form fields: "Email", "Password"
 - Tab names: "Chat", "Dashboard", "Workouts"
 
+## Model Selection & Recommendations
+
+The app now properly guides users through model selection:
+1. **PersonaSynthesizer.getBestAvailableModel()** prioritizes models in this order:
+   - Claude 4 Opus (best for creative persona generation)
+   - o3 (newest capabilities)
+   - Gemini 2.5 Pro (good alternative)
+   - Claude 4 Sonnet (balanced option)
+   - GPT-4o (widely available)
+
+2. **ModelRecommendationView** provides clear guidance on which models to use for different purposes
+
+3. **API validation** ensures keys work before allowing users to proceed
+
 ## Next Steps
 
 ### Immediate (This Week)
-1. Implement proper AI generation in CoachEngine.generateNotificationContent
-2. Add comprehensive error logging to understand AI failures
-3. Test with real API keys to ensure AI path works
+1. Create error message contextualization service
+2. Test AI generation with real API keys across all touchpoints
+3. Monitor API usage and costs during persona generation
 
 ### Short Term (Next 2 Weeks)
 1. Create error message contextualization

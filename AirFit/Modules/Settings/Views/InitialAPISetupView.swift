@@ -135,7 +135,7 @@ struct InitialAPISetupView: View {
                                 Image(systemName: "sparkles")
                                     .font(.system(size: 16, weight: .medium))
                             }
-                            Text("Configure AI")
+                            Text(isValidating ? "Validating Key..." : "Configure AI")
                                 .font(.system(size: 18, weight: .semibold, design: .rounded))
                         }
                         .foregroundColor(.white)
@@ -194,14 +194,40 @@ struct InitialAPISetupView: View {
                 // Get API key manager from DI
                 let apiKeyManager = try await diContainer.resolve(APIKeyManagementProtocol.self)
 
-                // Validate format
+                // Validate format first
                 guard isValidAPIKeyFormat(apiKey, for: selectedProvider) else {
-                    validationError = "Invalid API key format"
-                    isValidating = false
+                    await MainActor.run {
+                        validationError = "Invalid API key format"
+                        isValidating = false
+                    }
                     return
                 }
 
-                // Save the key
+                // Validate with actual API call
+                let config = LLMProviderConfig(apiKey: apiKey)
+                let isValid: Bool
+                
+                switch selectedProvider {
+                case .anthropic:
+                    let provider = AnthropicProvider(config: config)
+                    isValid = try await provider.validateAPIKey(apiKey)
+                case .openAI:
+                    let provider = OpenAIProvider(config: config)
+                    isValid = try await provider.validateAPIKey(apiKey)
+                case .gemini:
+                    let provider = GeminiProvider(config: config)
+                    isValid = try await provider.validateAPIKey(apiKey)
+                }
+                
+                guard isValid else {
+                    await MainActor.run {
+                        validationError = "Invalid API key - please check your key and try again"
+                        isValidating = false
+                    }
+                    return
+                }
+
+                // Save the validated key
                 try await apiKeyManager.saveAPIKey(apiKey, for: selectedProvider)
 
                 // Configure AI service
@@ -215,7 +241,16 @@ struct InitialAPISetupView: View {
                 }
             } catch {
                 await MainActor.run {
-                    validationError = error.localizedDescription
+                    let errorMessage: String
+                    if error.localizedDescription.lowercased().contains("unauthorized") || 
+                       error.localizedDescription.lowercased().contains("401") {
+                        errorMessage = "Invalid API key - authentication failed"
+                    } else if error.localizedDescription.lowercased().contains("network") {
+                        errorMessage = "Network error - please check your connection"
+                    } else {
+                        errorMessage = "Validation failed: \(error.localizedDescription)"
+                    }
+                    validationError = errorMessage
                     HapticService.notification(.error)
                     isValidating = false
                 }

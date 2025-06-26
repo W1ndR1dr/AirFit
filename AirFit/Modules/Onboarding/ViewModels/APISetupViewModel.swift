@@ -25,15 +25,34 @@ final class APISetupViewModel: ObservableObject {
     }
 
     func validateAPIKey(_ key: String, for provider: AIProvider, model: String) async throws -> Bool {
-        // For now, just check if the key looks valid
-        // In a real implementation, we'd make a test API call
+        // First check format
+        let formatValid: Bool
         switch provider {
         case .anthropic:
-            return key.hasPrefix("sk-ant-")
+            formatValid = key.hasPrefix("sk-ant-") && key.count > 40
         case .openAI:
-            return key.hasPrefix("sk-") && key.count > 20
+            formatValid = key.hasPrefix("sk-") && key.count > 40
         case .gemini:
-            return key.count > 20
+            formatValid = key.count > 30
+        }
+        
+        guard formatValid else {
+            throw AppError.validationError(message: "Invalid API key format for \(provider.displayName)")
+        }
+        
+        // Now validate with actual API call
+        let config = LLMProviderConfig(apiKey: key)
+        
+        switch provider {
+        case .anthropic:
+            let provider = AnthropicProvider(config: config)
+            return try await provider.validateAPIKey(key)
+        case .openAI:
+            let provider = OpenAIProvider(config: config)
+            return try await provider.validateAPIKey(key)
+        case .gemini:
+            let provider = GeminiProvider(config: config)
+            return try await provider.validateAPIKey(key)
         }
     }
 
