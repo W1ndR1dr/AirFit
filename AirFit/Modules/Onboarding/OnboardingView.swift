@@ -80,8 +80,8 @@ struct OnboardingView: View {
                                         if let followUp = intelligence.followUpQuestion {
                                             intelligence.currentPrompt = followUp
                                         } else {
-                                            // Generate a follow-up if none provided
-                                            intelligence.currentPrompt = "Tell me more about your fitness journey."
+                                            // Generic fallback if AI fails to generate follow-up
+                                            intelligence.currentPrompt = "What else should I know?"
                                         }
                                     } else if conversationCount >= 10 {
                                         // Hard limit reached: Show insights confirmation

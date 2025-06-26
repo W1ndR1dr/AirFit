@@ -140,6 +140,8 @@ grep -r "struct TypeName\|class TypeName\|enum TypeName" --include="*.swift" Air
 - **Research Reports**: `Docs/Research Reports/` - System analysis and recommendations  
 - **UI Standards**: `Docs/Development-Standards/UI_STANDARDS.md` - Current design system
 - **UI Future**: `Docs/o3uiconsult.md` - Planned Adaline.ai-inspired UI transformation
+- **AI-Native Progress**: `Docs/Development-Standards/AI_NATIVE_PROGRESS.md` - Current status of AI implementation
+- **AI Implementation Guide**: `Docs/Development-Standards/AI_NATIVE_IMPLEMENTATION_GUIDE.md` - How to implement AI-native features
 
 ## Core Disciplines
 **Before coding**: Check `@Docs/Development-Standards/` for the relevant area

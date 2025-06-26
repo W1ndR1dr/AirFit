@@ -27,21 +27,41 @@ final class NotificationContentGenerator: ServiceProtocol {
         let context = await gatherMorningContext(for: user)
 
         do {
-            // Try AI generation
-            let aiContent = try await coachEngine.generateNotificationContent(
-                type: .morningGreeting,
-                context: context
-            )
-
-            return NotificationContent(
-                title: "Good morning, \(user.name ?? "there")! ☀️",
-                body: aiContent,
-                imageKey: selectMorningImage(context: context)
-            )
-
+            // Try AI generation with retry logic
+            var lastError: Error?
+            for attempt in 1...3 {
+                do {
+                    let aiContent = try await coachEngine.generateNotificationContent(
+                        type: .morningGreeting,
+                        context: context
+                    )
+                    
+                    AppLogger.info("AI generated morning greeting successfully on attempt \(attempt)", category: .ai)
+                    
+                    return NotificationContent(
+                        title: "Good morning, \(user.name ?? "there")! ☀️",
+                        body: aiContent,
+                        imageKey: selectMorningImage(context: context)
+                    )
+                } catch {
+                    lastError = error
+                    AppLogger.warning("AI generation attempt \(attempt) failed: \(error)", category: .ai)
+                    if attempt < 3 {
+                        try? await Task.sleep(nanoseconds: 500_000_000) // 0.5s delay before retry
+                    }
+                }
+            }
+            
+            // Log detailed failure before fallback
+            AppLogger.error("AI generation failed after 3 attempts, using template fallback",
+                            error: lastError ?? AppError.llm("Unknown error"),
+                            category: .notifications)
+            
+            // Fallback to template only after retries exhausted
+            return fallbackTemplates.morningGreeting(user: user, context: context)
         } catch {
-            // Fallback to template
-            AppLogger.error("AI generation failed, using template", error: error, category: .ai)
+            // This shouldn't happen but safety net
+            AppLogger.error("Unexpected error in notification generation", error: error, category: .notifications)
             return fallbackTemplates.morningGreeting(user: user, context: context)
         }
     }
@@ -249,14 +269,9 @@ final class NotificationContentGenerator: ServiceProtocol {
 // MARK: - Fallback Templates
 struct NotificationTemplates {
     func morningGreeting(user: User, context: MorningContext) -> NotificationContent {
-        let greetings = [
-            "Rise and shine! Ready to make today amazing?",
-            "Good morning! Your coach is here to support you today.",
-            "A new day, new opportunities! What will you achieve today?",
-            "Morning champion! Let's make today count."
-        ]
-
-        let body = greetings.randomElement() ?? greetings[0]
+        // Instead of hardcoded messages, generate a contextual greeting
+        let timeBasedGreeting = getTimeBasedGreeting(context: context)
+        let body = "\(timeBasedGreeting) Let's make today count, \(user.name ?? "champion")!"
 
         return NotificationContent(
             title: "Good morning, \(user.name ?? "there")! ☀️",
@@ -265,38 +280,44 @@ struct NotificationTemplates {
     }
 
     func workoutReminder(context: WorkoutReminderContext) -> NotificationContent {
-        let messages = [
-            "Your \(context.workoutType) is waiting! Keep that \(context.streak)-day streak going! 🔥",
-            "Time to move! Your body will thank you. 💪",
-            "Ready to feel amazing? Your \(context.workoutType) starts now!",
-            "Let's go! Every workout counts towards your goals."
-        ]
+        // Generate contextual reminder based on streak and workout type
+        let streakMessage = context.streak > 0 ? "Day \(context.streak + 1) - " : ""
+        let body = "\(streakMessage)Your \(context.workoutType) is ready. Let's keep the momentum going!"
 
         return NotificationContent(
             title: "Workout Time! 🏋️",
-            body: messages.randomElement() ?? messages[0]
+            body: body
         )
     }
 
     func mealReminder(mealType: MealType, context: MealReminderContext) -> NotificationContent {
-        let messages = [
-            "Time to fuel your body with a nutritious \(mealType.displayName.lowercased())!",
-            "Don't forget to log your \(mealType.displayName.lowercased()) - every meal counts!",
-            "Hungry? Let's track that \(mealType.displayName.lowercased()) and stay on top of your nutrition.",
-            "\(mealType.displayName) time! Quick tip: log it now while it's fresh in your mind."
-        ]
+        // Simple contextual message without arrays
+        let timeSensitive = context.lastMealLogged == nil ? "Start your nutrition tracking with " : "Time for "
+        let body = "\(timeSensitive)\(mealType.displayName.lowercased()). Every meal logged brings you closer to your goals!"
 
         return NotificationContent(
             title: "\(mealType.emoji) \(mealType.displayName) Reminder",
-            body: messages.randomElement() ?? messages[0]
+            body: body
         )
     }
 
     func achievement(achievement: Achievement, context: AchievementContext) -> NotificationContent {
+        // Contextual achievement message
+        let personalBestSuffix = context.personalBest ? " - a new personal best!" : "!"
         return NotificationContent(
             title: "🎉 Achievement Unlocked!",
-            body: "Incredible! You've earned '\(achievement.name)'. \(achievement.description)"
+            body: "\(achievement.name)\(personalBestSuffix) \(achievement.description)"
         )
+    }
+    
+    private func getTimeBasedGreeting(context: MorningContext) -> String {
+        switch context.dayOfWeek {
+        case 1: return "Happy Sunday!"
+        case 2: return "Monday motivation time!"
+        case 6: return "Friday energy activated!"
+        case 7: return "Saturday vibes!"
+        default: return "Another great day ahead!"
+        }
     }
 }
 
@@ -348,16 +369,17 @@ extension CoachEngine {
     }
 
     func generateNotificationContent<T>(type: NotificationContentType, context: T) async throws -> String {
-        // Placeholder - would call AI service with appropriate prompts
+        // For now, return simple placeholder until we properly implement AI generation
+        // The real implementation should use the AI service with persona context
         switch type {
         case .morningGreeting:
-            return "Ready to make today amazing? Let's start with a quick check-in!"
+            return "Good morning! Let's make today amazing!"
         case .workoutReminder:
-            return "Your body is ready for action! Let's make this workout count."
+            return "Time for your workout! You've got this!"
         case .mealReminder(let mealType):
-            return "Time to fuel your body with a healthy \(mealType.displayName.lowercased())!"
+            return "Don't forget to log your \(mealType.displayName.lowercased())!"
         case .achievement:
-            return "You're crushing it! Keep up the amazing work!"
+            return "Amazing work! You've earned this achievement!"
         }
     }
 }
