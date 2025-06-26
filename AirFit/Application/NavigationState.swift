@@ -163,6 +163,14 @@ public final class NavigationState {
             handleQuickAction(type)
         case .executeCommand(let command):
             executeLocalCommand(command)
+        case .showWorkouts:
+            navigateToTab(.workouts)
+        case .showRecovery:
+            navigateToTab(.dashboard)
+        case .showHydration:
+            navigateToTab(.food)
+        case .showProgress:
+            navigateToTab(.profile)
         }
     }
     
@@ -193,6 +201,22 @@ public final class NavigationState {
             navigateToTab(.profile)
         case .startWorkout:
             navigateToTab(.workouts, with: .startWorkout(type: nil))
+        case .showFood(let date, let mealType):
+            navigateToTab(.food, with: .showFood(date: date, mealType: mealType))
+        case .showWorkouts(let filter):
+            navigateToTab(.workouts, with: .showWorkouts(filter: filter))
+        case .showStats(let metric):
+            navigateToTab(.profile, with: .showStats(metric: metric))
+        case .showRecovery:
+            // Navigate to dashboard and show recovery card
+            navigateToTab(.dashboard, with: .showRecovery)
+        case .showHydration:
+            // Navigate to food tab for hydration tracking
+            navigateToTab(.food, with: .showHydration)
+        case .showProgress(let timeframe):
+            navigateToTab(.profile, with: .showProgress(timeframe: timeframe))
+        case .quickAction(let actionType):
+            handleQuickAction(actionType)
         default:
             // Other commands might be handled by chat
             pendingChatPrompt = "Execute command: \(command)"
@@ -210,6 +234,11 @@ public enum NavigationIntent: Hashable {
     case showStats(metric: String?) // TODO: Replace with proper HealthMetric when available
     case logQuickAction(type: QuickAction.QuickActionType)
     case executeCommand(parsed: LocalCommand)
+    // Enhanced navigation intents
+    case showWorkouts(filter: LocalCommand.WorkoutFilter?)
+    case showRecovery
+    case showHydration
+    case showProgress(timeframe: LocalCommand.TimeFrame?)
     
     public static func == (lhs: NavigationIntent, rhs: NavigationIntent) -> Bool {
         switch (lhs, rhs) {
@@ -223,6 +252,14 @@ public enum NavigationIntent: Hashable {
             return lType == rType
         case (.executeCommand, .executeCommand):
             return true // LocalCommand already conforms to Equatable
+        case let (.showWorkouts(lFilter), .showWorkouts(rFilter)):
+            return lFilter == rFilter
+        case (.showRecovery, .showRecovery):
+            return true
+        case (.showHydration, .showHydration):
+            return true
+        case let (.showProgress(lTimeframe), .showProgress(rTimeframe)):
+            return lTimeframe == rTimeframe
         default:
             return false
         }
@@ -245,6 +282,16 @@ public enum NavigationIntent: Hashable {
             hasher.combine(type)
         case .executeCommand:
             hasher.combine("executeCommand")
+        case let .showWorkouts(filter):
+            hasher.combine("showWorkouts")
+            hasher.combine(filter)
+        case .showRecovery:
+            hasher.combine("showRecovery")
+        case .showHydration:
+            hasher.combine("showHydration")
+        case let .showProgress(timeframe):
+            hasher.combine("showProgress")
+            hasher.combine(timeframe)
         }
     }
 }

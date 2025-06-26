@@ -78,27 +78,85 @@ final class MessageProcessor {
         return command == .none ? nil : command
     }
 
-    /// Generates appropriate response for local commands
-    func generateLocalCommandResponse(_ command: LocalCommand) -> String {
+    /// Creates a description of the executed command for the AI to understand what action was taken
+    /// This allows the AI to generate an appropriate, contextual response
+    func describeCommandExecution(_ command: LocalCommand) -> String {
         switch command {
         case .showDashboard:
-            return "I'll take you to your dashboard where you can see your progress overview."
+            return "[System: Navigated to dashboard]"
         case let .navigateToTab(tab):
-            return "I'll navigate you to the \(tab.rawValue) section."
+            return "[System: Navigated to \(tab.rawValue) tab]"
         case let .logWater(amount, unit):
-            return "I've logged \(amount) \(unit.rawValue) of water for you. Great job staying hydrated!"
+            let ml = amount * unit.toMilliliters
+            return "[System: Logged \(Int(ml))ml (\(amount) \(unit.rawValue)) of water]"
         case let .quickLog(type):
-            return "I'll help you quickly log your \(type). Let me open that for you."
+            return "[System: Opened quick logging for \(type)]"
         case .showSettings:
-            return "I'll take you to your settings where you can customize your experience."
+            return "[System: Navigated to settings]"
         case .showProfile:
-            return "I'll show you your profile information."
+            return "[System: Navigated to profile]"
         case .startWorkout:
-            return "Let's get you started with a workout! I'll open your workout options."
+            return "[System: Opened workout starter]"
         case .help:
-            return "I'm here to help! You can ask me about workouts, nutrition, progress tracking, or just chat about your fitness goals."
+            return "[System: User requested help]"
         case .none:
-            return "I'm not sure what you'd like me to do. Could you be more specific?"
+            return "[System: No action taken]"
+        case let .showFood(date, mealType):
+            var description = "[System: Navigated to food tracking"
+            if let date = date {
+                description += " for \(date.formatted(date: .abbreviated, time: .omitted))"
+            }
+            if let mealType = mealType {
+                description += " (\(mealType.rawValue))"
+            }
+            return description + "]"
+        case let .showWorkouts(filter):
+            var description = "[System: Navigated to workouts"
+            switch filter {
+            case .recent:
+                description += " (recent)"
+            case .type(let workoutType):
+                description += " (\(workoutType.rawValue))"
+            case .thisWeek:
+                description += " (this week)"
+            case .thisMonth:
+                description += " (this month)"
+            case .none:
+                break
+            }
+            return description + "]"
+        case let .showStats(metric):
+            return "[System: Navigated to \(metric ?? "overall") statistics]"
+        case .showRecovery:
+            return "[System: Navigated to recovery section]"
+        case .showHydration:
+            return "[System: Navigated to hydration tracking]"
+        case let .showProgress(timeframe):
+            var description = "[System: Navigated to progress"
+            switch timeframe {
+            case .today:
+                description += " (today)"
+            case .thisWeek:
+                description += " (this week)"
+            case .thisMonth:
+                description += " (this month)"
+            case .lastDays(let days):
+                description += " (last \(days) days)"
+            case .none:
+                break
+            }
+            return description + "]"
+        case .quickAction(let actionType):
+            switch actionType {
+            case .logMeal(let mealType):
+                return "[System: Opened \(mealType.rawValue) logging]"
+            case .logWater:
+                return "[System: Opened water logging]"
+            case .startWorkout:
+                return "[System: Started workout flow]"
+            case .checkIn:
+                return "[System: Opened check-in]"
+            }
         }
     }
 

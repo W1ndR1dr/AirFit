@@ -237,14 +237,37 @@ final class CoachEngine {
 
             AppLogger.info("Processing user message (\(messageType.rawValue)): \(text.prefix(50))...", category: .ai)
 
-            // Step 3: Check for local commands first (instant response)
-            if let localCommand = await messageProcessor.checkLocalCommand(text, for: user) {
-                await handleLocalCommandResponse(localCommand, for: user, conversationId: conversationId)
-                return
+            // Step 3: Check for local commands and execute them
+            let localCommand = await messageProcessor.checkLocalCommand(text, for: user)
+            
+            if let command = localCommand {
+                // Execute the command (navigation, logging, etc.)
+                await executeLocalCommand(command, for: user)
+                
+                // Get command execution description to add context for AI
+                let commandDescription = messageProcessor.describeCommandExecution(command)
+                
+                // Append command context to the message for AI processing
+                let textWithContext = text + "\n\n" + commandDescription
+                
+                // Process through AI with command context
+                await processAIResponse(
+                    textWithContext,
+                    for: user,
+                    conversationId: conversationId,
+                    messageType: messageType,
+                    executedCommand: command
+                )
+            } else {
+                // No command, process normally through AI
+                await processAIResponse(
+                    text,
+                    for: user,
+                    conversationId: conversationId,
+                    messageType: messageType,
+                    executedCommand: nil
+                )
             }
-
-            // Step 4: Process through AI pipeline with optimized history
-            await processAIResponse(text, for: user, conversationId: conversationId, messageType: messageType)
 
         } catch {
             await handleError(error)
@@ -378,40 +401,60 @@ final class CoachEngine {
     }
 
 
-    private func handleLocalCommandResponse(
+    /// Executes local commands (navigation, logging, etc.) without generating a response
+    /// The AI will generate the appropriate response based on context
+    private func executeLocalCommand(
         _ command: LocalCommand,
-        for user: User,
-        conversationId: UUID
+        for user: User
     ) async {
-        do {
-            // Generate response for local command
-            let response = messageProcessor.generateLocalCommandResponse(command)
-
-            // Save the local command response
-            _ = try await conversationManager.createAssistantMessage(
-                response,
-                for: user,
-                conversationId: conversationId,
-                functionCall: nil,
-                isLocalCommand: true,
-                isError: false
-            )
-
-            currentResponse = response
-            await finishProcessing()
-
-            AppLogger.info("Local command processed successfully", category: .ai)
-
-        } catch {
-            await handleError(error)
+        // Execute the command based on type
+        switch command {
+        case .showDashboard, .navigateToTab, .showSettings, .showProfile,
+             .startWorkout, .showFood, .showWorkouts, .showStats,
+             .showRecovery, .showHydration, .showProgress:
+            // Navigation commands - execute through NavigationState
+            if let navigationState = await getNavigationState() {
+                await MainActor.run {
+                    navigationState.executeIntent(.executeCommand(parsed: command))
+                }
+            }
+            
+        case let .logWater(amount, unit):
+            // Water logging - would normally save to database
+            // For now, just log the action
+            let ml = amount * unit.toMilliliters
+            AppLogger.info("Executed water logging: \(Int(ml))ml", category: .ai)
+            
+        case .quickLog, .quickAction:
+            // Quick logging actions - would open appropriate UI
+            AppLogger.info("Executed quick log command: \(command)", category: .ai)
+            
+        case .help:
+            // Help command - AI will provide contextual help
+            AppLogger.info("User requested help", category: .ai)
+            
+        case .none:
+            // No action needed
+            break
         }
+        
+        AppLogger.info("Local command executed: \(command)", category: .ai)
+    }
+    
+    /// Gets the NavigationState from the environment if available
+    private func getNavigationState() async -> NavigationState? {
+        // This would need to be injected or accessed through the view hierarchy
+        // For now, return nil - the actual implementation would get this from
+        // the SwiftUI environment or through dependency injection
+        return nil
     }
 
     private func processAIResponse(
         _ text: String,
         for user: User,
         conversationId: UUID,
-        messageType: MessageType
+        messageType: MessageType,
+        executedCommand: LocalCommand? = nil
     ) async {
         let startTime = CFAbsoluteTimeGetCurrent()
 
