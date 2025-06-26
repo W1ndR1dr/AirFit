@@ -3,11 +3,13 @@ import SwiftUI
 struct InitialAPISetupView: View {
     @Environment(\.diContainer) private var diContainer
     @State private var selectedProvider: AIProvider = .gemini
+    @State private var selectedModel: String = ""
     @State private var apiKey: String = ""
     @State private var isValidating = false
     @State private var validationError: String?
     @State private var showingInfo = false
     @State private var showKey = false
+    @State private var validationRetryCount = 0
 
     let onCompletion: () -> Void
 
@@ -51,7 +53,10 @@ struct InitialAPISetupView: View {
                             onTap: {
                                 HapticService.impact(.light)
                                 selectedProvider = provider
+                                selectedModel = provider.defaultModel // Set default model for provider
                                 apiKey = "" // Clear key when switching providers
+                                validationError = nil // Clear any previous errors
+                                validationRetryCount = 0 // Reset retry count
                             }
                         )
                     }
@@ -117,6 +122,18 @@ struct InitialAPISetupView: View {
                     }
                 }
                 .padding(.horizontal, AppSpacing.lg)
+                
+                // Model Selection
+                if !apiKey.isEmpty {
+                    ModelRecommendationView(
+                        provider: selectedProvider,
+                        selectedModel: $selectedModel
+                    )
+                    .padding(.horizontal, AppSpacing.lg)
+                    .padding(.top, AppSpacing.md)
+                    .transition(.move(edge: .bottom).combined(with: .opacity))
+                    .animation(.spring(response: 0.4), value: !apiKey.isEmpty)
+                }
 
                 Spacer()
 
@@ -183,6 +200,12 @@ struct InitialAPISetupView: View {
             APIKeyInfoSheet(provider: selectedProvider)
         }
         .preferredColorScheme(.light) // Force light mode for better visibility
+        .onAppear {
+            // Initialize default model if not set
+            if selectedModel.isEmpty {
+                selectedModel = selectedProvider.defaultModel
+            }
+        }
     }
 
     private func validateAndSave() {
@@ -190,6 +213,11 @@ struct InitialAPISetupView: View {
         validationError = nil
 
         Task {
+            // Check if model is selected
+            if selectedModel.isEmpty {
+                selectedModel = selectedProvider.defaultModel
+            }
+            
             do {
                 // Get API key manager from DI
                 let apiKeyManager = try await diContainer.resolve(APIKeyManagementProtocol.self)
@@ -203,25 +231,66 @@ struct InitialAPISetupView: View {
                     return
                 }
 
-                // Validate with actual API call
+                // Validate with actual API call (with retry logic)
                 let config = LLMProviderConfig(apiKey: apiKey)
-                let isValid: Bool
+                var isValid = false
+                var lastError: Error?
                 
-                switch selectedProvider {
-                case .anthropic:
-                    let provider = AnthropicProvider(config: config)
-                    isValid = try await provider.validateAPIKey(apiKey)
-                case .openAI:
-                    let provider = OpenAIProvider(config: config)
-                    isValid = try await provider.validateAPIKey(apiKey)
-                case .gemini:
-                    let provider = GeminiProvider(config: config)
-                    isValid = try await provider.validateAPIKey(apiKey)
+                // Retry up to 3 times for network failures
+                for attempt in 1...3 {
+                    do {
+                        switch selectedProvider {
+                        case .anthropic:
+                            let provider = AnthropicProvider(config: config)
+                            isValid = try await provider.validateAPIKey(apiKey)
+                        case .openAI:
+                            let provider = OpenAIProvider(config: config)
+                            isValid = try await provider.validateAPIKey(apiKey)
+                        case .gemini:
+                            let provider = GeminiProvider(config: config)
+                            isValid = try await provider.validateAPIKey(apiKey)
+                        }
+                        
+                        if isValid {
+                            break // Success, exit retry loop
+                        }
+                    } catch {
+                        lastError = error
+                        
+                        // Only retry for network errors
+                        if error.localizedDescription.lowercased().contains("network") ||
+                           error.localizedDescription.lowercased().contains("timeout") ||
+                           error.localizedDescription.lowercased().contains("connection") {
+                            if attempt < 3 {
+                                await MainActor.run {
+                                    validationError = "Network error - retrying... (attempt \(attempt)/3)"
+                                }
+                                try? await Task.sleep(nanoseconds: 1_000_000_000) // 1 second delay
+                                continue
+                            }
+                        } else {
+                            // Non-network error, don't retry
+                            throw error
+                        }
+                    }
                 }
                 
                 guard isValid else {
                     await MainActor.run {
-                        validationError = "Invalid API key - please check your key and try again"
+                        if let error = lastError {
+                            let errorMessage: String
+                            if error.localizedDescription.lowercased().contains("unauthorized") || 
+                               error.localizedDescription.lowercased().contains("401") {
+                                errorMessage = "Invalid API key - authentication failed"
+                            } else if error.localizedDescription.lowercased().contains("network") {
+                                errorMessage = "Network error - please check your connection and try again"
+                            } else {
+                                errorMessage = "Invalid API key - please check your key and try again"
+                            }
+                            validationError = errorMessage
+                        } else {
+                            validationError = "Invalid API key - please check your key and try again"
+                        }
                         isValidating = false
                     }
                     return
@@ -229,6 +298,11 @@ struct InitialAPISetupView: View {
 
                 // Save the validated key
                 try await apiKeyManager.saveAPIKey(apiKey, for: selectedProvider)
+                
+                // Save the selected model to UserDefaults
+                UserDefaults.standard.set(selectedModel, forKey: "selected_model_\(selectedProvider.rawValue)")
+                UserDefaults.standard.set(selectedProvider.rawValue, forKey: "default_ai_provider")
+                UserDefaults.standard.set(selectedModel, forKey: "default_ai_model")
 
                 // Configure AI service
                 let aiService = try await diContainer.resolve(AIServiceProtocol.self)

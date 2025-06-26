@@ -45,6 +45,47 @@ final class OnboardingIntelligence: ObservableObject {
     // Model selection for persona synthesis
     @Published var selectedModel: LLMModel?
 
+    // MARK: - Public Methods
+    
+    /// Set the preferred model for persona generation based on user selection
+    func setPreferredModel(provider: AIProvider, modelId: String) {
+        // Map provider and model ID to LLMModel enum
+        switch provider {
+        case .anthropic:
+            if modelId.contains("opus") {
+                selectedModel = .claude4Opus
+            } else if modelId.contains("sonnet") {
+                selectedModel = .claude4Sonnet
+            }
+            // Note: No Haiku in Claude 4 series yet
+            
+        case .openAI:
+            if modelId.contains("gpt-4o") && !modelId.contains("mini") {
+                selectedModel = .gpt4o
+            } else if modelId.contains("o3") && !modelId.contains("mini") {
+                selectedModel = .o3
+            } else if modelId.contains("o3-mini") {
+                selectedModel = .o3Mini
+            } else if modelId.contains("o4-mini") || modelId.contains("gpt-4o-mini") {
+                selectedModel = .o4Mini
+            }
+            
+        case .gemini:
+            if modelId.contains("2.5-flash-thinking") || modelId.contains("thinking") {
+                selectedModel = .gemini25FlashThinking
+            } else if modelId.contains("2.5-pro") || modelId.contains("1.5-pro") {
+                selectedModel = .gemini25Pro
+            } else if modelId.contains("2.5-flash") || modelId.contains("1.5-flash") {
+                selectedModel = .gemini25Flash
+            }
+            // Note: 2.0 models map to 2.5 equivalents
+        }
+        
+        if let model = selectedModel {
+            AppLogger.info("Set preferred model for persona generation: \(model.identifier)", category: .onboarding)
+        }
+    }
+
     // MARK: - Initialization
 
     private init(

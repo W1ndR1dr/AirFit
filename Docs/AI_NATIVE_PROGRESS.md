@@ -53,6 +53,20 @@ This document tracks our progress implementing AI-native architecture in AirFit,
   - Prevents users from proceeding with invalid keys
 - **Status**: Fully implemented and tested
 
+#### 6. Model Selection & Retry Enhancements
+- **What Changed**:
+  - Integrated `ModelRecommendationView` into `InitialAPISetupView` - appears when user enters API key
+  - Added retry logic (3 attempts) for API validation with network error detection
+  - User's selected model is saved to UserDefaults and used for persona generation
+  - Added `setPreferredModel` method to `OnboardingIntelligence` to use user's choice
+  - Updated `OnboardingView` to load user's model selection before persona generation
+- **Key Features**:
+  - Model recommendations show which are best for persona generation (premium models)
+  - Network errors trigger automatic retries with user feedback
+  - User's model choice is respected throughout the app lifecycle
+  - Falls back to `getBestAvailableModel` if no selection made
+- **Status**: Fully implemented and tested
+
 ### 🚧 In Progress
 
 *None currently*
@@ -171,3 +185,11 @@ The app now properly guides users through model selection:
 
 *Last Updated: 2025-06-26*
 *Next Review: When implementing error message contextualization*
+
+## Summary of Improvements
+
+1. **API Validation**: Keys are now validated with actual API calls, not just format checks
+2. **User Experience**: Clear validation feedback with retry logic for network failures  
+3. **Model Selection**: Users can choose which model to use for persona generation
+4. **Model Recommendations**: Visual guide shows which models are best for different purposes
+5. **Persistence**: Selected model is saved and used throughout the app lifecycle

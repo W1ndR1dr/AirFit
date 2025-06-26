@@ -47,6 +47,10 @@ struct OnboardingView: View {
                                     // Move to conversation immediately
                                     await MainActor.run {
                                         phase = .conversation
+                                        // Load user's selected model if not already done
+                                        if !hasSelectedModel {
+                                            loadUserSelectedModel()
+                                        }
                                     }
                                     // Then analyze health data in background
                                     await intelligence.startHealthAnalysis()
@@ -236,6 +240,23 @@ struct OnboardingView: View {
         Task {
             intelligence.coachingPlan = intelligence.createFallbackPlan()
             phase = .confirmation
+        }
+    }
+    
+    private func loadUserSelectedModel() {
+        // Get the selected provider and model from UserDefaults
+        if let providerString = UserDefaults.standard.string(forKey: "default_ai_provider"),
+           let provider = AIProvider(rawValue: providerString),
+           let modelId = UserDefaults.standard.string(forKey: "default_ai_model") {
+            
+            // Set the preferred model in OnboardingIntelligence
+            intelligence.setPreferredModel(provider: provider, modelId: modelId)
+            hasSelectedModel = true
+            
+            AppLogger.info("Loaded user-selected model: \(provider.displayName) - \(modelId)", category: .onboarding)
+        } else {
+            // If no model selected, the intelligence will use getBestAvailableModel
+            AppLogger.info("No user-selected model found, will use best available", category: .onboarding)
         }
     }
 }
