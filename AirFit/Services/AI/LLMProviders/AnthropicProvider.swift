@@ -33,38 +33,40 @@ actor AnthropicProvider: LLMProvider, ServiceProtocol {
     }
 
     func complete(_ request: LLMRequest) async throws -> LLMResponse {
-        let anthropicRequest = try buildAnthropicRequest(from: request)
-        let url = URL(string: "https://api.anthropic.com/v1/messages")!
+        try await LLMRetryHandler.withRetry { [self] in
+            let anthropicRequest = try buildAnthropicRequest(from: request)
+            let url = URL(string: "https://api.anthropic.com/v1/messages")!
 
-        var urlRequest = URLRequest(url: url)
-        urlRequest.httpMethod = "POST"
-        urlRequest.setValue(config.apiKey, forHTTPHeaderField: "x-api-key")
-        urlRequest.setValue("2023-06-01", forHTTPHeaderField: "anthropic-version")
-        urlRequest.setValue("application/json", forHTTPHeaderField: "content-type")
-        urlRequest.httpBody = try JSONEncoder().encode(anthropicRequest)
+            var urlRequest = URLRequest(url: url)
+            urlRequest.httpMethod = "POST"
+            urlRequest.setValue(config.apiKey, forHTTPHeaderField: "x-api-key")
+            urlRequest.setValue("2023-06-01", forHTTPHeaderField: "anthropic-version")
+            urlRequest.setValue("application/json", forHTTPHeaderField: "content-type")
+            urlRequest.httpBody = try JSONEncoder().encode(anthropicRequest)
 
-        let (data, response) = try await session.data(for: urlRequest)
+            let (data, response) = try await session.data(for: urlRequest)
 
-        guard let httpResponse = response as? HTTPURLResponse else {
-            throw AppError.from(LLMError.networkError(URLError(.badServerResponse)))
+            guard let httpResponse = response as? HTTPURLResponse else {
+                throw AppError.from(LLMError.networkError(URLError(.badServerResponse)))
+            }
+
+            if httpResponse.statusCode == 401 {
+                throw AppError.from(LLMError.invalidAPIKey)
+            } else if httpResponse.statusCode == 429 {
+                let retryAfter = httpResponse.value(forHTTPHeaderField: "Retry-After")
+                    .flatMap { Double($0) }
+                throw AppError.from(LLMError.rateLimitExceeded(retryAfter: retryAfter))
+            } else if httpResponse.statusCode >= 400 {
+                let errorMessage = try? JSONDecoder().decode(AnthropicError.self, from: data)
+                throw AppError.from(LLMError.serverError(
+                    statusCode: httpResponse.statusCode,
+                    message: errorMessage?.error.message
+                ))
+            }
+
+            let anthropicResponse = try JSONDecoder().decode(AnthropicResponse.self, from: data)
+            return try mapToLLMResponse(anthropicResponse, model: request.model)
         }
-
-        if httpResponse.statusCode == 401 {
-            throw AppError.from(LLMError.invalidAPIKey)
-        } else if httpResponse.statusCode == 429 {
-            let retryAfter = httpResponse.value(forHTTPHeaderField: "Retry-After")
-                .flatMap { Double($0) }
-            throw AppError.from(LLMError.rateLimitExceeded(retryAfter: retryAfter))
-        } else if httpResponse.statusCode >= 400 {
-            let errorMessage = try? JSONDecoder().decode(AnthropicError.self, from: data)
-            throw AppError.from(LLMError.serverError(
-                statusCode: httpResponse.statusCode,
-                message: errorMessage?.error.message
-            ))
-        }
-
-        let anthropicResponse = try JSONDecoder().decode(AnthropicResponse.self, from: data)
-        return try mapToLLMResponse(anthropicResponse, model: request.model)
     }
 
     func stream(_ request: LLMRequest) -> AsyncThrowingStream<LLMStreamChunk, Error> {
@@ -157,46 +159,70 @@ actor AnthropicProvider: LLMProvider, ServiceProtocol {
 
     // MARK: - Private Helpers
 
-    private func buildAnthropicRequest(from request: LLMRequest) throws -> AnthropicRequest {
+    private nonisolated func buildAnthropicRequest(from request: LLMRequest) throws -> AnthropicRequest {
         var messages = request.messages.map { msg in
-            AnthropicMessage(role: msg.role.rawValue, content: msg.content)
+            AnthropicMessage(role: msg.role.rawValue, content: .text(msg.content))
         }
 
         // Handle system prompt
         if let systemPrompt = request.systemPrompt {
             messages.insert(
-                AnthropicMessage(role: "system", content: systemPrompt),
+                AnthropicMessage(role: "system", content: .text(systemPrompt)),
                 at: 0
             )
         }
+        
+        // Convert functions to tools if present
+        // TODO: LLMRequest doesn't currently expose functions from AIRequest
+        // This needs to be added to LLMRequest to support function calling
+        // For now, we'll check if there's a way to pass functions via metadata
+        let tools: [AnthropicTool]? = nil
 
         return AnthropicRequest(
             model: request.model,
             messages: messages,
             max_tokens: request.maxTokens ?? 4_096,
             temperature: request.temperature,
-            stream: request.stream
+            stream: request.stream,
+            tools: tools
         )
     }
 
-    private func mapToLLMResponse(_ response: AnthropicResponse, model: String) throws -> LLMResponse {
-        guard let content = response.content.first?.text else {
+    private nonisolated func mapToLLMResponse(_ response: AnthropicResponse, model: String) throws -> LLMResponse {
+        // Combine all text content
+        var textContent = ""
+        var hasToolUse = false
+        
+        for content in response.content {
+            if let text = content.text {
+                textContent += text
+            } else if content.type == "tool_use" {
+                hasToolUse = true
+                // TODO: Handle tool use when LLMResponse supports it
+                // For now, we'll include tool information in the text
+                if let name = content.name, let input = content.input {
+                    textContent += "\n[Tool Call: \(name) with input: \(input)]"
+                }
+            }
+        }
+        
+        guard !textContent.isEmpty else {
             throw AppError.from(LLMError.invalidResponse("No content in response"))
         }
 
         return LLMResponse(
-            content: content,
+            content: textContent,
             model: model,
             usage: LLMResponse.TokenUsage(
                 promptTokens: response.usage.input_tokens,
                 completionTokens: response.usage.output_tokens
             ),
-            finishReason: mapFinishReason(response.stop_reason),
+            finishReason: hasToolUse ? .toolCalls : mapFinishReason(response.stop_reason),
             metadata: ["id": response.id]
         )
     }
 
-    private func mapToStreamChunk(_ event: AnthropicStreamEvent) -> LLMStreamChunk? {
+    private nonisolated func mapToStreamChunk(_ event: AnthropicStreamEvent) -> LLMStreamChunk? {
         switch event.type {
         case "content_block_delta":
             return LLMStreamChunk(
@@ -220,7 +246,7 @@ actor AnthropicProvider: LLMProvider, ServiceProtocol {
         }
     }
 
-    private func mapFinishReason(_ reason: String?) -> LLMResponse.FinishReason {
+    private nonisolated func mapFinishReason(_ reason: String?) -> LLMResponse.FinishReason {
         switch reason {
         case "end_turn", "stop_sequence":
             return .stop
@@ -267,11 +293,154 @@ private struct AnthropicRequest: Encodable {
     let max_tokens: Int
     let temperature: Double
     let stream: Bool
+    let tools: [AnthropicTool]?
 }
 
 private struct AnthropicMessage: Codable {
     let role: String
-    let content: String
+    let content: AnthropicContent
+}
+
+private enum AnthropicContent: Codable {
+    case text(String)
+    case toolUse(id: String, name: String, input: [String: AnthropicValue])
+    case toolResult(toolUseId: String, content: String)
+    
+    private enum CodingKeys: String, CodingKey {
+        case type, text, id, name, input, toolUseId = "tool_use_id", content
+    }
+    
+    init(from decoder: Decoder) throws {
+        let container = try decoder.container(keyedBy: CodingKeys.self)
+        let type = try container.decodeIfPresent(String.self, forKey: .type)
+        
+        switch type {
+        case "tool_use":
+            let id = try container.decode(String.self, forKey: .id)
+            let name = try container.decode(String.self, forKey: .name)
+            let input = try container.decode([String: AnthropicValue].self, forKey: .input)
+            self = .toolUse(id: id, name: name, input: input)
+        case "tool_result":
+            let toolUseId = try container.decode(String.self, forKey: .toolUseId)
+            let content = try container.decode(String.self, forKey: .content)
+            self = .toolResult(toolUseId: toolUseId, content: content)
+        default:
+            let text = try container.decode(String.self, forKey: .text)
+            self = .text(text)
+        }
+    }
+    
+    func encode(to encoder: Encoder) throws {
+        var container = encoder.container(keyedBy: CodingKeys.self)
+        
+        switch self {
+        case .text(let text):
+            try container.encode("text", forKey: .type)
+            try container.encode(text, forKey: .text)
+        case .toolUse(let id, let name, let input):
+            try container.encode("tool_use", forKey: .type)
+            try container.encode(id, forKey: .id)
+            try container.encode(name, forKey: .name)
+            try container.encode(input, forKey: .input)
+        case .toolResult(let toolUseId, let content):
+            try container.encode("tool_result", forKey: .type)
+            try container.encode(toolUseId, forKey: .toolUseId)
+            try container.encode(content, forKey: .content)
+        }
+    }
+}
+
+private struct AnthropicTool: Codable {
+    let name: String
+    let description: String
+    let input_schema: AnthropicInputSchema
+}
+
+private struct AnthropicInputSchema: Codable {
+    let type: String
+    let properties: [String: AnthropicProperty]
+    let required: [String]
+}
+
+private struct AnthropicProperty: Codable {
+    let type: String
+    let description: String
+    let items: Box<AnthropicProperty>?
+    let `enum`: [String]?
+    let minimum: Double?
+    let maximum: Double?
+}
+
+// Box type to handle recursive property
+private final class Box<T: Codable>: Codable {
+    let value: T
+    
+    init(_ value: T) {
+        self.value = value
+    }
+    
+    init(from decoder: Decoder) throws {
+        let container = try decoder.singleValueContainer()
+        self.value = try container.decode(T.self)
+    }
+    
+    func encode(to encoder: Encoder) throws {
+        var container = encoder.singleValueContainer()
+        try container.encode(value)
+    }
+}
+
+private struct AnthropicValue: Codable {
+    let value: Any
+    
+    init(_ value: Any) {
+        self.value = value
+    }
+    
+    init(from decoder: Decoder) throws {
+        let container = try decoder.singleValueContainer()
+        
+        if container.decodeNil() {
+            self.value = NSNull()
+        } else if let bool = try? container.decode(Bool.self) {
+            self.value = bool
+        } else if let int = try? container.decode(Int.self) {
+            self.value = int
+        } else if let double = try? container.decode(Double.self) {
+            self.value = double
+        } else if let string = try? container.decode(String.self) {
+            self.value = string
+        } else if let array = try? container.decode([AnthropicValue].self) {
+            self.value = array.map { $0.value }
+        } else if let dictionary = try? container.decode([String: AnthropicValue].self) {
+            self.value = dictionary.mapValues { $0.value }
+        } else {
+            throw DecodingError.dataCorruptedError(in: container, debugDescription: "Unable to decode value")
+        }
+    }
+    
+    func encode(to encoder: Encoder) throws {
+        var container = encoder.singleValueContainer()
+        
+        switch value {
+        case is NSNull:
+            try container.encodeNil()
+        case let bool as Bool:
+            try container.encode(bool)
+        case let int as Int:
+            try container.encode(int)
+        case let double as Double:
+            try container.encode(double)
+        case let string as String:
+            try container.encode(string)
+        case let array as [Any]:
+            try container.encode(array.map { AnthropicValue($0) })
+        case let dictionary as [String: Any]:
+            try container.encode(dictionary.mapValues { AnthropicValue($0) })
+        default:
+            throw EncodingError.invalidValue(value, EncodingError.Context(codingPath: encoder.codingPath, debugDescription: "Unable to encode value"))
+        }
+    }
 }
 
 private struct AnthropicResponse: Decodable {
@@ -281,7 +450,38 @@ private struct AnthropicResponse: Decodable {
     let usage: Usage
 
     struct Content: Decodable {
-        let text: String
+        let type: String
+        let text: String?
+        let id: String?
+        let name: String?
+        let input: [String: AnthropicValue]?
+        
+        enum CodingKeys: String, CodingKey {
+            case type, text, id, name, input
+        }
+        
+        init(from decoder: Decoder) throws {
+            let container = try decoder.container(keyedBy: CodingKeys.self)
+            type = try container.decode(String.self, forKey: .type)
+            
+            switch type {
+            case "text":
+                text = try container.decode(String.self, forKey: .text)
+                id = nil
+                name = nil
+                input = nil
+            case "tool_use":
+                text = nil
+                id = try container.decode(String.self, forKey: .id)
+                name = try container.decode(String.self, forKey: .name)
+                input = try container.decode([String: AnthropicValue].self, forKey: .input)
+            default:
+                text = try? container.decode(String.self, forKey: .text)
+                id = nil
+                name = nil
+                input = nil
+            }
+        }
     }
 
     struct Usage: Decodable {

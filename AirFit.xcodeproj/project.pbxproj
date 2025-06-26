@@ -257,6 +257,7 @@
 		A61C9A01998A3454630866D0 /* PersonaEngine.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5C1C36DB2B17CC8284BA2406 /* PersonaEngine.swift */; };
 		A63F757F8B7F59A36EEC2E0E /* SettingsViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = C0C9F21B613099303F742417 /* SettingsViewModel.swift */; };
 		A6CF4F4359F5174D454B6A50 /* MockWhisperKit.swift in Sources */ = {isa = PBXBuildFile; fileRef = B834B8FCEE6BAF264314A161 /* MockWhisperKit.swift */; };
+		A79735FC0B1C9E9DD746FF75 /* LLMRetryHandler.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8CEBAFC52A7A043E26588D30 /* LLMRetryHandler.swift */; };
 		A7B720C999B804FD78090DF7 /* WorkoutListView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 81BC9E1C7BC56947A9A80A8E /* WorkoutListView.swift */; };
 		A7F8A46ED671E3EB97F27D21 /* MockFoodTrackingCoordinator.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6F34FA86548FC5B0C9510877 /* MockFoodTrackingCoordinator.swift */; };
 		A8207882D9AB09CB4180FADA /* ExtractedInsights.swift in Sources */ = {isa = PBXBuildFile; fileRef = 308DFA18E01B1875CCBEC7AE /* ExtractedInsights.swift */; };
@@ -640,6 +641,7 @@
 		8C68C294323BEA73B143505C /* AppColors.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppColors.swift; sourceTree = "<group>"; };
 		8CB5D2F1C5C7378406359FE6 /* ExerciseSet.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ExerciseSet.swift; sourceTree = "<group>"; };
 		8CDF164463402B130ED34092 /* EngagementEngine.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = EngagementEngine.swift; sourceTree = "<group>"; };
+		8CEBAFC52A7A043E26588D30 /* LLMRetryHandler.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LLMRetryHandler.swift; sourceTree = "<group>"; };
 		8D3FED44D218D8484DB6A1EB /* TestableVoiceInputManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TestableVoiceInputManager.swift; sourceTree = "<group>"; };
 		8E229563A06C264B7CC1444F /* MockLLMProvider.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MockLLMProvider.swift; sourceTree = "<group>"; };
 		90AFA1033A81C3EF228523FD /* APIConstants.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = APIConstants.swift; sourceTree = "<group>"; };
@@ -2006,6 +2008,7 @@
 				E14C870F790A198D599F8A24 /* AnthropicProvider.swift */,
 				D0F26646605D52C022B9D5D3 /* GeminiProvider.swift */,
 				297654165F743F030FC6E81D /* LLMModels.swift */,
+				8CEBAFC52A7A043E26588D30 /* LLMRetryHandler.swift */,
 				4FBB6C43D8EAE084FC40CD60 /* OpenAIProvider.swift */,
 			);
 			path = LLMProviders;
@@ -2742,6 +2745,7 @@
 				4F9E6203A2EE711597144D2C /* LLMModels.swift in Sources */,
 				4762AA1449BB3CC5D00B4783 /* LLMOrchestrator.swift in Sources */,
 				FC2523AF29E2D97EA6C9D89B /* LLMProvider.swift in Sources */,
+				A79735FC0B1C9E9DD746FF75 /* LLMRetryHandler.swift in Sources */,
 				A9E136B0D8C87DC844DF3984 /* LiveActivityManager.swift in Sources */,
 				104A4BA0F335DDFDC38D9C26 /* LocalCommandParser.swift in Sources */,
 				F6763FAB16ADAD3C7634C3CB /* MacroRingsView.swift in Sources */,

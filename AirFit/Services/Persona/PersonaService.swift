@@ -61,7 +61,7 @@ final class PersonaService: ServiceProtocol {
         // Extract conversation data from session
         let userName = extractUserName(from: session.responses)
         let primaryGoal = extractPrimaryGoal(from: session.responses)
-        let responsesDict = convertResponsesToDict(session.responses)
+        _ = convertResponsesToDict(session.responses)
 
         // Convert responses to conversation messages
         let messages = session.responses.map { response in

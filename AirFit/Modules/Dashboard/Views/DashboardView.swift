@@ -48,6 +48,25 @@ struct DashboardContent: View {
                 .navigationDestination(for: DashboardDestination.self) { destination in
                     destinationView(for: destination)
                 }
+                .toolbar {
+                    ToolbarItem(placement: .navigationBarTrailing) {
+                        Button {
+                            HapticService.impact(.light)
+                            coordinator.navigate(to: .settings)
+                        } label: {
+                            Image(systemName: "gearshape.fill")
+                                .font(.system(size: 18))
+                                .foregroundStyle(
+                                    LinearGradient(
+                                        colors: gradientManager.active.colors(for: colorScheme),
+                                        startPoint: .topLeading,
+                                        endPoint: .bottomTrailing
+                                    )
+                                )
+                        }
+                        .accessibilityLabel("Settings")
+                    }
+                }
             }
         }
         .task {
@@ -192,6 +211,8 @@ struct DashboardContent: View {
         switch destination {
         case .placeholder:
             Text("Destination")
+        case .settings:
+            SettingsView(user: user)
         }
     }
 
@@ -211,9 +232,10 @@ struct DashboardContent: View {
         .modelContainer(container)
 }
 
-// MARK: - Placeholder Destination
+// MARK: - Dashboard Destinations
 enum DashboardDestination: Hashable {
     case placeholder
+    case settings
 }
 
 // MARK: - Placeholder Services

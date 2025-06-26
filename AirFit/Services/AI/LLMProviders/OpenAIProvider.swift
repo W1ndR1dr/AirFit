@@ -33,38 +33,40 @@ actor OpenAIProvider: LLMProvider, ServiceProtocol {
     }
 
     func complete(_ request: LLMRequest) async throws -> LLMResponse {
-        let openAIRequest = try buildOpenAIRequest(from: request)
-        let baseURL = config.baseURL ?? URL(string: "https://api.openai.com")!
-        let url = baseURL.appendingPathComponent("/v1/chat/completions")
+        try await LLMRetryHandler.withRetry { [self] in
+            let openAIRequest = try buildOpenAIRequest(from: request)
+            let baseURL = config.baseURL ?? URL(string: "https://api.openai.com")!
+            let url = baseURL.appendingPathComponent("/v1/chat/completions")
 
-        var urlRequest = URLRequest(url: url)
-        urlRequest.httpMethod = "POST"
-        urlRequest.setValue("Bearer \(config.apiKey)", forHTTPHeaderField: "Authorization")
-        urlRequest.setValue("application/json", forHTTPHeaderField: "Content-Type")
-        urlRequest.httpBody = try JSONEncoder().encode(openAIRequest)
+            var urlRequest = URLRequest(url: url)
+            urlRequest.httpMethod = "POST"
+            urlRequest.setValue("Bearer \(config.apiKey)", forHTTPHeaderField: "Authorization")
+            urlRequest.setValue("application/json", forHTTPHeaderField: "Content-Type")
+            urlRequest.httpBody = try JSONEncoder().encode(openAIRequest)
 
-        let (data, response) = try await session.data(for: urlRequest)
+            let (data, response) = try await session.data(for: urlRequest)
 
-        guard let httpResponse = response as? HTTPURLResponse else {
-            throw AppError.from(LLMError.networkError(URLError(.badServerResponse)))
+            guard let httpResponse = response as? HTTPURLResponse else {
+                throw AppError.from(LLMError.networkError(URLError(.badServerResponse)))
+            }
+
+            if httpResponse.statusCode == 401 {
+                throw AppError.from(LLMError.invalidAPIKey)
+            } else if httpResponse.statusCode == 429 {
+                let retryAfter = httpResponse.value(forHTTPHeaderField: "Retry-After")
+                    .flatMap { Double($0) }
+                throw AppError.from(LLMError.rateLimitExceeded(retryAfter: retryAfter))
+            } else if httpResponse.statusCode >= 400 {
+                let errorMessage = try? JSONDecoder().decode(OpenAIError.self, from: data)
+                throw AppError.from(LLMError.serverError(
+                    statusCode: httpResponse.statusCode,
+                    message: errorMessage?.error.message
+                ))
+            }
+
+            let openAIResponse = try JSONDecoder().decode(OpenAIResponse.self, from: data)
+            return try mapToLLMResponse(openAIResponse)
         }
-
-        if httpResponse.statusCode == 401 {
-            throw AppError.from(LLMError.invalidAPIKey)
-        } else if httpResponse.statusCode == 429 {
-            let retryAfter = httpResponse.value(forHTTPHeaderField: "Retry-After")
-                .flatMap { Double($0) }
-            throw AppError.from(LLMError.rateLimitExceeded(retryAfter: retryAfter))
-        } else if httpResponse.statusCode >= 400 {
-            let errorMessage = try? JSONDecoder().decode(OpenAIError.self, from: data)
-            throw AppError.from(LLMError.serverError(
-                statusCode: httpResponse.statusCode,
-                message: errorMessage?.error.message
-            ))
-        }
-
-        let openAIResponse = try JSONDecoder().decode(OpenAIResponse.self, from: data)
-        return try mapToLLMResponse(openAIResponse)
     }
 
     func stream(_ request: LLMRequest) -> AsyncThrowingStream<LLMStreamChunk, Error> {
@@ -101,6 +103,10 @@ actor OpenAIProvider: LLMProvider, ServiceProtocol {
                     }
 
                     var buffer = ""
+                    var accumulatedContent = ""
+                    
+                    // Estimate prompt tokens from the request
+                    let promptTokens = estimateTokenCount(for: request)
 
                     for try await byte in bytes {
                         buffer.append(Character(UnicodeScalar(byte)))
@@ -113,6 +119,17 @@ actor OpenAIProvider: LLMProvider, ServiceProtocol {
                                 if line.hasPrefix("data: ") {
                                     let jsonData = line.dropFirst(6)
                                     if jsonData == "[DONE]" {
+                                        // Send final chunk with estimated usage
+                                        let completionTokens = estimateTokens(accumulatedContent)
+                                        let usage = LLMResponse.TokenUsage(
+                                            promptTokens: promptTokens,
+                                            completionTokens: completionTokens
+                                        )
+                                        continuation.yield(LLMStreamChunk(
+                                            delta: "",
+                                            isFinished: true,
+                                            usage: usage
+                                        ))
                                         continuation.finish()
                                         return
                                     }
@@ -120,6 +137,9 @@ actor OpenAIProvider: LLMProvider, ServiceProtocol {
                                     if let data = jsonData.data(using: .utf8),
                                        let event = try? JSONDecoder().decode(OpenAIStreamResponse.self, from: data) {
                                         if let chunk = mapToStreamChunk(event) {
+                                            if !chunk.delta.isEmpty {
+                                                accumulatedContent += chunk.delta
+                                            }
                                             continuation.yield(chunk)
                                         }
                                     }
@@ -157,7 +177,7 @@ actor OpenAIProvider: LLMProvider, ServiceProtocol {
 
     // MARK: - Private Helpers
 
-    private func buildOpenAIRequest(from request: LLMRequest) throws -> OpenAIRequest {
+    private nonisolated func buildOpenAIRequest(from request: LLMRequest) throws -> OpenAIRequest {
         var messages = request.messages.map { msg in
             OpenAIMessage(role: msg.role.rawValue, content: msg.content)
         }
@@ -175,20 +195,43 @@ actor OpenAIProvider: LLMProvider, ServiceProtocol {
             messages: messages,
             temperature: request.temperature,
             max_tokens: request.maxTokens,
-            stream: request.stream
+            stream: request.stream,
+            response_format: nil,
+            tools: nil,
+            tool_choice: nil
         )
 
         // Handle JSON response format
         if case .json = request.responseFormat {
             openAIRequest.response_format = ResponseFormat(type: "json_object")
         }
+        
+        // TODO: Add tools when LLMRequest supports functions
+        // For now, check metadata for function definitions
+        // This would need to be properly implemented when LLMRequest is extended
 
         return openAIRequest
     }
 
-    private func mapToLLMResponse(_ response: OpenAIResponse) throws -> LLMResponse {
-        guard let choice = response.choices.first,
-              let content = choice.message.content else {
+    private nonisolated func mapToLLMResponse(_ response: OpenAIResponse) throws -> LLMResponse {
+        guard let choice = response.choices.first else {
+            throw AppError.from(LLMError.invalidResponse("No choices in response"))
+        }
+        
+        var content = choice.message.content ?? ""
+        var hasToolCalls = false
+        
+        // Handle tool calls
+        if let toolCalls = choice.message.tool_calls, !toolCalls.isEmpty {
+            hasToolCalls = true
+            // TODO: Properly handle tool calls when LLMResponse supports it
+            // For now, append tool information to content
+            for toolCall in toolCalls {
+                content += "\n[Tool Call: \(toolCall.function.name) with args: \(toolCall.function.arguments)]"
+            }
+        }
+        
+        guard !content.isEmpty else {
             throw AppError.from(LLMError.invalidResponse("No content in response"))
         }
 
@@ -199,12 +242,12 @@ actor OpenAIProvider: LLMProvider, ServiceProtocol {
                 promptTokens: response.usage?.prompt_tokens ?? 0,
                 completionTokens: response.usage?.completion_tokens ?? 0
             ),
-            finishReason: mapFinishReason(choice.finish_reason),
+            finishReason: hasToolCalls ? .toolCalls : mapFinishReason(choice.finish_reason),
             metadata: ["id": response.id]
         )
     }
 
-    private func mapToStreamChunk(_ event: OpenAIStreamResponse) -> LLMStreamChunk? {
+    private nonisolated func mapToStreamChunk(_ event: OpenAIStreamResponse) -> LLMStreamChunk? {
         guard let choice = event.choices.first else { return nil }
 
         if let content = choice.delta?.content {
@@ -224,7 +267,7 @@ actor OpenAIProvider: LLMProvider, ServiceProtocol {
         return nil
     }
 
-    private func mapFinishReason(_ reason: String?) -> LLMResponse.FinishReason {
+    private nonisolated func mapFinishReason(_ reason: String?) -> LLMResponse.FinishReason {
         switch reason {
         case "stop":
             return .stop
@@ -238,6 +281,41 @@ actor OpenAIProvider: LLMProvider, ServiceProtocol {
             return .stop
         }
     }
+    
+    // MARK: - Token Estimation
+    
+    private nonisolated func estimateTokenCount(for request: LLMRequest) -> Int {
+        var totalChars = 0
+        
+        // Count system prompt
+        if let systemPrompt = request.systemPrompt {
+            totalChars += systemPrompt.count
+        }
+        
+        // Count messages
+        for message in request.messages {
+            totalChars += message.content.count
+            totalChars += 10 // Overhead for role and formatting
+        }
+        
+        // Rough estimation: ~4 characters per token for English
+        return max(totalChars / 4, 1)
+    }
+    
+    private nonisolated func estimateTokens(_ text: String) -> Int {
+        // More accurate estimation considering punctuation and structure
+        let words = text.components(separatedBy: .whitespacesAndNewlines).filter { !$0.isEmpty }
+        let punctuationCount = text.filter { ".,;:!?()[]{}\"'".contains($0) }.count
+        
+        // OpenAI tokenization is roughly:
+        // - 1 token per word
+        // - Additional tokens for punctuation
+        // - ~0.75 tokens per word on average for English
+        let baseTokens = words.count
+        let punctuationTokens = punctuationCount / 3 // Some punctuation is attached to words
+        
+        return max(baseTokens + punctuationTokens, 1)
+    }
 }
 
 // MARK: - OpenAI API Models
@@ -249,11 +327,106 @@ private struct OpenAIRequest: Encodable {
     let max_tokens: Int?
     let stream: Bool
     var response_format: ResponseFormat?
+    var tools: [OpenAITool]?
+    var tool_choice: String?
 }
 
 private struct OpenAIMessage: Codable {
     let role: String
-    let content: String
+    let content: OpenAIContent?
+    let tool_calls: [ToolCall]?
+    let tool_call_id: String?
+    
+    // Simple text message constructor
+    init(role: String, content: String) {
+        self.role = role
+        self.content = .text(content)
+        self.tool_calls = nil
+        self.tool_call_id = nil
+    }
+    
+    // Tool response constructor
+    init(role: String, content: String, toolCallId: String) {
+        self.role = role
+        self.content = .text(content)
+        self.tool_calls = nil
+        self.tool_call_id = toolCallId
+    }
+}
+
+private enum OpenAIContent: Codable {
+    case text(String)
+    case toolResponse(String)
+    
+    init(from decoder: Decoder) throws {
+        let container = try decoder.singleValueContainer()
+        let text = try container.decode(String.self)
+        self = .text(text)
+    }
+    
+    func encode(to encoder: Encoder) throws {
+        var container = encoder.singleValueContainer()
+        switch self {
+        case .text(let text), .toolResponse(let text):
+            try container.encode(text)
+        }
+    }
+}
+
+private struct OpenAITool: Codable {
+    let type: String
+    let function: OpenAIFunction
+}
+
+private struct OpenAIFunction: Codable {
+    let name: String
+    let description: String
+    let parameters: OpenAIParameters
+}
+
+private struct OpenAIParameters: Codable {
+    let type: String
+    let properties: [String: OpenAIProperty]
+    let required: [String]
+}
+
+private struct OpenAIProperty: Codable {
+    let type: String
+    let description: String
+    let `enum`: [String]?
+    let items: Box<OpenAIProperty>?
+    let minimum: Double?
+    let maximum: Double?
+}
+
+// Box type to handle recursive property
+private final class Box<T: Codable>: Codable {
+    let value: T
+    
+    init(_ value: T) {
+        self.value = value
+    }
+    
+    init(from decoder: Decoder) throws {
+        let container = try decoder.singleValueContainer()
+        self.value = try container.decode(T.self)
+    }
+    
+    func encode(to encoder: Encoder) throws {
+        var container = encoder.singleValueContainer()
+        try container.encode(value)
+    }
+}
+
+private struct ToolCall: Codable {
+    let id: String
+    let type: String
+    let function: FunctionCall
+    
+    struct FunctionCall: Codable {
+        let name: String
+        let arguments: String
+    }
 }
 
 private struct ResponseFormat: Codable {
@@ -272,6 +445,7 @@ private struct OpenAIResponse: Decodable {
 
         struct Message: Decodable {
             let content: String?
+            let tool_calls: [ToolCall]?
         }
     }
 

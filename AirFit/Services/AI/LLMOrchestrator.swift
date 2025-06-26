@@ -233,7 +233,8 @@ final class LLMOrchestrator: ObservableObject, ServiceProtocol {
             // Google Gemini setup (no validation needed)
             if let key = geminiKeyResult {
                 group.addTask {
-                    let provider = GeminiProvider(apiKey: key)
+                    let config = LLMProviderConfig(apiKey: key)
+                    let provider = GeminiProvider(config: config)
                     return (.google, provider)
                 }
             }

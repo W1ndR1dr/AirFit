@@ -155,7 +155,7 @@ struct OnboardingView: View {
             do {
                 async let userService = diContainer.resolve(UserServiceProtocol.self)
                 async let personaService = diContainer.resolve(PersonaService.self)
-                
+
                 let (userServiceResolved, personaServiceResolved) = try await (userService, personaService)
 
                 // Create profile

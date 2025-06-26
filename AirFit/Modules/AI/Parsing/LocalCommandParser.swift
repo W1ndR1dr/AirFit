@@ -137,10 +137,10 @@ final class LocalCommandParser {
 
     private func parseTabNavigation(_ input: String) -> LocalCommand? {
         let tabPatterns: [(pattern: String, tab: AppTab)] = [
-            ("food|nutrition|meal", .meals),
-            ("workout|exercise|gym", .progress),
-            ("coach|chat|ai", .discover),
-            ("setting|preference", .settings)
+            ("food|nutrition|meal", .food),
+            ("workout|exercise|gym", .workouts),
+            ("coach|chat|ai", .chat),
+            ("setting|preference|profile", .profile)
         ]
 
         for (pattern, tab) in tabPatterns where input.range(of: pattern, options: .regularExpression) != nil {

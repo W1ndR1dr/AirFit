@@ -78,14 +78,14 @@ public final class DIBootstrapper {
             } else {
                 let orchestrator = try await resolver.resolve(LLMOrchestrator.self)
                 let service = AIService(llmOrchestrator: orchestrator)
-                
+
                 // Auto-configure if API keys are available
                 do {
                     try await service.configure()
                 } catch {
                     AppLogger.warning("AI Service auto-configuration failed: \(error.localizedDescription)", category: .services)
                 }
-                
+
                 return service
             }
         }
@@ -303,7 +303,7 @@ public final class DIBootstrapper {
 
         // Onboarding Cache - Fast session persistence
         container.register(OnboardingCache.self, lifetime: .singleton) { _ in
-            await OnboardingCache()
+            OnboardingCache()
         }
 
     }

@@ -1834,7 +1834,7 @@ struct DebugSettingsView: View {
                         .foregroundColor(.red)
                 })
                 .disabled(isProcessing)
-                
+
                 Button(action: { showResetOnboardingAlert = true }, label: {
                     Label("Reset Onboarding", systemImage: "arrow.counterclockwise")
                 })
@@ -1970,7 +1970,7 @@ struct DebugSettingsView: View {
     private func resetApp() {
         isProcessing = true
         statusMessage = "Resetting app..."
-        
+
         Task {
             do {
                 // Delete all users
@@ -1980,9 +1980,9 @@ struct DebugSettingsView: View {
                     modelContext.delete(user)
                 }
                 try modelContext.save()
-                
+
                 AppLogger.info("App reset - all user data cleared", category: .app)
-                
+
                 // Post notification to trigger app reload
                 await MainActor.run {
                     NotificationCenter.default.post(name: .appResetForTesting, object: nil)
@@ -1998,7 +1998,7 @@ struct DebugSettingsView: View {
             }
         }
     }
-    
+
     private func resetOnboarding() {
         isProcessing = true
         statusMessage = "Resetting onboarding..."

@@ -17,15 +17,16 @@ actor GeminiProvider: LLMProvider, ServiceProtocol {
     )
     let costPerKToken: (input: Double, output: Double) = (0.0005, 0.0015)
 
-    private let apiKey: String
+    private let config: LLMProviderConfig
+    private let session: URLSession
     private let baseURL = "https://generativelanguage.googleapis.com/v1beta"
-    private var retryCount = 0
-    private let maxRetries = 3
-    private let baseDelay: TimeInterval = 1.0
-    private let session = URLSession.shared
 
-    init(apiKey: String) {
-        self.apiKey = apiKey
+    init(config: LLMProviderConfig) {
+        self.config = config
+        
+        let sessionConfig = URLSessionConfiguration.default
+        sessionConfig.timeoutIntervalForRequest = config.timeout
+        self.session = URLSession(configuration: sessionConfig)
     }
 
     func validateAPIKey(_ key: String) async throws -> Bool {
@@ -40,16 +41,12 @@ actor GeminiProvider: LLMProvider, ServiceProtocol {
     }
 
     func complete(_ request: LLMRequest) async throws -> LLMResponse {
-        return try await executeWithRetry(request: request, isStreaming: false)
-    }
-
-    private func executeWithRetry(request: LLMRequest, isStreaming: Bool, attemptNumber: Int = 0) async throws -> LLMResponse {
-        do {
+        try await LLMRetryHandler.withRetry { [self] in
             let geminiRequest = try buildGeminiRequest(request)
             let requestData = try JSONEncoder().encode(geminiRequest)
 
-            let endpoint = isStreaming ? "streamGenerateContent" : "generateContent"
-            let url = URL(string: "\(baseURL)/models/\(request.model):\(endpoint)?key=\(apiKey)")!
+            let endpoint = "generateContent"
+            let url = URL(string: "\(baseURL)/models/\(request.model):\(endpoint)?key=\(config.apiKey)")!
             var urlRequest = URLRequest(url: url)
             urlRequest.httpMethod = "POST"
             urlRequest.setValue("application/json", forHTTPHeaderField: "Content-Type")
@@ -67,14 +64,6 @@ actor GeminiProvider: LLMProvider, ServiceProtocol {
 
             let geminiResponse = try JSONDecoder().decode(GeminiResponse.self, from: data)
             return try convertToLLMResponse(geminiResponse, for: request)
-        } catch let error as LLMError {
-            // Handle rate limiting with exponential backoff
-            if case .rateLimitExceeded = error, attemptNumber < maxRetries {
-                let delay = baseDelay * pow(2.0, Double(attemptNumber))
-                try await Task.sleep(nanoseconds: UInt64(delay * 1_000_000_000))
-                return try await executeWithRetry(request: request, isStreaming: isStreaming, attemptNumber: attemptNumber + 1)
-            }
-            throw error
         }
     }
 
@@ -85,7 +74,7 @@ actor GeminiProvider: LLMProvider, ServiceProtocol {
                     let geminiRequest = try buildGeminiStreamRequest(request)
                     let requestData = try JSONEncoder().encode(geminiRequest)
 
-                    let url = URL(string: "\(baseURL)/models/\(request.model):streamGenerateContent?key=\(apiKey)&alt=sse")!
+                    let url = URL(string: "\(baseURL)/models/\(request.model):streamGenerateContent?key=\(config.apiKey)&alt=sse")!
                     var urlRequest = URLRequest(url: url)
                     urlRequest.httpMethod = "POST"
                     urlRequest.setValue("application/json", forHTTPHeaderField: "Content-Type")
@@ -136,7 +125,7 @@ actor GeminiProvider: LLMProvider, ServiceProtocol {
 
     // MARK: - Private Methods
 
-    private func buildGeminiRequest(_ request: LLMRequest) throws -> GeminiRequest {
+    private nonisolated func buildGeminiRequest(_ request: LLMRequest) throws -> GeminiRequest {
         let contents = try convertMessagesToContents(request.messages)
 
         // Build tools array if JSON mode is requested
@@ -175,13 +164,13 @@ actor GeminiProvider: LLMProvider, ServiceProtocol {
         )
     }
 
-    private func buildGeminiStreamRequest(_ request: LLMRequest) throws -> GeminiRequest {
+    private nonisolated func buildGeminiStreamRequest(_ request: LLMRequest) throws -> GeminiRequest {
         let streamRequest = try buildGeminiRequest(request)
         // Gemini doesn't have a separate stream flag - streaming is controlled by endpoint
         return streamRequest
     }
 
-    private func convertMessagesToContents(_ messages: [LLMMessage]) throws -> [GeminiContent] {
+    private nonisolated func convertMessagesToContents(_ messages: [LLMMessage]) throws -> [GeminiContent] {
         return messages.map { message in
             let role = message.role == .assistant ? "model" : "user"
             var parts: [GeminiPart] = []
@@ -210,7 +199,7 @@ actor GeminiProvider: LLMProvider, ServiceProtocol {
         }
     }
 
-    private func convertToLLMResponse(_ response: GeminiResponse, for request: LLMRequest) throws -> LLMResponse {
+    private nonisolated func convertToLLMResponse(_ response: GeminiResponse, for request: LLMRequest) throws -> LLMResponse {
         guard let candidate = response.candidates.first,
               let content = candidate.content.parts.first?.text else {
             throw AppError.from(LLMError.invalidResponse("Empty response from Gemini"))
@@ -230,7 +219,7 @@ actor GeminiProvider: LLMProvider, ServiceProtocol {
         )
     }
 
-    private func convertToStreamChunk(_ response: GeminiProviderStreamResponse) throws -> LLMStreamChunk {
+    private nonisolated func convertToStreamChunk(_ response: GeminiProviderStreamResponse) throws -> LLMStreamChunk {
         guard let candidate = response.candidates?.first,
               let content = candidate.content.parts.first?.text else {
             return LLMStreamChunk(
@@ -249,7 +238,7 @@ actor GeminiProvider: LLMProvider, ServiceProtocol {
         )
     }
 
-    private func mapFinishReason(_ reason: String?) -> LLMResponse.FinishReason {
+    private nonisolated func mapFinishReason(_ reason: String?) -> LLMResponse.FinishReason {
         switch reason {
         case "STOP":
             return .stop
@@ -390,7 +379,7 @@ extension GeminiProvider {
 // MARK: - Enhanced Error Handling
 
 extension GeminiProvider {
-    private func handleGeminiError(_ data: Data, statusCode: Int) throws -> Never {
+    private nonisolated func handleGeminiError(_ data: Data, statusCode: Int) throws -> Never {
         if let errorResponse = try? JSONDecoder().decode(GeminiErrorResponse.self, from: data) {
             let message = errorResponse.error.message
 
@@ -450,7 +439,6 @@ extension GeminiProvider {
 
     func reset() async {
         _isConfigured = false
-        retryCount = 0
         AppLogger.info("\(serviceIdentifier) reset", category: .services)
     }
 

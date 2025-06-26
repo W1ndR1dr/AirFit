@@ -124,16 +124,11 @@ final class OnboardingIntelligence: ObservableObject {
 
             // Fetch health context in background - don't block onboarding
             Task {
-                do {
-                    let context = await self.contextAssembler.assembleContext()
-                    self.healthContext = context
-                    self.updatePromptsFromHealth(context)
-                    await self.generateSmartSuggestions(context)
-                    AppLogger.info("Health context loaded successfully", category: .health)
-                } catch {
-                    AppLogger.error("Failed to fetch health context", error: error, category: .health)
-                    // Continue without health data - not critical for onboarding
-                }
+                let context = await self.contextAssembler.assembleContext()
+                self.healthContext = context
+                self.updatePromptsFromHealth(context)
+                await self.generateSmartSuggestions(context)
+                AppLogger.info("Health context loaded successfully", category: .health)
             }
         } catch {
             AppLogger.error("HealthKit authorization failed", error: error, category: .health)
@@ -619,7 +614,7 @@ final class OnboardingIntelligence: ObservableObject {
 
     private func updateContextHeuristically(_ input: String) {
         // More intelligent fallback scoring based on conversation analysis
-        let lowercased = input.lowercased()
+        _ = input.lowercased()
         let allConversation = (conversationHistory + [input]).joined(separator: " ").lowercased()
 
         // Analyze for specific context components
@@ -693,7 +688,7 @@ final class OnboardingIntelligence: ObservableObject {
         // Analyze conversation for patterns
         let hasWeightGoal = conversation.contains("weight") || conversation.contains("lose") || conversation.contains("pounds")
         let hasMuscleGoal = conversation.contains("muscle") || conversation.contains("strength") || conversation.contains("stronger")
-        let hasEnduranceGoal = conversation.contains("run") || conversation.contains("cardio") || conversation.contains("endurance")
+        _ = conversation.contains("run") || conversation.contains("cardio") || conversation.contains("endurance")
         let isBeginner = conversation.contains("beginner") || conversation.contains("new to") || conversation.contains("never")
         let isBusy = conversation.contains("busy") || conversation.contains("time") || conversation.contains("schedule")
 
