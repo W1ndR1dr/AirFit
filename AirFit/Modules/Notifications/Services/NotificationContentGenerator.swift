@@ -26,44 +26,38 @@ final class NotificationContentGenerator: ServiceProtocol {
         // Gather context
         let context = await gatherMorningContext(for: user)
 
-        do {
-            // Try AI generation with retry logic
-            var lastError: Error?
-            for attempt in 1...3 {
-                do {
-                    let aiContent = try await coachEngine.generateNotificationContent(
-                        type: .morningGreeting,
-                        context: context
-                    )
-                    
-                    AppLogger.info("AI generated morning greeting successfully on attempt \(attempt)", category: .ai)
-                    
-                    return NotificationContent(
-                        title: "Good morning, \(user.name ?? "there")! ☀️",
-                        body: aiContent,
-                        imageKey: selectMorningImage(context: context)
-                    )
-                } catch {
-                    lastError = error
-                    AppLogger.warning("AI generation attempt \(attempt) failed: \(error)", category: .ai)
-                    if attempt < 3 {
-                        try? await Task.sleep(nanoseconds: 500_000_000) // 0.5s delay before retry
-                    }
+        // Try AI generation with retry logic
+        var lastError: Error?
+        for attempt in 1...3 {
+            do {
+                let aiContent = try await coachEngine.generateNotificationContent(
+                    type: .morningGreeting,
+                    context: context
+                )
+                
+                AppLogger.info("AI generated morning greeting successfully on attempt \(attempt)", category: .ai)
+                
+                return NotificationContent(
+                    title: "Good morning, \(user.name ?? "there")! ☀️",
+                    body: aiContent,
+                    imageKey: selectMorningImage(context: context)
+                )
+            } catch {
+                lastError = error
+                AppLogger.warning("AI generation attempt \(attempt) failed: \(error)", category: .ai)
+                if attempt < 3 {
+                    try? await Task.sleep(nanoseconds: 500_000_000) // 0.5s delay before retry
                 }
             }
-            
-            // Log detailed failure before fallback
-            AppLogger.error("AI generation failed after 3 attempts, using template fallback",
-                            error: lastError ?? AppError.llm("Unknown error"),
-                            category: .notifications)
-            
-            // Fallback to template only after retries exhausted
-            return fallbackTemplates.morningGreeting(user: user, context: context)
-        } catch {
-            // This shouldn't happen but safety net
-            AppLogger.error("Unexpected error in notification generation", error: error, category: .notifications)
-            return fallbackTemplates.morningGreeting(user: user, context: context)
         }
+        
+        // Log detailed failure before fallback
+        AppLogger.error("AI generation failed after 3 attempts, using template fallback",
+                        error: lastError ?? AppError.llm("Unknown error"),
+                        category: .notifications)
+        
+        // Fallback to template only after retries exhausted
+        return fallbackTemplates.morningGreeting(user: user, context: context)
     }
 
     // MARK: - Workout Reminders
@@ -359,27 +353,3 @@ extension User {
     }
 }
 
-// MARK: - CoachEngine Extensions
-extension CoachEngine {
-    enum NotificationContentType {
-        case morningGreeting
-        case workoutReminder
-        case mealReminder(MealType)
-        case achievement
-    }
-
-    func generateNotificationContent<T>(type: NotificationContentType, context: T) async throws -> String {
-        // For now, return simple placeholder until we properly implement AI generation
-        // The real implementation should use the AI service with persona context
-        switch type {
-        case .morningGreeting:
-            return "Good morning! Let's make today amazing!"
-        case .workoutReminder:
-            return "Time for your workout! You've got this!"
-        case .mealReminder(let mealType):
-            return "Don't forget to log your \(mealType.displayName.lowercased())!"
-        case .achievement:
-            return "Amazing work! You've earned this achievement!"
-        }
-    }
-}

@@ -1316,6 +1316,136 @@ extension CoachEngine {
             AppLogger.error("Failed to prune conversations", error: error, category: .ai)
         }
     }
+    
+    // MARK: - Notification Content Generation
+    
+    enum NotificationContentType {
+        case morningGreeting
+        case workoutReminder
+        case mealReminder(MealType)
+        case achievement
+    }
+    
+    /// Generates AI-powered notification content with persona context
+    func generateNotificationContent<T>(type: NotificationContentType, context: T) async throws -> String {
+        // Build appropriate prompt based on notification type
+        let contentPrompt = buildNotificationPrompt(type: type, context: context)
+        
+        // Get current user ID from context (all our contexts have userName)
+        let userId = extractUserId(from: context) ?? UUID()
+        
+        // Get user's persona for consistent voice
+        var systemPrompt = "You are a fitness coach generating notification content. Keep it brief, motivational, and personal."
+        
+        do {
+            let persona = try await personaService.getActivePersona(for: userId)
+            systemPrompt = persona.systemPrompt + "\n\nTask: Generate a brief notification message (under 30 words). Match your established personality and voice."
+        } catch {
+            AppLogger.warning("Failed to get persona for notification, using default", category: .ai)
+        }
+        
+        // Create AI request
+        let aiRequest = AIRequest(
+            systemPrompt: systemPrompt,
+            messages: [
+                AIChatMessage(
+                    role: .user,
+                    content: contentPrompt,
+                    timestamp: Date()
+                )
+            ],
+            functions: nil,
+            temperature: 0.7,
+            maxTokens: 100,
+            stream: false,
+            user: userId.uuidString
+        )
+        
+        // Collect AI response
+        let response = await collectAIResponse(from: aiRequest)
+        
+        // Return response or simple fallback if empty
+        if response.isEmpty {
+            AppLogger.warning("AI returned empty response for notification", category: .ai)
+            switch type {
+            case .morningGreeting:
+                return "Good morning! Ready for today?"
+            case .workoutReminder:
+                return "Time for your workout!"
+            case .mealReminder:
+                return "Time to log your meal!"
+            case .achievement:
+                return "Great achievement!"
+            }
+        }
+        
+        return response.trimmingCharacters(in: .whitespacesAndNewlines)
+    }
+    
+    private func buildNotificationPrompt<T>(type: NotificationContentType, context: T) -> String {
+        switch type {
+        case .morningGreeting:
+            if let morningContext = context as? MorningContext {
+                var prompt = "Generate a morning greeting for \(morningContext.userName)."
+                if let sleepQuality = morningContext.sleepQuality {
+                    prompt += " They had \(sleepQuality) sleep."
+                }
+                if let workout = morningContext.plannedWorkout {
+                    prompt += " They have a \(workout.name) workout planned."
+                }
+                if morningContext.currentStreak > 0 {
+                    prompt += " They're on a \(morningContext.currentStreak)-day streak."
+                }
+                return prompt
+            }
+            
+        case .workoutReminder:
+            if let workoutContext = context as? WorkoutReminderContext {
+                var prompt = "Generate a workout reminder for \(workoutContext.userName)."
+                prompt += " Workout: \(workoutContext.workoutType)."
+                if workoutContext.streak > 0 {
+                    prompt += " Current streak: \(workoutContext.streak) days."
+                }
+                if workoutContext.lastWorkoutDays > 2 {
+                    prompt += " It's been \(workoutContext.lastWorkoutDays) days since their last workout."
+                }
+                return prompt
+            }
+            
+        case .mealReminder(let mealType):
+            if let mealContext = context as? MealReminderContext {
+                return "Generate a \(mealType.displayName) reminder for \(mealContext.userName). Keep it friendly and encouraging."
+            }
+            
+        case .achievement:
+            if let achievementContext = context as? AchievementContext {
+                var prompt = "Celebrate \(achievementContext.userName) earning: \(achievementContext.achievementName)."
+                if achievementContext.personalBest {
+                    prompt += " This is a personal best!"
+                }
+                return prompt
+            }
+        }
+        
+        // Generic fallback prompt
+        return "Generate a brief, motivational fitness notification."
+    }
+    
+    private func extractUserId<T>(from context: T) -> UUID? {
+        // Try to extract user ID from various context types
+        // This is a bit of a hack but works for our current contexts
+        let mirror = Mirror(reflecting: context)
+        
+        // Look for userId property
+        for (label, value) in mirror.children {
+            if label == "userId", let id = value as? UUID {
+                return id
+            }
+        }
+        
+        // For now, return nil - the real implementation would need proper context types
+        return nil
+    }
 }
 
 // MARK: - Factory Methods

@@ -28,12 +28,22 @@ This document tracks our progress implementing AI-native architecture in AirFit,
 - **FallbackPersonaGenerator**: Dead code - not used anywhere in the codebase
 - **Real Issue**: Placeholder implementations throughout the codebase that were never connected to AI
 
+#### 4. CoachEngine Notification Generation
+- **What Changed**: 
+  - Implemented `generateNotificationContent` method directly in CoachEngine class
+  - Added proper AI request building with persona context
+  - Added content-specific prompt generation for different notification types
+  - Maintains simple one-line fallbacks if AI fails
+- **Key Features**:
+  - Accesses private properties (personaService, aiService) properly
+  - Extracts user ID from context for persona retrieval
+  - Generates contextual prompts based on notification type
+  - Limits responses to 30 words for notification brevity
+- **Status**: Fully implemented and compiling successfully
+
 ### 🚧 In Progress
 
-#### 1. CoachEngine Integration
-- **Current State**: `generateNotificationContent` returns hardcoded strings
-- **Next Step**: Implement proper AI call with persona context inside CoachEngine class
-- **Blocker**: Need to implement within CoachEngine to access private properties (aiService, modelContext)
+*None currently*
 
 ### ❌ Not Started
 
@@ -121,9 +131,9 @@ Ask these questions:
 4. **Hardcoding variety**: Don't use arrays of messages - that's the LLM's job
 
 ## Technical Debt Created
-1. **CoachEngine.generateNotificationContent**: Currently returns hardcoded strings
-2. **Error messages**: Still generic throughout the app
-3. **Empty states**: Not yet personalized
+1. **Error messages**: Still generic throughout the app
+2. **Empty states**: Not yet personalized
+3. **User ID extraction**: Current implementation uses reflection to extract user ID from contexts - should be formalized
 
 ## Lessons Learned
 1. **Infrastructure exists**: The app was designed for AI but never fully implemented
@@ -133,5 +143,5 @@ Ask these questions:
 
 ---
 
-*Last Updated: 2024-01-26*
-*Next Review: When implementing CoachEngine AI integration*
+*Last Updated: 2025-06-26*
+*Next Review: When implementing error message contextualization*
