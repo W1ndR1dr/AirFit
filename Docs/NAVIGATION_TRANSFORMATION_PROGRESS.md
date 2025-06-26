@@ -67,11 +67,20 @@ This document tracks the implementation progress of the AI-native navigation sys
 
 ## Phase 2: AI Integration 🚧 IN PROGRESS
 
+### Completed Tasks:
+1. ✅ **Extended LocalCommandParser** (commit: [pending])
+   - Added comprehensive navigation commands
+   - Support for "show me my food", "go to workouts", etc.
+   - Complex navigation with filters and timeframes
+   - WorkoutFilter and TimeFrame enums for context
+
+2. ✅ **Refactored MessageProcessor** (commit: 95394a9)
+   - **CRITICAL FIX**: Removed 151 lines of hardcoded responses
+   - Replaced generateLocalCommandResponse with describeCommandExecution
+   - LLM now generates ALL responses with proper context
+   - Maintains true LLM-centric architecture
+
 ### Next Tasks:
-1. ⏳ **Extend LocalCommandParser**
-   - Add navigation commands for all tabs
-   - Support phrases like "show me my food", "go to workouts"
-   - Handle complex navigation intents
 
 2. ⏳ **Implement Voice Navigation**
    - Connect voice input to FAB
@@ -89,7 +98,7 @@ This document tracks the implementation progress of the AI-native navigation sys
    - Time-aware and context-aware suggestions
 
 ### Current Focus:
-Starting with extending LocalCommandParser to handle more navigation commands...
+Implementing voice navigation UI and fixing NavigationState injection in CoachEngine...
 
 ## Phase 3: Intelligence Layer 📅 PLANNED
 
@@ -106,6 +115,8 @@ Starting with extending LocalCommandParser to handle more navigation commands...
 3. **Voice input** UI not yet implemented
 4. **Placeholder destination views** need real implementations
 5. **FAB position** resets on app restart (needs persistence)
+6. **NavigationState injection** in CoachEngine needs fixing - executeLocalCommand can't access NavigationState
+7. **Command execution** needs proper implementation for water logging, quick actions, etc.
 
 ## Metrics to Track:
 - [ ] Chat engagement rate
