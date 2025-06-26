@@ -16,7 +16,8 @@ struct MainTabView: View {
     let user: User
     
     // For tab bar gradient animation
-    @State private var tabBarGradientPhase: CGFloat = 0
+    @State
+    private var tabBarGradientPhase: CGFloat = 0
     
     var body: some View {
         ZStack {
@@ -112,7 +113,7 @@ struct MainTabView: View {
             hasLoggedDinner: false,
             lastWorkoutDate: nil,
             waterIntakeML: 0,
-            waterGoalML: 2000,
+            waterGoalML: 2_000,
             currentTab: navigationState.selectedTab,
             timeOfDay: getCurrentTimeOfDay()
         )
@@ -280,8 +281,10 @@ struct ProfileView: View {
 
 struct ChatViewWrapper: View {
     let user: User
-    @State private var viewModel: ChatViewModel?
-    @Environment(\.diContainer) private var container
+    @State
+    private var viewModel: ChatViewModel?
+    @Environment(\.diContainer)
+    private var container
     
     var body: some View {
         Group {
@@ -300,8 +303,10 @@ struct ChatViewWrapper: View {
 
 struct FoodLoggingViewWrapper: View {
     let user: User
-    @State private var viewModel: FoodTrackingViewModel?
-    @Environment(\.diContainer) private var container
+    @State
+    private var viewModel: FoodTrackingViewModel?
+    @Environment(\.diContainer)
+    private var container
     
     var body: some View {
         Group {
@@ -317,7 +322,6 @@ struct FoodLoggingViewWrapper: View {
         }
     }
 }
-
 
 // MARK: - Preview
 

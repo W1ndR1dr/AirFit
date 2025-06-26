@@ -153,7 +153,7 @@ public final class NavigationState {
         navigationIntent = intent
         
         switch intent {
-        case .showFood(_, _):
+        case .showFood:
             navigateToTab(.food)
         case .startWorkout:
             navigateToTab(.workouts)
