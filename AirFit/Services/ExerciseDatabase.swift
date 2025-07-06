@@ -138,8 +138,18 @@ final class ExerciseDatabase: ObservableObject, ServiceProtocol {
         do {
             self.container = try container ?? ModelContainer(for: ExerciseDefinition.self)
         } catch {
-            AppLogger.error("Failed to initialize ExerciseDatabase", error: error, category: .data)
-            fatalError("Failed to initialize ExerciseDatabase: \(error)")
+            AppLogger.error("Failed to initialize ExerciseDatabase, using in-memory container", error: error, category: .data)
+            // Create an in-memory container as fallback
+            let configuration = ModelConfiguration(isStoredInMemoryOnly: true)
+            do {
+                self.container = try ModelContainer(for: ExerciseDefinition.self, configurations: configuration)
+            } catch {
+                // This should never fail for in-memory container, but handle it gracefully
+                AppLogger.fault("Failed to create in-memory container for ExerciseDatabase: \(error)", category: .data)
+                // Create a minimal container with no configuration
+                self.container = try! ModelContainer(for: ExerciseDefinition.self)
+            }
+            self.exercises = []
         }
     }
 
