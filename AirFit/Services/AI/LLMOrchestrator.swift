@@ -145,6 +145,13 @@ final class LLMOrchestrator: ObservableObject, ServiceProtocol {
         return try await executeWithFallback(request: request, task: task)
     }
 
+    nonisolated func completeWithRequest(
+        _ request: LLMRequest,
+        task: AITask
+    ) async throws -> LLMResponse {
+        return try await executeWithFallback(request: request, task: task)
+    }
+
     nonisolated func stream(
         prompt: String,
         task: AITask,
@@ -300,7 +307,7 @@ final class LLMOrchestrator: ObservableObject, ServiceProtocol {
             return response
         } catch {
             // Log the error
-            print("LLM Provider error: \(error)")
+            AppLogger.error("LLM Provider error: \(error)", category: .ai)
 
             // Try fallback if available
             if let fallbackModel = await findFallbackModel(

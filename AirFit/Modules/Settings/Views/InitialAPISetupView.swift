@@ -96,11 +96,13 @@ struct InitialAPISetupView: View {
                                     .disabled(isValidating)
                                     .autocorrectionDisabled()
                                     .textInputAutocapitalization(.never)
+                                // .voiceTranscriptionEnabled($apiKey) // TODO: Implement voice transcription
                             } else {
                                 SecureField("Enter your \(selectedProvider.displayName) API key", text: $apiKey)
                                     .textFieldStyle(.plain)
                                     .font(.system(size: 16, weight: .regular, design: .monospaced))
                                     .disabled(isValidating)
+                                // .voiceTranscriptionEnabled($apiKey) // TODO: Implement voice transcription
                             }
 
                             Button {
@@ -122,7 +124,7 @@ struct InitialAPISetupView: View {
                     }
                 }
                 .padding(.horizontal, AppSpacing.lg)
-                
+
                 // Model Selection
                 if !apiKey.isEmpty {
                     ModelRecommendationView(
@@ -217,7 +219,7 @@ struct InitialAPISetupView: View {
             if selectedModel.isEmpty {
                 selectedModel = selectedProvider.defaultModel
             }
-            
+
             do {
                 // Get API key manager from DI
                 let apiKeyManager = try await diContainer.resolve(APIKeyManagementProtocol.self)
@@ -235,7 +237,7 @@ struct InitialAPISetupView: View {
                 let config = LLMProviderConfig(apiKey: apiKey)
                 var isValid = false
                 var lastError: Error?
-                
+
                 // Retry up to 3 times for network failures
                 for attempt in 1...3 {
                     do {
@@ -250,17 +252,17 @@ struct InitialAPISetupView: View {
                             let provider = GeminiProvider(config: config)
                             isValid = try await provider.validateAPIKey(apiKey)
                         }
-                        
+
                         if isValid {
                             break // Success, exit retry loop
                         }
                     } catch {
                         lastError = error
-                        
+
                         // Only retry for network errors
                         if error.localizedDescription.lowercased().contains("network") ||
-                           error.localizedDescription.lowercased().contains("timeout") ||
-                           error.localizedDescription.lowercased().contains("connection") {
+                            error.localizedDescription.lowercased().contains("timeout") ||
+                            error.localizedDescription.lowercased().contains("connection") {
                             if attempt < 3 {
                                 await MainActor.run {
                                     validationError = "Network error - retrying... (attempt \(attempt)/3)"
@@ -274,13 +276,13 @@ struct InitialAPISetupView: View {
                         }
                     }
                 }
-                
+
                 guard isValid else {
                     await MainActor.run {
                         if let error = lastError {
                             let errorMessage: String
-                            if error.localizedDescription.lowercased().contains("unauthorized") || 
-                               error.localizedDescription.lowercased().contains("401") {
+                            if error.localizedDescription.lowercased().contains("unauthorized") ||
+                                error.localizedDescription.lowercased().contains("401") {
                                 errorMessage = "Invalid API key - authentication failed"
                             } else if error.localizedDescription.lowercased().contains("network") {
                                 errorMessage = "Network error - please check your connection and try again"
@@ -298,7 +300,7 @@ struct InitialAPISetupView: View {
 
                 // Save the validated key
                 try await apiKeyManager.saveAPIKey(apiKey, for: selectedProvider)
-                
+
                 // Save the selected model to UserDefaults
                 UserDefaults.standard.set(selectedModel, forKey: "selected_model_\(selectedProvider.rawValue)")
                 UserDefaults.standard.set(selectedProvider.rawValue, forKey: "default_ai_provider")
@@ -316,8 +318,8 @@ struct InitialAPISetupView: View {
             } catch {
                 await MainActor.run {
                     let errorMessage: String
-                    if error.localizedDescription.lowercased().contains("unauthorized") || 
-                       error.localizedDescription.lowercased().contains("401") {
+                    if error.localizedDescription.lowercased().contains("unauthorized") ||
+                        error.localizedDescription.lowercased().contains("401") {
                         errorMessage = "Invalid API key - authentication failed"
                     } else if error.localizedDescription.lowercased().contains("network") {
                         errorMessage = "Network error - please check your connection"
@@ -551,6 +553,6 @@ private struct APIKeyInfoSheet: View {
 
 #Preview {
     InitialAPISetupView {
-        print("Setup completed")
+        AppLogger.info("Initial API setup completed", category: .auth)
     }
 }

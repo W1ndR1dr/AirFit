@@ -43,13 +43,13 @@ final class DataManager: ServiceProtocol {
             let existing = try context.fetch(descriptor)
 
             if existing.isEmpty {
-                print("No existing user found, waiting for onboarding")
+                AppLogger.info("No existing user found, waiting for onboarding", category: .data)
             } else {
-                print("Found \(existing.count) existing users")
+                AppLogger.info("Found \(existing.count) existing users", category: .data)
                 // System templates removed - using AI-native generation
             }
         } catch {
-            print("Failed to perform initial setup: \(error)")
+            AppLogger.error("Failed to perform initial setup: \(error)", category: .data)
         }
     }
 
