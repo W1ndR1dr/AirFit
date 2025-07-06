@@ -38,7 +38,7 @@ struct ContentView: View {
                     WelcomeView(appState: appState)
                 } else if appState.shouldShowOnboarding {
                     // Use the new 3-file onboarding flow from the manifesto
-                    OnboardingContainerView()
+                    OnboardingView()
                         .withDIContainer(activeContainer ?? diContainer)
                         .onAppear {
                             AppLogger.info("ContentView: Using manifesto onboarding with container ID: \(ObjectIdentifier(activeContainer ?? diContainer))", category: .app)

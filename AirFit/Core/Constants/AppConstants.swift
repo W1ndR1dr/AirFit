@@ -2,6 +2,9 @@ import Foundation
 import SwiftUI
 
 enum AppConstants {
+    // MARK: - App Info
+    static let appStoreId = "YOUR_APP_STORE_ID" // TODO: Replace with actual App Store ID
+    
     // MARK: - Nested Types
 
     // MARK: - Layout

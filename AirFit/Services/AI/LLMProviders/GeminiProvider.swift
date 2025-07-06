@@ -235,7 +235,8 @@ actor GeminiProvider: LLMProvider, ServiceProtocol {
             usage: usage,
             finishReason: mapFinishReason(candidate.finishReason),
             metadata: [:],
-            structuredData: structuredData
+            structuredData: structuredData,
+            cacheMetrics: nil  // TODO: Extract from response.usageMetadata.cachedContentTokenCount when available
         )
     }
 

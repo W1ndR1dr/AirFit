@@ -13,45 +13,41 @@ struct TodayDashboardView: View {
     @State private var coordinator = DashboardCoordinator()
     @State private var hasAppeared = false
     @State private var showSettings = false
+    
+    // Lightweight UI state available immediately
+    @State private var isInitializing = true
 
     var body: some View {
-        Group {
-            if let viewModel = viewModel {
-                todayContent(viewModel)
-            } else {
-                ProgressView()
-                    .task {
-                        let factory = DIViewModelFactory(container: container)
-                        viewModel = try? await factory.makeDashboardViewModel(user: user)
-                    }
-            }
-        }
-    }
-
-    @ViewBuilder
-    private func todayContent(_ viewModel: DashboardViewModel) -> some View {
         BaseScreen {
             NavigationStack(path: $coordinator.path) {
                 ScrollView {
                     VStack(spacing: 0) {
-                        // Dynamic header based on time of day
-                        dynamicHeader(viewModel)
+                        // Dynamic header - always visible
+                        dynamicHeaderImmediate()
                             .padding(.horizontal, AppSpacing.screenPadding)
                             .padding(.top, AppSpacing.md)
                             .padding(.bottom, AppSpacing.lg)
 
-                        if viewModel.isLoading {
-                            loadingView
-                        } else if let error = viewModel.error {
-                            errorView(error, viewModel)
-                        } else {
-                            todayInsights(viewModel)
+                        if let viewModel = viewModel {
+                            // Full content when ViewModel is ready
+                            if viewModel.isLoading {
+                                loadingView
+                            } else if let error = viewModel.error {
+                                errorView(error, viewModel)
+                            } else {
+                                todayInsights(viewModel)
+                            }
+                        } else if isInitializing {
+                            // Skeleton UI while ViewModel initializes
+                            skeletonContent()
                         }
                     }
                 }
                 .scrollContentBackground(.hidden)
                 .navigationBarTitleDisplayMode(.inline)
-                .refreshable { viewModel.refreshDashboard() }
+                .refreshable { 
+                    viewModel?.refreshDashboard() 
+                }
                 .navigationDestination(for: DashboardDestination.self) { destination in
                     destinationView(for: destination)
                 }
@@ -77,17 +73,134 @@ struct TodayDashboardView: View {
             }
         }
         .task {
-            guard !hasAppeared else { return }
-            hasAppeared = true
-            viewModel.onAppear()
+            guard viewModel == nil else { return }
+            isInitializing = true
+            let factory = DIViewModelFactory(container: container)
+            viewModel = try? await factory.makeDashboardViewModel(user: user)
+            isInitializing = false
+            
+            if let viewModel = viewModel, !hasAppeared {
+                hasAppeared = true
+                viewModel.onAppear()
+            }
         }
-        .onDisappear { viewModel.onDisappear() }
+        .onDisappear { 
+            viewModel?.onDisappear() 
+        }
         .sheet(isPresented: $showSettings) {
             NavigationStack {
                 SettingsView(user: user)
             }
         }
         .accessibilityIdentifier("today.dashboard")
+    }
+
+    // MARK: - Immediate Header (No ViewModel Required)
+    
+    @ViewBuilder
+    private func dynamicHeaderImmediate() -> some View {
+        VStack(alignment: .leading, spacing: AppSpacing.sm) {
+            // Time-based greeting - available immediately
+            CascadeText(timeBasedGreeting())
+                .font(.system(size: 34, weight: .thin, design: .rounded))
+            
+            // Show AI subtitle when available, placeholder when loading
+            if let viewModel = viewModel,
+               let content = viewModel.aiDashboardContent {
+                Text(content.primaryInsight)
+                    .font(.system(size: 20, weight: .light))
+                    .foregroundStyle(.secondary)
+                    .lineSpacing(2)
+                    .fixedSize(horizontal: false, vertical: true)
+                    .animation(MotionToken.standardSpring, value: content.primaryInsight)
+            } else if isInitializing {
+                Text(getLoadingSubtitle())
+                    .font(.system(size: 20, weight: .light))
+                    .foregroundStyle(.secondary.opacity(0.6))
+                    .redacted(reason: .placeholder)
+                    .shimmering()
+            }
+        }
+    }
+    
+    // MARK: - Skeleton Content
+    
+    @ViewBuilder
+    private func skeletonContent() -> some View {
+        VStack(spacing: AppSpacing.xl) {
+            // Progress Rings Skeleton
+            HStack(spacing: AppSpacing.lg) {
+                ForEach(0..<3) { _ in
+                    VStack(spacing: 8) {
+                        Circle()
+                            .stroke(Color.secondary.opacity(0.2), lineWidth: 8)
+                            .frame(width: 90, height: 90)
+                            .overlay(
+                                VStack(spacing: 2) {
+                                    RoundedRectangle(cornerRadius: 4)
+                                        .fill(Color.secondary.opacity(0.2))
+                                        .frame(width: 40, height: 20)
+                                    RoundedRectangle(cornerRadius: 4)
+                                        .fill(Color.secondary.opacity(0.15))
+                                        .frame(width: 30, height: 12)
+                                }
+                            )
+                        
+                        RoundedRectangle(cornerRadius: 4)
+                            .fill(Color.secondary.opacity(0.2))
+                            .frame(width: 60, height: 14)
+                    }
+                    .shimmering()
+                }
+            }
+            .padding(.horizontal, AppSpacing.screenPadding)
+            
+            // Quick Actions Skeleton
+            VStack(alignment: .leading, spacing: AppSpacing.md) {
+                RoundedRectangle(cornerRadius: 4)
+                    .fill(Color.secondary.opacity(0.2))
+                    .frame(width: 100, height: 20)
+                    .padding(.horizontal, AppSpacing.screenPadding)
+                    .shimmering()
+                
+                ScrollView(.horizontal, showsIndicators: false) {
+                    HStack(spacing: AppSpacing.md) {
+                        ForEach(0..<2) { _ in
+                            RoundedRectangle(cornerRadius: 16)
+                                .fill(Color.secondary.opacity(0.1))
+                                .frame(width: 140, height: 100)
+                                .overlay(
+                                    RoundedRectangle(cornerRadius: 16)
+                                        .stroke(Color.secondary.opacity(0.2), lineWidth: 1)
+                                )
+                                .shimmering()
+                        }
+                    }
+                    .padding(.horizontal, AppSpacing.screenPadding)
+                }
+            }
+            
+            // AI Guidance Skeleton
+            GlassCard {
+                VStack(alignment: .leading, spacing: AppSpacing.sm) {
+                    RoundedRectangle(cornerRadius: 4)
+                        .fill(Color.secondary.opacity(0.2))
+                        .frame(width: 100, height: 16)
+                    
+                    VStack(alignment: .leading, spacing: 6) {
+                        RoundedRectangle(cornerRadius: 4)
+                            .fill(Color.secondary.opacity(0.15))
+                            .frame(height: 18)
+                        RoundedRectangle(cornerRadius: 4)
+                            .fill(Color.secondary.opacity(0.15))
+                            .frame(width: 250, height: 18)
+                    }
+                }
+                .shimmering()
+            }
+            .padding(.horizontal, AppSpacing.screenPadding)
+        }
+        .padding(.bottom, AppSpacing.xl)
     }
 
     // MARK: - Dynamic Header
@@ -332,6 +445,20 @@ struct TodayDashboardView: View {
         }
     }
 
+    private func getLoadingSubtitle() -> String {
+        let hour = Calendar.current.component(.hour, from: Date())
+        switch hour {
+        case 5..<12:
+            return "Preparing your morning insights..."
+        case 12..<17:
+            return "Loading your afternoon summary..."
+        case 17..<22:
+            return "Getting your evening update..."
+        default:
+            return "Loading your personalized insights..."
+        }
+    }
+    
     private func getQuickActions() -> [QuickAction] {
         let hour = Calendar.current.component(.hour, from: Date())
         var actions: [QuickAction] = []

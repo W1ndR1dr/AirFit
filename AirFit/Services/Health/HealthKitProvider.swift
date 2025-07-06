@@ -41,12 +41,24 @@ actor HealthKitProvider: HealthKitPrefillProviding {
 
     // MARK: - Authorization
     func requestAuthorization() async throws -> Bool {
+        AppLogger.info("HealthKitProvider: Checking if HealthKit is available", category: .health)
+        
         guard HKHealthStore.isHealthDataAvailable() else {
+            AppLogger.error("HealthKitProvider: HealthKit not available on this device", category: .health)
             throw HealthKitError.notAvailable
         }
-
-        try await store.requestAuthorization(toShare: [], read: readTypes)
-        return true
+        
+        AppLogger.info("HealthKitProvider: About to request authorization for \(readTypes.count) types", category: .health)
+        
+        do {
+            // This should present the system permission dialog
+            try await store.requestAuthorization(toShare: [], read: readTypes)
+            AppLogger.info("HealthKitProvider: Authorization request completed", category: .health)
+            return true
+        } catch {
+            AppLogger.error("HealthKitProvider: Authorization request failed", error: error, category: .health)
+            throw error
+        }
     }
 
     func checkAuthorizationStatus() -> HealthKitAuthorizationStatus {

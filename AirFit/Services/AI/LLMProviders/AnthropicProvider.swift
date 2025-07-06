@@ -164,12 +164,32 @@ actor AnthropicProvider: LLMProvider, ServiceProtocol {
             AnthropicMessage(role: msg.role.rawValue, content: .text(msg.content))
         }
 
-        // Handle system prompt
+        // Handle system prompt with potential caching
         if let systemPrompt = request.systemPrompt {
-            messages.insert(
-                AnthropicMessage(role: "system", content: .text(systemPrompt)),
-                at: 0
-            )
+            // Estimate token count (rough approximation: ~4 chars per token)
+            let estimatedTokens = systemPrompt.count / 4
+            
+            // Use cache_control for prompts >= 1024 tokens
+            if estimatedTokens >= 1024 {
+                // Create content array with cache_control
+                let systemMessage = AnthropicMessage(
+                    role: "system",
+                    content: .array([
+                        AnthropicContentBlock(
+                            type: "text",
+                            text: systemPrompt,
+                            cache_control: ["type": "ephemeral"]
+                        )
+                    ])
+                )
+                messages.insert(systemMessage, at: 0)
+            } else {
+                // Small prompt, no caching benefit
+                messages.insert(
+                    AnthropicMessage(role: "system", content: .text(systemPrompt)),
+                    at: 0
+                )
+            }
         }
 
         // Handle structured output via tool forcing
@@ -272,6 +292,16 @@ actor AnthropicProvider: LLMProvider, ServiceProtocol {
             throw AppError.from(LLMError.invalidResponse("No content in response"))
         }
 
+        // Extract cache metrics if available
+        var cacheMetrics: LLMResponse.CacheMetrics?
+        if let cacheReadTokens = response.usage.cache_read_input_tokens,
+           cacheReadTokens > 0 {
+            cacheMetrics = LLMResponse.CacheMetrics(
+                cachedTokens: cacheReadTokens,
+                totalPromptTokens: response.usage.input_tokens
+            )
+        }
+        
         return LLMResponse(
             content: textContent,
             model: model,
@@ -281,7 +311,8 @@ actor AnthropicProvider: LLMProvider, ServiceProtocol {
             ),
             finishReason: hasToolUse ? .toolCalls : mapFinishReason(response.stop_reason),
             metadata: ["id": response.id],
-            structuredData: structuredData
+            structuredData: structuredData,
+            cacheMetrics: cacheMetrics
         )
     }
 
@@ -372,6 +403,7 @@ private struct AnthropicMessage: Codable {
 
 private enum AnthropicContent: Codable {
     case text(String)
+    case array([AnthropicContentBlock])
     case toolUse(id: String, name: String, input: [String: AnthropicValue])
     case toolResult(toolUseId: String, content: String)
 
@@ -380,6 +412,12 @@ private enum AnthropicContent: Codable {
     }
 
     init(from decoder: Decoder) throws {
+        // Try to decode as array first
+        if let array = try? [AnthropicContentBlock](from: decoder) {
+            self = .array(array)
+            return
+        }
+        
         let container = try decoder.container(keyedBy: CodingKeys.self)
         let type = try container.decodeIfPresent(String.self, forKey: .type)
 
@@ -400,22 +438,42 @@ private enum AnthropicContent: Codable {
     }
 
     func encode(to encoder: Encoder) throws {
-        var container = encoder.container(keyedBy: CodingKeys.self)
-
         switch self {
         case .text(let text):
+            var container = encoder.container(keyedBy: CodingKeys.self)
             try container.encode("text", forKey: .type)
             try container.encode(text, forKey: .text)
+        case .array(let blocks):
+            var container = encoder.singleValueContainer()
+            try container.encode(blocks)
         case .toolUse(let id, let name, let input):
+            var container = encoder.container(keyedBy: CodingKeys.self)
             try container.encode("tool_use", forKey: .type)
             try container.encode(id, forKey: .id)
             try container.encode(name, forKey: .name)
             try container.encode(input, forKey: .input)
         case .toolResult(let toolUseId, let content):
+            var container = encoder.container(keyedBy: CodingKeys.self)
             try container.encode("tool_result", forKey: .type)
             try container.encode(toolUseId, forKey: .toolUseId)
             try container.encode(content, forKey: .content)
         }
+    }
+}
+
+private struct AnthropicContentBlock: Codable {
+    let type: String
+    let text: String?
+    let cache_control: [String: String]?
+    
+    private enum CodingKeys: String, CodingKey {
+        case type, text, cache_control
+    }
+    
+    init(type: String, text: String, cache_control: [String: String]? = nil) {
+        self.type = type
+        self.text = text
+        self.cache_control = cache_control
     }
 }
 
@@ -556,6 +614,8 @@ private struct AnthropicResponse: Decodable {
     struct Usage: Decodable {
         let input_tokens: Int
         let output_tokens: Int
+        let cache_creation_input_tokens: Int?
+        let cache_read_input_tokens: Int?
     }
 }
 

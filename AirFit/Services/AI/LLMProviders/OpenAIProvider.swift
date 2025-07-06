@@ -336,7 +336,8 @@ actor OpenAIProvider: LLMProvider, ServiceProtocol {
             ),
             finishReason: hasToolCalls ? .toolCalls : mapFinishReason(choice.finish_reason),
             metadata: ["id": response.id],
-            structuredData: structuredData
+            structuredData: structuredData,
+            cacheMetrics: nil  // TODO: Extract from response.usage.prompt_tokens_details.cached_tokens when available
         )
     }
 

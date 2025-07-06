@@ -1,8 +1,13 @@
 import SwiftUI
+import WatchConnectivity
 
-/// Turn-based onboarding - simple, clean, effective
+/// Simplified onboarding view without async container
 struct OnboardingView: View {
-    @ObservedObject var intelligence: OnboardingIntelligence
+    @Environment(\.diContainer) private var diContainer: DIContainer
+    @EnvironmentObject private var gradientManager: GradientManager
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
+    
+    @State private var intelligence: OnboardingIntelligence?
     @State private var phase = Phase.healthPermission
     @State private var userInput = ""
     @State private var conversationCount = 0
@@ -11,166 +16,33 @@ struct OnboardingView: View {
     @State private var isRetrying = false
     @State private var fullConversation: [(text: String, isUser: Bool)] = []
     @State private var lastPrompt = ""
-    @EnvironmentObject private var gradientManager: GradientManager
-    @Environment(\.diContainer) private var diContainer: DIContainer
-    @Environment(\.accessibilityReduceMotion) private var reduceMotion
-
+    
     enum Phase: Int {
         case healthPermission = 0
-        case whisperSetup = 1
-        case profileSetup = 2
-        case conversation = 3
-        case insightsConfirmation = 4
-        case generating = 5
-        case confirmation = 6
+        case healthDataLoading = 1
+        case whisperSetup = 2
+        case profileSetup = 3
+        case conversation = 4
+        case insightsConfirmation = 5
+        case generating = 6
+        case confirmation = 7
+        case watchSetup = 8
     }
 
     var body: some View {
         BaseScreen {
-            VStack(spacing: 0) {
-                // Progress indicator
-                OnboardingProgressIndicator(currentPhase: phase)
-                    .padding(.top, 8)
-                    .padding(.bottom, 16)
-
-                if let error = error {
-                    ErrorRecoveryView(
-                        error: error,
-                        isRetrying: isRetrying,
-                        onRetry: retryLastAction,
-                        onSkip: skipToFallback
-                    )
-                } else {
-                    switch phase {
-                    case .healthPermission:
-                        HealthPermissionView(
-                            onAccept: {
-                                Task {
-                                    // Move to Whisper setup
-                                    await MainActor.run {
-                                        phase = .whisperSetup
-                                        // Load user's selected model if not already done
-                                        if !hasSelectedModel {
-                                            loadUserSelectedModel()
-                                        }
-                                    }
-                                    // Then analyze health data in background
-                                    await intelligence.startHealthAnalysis()
-                                }
-                            },
-                            onSkip: {
-                                phase = .whisperSetup
-                            }
-                        )
-
-                    case .whisperSetup:
-                        WhisperSetupView(
-                            onContinue: {
-                                phase = .profileSetup
-                            },
-                            onSkip: {
-                                phase = .profileSetup
-                            }
-                        )
-
-                    case .profileSetup:
-                        ProfileSetupView(
-                            onComplete: { birthDate, biologicalSex in
-                                // Store the profile data in the conversation variables for later processing
-                                intelligence.addProfileData(birthDate: birthDate, biologicalSex: biologicalSex)
-
-                                // Move to conversation
-                                phase = .conversation
-                            },
-                            onSkip: {
-                                // Move to conversation without saving
-                                phase = .conversation
-                            }
-                        )
-
-                    case .conversation:
-                        ConversationView(
-                            intelligence: intelligence,
-                            prompt: intelligence.currentPrompt,
-                            suggestions: intelligence.contextualSuggestions,
-                            conversationHistory: fullConversation,
-                            input: $userInput,
-                            onSubmit: {
-                                Task {
-                                    // Add current Q&A to conversation history
-                                    fullConversation.append((text: intelligence.currentPrompt, isUser: false))
-                                    fullConversation.append((text: userInput, isUser: true))
-
-                                    await intelligence.analyzeConversation(userInput)
-                                    conversationCount += 1
-                                    userInput = ""
-
-                                    // Conversation flow logic with clear boundaries
-                                    if conversationCount < 3 {
-                                        // Early phase: Always continue gathering context
-                                        if let followUp = intelligence.followUpQuestion {
-                                            intelligence.currentPrompt = followUp
-                                        } else {
-                                            // Generic fallback if AI fails to generate follow-up
-                                            intelligence.currentPrompt = "What else should I know?"
-                                        }
-                                    } else if conversationCount >= 10 {
-                                        // Hard limit reached: Show insights confirmation
-                                        phase = .insightsConfirmation
-                                    } else if intelligence.contextQuality.overall >= 0.8 {
-                                        // Sufficient context: Show insights confirmation
-                                        phase = .insightsConfirmation
-                                    } else if let followUp = intelligence.followUpQuestion {
-                                        // Still gathering: Use AI-generated follow-up
-                                        intelligence.currentPrompt = followUp
-                                    } else {
-                                        // No follow-up but context insufficient: Show what we have
-                                        phase = .insightsConfirmation
-                                    }
-                                }
-                            }
-                        )
-
-                    case .insightsConfirmation:
-                        InsightsConfirmationView(
-                            insights: intelligence.extractedInsights,
-                            onConfirm: {
-                                phase = .generating
-                            },
-                            onRefine: {
-                                // Go back to conversation with a clarifying prompt
-                                intelligence.currentPrompt = "Thanks for clarifying! What else should I know about your fitness goals and preferences?"
-                                phase = .conversation
-                            }
-                        )
-
-                    case .generating:
-                        GeneratingView(intelligence: intelligence)
-                            .task {
-                                await intelligence.generatePersona()
-                                if intelligence.coachingPlan != nil {
-                                    phase = .confirmation
-                                } else {
-                                    // Fallback if generation returns no plan
-                                    await MainActor.run {
-                                        self.error = AppError.llm("Failed to generate coaching plan")
-                                    }
-                                }
-                            }
-
-                    case .confirmation:
-                        ConfirmationView(
-                            plan: intelligence.coachingPlan,
-                            onAccept: completeOnboarding,
-                            onRefine: {
-                                // Update prompt for refinement
-                                intelligence.currentPrompt = "Is there anything else you'd like me to know? Any specific concerns, preferences, or goals I should consider when crafting your coaching experience?"
-                                phase = .conversation
-                                userInput = ""
-                            }
-                        )
+            if let intelligence = intelligence {
+                // Main onboarding content
+                onboardingContent(intelligence: intelligence)
+            } else if let error = error {
+                // Error state
+                errorView(error: error)
+            } else {
+                // Initial loading (should be very brief)
+                ProgressView()
+                    .task {
+                        await loadIntelligence()
                     }
-                }
             }
         }
         .animation(reduceMotion ? .linear(duration: 0.15) : .easeInOut(duration: 0.3), value: phase)
@@ -178,9 +50,219 @@ struct OnboardingView: View {
             gradientManager.setGradient(.morningTwilight, animated: false)
         }
     }
+    
+    @ViewBuilder
+    private func onboardingContent(intelligence: OnboardingIntelligence) -> some View {
+        VStack(spacing: 0) {
+            // Progress indicator
+            OnboardingProgressIndicator(currentPhase: phase)
+                .padding(.top, 8)
+                .padding(.bottom, 16)
 
+            if let error = error {
+                ErrorRecoveryView(
+                    error: error,
+                    isRetrying: isRetrying,
+                    onRetry: retryLastAction,
+                    onSkip: skipToFallback
+                )
+            } else {
+                switch phase {
+                case .healthPermission:
+                    HealthPermissionView(
+                        onAccept: {
+                            // Move to health data loading immediately
+                            withAnimation(.easeInOut(duration: 0.3)) {
+                                phase = .healthDataLoading
+                            }
+                            
+                            // Load user's selected model if not already done
+                            if !hasSelectedModel {
+                                loadUserSelectedModel()
+                            }
+                            
+                            // Start health analysis in background after view transition
+                            Task {
+                                // Small delay to ensure view has transitioned
+                                try? await Task.sleep(nanoseconds: 300_000_000) // 0.3 seconds
+                                await intelligence.startHealthAnalysis()
+                            }
+                        },
+                        onSkip: {
+                            withAnimation(.easeInOut(duration: 0.3)) {
+                                phase = .whisperSetup
+                            }
+                        }
+                    )
+                    
+                case .healthDataLoading:
+                    HealthDataLoadingView(
+                        intelligence: intelligence,
+                        onContinue: {
+                            phase = .whisperSetup
+                        },
+                        onSkip: {
+                            phase = .whisperSetup
+                        }
+                    )
+
+                case .whisperSetup:
+                    WhisperSetupView(
+                        onContinue: {
+                            phase = .profileSetup
+                        },
+                        onSkip: {
+                            phase = .profileSetup
+                        }
+                    )
+
+                case .profileSetup:
+                    ProfileSetupView(
+                        onComplete: { birthDate, biologicalSex in
+                            // Store the profile data in the conversation variables for later processing
+                            intelligence.addProfileData(birthDate: birthDate, biologicalSex: biologicalSex)
+
+                            // Move to conversation
+                            phase = .conversation
+                        },
+                        onSkip: {
+                            // Move to conversation without saving
+                            phase = .conversation
+                        }
+                    )
+
+                case .conversation:
+                    ConversationView(
+                        intelligence: intelligence,
+                        prompt: intelligence.currentPrompt,
+                        suggestions: intelligence.contextualSuggestions,
+                        conversationHistory: fullConversation,
+                        input: $userInput,
+                        onSubmit: {
+                            Task {
+                                // Add current Q&A to conversation history
+                                fullConversation.append((text: intelligence.currentPrompt, isUser: false))
+                                fullConversation.append((text: userInput, isUser: true))
+
+                                await intelligence.analyzeConversation(userInput)
+                                conversationCount += 1
+                                userInput = ""
+
+                                // Conversation flow logic with clear boundaries
+                                if conversationCount < 3 {
+                                    // Early phase: Always continue gathering context
+                                    if let followUp = intelligence.followUpQuestion {
+                                        intelligence.currentPrompt = followUp
+                                    } else {
+                                        // Generic fallback if AI fails to generate follow-up
+                                        intelligence.currentPrompt = "What else should I know?"
+                                    }
+                                } else if conversationCount >= 10 {
+                                    // Hard limit reached: Show insights confirmation
+                                    phase = .insightsConfirmation
+                                } else if intelligence.contextQuality.overall >= 0.8 {
+                                    // Sufficient context: Show insights confirmation
+                                    phase = .insightsConfirmation
+                                } else if let followUp = intelligence.followUpQuestion {
+                                    // Still gathering: Use AI-generated follow-up
+                                    intelligence.currentPrompt = followUp
+                                } else {
+                                    // No follow-up but context insufficient: Show what we have
+                                    phase = .insightsConfirmation
+                                }
+                            }
+                        }
+                    )
+
+                case .insightsConfirmation:
+                    InsightsConfirmationView(
+                        insights: intelligence.extractedInsights,
+                        onConfirm: {
+                            phase = .generating
+                        },
+                        onRefine: {
+                            // Go back to conversation with a clarifying prompt
+                            intelligence.currentPrompt = "Thanks for clarifying! What else should I know about your fitness goals and preferences?"
+                            phase = .conversation
+                        }
+                    )
+
+                case .generating:
+                    GeneratingView(intelligence: intelligence)
+                        .task {
+                            await intelligence.generatePersona()
+                            if intelligence.coachingPlan != nil {
+                                phase = .confirmation
+                            } else {
+                                // Fallback if generation returns no plan
+                                await MainActor.run {
+                                    self.error = AppError.llm("Failed to generate coaching plan")
+                                }
+                            }
+                        }
+
+                case .confirmation:
+                    ConfirmationView(
+                        plan: intelligence.coachingPlan,
+                        onAccept: {
+                            // Move to watch setup after confirmation
+                            phase = .watchSetup
+                        },
+                        onRefine: {
+                            // Update prompt for refinement
+                            intelligence.currentPrompt = "Is there anything else you'd like me to know? Any specific concerns, preferences, or goals I should consider when crafting your coaching experience?"
+                            phase = .conversation
+                            userInput = ""
+                        }
+                    )
+                    
+                case .watchSetup:
+                    WatchSetupView(
+                        onSetupWatch: completeOnboarding,
+                        onSkip: completeOnboarding
+                    )
+                }
+            }
+        }
+    }
+    
+    private func errorView(error: Error) -> some View {
+        VStack(spacing: 20) {
+            Image(systemName: "exclamationmark.triangle")
+                .font(.largeTitle)
+                .foregroundColor(.red)
+
+            Text("Failed to initialize onboarding")
+                .font(.headline)
+
+            Text(error.localizedDescription)
+                .font(.caption)
+                .foregroundColor(.secondary)
+                .multilineTextAlignment(.center)
+                .padding(.horizontal)
+
+            Button("Retry") {
+                Task {
+                    await loadIntelligence()
+                }
+            }
+            .buttonStyle(.borderedProminent)
+        }
+    }
+    
+    private func loadIntelligence() async {
+        do {
+            intelligence = try await diContainer.resolve(OnboardingIntelligence.self)
+            error = nil
+        } catch {
+            self.error = error
+            AppLogger.error("Failed to resolve OnboardingIntelligence", error: error, category: .app)
+        }
+    }
+    
     private func completeOnboarding() {
-        guard let plan = intelligence.coachingPlan else { return }
+        guard let intelligence = intelligence,
+              let plan = intelligence.coachingPlan else { return }
 
         Task {
             do {
@@ -236,10 +318,19 @@ struct OnboardingView: View {
         error = nil
 
         Task {
+            guard let intelligence = intelligence else { 
+                isRetrying = false
+                return 
+            }
+            
             // Retry based on current phase
             switch phase {
             case .healthPermission:
                 // Health permission doesn't fail in a way that needs retry
+                isRetrying = false
+            case .healthDataLoading:
+                // Retry health data loading
+                await intelligence.startHealthAnalysis()
                 isRetrying = false
             case .profileSetup:
                 // Profile setup doesn't need retry
@@ -270,6 +361,9 @@ struct OnboardingView: View {
                 // Retry saving
                 completeOnboarding()
                 isRetrying = false
+            case .watchSetup:
+                // Watch setup doesn't need retry
+                isRetrying = false
             }
         }
     }
@@ -279,6 +373,7 @@ struct OnboardingView: View {
 
         // Force fallback persona generation
         Task {
+            guard let intelligence = intelligence else { return }
             intelligence.coachingPlan = intelligence.createFallbackPlan()
             phase = .confirmation
         }
@@ -291,7 +386,7 @@ struct OnboardingView: View {
            let modelId = UserDefaults.standard.string(forKey: "default_ai_model") {
 
             // Set the preferred model in OnboardingIntelligence
-            intelligence.setPreferredModel(provider: provider, modelId: modelId)
+            intelligence?.setPreferredModel(provider: provider, modelId: modelId)
             hasSelectedModel = true
 
             AppLogger.info("Loaded user-selected model: \(provider.displayName) - \(modelId)", category: .onboarding)
@@ -861,11 +956,14 @@ private struct OnboardingProgressIndicator: View {
 
     private let phases: [(OnboardingView.Phase, String, String)] = [
         (.healthPermission, "heart.fill", "Health"),
+        (.healthDataLoading, "arrow.down.circle.fill", "Loading"),
         (.whisperSetup, "waveform", "Voice"),
+        (.profileSetup, "person.fill", "Profile"),
         (.conversation, "bubble.left.and.bubble.right.fill", "Chat"),
         (.insightsConfirmation, "brain.filled.head.profile", "Insights"),
         (.generating, "sparkles", "Create"),
-        (.confirmation, "checkmark.circle.fill", "Done")
+        (.confirmation, "checkmark.circle.fill", "Coach"),
+        (.watchSetup, "applewatch", "Watch")
     ]
 
     var body: some View {
@@ -883,7 +981,7 @@ private struct OnboardingProgressIndicator: View {
                 }
                 .opacity(phaseOpacity(phase))
 
-                if phase != .confirmation {
+                if phase != .watchSetup {
                     Rectangle()
                         .fill(phaseLineColor(phase))
                         .frame(height: 2)

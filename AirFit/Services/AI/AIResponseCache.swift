@@ -434,6 +434,7 @@ extension LLMResponse: Codable {
         case finishReason
         case metadata
         case structuredData
+        case cacheMetrics
     }
 
     init(from decoder: Decoder) throws {
@@ -452,6 +453,9 @@ extension LLMResponse: Codable {
 
         // Decode structured data
         structuredData = try? container.decode(Data.self, forKey: .structuredData)
+        
+        // Decode cache metrics
+        cacheMetrics = try? container.decode(CacheMetrics.self, forKey: .cacheMetrics)
     }
 
     func encode(to encoder: Encoder) throws {
@@ -470,5 +474,8 @@ extension LLMResponse: Codable {
 
         // Encode structured data
         try container.encodeIfPresent(structuredData, forKey: .structuredData)
+        
+        // Encode cache metrics
+        try container.encodeIfPresent(cacheMetrics, forKey: .cacheMetrics)
     }
 }

@@ -22,6 +22,7 @@
 		09BAEAF7BDB0C6A15526BB3E /* StrengthRecord.swift in Sources */ = {isa = PBXBuildFile; fileRef = 92E1C25C2ED254847C0FE9BD /* StrengthRecord.swift */; };
 		09CE7BB855A9A75CD8CBC51C /* VoiceSettingsView.swift.disabled in Resources */ = {isa = PBXBuildFile; fileRef = 16BFC14D4CFE76496D7AEC10 /* VoiceSettingsView.swift.disabled */; };
 		09D9970AC6EC189F3E72724E /* BaseScreen.swift in Sources */ = {isa = PBXBuildFile; fileRef = EAAD2D4CF662A909789C0A65 /* BaseScreen.swift */; };
+		0C4937AA2C3F0AFD279AB964 /* WatchConnectivityManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = 594810601E7FF432B9FDA9D4 /* WatchConnectivityManager.swift */; };
 		0DE1979446C37A5A873DE0AD /* BiometricAuthManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = DE23A37430194B4F58E165AB /* BiometricAuthManager.swift */; };
 		0E6EF61A9CFDC4F245A9EF6F /* AirFitApp_DiagnosticDetailed.swift.bak in Resources */ = {isa = PBXBuildFile; fileRef = 291C16B8E03DD41AEF454C78 /* AirFitApp_DiagnosticDetailed.swift.bak */; };
 		0EA64A0982B77FA622E78025 /* PhotoInputView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3E5CD990694586F681E615A3 /* PhotoInputView.swift */; };
@@ -38,7 +39,6 @@
 		1372D1181D8BEE2E92372C75 /* ModelRecommendationView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6F7C6AD7F422D3C0EEB45217 /* ModelRecommendationView.swift */; };
 		139541EFBEFDABED1A8E8C8F /* ContextAnalyzer.swift in Sources */ = {isa = PBXBuildFile; fileRef = A04681F45161F1B797167C03 /* ContextAnalyzer.swift */; };
 		141DA1A1586C75174B3EB04D /* MotionToken.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0BDAD48BAAD2EBD1531477F6 /* MotionToken.swift */; };
-		14BCFB577917572302BF100D /* OnboardingContainerView.swift in Sources */ = {isa = PBXBuildFile; fileRef = F72E79054BC0702BE75F6C56 /* OnboardingContainerView.swift */; };
 		14E160A9EF8E36BAC83833DA /* NutritionParseResult.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3D7DD5CBF8969D872F9C046A /* NutritionParseResult.swift */; };
 		158A480E855F26611DA07929 /* Color+Hex.swift in Sources */ = {isa = PBXBuildFile; fileRef = 00618E6A2C4B6A17C07D0B30 /* Color+Hex.swift */; };
 		1856004096C0A69F4FCA0080 /* APIKeyManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = F2ACD46DFE9EA6B2C3182116 /* APIKeyManager.swift */; };
@@ -148,6 +148,7 @@
 		6BAC2B7D110B21CACA019E15 /* TodayDashboardView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1679CDB62C952CD2F20AC0D0 /* TodayDashboardView.swift */; };
 		6C4E629DEF4FCF27A92A01E4 /* GradientManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = C6AD0D036DBF1DA9131763F4 /* GradientManager.swift */; };
 		6E6D8F4FD896103D34698300 /* HealthKitDataTypes.swift in Sources */ = {isa = PBXBuildFile; fileRef = 105F8A2567D73BBFB78553F2 /* HealthKitDataTypes.swift */; };
+		6E8EEC6563D4BC7AAC2EF8CF /* ShimmerModifier.swift in Sources */ = {isa = PBXBuildFile; fileRef = AD780DB88E0533D7560DFCAF /* ShimmerModifier.swift */; };
 		6EB205CB5CC2177B9E4843F5 /* AIGoalService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2FF40B5DD44938977DFD75B3 /* AIGoalService.swift */; };
 		70597D4067EE566A538DD172 /* DIContainer.swift in Sources */ = {isa = PBXBuildFile; fileRef = A91FABFDEA18998853A3B2DE /* DIContainer.swift */; };
 		7074C029003EA27A2CC69B8C /* NotificationManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = 35BC6413B92CF66866B3276F /* NotificationManager.swift */; };
@@ -212,6 +213,7 @@
 		A9A3DA5A713B66F1CE8E0C5E /* AppConstants.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9DEBEA4064236AB5F1AD28C5 /* AppConstants.swift */; };
 		A9E136B0D8C87DC844DF3984 /* LiveActivityManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0611CFE05B85A678EC3C0247 /* LiveActivityManager.swift */; };
 		AA9D884C5027765955077ADD /* PlannedExerciseView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4A83A46D17DB881C0AE5BECD /* PlannedExerciseView.swift */; };
+		AAABD3B4A57D2C89A62A370D /* WatchSetupView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 202B1C1C0A479600397B8F4B /* WatchSetupView.swift */; };
 		ABAE8613C48D9BACC1175724 /* DataManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4E5CB706D892FB3AF4615186 /* DataManager.swift */; };
 		ABBA26E354980101E6DC2CBC /* WorkoutServiceProtocol.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8B55C06A583CE33EC9AE9B20 /* WorkoutServiceProtocol.swift */; };
 		ABCDDDC312C2E442541D5875 /* NutritionSchemas.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4DA94074AE4037445A24C5F6 /* NutritionSchemas.swift */; };
@@ -284,6 +286,7 @@
 		E57F871B9CA16B3DEE90E5FF /* MessageComposer.swift in Sources */ = {isa = PBXBuildFile; fileRef = ECF98B7556CF7BB664514975 /* MessageComposer.swift */; };
 		E670F5A0C308FF9EC69A7152 /* AirFitWatchApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7F97BF0EEF20731DABD00ED4 /* AirFitWatchApp.swift */; };
 		E6A107E1F21744F5B69BA3CF /* ExerciseLibraryComponents.swift in Sources */ = {isa = PBXBuildFile; fileRef = 72242C4E6C72ECAD33CB6147 /* ExerciseLibraryComponents.swift */; };
+		E7074770F149D6CCF833FB2B /* HealthDataLoadingView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 078C5396EF76F9A79C92DD3F /* HealthDataLoadingView.swift */; };
 		E7F300906EAE7D68899310BD /* DailyLog.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6DBBF997EE860EFC5A0AC13C /* DailyLog.swift */; };
 		E9741BAF10AEC7D62A65E586 /* BodyCoordinator.swift in Sources */ = {isa = PBXBuildFile; fileRef = 85B903B6E6E578D1EB5522E3 /* BodyCoordinator.swift */; };
 		EB0C9144CD7866C32738D0DF /* MainTabView.swift in Sources */ = {isa = PBXBuildFile; fileRef = A13B7BC49873443C74E5C7E8 /* MainTabView.swift */; };
@@ -370,6 +373,7 @@
 		0611CFE05B85A678EC3C0247 /* LiveActivityManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LiveActivityManager.swift; sourceTree = "<group>"; };
 		068123B34B9B1003EA0BF52D /* FunctionCallDispatcher.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FunctionCallDispatcher.swift; sourceTree = "<group>"; };
 		0687A7B53E5CA4B6CB145023 /* FoodVoiceAdapterProtocol.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FoodVoiceAdapterProtocol.swift; sourceTree = "<group>"; };
+		078C5396EF76F9A79C92DD3F /* HealthDataLoadingView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HealthDataLoadingView.swift; sourceTree = "<group>"; };
 		0875C4524279160081AD4855 /* LocalCommandParser.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LocalCommandParser.swift; sourceTree = "<group>"; };
 		08BAAFF984F28E19A94B2662 /* Double+Formatting.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "Double+Formatting.swift"; sourceTree = "<group>"; };
 		093F3E8536A849318EB597DC /* VoiceInputProtocol.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = VoiceInputProtocol.swift; sourceTree = "<group>"; };
@@ -403,6 +407,7 @@
 		1EE0E54FA6F0561AB6B5A273 /* NutritionSearchView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NutritionSearchView.swift; sourceTree = "<group>"; };
 		1F6D2628A31020886AA13155 /* GoalServiceProtocol.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GoalServiceProtocol.swift; sourceTree = "<group>"; };
 		1FD087FAFBF937260495E5E7 /* FlowLayout.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FlowLayout.swift; sourceTree = "<group>"; };
+		202B1C1C0A479600397B8F4B /* WatchSetupView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WatchSetupView.swift; sourceTree = "<group>"; };
 		23DA78EEA08A56D2F1BB21F3 /* DirectAIProcessor.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DirectAIProcessor.swift; sourceTree = "<group>"; };
 		261C36344A5B07ED179A4F6F /* NotificationModels.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NotificationModels.swift; sourceTree = "<group>"; };
 		2721E56CD8F3FDE394132797 /* WorkoutDetailView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WorkoutDetailView.swift; sourceTree = "<group>"; };
@@ -464,6 +469,7 @@
 		58C16840E028FDD4A8192ED9 /* PlannedWorkoutData.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PlannedWorkoutData.swift; sourceTree = "<group>"; };
 		58DA096419BD6A013F3D7E66 /* WhisperServiceWrapperProtocol.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WhisperServiceWrapperProtocol.swift; sourceTree = "<group>"; };
 		58F79186A66C813530056DE2 /* NetworkManagementProtocol.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NetworkManagementProtocol.swift; sourceTree = "<group>"; };
+		594810601E7FF432B9FDA9D4 /* WatchConnectivityManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WatchConnectivityManager.swift; sourceTree = "<group>"; };
 		5AD4124A4DE5519BF493F784 /* OnboardingCache.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OnboardingCache.swift; sourceTree = "<group>"; };
 		5B493433695841BD3B69C043 /* ExerciseInputView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ExerciseInputView.swift; sourceTree = "<group>"; };
 		5BEBA2A6ABB10D927079E9D9 /* User+Settings.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "User+Settings.swift"; sourceTree = "<group>"; };
@@ -566,6 +572,7 @@
 		AB35BF814CEB7A28D72862A7 /* MacroRingsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MacroRingsView.swift; sourceTree = "<group>"; };
 		AC30B5EC288B2008C9E5DA5B /* AppLogger.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppLogger.swift; sourceTree = "<group>"; };
 		AD5697AAD66D83035E594282 /* OnboardingProfile.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OnboardingProfile.swift; sourceTree = "<group>"; };
+		AD780DB88E0533D7560DFCAF /* ShimmerModifier.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ShimmerModifier.swift; sourceTree = "<group>"; };
 		ADFE0AAB259853DF4BE3263B /* GoalFunctions.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GoalFunctions.swift; sourceTree = "<group>"; };
 		AE14E1E6DA1D00DBF77BF658 /* DIViewModelFactory.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DIViewModelFactory.swift; sourceTree = "<group>"; };
 		AE89CBA9E5E95A6D7C98EFDE /* MessageType.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MessageType.swift; sourceTree = "<group>"; };
@@ -658,7 +665,6 @@
 		F2ACD46DFE9EA6B2C3182116 /* APIKeyManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = APIKeyManager.swift; sourceTree = "<group>"; };
 		F3EA14D7AA1AA37F205C8EED /* FoodItem.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FoodItem.swift; sourceTree = "<group>"; };
 		F670A9CBBB2A754F3D382D35 /* MinimalAIService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MinimalAIService.swift; sourceTree = "<group>"; };
-		F72E79054BC0702BE75F6C56 /* OnboardingContainerView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OnboardingContainerView.swift; sourceTree = "<group>"; };
 		F7C0F6A84120886761F71296 /* CommonComponents.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CommonComponents.swift; sourceTree = "<group>"; };
 		FA0CDD109F4275BC31B17BCD /* MonitoringService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MonitoringService.swift; sourceTree = "<group>"; };
 		FB08BCA28825A25927F9B202 /* SettingsListView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SettingsListView.swift; sourceTree = "<group>"; };
@@ -1026,6 +1032,7 @@
 				FCC1D32174D22738401732CE /* MetricRing.swift */,
 				14E9650A19B108DBA2EEDA57 /* MicRippleView.swift */,
 				55A94DF022CEF882B2FAF15D /* ModelContainerErrorView.swift */,
+				AD780DB88E0533D7560DFCAF /* ShimmerModifier.swift */,
 				EA81C58A7444305D50765443 /* VoiceWaveformView.swift */,
 				4802D2842DDAE9418A8E5728 /* WhisperVoiceButton.swift */,
 			);
@@ -1250,9 +1257,10 @@
 			isa = PBXGroup;
 			children = (
 				91632A24C4607FEF5E1EC10F /* APISetupView.swift */,
+				078C5396EF76F9A79C92DD3F /* HealthDataLoadingView.swift */,
 				5E605EBE0282CE60406542B4 /* InsightsConfirmationView.swift */,
-				F72E79054BC0702BE75F6C56 /* OnboardingContainerView.swift */,
 				2C12E7B9695ABC14C5F009EA /* ProfileSetupView.swift */,
+				202B1C1C0A479600397B8F4B /* WatchSetupView.swift */,
 				D8D200FD00BFA11E48A8E471 /* WhisperSetupView.swift */,
 			);
 			path = Views;
@@ -1868,6 +1876,7 @@
 		F7E16759B6926D90F6A4362C /* Watch */ = {
 			isa = PBXGroup;
 			children = (
+				594810601E7FF432B9FDA9D4 /* WatchConnectivityManager.swift */,
 				01C451D11005AA7F4DE94DD5 /* WorkoutPlanTransferService.swift */,
 			);
 			path = Watch;
@@ -2228,6 +2237,7 @@
 				06393641B85B737F057C08A5 /* GradientToken.swift in Sources */,
 				3F4B0FE8A9CDBF20C9CA7C50 /* HapticService.swift in Sources */,
 				EE15ADD0F0F8DC4D8273BEDE /* HealthContextSnapshot.swift in Sources */,
+				E7074770F149D6CCF833FB2B /* HealthDataLoadingView.swift in Sources */,
 				9B9478239844E75E211D427F /* HealthKit+Types.swift in Sources */,
 				19FF030E3AF86440A22B946A /* HealthKitAuthManager.swift in Sources */,
 				C73E6BAB95BC07BF6858302D /* HealthKitDataFetcher.swift in Sources */,
@@ -2299,7 +2309,6 @@
 				73AA351FA874E5955B2F0341 /* NutritionSettingsView.swift in Sources */,
 				2D1783E7B4020BD6C6F66726 /* OfflineAIService.swift in Sources */,
 				F7785CC13DA50354AA01BC69 /* OnboardingCache.swift in Sources */,
-				14BCFB577917572302BF100D /* OnboardingContainerView.swift in Sources */,
 				0EC313BF727DB5F268F60AFA /* OnboardingIntelligence.swift in Sources */,
 				E4AE6B5D01C5389253DDC64D /* OnboardingModels.swift in Sources */,
 				63A73E1D1187A065F351A187 /* OnboardingProfile.swift in Sources */,
@@ -2333,6 +2342,7 @@
 				F44CC526E93C87E64659A796 /* SettingsListView.swift in Sources */,
 				A9461F7BA3CC9780420A261C /* SettingsModels.swift in Sources */,
 				A63F757F8B7F59A36EEC2E0E /* SettingsViewModel.swift in Sources */,
+				6E8EEC6563D4BC7AAC2EF8CF /* ShimmerModifier.swift in Sources */,
 				44E9A03CC6B9DAF63B4BBC7F /* StreamingResponseHandler.swift in Sources */,
 				F8F6977D3FE40B1FEFA6ABD5 /* StrengthProgressionCard.swift in Sources */,
 				953FB6E4CD44D8ED2817A6E4 /* StrengthProgressionService.swift in Sources */,
@@ -2357,6 +2367,8 @@
 				5DE11426299223BBE6D82136 /* VoiceInputState.swift in Sources */,
 				C21D162A484A68651478370A /* VoiceSettingsView.swift in Sources */,
 				7504A119FD8954DC7007217D /* VoiceWaveformView.swift in Sources */,
+				0C4937AA2C3F0AFD279AB964 /* WatchConnectivityManager.swift in Sources */,
+				AAABD3B4A57D2C89A62A370D /* WatchSetupView.swift in Sources */,
 				DCA6B984ACD014A090BF5EC9 /* WeatherService.swift in Sources */,
 				B7D1DBED6F165EB005D17207 /* WeatherServiceProtocol.swift in Sources */,
 				C12C9EA7C31A9E043925503F /* WhisperModelManager.swift in Sources */,

@@ -24,13 +24,10 @@ public final class DIViewModelFactory {
         // Get ModelContext first (not Sendable)
         let modelContext = try await getModelContext()
 
-        // Resolve other dependencies in parallel
+        // Resolve all dependencies in parallel - AICoachService is now pre-registered
         async let healthKitService = container.resolve(HealthKitServiceProtocol.self)
         async let nutritionService = container.resolve(DashboardNutritionServiceProtocol.self)
-        async let coachEngine = makeCoachEngine(for: user)
-
-        // Create AICoachService with resolved engine
-        let aiCoachService = AICoachService(coachEngine: try await coachEngine)
+        async let aiCoachService = container.resolve(AICoachServiceProtocol.self)
 
         return try await DashboardViewModel(
             user: user,

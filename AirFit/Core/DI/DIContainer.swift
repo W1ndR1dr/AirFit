@@ -100,6 +100,33 @@ public final class DIContainer: @unchecked Sendable {
 
         return typedInstance
     }
+    
+    /// Synchronously resolve a dependency - only works for already-created singletons
+    /// This is useful for UI components that need immediate access to services
+    public func resolveSync<T>(_ type: T.Type, name: String? = nil) throws -> T {
+        let key = makeKey(type: type, name: name)
+        
+        // Check if we have a registration
+        guard let registration = findRegistration(for: key) else {
+            throw DIError.notRegistered(String(describing: type))
+        }
+        
+        // Only return existing singleton instances
+        switch registration.lifetime {
+        case .singleton:
+            if let instance = singletonInstances[key] as? T {
+                return instance
+            }
+            throw DIError.resolutionFailed("Singleton not yet created for \(String(describing: type))")
+        case .scoped:
+            if let instance = scopedInstances[key] as? T {
+                return instance
+            }
+            throw DIError.resolutionFailed("Scoped instance not yet created for \(String(describing: type))")
+        case .transient:
+            throw DIError.resolutionFailed("Cannot synchronously resolve transient dependencies for \(String(describing: type))")
+        }
+    }
 
     /// Create a child container for scoped dependencies
     public func createScope() -> DIContainer {

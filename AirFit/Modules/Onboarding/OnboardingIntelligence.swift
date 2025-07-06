@@ -13,6 +13,9 @@ final class OnboardingIntelligence: ObservableObject {
     @Published var followUpQuestion: String?
     @Published var extractedInsights: ExtractedInsights?
     @Published var personaSynthesisProgress: PersonaSynthesisProgress?
+    @Published var isLoadingHealthData = false
+    @Published var healthDataProgress: Double = 0.0
+    @Published var healthDataStatus = ""
 
     // Context quality - the only metric that matters
     @Published var contextQuality = ContextComponents(
@@ -89,7 +92,7 @@ final class OnboardingIntelligence: ObservableObject {
 
     // MARK: - Initialization
 
-    private init(
+    init(
         aiService: AIServiceProtocol,
         contextAssembler: ContextAssembler,
         llmOrchestrator: LLMOrchestrator,
@@ -103,71 +106,43 @@ final class OnboardingIntelligence: ObservableObject {
         self.healthKitProvider = healthKitProvider
         self.cache = cache
         self.personaSynthesizer = personaSynthesizer
+        
+        // Validate services in background (non-blocking)
+        validateServicesInBackground()
     }
 
-    /// Factory method that performs heavy initialization off main thread
-    static func create(from container: DIContainer) async throws -> OnboardingIntelligence {
-        // Do heavy dependency resolution off main thread
-        let dependencies = try await Task.detached(priority: .userInitiated) {
-            // Resolve all dependencies in parallel
-            async let aiService = container.resolve(AIServiceProtocol.self)
-            async let contextAssembler = container.resolve(ContextAssembler.self)
-            async let llmOrchestrator = container.resolve(LLMOrchestrator.self)
-            async let healthKitProvider = container.resolve(HealthKitPrefillProviding.self)
-            async let cache = container.resolve(OnboardingCache.self)
-            async let personaSynthesizer = container.resolve(PersonaSynthesizer.self)
-
-            return try await (
-                aiService: aiService,
-                contextAssembler: contextAssembler,
-                llmOrchestrator: llmOrchestrator,
-                healthKitProvider: healthKitProvider as! HealthKitProvider,
-                cache: cache,
-                personaSynthesizer: personaSynthesizer
-            )
-        }.value
-
-        // Quick initialization on main thread
-        let intelligence = await MainActor.run {
-            OnboardingIntelligence(
-                aiService: dependencies.aiService,
-                contextAssembler: dependencies.contextAssembler,
-                llmOrchestrator: dependencies.llmOrchestrator,
-                healthKitProvider: dependencies.healthKitProvider,
-                cache: dependencies.cache,
-                personaSynthesizer: dependencies.personaSynthesizer
-            )
+    /// Validate services asynchronously (non-blocking)
+    private func validateServicesInBackground() {
+        Task {
+            do {
+                // Check API keys
+                let hasKeys = await hasValidAPIKeys()
+                if !hasKeys {
+                    AppLogger.warning("AI services not properly configured", category: .onboarding)
+                    // Don't throw - let user continue with limited functionality
+                }
+                
+                // Validate configuration (but don't block UI)
+                let isValid = try await aiService.validateConfiguration()
+                if !isValid {
+                    AppLogger.warning("AI service configuration invalid", category: .onboarding)
+                }
+                
+                // Check health in background
+                let health = await aiService.checkHealth()
+                if health.status != .healthy {
+                    AppLogger.warning("AI service unhealthy: \(health.status)", category: .onboarding)
+                }
+            } catch {
+                AppLogger.error("Service validation failed", error: error, category: .onboarding)
+                // Don't crash - continue with degraded functionality
+            }
         }
         
-        // Validate AI services are properly configured
-        let hasKeys = await intelligence.hasValidAPIKeys()
-        guard hasKeys else {
-            throw AppError.authentication("AI services not properly configured. Please complete API setup first.")
-        }
-        
-        // Validate AI service is functional
-        do {
-            let isValid = try await dependencies.aiService.validateConfiguration()
-            guard isValid else {
-                throw AppError.serviceUnavailable
-            }
-            
-            // Check service health
-            let health = await dependencies.aiService.checkHealth()
-            if health.status != .healthy {
-                AppLogger.warning("AI service health check returned: \(health.status)", category: .onboarding)
-            }
-        } catch {
-            AppLogger.error("AI service validation failed", error: error, category: .onboarding)
-            throw AppError.authentication("AI services not responding. Please check your API configuration.")
-        }
-
-        // Restore session on main thread
+        // Restore session if available
         Task { @MainActor in
-            await intelligence.restoreSessionIfAvailable()
+            await restoreSessionIfAvailable()
         }
-
-        return intelligence
     }
 
     // MARK: - Public API
@@ -178,26 +153,81 @@ final class OnboardingIntelligence: ObservableObject {
         return !configuredProviders.isEmpty
     }
 
-    /// Start health analysis in background during permission screen
+    /// Start health analysis - simplified without detached task
     func startHealthAnalysis() async {
         AppLogger.info("Starting HealthKit authorization request", category: .health)
-
-        // Request authorization without artificial timeout - let system handle it
+        
+        // Show loading state
+        isLoadingHealthData = true
+        healthDataProgress = 0.0
+        healthDataStatus = "Requesting permission..."
+        
         do {
-            _ = try await self.healthKitProvider.requestAuthorization()
-            AppLogger.info("HealthKit authorization completed, fetching context", category: .health)
-
-            // Fetch health context in background - don't block onboarding
-            Task {
-                let context = await self.contextAssembler.assembleContext()
-                self.healthContext = context
-                self.updatePromptsFromHealth(context)
-                await self.generateSmartSuggestions(context)
-                AppLogger.info("Health context loaded successfully", category: .health)
+            // Simple, direct authorization request - let HealthKit handle the UI
+            let authorized = try await healthKitProvider.requestAuthorization()
+            AppLogger.info("HealthKit authorization completed: \(authorized)", category: .health)
+            
+            healthDataProgress = 0.2
+            healthDataStatus = "Loading activity data..."
+            
+            if authorized {
+                // Load health data in background
+                Task {
+                    do {
+                        // Brief delay for UI update
+                        try await Task.sleep(nanoseconds: 300_000_000) // 0.3s
+                        
+                        healthDataProgress = 0.4
+                        healthDataStatus = "Analyzing fitness patterns..."
+                        
+                        let context = await contextAssembler.assembleContext()
+                        
+                        healthDataProgress = 0.6
+                        healthDataStatus = "Reviewing health data..."
+                        
+                        healthContext = context
+                        updatePromptsFromHealth(context)
+                        
+                        healthDataProgress = 0.8
+                        healthDataStatus = "Personalizing suggestions..."
+                        
+                        await generateSmartSuggestions(context)
+                        
+                        healthDataProgress = 1.0
+                        healthDataStatus = "Complete!"
+                        
+                        AppLogger.info("Health context loaded successfully", category: .health)
+                        
+                        // Hide loading after brief moment
+                        try await Task.sleep(nanoseconds: 1_000_000_000) // 1s
+                        isLoadingHealthData = false
+                    } catch {
+                        AppLogger.error("Failed to load health context", error: error, category: .health)
+                        healthDataStatus = "Failed to load data"
+                        try? await Task.sleep(nanoseconds: 2_000_000_000) // 2s
+                        isLoadingHealthData = false
+                    }
+                }
+            } else {
+                healthDataStatus = "Permission denied"
+                healthDataProgress = 0.0
+                
+                // Hide loading after showing status
+                Task {
+                    try? await Task.sleep(nanoseconds: 2_000_000_000) // 2s
+                    isLoadingHealthData = false
+                }
             }
         } catch {
             AppLogger.error("HealthKit authorization failed", error: error, category: .health)
-            // Continue without health data - user can connect later
+            healthDataStatus = "Authorization failed"
+            healthDataProgress = 0.0
+            
+            // Hide loading after showing error
+            Task {
+                try? await Task.sleep(nanoseconds: 2_000_000_000) // 2s
+                isLoadingHealthData = false
+            }
         }
     }
 

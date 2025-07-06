@@ -166,13 +166,22 @@ final class HealthKitManager: HealthKitManaging, ServiceProtocol {
 
             AppLogger.info("HealthKit: Authorization request completed, status: \(authorizationStatus)", category: .health)
 
-            // Enable background delivery after successful authorization
+            // Skip background delivery during onboarding - enable it later
+            // This prevents the app from hanging during initial setup
             if authorizationStatus == .authorized {
-                do {
-                    try await dataFetcher.enableBackgroundDelivery()
-                    AppLogger.info("HealthKit: Background delivery enabled", category: .health)
-                } catch {
-                    AppLogger.error("Failed to enable HealthKit background delivery", error: error, category: .health)
+                AppLogger.info("HealthKit: Deferring background delivery setup until after onboarding", category: .health)
+                
+                // Enable background delivery later, after onboarding
+                Task {
+                    // Wait a bit to ensure onboarding flow isn't disrupted
+                    try? await Task.sleep(nanoseconds: 5_000_000_000) // 5 seconds
+                    
+                    do {
+                        try await dataFetcher.enableBackgroundDelivery()
+                        AppLogger.info("HealthKit: Background delivery enabled", category: .health)
+                    } catch {
+                        AppLogger.error("Failed to enable HealthKit background delivery", error: error, category: .health)
+                    }
                 }
             }
         } catch let error as NSError {

@@ -83,6 +83,7 @@ struct LLMResponse: Sendable {
     let finishReason: FinishReason
     let metadata: [String: String]
     let structuredData: Data? // JSON data for structured output when using structuredJson
+    let cacheMetrics: CacheMetrics?
 
     struct TokenUsage: Codable, Sendable {
         let promptTokens: Int
@@ -93,6 +94,19 @@ struct LLMResponse: Sendable {
             let inputCost = Double(promptTokens) / 1_000.0 * rates.input
             let outputCost = Double(completionTokens) / 1_000.0 * rates.output
             return inputCost + outputCost
+        }
+    }
+    
+    struct CacheMetrics: Codable, Sendable {
+        let cachedTokens: Int
+        let totalPromptTokens: Int
+        
+        var hitRate: Double {
+            totalPromptTokens > 0 ? Double(cachedTokens) / Double(totalPromptTokens) : 0
+        }
+        
+        var tokensSaved: Int {
+            cachedTokens
         }
     }
 

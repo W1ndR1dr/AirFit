@@ -361,7 +361,25 @@ public final class DIBootstrapper {
 
         // Onboarding Intelligence - The brain behind smart onboarding
         container.register(OnboardingIntelligence.self, lifetime: .transient) { resolver in
-            try await OnboardingIntelligence.create(from: resolver)
+            // Resolve dependencies
+            let aiService = try await resolver.resolve(AIServiceProtocol.self)
+            let contextAssembler = try await resolver.resolve(ContextAssembler.self)
+            let llmOrchestrator = try await resolver.resolve(LLMOrchestrator.self)
+            let healthKitProvider = try await resolver.resolve(HealthKitPrefillProviding.self) as! HealthKitProvider
+            let cache = try await resolver.resolve(OnboardingCache.self)
+            let personaSynthesizer = try await resolver.resolve(PersonaSynthesizer.self)
+            
+            // Simple, synchronous initialization on MainActor
+            return await MainActor.run {
+                OnboardingIntelligence(
+                    aiService: aiService,
+                    contextAssembler: contextAssembler,
+                    llmOrchestrator: llmOrchestrator,
+                    healthKitProvider: healthKitProvider,
+                    cache: cache,
+                    personaSynthesizer: personaSynthesizer
+                )
+            }
         }
 
         // Whisper Model Manager
