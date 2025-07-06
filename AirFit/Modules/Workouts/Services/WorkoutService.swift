@@ -44,6 +44,7 @@ final class WorkoutService: WorkoutServiceProtocol, ServiceProtocol {
     // MARK: - Properties
     private let modelContext: ModelContext
     private let healthKitManager: HealthKitManaging?
+    private let strengthProgressionService: StrengthProgressionServiceProtocol?
 
     // MARK: - ServiceProtocol
     nonisolated let serviceIdentifier = "workout-service"
@@ -53,9 +54,14 @@ final class WorkoutService: WorkoutServiceProtocol, ServiceProtocol {
     }
 
     // MARK: - Initialization
-    init(modelContext: ModelContext, healthKitManager: HealthKitManaging? = nil) {
+    init(
+        modelContext: ModelContext,
+        healthKitManager: HealthKitManaging? = nil,
+        strengthProgressionService: StrengthProgressionServiceProtocol? = nil
+    ) {
         self.modelContext = modelContext
         self.healthKitManager = healthKitManager
+        self.strengthProgressionService = strengthProgressionService
     }
 
     // MARK: - ServiceProtocol Methods
@@ -154,6 +160,20 @@ final class WorkoutService: WorkoutServiceProtocol, ServiceProtocol {
         do {
             // Save to SwiftData first
             try modelContext.save()
+
+            // Record strength progression (non-blocking)
+            if let strengthService = strengthProgressionService,
+               let user = workout.user {
+                Task {
+                    do {
+                        try await strengthService.recordStrengthProgress(from: workout, for: user)
+                        AppLogger.info("Recorded strength progression from workout", category: .services)
+                    } catch {
+                        AppLogger.error("Failed to record strength progression", error: error, category: .services)
+                        // Don't throw - strength tracking is secondary
+                    }
+                }
+            }
 
             // Save to HealthKit (non-blocking)
             if workout.healthKitWorkoutID == nil {

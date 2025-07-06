@@ -34,7 +34,7 @@ final class MessageProcessor {
         }
 
         // Check for nutrition/fitness keywords combined with short length
-        let nutritionKeywords = ["calories", "protein", "carbs", "fat", "water", "steps", "workout"]
+        let nutritionKeywords = ["calories", "protein", "carbs", "fat", "steps", "workout"]
         let hasNutritionKeyword = nutritionKeywords.contains { lowercased.contains($0) }
 
         if hasNutritionKeyword && trimmedText.count < 50 {
@@ -44,7 +44,7 @@ final class MessageProcessor {
 
         // Check for typical command patterns
         let commandPatterns = [
-            "\\d+\\s*(calories|cal|protein|carbs|fat|water|ml|oz|steps|lbs|kg)",
+            "\\d+\\s*(calories|cal|protein|carbs|fat|ml|steps|lbs|kg)",
             "^(yes|no|ok|thanks|got it)$",
             "^\\d+\\s*\\w*\\s*\\w+$" // Numbers with units like "500 calories" or "2 apples"
         ]
@@ -86,9 +86,6 @@ final class MessageProcessor {
             return "[System: Navigated to dashboard]"
         case let .navigateToTab(tab):
             return "[System: Navigated to \(tab.rawValue) tab]"
-        case let .logWater(amount, unit):
-            let ml = amount * unit.toMilliliters
-            return "[System: Logged \(Int(ml))ml (\(amount) \(unit.rawValue)) of water]"
         case let .quickLog(type):
             return "[System: Opened quick logging for \(type)]"
         case .showSettings:
@@ -129,8 +126,6 @@ final class MessageProcessor {
             return "[System: Navigated to \(metric ?? "overall") statistics]"
         case .showRecovery:
             return "[System: Navigated to recovery section]"
-        case .showHydration:
-            return "[System: Navigated to hydration tracking]"
         case let .showProgress(timeframe):
             var description = "[System: Navigated to progress"
             switch timeframe {
@@ -150,8 +145,6 @@ final class MessageProcessor {
             switch actionType {
             case .logMeal(let mealType):
                 return "[System: Opened \(mealType.rawValue) logging]"
-            case .logWater:
-                return "[System: Opened water logging]"
             case .startWorkout:
                 return "[System: Started workout flow]"
             case .checkIn:

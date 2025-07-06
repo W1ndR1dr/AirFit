@@ -88,28 +88,28 @@ public enum GlobalEnums {
     // MARK: - Navigation
     public enum AppTab: String, CaseIterable, Sendable {
         case chat
-        case dashboard
-        case food
+        case today
+        case nutrition
         case workouts
-        case profile
+        case body
 
         public var systemImage: String {
             switch self {
             case .chat: return "message.fill"
-            case .dashboard: return "house.fill"
-            case .food: return "fork.knife"
+            case .today: return "sun.max.fill"
+            case .nutrition: return "leaf.fill"
             case .workouts: return "figure.run"
-            case .profile: return "person.circle.fill"
+            case .body: return "figure"
             }
         }
-        
+
         public var displayName: String {
             switch self {
             case .chat: return "Chat"
-            case .dashboard: return "Dashboard"
-            case .food: return "Food"
+            case .today: return "Today"
+            case .nutrition: return "Nutrition"
             case .workouts: return "Workouts"
-            case .profile: return "Profile"
+            case .body: return "Body"
             }
         }
     }

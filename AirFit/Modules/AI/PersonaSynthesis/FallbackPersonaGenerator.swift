@@ -66,7 +66,8 @@ actor FallbackPersonaGenerator {
                 generationDuration: 0.1,
                 tokenCount: 500,
                 previewReady: true
-            )
+            ),
+            nutritionRecommendations: generateNutritionRecommendations(from: responses)
         )
     }
 
@@ -189,24 +190,52 @@ actor FallbackPersonaGenerator {
     }
 
     private func generateGreetings(timePreference: String) -> [String] {
+        // Use contextual greetings based on time preference
+        // These are fallback templates when AI generation fails
         switch timePreference {
         case "morning":
-            return ["Good morning! Ready to start strong?", "Morning! Let's make today count!", "Rise and shine! Time to move!"]
+            return [
+                "Good morning! What would you like to focus on today?",
+                "Morning! How are you feeling today?",
+                "Good morning! Ready when you are."
+            ]
         case "evening":
-            return ["Good evening! Ready to unwind with movement?", "Evening! Let's finish the day strong!", "Hey there! Time for your evening session!"]
+            return [
+                "Good evening! How was your day?",
+                "Evening! What can I help you with?",
+                "Good evening! Let's check in on your progress."
+            ]
         default:
-            return ["Hey there! Ready to get moving?", "Welcome back! Let's do this!", "Hi! Time to work on those goals!"]
+            return [
+                "Hey there! What brings you here today?",
+                "Welcome back! How can I help?",
+                "Hi! What would you like to work on?"
+            ]
         }
     }
 
     private func generateEncouragements(motivationStyle: String) -> [String] {
+        // Context-aware encouragements based on motivation style
+        // These are fallback templates when AI generation fails
         switch motivationStyle {
         case "challenging":
-            return ["Push through! You're stronger than you think!", "No excuses! Keep going!", "This is where champions are made!"]
+            return [
+                "You're capable of more than you realize.",
+                "Every challenge is an opportunity to grow.",
+                "Your effort today shapes your tomorrow."
+            ]
         case "supportive":
-            return ["You're doing amazing!", "Every step counts!", "I believe in you!"]
+            return [
+                "You're doing great!",
+                "Every step forward matters.",
+                "I'm here to support you."
+            ]
         default:
-            return ["Great effort!", "Keep it up!", "You're making progress!"]
+            return [
+                "Nice work!",
+                "You're on the right track.",
+                "Progress is progress."
+            ]
         }
     }
 
@@ -302,6 +331,45 @@ actor FallbackPersonaGenerator {
             preferredTimes: ["morning", "evening"],
             extractedAt: Date()
         )
+    }
+
+    // MARK: - Nutrition Recommendations
+
+    private func generateNutritionRecommendations(from responses: [String: Any]) -> NutritionRecommendations {
+        let goal = responses["fitnessGoal"] as? String ?? "general fitness"
+        let intensity = responses["workoutIntensity"] as? String ?? "moderate"
+
+        // Determine macros based on goal
+        let (protein, fat, approach, rationale) = determineNutritionStrategy(goal: goal, intensity: intensity)
+
+        return NutritionRecommendations(
+            approach: approach,
+            proteinGramsPerPound: protein,
+            fatPercentage: fat,
+            carbStrategy: "Fill remaining calories with quality carbs",
+            rationale: rationale,
+            flexibilityNotes: "Focus on weekly averages rather than daily perfection. Hit your protein target consistently."
+        )
+    }
+
+    private func determineNutritionStrategy(goal: String, intensity: String) -> (Double, Double, String, String) {
+        switch goal.lowercased() {
+        case let g where g.contains("muscle") || g.contains("strength") || g.contains("gain"):
+            return (1.2, 0.25, "Fuel for growth",
+                    "Higher protein supports muscle growth and recovery. Moderate fat leaves room for performance-driving carbs.")
+
+        case let g where g.contains("weight loss") || g.contains("fat loss") || g.contains("lean"):
+            return (1.1, 0.30, "Sustainable deficit",
+                    "Elevated protein preserves muscle during weight loss. Balanced fat supports hormones and satiety.")
+
+        case let g where g.contains("endurance") || g.contains("cardio") || g.contains("running"):
+            return (0.8, 0.25, "Endurance fuel",
+                    "Moderate protein meets recovery needs. Lower fat maximizes carb availability for sustained energy.")
+
+        default:
+            return (0.9, 0.30, "Balanced fitness",
+                    "Balanced macros support general fitness goals. Flexibility allows for lifestyle adherence.")
+        }
     }
 }
 

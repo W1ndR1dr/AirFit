@@ -149,6 +149,7 @@ enum FoodTrackingError: LocalizedError {
     case aiProcessingTimeout
     case invalidNutritionResponse
     case invalidNutritionData
+    case invalidImage
 
     var errorDescription: String? {
         switch self {
@@ -170,6 +171,8 @@ enum FoodTrackingError: LocalizedError {
             return "Invalid nutrition data from AI"
         case .invalidNutritionData:
             return "Malformed nutrition information"
+        case .invalidImage:
+            return "Unable to process image"
         }
     }
 }

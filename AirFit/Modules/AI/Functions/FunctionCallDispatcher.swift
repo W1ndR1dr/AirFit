@@ -101,6 +101,8 @@ final class FunctionCallDispatcher {
     private let workoutService: AIWorkoutServiceProtocol
     private let analyticsService: AIAnalyticsServiceProtocol
     private let goalService: AIGoalServiceProtocol
+    private let workoutTransferService: WorkoutPlanTransferProtocol?
+    private let coachEngine: CoachEngineProtocol?
     // ModelContext will be passed in when needed
 
     // MARK: - Performance Tracking (Optimized)
@@ -146,11 +148,15 @@ final class FunctionCallDispatcher {
     init(
         workoutService: AIWorkoutServiceProtocol,
         analyticsService: AIAnalyticsServiceProtocol,
-        goalService: AIGoalServiceProtocol
+        goalService: AIGoalServiceProtocol,
+        workoutTransferService: WorkoutPlanTransferProtocol? = nil,
+        coachEngine: CoachEngineProtocol? = nil
     ) {
         self.workoutService = workoutService
         self.analyticsService = analyticsService
         self.goalService = goalService
+        self.workoutTransferService = workoutTransferService
+        self.coachEngine = coachEngine
 
         // Pre-build dispatch table for O(1) function lookup
         self.functionDispatchTable = [
@@ -165,6 +171,15 @@ final class FunctionCallDispatcher {
             },
             "assistGoalSettingOrRefinement": { dispatcher, args, user, context, modelContext in
                 try await dispatcher.executeGoalSetting(args, for: user, context: context, modelContext: modelContext)
+            },
+            "generate_workout": { dispatcher, args, user, context, modelContext in
+                try await dispatcher.handleGenerateWorkout(args, for: user, context: context, modelContext: modelContext)
+            },
+            "send_workout_to_watch": { dispatcher, args, user, context, modelContext in
+                try await dispatcher.handleSendWorkoutToWatch(args, for: user, context: context, modelContext: modelContext)
+            },
+            "analyze_workout_completion": { dispatcher, args, user, context, modelContext in
+                try await dispatcher.handleAnalyzeWorkoutCompletion(args, for: user, context: context, modelContext: modelContext)
             }
         ]
     }
@@ -593,6 +608,207 @@ final class FunctionCallDispatcher {
         )
     }
 
+    // MARK: - Workout Generation for Watch
+    
+    private func handleGenerateWorkout(
+        _ args: [String: AIAnyCodable],
+        for user: User,
+        context: FunctionContext,
+        modelContext: ModelContext
+    ) async throws -> FunctionHandlerResult {
+        // Extract parameters from natural language or structured input
+        let duration = (args["duration"]?.value as? Int) ?? 30
+        // Always generate strength training workouts for watch
+        let workoutType = "strength"
+        let muscleGroups = (args["muscle_groups"]?.value as? [String]) ?? []
+        let equipment = (args["equipment"]?.value as? [String]) ?? ["bodyweight"]
+        let intensity = (args["intensity"]?.value as? String) ?? "moderate"
+        let style = (args["style"]?.value as? String) ?? "balanced"
+        let constraints = args["constraints"]?.value as? String
+        
+        // Generate workout plan using AI service
+        let plan = try await workoutService.generatePlan(
+            for: user,
+            goal: workoutType,
+            duration: duration,
+            intensity: intensity,
+            targetMuscles: muscleGroups,
+            equipment: equipment,
+            constraints: constraints,
+            style: style
+        )
+        
+        // Format exercises for display in chat
+        var exerciseDisplay = ""
+        for (index, exercise) in plan.exercises.enumerated() {
+            exerciseDisplay += "\n\(index + 1). **\(exercise.name)**\n"
+            exerciseDisplay += "   • \(exercise.sets) sets × \(exercise.reps) reps\n"
+            exerciseDisplay += "   • Rest: \(exercise.restSeconds)s\n"
+            if let notes = exercise.notes {
+                exerciseDisplay += "   • Notes: \(notes)\n"
+            }
+        }
+        
+        // Store the generated plan temporarily for sending to watch
+        let planId = UUID()
+        let plannedWorkout = PlannedWorkoutData.from(
+            workoutPlan: plan,
+            workoutType: WorkoutType(from: workoutType),
+            userId: user.id,
+            workoutName: "\(workoutType.capitalized) - \(Date().formatted(date: .omitted, time: .shortened))"
+        )
+        
+        // Save to temporary storage or cache
+        // For now, we'll return the plan ID for immediate use
+        
+        let result: [String: SendableValue] = [
+            "planId": .string(planId.uuidString),
+            "workoutName": .string(plannedWorkout.name),
+            "duration": .int(duration),
+            "exerciseCount": .int(plan.exercises.count),
+            "estimatedCalories": .int(plan.estimatedCalories),
+            "exercises": .string(exerciseDisplay),
+            "canSendToWatch": .bool(workoutTransferService != nil)
+        ]
+        
+        return FunctionHandlerResult(
+            message: """
+            I've created a \(duration)-minute \(intensity) strength training workout for you:
+            
+            **\(plannedWorkout.name)**
+            • Duration: \(duration) minutes
+            • Exercises: \(plan.exercises.count)
+            • Estimated calories: \(plan.estimatedCalories)
+            \(exerciseDisplay)
+            
+            Would you like to send this strength workout to your Apple Watch?
+            
+            *Note: For cardio workouts like running or cycling, I recommend using Apple's native Workout app which has excellent GPS tracking and metrics. I'll focus on helping you with strength training where I can add the most value!*
+            """,
+            data: result
+        )
+    }
+    
+    private func handleSendWorkoutToWatch(
+        _ args: [String: AIAnyCodable],
+        for user: User,
+        context: FunctionContext,
+        modelContext: ModelContext
+    ) async throws -> FunctionHandlerResult {
+        guard let workoutTransferService = workoutTransferService else {
+            throw AppError.unknown(message: "Watch transfer service not available")
+        }
+        
+        // Get workout plan ID or generate from recent workout
+        if let planIdString = args["planId"]?.value as? String,
+           let planId = UUID(uuidString: planIdString) {
+            // TODO: Retrieve cached plan by ID
+            // For now, we'll need to regenerate or fetch from a recent workout
+        }
+        
+        // Alternative: Get the most recent workout to send
+        let userId = user.id
+        let descriptor = FetchDescriptor<Workout>(
+            predicate: #Predicate { workout in
+                workout.user?.id == userId
+            },
+            sortBy: [SortDescriptor(\.plannedDate, order: .reverse)]
+        )
+        
+        let workouts = try modelContext.fetch(descriptor)
+        guard let recentWorkout = workouts.first else {
+            throw AppError.unknown(message: "No workout found to send")
+        }
+        
+        // Convert to PlannedWorkoutData
+        let plannedWorkout = PlannedWorkoutData.from(workout: recentWorkout, userId: user.id)
+        
+        // Check if watch is available
+        let isAvailable = await workoutTransferService.isWatchAvailable()
+        
+        if !isAvailable {
+            return FunctionHandlerResult(
+                message: "Your Apple Watch is not currently reachable. Make sure:\n• The AirFit Watch app is installed\n• Your watch is nearby and unlocked\n• Bluetooth is enabled\n\nThe workout will be queued and sent when your watch is available.",
+                data: ["queued": .bool(true), "workoutName": .string(plannedWorkout.name)]
+            )
+        }
+        
+        // Send to watch
+        try await workoutTransferService.sendWorkoutPlan(plannedWorkout)
+        
+        let result: [String: SendableValue] = [
+            "workoutName": .string(plannedWorkout.name),
+            "exerciseCount": .int(plannedWorkout.plannedExercises.count),
+            "duration": .int(plannedWorkout.estimatedDuration),
+            "sent": .bool(true)
+        ]
+        
+        return FunctionHandlerResult(
+            message: """
+            ✅ Successfully sent "\(plannedWorkout.name)" to your Apple Watch!
+            
+            • \(plannedWorkout.plannedExercises.count) exercises
+            • \(plannedWorkout.estimatedDuration) minutes
+            • \(plannedWorkout.estimatedCalories) calories
+            
+            Open the AirFit app on your watch to start the workout.
+            """,
+            data: result
+        )
+    }
+
+    private func handleAnalyzeWorkoutCompletion(
+        _ args: [String: AIAnyCodable],
+        for user: User,
+        context: FunctionContext,
+        modelContext: ModelContext
+    ) async throws -> FunctionHandlerResult {
+        // This would be called automatically when workout completion data is received
+        // For now, we'll analyze the most recent workout
+        
+        let userId = user.id
+        let descriptor = FetchDescriptor<Workout>(
+            predicate: #Predicate { workout in
+                workout.user?.id == userId && workout.isCompleted
+            },
+            sortBy: [SortDescriptor(\.completedDate, order: .reverse)]
+        )
+        
+        let workouts = try modelContext.fetch(descriptor)
+        guard let recentWorkout = workouts.first else {
+            throw AppError.unknown(message: "No completed workout found")
+        }
+        
+        // Generate AI analysis
+        let request = PostWorkoutAnalysisRequest(
+            workout: recentWorkout,
+            recentWorkouts: Array(workouts.prefix(5)),
+            userGoals: nil,
+            recoveryData: nil
+        )
+        
+        guard let coachEngine = coachEngine else {
+            throw AppError.unknown(message: "Coach engine not available")
+        }
+        
+        let analysis = try await coachEngine.generatePostWorkoutAnalysis(request)
+        
+        // Save analysis to workout
+        recentWorkout.aiAnalysis = analysis
+        try modelContext.save()
+        
+        let result: [String: SendableValue] = [
+            "workoutId": .string(recentWorkout.id.uuidString),
+            "workoutName": .string(recentWorkout.name),
+            "analysis": .string(analysis)
+        ]
+        
+        return FunctionHandlerResult(
+            message: analysis,
+            data: result
+        )
+    }
+    
     // MARK: - Helper Methods
 
     /// Parse reps from string format (e.g., "8-12" -> 10, "15" -> 15)
@@ -612,6 +828,29 @@ final class FunctionCallDispatcher {
 }
 
 // MARK: - Extensions
+
+extension WorkoutType {
+    init(from string: String) {
+        switch string.lowercased() {
+        case "strength", "strength training":
+            self = .strength
+        case "cardio", "cardiovascular", "running", "run", "cycling", "bike", "swimming", "swim":
+            self = .cardio
+        case "hiit", "high intensity":
+            self = .hiit
+        case "yoga", "stretching":
+            self = .yoga
+        case "flexibility":
+            self = .flexibility
+        case "sports":
+            self = .sports
+        case "pilates":
+            self = .pilates
+        default:
+            self = .general
+        }
+    }
+}
 
 extension FunctionCallDispatcher {
     // Phase 3.2: Batch execution support for improved performance

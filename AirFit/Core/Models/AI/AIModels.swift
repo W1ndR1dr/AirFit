@@ -14,20 +14,6 @@ struct AIModel: Sendable, Codable {
         let input: Double
         let output: Double
     }
-
-    init(
-        id: String,
-        name: String,
-        provider: AIProvider,
-        contextWindow: Int,
-        costPerThousandTokens: TokenCost
-    ) {
-        self.id = id
-        self.name = name
-        self.provider = provider
-        self.contextWindow = contextWindow
-        self.costPerThousandTokens = costPerThousandTokens
-    }
 }
 
 enum AIMessageRole: String, Codable, Sendable {
@@ -178,6 +164,7 @@ struct AIRequest: Sendable {
     let maxTokens: Int?
     let stream: Bool
     let user: String
+    let responseFormat: LLMRequest.ResponseFormat?
 
     // Provider-specific features
     let enableGrounding: Bool  // Google Gemini grounding
@@ -192,6 +179,7 @@ struct AIRequest: Sendable {
         maxTokens: Int? = nil,
         stream: Bool = true,
         user: String,
+        responseFormat: LLMRequest.ResponseFormat? = nil,
         enableGrounding: Bool = false,
         cacheKey: String? = nil,
         audioData: Data? = nil
@@ -203,6 +191,7 @@ struct AIRequest: Sendable {
         self.maxTokens = maxTokens
         self.stream = stream
         self.user = user
+        self.responseFormat = responseFormat
         self.enableGrounding = enableGrounding
         self.cacheKey = cacheKey
         self.audioData = audioData
@@ -213,6 +202,7 @@ enum AIResponse: Sendable {
     case text(String)
     case textDelta(String)
     case functionCall(AIFunctionCall)
+    case structuredData(Data)
     case error(AIError)
     case done(usage: AITokenUsage?)
 }

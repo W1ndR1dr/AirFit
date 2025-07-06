@@ -104,7 +104,7 @@ actor OpenAIProvider: LLMProvider, ServiceProtocol {
 
                     var buffer = ""
                     var accumulatedContent = ""
-                    
+
                     // Estimate prompt tokens from the request
                     let promptTokens = estimateTokenCount(for: request)
 
@@ -201,11 +201,23 @@ actor OpenAIProvider: LLMProvider, ServiceProtocol {
             tool_choice: nil
         )
 
-        // Handle JSON response format
-        if case .json = request.responseFormat {
-            openAIRequest.response_format = ResponseFormat(type: "json_object")
+        // Handle response format
+        switch request.responseFormat {
+        case .json:
+            openAIRequest.response_format = ResponseFormat(type: "json_object", json_schema: nil)
+        case .structuredJson(let schema):
+            openAIRequest.response_format = ResponseFormat(
+                type: "json_schema",
+                json_schema: ResponseFormat.JSONSchema(
+                    name: schema.name,
+                    schema: convertToOpenAISchema(schema),
+                    strict: schema.strict
+                )
+            )
+        case .text, .none:
+            break
         }
-        
+
         // TODO: Add tools when LLMRequest supports functions
         // For now, check metadata for function definitions
         // This would need to be properly implemented when LLMRequest is extended
@@ -213,14 +225,86 @@ actor OpenAIProvider: LLMProvider, ServiceProtocol {
         return openAIRequest
     }
 
+    private nonisolated func convertToOpenAISchema(_ schema: StructuredOutputSchema) -> ResponseFormat.JSONSchema.Schema {
+        // Parse the pre-encoded JSON schema
+        guard let schemaDict = try? JSONSerialization.jsonObject(with: schema.jsonSchema) as? [String: Any] else {
+            // Fallback to empty schema
+            return ResponseFormat.JSONSchema.Schema(
+                properties: [:],
+                required: []
+            )
+        }
+
+        // Convert to OpenAI's format
+        let properties = (schemaDict["properties"] as? [String: Any]) ?? [:]
+        let required = (schemaDict["required"] as? [String]) ?? []
+
+        var convertedProperties: [String: ResponseFormat.JSONSchema.Schema.Property] = [:]
+        for (key, value) in properties {
+            if let propDict = value as? [String: Any] {
+                convertedProperties[key] = convertPropertyFromDict(propDict)
+            }
+        }
+
+        return ResponseFormat.JSONSchema.Schema(
+            properties: convertedProperties,
+            required: required
+        )
+    }
+
+    private nonisolated func convertPropertyFromDict(_ dict: [String: Any]) -> ResponseFormat.JSONSchema.Schema.Property {
+        let type = dict["type"] as? String ?? "string"
+        let description = dict["description"] as? String
+        let enumValues = dict["enum"] as? [String]
+
+        var items: ResponseFormat.JSONSchema.Schema.Property.Items?
+        if type == "array", let itemsDict = dict["items"] as? [String: Any] {
+            let itemType = itemsDict["type"] as? String ?? "string"
+            var itemProperties: [String: ResponseFormat.JSONSchema.Schema.Property]?
+
+            if itemType == "object", let props = itemsDict["properties"] as? [String: Any] {
+                itemProperties = props.compactMapValues { propValue in
+                    guard let propDict = propValue as? [String: Any] else { return nil }
+                    return convertPropertyFromDict(propDict)
+                }
+            }
+
+            items = ResponseFormat.JSONSchema.Schema.Property.Items(
+                type: itemType,
+                properties: itemProperties
+            )
+        }
+
+        var properties: [String: ResponseFormat.JSONSchema.Schema.Property]?
+        if type == "object", let props = dict["properties"] as? [String: Any] {
+            properties = props.compactMapValues { propValue in
+                guard let propDict = propValue as? [String: Any] else { return nil }
+                return convertPropertyFromDict(propDict)
+            }
+        }
+
+        return ResponseFormat.JSONSchema.Schema.Property(
+            type: type,
+            description: description,
+            items: items,
+            properties: properties,
+            enum: enumValues
+        )
+    }
+
     private nonisolated func mapToLLMResponse(_ response: OpenAIResponse) throws -> LLMResponse {
         guard let choice = response.choices.first else {
             throw AppError.from(LLMError.invalidResponse("No choices in response"))
         }
-        
+
+        // Check for refusal (structured outputs safety feature)
+        if let refusal = choice.message.refusal {
+            throw AppError.from(LLMError.contentFilter)
+        }
+
         var content = choice.message.content ?? ""
         var hasToolCalls = false
-        
+
         // Handle tool calls
         if let toolCalls = choice.message.tool_calls, !toolCalls.isEmpty {
             hasToolCalls = true
@@ -230,9 +314,17 @@ actor OpenAIProvider: LLMProvider, ServiceProtocol {
                 content += "\n[Tool Call: \(toolCall.function.name) with args: \(toolCall.function.arguments)]"
             }
         }
-        
+
         guard !content.isEmpty else {
             throw AppError.from(LLMError.invalidResponse("No content in response"))
+        }
+
+        // Check for structured data
+        var structuredData: Data?
+        if let jsonContent = content.data(using: .utf8),
+           let _ = try? JSONSerialization.jsonObject(with: jsonContent) {
+            // Valid JSON, store as structured data
+            structuredData = jsonContent
         }
 
         return LLMResponse(
@@ -243,7 +335,8 @@ actor OpenAIProvider: LLMProvider, ServiceProtocol {
                 completionTokens: response.usage?.completion_tokens ?? 0
             ),
             finishReason: hasToolCalls ? .toolCalls : mapFinishReason(choice.finish_reason),
-            metadata: ["id": response.id]
+            metadata: ["id": response.id],
+            structuredData: structuredData
         )
     }
 
@@ -281,39 +374,39 @@ actor OpenAIProvider: LLMProvider, ServiceProtocol {
             return .stop
         }
     }
-    
+
     // MARK: - Token Estimation
-    
+
     private nonisolated func estimateTokenCount(for request: LLMRequest) -> Int {
         var totalChars = 0
-        
+
         // Count system prompt
         if let systemPrompt = request.systemPrompt {
             totalChars += systemPrompt.count
         }
-        
+
         // Count messages
         for message in request.messages {
             totalChars += message.content.count
             totalChars += 10 // Overhead for role and formatting
         }
-        
+
         // Rough estimation: ~4 characters per token for English
         return max(totalChars / 4, 1)
     }
-    
+
     private nonisolated func estimateTokens(_ text: String) -> Int {
         // More accurate estimation considering punctuation and structure
         let words = text.components(separatedBy: .whitespacesAndNewlines).filter { !$0.isEmpty }
         let punctuationCount = text.filter { ".,;:!?()[]{}\"'".contains($0) }.count
-        
+
         // OpenAI tokenization is roughly:
         // - 1 token per word
         // - Additional tokens for punctuation
         // - ~0.75 tokens per word on average for English
         let baseTokens = words.count
         let punctuationTokens = punctuationCount / 3 // Some punctuation is attached to words
-        
+
         return max(baseTokens + punctuationTokens, 1)
     }
 }
@@ -336,7 +429,7 @@ private struct OpenAIMessage: Codable {
     let content: OpenAIContent?
     let tool_calls: [ToolCall]?
     let tool_call_id: String?
-    
+
     // Simple text message constructor
     init(role: String, content: String) {
         self.role = role
@@ -344,7 +437,7 @@ private struct OpenAIMessage: Codable {
         self.tool_calls = nil
         self.tool_call_id = nil
     }
-    
+
     // Tool response constructor
     init(role: String, content: String, toolCallId: String) {
         self.role = role
@@ -357,13 +450,13 @@ private struct OpenAIMessage: Codable {
 private enum OpenAIContent: Codable {
     case text(String)
     case toolResponse(String)
-    
+
     init(from decoder: Decoder) throws {
         let container = try decoder.singleValueContainer()
         let text = try container.decode(String.self)
         self = .text(text)
     }
-    
+
     func encode(to encoder: Encoder) throws {
         var container = encoder.singleValueContainer()
         switch self {
@@ -402,16 +495,16 @@ private struct OpenAIProperty: Codable {
 // Box type to handle recursive property
 private final class Box<T: Codable>: Codable {
     let value: T
-    
+
     init(_ value: T) {
         self.value = value
     }
-    
+
     init(from decoder: Decoder) throws {
         let container = try decoder.singleValueContainer()
         self.value = try container.decode(T.self)
     }
-    
+
     func encode(to encoder: Encoder) throws {
         var container = encoder.singleValueContainer()
         try container.encode(value)
@@ -422,7 +515,7 @@ private struct ToolCall: Codable {
     let id: String
     let type: String
     let function: FunctionCall
-    
+
     struct FunctionCall: Codable {
         let name: String
         let arguments: String
@@ -431,6 +524,33 @@ private struct ToolCall: Codable {
 
 private struct ResponseFormat: Codable {
     let type: String
+    let json_schema: JSONSchema?
+
+    struct JSONSchema: Codable {
+        let name: String
+        let schema: Schema
+        let strict: Bool
+
+        struct Schema: Codable {
+            let type: String = "object"
+            let properties: [String: Property]
+            let required: [String]
+            let additionalProperties: Bool = false
+
+            struct Property: Codable {
+                let type: String
+                let description: String?
+                let items: Items?
+                let properties: [String: Property]?
+                let `enum`: [String]?
+
+                struct Items: Codable {
+                    let type: String
+                    let properties: [String: Property]?
+                }
+            }
+        }
+    }
 }
 
 private struct OpenAIResponse: Decodable {
@@ -446,6 +566,7 @@ private struct OpenAIResponse: Decodable {
         struct Message: Decodable {
             let content: String?
             let tool_calls: [ToolCall]?
+            let refusal: String? // For structured outputs
         }
     }
 

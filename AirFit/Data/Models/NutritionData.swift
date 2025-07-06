@@ -14,7 +14,6 @@ final class NutritionData: @unchecked Sendable {
     var actualProtein: Double = 0
     var actualCarbs: Double = 0
     var actualFat: Double = 0
-    var waterLiters: Double = 0
     var notes: String?
 
     // MARK: - Relationships

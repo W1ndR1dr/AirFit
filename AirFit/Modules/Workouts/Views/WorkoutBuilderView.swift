@@ -43,16 +43,19 @@ struct WorkoutBuilderView: View {
                                         .font(.system(size: 14, weight: .medium))
                                         .foregroundStyle(Color.secondary)
 
-                                    TextField("Enter name", text: $workoutName)
-                                        .font(.system(size: 18, weight: .medium, design: .rounded))
-                                        .padding(AppSpacing.sm)
-                                        .background(
-                                            RoundedRectangle(cornerRadius: 12)
-                                                .fill(Color.primary.opacity(0.05))
-                                        )
-                                        .onTapGesture {
-                                            HapticService.impact(.light)
-                                        }
+                                    HStack {
+                                        TextField("Enter name", text: $workoutName)
+                                            .font(.system(size: 18, weight: .medium, design: .rounded))
+                                        WhisperVoiceButton(text: $workoutName)
+                                    }
+                                    .padding(AppSpacing.sm)
+                                    .background(
+                                        RoundedRectangle(cornerRadius: 12)
+                                            .fill(Color.primary.opacity(0.05))
+                                    )
+                                    .onTapGesture {
+                                        HapticService.impact(.light)
+                                    }
                                 }
 
                                 // Workout type selector
@@ -90,6 +93,10 @@ struct WorkoutBuilderView: View {
                                             RoundedRectangle(cornerRadius: 12)
                                                 .fill(Color.primary.opacity(0.05))
                                         )
+                                        .overlay(alignment: .bottomTrailing) {
+                                            WhisperVoiceButton(text: $notes)
+                                                .padding(8)
+                                        }
                                 }
                             }
                             .padding(AppSpacing.md)
@@ -311,12 +318,7 @@ struct WorkoutBuilderView: View {
             viewModel.activeWorkout = workout
             dismiss()
 
-            // Navigate to active workout
-            // TODO: Navigate to active workout view when notification is defined
-            // NotificationCenter.default.post(
-            //     name: .startActiveWorkout,
-            //     object: workout
-            // )
+            // Navigation to active workout handled by viewModel state change
         } catch {
             AppLogger.error("Failed to create workout", error: error, category: .data)
         }
@@ -581,6 +583,8 @@ struct ExercisePickerView: View {
                                 .onTapGesture {
                                     HapticService.impact(.light)
                                 }
+
+                            WhisperVoiceButton(text: $searchText)
 
                             if !searchText.isEmpty {
                                 Button {

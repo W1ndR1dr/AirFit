@@ -8,11 +8,11 @@ struct DashboardContent: View {
     @Environment(\.colorScheme)
     private var colorScheme
     @EnvironmentObject private var gradientManager: GradientManager
+    @Environment(\.diContainer) private var diContainer
 
     let viewModel: DashboardViewModel
 
     @State private var coordinator = DashboardCoordinator()
-
     @State private var hasAppeared = false
 
     let user: User
@@ -152,78 +152,68 @@ struct DashboardContent: View {
     }
 
     private var dashboardContent: some View {
-        LazyVGrid(columns: columns, spacing: AppSpacing.sm) {
-            GlassCard {
-                MorningGreetingCard(
-                    greeting: viewModel.morningGreeting,
-                    context: viewModel.greetingContext,
-                    currentEnergy: viewModel.currentEnergyLevel,
-                    onEnergyLog: { level in
-                        Task { await viewModel.logEnergyLevel(level) }
-                    }
-                )
-            }
-            .accessibilityElement(children: .contain)
-            .accessibilityLabel("Morning greeting")
-            .accessibilityHint("Shows your personalized morning message and energy level")
+        VStack(alignment: .leading, spacing: 40) {
+            // Primary AI insight - directly on gradient
+            if let content = viewModel.aiDashboardContent {
+                CascadeText(content.primaryInsight)
+                    .font(.system(size: 26, weight: .light, design: .rounded))
+                    .lineSpacing(4)
 
-            GlassCard {
-                NutritionCard(
-                    summary: viewModel.nutritionSummary,
-                    targets: viewModel.nutritionTargets
-                )
-            }
-            .accessibilityElement(children: .contain)
-            .accessibilityLabel("Nutrition tracking")
-            .accessibilityHint("Shows today's nutrition summary and progress")
+                // Nutrition rings if we have data
+                if let nutrition = content.nutritionData {
+                    NutritionRingsView(nutrition: nutrition)
+                        .padding(.vertical, 8)
+                }
 
-            GlassCard {
-                RecoveryCard(recoveryScore: viewModel.recoveryScore)
-            }
-            .accessibilityElement(children: .contain)
-            .accessibilityLabel("Recovery status")
-            .accessibilityHint("Shows your current recovery score")
+                // Muscle volume if user trains
+                if let volumes = content.muscleGroupVolumes, !volumes.isEmpty {
+                    MuscleVolumeView(volumes: volumes)
+                        .padding(.vertical, 8)
+                }
 
-            GlassCard {
-                PerformanceCard(insight: viewModel.performanceInsight)
-            }
-            .accessibilityElement(children: .contain)
-            .accessibilityLabel("Performance insights")
-            .accessibilityHint("Shows your recent performance trends")
+                // AI guidance
+                if let guidance = content.guidance {
+                    Text(guidance)
+                        .font(.system(size: 20, weight: .light))
+                        .opacity(0.9)
+                        .lineSpacing(2)
+                }
 
-            GlassCard {
-                QuickActionsCard(
-                    suggestedActions: viewModel.suggestedActions,
-                    onActionTap: handleQuickAction
-                )
+                // Celebration
+                if let celebration = content.celebration {
+                    Text(celebration)
+                        .font(.system(size: 18, weight: .medium))
+                        .foregroundStyle(
+                            LinearGradient(
+                                colors: gradientManager.active.colors(for: colorScheme),
+                                startPoint: .leading,
+                                endPoint: .trailing
+                            )
+                        )
+                        .padding(.top, 8)
+                }
+            } else {
+                // Fallback while loading
+                CascadeText(viewModel.morningGreeting)
+                    .font(.system(size: 26, weight: .light, design: .rounded))
+                    .lineSpacing(4)
             }
-            .accessibilityElement(children: .contain)
-            .accessibilityLabel("Quick actions")
-            .accessibilityHint("Suggested actions based on your current state")
         }
         .padding(.horizontal, AppSpacing.screenPadding)
         .padding(.bottom, AppSpacing.xl)
-        .animation(MotionToken.standardSpring, value: viewModel.morningGreeting)
+        .animation(MotionToken.standardSpring, value: viewModel.aiDashboardContent)
     }
 
     @ViewBuilder
     private func destinationView(for destination: DashboardDestination) -> some View {
         switch destination {
         case .nutritionDetail:
-            // TODO: Navigate to nutrition detail view
-            Text("Nutrition Detail")
-                .font(.largeTitle)
-                .foregroundStyle(.secondary)
+            NutritionDetailView(user: user)
         case .workoutHistory:
-            // TODO: Navigate to workout history view
-            Text("Workout History")
-                .font(.largeTitle)
-                .foregroundStyle(.secondary)
+            // Create WorkoutHistoryView with proper dependencies
+            WorkoutHistoryViewWrapper(user: user, container: diContainer, modelContext: modelContext)
         case .recoveryDetail:
-            // TODO: Navigate to recovery detail view
-            Text("Recovery Detail")
-                .font(.largeTitle)
-                .foregroundStyle(.secondary)
+            RecoveryDetailView(user: user)
         case .settings:
             SettingsView(user: user)
         }
@@ -237,9 +227,6 @@ struct DashboardContent: View {
         case .startWorkout:
             // Navigate to workout view
             coordinator.navigate(to: .workoutHistory)
-        case .logWater:
-            // For now, navigate to nutrition detail
-            coordinator.navigate(to: .nutritionDetail)
         case .checkIn:
             // Navigate to recovery/check-in view
             coordinator.navigate(to: .recoveryDetail)
@@ -294,6 +281,16 @@ actor PlaceholderAICoachService: AICoachServiceProtocol {
     func generateMorningGreeting(for user: User, context: GreetingContext) async throws -> String {
         "Good morning, \(user.name ?? "there")!"
     }
+
+    func generateDashboardContent(for user: User) async throws -> AIDashboardContent {
+        AIDashboardContent(
+            primaryInsight: "Welcome back! Ready to make today count?",
+            nutritionData: nil,
+            muscleGroupVolumes: nil,
+            guidance: nil,
+            celebration: nil
+        )
+    }
 }
 
 actor PlaceholderNutritionService: DashboardNutritionServiceProtocol {
@@ -322,6 +319,61 @@ struct DashboardView: View {
                         let factory = DIViewModelFactory(container: container)
                         viewModel = try? await factory.makeDashboardViewModel(user: user)
                     }
+            }
+        }
+    }
+}
+
+// MARK: - WorkoutHistoryView Wrapper
+struct WorkoutHistoryViewWrapper: View {
+    let user: User
+    let container: DIContainer
+    let modelContext: ModelContext
+
+    @State private var muscleGroupVolumeService: MuscleGroupVolumeServiceProtocol?
+    @State private var strengthProgressionService: StrengthProgressionServiceProtocol?
+    @State private var isLoading = true
+    @State private var loadError = false
+
+    var body: some View {
+        ZStack {
+            if isLoading {
+                ProgressView()
+                    .frame(maxWidth: .infinity, maxHeight: .infinity)
+                    .task {
+                        do {
+                            // Resolve services asynchronously
+                            async let volumeService = container.resolve(MuscleGroupVolumeServiceProtocol.self)
+                            async let strengthService = container.resolve(StrengthProgressionServiceProtocol.self)
+
+                            let (volume, strength) = try await (volumeService, strengthService)
+
+                            muscleGroupVolumeService = volume
+                            strengthProgressionService = strength
+                            isLoading = false
+                        } catch {
+                            AppLogger.error("Failed to resolve workout services", error: error, category: .services)
+                            loadError = true
+                            isLoading = false
+                        }
+                    }
+            } else if loadError || muscleGroupVolumeService == nil || strengthProgressionService == nil {
+                VStack(spacing: AppSpacing.lg) {
+                    Image(systemName: "exclamationmark.triangle")
+                        .font(.largeTitle)
+                        .foregroundStyle(.secondary)
+                    Text("Unable to load workout history")
+                        .font(AppFonts.body)
+                        .foregroundStyle(.secondary)
+                }
+                .frame(maxWidth: .infinity, maxHeight: .infinity)
+            } else {
+                WorkoutHistoryView(
+                    user: user,
+                    muscleGroupVolumeService: muscleGroupVolumeService!,
+                    strengthProgressionService: strengthProgressionService!,
+                    modelContext: modelContext
+                )
             }
         }
     }

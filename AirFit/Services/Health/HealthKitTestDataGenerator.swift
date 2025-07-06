@@ -288,8 +288,6 @@ final class HealthKitTestDataGenerator {
             )
         }
 
-        // Water intake throughout the day
-        try await generateWaterIntake(for: date)
     }
 
     private func generateMeal(
@@ -357,30 +355,6 @@ final class HealthKitTestDataGenerator {
         try await saveHealthKitSamples(samples)
     }
 
-    private func generateWaterIntake(for date: Date) async throws {
-        guard let waterType = HKQuantityType.quantityType(forIdentifier: .dietaryWater) else { return }
-
-        let startOfDay = calendar.startOfDay(for: date)
-        var waterSamples: [HKQuantitySample] = []
-
-        // Generate water intake throughout the day
-        for hour in stride(from: 7, to: 22, by: 3) {
-            let drinkTime = calendar.date(byAdding: .hour, value: hour, to: startOfDay) ?? startOfDay
-            let amount = Double.random(in: 200...500) // ml
-
-            let quantity = HKQuantity(unit: .literUnit(with: .milli), doubleValue: amount)
-            let sample = HKQuantitySample(
-                type: waterType,
-                quantity: quantity,
-                start: drinkTime,
-                end: drinkTime,
-                metadata: ["AirFitTestData": true]
-            )
-            waterSamples.append(sample)
-        }
-
-        try await saveHealthKitSamples(waterSamples)
-    }
 
     // MARK: - Body Metrics
 

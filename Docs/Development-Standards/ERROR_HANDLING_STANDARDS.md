@@ -223,6 +223,34 @@ extension Error {
    throw AppError.from(healthKitError)
    ```
 
+### Missing Data Patterns
+
+When HealthKit or other data sources return nil:
+
+1. **Services should return nil** (don't fabricate data):
+   ```swift
+   func fetchBodyMetrics() async throws -> (weight: Double?, height: Double?) {
+       // Return actual values or nil - don't guess
+       return (healthKit.weight, healthKit.height)
+   }
+   ```
+
+2. **ViewModels handle display defaults**:
+   ```swift
+   // ViewModel decides what to show users
+   let displayWeight = bodyMetrics.weight ?? "Add weight in Health app"
+   ```
+
+3. **Calculations should validate inputs**:
+   ```swift
+   func calculateBMR(weight: Double?, height: Double?) throws -> Double {
+       guard let weight = weight, let height = height else {
+           throw AppError.validationError(message: "Height and weight required for BMR calculation")
+       }
+       return // ... actual calculation
+   }
+   ```
+
 ### DON'T ❌
 
 1. **Don't throw generic errors**:

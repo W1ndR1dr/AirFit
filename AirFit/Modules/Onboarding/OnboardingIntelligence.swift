@@ -41,12 +41,13 @@ final class OnboardingIntelligence: ObservableObject {
     var conversationHistory: [String] = []
     private var conversationTurnCount = 0
     private var currentUserId: UUID?
+    private var conversationVariables: [String: String] = [:]
 
     // Model selection for persona synthesis
     @Published var selectedModel: LLMModel?
 
     // MARK: - Public Methods
-    
+
     /// Set the preferred model for persona generation based on user selection
     func setPreferredModel(provider: AIProvider, modelId: String) {
         // Map provider and model ID to LLMModel enum
@@ -57,8 +58,8 @@ final class OnboardingIntelligence: ObservableObject {
             } else if modelId.contains("sonnet") {
                 selectedModel = .claude4Sonnet
             }
-            // Note: No Haiku in Claude 4 series yet
-            
+        // Note: No Haiku in Claude 4 series yet
+
         case .openAI:
             if modelId.contains("gpt-4o") && !modelId.contains("mini") {
                 selectedModel = .gpt4o
@@ -69,7 +70,7 @@ final class OnboardingIntelligence: ObservableObject {
             } else if modelId.contains("o4-mini") || modelId.contains("gpt-4o-mini") {
                 selectedModel = .o4Mini
             }
-            
+
         case .gemini:
             if modelId.contains("2.5-flash-thinking") || modelId.contains("thinking") {
                 selectedModel = .gemini25FlashThinking
@@ -78,9 +79,9 @@ final class OnboardingIntelligence: ObservableObject {
             } else if modelId.contains("2.5-flash") || modelId.contains("1.5-flash") {
                 selectedModel = .gemini25Flash
             }
-            // Note: 2.0 models map to 2.5 equivalents
+        // Note: 2.0 models map to 2.5 equivalents
         }
-        
+
         if let model = selectedModel {
             AppLogger.info("Set preferred model for persona generation: \(model.identifier)", category: .onboarding)
         }
@@ -127,8 +128,8 @@ final class OnboardingIntelligence: ObservableObject {
         }.value
 
         // Quick initialization on main thread
-        return await MainActor.run {
-            let intelligence = OnboardingIntelligence(
+        let intelligence = await MainActor.run {
+            OnboardingIntelligence(
                 aiService: dependencies.aiService,
                 contextAssembler: dependencies.contextAssembler,
                 llmOrchestrator: dependencies.llmOrchestrator,
@@ -136,14 +137,37 @@ final class OnboardingIntelligence: ObservableObject {
                 cache: dependencies.cache,
                 personaSynthesizer: dependencies.personaSynthesizer
             )
-
-            // Restore session on main thread
-            Task {
-                await intelligence.restoreSessionIfAvailable()
-            }
-
-            return intelligence
         }
+        
+        // Validate AI services are properly configured
+        let hasKeys = await intelligence.hasValidAPIKeys()
+        guard hasKeys else {
+            throw AppError.authentication("AI services not properly configured. Please complete API setup first.")
+        }
+        
+        // Validate AI service is functional
+        do {
+            let isValid = try await dependencies.aiService.validateConfiguration()
+            guard isValid else {
+                throw AppError.serviceUnavailable
+            }
+            
+            // Check service health
+            let health = await dependencies.aiService.checkHealth()
+            if health.status != .healthy {
+                AppLogger.warning("AI service health check returned: \(health.status)", category: .onboarding)
+            }
+        } catch {
+            AppLogger.error("AI service validation failed", error: error, category: .onboarding)
+            throw AppError.authentication("AI services not responding. Please check your API configuration.")
+        }
+
+        // Restore session on main thread
+        Task { @MainActor in
+            await intelligence.restoreSessionIfAvailable()
+        }
+
+        return intelligence
     }
 
     // MARK: - Public API
@@ -175,6 +199,38 @@ final class OnboardingIntelligence: ObservableObject {
             AppLogger.error("HealthKit authorization failed", error: error, category: .health)
             // Continue without health data - user can connect later
         }
+    }
+
+    /// Store profile data from ProfileSetupView
+    func addProfileData(birthDate: Date, biologicalSex: String) {
+        // Store in conversation variables for later use
+        let formatter = DateFormatter()
+        formatter.dateFormat = "yyyy-MM-dd"
+        conversationVariables["birthDate"] = formatter.string(from: birthDate)
+        conversationVariables["biologicalSex"] = biologicalSex
+
+        // Add to conversation history for context
+        conversationHistory.append("My biological sex is \(biologicalSex)")
+
+        AppLogger.info("Profile data stored: sex=\(biologicalSex), age calculated from birthDate", category: .onboarding)
+    }
+
+    /// Get stored profile data
+    func getProfileData() -> (birthDate: Date?, biologicalSex: String?) {
+        var birthDate: Date?
+        var biologicalSex: String?
+
+        if let birthDateString = conversationVariables["birthDate"] {
+            let formatter = DateFormatter()
+            formatter.dateFormat = "yyyy-MM-dd"
+            birthDate = formatter.date(from: birthDateString)
+        }
+
+        if let sex = conversationVariables["biologicalSex"] {
+            biologicalSex = sex
+        }
+
+        return (birthDate, biologicalSex)
     }
 
     /// Analyze user input and determine next step
@@ -803,11 +859,11 @@ final class OnboardingIntelligence: ObservableObject {
                     sentenceStructure: .moderate
                 ),
                 interactionStyle: InteractionStyle(
-                    greetingStyle: needsMotivation ? "Hey champion!" : (prefersSoft ? "Hello there" : "Hey!"),
-                    closingStyle: needsMotivation ? "Keep crushing it!" : "Keep up the great work!",
+                    greetingStyle: needsMotivation ? "Hey there" : (prefersSoft ? "Hello" : "Hi"),
+                    closingStyle: needsMotivation ? "Looking forward to our progress" : "See you next time",
                     encouragementPhrases: needsMotivation ?
-                        ["You're unstoppable!", "That's what I'm talking about!", "Champion mode activated!"] :
-                        ["You've got this!", "Great progress!", "Well done!"],
+                        ["You're making progress", "That's a great effort", "You're on the right track"] :
+                        ["Nice work", "Good progress", "Well done"],
                     acknowledgmentStyle: prefersSoft ? "I understand" : "I hear you",
                     correctionApproach: prefersSoft ? "very gentle" : "gentle",
                     humorLevel: needsMotivation ? .moderate : .light,
@@ -832,7 +888,8 @@ final class OnboardingIntelligence: ObservableObject {
                     generationDuration: 0,
                     tokenCount: 0,
                     previewReady: true
-                )
+                ),
+                nutritionRecommendations: generateDefaultNutritionRecommendations()
             )
         )
     }
@@ -1177,5 +1234,39 @@ final class OnboardingIntelligence: ObservableObject {
             timezone: TimeZone.current.identifier,
             generatedPersona: persona
         )
+    }
+
+    private func generateDefaultNutritionRecommendations() -> NutritionRecommendations {
+        // Analyze conversation for fitness goals
+        let conversation = conversationHistory.joined(separator: " ").lowercased()
+
+        if conversation.contains("muscle") || conversation.contains("strength") || conversation.contains("gain") {
+            return NutritionRecommendations(
+                approach: "Build and recover",
+                proteinGramsPerPound: 1.2,
+                fatPercentage: 0.25,
+                carbStrategy: "Fuel your workouts with quality carbs",
+                rationale: "Higher protein supports muscle growth. Moderate fat leaves room for performance carbs.",
+                flexibilityNotes: "Hit your protein daily, let carbs and fat balance out over the week"
+            )
+        } else if conversation.contains("weight loss") || conversation.contains("lean") || conversation.contains("cut") {
+            return NutritionRecommendations(
+                approach: "Sustainable deficit",
+                proteinGramsPerPound: 1.1,
+                fatPercentage: 0.30,
+                carbStrategy: "Moderate carbs for energy and satiety",
+                rationale: "Higher protein preserves muscle during weight loss. Balanced fat helps with adherence.",
+                flexibilityNotes: "Focus on weekly averages. One high day won't derail progress"
+            )
+        } else {
+            return NutritionRecommendations(
+                approach: "Balanced fitness",
+                proteinGramsPerPound: 0.9,
+                fatPercentage: 0.30,
+                carbStrategy: "Fill remaining calories with quality carbs",
+                rationale: "Balanced macros support general fitness and health goals.",
+                flexibilityNotes: "Aim for consistency over perfection - 80/20 rule works well"
+            )
+        }
     }
 }

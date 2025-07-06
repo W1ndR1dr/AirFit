@@ -433,6 +433,7 @@ extension LLMResponse: Codable {
         case usage
         case finishReason
         case metadata
+        case structuredData
     }
 
     init(from decoder: Decoder) throws {
@@ -448,6 +449,9 @@ extension LLMResponse: Codable {
         } else {
             metadata = [:]
         }
+
+        // Decode structured data
+        structuredData = try? container.decode(Data.self, forKey: .structuredData)
     }
 
     func encode(to encoder: Encoder) throws {
@@ -463,5 +467,8 @@ extension LLMResponse: Codable {
             stringMetadata[key] = value
         }
         try container.encode(stringMetadata, forKey: .metadata)
+
+        // Encode structured data
+        try container.encodeIfPresent(structuredData, forKey: .structuredData)
     }
 }

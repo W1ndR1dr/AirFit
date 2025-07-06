@@ -192,57 +192,144 @@ actor AIService: AIServiceProtocol {
                         prompt += "Current message:\n\(role): \(lastMessage.content)"
                     }
 
-                    // Determine the task type based on context
+                    // Default to coaching task for normal requests
                     let task: AITask = request.user == "onboarding" ? .conversationAnalysis : .coaching
 
                     if request.stream {
-                        // Stream responses
-                        let model = await self.getCurrentModel()
-                        let stream = orchestrator.stream(
-                            prompt: prompt,
-                            task: task,
-                            temperature: request.temperature
-                        )
+                        // For structured output, we need to use complete instead of stream
+                        if request.responseFormat != nil {
+                            let model = await self.getCurrentModel()
+                            let llmRequest = LLMRequest(
+                                messages: request.messages.map { msg in
+                                    LLMMessage(role: LLMMessage.Role(rawValue: msg.role.rawValue) ?? .user,
+                                               content: msg.content,
+                                               name: nil,
+                                               attachments: nil)
+                                },
+                                model: model,
+                                temperature: request.temperature,
+                                maxTokens: request.maxTokens,
+                                systemPrompt: request.systemPrompt,
+                                responseFormat: request.responseFormat,
+                                stream: false,
+                                metadata: ["task": String(describing: task)],
+                                thinkingBudgetTokens: nil
+                            )
 
-                        var fullResponse = ""
-                        for try await chunk in stream {
-                            fullResponse += chunk.delta
-                            continuation.yield(.textDelta(chunk.delta))
+                            let response = try await orchestrator.completeWithRequest(llmRequest, task: task)
 
-                            if chunk.isFinished {
-                                let usage = AITokenUsage(
-                                    promptTokens: chunk.usage?.promptTokens ?? 0,
-                                    completionTokens: chunk.usage?.completionTokens ?? 0,
-                                    totalTokens: chunk.usage?.totalTokens ?? 0
-                                )
+                            // If we have structured data, yield it
+                            if let structuredData = response.structuredData {
+                                continuation.yield(.structuredData(structuredData))
+                            } else {
+                                continuation.yield(.text(response.content))
+                            }
 
-                                // Update cost tracking on actor
-                                await self.updateCost(usage: usage, model: model)
+                            let usage = AITokenUsage(
+                                promptTokens: response.usage.promptTokens,
+                                completionTokens: response.usage.completionTokens,
+                                totalTokens: response.usage.totalTokens
+                            )
+                            continuation.yield(.done(usage: usage))
+                        } else {
+                            // Regular streaming for non-structured responses
+                            let model = await self.getCurrentModel()
+                            let stream = orchestrator.stream(
+                                prompt: prompt,
+                                task: task,
+                                model: LLMModel(rawValue: model),
+                                temperature: request.temperature
+                            )
 
-                                continuation.yield(.done(usage: usage))
+                            var fullResponse = ""
+                            for try await chunk in stream {
+                                fullResponse += chunk.delta
+                                continuation.yield(.textDelta(chunk.delta))
+
+                                if chunk.isFinished {
+                                    let usage = AITokenUsage(
+                                        promptTokens: chunk.usage?.promptTokens ?? 0,
+                                        completionTokens: chunk.usage?.completionTokens ?? 0,
+                                        totalTokens: chunk.usage?.totalTokens ?? 0
+                                    )
+
+                                    // Update cost tracking on actor
+                                    if let llmUsage = chunk.usage {
+                                        let aiUsage = AITokenUsage(
+                                            promptTokens: llmUsage.promptTokens,
+                                            completionTokens: llmUsage.completionTokens,
+                                            totalTokens: llmUsage.totalTokens
+                                        )
+                                        await self.updateCost(usage: aiUsage, model: model)
+                                    }
+
+                                    continuation.yield(.done(usage: usage))
+                                }
                             }
                         }
                     } else {
                         // Single response
-                        let llmResponse = try await orchestrator.complete(
-                            prompt: prompt,
-                            task: task,
-                            temperature: request.temperature,
-                            maxTokens: request.maxTokens
-                        )
-                        continuation.yield(.text(llmResponse.content))
+                        let model = await self.getCurrentModel()
 
-                        let usage = AITokenUsage(
-                            promptTokens: llmResponse.usage.promptTokens,
-                            completionTokens: llmResponse.usage.completionTokens,
-                            totalTokens: llmResponse.usage.totalTokens
-                        )
-                        continuation.yield(.done(usage: usage))
+                        if request.responseFormat != nil {
+                            // Use full request for structured output
+                            let llmRequest = LLMRequest(
+                                messages: request.messages.map { msg in
+                                    LLMMessage(role: LLMMessage.Role(rawValue: msg.role.rawValue) ?? .user,
+                                               content: msg.content,
+                                               name: nil,
+                                               attachments: nil)
+                                },
+                                model: model,
+                                temperature: request.temperature,
+                                maxTokens: request.maxTokens,
+                                systemPrompt: request.systemPrompt,
+                                responseFormat: request.responseFormat,
+                                stream: false,
+                                metadata: ["task": String(describing: task)],
+                                thinkingBudgetTokens: nil
+                            )
+
+                            let llmResponse = try await orchestrator.completeWithRequest(llmRequest, task: task)
+
+                            // If we have structured data, yield it
+                            if let structuredData = llmResponse.structuredData {
+                                continuation.yield(.structuredData(structuredData))
+                            } else {
+                                continuation.yield(.text(llmResponse.content))
+                            }
+
+                            let usage = AITokenUsage(
+                                promptTokens: llmResponse.usage.promptTokens,
+                                completionTokens: llmResponse.usage.completionTokens,
+                                totalTokens: llmResponse.usage.totalTokens
+                            )
+                            continuation.yield(.done(usage: usage))
+                        } else {
+                            // Use simplified interface for regular requests
+                            let llmResponse = try await orchestrator.complete(
+                                prompt: prompt,
+                                task: task,
+                                model: LLMModel(rawValue: model),
+                                temperature: request.temperature,
+                                maxTokens: request.maxTokens
+                            )
+                            continuation.yield(.text(llmResponse.content))
+
+                            let usage = AITokenUsage(
+                                promptTokens: llmResponse.usage.promptTokens,
+                                completionTokens: llmResponse.usage.completionTokens,
+                                totalTokens: llmResponse.usage.totalTokens
+                            )
+                            continuation.yield(.done(usage: usage))
+                        }
                     }
 
                     continuation.finish()
                 } catch {
-                    continuation.finish(throwing: error)
+                    // Convert raw errors to user-friendly AppErrors
+                    let userFriendlyError = self.convertToUserFriendlyError(error)
+                    continuation.finish(throwing: userFriendlyError)
                 }
             }
         }
@@ -336,7 +423,7 @@ actor AIService: AIServiceProtocol {
         return _isConfigured
     }
 
-    private func getCurrentModel() -> String {
+    private func getCurrentModel() async -> String {
         return currentModel
     }
 
@@ -353,5 +440,53 @@ actor AIService: AIServiceProtocol {
                 Double(usage.completionTokens) / 1_000.0 * llmModel.cost.output
             totalCost += cost
         }
+    }
+
+    // MARK: - Error Handling
+
+    nonisolated private func convertToUserFriendlyError(_ error: Error) -> AppError {
+        let errorString = error.localizedDescription.lowercased()
+
+        // Authentication errors
+        if errorString.contains("unauthorized") ||
+            errorString.contains("invalid api key") ||
+            errorString.contains("401") {
+            return AppError.authentication("Please check your AI service API keys in Settings")
+        }
+
+        // Rate limiting or quota issues
+        if errorString.contains("rate limit") ||
+            errorString.contains("too many requests") ||
+            errorString.contains("429") ||
+            errorString.contains("quota") ||
+            errorString.contains("billing") {
+            return AppError.llm("AI service is busy or you've reached usage limits. Please wait and try again.")
+        }
+
+        // Network/connectivity
+        if errorString.contains("network") ||
+            errorString.contains("connection") ||
+            errorString.contains("unreachable") {
+            return AppError.networkError(underlying: error)
+        }
+
+        // Service unavailable
+        if errorString.contains("timeout") ||
+            errorString.contains("timed out") ||
+            errorString.contains("model") ||
+            errorString.contains("unavailable") ||
+            errorString.contains("overloaded") {
+            return AppError.serviceUnavailable
+        }
+
+        // Invalid requests
+        if errorString.contains("invalid") ||
+            errorString.contains("bad request") ||
+            errorString.contains("400") {
+            return AppError.invalidInput(message: "Invalid request. Please try rephrasing.")
+        }
+
+        // Default to LLM error with user-friendly message
+        return AppError.llm("I encountered an issue processing your request. Please try again.")
     }
 }

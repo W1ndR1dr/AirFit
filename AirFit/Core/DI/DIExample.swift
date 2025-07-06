@@ -55,7 +55,8 @@ struct DIExample {
     // MARK: - After (New DI Approach)
 
     struct NewDashboardView: View {
-        @Environment(\.diContainer) private var container
+        @Environment(\.diContainer)
+        private var container
         @State private var viewModel: DashboardViewModel?
         let user: User
 
@@ -101,7 +102,7 @@ struct DIExample {
 
         var body: some Scene {
             WindowGroup {
-                if let container = container, let _ = modelContainer {
+                if let container = container, modelContainer != nil {
                     ContentView()
                         .withDIContainer(container)
                 } else {

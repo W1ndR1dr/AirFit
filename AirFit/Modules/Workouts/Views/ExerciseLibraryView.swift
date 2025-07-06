@@ -85,6 +85,8 @@ struct ExerciseLibraryView: View {
                                     HapticService.impact(.light)
                                 }
 
+                            WhisperVoiceButton(text: $searchText)
+
                             if !searchText.isEmpty {
                                 Button {
                                     HapticService.impact(.light)

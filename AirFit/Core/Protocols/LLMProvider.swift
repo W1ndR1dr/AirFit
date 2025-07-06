@@ -45,7 +45,8 @@ struct LLMRequest: Sendable {
 
     enum ResponseFormat: Sendable {
         case text
-        case json(schema: String? = nil)
+        case json
+        case structuredJson(schema: StructuredOutputSchema)
     }
 }
 
@@ -81,6 +82,7 @@ struct LLMResponse: Sendable {
     let usage: TokenUsage
     let finishReason: FinishReason
     let metadata: [String: String]
+    let structuredData: Data? // JSON data for structured output when using structuredJson
 
     struct TokenUsage: Codable, Sendable {
         let promptTokens: Int
@@ -147,5 +149,24 @@ enum LLMError: LocalizedError, Sendable {
         case .contentFilter:
             return "Content was filtered due to safety settings"
         }
+    }
+}
+
+// MARK: - Structured Output Schema
+struct StructuredOutputSchema: Sendable {
+    let name: String
+    let description: String
+    let jsonSchema: Data // Pre-encoded JSON schema
+    let strict: Bool
+
+    // Helper to create schema from JSON
+    static func fromJSON(name: String, description: String, schema: [String: Any], strict: Bool = true) -> StructuredOutputSchema? {
+        guard let data = try? JSONSerialization.data(withJSONObject: schema) else { return nil }
+        return StructuredOutputSchema(
+            name: name,
+            description: description,
+            jsonSchema: data,
+            strict: strict
+        )
     }
 }

@@ -124,18 +124,30 @@ struct ContentView: View {
         // Recreate the container with updated API keys
         AppLogger.info("ContentView: Recreating DI container after API setup", category: .app)
 
-        // Get the model container from current environment
-        let modelContainer = try? await diContainer.resolve(ModelContainer.self)
+        do {
+            // Get the model container from current environment
+            let modelContainer = try await diContainer.resolve(ModelContainer.self)
 
-        if let modelContainer = modelContainer {
             // Create new container with API keys now available
             let newContainer = DIBootstrapper.createAppContainer(modelContainer: modelContainer)
+            
+            // Validate that AI services are properly initialized in the new container
+            do {
+                let aiService = try await newContainer.resolve(AIServiceProtocol.self)
+                AppLogger.info("ContentView: Successfully resolved AI service in new container", category: .app)
+            } catch {
+                AppLogger.error("ContentView: Failed to resolve AI service in new container", error: error, category: .app)
+                // Continue anyway - the error will be caught during onboarding
+            }
 
             // Update our local reference
             activeContainer = newContainer
 
             // Recreate AppState with new container
             await createAppState()
+        } catch {
+            AppLogger.error("ContentView: Failed to recreate container", error: error, category: .app)
+            // The error will be caught when trying to load onboarding
         }
 
         isRecreatingContainer = false

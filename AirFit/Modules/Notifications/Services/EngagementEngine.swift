@@ -399,8 +399,8 @@ final class EngagementEngine: ServiceProtocol {
         do {
             try await notificationManager.scheduleNotification(
                 identifier: NotificationManager.NotificationIdentifier.hydration,
-                title: "💧 Hydration Time!",
-                body: "Time for a water break. Stay hydrated!",
+                title: "💧 Hydration Reminder",
+                body: "Remember to stay hydrated throughout the day.",
                 categoryIdentifier: NotificationManager.NotificationCategory.hydration,
                 userInfo: ["type": "hydration"],
                 trigger: trigger
@@ -503,28 +503,40 @@ extension User {
 // MARK: - CoachEngine Extensions
 extension CoachEngine {
     func generateReEngagementMessage(_ context: ReEngagementContext) async throws -> String {
-        // Placeholder - would call AI service
-        return "Hey \(context.userName)!|We've missed you! Ready to get back on track?"
+        // Simple, contextual re-engagement message
+        if context.daysSinceLastActive <= 7 {
+            return "\(context.userName), we've missed you!|Your fitness journey continues whenever you're ready."
+        } else {
+            return "Hey \(context.userName)!|No pressure - just checking in. I'm here when you're ready."
+        }
     }
 
     func generateMorningGreeting(for user: User) async throws -> String {
-        // Placeholder - would call AI service
-        return "Ready to make today amazing? Let's start with a quick check-in!"
+        // Simple morning greeting
+        let hour = Calendar.current.component(.hour, from: Date())
+        let userName = user.name ?? "there"
+
+        switch hour {
+        case 5..<12:
+            return "Good morning, \(userName)! Ready to make today count?"
+        case 12..<17:
+            return "Good afternoon, \(userName)! How's your day going?"
+        default:
+            return "Hello, \(userName)! Great to see you."
+        }
     }
 
     func generateWorkoutReminder(workoutType: String, userName: String) async throws -> (title: String, body: String) {
-        // Placeholder - would call AI service
         return (
-            title: "Time for your \(workoutType)!",
-            body: "Let's get moving, \(userName)! Your body will thank you."
+            title: "Time for \(workoutType)!",
+            body: "Ready when you are, \(userName)."
         )
     }
 
     func generateMealReminder(mealType: MealType, userName: String) async throws -> (title: String, body: String) {
-        // Placeholder - would call AI service
         return (
-            title: "\(mealType.emoji) \(mealType.displayName) time!",
-            body: "Don't forget to log your meal, \(userName)!"
+            title: "\(mealType.displayName) time!",
+            body: "Don't forget to log your meal, \(userName)."
         )
     }
 }

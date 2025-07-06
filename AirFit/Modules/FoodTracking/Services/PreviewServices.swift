@@ -7,7 +7,6 @@ import UIKit
 /// Mock implementation of `NutritionServiceProtocol` for SwiftUI previews.
 actor PreviewNutritionService: NutritionServiceProtocol {
     private var entries: [FoodEntry] = []
-    private var waterLogs: [UUID: [Date: Double]] = [:]
 
     func saveFoodEntry(_ entry: FoodEntry) async throws {
         entries.append(entry)
@@ -43,10 +42,6 @@ actor PreviewNutritionService: NutritionServiceProtocol {
         return summary
     }
 
-    func getWaterIntake(for user: User, date: Date) async throws -> Double {
-        let day = Calendar.current.startOfDay(for: date)
-        return waterLogs[user.id]?[day] ?? 0
-    }
 
     func getRecentFoods(for user: User, limit: Int) async throws -> [FoodItem] {
         let userEntries = entries.filter { $0.user?.id == user.id }
@@ -59,12 +54,6 @@ actor PreviewNutritionService: NutritionServiceProtocol {
         return Array(unique.values.prefix(limit))
     }
 
-    func logWaterIntake(for user: User, amountML: Double, date: Date) async throws {
-        let day = Calendar.current.startOfDay(for: date)
-        var logs = waterLogs[user.id] ?? [:]
-        logs[day, default: 0] += amountML
-        waterLogs[user.id] = logs
-    }
 
     func getMealHistory(for user: User, mealType: MealType, daysBack: Int) async throws -> [FoodEntry] {
         let cutoff = Calendar.current.date(byAdding: .day, value: -daysBack, to: Date()) ?? Date()

@@ -128,6 +128,9 @@ final class CoachEngine {
     private let contextAssembler: ContextAssembler
     private let modelContext: ModelContext
     private let routingConfiguration: RoutingConfiguration
+    private let healthKitManager: HealthKitManaging
+    private let nutritionCalculator: NutritionCalculatorProtocol
+    private let muscleGroupVolumeService: MuscleGroupVolumeServiceProtocol
 
     // MARK: - Components
     private let messageProcessor: MessageProcessor
@@ -149,7 +152,10 @@ final class CoachEngine {
         aiService: AIServiceProtocol,
         contextAssembler: ContextAssembler,
         modelContext: ModelContext,
-        routingConfiguration: RoutingConfiguration
+        routingConfiguration: RoutingConfiguration,
+        healthKitManager: HealthKitManaging,
+        nutritionCalculator: NutritionCalculatorProtocol,
+        muscleGroupVolumeService: MuscleGroupVolumeServiceProtocol
     ) {
         self.functionDispatcher = functionDispatcher
         self.personaService = personaService
@@ -158,6 +164,9 @@ final class CoachEngine {
         self.contextAssembler = contextAssembler
         self.modelContext = modelContext
         self.routingConfiguration = routingConfiguration
+        self.healthKitManager = healthKitManager
+        self.nutritionCalculator = nutritionCalculator
+        self.muscleGroupVolumeService = muscleGroupVolumeService
 
         // Initialize components
         self.messageProcessor = MessageProcessor(localCommandParser: localCommandParser)
@@ -239,17 +248,17 @@ final class CoachEngine {
 
             // Step 3: Check for local commands and execute them
             let localCommand = await messageProcessor.checkLocalCommand(text, for: user)
-            
+
             if let command = localCommand {
                 // Execute the command (navigation, logging, etc.)
                 await executeLocalCommand(command, for: user)
-                
+
                 // Get command execution description to add context for AI
                 let commandDescription = messageProcessor.describeCommandExecution(command)
-                
+
                 // Append command context to the message for AI processing
                 let textWithContext = text + "\n\n" + commandDescription
-                
+
                 // Process through AI with command context
                 await processAIResponse(
                     textWithContext,
@@ -354,7 +363,37 @@ final class CoachEngine {
         )
 
         let analysisResult = await collectAIResponse(from: aiRequest)
-        return analysisResult.isEmpty ? "Great workout! Keep up the excellent work." : analysisResult
+
+        if analysisResult.isEmpty {
+            // Build contextual fallback using workout data
+            let workout = request.workout
+            var fallback = "Completed \(workout.name)"
+
+            if let duration = workout.formattedDuration {
+                fallback += " - \(duration)"
+            }
+
+            if !workout.exercises.isEmpty {
+                fallback += " with \(workout.exercises.count) exercises"
+            }
+
+            if let calories = workout.caloriesBurned, calories > 0 {
+                fallback += " burning \(Int(calories)) calories"
+            }
+
+            fallback += ". "
+
+            // Add encouragement based on recent history
+            if request.recentWorkouts.count > 3 {
+                fallback += "Consistent work! You're building great habits."
+            } else {
+                fallback += "Great effort! Keep building momentum."
+            }
+
+            return fallback
+        }
+
+        return analysisResult
     }
 
     private func buildWorkoutAnalysisPrompt(_ request: PostWorkoutAnalysisRequest) -> String {
@@ -411,36 +450,30 @@ final class CoachEngine {
         switch command {
         case .showDashboard, .navigateToTab, .showSettings, .showProfile,
              .startWorkout, .showFood, .showWorkouts, .showStats,
-             .showRecovery, .showHydration, .showProgress:
+             .showRecovery, .showProgress:
             // Navigation commands - execute through NavigationState
             if let navigationState = await getNavigationState() {
                 await MainActor.run {
                     navigationState.executeIntent(.executeCommand(parsed: command))
                 }
             }
-            
-        case let .logWater(amount, unit):
-            // Water logging - would normally save to database
-            // For now, just log the action
-            let ml = amount * unit.toMilliliters
-            AppLogger.info("Executed water logging: \(Int(ml))ml", category: .ai)
-            
+
         case .quickLog, .quickAction:
             // Quick logging actions - would open appropriate UI
             AppLogger.info("Executed quick log command: \(command)", category: .ai)
-            
+
         case .help:
             // Help command - AI will provide contextual help
             AppLogger.info("User requested help", category: .ai)
-            
+
         case .none:
             // No action needed
             break
         }
-        
+
         AppLogger.info("Local command executed: \(command)", category: .ai)
     }
-    
+
     /// Gets the NavigationState from the environment if available
     private func getNavigationState() async -> NavigationState? {
         // This would need to be injected or accessed through the view hierarchy
@@ -845,6 +878,13 @@ final class CoachEngine {
                     self.lastFunctionCall = functionCall.name
                     AppLogger.info("Function call detected: \(functionCall.name)", category: .ai)
 
+                case .structuredData(let data):
+                    // Handle structured data by converting to text
+                    if let jsonString = String(data: data, encoding: .utf8) {
+                        fullResponse = jsonString
+                        self.currentResponse = fullResponse
+                    }
+
                 case .done(let usage):
                     AppLogger.info("Stream completed with usage: \(usage?.totalTokens ?? 0) tokens", category: .ai)
 
@@ -1218,7 +1258,8 @@ final class CoachEngine {
                     generationDuration: 0.0,
                     tokenCount: 0,
                     previewReady: true
-                )
+                ),
+                nutritionRecommendations: nil // Default persona - no custom nutrition
             )
         )
     }
@@ -1316,34 +1357,34 @@ extension CoachEngine {
             AppLogger.error("Failed to prune conversations", error: error, category: .ai)
         }
     }
-    
+
     // MARK: - Notification Content Generation
-    
+
     enum NotificationContentType {
         case morningGreeting
         case workoutReminder
         case mealReminder(MealType)
         case achievement
     }
-    
+
     /// Generates AI-powered notification content with persona context
     func generateNotificationContent<T>(type: NotificationContentType, context: T) async throws -> String {
         // Build appropriate prompt based on notification type
         let contentPrompt = buildNotificationPrompt(type: type, context: context)
-        
+
         // Get current user ID from context (all our contexts have userName)
         let userId = extractUserId(from: context) ?? UUID()
-        
+
         // Get user's persona for consistent voice
         var systemPrompt = "You are a fitness coach generating notification content. Keep it brief, motivational, and personal."
-        
+
         do {
             let persona = try await personaService.getActivePersona(for: userId)
             systemPrompt = persona.systemPrompt + "\n\nTask: Generate a brief notification message (under 30 words). Match your established personality and voice."
         } catch {
             AppLogger.warning("Failed to get persona for notification, using default", category: .ai)
         }
-        
+
         // Create AI request
         let aiRequest = AIRequest(
             systemPrompt: systemPrompt,
@@ -1360,63 +1401,90 @@ extension CoachEngine {
             stream: false,
             user: userId.uuidString
         )
-        
+
         // Collect AI response
         let response = await collectAIResponse(from: aiRequest)
-        
+
         // Return response or simple fallback if empty
         if response.isEmpty {
             AppLogger.warning("AI returned empty response for notification", category: .ai)
-            switch type {
-            case .morningGreeting:
-                return "Good morning! Ready for today?"
-            case .workoutReminder:
-                return "Time for your workout!"
-            case .mealReminder:
-                return "Time to log your meal!"
-            case .achievement:
-                return "Great achievement!"
-            }
+            return "Keep up the great work!"
         }
-        
+
         return response.trimmingCharacters(in: .whitespacesAndNewlines)
     }
-    
+
     private func buildNotificationPrompt<T>(type: NotificationContentType, context: T) -> String {
         switch type {
         case .morningGreeting:
             if let morningContext = context as? MorningContext {
-                var prompt = "Generate a morning greeting for \(morningContext.userName)."
+                var prompt = "Generate a personalized morning greeting for \(morningContext.userName). "
+                prompt += "Requirements: 1-2 sentences, warm and encouraging tone. "
+
+                var context = "Context: "
                 if let sleepQuality = morningContext.sleepQuality {
-                    prompt += " They had \(sleepQuality) sleep."
+                    context += "Sleep quality was \(sleepQuality). "
+                }
+                if let sleepDuration = morningContext.sleepDuration {
+                    let hours = Int(sleepDuration / 3_600)
+                    context += "Slept \(hours) hours. "
                 }
                 if let workout = morningContext.plannedWorkout {
-                    prompt += " They have a \(workout.name) workout planned."
+                    context += "Has \(workout.name) workout scheduled today. "
                 }
                 if morningContext.currentStreak > 0 {
-                    prompt += " They're on a \(morningContext.currentStreak)-day streak."
+                    context += "On a \(morningContext.currentStreak)-day activity streak. "
                 }
+                if let weather = morningContext.weather {
+                    context += "Weather: \(weather.temperature)°F, \(weather.condition). "
+                }
+
+                prompt += context.isEmpty ? "" : context
+                prompt += "Create a unique message that acknowledges their specific situation."
+
                 return prompt
             }
-            
+
         case .workoutReminder:
             if let workoutContext = context as? WorkoutReminderContext {
-                var prompt = "Generate a workout reminder for \(workoutContext.userName)."
-                prompt += " Workout: \(workoutContext.workoutType)."
+                var prompt = "Generate a motivating workout reminder for \(workoutContext.userName). "
+                prompt += "Workout type: \(workoutContext.workoutType). "
+                prompt += "Requirements: 1-2 sentences, energetic but not pushy. "
+
                 if workoutContext.streak > 0 {
-                    prompt += " Current streak: \(workoutContext.streak) days."
+                    prompt += "They're on day \(workoutContext.streak + 1) of their streak - acknowledge this! "
+                } else if workoutContext.lastWorkoutDays > 3 {
+                    prompt += "It's been \(workoutContext.lastWorkoutDays) days since last workout - be encouraging about getting back. "
+                } else if workoutContext.lastWorkoutDays == 1 {
+                    prompt += "They worked out yesterday - encourage consistency. "
                 }
-                if workoutContext.lastWorkoutDays > 2 {
-                    prompt += " It's been \(workoutContext.lastWorkoutDays) days since their last workout."
-                }
+
+                prompt += "Match their motivational style: \(workoutContext.motivationalStyle.styles.first?.rawValue ?? "encouraging")."
+
                 return prompt
             }
-            
+
         case .mealReminder(let mealType):
             if let mealContext = context as? MealReminderContext {
-                return "Generate a \(mealType.displayName) reminder for \(mealContext.userName). Keep it friendly and encouraging."
+                var prompt = "Generate a \(mealType.displayName) reminder for \(mealContext.userName). "
+                prompt += "Requirements: 1 sentence, friendly and practical. "
+
+                if let lastMeal = mealContext.lastMealLogged {
+                    let hoursSince = Date().timeIntervalSince(lastMeal) / 3_600
+                    if hoursSince < 2 {
+                        prompt += "They recently logged a meal - acknowledge their consistency. "
+                    } else if hoursSince > 6 {
+                        prompt += "They haven't logged in a while - gently encourage. "
+                    }
+                }
+
+                if !mealContext.favoritesFoods.isEmpty {
+                    prompt += "Their favorites include: \(mealContext.favoritesFoods.prefix(3).joined(separator: ", ")). "
+                }
+
+                return prompt
             }
-            
+
         case .achievement:
             if let achievementContext = context as? AchievementContext {
                 var prompt = "Celebrate \(achievementContext.userName) earning: \(achievementContext.achievementName)."
@@ -1426,23 +1494,23 @@ extension CoachEngine {
                 return prompt
             }
         }
-        
+
         // Generic fallback prompt
         return "Generate a brief, motivational fitness notification."
     }
-    
+
     private func extractUserId<T>(from context: T) -> UUID? {
         // Try to extract user ID from various context types
         // This is a bit of a hack but works for our current contexts
         let mirror = Mirror(reflecting: context)
-        
+
         // Look for userId property
         for (label, value) in mirror.children {
             if label == "userId", let id = value as? UUID {
                 return id
             }
         }
-        
+
         // For now, return nil - the real implementation would need proper context types
         return nil
     }
@@ -1451,43 +1519,10 @@ extension CoachEngine {
 // MARK: - Factory Methods
 extension CoachEngine {
     /// Creates a default instance of CoachEngine with minimal dependencies for development.
-    /// Uses stub implementations to avoid external dependencies.
+    /// Note: For production use, resolve CoachEngine through the DI container instead.
     static func createDefault(modelContext: ModelContext) async -> CoachEngine {
-        // Create minimal preview services that conform to AI protocols
-        let previewWorkoutService = PreviewAIWorkoutService()
-        let previewAnalyticsService = PreviewAIAnalyticsService()
-        let previewGoalService = PreviewAIGoalService()
-
-        // Create minimal persona service
-        let llmOrchestrator = LLMOrchestrator(apiKeyManager: PreviewAPIKeyManager())
-        let cache = AIResponseCache()
-        let personaSynthesizer = PersonaSynthesizer(
-            llmOrchestrator: llmOrchestrator,
-            cache: cache
-        )
-        let personaService = await MainActor.run {
-            PersonaService(
-                personaSynthesizer: personaSynthesizer,
-                llmOrchestrator: llmOrchestrator,
-                modelContext: modelContext,
-                cache: cache
-            )
-        }
-
-        return CoachEngine(
-            localCommandParser: LocalCommandParser(),
-            functionDispatcher: FunctionCallDispatcher(
-                workoutService: previewWorkoutService,
-                analyticsService: previewAnalyticsService,
-                goalService: previewGoalService
-            ),
-            personaService: personaService,
-            conversationManager: ConversationManager(modelContext: modelContext),
-            aiService: MinimalAIAPIService(),
-            contextAssembler: await MainActor.run { ContextAssembler(healthKitManager: HealthKitManager()) },
-            modelContext: modelContext,
-            routingConfiguration: await MainActor.run { RoutingConfiguration() }
-        )
+        // This method is kept minimal for SwiftUI previews only
+        fatalError("Use DI container to resolve CoachEngine in production. This method is only for SwiftUI previews.")
     }
 
 }
@@ -1506,44 +1541,373 @@ extension CoachEngine: FoodCoachEngineProtocol {
         return ["response": .string(currentResponse)]
     }
 
-    func analyzeMealPhoto(image: UIImage, context: NutritionContext?, for user: User) async throws -> MealPhotoAnalysisResult {
-        // Create AI function call for meal photo analysis
-        let contextString = context != nil ? "User has \(context!.recentMeals.count) recent meals, date: \(context!.currentDate)" : ""
-        let functionCall = AIFunctionCall(
-            name: "analyzeMealPhoto",
-            arguments: [
-                "imageData": AIAnyCodable("base64_image_data"),
-                "context": AIAnyCodable(contextString)
-            ]
+    // MARK: - Dashboard Content Generation
+
+    /// Gets today's nutrition data from HealthKit first, falls back to local SwiftData
+    /// This ensures we see nutrition from all apps, not just AirFit entries
+    private func getTodaysNutrition(for user: User) async -> (calories: Double, protein: Double, carbs: Double, fat: Double) {
+        let today = Date()
+
+        // Try HealthKit first (authoritative source including other apps)
+        do {
+            let nutritionSummary = try await healthKitManager.getNutritionData(for: today)
+
+            AppLogger.info("Dashboard using HealthKit nutrition: \(Int(nutritionSummary.calories)) cal", category: .health)
+            return (
+                calories: nutritionSummary.calories,
+                protein: nutritionSummary.protein,
+                carbs: nutritionSummary.carbs,
+                fat: nutritionSummary.fat
+            )
+        } catch {
+            AppLogger.warning("Failed to get HealthKit nutrition, falling back to local data: \(error)", category: .health)
+        }
+
+        // Fallback to local SwiftData entries
+        let startOfDay = Calendar.current.startOfDay(for: today)
+        let todayEntries = user.foodEntries.filter {
+            Calendar.current.isDate($0.loggedAt, inSameDayAs: startOfDay)
+        }
+
+        let localCalories = Double(todayEntries.reduce(into: 0) { $0 += $1.totalCalories })
+        let localProtein = todayEntries.reduce(into: 0) { $0 += $1.totalProtein }
+        let localCarbs = todayEntries.reduce(into: 0) { $0 += $1.totalCarbs }
+        let localFat = todayEntries.reduce(into: 0) { $0 += $1.totalFat }
+
+        AppLogger.info("Dashboard using local nutrition: \(Int(localCalories)) cal from \(todayEntries.count) entries", category: .data)
+        return (calories: localCalories, protein: localProtein, carbs: localCarbs, fat: localFat)
+    }
+
+    func generateDashboardContent(for user: User) async throws -> AIDashboardContent {
+        // Get current context
+        let hour = Calendar.current.component(.hour, from: Date())
+        let dayOfWeek = Calendar.current.dateComponents([.weekday], from: Date()).weekday ?? 1
+        let weekdayName = DateFormatter().weekdaySymbols[dayOfWeek - 1]
+
+        // Get today's nutrition from HealthKit first (includes all apps), fallback to local
+        let nutrition = await getTodaysNutrition(for: user)
+        let calories = nutrition.calories
+        let protein = nutrition.protein
+        let carbs = nutrition.carbs
+        let fat = nutrition.fat
+
+        // Get muscle group volumes
+        let muscleVolumes = try await muscleGroupVolumeService.getWeeklyVolumes(for: user)
+
+        // Build context for AI
+        var contextParts: [String] = []
+        contextParts.append("Current time: \(weekdayName) at \(hour):00")
+        contextParts.append("User: \(user.name ?? "Friend")")
+
+        // Get dynamic nutrition targets
+        let dynamicTargets = try? await nutritionCalculator.calculateDynamicTargets(for: user)
+
+        // Add nutrition context
+        if calories > 0 {
+            contextParts.append("Today's nutrition: \(Int(calories)) cal, \(Int(protein))g protein, \(Int(carbs))g carbs, \(Int(fat))g fat")
+            if let targets = dynamicTargets {
+                contextParts.append("Targets: \(targets.displayCalories) cal, \(Int(targets.protein))g protein")
+            } else {
+                contextParts.append("Targets: 2000 cal, 150g protein") // Fallback defaults
+            }
+        }
+
+        // Add workout context
+        if !muscleVolumes.isEmpty {
+            let volumeSummary = muscleVolumes.map { "\($0.name): \($0.sets)/\($0.target) sets" }.joined(separator: ", ")
+            contextParts.append("This week's volume: \(volumeSummary)")
+        }
+
+        // Add recent workout info
+        let recentWorkouts = user.workouts.filter { $0.completedDate != nil }
+            .sorted { ($0.completedDate ?? Date.distantPast) > ($1.completedDate ?? Date.distantPast) }
+            .prefix(1)
+
+        if let lastWorkout = recentWorkouts.first,
+           let lastWorkoutDate = lastWorkout.completedDate {
+            let daysAgo = Calendar.current.dateComponents([.day], from: lastWorkoutDate, to: Date()).day ?? 0
+            if daysAgo == 0 {
+                contextParts.append("Workout completed today!")
+            } else if daysAgo == 1 {
+                contextParts.append("Last workout: yesterday")
+            } else {
+                contextParts.append("Last workout: \(daysAgo) days ago")
+            }
+        }
+
+        // Get persona for consistent voice
+        guard let personaData = user.coachPersonaData,
+              let persona = try? JSONDecoder().decode(CoachPersona.self, from: personaData) else {
+            // Fallback to simple content
+            return AIDashboardContent(
+                primaryInsight: "Welcome back! Let's make today count.",
+                nutritionData: calories > 0 ? DashboardNutritionData(
+                    calories: calories,
+                    calorieTarget: dynamicTargets?.totalCalories ?? 2_000,
+                    protein: protein,
+                    proteinTarget: dynamicTargets?.protein ?? 150,
+                    carbs: carbs,
+                    carbTarget: dynamicTargets?.carbs ?? 250,
+                    fat: fat,
+                    fatTarget: dynamicTargets?.fat ?? 65
+                ) : nil,
+                muscleGroupVolumes: muscleVolumes.isEmpty ? nil : muscleVolumes,
+                guidance: nil,
+                celebration: nil
+            )
+        }
+
+        // Build AI prompt
+        let prompt = """
+        Generate dashboard content for the user based on this context:
+        \(contextParts.joined(separator: "\n"))
+
+        Use this coaching voice:
+        - Name: \(persona.identity.name)
+        - Personality: \(persona.identity.coreValues.joined(separator: ", "))
+        - Communication style: \(persona.communication.energy.rawValue) energy, \(persona.communication.pace.rawValue) pace
+
+        Rules:
+        - Be concise and actionable
+        - Reference specific data when available
+        - Match the coach's personality
+        - Avoid generic motivational phrases
+        - Focus on what matters right now
+        - primary_insight: A personalized greeting and key insight (1-2 sentences max)
+        - guidance: Actionable advice if relevant (1 sentence)
+        - celebration: Celebration if they hit a milestone (1 sentence)
+        """
+
+        // Use structured output for guaranteed JSON response
+        let dashboardSchema = StructuredOutputSchema.fromJSON(
+            name: "dashboard_content",
+            description: "Generate AI-driven dashboard content with insights and recommendations",
+            schema: [
+                "type": "object",
+                "properties": [
+                    "primary_insight": [
+                        "type": "string",
+                        "description": "Main insight or observation about user's current state"
+                    ],
+                    "guidance": [
+                        "type": "string",
+                        "description": "Actionable guidance or recommendation"
+                    ],
+                    "celebration": [
+                        "type": "string",
+                        "description": "Positive reinforcement or achievement recognition"
+                    ],
+                    "nutrition_focus": [
+                        "type": "string",
+                        "description": "Specific nutrition advice based on current intake"
+                    ],
+                    "workout_context": [
+                        "type": "string",
+                        "description": "Workout-related context or recovery advice"
+                    ]
+                ],
+                "required": ["primary_insight", "guidance"],
+                "additionalProperties": false
+            ],
+            strict: true
+        ) ?? StructuredOutputSchema(name: "dashboard_content", description: "", jsonSchema: Data(), strict: true)
+
+        let aiRequest = AIRequest(
+            systemPrompt: "You are \(persona.identity.name), a fitness coach. Generate concise, personalized dashboard content.",
+            messages: [AIChatMessage(role: .user, content: prompt)],
+            temperature: 0.7,
+            maxTokens: 300,
+            user: user.id.uuidString,
+            responseFormat: .structuredJson(schema: dashboardSchema)
         )
 
-        _ = try await executeFunction(functionCall, for: user)
+        var structuredData: Data?
+        for try await response in aiService.sendRequest(aiRequest) {
+            switch response {
+            case .structuredData(let data):
+                structuredData = data
+            case .error(let error):
+                throw error
+            case .done:
+                break
+            default:
+                break
+            }
+        }
 
-        // Parse the result to extract detected food items
-        let items: [ParsedFoodItem] = [] // Placeholder - would parse from result.data
+        // Parse structured response
+        var primaryInsight = "Welcome back! Ready to make progress?"
+        var guidance: String?
+        var celebration: String?
+
+        if let data = structuredData {
+            // Define response structure to match schema
+            struct DashboardAIResponse: Codable {
+                let primary_insight: String
+                let guidance: String?
+                let celebration: String?
+                let nutrition_focus: String?
+                let workout_context: String?
+            }
+
+            do {
+                let response = try JSONDecoder().decode(DashboardAIResponse.self, from: data)
+                primaryInsight = response.primary_insight
+                guidance = response.guidance
+                celebration = response.celebration
+
+                // We could also use nutrition_focus and workout_context if needed
+            } catch {
+                AppLogger.error("Failed to parse dashboard AI response", error: error, category: .ai)
+            }
+        }
+
+        let dashboardContent = AIDashboardContent(
+            primaryInsight: primaryInsight,
+            nutritionData: calories > 0 ? DashboardNutritionData(
+                calories: calories,
+                calorieTarget: dynamicTargets?.totalCalories ?? 2_000,
+                protein: protein,
+                proteinTarget: dynamicTargets?.protein ?? 150,
+                carbs: carbs,
+                carbTarget: dynamicTargets?.carbs ?? 250,
+                fat: fat,
+                fatTarget: dynamicTargets?.fat ?? 65
+            ) : nil,
+            muscleGroupVolumes: muscleVolumes.isEmpty ? nil : muscleVolumes,
+            guidance: guidance,
+            celebration: celebration
+        )
+
+        return dashboardContent
+    }
+
+    func analyzeMealPhoto(image: UIImage, context: NutritionContext?, for user: User) async throws -> MealPhotoAnalysisResult {
+        let startTime = CFAbsoluteTimeGetCurrent()
+
+        // Convert image to base64 for multimodal LLM
+        guard let imageData = image.jpegData(compressionQuality: 0.8) else {
+            throw FoodTrackingError.invalidImage
+        }
+        let base64Image = imageData.base64EncodedString()
+
+        let prompt = """
+        Analyze this meal photo and identify all visible food items with their quantities and nutrition info.
+
+        Return ONLY valid JSON:
+        {
+            "items": [
+                {
+                    "name": "food name",
+                    "brand": "brand name or null",
+                    "quantity": 1.5,
+                    "unit": "cups/oz/pieces",
+                    "calories": 0,
+                    "proteinGrams": 0.0,
+                    "carbGrams": 0.0,
+                    "fatGrams": 0.0,
+                    "fiberGrams": 0.0,
+                    "sugarGrams": 0.0,
+                    "sodiumMilligrams": 0.0,
+                    "confidence": 0.85
+                }
+            ]
+        }
+        """
+
+        // Create multimodal message with image
+        // Include image in the prompt for multimodal LLMs
+        let imagePrompt = """
+        \(prompt)
+
+        [Image data: \(base64Image)]
+        """
+
+        let aiRequest = AIRequest(
+            systemPrompt: "You are a nutrition expert analyzing meal photos. Identify all foods with accurate portions and nutrition data.",
+            messages: [
+                AIChatMessage(
+                    role: .user,
+                    content: imagePrompt
+                )
+            ],
+            temperature: 0.2,
+            maxTokens: 1_000,
+            user: "photo-analysis"
+        )
+
+        var fullResponse = ""
+        for try await response in aiService.sendRequest(aiRequest) {
+            switch response {
+            case .text(let text), .textDelta(let text):
+                fullResponse += text
+            case .done:
+                break
+            default:
+                break
+            }
+        }
+
+        let items = try parseNutritionJSON(fullResponse)
+        let processingTime = CFAbsoluteTimeGetCurrent() - startTime
 
         return MealPhotoAnalysisResult(
             items: items,
-            confidence: 0.8,
-            processingTime: 0.5
+            confidence: 0.9, // High confidence with actual image analysis
+            processingTime: processingTime
         )
     }
 
     func searchFoods(query: String, limit: Int, for user: User) async throws -> [ParsedFoodItem] {
-        // Create AI function call for food search
-        let functionCall = AIFunctionCall(
-            name: "searchFoods",
-            arguments: [
-                "query": AIAnyCodable(query),
-                "limit": AIAnyCodable(limit)
+        // Just ask the LLM to search its knowledge for matching foods
+        let prompt = """
+        Search for foods matching: "\(query)"
+
+        Return the top \(limit) food items that match this query.
+
+        Return ONLY valid JSON with this exact structure:
+        {
+            "items": [
+                {
+                    "name": "food name",
+                    "brand": "brand name or null",
+                    "quantity": 1.0,
+                    "unit": "serving",
+                    "calories": 0,
+                    "proteinGrams": 0.0,
+                    "carbGrams": 0.0,
+                    "fatGrams": 0.0,
+                    "fiberGrams": 0.0,
+                    "sugarGrams": 0.0,
+                    "sodiumMilligrams": 0.0,
+                    "confidence": 0.95
+                }
             ]
+        }
+        """
+
+        let aiRequest = AIRequest(
+            systemPrompt: "You are a nutrition expert. Use your knowledge to provide accurate nutrition data.",
+            messages: [AIChatMessage(role: .user, content: prompt)],
+            temperature: 0.3,
+            maxTokens: 800,
+            user: "food-search"
         )
 
-        _ = try await executeFunction(functionCall, for: user)
+        var fullResponse = ""
+        for try await response in aiService.sendRequest(aiRequest) {
+            switch response {
+            case .text(let text), .textDelta(let text):
+                fullResponse += text
+            case .done:
+                break
+            default:
+                break
+            }
+        }
 
-        // Parse the result to extract food items
-        // For now, return empty array as placeholder
-        return []
+        let items = try parseNutritionJSON(fullResponse)
+        return Array(items.prefix(limit))
     }
 
     func parseNaturalLanguageFood(
@@ -1735,133 +2099,4 @@ private final class PreviewAPIKeyManager: APIKeyManagementProtocol {
     func deleteAPIKey(for provider: AIProvider) async throws {}
     func hasAPIKey(for provider: AIProvider) async -> Bool { true }
     func getAllConfiguredProviders() async -> [AIProvider] { AIProvider.allCases }
-}
-
-/// Minimal preview implementation of AI workout service
-private final class PreviewAIWorkoutService: AIWorkoutServiceProtocol {
-    // Base protocol requirements
-    func startWorkout(type: WorkoutType, user: User) async throws -> Workout {
-        Workout(name: type.displayName, workoutType: type, plannedDate: Date(), user: user)
-    }
-    func pauseWorkout(_ workout: Workout) async throws {}
-    func resumeWorkout(_ workout: Workout) async throws {}
-    func endWorkout(_ workout: Workout) async throws {}
-    func logExercise(_ exercise: Exercise, in workout: Workout) async throws {}
-    func getWorkoutHistory(for user: User, limit: Int) async throws -> [Workout] { [] }
-    // Template methods removed - AI generates personalized workouts on-demand
-
-    // AI protocol requirements
-    func generatePlan(for user: User, goal: String, duration: Int, intensity: String, targetMuscles: [String], equipment: [String], constraints: String?, style: String) async throws -> WorkoutPlanResult {
-        WorkoutPlanResult(
-            id: UUID(),
-            exercises: [],
-            estimatedCalories: 300,
-            estimatedDuration: duration,
-            summary: "Preview workout plan",
-            difficulty: .intermediate,
-            focusAreas: targetMuscles
-        )
-    }
-
-    func adaptPlan(_ plan: WorkoutPlanResult, feedback: String, adjustments: [String: Any], for user: User) async throws -> WorkoutPlanResult {
-        plan
-    }
-}
-
-/// Minimal preview implementation of AI analytics service
-private final class PreviewAIAnalyticsService: AIAnalyticsServiceProtocol {
-    // Base protocol requirements
-    func trackEvent(_ event: AnalyticsEvent) async {}
-    func trackScreen(_ screen: String, properties: [String: String]?) async {}
-    func setUserProperties(_ properties: [String: String]) async {}
-    func trackWorkoutCompleted(_ workout: Workout) async {}
-    func trackMealLogged(_ meal: FoodEntry) async {}
-    func getInsights(for user: User) async throws -> UserInsights {
-        UserInsights(
-            workoutFrequency: 3.5,
-            averageWorkoutDuration: 3_600,
-            caloriesTrend: Trend(direction: .up, changePercentage: 5),
-            macroBalance: MacroBalance(proteinPercentage: 0.3, carbsPercentage: 0.4, fatPercentage: 0.3),
-            streakDays: 7,
-            achievements: []
-        )
-    }
-
-    // AI protocol requirements
-    func analyzePerformance(query: String, metrics: [String], days: Int, depth: String, includeRecommendations: Bool, for user: User) async throws -> PerformanceAnalysisResult {
-        PerformanceAnalysisResult(
-            summary: "Preview analysis",
-            insights: [],
-            trends: [],
-            recommendations: [],
-            dataPoints: 0,
-            confidence: 0.5
-        )
-    }
-
-    func generatePredictiveInsights(for user: User, timeframe: Int) async throws -> PredictiveInsights {
-        PredictiveInsights(
-            projections: [:],
-            risks: [],
-            opportunities: [],
-            confidence: 0.5
-        )
-    }
-}
-
-/// Minimal preview implementation of AI goal service
-private final class PreviewAIGoalService: AIGoalServiceProtocol {
-    // Base protocol requirements
-    func createGoal(_ goal: TrackedGoal) async throws {}
-    func updateGoal(_ goal: TrackedGoal) async throws {}
-    func deleteGoal(_ goal: TrackedGoal) async throws {}
-    func completeGoal(_ goal: TrackedGoal) async throws {}
-    func getActiveGoals(for userId: UUID) async throws -> [TrackedGoal] { [] }
-    func getAllGoals(for userId: UUID) async throws -> [TrackedGoal] { [] }
-    func getGoal(by id: UUID) async throws -> TrackedGoal? { nil }
-    func updateProgress(for goalId: UUID, progress: Double) async throws {}
-    func recordMilestone(for goalId: UUID, milestone: TrackedGoalMilestone) async throws {}
-    func getGoalsContext(for userId: UUID) async throws -> GoalsContext {
-        GoalsContext(
-            activeGoals: [],
-            totalActiveGoals: 0,
-            goalsNeedingAttention: [],
-            recentAchievements: [],
-            primaryGoal: nil
-        )
-    }
-    func getGoalStatistics(for userId: UUID) async throws -> GoalStatistics {
-        GoalStatistics(
-            totalGoals: 0,
-            activeGoals: 0,
-            completedGoals: 0,
-            pausedGoals: 0,
-            completionRate: 0,
-            averageCompletionDays: 0,
-            currentStreak: 0
-        )
-    }
-
-    // AI protocol requirements
-    func createOrRefineGoal(current: String?, aspirations: String, timeframe: String?, fitnessLevel: String?, constraints: [String], motivations: [String], goalType: String?, for user: User) async throws -> GoalResult {
-        GoalResult(
-            id: UUID(),
-            title: "Preview Goal",
-            description: aspirations,
-            targetDate: nil,
-            metrics: [],
-            milestones: [],
-            smartCriteria: GoalResult.SMARTCriteria(
-                specific: aspirations,
-                measurable: "Track progress",
-                achievable: "Yes",
-                relevant: "Aligned with goals",
-                timeBound: timeframe ?? "Flexible"
-            )
-        )
-    }
-
-    func suggestGoalAdjustments(for goal: TrackedGoal, user: User) async throws -> [GoalAdjustment] {
-        []
-    }
 }

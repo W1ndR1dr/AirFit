@@ -665,13 +665,16 @@ private struct ManualFoodEntryView: View {
                                 .font(.caption)
                                 .foregroundStyle(Color.secondary)
 
-                            TextField("e.g., Apple", text: $name)
-                                .textFieldStyle(.plain)
-                                .padding(AppSpacing.sm)
-                                .background(
-                                    RoundedRectangle(cornerRadius: 8)
-                                        .fill(Color.primary.opacity(0.05))
-                                )
+                            HStack {
+                                TextField("e.g., Apple", text: $name)
+                                    .textFieldStyle(.plain)
+                                WhisperVoiceButton(text: $name)
+                            }
+                            .padding(AppSpacing.sm)
+                            .background(
+                                RoundedRectangle(cornerRadius: 8)
+                                    .fill(Color.primary.opacity(0.05))
+                            )
                         }
 
                         // Calories field
@@ -838,9 +841,7 @@ final class MockNutritionService: NutritionServiceProtocol {
     func deleteFoodEntry(_ entry: FoodEntry) async throws {}
     func getFoodEntries(for user: User, date: Date) async throws -> [FoodEntry] { [] }
     nonisolated func calculateNutritionSummary(from entries: [FoodEntry]) -> FoodNutritionSummary { FoodNutritionSummary() }
-    func getWaterIntake(for user: User, date: Date) async throws -> Double { 0 }
     func getRecentFoods(for user: User, limit: Int) async throws -> [FoodItem] { [] }
-    func logWaterIntake(for user: User, amountML: Double, date: Date) async throws {}
     func getMealHistory(for user: User, mealType: MealType, daysBack: Int) async throws -> [FoodEntry] { [] }
     nonisolated func getTargets(from profile: OnboardingProfile?) -> NutritionTargets { .default }
     func getTodaysSummary(for user: User) async throws -> FoodNutritionSummary { FoodNutritionSummary() }

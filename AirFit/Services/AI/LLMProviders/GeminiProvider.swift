@@ -23,7 +23,7 @@ actor GeminiProvider: LLMProvider, ServiceProtocol {
 
     init(config: LLMProviderConfig) {
         self.config = config
-        
+
         let sessionConfig = URLSessionConfiguration.default
         sessionConfig.timeoutIntervalForRequest = config.timeout
         self.session = URLSession(configuration: sessionConfig)
@@ -128,21 +128,29 @@ actor GeminiProvider: LLMProvider, ServiceProtocol {
     private nonisolated func buildGeminiRequest(_ request: LLMRequest) throws -> GeminiRequest {
         let contents = try convertMessagesToContents(request.messages)
 
-        // Build tools array if JSON mode is requested
+        // Handle structured output configuration
+        var responseMimeType: String?
+        var responseSchema: [String: Any]?
         var tools: [GeminiTool]?
-        if case .json(let schema) = request.responseFormat {
-            if let jsonSchema = schema {
-                tools = [GeminiTool.structuredOutput(schema: jsonSchema)]
-            } else {
-                // Default JSON schema if none provided
-                tools = [GeminiTool.structuredOutput(schema: """
-                {
-                    "type": "object",
-                    "properties": {},
-                    "additionalProperties": true
-                }
-                """)]
+
+        switch request.responseFormat {
+        case .json:
+            // Simple JSON mode - use tools approach for backward compatibility
+            tools = [GeminiTool.structuredOutput(schema: """
+            {
+                "type": "object",
+                "properties": {},
+                "additionalProperties": true
             }
+            """)]
+        case .structuredJson(let schema):
+            // Native structured output with response schema
+            responseMimeType = "application/json"
+            if let schemaDict = try? JSONSerialization.jsonObject(with: schema.jsonSchema) as? [String: Any] {
+                responseSchema = schemaDict
+            }
+        case .text, .none:
+            break
         }
 
         return GeminiRequest(
@@ -152,7 +160,9 @@ actor GeminiProvider: LLMProvider, ServiceProtocol {
                 maxOutputTokens: request.maxTokens ?? 2_048,
                 topP: 1.0, // Default top-P since it's not in LLMRequest
                 candidateCount: 1,
-                thinkingBudgetTokens: request.thinkingBudgetTokens
+                thinkingBudgetTokens: request.thinkingBudgetTokens,
+                responseMimeType: responseMimeType,
+                responseSchema: responseSchema
             ),
             safetySettings: [
                 GeminiSafetySetting(category: "HARM_CATEGORY_HARASSMENT", threshold: "BLOCK_MEDIUM_AND_ABOVE"),
@@ -210,12 +220,22 @@ actor GeminiProvider: LLMProvider, ServiceProtocol {
             completionTokens: response.usageMetadata?.candidatesTokenCount ?? 0
         )
 
+        // Check if response is structured JSON
+        var structuredData: Data?
+        if case .structuredJson = request.responseFormat {
+            if let jsonData = content.data(using: .utf8),
+               let _ = try? JSONSerialization.jsonObject(with: jsonData) {
+                structuredData = jsonData
+            }
+        }
+
         return LLMResponse(
             content: content,
             model: request.model,
             usage: usage,
             finishReason: mapFinishReason(candidate.finishReason),
-            metadata: [:]
+            metadata: [:],
+            structuredData: structuredData
         )
     }
 
@@ -294,6 +314,56 @@ struct GeminiGenerationConfig: Codable {
     let topP: Double
     let candidateCount: Int
     let thinkingBudgetTokens: Int? // For Gemini 2.5 Flash thinking mode
+    let responseMimeType: String? // For structured output
+    let responseSchema: [String: Any]? // JSON schema for structured output
+
+    enum CodingKeys: String, CodingKey {
+        case temperature
+        case maxOutputTokens
+        case topP
+        case candidateCount
+        case thinkingBudgetTokens
+        case responseMimeType
+        case responseSchema
+    }
+
+    func encode(to encoder: Encoder) throws {
+        var container = encoder.container(keyedBy: CodingKeys.self)
+        try container.encode(temperature, forKey: .temperature)
+        try container.encode(maxOutputTokens, forKey: .maxOutputTokens)
+        try container.encode(topP, forKey: .topP)
+        try container.encode(candidateCount, forKey: .candidateCount)
+        try container.encodeIfPresent(thinkingBudgetTokens, forKey: .thinkingBudgetTokens)
+        try container.encodeIfPresent(responseMimeType, forKey: .responseMimeType)
+
+        // Custom encoding for responseSchema dictionary
+        if let schema = responseSchema {
+            // Encode as AnyCodable wrapper
+            let wrapper = AnyCodable(schema)
+            try container.encode(wrapper, forKey: .responseSchema)
+        }
+    }
+
+    init(from decoder: Decoder) throws {
+        let container = try decoder.container(keyedBy: CodingKeys.self)
+        temperature = try container.decode(Double.self, forKey: .temperature)
+        maxOutputTokens = try container.decode(Int.self, forKey: .maxOutputTokens)
+        topP = try container.decode(Double.self, forKey: .topP)
+        candidateCount = try container.decode(Int.self, forKey: .candidateCount)
+        thinkingBudgetTokens = try container.decodeIfPresent(Int.self, forKey: .thinkingBudgetTokens)
+        responseMimeType = try container.decodeIfPresent(String.self, forKey: .responseMimeType)
+        responseSchema = nil // We don't decode this from responses
+    }
+
+    init(temperature: Double, maxOutputTokens: Int, topP: Double, candidateCount: Int, thinkingBudgetTokens: Int?, responseMimeType: String?, responseSchema: [String: Any]?) {
+        self.temperature = temperature
+        self.maxOutputTokens = maxOutputTokens
+        self.topP = topP
+        self.candidateCount = candidateCount
+        self.thinkingBudgetTokens = thinkingBudgetTokens
+        self.responseMimeType = responseMimeType
+        self.responseSchema = responseSchema
+    }
 }
 
 struct GeminiSafetySetting: Codable {

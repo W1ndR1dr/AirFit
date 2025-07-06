@@ -32,6 +32,7 @@ struct WorkoutListView: View {
     @State private var hasLoaded = false
     @State private var animateIn = false
     @EnvironmentObject private var gradientManager: GradientManager
+    @Environment(NavigationState.self) private var navigationState
     @Environment(\.colorScheme) private var colorScheme
 
     // MARK: - Initializers
@@ -552,6 +553,7 @@ struct VoiceWorkoutInputPlaceholder: View {
     @EnvironmentObject private var gradientManager: GradientManager
     @Environment(\.colorScheme) private var colorScheme
     @Environment(\.dismiss) private var dismiss
+    @Environment(NavigationState.self) private var navigationState
     @State private var animateIn = false
 
     var body: some View {
@@ -633,7 +635,8 @@ struct VoiceWorkoutInputPlaceholder: View {
                         .padding(.horizontal, AppSpacing.lg)
                         .onTapGesture {
                             HapticService.impact(.medium)
-                            // TODO: Navigate to chat with workout context
+                            // Navigate to chat with workout context
+                            navigationState.showChat(with: "I'd like you to create a personalized workout for me based on my current fitness level and recent activity.")
                             dismiss()
                         }
 
@@ -724,7 +727,6 @@ final class PreviewHealthKitManager: HealthKitManaging {
     // New HealthKit integration methods
     func getWorkoutData(from startDate: Date, to endDate: Date) async -> [WorkoutData] { [] }
     func saveFoodEntry(_ entry: FoodEntry) async throws -> [String] { [] }
-    func saveWaterIntake(amountML: Double, date: Date) async throws -> String? { nil }
     func getNutritionData(for date: Date) async throws -> HealthKitNutritionSummary {
         HealthKitNutritionSummary(
             calories: 0,
@@ -734,12 +736,20 @@ final class PreviewHealthKitManager: HealthKitManaging {
             fiber: 0,
             sugar: 0,
             sodium: 0,
-            water: 0,
             date: date
         )
     }
     func saveWorkout(_ workout: Workout) async throws -> String { "preview-workout-id" }
     func deleteWorkout(healthKitID: String) async throws {}
+    func fetchRecentWorkouts(limit: Int) async throws -> [WorkoutData] { [] }
+
+    // Body metrics methods
+    func saveBodyMass(weightKg: Double, date: Date) async throws {}
+    func saveBodyFatPercentage(percentage: Double, date: Date) async throws {}
+    func saveLeanBodyMass(massKg: Double, date: Date) async throws {}
+    func fetchBodyMetricsHistory(from startDate: Date, to endDate: Date) async throws -> [BodyMetrics] { [] }
+    func observeBodyMetrics(handler: @escaping () -> Void) async throws {}
+    func removeObserver(_ observer: Any) {}
 }
 
 @MainActor

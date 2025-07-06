@@ -171,12 +171,22 @@ actor AnthropicProvider: LLMProvider, ServiceProtocol {
                 at: 0
             )
         }
-        
-        // Convert functions to tools if present
-        // TODO: LLMRequest doesn't currently expose functions from AIRequest
-        // This needs to be added to LLMRequest to support function calling
-        // For now, we'll check if there's a way to pass functions via metadata
-        let tools: [AnthropicTool]? = nil
+
+        // Handle structured output via tool forcing
+        var tools: [AnthropicTool]?
+        var toolChoice: AnthropicRequest.ToolChoice?
+
+        if case .structuredJson(let schema) = request.responseFormat {
+            // Create a tool that outputs the structured data
+            let tool = AnthropicTool(
+                name: schema.name,
+                description: schema.description,
+                input_schema: try convertToAnthropicSchema(schema)
+            )
+            tools = [tool]
+            // Force the model to use this specific tool
+            toolChoice = AnthropicRequest.ToolChoice(type: "tool", name: schema.name)
+        }
 
         return AnthropicRequest(
             model: request.model,
@@ -184,7 +194,51 @@ actor AnthropicProvider: LLMProvider, ServiceProtocol {
             max_tokens: request.maxTokens ?? 4_096,
             temperature: request.temperature,
             stream: request.stream,
-            tools: tools
+            tools: tools,
+            tool_choice: toolChoice
+        )
+    }
+
+    private nonisolated func convertToAnthropicSchema(_ schema: StructuredOutputSchema) throws -> AnthropicInputSchema {
+        // Parse the pre-encoded JSON schema
+        guard let schemaDict = try? JSONSerialization.jsonObject(with: schema.jsonSchema) as? [String: Any] else {
+            throw AppError.from(LLMError.invalidResponse("Invalid schema format"))
+        }
+
+        let properties = (schemaDict["properties"] as? [String: Any]) ?? [:]
+        let required = (schemaDict["required"] as? [String]) ?? []
+
+        var convertedProperties: [String: AnthropicProperty] = [:]
+        for (key, value) in properties {
+            if let propDict = value as? [String: Any] {
+                convertedProperties[key] = convertPropertyToAnthropic(propDict)
+            }
+        }
+
+        return AnthropicInputSchema(
+            type: "object",
+            properties: convertedProperties,
+            required: required
+        )
+    }
+
+    private nonisolated func convertPropertyToAnthropic(_ dict: [String: Any]) -> AnthropicProperty {
+        let type = dict["type"] as? String ?? "string"
+        let description = dict["description"] as? String ?? ""
+        let enumValues = dict["enum"] as? [String]
+
+        var items: Box<AnthropicProperty>?
+        if type == "array", let itemsDict = dict["items"] as? [String: Any] {
+            items = Box(convertPropertyToAnthropic(itemsDict))
+        }
+
+        return AnthropicProperty(
+            type: type,
+            description: description,
+            items: items,
+            enum: enumValues,
+            minimum: nil,
+            maximum: nil
         )
     }
 
@@ -192,20 +246,28 @@ actor AnthropicProvider: LLMProvider, ServiceProtocol {
         // Combine all text content
         var textContent = ""
         var hasToolUse = false
-        
+        var structuredData: Data?
+
         for content in response.content {
             if let text = content.text {
                 textContent += text
             } else if content.type == "tool_use" {
                 hasToolUse = true
-                // TODO: Handle tool use when LLMResponse supports it
-                // For now, we'll include tool information in the text
-                if let name = content.name, let input = content.input {
-                    textContent += "\n[Tool Call: \(name) with input: \(input)]"
+                // Check if this is structured output via forced tool use
+                if let input = content.input {
+                    // Convert the tool input to JSON data for structured output
+                    let jsonObject = input.mapValues { $0.value }
+                    if let data = try? JSONSerialization.data(withJSONObject: jsonObject) {
+                        structuredData = data
+                        // Also include as text for backward compatibility
+                        if let jsonString = String(data: data, encoding: .utf8) {
+                            textContent = jsonString
+                        }
+                    }
                 }
             }
         }
-        
+
         guard !textContent.isEmpty else {
             throw AppError.from(LLMError.invalidResponse("No content in response"))
         }
@@ -218,7 +280,8 @@ actor AnthropicProvider: LLMProvider, ServiceProtocol {
                 completionTokens: response.usage.output_tokens
             ),
             finishReason: hasToolUse ? .toolCalls : mapFinishReason(response.stop_reason),
-            metadata: ["id": response.id]
+            metadata: ["id": response.id],
+            structuredData: structuredData
         )
     }
 
@@ -294,6 +357,12 @@ private struct AnthropicRequest: Encodable {
     let temperature: Double
     let stream: Bool
     let tools: [AnthropicTool]?
+    let tool_choice: ToolChoice?
+
+    struct ToolChoice: Encodable {
+        let type: String // "auto", "any", or "tool"
+        let name: String? // Only for type "tool"
+    }
 }
 
 private struct AnthropicMessage: Codable {
@@ -305,15 +374,15 @@ private enum AnthropicContent: Codable {
     case text(String)
     case toolUse(id: String, name: String, input: [String: AnthropicValue])
     case toolResult(toolUseId: String, content: String)
-    
+
     private enum CodingKeys: String, CodingKey {
         case type, text, id, name, input, toolUseId = "tool_use_id", content
     }
-    
+
     init(from decoder: Decoder) throws {
         let container = try decoder.container(keyedBy: CodingKeys.self)
         let type = try container.decodeIfPresent(String.self, forKey: .type)
-        
+
         switch type {
         case "tool_use":
             let id = try container.decode(String.self, forKey: .id)
@@ -329,10 +398,10 @@ private enum AnthropicContent: Codable {
             self = .text(text)
         }
     }
-    
+
     func encode(to encoder: Encoder) throws {
         var container = encoder.container(keyedBy: CodingKeys.self)
-        
+
         switch self {
         case .text(let text):
             try container.encode("text", forKey: .type)
@@ -374,16 +443,16 @@ private struct AnthropicProperty: Codable {
 // Box type to handle recursive property
 private final class Box<T: Codable>: Codable {
     let value: T
-    
+
     init(_ value: T) {
         self.value = value
     }
-    
+
     init(from decoder: Decoder) throws {
         let container = try decoder.singleValueContainer()
         self.value = try container.decode(T.self)
     }
-    
+
     func encode(to encoder: Encoder) throws {
         var container = encoder.singleValueContainer()
         try container.encode(value)
@@ -392,14 +461,14 @@ private final class Box<T: Codable>: Codable {
 
 private struct AnthropicValue: Codable {
     let value: Any
-    
+
     init(_ value: Any) {
         self.value = value
     }
-    
+
     init(from decoder: Decoder) throws {
         let container = try decoder.singleValueContainer()
-        
+
         if container.decodeNil() {
             self.value = NSNull()
         } else if let bool = try? container.decode(Bool.self) {
@@ -418,10 +487,10 @@ private struct AnthropicValue: Codable {
             throw DecodingError.dataCorruptedError(in: container, debugDescription: "Unable to decode value")
         }
     }
-    
+
     func encode(to encoder: Encoder) throws {
         var container = encoder.singleValueContainer()
-        
+
         switch value {
         case is NSNull:
             try container.encodeNil()
@@ -455,15 +524,15 @@ private struct AnthropicResponse: Decodable {
         let id: String?
         let name: String?
         let input: [String: AnthropicValue]?
-        
+
         enum CodingKeys: String, CodingKey {
             case type, text, id, name, input
         }
-        
+
         init(from decoder: Decoder) throws {
             let container = try decoder.container(keyedBy: CodingKeys.self)
             type = try container.decode(String.self, forKey: .type)
-            
+
             switch type {
             case "text":
                 text = try container.decode(String.self, forKey: .text)

@@ -129,20 +129,6 @@ final class NutritionService: NutritionServiceProtocol, ServiceProtocol {
         return summary
     }
 
-    func getWaterIntake(for user: User, date: Date) async throws -> Double {
-        // Fetch from HealthKit
-        do {
-            guard let healthKitManager else {
-                AppLogger.warning("HealthKitManager not available for nutrition data", category: .data)
-                return 0
-            }
-            let nutritionData = try await healthKitManager.getNutritionData(for: date)
-            return nutritionData.water
-        } catch {
-            AppLogger.warning("Failed to fetch water intake from HealthKit: \(error)", category: .data)
-            return 0
-        }
-    }
 
     func getRecentFoods(for user: User, limit: Int) async throws -> [FoodItem] {
         let userId = user.id
@@ -168,19 +154,6 @@ final class NutritionService: NutritionServiceProtocol, ServiceProtocol {
         return Array(uniqueItems.values.prefix(limit))
     }
 
-    func logWaterIntake(for user: User, amountML: Double, date: Date) async throws {
-        // Save to HealthKit
-        do {
-            guard let healthKitManager else {
-                throw AppError.unknown(message: "HealthKitManager not available for water intake")
-            }
-            _ = try await healthKitManager.saveWaterIntake(amountML: amountML, date: date)
-            AppLogger.info("Logged \(amountML)ml water intake to HealthKit", category: .data)
-        } catch {
-            AppLogger.error("Failed to log water intake to HealthKit", error: error, category: .data)
-            throw error
-        }
-    }
 
     func getMealHistory(for user: User, mealType: MealType, daysBack: Int) async throws -> [FoodEntry] {
         let calendar = Calendar.current

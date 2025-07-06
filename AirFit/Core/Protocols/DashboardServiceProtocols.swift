@@ -17,12 +17,12 @@ protocol HealthKitServiceProtocol: Sendable {
 /// Generates AI-powered greetings and coaching snippets.
 protocol AICoachServiceProtocol: Sendable {
     func generateMorningGreeting(for user: User, context: GreetingContext) async throws -> String
+    func generateDashboardContent(for user: User) async throws -> AIDashboardContent
 }
 
 /// Supplies nutrition summaries and targets for dashboard display.
 protocol DashboardNutritionServiceProtocol: Sendable {
     func getTodaysSummary(for user: User) async throws -> NutritionSummary
-    func getTargets(from profile: OnboardingProfile) async throws -> NutritionTargets
 }
 
 /// Lightweight health context used by the dashboard.

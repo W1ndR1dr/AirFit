@@ -100,7 +100,7 @@ struct ContextAnalyzer {
         if input.count < 100 {
             let parsingKeywords = [
                 "ate", "had", "drank", "consumed", "log", "track", "record",
-                "calories", "protein", "carbs", "water", "steps"
+                "calories", "protein", "carbs", "steps"
             ]
 
             let lowerInput = input.lowercased()

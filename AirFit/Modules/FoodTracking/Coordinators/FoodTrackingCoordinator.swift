@@ -7,6 +7,11 @@ enum FoodTrackingDestination: Hashable {
     case favorites
     case recipes
     case mealPlan
+    case voiceInput
+    case photoInput
+    case foodDetail(FoodEntry)
+    case foodSearch
+    case quickLog(FoodItem)
 }
 
 // MARK: - Sheet Types
@@ -15,7 +20,6 @@ enum FoodTrackingSheet: Identifiable {
     case photoCapture
     case foodSearch
     case manualEntry
-    case waterTracking
     case mealDetails(FoodEntry)
 
     var id: String {
@@ -24,7 +28,6 @@ enum FoodTrackingSheet: Identifiable {
         case .photoCapture: return "photo"
         case .foodSearch: return "search"
         case .manualEntry: return "manual"
-        case .waterTracking: return "water"
         case .mealDetails(let entry): return "meal_\(entry.id)"
         }
     }
@@ -73,5 +76,27 @@ final class FoodTrackingCoordinator: BaseCoordinator<FoodTrackingDestination, Fo
     override func dismiss() {
         super.dismiss()
         activeFullScreenCover = nil
+    }
+
+    // MARK: - Convenience Navigation Methods
+
+    func presentVoiceInput() {
+        navigateTo(.voiceInput)
+    }
+
+    func presentPhotoInput() {
+        navigateTo(.photoInput)
+    }
+
+    func presentFoodSearch() {
+        navigateTo(.foodSearch)
+    }
+
+    func navigateToFoodDetail(_ entry: FoodEntry) {
+        navigateTo(.foodDetail(entry))
+    }
+
+    func presentQuickLog(_ food: FoodItem) {
+        navigateTo(.quickLog(food))
     }
 }

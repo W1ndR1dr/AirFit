@@ -59,7 +59,7 @@ extension AppError {
             return .networkError(underlying: NSError(domain: "Network", code: 0, userInfo: [NSLocalizedDescriptionKey: "No data received"]))
         case .decodingError(let error):
             return .decodingError(underlying: error)
-        case .httpError(let statusCode, let data):
+        case let .httpError(statusCode, data):
             return .serverError(code: statusCode, message: String(data: data ?? Data(), encoding: .utf8))
         case .networkError(let error):
             return .networkError(underlying: error)
@@ -93,7 +93,7 @@ extension AppError {
             return .networkError(underlying: NSError(domain: "Service", code: -1_001, userInfo: [NSLocalizedDescriptionKey: "Request timed out"]))
         case .cancelled:
             return .unknown(message: "Request was cancelled")
-        case .providerError(let code, let message):
+        case let .providerError(code, message):
             return .unknown(message: "Provider error [\(code)]: \(message)")
         case .unknown(let error):
             return .unknown(message: error.localizedDescription)
@@ -141,13 +141,13 @@ extension AppError {
             let message = retryAfter.map { "Rate limit exceeded. Try again in \(Int($0)) seconds." }
                 ?? "Rate limit exceeded. Please try again later."
             return .serverError(code: 429, message: message)
-        case .contextLengthExceeded(let max, let requested):
+        case let .contextLengthExceeded(max, requested):
             return .validationError(message: "Message too long. Maximum: \(max) tokens, requested: \(requested)")
         case .invalidResponse(let detail):
             return .decodingError(underlying: NSError(domain: "LLM", code: 0, userInfo: [NSLocalizedDescriptionKey: detail]))
         case .networkError(let error):
             return .networkError(underlying: error)
-        case .serverError(let statusCode, let message):
+        case let .serverError(statusCode, message):
             return .serverError(code: statusCode, message: message)
         case .timeout:
             return .networkError(underlying: NSError(domain: "LLM", code: -1_001, userInfo: [NSLocalizedDescriptionKey: "Request timed out"]))
@@ -222,6 +222,8 @@ extension AppError {
             return .decodingError(underlying: NSError(domain: "FoodTracking", code: 0, userInfo: [NSLocalizedDescriptionKey: "Invalid nutrition data from AI"]))
         case .invalidNutritionData:
             return .validationError(message: "Malformed nutrition information")
+        case .invalidImage:
+            return .validationError(message: "Invalid image provided")
         }
     }
 
@@ -314,7 +316,7 @@ extension AppError {
             return .decodingError(underlying: NSError(domain: "Persona", code: 0, userInfo: [NSLocalizedDescriptionKey: "Invalid AI response: \(message)"]))
         case .missingField(let field):
             return .validationError(message: "Missing required field: \(field)")
-        case .invalidFormat(let field, let expected):
+        case let .invalidFormat(field, expected):
             return .validationError(message: "Invalid format for \(field). Expected: \(expected)")
         }
     }
@@ -372,7 +374,7 @@ extension AppError {
             return .unknown(message: "Request already in progress")
         case .invalidResponse:
             return .decodingError(underlying: NSError(domain: "RequestOptimizer", code: 0, userInfo: [NSLocalizedDescriptionKey: "Invalid server response"]))
-        case .httpError(let statusCode, let data):
+        case let .httpError(statusCode, data):
             return .serverError(code: statusCode, message: String(data: data, encoding: .utf8))
         case .rateLimited(let retryAfter):
             let message = retryAfter.map { "Rate limited. Retry after: \($0)" } ?? "Rate limited"

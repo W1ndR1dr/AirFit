@@ -17,10 +17,12 @@ struct OnboardingView: View {
 
     enum Phase: Int {
         case healthPermission = 0
-        case conversation = 1
-        case insightsConfirmation = 2
-        case generating = 3
-        case confirmation = 4
+        case whisperSetup = 1
+        case profileSetup = 2
+        case conversation = 3
+        case insightsConfirmation = 4
+        case generating = 5
+        case confirmation = 6
     }
 
     var body: some View {
@@ -44,9 +46,9 @@ struct OnboardingView: View {
                         HealthPermissionView(
                             onAccept: {
                                 Task {
-                                    // Move to conversation immediately
+                                    // Move to Whisper setup
                                     await MainActor.run {
-                                        phase = .conversation
+                                        phase = .whisperSetup
                                         // Load user's selected model if not already done
                                         if !hasSelectedModel {
                                             loadUserSelectedModel()
@@ -57,6 +59,31 @@ struct OnboardingView: View {
                                 }
                             },
                             onSkip: {
+                                phase = .whisperSetup
+                            }
+                        )
+
+                    case .whisperSetup:
+                        WhisperSetupView(
+                            onContinue: {
+                                phase = .profileSetup
+                            },
+                            onSkip: {
+                                phase = .profileSetup
+                            }
+                        )
+
+                    case .profileSetup:
+                        ProfileSetupView(
+                            onComplete: { birthDate, biologicalSex in
+                                // Store the profile data in the conversation variables for later processing
+                                intelligence.addProfileData(birthDate: birthDate, biologicalSex: biologicalSex)
+
+                                // Move to conversation
+                                phase = .conversation
+                            },
+                            onSkip: {
+                                // Move to conversation without saving
                                 phase = .conversation
                             }
                         )
@@ -176,9 +203,17 @@ struct OnboardingView: View {
                 profile.persona = plan.generatedPersona
                 profile.isComplete = true
 
+                // Add profile data if collected
+                let (birthDate, biologicalSex) = intelligence.getProfileData()
+                profile.birthDate = birthDate
+                profile.biologicalSex = biologicalSex
+
                 // Save user and persona
                 let user = try await userServiceResolved.createUser(from: profile)
                 try await personaServiceResolved.savePersona(plan.generatedPersona, for: user.id)
+                
+                // CRITICAL: Mark onboarding as complete
+                try await userServiceResolved.completeOnboarding()
 
                 // Clear cached session on successful completion
                 await intelligence.clearSession()
@@ -206,11 +241,17 @@ struct OnboardingView: View {
             case .healthPermission:
                 // Health permission doesn't fail in a way that needs retry
                 isRetrying = false
+            case .profileSetup:
+                // Profile setup doesn't need retry
+                isRetrying = false
             case .conversation:
                 // Re-analyze last conversation
                 if let lastInput = intelligence.conversationHistory.last {
                     await intelligence.analyzeConversation(lastInput)
                 }
+                isRetrying = false
+            case .whisperSetup:
+                // Whisper setup doesn't need retry
                 isRetrying = false
             case .insightsConfirmation:
                 // Extract insights again
@@ -242,17 +283,17 @@ struct OnboardingView: View {
             phase = .confirmation
         }
     }
-    
+
     private func loadUserSelectedModel() {
         // Get the selected provider and model from UserDefaults
         if let providerString = UserDefaults.standard.string(forKey: "default_ai_provider"),
            let provider = AIProvider(rawValue: providerString),
            let modelId = UserDefaults.standard.string(forKey: "default_ai_model") {
-            
+
             // Set the preferred model in OnboardingIntelligence
             intelligence.setPreferredModel(provider: provider, modelId: modelId)
             hasSelectedModel = true
-            
+
             AppLogger.info("Loaded user-selected model: \(provider.displayName) - \(modelId)", category: .onboarding)
         } else {
             // If no model selected, the intelligence will use getBestAvailableModel
@@ -422,6 +463,10 @@ private struct ConversationView: View {
                             .focused($isInputFocused)
                             .background(Material.regular)
                             .clipShape(RoundedRectangle(cornerRadius: 22, style: .continuous))
+                            .overlay(alignment: .bottomTrailing) {
+                                WhisperVoiceButton(text: $input)
+                                    .padding(12)
+                            }
 
                         Button(action: {
                             onSubmit()
@@ -816,6 +861,7 @@ private struct OnboardingProgressIndicator: View {
 
     private let phases: [(OnboardingView.Phase, String, String)] = [
         (.healthPermission, "heart.fill", "Health"),
+        (.whisperSetup, "waveform", "Voice"),
         (.conversation, "bubble.left.and.bubble.right.fill", "Chat"),
         (.insightsConfirmation, "brain.filled.head.profile", "Insights"),
         (.generating, "sparkles", "Create"),

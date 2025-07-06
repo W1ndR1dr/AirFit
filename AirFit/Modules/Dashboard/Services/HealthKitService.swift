@@ -118,11 +118,9 @@ actor HealthKitService: HealthKitServiceProtocol, ServiceProtocol {
         let endDate = Date()
         _ = Calendar.current.date(byAdding: .day, value: -days, to: endDate) ?? endDate
 
-        // TODO: Fetch workout count and average intensity when getWorkoutData is added to protocol
-        // let workoutData = await healthKitManager.getWorkoutData(from: startDate, to: endDate)
-
-        // For now, use placeholder data
-        let workoutCount = 3
+        // Fetch recent workout data
+        let workouts = try await healthKitManager.fetchRecentWorkouts(limit: days)
+        let workoutCount = workouts.count
         let trend: PerformanceInsight.Trend
         if workoutCount > days / 2 {
             trend = .improving

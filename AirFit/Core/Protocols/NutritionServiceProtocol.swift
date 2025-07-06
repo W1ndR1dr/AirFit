@@ -18,14 +18,8 @@ protocol NutritionServiceProtocol: Sendable {
     /// Calculates a nutrition summary from a collection of entries.
     nonisolated func calculateNutritionSummary(from entries: [FoodEntry]) -> FoodNutritionSummary
 
-    /// Returns the amount of water consumed on a given day in milliliters.
-    func getWaterIntake(for user: User, date: Date) async throws -> Double
-
     /// Retrieves the most recent foods logged by the user.
     func getRecentFoods(for user: User, limit: Int) async throws -> [FoodItem]
-
-    /// Logs water intake for a user at the specified date.
-    func logWaterIntake(for user: User, amountML: Double, date: Date) async throws
 
     /// Returns the meal history for a particular meal type and time span.
     func getMealHistory(for user: User, mealType: MealType, daysBack: Int) async throws -> [FoodEntry]

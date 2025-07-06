@@ -13,56 +13,56 @@ public final class NavigationState {
     // MARK: - Tab Management
     public var selectedTab: AppTab = .chat
     public var previousTab: AppTab?
-    
+
     // MARK: - AI Chat State
     public var isChatMinimized = false
     public var hasUnreadMessages = false
     public var lastAIPrompt: String?
-    
+
     // MARK: - Cross-Tab Communication
     public var pendingChatPrompt: String?
     public var navigationIntent: NavigationIntent?
-    
+
     // MARK: - Voice State
     public var isListeningForWakeWord = true
     public var voiceInputActive = false
-    
+
     // MARK: - Floating Assistant State
     public var fabPosition: CGPoint = CGPoint(x: UIScreen.main.bounds.width - 80, y: UIScreen.main.bounds.height - 160)
     public var fabDragOffset: CGSize = .zero
     public var fabScale: CGFloat = 1.0
     public var fabIsExpanded = false
-    
+
     // MARK: - Quick Action State
     public var suggestedQuickActions: [QuickAction] = []
     public var lastQuickActionUpdate = Date()
-    
+
     // MARK: - Public Methods
-    
+
     /// Navigate to a specific tab with optional intent
     public func navigateToTab(_ tab: AppTab, with intent: NavigationIntent? = nil) {
         previousTab = selectedTab
         selectedTab = tab
         navigationIntent = intent
-        
+
         // Haptic feedback for tab switches
         HapticService.impact(.light)
-        
+
         AppLogger.info("NavigationState: Navigated to \(tab.rawValue) tab", category: .app)
     }
-    
+
     /// Return to the previous tab
     public func navigateToPreviousTab() {
         if let previous = previousTab {
             let current = selectedTab
             selectedTab = previous
             previousTab = current
-            
+
             HapticService.impact(.light)
             AppLogger.info("NavigationState: Returned to \(previous.rawValue) tab", category: .app)
         }
     }
-    
+
     /// Show chat from any screen
     public func showChat(with prompt: String? = nil) {
         pendingChatPrompt = prompt
@@ -70,7 +70,7 @@ public final class NavigationState {
         isChatMinimized = false
         fabIsExpanded = false
     }
-    
+
     /// Toggle floating assistant expansion
     public func toggleFAB() {
         withAnimation(.spring(duration: 0.3)) {
@@ -79,12 +79,12 @@ public final class NavigationState {
         }
         HapticService.impact(.medium)
     }
-    
+
     /// Update quick actions based on context
     public func updateQuickActions(for context: AppContext) {
         let hour = Calendar.current.component(.hour, from: Date())
         var actions: [QuickAction] = []
-        
+
         // Time-based suggestions
         switch hour {
         case 6...9:
@@ -120,7 +120,7 @@ public final class NavigationState {
         default:
             break
         }
-        
+
         // Activity-based suggestions
         if let lastWorkout = context.lastWorkoutDate,
            Calendar.current.dateComponents([.day], from: lastWorkout, to: Date()).day ?? 0 > 2 {
@@ -132,33 +132,24 @@ public final class NavigationState {
                 action: .startWorkout
             ))
         }
-        
-        // Hydration reminder
-        if context.waterIntakeML < context.waterGoalML * 0.5 {
-            actions.append(QuickAction(
-                title: "Log Water",
-                subtitle: "Stay hydrated",
-                systemImage: "drop.fill",
-                color: "blue",
-                action: .logWater
-            ))
-        }
-        
+
+        // No hydration reminder - water tracking removed
+
         suggestedQuickActions = Array(actions.prefix(3)) // Limit to 3 suggestions
         lastQuickActionUpdate = Date()
     }
-    
+
     /// Handle navigation intent execution
     public func executeIntent(_ intent: NavigationIntent) {
         navigationIntent = intent
-        
+
         switch intent {
         case .showFood:
-            navigateToTab(.food)
+            navigateToTab(.nutrition)
         case .startWorkout:
             navigateToTab(.workouts)
         case .showStats:
-            navigateToTab(.profile)
+            navigateToTab(.body)
         case .logQuickAction(let type):
             handleQuickAction(type)
         case .executeCommand(let command):
@@ -166,55 +157,48 @@ public final class NavigationState {
         case .showWorkouts:
             navigateToTab(.workouts)
         case .showRecovery:
-            navigateToTab(.dashboard)
-        case .showHydration:
-            navigateToTab(.food)
+            navigateToTab(.today)
         case .showProgress:
-            navigateToTab(.profile)
+            navigateToTab(.body)
         }
     }
-    
+
     // MARK: - Private Methods
-    
+
     private func handleQuickAction(_ type: QuickAction.QuickActionType) {
         switch type {
         case .logMeal(let mealType):
-            navigateToTab(.food, with: .showFood(date: Date(), mealType: mealType))
-        case .logWater:
-            // This could trigger a quick water logging sheet
-            pendingChatPrompt = "Log water intake"
-            showChat()
+            navigateToTab(.nutrition, with: .showFood(date: Date(), mealType: mealType))
         case .startWorkout:
             navigateToTab(.workouts, with: .startWorkout(type: nil))
         case .checkIn:
-            navigateToTab(.dashboard)
+            navigateToTab(.today)
         }
     }
-    
+
     private func executeLocalCommand(_ command: LocalCommand) {
         switch command {
         case .showDashboard:
-            navigateToTab(.dashboard)
+            navigateToTab(.today)
         case .navigateToTab(let tab):
             navigateToTab(tab)
         case .showProfile:
-            navigateToTab(.profile)
+            navigateToTab(.body)
         case .startWorkout:
             navigateToTab(.workouts, with: .startWorkout(type: nil))
         case .showFood(let date, let mealType):
-            navigateToTab(.food, with: .showFood(date: date, mealType: mealType))
+            navigateToTab(.nutrition, with: .showFood(date: date, mealType: mealType))
         case .showWorkouts(let filter):
             navigateToTab(.workouts, with: .showWorkouts(filter: filter))
-        case .showStats(let metric):
-            navigateToTab(.profile, with: .showStats(metric: metric))
+        case .showStats(let metricString):
+            // Convert string to HealthMetric enum
+            let healthMetric = metricString.flatMap { HealthMetric(rawValue: $0) }
+            navigateToTab(.body, with: .showStats(metric: healthMetric))
         case .showRecovery:
-            // Navigate to dashboard and show recovery card
-            navigateToTab(.dashboard, with: .showRecovery)
-        case .showHydration:
-            // Navigate to food tab for hydration tracking
-            navigateToTab(.food, with: .showHydration)
+            // Navigate to today dashboard and show recovery card
+            navigateToTab(.today, with: .showRecovery)
         case .showProgress(let timeframe):
-            navigateToTab(.profile, with: .showProgress(timeframe: timeframe))
+            navigateToTab(.body, with: .showProgress(timeframe: timeframe))
         case .quickAction(let actionType):
             handleQuickAction(actionType)
         default:
@@ -227,19 +211,29 @@ public final class NavigationState {
 
 // MARK: - Supporting Types
 
+/// Represents specific health metrics for navigation
+public enum HealthMetric: String, Hashable, CaseIterable {
+    case weight = "weight"
+    case bodyFat = "bodyFat"
+    case nutrition = "nutrition"
+    case heartRate = "heartRate"
+    case sleep = "sleep"
+    case recovery = "recovery"
+    case activity = "activity"
+}
+
 /// Represents a navigation intent that can be executed across tabs
 public enum NavigationIntent: Hashable {
     case showFood(date: Date?, mealType: MealType?)
     case startWorkout(type: WorkoutType?)
-    case showStats(metric: String?) // TODO: Replace with proper HealthMetric when available
+    case showStats(metric: HealthMetric?)
     case logQuickAction(type: QuickAction.QuickActionType)
     case executeCommand(parsed: LocalCommand)
     // Enhanced navigation intents
     case showWorkouts(filter: LocalCommand.WorkoutFilter?)
     case showRecovery
-    case showHydration
     case showProgress(timeframe: LocalCommand.TimeFrame?)
-    
+
     public static func == (lhs: NavigationIntent, rhs: NavigationIntent) -> Bool {
         switch (lhs, rhs) {
         case let (.showFood(lDate, lType), .showFood(rDate, rType)):
@@ -256,15 +250,13 @@ public enum NavigationIntent: Hashable {
             return lFilter == rFilter
         case (.showRecovery, .showRecovery):
             return true
-        case (.showHydration, .showHydration):
-            return true
         case let (.showProgress(lTimeframe), .showProgress(rTimeframe)):
             return lTimeframe == rTimeframe
         default:
             return false
         }
     }
-    
+
     public func hash(into hasher: inout Hasher) {
         switch self {
         case let .showFood(date, mealType):
@@ -287,8 +279,6 @@ public enum NavigationIntent: Hashable {
             hasher.combine(filter)
         case .showRecovery:
             hasher.combine("showRecovery")
-        case .showHydration:
-            hasher.combine("showHydration")
         case let .showProgress(timeframe):
             hasher.combine("showProgress")
             hasher.combine(timeframe)
@@ -302,11 +292,9 @@ public struct AppContext {
     public let hasLoggedLunch: Bool
     public let hasLoggedDinner: Bool
     public let lastWorkoutDate: Date?
-    public let waterIntakeML: Double
-    public let waterGoalML: Double
     public let currentTab: AppTab
     public let timeOfDay: TimeOfDay
-    
+
     public enum TimeOfDay {
         case morning, afternoon, evening, night
     }
@@ -325,13 +313,6 @@ extension NavigationState {
                 systemImage: "sunrise.fill",
                 color: "orange",
                 action: .logMeal(type: .breakfast)
-            ),
-            QuickAction(
-                title: "Log Water",
-                subtitle: "Stay hydrated",
-                systemImage: "drop.fill",
-                color: "blue",
-                action: .logWater
             ),
             QuickAction(
                 title: "Start Workout",

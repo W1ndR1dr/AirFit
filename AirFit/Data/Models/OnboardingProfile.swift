@@ -15,6 +15,8 @@ final class OnboardingProfile: @unchecked Sendable {
     var name: String?
     var email: String?
     var isComplete: Bool = false
+    var birthDate: Date?
+    var biologicalSex: String?
 
     // Persona data (stored as JSON)
     var personaData: Data?

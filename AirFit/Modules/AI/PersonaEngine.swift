@@ -207,6 +207,49 @@ final class PersonaEngine {
         // Time context
         compactContext["time_of_day"] = healthContext.environment.timeOfDay.rawValue
 
+        // Strength context for workout generation
+        if let strengthContext = healthContext.appContext.strengthContext {
+            var strengthData: [String: Any] = [:]
+
+            // Include recent PRs
+            if !strengthContext.recentPRs.isEmpty {
+                strengthData["recent_prs"] = strengthContext.recentPRs.prefix(3).map { pr in
+                    [
+                        "exercise": pr.exercise,
+                        "oneRM": pr.oneRepMax,
+                        "improvement": pr.improvement ?? 0
+                    ]
+                }
+            }
+
+            // Include top exercises by strength
+            if !strengthContext.topExercises.isEmpty {
+                strengthData["top_exercises"] = strengthContext.topExercises.prefix(5).map { exercise in
+                    [
+                        "name": exercise.exercise,
+                        "oneRM": exercise.currentOneRM,
+                        "trend": exercise.trend.rawValue
+                    ]
+                }
+            }
+
+            // Include muscle group volumes
+            if !strengthContext.muscleGroupVolumes.isEmpty {
+                strengthData["muscle_volumes"] = strengthContext.muscleGroupVolumes.map { volume in
+                    [
+                        "muscle": volume.muscleGroup,
+                        "sets": volume.completedSets,
+                        "target": volume.targetSets
+                    ]
+                }
+            }
+
+            // Include volume targets
+            strengthData["volume_targets"] = strengthContext.volumeTargets
+
+            compactContext["strength"] = strengthData
+        }
+
         let data = try JSONSerialization.data(withJSONObject: compactContext)
         return String(data: data, encoding: .utf8) ?? "{}"
     }

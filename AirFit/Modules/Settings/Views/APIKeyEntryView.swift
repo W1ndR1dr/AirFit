@@ -114,11 +114,13 @@ struct APIKeyEntryView: View {
                                 .focused($isKeyFieldFocused)
                                 .autocorrectionDisabled()
                                 .textInputAutocapitalization(.never)
+                            // .voiceTranscriptionEnabled($apiKey) // TODO: Implement voice transcription
                         } else {
                             SecureField("Enter your API key", text: $apiKey)
                                 .textFieldStyle(.plain)
                                 .font(.system(size: 16, weight: .regular, design: .monospaced))
                                 .focused($isKeyFieldFocused)
+                            // .voiceTranscriptionEnabled($apiKey) // TODO: Implement voice transcription
                         }
 
                         Button {

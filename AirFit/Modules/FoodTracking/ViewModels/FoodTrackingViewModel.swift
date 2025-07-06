@@ -44,6 +44,8 @@ final class FoodTrackingViewModel: ErrorHandling {
     private let nutritionService: NutritionServiceProtocol?
     internal let coachEngine: FoodCoachEngineProtocol
     private let coordinator: FoodTrackingCoordinator
+    private let healthKitManager: HealthKitManager?
+    private let nutritionCalculator: NutritionCalculatorProtocol?
 
     // MARK: - State
     private(set) var isLoading = false
@@ -68,7 +70,6 @@ final class FoodTrackingViewModel: ErrorHandling {
     // Today's data
     private(set) var todaysFoodEntries: [FoodEntry] = []
     private(set) var todaysNutrition = FoodNutritionSummary()
-    private(set) var waterIntakeML: Double = 0
 
     // Search and suggestions - now using AI-generated results
     private(set) var searchResults: [ParsedFoodItem] = []
@@ -108,7 +109,9 @@ final class FoodTrackingViewModel: ErrorHandling {
         foodVoiceAdapter: FoodVoiceAdapterProtocol,
         nutritionService: NutritionServiceProtocol?,
         coachEngine: FoodCoachEngineProtocol,
-        coordinator: FoodTrackingCoordinator
+        coordinator: FoodTrackingCoordinator,
+        healthKitManager: HealthKitManager? = nil,
+        nutritionCalculator: NutritionCalculatorProtocol? = nil
     ) {
         self.modelContext = modelContext
         self.user = user
@@ -116,6 +119,8 @@ final class FoodTrackingViewModel: ErrorHandling {
         self.nutritionService = nutritionService
         self.coachEngine = coachEngine
         self.coordinator = coordinator
+        self.healthKitManager = healthKitManager
+        self.nutritionCalculator = nutritionCalculator
 
         setupVoiceCallbacks()
     }
@@ -163,14 +168,31 @@ final class FoodTrackingViewModel: ErrorHandling {
                 date: currentDate
             ) ?? []
 
-            todaysNutrition = nutritionService?.calculateNutritionSummary(
+            var summary = nutritionService?.calculateNutritionSummary(
                 from: todaysFoodEntries
             ) ?? FoodNutritionSummary()
 
-            waterIntakeML = try await nutritionService?.getWaterIntake(
-                for: user,
-                date: currentDate
-            ) ?? 0
+            // Fetch dynamic nutrition targets
+            if let calculator = nutritionCalculator {
+                do {
+                    let dynamicTargets = try await calculator.calculateDynamicTargets(for: user)
+                    summary.calorieGoal = dynamicTargets.totalCalories
+                    summary.proteinGoal = dynamicTargets.protein
+                    summary.carbGoal = dynamicTargets.carbs
+                    summary.fatGoal = dynamicTargets.fat
+                } catch {
+                    AppLogger.warning("Failed to calculate dynamic nutrition targets: \(error)", category: .meals)
+                    // Fall back to user's stored preferences
+                    // Use a default weight of 70kg if no weight data available
+                    let weightLbs = 70 * 2.20462 // Default 70kg
+                    summary.proteinGoal = weightLbs * user.proteinGramsPerPound
+                    summary.fatGoal = 2_000 * user.fatPercentage / 9 // Assume 2000 cal default
+                    summary.carbGoal = 250 // Default
+                    summary.calorieGoal = 2_000 // Default
+                }
+            }
+
+            todaysNutrition = summary
 
             recentFoods = try await nutritionService?.getRecentFoods(
                 for: user,
@@ -356,6 +378,23 @@ final class FoodTrackingViewModel: ErrorHandling {
             modelContext.insert(entry)
             try modelContext.save()
 
+            // Sync to HealthKit if available
+            if let healthKitManager = healthKitManager {
+                Task {
+                    do {
+                        let sampleIDs = try await healthKitManager.saveFoodEntry(entry)
+                        entry.healthKitSampleIDs = sampleIDs
+                        entry.healthKitSyncDate = Date()
+                        try modelContext.save()
+
+                        AppLogger.info("Synced food entry to HealthKit with \(sampleIDs.count) samples", category: .health)
+                    } catch {
+                        // Don't fail the whole operation if HealthKit sync fails
+                        AppLogger.error("Failed to sync to HealthKit", error: error, category: .health)
+                    }
+                }
+            }
+
             await loadTodaysData()
 
             parsedItems = []
@@ -371,24 +410,6 @@ final class FoodTrackingViewModel: ErrorHandling {
         }
     }
 
-    // MARK: - Water Tracking
-    func logWater(amount: Double, unit: WaterUnit) async {
-        do {
-            let amountInML = unit.toMilliliters(amount)
-
-            try await nutritionService?.logWaterIntake(
-                for: user,
-                amountML: amountInML,
-                date: currentDate
-            )
-
-            waterIntakeML += amountInML
-            HapticService.play(.success)
-        } catch {
-            setError(error)
-            AppLogger.error("Failed to log water: \(error)")
-        }
-    }
 
     // MARK: - Smart Suggestions
     private func generateSmartSuggestions() async throws -> [FoodItem] {
@@ -493,23 +514,6 @@ final class FoodTrackingViewModel: ErrorHandling {
 
     func setParsedItems(_ items: [ParsedFoodItem]) {
         parsedItems = items
-    }
-}
-
-
-enum WaterUnit: String, CaseIterable {
-    case milliliters = "ml"
-    case oz = "oz"
-    case cups = "cups"
-    case liters = "L"
-
-    func toMilliliters(_ amount: Double) -> Double {
-        switch self {
-        case .milliliters: return amount
-        case .oz: return amount * 29.5735
-        case .cups: return amount * 236.588
-        case .liters: return amount * 1_000
-        }
     }
 }
 

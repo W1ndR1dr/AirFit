@@ -1,5 +1,10 @@
 import SwiftUI
 
+// MARK: - Notification Names
+extension Notification.Name {
+    static let addExerciseToBuilder = Notification.Name("addExerciseToBuilder")
+}
+
 // MARK: - Exercise Card
 struct ExerciseCard: View {
     let exercise: ExerciseDefinition
@@ -436,7 +441,13 @@ struct ExerciseDetailSheet: View {
     }
 
     private func addToWorkout() {
-        // TODO: Integrate with workout planning
+        // Add exercise to current workout builder
+        NotificationCenter.default.post(
+            name: .addExerciseToBuilder,
+            object: nil,
+            userInfo: ["exercise": exercise]
+        )
+        HapticService.notification(.success)
         dismiss()
     }
 }

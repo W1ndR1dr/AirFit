@@ -96,13 +96,13 @@ struct InitialAPISetupView: View {
                                     .disabled(isValidating)
                                     .autocorrectionDisabled()
                                     .textInputAutocapitalization(.never)
-                                // .voiceTranscriptionEnabled($apiKey) // TODO: Implement voice transcription
+                                // Voice transcription available via WhisperVoiceButton if needed
                             } else {
                                 SecureField("Enter your \(selectedProvider.displayName) API key", text: $apiKey)
                                     .textFieldStyle(.plain)
                                     .font(.system(size: 16, weight: .regular, design: .monospaced))
                                     .disabled(isValidating)
-                                // .voiceTranscriptionEnabled($apiKey) // TODO: Implement voice transcription
+                                // Voice transcription available via WhisperVoiceButton if needed
                             }
 
                             Button {

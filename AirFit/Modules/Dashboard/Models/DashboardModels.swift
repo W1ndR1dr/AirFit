@@ -12,9 +12,6 @@ struct NutritionSummary: Sendable {
     let fatTarget: Double
     let fiber: Double
     let fiberTarget: Double
-    let water: Double
-    let waterTarget: Double
-    let waterLiters: Double
     let mealCount: Int
     let meals: [FoodEntry]
 
@@ -29,9 +26,6 @@ struct NutritionSummary: Sendable {
         fatTarget: Double = 65,
         fiber: Double = 0,
         fiberTarget: Double = 25,
-        water: Double = 0,
-        waterTarget: Double = 64,
-        waterLiters: Double = 0,
         mealCount: Int = 0,
         meals: [FoodEntry] = []
     ) {
@@ -45,9 +39,6 @@ struct NutritionSummary: Sendable {
         self.fatTarget = fatTarget
         self.fiber = fiber
         self.fiberTarget = fiberTarget
-        self.water = water
-        self.waterTarget = waterTarget
-        self.waterLiters = waterLiters
         self.mealCount = mealCount
         self.meals = meals
     }
@@ -60,15 +51,13 @@ struct NutritionTargets: Sendable {
     let carbs: Double
     let fat: Double
     let fiber: Double
-    let water: Double
 
     static let `default` = NutritionTargets(
         calories: 2_000,
         protein: 150,
         carbs: 250,
         fat: 65,
-        fiber: 25,
-        water: 64
+        fiber: 25
     )
 }
 
@@ -162,10 +151,9 @@ public struct QuickAction: Sendable, Identifiable {
     public enum QuickActionType: Sendable, Equatable, Hashable {
         case logMeal(type: MealType)
         case startWorkout
-        case logWater
         case checkIn
     }
-    
+
     public init(title: String, subtitle: String, systemImage: String, color: String, action: QuickActionType) {
         self.title = title
         self.subtitle = subtitle

@@ -80,6 +80,10 @@ final class UserService: UserServiceProtocol, ServiceProtocol {
         user.isOnboarded = profile.isComplete
         user.lastActiveDate = Date()
 
+        // Set profile data if available
+        user.birthDate = profile.birthDate
+        user.biologicalSex = profile.biologicalSex
+
         // Save to SwiftData
         modelContext.insert(user)
         try modelContext.save()
@@ -193,7 +197,8 @@ final class UserService: UserServiceProtocol, ServiceProtocol {
                 generationDuration: 2.5,
                 tokenCount: 1_000,
                 previewReady: true
-            )
+            ),
+            nutritionRecommendations: nil // Legacy persona - no nutrition recommendations
         )
 
         try modelContext.save()

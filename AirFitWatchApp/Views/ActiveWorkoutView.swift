@@ -15,9 +15,14 @@ struct ActiveWorkoutView: View {
             WorkoutMetricsView(workoutManager: workoutManager)
                 .tag(0)
 
-            // Exercise logging page
-            ExerciseLoggingView(workoutManager: workoutManager)
-                .tag(1)
+            // Exercise logging page - show planned view if executing plan
+            if workoutManager.isExecutingPlannedWorkout {
+                PlannedExerciseView(workoutManager: workoutManager)
+                    .tag(1)
+            } else {
+                ExerciseLoggingView(workoutManager: workoutManager)
+                    .tag(1)
+            }
 
             // Controls page
             WorkoutControlsView(workoutManager: workoutManager) {

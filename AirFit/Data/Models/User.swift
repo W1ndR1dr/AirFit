@@ -15,6 +15,29 @@ final class User: @unchecked Sendable {
     // Health baseline data
     var baselineHRV: Double?
 
+    // Biological data for BMR calculation
+    var biologicalSex: String? // "male" or "female"
+    var birthDate: Date?
+
+    // Personalized macro preferences (from AI or user-adjusted)
+    var proteinGramsPerPound: Double = 0.9  // Default, overridden by persona
+    var fatPercentage: Double = 0.30         // Default 30%, overridden by persona
+    var macroFlexibility: String = "balanced" // "strict", "balanced", "flexible"
+
+    // Muscle group volume targets (sets per week) - AI configurable
+    var muscleGroupTargets: [String: Int] = [
+        "Chest": 16,
+        "Back": 16,
+        "Shoulders": 12,
+        "Biceps": 10,
+        "Triceps": 10,
+        "Quads": 12,
+        "Hamstrings": 10,
+        "Glutes": 10,
+        "Calves": 8,
+        "Core": 12
+    ]
+
     // Onboarding status
     var isOnboarded: Bool = false
     var onboardingCompletedDate: Date?
@@ -29,15 +52,20 @@ final class User: @unchecked Sendable {
         preferredUnits == "metric"
     }
 
+    var age: Int? {
+        guard let birthDate else { return nil }
+        return Calendar.current.dateComponents([.year], from: birthDate, to: Date()).year
+    }
+
     var nutritionPreferences: NutritionPreferences {
         NutritionPreferences(
             dietaryRestrictions: [],
             allergies: [],
             preferredUnits: preferredUnits,
-            calorieGoal: nil,
-            proteinGoal: nil,
-            carbGoal: nil,
-            fatGoal: nil
+            calorieGoal: 2_000, // Temporary default until dynamic calculation
+            proteinGoal: 150,  // Temporary default until dynamic calculation
+            carbGoal: 250,     // Temporary default until dynamic calculation
+            fatGoal: 65        // Temporary default until dynamic calculation
         )
     }
 
@@ -76,6 +104,9 @@ final class User: @unchecked Sendable {
     @Relationship(deleteRule: .cascade, inverse: \ChatSession.user)
     var chatSessions: [ChatSession] = []
 
+    @Relationship(deleteRule: .cascade, inverse: \StrengthRecord.user)
+    var strengthRecords: [StrengthRecord] = []
+
     // MARK: - Initialization
     init(
         id: UUID = UUID(),
@@ -83,7 +114,9 @@ final class User: @unchecked Sendable {
         lastActiveAt: Date = Date(),
         email: String? = nil,
         name: String? = nil,
-        preferredUnits: String = "imperial"
+        preferredUnits: String = "imperial",
+        biologicalSex: String? = nil,
+        birthDate: Date? = nil
     ) {
         self.id = id
         self.createdAt = createdAt
@@ -91,6 +124,8 @@ final class User: @unchecked Sendable {
         self.email = email
         self.name = name
         self.preferredUnits = preferredUnits
+        self.biologicalSex = biologicalSex
+        self.birthDate = birthDate
     }
 
     // MARK: - Methods
@@ -117,6 +152,10 @@ final class User: @unchecked Sendable {
             .compactMap { $0.completedDate != nil ? $0 : nil }
             .filter { $0.completedDate! > cutoffDate }
             .sorted { $0.completedDate! > $1.completedDate! }
+    }
+
+    func getMuscleGroupTargets() -> [String: Int] {
+        return muscleGroupTargets
     }
 
     // MARK: - Test Support

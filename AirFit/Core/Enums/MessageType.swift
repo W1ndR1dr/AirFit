@@ -2,8 +2,8 @@ import Foundation
 
 /// Represents the type of user message for AI conversation optimization
 public enum MessageType: String, Codable, CaseIterable, Sendable {
-    case conversation = "conversation"
-    case command = "command"
+    case conversation
+    case command
 
     /// Display name for UI purposes
     public var displayName: String {

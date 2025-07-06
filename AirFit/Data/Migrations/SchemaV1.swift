@@ -21,6 +21,7 @@ enum SchemaV1: VersionedSchema {
             Workout.self,
             Exercise.self,
             ExerciseSet.self,
+            StrengthRecord.self,
 
             // Goals
             TrackedGoal.self,

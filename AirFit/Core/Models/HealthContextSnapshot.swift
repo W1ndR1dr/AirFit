@@ -197,7 +197,9 @@ struct HeartHealthMetrics: Sendable, Codable {
 }
 
 struct BodyMetrics: Sendable, Codable {
+    var date: Date?
     var weight: Measurement<UnitMass>?
+    var height: Measurement<UnitLength>?
     var bodyFatPercentage: Double?
     var leanBodyMass: Measurement<UnitMass>?
     var bmi: Double?
@@ -239,12 +241,12 @@ struct AppSpecificContext: Sendable, Codable {
     var activeWorkoutName: String?
     var lastMealTime: Date?
     var lastMealSummary: String?
-    var waterIntakeToday: Measurement<UnitVolume>?
     var lastCoachInteraction: Date?
     var upcomingWorkout: String?
     var currentStreak: Int?
     var workoutContext: WorkoutContext?
     var goalsContext: GoalsContext?
+    var strengthContext: StrengthContext?
 }
 
 // MARK: - Enhanced Workout Context Types
@@ -354,6 +356,97 @@ extension HKWorkoutActivityType {
         case .other: return "Other"
         default: return "Workout"
         }
+    }
+}
+
+// MARK: - Strength Context Types
+
+/// Strength progression trend
+enum StrengthTrend: String, Sendable, Codable {
+    case increasing
+    case stable
+    case decreasing
+    case insufficient // Not enough data
+
+    var displayName: String {
+        switch self {
+        case .increasing: return "Increasing"
+        case .stable: return "Stable"
+        case .decreasing: return "Decreasing"
+        case .insufficient: return "More data needed"
+        }
+    }
+
+    var symbolName: String {
+        switch self {
+        case .increasing: return "arrow.up.circle.fill"
+        case .stable: return "minus.circle.fill"
+        case .decreasing: return "arrow.down.circle.fill"
+        case .insufficient: return "questionmark.circle.fill"
+        }
+    }
+}
+
+/// Comprehensive strength context for AI-powered workout generation
+struct StrengthContext: Sendable, Codable {
+    var recentPRs: [ExercisePR] = []              // Last 5 PRs across all exercises
+    var topExercises: [ExerciseStrength] = []      // Top 10 exercises by 1RM
+    var muscleGroupVolumes: [MuscleVolume] = []    // Current week volume
+    var volumeTargets: [String: Int] = [:]         // AI-configured weekly targets
+    var strengthTrends: [String: StrengthTrend] = [:] // Trends for key exercises
+
+    init(
+        recentPRs: [ExercisePR] = [],
+        topExercises: [ExerciseStrength] = [],
+        muscleGroupVolumes: [MuscleVolume] = [],
+        volumeTargets: [String: Int] = [:],
+        strengthTrends: [String: StrengthTrend] = [:]
+    ) {
+        self.recentPRs = recentPRs
+        self.topExercises = topExercises
+        self.muscleGroupVolumes = muscleGroupVolumes
+        self.volumeTargets = volumeTargets
+        self.strengthTrends = strengthTrends
+    }
+}
+
+/// Muscle group volume information
+struct MuscleVolume: Sendable, Codable {
+    let muscleGroup: String
+    let completedSets: Int
+    let targetSets: Int
+
+    var progress: Double {
+        guard targetSets > 0 else { return 0 }
+        return min(Double(completedSets) / Double(targetSets), 1.0)
+    }
+}
+
+/// Personal record information
+struct ExercisePR: Sendable, Codable {
+    let exercise: String
+    let oneRepMax: Double
+    let date: Date
+    let improvement: Double? // Percentage improvement vs previous PR
+    let actualWeight: Double?
+    let actualReps: Int?
+
+    var displayString: String {
+        let improvementStr = improvement.map { "+\(Int($0))%" } ?? ""
+        return "\(exercise): \(Int(oneRepMax))kg \(improvementStr)"
+    }
+}
+
+/// Current strength level for an exercise
+struct ExerciseStrength: Sendable, Codable {
+    let exercise: String
+    let currentOneRM: Double
+    let lastUpdated: Date
+    let trend: StrengthTrend
+    let recentSets: Int // Sets performed in last 7 days
+
+    var daysSinceUpdate: Int {
+        Calendar.current.dateComponents([.day], from: lastUpdated, to: Date()).day ?? 0
     }
 }
 

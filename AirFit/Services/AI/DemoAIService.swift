@@ -7,15 +7,15 @@ actor DemoAIService: AIServiceProtocol {
     nonisolated let serviceIdentifier = "demo-ai-service"
     private var _isConfigured: Bool = true
     nonisolated var isConfigured: Bool {
-        get { true } // Always configured in demo mode
+        true // Always configured in demo mode
     }
     private var _activeProvider: AIProvider = .gemini
     nonisolated var activeProvider: AIProvider {
-        get { .gemini } // Always gemini in demo mode
+        .gemini // Always gemini in demo mode
     }
     private var _availableModels: [AIModel] = []
     nonisolated var availableModels: [AIModel] {
-        get { [] } // Return empty for nonisolated access
+        [] // Return empty for nonisolated access
     }
 
     private var responseDelay: TimeInterval = 1.0
@@ -41,7 +41,6 @@ actor DemoAIService: AIServiceProtocol {
         "nutrition": [
             "Nutrition is key to your fitness goals. Let's work on building sustainable eating habits.",
             "Great job logging your meals! I notice you're hitting your protein targets consistently.",
-            "Hydration is often overlooked. Aim for at least 8 glasses of water daily.",
             "Pre-workout nutrition can boost your performance. Try a banana with almond butter 30 minutes before.",
             "Recovery nutrition is crucial. Let's ensure you're getting enough protein post-workout."
         ],
@@ -237,6 +236,14 @@ extension DemoAIService {
                 generationDuration: 2.0,
                 tokenCount: 0,
                 previewReady: true
+            ),
+            nutritionRecommendations: NutritionRecommendations(
+                approach: "Balanced fitness nutrition",
+                proteinGramsPerPound: 0.9,
+                fatPercentage: 0.30,
+                carbStrategy: "Fill remaining calories with quality carbs",
+                rationale: "A balanced approach supporting general fitness and health goals",
+                flexibilityNotes: "Focus on consistency over perfection - aim for weekly averages"
             )
         )
     }

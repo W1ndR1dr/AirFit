@@ -144,6 +144,10 @@ struct MessageComposer: View {
                     onSend()
                 }
             }
+            .overlay(alignment: .bottomTrailing) {
+                WhisperVoiceButton(text: $text)
+                    .padding(4)
+            }
             .opacity(animateIn ? 1 : 0)
             .animation(MotionToken.standardSpring.delay(0.1), value: animateIn)
     }

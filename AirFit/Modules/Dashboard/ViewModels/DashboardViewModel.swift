@@ -29,6 +29,9 @@ final class DashboardViewModel: ErrorHandling {
     // Quick Actions
     private(set) var suggestedActions: [QuickAction] = []
 
+    // AI Dashboard Content
+    private(set) var aiDashboardContent: AIDashboardContent?
+
     // MARK: - Dependencies
     private let user: User
     private let modelContext: ModelContext
@@ -132,17 +135,33 @@ final class DashboardViewModel: ErrorHandling {
         isLoading = true
         defer { isLoading = false }
 
-        // Load independent data in parallel for better performance
-        async let greetingTask: Void = loadMorningGreeting()
+        // Load AI dashboard content first
+        await loadAIDashboardContent()
+
+        // Load other data in parallel for backward compatibility
         async let energyTask: Void = loadEnergyLevel()
         async let nutritionTask: Void = loadNutritionData()
         async let healthTask: Void = loadHealthInsights()
 
         // Wait for all parallel tasks to complete
-        _ = await (greetingTask, energyTask, nutritionTask, healthTask)
+        _ = await (energyTask, nutritionTask, healthTask)
 
         // Load quick actions after nutrition data is available (has dependency)
         await loadQuickActions(for: Date())
+    }
+
+    private func loadAIDashboardContent() async {
+        do {
+            aiDashboardContent = try await aiCoachService.generateDashboardContent(for: user)
+            // Also update morning greeting from the content if available
+            if let content = aiDashboardContent {
+                morningGreeting = content.primaryInsight
+            }
+        } catch {
+            AppLogger.error("Failed to generate AI dashboard content", error: error, category: .ai)
+            // Fall back to basic greeting
+            morningGreeting = generateFallbackGreeting()
+        }
     }
 
     private func loadMorningGreeting() async {
@@ -205,16 +224,14 @@ final class DashboardViewModel: ErrorHandling {
             let summary = try await nutritionService.getTodaysSummary(for: user)
             self.nutritionSummary = summary
 
-            // Always try to get targets if profile exists
-            if let profile = user.onboardingProfile {
-                do {
-                    let targets = try await nutritionService.getTargets(from: profile)
-                    self.nutritionTargets = targets
-                } catch {
-                    AppLogger.error("Failed to load nutrition targets", error: error, category: .data)
-                    // Keep default targets on error
-                }
-            }
+            // Extract targets from summary
+            self.nutritionTargets = NutritionTargets(
+                calories: summary.caloriesTarget,
+                protein: summary.proteinTarget,
+                carbs: summary.carbsTarget,
+                fat: summary.fatTarget,
+                fiber: summary.fiberTarget
+            )
 
         } catch {
             AppLogger.error("Failed to load nutrition data", error: error, category: .data)
@@ -262,15 +279,6 @@ final class DashboardViewModel: ErrorHandling {
             ))
         }
 
-        if nutritionSummary.waterLiters < 2.0 {
-            actions.append(QuickAction(
-                title: "Log Water",
-                subtitle: "Track your hydration",
-                systemImage: "drop.fill",
-                color: "cyan",
-                action: .logWater
-            ))
-        }
 
         self.suggestedActions = actions
     }

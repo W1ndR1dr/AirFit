@@ -228,15 +228,6 @@ struct FoodLoggingView: View {
                     }
 
                     Spacer()
-
-                    HStack(spacing: AppSpacing.xs) {
-                        Image(systemName: "drop.fill")
-                            .font(.system(size: 14))
-                            .foregroundStyle(.blue)
-                        Text("\(Int(viewModel.waterIntakeML)) ml")
-                            .font(.system(size: 14, weight: .medium))
-                            .foregroundColor(.primary)
-                    }
                 }
                 .padding(.top, AppSpacing.xs)
             }
@@ -265,11 +256,6 @@ struct FoodLoggingView: View {
                     QuickActionCard(title: "Search", icon: "magnifyingglass", gradientColors: [.green, .teal]) {
                         HapticService.impact(.light)
                         coordinator.showSheet(.foodSearch)
-                    }
-
-                    QuickActionCard(title: "Water", icon: "drop.fill", gradientColors: [.blue, .cyan]) {
-                        HapticService.impact(.light)
-                        coordinator.showSheet(.waterTracking)
                     }
 
                     QuickActionCard(title: "Manual", icon: "square.and.pencil", gradientColors: [.purple, .indigo]) {
@@ -385,6 +371,16 @@ struct FoodLoggingView: View {
             PlaceholderView(title: "Recipes", subtitle: "Coming in Phase 3")
         case .mealPlan:
             PlaceholderView(title: "Meal Plan", subtitle: "Coming in Phase 3")
+        case .voiceInput:
+            FoodVoiceInputView(viewModel: viewModel)
+        case .photoInput:
+            PlaceholderView(title: "Photo Input", subtitle: "Camera-based food recognition")
+        case .foodDetail(let entry):
+            PlaceholderView(title: "Food Detail", subtitle: "Entry details for \(entry.id)")
+        case .foodSearch:
+            PlaceholderView(title: "Food Search", subtitle: "Search food database")
+        case .quickLog(let food):
+            PlaceholderView(title: "Quick Log", subtitle: "Add \(food.name)")
         }
     }
 
@@ -399,8 +395,6 @@ struct FoodLoggingView: View {
             PlaceholderView(title: "Food Search", subtitle: "Coming in Phase 3")
         case .manualEntry:
             PlaceholderView(title: "Manual Entry", subtitle: "Coming in Phase 3")
-        case .waterTracking:
-            PlaceholderView(title: "Water Tracking", subtitle: "Coming in Phase 3")
         case .mealDetails(let entry):
             PlaceholderView(title: "Meal Details", subtitle: "Entry: \(entry.mealDisplayName)")
         }

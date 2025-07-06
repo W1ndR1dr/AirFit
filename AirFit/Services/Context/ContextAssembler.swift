@@ -13,14 +13,20 @@ final class ContextAssembler: ContextAssemblerProtocol, ServiceProtocol {
 
     private let healthKitManager: HealthKitManaging
     private let goalService: GoalServiceProtocol?
+    private let muscleGroupVolumeService: MuscleGroupVolumeServiceProtocol?
+    private let strengthProgressionService: StrengthProgressionServiceProtocol?
     // Future: private let weatherService: WeatherServiceProtocol
 
     init(
         healthKitManager: HealthKitManaging,
-        goalService: GoalServiceProtocol? = nil
+        goalService: GoalServiceProtocol? = nil,
+        muscleGroupVolumeService: MuscleGroupVolumeServiceProtocol? = nil,
+        strengthProgressionService: StrengthProgressionServiceProtocol? = nil
     ) {
         self.healthKitManager = healthKitManager
         self.goalService = goalService
+        self.muscleGroupVolumeService = muscleGroupVolumeService
+        self.strengthProgressionService = strengthProgressionService
     }
 
     /// Simplified context assembly for dashboard
@@ -182,6 +188,7 @@ final class ContextAssembler: ContextAssemblerProtocol, ServiceProtocol {
         var currentStreak: Int?
         var workoutContext: WorkoutContext?
         var goalsContext: GoalsContext?
+        var strengthContext: StrengthContext?
 
         do {
             // Meal context (unchanged)
@@ -212,6 +219,20 @@ final class ContextAssembler: ContextAssemblerProtocol, ServiceProtocol {
             upcomingWorkout = workoutContext?.upcomingWorkout?.name
             currentStreak = workoutContext?.streakDays
 
+            // Fetch user for strength context
+            let userDescriptor = FetchDescriptor<User>(
+                sortBy: [SortDescriptor(\.lastActiveDate, order: .reverse)]
+            )
+            let users = try context.fetch(userDescriptor)
+
+            if let currentUser = users.first {
+                // Assemble strength context
+                strengthContext = await assembleStrengthContext(
+                    user: currentUser,
+                    context: context
+                )
+            }
+
             // Fetch goals context if goalService is available
             if let goalService = self.goalService {
                 // Get current user ID - for now, using a fetch
@@ -235,12 +256,12 @@ final class ContextAssembler: ContextAssemblerProtocol, ServiceProtocol {
             activeWorkoutName: activeWorkoutName,
             lastMealTime: lastMealTime,
             lastMealSummary: lastMealSummary,
-            waterIntakeToday: nil,
             lastCoachInteraction: nil,
             upcomingWorkout: upcomingWorkout,
             currentStreak: currentStreak,
             workoutContext: workoutContext,
-            goalsContext: goalsContext
+            goalsContext: goalsContext,
+            strengthContext: strengthContext
         )
     }
 
@@ -595,5 +616,123 @@ final class ContextAssembler: ContextAssemblerProtocol, ServiceProtocol {
                 "hasGoalService": "\(goalService != nil)"
             ]
         )
+    }
+
+    // MARK: - Strength Context Assembly
+
+    /// Assembles comprehensive strength context for AI workout generation
+    private func assembleStrengthContext(
+        user: User,
+        context: ModelContext
+    ) async -> StrengthContext? {
+        do {
+            // Use injected services, return nil if not available
+            guard let strengthService = strengthProgressionService,
+                  let volumeService = muscleGroupVolumeService else {
+                AppLogger.warning("Strength services not available for context assembly", category: .data)
+                return nil
+            }
+
+            // Fetch recent PRs (last 5)
+            let allPRs = try await strengthService.getAllCurrentPRs(user: user)
+            let recentRecords = user.strengthRecords
+                .sorted { $0.recordedDate > $1.recordedDate }
+                .prefix(5)
+
+            var recentPRs: [ExercisePR] = []
+            for record in recentRecords {
+                // Calculate improvement if possible
+                let history = try await strengthService.getStrengthHistory(
+                    exercise: record.exerciseName,
+                    user: user,
+                    days: 90
+                )
+
+                var improvement: Double?
+                if history.count >= 2 {
+                    let previousPR = history[history.count - 2].oneRepMax
+                    improvement = ((record.oneRepMax - previousPR) / previousPR) * 100
+                }
+
+                recentPRs.append(ExercisePR(
+                    exercise: record.exerciseName,
+                    oneRepMax: record.oneRepMax,
+                    date: record.recordedDate,
+                    improvement: improvement,
+                    actualWeight: record.actualWeight,
+                    actualReps: record.actualReps
+                ))
+            }
+
+            // Get top 10 exercises by 1RM
+            var topExercises: [ExerciseStrength] = []
+            let sortedPRs = allPRs.sorted { $0.value > $1.value }.prefix(10)
+
+            for (exercise, oneRM) in sortedPRs {
+                let trend = try await strengthService.getStrengthTrend(
+                    exercise: exercise,
+                    user: user
+                )
+
+                // Count recent sets for this exercise
+                let recentSets = user.workouts
+                    .filter { workout in
+                        guard let completedDate = workout.completedDate else { return false }
+                        return completedDate >= Calendar.current.date(byAdding: .day, value: -7, to: Date())!
+                    }
+                    .flatMap { $0.exercises }
+                    .filter { $0.name.lowercased() == exercise.lowercased() }
+                    .flatMap { $0.sets }
+                    .filter { $0.isCompleted }
+                    .count
+
+                // Find last update date
+                let lastRecord = user.strengthRecords
+                    .filter { $0.exerciseName.lowercased() == exercise.lowercased() }
+                    .max { $0.recordedDate < $1.recordedDate }
+
+                topExercises.append(ExerciseStrength(
+                    exercise: exercise,
+                    currentOneRM: oneRM,
+                    lastUpdated: lastRecord?.recordedDate ?? Date(),
+                    trend: trend,
+                    recentSets: recentSets
+                ))
+            }
+
+            // Get muscle group volumes
+            let volumeData = try await volumeService.getWeeklyVolumes(for: user)
+
+            // Convert to MuscleVolume for context
+            let muscleVolumes = volumeData.map { volume in
+                MuscleVolume(
+                    muscleGroup: volume.name,
+                    completedSets: volume.sets,
+                    targetSets: volume.target
+                )
+            }
+
+            // Get strength trends for key exercises
+            var strengthTrends: [String: StrengthTrend] = [:]
+            for exercise in topExercises.prefix(5) {
+                let trend = try await strengthService.getStrengthTrend(
+                    exercise: exercise.exercise,
+                    user: user
+                )
+                strengthTrends[exercise.exercise] = trend
+            }
+
+            return StrengthContext(
+                recentPRs: recentPRs,
+                topExercises: topExercises,
+                muscleGroupVolumes: muscleVolumes,
+                volumeTargets: user.muscleGroupTargets,
+                strengthTrends: strengthTrends
+            )
+
+        } catch {
+            AppLogger.error("Failed to assemble strength context", error: error, category: .data)
+            return nil
+        }
     }
 }

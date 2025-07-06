@@ -67,36 +67,44 @@ final class UserDataExporter: ServiceProtocol {
     }
 
     private func fetchWorkouts(for user: User) async throws -> [Workout] {
+        let userID = user.persistentModelID
         let descriptor = FetchDescriptor<Workout>(
-            // TODO: Fix predicate for Swift 6
-            // predicate: #Predicate { $0.user?.id == user.id },
+            predicate: #Predicate<Workout> { workout in
+                workout.user?.persistentModelID == userID
+            },
             sortBy: [SortDescriptor(\.completedDate, order: .reverse)]
         )
         return try modelContext.fetch(descriptor)
     }
 
     private func fetchFoodEntries(for user: User) async throws -> [FoodEntry] {
+        let userID = user.persistentModelID
         let descriptor = FetchDescriptor<FoodEntry>(
-            // TODO: Fix predicate for Swift 6
-            // predicate: #Predicate { $0.user?.id == user.id },
+            predicate: #Predicate<FoodEntry> { entry in
+                entry.user?.persistentModelID == userID
+            },
             sortBy: [SortDescriptor(\.loggedAt, order: .reverse)]
         )
         return try modelContext.fetch(descriptor)
     }
 
     private func fetchDailyLogs(for user: User) async throws -> [DailyLog] {
+        let userID = user.persistentModelID
         let descriptor = FetchDescriptor<DailyLog>(
-            // TODO: Fix predicate for Swift 6
-            // predicate: #Predicate { $0.user?.id == user.id },
+            predicate: #Predicate<DailyLog> { log in
+                log.user?.persistentModelID == userID
+            },
             sortBy: [SortDescriptor(\.date, order: .reverse)]
         )
         return try modelContext.fetch(descriptor)
     }
 
     private func fetchChatSessions(for user: User) async throws -> [ChatSession] {
+        let userID = user.persistentModelID
         let descriptor = FetchDescriptor<ChatSession>(
-            // TODO: Fix predicate for Swift 6
-            // predicate: #Predicate { $0.user?.id == user.id },
+            predicate: #Predicate<ChatSession> { session in
+                session.user?.persistentModelID == userID
+            },
             sortBy: [SortDescriptor(\.createdAt, order: .reverse)]
         )
         return try modelContext.fetch(descriptor)

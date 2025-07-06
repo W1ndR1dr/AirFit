@@ -10,15 +10,15 @@ struct MainTabView: View {
     @Environment(\.colorScheme) private var colorScheme
     @Environment(\.diContainer) private var diContainer
     @EnvironmentObject private var gradientManager: GradientManager
-    
+
     @State private var navigationState = NavigationState()
-    
+
     let user: User
-    
+
     // For tab bar gradient animation
     @State
     private var tabBarGradientPhase: CGFloat = 0
-    
+
     var body: some View {
         ZStack {
             // Main tab content
@@ -31,48 +31,48 @@ struct MainTabView: View {
                 .tabItem {
                     Label(AppTab.chat.displayName, systemImage: AppTab.chat.systemImage)
                 }
-                
-                // Dashboard - Daily insights
+
+                // Today - Daily overview
                 NavigationStack {
-                    DashboardView(user: user)
+                    TodayDashboardView(user: user)
                 }
-                .tag(AppTab.dashboard)
+                .tag(AppTab.today)
                 .tabItem {
-                    Label(AppTab.dashboard.displayName, systemImage: AppTab.dashboard.systemImage)
+                    Label(AppTab.today.displayName, systemImage: AppTab.today.systemImage)
                 }
-                
-                // Food - Nutrition tracking
+
+                // Nutrition - Enhanced nutrition dashboard
                 NavigationStack {
-                    FoodLoggingViewWrapper(user: user)
+                    NutritionDashboardView(user: user)
                 }
-                .tag(AppTab.food)
+                .tag(AppTab.nutrition)
                 .tabItem {
-                    Label(AppTab.food.displayName, systemImage: AppTab.food.systemImage)
+                    Label(AppTab.nutrition.displayName, systemImage: AppTab.nutrition.systemImage)
                 }
-                
-                // Workouts - Activity tracking
+
+                // Workouts - Enhanced workout dashboard
                 NavigationStack {
-                    WorkoutView(user: user)
+                    WorkoutDashboardView(user: user)
                 }
                 .tag(AppTab.workouts)
                 .tabItem {
                     Label(AppTab.workouts.displayName, systemImage: AppTab.workouts.systemImage)
                 }
-                
-                // Profile - Settings & stats
+
+                // Body - Metrics & progress
                 NavigationStack {
-                    ProfileView(user: user)
+                    BodyDashboardView(user: user)
                 }
-                .tag(AppTab.profile)
+                .tag(AppTab.body)
                 .tabItem {
-                    Label(AppTab.profile.displayName, systemImage: AppTab.profile.systemImage)
+                    Label(AppTab.body.displayName, systemImage: AppTab.body.systemImage)
                 }
             }
             .tint(gradientManager.active.colors(for: colorScheme)[0])
             .onAppear {
                 customizeTabBar()
             }
-            
+
             // Floating AI Assistant overlay
             if navigationState.selectedTab != .chat {
                 FloatingAIAssistant(navigationState: navigationState)
@@ -89,38 +89,53 @@ struct MainTabView: View {
             }
         }
     }
-    
+
     // MARK: - Helper Methods
-    
+
     private func customizeTabBar() {
         let appearance = UITabBarAppearance()
         appearance.configureWithOpaqueBackground()
-        
+
         // Glass morphism effect
         appearance.backgroundColor = UIColor.systemBackground.withAlphaComponent(0.8)
         appearance.backgroundEffect = UIBlurEffect(style: .systemMaterial)
-        
+
         // Apply to tab bar
         UITabBar.appearance().standardAppearance = appearance
         UITabBar.appearance().scrollEdgeAppearance = appearance
     }
-    
+
     private func updateQuickActions() async {
-        // For now, use simple context based on time
+        // Fetch today's food entries to determine logged meals
+        let calendar = Calendar.current
+        let startOfDay = calendar.startOfDay(for: Date())
+        let endOfDay = calendar.date(byAdding: .day, value: 1, to: startOfDay) ?? Date()
+
+        let descriptor = FetchDescriptor<FoodEntry>(
+            predicate: #Predicate<FoodEntry> { entry in
+                entry.loggedAt >= startOfDay && entry.loggedAt < endOfDay
+            }
+        )
+
+        let todaysEntries = (try? modelContext.fetch(descriptor)) ?? []
+
+        // Check which meals have been logged
+        let hasLoggedBreakfast = todaysEntries.contains { $0.mealType == MealType.breakfast.rawValue }
+        let hasLoggedLunch = todaysEntries.contains { $0.mealType == MealType.lunch.rawValue }
+        let hasLoggedDinner = todaysEntries.contains { $0.mealType == MealType.dinner.rawValue }
+
         let context = AppContext(
-            hasLoggedBreakfast: false, // TODO: Fetch from nutrition service
-            hasLoggedLunch: false,
-            hasLoggedDinner: false,
+            hasLoggedBreakfast: hasLoggedBreakfast,
+            hasLoggedLunch: hasLoggedLunch,
+            hasLoggedDinner: hasLoggedDinner,
             lastWorkoutDate: nil,
-            waterIntakeML: 0,
-            waterGoalML: 2_000,
             currentTab: navigationState.selectedTab,
             timeOfDay: getCurrentTimeOfDay()
         )
-        
+
         navigationState.updateQuickActions(for: context)
     }
-    
+
     private func getCurrentTimeOfDay() -> AppContext.TimeOfDay {
         let hour = Calendar.current.component(.hour, from: Date())
         switch hour {
@@ -138,17 +153,17 @@ struct FloatingAIAssistant: View {
     let navigationState: NavigationState
     @Environment(\.colorScheme) private var colorScheme
     @EnvironmentObject private var gradientManager: GradientManager
-    
+
     @State private var pulseAnimation = false
-    
+
     var body: some View {
         GeometryReader { geometry in
             VStack {
                 Spacer()
-                
+
                 HStack {
                     Spacer()
-                    
+
                     // FAB Button
                     Button {
                         navigationState.toggleFAB()
@@ -168,10 +183,10 @@ struct FloatingAIAssistant: View {
                                 .opacity(pulseAnimation ? 0.8 : 1.0)
                                 .animation(
                                     .easeInOut(duration: 2)
-                                    .repeatForever(autoreverses: true),
+                                        .repeatForever(autoreverses: true),
                                     value: pulseAnimation
                                 )
-                            
+
                             // Icon
                             Image(systemName: navigationState.fabIsExpanded ? "xmark" : "message.fill")
                                 .font(.system(size: 24, weight: .semibold))
@@ -197,14 +212,14 @@ struct FloatingAIAssistant: View {
                                     navigationState.fabPosition.x += value.translation.width
                                     navigationState.fabPosition.y += value.translation.height
                                     navigationState.fabDragOffset = .zero
-                                    
+
                                     // Keep within bounds
                                     navigationState.fabPosition.x = min(max(40, navigationState.fabPosition.x), geometry.size.width - 40)
                                     navigationState.fabPosition.y = min(max(100, navigationState.fabPosition.y), geometry.size.height - 100)
                                 }
                             }
                     )
-                    
+
                     // Expanded quick actions
                     if navigationState.fabIsExpanded {
                         VStack(alignment: .trailing, spacing: 12) {
@@ -214,7 +229,7 @@ struct FloatingAIAssistant: View {
                                     navigationState.toggleFAB()
                                 }
                             }
-                            
+
                             // Voice input button
                             Button {
                                 navigationState.voiceInputActive = true
@@ -249,7 +264,7 @@ struct FloatingAIAssistant: View {
 struct FloatingQuickActionButton: View {
     let action: QuickAction
     let onTap: () -> Void
-    
+
     var body: some View {
         Button(action: onTap) {
             HStack {
@@ -266,16 +281,10 @@ struct FloatingQuickActionButton: View {
     }
 }
 
-// MARK: - Placeholder Views (temporary until real views are connected)
+// MARK: - Dashboard Views
 
-struct ProfileView: View {
-    let user: User
-    
-    var body: some View {
-        // For now, show settings view as profile
-        SettingsView(user: user)
-    }
-}
+// NutritionDashboardView is now implemented in its own file
+// BodyDashboardView is now implemented in its own file
 
 // MARK: - View Wrappers
 
@@ -285,7 +294,7 @@ struct ChatViewWrapper: View {
     private var viewModel: ChatViewModel?
     @Environment(\.diContainer)
     private var container
-    
+
     var body: some View {
         Group {
             if let viewModel = viewModel {
@@ -307,7 +316,7 @@ struct FoodLoggingViewWrapper: View {
     private var viewModel: FoodTrackingViewModel?
     @Environment(\.diContainer)
     private var container
-    
+
     var body: some View {
         Group {
             if let viewModel = viewModel {
@@ -329,7 +338,7 @@ struct FoodLoggingViewWrapper: View {
     let container = ModelContainer.preview
     let user = User(name: "Preview User")
     container.mainContext.insert(user)
-    
+
     return MainTabView(user: user)
         .modelContainer(container)
         .withDIContainer(DIContainer())

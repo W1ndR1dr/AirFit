@@ -173,6 +173,8 @@ enum SettingsDestination: Hashable {
     case privacy
     case appearance
     case units
+    case nutrition
+    case voice
     case dataManagement
     case about
     case debug

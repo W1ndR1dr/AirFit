@@ -16,7 +16,10 @@ final class NotificationContentGenerator: ServiceProtocol {
     // Content templates for fallback
     private let fallbackTemplates = NotificationTemplates()
 
-    init(coachEngine: CoachEngine, modelContext: ModelContext) {
+    init(
+        coachEngine: CoachEngine,
+        modelContext: ModelContext
+    ) {
         self.coachEngine = coachEngine
         self.modelContext = modelContext
     }
@@ -34,9 +37,9 @@ final class NotificationContentGenerator: ServiceProtocol {
                     type: .morningGreeting,
                     context: context
                 )
-                
+
                 AppLogger.info("AI generated morning greeting successfully on attempt \(attempt)", category: .ai)
-                
+
                 return NotificationContent(
                     title: "Good morning, \(user.name ?? "there")! ☀️",
                     body: aiContent,
@@ -50,12 +53,12 @@ final class NotificationContentGenerator: ServiceProtocol {
                 }
             }
         }
-        
+
         // Log detailed failure before fallback
         AppLogger.error("AI generation failed after 3 attempts, using template fallback",
                         error: lastError ?? AppError.llm("Unknown error"),
                         category: .notifications)
-        
+
         // Fallback to template only after retries exhausted
         return fallbackTemplates.morningGreeting(user: user, context: context)
     }
@@ -207,7 +210,35 @@ final class NotificationContentGenerator: ServiceProtocol {
     }
 
     private func fetchLastNightSleep(for user: User) async throws -> SleepData? {
-        // Would integrate with HealthKit
+        // Get sleep data from HealthKit through daily logs
+        let calendar = Calendar.current
+        let today = calendar.startOfDay(for: Date())
+        let yesterday = calendar.date(byAdding: .day, value: -1, to: today)!
+
+        // Find daily log for yesterday
+        if let yesterdayLog = user.dailyLogs.first(where: { log in
+            calendar.isDate(log.date, inSameDayAs: yesterday)
+        }), let sleepQuality = yesterdayLog.sleepQuality, sleepQuality > 0 {
+            // Estimate sleep hours based on quality (simplified)
+            let hours = Double(sleepQuality + 4) // 5-9 hours based on quality 1-5
+            let duration = TimeInterval(hours * 3_600) // Convert to seconds
+
+            // Determine quality based on hours
+            let quality: SleepQuality
+            switch hours {
+            case 8...:
+                quality = .excellent
+            case 7..<8:
+                quality = .good
+            case 6..<7:
+                quality = .fair
+            default:
+                quality = .poor
+            }
+
+            return SleepData(quality: quality, duration: duration)
+        }
+
         return nil
     }
 
@@ -263,12 +294,17 @@ final class NotificationContentGenerator: ServiceProtocol {
 // MARK: - Fallback Templates
 struct NotificationTemplates {
     func morningGreeting(user: User, context: MorningContext) -> NotificationContent {
-        // Instead of hardcoded messages, generate a contextual greeting
-        let timeBasedGreeting = getTimeBasedGreeting(context: context)
-        let body = "\(timeBasedGreeting) Let's make today count, \(user.name ?? "champion")!"
+        let name = user.name ?? "champion"
+        let greeting = getTimeBasedGreeting(context: context)
+
+        // Build body with available context
+        var body = greeting
+        if !greeting.contains(name) && !greeting.contains("Day") {
+            body += " \(name)!"
+        }
 
         return NotificationContent(
-            title: "Good morning, \(user.name ?? "there")! ☀️",
+            title: "Good morning, \(name)! ☀️",
             body: body
         )
     }
@@ -303,53 +339,196 @@ struct NotificationTemplates {
             body: "\(achievement.name)\(personalBestSuffix) \(achievement.description)"
         )
     }
-    
+
     private func getTimeBasedGreeting(context: MorningContext) -> String {
-        switch context.dayOfWeek {
-        case 1: return "Happy Sunday!"
-        case 2: return "Monday motivation time!"
-        case 6: return "Friday energy activated!"
-        case 7: return "Saturday vibes!"
-        default: return "Another great day ahead!"
+        // Use context to build a meaningful greeting
+        if context.currentStreak > 10 {
+            return "Day \(context.currentStreak + 1) of excellence!"
+        } else if let workout = context.plannedWorkout {
+            return "Ready for your \(workout.name)?"
+        } else if let sleep = context.sleepQuality {
+            switch sleep {
+            case .excellent: return "Well-rested and ready!"
+            case .good: return "Good morning! Feeling refreshed?"
+            case .fair, .poor: return "Morning! Let's take it easy today."
+            }
+        } else {
+            return "Rise and shine!"
         }
     }
 }
 
-// MARK: - User Extensions
+// MARK: - User Extensions with Real Data
 extension User {
+    @MainActor
     var workoutStreak: Int {
-        // Would calculate from workout history
-        return 5
+        // Calculate actual streak from workout history
+        let calendar = Calendar.current
+        let today = calendar.startOfDay(for: Date())
+
+        // Get workouts sorted by date descending
+        let sortedWorkouts = workouts
+            .compactMap { workout -> (workout: Workout, date: Date)? in
+                guard let date = workout.completedDate else { return nil }
+                return (workout, date)
+            }
+            .sorted { $0.date > $1.date }
+            .map { $0.workout }
+
+        var streak = 0
+        var checkDate = today
+
+        for workout in sortedWorkouts {
+            guard let completedDate = workout.completedDate else { continue }
+            let workoutDate = calendar.startOfDay(for: completedDate)
+
+            if workoutDate == checkDate {
+                streak += 1
+                checkDate = calendar.date(byAdding: .day, value: -1, to: checkDate)!
+            } else if workoutDate < checkDate {
+                // Gap in workouts, streak is broken
+                break
+            }
+        }
+
+        return streak
     }
 
+    @MainActor
     var daysSinceLastWorkout: Int {
-        // Would calculate from last workout date
-        return 2
+        // Find the most recent completed workout
+        let completedWorkouts = workouts.compactMap { workout -> Date? in
+            return workout.completedDate
+        }
+
+        guard let mostRecentDate = completedWorkouts.sorted(by: >).first else {
+            return 999 // No workouts recorded
+        }
+
+        let calendar = Calendar.current
+        let days = calendar.dateComponents([.day], from: mostRecentDate, to: Date()).day ?? 0
+        return max(0, days)
     }
 
+    @MainActor
     var plannedWorkoutForToday: Workout? {
-        // Would fetch from planned workouts
-        return nil
+        let calendar = Calendar.current
+        let today = calendar.startOfDay(for: Date())
+
+        return workouts.first { workout in
+            if let plannedDate = workout.plannedDate {
+                return calendar.isDate(plannedDate, inSameDayAs: today)
+            }
+            return false
+        }
     }
 
+    @MainActor
     var overallStreak: Int {
-        // Would calculate from daily logs
-        return 10
+        // Calculate streak based on any daily activity (workout, meal logging, etc.)
+        let calendar = Calendar.current
+        let today = calendar.startOfDay(for: Date())
+
+        var streak = 0
+        var checkDate = today
+
+        // Check up to 365 days back
+        for _ in 0..<365 {
+            let hasActivity = hasActivityOnDate(checkDate)
+
+            if hasActivity {
+                streak += 1
+                checkDate = calendar.date(byAdding: .day, value: -1, to: checkDate)!
+            } else {
+                break
+            }
+        }
+
+        return streak
     }
 
+    @MainActor
     var nutritionGoals: NutritionGoals? {
-        // Would fetch from user profile
-        return nil
+        // Calculate base goals using BMR and activity level
+        let bmr = calculateBMR()
+        let tdee = bmr * 1.5 // Moderate activity multiplier
+
+        // TODO: Fetch actual weight from HealthKit using async context
+        // For now, using population averages: 170 lbs for males, 140 lbs for females
+        let weightLbs = self.biologicalSex == "male" ? 170.0 : 140.0
+
+        // Calculate macros based on user preferences
+        let proteinGrams = Int(self.proteinGramsPerPound * weightLbs)
+        let fatGrams = Int(tdee * self.fatPercentage / 9) // 9 calories per gram of fat
+        let carbCalories = tdee - (Double(proteinGrams) * 4) - (Double(fatGrams) * 9)
+        let carbGrams = Int(carbCalories / 4) // 4 calories per gram of carbs
+
+        return NutritionGoals(
+            dailyCalories: Int(tdee),
+            proteinGrams: proteinGrams,
+            carbGrams: carbGrams,
+            fatGrams: fatGrams
+        )
     }
 
+    private func calculateBMR() -> Double {
+        // Mifflin-St Jeor equation using population averages
+        // TODO: Fetch actual weight and height from HealthKit
+        let weightLbs = self.biologicalSex == "male" ? 170.0 : 140.0
+        let weightKg = weightLbs * 0.453592 // Convert to kg
+        let age = self.age ?? 30
+        let heightCm = self.biologicalSex == "male" ? 175.0 : 162.0 // Average heights
+
+        if self.biologicalSex == "male" {
+            return (10 * weightKg) + (6.25 * heightCm) - (5 * Double(age)) + 5
+        } else {
+            return (10 * weightKg) + (6.25 * heightCm) - (5 * Double(age)) - 161
+        }
+    }
+
+    @MainActor
     var lastMealLoggedTime: Date? {
-        // Would fetch from food entries
-        return nil
+        // Get most recent food entry
+        return foodEntries.map { $0.loggedAt }.max()
     }
 
+    @MainActor
     var favoriteFoods: [String] {
-        // Would fetch from food history
-        return []
+        // Calculate top 5 most logged foods
+        let foodCounts = foodEntries.reduce(into: [String: Int]()) { counts, entry in
+            if let foodName = entry.items.first?.name {
+                counts[foodName, default: 0] += 1
+            }
+        }
+
+        return foodCounts.sorted { $0.value > $1.value }
+            .prefix(5)
+            .map { $0.key }
+    }
+
+    // Helper method to check if user had any activity on a given date
+    @MainActor
+    private func hasActivityOnDate(_ date: Date) -> Bool {
+        let calendar = Calendar.current
+
+        // Check workouts
+        let hasWorkout = workouts.contains { workout in
+            if let completedDate = workout.completedDate {
+                return calendar.isDate(completedDate, inSameDayAs: date)
+            }
+            return false
+        }
+
+        // Check food entries
+        let hasFoodEntry = foodEntries.contains { entry in
+            calendar.isDate(entry.loggedAt, inSameDayAs: date)
+        }
+
+        // Check daily logs
+        let hasDailyLog = dailyLogs.contains { log in
+            calendar.isDate(log.date, inSameDayAs: date)
+        }
+
+        return hasWorkout || hasFoodEntry || hasDailyLog
     }
 }
-

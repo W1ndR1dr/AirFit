@@ -480,6 +480,10 @@ struct NaturalLanguagePersonaAdjustment: View {
                         .textFieldStyle(.plain)
                         .lineLimit(3...6)
                         .focused($isTextFieldFocused)
+                        .overlay(alignment: .bottomTrailing) {
+                            WhisperVoiceButton(text: $adjustmentText)
+                                .padding(8)
+                        }
                 }
             }
 
@@ -650,6 +654,10 @@ struct ConversationalPersonaRefinement: View {
                         .focused($isInputFocused)
                         .onSubmit {
                             sendMessage(inputText)
+                        }
+                        .overlay(alignment: .bottomTrailing) {
+                            WhisperVoiceButton(text: $inputText)
+                                .padding(8)
                         }
 
                     Button {

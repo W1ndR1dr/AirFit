@@ -78,7 +78,8 @@ actor PersonaSynthesizer {
                 generationDuration: CFAbsoluteTimeGetCurrent() - startTime,
                 tokenCount: creativeContent.systemPrompt.count / 4,
                 previewReady: true
-            )
+            ),
+            nutritionRecommendations: creativeContent.nutritionRecommendations
         )
 
         let duration = CFAbsoluteTimeGetCurrent() - startTime
@@ -138,6 +139,7 @@ actor PersonaSynthesizer {
         let voiceCharacteristics: VoiceCharacteristics
         let interactionStyle: InteractionStyle
         let adaptationRules: [AdaptationRule]
+        let nutritionRecommendations: NutritionRecommendations?
     }
 
     private func generateAllCreativeContent(
@@ -207,11 +209,27 @@ actor PersonaSynthesizer {
             }
           ],
           "uniqueQuirks": ["2-3 distinctive personality traits or habits that make them memorable"],
-          "coachingPhilosophy": "A 2-3 sentence summary of their core coaching belief"
+          "coachingPhilosophy": "A 2-3 sentence summary of their core coaching belief",
+          "nutritionRecommendations": {
+            "approach": "Their nutrition philosophy (e.g., 'Fuel for performance', 'Sustainable habits', 'Precision tracking')",
+            "proteinGramsPerPound": 0.9,
+            "fatPercentage": 0.30,
+            "carbStrategy": "Fill remaining calories with quality carbs",
+            "rationale": "A 2-3 sentence explanation of why these specific macros align with the user's goals, training style, and lifestyle",
+            "flexibilityNotes": "How they handle macro adherence (e.g., 'Focus on weekly averages', '80/20 rule', 'Hit protein, let rest flex')"
+          }
         }
 
         Remember: This coach should feel like a real person with depth, not a generic fitness bot.
         Make them memorable, authentic, and perfectly suited to this specific user.
+
+        For nutrition recommendations, consider the user's specific goals:
+        - Muscle building/strength: Higher protein (1.2-1.5g/lb), moderate fat (25-30%)
+        - Endurance/cardio focus: Moderate protein (0.8-1.0g/lb), higher carbs, moderate fat (25-30%)
+        - Weight loss: Higher protein (1.0-1.3g/lb) for satiety, moderate fat (30-35%)
+        - General fitness: Balanced approach (0.8-1.0g/lb protein, 30% fat)
+
+        The nutrition recommendations should align with their coaching philosophy and the user's specific goals.
         """
 
         await reportProgress(.understandingGoals, progress: 0.20, message: "Processing your fitness goals")
@@ -297,6 +315,21 @@ actor PersonaSynthesizer {
             return AdaptationRule(trigger: trigger, condition: condition, adjustment: adjustment)
         }
 
+        // Parse nutrition recommendations
+        let nutritionRecommendations: NutritionRecommendations?
+        if let nutritionDict = parsed["nutritionRecommendations"] as? [String: Any] {
+            nutritionRecommendations = NutritionRecommendations(
+                approach: nutritionDict["approach"] as? String ?? "Balanced approach",
+                proteinGramsPerPound: nutritionDict["proteinGramsPerPound"] as? Double ?? 0.9,
+                fatPercentage: nutritionDict["fatPercentage"] as? Double ?? 0.30,
+                carbStrategy: nutritionDict["carbStrategy"] as? String ?? "Fill remaining calories",
+                rationale: nutritionDict["rationale"] as? String ?? "Standard balanced macros for general fitness",
+                flexibilityNotes: nutritionDict["flexibilityNotes"] as? String ?? "Focus on consistency over perfection"
+            )
+        } else {
+            nutritionRecommendations = nil
+        }
+
         return CreativeContent(
             name: parsed["name"] as? String ?? "Coach",
             archetype: parsed["archetype"] as? String ?? "Supportive Coach",
@@ -305,7 +338,8 @@ actor PersonaSynthesizer {
             systemPrompt: parsed["systemPrompt"] as? String ?? generateDefaultSystemPrompt(),
             voiceCharacteristics: voiceCharacteristics,
             interactionStyle: interactionStyle,
-            adaptationRules: adaptationRules
+            adaptationRules: adaptationRules,
+            nutritionRecommendations: nutritionRecommendations
         )
     }
 

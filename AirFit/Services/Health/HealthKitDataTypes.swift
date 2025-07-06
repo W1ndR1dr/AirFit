@@ -31,13 +31,13 @@ enum HealthKitDataTypes {
             .bodyFatPercentage,
             .leanBodyMass,
             .bodyMassIndex,
+            .height,  // Required for BMR calculations
             // Vitals
             .bloodPressureSystolic,
             .bloodPressureDiastolic,
             .bodyTemperature,
             .oxygenSaturation,
             // Nutrition
-            .dietaryWater,
             .dietaryEnergyConsumed,
             .dietaryProtein,
             .dietaryCarbohydrates,
@@ -88,8 +88,8 @@ enum HealthKitDataTypes {
             // Body Metrics
             .bodyMass,
             .bodyFatPercentage,
+            .leanBodyMass,
             // Nutrition
-            .dietaryWater,
             .dietaryEnergyConsumed,
             .dietaryProtein,
             .dietaryCarbohydrates,

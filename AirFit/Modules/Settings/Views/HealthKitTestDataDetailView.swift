@@ -51,7 +51,7 @@ struct HealthKitTestDataDetailView: View {
         var description: String {
             switch self {
             case .activity: return "Steps, calories, distance, stand hours"
-            case .nutrition: return "Meals, macros, water intake"
+            case .nutrition: return "Meals, macros"
             case .bodyMetrics: return "Weight, body fat, BMI"
             case .workouts: return "Various workout types with heart rate"
             case .sleep: return "Sleep stages and duration"

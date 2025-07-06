@@ -166,19 +166,14 @@ enum AITask {
     var recommendedModels: [LLMModel] {
         switch self {
         case .personalityExtraction:
-            // Balance of quality and speed
             return [.claude4Sonnet, .gpt4o, .gemini25Flash]
         case .personaSynthesis:
-            // Highest quality for creative generation
-            return [.claude4Opus, .o3, .gemini25FlashThinking, .gemini25Pro]
+            return [.claude4Opus, .o3, .gemini25FlashThinking]
         case .conversationAnalysis:
-            // Fast and accurate
             return [.gemini25Flash, .o4Mini, .claude4Sonnet]
         case .coaching:
-            // High quality conversational
             return [.claude4Sonnet, .gpt4o, .gemini25Pro]
         case .quickResponse:
-            // Speed matters most
             return [.o4Mini, .gemini25Flash]
         }
     }

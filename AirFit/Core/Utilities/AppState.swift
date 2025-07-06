@@ -74,7 +74,8 @@ final class AppState {
 
             // Check onboarding completion
             if let user = currentUser {
-                hasCompletedOnboarding = user.onboardingProfile != nil
+                // Use isOnboarded flag as the source of truth
+                hasCompletedOnboarding = user.isOnboarded
                 user.updateActivity()
                 try modelContext.save()
                 AppLogger.info("User state loaded - onboarding: \(hasCompletedOnboarding), API setup needed: \(needsAPISetup)", category: .app)

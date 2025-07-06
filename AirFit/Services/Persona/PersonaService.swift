@@ -80,16 +80,34 @@ final class PersonaService: ServiceProtocol {
             ]
         )
 
-        // Extract personality insights from responses
+        // Extract personality insights from responses (has retry logic)
         let insights = try await extractPersonalityInsights(from: session.responses)
 
-        // Synthesize persona
-        let persona = try await personaSynthesizer.synthesizePersona(
-            from: conversationData,
-            insights: insights
-        )
+        // Synthesize persona with retry logic
+        var lastError: Error?
+        for attempt in 0..<3 {
+            do {
+                let persona = try await personaSynthesizer.synthesizePersona(
+                    from: conversationData,
+                    insights: insights
+                )
 
-        return persona
+                AppLogger.info("Successfully generated persona on attempt \(attempt + 1)", category: .ai)
+                return persona
+            } catch {
+                lastError = error
+                AppLogger.warning("Persona synthesis attempt \(attempt + 1) failed: \(error)", category: .ai)
+
+                if attempt < 2 {
+                    // Exponential backoff: 1s, 2s, 4s
+                    let backoffSeconds = pow(2.0, Double(attempt))
+                    try? await Task.sleep(nanoseconds: UInt64(backoffSeconds * 1_000_000_000))
+                }
+            }
+        }
+
+        // All retries failed
+        throw lastError ?? PersonaError.invalidResponse("Failed to synthesize persona after 3 attempts")
     }
 
     func adjustPersona(_ persona: PersonaProfile, adjustment: String) async throws -> PersonaProfile {
@@ -107,16 +125,34 @@ final class PersonaService: ServiceProtocol {
         Return updated persona details.
         """
 
-        let response = try await llmOrchestrator.complete(
-            prompt: adjustmentPrompt,
-            task: .personaSynthesis,
-            model: .claude4Sonnet,
-            temperature: 0.7,
-            maxTokens: 2_000
-        )
+        // Retry with exponential backoff
+        var lastError: Error?
+        for attempt in 0..<3 {
+            do {
+                let response = try await llmOrchestrator.complete(
+                    prompt: adjustmentPrompt,
+                    task: .personaSynthesis,
+                    model: .claude4Sonnet,
+                    temperature: 0.7,
+                    maxTokens: 2_000
+                )
 
-        // Parse adjusted persona from response
-        return try parseAdjustedPersona(from: response, original: persona)
+                // Parse adjusted persona from response
+                return try parseAdjustedPersona(from: response, original: persona)
+            } catch {
+                lastError = error
+                AppLogger.warning("Persona adjustment attempt \(attempt + 1) failed: \(error)", category: .ai)
+
+                if attempt < 2 {
+                    // Exponential backoff: 1s, 2s, 4s
+                    let backoffSeconds = pow(2.0, Double(attempt))
+                    try? await Task.sleep(nanoseconds: UInt64(backoffSeconds * 1_000_000_000))
+                }
+            }
+        }
+
+        // All retries failed
+        throw lastError ?? PersonaError.invalidResponse("Failed to adjust persona after 3 attempts")
     }
 
     func savePersona(_ persona: PersonaProfile, for userId: UUID) async throws {
@@ -150,6 +186,23 @@ final class PersonaService: ServiceProtocol {
             profile.isComplete = true
             user.onboardingProfile = profile
             modelContext.insert(profile)
+        }
+
+        // Update user's macro preferences from persona recommendations
+        if let nutritionRecs = persona.nutritionRecommendations {
+            user.proteinGramsPerPound = nutritionRecs.proteinGramsPerPound
+            user.fatPercentage = nutritionRecs.fatPercentage
+
+            // Map flexibility notes to simple preference
+            if nutritionRecs.flexibilityNotes.contains("strict") || nutritionRecs.flexibilityNotes.contains("precise") {
+                user.macroFlexibility = "strict"
+            } else if nutritionRecs.flexibilityNotes.contains("80/20") || nutritionRecs.flexibilityNotes.contains("flexible") {
+                user.macroFlexibility = "flexible"
+            } else {
+                user.macroFlexibility = "balanced"
+            }
+
+            AppLogger.info("Updated user macros from persona: \(nutritionRecs.proteinGramsPerPound)g/lb protein, \(Int(nutritionRecs.fatPercentage * 100))% fat", category: .data)
         }
 
         try modelContext.save()
@@ -219,15 +272,33 @@ final class PersonaService: ServiceProtocol {
         Return as structured JSON.
         """
 
-        let response = try await llmOrchestrator.complete(
-            prompt: analysisPrompt,
-            task: .personaSynthesis,
-            model: .claude4Sonnet,
-            temperature: 0.5
-        )
+        // Retry with exponential backoff
+        var lastError: Error?
+        for attempt in 0..<3 {
+            do {
+                let response = try await llmOrchestrator.complete(
+                    prompt: analysisPrompt,
+                    task: .personaSynthesis,
+                    model: .claude4Sonnet,
+                    temperature: 0.5
+                )
 
-        // Parse insights from response
-        return try parsePersonalityInsights(from: response)
+                // Parse insights from response
+                return try parsePersonalityInsights(from: response)
+            } catch {
+                lastError = error
+                AppLogger.warning("Personality insights extraction attempt \(attempt + 1) failed: \(error)", category: .ai)
+
+                if attempt < 2 {
+                    // Exponential backoff: 1s, 2s, 4s
+                    let backoffSeconds = pow(2.0, Double(attempt))
+                    try? await Task.sleep(nanoseconds: UInt64(backoffSeconds * 1_000_000_000))
+                }
+            }
+        }
+
+        // All retries failed
+        throw lastError ?? PersonaError.invalidResponse("Failed to extract personality insights after 3 attempts")
     }
 
     private func parsePersonalityInsights(from response: LLMResponse) throws -> ConversationPersonalityInsights {
@@ -326,7 +397,8 @@ final class PersonaService: ServiceProtocol {
                 generationDuration: original.metadata.generationDuration,
                 tokenCount: original.metadata.tokenCount,
                 previewReady: true
-            )
+            ),
+            nutritionRecommendations: original.nutritionRecommendations // Keep original nutrition recommendations
         )
 
         return adjusted

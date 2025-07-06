@@ -6,12 +6,12 @@ import Foundation
 // This file should be kept in sync with PlannedWorkoutData.swift in the iOS target.
 //
 // Important Note: These models are duplicated here for watchOS target compatibility.
-/// Changes should be made to both files to maintain consistency.
+// Changes should be made to both files to maintain consistency.
 
 // MARK: - Planned Workout Transfer Models
 
 /// Complete workout plan for transfer to Apple Watch
-struct PlannedWorkoutData: Codable, Sendable {
+public struct PlannedWorkoutData: Codable, Sendable {
     /// Unique identifier for the workout plan
     let id: UUID
 
@@ -73,7 +73,7 @@ struct PlannedWorkoutData: Codable, Sendable {
 }
 
 /// Individual exercise definition for watch execution
-struct PlannedExerciseData: Codable, Sendable {
+public struct PlannedExerciseData: Codable, Sendable {
     /// Unique identifier for the exercise
     let id: UUID
 
@@ -212,6 +212,20 @@ enum WorkoutPlanError: LocalizedError, Sendable {
     }
 }
 
+// MARK: - Shared Enums
+
+/// Workout type enum that matches iOS side
+enum WorkoutType: Int, CaseIterable {
+    case general = 0
+    case strength = 1
+    case cardio = 2
+    case hiit = 3
+    case yoga = 4
+    case run = 5
+    case cycle = 6
+    case swim = 7
+}
+
 // MARK: - Notification Names
 
 extension Notification.Name {
@@ -223,4 +237,10 @@ extension Notification.Name {
 
     /// Posted when the available planned workout is cleared
     static let plannedWorkoutCleared = Notification.Name("plannedWorkoutCleared")
+    
+    /// Posted when workout data is received from watch
+    static let workoutDataReceived = Notification.Name("workoutDataReceived")
+    
+    /// Posted when workout completion data is received from watch
+    static let workoutCompletionDataReceived = Notification.Name("workoutCompletionDataReceived")
 }

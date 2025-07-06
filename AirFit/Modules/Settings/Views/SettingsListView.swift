@@ -323,6 +323,74 @@ struct SettingsListView: View {
                     Divider()
                         .padding(.horizontal, AppSpacing.md)
 
+                    // Nutrition row
+                    NavigationLink(value: SettingsDestination.nutrition) {
+                        HStack(spacing: AppSpacing.md) {
+                            Image(systemName: "fork.knife")
+                                .font(.system(size: 20))
+                                .foregroundStyle(
+                                    LinearGradient(
+                                        colors: gradientManager.active.colors(for: colorScheme),
+                                        startPoint: .topLeading,
+                                        endPoint: .bottomTrailing
+                                    )
+                                )
+                                .frame(width: 28, height: 28)
+
+                            Text("Nutrition Targets")
+                                .font(.system(.body, design: .rounded))
+
+                            Spacer()
+
+                            Text("\(String(format: "%.1f", user.proteinGramsPerPound))g/lb")
+                                .font(.system(.footnote, design: .rounded))
+                                .foregroundStyle(.secondary)
+
+                            Image(systemName: "chevron.right")
+                                .font(.system(size: 14, weight: .medium))
+                                .foregroundStyle(.secondary)
+                        }
+                        .padding(.vertical, AppSpacing.sm)
+                        .padding(.horizontal, AppSpacing.md)
+                    }
+
+                    Divider()
+                        .padding(.horizontal, AppSpacing.md)
+
+                    // Voice row
+                    NavigationLink(value: SettingsDestination.voice) {
+                        HStack(spacing: AppSpacing.md) {
+                            Image(systemName: "waveform")
+                                .font(.system(size: 20))
+                                .foregroundStyle(
+                                    LinearGradient(
+                                        colors: gradientManager.active.colors(for: colorScheme),
+                                        startPoint: .topLeading,
+                                        endPoint: .bottomTrailing
+                                    )
+                                )
+                                .frame(width: 28, height: 28)
+
+                            Text("Voice Settings")
+                                .font(.system(.body, design: .rounded))
+
+                            Spacer()
+
+                            Text("Whisper")
+                                .font(.system(.footnote, design: .rounded))
+                                .foregroundStyle(.secondary)
+
+                            Image(systemName: "chevron.right")
+                                .font(.system(size: 14, weight: .medium))
+                                .foregroundStyle(.secondary)
+                        }
+                        .padding(.vertical, AppSpacing.sm)
+                        .padding(.horizontal, AppSpacing.md)
+                    }
+
+                    Divider()
+                        .padding(.horizontal, AppSpacing.md)
+
                     // Appearance row
                     NavigationLink(value: SettingsDestination.appearance) {
                         HStack(spacing: AppSpacing.md) {
@@ -835,6 +903,10 @@ struct SettingsListView: View {
             AppearanceSettingsView(viewModel: viewModel)
         case .units:
             UnitsSettingsView(viewModel: viewModel)
+        case .nutrition:
+            NutritionSettingsView(user: user)
+        case .voice:
+            VoiceSettingsView()
         case .dataManagement:
             DataManagementView(viewModel: viewModel)
         case .about:
@@ -1021,6 +1093,10 @@ struct PersonaRefinementFlow: View {
                         .textFieldStyle(.plain)
                         .lineLimit(3...6)
                         .focused($isTextFieldFocused)
+                        .overlay(alignment: .bottomTrailing) {
+                            WhisperVoiceButton(text: $refinementText)
+                                .padding(8)
+                        }
                 }
             }
             .onAppear {

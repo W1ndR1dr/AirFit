@@ -101,6 +101,8 @@ struct NutritionSearchView: View {
                         triggerSearch()
                     }
 
+                WhisperVoiceButton(text: $searchText)
+
                 if !searchText.isEmpty {
                     Button {
                         HapticService.impact(.light)

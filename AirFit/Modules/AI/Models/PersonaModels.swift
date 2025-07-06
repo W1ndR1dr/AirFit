@@ -334,6 +334,17 @@ struct PersonaProfile: Codable, Sendable {
     let interactionStyle: InteractionStyle
     let adaptationRules: [AdaptationRule]
     let metadata: PersonaMetadata
+    let nutritionRecommendations: NutritionRecommendations?
+}
+
+/// AI-generated nutrition recommendations based on user's goals and conversation
+struct NutritionRecommendations: Codable, Sendable {
+    let approach: String                    // e.g., "Fuel for performance", "Sustainable habits"
+    let proteinGramsPerPound: Double       // e.g., 1.3 for muscle building, 0.8 for general health
+    let fatPercentage: Double              // e.g., 0.25 for low fat, 0.35 for keto-leaning
+    let carbStrategy: String               // e.g., "Fill remaining", "Minimum 150g for performance"
+    let rationale: String                  // Why these macros fit their goals
+    let flexibilityNotes: String           // How to handle adherence
 }
 
 // MARK: - Coach Persona (Final Model)

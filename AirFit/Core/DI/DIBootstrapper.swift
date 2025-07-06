@@ -133,6 +133,7 @@ public final class DIBootstrapper {
                 personaService: personaService
             )
         }
+
     }
 
     // MARK: - Data Services (SwiftData)
@@ -183,19 +184,35 @@ public final class DIBootstrapper {
         container.register(WorkoutServiceProtocol.self, lifetime: .transient) { resolver in
             let modelContainer = try await resolver.resolve(ModelContainer.self)
             let healthKitManager = try? await resolver.resolve(HealthKitManaging.self)
+            let strengthService = try? await resolver.resolve(StrengthProgressionServiceProtocol.self)
             return await MainActor.run {
                 WorkoutService(
                     modelContext: modelContainer.mainContext,
-                    healthKitManager: healthKitManager
+                    healthKitManager: healthKitManager,
+                    strengthProgressionService: strengthService
                 )
             }
+        }
+
+        // Muscle Group Volume Service - Actor-based service for tracking weekly volume
+        container.register(MuscleGroupVolumeServiceProtocol.self, lifetime: .singleton) { _ in
+            MuscleGroupVolumeService()
+        }
+
+        // Strength Progression Service - Actor-based service for tracking PRs
+        container.register(StrengthProgressionServiceProtocol.self, lifetime: .singleton) { _ in
+            StrengthProgressionService()
         }
 
         // Dashboard Nutrition Service
         container.register(DashboardNutritionService.self, lifetime: .transient) { resolver in
             let modelContainer = try await resolver.resolve(ModelContainer.self)
+            let nutritionCalculator = try await resolver.resolve(NutritionCalculatorProtocol.self)
             return await MainActor.run {
-                DashboardNutritionService(modelContext: modelContainer.mainContext)
+                DashboardNutritionService(
+                    modelContext: modelContainer.mainContext,
+                    nutritionCalculator: nutritionCalculator
+                )
             }
         }
 
@@ -237,9 +254,13 @@ public final class DIBootstrapper {
         container.register(ContextAssembler.self, lifetime: .transient) { resolver in
             let healthKit = try await resolver.resolve(HealthKitManager.self)
             let goalService = try? await resolver.resolve(GoalServiceProtocol.self)
+            let muscleGroupVolumeService = try? await resolver.resolve(MuscleGroupVolumeServiceProtocol.self)
+            let strengthProgressionService = try? await resolver.resolve(StrengthProgressionServiceProtocol.self)
             return await ContextAssembler(
                 healthKitManager: healthKit,
-                goalService: goalService
+                goalService: goalService,
+                muscleGroupVolumeService: muscleGroupVolumeService,
+                strengthProgressionService: strengthProgressionService
             )
         }
 
@@ -260,6 +281,12 @@ public final class DIBootstrapper {
         // HealthKit Prefill Provider
         container.register(HealthKitPrefillProviding.self, lifetime: .singleton) { _ in
             HealthKitProvider()
+        }
+
+        // Nutrition Calculator - Actor service for dynamic nutrition targets
+        container.register(NutritionCalculatorProtocol.self, lifetime: .singleton) { resolver in
+            let healthKit = try await resolver.resolve(HealthKitManaging.self)
+            return NutritionCalculator(healthKit: healthKit)
         }
 
 
@@ -295,6 +322,15 @@ public final class DIBootstrapper {
                 WorkoutSyncService()
             }
         }
+        
+        // Workout Plan Transfer Service (iOS only)
+        #if os(iOS)
+        container.register(WorkoutPlanTransferProtocol.self, lifetime: .singleton) { _ in
+            await MainActor.run {
+                WorkoutPlanTransferService()
+            }
+        }
+        #endif
 
         // Monitoring Service - Actor-based
         container.register(MonitoringService.self, lifetime: .singleton) { _ in

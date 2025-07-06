@@ -15,7 +15,7 @@ import Observation
 /// ## Key Responsibilities
 /// - Request and manage HealthKit authorization
 /// - Fetch activity metrics (steps, calories, distance, etc.)
-/// - Read and write nutrition data (macros, water intake)
+/// - Read and write nutrition data (macros)
 /// - Sync workout data bidirectionally
 /// - Analyze sleep patterns and recovery metrics
 /// - Track heart health indicators (HRV, resting HR, VO2 Max)
@@ -326,6 +326,11 @@ final class HealthKitManager: HealthKitManaging, ServiceProtocol {
             unit: HKUnit.gramUnit(with: .kilo)
         )
 
+        async let height = dataFetcher.fetchLatestQuantitySample(
+            identifier: .height,
+            unit: HKUnit.meterUnit(with: .centi)
+        )
+
         async let bodyFat = dataFetcher.fetchLatestQuantitySample(
             identifier: .bodyFatPercentage,
             unit: HKUnit.percent()
@@ -343,6 +348,7 @@ final class HealthKitManager: HealthKitManaging, ServiceProtocol {
 
         return BodyMetrics(
             weight: (try await weight).map { Measurement(value: $0, unit: UnitMass.kilograms) },
+            height: (try await height).map { Measurement(value: $0, unit: UnitLength.centimeters) },
             bodyFatPercentage: (try await bodyFat).map { $0 * 100 }, // Convert to percentage
             leanBodyMass: (try await leanMass).map { Measurement(value: $0, unit: UnitMass.kilograms) },
             bmi: try await bmi,
@@ -412,8 +418,80 @@ final class HealthKitManager: HealthKitManaging, ServiceProtocol {
 
     // MARK: - Nutrition Writing
 
+    /// Checks for duplicate nutrition entries within a 5-minute window
+    /// Returns true if a similar entry already exists in HealthKit
+    private func checkForDuplicateEntry(_ entry: FoodEntry) async throws -> Bool {
+        // Calculate total calories for comparison
+        let totalCalories = entry.items.reduce(0) { $0 + ($1.calories ?? 0) }
+
+        // Define 5-minute window around the entry time
+        let fiveMinutesInSeconds: TimeInterval = 5 * 60
+        let startTime = entry.loggedAt.addingTimeInterval(-fiveMinutesInSeconds)
+        let endTime = entry.loggedAt.addingTimeInterval(fiveMinutesInSeconds)
+
+        // Query for existing calorie entries in the time window
+        guard let calorieType = HKQuantityType.quantityType(forIdentifier: .dietaryEnergyConsumed) else {
+            return false // If we can't check, assume no duplicate
+        }
+
+        let predicate = HKQuery.predicateForSamples(
+            withStart: startTime,
+            end: endTime,
+            options: .strictStartDate
+        )
+
+        let existingEntries = try await withCheckedThrowingContinuation { (continuation: CheckedContinuation<[HKQuantitySample], Error>) in
+            let query = HKSampleQuery(
+                sampleType: calorieType,
+                predicate: predicate,
+                limit: 20, // Reasonable limit for 10-minute window
+                sortDescriptors: [NSSortDescriptor(key: HKSampleSortIdentifierStartDate, ascending: false)]
+            ) { _, samples, error in
+                if let error = error {
+                    continuation.resume(throwing: error)
+                } else {
+                    let calorieSamples = (samples as? [HKQuantitySample]) ?? []
+                    continuation.resume(returning: calorieSamples)
+                }
+            }
+            healthStore.execute(query)
+        }
+
+        // Check for similar calorie values (within 10% tolerance)
+        let calorieTolerancePercent: Double = 0.1
+        let lowerBound = totalCalories * (1 - calorieTolerancePercent)
+        let upperBound = totalCalories * (1 + calorieTolerancePercent)
+
+        for sample in existingEntries {
+            let sampleCalories = sample.quantity.doubleValue(for: .kilocalorie())
+
+            // Check if calories are within tolerance range
+            if sampleCalories >= lowerBound && sampleCalories <= upperBound {
+                // Check if this sample was created by AirFit (to avoid flagging other apps)
+                if let metadata = sample.metadata,
+                   let source = metadata["AirFitSource"] as? String,
+                   source == "User Input" {
+                    AppLogger.info(
+                        "Duplicate detected: \(Int(sampleCalories)) cal at \(sample.startDate) vs \(Int(totalCalories)) cal at \(entry.loggedAt)",
+                        category: .health
+                    )
+                    return true
+                }
+            }
+        }
+
+        return false
+    }
+
     /// Saves nutrition data from a food entry to HealthKit
     func saveFoodEntry(_ entry: FoodEntry) async throws -> [String] {
+        // Check for duplicate entries within 5-minute window
+        let isDuplicate = try await checkForDuplicateEntry(entry)
+        if isDuplicate {
+            AppLogger.warning("Skipping HealthKit save - duplicate entry detected within 5 minutes", category: .health)
+            return [] // Return empty array to indicate no new samples were created
+        }
+
         var savedSampleIDs: [String] = []
         var samples: [HKQuantitySample] = []
 
@@ -520,35 +598,6 @@ final class HealthKitManager: HealthKitManaging, ServiceProtocol {
         return savedSampleIDs
     }
 
-    /// Saves water intake to HealthKit
-    func saveWaterIntake(amountML: Double, date: Date = Date()) async throws -> String? {
-        guard let type = HKQuantityType.quantityType(forIdentifier: .dietaryWater) else {
-            throw AppError.from(HealthKitError.notAvailable)
-        }
-
-        let quantity = HKQuantity(unit: .literUnit(with: .milli), doubleValue: amountML)
-        let metadata: [String: Any] = [
-            "AirFitSource": "Water Tracking",
-            "AirFitTimestamp": date.timeIntervalSince1970
-        ]
-
-        let sample = HKQuantitySample(type: type, quantity: quantity, start: date, end: date, metadata: metadata)
-
-        try await withCheckedThrowingContinuation { (continuation: CheckedContinuation<Void, Error>) in
-            healthStore.save(sample) { success, error in
-                if let error = error {
-                    continuation.resume(throwing: error)
-                } else if success {
-                    continuation.resume()
-                } else {
-                    continuation.resume(throwing: HealthKitError.queryFailed(NSError(domain: "HealthKit", code: -1)))
-                }
-            }
-        }
-
-        AppLogger.info("Saved water intake of \(amountML)ml to HealthKit", category: .health)
-        return sample.uuid.uuidString
-    }
 
     // MARK: - Nutrition Reading
 
@@ -572,7 +621,6 @@ final class HealthKitManager: HealthKitManaging, ServiceProtocol {
         let fiber = try await fetchNutritionSum(for: .dietaryFiber, unit: .gram(), predicate: predicate)
         let sugar = try await fetchNutritionSum(for: .dietarySugar, unit: .gram(), predicate: predicate)
         let sodium = try await fetchNutritionSum(for: .dietarySodium, unit: .gramUnit(with: .milli), predicate: predicate)
-        let water = try await fetchNutritionSum(for: .dietaryWater, unit: .literUnit(with: .milli), predicate: predicate)
 
         return HealthKitNutritionSummary(
             calories: calories,
@@ -582,7 +630,6 @@ final class HealthKitManager: HealthKitManaging, ServiceProtocol {
             fiber: fiber,
             sugar: sugar,
             sodium: sodium,
-            water: water,
             date: date
         )
     }
@@ -943,6 +990,352 @@ final class HealthKitManager: HealthKitManaging, ServiceProtocol {
         }
     }
 
+    // MARK: - Body Metrics Writing
+
+    /// Saves body mass (weight) to HealthKit
+    func saveBodyMass(weightKg: Double, date: Date = Date()) async throws {
+        guard let type = HKQuantityType.quantityType(forIdentifier: .bodyMass) else {
+            throw AppError.from(HealthKitError.notAvailable)
+        }
+
+        let quantity = HKQuantity(unit: .gramUnit(with: .kilo), doubleValue: weightKg)
+        let metadata: [String: Any] = [
+            "AirFitSource": "Body Metrics",
+            "AirFitTimestamp": date.timeIntervalSince1970
+        ]
+
+        let sample = HKQuantitySample(type: type, quantity: quantity, start: date, end: date, metadata: metadata)
+
+        try await withCheckedThrowingContinuation { (continuation: CheckedContinuation<Void, Error>) in
+            healthStore.save(sample) { success, error in
+                if let error = error {
+                    continuation.resume(throwing: error)
+                } else if success {
+                    continuation.resume()
+                } else {
+                    continuation.resume(throwing: HealthKitError.queryFailed(NSError(domain: "HealthKit", code: -1)))
+                }
+            }
+        }
+
+        AppLogger.info("Saved body mass of \(weightKg)kg to HealthKit", category: .health)
+    }
+
+    /// Saves body fat percentage to HealthKit
+    func saveBodyFatPercentage(percentage: Double, date: Date = Date()) async throws {
+        guard let type = HKQuantityType.quantityType(forIdentifier: .bodyFatPercentage) else {
+            throw AppError.from(HealthKitError.notAvailable)
+        }
+
+        let quantity = HKQuantity(unit: .percent(), doubleValue: percentage)
+        let metadata: [String: Any] = [
+            "AirFitSource": "Body Metrics",
+            "AirFitTimestamp": date.timeIntervalSince1970
+        ]
+
+        let sample = HKQuantitySample(type: type, quantity: quantity, start: date, end: date, metadata: metadata)
+
+        try await withCheckedThrowingContinuation { (continuation: CheckedContinuation<Void, Error>) in
+            healthStore.save(sample) { success, error in
+                if let error = error {
+                    continuation.resume(throwing: error)
+                } else if success {
+                    continuation.resume()
+                } else {
+                    continuation.resume(throwing: HealthKitError.queryFailed(NSError(domain: "HealthKit", code: -1)))
+                }
+            }
+        }
+
+        AppLogger.info("Saved body fat percentage of \(percentage * 100)% to HealthKit", category: .health)
+    }
+
+    /// Saves lean body mass to HealthKit
+    func saveLeanBodyMass(massKg: Double, date: Date = Date()) async throws {
+        guard let type = HKQuantityType.quantityType(forIdentifier: .leanBodyMass) else {
+            throw AppError.from(HealthKitError.notAvailable)
+        }
+
+        let quantity = HKQuantity(unit: .gramUnit(with: .kilo), doubleValue: massKg)
+        let metadata: [String: Any] = [
+            "AirFitSource": "Body Metrics",
+            "AirFitTimestamp": date.timeIntervalSince1970
+        ]
+
+        let sample = HKQuantitySample(type: type, quantity: quantity, start: date, end: date, metadata: metadata)
+
+        try await withCheckedThrowingContinuation { (continuation: CheckedContinuation<Void, Error>) in
+            healthStore.save(sample) { success, error in
+                if let error = error {
+                    continuation.resume(throwing: error)
+                } else if success {
+                    continuation.resume()
+                } else {
+                    continuation.resume(throwing: HealthKitError.queryFailed(NSError(domain: "HealthKit", code: -1)))
+                }
+            }
+        }
+
+        AppLogger.info("Saved lean body mass of \(massKg)kg to HealthKit", category: .health)
+    }
+
+    /// Batch save multiple body metrics
+    func saveBodyMetrics(
+        weight: Double? = nil,
+        bodyFatPercentage: Double? = nil,
+        leanBodyMass: Double? = nil,
+        date: Date = Date()
+    ) async throws {
+        var errors: [Error] = []
+
+        if let weight = weight {
+            do {
+                try await saveBodyMass(weightKg: weight, date: date)
+            } catch {
+                errors.append(error)
+            }
+        }
+
+        if let bodyFat = bodyFatPercentage {
+            do {
+                try await saveBodyFatPercentage(percentage: bodyFat, date: date)
+            } catch {
+                errors.append(error)
+            }
+        }
+
+        if let leanMass = leanBodyMass {
+            do {
+                try await saveLeanBodyMass(massKg: leanMass, date: date)
+            } catch {
+                errors.append(error)
+            }
+        }
+
+        if !errors.isEmpty {
+            AppLogger.error("Failed to save some body metrics: \(errors.count) errors", category: .health)
+            throw errors.first!
+        }
+    }
+
+    // MARK: - Workout Data
+
+    /// Fetches recent workouts
+    func fetchRecentWorkouts(limit: Int = 20) async throws -> [WorkoutData] {
+        let endDate = Date()
+        let startDate = Calendar.current.date(byAdding: .day, value: -30, to: endDate) ?? endDate
+
+        let predicate = HKQuery.predicateForSamples(
+            withStart: startDate,
+            end: endDate,
+            options: .strictEndDate
+        )
+
+        return try await withCheckedThrowingContinuation { continuation in
+            let query = HKSampleQuery(
+                sampleType: HKObjectType.workoutType(),
+                predicate: predicate,
+                limit: limit,
+                sortDescriptors: [NSSortDescriptor(key: HKSampleSortIdentifierStartDate, ascending: false)]
+            ) { _, samples, error in
+                if let error = error {
+                    continuation.resume(throwing: error)
+                } else {
+                    let workouts = (samples as? [HKWorkout] ?? []).map { workout in
+                        WorkoutData(
+                            id: workout.uuid,
+                            duration: workout.duration,
+                            totalCalories: workout.totalEnergyBurned?.doubleValue(for: .kilocalorie()),
+                            workoutType: workout.workoutActivityType,
+                            startDate: workout.startDate,
+                            endDate: workout.endDate
+                        )
+                    }
+                    continuation.resume(returning: workouts)
+                }
+            }
+
+            healthStore.execute(query)
+        }
+    }
+
+    // MARK: - Body Metrics History
+
+    /// Fetches body metrics history for a date range
+    func fetchBodyMetricsHistory(from startDate: Date, to endDate: Date) async throws -> [BodyMetrics] {
+        // Create predicate for date range
+        let predicate = HKQuery.predicateForSamples(
+            withStart: startDate,
+            end: endDate,
+            options: .strictStartDate
+        )
+
+        // Fetch all body metric types
+        guard let weightType = HKQuantityType.quantityType(forIdentifier: .bodyMass),
+              let bodyFatType = HKQuantityType.quantityType(forIdentifier: .bodyFatPercentage),
+              let leanMassType = HKQuantityType.quantityType(forIdentifier: .leanBodyMass),
+              let bmiType = HKQuantityType.quantityType(forIdentifier: .bodyMassIndex) else {
+            throw AppError.from(HealthKitError.notAvailable)
+        }
+
+        // Fetch samples for each type
+        let weightSamples = try await fetchSamples(type: weightType, predicate: predicate, limit: 100)
+        let bodyFatSamples = try await fetchSamples(type: bodyFatType, predicate: predicate, limit: 100)
+        let leanMassSamples = try await fetchSamples(type: leanMassType, predicate: predicate, limit: 100)
+        let bmiSamples = try await fetchSamples(type: bmiType, predicate: predicate, limit: 100)
+
+        // Group by date and create BodyMetrics objects
+        var metricsDict: [Date: BodyMetrics] = [:]
+        let calendar = Calendar.current
+
+        // Process weight samples
+        for sample in weightSamples {
+            if let sample = sample as? HKQuantitySample {
+                let date = calendar.startOfDay(for: sample.startDate)
+                var metrics = metricsDict[date] ?? BodyMetrics()
+                metrics.date = date
+                metrics.weight = Measurement(
+                    value: sample.quantity.doubleValue(for: .gramUnit(with: .kilo)),
+                    unit: UnitMass.kilograms
+                )
+                metricsDict[date] = metrics
+            }
+        }
+
+        // Process body fat samples
+        for sample in bodyFatSamples {
+            if let sample = sample as? HKQuantitySample {
+                let date = calendar.startOfDay(for: sample.startDate)
+                var metrics = metricsDict[date] ?? BodyMetrics()
+                metrics.date = date
+                metrics.bodyFatPercentage = sample.quantity.doubleValue(for: .percent()) * 100
+                metricsDict[date] = metrics
+            }
+        }
+
+        // Process lean mass samples
+        for sample in leanMassSamples {
+            if let sample = sample as? HKQuantitySample {
+                let date = calendar.startOfDay(for: sample.startDate)
+                var metrics = metricsDict[date] ?? BodyMetrics()
+                metrics.date = date
+                metrics.leanBodyMass = Measurement(
+                    value: sample.quantity.doubleValue(for: .gramUnit(with: .kilo)),
+                    unit: UnitMass.kilograms
+                )
+                metricsDict[date] = metrics
+            }
+        }
+
+        // Process BMI samples
+        for sample in bmiSamples {
+            if let sample = sample as? HKQuantitySample {
+                let date = calendar.startOfDay(for: sample.startDate)
+                var metrics = metricsDict[date] ?? BodyMetrics()
+                metrics.date = date
+                metrics.bmi = sample.quantity.doubleValue(for: .count())
+                metricsDict[date] = metrics
+            }
+        }
+
+        // Convert to array and sort by date
+        let sortedMetrics = metricsDict.values.sorted { (first, second) in
+            (first.date ?? Date()) < (second.date ?? Date())
+        }
+
+        AppLogger.info("Fetched \(sortedMetrics.count) body metrics history entries", category: .health)
+        return sortedMetrics
+    }
+
+    /// Fetch the most recent weight measurement
+    func fetchLatestWeight() async throws -> Measurement<UnitMass>? {
+        guard let weightType = HKQuantityType.quantityType(forIdentifier: .bodyMass) else {
+            throw AppError.from(HealthKitError.notAvailable)
+        }
+
+        // Query for the most recent weight sample
+        let samples = try await fetchSamples(
+            type: weightType,
+            predicate: HKQuery.predicateForSamples(
+                withStart: Date.distantPast,
+                end: Date(),
+                options: []
+            ),
+            limit: 1
+        )
+
+        guard let sample = samples.first as? HKQuantitySample else {
+            return nil
+        }
+
+        let weightKg = sample.quantity.doubleValue(for: .gramUnit(with: .kilo))
+        return Measurement(value: weightKg, unit: UnitMass.kilograms)
+    }
+
+    /// Helper to fetch samples
+    private func fetchSamples(type: HKQuantityType, predicate: NSPredicate, limit: Int) async throws -> [HKSample] {
+        return try await withCheckedThrowingContinuation { continuation in
+            let query = HKSampleQuery(
+                sampleType: type,
+                predicate: predicate,
+                limit: limit,
+                sortDescriptors: [NSSortDescriptor(key: HKSampleSortIdentifierStartDate, ascending: false)]
+            ) { _, samples, error in
+                if let error = error {
+                    continuation.resume(throwing: error)
+                } else {
+                    continuation.resume(returning: samples ?? [])
+                }
+            }
+
+            healthStore.execute(query)
+        }
+    }
+
+    // MARK: - Body Metrics Observation
+
+    /// Sets up observer for body metrics changes
+    func observeBodyMetrics(handler: @escaping () -> Void) async throws {
+        guard let weightType = HKQuantityType.quantityType(forIdentifier: .bodyMass),
+              let bodyFatType = HKQuantityType.quantityType(forIdentifier: .bodyFatPercentage),
+              let leanMassType = HKQuantityType.quantityType(forIdentifier: .leanBodyMass) else {
+            throw AppError.from(HealthKitError.notAvailable)
+        }
+
+        // Create observer queries for each type
+        let types: [HKQuantityType] = [weightType, bodyFatType, leanMassType]
+
+        for type in types {
+            let query = HKObserverQuery(sampleType: type, predicate: nil) { query, completionHandler, error in
+                if let error = error {
+                    AppLogger.error("HealthKit observer error for \(type.identifier)", error: error, category: .health)
+                } else {
+                    AppLogger.info("HealthKit change detected for \(type.identifier)", category: .health)
+                    handler()
+                }
+
+                completionHandler()
+            }
+
+            healthStore.execute(query)
+
+            // Enable background delivery for this type
+            healthStore.enableBackgroundDelivery(for: type, frequency: .immediate) { success, error in
+                if let error = error {
+                    AppLogger.error("Failed to enable background delivery for \(type.identifier)", error: error, category: .health)
+                } else if success {
+                    AppLogger.info("Enabled background delivery for \(type.identifier)", category: .health)
+                }
+            }
+        }
+    }
+
+    /// Removes an observer (placeholder for now)
+    func removeObserver(_ observer: Any) {
+        // In a real implementation, we'd track and remove specific queries
+        AppLogger.info("Removing HealthKit observer", category: .health)
+    }
+
 }
 
 // MARK: - Authorization Status Extension
@@ -978,7 +1371,6 @@ struct HealthKitNutritionSummary {
     let fiber: Double
     let sugar: Double
     let sodium: Double
-    let water: Double
     let date: Date
 }
 

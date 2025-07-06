@@ -660,13 +660,16 @@ private struct SaveAsTemplateView: View {
                                         .font(.system(size: 14, weight: .medium))
                                         .foregroundStyle(Color.secondary)
 
-                                    TextField("Enter name", text: $templateName)
-                                        .font(.system(size: 18, weight: .medium, design: .rounded))
-                                        .padding(AppSpacing.sm)
-                                        .background(
-                                            RoundedRectangle(cornerRadius: 12)
-                                                .fill(Color.primary.opacity(0.05))
-                                        )
+                                    HStack {
+                                        TextField("Enter name", text: $templateName)
+                                            .font(.system(size: 18, weight: .medium, design: .rounded))
+                                        WhisperVoiceButton(text: $templateName)
+                                    }
+                                    .padding(AppSpacing.sm)
+                                    .background(
+                                        RoundedRectangle(cornerRadius: 12)
+                                            .fill(Color.primary.opacity(0.05))
+                                    )
                                 }
 
                                 HStack {

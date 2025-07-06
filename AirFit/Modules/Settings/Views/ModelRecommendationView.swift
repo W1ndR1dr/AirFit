@@ -3,7 +3,7 @@ import SwiftUI
 struct ModelRecommendationView: View {
     let provider: AIProvider
     @Binding var selectedModel: String
-    
+
     private var recommendedModels: [(model: String, reason: String, isPremium: Bool)] {
         switch provider {
         case .anthropic:
@@ -26,7 +26,7 @@ struct ModelRecommendationView: View {
             ]
         }
     }
-    
+
     var body: some View {
         VStack(alignment: .leading, spacing: AppSpacing.sm) {
             HStack {
@@ -34,14 +34,14 @@ struct ModelRecommendationView: View {
                     .font(.system(size: 13, weight: .medium, design: .rounded))
                     .textCase(.uppercase)
                     .foregroundStyle(.secondary.opacity(0.8))
-                
+
                 Spacer()
-                
+
                 Image(systemName: "sparkles")
                     .font(.system(size: 12))
                     .foregroundStyle(.secondary.opacity(0.6))
             }
-            
+
             GlassCard {
                 VStack(spacing: AppSpacing.xs) {
                     ForEach(recommendedModels, id: \.model) { item in
@@ -57,7 +57,7 @@ struct ModelRecommendationView: View {
                                 }
                             }
                         )
-                        
+
                         if item.model != recommendedModels.last?.model {
                             Divider()
                                 .padding(.vertical, 2)
@@ -65,13 +65,13 @@ struct ModelRecommendationView: View {
                     }
                 }
             }
-            
+
             // Recommendation note
             HStack(spacing: AppSpacing.xs) {
                 Image(systemName: "lightbulb.fill")
                     .font(.system(size: 11))
                     .foregroundStyle(.yellow)
-                
+
                 Text("We recommend premium models for initial persona generation")
                     .font(.system(size: 12, weight: .regular, design: .rounded))
                     .foregroundStyle(.secondary)
@@ -87,7 +87,7 @@ private struct ModelOption: View {
     let isPremium: Bool
     let isSelected: Bool
     let onSelect: () -> Void
-    
+
     private var displayName: String {
         // Convert model ID to readable name
         model
@@ -110,7 +110,7 @@ private struct ModelOption: View {
             .replacingOccurrences(of: " 002", with: "")
             .replacingOccurrences(of: " Exp", with: " (Preview)")
     }
-    
+
     var body: some View {
         Button(action: onSelect) {
             HStack(spacing: AppSpacing.sm) {
@@ -128,13 +128,13 @@ private struct ModelOption: View {
                             .frame(width: 8, height: 8)
                             .opacity(isSelected ? 1 : 0)
                     )
-                
+
                 VStack(alignment: .leading, spacing: 2) {
                     HStack(spacing: AppSpacing.xs) {
                         Text(displayName)
                             .font(.system(size: 15, weight: .medium, design: .rounded))
                             .foregroundStyle(isSelected ? .primary : .secondary)
-                        
+
                         if isPremium {
                             Label("Premium", systemImage: "crown.fill")
                                 .font(.system(size: 10, weight: .semibold, design: .rounded))
@@ -151,13 +151,13 @@ private struct ModelOption: View {
                                 .clipShape(Capsule())
                         }
                     }
-                    
+
                     Text(reason)
                         .font(.system(size: 12, weight: .regular, design: .rounded))
                         .foregroundStyle(.secondary.opacity(0.8))
                         .lineLimit(2)
                 }
-                
+
                 Spacer()
             }
             .padding(.vertical, AppSpacing.xs)
@@ -173,7 +173,7 @@ private struct ModelOption: View {
             provider: .anthropic,
             selectedModel: .constant("claude-3-opus-20240229")
         )
-        
+
         ModelRecommendationView(
             provider: .openAI,
             selectedModel: .constant("gpt-4o")

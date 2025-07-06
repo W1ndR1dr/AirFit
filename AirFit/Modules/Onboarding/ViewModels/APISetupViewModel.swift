@@ -35,14 +35,14 @@ final class APISetupViewModel: ObservableObject {
         case .gemini:
             formatValid = key.count > 30
         }
-        
+
         guard formatValid else {
             throw AppError.validationError(message: "Invalid API key format for \(provider.displayName)")
         }
-        
+
         // Now validate with actual API call
         let config = LLMProviderConfig(apiKey: key)
-        
+
         switch provider {
         case .anthropic:
             let provider = AnthropicProvider(config: config)
@@ -124,6 +124,9 @@ final class APISetupViewModel: ObservableObject {
             UserDefaults.standard.set(firstConfig.model, forKey: "default_ai_model")
             AppLogger.info("No active provider selected, using first: \(firstConfig.provider.displayName)", category: .app)
         }
+        
+        // Force synchronization to ensure values are persisted before container recreation
+        UserDefaults.standard.synchronize()
     }
 
     private func loadExistingConfigurations() {

@@ -314,6 +314,7 @@ struct APIKeyInputCard: View {
                     SecureField("Paste your API key here", text: $apiKey)
                         .textFieldStyle(PlainTextFieldStyle())
                         .font(.system(.body, design: .monospaced))
+                    // Voice transcription available via WhisperVoiceButton if needed
 
                     if isValidating {
                         ProgressView()

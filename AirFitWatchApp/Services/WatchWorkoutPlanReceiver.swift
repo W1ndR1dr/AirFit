@@ -28,6 +28,24 @@ import WatchConnectivity
 /// // UI can observe via NotificationCenter or @StateObject
 /// ```
 
+// MARK: - Message Types
+
+/// Type-safe representation of incoming workout transfer messages
+struct WorkoutTransferMessage: Sendable {
+    let type: String
+    let planId: String?
+    let planData: Data?
+    
+    init?(from dictionary: [String: Any]) {
+        guard let type = dictionary["type"] as? String else {
+            return nil
+        }
+        self.type = type
+        self.planId = dictionary["planId"] as? String
+        self.planData = dictionary["planData"] as? Data
+    }
+}
+
 @MainActor
 @Observable
 final class WatchWorkoutPlanReceiver: NSObject {
@@ -123,28 +141,23 @@ final class WatchWorkoutPlanReceiver: NSObject {
 
     // MARK: - Private Methods
 
-    private func handleReceivedMessage(_ message: [String: Any]) {
-        AppLogger.info("Received message from iPhone", category: .data)
+    private func handleReceivedMessage(_ message: WorkoutTransferMessage) {
+        AppLogger.info("Received message from iPhone: \(message.type)", category: .data)
 
-        guard let messageType = message["type"] as? String else {
-            AppLogger.warning("Received message without type", category: .data)
-            return
-        }
-
-        switch messageType {
+        switch message.type {
         case "plannedWorkout":
             handlePlannedWorkoutMessage(message)
         default:
-            AppLogger.warning("Unknown message type: \(messageType)", category: .data)
+            AppLogger.warning("Unknown message type: \(message.type)", category: .data)
         }
     }
 
-    private func handlePlannedWorkoutMessage(_ message: [String: Any]) {
+    private func handlePlannedWorkoutMessage(_ message: WorkoutTransferMessage) {
         isReceivingWorkout = true
         lastReceiveError = nil
 
         do {
-            guard let planData = message["planData"] as? Data else {
+            guard let planData = message.planData else {
                 throw NSError(domain: "WatchWorkoutPlanReceiver", code: -1,
                               userInfo: [NSLocalizedDescriptionKey: "Missing plan data"])
             }
@@ -161,7 +174,7 @@ final class WatchWorkoutPlanReceiver: NSObject {
             AppLogger.info("Successfully received planned workout: \(plannedWorkout.name)", category: .data)
 
             // Send success acknowledgment
-            let planId = message["planId"] as? String ?? plannedWorkout.id.uuidString
+            let planId = message.planId ?? plannedWorkout.id.uuidString
             sendAcknowledgment(planId: planId, success: true, error: nil)
 
             // Notify UI
@@ -180,7 +193,7 @@ final class WatchWorkoutPlanReceiver: NSObject {
             AppLogger.error("Failed to process planned workout", error: error, category: .data)
 
             // Send error acknowledgment
-            let planId = message["planId"] as? String ?? "unknown"
+            let planId = message.planId ?? "unknown"
             sendAcknowledgment(planId: planId, success: false, error: errorMessage)
         }
 
@@ -242,7 +255,11 @@ final class WatchWorkoutPlanReceiver: NSObject {
 // MARK: - WCSessionDelegate
 
 extension WatchWorkoutPlanReceiver: WCSessionDelegate {
-    nonisolated func session(_ session: WCSession, activationDidCompleteWith activationState: WCSessionActivationState, error: Error?) {
+    nonisolated func session(
+        _ session: WCSession,
+        activationDidCompleteWith activationState: WCSessionActivationState,
+        error: Error?
+    ) {
         Task { @MainActor in
             if let error = error {
                 AppLogger.error("WCSession activation failed", error: error, category: .data)
@@ -253,22 +270,39 @@ extension WatchWorkoutPlanReceiver: WCSessionDelegate {
     }
 
     nonisolated func session(_ session: WCSession, didReceiveMessage message: [String: Any]) {
+        // Extract type-safe message
+        guard let transferMessage = WorkoutTransferMessage(from: message) else {
+            AppLogger.warning("Received invalid message format", category: .data)
+            return
+        }
+        
         Task { @MainActor in
-            handleReceivedMessage(message)
+            handleReceivedMessage(transferMessage)
         }
     }
 
-    nonisolated func session(_ session: WCSession, didReceiveMessage message: [String: Any], replyHandler: @escaping ([String: Any]) -> Void) {
-        Task { @MainActor in
-            handleReceivedMessage(message)
-
-            // Send immediate reply for real-time feedback
-            let reply: [String: Any] = [
-                "received": true,
-                "timestamp": Date().timeIntervalSince1970
-            ]
-            replyHandler(reply)
+    nonisolated func session(
+        _ session: WCSession,
+        didReceiveMessage message: [String: Any],
+        replyHandler: @escaping ([String: Any]) -> Void
+    ) {
+        // Extract type-safe message
+        guard let transferMessage = WorkoutTransferMessage(from: message) else {
+            AppLogger.warning("Received invalid message format", category: .data)
+            replyHandler(["received": false, "error": "Invalid message format"])
+            return
         }
+        
+        Task { @MainActor in
+            handleReceivedMessage(transferMessage)
+        }
+        
+        // Send immediate reply for real-time feedback
+        let reply: [String: Any] = [
+            "received": true,
+            "timestamp": Date().timeIntervalSince1970
+        ]
+        replyHandler(reply)
     }
 }
 

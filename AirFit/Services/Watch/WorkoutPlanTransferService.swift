@@ -1,6 +1,40 @@
 import Foundation
 import WatchConnectivity
 
+// MARK: - Type-Safe Message Wrappers
+
+/// Type-safe request for workout plan transfers
+struct WorkoutTransferMessage: Sendable {
+    let planData: Data
+    let planId: UUID
+    let timestamp: Date
+    
+    /// Convert to dictionary for WatchConnectivity
+    var dictionary: [String: Any] {
+        return [
+            "type": "plannedWorkout",
+            "planData": planData,
+            "planId": planId.uuidString,
+            "timestamp": timestamp.timeIntervalSince1970
+        ]
+    }
+}
+
+/// Type-safe response from watch
+struct WorkoutTransferResponse: Sendable {
+    let success: Bool
+    let errorMessage: String?
+    
+    /// Initialize from WatchConnectivity reply dictionary
+    init?(dictionary: [String: Any]) {
+        guard let success = dictionary["success"] as? Bool else {
+            return nil
+        }
+        self.success = success
+        self.errorMessage = dictionary["error"] as? String
+    }
+}
+
 /// # WorkoutPlanTransferService
 ///
 /// ## Purpose
@@ -162,66 +196,57 @@ final class WorkoutPlanTransferService: WorkoutPlanTransferProtocol {
             // Encode workout plan
             let planData = try encoder.encode(plan)
 
-            // Create message payload
-            let message: [String: Any] = [
-                "type": "plannedWorkout",
-                "planData": planData,
-                "planId": plan.id.uuidString,
-                "timestamp": Date().timeIntervalSince1970
-            ]
+            // Create type-safe message
+            let transferMessage = WorkoutTransferMessage(
+                planData: planData,
+                planId: plan.id,
+                timestamp: Date()
+            )
 
-            // Send with error handling
-            try await withCheckedThrowingContinuation { continuation in
-                session.sendMessage(message, replyHandler: { reply in
-                    if let success = reply["success"] as? Bool, success {
-                        AppLogger.info("Successfully sent workout plan to watch: \(plan.name)", category: .services)
-
-                        // Post success notification
-                        Task { @MainActor in
-                            NotificationCenter.default.post(
-                                name: .workoutPlanTransferSuccess,
-                                object: nil,
-                                userInfo: [
-                                    "planId": plan.id,
-                                    "planName": plan.name
-                                ]
-                            )
-                        }
-
-                        continuation.resume()
-                    } else {
-                        let errorMsg = reply["error"] as? String ?? "Unknown transfer error"
-                        let error = AppError.unknown(message: "Watch rejected workout plan: \(errorMsg)")
-                        AppLogger.error("Watch rejected workout plan", error: error, category: .services)
-                        continuation.resume(throwing: error)
-                    }
-                }, errorHandler: { error in
-                    AppLogger.error("Failed to send workout plan to watch", error: error, category: .services)
-
-                    // Queue for retry
-                    Task { @MainActor in
-                        self.pendingPlans.append(plan)
-
-                        // Post failure notification
-                        NotificationCenter.default.post(
-                            name: .workoutPlanTransferFailed,
-                            object: nil,
-                            userInfo: [
-                                "planId": plan.id,
-                                "error": error.localizedDescription,
-                                "queued": true
-                            ]
-                        )
-                    }
-
-                    continuation.resume(throwing: error)
-                })
+            // Send with type-safe error handling
+            do {
+                let response = try await sendTransferMessage(transferMessage)
+                
+                if response.success {
+                    AppLogger.info("Successfully sent workout plan to watch: \(plan.name)", category: .services)
+                    
+                    // Post success notification
+                    NotificationCenter.default.post(
+                        name: .workoutPlanTransferSuccess,
+                        object: nil,
+                        userInfo: [
+                            "planId": plan.id,
+                            "planName": plan.name
+                        ]
+                    )
+                } else {
+                    let error = AppError.unknown(message: "Watch rejected workout plan: \(response.errorMessage ?? "Unknown error")")
+                    AppLogger.error("Watch rejected workout plan", error: error, category: .services)
+                    throw error
+                }
+            } catch {
+                // Queue for retry on send error
+                pendingPlans.append(plan)
+                AppLogger.error("Failed to send workout plan to watch", error: error, category: .services)
+                
+                // Post failure notification
+                NotificationCenter.default.post(
+                    name: .workoutPlanTransferFailed,
+                    object: nil,
+                    userInfo: [
+                        "planId": plan.id,
+                        "error": error.localizedDescription,
+                        "queued": true
+                    ]
+                )
+                
+                throw error
             }
 
         } catch {
-            // Add to pending queue on encoding or send error
+            // Add to pending queue on encoding error
             pendingPlans.append(plan)
-            AppLogger.error("Failed to encode or send workout plan", error: error, category: .services)
+            AppLogger.error("Failed to encode workout plan", error: error, category: .services)
             throw AppError.unknown(message: "Failed to transfer workout plan: \(error.localizedDescription)")
         }
     }
@@ -277,6 +302,22 @@ final class WorkoutPlanTransferService: WorkoutPlanTransferProtocol {
     }
 
     // MARK: - Private Methods
+    
+    /// Type-safe async wrapper for sendMessage
+    private func sendTransferMessage(_ message: WorkoutTransferMessage) async throws -> WorkoutTransferResponse {
+        return try await withCheckedThrowingContinuation { continuation in
+            session.sendMessage(message.dictionary, replyHandler: { @Sendable reply in
+                guard let response = WorkoutTransferResponse(dictionary: reply) else {
+                    continuation.resume(throwing: AppError.unknown(message: "Invalid response format from watch"))
+                    return
+                }
+                continuation.resume(returning: response)
+            }, errorHandler: { @Sendable error in
+                // Handle the error asynchronously to avoid capturing self
+                continuation.resume(throwing: error)
+            })
+        }
+    }
 
     private func validateWorkoutPlan(_ plan: PlannedWorkoutData) throws {
         // Validate basic structure
@@ -355,17 +396,21 @@ final class WorkoutPlanTransferDelegateHandler: NSObject, WCSessionDelegate {
     }
 
     nonisolated func session(_ session: WCSession, activationDidCompleteWith activationState: WCSessionActivationState, error: Error?) {
-        let capturedService = service
-        Task { @MainActor in
-            capturedService?.handleSessionActivation(activationState: activationState, error: error)
+        // Extract only Sendable data before crossing isolation boundary
+        let activationStateValue = activationState
+        let errorToPass = error
+        
+        Task { @MainActor [weak service] in
+            await service?.handleSessionActivation(activationState: activationStateValue, error: errorToPass)
         }
     }
 
     nonisolated func sessionReachabilityDidChange(_ session: WCSession) {
-        let capturedService = service
+        // Extract only Sendable data before crossing isolation boundary
         let isReachable = session.isReachable
-        Task { @MainActor in
-            capturedService?.handleSessionReachabilityChange(isReachable: isReachable)
+        
+        Task { @MainActor [weak service] in
+            await service?.handleSessionReachabilityChange(isReachable: isReachable)
         }
     }
 

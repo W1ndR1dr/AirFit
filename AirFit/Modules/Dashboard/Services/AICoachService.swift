@@ -41,40 +41,16 @@ actor AICoachService: AICoachServiceProtocol, ServiceProtocol {
     }
 
     func generateMorningGreeting(for user: User, context: GreetingContext) async throws -> String {
-        // Build a contextual prompt for the AI
-        var prompt = "Generate a brief, personalized morning greeting for \(user.name ?? "the user"). "
+        // For now, we'll use the dashboard content generation which includes greetings
+        // In the future, we could implement a dedicated greeting method in CoachEngine
+        let dashboardContent = try await coachEngine.generateDashboardContent(for: user)
 
-        // Add sleep context
-        if let sleepHours = context.sleepHours {
-            prompt += "They slept \(sleepHours.rounded(toPlaces: 1)) hours last night. "
-        }
+        // Return the primary insight as the greeting
+        return dashboardContent.primaryInsight
+    }
 
-        // Add weather context
-        if let weather = context.weather {
-            prompt += "Current weather: \(weather). "
-        }
-
-        // Add schedule context
-        if let schedule = context.todaysSchedule {
-            prompt += "Today's plan: \(schedule). "
-        }
-
-        // Add personalization based on coach persona
-        if let personaData = user.coachPersonaData,
-           (try? JSONDecoder().decode(CoachPersona.self, from: personaData)) != nil {
-            prompt += "Use a friendly and encouraging tone. "
-        }
-
-        prompt += "Keep it under 2 sentences, motivating and relevant to their context."
-
-        // Process through the coach engine
-        // Process through coach engine
-        await coachEngine.processUserMessage(prompt, for: user)
-
-        // Get the response - simplified
-        let response = "Good morning! Let's make today great."
-
-        // Return the response
-        return response
+    func generateDashboardContent(for user: User) async throws -> AIDashboardContent {
+        // Delegate to the real AI implementation in CoachEngine
+        return try await coachEngine.generateDashboardContent(for: user)
     }
 }

@@ -118,6 +118,8 @@ public final class DIViewModelFactory {
         async let voiceInputManager = container.resolve(VoiceInputManager.self)
         async let nutritionService = container.resolve(NutritionServiceProtocol.self)
         async let coachEngine = makeCoachEngine(for: user)
+        async let healthKitManager = container.resolve(HealthKitManager.self)
+        async let nutritionCalculator = container.resolve(NutritionCalculatorProtocol.self)
 
         // Create adapter with resolved voice manager
         let foodVoiceAdapter = FoodVoiceAdapter(voiceInputManager: try await voiceInputManager)
@@ -128,10 +130,28 @@ public final class DIViewModelFactory {
             foodVoiceAdapter: foodVoiceAdapter,
             nutritionService: nutritionService,
             coachEngine: coachEngine,
-            coordinator: FoodTrackingCoordinator()
+            coordinator: FoodTrackingCoordinator(),
+            healthKitManager: healthKitManager,
+            nutritionCalculator: nutritionCalculator
         )
     }
 
+
+    // MARK: - Body
+
+    func makeBodyViewModel(user: User) async throws -> BodyViewModel {
+        // Get ModelContext first (not Sendable)
+        let modelContext = try await getModelContext()
+
+        // Resolve other dependencies
+        async let healthKitManager = container.resolve(HealthKitManaging.self)
+
+        return try await BodyViewModel(
+            modelContext: modelContext,
+            user: user,
+            healthKitManager: healthKitManager
+        )
+    }
 
     // MARK: - Onboarding
 
@@ -152,19 +172,26 @@ public final class DIViewModelFactory {
         async let aiService = container.resolve(AIServiceProtocol.self)
         async let personaService = container.resolve(PersonaService.self)
         async let contextAssembler = container.resolve(ContextAssembler.self)
+        async let healthKitManager = container.resolve(HealthKitManaging.self)
         async let goalService = container.resolve(AIGoalServiceProtocol.self)
         async let workoutService = container.resolve(AIWorkoutServiceProtocol.self)
         async let analyticsService = container.resolve(AIAnalyticsServiceProtocol.self)
         async let routingConfiguration = container.resolve(RoutingConfiguration.self)
+        async let nutritionCalculator = container.resolve(NutritionCalculatorProtocol.self)
+        async let muscleGroupVolumeService = container.resolve(MuscleGroupVolumeServiceProtocol.self)
 
         // Create components that don't need async resolution
         let localCommandParser = LocalCommandParser()
         let conversationManager = ConversationManager(modelContext: modelContext)
+        
+        // Try to resolve workout transfer service (may be nil if not on iOS)
+        let workoutTransferService = try? await container.resolve(WorkoutPlanTransferProtocol.self)
 
         let functionDispatcher = FunctionCallDispatcher(
             workoutService: try await workoutService,
             analyticsService: try await analyticsService,
-            goalService: try await goalService
+            goalService: try await goalService,
+            workoutTransferService: workoutTransferService
         )
 
         return try await CoachEngine(
@@ -175,7 +202,10 @@ public final class DIViewModelFactory {
             aiService: aiService,
             contextAssembler: contextAssembler,
             modelContext: modelContext,
-            routingConfiguration: routingConfiguration
+            routingConfiguration: routingConfiguration,
+            healthKitManager: healthKitManager,
+            nutritionCalculator: nutritionCalculator,
+            muscleGroupVolumeService: muscleGroupVolumeService
         )
     }
 

@@ -22,6 +22,7 @@ public enum AppLogger {
         case notifications = "Notifications"
         case services = "Services"
         case security = "Security"
+        case testing = "Testing"
 
         var osLog: OSLog {
             OSLog(subsystem: subsystem, category: rawValue)

@@ -49,7 +49,25 @@ final class WorkoutAnalysisEngine {
             AppLogger.error("Failed to analyze workout: \(error)", category: .ai)
         }
 
-        return analysisResult.isEmpty ? "Great workout! Keep up the excellent work." : analysisResult
+        if analysisResult.isEmpty {
+            // Build contextual fallback
+            let workout = request.workout
+            var fallback = "Completed \(workout.name)"
+
+            if let duration = workout.formattedDuration {
+                fallback += " in \(duration)"
+            }
+
+            if workout.totalSets > 0 {
+                fallback += " - \(workout.totalSets) sets completed"
+            }
+
+            fallback += ". Strong work today!"
+
+            return fallback
+        }
+
+        return analysisResult
     }
 
     // MARK: - Private Methods

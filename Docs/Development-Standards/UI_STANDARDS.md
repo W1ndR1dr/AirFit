@@ -699,8 +699,66 @@ Button(action: {
 
 **🎯 Active Usage**: All major screens use the new component system (Dashboard, Food Tracking, Onboarding, Settings)
 
+## Voice Transcription Standards
+
+### Implementation Patterns
+
+Voice transcription is available for all text inputs throughout the app. We use iOS Speech Recognition for privacy and performance.
+
+#### Standard Implementation
+
+1. **For Single-Line TextField**:
+```swift
+TextField("Placeholder", text: $text)
+    .voiceTranscriptionEnabled($text)
+```
+
+2. **For Multi-Line TextEditor**:
+```swift
+TextEditor(text: $text)
+    .voiceTranscriptionOverlay($text, alignment: .topTrailing, padding: 8)
+```
+
+3. **For Custom Layouts** (when you need more control):
+```swift
+HStack {
+    TextField("Placeholder", text: $text)
+    VoiceTranscriptionButton(text: $text)
+}
+```
+
+#### Voice Button Specifications
+- **Size**: 24x24 points
+- **Icon**: SF Symbol "waveform"
+- **Color**: Matches current gradient theme
+- **Active State**: Shows red recording indicator with pulsing animation
+- **Position**: Right-aligned for LTR languages
+
+#### Pre-Built Components (Rarely Used)
+- `VoiceEnabledTextField` - TextField with integrated voice
+- `VoiceEnabledTextEditor` - TextEditor with integrated voice
+- `VoiceEnabledSearchField` - Search field with voice
+
+#### Implementation Rules
+1. **Consistency**: Every text input must have voice transcription
+2. **Positioning**: Use `.voiceTranscriptionEnabled()` for inline layouts
+3. **Spacing**: Use `.voiceTranscriptionOverlay()` when space is limited
+4. **Feedback**: Voice button shows haptic feedback on tap
+5. **Permissions**: Handle microphone/speech permissions gracefully
+
+#### Voice Manager
+The `VoiceInputManager` handles:
+- iOS Speech Recognition setup
+- Real-time transcription
+- Waveform visualization
+- Error handling
+- Permission management
+
+Each `VoiceTranscriptionButton` creates its own manager instance to avoid conflicts.
+
 ---
 **Consolidated from**: `UI_COMPONENT_STANDARDS.md` (2025-06-14)  
+**Voice Standards Added**: 2025-07-05
 **Implementation Status**: Production-ready - documented from live codebase
 
 *This is our vision for UI excellence. Every pixel matters. Every animation tells a story. Let's create something extraordinary.*

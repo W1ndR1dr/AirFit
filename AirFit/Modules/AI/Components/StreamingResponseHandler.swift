@@ -109,6 +109,12 @@ final class StreamingResponseHandler {
         case .functionCall(let call):
             handleFunctionCall(call, state: &state)
 
+        case .structuredData(let data):
+            // Handle structured data as text
+            if let jsonString = String(data: data, encoding: .utf8) {
+                handleTextResponse(jsonString, state: &state)
+            }
+
         case .done(let usage):
             handleCompletion(usage, state: &state)
 

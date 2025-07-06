@@ -23,7 +23,7 @@ enum VoiceInputState: Equatable, Sendable {
         switch self {
         case .idle:
             return "Initializing voice input..."
-        case .downloadingModel(let progress, let modelName):
+        case let .downloadingModel(progress, modelName):
             return "Downloading \(modelName) model: \(Int(progress * 100))%"
         case .preparingModel:
             return "Preparing voice model..."

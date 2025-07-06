@@ -27,7 +27,27 @@ struct SetBuilderData: Codable, Sendable {
     let weightKg: Double?
     let duration: TimeInterval?
     let rpe: Double?
+    let comment: String?
+    let side: String? // "L" for left, "R" for right, nil for both
     let completedAt: Date
+    
+    init(
+        reps: Int? = nil,
+        weightKg: Double? = nil,
+        duration: TimeInterval? = nil,
+        rpe: Double? = nil,
+        comment: String? = nil,
+        side: String? = nil,
+        completedAt: Date = Date()
+    ) {
+        self.reps = reps
+        self.weightKg = weightKg
+        self.duration = duration
+        self.rpe = rpe
+        self.comment = comment
+        self.side = side
+        self.completedAt = completedAt
+    }
 }
 
 enum WorkoutError: LocalizedError, Sendable {

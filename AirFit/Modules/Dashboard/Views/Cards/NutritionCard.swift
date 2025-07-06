@@ -29,11 +29,6 @@ struct NutritionCard: View {
         return min(summary.fat / targets.fat, 1.0)
     }
 
-    private var waterProgress: Double {
-        guard targets.water > 0 else { return 0 }
-        return min(summary.waterLiters / targets.water, 1.0)
-    }
-
     var body: some View {
         VStack(alignment: .leading, spacing: AppSpacing.sm) {
             cardHeader
@@ -42,8 +37,6 @@ struct NutritionCard: View {
                 caloriesRing
                 macroBreakdown
             }
-
-            waterIntakeRow
         }
         .onTapGesture {
             HapticService.impact(.soft)
@@ -124,23 +117,6 @@ private extension NutritionCard {
         }
     }
 
-    var waterIntakeRow: some View {
-        HStack {
-            Image(systemName: "drop.fill")
-                .foregroundStyle(.blue)
-                .font(.caption)
-
-            Text("\(summary.waterLiters, specifier: "%.1f")L / \(targets.water, specifier: "%.1f")L")
-                .font(AppFonts.caption)
-                .foregroundStyle(.secondary)
-
-            Spacer()
-
-            ProgressView(value: waterProgress)
-                .progressViewStyle(LinearProgressViewStyle(tint: .blue))
-                .frame(width: 60)
-        }
-    }
 }
 
 // MARK: - Components
@@ -211,8 +187,6 @@ private struct AnimatedRing: View {
             fatTarget: 65,
             fiber: 10,
             fiberTarget: 25,
-            water: 1.2,
-            waterTarget: 2.5,
             mealCount: 2
         ),
         targets: NutritionTargets.default

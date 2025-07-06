@@ -38,7 +38,7 @@ enum ServiceError: LocalizedError {
             return "Request timed out"
         case .cancelled:
             return "Request was cancelled"
-        case .providerError(let code, let message):
+        case let .providerError(code, message):
             return "Provider error [\(code)]: \(message)"
         case .unknown(let error):
             return "Unknown error: \(error.localizedDescription)"
