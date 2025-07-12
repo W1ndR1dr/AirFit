@@ -32,6 +32,26 @@ final class BodyCoordinator: SheetCoordinator<BodyCoordinator.BodyDestination, B
         }
     }
 
+    // MARK: - Sheet State
+    
+    var showingMeasurementEntry = false
+    var showingPhotoCapture = false
+    
+    // MARK: - Navigation Methods
+    
+    func presentMeasurementEntry() {
+        showingMeasurementEntry = true
+    }
+    
+    func presentPhotoCapture() {
+        showingPhotoCapture = true
+    }
+    
+    func updateActiveTab(_ tab: TabType) {
+        // This would update the active tab if needed
+        // For now, just a placeholder
+    }
+    
     // MARK: - Compatibility Methods (for existing code)
 
     func resetNavigation() {
@@ -45,5 +65,14 @@ final class BodyCoordinator: SheetCoordinator<BodyCoordinator.BodyDestination, B
     var presentedSheet: BodySheet? {
         get { activeSheet }
         set { activeSheet = newValue }
+    }
+    
+    // MARK: - Types
+    
+    enum TabType {
+        case body
+        case nutrition
+        case workout
+        case dashboard
     }
 }

@@ -11,6 +11,11 @@ final class BodyViewModel: ErrorHandling {
     private(set) var weightHistory: [BodyMetrics] = []
     private(set) var isLoading = false
     private var healthKitObserver: Any?
+    
+    // Computed property for view compatibility
+    var metrics: BodyMetrics? {
+        currentMetrics
+    }
 
     // Recovery metrics
     private(set) var restingHeartRate: Int?
@@ -57,6 +62,11 @@ final class BodyViewModel: ErrorHandling {
     }
 
     // MARK: - Loading
+    func refresh() async {
+        await loadLatestMetrics()
+        await loadWeightHistory()
+    }
+    
     func loadLatestMetrics() async {
         isLoading = true
         defer { isLoading = false }

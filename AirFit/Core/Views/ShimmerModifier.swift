@@ -1,9 +1,8 @@
 import SwiftUI
 
-/// Adds a shimmering effect to views for skeleton loading states
+/// A modifier that adds a shimmering effect to skeleton loading states
 struct ShimmerModifier: ViewModifier {
     @State private var phase: CGFloat = 0
-    let animation = Animation.linear(duration: 1.5).repeatForever(autoreverses: false)
     
     func body(content: Content) -> some View {
         content
@@ -17,21 +16,19 @@ struct ShimmerModifier: ViewModifier {
                     startPoint: .leading,
                     endPoint: .trailing
                 )
-                .rotationEffect(.degrees(30))
-                .offset(x: phase * 400 - 200)
+                .offset(x: phase)
                 .mask(content)
-                .allowsHitTesting(false)
             )
             .onAppear {
-                withAnimation(animation) {
-                    phase = 1
+                withAnimation(.linear(duration: 1.5).repeatForever(autoreverses: false)) {
+                    phase = 400
                 }
             }
     }
 }
 
 extension View {
-    /// Applies a shimmering effect for loading states
+    /// Adds a shimmering effect to skeleton loading states
     func shimmering() -> some View {
         modifier(ShimmerModifier())
     }

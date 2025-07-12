@@ -15,6 +15,7 @@ struct WorkoutDashboardView: View {
     @State private var hasAppeared = false
     @State private var selectedTimeframe: WorkoutTimeframe = .week
     @State private var animateIn = false
+    @State private var isInitializing = true
 
     enum WorkoutTimeframe: String, CaseIterable {
         case week = "Week"
@@ -25,120 +26,147 @@ struct WorkoutDashboardView: View {
     }
 
     var body: some View {
-        Group {
-            if let viewModel = viewModel {
-                workoutContent(viewModel)
-            } else {
-                ProgressView()
-                    .task {
-                        let factory = DIViewModelFactory(container: container)
-                        viewModel = try? await factory.makeWorkoutViewModel(user: user)
-                    }
-            }
-        }
-    }
-
-    @ViewBuilder
-    private func workoutContent(_ viewModel: WorkoutViewModel) -> some View {
         BaseScreen {
             NavigationStack(path: $coordinator.navigationPath) {
                 ScrollView {
                     VStack(spacing: 0) {
-                        // Dynamic header with AI insights
-                        workoutHeader(viewModel)
+                        // Header is always visible
+                        workoutHeaderImmediate()
                             .padding(.horizontal, AppSpacing.screenPadding)
                             .padding(.top, AppSpacing.md)
                             .opacity(animateIn ? 1 : 0)
                             .offset(y: animateIn ? 0 : -20)
                             .animation(MotionToken.standardSpring, value: animateIn)
 
-                        // Quick actions section
+                        // Quick actions - always visible
                         quickWorkoutActions
                             .padding(.top, AppSpacing.lg)
                             .opacity(animateIn ? 1 : 0)
                             .offset(y: animateIn ? 0 : 10)
                             .animation(MotionToken.standardSpring.delay(0.1), value: animateIn)
 
-                        // Today's workout section
-                        todaysWorkoutSection(viewModel)
-                            .padding(.top, AppSpacing.xl)
-                            .opacity(animateIn ? 1 : 0)
-                            .offset(y: animateIn ? 0 : 20)
-                            .animation(MotionToken.standardSpring.delay(0.2), value: animateIn)
+                        if let viewModel = viewModel {
+                            // Real content when loaded
+                            VStack(spacing: AppSpacing.xl) {
+                                todaysWorkoutSection(viewModel)
+                                    .padding(.top, AppSpacing.xl)
+                                    .opacity(animateIn ? 1 : 0)
+                                    .offset(y: animateIn ? 0 : 20)
+                                    .animation(MotionToken.standardSpring.delay(0.2), value: animateIn)
 
-                        // Weekly muscle volume
-                        weeklyMuscleVolumeSection(viewModel)
-                            .padding(.top, AppSpacing.xl)
-                            .opacity(animateIn ? 1 : 0)
-                            .offset(y: animateIn ? 0 : 20)
-                            .animation(MotionToken.standardSpring.delay(0.3), value: animateIn)
+                                weeklyMuscleVolumeSection(viewModel)
+                                    .padding(.top, AppSpacing.xl)
+                                    .opacity(animateIn ? 1 : 0)
+                                    .offset(y: animateIn ? 0 : 20)
+                                    .animation(MotionToken.standardSpring.delay(0.3), value: animateIn)
 
-                        // Recent PRs and achievements
-                        achievementsSection(viewModel)
-                            .padding(.top, AppSpacing.xl)
-                            .opacity(animateIn ? 1 : 0)
-                            .offset(y: animateIn ? 0 : 20)
-                            .animation(MotionToken.standardSpring.delay(0.4), value: animateIn)
+                                achievementsSection(viewModel)
+                                    .padding(.top, AppSpacing.xl)
+                                    .opacity(animateIn ? 1 : 0)
+                                    .offset(y: animateIn ? 0 : 20)
+                                    .animation(MotionToken.standardSpring.delay(0.4), value: animateIn)
 
-                        // Weekly stats overview
-                        weeklyStatsCard(viewModel)
-                            .padding(.horizontal, AppSpacing.screenPadding)
-                            .padding(.top, AppSpacing.xl)
-                            .opacity(animateIn ? 1 : 0)
-                            .offset(y: animateIn ? 0 : 20)
-                            .animation(MotionToken.standardSpring.delay(0.5), value: animateIn)
+                                weeklyStatsCard(viewModel)
+                                    .padding(.horizontal, AppSpacing.screenPadding)
+                                    .padding(.top, AppSpacing.xl)
+                                    .opacity(animateIn ? 1 : 0)
+                                    .offset(y: animateIn ? 0 : 20)
+                                    .animation(MotionToken.standardSpring.delay(0.5), value: animateIn)
 
-                        // Recent workouts
-                        recentWorkoutsSection(viewModel)
-                            .padding(.top, AppSpacing.xl)
-                            .opacity(animateIn ? 1 : 0)
-                            .offset(y: animateIn ? 0 : 20)
-                            .animation(MotionToken.standardSpring.delay(0.6), value: animateIn)
+                                recentWorkoutsSection(viewModel)
+                                    .padding(.top, AppSpacing.xl)
+                                    .opacity(animateIn ? 1 : 0)
+                                    .offset(y: animateIn ? 0 : 20)
+                                    .animation(MotionToken.standardSpring.delay(0.6), value: animateIn)
+                            }
+                        } else if isInitializing {
+                            // Skeleton content while loading
+                            workoutSkeletonContent()
+                        }
                     }
                     .padding(.bottom, AppSpacing.xl)
                 }
                 .scrollContentBackground(.hidden)
                 .navigationBarTitleDisplayMode(.inline)
                 .refreshable {
-                    await viewModel.loadWorkouts()
+                    if let viewModel = viewModel {
+                        await viewModel.loadWorkouts()
+                    }
                 }
                 .navigationDestination(for: WorkoutCoordinator.WorkoutDestination.self) { destination in
-                    destinationView(for: destination, viewModel: viewModel)
+                    if let viewModel = viewModel {
+                        destinationView(for: destination, viewModel: viewModel)
+                    }
                 }
                 .toolbar {
                     ToolbarItem(placement: .navigationBarTrailing) {
                         Button {
                             HapticService.impact(.light)
-                            coordinator.showSheet(.voiceWorkoutInput)
+                            coordinator.showSheet(.newTemplate)
                         } label: {
                             Image(systemName: "plus.circle.fill")
                                 .font(.system(size: 20))
                                 .foregroundStyle(gradientManager.currentGradient(for: colorScheme))
                         }
                         .accessibilityLabel("Start Workout")
+                        .disabled(viewModel == nil)
+                        .opacity(viewModel == nil ? 0.5 : 1)
                     }
-                }
-                .sheet(item: $coordinator.presentedSheet) { sheet in
-                    sheetView(for: sheet)
-                        .environmentObject(gradientManager)
                 }
             }
         }
         .task {
-            guard !hasAppeared else { return }
-            hasAppeared = true
-
-            withAnimation(MotionToken.standardSpring) {
-                animateIn = true
+            guard viewModel == nil else { return }
+            isInitializing = true
+            let factory = DIViewModelFactory(container: container)
+            viewModel = try? await factory.makeWorkoutViewModel(user: user)
+            isInitializing = false
+            
+            if !hasAppeared {
+                hasAppeared = true
+                withAnimation(MotionToken.standardSpring) {
+                    animateIn = true
+                }
             }
-
-            await viewModel.loadWorkouts()
-            await viewModel.loadExerciseLibrary()
+        }
+        .onAppear {
+            // Tab update logic would go here if needed
         }
         .accessibilityIdentifier("workout.dashboard")
     }
 
+
     // MARK: - Header
+
+    @ViewBuilder
+    private func workoutHeaderImmediate() -> some View {
+        VStack(alignment: .leading, spacing: AppSpacing.sm) {
+            CascadeText("Workouts")
+                .font(.system(size: 34, weight: .thin, design: .rounded))
+
+            Text(workoutLoadingMessage())
+                .font(.system(size: 18, weight: .light))
+                .foregroundStyle(.secondary)
+                .lineSpacing(2)
+                .fixedSize(horizontal: false, vertical: true)
+        }
+    }
+    
+    private func workoutLoadingMessage() -> String {
+        let dayOfWeek = Calendar.current.component(.weekday, from: Date())
+        switch dayOfWeek {
+        case 1: // Sunday
+            return "Loading your rest day overview..."
+        case 2: // Monday
+            return "Loading your week's training plan..."
+        case 6: // Friday
+            return "Loading your week's progress..."
+        case 7: // Saturday
+            return "Loading your weekend workout..."
+        default:
+            return "Loading your training data..."
+        }
+    }
 
     @ViewBuilder
     private func workoutHeader(_ viewModel: WorkoutViewModel) -> some View {
@@ -470,6 +498,142 @@ struct WorkoutDashboardView: View {
         }
     }
 
+    // MARK: - Skeleton Content
+
+    @ViewBuilder
+    private func workoutSkeletonContent() -> some View {
+        VStack(spacing: AppSpacing.xl) {
+            // Today's workout skeleton
+            VStack(alignment: .leading, spacing: AppSpacing.md) {
+                RoundedRectangle(cornerRadius: 8)
+                    .fill(Color.secondary.opacity(0.2))
+                    .frame(width: 150, height: 20)
+                    .shimmering()
+                
+                GlassCard {
+                    VStack(alignment: .leading, spacing: AppSpacing.md) {
+                        RoundedRectangle(cornerRadius: 8)
+                            .fill(Color.secondary.opacity(0.2))
+                            .frame(width: 200, height: 24)
+                            .shimmering()
+                        
+                        HStack(spacing: AppSpacing.sm) {
+                            ForEach(0..<3, id: \.self) { _ in
+                                RoundedRectangle(cornerRadius: 8)
+                                    .fill(Color.secondary.opacity(0.2))
+                                    .frame(width: 80, height: 16)
+                                    .shimmering()
+                            }
+                        }
+                    }
+                }
+            }
+            .padding(.horizontal, AppSpacing.screenPadding)
+            .padding(.top, AppSpacing.xl)
+            
+            // Muscle volume skeleton
+            VStack(alignment: .leading, spacing: AppSpacing.md) {
+                RoundedRectangle(cornerRadius: 8)
+                    .fill(Color.secondary.opacity(0.2))
+                    .frame(width: 180, height: 20)
+                    .shimmering()
+                
+                // Muscle group bars
+                VStack(spacing: AppSpacing.sm) {
+                    ForEach(0..<5, id: \.self) { _ in
+                        HStack(spacing: AppSpacing.md) {
+                            RoundedRectangle(cornerRadius: 4)
+                                .fill(Color.secondary.opacity(0.2))
+                                .frame(width: 60, height: 16)
+                                .shimmering()
+                            
+                            GeometryReader { geometry in
+                                RoundedRectangle(cornerRadius: 4)
+                                    .fill(Color.secondary.opacity(0.2))
+                                    .frame(width: geometry.size.width * Double.random(in: 0.3...0.8), height: 8)
+                                    .shimmering()
+                            }
+                            .frame(height: 8)
+                            
+                            RoundedRectangle(cornerRadius: 4)
+                                .fill(Color.secondary.opacity(0.2))
+                                .frame(width: 40, height: 16)
+                                .shimmering()
+                        }
+                    }
+                }
+                .padding(.horizontal, AppSpacing.md)
+            }
+            .padding(.horizontal, AppSpacing.screenPadding)
+            
+            // Stats card skeleton
+            GlassCard {
+                VStack(spacing: AppSpacing.lg) {
+                    HStack(spacing: AppSpacing.xl) {
+                        ForEach(0..<3, id: \.self) { _ in
+                            VStack(spacing: AppSpacing.xs) {
+                                RoundedRectangle(cornerRadius: 8)
+                                    .fill(Color.secondary.opacity(0.2))
+                                    .frame(width: 50, height: 30)
+                                    .shimmering()
+                                
+                                RoundedRectangle(cornerRadius: 4)
+                                    .fill(Color.secondary.opacity(0.2))
+                                    .frame(width: 70, height: 12)
+                                    .shimmering()
+                            }
+                        }
+                    }
+                }
+            }
+            .padding(.horizontal, AppSpacing.screenPadding)
+            
+            // Recent workouts skeleton
+            VStack(alignment: .leading, spacing: AppSpacing.md) {
+                RoundedRectangle(cornerRadius: 8)
+                    .fill(Color.secondary.opacity(0.2))
+                    .frame(width: 140, height: 20)
+                    .shimmering()
+                
+                VStack(spacing: AppSpacing.sm) {
+                    ForEach(0..<2, id: \.self) { _ in
+                        GlassCard {
+                            HStack(spacing: AppSpacing.md) {
+                                Circle()
+                                    .fill(Color.secondary.opacity(0.2))
+                                    .frame(width: 50, height: 50)
+                                    .shimmering()
+                                
+                                VStack(alignment: .leading, spacing: AppSpacing.xs) {
+                                    RoundedRectangle(cornerRadius: 4)
+                                        .fill(Color.secondary.opacity(0.2))
+                                        .frame(width: 120, height: 16)
+                                        .shimmering()
+                                    
+                                    RoundedRectangle(cornerRadius: 4)
+                                        .fill(Color.secondary.opacity(0.2))
+                                        .frame(width: 80, height: 12)
+                                        .shimmering()
+                                }
+                                
+                                Spacer()
+                                
+                                RoundedRectangle(cornerRadius: 4)
+                                    .fill(Color.secondary.opacity(0.2))
+                                    .frame(width: 50, height: 16)
+                                    .shimmering()
+                            }
+                        }
+                    }
+                }
+            }
+            .padding(.horizontal, AppSpacing.screenPadding)
+        }
+        .opacity(animateIn ? 1 : 0)
+        .offset(y: animateIn ? 0 : 20)
+        .animation(MotionToken.standardSpring.delay(0.2), value: animateIn)
+    }
+    
     // MARK: - Helper Methods
 
     private func generateWorkoutInsight(from viewModel: WorkoutViewModel) -> String? {

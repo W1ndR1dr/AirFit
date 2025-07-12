@@ -15,6 +15,7 @@ struct NutritionDashboardView: View {
     @State private var hasAppeared = false
     @State private var selectedTimeframe: NutritionTimeframe = .today
     @State private var animateIn = false
+    @State private var isInitializing = true
 
     enum NutritionTimeframe: String, CaseIterable {
         case today = "Today"
@@ -25,34 +26,19 @@ struct NutritionDashboardView: View {
     }
 
     var body: some View {
-        Group {
-            if let viewModel = viewModel {
-                nutritionContent(viewModel)
-            } else {
-                ProgressView()
-                    .task {
-                        let factory = DIViewModelFactory(container: container)
-                        viewModel = try? await factory.makeFoodTrackingViewModel(user: user)
-                    }
-            }
-        }
-    }
-
-    @ViewBuilder
-    private func nutritionContent(_ viewModel: FoodTrackingViewModel) -> some View {
         BaseScreen {
             NavigationStack(path: $coordinator.navigationPath) {
                 ScrollView {
                     VStack(spacing: 0) {
-                        // Dynamic header with AI insights
-                        nutritionHeader(viewModel)
+                        // Header is always visible
+                        nutritionHeaderImmediate()
                             .padding(.horizontal, AppSpacing.screenPadding)
                             .padding(.top, AppSpacing.md)
                             .opacity(animateIn ? 1 : 0)
                             .offset(y: animateIn ? 0 : -20)
                             .animation(MotionToken.standardSpring, value: animateIn)
 
-                        // Timeframe selector
+                        // Timeframe selector - always visible
                         timeframePicker
                             .padding(.horizontal, AppSpacing.screenPadding)
                             .padding(.top, AppSpacing.lg)
@@ -60,14 +46,20 @@ struct NutritionDashboardView: View {
                             .offset(y: animateIn ? 0 : 10)
                             .animation(MotionToken.standardSpring.delay(0.1), value: animateIn)
 
-                        // Main content based on timeframe
-                        switch selectedTimeframe {
-                        case .today:
-                            todayNutritionView(viewModel)
-                        case .week:
-                            weekNutritionView(viewModel)
-                        case .month:
-                            monthNutritionView(viewModel)
+                        // Content or skeleton
+                        if let viewModel = viewModel {
+                            // Main content based on timeframe
+                            switch selectedTimeframe {
+                            case .today:
+                                todayNutritionView(viewModel)
+                            case .week:
+                                weekNutritionView(viewModel)
+                            case .month:
+                                monthNutritionView(viewModel)
+                            }
+                        } else if isInitializing {
+                            // Skeleton content while loading
+                            nutritionSkeletonContent()
                         }
                     }
                     .padding(.bottom, AppSpacing.xl)
@@ -75,7 +67,9 @@ struct NutritionDashboardView: View {
                 .scrollContentBackground(.hidden)
                 .navigationBarTitleDisplayMode(.inline)
                 .refreshable {
-                    await viewModel.loadTodaysData()
+                    if let viewModel = viewModel {
+                        await viewModel.loadTodaysData()
+                    }
                 }
                 .navigationDestination(for: FoodTrackingDestination.self) { destination in
                     destinationView(for: destination)
@@ -91,24 +85,65 @@ struct NutritionDashboardView: View {
                                 .foregroundStyle(gradientManager.currentGradient(for: colorScheme))
                         }
                         .accessibilityLabel("Add Food")
+                        .disabled(viewModel == nil)
+                        .opacity(viewModel == nil ? 0.5 : 1)
                     }
                 }
             }
         }
         .task {
-            guard !hasAppeared else { return }
-            hasAppeared = true
-
-            withAnimation(MotionToken.standardSpring) {
-                animateIn = true
+            guard viewModel == nil else { return }
+            isInitializing = true
+            let factory = DIViewModelFactory(container: container)
+            viewModel = try? await factory.makeFoodTrackingViewModel(user: user)
+            isInitializing = false
+            
+            if let viewModel = viewModel, !hasAppeared {
+                hasAppeared = true
+                withAnimation(MotionToken.standardSpring) {
+                    animateIn = true
+                }
+                await viewModel.loadTodaysData()
             }
-
-            await viewModel.loadTodaysData()
         }
         .accessibilityIdentifier("nutrition.dashboard")
     }
 
+
     // MARK: - Header
+
+    @ViewBuilder
+    private func nutritionHeaderImmediate() -> some View {
+        VStack(alignment: .leading, spacing: AppSpacing.sm) {
+            CascadeText("Nutrition")
+                .font(.system(size: 34, weight: .thin, design: .rounded))
+
+            // Show contextual message while loading
+            Text(nutritionLoadingMessage())
+                .font(.system(size: 18, weight: .light))
+                .foregroundStyle(.secondary)
+                .lineSpacing(2)
+                .fixedSize(horizontal: false, vertical: true)
+        }
+    }
+    
+    private func nutritionLoadingMessage() -> String {
+        let hour = Calendar.current.component(.hour, from: Date())
+        switch hour {
+        case 5..<10:
+            return "Loading your breakfast tracking..."
+        case 10..<12:
+            return "Checking your morning nutrition..."
+        case 12..<14:
+            return "Loading lunch data..."
+        case 14..<17:
+            return "Reviewing your afternoon intake..."
+        case 17..<20:
+            return "Loading dinner tracking..."
+        default:
+            return "Analyzing your daily nutrition..."
+        }
+    }
 
     @ViewBuilder
     private func nutritionHeader(_ viewModel: FoodTrackingViewModel) -> some View {
@@ -574,6 +609,97 @@ struct NutritionDashboardView: View {
                 .font(.largeTitle)
                 .foregroundStyle(.secondary)
         }
+    }
+    
+    // MARK: - Skeleton Content
+    
+    @ViewBuilder
+    private func nutritionSkeletonContent() -> some View {
+        VStack(spacing: AppSpacing.xl) {
+            // Nutrition rings skeleton
+            HStack(spacing: AppSpacing.lg) {
+                ForEach(0..<4, id: \.self) { _ in
+                    VStack(spacing: AppSpacing.xs) {
+                        Circle()
+                            .stroke(Color.secondary.opacity(0.2), lineWidth: 8)
+                            .frame(width: 70, height: 70)
+                            .overlay(
+                                RoundedRectangle(cornerRadius: 8)
+                                    .fill(Color.secondary.opacity(0.2))
+                                    .frame(width: 40, height: 20)
+                                    .shimmering()
+                            )
+                        
+                        RoundedRectangle(cornerRadius: 4)
+                            .fill(Color.secondary.opacity(0.2))
+                            .frame(width: 50, height: 12)
+                            .shimmering()
+                    }
+                }
+            }
+            .padding(.horizontal, AppSpacing.screenPadding)
+            .padding(.top, AppSpacing.lg)
+            
+            // Recent meals skeleton
+            VStack(alignment: .leading, spacing: AppSpacing.md) {
+                RoundedRectangle(cornerRadius: 8)
+                    .fill(Color.secondary.opacity(0.2))
+                    .frame(width: 120, height: 20)
+                    .shimmering()
+                
+                VStack(spacing: AppSpacing.sm) {
+                    ForEach(0..<3, id: \.self) { _ in
+                        GlassCard {
+                            HStack(spacing: AppSpacing.md) {
+                                RoundedRectangle(cornerRadius: 12)
+                                    .fill(Color.secondary.opacity(0.2))
+                                    .frame(width: 60, height: 60)
+                                    .shimmering()
+                                
+                                VStack(alignment: .leading, spacing: AppSpacing.xs) {
+                                    RoundedRectangle(cornerRadius: 4)
+                                        .fill(Color.secondary.opacity(0.2))
+                                        .frame(width: 150, height: 16)
+                                        .shimmering()
+                                    
+                                    RoundedRectangle(cornerRadius: 4)
+                                        .fill(Color.secondary.opacity(0.2))
+                                        .frame(width: 100, height: 12)
+                                        .shimmering()
+                                }
+                                
+                                Spacer()
+                                
+                                RoundedRectangle(cornerRadius: 4)
+                                    .fill(Color.secondary.opacity(0.2))
+                                    .frame(width: 60, height: 20)
+                                    .shimmering()
+                            }
+                        }
+                    }
+                }
+            }
+            .padding(.horizontal, AppSpacing.screenPadding)
+            
+            // Chart skeleton
+            GlassCard {
+                VStack(alignment: .leading, spacing: AppSpacing.md) {
+                    RoundedRectangle(cornerRadius: 4)
+                        .fill(Color.secondary.opacity(0.2))
+                        .frame(width: 100, height: 16)
+                        .shimmering()
+                    
+                    RoundedRectangle(cornerRadius: 8)
+                        .fill(Color.secondary.opacity(0.2))
+                        .frame(height: 200)
+                        .shimmering()
+                }
+            }
+            .padding(.horizontal, AppSpacing.screenPadding)
+        }
+        .opacity(animateIn ? 1 : 0)
+        .offset(y: animateIn ? 0 : 20)
+        .animation(MotionToken.standardSpring.delay(0.2), value: animateIn)
     }
 }
 

@@ -16,6 +16,7 @@ struct BodyDashboardView: View {
     @State private var hasAppeared = false
     @State private var selectedTimeframe: BodyTimeframe = .month
     @State private var animateIn = false
+    @State private var isInitializing = true
 
     enum BodyTimeframe: String, CaseIterable {
         case week = "Week"
@@ -42,36 +43,19 @@ struct BodyDashboardView: View {
     }
 
     var body: some View {
-        Group {
-            if let viewModel = viewModel {
-                bodyContent(viewModel)
-            } else {
-                ProgressView()
-                    .task {
-                        let factory = DIViewModelFactory(container: container)
-                        viewModel = try? await factory.makeBodyViewModel(user: user)
-                        // Set up HealthKit observer for bidirectional sync
-                        viewModel?.setupHealthKitObserver()
-                    }
-            }
-        }
-    }
-
-    @ViewBuilder
-    private func bodyContent(_ viewModel: BodyViewModel) -> some View {
         BaseScreen {
             NavigationStack(path: $coordinator.navigationPath) {
                 ScrollView {
                     VStack(spacing: 0) {
-                        // Dynamic header with AI insights
-                        bodyHeader(viewModel)
+                        // Header is always visible
+                        bodyHeaderImmediate()
                             .padding(.horizontal, AppSpacing.screenPadding)
                             .padding(.top, AppSpacing.md)
                             .opacity(animateIn ? 1 : 0)
                             .offset(y: animateIn ? 0 : -20)
                             .animation(MotionToken.standardSpring, value: animateIn)
 
-                        // Timeframe selector
+                        // Timeframe selector - always visible
                         timeframePicker
                             .padding(.horizontal, AppSpacing.screenPadding)
                             .padding(.top, AppSpacing.lg)
@@ -79,58 +63,136 @@ struct BodyDashboardView: View {
                             .offset(y: animateIn ? 0 : 10)
                             .animation(MotionToken.standardSpring.delay(0.1), value: animateIn)
 
-                        // Current metrics overview
-                        currentMetricsSection(viewModel)
-                            .padding(.top, AppSpacing.xl)
-                            .opacity(animateIn ? 1 : 0)
-                            .offset(y: animateIn ? 0 : 20)
-                            .animation(MotionToken.standardSpring.delay(0.2), value: animateIn)
+                        if let viewModel = viewModel {
+                            // Real content when loaded
+                            VStack(spacing: AppSpacing.xl) {
+                                currentMetricsSection(viewModel)
+                                    .padding(.top, AppSpacing.xl)
+                                    .opacity(animateIn ? 1 : 0)
+                                    .offset(y: animateIn ? 0 : 20)
+                                    .animation(MotionToken.standardSpring.delay(0.2), value: animateIn)
 
-                        // Weight trend chart
-                        weightTrendSection(viewModel)
-                            .padding(.top, AppSpacing.xl)
-                            .opacity(animateIn ? 1 : 0)
-                            .offset(y: animateIn ? 0 : 20)
-                            .animation(MotionToken.standardSpring.delay(0.3), value: animateIn)
+                                weightTrendSection(viewModel)
+                                    .padding(.top, AppSpacing.xl)
+                                    .opacity(animateIn ? 1 : 0)
+                                    .offset(y: animateIn ? 0 : 20)
+                                    .animation(MotionToken.standardSpring.delay(0.3), value: animateIn)
 
-                        // Recovery metrics
-                        recoveryMetricsSection(viewModel)
-                            .padding(.top, AppSpacing.xl)
-                            .opacity(animateIn ? 1 : 0)
-                            .offset(y: animateIn ? 0 : 20)
-                            .animation(MotionToken.standardSpring.delay(0.4), value: animateIn)
+                                recoveryMetricsSection(viewModel)
+                                    .padding(.top, AppSpacing.xl)
+                                    .opacity(animateIn ? 1 : 0)
+                                    .offset(y: animateIn ? 0 : 20)
+                                    .animation(MotionToken.standardSpring.delay(0.4), value: animateIn)
+
+                                progressPhotosSection(viewModel)
+                                    .padding(.top, AppSpacing.xl)
+                                    .opacity(animateIn ? 1 : 0)
+                                    .offset(y: animateIn ? 0 : 20)
+                                    .animation(MotionToken.standardSpring.delay(0.5), value: animateIn)
+
+                                bodyCompositionGoals(viewModel)
+                                    .padding(.horizontal, AppSpacing.screenPadding)
+                                    .padding(.top, AppSpacing.xl)
+                                    .opacity(animateIn ? 1 : 0)
+                                    .offset(y: animateIn ? 0 : 20)
+                                    .animation(MotionToken.standardSpring.delay(0.6), value: animateIn)
+                            }
+                        } else if isInitializing {
+                            // Skeleton content while loading
+                            bodySkeletonContent()
+                        }
                     }
                     .padding(.bottom, AppSpacing.xl)
                 }
                 .scrollContentBackground(.hidden)
                 .navigationBarTitleDisplayMode(.inline)
                 .refreshable {
-                    await viewModel.loadLatestMetrics()
+                    if let viewModel = viewModel {
+                        await viewModel.refresh()
+                    }
                 }
                 .navigationDestination(for: BodyCoordinator.BodyDestination.self) { destination in
-                    destinationView(for: destination, viewModel: viewModel)
+                    if let viewModel = viewModel {
+                        destinationView(for: destination, viewModel: viewModel)
+                    }
                 }
-                .sheet(item: $coordinator.presentedSheet) { sheet in
-                    sheetView(for: sheet, viewModel: viewModel)
-                        .environmentObject(gradientManager)
+                .toolbar {
+                    ToolbarItem(placement: .navigationBarTrailing) {
+                        Button {
+                            HapticService.impact(.light)
+                            coordinator.presentMeasurementEntry()
+                        } label: {
+                            Image(systemName: "plus.circle.fill")
+                                .font(.system(size: 20))
+                                .foregroundStyle(gradientManager.currentGradient(for: colorScheme))
+                        }
+                        .accessibilityLabel("Add Measurement")
+                        .disabled(viewModel == nil)
+                        .opacity(viewModel == nil ? 0.5 : 1)
+                    }
+                }
+                .sheet(isPresented: $coordinator.showingMeasurementEntry) {
+                    if let viewModel = viewModel {
+                        MeasurementEntryView(viewModel: viewModel)
+                    }
+                }
+                .sheet(isPresented: $coordinator.showingPhotoCapture) {
+                    if let viewModel = viewModel {
+                        PhotoCaptureView(viewModel: viewModel)
+                    }
                 }
             }
         }
         .task {
-            guard !hasAppeared else { return }
-            hasAppeared = true
-
-            withAnimation(MotionToken.standardSpring) {
-                animateIn = true
+            guard viewModel == nil else { return }
+            isInitializing = true
+            let factory = DIViewModelFactory(container: container)
+            viewModel = try? await factory.makeBodyViewModel(user: user)
+            isInitializing = false
+            
+            // Set up HealthKit observer for bidirectional sync
+            viewModel?.setupHealthKitObserver()
+            
+            if !hasAppeared {
+                hasAppeared = true
+                withAnimation(MotionToken.standardSpring) {
+                    animateIn = true
+                }
             }
-
-            await viewModel.loadLatestMetrics()
-            await viewModel.loadWeightHistory()
+        }
+        .onAppear {
+            coordinator.updateActiveTab(.body)
         }
         .accessibilityIdentifier("body.dashboard")
     }
 
+
     // MARK: - Header
+
+    @ViewBuilder
+    private func bodyHeaderImmediate() -> some View {
+        VStack(alignment: .leading, spacing: AppSpacing.sm) {
+            CascadeText("Body Metrics")
+                .font(.system(size: 34, weight: .thin, design: .rounded))
+
+            Text(bodyLoadingMessage())
+                .font(.system(size: 18, weight: .light))
+                .foregroundStyle(.secondary)
+                .lineSpacing(2)
+                .fixedSize(horizontal: false, vertical: true)
+        }
+    }
+    
+    private func bodyLoadingMessage() -> String {
+        let components = Calendar.current.dateComponents([.weekday], from: Date())
+        if components.weekday == 2 { // Monday
+            return "Loading your weekly progress report..."
+        } else if components.weekday == 1 { // Sunday
+            return "Loading your recovery metrics..."
+        } else {
+            return "Analyzing your body composition data..."
+        }
+    }
 
     @ViewBuilder
     private func bodyHeader(_ viewModel: BodyViewModel) -> some View {
@@ -329,7 +391,7 @@ struct BodyDashboardView: View {
                     RecoveryMetricRow(
                         icon: "waveform.path.ecg",
                         title: "Heart Rate Variability",
-                        value: viewModel.hrv.map { "\(Int($0.value)) ms" } ?? "—",
+                        value: viewModel.hrv.map { "\(Int($0.converted(to: .milliseconds).value)) ms" } ?? "—",
                         trend: viewModel.hrvTrend,
                         color: .purple
                     )
@@ -459,6 +521,209 @@ struct BodyDashboardView: View {
             Text("Body Settings")
         }
     }
+    
+    
+    // MARK: - Progress Photos Section
+    
+    @ViewBuilder
+    private func progressPhotosSection(_ viewModel: BodyViewModel) -> some View {
+        VStack(alignment: .leading, spacing: AppSpacing.md) {
+            Text("Progress Photos")
+                .font(.system(size: 20, weight: .medium))
+                .foregroundStyle(.primary)
+                .padding(.horizontal, AppSpacing.screenPadding)
+            
+            ScrollView(.horizontal, showsIndicators: false) {
+                HStack(spacing: AppSpacing.md) {
+                    // Add photo button
+                    Button {
+                        HapticService.impact(.light)
+                        coordinator.presentPhotoCapture()
+                    } label: {
+                        VStack {
+                            Image(systemName: "camera.fill")
+                                .font(.system(size: 24))
+                                .foregroundStyle(gradientManager.currentGradient(for: colorScheme))
+                            
+                            Text("Add Photo")
+                                .font(.system(size: 14, weight: .medium))
+                                .foregroundStyle(.secondary)
+                        }
+                        .frame(width: 100, height: 120)
+                        .background(.ultraThinMaterial)
+                        .clipShape(RoundedRectangle(cornerRadius: 12))
+                    }
+                    .buttonStyle(.plain)
+                    
+                    // Placeholder for existing photos
+                    ForEach(0..<3, id: \.self) { _ in
+                        RoundedRectangle(cornerRadius: 12)
+                            .fill(Color.secondary.opacity(0.2))
+                            .frame(width: 100, height: 120)
+                    }
+                }
+                .padding(.horizontal, AppSpacing.screenPadding)
+            }
+        }
+    }
+    
+    // MARK: - Body Composition Goals
+    
+    @ViewBuilder
+    private func bodyCompositionGoals(_ viewModel: BodyViewModel) -> some View {
+        GlassCard {
+            VStack(alignment: .leading, spacing: AppSpacing.md) {
+                Text("Body Composition Goals")
+                    .font(.system(size: 18, weight: .semibold))
+                    .foregroundStyle(.primary)
+                
+                VStack(spacing: AppSpacing.sm) {
+                    GoalProgressRow(
+                        title: "Weight Goal",
+                        current: viewModel.metrics?.weight?.converted(to: .pounds).value ?? 0,
+                        target: 180,
+                        unit: "lbs"
+                    )
+                    
+                    GoalProgressRow(
+                        title: "Body Fat Goal",
+                        current: (viewModel.metrics?.bodyFatPercentage ?? 0) * 100,
+                        target: 15,
+                        unit: "%"
+                    )
+                    
+                    GoalProgressRow(
+                        title: "Lean Mass Goal",
+                        current: viewModel.metrics?.leanBodyMass?.converted(to: .pounds).value ?? 0,
+                        target: 160,
+                        unit: "lbs"
+                    )
+                }
+            }
+            .padding(AppSpacing.md)
+        }
+    }
+    
+    
+    // MARK: - Skeleton Content
+    
+    @ViewBuilder
+    private func bodySkeletonContent() -> some View {
+        VStack(spacing: AppSpacing.xl) {
+            // Key metrics skeleton
+            HStack(spacing: AppSpacing.lg) {
+                ForEach(0..<3, id: \.self) { _ in
+                    GlassCard {
+                        VStack(spacing: AppSpacing.sm) {
+                            RoundedRectangle(cornerRadius: 8)
+                                .fill(Color.secondary.opacity(0.2))
+                                .frame(width: 60, height: 30)
+                                .shimmering()
+                            
+                            RoundedRectangle(cornerRadius: 4)
+                                .fill(Color.secondary.opacity(0.2))
+                                .frame(width: 50, height: 12)
+                                .shimmering()
+                            
+                            RoundedRectangle(cornerRadius: 4)
+                                .fill(Color.secondary.opacity(0.2))
+                                .frame(width: 40, height: 10)
+                                .shimmering()
+                        }
+                    }
+                }
+            }
+            .padding(.horizontal, AppSpacing.screenPadding)
+            .padding(.top, AppSpacing.xl)
+            
+            // Weight chart skeleton
+            GlassCard {
+                VStack(alignment: .leading, spacing: AppSpacing.md) {
+                    HStack {
+                        RoundedRectangle(cornerRadius: 4)
+                            .fill(Color.secondary.opacity(0.2))
+                            .frame(width: 100, height: 20)
+                            .shimmering()
+                        
+                        Spacer()
+                        
+                        RoundedRectangle(cornerRadius: 4)
+                            .fill(Color.secondary.opacity(0.2))
+                            .frame(width: 80, height: 16)
+                            .shimmering()
+                    }
+                    
+                    RoundedRectangle(cornerRadius: 8)
+                        .fill(Color.secondary.opacity(0.2))
+                        .frame(height: 200)
+                        .shimmering()
+                }
+            }
+            .padding(.horizontal, AppSpacing.screenPadding)
+            
+            // Recovery metrics skeleton
+            VStack(alignment: .leading, spacing: AppSpacing.md) {
+                RoundedRectangle(cornerRadius: 8)
+                    .fill(Color.secondary.opacity(0.2))
+                    .frame(width: 150, height: 20)
+                    .shimmering()
+                
+                GlassCard {
+                    VStack(spacing: AppSpacing.md) {
+                        ForEach(0..<4, id: \.self) { _ in
+                            HStack {
+                                Circle()
+                                    .fill(Color.secondary.opacity(0.2))
+                                    .frame(width: 32, height: 32)
+                                    .shimmering()
+                                
+                                VStack(alignment: .leading, spacing: AppSpacing.xs) {
+                                    RoundedRectangle(cornerRadius: 4)
+                                        .fill(Color.secondary.opacity(0.2))
+                                        .frame(width: 80, height: 12)
+                                        .shimmering()
+                                    
+                                    RoundedRectangle(cornerRadius: 4)
+                                        .fill(Color.secondary.opacity(0.2))
+                                        .frame(width: 60, height: 18)
+                                        .shimmering()
+                                }
+                                
+                                Spacer()
+                                
+                                Circle()
+                                    .fill(Color.secondary.opacity(0.2))
+                                    .frame(width: 24, height: 24)
+                                    .shimmering()
+                            }
+                        }
+                    }
+                }
+            }
+            .padding(.horizontal, AppSpacing.screenPadding)
+            
+            // Progress photos skeleton
+            VStack(alignment: .leading, spacing: AppSpacing.md) {
+                RoundedRectangle(cornerRadius: 8)
+                    .fill(Color.secondary.opacity(0.2))
+                    .frame(width: 130, height: 20)
+                    .shimmering()
+                
+                HStack(spacing: AppSpacing.md) {
+                    ForEach(0..<3, id: \.self) { _ in
+                        RoundedRectangle(cornerRadius: 12)
+                            .fill(Color.secondary.opacity(0.2))
+                            .frame(width: 100, height: 120)
+                            .shimmering()
+                    }
+                }
+            }
+            .padding(.horizontal, AppSpacing.screenPadding)
+        }
+        .opacity(animateIn ? 1 : 0)
+        .offset(y: animateIn ? 0 : 20)
+        .animation(MotionToken.standardSpring.delay(0.2), value: animateIn)
+    }
 }
 
 // MARK: - Supporting Views
@@ -546,14 +811,14 @@ struct WeightTrendChart: View {
                 if let date = entry.date, let weight = entry.weight {
                     LineMark(
                         x: .value("Date", date),
-                        y: .value("Weight", weight.value)
+                        y: .value("Weight", weight.converted(to: .pounds).value)
                     )
                     .foregroundStyle(gradientManager.currentGradient(for: colorScheme))
                     .lineStyle(StrokeStyle(lineWidth: 3, lineCap: .round, lineJoin: .round))
 
                     AreaMark(
                         x: .value("Date", date),
-                        y: .value("Weight", weight.value)
+                        y: .value("Weight", weight.converted(to: .pounds).value)
                     )
                     .foregroundStyle(
                         LinearGradient(
@@ -630,6 +895,120 @@ struct RecoveryMetricRow: View {
     }
 }
 
+struct GoalProgressRow: View {
+    let title: String
+    let current: Double
+    let target: Double
+    let unit: String
+    
+    private var progress: Double {
+        min(1.0, current / target)
+    }
+    
+    private var difference: Double {
+        target - current
+    }
+    
+    var body: some View {
+        VStack(alignment: .leading, spacing: AppSpacing.xs) {
+            HStack {
+                Text(title)
+                    .font(.system(size: 14, weight: .medium))
+                    .foregroundStyle(.secondary)
+                
+                Spacer()
+                
+                Text("\(Int(current)) / \(Int(target)) \(unit)")
+                    .font(.system(size: 14, weight: .semibold))
+                    .foregroundStyle(.primary)
+            }
+            
+            GeometryReader { geometry in
+                ZStack(alignment: .leading) {
+                    RoundedRectangle(cornerRadius: 4)
+                        .fill(Color.secondary.opacity(0.2))
+                    
+                    RoundedRectangle(cornerRadius: 4)
+                        .fill(Color.green)
+                        .frame(width: geometry.size.width * progress)
+                }
+            }
+            .frame(height: 8)
+            
+            if difference > 0 {
+                Text("\(Int(difference)) \(unit) to go")
+                    .font(.system(size: 12, weight: .light))
+                    .foregroundStyle(.tertiary)
+            } else {
+                Text("Goal achieved!")
+                    .font(.system(size: 12, weight: .medium))
+                    .foregroundStyle(.green)
+            }
+        }
+    }
+}
+
+// MARK: - Placeholder Views
+
+struct MeasurementEntryView: View {
+    let viewModel: BodyViewModel
+    @Environment(\.dismiss) private var dismiss
+    
+    var body: some View {
+        NavigationStack {
+            VStack {
+                Text("Add Measurement")
+                    .font(.largeTitle)
+                    .foregroundStyle(.secondary)
+                
+                Text("Coming Soon")
+                    .font(.title2)
+                    .foregroundStyle(.tertiary)
+            }
+            .frame(maxWidth: .infinity, maxHeight: .infinity)
+            .background(Color(.systemBackground))
+            .navigationTitle("Add Measurement")
+            .navigationBarTitleDisplayMode(.inline)
+            .toolbar {
+                ToolbarItem(placement: .cancellationAction) {
+                    Button("Cancel") {
+                        dismiss()
+                    }
+                }
+            }
+        }
+    }
+}
+
+struct PhotoCaptureView: View {
+    let viewModel: BodyViewModel
+    @Environment(\.dismiss) private var dismiss
+    
+    var body: some View {
+        NavigationStack {
+            VStack {
+                Text("Capture Progress Photo")
+                    .font(.largeTitle)
+                    .foregroundStyle(.secondary)
+                
+                Text("Coming Soon")
+                    .font(.title2)
+                    .foregroundStyle(.tertiary)
+            }
+            .frame(maxWidth: .infinity, maxHeight: .infinity)
+            .background(Color(.systemBackground))
+            .navigationTitle("Progress Photo")
+            .navigationBarTitleDisplayMode(.inline)
+            .toolbar {
+                ToolbarItem(placement: .cancellationAction) {
+                    Button("Cancel") {
+                        dismiss()
+                    }
+                }
+            }
+        }
+    }
+}
 
 // MARK: - Preview
 
