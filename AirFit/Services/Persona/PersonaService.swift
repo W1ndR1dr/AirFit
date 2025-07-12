@@ -14,20 +14,17 @@ final class PersonaService: ServiceProtocol {
     }
 
     private let personaSynthesizer: PersonaSynthesizer
-    private let llmOrchestrator: LLMOrchestrator
+    private let aiService: AIServiceProtocol
     private let modelContext: ModelContext
-    private let cache: AIResponseCache
 
     init(
         personaSynthesizer: PersonaSynthesizer,
-        llmOrchestrator: LLMOrchestrator,
-        modelContext: ModelContext,
-        cache: AIResponseCache? = nil
+        aiService: AIServiceProtocol,
+        modelContext: ModelContext
     ) {
         self.personaSynthesizer = personaSynthesizer
-        self.llmOrchestrator = llmOrchestrator
+        self.aiService = aiService
         self.modelContext = modelContext
-        self.cache = cache ?? AIResponseCache()
     }
 
     // MARK: - ServiceProtocol Methods
@@ -40,7 +37,6 @@ final class PersonaService: ServiceProtocol {
 
     func reset() async {
         _isConfigured = false
-        await cache.clear()
         AppLogger.info("\(serviceIdentifier) reset", category: .services)
     }
 
@@ -52,7 +48,7 @@ final class PersonaService: ServiceProtocol {
             errorMessage: _isConfigured ? nil : "Service not configured",
             metadata: [
                 "hasPersonaSynthesizer": "true",
-                "hasLLMOrchestrator": "true"
+                "hasAIService": "true"
             ]
         )
     }
@@ -129,12 +125,36 @@ final class PersonaService: ServiceProtocol {
         var lastError: Error?
         for attempt in 0..<3 {
             do {
-                let response = try await llmOrchestrator.complete(
-                    prompt: adjustmentPrompt,
-                    task: .personaSynthesis,
-                    model: .claude4Sonnet,
+                // Create request for AI service
+                let request = AIRequest(
+                    systemPrompt: "You are adjusting an AI fitness coach persona based on user feedback.",
+                    messages: [AIChatMessage(role: .user, content: adjustmentPrompt)],
                     temperature: 0.7,
-                    maxTokens: 2_000
+                    maxTokens: 2_000,
+                    stream: false,
+                    user: "persona-adjustment"
+                )
+                
+                var responseContent = ""
+                for try await response in aiService.sendRequest(request) {
+                    switch response {
+                    case .text(let content):
+                        responseContent = content
+                    case .textDelta(let delta):
+                        responseContent += delta
+                    default:
+                        break
+                    }
+                }
+                
+                let response = LLMResponse(
+                    content: responseContent,
+                    model: "gemini-2.5-flash",
+                    usage: LLMResponse.TokenUsage(promptTokens: 0, completionTokens: 0),
+                    finishReason: .stop,
+                    metadata: [:],
+                    structuredData: nil,
+                    cacheMetrics: nil
                 )
 
                 // Parse adjusted persona from response
@@ -276,11 +296,36 @@ final class PersonaService: ServiceProtocol {
         var lastError: Error?
         for attempt in 0..<3 {
             do {
-                let response = try await llmOrchestrator.complete(
-                    prompt: analysisPrompt,
-                    task: .personaSynthesis,
-                    model: .claude4Sonnet,
-                    temperature: 0.5
+                // Create request for AI service
+                let request = AIRequest(
+                    systemPrompt: "You are analyzing conversation responses to extract personality insights.",
+                    messages: [AIChatMessage(role: .user, content: analysisPrompt)],
+                    temperature: 0.5,
+                    maxTokens: 1_500,
+                    stream: false,
+                    user: "personality-analysis"
+                )
+                
+                var responseContent = ""
+                for try await response in aiService.sendRequest(request) {
+                    switch response {
+                    case .text(let content):
+                        responseContent = content
+                    case .textDelta(let delta):
+                        responseContent += delta
+                    default:
+                        break
+                    }
+                }
+                
+                let response = LLMResponse(
+                    content: responseContent,
+                    model: "gemini-2.5-flash",
+                    usage: LLMResponse.TokenUsage(promptTokens: 0, completionTokens: 0),
+                    finishReason: .stop,
+                    metadata: [:],
+                    structuredData: nil,
+                    cacheMetrics: nil
                 )
 
                 // Parse insights from response

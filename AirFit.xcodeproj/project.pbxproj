@@ -100,7 +100,6 @@
 		44582BF63285D8C1351E9C6A /* FoodVoiceAdapter.swift in Sources */ = {isa = PBXBuildFile; fileRef = E4B17502ACA8401FA697B77A /* FoodVoiceAdapter.swift */; };
 		44E9A03CC6B9DAF63B4BBC7F /* StreamingResponseHandler.swift in Sources */ = {isa = PBXBuildFile; fileRef = C9E70BFE8C650B8FE0FD901D /* StreamingResponseHandler.swift */; };
 		466FC6CA21DDF0D9A610AFB4 /* WorkoutLoggingView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 63B79EA0FEB96402744C95E6 /* WorkoutLoggingView.swift */; };
-		4762AA1449BB3CC5D00B4783 /* LLMOrchestrator.swift in Sources */ = {isa = PBXBuildFile; fileRef = D4231059A4A4F50151752F90 /* LLMOrchestrator.swift */; };
 		4796413C3F87BD5C4E3C2016 /* AppFonts.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6828B495EBCAB4418D123932 /* AppFonts.swift */; };
 		47B9C3765342077CCA6FD229 /* CommentInputView.swift in Sources */ = {isa = PBXBuildFile; fileRef = EACF291C5F6DA3D88B9FF6DB /* CommentInputView.swift */; };
 		47CB692415F11FF7CE240656 /* ServiceConfiguration.swift in Sources */ = {isa = PBXBuildFile; fileRef = D02FDFA4EA109CF910BA3144 /* ServiceConfiguration.swift */; };
@@ -134,7 +133,6 @@
 		5F3466E2B803C420983F47EB /* FoodHealthKitConfirmationView.swift in Sources */ = {isa = PBXBuildFile; fileRef = E2560EC3368526968A478762 /* FoodHealthKitConfirmationView.swift */; };
 		5F525B9583B289499485ABEF /* PreviewServices.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8B7A46976A2CF2226363B27A /* PreviewServices.swift */; };
 		6013D58B50EDA5A30EA05FF5 /* RoutingConfiguration.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2AE68059A1FA014376BDF690 /* RoutingConfiguration.swift */; };
-		6042C24064D43609975A7340 /* AIResponseCache.swift in Sources */ = {isa = PBXBuildFile; fileRef = 761D42C597E7F03FC99BE1B1 /* AIResponseCache.swift */; };
 		613E56B96154D38CD9A7AB3F /* Formatters.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6177F063856EDE0A0CE7A138 /* Formatters.swift */; };
 		627E71AA3BE0F91E8EEF1506 /* WorkoutHistoryView.swift in Sources */ = {isa = PBXBuildFile; fileRef = E4F89586F19B32DA87D8466F /* WorkoutHistoryView.swift */; };
 		63A73E1D1187A065F351A187 /* OnboardingProfile.swift in Sources */ = {isa = PBXBuildFile; fileRef = AD5697AAD66D83035E594282 /* OnboardingProfile.swift */; };
@@ -498,7 +496,6 @@
 		74415E7DBE626C2909C26DFB /* WorkoutBuilderData.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WorkoutBuilderData.swift; sourceTree = "<group>"; };
 		748F3B2F06A1699DDA086AB7 /* ChatMessage.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ChatMessage.swift; sourceTree = "<group>"; };
 		758E1864D68C21A345505B90 /* WorkoutViewModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WorkoutViewModel.swift; sourceTree = "<group>"; };
-		761D42C597E7F03FC99BE1B1 /* AIResponseCache.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AIResponseCache.swift; sourceTree = "<group>"; };
 		765D9BFE2E4C73CBBD441C02 /* DataManagementView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DataManagementView.swift; sourceTree = "<group>"; };
 		7A1806EE2BCF6B22ABE8A674 /* PersonaSynthesizer.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PersonaSynthesizer.swift; sourceTree = "<group>"; };
 		7A98D3FF02B09459A0FDE302 /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
@@ -609,7 +606,6 @@
 		D175263D463CCB6EF4BCE843 /* NotificationPreferencesView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NotificationPreferencesView.swift; sourceTree = "<group>"; };
 		D36A6604938988E21B88A8D3 /* WorkoutService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WorkoutService.swift; sourceTree = "<group>"; };
 		D376B0AD7C8A3F94B856B55E /* NavigationState.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NavigationState.swift; sourceTree = "<group>"; };
-		D4231059A4A4F50151752F90 /* LLMOrchestrator.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LLMOrchestrator.swift; sourceTree = "<group>"; };
 		D4C9549B6809BF920E3E4FF0 /* UserServiceProtocol.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = UserServiceProtocol.swift; sourceTree = "<group>"; };
 		D5DC4720E53F53128798A089 /* ChatView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ChatView.swift; sourceTree = "<group>"; };
 		D6E7688403FA225D26458DEA /* ServiceModels.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ServiceModels.swift; sourceTree = "<group>"; };
@@ -1149,11 +1145,9 @@
 				CBCECD5C3C1A4989E6649D1F /* LLMProviders */,
 				B9EC8AD592668233244A933F /* AIAnalyticsService.swift */,
 				2FF40B5DD44938977DFD75B3 /* AIGoalService.swift */,
-				761D42C597E7F03FC99BE1B1 /* AIResponseCache.swift */,
 				7D818C1B0A5ED827339A098C /* AIService.swift */,
 				0DA5C3BC9414AC1C34967811 /* AIWorkoutService.swift */,
 				56A001D6549CDEFCF3A838B8 /* DemoAIService.swift */,
-				D4231059A4A4F50151752F90 /* LLMOrchestrator.swift */,
 				FB390095629B1BCCFC6152C0 /* OfflineAIService.swift */,
 				1BE972156F483A7F441083B7 /* TestModeAIService.swift */,
 			);
@@ -2090,7 +2084,6 @@
 				38C947CD266F6C39316B8A47 /* AIPersonaSettingsView.swift in Sources */,
 				25A5443EB1166B7E98D253BB /* AIProvider+API.swift in Sources */,
 				EB9A3F01CA5C8C07D9095C0B /* AIProvider+Settings.swift in Sources */,
-				6042C24064D43609975A7340 /* AIResponseCache.swift in Sources */,
 				8AC43686149A6F0503C1B626 /* AIService.swift in Sources */,
 				E11C2A27779A8CAB2E247110 /* AIServiceProtocol+Extensions.swift in Sources */,
 				5D8D9F44CC08F709F9D6C817 /* AIServiceProtocol.swift in Sources */,
@@ -2228,7 +2221,6 @@
 				E00DB07F6C4ABAAC45D4B268 /* KeychainHelper.swift in Sources */,
 				316985780D0CD0D2F20499FC /* KeychainWrapper.swift in Sources */,
 				4F9E6203A2EE711597144D2C /* LLMModels.swift in Sources */,
-				4762AA1449BB3CC5D00B4783 /* LLMOrchestrator.swift in Sources */,
 				FC2523AF29E2D97EA6C9D89B /* LLMProvider.swift in Sources */,
 				A79735FC0B1C9E9DD746FF75 /* LLMRetryHandler.swift in Sources */,
 				A9E136B0D8C87DC844DF3984 /* LiveActivityManager.swift in Sources */,

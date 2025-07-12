@@ -35,7 +35,6 @@ final class OnboardingIntelligence: ObservableObject {
 
     private let aiService: AIServiceProtocol
     private let contextAssembler: ContextAssembler
-    private let llmOrchestrator: LLMOrchestrator
     private let healthKitProvider: HealthKitProvider
     private let cache: OnboardingCache
     private let personaSynthesizer: PersonaSynthesizer
@@ -95,14 +94,12 @@ final class OnboardingIntelligence: ObservableObject {
     init(
         aiService: AIServiceProtocol,
         contextAssembler: ContextAssembler,
-        llmOrchestrator: LLMOrchestrator,
         healthKitProvider: HealthKitProvider,
         cache: OnboardingCache,
         personaSynthesizer: PersonaSynthesizer
     ) {
         self.aiService = aiService
         self.contextAssembler = contextAssembler
-        self.llmOrchestrator = llmOrchestrator
         self.healthKitProvider = healthKitProvider
         self.cache = cache
         self.personaSynthesizer = personaSynthesizer
@@ -149,8 +146,8 @@ final class OnboardingIntelligence: ObservableObject {
 
     /// Check if we have valid API keys
     func hasValidAPIKeys() async -> Bool {
-        let configuredProviders = await llmOrchestrator.apiKeyManager.getAllConfiguredProviders()
-        return !configuredProviders.isEmpty
+        // Check if AI service is configured
+        return (try? await aiService.validateConfiguration()) ?? false
     }
 
     /// Start health analysis - simplified without detached task

@@ -1,381 +1,206 @@
 import Foundation
 
-/// # AIService
-///
-/// ## Purpose
-/// Production AI service that provides the primary interface for all AI operations in AirFit.
-/// Manages provider switching, model selection, cost tracking, and response caching.
-///
-/// ## Dependencies
-/// - `LLMOrchestrator`: Manages multiple LLM providers and handles fallback logic
-/// - `APIKeyManagementProtocol`: Secure storage and retrieval of API keys
-/// - `AIResponseCache`: Caches AI responses to reduce costs and improve performance
-///
-/// ## Key Responsibilities
-/// - Configure and manage AI providers (Anthropic, OpenAI, Gemini)
-/// - Handle streaming and non-streaming AI requests
-/// - Track token usage and costs across providers
-/// - Cache responses for efficiency
-/// - Provide fallback mechanisms when providers fail
-/// - Convert between simplified AIRequest and full LLMRequest formats
-///
-/// ## Usage
-/// ```swift
-/// let aiService = await container.resolve(AIServiceProtocol.self)
-/// try await aiService.configure()
-///
-/// // Send a request
-/// let request = AIRequest(systemPrompt: "You are a fitness coach", messages: [...])
-/// for try await response in aiService.sendRequest(request) {
-///     // Handle response
-/// }
-/// ```
+/// Streamlined AI Service - Direct provider management without unnecessary layers
 actor AIService: AIServiceProtocol {
-
+    
     // MARK: - Properties
-    nonisolated let serviceIdentifier = "production-ai-service"
-    private var _isConfigured: Bool = false
-    nonisolated var isConfigured: Bool {
-        get { false } // Return false as default for nonisolated access
+    nonisolated let serviceIdentifier = "ai-service"
+    private var _isConfigured = false
+    nonisolated var isConfigured: Bool { 
+        // TODO: Make this properly async once we update protocol
+        true 
     }
-    private var _activeProvider: AIProvider = .anthropic
-    nonisolated var activeProvider: AIProvider {
-        get { .anthropic } // Return default for nonisolated access
+    
+    // Provider management
+    private var providers: [LLMProviderIdentifier: any LLMProvider] = [:]
+    private var _activeProvider: AIProvider = .gemini
+    nonisolated var activeProvider: AIProvider { 
+        // TODO: Make this properly async once we update protocol
+        // For now, return the default provider
+        .gemini 
     }
-    private var _availableModels: [AIModel] = []
-    nonisolated var availableModels: [AIModel] {
-        get { [] } // Return empty for nonisolated access
-    }
-
-    private let orchestrator: LLMOrchestrator
-    private let apiKeyManager: APIKeyManagementProtocol
-    private let cache: AIResponseCache
     private var currentModel: String = LLMModel.gemini25Flash.identifier
-
-    // Cost tracking
+    
+    // Dependencies
+    private let apiKeyManager: APIKeyManagementProtocol
+    
+    // Simple cost tracking
     private(set) var totalCost: Double = 0
-
-    // Fallback providers
-    private var fallbackProviders: [AIProvider] = [.openAI, .gemini, .anthropic]
-    private var cacheEnabled = true
-
-    // MARK: - Initialization
-    init(llmOrchestrator: LLMOrchestrator) {
-        self.orchestrator = llmOrchestrator
-        self.apiKeyManager = llmOrchestrator.apiKeyManager
-        self.cache = AIResponseCache()
-
-        // Initialize available models
-        self._availableModels = [
+    
+    // Available models - simplified from complex runtime discovery
+    nonisolated var availableModels: [AIModel] {
+        [
             AIModel(
-                id: "claude-3-sonnet-20240229",
-                name: "Claude 3 Sonnet",
+                id: LLMModel.gemini25Flash.identifier,
+                name: "Gemini 2.5 Flash",
+                provider: .gemini,
+                contextWindow: 1_000_000,
+                costPerThousandTokens: AIModel.TokenCost(input: 0.0001, output: 0.0003)
+            ),
+            AIModel(
+                id: LLMModel.claude4Sonnet.identifier,
+                name: "Claude 4 Sonnet",
                 provider: .anthropic,
                 contextWindow: 200_000,
                 costPerThousandTokens: AIModel.TokenCost(input: 0.003, output: 0.015)
             ),
             AIModel(
-                id: "gpt-4-turbo-preview",
-                name: "GPT-4 Turbo",
+                id: LLMModel.gpt4o.identifier,
+                name: "GPT-4o",
                 provider: .openAI,
                 contextWindow: 128_000,
-                costPerThousandTokens: AIModel.TokenCost(input: 0.01, output: 0.03)
-            ),
-            AIModel(
-                id: "gemini-1.5-pro",
-                name: "Gemini 1.5 Pro",
-                provider: .gemini,
-                contextWindow: 2_097_152,
-                costPerThousandTokens: AIModel.TokenCost(input: 0.00125, output: 0.00375)
+                costPerThousandTokens: AIModel.TokenCost(input: 0.0025, output: 0.01)
             )
         ]
     }
-
+    
+    // MARK: - Initialization
+    
+    init(apiKeyManager: APIKeyManagementProtocol) {
+        self.apiKeyManager = apiKeyManager
+    }
+    
     // MARK: - ServiceProtocol
+    
     func configure() async throws {
-        // Check which providers have API keys
-        let hasAnthropicKey = await apiKeyManager.hasAPIKey(for: .anthropic)
-        let hasOpenAIKey = await apiKeyManager.hasAPIKey(for: .openAI)
-        let hasGeminiKey = await apiKeyManager.hasAPIKey(for: .gemini)
-
-        guard hasAnthropicKey || hasOpenAIKey || hasGeminiKey else {
+        guard !_isConfigured else { return }
+        
+        // Setup providers based on available API keys
+        await setupProviders()
+        
+        // Ensure we have at least one provider
+        guard !providers.isEmpty else {
             throw AppError.from(ServiceError.notConfigured)
         }
-
-        // Set active provider and model based on available keys
-        // Default to Gemini 2.5 Flash if available
-        if hasGeminiKey {
-            _activeProvider = .gemini
-            currentModel = LLMModel.gemini25Flash.identifier
-        } else if hasAnthropicKey {
-            _activeProvider = .anthropic
-            currentModel = LLMModel.claude4Sonnet.identifier
-        } else if hasOpenAIKey {
-            _activeProvider = .openAI
-            currentModel = LLMModel.gpt4o.identifier
-        }
-
+        
         _isConfigured = true
-        AppLogger.info("Production AI Service configured with provider: \(_activeProvider.rawValue)", category: .ai)
+        AppLogger.info("AI Service configured with \(providers.count) providers", category: .ai)
     }
-
+    
     func reset() async {
+        providers.removeAll()
         _isConfigured = false
-        _activeProvider = .anthropic
+        totalCost = 0
     }
-
+    
     func healthCheck() async -> ServiceHealth {
-        guard _isConfigured else {
-            return ServiceHealth(
-                status: .unhealthy,
-                lastCheckTime: Date(),
-                responseTime: nil,
-                errorMessage: "Service not configured",
-                metadata: [:]
-            )
-        }
-
-        return ServiceHealth(
-            status: .healthy,
+        ServiceHealth(
+            status: _isConfigured ? .healthy : .unhealthy,
             lastCheckTime: Date(),
-            responseTime: 0.1,
-            errorMessage: nil,
-            metadata: ["provider": _activeProvider.rawValue]
+            responseTime: nil,
+            errorMessage: _isConfigured ? nil : "Service not configured",
+            metadata: ["providers": providers.count.description]
         )
     }
-
+    
     // MARK: - AIServiceProtocol
+    
     func configure(provider: AIProvider, apiKey: String, model: String?) async throws {
-        // Save the API key
         try await apiKeyManager.saveAPIKey(apiKey, for: provider)
-
-        // Update active provider
         _activeProvider = provider
-
-        // Configure the service
+        if let model = model {
+            currentModel = model
+        }
         try await configure()
     }
-
+    
     nonisolated func sendRequest(_ request: AIRequest) -> AsyncThrowingStream<AIResponse, Error> {
         AsyncThrowingStream { continuation in
             Task {
                 do {
-                    let isConfigured = await self.checkConfigurationStatus()
+                    let isConfigured = await self._isConfigured
                     guard isConfigured else {
                         throw AppError.from(ServiceError.notConfigured)
                     }
-
-                    // Build a better prompt that preserves conversation structure
-                    var prompt = ""
-
-                    // Add system prompt if present
-                    if !request.systemPrompt.isEmpty {
-                        prompt += request.systemPrompt + "\n\n"
+                    
+                    // Convert AIRequest to LLMRequest
+                    let llmRequest = await self.buildLLMRequest(from: request)
+                    
+                    // Get the appropriate provider
+                    guard let provider = await self.providers[self._activeProvider.toLLMProviderIdentifier()] else {
+                        throw AppError.llm("AI provider not available")
                     }
-
-                    // Add conversation history with clear role markers
-                    if request.messages.count > 1 {
-                        prompt += "Conversation history:\n"
-                        for (index, message) in request.messages.dropLast().enumerated() {
-                            let role = message.role == .user ? "User" : "Assistant"
-                            prompt += "\(role): \(message.content)\n"
-                            if index < request.messages.count - 2 {
-                                prompt += "\n"
-                            }
-                        }
-                        prompt += "\n---\n\n"
-                    }
-
-                    // Add the current message
-                    if let lastMessage = request.messages.last {
-                        let role = lastMessage.role == .user ? "User" : "Assistant"
-                        prompt += "Current message:\n\(role): \(lastMessage.content)"
-                    }
-
-                    // Default to coaching task for normal requests
-                    let task: AITask = request.user == "onboarding" ? .conversationAnalysis : .coaching
-
+                    
                     if request.stream {
-                        // For structured output, we need to use complete instead of stream
-                        if request.responseFormat != nil {
-                            let model = await self.getCurrentModel()
-                            let llmRequest = LLMRequest(
-                                messages: request.messages.map { msg in
-                                    LLMMessage(role: LLMMessage.Role(rawValue: msg.role.rawValue) ?? .user,
-                                               content: msg.content,
-                                               name: nil,
-                                               attachments: nil)
-                                },
-                                model: model,
-                                temperature: request.temperature,
-                                maxTokens: request.maxTokens,
-                                systemPrompt: request.systemPrompt,
-                                responseFormat: request.responseFormat,
-                                stream: false,
-                                metadata: ["task": String(describing: task)],
-                                thinkingBudgetTokens: nil
-                            )
-
-                            let response = try await orchestrator.completeWithRequest(llmRequest, task: task)
-
-                            // If we have structured data, yield it
-                            if let structuredData = response.structuredData {
-                                continuation.yield(.structuredData(structuredData))
-                            } else {
-                                continuation.yield(.text(response.content))
-                            }
-
-                            let usage = AITokenUsage(
-                                promptTokens: response.usage.promptTokens,
-                                completionTokens: response.usage.completionTokens,
-                                totalTokens: response.usage.totalTokens
-                            )
-                            continuation.yield(.done(usage: usage))
-                        } else {
-                            // Regular streaming for non-structured responses
-                            let model = await self.getCurrentModel()
-                            let stream = orchestrator.stream(
-                                prompt: prompt,
-                                task: task,
-                                model: LLMModel(rawValue: model),
-                                temperature: request.temperature
-                            )
-
-                            var fullResponse = ""
-                            for try await chunk in stream {
-                                fullResponse += chunk.delta
-                                continuation.yield(.textDelta(chunk.delta))
-
-                                if chunk.isFinished {
-                                    let usage = AITokenUsage(
-                                        promptTokens: chunk.usage?.promptTokens ?? 0,
-                                        completionTokens: chunk.usage?.completionTokens ?? 0,
-                                        totalTokens: chunk.usage?.totalTokens ?? 0
-                                    )
-
-                                    // Update cost tracking on actor
-                                    if let llmUsage = chunk.usage {
-                                        let aiUsage = AITokenUsage(
-                                            promptTokens: llmUsage.promptTokens,
-                                            completionTokens: llmUsage.completionTokens,
-                                            totalTokens: llmUsage.totalTokens
-                                        )
-                                        await self.updateCost(usage: aiUsage, model: model)
-                                    }
-
-                                    continuation.yield(.done(usage: usage))
-                                }
+                        // Handle streaming
+                        let stream = await provider.stream(llmRequest)
+                        var fullResponse = ""
+                        
+                        for try await chunk in stream {
+                            fullResponse += chunk.delta
+                            continuation.yield(.textDelta(chunk.delta))
+                            
+                            if chunk.isFinished {
+                                let usage = AITokenUsage(
+                                    promptTokens: chunk.usage?.promptTokens ?? 0,
+                                    completionTokens: chunk.usage?.completionTokens ?? 0,
+                                    totalTokens: chunk.usage?.totalTokens ?? 0
+                                )
+                                
+                                await self.trackCost(usage: usage, model: llmRequest.model)
+                                continuation.yield(.done(usage: usage))
                             }
                         }
                     } else {
-                        // Single response
-                        let model = await self.getCurrentModel()
-
-                        if request.responseFormat != nil {
-                            // Use full request for structured output
-                            let llmRequest = LLMRequest(
-                                messages: request.messages.map { msg in
-                                    LLMMessage(role: LLMMessage.Role(rawValue: msg.role.rawValue) ?? .user,
-                                               content: msg.content,
-                                               name: nil,
-                                               attachments: nil)
-                                },
-                                model: model,
-                                temperature: request.temperature,
-                                maxTokens: request.maxTokens,
-                                systemPrompt: request.systemPrompt,
-                                responseFormat: request.responseFormat,
-                                stream: false,
-                                metadata: ["task": String(describing: task)],
-                                thinkingBudgetTokens: nil
-                            )
-
-                            let llmResponse = try await orchestrator.completeWithRequest(llmRequest, task: task)
-
-                            // If we have structured data, yield it
-                            if let structuredData = llmResponse.structuredData {
-                                continuation.yield(.structuredData(structuredData))
-                            } else {
-                                continuation.yield(.text(llmResponse.content))
-                            }
-
-                            let usage = AITokenUsage(
-                                promptTokens: llmResponse.usage.promptTokens,
-                                completionTokens: llmResponse.usage.completionTokens,
-                                totalTokens: llmResponse.usage.totalTokens
-                            )
-                            continuation.yield(.done(usage: usage))
+                        // Handle single response
+                        let response = try await provider.complete(llmRequest)
+                        
+                        // Handle structured data if present
+                        if let structuredData = response.structuredData {
+                            continuation.yield(.structuredData(structuredData))
                         } else {
-                            // Use simplified interface for regular requests
-                            let llmResponse = try await orchestrator.complete(
-                                prompt: prompt,
-                                task: task,
-                                model: LLMModel(rawValue: model),
-                                temperature: request.temperature,
-                                maxTokens: request.maxTokens
-                            )
-                            continuation.yield(.text(llmResponse.content))
-
-                            let usage = AITokenUsage(
-                                promptTokens: llmResponse.usage.promptTokens,
-                                completionTokens: llmResponse.usage.completionTokens,
-                                totalTokens: llmResponse.usage.totalTokens
-                            )
-                            continuation.yield(.done(usage: usage))
+                            continuation.yield(.text(response.content))
                         }
+                        
+                        let usage = AITokenUsage(
+                            promptTokens: response.usage.promptTokens,
+                            completionTokens: response.usage.completionTokens,
+                            totalTokens: response.usage.totalTokens
+                        )
+                        
+                        await self.trackCost(usage: usage, model: llmRequest.model)
+                        continuation.yield(.done(usage: usage))
                     }
-
+                    
                     continuation.finish()
                 } catch {
-                    // Convert raw errors to user-friendly AppErrors
-                    let userFriendlyError = self.convertToUserFriendlyError(error)
-                    continuation.finish(throwing: userFriendlyError)
+                    let userError = self.convertToUserFriendlyError(error)
+                    continuation.finish(throwing: userError)
                 }
             }
         }
     }
-
+    
     func validateConfiguration() async throws -> Bool {
-        guard _isConfigured else {
-            return false
-        }
-
-        // Check if the current provider has a valid API key
+        guard _isConfigured else { return false }
         return await apiKeyManager.hasAPIKey(for: _activeProvider)
     }
-
+    
     func checkHealth() async -> ServiceHealth {
-        return await healthCheck()
+        await healthCheck()
     }
-
+    
     nonisolated func estimateTokenCount(for text: String) -> Int {
-        // Simple estimation: ~4 characters per token
-        return text.count / 4
+        // Simple estimation that's good enough
+        text.count / 4
     }
-
+    
     // MARK: - Legacy Support
-
-    /// Analyze a goal using AI (legacy method for backward compatibility)
+    
     func analyzeGoal(_ goalText: String) async throws -> String {
         guard _isConfigured else {
             throw AppError.from(ServiceError.notConfigured)
         }
-
-        let systemPrompt = """
-        You are a fitness and nutrition coach. Analyze the user's goal and provide brief,
-        actionable advice. Keep your response under 3 sentences and focus on practical steps.
-        """
-
+        
         let request = AIRequest(
-            systemPrompt: systemPrompt,
-            messages: [AIChatMessage(role: .user, content: goalText, name: nil)],
-            functions: nil,
+            systemPrompt: "You are a fitness coach. Analyze this goal and provide brief, actionable advice in under 3 sentences.",
+            messages: [AIChatMessage(role: .user, content: goalText)],
             temperature: 0.7,
             maxTokens: 150,
             stream: false,
-            user: "user"
+            user: "goal-analysis"
         )
-
+        
         var responseText = ""
         for try await response in sendRequest(request) {
             switch response {
@@ -387,106 +212,112 @@ actor AIService: AIServiceProtocol {
                 break
             }
         }
-
+        
         return responseText.isEmpty ? "I'll help you achieve your fitness goals! Let's create a personalized plan together." : responseText
     }
-
-    // MARK: - Cache Control
-
-    func setCacheEnabled(_ enabled: Bool) {
-        cacheEnabled = enabled
+    
+    // MARK: - Private Methods
+    
+    private func setupProviders() async {
+        // Check API keys and setup providers
+        async let anthropicKey = try? apiKeyManager.getAPIKey(for: .anthropic)
+        async let openAIKey = try? apiKeyManager.getAPIKey(for: .openAI)
+        async let geminiKey = try? apiKeyManager.getAPIKey(for: .gemini)
+        
+        let (anthropicResult, openAIResult, geminiResult) = await (anthropicKey, openAIKey, geminiKey)
+        
+        // Setup providers - simple and direct
+        if let key = geminiResult {
+            let config = LLMProviderConfig(apiKey: key)
+            providers[.google] = GeminiProvider(config: config)
+            _activeProvider = .gemini
+            currentModel = LLMModel.gemini25Flash.identifier
+        }
+        
+        if let key = anthropicResult {
+            let config = LLMProviderConfig(apiKey: key)
+            providers[.anthropic] = AnthropicProvider(config: config)
+            if _activeProvider != .gemini {
+                _activeProvider = .anthropic
+                currentModel = LLMModel.claude4Sonnet.identifier
+            }
+        }
+        
+        if let key = openAIResult {
+            let config = LLMProviderConfig(apiKey: key)
+            providers[.openai] = OpenAIProvider(config: config)
+            if _activeProvider != .gemini && _activeProvider != .anthropic {
+                _activeProvider = .openAI
+                currentModel = LLMModel.gpt4o.identifier
+            }
+        }
     }
-
-    func clearCache() async {
-        await cache.clear()
+    
+    private func buildLLMRequest(from aiRequest: AIRequest) -> LLMRequest {
+        // Convert messages
+        let llmMessages = aiRequest.messages.map { msg in
+            LLMMessage(
+                role: LLMMessage.Role(rawValue: msg.role.rawValue) ?? .user,
+                content: msg.content,
+                name: msg.name,
+                attachments: nil
+            )
+        }
+        
+        return LLMRequest(
+            messages: llmMessages,
+            model: currentModel,
+            temperature: aiRequest.temperature,
+            maxTokens: aiRequest.maxTokens,
+            systemPrompt: aiRequest.systemPrompt,
+            responseFormat: aiRequest.responseFormat,
+            stream: aiRequest.stream,
+            metadata: ["user": aiRequest.user],
+            thinkingBudgetTokens: nil
+        )
     }
-
-    func getCacheStatistics() async -> (hits: Int, misses: Int, size: Int) {
-        let stats = await cache.getStatistics()
-        return (hits: stats.hitCount, misses: stats.missCount, size: stats.memorySizeBytes)
-    }
-
-    // MARK: - Cost Tracking
-
-    func resetCostTracking() {
-        totalCost = 0
-    }
-
-    func getCostBreakdown() -> [(provider: AIProvider, cost: Double)] {
-        // Simple breakdown - in future could track per provider
-        return [(_activeProvider, totalCost)]
-    }
-
-    // MARK: - Private Helpers
-
-    private func checkConfigurationStatus() -> Bool {
-        return _isConfigured
-    }
-
-    private func getCurrentModel() async -> String {
-        return currentModel
-    }
-
-    private func generateCacheKey(for request: AIRequest) -> String {
-        let content = request.messages.map { $0.content }.joined(separator: "|")
-        let systemPromptPart = request.systemPrompt
-        let key = "\(systemPromptPart)-\(content)-\(request.temperature)"
-        return key.data(using: .utf8)?.base64EncodedString() ?? key
-    }
-
-    private func updateCost(usage: AITokenUsage, model: String) {
+    
+    private func trackCost(usage: AITokenUsage, model: String) {
         if let llmModel = LLMModel(rawValue: model) {
             let cost = Double(usage.promptTokens) / 1_000.0 * llmModel.cost.input +
-                Double(usage.completionTokens) / 1_000.0 * llmModel.cost.output
+                       Double(usage.completionTokens) / 1_000.0 * llmModel.cost.output
             totalCost += cost
         }
     }
-
+    
     // MARK: - Error Handling
-
+    
     nonisolated private func convertToUserFriendlyError(_ error: Error) -> AppError {
         let errorString = error.localizedDescription.lowercased()
-
-        // Authentication errors
-        if errorString.contains("unauthorized") ||
-            errorString.contains("invalid api key") ||
-            errorString.contains("401") {
+        
+        if errorString.contains("unauthorized") || errorString.contains("401") {
             return AppError.authentication("Please check your AI service API keys in Settings")
         }
-
-        // Rate limiting or quota issues
-        if errorString.contains("rate limit") ||
-            errorString.contains("too many requests") ||
-            errorString.contains("429") ||
-            errorString.contains("quota") ||
-            errorString.contains("billing") {
-            return AppError.llm("AI service is busy or you've reached usage limits. Please wait and try again.")
+        
+        if errorString.contains("rate limit") || errorString.contains("429") {
+            return AppError.llm("AI service is busy. Please wait and try again.")
         }
-
-        // Network/connectivity
-        if errorString.contains("network") ||
-            errorString.contains("connection") ||
-            errorString.contains("unreachable") {
+        
+        if errorString.contains("network") || errorString.contains("connection") {
             return AppError.networkError(underlying: error)
         }
-
-        // Service unavailable
-        if errorString.contains("timeout") ||
-            errorString.contains("timed out") ||
-            errorString.contains("model") ||
-            errorString.contains("unavailable") ||
-            errorString.contains("overloaded") {
+        
+        if errorString.contains("timeout") {
             return AppError.serviceUnavailable
         }
+        
+        return AppError.llm("I encountered an issue. Please try again.")
+    }
+}
 
-        // Invalid requests
-        if errorString.contains("invalid") ||
-            errorString.contains("bad request") ||
-            errorString.contains("400") {
-            return AppError.invalidInput(message: "Invalid request. Please try rephrasing.")
+// MARK: - Helper Extensions
+
+extension AIProvider {
+    func toLLMProviderIdentifier() -> LLMProviderIdentifier {
+        switch self {
+        case .openAI: return .openai
+        case .anthropic: return .anthropic
+        case .gemini: return .google
         }
-
-        // Default to LLM error with user-friendly message
-        return AppError.llm("I encountered an issue processing your request. Please try again.")
     }
 }

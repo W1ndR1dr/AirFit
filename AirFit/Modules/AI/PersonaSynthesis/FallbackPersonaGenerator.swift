@@ -3,10 +3,7 @@ import Foundation
 /// Fallback persona generator for error recovery - generates basic personas when main system fails
 actor FallbackPersonaGenerator {
 
-    private let cache: AIResponseCache
-
-    init(cache: AIResponseCache) {
-        self.cache = cache
+    init() {
     }
 
     /// Generate a basic persona from minimal data

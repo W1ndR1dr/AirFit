@@ -56,11 +56,7 @@ public final class DIBootstrapper {
     // MARK: - AI Services
 
     private static func registerAIServices(in container: DIContainer) {
-        // LLM Orchestrator - Heavy service, definitely lazy
-        container.register(LLMOrchestrator.self, lifetime: .singleton) { resolver in
-            let apiKeyManager = try await resolver.resolve(APIKeyManagementProtocol.self)
-            return await LLMOrchestrator(apiKeyManager: apiKeyManager)
-        }
+        // Note: LLMOrchestrator functionality now merged into AIService
 
         // Direct AI Processor - Fast path for simple AI operations
         container.register(DirectAIProcessor.self, lifetime: .singleton) { resolver in
@@ -76,8 +72,8 @@ public final class DIBootstrapper {
                 AppLogger.info("Using DemoAIService (demo mode enabled)", category: .services)
                 return DemoAIService()
             } else {
-                let orchestrator = try await resolver.resolve(LLMOrchestrator.self)
-                let service = AIService(llmOrchestrator: orchestrator)
+                let apiKeyManager = try await resolver.resolve(APIKeyManagementProtocol.self)
+                let service = AIService(apiKeyManager: apiKeyManager)
 
                 // Auto-configure if API keys are available
                 do {
@@ -364,7 +360,6 @@ public final class DIBootstrapper {
             // Resolve dependencies
             let aiService = try await resolver.resolve(AIServiceProtocol.self)
             let contextAssembler = try await resolver.resolve(ContextAssembler.self)
-            let llmOrchestrator = try await resolver.resolve(LLMOrchestrator.self)
             let healthKitProvider = try await resolver.resolve(HealthKitPrefillProviding.self) as! HealthKitProvider
             let cache = try await resolver.resolve(OnboardingCache.self)
             let personaSynthesizer = try await resolver.resolve(PersonaSynthesizer.self)
@@ -374,7 +369,6 @@ public final class DIBootstrapper {
                 OnboardingIntelligence(
                     aiService: aiService,
                     contextAssembler: contextAssembler,
-                    llmOrchestrator: llmOrchestrator,
                     healthKitProvider: healthKitProvider,
                     cache: cache,
                     personaSynthesizer: personaSynthesizer
@@ -426,34 +420,27 @@ public final class DIBootstrapper {
             }
         }
 
-        // AI Response Cache - Used by PersonaService
-        container.register(AIResponseCache.self, lifetime: .singleton) { _ in
-            AIResponseCache()
-        }
+        // Removed AIResponseCache - never got cache hits anyway
 
         // Optimized Persona Synthesizer
         container.register(PersonaSynthesizer.self, lifetime: .singleton) { resolver in
-            let llmOrchestrator = try await resolver.resolve(LLMOrchestrator.self)
-            let cache = try await resolver.resolve(AIResponseCache.self)
+            let aiService = try await resolver.resolve(AIServiceProtocol.self)
             return PersonaSynthesizer(
-                llmOrchestrator: llmOrchestrator,
-                cache: cache
+                aiService: aiService
             )
         }
 
         // Persona Service - Critical for persona coherence
         container.register(PersonaService.self, lifetime: .singleton) { resolver in
             let personaSynthesizer = try await resolver.resolve(PersonaSynthesizer.self)
-            let llmOrchestrator = try await resolver.resolve(LLMOrchestrator.self)
+            let aiService = try await resolver.resolve(AIServiceProtocol.self)
             let modelContainer = try await resolver.resolve(ModelContainer.self)
-            let cache = try await resolver.resolve(AIResponseCache.self)
 
             return await MainActor.run {
                 PersonaService(
                     personaSynthesizer: personaSynthesizer,
-                    llmOrchestrator: llmOrchestrator,
-                    modelContext: modelContainer.mainContext,
-                    cache: cache
+                    aiService: aiService,
+                    modelContext: modelContainer.mainContext
                 )
             }
         }

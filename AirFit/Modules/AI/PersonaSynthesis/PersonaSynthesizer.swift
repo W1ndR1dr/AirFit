@@ -11,8 +11,7 @@ struct PersonaPreview {
 /// Quality-First PersonaSynthesizer - Creating magical, unique personas
 /// Using frontier models for the best possible coaching experience
 actor PersonaSynthesizer {
-    private let llmOrchestrator: LLMOrchestrator
-    private let cache: AIResponseCache
+    private let aiService: AIServiceProtocol
     private var progressReporter: PersonaSynthesisProgressReporter?
 
     // Recommended models for persona synthesis (quality-first)
@@ -22,9 +21,8 @@ actor PersonaSynthesizer {
         (.gemini25Pro, "Excellent creative generation")
     ]
 
-    init(llmOrchestrator: LLMOrchestrator, cache: AIResponseCache) {
-        self.llmOrchestrator = llmOrchestrator
-        self.cache = cache
+    init(aiService: AIServiceProtocol) {
+        self.aiService = aiService
     }
 
     /// Create a progress stream for monitoring synthesis
@@ -112,20 +110,9 @@ actor PersonaSynthesizer {
 
     /// Get the best model available from user's configured providers
     func getBestAvailableModel() async -> LLMModel {
-        // Check which providers are configured
-        let providers = await llmOrchestrator.availableProviders
-
-        // Priority order for quality
-        let qualityOrder: [LLMModel] = [.claude4Opus, .o3, .gemini25Pro, .claude4Sonnet, .gpt4o]
-
-        for model in qualityOrder {
-            if providers.contains(model.provider) {
-                return model
-            }
-        }
-
-        // Fallback to any available model
-        return LLMModel.claude4Sonnet
+        // For now, use Gemini 2.5 Pro as default for quality
+        // In the future, we can check which providers are configured
+        return .gemini25Pro
     }
 
     // MARK: - Single Optimized LLM Call
@@ -257,12 +244,35 @@ actor PersonaSynthesizer {
         await reportProgress(.generatingContent, progress: 0.75, message: "Generating personalized content")
 
         // Quality-first: No caching for this one-time, critical generation
-        let response = try await llmOrchestrator.complete(
-            prompt: prompt,
-            task: .personaSynthesis,
-            model: model,  // Use the selected frontier model
+        let request = AIRequest(
+            systemPrompt: "You are creating a unique AI fitness coach persona. Be creative and specific.",
+            messages: [AIChatMessage(role: .user, content: prompt)],
             temperature: 0.8,  // Slightly higher for more creative personas
-            maxTokens: 1_500   // Increased for richer content
+            maxTokens: 1_500,  // Increased for richer content
+            stream: false,
+            user: "persona-synthesis"
+        )
+        
+        var responseContent = ""
+        for try await response in aiService.sendRequest(request) {
+            switch response {
+            case .text(let text):
+                responseContent = text
+            case .textDelta(let delta):
+                responseContent += delta
+            default:
+                break
+            }
+        }
+        
+        let response = LLMResponse(
+            content: responseContent,
+            model: "gemini-2.5-flash",
+            usage: LLMResponse.TokenUsage(promptTokens: 0, completionTokens: 0),
+            finishReason: .stop,
+            metadata: [:],
+            structuredData: nil,
+            cacheMetrics: nil
         )
 
         await reportProgress(.generatingContent, progress: 0.85, message: "Processing AI response")
