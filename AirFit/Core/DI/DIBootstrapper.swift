@@ -66,24 +66,20 @@ public final class DIBootstrapper {
             }
         }
 
-        // Main AI Service - Use DemoAIService if in demo mode
+        // Main AI Service - Uses mode-based behavior
         container.register(AIServiceProtocol.self, lifetime: .singleton) { resolver in
-            if AppConstants.Configuration.isUsingDemoMode {
-                AppLogger.info("Using DemoAIService (demo mode enabled)", category: .services)
-                return DemoAIService()
-            } else {
-                let apiKeyManager = try await resolver.resolve(APIKeyManagementProtocol.self)
-                let service = AIService(apiKeyManager: apiKeyManager)
+            let mode: AIServiceMode = AppConstants.Configuration.isUsingDemoMode ? .demo : .production
+            let apiKeyManager = try? await resolver.resolve(APIKeyManagementProtocol.self)
+            let service = AIService(apiKeyManager: apiKeyManager, mode: mode)
 
-                // Auto-configure if API keys are available
-                do {
-                    try await service.configure()
-                } catch {
-                    AppLogger.warning("AI Service auto-configuration failed: \(error.localizedDescription)", category: .services)
-                }
-
-                return service
+            // Auto-configure if API keys are available
+            do {
+                try await service.configure()
+            } catch {
+                AppLogger.warning("AI Service auto-configuration failed: \(error.localizedDescription)", category: .services)
             }
+
+            return service
         }
 
         // AI Goal Service - Wrapper around GoalService
@@ -455,7 +451,7 @@ public final class DIBootstrapper {
 
         // Override with test implementations - still lazy!
         container.register(AIServiceProtocol.self, lifetime: .singleton) { _ in
-            TestModeAIService()
+            AIService(mode: .test)
         }
 
         container.register(APIKeyManagementProtocol.self, lifetime: .singleton) { _ in
@@ -483,7 +479,7 @@ public final class DIBootstrapper {
         }
 
         // Minimal services for previews
-        container.register(AIServiceProtocol.self) { _ in OfflineAIService() }
+        container.register(AIServiceProtocol.self) { _ in AIService(mode: .offline) }
         container.register(APIKeyManagementProtocol.self) { _ in PreviewAPIKeyManager() }
 
         return container
