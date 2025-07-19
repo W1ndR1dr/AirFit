@@ -1,21 +1,33 @@
+//
+//  ContextAssembler.swift
+//  AirFit
+//
+//  Refactored for: • Real progress reporting • Resilient error handling • Intelligent
+//  in-memory caching with TTL • True concurrency where safe • Partial-results return
+//  • Battery-friendly HealthKit usage (no redundant queries) 
+//
+
 import Foundation
 import SwiftData
+import os.log
 
 /// Aggregates health and environmental data into `HealthContextSnapshot` instances.
 @MainActor
 final class ContextAssembler: ContextAssemblerProtocol, ServiceProtocol {
-    // MARK: - ServiceProtocol
+    // MARK: - Public (ServiceProtocol)
     nonisolated let serviceIdentifier = "context-assembler"
     private var _isConfigured = false
-    nonisolated var isConfigured: Bool {
-        MainActor.assumeIsolated { _isConfigured }
-    }
+    nonisolated var isConfigured: Bool { MainActor.assumeIsolated { _isConfigured } }
 
+    // MARK: - Dependencies
     private let healthKitManager: HealthKitManaging
     private let goalService: GoalServiceProtocol?
     private let muscleGroupVolumeService: MuscleGroupVolumeServiceProtocol?
     private let strengthProgressionService: StrengthProgressionServiceProtocol?
     // Future: private let weatherService: WeatherServiceProtocol
+    
+    // MARK: - Caching
+    private let cache = HealthContextCache()
 
     init(
         healthKitManager: HealthKitManaging,
@@ -29,109 +41,184 @@ final class ContextAssembler: ContextAssemblerProtocol, ServiceProtocol {
         self.strengthProgressionService = strengthProgressionService
     }
 
-    /// Simplified context assembly for dashboard
+    // MARK: - Public API
+    
+    /// Original convenience entry-point (no explicit progress / caching flags).  
+    /// Equivalent to calling `assembleContext(forceRefresh:false,progressReporter:nil)`.
     func assembleContext() async -> HealthContextSnapshot {
-        // Create model container with background context for heavy operations
-        guard let container = try? ModelContainer(for: User.self) else {
-            // Return minimal context if no model container available
-            return HealthContextSnapshot(
-                subjectiveData: SubjectiveData(),
-                environment: createMockEnvironmentContext(),
-                activity: ActivityMetrics(),
-                sleep: SleepAnalysis(lastNight: nil),
-                heartHealth: HeartHealthMetrics(),
-                body: BodyMetrics(),
-                appContext: AppSpecificContext(),
-                trends: HealthTrends(weeklyActivityChange: nil)
-            )
-        }
-
-        // Create a background context for SwiftData operations
-        let backgroundContext = ModelContext(container)
-        backgroundContext.autosaveEnabled = false
-
-        return await assembleSnapshot(modelContext: backgroundContext)
+        await assembleContext(forceRefresh: false, progressReporter: nil)
     }
+    
+    /// **Enhanced** API — caller may supply a live progress reporter and choose to bypass cache.
+    ///
+    /// - Parameters:
+    ///   - forceRefresh: Set `true` to ignore cached values and fetch everything again.
+    ///   - progressReporter: Optional reporter that receives granular `HealthDataLoadingProgress`.
+    ///
+    /// The method **never** throws — any underlying failures are captured and logged,
+    /// but the returned `HealthContextSnapshot` is _always_ populated with whatever
+    /// data could be acquired (nil fields fall back to the empty-value structs).
+    func assembleContext(
+        forceRefresh: Bool = false,
+        progressReporter: HealthDataLoadingProgressReporting?
+    ) async -> HealthContextSnapshot {
+        // Stage 1: Initialising
+        await progressReporter?.reportProgress(.init(stage: .initializing))
 
-    /// Creates a `HealthContextSnapshot` using data from HealthKit and SwiftData models.
-    /// - Parameter modelContext: The `ModelContext` used to fetch app data.
-    func assembleSnapshot(modelContext: ModelContext) async -> HealthContextSnapshot {
-        // Fetch all async data concurrently
-        async let activityMetrics = fetchActivityMetrics()
-        async let heartMetrics = fetchHeartHealthMetrics()
-        async let bodyMetrics = fetchBodyMetrics()
-        async let sleepSession = fetchSleepSession()
+        // MARK: Stage 2–5 ───────── Concurrent HealthKit fetches ───────────────
 
-        // Fetch subjective data safely on main actor
-        let subjectiveData = await fetchSubjectiveData(using: modelContext)
+        // Kick off all HealthKit calls immediately so they can overlap;
+        // Many will queue internally on the HealthKit background thread pool.
+        async let activityMetrics: ActivityMetrics? = {
+            await progressReporter?.reportProgress(.init(stage: .fetchingActivity, subProgress: 0.0))
+            do {
+                if let cached = await cache.activity(forced: forceRefresh) { return cached }
+                let result = try await healthKitManager.fetchTodayActivityMetrics()
+                await cache.setActivity(result)
+                return result
+            } catch {
+                AppLogger.error("Activity fetch failed", error: error, category: .health)
+                return nil
+            }
+        }()
 
-        // Mock data until services are implemented
-        let environment = createMockEnvironmentContext()
-        let appContext = await createMockAppContext(using: modelContext)
+        async let heartMetrics: HeartHealthMetrics? = {
+            await progressReporter?.reportProgress(.init(stage: .fetchingHeart, subProgress: 0.0))
+            do {
+                if let cached = await cache.heart(forced: forceRefresh) { return cached }
+                let result = try await healthKitManager.fetchHeartHealthMetrics()
+                await cache.setHeart(result)
+                return result
+            } catch {
+                AppLogger.error("Heart fetch failed", error: error, category: .health)
+                return nil
+            }
+        }()
 
-        // Await all HealthKit calls
-        let (activity, heartHealth, body, sleep) = await (
+        async let bodyMetrics: BodyMetrics? = {
+            await progressReporter?.reportProgress(.init(stage: .fetchingBody, subProgress: 0.0))
+            do {
+                if let cached = await cache.body(forced: forceRefresh) { return cached }
+                let result = try await healthKitManager.fetchLatestBodyMetrics()
+                await cache.setBody(result)
+                return result
+            } catch {
+                AppLogger.error("Body fetch failed", error: error, category: .health)
+                return nil
+            }
+        }()
+
+        async let sleepSession: SleepAnalysis.SleepSession? = {
+            await progressReporter?.reportProgress(.init(stage: .fetchingSleep, subProgress: 0.0))
+            do {
+                if let cached = await cache.sleep(forced: forceRefresh) { return cached }
+                let result = try await healthKitManager.fetchLastNightSleep()
+                await cache.setSleep(result)
+                return result
+            } catch {
+                AppLogger.error("Sleep fetch failed", error: error, category: .health)
+                return nil
+            }
+        }()
+
+        // Subjective & SwiftData work can proceed on a background context
+        let (subjectiveData, appSpecificCtx) = await { () async -> (SubjectiveData, AppSpecificContext) in
+            do {
+                let container = try ModelContainer(for: User.self)
+                let context = ModelContext(container)
+                context.autosaveEnabled = false
+                
+                let subjective = await self.fetchSubjectiveData(using: context)
+                let appContext = await self.createMockAppContext(using: context)
+                return (subjective, appContext)
+            } catch {
+                AppLogger.error("Failed to create ModelContext", error: error, category: .data)
+                return (SubjectiveData(), AppSpecificContext())
+            }
+        }()
+
+        // MARK: Stage 6 ───────── Wait for metrics, compute trends ────────────
+        await progressReporter?.reportProgress(.init(stage: .analyzingTrends, subProgress: 0.0))
+
+        // Collect all async-lets
+        let (
+            activity,
+            heart,
+            body,
+            sleep
+        ) = await (
             activityMetrics,
             heartMetrics,
             bodyMetrics,
             sleepSession
         )
 
-        let trends = await calculateTrends(
-            activity: activity,
-            body: body,
-            sleep: sleep,
-            context: modelContext
-        )
+        // Calculate trends with a fresh context
+        let trends: HealthTrends = await { () async -> HealthTrends in
+            do {
+                let container = try ModelContainer(for: User.self)
+                let context = ModelContext(container)
+                context.autosaveEnabled = false
+                return await calculateTrends(
+                    activity: activity,
+                    body: body,
+                    sleep: sleep,
+                    context: context
+                )
+            } catch {
+                AppLogger.error("Failed to create context for trends", error: error, category: .data)
+                return HealthTrends()
+            }
+        }()
 
-        return HealthContextSnapshot(
+        // MARK: Stage 7 ───────── Assemble snapshot ──────────────────────
+        await progressReporter?.reportProgress(.init(stage: .assemblingContext))
+
+        let snapshot = HealthContextSnapshot(
             subjectiveData: subjectiveData,
-            environment: environment,
+            environment: createMockEnvironmentContext(),
             activity: activity ?? ActivityMetrics(),
             sleep: SleepAnalysis(lastNight: sleep),
-            heartHealth: heartHealth ?? HeartHealthMetrics(),
+            heartHealth: heart ?? HeartHealthMetrics(),
             body: body ?? BodyMetrics(),
-            appContext: appContext,
+            appContext: appSpecificCtx,
             trends: trends
+        )
+
+        // MARK: Stage 8 ───────── Complete & cache full snapshot ────────────
+        await cache.setSnapshot(snapshot)
+        await progressReporter?.reportProgress(.complete)
+
+
+        return snapshot
+    }
+
+    // MARK: - ServiceProtocol
+    func configure() async throws {
+        guard !_isConfigured else { return }
+        _isConfigured = true
+        AppLogger.info("\(serviceIdentifier) configured", category: .app)
+    }
+
+    func reset() async {
+        _isConfigured = false
+        await cache.clearAll()
+        AppLogger.info("\(serviceIdentifier) reset", category: .app)
+    }
+
+    func healthCheck() async -> ServiceHealth {
+        ServiceHealth(
+            status: _isConfigured ? .healthy : .unhealthy,
+            lastCheckTime: Date(),
+            responseTime: nil,
+            errorMessage: _isConfigured ? nil : "Service not configured",
+            metadata: [:]
         )
     }
 
     // MARK: - Private Helpers
-    private func fetchActivityMetrics() async -> ActivityMetrics? {
-        do {
-            return try await healthKitManager.fetchTodayActivityMetrics()
-        } catch {
-            AppLogger.error("Failed to fetch activity metrics", error: error, category: .health)
-            return nil
-        }
-    }
-
-    private func fetchHeartHealthMetrics() async -> HeartHealthMetrics? {
-        do {
-            return try await healthKitManager.fetchHeartHealthMetrics()
-        } catch {
-            AppLogger.error("Failed to fetch heart health metrics", error: error, category: .health)
-            return nil
-        }
-    }
-
-    private func fetchBodyMetrics() async -> BodyMetrics? {
-        do {
-            return try await healthKitManager.fetchLatestBodyMetrics()
-        } catch {
-            AppLogger.error("Failed to fetch body metrics", error: error, category: .health)
-            return nil
-        }
-    }
-
-    private func fetchSleepSession() async -> SleepAnalysis.SleepSession? {
-        do {
-            return try await healthKitManager.fetchLastNightSleep()
-        } catch {
-            AppLogger.error("Failed to fetch last night sleep data", error: error, category: .health)
-            return nil
-        }
-    }
+    // The individual fetch methods have been integrated into the main assembleContext method
+    // for better concurrency and error handling
 
     private func fetchSubjectiveData(using context: ModelContext) async -> SubjectiveData {
         do {
@@ -592,31 +679,7 @@ final class ContextAssembler: ContextAssemblerProtocol, ServiceProtocol {
         return HealthTrends(weeklyActivityChange: weeklyChange)
     }
 
-    // MARK: - ServiceProtocol Methods
-
-    func configure() async throws {
-        guard !_isConfigured else { return }
-        _isConfigured = true
-        AppLogger.info("\(serviceIdentifier) configured", category: .services)
-    }
-
-    func reset() async {
-        _isConfigured = false
-        AppLogger.info("\(serviceIdentifier) reset", category: .services)
-    }
-
-    func healthCheck() async -> ServiceHealth {
-        ServiceHealth(
-            status: _isConfigured ? .healthy : .unhealthy,
-            lastCheckTime: Date(),
-            responseTime: nil,
-            errorMessage: _isConfigured ? nil : "Service not configured",
-            metadata: [
-                "hasHealthKitManager": "true",
-                "hasGoalService": "\(goalService != nil)"
-            ]
-        )
-    }
+    // MARK: - ServiceProtocol Methods (removed duplicates - already defined above)
 
     // MARK: - Strength Context Assembly
 
@@ -734,5 +797,76 @@ final class ContextAssembler: ContextAssemblerProtocol, ServiceProtocol {
             AppLogger.error("Failed to assemble strength context", error: error, category: .data)
             return nil
         }
+    }
+}
+
+// MARK: - Lightweight In-Memory Cache (actor) ──────────────────────────────────────
+
+private actor HealthContextCache {
+
+    /// Generic cache entry with expiry
+    struct Entry<T: Sendable>: Sendable {
+        let value: T
+        let expiry: Date
+    }
+
+    // TTLs
+    private let shortTTL: TimeInterval = 5 * 60      // 5 min
+    private let bodyTTL : TimeInterval = 60 * 60     // 1 hr
+
+    // Buckets
+    private var activityEntry : Entry<ActivityMetrics>?
+    private var heartEntry    : Entry<HeartHealthMetrics>?
+    private var bodyEntry     : Entry<BodyMetrics>?
+    private var sleepEntry    : Entry<SleepAnalysis.SleepSession>?
+    private var snapshotEntry : Entry<HealthContextSnapshot>?
+
+    // MARK: Fetch helpers
+    func activity(forced: Bool) -> ActivityMetrics? {
+        guard !forced, let entry = activityEntry, entry.expiry > Date() else { return nil }
+        return entry.value
+    }
+    func heart(forced: Bool) -> HeartHealthMetrics? {
+        guard !forced, let entry = heartEntry, entry.expiry > Date() else { return nil }
+        return entry.value
+    }
+    func body(forced: Bool) -> BodyMetrics? {
+        guard !forced, let entry = bodyEntry, entry.expiry > Date() else { return nil }
+        return entry.value
+    }
+    func sleep(forced: Bool) -> SleepAnalysis.SleepSession? {
+        guard !forced, let entry = sleepEntry, entry.expiry > Date() else { return nil }
+        return entry.value
+    }
+    func snapshot(forced: Bool) -> HealthContextSnapshot? {
+        guard !forced, let entry = snapshotEntry, entry.expiry > Date() else { return nil }
+        return entry.value
+    }
+
+    // MARK: Store helpers
+    func setActivity(_ value: ActivityMetrics) {
+        activityEntry = .init(value: value, expiry: Date().addingTimeInterval(shortTTL))
+    }
+    func setHeart(_ value: HeartHealthMetrics) {
+        heartEntry = .init(value: value, expiry: Date().addingTimeInterval(shortTTL))
+    }
+    func setBody(_ value: BodyMetrics) {
+        bodyEntry = .init(value: value, expiry: Date().addingTimeInterval(bodyTTL))
+    }
+    func setSleep(_ value: SleepAnalysis.SleepSession?) {
+        guard let value else { return }
+        sleepEntry = .init(value: value, expiry: Date().addingTimeInterval(shortTTL))
+    }
+    func setSnapshot(_ value: HealthContextSnapshot) {
+        snapshotEntry = .init(value: value, expiry: Date().addingTimeInterval(shortTTL))
+    }
+
+    /// Wipe everything (called on logout or service reset)
+    func clearAll() {
+        activityEntry = nil
+        heartEntry    = nil
+        bodyEntry     = nil
+        sleepEntry    = nil
+        snapshotEntry = nil
     }
 }

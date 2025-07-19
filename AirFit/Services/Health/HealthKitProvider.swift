@@ -336,6 +336,7 @@ enum HealthKitError: LocalizedError {
     case notAvailable
     case authorizationDenied
     case noData
+    case dataNotAvailable
 
     var errorDescription: String? {
         switch self {
@@ -343,7 +344,7 @@ enum HealthKitError: LocalizedError {
             return "Health data is not available on this device"
         case .authorizationDenied:
             return "Permission to access health data was denied"
-        case .noData:
+        case .noData, .dataNotAvailable:
             return "No health data found"
         }
     }

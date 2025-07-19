@@ -1,40 +1,25 @@
 import SwiftUI
 import WatchConnectivity
 
-/// Simplified onboarding view without async container
+/// Simplified onboarding view with state machine
 struct OnboardingView: View {
     @Environment(\.diContainer) private var diContainer: DIContainer
     @EnvironmentObject private var gradientManager: GradientManager
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
     
+    @StateObject private var stateMachine = OnboardingStateMachine()
     @State private var intelligence: OnboardingIntelligence?
-    @State private var phase = Phase.healthPermission
     @State private var userInput = ""
-    @State private var conversationCount = 0
     @State private var hasSelectedModel = false
-    @State private var error: Error?
-    @State private var isRetrying = false
-    @State private var fullConversation: [(text: String, isUser: Bool)] = []
-    @State private var lastPrompt = ""
-    
-    enum Phase: Int {
-        case healthPermission = 0
-        case healthDataLoading = 1
-        case whisperSetup = 2
-        case profileSetup = 3
-        case conversation = 4
-        case insightsConfirmation = 5
-        case generating = 6
-        case confirmation = 7
-        case watchSetup = 8
-    }
+    @State private var initError: Error?
+    @State private var dotsTimer: Timer?
 
     var body: some View {
         BaseScreen {
             if let intelligence = intelligence {
                 // Main onboarding content
                 onboardingContent(intelligence: intelligence)
-            } else if let error = error {
+            } else if let error = initError {
                 // Error state
                 errorView(error: error)
             } else {
@@ -45,7 +30,12 @@ struct OnboardingView: View {
                     }
             }
         }
-        .animation(reduceMotion ? .linear(duration: 0.15) : .easeInOut(duration: 0.3), value: phase)
+        .animation(reduceMotion ? .linear(duration: 0.15) : .easeInOut(duration: 0.3), value: stateMachine.currentState)
+        .onDisappear {
+            // Clean up timer when view disappears
+            dotsTimer?.invalidate()
+            dotsTimer = nil
+        }
         .onAppear {
             gradientManager.setGradient(.morningTwilight, animated: false)
         }
@@ -55,43 +45,30 @@ struct OnboardingView: View {
     private func onboardingContent(intelligence: OnboardingIntelligence) -> some View {
         VStack(spacing: 0) {
             // Progress indicator
-            OnboardingProgressIndicator(currentPhase: phase)
+            OnboardingProgressIndicator(progress: stateMachine.progressPercentage)
                 .padding(.top, 8)
                 .padding(.bottom, 16)
 
-            if let error = error {
+            if case .error(let error, _) = stateMachine.currentState {
                 ErrorRecoveryView(
                     error: error,
-                    isRetrying: isRetrying,
-                    onRetry: retryLastAction,
-                    onSkip: skipToFallback
+                    isRetrying: stateMachine.isTransitioning,
+                    onRetry: { stateMachine.send(.retry) },
+                    onSkip: { stateMachine.send(.reset) }
                 )
             } else {
-                switch phase {
+                switch stateMachine.currentState {
                 case .healthPermission:
                     HealthPermissionView(
                         onAccept: {
-                            // Move to health data loading immediately
-                            withAnimation(.easeInOut(duration: 0.3)) {
-                                phase = .healthDataLoading
-                            }
-                            
                             // Load user's selected model if not already done
                             if !hasSelectedModel {
                                 loadUserSelectedModel()
                             }
-                            
-                            // Start health analysis in background after view transition
-                            Task {
-                                // Small delay to ensure view has transitioned
-                                try? await Task.sleep(nanoseconds: 300_000_000) // 0.3 seconds
-                                await intelligence.startHealthAnalysis()
-                            }
+                            stateMachine.send(.acceptHealthPermission)
                         },
                         onSkip: {
-                            withAnimation(.easeInOut(duration: 0.3)) {
-                                phase = .whisperSetup
-                            }
+                            stateMachine.send(.skipHealthPermission)
                         }
                     )
                     
@@ -99,128 +76,94 @@ struct OnboardingView: View {
                     HealthDataLoadingView(
                         intelligence: intelligence,
                         onContinue: {
-                            phase = .whisperSetup
+                            stateMachine.send(.healthDataLoaded)
                         },
                         onSkip: {
-                            phase = .whisperSetup
+                            stateMachine.send(.skipHealthData)
                         }
                     )
 
                 case .whisperSetup:
                     WhisperSetupView(
                         onContinue: {
-                            phase = .profileSetup
+                            stateMachine.send(.whisperSetupComplete)
                         },
                         onSkip: {
-                            phase = .profileSetup
+                            stateMachine.send(.skipWhisperSetup)
                         }
                     )
 
                 case .profileSetup:
                     ProfileSetupView(
                         onComplete: { birthDate, biologicalSex in
-                            // Store the profile data in the conversation variables for later processing
-                            intelligence.addProfileData(birthDate: birthDate, biologicalSex: biologicalSex)
-
-                            // Move to conversation
-                            phase = .conversation
+                            stateMachine.send(.profileComplete(birthDate: birthDate, biologicalSex: biologicalSex))
                         },
                         onSkip: {
-                            // Move to conversation without saving
-                            phase = .conversation
+                            stateMachine.send(.skipProfile)
                         }
                     )
 
                 case .conversation:
                     ConversationView(
                         intelligence: intelligence,
-                        prompt: intelligence.currentPrompt,
-                        suggestions: intelligence.contextualSuggestions,
-                        conversationHistory: fullConversation,
+                        prompt: stateMachine.getCurrentPrompt(),
+                        suggestions: stateMachine.getSuggestions(),
+                        conversationHistory: stateMachine.conversationHistory,
                         input: $userInput,
                         onSubmit: {
-                            Task {
-                                // Add current Q&A to conversation history
-                                fullConversation.append((text: intelligence.currentPrompt, isUser: false))
-                                fullConversation.append((text: userInput, isUser: true))
-
-                                await intelligence.analyzeConversation(userInput)
-                                conversationCount += 1
-                                userInput = ""
-
-                                // Conversation flow logic with clear boundaries
-                                if conversationCount < 3 {
-                                    // Early phase: Always continue gathering context
-                                    if let followUp = intelligence.followUpQuestion {
-                                        intelligence.currentPrompt = followUp
-                                    } else {
-                                        // Generic fallback if AI fails to generate follow-up
-                                        intelligence.currentPrompt = "What else should I know?"
-                                    }
-                                } else if conversationCount >= 10 {
-                                    // Hard limit reached: Show insights confirmation
-                                    phase = .insightsConfirmation
-                                } else if intelligence.contextQuality.overall >= 0.8 {
-                                    // Sufficient context: Show insights confirmation
-                                    phase = .insightsConfirmation
-                                } else if let followUp = intelligence.followUpQuestion {
-                                    // Still gathering: Use AI-generated follow-up
-                                    intelligence.currentPrompt = followUp
-                                } else {
-                                    // No follow-up but context insufficient: Show what we have
-                                    phase = .insightsConfirmation
-                                }
-                            }
+                            let input = userInput
+                            userInput = ""
+                            stateMachine.send(.submitConversation(input))
                         }
                     )
 
                 case .insightsConfirmation:
                     InsightsConfirmationView(
-                        insights: intelligence.extractedInsights,
+                        insights: stateMachine.getInsights(),
                         onConfirm: {
-                            phase = .generating
+                            stateMachine.send(.confirmInsights)
                         },
                         onRefine: {
-                            // Go back to conversation with a clarifying prompt
-                            intelligence.currentPrompt = "Thanks for clarifying! What else should I know about your fitness goals and preferences?"
-                            phase = .conversation
+                            stateMachine.send(.refineInsights)
                         }
                     )
 
-                case .generating:
+                case .generating(let progress):
                     GeneratingView(intelligence: intelligence)
-                        .task {
-                            await intelligence.generatePersona()
-                            if intelligence.coachingPlan != nil {
-                                phase = .confirmation
-                            } else {
-                                // Fallback if generation returns no plan
-                                await MainActor.run {
-                                    self.error = AppError.llm("Failed to generate coaching plan")
-                                }
-                            }
+                        .onAppear {
+                            // Generation is handled by the state machine
                         }
 
                 case .confirmation:
                     ConfirmationView(
-                        plan: intelligence.coachingPlan,
+                        plan: stateMachine.getCoachingPlan(),
                         onAccept: {
-                            // Move to watch setup after confirmation
-                            phase = .watchSetup
+                            stateMachine.send(.acceptPlan)
                         },
                         onRefine: {
-                            // Update prompt for refinement
-                            intelligence.currentPrompt = "Is there anything else you'd like me to know? Any specific concerns, preferences, or goals I should consider when crafting your coaching experience?"
-                            phase = .conversation
-                            userInput = ""
+                            stateMachine.send(.refinePlan)
                         }
                     )
                     
                 case .watchSetup:
                     WatchSetupView(
-                        onSetupWatch: completeOnboarding,
-                        onSkip: completeOnboarding
+                        onSetupWatch: {
+                            stateMachine.send(.watchSetupComplete)
+                            completeOnboarding()
+                        },
+                        onSkip: {
+                            stateMachine.send(.skipWatchSetup)
+                            completeOnboarding()
+                        }
                     )
+                    
+                case .completed:
+                    // Should never reach here, handled by completeOnboarding
+                    EmptyView()
+                    
+                case .error:
+                    // Error is handled above
+                    EmptyView()
                 }
             }
         }
@@ -253,9 +196,10 @@ struct OnboardingView: View {
     private func loadIntelligence() async {
         do {
             intelligence = try await diContainer.resolve(OnboardingIntelligence.self)
-            error = nil
+            stateMachine.configure(with: intelligence!)
+            initError = nil
         } catch {
-            self.error = error
+            self.initError = error
             AppLogger.error("Failed to resolve OnboardingIntelligence", error: error, category: .app)
         }
     }
@@ -306,78 +250,12 @@ struct OnboardingView: View {
                 }
             } catch {
                 AppLogger.error("Failed to save onboarding", error: error, category: .onboarding)
-                await MainActor.run {
-                    self.error = error
-                }
+                AppLogger.error("Failed to complete onboarding", error: error, category: .onboarding)
             }
         }
     }
 
-    private func retryLastAction() {
-        isRetrying = true
-        error = nil
-
-        Task {
-            guard let intelligence = intelligence else { 
-                isRetrying = false
-                return 
-            }
-            
-            // Retry based on current phase
-            switch phase {
-            case .healthPermission:
-                // Health permission doesn't fail in a way that needs retry
-                isRetrying = false
-            case .healthDataLoading:
-                // Retry health data loading
-                await intelligence.startHealthAnalysis()
-                isRetrying = false
-            case .profileSetup:
-                // Profile setup doesn't need retry
-                isRetrying = false
-            case .conversation:
-                // Re-analyze last conversation
-                if let lastInput = intelligence.conversationHistory.last {
-                    await intelligence.analyzeConversation(lastInput)
-                }
-                isRetrying = false
-            case .whisperSetup:
-                // Whisper setup doesn't need retry
-                isRetrying = false
-            case .insightsConfirmation:
-                // Extract insights again
-                if let lastInput = intelligence.conversationHistory.last {
-                    await intelligence.analyzeConversation(lastInput)
-                }
-                isRetrying = false
-            case .generating:
-                // Retry persona generation
-                await intelligence.generatePersona()
-                if intelligence.coachingPlan != nil {
-                    phase = .confirmation
-                }
-                isRetrying = false
-            case .confirmation:
-                // Retry saving
-                completeOnboarding()
-                isRetrying = false
-            case .watchSetup:
-                // Watch setup doesn't need retry
-                isRetrying = false
-            }
-        }
-    }
-
-    private func skipToFallback() {
-        error = nil
-
-        // Force fallback persona generation
-        Task {
-            guard let intelligence = intelligence else { return }
-            intelligence.coachingPlan = intelligence.createFallbackPlan()
-            phase = .confirmation
-        }
-    }
+    // Legacy error handling methods removed - now handled by state machine
 
     private func loadUserSelectedModel() {
         // Get the selected provider and model from UserDefaults
@@ -456,6 +334,7 @@ private struct ConversationView: View {
     @State private var isFirstMessage = true
     @State private var inputAtBottom = false
     @State private var thinkingDots = ""
+    @State private var dotsTimer: Timer?
     @Namespace private var inputNamespace
 
     var body: some View {
@@ -595,7 +474,8 @@ private struct ConversationView: View {
             }
 
             // Start thinking dots animation
-            Timer.scheduledTimer(withTimeInterval: 0.5, repeats: true) { _ in
+            dotsTimer?.invalidate()
+            dotsTimer = Timer.scheduledTimer(withTimeInterval: 0.5, repeats: true) { _ in
                 Task { @MainActor in
                     if intelligence.isAnalyzing {
                         thinkingDots = thinkingDots.count < 3 ? thinkingDots + "." : ""
@@ -604,6 +484,11 @@ private struct ConversationView: View {
                     }
                 }
             }
+        }
+        .onDisappear {
+            // Clean up timer when view disappears
+            dotsTimer?.invalidate()
+            dotsTimer = nil
         }
     }
 }
@@ -880,144 +765,8 @@ private struct ConfirmationView: View {
     }
 }
 
-// MARK: - Error Recovery
+// ErrorRecoveryView moved to separate file
 
-private struct ErrorRecoveryView: View {
-    let error: Error
-    let isRetrying: Bool
-    let onRetry: () -> Void
-    let onSkip: () -> Void
-
-    var body: some View {
-        VStack(spacing: 32) {
-            Spacer()
-
-            Image(systemName: "exclamationmark.triangle")
-                .font(.system(size: 64))
-                .foregroundStyle(.orange.gradient)
-                .symbolEffect(.pulse)
-
-            VStack(spacing: 16) {
-                Text("Oops, something went wrong")
-                    .font(.system(size: 28, weight: .light, design: .rounded))
-                    .foregroundStyle(.primary)
-
-                Text(error.localizedDescription)
-                    .font(.system(size: 16, weight: .light))
-                    .foregroundStyle(.secondary)
-                    .multilineTextAlignment(.center)
-                    .padding(.horizontal, 32)
-            }
-
-            Spacer()
-
-            VStack(spacing: 12) {
-                Button(action: onRetry) {
-                    HStack {
-                        if isRetrying {
-                            ProgressView()
-                                .scaleEffect(0.8)
-                        } else {
-                            Image(systemName: "arrow.clockwise")
-                        }
-                        Text("Try Again")
-                    }
-                    .frame(maxWidth: .infinity)
-                    .padding(.vertical, 16)
-                    .background(Color.accentColor)
-                    .foregroundColor(.white)
-                    .clipShape(RoundedRectangle(cornerRadius: 14, style: .continuous))
-                }
-                .disabled(isRetrying)
-
-                Button(action: onSkip) {
-                    Text("Continue without AI")
-                        .frame(maxWidth: .infinity)
-                        .padding(.vertical, 16)
-                        .background(
-                            RoundedRectangle(cornerRadius: 14, style: .continuous)
-                                .stroke(Color.secondary.opacity(0.5), lineWidth: 1)
-                        )
-                        .foregroundStyle(.primary)
-                }
-                .disabled(isRetrying)
-            }
-            .padding(.horizontal, 24)
-            .padding(.bottom, 40)
-        }
-    }
-}
-
-// MARK: - Progress Indicator
-
-private struct OnboardingProgressIndicator: View {
-    let currentPhase: OnboardingView.Phase
-    @Environment(\.accessibilityReduceMotion) private var reduceMotion
-
-    private let phases: [(OnboardingView.Phase, String, String)] = [
-        (.healthPermission, "heart.fill", "Health"),
-        (.healthDataLoading, "arrow.down.circle.fill", "Loading"),
-        (.whisperSetup, "waveform", "Voice"),
-        (.profileSetup, "person.fill", "Profile"),
-        (.conversation, "bubble.left.and.bubble.right.fill", "Chat"),
-        (.insightsConfirmation, "brain.filled.head.profile", "Insights"),
-        (.generating, "sparkles", "Create"),
-        (.confirmation, "checkmark.circle.fill", "Coach"),
-        (.watchSetup, "applewatch", "Watch")
-    ]
-
-    var body: some View {
-        HStack(spacing: 16) {
-            ForEach(phases, id: \.0) { phase, icon, label in
-                VStack(spacing: 4) {
-                    Image(systemName: icon)
-                        .font(.system(size: 20))
-                        .foregroundStyle(phaseColor(phase))
-                        .symbolEffect(.bounce, isActive: !reduceMotion && currentPhase == phase)
-
-                    Text(label)
-                        .font(.caption2)
-                        .foregroundStyle(phaseColor(phase))
-                }
-                .opacity(phaseOpacity(phase))
-
-                if phase != .watchSetup {
-                    Rectangle()
-                        .fill(phaseLineColor(phase))
-                        .frame(height: 2)
-                        .opacity(0.5)
-                }
-            }
-        }
-        .padding(.horizontal, 24)
-    }
-
-    private func phaseColor(_ phase: OnboardingView.Phase) -> Color {
-        if phase.rawValue < currentPhase.rawValue {
-            return .green
-        } else if phase == currentPhase {
-            return .accentColor
-        } else {
-            return .secondary
-        }
-    }
-
-    private func phaseOpacity(_ phase: OnboardingView.Phase) -> Double {
-        if phase.rawValue <= currentPhase.rawValue {
-            return 1.0
-        } else {
-            return 0.5
-        }
-    }
-
-    private func phaseLineColor(_ phase: OnboardingView.Phase) -> Color {
-        if phase.rawValue < currentPhase.rawValue {
-            return .green
-        } else {
-            return .secondary
-        }
-    }
-}
 
 extension Notification.Name {
     static let onboardingCompleted = Notification.Name("onboardingCompleted")

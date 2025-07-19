@@ -760,9 +760,7 @@ final class HealthKitTestDataGenerator {
                 } else if success {
                     continuation.resume()
                 } else {
-                    continuation.resume(throwing: HealthKitManager.HealthKitError.queryFailed(
-                        NSError(domain: "HealthKit", code: -1, userInfo: [NSLocalizedDescriptionKey: "Failed to save samples"])
-                    ))
+                    continuation.resume(throwing: NSError(domain: "HealthKit", code: -1, userInfo: [NSLocalizedDescriptionKey: "Failed to save samples"]))
                 }
             }
         }

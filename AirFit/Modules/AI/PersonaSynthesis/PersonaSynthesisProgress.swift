@@ -26,7 +26,7 @@ public enum PersonaSynthesisPhase: String, CaseIterable, Sendable {
 }
 
 /// Progress update for persona synthesis
-public struct PersonaSynthesisProgress: Sendable {
+public struct PersonaSynthesisProgress: Sendable, Equatable {
     public let phase: PersonaSynthesisPhase
     public let progress: Double // 0.0 to 1.0
     public let message: String?

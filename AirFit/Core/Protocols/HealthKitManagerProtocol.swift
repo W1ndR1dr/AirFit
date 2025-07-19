@@ -1,4 +1,5 @@
 import Foundation
+import HealthKit
 
 @MainActor
 protocol HealthKitManaging: AnyObject, Sendable {
@@ -23,6 +24,12 @@ protocol HealthKitManaging: AnyObject, Sendable {
     func saveBodyFatPercentage(percentage: Double, date: Date) async throws
     func saveLeanBodyMass(massKg: Double, date: Date) async throws
     func fetchBodyMetricsHistory(from startDate: Date, to endDate: Date) async throws -> [BodyMetrics]
-    func observeBodyMetrics(handler: @escaping () -> Void) async throws
+    func observeBodyMetrics(handler: @escaping @Sendable () -> Void) async throws
     func removeObserver(_ observer: Any)
+    
+    // New APIs for RecoveryInference integration
+    func fetchDailyBiometrics(from startDate: Date, to endDate: Date) async throws -> [DailyBiometrics]
+    func fetchHistoricalWorkouts(from startDate: Date, to endDate: Date) async throws -> [WorkoutData]
+    func observeHealthKitChanges(handler: @escaping @Sendable () -> Void) -> Any
+    func stopObserving(token: Any)
 }

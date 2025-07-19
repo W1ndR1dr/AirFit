@@ -5,6 +5,8 @@ struct APISetupView: View {
     @Environment(\.dismiss) private var dismiss
     @Environment(\.diContainer) private var diContainer
     @State private var selectedProvider: AIProvider = .anthropic
+    @State private var isSaving = false
+    @State private var saveError: Error?
     private let onComplete: (() -> Void)?
 
     init(apiKeyManager: APIKeyManagementProtocol? = nil, onComplete: (() -> Void)? = nil) {
@@ -125,23 +127,45 @@ struct APISetupView: View {
                         // Continue button
                         if !viewModel.configuredProviders.isEmpty && viewModel.selectedActiveProvider != nil {
                             Button(action: {
-                                viewModel.saveAndContinue()
-                                if let onComplete = onComplete {
-                                    onComplete()
-                                } else {
-                                    dismiss()
+                                isSaving = true
+                                saveError = nil
+                                
+                                Task {
+                                    do {
+                                        try await viewModel.saveAndContinue()
+                                        await MainActor.run {
+                                            if let onComplete = onComplete {
+                                                onComplete()
+                                            } else {
+                                                dismiss()
+                                            }
+                                        }
+                                    } catch {
+                                        await MainActor.run {
+                                            saveError = error
+                                            isSaving = false
+                                        }
+                                    }
                                 }
                             }) {
-                                Label("Continue to Onboarding", systemImage: "arrow.right.circle.fill")
-                                    .font(.headline)
-                                    .foregroundColor(.white)
-                                    .frame(maxWidth: .infinity)
-                                    .padding()
-                                    .background(
-                                        RoundedRectangle(cornerRadius: 16)
-                                            .fill(Color.purple.gradient)
-                                    )
+                                if isSaving {
+                                    ProgressView()
+                                        .progressViewStyle(CircularProgressViewStyle(tint: .white))
+                                        .frame(maxWidth: .infinity)
+                                        .padding()
+                                } else {
+                                    Label("Continue to Onboarding", systemImage: "arrow.right.circle.fill")
+                                        .font(.headline)
+                                        .foregroundColor(.white)
+                                        .frame(maxWidth: .infinity)
+                                        .padding()
+                                }
                             }
+                            .background(
+                                RoundedRectangle(cornerRadius: 16)
+                                    .fill(Color.purple.gradient)
+                            )
+                            .disabled(isSaving)
                             .padding(.horizontal)
                         } else if !viewModel.configuredProviders.isEmpty {
                             // Show disabled state when no provider selected
@@ -164,6 +188,13 @@ struct APISetupView: View {
                 }
             }
             .navigationBarHidden(true)
+        }
+        .alert("Error", isPresented: .constant(saveError != nil), presenting: saveError) { _ in
+            Button("OK") {
+                saveError = nil
+            }
+        } message: { error in
+            Text(error.localizedDescription)
         }
     }
 }
@@ -399,11 +430,26 @@ struct APIKeyInputCard: View {
     func saveKey() {
         guard validationResult?.isValid == true else { return }
 
-        viewModel.saveAPIKey(apiKey, for: provider, model: selectedModel)
-
-        // Clear the form
-        apiKey = ""
-        validationResult = nil
+        isValidating = true
+        Task {
+            do {
+                try await viewModel.saveAPIKey(apiKey, for: provider, model: selectedModel)
+                await MainActor.run {
+                    // Clear the form on success
+                    apiKey = ""
+                    validationResult = nil
+                    isValidating = false
+                }
+            } catch {
+                await MainActor.run {
+                    validationResult = ValidationResult(
+                        isValid: false,
+                        error: "Failed to save: \(error.localizedDescription)"
+                    )
+                    isValidating = false
+                }
+            }
+        }
     }
 }
 

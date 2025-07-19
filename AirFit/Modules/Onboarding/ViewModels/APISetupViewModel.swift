@@ -56,17 +56,29 @@ final class APISetupViewModel: ObservableObject {
         }
     }
 
-    func saveAPIKey(_ key: String, for provider: AIProvider, model: String) {
-        // Save to keychain
+    func saveAPIKey(_ key: String, for provider: AIProvider, model: String) async throws {
+        // Save to keychain with error handling
         let keychainKey = "airfit_api_key_\(provider.rawValue)"
         let keychainModel = "airfit_model_\(provider.rawValue)"
 
-        _ = keychain.save(key: keychainKey, value: key)
-        _ = keychain.save(key: keychainModel, value: model)
+        guard keychain.save(key: keychainKey, value: key) else {
+            throw AppError.keychain("Failed to save API key to keychain")
+        }
+        
+        guard keychain.save(key: keychainModel, value: model) else {
+            // Rollback key save if model save fails
+            _ = keychain.delete(key: keychainKey)
+            throw AppError.keychain("Failed to save model to keychain")
+        }
 
-        // Update API key manager
-        Task {
-            try? await apiKeyManager.saveAPIKey(key, for: provider)
+        // Update API key manager and await completion
+        do {
+            try await apiKeyManager.saveAPIKey(key, for: provider)
+        } catch {
+            // Rollback keychain saves on API manager failure
+            _ = keychain.delete(key: keychainKey)
+            _ = keychain.delete(key: keychainModel)
+            throw AppError.apiConfiguration("Failed to configure API key manager: \(error.localizedDescription)")
         }
 
         // Update configured providers
@@ -110,23 +122,42 @@ final class APISetupViewModel: ObservableObject {
         UserDefaults.standard.removeObject(forKey: "selected_model_\(provider.rawValue)")
     }
 
-    func saveAndContinue() {
-        // Mark API setup as complete
-        UserDefaults.standard.set(true, forKey: "api_setup_complete")
-
-        // Use the selected provider, or fall back to first configured
-        if let activeProvider = selectedActiveProvider {
-            UserDefaults.standard.set(activeProvider.provider.rawValue, forKey: "default_ai_provider")
-            UserDefaults.standard.set(activeProvider.model, forKey: "default_ai_model")
-            AppLogger.info("Set active provider: \(activeProvider.provider.displayName) with model: \(activeProvider.model)", category: .app)
-        } else if let firstConfig = configuredProviders.first {
-            UserDefaults.standard.set(firstConfig.provider.rawValue, forKey: "default_ai_provider")
-            UserDefaults.standard.set(firstConfig.model, forKey: "default_ai_model")
-            AppLogger.info("No active provider selected, using first: \(firstConfig.provider.displayName)", category: .app)
+    func saveAndContinue() async throws {
+        // Ensure we have at least one configured provider
+        guard !configuredProviders.isEmpty else {
+            throw AppError.configuration("No API providers configured")
         }
         
-        // Force synchronization to ensure values are persisted before container recreation
+        // Ensure we have an active provider selected
+        guard let activeProvider = selectedActiveProvider ?? configuredProviders.first else {
+            throw AppError.configuration("No active provider selected")
+        }
+        
+        // Save active provider configuration
+        UserDefaults.standard.set(activeProvider.provider.rawValue, forKey: "default_ai_provider")
+        UserDefaults.standard.set(activeProvider.model, forKey: "default_ai_model")
+        
+        // Verify API key manager has the keys loaded
+        for config in configuredProviders {
+            let hasKey = await apiKeyManager.hasAPIKey(for: config.provider)
+            if !hasKey {
+                // Try to reload from keychain
+                let keychainKey = "airfit_api_key_\(config.provider.rawValue)"
+                if let apiKey = keychain.get(key: keychainKey) {
+                    try await apiKeyManager.saveAPIKey(apiKey, for: config.provider)
+                } else {
+                    throw AppError.configuration("Missing API key for \(config.provider.displayName)")
+                }
+            }
+        }
+        
+        // Mark API setup as complete only after verification
+        UserDefaults.standard.set(true, forKey: "api_setup_complete")
+        
+        // Force synchronization to ensure values are persisted
         UserDefaults.standard.synchronize()
+        
+        AppLogger.info("API setup completed with provider: \(activeProvider.provider.displayName) model: \(activeProvider.model)", category: .app)
     }
 
     private func loadExistingConfigurations() {
@@ -138,10 +169,8 @@ final class APISetupViewModel: ObservableObject {
 
             if let apiKey = keychain.get(key: keychainKey),
                let model = keychain.get(key: keychainModel) {
-                // Load into API key manager
-                Task {
-                    try? await apiKeyManager.saveAPIKey(apiKey, for: provider)
-                }
+                // Load into API key manager - will be done on demand in saveAndContinue
+                // This avoids race conditions during initialization
 
                 // Add to configured providers
                 configuredProviders.append(

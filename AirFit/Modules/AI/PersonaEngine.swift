@@ -16,7 +16,7 @@ final class PersonaEngine {
         personaProfile: PersonaProfile,
         userGoal: String,
         userContext: String,
-        goalSynthesis: GoalSynthesis?,
+        goalSynthesis: String?,
         healthContext: HealthContextSnapshot,
         conversationHistory: [AIChatMessage],
         availableFunctions: [AIFunctionDefinition]
@@ -280,22 +280,10 @@ final class PersonaEngine {
         return String(data: data, encoding: .utf8) ?? "[]"
     }
 
-    private func goalSynthesis(_ goalSynthesis: GoalSynthesis?) throws -> String {
-        guard let synthesis = goalSynthesis else {
-            return "{}"
-        }
-
-        // Build compact goal synthesis for token efficiency
-        let compactSynthesis: [String: Any] = [
-            "strategy": synthesis.unifiedStrategy,
-            "focus": synthesis.coachingFocus,
-            "timeline": synthesis.timeline,
-            "challenges": synthesis.challenges,
-            "hooks": synthesis.motivationalHooks
-        ]
-
-        let data = try JSONSerialization.data(withJSONObject: compactSynthesis)
-        return String(data: data, encoding: .utf8) ?? "{}"
+    private func goalSynthesis(_ goalSynthesis: String?) throws -> String {
+        // GoalSynthesis was removed with AIGoalService
+        // For now, just return the string or empty object
+        return goalSynthesis ?? "{}"
     }
 }
 

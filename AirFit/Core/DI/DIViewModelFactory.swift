@@ -170,30 +170,17 @@ public final class DIViewModelFactory {
         async let personaService = container.resolve(PersonaService.self)
         async let contextAssembler = container.resolve(ContextAssembler.self)
         async let healthKitManager = container.resolve(HealthKitManaging.self)
-        async let goalService = container.resolve(AIGoalServiceProtocol.self)
-        async let workoutService = container.resolve(AIWorkoutServiceProtocol.self)
-        async let analyticsService = container.resolve(AIAnalyticsServiceProtocol.self)
         async let routingConfiguration = container.resolve(RoutingConfiguration.self)
         async let nutritionCalculator = container.resolve(NutritionCalculatorProtocol.self)
         async let muscleGroupVolumeService = container.resolve(MuscleGroupVolumeServiceProtocol.self)
+        async let exerciseDatabase = container.resolve(ExerciseDatabase.self)
 
         // Create components that don't need async resolution
         let localCommandParser = LocalCommandParser()
         let conversationManager = ConversationManager(modelContext: modelContext)
-        
-        // Try to resolve workout transfer service (may be nil if not on iOS)
-        let workoutTransferService = try? await container.resolve(WorkoutPlanTransferProtocol.self)
-
-        let functionDispatcher = FunctionCallDispatcher(
-            workoutService: try await workoutService,
-            analyticsService: try await analyticsService,
-            goalService: try await goalService,
-            workoutTransferService: workoutTransferService
-        )
 
         return try await CoachEngine(
             localCommandParser: localCommandParser,
-            functionDispatcher: functionDispatcher,
             personaService: personaService,
             conversationManager: conversationManager,
             aiService: aiService,
@@ -202,7 +189,8 @@ public final class DIViewModelFactory {
             routingConfiguration: routingConfiguration,
             healthKitManager: healthKitManager,
             nutritionCalculator: nutritionCalculator,
-            muscleGroupVolumeService: muscleGroupVolumeService
+            muscleGroupVolumeService: muscleGroupVolumeService,
+            exerciseDatabase: exerciseDatabase
         )
     }
 

@@ -8,6 +8,7 @@ struct HealthDataLoadingView: View {
     
     @State private var iconScale: CGFloat = 1.0
     @State private var gradientRotation: Double = 0
+    @State private var animationTask: Task<Void, Never>?
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
     @EnvironmentObject private var gradientManager: GradientManager
     
@@ -107,16 +108,28 @@ struct HealthDataLoadingView: View {
         }
         .onAppear {
             if !reduceMotion {
-                // Icon pulsing animation
-                withAnimation(.easeInOut(duration: 1.5).repeatForever(autoreverses: true)) {
-                    iconScale = 1.1
-                }
-                
-                // Gradient rotation animation
-                withAnimation(.linear(duration: 8).repeatForever(autoreverses: false)) {
-                    gradientRotation = 360
+                // Start animations in a cancellable task
+                animationTask = Task { @MainActor in
+                    // Icon pulsing animation
+                    withAnimation(.easeInOut(duration: 1.5).repeatForever(autoreverses: true)) {
+                        iconScale = 1.1
+                    }
+                    
+                    // Gradient rotation animation
+                    withAnimation(.linear(duration: 8).repeatForever(autoreverses: false)) {
+                        gradientRotation = 360
+                    }
                 }
             }
+        }
+        .onDisappear {
+            // Cancel animations when view disappears
+            animationTask?.cancel()
+            animationTask = nil
+            
+            // Reset animation states
+            iconScale = 1.0
+            gradientRotation = 0
         }
     }
 }

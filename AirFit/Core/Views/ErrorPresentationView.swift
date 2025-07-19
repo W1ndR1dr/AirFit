@@ -427,8 +427,14 @@ struct ErrorPresentationView: View {
                 return "person.crop.circle.badge.questionmark"
             case .unsupportedProvider:
                 return "cpu.badge.exclamationmark"
+            case .keychain:
+                return "key.horizontal"
+            case .apiConfiguration:
+                return "key.icloud"
+            case .configuration:
+                return "gearshape.2"
             case .llm:
-                return "brain"
+                return "brain.filled.head.profile"
             case .authentication:
                 return "lock.circle"
             case .serviceUnavailable:

@@ -42,6 +42,7 @@ struct LLMRequest: Sendable {
     let stream: Bool
     let metadata: [String: String]
     let thinkingBudgetTokens: Int? // For Gemini 2.5 Flash thinking mode
+    let timeout: TimeInterval? // Request-specific timeout
 
     enum ResponseFormat: Sendable {
         case text

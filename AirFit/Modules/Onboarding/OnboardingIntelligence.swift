@@ -171,37 +171,37 @@ final class OnboardingIntelligence: ObservableObject {
                 // Load health data in background
                 Task {
                     do {
-                        // Brief delay for UI update
-                        try await Task.sleep(nanoseconds: 300_000_000) // 0.3s
+                        // Create progress reporter
+                        let progressReporter = HealthDataLoadingProgressReporter()
+                        let progressStream = await progressReporter.makeProgressStream()
                         
-                        healthDataProgress = 0.4
-                        healthDataStatus = "Analyzing fitness patterns..."
+                        // Start monitoring progress
+                        Task {
+                            for await progress in progressStream {
+                                healthDataProgress = progress.progress
+                                healthDataStatus = progress.message
+                                
+                                if let error = progress.error {
+                                    AppLogger.error("Health data loading error at stage \(progress.stage)", error: error, category: .health)
+                                }
+                            }
+                        }
                         
-                        let context = await contextAssembler.assembleContext()
-                        
-                        healthDataProgress = 0.6
-                        healthDataStatus = "Reviewing health data..."
+                        // Load context with real progress reporting
+                        let context = await contextAssembler.assembleContext(
+                            forceRefresh: false,
+                            progressReporter: progressReporter
+                        )
                         
                         healthContext = context
                         updatePromptsFromHealth(context)
-                        
-                        healthDataProgress = 0.8
-                        healthDataStatus = "Personalizing suggestions..."
-                        
                         await generateSmartSuggestions(context)
                         
-                        healthDataProgress = 1.0
-                        healthDataStatus = "Complete!"
-                        
                         AppLogger.info("Health context loaded successfully", category: .health)
-                        
-                        // Hide loading after brief moment
-                        try await Task.sleep(nanoseconds: 1_000_000_000) // 1s
                         isLoadingHealthData = false
                     } catch {
                         AppLogger.error("Failed to load health context", error: error, category: .health)
                         healthDataStatus = "Failed to load data"
-                        try? await Task.sleep(nanoseconds: 2_000_000_000) // 2s
                         isLoadingHealthData = false
                     }
                 }
@@ -209,22 +209,16 @@ final class OnboardingIntelligence: ObservableObject {
                 healthDataStatus = "Permission denied"
                 healthDataProgress = 0.0
                 
-                // Hide loading after showing status
-                Task {
-                    try? await Task.sleep(nanoseconds: 2_000_000_000) // 2s
-                    isLoadingHealthData = false
-                }
+                // Hide loading immediately - no artificial delay
+                isLoadingHealthData = false
             }
         } catch {
             AppLogger.error("HealthKit authorization failed", error: error, category: .health)
             healthDataStatus = "Authorization failed"
             healthDataProgress = 0.0
             
-            // Hide loading after showing error
-            Task {
-                try? await Task.sleep(nanoseconds: 2_000_000_000) // 2s
-                isLoadingHealthData = false
-            }
+            // Hide loading immediately on error
+            isLoadingHealthData = false
         }
     }
 
@@ -238,6 +232,11 @@ final class OnboardingIntelligence: ObservableObject {
 
         // Add to conversation history for context
         conversationHistory.append("My biological sex is \(biologicalSex)")
+        
+        // Limit conversation history to prevent memory growth
+        if conversationHistory.count > 20 {
+            conversationHistory.removeFirst()
+        }
 
         AppLogger.info("Profile data stored: sex=\(biologicalSex), age calculated from birthDate", category: .onboarding)
     }
@@ -270,6 +269,11 @@ final class OnboardingIntelligence: ObservableObject {
         // Add to conversation history
         conversationHistory.append(input)
         conversationTurnCount += 1
+        
+        // Limit conversation history to prevent memory growth
+        if conversationHistory.count > 20 {
+            conversationHistory.removeFirst()
+        }
 
         // Analyze context quality
         await analyzeContextQuality(input)
@@ -415,7 +419,8 @@ final class OnboardingIntelligence: ObservableObject {
                 temperature: 0.1,  // Lower temperature for more consistent JSON
                 maxTokens: 200,    // Don't need much for JSON response
                 stream: false,
-                user: "onboarding"
+                user: "onboarding",
+                timeout: 15.0  // 15 second timeout for analysis
             )
 
             var response = ""
@@ -488,7 +493,8 @@ final class OnboardingIntelligence: ObservableObject {
                 temperature: 0.7,
                 maxTokens: 50,
                 stream: false,
-                user: "onboarding"
+                user: "onboarding",
+                timeout: 10.0  // 10 second timeout for follow-up
             )
 
             var response = ""
@@ -540,7 +546,8 @@ final class OnboardingIntelligence: ObservableObject {
                 temperature: 0.7,
                 maxTokens: 200,
                 stream: false,
-                user: "onboarding"
+                user: "onboarding",
+                timeout: 10.0  // 10 second timeout for suggestions
             )
 
             var response = ""

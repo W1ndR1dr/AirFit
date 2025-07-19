@@ -405,7 +405,8 @@ actor AIService: AIServiceProtocol {
             responseFormat: aiRequest.responseFormat,
             stream: aiRequest.stream,
             metadata: ["user": aiRequest.user],
-            thinkingBudgetTokens: nil
+            thinkingBudgetTokens: nil,
+            timeout: aiRequest.timeout
         )
     }
     

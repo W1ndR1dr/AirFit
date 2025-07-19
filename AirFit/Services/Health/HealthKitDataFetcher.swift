@@ -43,7 +43,7 @@ actor HealthKitDataFetcher: ServiceProtocol {
         unit: HKUnit
     ) async throws -> Double? {
         guard let quantityType = HKQuantityType.quantityType(forIdentifier: identifier) else {
-            throw HealthKitManager.HealthKitError.invalidData
+            throw HealthKitError.noData
         }
 
         let predicate = HKQuery.predicateForSamples(withStart: start, end: end, options: .strictStartDate)
@@ -55,7 +55,7 @@ actor HealthKitDataFetcher: ServiceProtocol {
                 options: .cumulativeSum
             ) { _, statistics, error in
                 if let error = error {
-                    continuation.resume(throwing: HealthKitManager.HealthKitError.queryFailed(error))
+                    continuation.resume(throwing: error)
                     return
                 }
 
@@ -74,7 +74,7 @@ actor HealthKitDataFetcher: ServiceProtocol {
         daysBack: Int = 7  // Limit how far back we look
     ) async throws -> Double? {
         guard let quantityType = HKQuantityType.quantityType(forIdentifier: identifier) else {
-            throw HealthKitManager.HealthKitError.invalidData
+            throw HealthKitError.noData
         }
 
         // Only look for recent data to avoid scanning entire history
@@ -90,7 +90,7 @@ actor HealthKitDataFetcher: ServiceProtocol {
                 sortDescriptors: [sortDescriptor]
             ) { _, samples, error in
                 if let error = error {
-                    continuation.resume(throwing: HealthKitManager.HealthKitError.queryFailed(error))
+                    continuation.resume(throwing: error)
                     return
                 }
 
@@ -142,7 +142,7 @@ actor HealthKitDataFetcher: ServiceProtocol {
         to endDate: Date
     ) async throws -> [HKQuantitySample] {
         guard let quantityType = HKQuantityType.quantityType(forIdentifier: identifier) else {
-            throw HealthKitManager.HealthKitError.invalidData
+            throw HealthKitError.noData
         }
 
         let predicate = HKQuery.predicateForSamples(withStart: startDate, end: endDate, options: .strictStartDate)
@@ -156,7 +156,7 @@ actor HealthKitDataFetcher: ServiceProtocol {
                 sortDescriptors: [sortDescriptor]
             ) { _, samples, error in
                 if let error = error {
-                    continuation.resume(throwing: HealthKitManager.HealthKitError.queryFailed(error))
+                    continuation.resume(throwing: error)
                     return
                 }
 
@@ -184,7 +184,7 @@ actor HealthKitDataFetcher: ServiceProtocol {
                 sortDescriptors: [sortDescriptor]
             ) { _, samples, error in
                 if let error = error {
-                    continuation.resume(throwing: HealthKitManager.HealthKitError.queryFailed(error))
+                    continuation.resume(throwing: error)
                     return
                 }
 

@@ -15,6 +15,9 @@ public enum AppError: LocalizedError, Sendable {
     case invalidInput(message: String)
     case llm(String)
     case authentication(String)
+    case keychain(String)
+    case apiConfiguration(String)
+    case configuration(String)
 
     public var errorDescription: String? {
         switch self {
@@ -46,6 +49,12 @@ public enum AppError: LocalizedError, Sendable {
             return "AI Error: \(message)"
         case .authentication(let message):
             return "Authentication Error: \(message)"
+        case .keychain(let message):
+            return "Keychain Error: \(message)"
+        case .apiConfiguration(let message):
+            return "API Configuration Error: \(message)"
+        case .configuration(let message):
+            return "Configuration Error: \(message)"
         }
     }
 
@@ -79,6 +88,12 @@ public enum AppError: LocalizedError, Sendable {
             return "Please try again or check your AI service configuration"
         case .authentication:
             return "Please check your API key configuration"
+        case .keychain:
+            return "Please try again. If the problem persists, reinstall the app"
+        case .apiConfiguration:
+            return "Please verify your API keys and try again"
+        case .configuration:
+            return "Please check your settings and try again"
         }
     }
 }

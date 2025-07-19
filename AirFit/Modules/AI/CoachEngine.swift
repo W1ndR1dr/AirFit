@@ -114,23 +114,23 @@ enum CoachEngineError: LocalizedError {
 final class CoachEngine {
     // MARK: - State Properties
     private(set) var isProcessing = false
-    private(set) var currentResponse = ""
+    internal private(set) var currentResponse = ""
     private(set) var error: Error?
     private(set) var activeConversationId: UUID?
     private(set) var streamingTokens: [String] = []
-    private(set) var lastFunctionCall: String?
+    internal private(set) var lastFunctionCall: String?
 
     // MARK: - Dependencies
-    private let functionDispatcher: FunctionCallDispatcher
-    private let personaService: PersonaService
-    private let conversationManager: ConversationManager
-    private let aiService: AIServiceProtocol
+    internal let personaService: PersonaService
+    internal let conversationManager: ConversationManager
+    internal let aiService: AIServiceProtocol
     private let contextAssembler: ContextAssembler
-    private let modelContext: ModelContext
+    internal let modelContext: ModelContext
     private let routingConfiguration: RoutingConfiguration
     private let healthKitManager: HealthKitManaging
     private let nutritionCalculator: NutritionCalculatorProtocol
     private let muscleGroupVolumeService: MuscleGroupVolumeServiceProtocol
+    internal let exerciseDatabase: ExerciseDatabase
 
     // MARK: - Components
     private let messageProcessor: MessageProcessor
@@ -146,7 +146,6 @@ final class CoachEngine {
     // MARK: - Initialization
     init(
         localCommandParser: LocalCommandParser,
-        functionDispatcher: FunctionCallDispatcher,
         personaService: PersonaService,
         conversationManager: ConversationManager,
         aiService: AIServiceProtocol,
@@ -155,9 +154,9 @@ final class CoachEngine {
         routingConfiguration: RoutingConfiguration,
         healthKitManager: HealthKitManaging,
         nutritionCalculator: NutritionCalculatorProtocol,
-        muscleGroupVolumeService: MuscleGroupVolumeServiceProtocol
+        muscleGroupVolumeService: MuscleGroupVolumeServiceProtocol,
+        exerciseDatabase: ExerciseDatabase
     ) {
-        self.functionDispatcher = functionDispatcher
         self.personaService = personaService
         self.conversationManager = conversationManager
         self.aiService = aiService
@@ -167,6 +166,7 @@ final class CoachEngine {
         self.healthKitManager = healthKitManager
         self.nutritionCalculator = nutritionCalculator
         self.muscleGroupVolumeService = muscleGroupVolumeService
+        self.exerciseDatabase = exerciseDatabase
 
         // Initialize components
         self.messageProcessor = MessageProcessor(localCommandParser: localCommandParser)
@@ -493,7 +493,7 @@ final class CoachEngine {
 
         do {
             // Step 1: Assemble health context
-            let healthContext = await contextAssembler.assembleSnapshot(modelContext: modelContext)
+            let healthContext = await contextAssembler.assembleContext()
 
             // Step 2: Get conversation history with optimized limit based on message type
             let historyLimit = await stateManager.getOptimalHistoryLimit(
@@ -932,26 +932,12 @@ final class CoachEngine {
         conversationId: UUID,
         originalMessage: CoachMessage
     ) async {
-        let startTime = CFAbsoluteTimeGetCurrent()
-
-        AppLogger.info("Executing function: \(functionCall.name)", category: .ai)
-
-        // Hybrid routing: Use direct AI for simple parsing, function dispatcher for complex workflows
-        switch functionCall.name {
-        case "parseAndLogComplexNutrition":
-            await handleDirectNutritionParsing(functionCall, for: user, conversationId: conversationId, startTime: startTime)
-
-        case "generateEducationalInsight":
-            await handleDirectEducationalContent(functionCall, for: user, conversationId: conversationId, startTime: startTime)
-
-        default:
-            // Use function dispatcher for remaining complex functions
-            do {
-                try await handleDispatcherFunction(functionCall, for: user, conversationId: conversationId, startTime: startTime)
-            } catch {
-                AppLogger.error("Function execution failed", error: error, category: .ai)
-                await handleFunctionError(error, for: user, conversationId: conversationId)
-            }
+        // Direct function execution - no more dispatcher overhead
+        do {
+            try await handleFunctionCall(functionCall, for: user, conversationId: conversationId)
+        } catch {
+            AppLogger.error("Function execution failed", error: error, category: .ai)
+            await handleFunctionError(error, for: user, conversationId: conversationId)
         }
     }
 
@@ -1042,48 +1028,7 @@ final class CoachEngine {
         }
     }
 
-    /// Handles complex functions via traditional function dispatcher
-    private func handleDispatcherFunction(
-        _ functionCall: AIFunctionCall,
-        for user: User,
-        conversationId: UUID,
-        startTime: CFAbsoluteTime
-    ) async throws {
-        do {
-            let result = try await functionDispatcher.execute(
-                functionCall,
-                for: user,
-                context: FunctionContext(
-                    conversationId: conversationId,
-                    userId: user.id
-                ),
-                modelContext: modelContext
-            )
-
-            let executionTime = CFAbsoluteTimeGetCurrent() - startTime
-            AppLogger.info("Dispatcher function executed in \(Int(executionTime * 1_000))ms", category: .ai)
-
-            let followUpResponse = generateFunctionFollowUp(result)
-
-            // Save function result as assistant message
-            _ = try await conversationManager.createAssistantMessage(
-                followUpResponse,
-                for: user,
-                conversationId: conversationId,
-                functionCall: FunctionCall(
-                    name: functionCall.name,
-                    arguments: functionCall.arguments.mapValues { AnyCodable($0.value) }
-                ),
-                isLocalCommand: false,
-                isError: !result.success
-            )
-
-            currentResponse += "\n\n" + followUpResponse
-
-        } catch {
-            throw error // Re-throw to be handled by main catch block
-        }
-    }
+    /// Handles complex functions - removed, now handled directly in handleFunctionCall
 
     /// Builds response for nutrition parsing results
     private func buildNutritionParsingResponse(_ result: NutritionParseResult) -> String {
@@ -1104,7 +1049,7 @@ final class CoachEngine {
     }
 
     /// Handles function execution errors with user-friendly messages
-    private func handleFunctionError(
+    internal func handleFunctionError(
         _ error: Error,
         for user: User,
         conversationId: UUID
@@ -1271,12 +1216,28 @@ final class CoachEngine {
         _ functionCall: AIFunctionCall,
         for user: User
     ) async throws -> FunctionExecutionResult {
-        let context = FunctionContext(
-            conversationId: UUID(), // Temporary conversation for standalone function calls
-            userId: user.id
-        )
-
-        return try await functionDispatcher.execute(functionCall, for: user, context: context, modelContext: modelContext)
+        let startTime = CFAbsoluteTimeGetCurrent()
+        let conversationId = UUID() // Temporary conversation for standalone function calls
+        
+        do {
+            try await handleFunctionCall(functionCall, for: user, conversationId: conversationId)
+            let executionTime = Int((CFAbsoluteTimeGetCurrent() - startTime) * 1_000)
+            
+            return FunctionExecutionResult(
+                success: true,
+                message: "Function executed successfully",
+                executionTimeMs: executionTime,
+                functionName: functionCall.name
+            )
+        } catch {
+            let executionTime = Int((CFAbsoluteTimeGetCurrent() - startTime) * 1_000)
+            return FunctionExecutionResult(
+                success: false,
+                message: error.localizedDescription,
+                executionTimeMs: executionTime,
+                functionName: functionCall.name
+            )
+        }
     }
 
     // MARK: - Direct AI Methods (Delegates to DirectAIProcessor)
@@ -1556,7 +1517,7 @@ extension CoachEngine: FoodCoachEngineProtocol {
             return (
                 calories: nutritionSummary.calories,
                 protein: nutritionSummary.protein,
-                carbs: nutritionSummary.carbs,
+                carbs: nutritionSummary.carbohydrates,
                 fat: nutritionSummary.fat
             )
         } catch {

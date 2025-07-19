@@ -70,46 +70,33 @@ actor HealthKitService: HealthKitServiceProtocol, ServiceProtocol {
 
     func calculateRecoveryScore(for user: User) async throws -> RecoveryScore {
         let context = await contextAssembler.assembleContext()
-
-        // Calculate recovery score based on sleep, HRV, and activity
-        var score = 50 // Base score
-
-        // Sleep contribution (up to 30 points)
-        if let duration = context.sleep.lastNight?.totalSleepTime {
-            let hours = duration / 3_600
-            let sleepScore = min(30, Int(hours / 8.0 * 30))
-            score += sleepScore
-        }
-
-        // HRV contribution (up to 20 points)
-        if let hrv = context.heartHealth.hrv?.converted(to: .milliseconds).value, let baseline = user.baselineHRV {
-            let hrvRatio = hrv / baseline
-            let hrvScore = Int(min(20, hrvRatio * 20))
-            score += hrvScore
-        }
-
-        // Yesterday's activity impact
-        if let yesterdayCalories = context.activity.activeEnergyBurned?.converted(to: .kilocalories).value,
-           yesterdayCalories > 500 {
-            score -= 10 // High activity yesterday, need more recovery
-        }
-
-        score = max(0, min(100, score))
-
+        
+        // Use the sophisticated RecoveryInference system
+        let adapter = await RecoveryDataAdapter(healthKitManager: healthKitManager)
+        let recoveryInput = try await adapter.prepareRecoveryInput(
+            currentSnapshot: context,
+            subjectiveRating: nil  // No subjective rating for dashboard
+        )
+        
+        let inference = RecoveryInference()
+        let output = await inference.analyzeRecovery(input: recoveryInput)
+        
+        // Convert RecoveryInference output to legacy RecoveryScore format
         let status: RecoveryScore.Status
-        switch score {
-        case 0..<40: status = .poor
-        case 40..<70: status = .moderate
-        default: status = .good
+        switch output.recoveryStatus {
+        case .fullyRecovered:
+            status = .good
+        case .adequate:
+            status = .moderate
+        case .compromised, .needsRest:
+            status = .poor
         }
-
+        
         return RecoveryScore(
-            score: score,
+            score: Int(output.readinessScore),
             status: status,
-            factors: [
-                "Sleep duration: \((context.sleep.lastNight?.totalSleepTime.map { ($0 / 3_600).rounded(toPlaces: 1) } ?? 0)) hrs",
-                "HRV: \((context.heartHealth.hrv?.converted(to: .milliseconds).value.rounded(toPlaces: 0) ?? 0)) ms"
-            ]
+            factors: output.limitingFactors.isEmpty ? 
+                ["All systems normal"] : output.limitingFactors
         )
     }
 

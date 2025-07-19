@@ -82,7 +82,8 @@ actor OpenAIProvider: LLMProvider, ServiceProtocol {
                         responseFormat: request.responseFormat,
                         stream: true,
                         metadata: request.metadata,
-                        thinkingBudgetTokens: request.thinkingBudgetTokens
+                        thinkingBudgetTokens: request.thinkingBudgetTokens,
+                        timeout: request.timeout
                     )
 
                     let openAIRequest = try buildOpenAIRequest(from: streamRequest)
@@ -164,7 +165,8 @@ actor OpenAIProvider: LLMProvider, ServiceProtocol {
             responseFormat: nil,
             stream: false,
             metadata: [:],
-            thinkingBudgetTokens: nil
+            thinkingBudgetTokens: nil,
+            timeout: 10.0  // 10 second timeout for validation
         )
 
         do {

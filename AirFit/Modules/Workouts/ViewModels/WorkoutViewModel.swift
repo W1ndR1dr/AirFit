@@ -98,7 +98,7 @@ final class WorkoutViewModel: ErrorHandling {
         defer { isGeneratingAnalysis = false }
         do {
             // Assemble context snapshot for AI analysis
-            _ = await contextAssembler.assembleSnapshot(modelContext: modelContext)
+            _ = await contextAssembler.assembleContext()
 
             let request = PostWorkoutAnalysisRequest(
                 workout: workout,

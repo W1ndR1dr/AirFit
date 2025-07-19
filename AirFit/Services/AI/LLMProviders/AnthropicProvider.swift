@@ -43,6 +43,11 @@ actor AnthropicProvider: LLMProvider, ServiceProtocol {
             urlRequest.setValue("2023-06-01", forHTTPHeaderField: "anthropic-version")
             urlRequest.setValue("application/json", forHTTPHeaderField: "content-type")
             urlRequest.httpBody = try JSONEncoder().encode(anthropicRequest)
+            
+            // Use request-specific timeout if provided, otherwise use default
+            if let timeout = request.timeout {
+                urlRequest.timeoutInterval = timeout
+            }
 
             let (data, response) = try await session.data(for: urlRequest)
 
@@ -82,7 +87,8 @@ actor AnthropicProvider: LLMProvider, ServiceProtocol {
                         responseFormat: request.responseFormat,
                         stream: true,
                         metadata: request.metadata,
-                        thinkingBudgetTokens: request.thinkingBudgetTokens
+                        thinkingBudgetTokens: request.thinkingBudgetTokens,
+                        timeout: request.timeout
                     )
 
                     let anthropicRequest = try buildAnthropicRequest(from: streamRequest)
@@ -94,6 +100,11 @@ actor AnthropicProvider: LLMProvider, ServiceProtocol {
                     urlRequest.setValue("2023-06-01", forHTTPHeaderField: "anthropic-version")
                     urlRequest.setValue("application/json", forHTTPHeaderField: "content-type")
                     urlRequest.httpBody = try JSONEncoder().encode(anthropicRequest)
+                    
+                    // Use request-specific timeout if provided
+                    if let timeout = request.timeout {
+                        urlRequest.timeoutInterval = timeout
+                    }
 
                     let (bytes, response) = try await session.bytes(for: urlRequest)
 
@@ -146,7 +157,8 @@ actor AnthropicProvider: LLMProvider, ServiceProtocol {
             responseFormat: nil,
             stream: false,
             metadata: [:],
-            thinkingBudgetTokens: nil
+            thinkingBudgetTokens: nil,
+            timeout: 10.0  // 10 second timeout for validation
         )
 
         do {

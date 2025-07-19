@@ -82,49 +82,7 @@ public final class DIBootstrapper {
             return service
         }
 
-        // AI Goal Service - Wrapper around GoalService
-        container.register(AIGoalServiceProtocol.self, lifetime: .transient) { resolver in
-            // Parallel resolution for better performance
-            async let goalService = resolver.resolve(GoalServiceProtocol.self)
-            async let aiService = resolver.resolve(AIServiceProtocol.self)
-            async let personaService = resolver.resolve(PersonaService.self)
-
-            return try await AIGoalService(
-                goalService: goalService,
-                aiService: aiService,
-                personaService: personaService
-            )
-        }
-
-        // AI Workout Service
-        container.register(AIWorkoutServiceProtocol.self, lifetime: .transient) { resolver in
-            // Parallel resolution for better performance
-            async let workoutService = resolver.resolve(WorkoutServiceProtocol.self)
-            async let aiService = resolver.resolve(AIServiceProtocol.self)
-            async let exerciseDatabase = resolver.resolve(ExerciseDatabase.self)
-            async let personaService = resolver.resolve(PersonaService.self)
-
-            return try await AIWorkoutService(
-                workoutService: workoutService,
-                aiService: aiService,
-                exerciseDatabase: exerciseDatabase,
-                personaService: personaService
-            )
-        }
-
-        // AI Analytics Service
-        container.register(AIAnalyticsServiceProtocol.self, lifetime: .transient) { resolver in
-            // Parallel resolution for better performance (even though it's an actor)
-            async let analyticsService = resolver.resolve(AnalyticsServiceProtocol.self)
-            async let aiService = resolver.resolve(AIServiceProtocol.self)
-            async let personaService = resolver.resolve(PersonaService.self)
-
-            return try await AIAnalyticsService(
-                analyticsService: analyticsService,
-                aiService: aiService,
-                personaService: personaService
-            )
-        }
+        // AI wrapper services removed - functionality moved to CoachEngine+Functions
 
     }
 

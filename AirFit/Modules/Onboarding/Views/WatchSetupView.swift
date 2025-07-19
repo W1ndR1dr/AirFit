@@ -16,6 +16,7 @@ struct WatchSetupView: View {
     @State private var pulseScale: CGFloat = 1.0
     @State private var showFeatures = false
     @State private var showingWatchAppStore = false
+    @State private var animationTask: Task<Void, Never>?
     
     private let features = [
         (icon: "figure.run", title: "Start Workouts", description: "Begin and track workouts directly from your wrist"),
@@ -76,10 +77,22 @@ struct WatchSetupView: View {
                 if !reduceMotion {
                     pulseScale = 1.5
                     watchIconScale = 1.1
-                    withAnimation(.easeInOut(duration: 4).repeatForever(autoreverses: true)) {
-                        watchIconRotation = 10
+                    animationTask = Task { @MainActor in
+                        withAnimation(.easeInOut(duration: 4).repeatForever(autoreverses: true)) {
+                            watchIconRotation = 10
+                        }
                     }
                 }
+            }
+            .onDisappear {
+                // Cancel animations when view disappears
+                animationTask?.cancel()
+                animationTask = nil
+                
+                // Reset animation states
+                pulseScale = 1.0
+                watchIconScale = 1.0
+                watchIconRotation = 0
             }
             
             VStack(spacing: AppSpacing.lg) {

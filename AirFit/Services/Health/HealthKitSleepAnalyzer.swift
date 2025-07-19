@@ -17,7 +17,7 @@ actor HealthKitSleepAnalyzer: ServiceProtocol {
     /// Analyzes sleep samples to create a sleep session
     func analyzeSleepSamples(from startDate: Date, to endDate: Date, limit: Int = 200) async throws -> SleepAnalysis.SleepSession? {
         guard let sleepType = HKObjectType.categoryType(forIdentifier: .sleepAnalysis) else {
-            throw HealthKitManager.HealthKitError.invalidData
+            throw HealthKitError.noData
         }
 
         let predicate = HKQuery.predicateForSamples(withStart: startDate, end: endDate, options: .strictStartDate)
@@ -31,7 +31,7 @@ actor HealthKitSleepAnalyzer: ServiceProtocol {
                 sortDescriptors: [sortDescriptor]
             ) { _, samples, error in
                 if let error = error {
-                    continuation.resume(throwing: HealthKitManager.HealthKitError.queryFailed(error))
+                    continuation.resume(throwing: error)
                     return
                 }
 

@@ -23,6 +23,8 @@ extension AppError {
             return .validationError(message: "Message too long for AI processing")
         case .unauthorized:
             return .unauthorized
+        case .timeout(let duration):
+            return .networkError(underlying: NSError(domain: "AI", code: -1001, userInfo: [NSLocalizedDescriptionKey: "Request timed out after \(Int(duration)) seconds"]))
         }
     }
 
@@ -115,18 +117,14 @@ extension AppError {
     // MARK: - HealthKit Errors
 
     /// Creates AppError from HealthKitError
-    static func from(_ healthKitError: HealthKitManager.HealthKitError) -> AppError {
+    static func from(_ healthKitError: HealthKitError) -> AppError {
         switch healthKitError {
         case .notAvailable:
             return .unknown(message: "HealthKit is not available on this device")
         case .authorizationDenied:
             return .healthKitNotAuthorized
-        case .dataNotFound:
+        case .noData, .dataNotAvailable:
             return .unknown(message: "No health data found")
-        case .queryFailed(let error):
-            return .unknown(message: "Health data query failed: \(error.localizedDescription)")
-        case .invalidData:
-            return .validationError(message: "Invalid health data format")
         }
     }
 
@@ -527,7 +525,7 @@ extension Result where Failure == Error {
                 return AppError.from(personaError)
             } else if let liveActivityError = error as? LiveActivityError {
                 return AppError.from(liveActivityError)
-            } else if let healthKitError = error as? HealthKitManager.HealthKitError {
+            } else if let healthKitError = error as? HealthKitError {
                 return AppError.from(healthKitError)
             } else if let llmError = error as? LLMError {
                 return AppError.from(llmError)

@@ -165,6 +165,7 @@ struct AIRequest: Sendable {
     let stream: Bool
     let user: String
     let responseFormat: LLMRequest.ResponseFormat?
+    let timeout: TimeInterval  // Request timeout in seconds
 
     // Provider-specific features
     let enableGrounding: Bool  // Google Gemini grounding
@@ -180,6 +181,7 @@ struct AIRequest: Sendable {
         stream: Bool = true,
         user: String,
         responseFormat: LLMRequest.ResponseFormat? = nil,
+        timeout: TimeInterval = 30.0,  // Default 30 second timeout
         enableGrounding: Bool = false,
         cacheKey: String? = nil,
         audioData: Data? = nil
@@ -192,6 +194,7 @@ struct AIRequest: Sendable {
         self.stream = stream
         self.user = user
         self.responseFormat = responseFormat
+        self.timeout = timeout
         self.enableGrounding = enableGrounding
         self.cacheKey = cacheKey
         self.audioData = audioData
@@ -220,6 +223,7 @@ enum AIError: LocalizedError, Sendable {
     case modelOverloaded
     case contextLengthExceeded
     case unauthorized
+    case timeout(TimeInterval)
 
     var errorDescription: String? {
         switch self {
@@ -238,6 +242,8 @@ enum AIError: LocalizedError, Sendable {
             return "Conversation is too long. Starting a new context."
         case .unauthorized:
             return "AI service authorization failed."
+        case .timeout(let duration):
+            return "Request timed out after \(Int(duration)) seconds."
         }
     }
 }

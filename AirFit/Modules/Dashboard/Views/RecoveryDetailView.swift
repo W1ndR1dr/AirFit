@@ -179,7 +179,8 @@ struct RecoveryDetailView: View {
                 VStack(spacing: AppSpacing.lg) {
                     // Sleep stages chart
                     Chart {
-                        ForEach(mockSleepData) { data in
+                        // TODO: Replace with real sleep data
+                        ForEach([] as [RecoverySleepData]) { data in
                             BarMark(
                                 x: .value("Date", data.date, unit: .day),
                                 yStart: .value("Start", 0),
@@ -477,8 +478,11 @@ struct RecoveryDetailView: View {
     }
 }
 
-// MARK: - Mock Data
+// MARK: - TODO: Connect Real Data
+// This view needs to be connected to HealthKitManager and RecoveryInference
+// to display actual sleep data instead of placeholder content
 
+// Temporary struct - remove when real data is connected
 private struct RecoverySleepData: Identifiable {
     let id = UUID()
     let date: Date
@@ -486,18 +490,3 @@ private struct RecoverySleepData: Identifiable {
     let rem: Double
     let light: Double
 }
-
-private let mockSleepData: [RecoverySleepData] = {
-    let calendar = Calendar.current
-    let today = Date()
-
-    return (0..<7).map { dayOffset in
-        let date = calendar.date(byAdding: .day, value: -dayOffset, to: today)!
-        return RecoverySleepData(
-            date: date,
-            deep: Double.random(in: 1.2...2.0),
-            rem: Double.random(in: 1.5...2.5),
-            light: Double.random(in: 3.0...4.5)
-        )
-    }
-}()
