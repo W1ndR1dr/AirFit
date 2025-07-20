@@ -261,7 +261,7 @@ struct WorkoutContext: Sendable, Codable {
     var weeklyVolume: Double = 0
     var muscleGroupBalance: [String: Int] = [:]
     var intensityTrend: IntensityTrend = .stable
-    var recoveryStatus: RecoveryStatus = .unknown
+    var recoveryStatus: WorkoutFrequencyStatus = .unknown
 
     init(
         recentWorkouts: [CompactWorkout] = [],
@@ -272,7 +272,7 @@ struct WorkoutContext: Sendable, Codable {
         weeklyVolume: Double = 0,
         muscleGroupBalance: [String: Int] = [:],
         intensityTrend: IntensityTrend = .stable,
-        recoveryStatus: RecoveryStatus = .unknown
+        recoveryStatus: WorkoutFrequencyStatus = .unknown
     ) {
         self.recentWorkouts = recentWorkouts
         self.activeWorkout = activeWorkout
@@ -318,7 +318,7 @@ struct WorkoutPatterns: Sendable, Codable {
     let weeklyVolume: Double
     let muscleGroupBalance: [String: Int]
     let intensityTrend: IntensityTrend
-    let recoveryStatus: RecoveryStatus
+    let recoveryStatus: WorkoutFrequencyStatus
 }
 
 enum IntensityTrend: String, Sendable, Codable {
@@ -327,13 +327,17 @@ enum IntensityTrend: String, Sendable, Codable {
     case decreasing
 }
 
-enum RecoveryStatus: String, Sendable, Codable {
+/// Represents training frequency status based on days since last workout
+enum WorkoutFrequencyStatus: String, Sendable, Codable {
     case active      // 0-1 days since last workout
     case recovered   // 2-3 days since last workout
     case wellRested  // 4-7 days since last workout
     case detraining  // 8+ days since last workout
     case unknown
 }
+
+// Type alias for the authoritative recovery status from RecoveryInference
+typealias RecoveryStatus = RecoveryInference.RecoveryStatus
 
 // MARK: - Extensions
 

@@ -264,17 +264,62 @@ final class HealthKitManager: HealthKitManaging, ServiceProtocol {
                                  to endDate: Date) async throws -> [WorkoutData] {
         try await authorizeIfNeeded()
         let raw = try await dataFetcher.fetchWorkouts(from: startDate, to: endDate)
-        return raw
-            .sorted { $0.startDate < $1.startDate }
-            .map {
-                WorkoutData(
-                    workoutType: String($0.workoutActivityType.rawValue),
-                    startDate: $0.startDate,
-                    duration: $0.duration,
-                    totalEnergyBurned: $0.totalEnergyBurned?.doubleValue(for: .kilocalorie()) ?? 0,
-                    averageHeartRate: 0  // TODO: Fetch average heart rate from workout samples
-                )
+        
+        // Fetch heart rate data for each workout in parallel
+        return try await withThrowingTaskGroup(of: WorkoutData.self) { group in
+            for workout in raw.sorted(by: { $0.startDate < $1.startDate }) {
+                group.addTask {
+                    // Fetch average heart rate for this workout
+                    let avgHR = await self.fetchAverageHeartRate(
+                        during: workout.startDate,
+                        duration: workout.duration
+                    )
+                    
+                    return WorkoutData(
+                        workoutType: String(workout.workoutActivityType.rawValue),
+                        startDate: workout.startDate,
+                        duration: workout.duration,
+                        totalEnergyBurned: workout.totalEnergyBurned?.doubleValue(for: .kilocalorie()) ?? 0,
+                        averageHeartRate: avgHR
+                    )
+                }
             }
+            
+            var results: [WorkoutData] = []
+            for try await workout in group {
+                results.append(workout)
+            }
+            return results.sorted { $0.startDate < $1.startDate }
+        }
+    }
+    
+    private func fetchAverageHeartRate(during startDate: Date, duration: TimeInterval) async -> Double {
+        guard let heartRateType = HKQuantityType.quantityType(forIdentifier: .heartRate) else {
+            return 0
+        }
+        
+        let endDate = startDate.addingTimeInterval(duration)
+        let predicate = HKQuery.predicateForSamples(
+            withStart: startDate,
+            end: endDate,
+            options: .strictStartDate
+        )
+        
+        return await withCheckedContinuation { continuation in
+            let query = HKStatisticsQuery(
+                quantityType: heartRateType,
+                quantitySamplePredicate: predicate,
+                options: .discreteAverage
+            ) { _, statistics, _ in
+                if let avg = statistics?.averageQuantity() {
+                    continuation.resume(returning: avg.doubleValue(for: .count().unitDivided(by: .minute())))
+                } else {
+                    continuation.resume(returning: 0)
+                }
+            }
+            
+            store.execute(query)
+        }
     }
 
     // MARK: Existing public API methods (from original implementation)
@@ -303,9 +348,86 @@ final class HealthKitManager: HealthKitManaging, ServiceProtocol {
     func fetchLatestBodyMetrics() async throws -> BodyMetrics {
         try await authorizeIfNeeded()
         
-        // TODO: Implement proper body metrics fetching
-        // For now, return empty metrics
-        return BodyMetrics()
+        var metrics = BodyMetrics()
+        let endDate = Date()
+        let startDate = Calendar.current.date(byAdding: .day, value: -30, to: endDate) ?? endDate
+        
+        // Fetch body metrics in parallel
+        async let weight = fetchLatestSample(identifier: .bodyMass, unit: HKUnit.gramUnit(with: .kilo), from: startDate, to: endDate)
+        async let height = fetchLatestSample(identifier: .height, unit: HKUnit.meterUnit(with: .centi), from: startDate, to: endDate)
+        async let bodyFat = fetchLatestSample(identifier: .bodyFatPercentage, unit: HKUnit.percent(), from: startDate, to: endDate)
+        async let leanMass = fetchLatestSample(identifier: .leanBodyMass, unit: HKUnit.gramUnit(with: .kilo), from: startDate, to: endDate)
+        
+        // Wait for results
+        let (weightResult, heightResult, bodyFatResult, leanMassResult) = try await (weight, height, bodyFat, leanMass)
+        
+        // Process weight
+        if let (value, date) = weightResult {
+            metrics.weight = Measurement(value: value, unit: .kilograms)
+            metrics.date = date
+        }
+        
+        // Process height
+        if let (value, _) = heightResult {
+            metrics.height = Measurement(value: value, unit: .centimeters)
+        }
+        
+        // Process body fat
+        if let (value, _) = bodyFatResult {
+            metrics.bodyFatPercentage = value * 100  // Convert from 0-1 to 0-100
+        }
+        
+        // Process lean mass
+        if let (value, _) = leanMassResult {
+            metrics.leanBodyMass = Measurement(value: value, unit: .kilograms)
+        }
+        
+        // Calculate BMI if we have weight and height
+        if let weight = metrics.weight?.converted(to: .kilograms).value,
+           let height = metrics.height?.converted(to: .meters).value {
+            metrics.bmi = weight / (height * height)
+        }
+        
+        return metrics
+    }
+    
+    private func fetchLatestSample(
+        identifier: HKQuantityTypeIdentifier,
+        unit: HKUnit,
+        from startDate: Date,
+        to endDate: Date
+    ) async throws -> (value: Double, date: Date)? {
+        guard let type = HKQuantityType.quantityType(forIdentifier: identifier) else {
+            return nil
+        }
+        
+        let predicate = HKQuery.predicateForSamples(
+            withStart: startDate,
+            end: endDate,
+            options: .strictStartDate
+        )
+        
+        return try await withCheckedThrowingContinuation { continuation in
+            let sortDescriptor = NSSortDescriptor(key: HKSampleSortIdentifierStartDate, ascending: false)
+            
+            let query = HKSampleQuery(
+                sampleType: type,
+                predicate: predicate,
+                limit: 1,
+                sortDescriptors: [sortDescriptor]
+            ) { _, samples, error in
+                if let error = error {
+                    continuation.resume(throwing: error)
+                } else if let sample = samples?.first as? HKQuantitySample {
+                    let value = sample.quantity.doubleValue(for: unit)
+                    continuation.resume(returning: (value, sample.startDate))
+                } else {
+                    continuation.resume(returning: nil)
+                }
+            }
+            
+            store.execute(query)
+        }
     }
 
     func fetchHeartHealthMetrics() async throws -> HeartHealthMetrics {
@@ -354,22 +476,92 @@ final class HealthKitManager: HealthKitManaging, ServiceProtocol {
     func fetchNutritionTotals(for date: Date) async throws -> NutritionMetrics {
         try await authorizeIfNeeded()
         
-        // TODO: Implement nutrition fetching with proper HKStatisticsCollectionQuery
-        // For now, return empty metrics
+        // Define date range for the requested day
+        let startOfDay = Calendar.current.startOfDay(for: date)
+        let endOfDay = Calendar.current.date(byAdding: .day, value: 1, to: startOfDay) ?? date
+        
+        // Fetch nutrition data in parallel
+        async let calories = fetchNutritionSum(
+            identifier: .dietaryEnergyConsumed,
+            unit: .kilocalorie(),
+            from: startOfDay,
+            to: endOfDay
+        )
+        
+        async let protein = fetchNutritionSum(
+            identifier: .dietaryProtein,
+            unit: .gram(),
+            from: startOfDay,
+            to: endOfDay
+        )
+        
+        async let carbs = fetchNutritionSum(
+            identifier: .dietaryCarbohydrates,
+            unit: .gram(),
+            from: startOfDay,
+            to: endOfDay
+        )
+        
+        async let fat = fetchNutritionSum(
+            identifier: .dietaryFatTotal,
+            unit: .gram(),
+            from: startOfDay,
+            to: endOfDay
+        )
+        
+        async let fiber = fetchNutritionSum(
+            identifier: .dietaryFiber,
+            unit: .gram(),
+            from: startOfDay,
+            to: endOfDay
+        )
+        
+        // Wait for all results
+        let (caloriesResult, proteinResult, carbsResult, fatResult, fiberResult) = 
+            try await (calories, protein, carbs, fat, fiber)
+        
         return NutritionMetrics(
-            calories: 0,
-            protein: 0,
-            carbohydrates: 0,
-            fat: 0,
-            fiber: 0
+            calories: caloriesResult,
+            protein: proteinResult,
+            carbohydrates: carbsResult,
+            fat: fatResult,
+            fiber: fiberResult
         )
     }
-
-    func fetchRecentWorkouts(limit: Int = 10) async throws -> [HKWorkout] {
-        try await authorizeIfNeeded()
-        let endDate = Date()
-        let startDate = Calendar.current.date(byAdding: .day, value: -30, to: endDate) ?? endDate
-        return try await dataFetcher.fetchWorkouts(from: startDate, to: endDate)
+    
+    private func fetchNutritionSum(
+        identifier: HKQuantityTypeIdentifier,
+        unit: HKUnit,
+        from startDate: Date,
+        to endDate: Date
+    ) async throws -> Double {
+        guard let type = HKQuantityType.quantityType(forIdentifier: identifier) else {
+            return 0
+        }
+        
+        let predicate = HKQuery.predicateForSamples(
+            withStart: startDate,
+            end: endDate,
+            options: .strictStartDate
+        )
+        
+        return try await withCheckedThrowingContinuation { continuation in
+            let query = HKStatisticsQuery(
+                quantityType: type,
+                quantitySamplePredicate: predicate,
+                options: .cumulativeSum
+            ) { _, statistics, error in
+                if let error = error {
+                    continuation.resume(throwing: error)
+                } else if let sum = statistics?.sumQuantity() {
+                    continuation.resume(returning: sum.doubleValue(for: unit))
+                } else {
+                    continuation.resume(returning: 0)
+                }
+            }
+            
+            store.execute(query)
+        }
     }
 
     func saveWorkout(_ workout: HKWorkout) async throws {

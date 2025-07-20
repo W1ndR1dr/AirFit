@@ -146,7 +146,7 @@ grep -r "sleep\|delay\|Task\.sleep" --include="*.swift" AirFit/
 4. Update this file if cleanup targets change
 
 ## Project Overview
-**AirFit** - Voice-first AI-powered fitness & nutrition tracking app for iOS 18.0+ using SwiftUI, SwiftData, and multi-LLM AI integration.
+**AirFit** - AI-powered fitness & nutrition tracking app for iOS 18.0+ using SwiftUI, SwiftData, and multi-LLM AI integration. Features Whisper transcription as an optional input method (replacing Apple's transcription) for any text field.
 
 **Current Integration Status**: 
 - ✅ **RecoveryInference** - o3 pro's sophisticated biometric analysis

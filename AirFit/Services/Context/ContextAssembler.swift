@@ -589,8 +589,8 @@ final class ContextAssembler: ContextAssemblerProtocol, ServiceProtocol {
             intensityTrend = .stable
         }
 
-        // Recovery status (simplified heuristic)
-        let recoveryStatus: RecoveryStatus
+        // Workout frequency status (simplified heuristic)
+        let recoveryStatus: WorkoutFrequencyStatus
         let daysSinceLastWorkout = workouts.first?.completedDate.map {
             Calendar.current.dateComponents([.day], from: $0, to: Date()).day ?? 0
         } ?? 7

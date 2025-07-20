@@ -707,12 +707,10 @@ struct ConversationalPersonaRefinement: View {
         inputText = ""
         showSuggestions = false
 
-        // Simulate AI response
+        // Generate AI response
         isTyping = true
 
         Task {
-            try? await Task.sleep(nanoseconds: 2_000_000_000) // 2 seconds
-
             await MainActor.run {
                 let response = generateResponse(for: text)
                 let aiMessage = RefinementMessage(

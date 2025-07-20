@@ -5,7 +5,7 @@
 
 ## Executive Summary
 
-AirFit is a voice-first AI-powered fitness & nutrition tracking app built with SwiftUI, SwiftData, and multi-LLM AI integration. The architecture emphasizes modularity, type safety, and performance through lazy dependency injection and clear actor boundaries.
+AirFit is an AI-powered fitness & nutrition tracking app built with SwiftUI, SwiftData, and multi-LLM AI integration. Features Whisper transcription as an optional alternative to Apple's transcription for any text input. The architecture emphasizes modularity, type safety, and performance through lazy dependency injection and clear actor boundaries.
 
 ## Architecture Principles
 

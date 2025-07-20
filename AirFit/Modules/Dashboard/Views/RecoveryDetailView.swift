@@ -4,8 +4,13 @@ import Charts
 /// Detailed recovery metrics view accessible from Today dashboard
 struct RecoveryDetailView: View {
     let user: User
+    let container: DIContainer
+    
     @State private var selectedTimeframe: TimeframeOption = .week
     @State private var animateIn = false
+    @State private var recoveryData: RecoveryInference.Output?
+    @State private var isLoading = true
+    @State private var healthSnapshot: HealthContextSnapshot?
 
     @Environment(\.colorScheme) private var colorScheme
     @EnvironmentObject private var gradientManager: GradientManager
@@ -39,11 +44,16 @@ struct RecoveryDetailView: View {
                         .padding(.horizontal, AppSpacing.screenPadding)
                         .padding(.top, AppSpacing.lg)
 
-                    // Content sections
-                    DashboardContentView(delay: 0.1) {
-                        recoveryScoreSection
-                    }
-                    .padding(.top, AppSpacing.xl)
+                    if isLoading {
+                        ProgressView()
+                            .padding(.top, 100)
+                            .frame(maxWidth: .infinity)
+                    } else {
+                        // Content sections
+                        DashboardContentView(delay: 0.1) {
+                            recoveryScoreSection
+                        }
+                        .padding(.top, AppSpacing.xl)
 
                     DashboardContentView(delay: 0.2) {
                         sleepAnalysisSection
@@ -60,18 +70,57 @@ struct RecoveryDetailView: View {
                     }
                     .padding(.top, AppSpacing.xl)
 
-                    DashboardContentView(delay: 0.5) {
-                        recoveryRecommendationsSection
+                        DashboardContentView(delay: 0.5) {
+                            recoveryRecommendationsSection
+                        }
+                        .padding(.top, AppSpacing.xl)
+                        .padding(.bottom, AppSpacing.xl)
                     }
-                    .padding(.top, AppSpacing.xl)
-                    .padding(.bottom, AppSpacing.xl)
                 }
             }
             .navigationTitle("Recovery Analytics")
             .navigationBarTitleDisplayMode(.inline)
         }
+        .task {
+            await loadRecoveryData()
+        }
     }
 
+    // MARK: - Data Loading
+    
+    private func loadRecoveryData() async {
+        do {
+            // Get services from DI container
+            let contextAssembler = try await container.resolve(ContextAssemblerProtocol.self)
+            let healthKitManager = try await container.resolve(HealthKitManaging.self)
+            let recoveryInference = RecoveryInference()
+            let adapter = RecoveryDataAdapter(healthKitManager: healthKitManager)
+            
+            // Fetch health context
+            let snapshot = await contextAssembler.assembleContext()
+            self.healthSnapshot = snapshot
+            
+            // Prepare recovery input
+            let input = try await adapter.prepareRecoveryInput(
+                currentSnapshot: snapshot,
+                subjectiveRating: nil
+            )
+            
+            // Analyze recovery
+            let output = await recoveryInference.analyzeRecovery(input: input)
+            
+            await MainActor.run {
+                self.recoveryData = output
+                self.isLoading = false
+            }
+        } catch {
+            AppLogger.error("Failed to load recovery data", error: error, category: .health)
+            await MainActor.run {
+                self.isLoading = false
+            }
+        }
+    }
+    
     // MARK: - Header Section
 
     @ViewBuilder
@@ -104,7 +153,7 @@ struct RecoveryDetailView: View {
                             .frame(width: 180, height: 180)
 
                         Circle()
-                            .trim(from: 0, to: 0.78)
+                            .trim(from: 0, to: (recoveryData?.readinessScore ?? 0) / 100.0)
                             .stroke(
                                 LinearGradient(
                                     colors: gradientManager.active.colors(for: colorScheme),
@@ -115,9 +164,10 @@ struct RecoveryDetailView: View {
                             )
                             .frame(width: 180, height: 180)
                             .rotationEffect(.degrees(-90))
+                            .animation(.easeInOut(duration: 0.8), value: recoveryData?.readinessScore)
 
                         VStack(spacing: AppSpacing.xs) {
-                            Text("78")
+                            Text("\(Int(recoveryData?.readinessScore ?? 0))")
                                 .font(.system(size: 48, weight: .bold, design: .rounded))
                                 .foregroundStyle(
                                     LinearGradient(
@@ -127,18 +177,48 @@ struct RecoveryDetailView: View {
                                     )
                                 )
 
-                            Text("Good")
+                            Text(recoveryData?.recoveryStatus.rawValue ?? "Unknown")
                                 .font(.system(size: 16, weight: .medium))
                                 .foregroundColor(.secondary)
                         }
                     }
 
-                    // Score factors
-                    VStack(spacing: AppSpacing.md) {
-                        scoreFactorRow(title: "Sleep Quality", value: 85, contribution: "+15")
-                        scoreFactorRow(title: "HRV Trend", value: 72, contribution: "+8")
-                        scoreFactorRow(title: "Resting HR", value: 90, contribution: "+12")
-                        scoreFactorRow(title: "Activity Balance", value: 68, contribution: "-5")
+                    // Limiting factors
+                    if let factors = recoveryData?.limitingFactors, !factors.isEmpty {
+                        VStack(alignment: .leading, spacing: AppSpacing.md) {
+                            Text("Limiting Factors")
+                                .font(.system(size: 14, weight: .medium))
+                                .foregroundColor(.secondary)
+                            
+                            ForEach(factors, id: \.self) { factor in
+                                HStack {
+                                    Image(systemName: "exclamationmark.circle.fill")
+                                        .font(.system(size: 14))
+                                        .foregroundColor(.orange.opacity(0.8))
+                                    
+                                    Text(factor)
+                                        .font(.system(size: 14))
+                                        .foregroundColor(.primary.opacity(0.9))
+                                    
+                                    Spacer()
+                                }
+                            }
+                        }
+                    } else {
+                        // Show positive indicators when no limiting factors
+                        VStack(spacing: AppSpacing.md) {
+                            HStack {
+                                Image(systemName: "checkmark.circle.fill")
+                                    .font(.system(size: 14))
+                                    .foregroundColor(.green.opacity(0.8))
+                                
+                                Text("All systems optimal")
+                                    .font(.system(size: 14))
+                                    .foregroundColor(.primary.opacity(0.9))
+                                
+                                Spacer()
+                            }
+                        }
                     }
                 }
                 .padding(AppSpacing.lg)
@@ -147,27 +227,41 @@ struct RecoveryDetailView: View {
         }
     }
 
+
+    // MARK: - Sleep Helpers
+    
     @ViewBuilder
-    private func scoreFactorRow(title: String, value: Int, contribution: String) -> some View {
+    private func sleepStageRow(stage: String, duration: TimeInterval, color: Color) -> some View {
         HStack {
-            Text(title)
+            Text(stage)
                 .font(.system(size: 14))
                 .foregroundColor(.secondary)
-
+            
             Spacer()
-
-            HStack(spacing: AppSpacing.sm) {
-                DashboardProgressIndicator(progress: Double(value) / 100.0, label: nil)
-                    .frame(width: 60)
-
-                Text(contribution)
-                    .font(.system(size: 12, weight: .medium))
-                    .foregroundColor(contribution.hasPrefix("+") ? .green : .orange)
-                    .frame(width: 30, alignment: .trailing)
+            
+            // Progress bar
+            GeometryReader { geometry in
+                ZStack(alignment: .leading) {
+                    Rectangle()
+                        .fill(Color.primary.opacity(0.1))
+                        .frame(height: 4)
+                        .cornerRadius(2)
+                    
+                    Rectangle()
+                        .fill(color.gradient)
+                        .frame(width: geometry.size.width * min(duration / 10800, 1.0), height: 4) // 3 hours max
+                        .cornerRadius(2)
+                }
             }
+            .frame(width: 100, height: 4)
+            
+            Text("\(Int(duration / 3600))h \((Int(duration) % 3600) / 60)m")
+                .font(.system(size: 12))
+                .foregroundColor(.primary.opacity(0.7))
+                .frame(width: 60, alignment: .trailing)
         }
     }
-
+    
     // MARK: - Sleep Analysis
 
     @ViewBuilder
@@ -177,34 +271,47 @@ struct RecoveryDetailView: View {
 
             GlassCard {
                 VStack(spacing: AppSpacing.lg) {
-                    // Sleep stages chart
-                    Chart {
-                        // TODO: Replace with real sleep data
-                        ForEach([] as [RecoverySleepData]) { data in
-                            BarMark(
-                                x: .value("Date", data.date, unit: .day),
-                                yStart: .value("Start", 0),
-                                yEnd: .value("Deep", data.deep)
-                            )
-                            .foregroundStyle(Color.indigo.gradient)
-
-                            BarMark(
-                                x: .value("Date", data.date, unit: .day),
-                                yStart: .value("Start", data.deep),
-                                yEnd: .value("REM", data.deep + data.rem)
-                            )
-                            .foregroundStyle(Color.purple.gradient)
-
-                            BarMark(
-                                x: .value("Date", data.date, unit: .day),
-                                yStart: .value("Start", data.deep + data.rem),
-                                yEnd: .value("Light", data.deep + data.rem + data.light)
-                            )
-                            .foregroundStyle(Color.blue.gradient.opacity(0.5))
+                    // Sleep quality summary
+                    if let sleep = healthSnapshot?.sleep.lastNight {
+                        VStack(spacing: AppSpacing.md) {
+                            HStack {
+                                VStack(alignment: .leading) {
+                                    Text("Last Night")
+                                        .font(.system(size: 14))
+                                        .foregroundColor(.secondary)
+                                    Text("\(Int(sleep.totalSleepTime ?? 0) / 3600)h \((Int(sleep.totalSleepTime ?? 0) % 3600) / 60)m")
+                                        .font(.system(size: 20, weight: .semibold))
+                                }
+                                
+                                Spacer()
+                                
+                                VStack(alignment: .trailing) {
+                                    Text("Efficiency")
+                                        .font(.system(size: 14))
+                                        .foregroundColor(.secondary)
+                                    Text("\(Int(sleep.efficiency ?? 0))%")
+                                        .font(.system(size: 20, weight: .semibold))
+                                        .foregroundColor(sleep.quality == .excellent ? .green : 
+                                                      sleep.quality == .good ? .blue : .orange)
+                                }
+                            }
+                            
+                            // Sleep stages breakdown
+                            if let deep = sleep.deepTime, let rem = sleep.remTime, let core = sleep.coreTime {
+                                VStack(spacing: AppSpacing.sm) {
+                                    sleepStageRow(stage: "Deep", duration: deep, color: .indigo)
+                                    sleepStageRow(stage: "REM", duration: rem, color: .purple)
+                                    sleepStageRow(stage: "Core", duration: core, color: .blue)
+                                }
+                                .padding(.top, AppSpacing.sm)
+                            }
                         }
+                    } else {
+                        Text("No sleep data available")
+                            .font(.system(size: 14))
+                            .foregroundColor(.secondary)
+                            .frame(maxWidth: .infinity, minHeight: 100)
                     }
-                    .frame(height: 200)
-                    .chartYAxisLabel("Hours")
 
                     // Sleep stats
                     HStack(spacing: AppSpacing.xl) {
@@ -433,22 +540,65 @@ struct RecoveryDetailView: View {
         VStack(spacing: AppSpacing.lg) {
             DashboardSectionHeader(title: "AI Recommendations")
 
-            VStack(spacing: AppSpacing.md) {
-                recommendationCard(
-                    icon: "moon.zzz.fill",
-                    title: "Prioritize Sleep Tonight",
-                    message: "Your sleep debt is accumulating. Aim for 8+ hours tonight.",
-                    color: .indigo
-                )
-
-                recommendationCard(
-                    icon: "figure.yoga",
-                    title: "Active Recovery Day",
-                    message: "Light movement or yoga would support recovery better than intense training.",
-                    color: .green
-                )
+            if let recommendation = recoveryData?.trainingRecommendation {
+                VStack(spacing: AppSpacing.md) {
+                    // Primary recommendation based on recovery status
+                    recommendationCard(
+                        icon: getRecommendationIcon(for: recommendation),
+                        title: recommendation.rawValue,
+                        message: recommendation.description,
+                        color: getRecommendationColor(for: recommendation)
+                    )
+                    
+                    // Additional recommendations based on limiting factors
+                    if let factors = recoveryData?.limitingFactors {
+                        if factors.contains(where: { $0.contains("sleep") || $0.contains("Sleep") }) {
+                            recommendationCard(
+                                icon: "moon.zzz.fill",
+                                title: "Prioritize Sleep",
+                                message: "Your sleep quality is affecting recovery. Aim for 8+ hours tonight.",
+                                color: .indigo
+                            )
+                        }
+                        
+                        if factors.contains(where: { $0.contains("HRV") || $0.contains("hrv") }) {
+                            recommendationCard(
+                                icon: "heart.text.square.fill",
+                                title: "Manage Stress",
+                                message: "HRV indicates elevated stress. Consider meditation or breathing exercises.",
+                                color: .purple
+                            )
+                        }
+                    }
+                }
+                .padding(.horizontal, AppSpacing.screenPadding)
             }
-            .padding(.horizontal, AppSpacing.screenPadding)
+        }
+    }
+    
+    private func getRecommendationIcon(for recommendation: RecoveryInference.TrainingIntensity) -> String {
+        switch recommendation {
+        case .highIntensity:
+            return "flame.fill"
+        case .moderate:
+            return "figure.walk"
+        case .activeRecovery:
+            return "figure.yoga"
+        case .rest:
+            return "bed.double.fill"
+        }
+    }
+    
+    private func getRecommendationColor(for recommendation: RecoveryInference.TrainingIntensity) -> Color {
+        switch recommendation {
+        case .highIntensity:
+            return .orange
+        case .moderate:
+            return .blue
+        case .activeRecovery:
+            return .green
+        case .rest:
+            return .purple
         }
     }
 

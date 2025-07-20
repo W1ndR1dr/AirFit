@@ -44,10 +44,22 @@ public struct RecoveryDataAdapter {
     
     /// Fetches historical biometric data for the past N days
     public func fetchHistoricalBiometrics(days: Int = 7) async -> [DailyBiometrics] {
-        // For now, return empty array - this would need to be implemented
-        // to fetch historical HealthKit data day by day
-        // TODO: Implement historical data fetching
-        return []
+        let endDate = Date()
+        let startDate = Calendar.current.date(byAdding: .day, value: -days, to: endDate) ?? endDate
+        
+        do {
+            // Fetch all biometrics for the date range
+            let allBiometrics = try await healthKitManager.fetchDailyBiometrics(
+                from: startDate,
+                to: endDate
+            )
+            
+            // Sort by date (oldest first) and return
+            return allBiometrics.sorted { $0.date < $1.date }
+        } catch {
+            AppLogger.error("Failed to fetch historical biometrics", error: error, category: .health)
+            return []
+        }
     }
     
     /// Converts AirFit WorkoutData to RecoveryInference WorkoutData

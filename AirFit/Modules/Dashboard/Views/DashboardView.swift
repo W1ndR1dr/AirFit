@@ -213,7 +213,7 @@ struct DashboardContent: View {
             // Create WorkoutHistoryView with proper dependencies
             WorkoutHistoryViewWrapper(user: user, container: diContainer, modelContext: modelContext)
         case .recoveryDetail:
-            RecoveryDetailView(user: user)
+            RecoveryDetailView(user: user, container: diContainer)
         case .settings:
             SettingsView(user: user)
         }

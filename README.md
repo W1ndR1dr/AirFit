@@ -1,6 +1,6 @@
 # AirFit
 
-Voice-first AI-powered fitness & nutrition tracking app for iOS 18.0+ using SwiftUI, SwiftData, and multi-LLM AI integration.
+AI-powered fitness & nutrition tracking app for iOS 18.0+ using SwiftUI, SwiftData, and multi-LLM AI integration. Features Whisper transcription as an optional input method for text fields.
 
 ## Core Vision
 
