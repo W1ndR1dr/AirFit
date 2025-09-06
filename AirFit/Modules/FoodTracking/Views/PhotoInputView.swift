@@ -1,6 +1,5 @@
 @preconcurrency import AVFoundation
 import SwiftUI
-import SwiftData
 import Vision
 import Photos
 import UIKit

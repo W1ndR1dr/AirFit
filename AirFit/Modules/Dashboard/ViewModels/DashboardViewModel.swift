@@ -1,5 +1,4 @@
 import SwiftUI
-import SwiftData
 import Observation
 
 @MainActor
@@ -34,7 +33,7 @@ final class DashboardViewModel: ErrorHandling {
 
     // MARK: - Dependencies
     private let user: User
-    private let modelContext: ModelContext
+    private let dashboardRepository: DashboardRepositoryProtocol
     private let healthKitService: HealthKitServiceProtocol
     private let aiCoachService: AICoachServiceProtocol
     private let nutritionService: DashboardNutritionServiceProtocol
@@ -49,13 +48,13 @@ final class DashboardViewModel: ErrorHandling {
     // MARK: - Initialization
     init(
         user: User,
-        modelContext: ModelContext,
+        dashboardRepository: DashboardRepositoryProtocol,
         healthKitService: HealthKitServiceProtocol,
         aiCoachService: AICoachServiceProtocol,
         nutritionService: DashboardNutritionServiceProtocol
     ) {
         self.user = user
-        self.modelContext = modelContext
+        self.dashboardRepository = dashboardRepository
         self.healthKitService = healthKitService
         self.aiCoachService = aiCoachService
         self.nutritionService = nutritionService
@@ -88,27 +87,8 @@ final class DashboardViewModel: ErrorHandling {
         defer { isLoggingEnergy = false }
 
         do {
-            // Get or create today's log
-            let today = Calendar.current.startOfDay(for: Date())
-            var descriptor = FetchDescriptor<DailyLog>()
-            descriptor.predicate = #Predicate { log in
-                log.date == today
-            }
-
-            let logs = try modelContext.fetch(descriptor)
-            let dailyLog: DailyLog
-
-            if let existingLog = logs.first {
-                dailyLog = existingLog
-            } else {
-                dailyLog = DailyLog(date: today, user: user)
-                modelContext.insert(dailyLog)
-            }
-
-            // Update energy level
-            dailyLog.subjectiveEnergyLevel = level
-            dailyLog.checkedIn = true
-            try modelContext.save()
+            // Use repository to log energy level
+            _ = try dashboardRepository.logEnergyLevel(level, for: user)
 
             // Update local state
             currentEnergyLevel = level
@@ -205,15 +185,7 @@ final class DashboardViewModel: ErrorHandling {
 
     private func loadEnergyLevel() async {
         do {
-            let today = Calendar.current.startOfDay(for: Date())
-            var descriptor = FetchDescriptor<DailyLog>()
-            descriptor.predicate = #Predicate { log in
-                log.date == today
-            }
-
-            let logs = try modelContext.fetch(descriptor)
-            currentEnergyLevel = logs.first?.subjectiveEnergyLevel
-
+            currentEnergyLevel = try dashboardRepository.getCurrentEnergyLevel(for: user)
         } catch {
             AppLogger.error("Failed to load energy level", error: error, category: .data)
         }

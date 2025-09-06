@@ -1,5 +1,4 @@
 import SwiftUI
-import SwiftData
 import Observation
 import Foundation
 import UIKit

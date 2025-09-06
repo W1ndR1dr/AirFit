@@ -1,5 +1,4 @@
 import SwiftUI
-import SwiftData
 
 /// View allowing users to confirm AI-parsed food items, edit their nutrition values,
 /// adjust portions and save the results.

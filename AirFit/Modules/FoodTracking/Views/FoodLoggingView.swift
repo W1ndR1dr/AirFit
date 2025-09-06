@@ -1,6 +1,5 @@
 import SwiftUI
 import Charts
-import SwiftData
 
 // MARK: - Food Tracking View with DI
 struct FoodTrackingView: View {
