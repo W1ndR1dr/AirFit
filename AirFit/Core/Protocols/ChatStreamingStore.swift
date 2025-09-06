@@ -11,7 +11,7 @@ protocol ChatStreamingStore: AnyObject, Sendable {
     func publish(_ event: ChatStreamingEvent)
 }
 
-struct ChatStreamingEvent: Sendable {
+public struct ChatStreamingEvent: Sendable {
     enum Kind: Sendable {
         case started
         case delta(String)
@@ -31,7 +31,7 @@ struct ChatStreamingEvent: Sendable {
 
 // MARK: - Default Implementation
 
-final class DefaultChatStreamingStore: ChatStreamingStore, _ChatStreamingEventSource {
+public final class DefaultChatStreamingStore: ChatStreamingStore, _ChatStreamingEventSource {
     private let subject = PassthroughSubject<ChatStreamingEvent, Never>()
     private let logger = OSLog(subsystem: "com.airfit", category: "streaming")
     private var activeStreams: [UUID: StreamMetrics] = [:]

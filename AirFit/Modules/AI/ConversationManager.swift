@@ -79,7 +79,6 @@ final class ConversationManager {
             "Created assistant message for conversation \(conversationId)",
             category: .ai
         )
-        NotificationCenter.default.post(name: .coachAssistantMessageCreated, object: message)
         return message
     }
 
