@@ -1,15 +1,14 @@
 import Foundation
 import SwiftData
-import Combine
 
 // MARK: - Workout Analysis Engine
 @MainActor
 final class WorkoutAnalysisEngine {
     // MARK: - Dependencies
-    private let aiService: AIAPIServiceProtocol
+    private let aiService: AIServiceProtocol
 
     // MARK: - Initialization
-    init(aiService: AIAPIServiceProtocol) {
+    init(aiService: AIServiceProtocol) {
         self.aiService = aiService
     }
 
@@ -36,30 +35,39 @@ final class WorkoutAnalysisEngine {
 
         // Get AI response
         var analysisResult = ""
-        let responsePublisher = aiService.getStreamingResponse(for: aiRequest)
 
-        await withCheckedContinuation { continuation in
-            var cancellables = Set<AnyCancellable>()
-
-            responsePublisher
-                .receive(on: DispatchQueue.main)
-                .sink(
-                    receiveCompletion: { _ in
-                        continuation.resume()
-                    },
-                    receiveValue: { response in
-                        switch response {
-                        case .text(let text), .textDelta(let text):
-                            analysisResult += text
-                        default:
-                            break
-                        }
-                    }
-                )
-                .store(in: &cancellables)
+        do {
+            for try await response in aiService.sendRequest(aiRequest) {
+                switch response {
+                case .text(let text), .textDelta(let text):
+                    analysisResult += text
+                default:
+                    break
+                }
+            }
+        } catch {
+            AppLogger.error("Failed to analyze workout: \(error)", category: .ai)
         }
 
-        return analysisResult.isEmpty ? "Great workout! Keep up the excellent work." : analysisResult
+        if analysisResult.isEmpty {
+            // Build contextual fallback
+            let workout = request.workout
+            var fallback = "Completed \(workout.name)"
+
+            if let duration = workout.formattedDuration {
+                fallback += " in \(duration)"
+            }
+
+            if workout.totalSets > 0 {
+                fallback += " - \(workout.totalSets) sets completed"
+            }
+
+            fallback += ". Strong work today!"
+
+            return fallback
+        }
+
+        return analysisResult
     }
 
     // MARK: - Private Methods
@@ -104,7 +112,7 @@ final class WorkoutAnalysisEngine {
 }
 
 // MARK: - Supporting Types
-struct PostWorkoutAnalysisRequest {
+struct PostWorkoutAnalysisRequest: Sendable {
     let workout: Workout
     let recentWorkouts: [Workout]
     let userGoals: [String]?
@@ -118,7 +126,7 @@ struct PostWorkoutAnalysisRequest {
     }
 }
 
-struct RecoveryData {
+struct RecoveryData: Sendable {
     let sleepHours: Double?
     let restingHeartRate: Int?
     let hrv: Double?

@@ -16,6 +16,10 @@ final class FoodEntry: @unchecked Sendable {
     var parsingConfidence: Double?
     var parsingTimestamp: Date?
 
+    // HealthKit Integration
+    var healthKitSampleIDs: [String] = []
+    var healthKitSyncDate: Date?
+
     // MARK: - Relationships
     @Relationship(deleteRule: .cascade, inverse: \FoodItem.foodEntry)
     var items: [FoodItem] = []
@@ -23,6 +27,7 @@ final class FoodEntry: @unchecked Sendable {
     var nutritionData: NutritionData?
 
     var user: User?
+
 
     // MARK: - Computed Properties
     var totalCalories: Int {
@@ -92,7 +97,7 @@ final class FoodEntry: @unchecked Sendable {
         self.parsingConfidence = confidence
         self.parsingTimestamp = Date()
     }
-    
+
     func duplicate() -> FoodEntry {
         let duplicateEntry = FoodEntry(
             loggedAt: self.loggedAt,
@@ -102,7 +107,7 @@ final class FoodEntry: @unchecked Sendable {
             notes: self.notes,
             user: self.user
         )
-        
+
         // Duplicate all food items
         for item in self.items {
             let duplicateItem = FoodItem(
@@ -121,13 +126,13 @@ final class FoodEntry: @unchecked Sendable {
             duplicateItem.barcode = item.barcode
             duplicateEntry.addItem(duplicateItem)
         }
-        
+
         return duplicateEntry
     }
 }
 
 // MARK: - MealType Enum
-enum MealType: String, Codable, CaseIterable, Sendable {
+public enum MealType: String, Codable, CaseIterable, Sendable {
     case breakfast
     case lunch
     case dinner
@@ -135,7 +140,7 @@ enum MealType: String, Codable, CaseIterable, Sendable {
     case preWorkout = "pre_workout"
     case postWorkout = "post_workout"
 
-    var displayName: String {
+    public var displayName: String {
         switch self {
         case .breakfast: return "Breakfast"
         case .lunch: return "Lunch"
@@ -154,6 +159,17 @@ enum MealType: String, Codable, CaseIterable, Sendable {
         case .snack: return DateComponents(hour: 15, minute: 0)
         case .preWorkout: return DateComponents(hour: 17, minute: 0)
         case .postWorkout: return DateComponents(hour: 19, minute: 0)
+        }
+    }
+
+    var emoji: String {
+        switch self {
+        case .breakfast: return "🍳"
+        case .lunch: return "🥗"
+        case .dinner: return "🍽️"
+        case .snack: return "🍎"
+        case .preWorkout: return "⚡"
+        case .postWorkout: return "💪"
         }
     }
 }

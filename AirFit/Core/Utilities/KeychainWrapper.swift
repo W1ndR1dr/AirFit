@@ -1,7 +1,7 @@
 import Foundation
 import Security
 
-public final class KeychainWrapper: @unchecked Sendable {
+public final class KeychainWrapper: Sendable {
     static let shared = KeychainWrapper()
 
     private let service = Bundle.main.bundleIdentifier ?? "com.airfit.app"

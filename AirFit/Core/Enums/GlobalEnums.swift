@@ -1,5 +1,4 @@
 import Foundation
-import SwiftUI
 
 /// Container for all global enums used throughout the app
 public enum GlobalEnums {
@@ -87,19 +86,29 @@ public enum GlobalEnums {
 
     // MARK: - Navigation
     public enum AppTab: String, CaseIterable, Sendable {
-        case dashboard
-        case meals
-        case discover
-        case progress
-        case settings
+        case chat
+        case today
+        case nutrition
+        case workouts
+        case body
 
         public var systemImage: String {
             switch self {
-            case .dashboard: return "house.fill"
-            case .meals: return "fork.knife"
-            case .discover: return "magnifyingglass"
-            case .progress: return "chart.line.uptrend.xyaxis"
-            case .settings: return "gearshape.fill"
+            case .chat: return "message.fill"
+            case .today: return "sun.max.fill"
+            case .nutrition: return "leaf.fill"
+            case .workouts: return "figure.run"
+            case .body: return "figure"
+            }
+        }
+
+        public var displayName: String {
+            switch self {
+            case .chat: return "Chat"
+            case .today: return "Today"
+            case .nutrition: return "Nutrition"
+            case .workouts: return "Workouts"
+            case .body: return "Body"
             }
         }
     }

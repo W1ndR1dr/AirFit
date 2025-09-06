@@ -2,265 +2,207 @@ name: AirFit
 options:
   bundleIdPrefix: com.airfit
   deploymentTarget:
-    iOS: "18.0"
-    watchOS: "11.0"
+    iOS: "26.0"
   developmentLanguage: en
   xcodeVersion: "16.0"
+  createIntermediateGroups: true
+  groupSortPosition: top
+  generateEmptyDirectories: true
+  groupOrdering:
+    - pattern: "Application"
+      order: [AirFitApp.swift, ContentView.swift]
+    - pattern: "Core"
+      order: [Constants, DI, Enums, Extensions, Models, Protocols, Theme, Utilities, Views]
+    - pattern: "Data"
+      order: [Extensions, Managers, Migrations, Models]
+    - pattern: "Modules"
+      order: [AI, Chat, Dashboard, FoodTracking, Notifications, Onboarding, Settings, Workouts]
+    - pattern: "Services"
+      order: [AI, Analytics, Cache, Context, Goals, Health, Monitoring, Network, Security, Speech, User, Weather]
 
 settings:
   SWIFT_VERSION: "6.0"
-  IPHONEOS_DEPLOYMENT_TARGET: "18.0"
-  WATCHOS_DEPLOYMENT_TARGET: "11.0"
+  IPHONEOS_DEPLOYMENT_TARGET: "26.0"
   ENABLE_STRICT_CONCURRENCY: YES
   SWIFT_STRICT_CONCURRENCY: complete
+  DEAD_CODE_STRIPPING: YES
+  ENABLE_USER_SCRIPT_SANDBOXING: YES
+  ASSETCATALOG_COMPILER_GENERATE_SWIFT_ASSET_SYMBOL_EXTENSIONS: YES
+  SWIFT_EMIT_LOC_STRINGS: YES
 
 packages:
   WhisperKit:
-    url: https://github.com/argmaxinc/WhisperKit.git
+    url: https://github.com/argmaxinc/WhisperKit
     from: "0.9.0"
+
+fileGroups:
+  - AirFit/Resources
+
+configs:
+  Debug:
+    name: Debug
+    settings:
+      SWIFT_OPTIMIZATION_LEVEL: "-Onone"
+      DEBUG_INFORMATION_FORMAT: "dwarf-with-dsym"
+      ENABLE_TESTABILITY: YES
+      GCC_OPTIMIZATION_LEVEL: "0"
+      SWIFT_COMPILATION_MODE: "incremental"
+      
+  Release:
+    name: Release
+    settings:
+      SWIFT_OPTIMIZATION_LEVEL: "-O"
+      DEBUG_INFORMATION_FORMAT: "dwarf-with-dsym"
+      ENABLE_TESTABILITY: NO
+      GCC_OPTIMIZATION_LEVEL: "s"
+      SWIFT_COMPILATION_MODE: "wholemodule"
+      VALIDATE_PRODUCT: YES
 
 targets:
   AirFit:
     type: application
     platform: iOS
     sources:
+      # Application Layer
+      - path: AirFit/Application
+        createIntermediateGroups: true
+      
+      # Core Layer - Foundation of the app
+      - path: AirFit/Core
+        createIntermediateGroups: true
+      
+      # Data Layer - Models and persistence
+      - path: AirFit/Data
+        createIntermediateGroups: true
+      
+      # Modules - Feature modules
+      - path: AirFit/Modules
+        createIntermediateGroups: true
+      
+      # Services - Business logic and external integrations
+      - path: AirFit/Services
+        createIntermediateGroups: true
+      
+      # Exclude test files and other non-source files
       - path: AirFit
-        includes:
-          - "**/*.swift"
         excludes:
           - "**/*.md"
           - "**/.*"
           - "AirFitTests/**"
           - "AirFitUITests/**"
-      - AirFit/Modules/Onboarding/Models/OnboardingModels.swift
-      - AirFit/Modules/Onboarding/ViewModels/OnboardingViewModel.swift
-      - AirFit/Modules/Onboarding/Views/OnboardingFlowView.swift
-      - AirFit/Modules/Onboarding/Views/LifeSnapshotView.swift
-      - AirFit/Modules/Onboarding/Views/OpeningScreenView.swift
-      - AirFit/Modules/Onboarding/Views/CoachProfileReadyView.swift
-      - AirFit/Modules/Onboarding/Views/CoreAspirationView.swift
-      - AirFit/Modules/Onboarding/Views/EngagementPreferencesView.swift
-      - AirFit/Modules/Onboarding/Views/GeneratingCoachView.swift
-      - AirFit/Modules/Onboarding/Views/OnboardingNavigationButtons.swift
-      - AirFit/Modules/Onboarding/Views/MotivationalAccentsView.swift
-      - AirFit/Modules/Onboarding/Views/SleepAndBoundariesView.swift
-      - AirFit/Modules/Onboarding/Views/HealthKitAuthorizationView.swift
-      - AirFit/Modules/Onboarding/Views/CoachingStyleView.swift
-      - AirFit/Modules/Onboarding/Services/OnboardingService.swift
-      - AirFit/Modules/Onboarding/Services/OnboardingServiceProtocol.swift
-      - AirFit/Modules/Onboarding/Coordinators/OnboardingCoordinator.swift
-      # Data Layer Models (CRITICAL: XcodeGen nesting bug)
-      - AirFit/Data/Models/OnboardingProfile.swift
-      - AirFit/Data/Models/User.swift
-      - AirFit/Data/Models/CoachMessage.swift
-      - AirFit/Data/Models/FoodEntry.swift
-      - AirFit/Data/Models/FoodItem.swift
-      - AirFit/Data/Models/MealTemplate.swift
-      - AirFit/Data/Models/FoodItemTemplate.swift
-      - AirFit/Data/Models/WorkoutTemplate.swift
-      - AirFit/Data/Models/HealthKitSyncRecord.swift
-      - AirFit/Data/Models/Workout.swift
-      - AirFit/Data/Models/DailyLog.swift
-      - AirFit/Data/Models/ChatMessage.swift
-      - AirFit/Data/Models/ChatAttachment.swift
-      - AirFit/Data/Models/Exercise.swift
-      - AirFit/Data/Models/ExerciseTemplate.swift
-      - AirFit/Data/Models/ExerciseSet.swift
-      - AirFit/Data/Models/NutritionData.swift
-      - AirFit/Data/Models/ChatSession.swift
-      - AirFit/Data/Models/SetTemplate.swift
-      # Data Layer Extensions & Managers (CRITICAL: XcodeGen nesting bug)
-      - AirFit/Data/Extensions/FetchDescriptor+Extensions.swift
-      - AirFit/Data/Extensions/ModelContainer+Testing.swift
-      - AirFit/Data/Managers/DataManager.swift
-      - AirFit/Data/Migrations/SchemaV1.swift
-      # Core Layer Files (CRITICAL: XcodeGen nesting bug)
-      - AirFit/Core/Constants/APIConstants.swift
-      - AirFit/Core/Constants/AppConstants.swift
-      - AirFit/Core/Enums/GlobalEnums.swift
-      - AirFit/Core/Enums/AppError.swift
-      - AirFit/Core/Models/HealthContextSnapshot.swift
-      - AirFit/Core/Models/WorkoutBuilderData.swift
-      - AirFit/Core/Models/AI/AIModels.swift
-      - AirFit/Core/Models/NutritionPreferences.swift
-      - AirFit/Core/Extensions/String+Extensions.swift
-      - AirFit/Core/Extensions/View+Extensions.swift
-      - AirFit/Core/Extensions/Color+Extensions.swift
-      - AirFit/Core/Extensions/Date+Extensions.swift
-      - AirFit/Core/Extensions/Double+Extensions.swift
-      - AirFit/Core/Extensions/TimeInterval+Extensions.swift
-      - AirFit/Core/Utilities/AppState.swift
-      - AirFit/Core/Utilities/DependencyContainer.swift
-      - AirFit/Core/Utilities/HapticManager.swift
-      - AirFit/Core/Utilities/KeychainWrapper.swift
-      - AirFit/Core/Utilities/AppLogger.swift
-      - AirFit/Core/Utilities/Formatters.swift
-      - AirFit/Core/Utilities/Validators.swift
-      - AirFit/Core/Utilities/HealthKitAuthManager.swift
-      - AirFit/Core/Theme/AppShadows.swift
-      - AirFit/Core/Theme/AppSpacing.swift
-      - AirFit/Core/Theme/AppColors.swift
-      - AirFit/Core/Theme/AppFonts.swift
-      - AirFit/Core/Views/CommonComponents.swift
-      - AirFit/Core/Protocols/ViewModelProtocol.swift
-      - AirFit/Core/Services/WhisperModelManager.swift
-      - AirFit/Core/Services/VoiceInputManager.swift
-      # Services Layer Files (CRITICAL: XcodeGen nesting bug)
-      - AirFit/Services/Security/APIKeyManagerProtocol.swift
-      - AirFit/Services/Platform/NotificationManagerProtocol.swift
-      - AirFit/Services/Network/NetworkClient.swift
-      - AirFit/Services/Network/NetworkClientProtocol.swift
-      - AirFit/Services/User/UserServiceProtocol.swift
-      - AirFit/Services/Speech/WhisperServiceWrapperProtocol.swift
-      - AirFit/Services/AI/AIAPIServiceProtocol.swift
-      - AirFit/Services/AI/AIServiceProtocol.swift
-      - AirFit/Services/AI/MockAIService.swift
-      - AirFit/Modules/AI/Parsing/LocalCommandParser.swift
-      - AirFit/Modules/AI/Functions/FunctionRegistry.swift
-      - AirFit/Modules/AI/Functions/WorkoutFunctions.swift
-      - AirFit/Modules/AI/Functions/NutritionFunctions.swift
-      - AirFit/Modules/AI/Functions/AnalysisFunctions.swift
-      - AirFit/Modules/AI/Functions/GoalFunctions.swift
-      - AirFit/Modules/AI/Functions/FunctionCallDispatcher.swift
-      - AirFit/Modules/AI/Functions/MockServices.swift
-      - AirFit/Modules/AI/PersonaEngine.swift
-      - AirFit/Modules/AI/ConversationManager.swift
-      - AirFit/Modules/AI/CoachEngine.swift
-      - AirFit/Modules/AI/WorkoutAnalysisEngine.swift
-      - AirFit/Modules/Dashboard/Services/DashboardServiceProtocols.swift
-      - AirFit/Modules/Dashboard/ViewModels/DashboardViewModel.swift
-      - AirFit/Modules/Dashboard/Views/DashboardView.swift
-      - AirFit/Modules/Dashboard/Views/Cards/MorningGreetingCard.swift
-      - AirFit/Modules/Dashboard/Views/Cards/NutritionCard.swift
-      - AirFit/Modules/Dashboard/Views/Cards/RecoveryCard.swift
-      - AirFit/Modules/Dashboard/Views/Cards/PerformanceCard.swift
-      - AirFit/Modules/Dashboard/Views/Cards/QuickActionsCard.swift
-      - AirFit/Services/Health/HealthKitManager.swift
-      - AirFit/Services/Health/HealthKitManagerProtocol.swift
-      - AirFit/Services/Health/HealthKitDataFetcher.swift
-      - AirFit/Services/Health/HealthKitSleepAnalyzer.swift
-      - AirFit/Services/Health/HealthKitDataTypes.swift
-      - AirFit/Services/Health/HealthKitExtensions.swift
-      - AirFit/Services/Context/ContextAssembler.swift
-      - AirFit/Services/WorkoutSyncService.swift
-      - AirFit/Services/ExerciseDatabase.swift
-      - AirFit/Modules/Workouts/ViewModels/WorkoutViewModel.swift
-      - AirFit/Modules/Workouts/Coordinators/WorkoutCoordinator.swift
-      - AirFit/Modules/Workouts/Views/WorkoutListView.swift
-      - AirFit/Modules/Workouts/Views/WorkoutDetailView.swift
-      - AirFit/Modules/Workouts/Views/ExerciseLibraryView.swift
-      - AirFit/Modules/Workouts/Views/ExerciseLibraryComponents.swift
-      - AirFit/Modules/Workouts/Views/TemplatePickerView.swift
-      - AirFit/Modules/Workouts/Views/WorkoutBuilderView.swift
-      - AirFit/Modules/Workouts/Views/AllWorkoutsView.swift
-      - AirFit/Modules/Workouts/Views/WorkoutStatisticsView.swift
-      - AirFit/Modules/Chat/ChatCoordinator.swift
-      - AirFit/Modules/Chat/Services/ChatSuggestionsEngine.swift
-      - AirFit/Modules/Chat/Services/ChatExporter.swift
-      - AirFit/Modules/Chat/Services/ChatHistoryManager.swift
-      - AirFit/Modules/Chat/ViewModels/ChatViewModel.swift
-      - AirFit/Modules/Chat/Views/MessageBubbleView.swift
-      - AirFit/Modules/Chat/Views/MessageComposer.swift
-      - AirFit/Modules/Chat/Views/VoiceSettingsView.swift
-      - AirFit/Modules/Chat/Views/ChatView.swift
-      - AirFit/Modules/FoodTracking/Services/FoodVoiceAdapter.swift
-      - AirFit/Modules/FoodTracking/Services/FoodVoiceServiceProtocol.swift
-      - AirFit/Modules/FoodTracking/Services/NutritionService.swift
-      - AirFit/Modules/FoodTracking/Services/FoodDatabaseService.swift
-      - AirFit/Modules/FoodTracking/FoodTrackingCoordinator.swift
-      - AirFit/Modules/FoodTracking/ViewModels/FoodTrackingViewModel.swift
-      - AirFit/Modules/FoodTracking/Views/VoiceInputView.swift
-      - AirFit/Modules/FoodTracking/Views/FoodLoggingView.swift
-      - AirFit/Modules/FoodTracking/Views/FoodConfirmationView.swift
-      - AirFit/Modules/FoodTracking/Views/PhotoInputView.swift
-      - AirFit/Modules/FoodTracking/Views/MacroRingsView.swift
-      - AirFit/Modules/FoodTracking/Views/WaterTrackingView.swift
-      - AirFit/Modules/FoodTracking/Views/NutritionSearchView.swift
-      # FoodTracking Module Files (CRITICAL: XcodeGen nesting bug)
-      - AirFit/Modules/FoodTracking/Models/FoodTrackingModels.swift
-      - AirFit/Modules/FoodTracking/ViewModels/FoodTrackingViewModel.swift
-      - AirFit/Modules/FoodTracking/Views/FoodLoggingView.swift
-      - AirFit/Modules/FoodTracking/Views/FoodConfirmationView.swift
-      - AirFit/Modules/FoodTracking/Views/PhotoInputView.swift
-      - AirFit/Modules/FoodTracking/Views/NutritionSearchView.swift
-      - AirFit/Modules/FoodTracking/Views/WaterTrackingView.swift
-      - AirFit/Modules/FoodTracking/Views/MacroRingsView.swift
-      - AirFit/Modules/FoodTracking/Services/FoodVoiceAdapter.swift
-      - AirFit/Modules/FoodTracking/Services/FoodVoiceAdapterProtocol.swift
-      - AirFit/Modules/FoodTracking/Services/NutritionService.swift
-      - AirFit/Modules/FoodTracking/Services/NutritionServiceProtocol.swift
-      - AirFit/Modules/FoodTracking/Services/FoodDatabaseServiceProtocol.swift
-      - AirFit/Modules/FoodTracking/FoodTrackingCoordinator.swift
-      # Application Layer Files (CRITICAL: XcodeGen nesting bug)
-      - AirFit/Application/AirFitApp.swift
-      - AirFit/Application/MinimalContentView.swift
-      # Asset Catalog (CRITICAL: Must be explicitly included)
-      - AirFit/Assets.xcassets
-      # NOTE: Original ContentView.swift and DashboardView.swift temporarily excluded due to API issues
-      # These will be fixed in future modules
+          - "Info.plist"
+          - "Resources/**/*.json"  # Include json files as resources, not sources
+          # Cleanup: exclude backup and non-source artifacts so they aren't treated as resources
+          - "**/*.bak"
+          - "**/*.backup"
+          - "**/*.backup.*"
+          - "**/*.log"
+          - "**/*.html"
+          - "**/.DS_Store"
+          - "build/**"
+          - "Docs/**"
+          - "node_modules/**"
+    
     resources:
-      - AirFit/Assets.xcassets
-      - AirFit/Resources
+      - path: AirFit/Assets.xcassets
+      - path: AirFit/Resources
+        optional: true
+      - path: AirFit/Info.plist
+        optional: true
+    
+    dependencies:
+      - package: WhisperKit
+    
     settings:
       PRODUCT_BUNDLE_IDENTIFIER: com.airfit.app
       INFOPLIST_FILE: AirFit/Info.plist
       CODE_SIGN_ENTITLEMENTS: AirFit/AirFit.entitlements
+      CODE_SIGN_STYLE: Automatic
+      DEVELOPMENT_TEAM: 2H43Q8Y3CR
       SWIFT_VERSION: "6.0"
       ENABLE_STRICT_CONCURRENCY: YES
       SWIFT_STRICT_CONCURRENCY: complete
-    dependencies:
-      - package: WhisperKit
+      ASSETCATALOG_COMPILER_APPICON_NAME: AppIcon
+      ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME: AccentColor
+      ASSETCATALOG_COMPILER_GENERATE_SWIFT_ASSET_SYMBOL_EXTENSIONS: YES
+      SWIFT_EMIT_LOC_STRINGS: YES
+      TARGETED_DEVICE_FAMILY: "1"
+      SUPPORTS_MACCATALYST: NO
+      SUPPORTS_MAC_DESIGNED_FOR_IPHONE_IPAD: NO
+      DEAD_CODE_STRIPPING: YES
+      ENABLE_USER_SCRIPT_SANDBOXING: YES
+      SKIP_INSTALL: NO
+      DISABLE_MANUAL_TARGET_ORDER_BUILD_WARNING: YES
+      ENABLE_APP_INTENTS_DEPLOYMENT_AWARE_PROCESSING: NO
+    
+    preBuildScripts:
+      - script: |
+          # Ensure Info.plist exists
+          if [ ! -f "${SRCROOT}/AirFit/Info.plist" ]; then
+            echo '<?xml version="1.0" encoding="UTF-8"?>
+          <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+          <plist version="1.0">
+          <dict>
+            <key>CFBundleDevelopmentRegion</key>
+            <string>$(DEVELOPMENT_LANGUAGE)</string>
+            <key>CFBundleExecutable</key>
+            <string>$(EXECUTABLE_NAME)</string>
+            <key>CFBundleIdentifier</key>
+            <string>$(PRODUCT_BUNDLE_IDENTIFIER)</string>
+            <key>CFBundleInfoDictionaryVersion</key>
+            <string>6.0</string>
+            <key>CFBundleName</key>
+            <string>$(PRODUCT_NAME)</string>
+            <key>CFBundlePackageType</key>
+            <string>$(PRODUCT_BUNDLE_PACKAGE_TYPE)</string>
+            <key>CFBundleShortVersionString</key>
+            <string>1.0</string>
+            <key>CFBundleVersion</key>
+            <string>1</string>
+            <key>LSRequiresIPhoneOS</key>
+            <true/>
+            <key>UIApplicationSceneManifest</key>
+            <dict>
+              <key>UIApplicationSupportsMultipleScenes</key>
+              <true/>
+            </dict>
+            <key>UILaunchScreen</key>
+            <dict/>
+            <key>MinimumOSVersion</key>
+            <string>26.0</string>
+            <key>UIRequiredDeviceCapabilities</key>
+            <array>
+              <string>armv7</string>
+              <string>iphone-16-pro-minimum</string>
+            </array>
+            <key>UISupportedInterfaceOrientations</key>
+            <array>
+              <string>UIInterfaceOrientationPortrait</string>
+              <string>UIInterfaceOrientationLandscapeLeft</string>
+              <string>UIInterfaceOrientationLandscapeRight</string>
+            </array>
+            <key>NSHealthShareUsageDescription</key>
+            <string>AirFit needs access to your health data to provide personalized fitness coaching and track your progress.</string>
+            <key>NSHealthUpdateUsageDescription</key>
+            <string>AirFit needs permission to save workout data to Apple Health.</string>
+            <key>NSMicrophoneUsageDescription</key>
+            <string>AirFit needs access to your microphone for voice input during coaching sessions.</string>
+            <key>NSSpeechRecognitionUsageDescription</key>
+            <string>AirFit uses speech recognition to process your voice commands and coaching responses.</string>
+          </dict>
+          </plist>' > "${SRCROOT}/AirFit/Info.plist"
+          fi
+        name: "Generate Info.plist if needed"
+        showEnvVars: false
+        outputFiles:
+          - "${SRCROOT}/AirFit/Info.plist"
 
   AirFitTests:
     type: bundle.unit-test
     platform: iOS
     sources:
       - path: AirFit/AirFitTests
-        includes:
-          - "**/*.swift"
-        excludes:
-          - "**/*.md"
-          - "Context/ContextAssemblerTests.swift"
-      # Explicit test files (CRITICAL: XcodeGen nesting bug)
-      - AirFit/AirFitTests/Modules/Onboarding/OnboardingServiceTests.swift
-      - AirFit/AirFitTests/Modules/Onboarding/OnboardingFlowViewTests.swift
-      - AirFit/AirFitTests/Modules/Onboarding/OnboardingViewTests.swift
-      - AirFit/AirFitTests/Modules/Onboarding/OnboardingViewModelTests.swift
-      - AirFit/AirFitTests/Modules/Onboarding/OnboardingIntegrationTests.swift
-      - AirFit/AirFitTests/Modules/Onboarding/OnboardingModelsTests.swift
-      - AirFit/AirFitTests/Health/HealthKitManagerTests.swift
-      - AirFit/AirFitTests/Mocks/MockHealthKitManager.swift
-      - AirFit/AirFitTests/Mocks/MockHealthKitPrefillProvider.swift
-      - AirFit/AirFitTests/Mocks/MockDashboardServices.swift
-      - AirFit/AirFitTests/Mocks/MockVoiceInputManager.swift
-      - AirFit/AirFitTests/Mocks/MockVoiceServices.swift
-      - AirFit/AirFitTests/Modules/AI/LocalCommandParserTests.swift
-      - AirFit/AirFitTests/Modules/AI/FunctionCallDispatcherTests.swift
-      - AirFit/AirFitTests/Modules/AI/CoachEngineTests.swift
-      - AirFit/AirFitTests/Modules/AI/PersonaEngineTests.swift
-      - AirFit/AirFitTests/Modules/AI/ConversationManagerTests.swift
-      - AirFit/AirFitTests/Modules/AI/ConversationManagerPersistenceTests.swift
-      - AirFit/AirFitTests/Modules/AI/ConversationManagerPerformanceTests.swift
-      - AirFit/AirFitTests/Services/WorkoutSyncServiceTests.swift
-      - AirFit/AirFitTests/Mocks/MockCoachEngine.swift
-      - AirFit/AirFitTests/Workouts/WorkoutViewModelTests.swift
-      - AirFit/AirFitTests/Workouts/WorkoutCoordinatorTests.swift
-      - AirFit/AirFitTests/Modules/Chat/ChatCoordinatorTests.swift
-      - AirFit/AirFitTests/Modules/Chat/ChatSuggestionsEngineTests.swift
-      - AirFit/AirFitTests/Modules/Chat/ChatViewModelTests.swift
-      - AirFit/AirFitTests/Core/VoiceInputManagerTests.swift
-      - AirFit/AirFitTests/Modules/Dashboard/DashboardViewModelTests.swift
-      - AirFit/AirFitTests/FoodTracking/FoodTrackingViewModelTests.swift # Added
-      - AirFit/AirFitTests/FoodTracking/FoodVoiceAdapterTests.swift # Existing, ensure it's here
-      # - AirFit/AirFitTests/FoodTracking/NutritionServiceTests.swift # Placeholder if created
-      - AirFit/AirFitTests/Mocks/MockAIService.swift
-      - AirFit/AirFitTests/Mocks/MockNetworkClient.swift
-      - AirFit/AirFitTests/Mocks/MockOnboardingService.swift
-      - AirFit/AirFitTests/Mocks/MockUserService.swift
-      - AirFit/AirFitTests/Mocks/MockWhisperServiceWrapper.swift
-      - AirFit/AirFitTests/Mocks/MockAIAPIService.swift
-      - AirFit/AirFitTests/Mocks/MockAPIKeyManager.swift
-      - AirFit/AirFitTests/Mocks/Base/MockServices.swift
+        createIntermediateGroups: true
     dependencies:
       - target: AirFit
     settings:
@@ -268,21 +210,15 @@ targets:
       TEST_HOST: $(BUILT_PRODUCTS_DIR)/AirFit.app/AirFit
       GENERATE_INFOPLIST_FILE: YES
       SWIFT_VERSION: "6.0"
-      ENABLE_STRICT_CONCURRENCY: YES
-      SWIFT_STRICT_CONCURRENCY: complete
+      ENABLE_STRICT_CONCURRENCY: NO
+      SWIFT_STRICT_CONCURRENCY: minimal
 
   AirFitUITests:
     type: bundle.ui-testing
     platform: iOS
     sources:
       - path: AirFit/AirFitUITests
-        includes:
-          - "**/*.swift"
-        excludes:
-          - "**/*.md"
-      # Explicit UI test files (CRITICAL: XcodeGen nesting bug)
-      - AirFit/AirFitUITests/Dashboard/DashboardUITests.swift
-      - AirFit/AirFitUITests/FoodTracking/FoodTrackingFlowUITests.swift # Added
+        createIntermediateGroups: true
     dependencies:
       - target: AirFit
     settings:
@@ -292,45 +228,6 @@ targets:
       ENABLE_STRICT_CONCURRENCY: YES
       SWIFT_STRICT_CONCURRENCY: complete
 
-  AirFitWatchApp:
-    type: application
-    platform: watchOS
-    sources:
-      # Watch App Files (CRITICAL: XcodeGen nesting bug)
-      - AirFitWatchApp/AirFitWatchApp.swift
-      - AirFitWatchApp/Services/WatchWorkoutManager.swift
-      - AirFitWatchApp/Views/WorkoutStartView.swift
-      - AirFitWatchApp/Views/ActiveWorkoutView.swift
-      - AirFitWatchApp/Views/ExerciseLoggingView.swift
-      # Shared Core Files needed by Watch
-      - AirFit/Core/Extensions/Double+Extensions.swift
-      - AirFit/Core/Extensions/TimeInterval+Extensions.swift
-      - AirFit/Core/Models/WorkoutBuilderData.swift
-      - AirFit/Core/Utilities/AppLogger.swift
-    settings:
-      PRODUCT_BUNDLE_IDENTIFIER: com.airfit.watchapp
-      GENERATE_INFOPLIST_FILE: YES
-      SWIFT_VERSION: "6.0"
-      WATCHOS_DEPLOYMENT_TARGET: "11.0"
-      ENABLE_STRICT_CONCURRENCY: YES
-      SWIFT_STRICT_CONCURRENCY: complete
-    dependencies:
-      - target: AirFit
-
-  AirFitWatchAppTests:
-    type: bundle.unit-test
-    platform: watchOS
-    sources:
-      - AirFitWatchApp/AirFitWatchAppTests/Services/WatchWorkoutManagerTests.swift
-    dependencies:
-      - target: AirFitWatchApp
-    settings:
-      PRODUCT_BUNDLE_IDENTIFIER: com.airfit.watchapp.tests
-      GENERATE_INFOPLIST_FILE: YES
-      SWIFT_VERSION: "6.0"
-      ENABLE_TESTING_SEARCH_PATHS: YES
-      ENABLE_STRICT_CONCURRENCY: YES
-      SWIFT_STRICT_CONCURRENCY: complete
 
 schemes:
   AirFit:
@@ -339,14 +236,24 @@ schemes:
         AirFit: all
         AirFitTests: [test]
         AirFitUITests: [test]
-        AirFitWatchApp: all
     run:
       config: Debug
+      environmentVariables:
+        - variable: AIRFIT_DEBUG_MODE
+          value: "1"
+          isEnabled: true
     test:
       config: Debug
+      parallelizeBuildables: true
       targets:
-        - AirFitTests
-        - AirFitUITests
+        - name: AirFitTests
+          parallelizable: true
+          randomExecutionOrder: true
+      testPlans:
+        - path: AirFit-Unit.xctestplan
+          defaultPlan: true
+        - path: AirFit-Integration.xctestplan
+        - path: AirFit-UI.xctestplan
     profile:
       config: Release
     analyze:
@@ -354,17 +261,28 @@ schemes:
     archive:
       config: Release
 
-  AirFitWatchApp:
+  AirFit-TestFlight:
     build:
       targets:
-        AirFitWatchApp: all
+        AirFit: all
+      config: Release
+      postActions:
+        - script: |
+            # Increment build number
+            BUILD_NUMBER=$(date +%Y%m%d%H%M)
+            /usr/libexec/PlistBuddy -c "Set :CFBundleVersion $BUILD_NUMBER" "${TARGET_BUILD_DIR}/${INFOPLIST_PATH}"
+          name: "Increment Build Number"
+          settingsTarget: AirFit
     run:
-      config: Debug
+      config: Release
     test:
-      config: Debug
+      config: Release
+      gatherCoverageData: true
     profile:
       config: Release
     analyze:
-      config: Debug
+      config: Release
     archive:
       config: Release
+      revealArchiveInOrganizer: true
+

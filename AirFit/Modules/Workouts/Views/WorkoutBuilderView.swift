@@ -6,6 +6,8 @@ struct WorkoutBuilderView: View {
     private var dismiss
     @Environment(\.modelContext)
     private var modelContext
+    @EnvironmentObject private var gradientManager: GradientManager
+    @Environment(\.colorScheme) private var colorScheme
     @State var viewModel: WorkoutViewModel
 
     @State private var workoutName = ""
@@ -14,6 +16,7 @@ struct WorkoutBuilderView: View {
     @State private var showingExercisePicker = false
     @State private var notes = ""
     @State private var saveAsTemplate = true
+    @State private var animateIn = false
 
     var isValid: Bool {
         !workoutName.isEmpty && !selectedExercises.isEmpty
@@ -21,58 +24,243 @@ struct WorkoutBuilderView: View {
 
     var body: some View {
         NavigationStack {
-            Form {
-                Section {
-                    TextField("Workout Name", text: $workoutName)
+            BaseScreen {
+                ScrollView {
+                    VStack(spacing: AppSpacing.lg) {
+                        // Header
+                        CascadeText("Build Workout")
+                            .font(.system(size: 32, weight: .bold, design: .rounded))
+                            .padding(.horizontal, AppSpacing.md)
+                            .padding(.top, AppSpacing.md)
+                            .opacity(animateIn ? 1 : 0)
+                            .offset(y: animateIn ? 0 : -20)
 
-                    Picker("Type", selection: $workoutType) {
-                        ForEach(WorkoutType.allCases, id: \.self) { type in
-                            Label(type.displayName, systemImage: type.systemImage)
-                                .tag(type)
+                        // Workout Details
+                        GlassCard {
+                            VStack(spacing: AppSpacing.md) {
+                                VStack(alignment: .leading, spacing: AppSpacing.xs) {
+                                    Text("Workout Name")
+                                        .font(.system(size: 14, weight: .medium))
+                                        .foregroundStyle(Color.secondary)
+
+                                    HStack {
+                                        TextField("Enter name", text: $workoutName)
+                                            .font(.system(size: 18, weight: .medium, design: .rounded))
+                                        WhisperVoiceButton(text: $workoutName)
+                                    }
+                                    .padding(AppSpacing.sm)
+                                    .background(
+                                        RoundedRectangle(cornerRadius: 12)
+                                            .fill(Color.primary.opacity(0.05))
+                                    )
+                                    .onTapGesture {
+                                        HapticService.impact(.light)
+                                    }
+                                }
+
+                                // Workout type selector
+                                VStack(alignment: .leading, spacing: AppSpacing.xs) {
+                                    Text("Workout Type")
+                                        .font(.system(size: 14, weight: .medium))
+                                        .foregroundStyle(Color.secondary)
+
+                                    ScrollView(.horizontal, showsIndicators: false) {
+                                        HStack(spacing: AppSpacing.sm) {
+                                            ForEach(WorkoutType.allCases, id: \.self) { type in
+                                                WorkoutTypeChip(type: type, isSelected: workoutType == type) {
+                                                    HapticService.impact(.light)
+                                                    withAnimation(MotionToken.microAnimation) {
+                                                        workoutType = type
+                                                    }
+                                                }
+                                                .environmentObject(gradientManager)
+                                            }
+                                        }
+                                    }
+                                }
+
+                                // Notes
+                                VStack(alignment: .leading, spacing: AppSpacing.xs) {
+                                    Text("Notes (optional)")
+                                        .font(.system(size: 14, weight: .medium))
+                                        .foregroundStyle(Color.secondary)
+
+                                    TextField("Add any notes...", text: $notes, axis: .vertical)
+                                        .font(.system(size: 16, weight: .medium))
+                                        .lineLimit(3...6)
+                                        .padding(AppSpacing.sm)
+                                        .background(
+                                            RoundedRectangle(cornerRadius: 12)
+                                                .fill(Color.primary.opacity(0.05))
+                                        )
+                                        .overlay(alignment: .bottomTrailing) {
+                                            WhisperVoiceButton(text: $notes)
+                                                .padding(8)
+                                        }
+                                }
+                            }
+                            .padding(AppSpacing.md)
                         }
-                    }
+                        .padding(.horizontal, AppSpacing.md)
+                        .opacity(animateIn ? 1 : 0)
+                        .offset(y: animateIn ? 0 : 20)
+                        .animation(MotionToken.standardSpring.delay(0.1), value: animateIn)
 
-                    TextField("Notes (optional)", text: $notes, axis: .vertical)
-                        .lineLimit(3...6)
-                }
+                        // Exercises section
+                        VStack(alignment: .leading, spacing: AppSpacing.md) {
+                            HStack {
+                                HStack(spacing: AppSpacing.xs) {
+                                    Image(systemName: "figure.strengthtraining.traditional")
+                                        .font(.system(size: 18, weight: .medium))
+                                        .foregroundStyle(
+                                            LinearGradient(
+                                                colors: gradientManager.active.colors(for: colorScheme),
+                                                startPoint: .topLeading,
+                                                endPoint: .bottomTrailing
+                                            )
+                                        )
+                                    CascadeText("Exercises")
+                                        .font(.system(size: 20, weight: .semibold, design: .rounded))
+                                }
+                                Spacer()
+                            }
+                            .padding(.horizontal, AppSpacing.md)
+                            .opacity(animateIn ? 1 : 0)
+                            .offset(y: animateIn ? 0 : 20)
+                            .animation(MotionToken.standardSpring.delay(0.2), value: animateIn)
 
-                Section {
-                    ForEach($selectedExercises) { $exercise in
-                        ExerciseBuilderRow(exercise: $exercise) {
-                            removeExercise(exercise)
+                            if selectedExercises.isEmpty {
+                                EmptyStateView(
+                                    icon: "figure.strengthtraining.traditional",
+                                    title: "No Exercises Yet",
+                                    message: "Add exercises to build your workout"
+                                )
+                                .padding(.horizontal, AppSpacing.md)
+                                .padding(.vertical, AppSpacing.xl)
+                                .opacity(animateIn ? 1 : 0)
+                                .animation(MotionToken.standardSpring.delay(0.25), value: animateIn)
+                            } else {
+                                ForEach(Array($selectedExercises.enumerated()), id: \.element.id) { index, $exercise in
+                                    ExerciseBuilderRow(exercise: $exercise, index: index) {
+                                        HapticService.impact(.light)
+                                        withAnimation(MotionToken.standardSpring) {
+                                            removeExercise(exercise)
+                                        }
+                                    }
+                                    .environmentObject(gradientManager)
+                                    .padding(.horizontal, AppSpacing.md)
+                                }
+                            }
+
+                            Button {
+                                HapticService.impact(.medium)
+                                showingExercisePicker = true
+                            } label: {
+                                HStack(spacing: AppSpacing.xs) {
+                                    Image(systemName: "plus.circle.fill")
+                                        .font(.system(size: 16, weight: .semibold))
+                                    Text("Add Exercise")
+                                        .font(.system(size: 16, weight: .semibold, design: .rounded))
+                                }
+                                .foregroundColor(.white)
+                                .frame(maxWidth: .infinity)
+                                .padding(.vertical, AppSpacing.sm)
+                                .background(
+                                    LinearGradient(
+                                        colors: gradientManager.active.colors(for: colorScheme),
+                                        startPoint: .leading,
+                                        endPoint: .trailing
+                                    )
+                                )
+                                .clipShape(RoundedRectangle(cornerRadius: 14))
+                                .shadow(color: gradientManager.active.colors(for: colorScheme)[0].opacity(0.2), radius: 8, y: 2)
+                            }
+                            .padding(.horizontal, AppSpacing.md)
+                            .opacity(animateIn ? 1 : 0)
+                            .offset(y: animateIn ? 0 : 20)
+                            .animation(MotionToken.standardSpring.delay(0.3), value: animateIn)
                         }
-                    }
 
-                    Button {
-                        showingExercisePicker = true
-                    } label: {
-                        Label("Add Exercise", systemImage: "plus.circle.fill")
-                    }
-                } header: {
-                    Text("Exercises")
-                }
+                        // Save as template option
+                        GlassCard {
+                            HStack {
+                                VStack(alignment: .leading, spacing: AppSpacing.xs) {
+                                    Text("Save as Template")
+                                        .font(.system(size: 16, weight: .medium))
+                                    Text("Reuse this workout structure later")
+                                        .font(.system(size: 12, weight: .medium))
+                                        .foregroundStyle(Color.secondary.opacity(0.8))
+                                }
 
-                Section {
-                    Toggle("Save as Template", isOn: $saveAsTemplate)
-                        .tint(AppColors.accent)
+                                Spacer()
+
+                                Toggle("", isOn: $saveAsTemplate)
+                                    .labelsHidden()
+                                    .tint(
+                                        LinearGradient(
+                                            colors: gradientManager.active.colors(for: colorScheme),
+                                            startPoint: .leading,
+                                            endPoint: .trailing
+                                        )
+                                    )
+                            }
+                            .padding(AppSpacing.md)
+                        }
+                        .padding(.horizontal, AppSpacing.md)
+                        .padding(.bottom, AppSpacing.xl)
+                        .opacity(animateIn ? 1 : 0)
+                        .offset(y: animateIn ? 0 : 20)
+                        .animation(MotionToken.standardSpring.delay(0.4), value: animateIn)
+                    }
                 }
             }
-            .navigationTitle("Build Workout")
+            .navigationTitle("")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) {
-                    Button("Cancel") { dismiss() }
+                    Button("Cancel") {
+                        HapticService.impact(.light)
+                        dismiss()
+                    }
+                    .foregroundStyle(
+                        LinearGradient(
+                            colors: gradientManager.active.colors(for: colorScheme),
+                            startPoint: .topLeading,
+                            endPoint: .bottomTrailing
+                        )
+                    )
                 }
 
                 ToolbarItem(placement: .confirmationAction) {
-                    Button("Start") { startWorkout() }
-                        .fontWeight(.semibold)
-                        .disabled(!isValid)
+                    Button("Start") {
+                        HapticService.impact(.medium)
+                        startWorkout()
+                    }
+                    .fontWeight(.semibold)
+                    .disabled(!isValid)
+                    .foregroundStyle(
+                        !isValid ?
+                            AnyShapeStyle(Color.secondary.opacity(0.5)) :
+                            AnyShapeStyle(LinearGradient(
+                                colors: gradientManager.active.colors(for: colorScheme),
+                                startPoint: .topLeading,
+                                endPoint: .bottomTrailing
+                            ))
+                    )
                 }
             }
             .sheet(isPresented: $showingExercisePicker) {
-                ExercisePickerView { exercise in
+                ExercisePickerView(
+                    exerciseDatabase: viewModel.exerciseDatabase
+                ) { exercise in
+                    HapticService.impact(.medium)
                     addExercise(from: exercise)
+                }
+                .environmentObject(gradientManager)
+            }
+            .onAppear {
+                withAnimation(MotionToken.standardSpring) {
+                    animateIn = true
                 }
             }
         }
@@ -123,40 +311,14 @@ struct WorkoutBuilderView: View {
 
         modelContext.insert(workout)
 
-        // Save as template if requested
-        if saveAsTemplate {
-            let template = UserWorkoutTemplate(
-                name: workoutName,
-                workoutType: workoutType.rawValue,
-                exercises: selectedExercises.map { exercise in
-                    TemplateExercise(
-                        name: exercise.name,
-                        muscleGroups: exercise.muscleGroups,
-                        notes: exercise.notes,
-                        sets: exercise.sets.enumerated().map { index, set in
-                            TemplateSetData(
-                                order: index + 1,
-                                targetReps: set.targetReps,
-                                targetWeight: set.targetWeight
-                            )
-                        }
-                    )
-                },
-                notes: notes.isEmpty ? nil : notes
-            )
-            modelContext.insert(template)
-        }
+        // Template saving removed - AI generates personalized workouts on-demand
 
         do {
             try modelContext.save()
             viewModel.activeWorkout = workout
             dismiss()
 
-            // Navigate to active workout
-            NotificationCenter.default.post(
-                name: .startActiveWorkout,
-                object: workout
-            )
+            // Navigation to active workout handled by viewModel state change
         } catch {
             AppLogger.error("Failed to create workout", error: error, category: .data)
         }
@@ -181,81 +343,191 @@ struct BuilderSet: Identifiable {
 // MARK: - Exercise Builder Row
 struct ExerciseBuilderRow: View {
     @Binding var exercise: BuilderExercise
+    let index: Int
     let onDelete: () -> Void
+    @EnvironmentObject private var gradientManager: GradientManager
+    @Environment(\.colorScheme) private var colorScheme
+    @State private var animateIn = false
 
     var body: some View {
-        VStack(alignment: .leading, spacing: AppSpacing.small) {
-            HStack {
-                VStack(alignment: .leading) {
-                    Text(exercise.name)
-                        .font(.headline)
-
-                    if !exercise.muscleGroups.isEmpty {
-                        Text(exercise.muscleGroups.joined(separator: ", "))
-                            .font(.caption)
-                            .foregroundStyle(.secondary)
-                    }
-                }
-
-                Spacer()
-
-                Button(action: onDelete) {
-                    Image(systemName: "trash")
-                        .foregroundStyle(.red)
-                }
-                .buttonStyle(.plain)
-            }
-
-            // Sets
-            ForEach($exercise.sets) { $set in
+        GlassCard {
+            VStack(alignment: .leading, spacing: AppSpacing.md) {
                 HStack {
-                    Text("Set \(exercise.sets.firstIndex(where: { $0.id == set.id })! + 1)")
-                        .font(.caption)
-                        .foregroundStyle(.secondary)
-                        .frame(width: 50)
+                    VStack(alignment: .leading, spacing: AppSpacing.xs) {
+                        Text(exercise.name)
+                            .font(.system(size: 18, weight: .semibold, design: .rounded))
+                            .foregroundStyle(Color.primary)
 
-                    HStack {
-                        TextField("Reps", value: $set.targetReps, format: .number)
-                            .textFieldStyle(.roundedBorder)
-                            .keyboardType(.numberPad)
-                            .frame(width: 60)
-
-                        Text("×")
-                            .foregroundStyle(.secondary)
-
-                        TextField("Weight", value: $set.targetWeight, format: .number)
-                            .textFieldStyle(.roundedBorder)
-                            .keyboardType(.decimalPad)
-                            .frame(width: 80)
-
-                        Text("kg")
-                            .font(.caption)
-                            .foregroundStyle(.secondary)
+                        if !exercise.muscleGroups.isEmpty {
+                            HStack(spacing: AppSpacing.xs) {
+                                ForEach(exercise.muscleGroups, id: \.self) { muscle in
+                                    Text(muscle)
+                                        .font(.system(size: 11, weight: .medium))
+                                        .padding(.horizontal, AppSpacing.xs)
+                                        .padding(.vertical, 4)
+                                        .background(
+                                            LinearGradient(
+                                                colors: gradientManager.active.colors(for: colorScheme).map { $0.opacity(0.15) },
+                                                startPoint: .topLeading,
+                                                endPoint: .bottomTrailing
+                                            )
+                                        )
+                                        .clipShape(Capsule())
+                                }
+                            }
+                        }
                     }
 
                     Spacer()
 
-                    if exercise.sets.count > 1 {
-                        Button {
-                            exercise.sets.removeAll { $0.id == set.id }
-                        } label: {
-                            Image(systemName: "minus.circle.fill")
-                                .foregroundStyle(.red)
+                    Button(action: onDelete) {
+                        Image(systemName: "trash")
+                            .font(.system(size: 16))
+                            .foregroundStyle(
+                                LinearGradient(
+                                    colors: [Color(hex: "#F94144"), Color(hex: "#F3722C")],
+                                    startPoint: .topLeading,
+                                    endPoint: .bottomTrailing
+                                )
+                            )
+                    }
+                    .buttonStyle(.plain)
+                }
+
+                Rectangle()
+                    .fill(
+                        LinearGradient(
+                            colors: [
+                                Color.clear,
+                                gradientManager.active.colors(for: colorScheme).first?.opacity(0.2) ?? Color.clear,
+                                Color.clear
+                            ],
+                            startPoint: .leading,
+                            endPoint: .trailing
+                        )
+                    )
+                    .frame(height: 1)
+                    .padding(.vertical, AppSpacing.xs)
+
+                // Sets
+                VStack(spacing: AppSpacing.sm) {
+                    ForEach(Array($exercise.sets.enumerated()), id: \.element.id) { setIndex, $set in
+                        HStack {
+                            HStack(spacing: AppSpacing.xs) {
+                                Circle()
+                                    .fill(
+                                        LinearGradient(
+                                            colors: gradientManager.active.colors(for: colorScheme),
+                                            startPoint: .topLeading,
+                                            endPoint: .bottomTrailing
+                                        )
+                                    )
+                                    .frame(width: 6, height: 6)
+
+                                Text("Set \(setIndex + 1)")
+                                    .font(.system(size: 14, weight: .medium))
+                                    .foregroundStyle(Color.secondary)
+                                    .frame(width: 50, alignment: .leading)
+                            }
+
+                            HStack(spacing: AppSpacing.sm) {
+                                TextField("0", value: $set.targetReps, format: .number)
+                                    .font(.system(size: 16, weight: .medium, design: .rounded))
+                                    .multilineTextAlignment(.center)
+                                    .keyboardType(.numberPad)
+                                    .frame(width: 50)
+                                    .padding(.vertical, AppSpacing.xs)
+                                    .background(
+                                        RoundedRectangle(cornerRadius: 8)
+                                            .fill(Color.primary.opacity(0.05))
+                                    )
+                                    .onTapGesture {
+                                        HapticService.impact(.light)
+                                    }
+
+                                Text("reps")
+                                    .font(.system(size: 12, weight: .medium))
+                                    .foregroundStyle(Color.secondary.opacity(0.8))
+
+                                Text("×")
+                                    .font(.system(size: 14))
+                                    .foregroundStyle(Color.secondary.opacity(0.6))
+
+                                TextField("0", value: $set.targetWeight, format: .number)
+                                    .font(.system(size: 16, weight: .medium, design: .rounded))
+                                    .multilineTextAlignment(.center)
+                                    .keyboardType(.decimalPad)
+                                    .frame(width: 60)
+                                    .padding(.vertical, AppSpacing.xs)
+                                    .background(
+                                        RoundedRectangle(cornerRadius: 8)
+                                            .fill(Color.primary.opacity(0.05))
+                                    )
+                                    .onTapGesture {
+                                        HapticService.impact(.light)
+                                    }
+
+                                Text("kg")
+                                    .font(.system(size: 12, weight: .medium))
+                                    .foregroundStyle(Color.secondary.opacity(0.8))
+                            }
+
+                            Spacer()
+
+                            if exercise.sets.count > 1 {
+                                Button {
+                                    HapticService.impact(.light)
+                                    withAnimation(MotionToken.standardSpring) {
+                                        exercise.sets.removeAll { $0.id == set.id }
+                                    }
+                                } label: {
+                                    Image(systemName: "minus.circle.fill")
+                                        .font(.system(size: 18))
+                                        .foregroundStyle(
+                                            LinearGradient(
+                                                colors: [Color(hex: "#F94144").opacity(0.8), Color(hex: "#F3722C").opacity(0.8)],
+                                                startPoint: .topLeading,
+                                                endPoint: .bottomTrailing
+                                            )
+                                        )
+                                }
+                                .buttonStyle(.plain)
+                            }
                         }
-                        .buttonStyle(.plain)
                     }
                 }
-            }
 
-            Button {
-                exercise.sets.append(BuilderSet())
-            } label: {
-                Label("Add Set", systemImage: "plus.circle")
-                    .font(.caption)
+                Button {
+                    HapticService.impact(.light)
+                    withAnimation(MotionToken.standardSpring) {
+                        exercise.sets.append(BuilderSet())
+                    }
+                } label: {
+                    HStack(spacing: AppSpacing.xs) {
+                        Image(systemName: "plus.circle")
+                            .font(.system(size: 14))
+                        Text("Add Set")
+                            .font(.system(size: 14, weight: .medium))
+                    }
+                    .foregroundStyle(
+                        LinearGradient(
+                            colors: gradientManager.active.colors(for: colorScheme),
+                            startPoint: .leading,
+                            endPoint: .trailing
+                        )
+                    )
+                }
+                .buttonStyle(.plain)
             }
-            .buttonStyle(.plain)
+            .padding(AppSpacing.md)
         }
-        .padding(.vertical, AppSpacing.xSmall)
+        .opacity(animateIn ? 1 : 0)
+        .offset(y: animateIn ? 0 : 20)
+        .onAppear {
+            withAnimation(MotionToken.standardSpring.delay(0.25 + Double(index) * 0.1)) {
+                animateIn = true
+            }
+        }
     }
 }
 
@@ -263,10 +535,14 @@ struct ExerciseBuilderRow: View {
 struct ExercisePickerView: View {
     @Environment(\.dismiss)
     private var dismiss
+    @EnvironmentObject private var gradientManager: GradientManager
+    @Environment(\.colorScheme) private var colorScheme
     @State private var searchText = ""
     @State private var exercises: [ExerciseDefinition] = []
     @State private var isLoading = true
+    @State private var animateIn = false
 
+    let exerciseDatabase: ExerciseDatabase
     let onSelect: (ExerciseDefinition) -> Void
 
     var filteredExercises: [ExerciseDefinition] {
@@ -278,51 +554,272 @@ struct ExercisePickerView: View {
 
     var body: some View {
         NavigationStack {
-            List(filteredExercises) { exercise in
-                Button {
-                    onSelect(exercise)
-                    dismiss()
-                } label: {
-                    VStack(alignment: .leading, spacing: AppSpacing.xSmall) {
-                        Text(exercise.name)
-                            .font(.headline)
-                            .foregroundStyle(.primary)
+            BaseScreen {
+                VStack(spacing: 0) {
+                    // Header
+                    CascadeText("Select Exercise")
+                        .font(.system(size: 28, weight: .bold, design: .rounded))
+                        .padding(.top, AppSpacing.md)
+                        .padding(.horizontal, AppSpacing.md)
+                        .opacity(animateIn ? 1 : 0)
+                        .offset(y: animateIn ? 0 : -20)
 
-                        HStack {
-                            Text(exercise.category.displayName)
-                                .font(.caption)
-                                .padding(.horizontal, AppSpacing.xSmall)
-                                .padding(.vertical, 2)
-                                .background(exercise.category.color.opacity(0.2))
-                                .clipShape(Capsule())
+                    // Search bar
+                    GlassCard {
+                        HStack(spacing: AppSpacing.sm) {
+                            Image(systemName: "magnifyingglass")
+                                .foregroundStyle(
+                                    LinearGradient(
+                                        colors: gradientManager.active.colors(for: colorScheme),
+                                        startPoint: .topLeading,
+                                        endPoint: .bottomTrailing
+                                    )
+                                )
+                                .font(.system(size: 18))
 
-                            Text(exercise.muscleGroups.map(\.displayName).joined(separator: ", "))
-                                .font(.caption)
-                                .foregroundStyle(.secondary)
+                            TextField("Search exercises...", text: $searchText)
+                                .textFieldStyle(.plain)
+                                .font(.system(size: 16, weight: .medium))
+                                .onTapGesture {
+                                    HapticService.impact(.light)
+                                }
+
+                            WhisperVoiceButton(text: $searchText)
+
+                            if !searchText.isEmpty {
+                                Button {
+                                    HapticService.impact(.light)
+                                    withAnimation(MotionToken.microAnimation) {
+                                        searchText = ""
+                                    }
+                                } label: {
+                                    Image(systemName: "xmark.circle.fill")
+                                        .foregroundStyle(Color.secondary.opacity(0.6))
+                                        .font(.system(size: 16))
+                                }
+                                .transition(.scale.combined(with: .opacity))
+                            }
+                        }
+                        .padding(AppSpacing.sm)
+                    }
+                    .padding(.horizontal, AppSpacing.md)
+                    .padding(.vertical, AppSpacing.sm)
+                    .opacity(animateIn ? 1 : 0)
+                    .offset(y: animateIn ? 0 : 20)
+                    .animation(MotionToken.standardSpring.delay(0.1), value: animateIn)
+
+                    if isLoading {
+                        Spacer()
+                        TextLoadingView(message: "Building workout")
+                        Spacer()
+                    } else {
+                        ScrollView {
+                            LazyVStack(spacing: AppSpacing.sm) {
+                                ForEach(Array(filteredExercises.enumerated()), id: \.element.id) { index, exercise in
+                                    ExerciseRow(exercise: exercise, index: index) {
+                                        HapticService.impact(.medium)
+                                        onSelect(exercise)
+                                        dismiss()
+                                    }
+                                    .environmentObject(gradientManager)
+                                    .padding(.horizontal, AppSpacing.md)
+                                }
+                            }
+                            .padding(.vertical, AppSpacing.sm)
                         }
                     }
                 }
             }
-            .searchable(text: $searchText)
-            .navigationTitle("Select Exercise")
+            .navigationTitle("")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) {
-                    Button("Cancel") { dismiss() }
+                    Button("Cancel") {
+                        HapticService.impact(.light)
+                        dismiss()
+                    }
+                    .foregroundStyle(
+                        LinearGradient(
+                            colors: gradientManager.active.colors(for: colorScheme),
+                            startPoint: .topLeading,
+                            endPoint: .bottomTrailing
+                        )
+                    )
                 }
             }
             .task {
                 do {
-                    exercises = try await ExerciseDatabase.shared.getAllExercises()
+                    exercises = try await exerciseDatabase.getAllExercises()
                     isLoading = false
+                    withAnimation(MotionToken.standardSpring) {
+                        animateIn = true
+                    }
                 } catch {
                     AppLogger.error("Failed to load exercises", error: error, category: .data)
                 }
             }
-            .overlay {
-                if isLoading {
-                    ProgressView()
+        }
+    }
+}
+
+// MARK: - Workout Type Chip
+private struct WorkoutTypeChip: View {
+    let type: WorkoutType
+    let isSelected: Bool
+    let action: () -> Void
+    @EnvironmentObject private var gradientManager: GradientManager
+    @Environment(\.colorScheme) private var colorScheme
+
+    var body: some View {
+        Button(action: action) {
+            HStack(spacing: AppSpacing.xs) {
+                Image(systemName: type.systemImage)
+                    .font(.system(size: 14, weight: .medium))
+                Text(type.displayName)
+                    .font(.system(size: 14, weight: .medium))
+            }
+            .padding(.horizontal, AppSpacing.md)
+            .padding(.vertical, AppSpacing.xs)
+            .foregroundStyle(
+                isSelected ?
+                    AnyShapeStyle(Color.white) :
+                    AnyShapeStyle(LinearGradient(
+                        colors: gradientManager.active.colors(for: colorScheme),
+                        startPoint: .topLeading,
+                        endPoint: .bottomTrailing
+                    ))
+            )
+            .background {
+                if isSelected {
+                    LinearGradient(
+                        colors: gradientManager.active.colors(for: colorScheme),
+                        startPoint: .topLeading,
+                        endPoint: .bottomTrailing
+                    )
+                } else {
+                    Color.primary.opacity(0.08)
                 }
+            }
+            .clipShape(Capsule())
+            .overlay {
+                if !isSelected {
+                    Capsule()
+                        .stroke(
+                            LinearGradient(
+                                colors: gradientManager.active.colors(for: colorScheme).map { $0.opacity(0.3) },
+                                startPoint: .topLeading,
+                                endPoint: .bottomTrailing
+                            ),
+                            lineWidth: 1
+                        )
+                }
+            }
+            .shadow(color: isSelected ? gradientManager.active.colors(for: colorScheme).first?.opacity(0.3) ?? .clear : .clear, radius: 8, y: 4)
+        }
+    }
+}
+
+// MARK: - Exercise Row
+private struct ExerciseRow: View {
+    let exercise: ExerciseDefinition
+    let index: Int
+    let action: () -> Void
+    @EnvironmentObject private var gradientManager: GradientManager
+    @Environment(\.colorScheme) private var colorScheme
+    @State private var isPressed = false
+    @State private var animateIn = false
+
+    private var categoryColors: [Color] {
+        // Use gradient colors for all categories
+        return gradientManager.active.colors(for: colorScheme)
+    }
+
+    private func getCategoryIcon(for category: ExerciseCategory) -> String {
+        switch category {
+        case .strength: return "figure.strengthtraining.traditional"
+        case .cardio: return "figure.run"
+        case .flexibility: return "figure.flexibility"
+        case .plyometrics: return "figure.jumprope"
+        case .balance: return "figure.yoga"
+        case .sports: return "sportscourt"
+        }
+    }
+
+    var body: some View {
+        Button(action: action) {
+            GlassCard {
+                HStack(spacing: AppSpacing.md) {
+                    // Category icon
+                    ZStack {
+                        Circle()
+                            .fill(
+                                LinearGradient(
+                                    colors: categoryColors.map { $0.opacity(0.15) },
+                                    startPoint: .topLeading,
+                                    endPoint: .bottomTrailing
+                                )
+                            )
+                            .frame(width: 40, height: 40)
+
+                        Image(systemName: getCategoryIcon(for: exercise.category))
+                            .font(.system(size: 18, weight: .medium))
+                            .foregroundStyle(
+                                LinearGradient(
+                                    colors: categoryColors,
+                                    startPoint: .topLeading,
+                                    endPoint: .bottomTrailing
+                                )
+                            )
+                    }
+
+                    VStack(alignment: .leading, spacing: AppSpacing.xs) {
+                        Text(exercise.name)
+                            .font(.system(size: 16, weight: .semibold, design: .rounded))
+                            .foregroundStyle(Color.primary)
+
+                        HStack(spacing: AppSpacing.sm) {
+                            Text(exercise.category.displayName)
+                                .font(.system(size: 11, weight: .medium))
+                                .padding(.horizontal, AppSpacing.xs)
+                                .padding(.vertical, 3)
+                                .background(
+                                    LinearGradient(
+                                        colors: categoryColors.map { $0.opacity(0.2) },
+                                        startPoint: .topLeading,
+                                        endPoint: .bottomTrailing
+                                    )
+                                )
+                                .clipShape(Capsule())
+
+                            Text(exercise.muscleGroups.map(\.displayName).joined(separator: ", "))
+                                .font(.system(size: 11, weight: .medium))
+                                .foregroundStyle(Color.secondary.opacity(0.8))
+                                .lineLimit(1)
+                        }
+                    }
+
+                    Spacer()
+
+                    Image(systemName: "chevron.right")
+                        .font(.system(size: 14))
+                        .foregroundStyle(Color.secondary.opacity(0.3))
+                }
+                .padding(AppSpacing.sm)
+            }
+            .scaleEffect(isPressed ? 0.98 : 1.0)
+            .animation(MotionToken.microAnimation, value: isPressed)
+        }
+        .buttonStyle(.plain)
+        .onLongPressGesture(minimumDuration: 0, maximumDistance: .infinity, pressing: { pressing in
+            withAnimation(MotionToken.microAnimation) {
+                isPressed = pressing
+            }
+        }, perform: {})
+        .opacity(animateIn ? 1 : 0)
+        .offset(y: animateIn ? 0 : 20)
+        .onAppear {
+            withAnimation(MotionToken.standardSpring.delay(0.2 + Double(index) * 0.05)) {
+                animateIn = true
             }
         }
     }

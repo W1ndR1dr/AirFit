@@ -4,10 +4,11 @@ import Observation
 
 @MainActor
 @Observable
-final class DashboardViewModel {
+final class DashboardViewModel: ErrorHandling {
     // MARK: - State Properties
     private(set) var isLoading = true
-    private(set) var error: Error?
+    var error: AppError?
+    var isShowingError = false
 
     // Morning Greeting
     private(set) var morningGreeting = "Good morning!"
@@ -28,12 +29,20 @@ final class DashboardViewModel {
     // Quick Actions
     private(set) var suggestedActions: [QuickAction] = []
 
+    // AI Dashboard Content
+    private(set) var aiDashboardContent: AIDashboardContent?
+
     // MARK: - Dependencies
     private let user: User
     private let modelContext: ModelContext
     private let healthKitService: HealthKitServiceProtocol
     private let aiCoachService: AICoachServiceProtocol
-    private let nutritionService: DashboardNutritionServiceProtocol
+    private let nutritionService: NutritionServiceProtocol
+    private let nutritionImportSync: ((User) async -> Void)?
+    private var nutritionGoalService: NutritionGoalServiceProtocol?
+
+    // Adjustment state for UI
+    private(set) var nutritionAdjustmentPercent: Double? = nil
 
     // MARK: - Private State
     private var refreshTask: Task<Void, Never>?
@@ -48,13 +57,17 @@ final class DashboardViewModel {
         modelContext: ModelContext,
         healthKitService: HealthKitServiceProtocol,
         aiCoachService: AICoachServiceProtocol,
-        nutritionService: DashboardNutritionServiceProtocol
+        nutritionService: NutritionServiceProtocol,
+        nutritionImportSync: ((User) async -> Void)? = nil,
+        nutritionGoalService: NutritionGoalServiceProtocol? = nil
     ) {
         self.user = user
         self.modelContext = modelContext
         self.healthKitService = healthKitService
         self.aiCoachService = aiCoachService
         self.nutritionService = nutritionService
+        self.nutritionImportSync = nutritionImportSync
+        self.nutritionGoalService = nutritionGoalService
     }
 
     // MARK: - Public Methods
@@ -110,14 +123,12 @@ final class DashboardViewModel {
             currentEnergyLevel = level
 
             // Haptic feedback
-            HapticManager.impact(.light)
-
+            HapticService.play(.dataUpdated)
             // Log analytics
             AppLogger.info("Energy level logged: \(level)", category: .data)
 
         } catch {
-            self.error = error
-            AppLogger.error("Failed to log energy", error: error, category: .data)
+            handleError(error)
         }
     }
 
@@ -133,12 +144,33 @@ final class DashboardViewModel {
         isLoading = true
         defer { isLoading = false }
 
-        // Execute loading operations sequentially to avoid race conditions
-        await loadMorningGreeting()
-        await loadEnergyLevel()
-        await loadNutritionData()
-        await loadHealthInsights()
+        // Load AI dashboard content first
+        await loadAIDashboardContent()
+
+        // Load other data in parallel for backward compatibility
+        async let energyTask: Void = loadEnergyLevel()
+        async let nutritionTask: Void = loadNutritionData()
+        async let healthTask: Void = loadHealthInsights()
+
+        // Wait for all parallel tasks to complete
+        _ = await (energyTask, nutritionTask, healthTask)
+
+        // Load quick actions after nutrition data is available (has dependency)
         await loadQuickActions(for: Date())
+    }
+
+    private func loadAIDashboardContent() async {
+        do {
+            aiDashboardContent = try await aiCoachService.generateDashboardContent(for: user)
+            // Also update morning greeting from the content if available
+            if let content = aiDashboardContent {
+                morningGreeting = content.primaryInsight
+            }
+        } catch {
+            AppLogger.error("Failed to generate AI dashboard content", error: error, category: .ai)
+            // Fall back to basic greeting
+            morningGreeting = generateFallbackGreeting()
+        }
     }
 
     private func loadMorningGreeting() async {
@@ -158,11 +190,11 @@ final class DashboardViewModel {
             let context = GreetingContext(
                 userName: user.name ?? "there",
                 sleepHours: healthContext.lastNightSleepDurationHours,
-                sleepQuality: healthContext.sleepQuality,
+                sleepQuality: healthContext.sleepQuality.map { String($0) },
                 weather: healthContext.currentWeatherCondition,
                 temperature: healthContext.currentTemperatureCelsius,
-                dayOfWeek: Date().formatted(.dateTime.weekday(.wide)),
-                energyYesterday: healthContext.yesterdayEnergyLevel
+                energyYesterday: healthContext.yesterdayEnergyLevel.map { String($0) },
+                dayOfWeek: Date().formatted(.dateTime.weekday(.wide))
             )
 
             let greeting = try await aiCoachService.generateMorningGreeting(
@@ -201,16 +233,41 @@ final class DashboardViewModel {
             let summary = try await nutritionService.getTodaysSummary(for: user)
             self.nutritionSummary = summary
 
-            // Always try to get targets if profile exists
-            if let profile = user.onboardingProfile {
-                do {
-                    let targets = try await nutritionService.getTargets(from: profile)
-                    self.nutritionTargets = targets
-                } catch {
-                    AppLogger.error("Failed to load nutrition targets", error: error, category: .data)
-                    // Keep default targets on error
+            // Extract targets from summary
+            var targets = NutritionTargets(
+                calories: summary.caloriesTarget,
+                protein: summary.proteinTarget,
+                carbs: summary.carbsTarget,
+                fat: summary.fatTarget,
+                fiber: summary.fiberTarget
+            )
+
+            // Adjust targets based on activity and recent intake if available
+            if let goalService = nutritionGoalService {
+                let base = DynamicNutritionTargets(
+                    baseCalories: summary.caloriesTarget,
+                    activeCalorieBonus: 0,
+                    totalCalories: summary.caloriesTarget,
+                    protein: summary.proteinTarget,
+                    carbs: summary.carbsTarget,
+                    fat: summary.fatTarget
+                )
+                let adjusted = try await goalService.adjustTodayTargets(for: user, base: base)
+                targets = adjusted
+                // Set adjustment percent for UI
+                if let pct = await goalService.todayAdjustmentPercent(for: user) {
+                    nutritionAdjustmentPercent = pct
+                } else {
+                    // Fallback compute from calories
+                    let baseCals = summary.caloriesTarget
+                    nutritionAdjustmentPercent = baseCals > 0 ? (adjusted.calories / baseCals - 1) : nil
                 }
             }
+
+            self.nutritionTargets = targets
+
+            // Sync nutrition data with import service
+            await nutritionImportSync?(user)
 
         } catch {
             AppLogger.error("Failed to load nutrition data", error: error, category: .data)
@@ -237,17 +294,27 @@ final class DashboardViewModel {
         var actions: [QuickAction] = []
 
         let hour = Calendar.current.component(.hour, from: date)
-        if (11...13).contains(hour) && nutritionSummary.meals[.lunch] == nil {
-            actions.append(.logMeal(type: .lunch))
+        // Add lunch logging if it's lunch time
+        if (11...13).contains(hour) {
+            actions.append(QuickAction(
+                title: "Log Lunch",
+                subtitle: "Track your midday meal",
+                systemImage: "sun.max.fill",
+                color: "orange",
+                action: .logMeal(type: .lunch)
+            ))
         }
 
         if !hasWorkoutToday() {
-            actions.append(.startWorkout)
+            actions.append(QuickAction(
+                title: "Start Workout",
+                subtitle: "Begin your training session",
+                systemImage: "figure.strengthtraining.traditional",
+                color: "blue",
+                action: .startWorkout
+            ))
         }
 
-        if nutritionSummary.waterLiters < 2.0 {
-            actions.append(.logWater)
-        }
 
         self.suggestedActions = actions
     }
@@ -275,109 +342,6 @@ final class DashboardViewModel {
                 return Calendar.current.isDate(completed, inSameDayAs: today)
             }
             return false
-        }
-    }
-}
-
-// MARK: - Supporting Types
-struct NutritionSummary: Equatable, Sendable {
-    var calories: Double = 0
-    var protein: Double = 0
-    var carbs: Double = 0
-    var fat: Double = 0
-    var fiber: Double = 0
-    var waterLiters: Double = 0
-    var meals: [MealType: FoodEntry] = [:]
-}
-
-struct NutritionTargets: Equatable, Sendable {
-    let calories: Double
-    let protein: Double
-    let carbs: Double
-    let fat: Double
-    let fiber: Double
-    let water: Double
-
-    static let `default` = NutritionTargets(
-        calories: 2_000,
-        protein: 150,
-        carbs: 250,
-        fat: 70,
-        fiber: 30,
-        water: 2.5
-    )
-}
-
-struct GreetingContext: Sendable {
-    let userName: String
-    let sleepHours: Double?
-    let sleepQuality: Int?
-    let weather: String?
-    let temperature: Double?
-    let dayOfWeek: String
-    let energyYesterday: Int?
-}
-
-struct RecoveryScore: Equatable, Sendable {
-    let score: Int
-    let components: [Component]
-
-    struct Component: Sendable, Equatable {
-        let name: String
-        let value: Double
-        let weight: Double
-    }
-
-    var trend: Trend {
-        .steady
-    }
-
-    enum Trend {
-        case improving, steady, declining
-    }
-}
-
-struct PerformanceInsight: Equatable, Sendable {
-    let summary: String
-    let trend: Trend
-    let keyMetric: String
-    let value: Double
-
-    enum Trend {
-        case up, steady, down
-    }
-}
-
-enum QuickAction: Identifiable, Sendable {
-    case logMeal(type: MealType)
-    case startWorkout
-    case logWater
-    case checkIn
-
-    var id: String {
-        switch self {
-        case .logMeal(let type): return "logMeal_\(type.rawValue)"
-        case .startWorkout: return "startWorkout"
-        case .logWater: return "logWater"
-        case .checkIn: return "checkIn"
-        }
-    }
-
-    var title: String {
-        switch self {
-        case .logMeal(let type): return "Log \(type.displayName)"
-        case .startWorkout: return "Start Workout"
-        case .logWater: return "Log Water"
-        case .checkIn: return "Daily Check-in"
-        }
-    }
-
-    var systemImage: String {
-        switch self {
-        case .logMeal: return "fork.knife"
-        case .startWorkout: return "figure.run"
-        case .logWater: return "drop.fill"
-        case .checkIn: return "checkmark.circle"
         }
     }
 }

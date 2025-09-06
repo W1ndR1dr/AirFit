@@ -1,0 +1,36 @@
+{
+  "configurations" : [
+    {
+      "id" : "D4E3C2B1-A0F9-4E8D-9C7B-6A5D4C3B2A1F",
+      "name" : "Watch",
+      "options" : {
+        "maximumTestExecutionTimeAllowance" : 600,
+        "testTimeoutsEnabled" : true
+      }
+    }
+  ],
+  "defaultOptions" : {
+    "language" : "en",
+    "region" : "US",
+    "testRepetitionMode" : "retryOnFailure",
+    "maximumTestRepetitions" : 1,
+    "testTimeoutsEnabled" : true,
+    "targetForVariableExpansion" : {
+      "containerPath" : "container:AirFit.xcodeproj",
+      "identifier" : "AirFitWatchApp",
+      "name" : "AirFitWatchApp"
+    }
+  },
+  "testTargets" : [
+    {
+      "parallelizable" : true,
+      "target" : {
+        "containerPath" : "container:AirFit.xcodeproj",
+        "identifier" : "AirFitWatchAppTests",
+        "name" : "AirFitWatchAppTests"
+      }
+    }
+  ],
+  "version" : 1
+}
+

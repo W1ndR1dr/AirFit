@@ -9,7 +9,7 @@ struct NutritionPreferences: Sendable {
     let proteinGoal: Double?
     let carbGoal: Double?
     let fatGoal: Double?
-    
+
     static let `default` = NutritionPreferences(
         dietaryRestrictions: [],
         allergies: [],
@@ -19,4 +19,4 @@ struct NutritionPreferences: Sendable {
         carbGoal: nil,
         fatGoal: nil
     )
-} 
+}

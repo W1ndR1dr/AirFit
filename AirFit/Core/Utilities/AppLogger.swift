@@ -19,6 +19,10 @@ public enum AppLogger {
         case app = "App"
         case storage = "Storage"
         case chat = "Chat"
+        case notifications = "Notifications"
+        case services = "Services"
+        case security = "Security"
+        case testing = "Testing"
 
         var osLog: OSLog {
             OSLog(subsystem: subsystem, category: rawValue)
@@ -65,7 +69,7 @@ public enum AppLogger {
         )
     }
 
-    struct LogContext {
+    struct LogContext: Sendable {
         let file: String
         let function: String
         let line: Int
@@ -160,5 +164,14 @@ extension AppLogger {
             debug("\(label) took \(String(format: "%.2f", timeElapsed))ms", category: category)
         }
         return try await operation()
+    }
+
+    // MARK: - Log Export
+
+    /// Export logs to a temporary file
+    static func exportLogs() -> URL? {
+        // For now, return nil as we don't have actual log storage
+        // In production, this would gather logs and create a file
+        return nil
     }
 }

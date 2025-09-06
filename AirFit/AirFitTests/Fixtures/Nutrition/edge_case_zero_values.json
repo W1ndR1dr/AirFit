@@ -1,0 +1,18 @@
+{
+    "items": [
+        {
+            "name": "Water",
+            "brand": "Evian",
+            "quantity": 1.0,
+            "unit": "bottle",
+            "calories": 0,
+            "proteinGrams": 0.0,
+            "carbGrams": 0.0,
+            "fatGrams": 0.0,
+            "fiberGrams": 0.0,
+            "sugarGrams": 0.0,
+            "sodiumMilligrams": 0.0,
+            "confidence": 1.0
+        }
+    ]
+}

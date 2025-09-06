@@ -3,9 +3,16 @@ import SwiftUI
 
 /// Adapter around `VoiceInputManager` providing food-specific enhancements.
 @MainActor
-final class FoodVoiceAdapter: ObservableObject {
+final class FoodVoiceAdapter: ObservableObject, FoodVoiceAdapterProtocol, ServiceProtocol {
+    // MARK: - ServiceProtocol
+    nonisolated let serviceIdentifier = "food-voice-adapter"
+    private var _isConfigured = false
+    nonisolated var isConfigured: Bool {
+        MainActor.assumeIsolated { _isConfigured }
+    }
+
     // MARK: - Dependencies
-    private let voiceInputManager: VoiceInputManager
+    private let voiceInputManager: VoiceInputProtocol
 
     // MARK: - Published State
     @Published private(set) var isRecording = false
@@ -16,11 +23,53 @@ final class FoodVoiceAdapter: ObservableObject {
     // MARK: - Callbacks
     var onFoodTranscription: ((String) -> Void)?
     var onError: ((Error) -> Void)?
+    var onStateChange: ((VoiceInputState) -> Void)?
+    var onWaveformUpdate: (([Float]) -> Void)?
 
     // MARK: - Initialization
-    init(voiceInputManager: VoiceInputManager = VoiceInputManager()) {
+    init(voiceInputManager: VoiceInputProtocol) {
         self.voiceInputManager = voiceInputManager
         setupCallbacks()
+    }
+
+    // MARK: - ServiceProtocol Methods
+
+    func configure() async throws {
+        guard !_isConfigured else { return }
+        await voiceInputManager.initialize()
+        _isConfigured = true
+        AppLogger.info("\(serviceIdentifier) configured", category: .services)
+    }
+
+    func reset() async {
+        transcribedText = ""
+        voiceWaveform = []
+        if isRecording {
+            _ = await stopRecording()
+        }
+        _isConfigured = false
+        AppLogger.info("\(serviceIdentifier) reset", category: .services)
+    }
+
+    func healthCheck() async -> ServiceHealth {
+        let voiceState = voiceInputManager.state
+        let isHealthy: Bool
+        if case .error = voiceState {
+            isHealthy = false
+        } else {
+            isHealthy = true
+        }
+
+        return ServiceHealth(
+            status: isHealthy ? .healthy : .degraded,
+            lastCheckTime: Date(),
+            responseTime: nil,
+            errorMessage: isHealthy ? nil : "Voice input in error state",
+            metadata: [
+                "voiceState": "\(voiceState)",
+                "isRecording": "\(isRecording)"
+            ]
+        )
     }
 
     private func setupCallbacks() {
@@ -39,15 +88,25 @@ final class FoodVoiceAdapter: ObservableObject {
         voiceInputManager.onWaveformUpdate = { [weak self] levels in
             guard let self else { return }
             self.voiceWaveform = levels
+            self.onWaveformUpdate?(levels)
         }
 
         voiceInputManager.onError = { [weak self] error in
             guard let self else { return }
             self.onError?(error)
         }
+
+        voiceInputManager.onStateChange = { [weak self] state in
+            guard let self else { return }
+            self.onStateChange?(state)
+        }
     }
 
     // MARK: - Public Methods
+    func initialize() async {
+        await voiceInputManager.initialize()
+    }
+
     func requestPermission() async throws -> Bool {
         try await voiceInputManager.requestPermission()
     }
@@ -103,4 +162,3 @@ final class FoodVoiceAdapter: ObservableObject {
 
 // MARK: - FoodVoiceServiceProtocol Conformance
 extension FoodVoiceAdapter: FoodVoiceServiceProtocol {}
-

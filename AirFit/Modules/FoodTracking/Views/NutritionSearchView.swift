@@ -1,68 +1,76 @@
 import SwiftUI
 import SwiftData
 
-/// A view for searching food items from a database, displaying recent foods, and browsing categories.
+/// Search interface for finding and selecting foods to log
 struct NutritionSearchView: View {
+    @State var viewModel: FoodTrackingViewModel
     @Environment(\.dismiss) private var dismiss
-    @State private var viewModel: FoodTrackingViewModel
-    
-    init(viewModel: FoodTrackingViewModel) {
-        self._viewModel = State(initialValue: viewModel)
-    }
-
+    @EnvironmentObject private var gradientManager: GradientManager
+    @Environment(\.colorScheme) private var colorScheme
     @State private var searchText = ""
-    @FocusState private var isSearchFocused: Bool
-    
-    // Debounce for search
+    @State private var selectedCategory: FoodCategory?
     @State private var debounceTimer: Timer?
+    @State private var animateIn = false
 
-    // Categories - can be dynamic later
     private let foodCategories: [FoodCategory] = [
-        FoodCategory(name: "Fruits", icon: "apple.logo"),
-        FoodCategory(name: "Vegetables", icon: "leaf.fill"),
-        FoodCategory(name: "Proteins", icon: "fish.fill"),
-        FoodCategory(name: "Grains", icon: "wheat"),
-        FoodCategory(name: "Dairy", icon: "milk.jug.fill"),
-        FoodCategory(name: "Snacks", icon: "bolt.heart.fill")
+        FoodCategory(name: "Fruits", icon: "apple"),
+        FoodCategory(name: "Vegetables", icon: "carrot"),
+        FoodCategory(name: "Proteins", icon: "fish"),
+        FoodCategory(name: "Grains", icon: "leaf"),
+        FoodCategory(name: "Dairy", icon: "drop"),
+        FoodCategory(name: "Snacks", icon: "takeoutbag.and.cup.and.straw")
     ]
-    @State private var selectedCategory: FoodCategory? = nil
 
     var body: some View {
         NavigationStack {
-            VStack(spacing: 0) {
-                searchBar
-                    .padding(.bottom, AppSpacing.small)
+            BaseScreen {
+                VStack(spacing: 0) {
+                    // Header with animated title
+                    CascadeText("Add Food")
+                        .font(.system(size: 32, weight: .bold, design: .rounded))
+                        .padding(.top, AppSpacing.md)
+                        .padding(.bottom, AppSpacing.sm)
+                        .opacity(animateIn ? 1 : 0)
 
-                Divider()
+                    searchBar
+                        .opacity(animateIn ? 1 : 0)
+                        .offset(y: animateIn ? 0 : 20)
+                        .animation(MotionToken.standardSpring.delay(0.2), value: animateIn)
 
-                ScrollView {
-                    LazyVStack(alignment: .leading, spacing: AppSpacing.large) {
-                        if searchText.isEmpty && selectedCategory == nil {
-                            initialContent // Shows categories, recents, favorites
-                        } else if selectedCategory != nil && searchText.isEmpty {
-                            categoryResultsContent // Shows results for a selected category
+                    ScrollView {
+                        LazyVStack(spacing: AppSpacing.md) {
+                            if searchText.isEmpty && selectedCategory == nil {
+                                initialContent
+                            } else if selectedCategory != nil {
+                                categoryResultsContent
+                            } else {
+                                searchResultsContent
+                            }
                         }
-                        else {
-                            searchResultsContent // Shows live search results
-                        }
+                        .padding(.vertical)
                     }
-                    .padding(.vertical)
                 }
             }
-            .background(AppColors.backgroundPrimary)
-            .navigationTitle("Search Food")
+            .navigationTitle("")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) {
-                    Button("Cancel") { dismiss() }
+                    Button("Cancel") {
+                        HapticService.impact(.light)
+                        dismiss()
+                    }
+                    .foregroundStyle(
+                        LinearGradient(
+                            colors: gradientManager.active.colors(for: colorScheme),
+                            startPoint: .topLeading,
+                            endPoint: .bottomTrailing
+                        )
+                    )
                 }
             }
             .onAppear {
-                isSearchFocused = true
-                if viewModel.recentFoods.isEmpty { // Load recents if not already loaded
-                    Task {
-                        await viewModel.loadTodaysData() // This loads recent foods
-                    }
+                withAnimation(MotionToken.standardSpring) {
+                    animateIn = true
                 }
             }
         }
@@ -70,62 +78,91 @@ struct NutritionSearchView: View {
 
     // MARK: - Search Bar
     private var searchBar: some View {
-        HStack(spacing: AppSpacing.small) {
-            Image(systemName: "magnifyingglass")
-                .foregroundColor(AppColors.textSecondary)
+        GlassCard {
+            HStack(spacing: AppSpacing.sm) {
+                Image(systemName: "magnifyingglass")
+                    .foregroundStyle(
+                        LinearGradient(
+                            colors: gradientManager.active.colors(for: colorScheme),
+                            startPoint: .topLeading,
+                            endPoint: .bottomTrailing
+                        )
+                    )
+                    .font(.system(size: 18))
 
-            TextField("Search foods, brands...", text: $searchText)
-                .textFieldStyle(.plain)
-                .focused($isSearchFocused)
-                .autocorrectionDisabled()
-                .submitLabel(.search)
-                .onSubmit {
-                    triggerSearch(immediately: true)
-                }
-            
-            if !searchText.isEmpty {
-                Button {
-                    searchText = ""
-                    viewModel.clearSearchResults() // Assuming a method to clear results in VM
-                } label: {
-                    Image(systemName: "xmark.circle.fill")
-                        .foregroundColor(AppColors.textTertiary)
+                TextField("Search foods...", text: $searchText)
+                    .textFieldStyle(.plain)
+                    .font(.system(size: 16, weight: .medium))
+                    .onSubmit {
+                        HapticService.impact(.light)
+                        Task { await performSearch() }
+                    }
+                    .onChange(of: searchText) { _, newValue in
+                        triggerSearch()
+                    }
+
+                WhisperVoiceButton(text: $searchText)
+
+                if !searchText.isEmpty {
+                    Button {
+                        HapticService.impact(.light)
+                        withAnimation(MotionToken.microAnimation) {
+                            searchText = ""
+                            selectedCategory = nil
+                        }
+                    } label: {
+                        Image(systemName: "xmark.circle.fill")
+                            .foregroundStyle(Color.secondary.opacity(0.6))
+                            .font(.system(size: 16))
+                    }
+                    .transition(.scale.combined(with: .opacity))
                 }
             }
+            .padding(AppSpacing.sm)
         }
-        .padding(AppSpacing.medium)
-        .background(AppColors.backgroundSecondary)
-        .cornerRadius(AppConstants.Layout.defaultCornerRadius.medium)
-        .padding(.horizontal)
-        .onChange(of: searchText) { _, newValue in
-            if selectedCategory != nil && !newValue.isEmpty {
-                // If a category was selected, and user starts typing, clear category selection
-                // to switch to general search.
-                selectedCategory = nil
-            }
-            triggerSearch()
-        }
+        .padding(.horizontal, AppSpacing.md)
+        .padding(.bottom, AppSpacing.sm)
     }
 
-    // MARK: - Initial Content (No Search Text, No Category Selected)
+    // MARK: - Initial Content
     @ViewBuilder
     private var initialContent: some View {
         CategoriesSection(categories: foodCategories, selectedCategory: $selectedCategory)
             .padding(.horizontal)
-        
-        RecentFoodsSection(
-            recentFoods: viewModel.recentFoods,
-            onSelect: selectRecentFood
-        )
-        .padding(.horizontal)
+            .opacity(animateIn ? 1 : 0)
+            .offset(y: animateIn ? 0 : 20)
+            .animation(MotionToken.standardSpring.delay(0.3), value: animateIn)
 
-        // Placeholder for Favorites
-        // FavoriteFoodsSection().padding(.horizontal)
-        
-        // Placeholder for Popular Searches
-        // PopularSearchesSection().padding(.horizontal)
+        HStack {
+            CascadeText("Recent Foods")
+                .font(.system(size: 20, weight: .semibold, design: .rounded))
+            Spacer()
+        }
+        .padding(.horizontal, AppSpacing.md)
+        .padding(.top, AppSpacing.sm)
+        .opacity(animateIn ? 1 : 0)
+        .animation(MotionToken.standardSpring.delay(0.4), value: animateIn)
+
+        if viewModel.recentFoods.isEmpty {
+            EmptyStateView(
+                icon: "clock.arrow.circlepath",
+                title: "No Recent Foods",
+                message: "Foods you log will appear here for quick re-adding."
+            )
+        } else {
+            ForEach(Array(viewModel.recentFoods.prefix(5).enumerated()), id: \.element.id) { index, food in
+                FoodItemRow(food: food) {
+                    HapticService.impact(.light)
+                    selectRecentFood(food)
+                }
+                .padding(.horizontal, AppSpacing.md)
+                .opacity(animateIn ? 1 : 0)
+                .offset(y: animateIn ? 0 : 20)
+                .animation(MotionToken.standardSpring.delay(0.5 + Double(index) * 0.1), value: animateIn)
+            }
+        }
     }
-    
+
     // MARK: - Category Results Content
     @ViewBuilder
     private var categoryResultsContent: some View {
@@ -140,123 +177,95 @@ struct NutritionSearchView: View {
                 }
             }
             .padding(.horizontal)
-            .font(AppFonts.footnote)
-            .foregroundColor(AppColors.textSecondary)
+            .font(.footnote)
+            .foregroundColor(.secondary)
         }
-        
-        // Simulate loading for category selection
+
         if viewModel.isLoading {
-            ProgressView()
-                .frame(maxWidth: .infinity, alignment: .center)
-                .padding(.vertical, AppSpacing.xLarge)
-        } else if viewModel.searchResults.isEmpty { // Assuming searchResults is populated by category search
+            VStack(spacing: AppSpacing.sm) {
+                TextLoadingView(message: "Loading nutrition data")
+
+                Text("Loading...")
+                    .font(.system(size: 14, weight: .medium))
+                    .foregroundStyle(Color.secondary)
+            }
+            .frame(maxWidth: .infinity, alignment: .center)
+            .padding(.vertical, AppSpacing.xl)
+        } else {
             EmptyStateView(
                 icon: "tray.fill",
-                title: "No Items in \(selectedCategory?.name ?? "Category")",
+                title: "No Items in Category",
                 message: "Try a different category or use the search bar."
             )
             .padding()
-        } else {
-            FoodItemsList(
-                items: viewModel.searchResults.map { FoodListItem.databaseItem($0) },
-                onSelectDatabaseItem: { item in
-                    viewModel.selectSearchResult(item) // This should trigger coordinator
-                    dismiss()
-                }
-            )
-            .padding(.horizontal)
         }
     }
-
 
     // MARK: - Search Results Content
     @ViewBuilder
     private var searchResultsContent: some View {
         if viewModel.isLoading && !searchText.isEmpty {
-            ProgressView("Searching...")
-                .frame(maxWidth: .infinity, alignment: .center)
-                .padding(.vertical, AppSpacing.xLarge)
-        } else if viewModel.searchResults.isEmpty && !searchText.isEmpty {
+            VStack(spacing: AppSpacing.sm) {
+                TextLoadingView(message: "Searching for foods")
+
+                CascadeText("Searching...")
+                    .font(.system(size: 16, weight: .medium, design: .rounded))
+                    .foregroundStyle(Color.secondary)
+            }
+            .frame(maxWidth: .infinity, alignment: .center)
+            .padding(.vertical, AppSpacing.xl)
+        } else if !searchText.isEmpty {
             EmptyStateView(
                 icon: "magnifyingglass",
                 title: "No Results Found",
                 message: "Try a different search term or check for typos."
             )
             .padding()
-        } else if !viewModel.searchResults.isEmpty {
-            Text("Search Results (\(viewModel.searchResults.count))")
-                .font(AppFonts.headline)
-                .padding(.horizontal)
-            
-            FoodItemsList(
-                items: viewModel.searchResults.map { FoodListItem.databaseItem($0) },
-                onSelectDatabaseItem: { item in
-                    viewModel.selectSearchResult(item) // This should trigger coordinator
-                    dismiss()
-                }
-            )
-            .padding(.horizontal)
-        } else if !searchText.isEmpty {
-             // Suggestion to type more if search text is short and no results yet
-            Text("Keep typing to see more results...")
-                .font(AppFonts.callout)
-                .foregroundColor(AppColors.textTertiary)
-                .frame(maxWidth: .infinity, alignment: .center)
-                .padding()
         }
     }
-    
+
     // MARK: - Helper Functions
-    private func triggerSearch(immediately: Bool = false) {
+    private func triggerSearch() {
         debounceTimer?.invalidate()
-        
+
         guard !searchText.isEmpty || selectedCategory != nil else {
-            viewModel.clearSearchResults() // Clear results if search text is empty and no category
             return
         }
-        
-        if immediately || searchText.count > 2 || selectedCategory != nil { // Start search immediately or after 2 chars
-            performSearch()
+
+        if searchText.count > 2 || selectedCategory != nil {
+            Task { await performSearch() }
         } else {
             debounceTimer = Timer.scheduledTimer(withTimeInterval: 0.5, repeats: false) { _ in
-                performSearch()
+                Task { await performSearch() }
             }
         }
     }
 
-    private func performSearch() {
-        Task {
-            if let category = selectedCategory, searchText.isEmpty {
-                // Perform category-specific search
-                // Assuming viewModel.searchFoods can handle a category parameter or a specific method exists
-                // For now, we'll just use the searchText as if it was the category name for demo
-                await viewModel.searchFoods(category.name)
-            } else if !searchText.isEmpty {
-                await viewModel.searchFoods(searchText)
-            }
+    private func performSearch() async {
+        if let category = selectedCategory, searchText.isEmpty {
+            await viewModel.searchFoods(category.name)
+        } else if !searchText.isEmpty {
+            await viewModel.searchFoods(searchText)
         }
     }
 
     private func selectRecentFood(_ food: FoodItem) {
-        // Convert FoodItem to ParsedFoodItem and pass to confirmation
         let parsedItem = ParsedFoodItem(
             name: food.name,
             brand: food.brand,
-            quantity: food.quantity,
-            unit: food.unit,
-            calories: food.calories,
-            proteinGrams: food.proteinGrams,
-            carbGrams: food.carbGrams,
-            fatGrams: food.fatGrams,
-            fiber: food.fiberGrams,
-            sugar: food.sugarGrams,
-            sodium: food.sodiumMg,
-            barcode: food.barcode,
-            databaseId: nil, // FoodItem is from local log, not necessarily a DB ID
-            confidence: 1.0 // High confidence for user's own logged food
+            quantity: food.quantity ?? 1,
+            unit: food.unit ?? "serving",
+            calories: Int(food.calories ?? 0),
+            proteinGrams: food.proteinGrams ?? 0,
+            carbGrams: food.carbGrams ?? 0,
+            fatGrams: food.fatGrams ?? 0,
+            fiberGrams: food.fiberGrams,
+            sugarGrams: food.sugarGrams,
+            sodiumMilligrams: food.sodiumMg,
+            databaseId: nil,
+            confidence: 1.0
         )
-        viewModel.setParsedItems([parsedItem]) // Update ViewModel
-        viewModel.coordinator.showFullScreenCover(.confirmation([parsedItem]))
+        viewModel.setParsedItems([parsedItem])
         dismiss()
     }
 }
@@ -265,49 +274,35 @@ struct NutritionSearchView: View {
 private struct CategoriesSection: View {
     let categories: [FoodCategory]
     @Binding var selectedCategory: FoodCategory?
+    @EnvironmentObject private var gradientManager: GradientManager
+    @Environment(\.colorScheme) private var colorScheme
 
     var body: some View {
-        VStack(alignment: .leading, spacing: AppSpacing.medium) {
-            Text("Categories")
-                .font(AppFonts.title3)
-                .fontWeight(.semibold)
-            
+        VStack(alignment: .leading, spacing: AppSpacing.md) {
+            HStack {
+                CascadeText("Categories")
+                    .font(.system(size: 20, weight: .semibold, design: .rounded))
+                Spacer()
+            }
+
             ScrollView(.horizontal, showsIndicators: false) {
-                HStack(spacing: AppSpacing.small) {
-                    ForEach(categories) { category in
+                HStack(spacing: AppSpacing.sm) {
+                    ForEach(Array(categories.enumerated()), id: \.element.id) { index, category in
                         CategoryChip(category: category, isSelected: selectedCategory == category) {
-                            if selectedCategory == category {
-                                selectedCategory = nil // Deselect
-                            } else {
-                                selectedCategory = category
+                            HapticService.impact(.light)
+                            withAnimation(MotionToken.microAnimation) {
+                                if selectedCategory == category {
+                                    selectedCategory = nil // Deselect
+                                } else {
+                                    selectedCategory = category
+                                }
                             }
-                            // Trigger search for this category in parent view
                         }
+                        .scaleEffect(selectedCategory == category ? 1.05 : 1.0)
+                        .animation(MotionToken.microAnimation, value: selectedCategory)
                     }
                 }
             }
-        }
-    }
-}
-
-private struct RecentFoodsSection: View {
-    let recentFoods: [FoodItem]
-    let onSelect: (FoodItem) -> Void
-
-    var body: some View {
-        if !recentFoods.isEmpty {
-            VStack(alignment: .leading, spacing: AppSpacing.medium) {
-                Text("Recent Foods")
-                    .font(AppFonts.title3)
-                    .fontWeight(.semibold)
-                
-                FoodItemsList(
-                    items: recentFoods.map { FoodListItem.recentItem($0) },
-                    onSelectRecentItem: onSelect
-                )
-            }
-        } else {
-            EmptyStateView(icon: "clock.arrow.circlepath", title: "No Recent Foods", message: "Foods you log will appear here for quick re-adding.")
         }
     }
 }
@@ -331,7 +326,7 @@ enum FoodListItem: Identifiable {
         case .databaseItem(let item): return item.name
         }
     }
-    
+
     var brand: String? {
         switch self {
         case .recentItem(let item): return item.brand
@@ -341,25 +336,25 @@ enum FoodListItem: Identifiable {
 
     var calories: Double {
         switch self {
-        case .recentItem(let item): return item.calories
+        case .recentItem(let item): return item.calories ?? 0
         case .databaseItem(let item): return item.caloriesPerServing
         }
     }
-    
+
     var protein: Double? {
         switch self {
         case .recentItem(let item): return item.proteinGrams
         case .databaseItem(let item): return item.proteinPerServing
         }
     }
-    
+
     var carbs: Double? {
         switch self {
         case .recentItem(let item): return item.carbGrams
         case .databaseItem(let item): return item.carbsPerServing
         }
     }
-    
+
     var fat: Double? {
         switch self {
         case .recentItem(let item): return item.fatGrams
@@ -370,117 +365,80 @@ enum FoodListItem: Identifiable {
     var servingDescription: String {
         switch self {
         case .recentItem(let item):
-            return "\(item.quantity.formatted(.number.precision(.fractionLength(0...1)))) \(item.unit)"
+            let qty = item.quantity?.formatted(.number.precision(.fractionLength(0...1))) ?? "1"
+            let unit = item.unit ?? "serving"
+            return "\(qty) \(unit)"
         case .databaseItem(let item):
             return "\(item.defaultQuantity.formatted(.number.precision(.fractionLength(0...1)))) \(item.defaultUnit)"
         }
     }
 }
 
-private struct FoodItemsList: View {
-    let items: [FoodListItem]
-    var onSelectRecentItem: ((FoodItem) -> Void)? = nil
-    var onSelectDatabaseItem: ((FoodDatabaseItem) -> Void)? = nil
-
-    var body: some View {
-        VStack(spacing: AppSpacing.small) {
-            ForEach(items) { item in
-                FoodItemRow(item: item) {
-                    switch item {
-                    case .recentItem(let recent):
-                        onSelectRecentItem?(recent)
-                    case .databaseItem(let dbItem):
-                        onSelectDatabaseItem?(dbItem)
-                    }
-                }
-                Divider().padding(.leading, AppSpacing.medium)
-            }
-        }
-    }
-}
-
-
 private struct FoodItemRow: View {
-    let item: FoodListItem
+    let food: FoodItem
     let action: () -> Void
+    @EnvironmentObject private var gradientManager: GradientManager
+    @Environment(\.colorScheme) private var colorScheme
+    @State private var isPressed = false
 
     var body: some View {
         Button(action: action) {
-            HStack(alignment: .top, spacing: AppSpacing.medium) {
-                // Icon (optional, could be category-based or a generic food icon)
-                Image(systemName: "takeoutbag.and.cup.and.straw.fill") // Placeholder icon
-                    .font(.title2)
-                    .foregroundColor(AppColors.accentColor)
-                    .frame(width: 30)
+            GlassCard {
+                HStack(alignment: .top, spacing: AppSpacing.md) {
+                    // Icon with gradient
+                    Image(systemName: "takeoutbag.and.cup.and.straw.fill")
+                        .font(.system(size: 24))
+                        .foregroundStyle(
+                            LinearGradient(
+                                colors: gradientManager.active.colors(for: colorScheme),
+                                startPoint: .topLeading,
+                                endPoint: .bottomTrailing
+                            )
+                        )
+                        .frame(width: 32)
 
-                VStack(alignment: .leading, spacing: AppSpacing.xxSmall) {
-                    Text(item.name)
-                        .font(AppFonts.body)
-                        .fontWeight(.medium)
-                        .foregroundColor(AppColors.textPrimary)
-                        .lineLimit(2)
+                    VStack(alignment: .leading, spacing: AppSpacing.xs) {
+                        Text(food.name)
+                            .font(.system(size: 16, weight: .semibold, design: .rounded))
+                            .foregroundStyle(Color.primary)
+                            .lineLimit(2)
 
-                    if let brand = item.brand, !brand.isEmpty {
-                        Text(brand)
-                            .font(AppFonts.caption)
-                            .foregroundColor(AppColors.textSecondary)
-                            .lineLimit(1)
+                        if let brand = food.brand, !brand.isEmpty {
+                            Text(brand)
+                                .font(.system(size: 12, weight: .medium))
+                                .foregroundStyle(Color.secondary.opacity(0.8))
+                                .lineLimit(1)
+                        }
+
+                        Text("\(food.quantity?.formatted() ?? "1") \(food.unit ?? "serving")")
+                            .font(.system(size: 11, weight: .medium))
+                            .foregroundStyle(Color.secondary.opacity(0.6))
                     }
-                    
-                    Text(item.servingDescription)
-                        .font(AppFonts.caption)
-                        .foregroundColor(AppColors.textTertiary)
-                }
 
-                Spacer()
+                    Spacer()
 
-                VStack(alignment: .trailing, spacing: AppSpacing.xxSmall) {
-                    Text("\(Int(item.calories)) cal")
-                        .font(AppFonts.callout)
-                        .fontWeight(.semibold)
-                        .foregroundColor(AppColors.caloriesColor)
-                    
-                    HStack(spacing: AppSpacing.small) {
-                        if let protein = item.protein {
-                            MacroPill(label: "P", value: protein, color: AppColors.proteinColor)
-                        }
-                        if let carbs = item.carbs {
-                            MacroPill(label: "C", value: carbs, color: AppColors.carbsColor)
-                        }
-                        if let fat = item.fat {
-                            MacroPill(label: "F", value: fat, color: AppColors.fatColor)
-                        }
+                    VStack(alignment: .trailing, spacing: 2) {
+                        GradientNumber(value: Double(food.calories ?? 0))
+                            .font(.system(size: 20, weight: .bold, design: .rounded))
+
+                        Text("cal")
+                            .font(.system(size: 11, weight: .medium))
+                            .foregroundStyle(Color.orange.opacity(0.8))
                     }
                 }
+                .padding(AppSpacing.sm)
             }
-            .padding(.vertical, AppSpacing.small)
+            .scaleEffect(isPressed ? 0.98 : 1.0)
+            .animation(MotionToken.microAnimation, value: isPressed)
         }
         .buttonStyle(.plain)
+        .onLongPressGesture(minimumDuration: 0, maximumDistance: .infinity, pressing: { pressing in
+            withAnimation(MotionToken.microAnimation) {
+                isPressed = pressing
+            }
+        }, perform: {})
     }
 }
-
-private struct MacroPill: View {
-    let label: String
-    let value: Double
-    let color: Color
-    
-    var body: some View {
-        HStack(spacing: 2) {
-            Text(label)
-                .font(AppFonts.caption2)
-                .fontWeight(.bold)
-                .foregroundColor(color)
-            Text("\(Int(value))g")
-                .font(AppFonts.caption2)
-                .foregroundColor(AppColors.textSecondary)
-        }
-        .padding(.horizontal, AppSpacing.xSmall)
-        .padding(.vertical, AppSpacing.xxSmall)
-        .background(color.opacity(0.1))
-        .clipShape(Capsule())
-    }
-}
-
 
 struct FoodCategory: Identifiable, Hashable {
     let id = UUID()
@@ -492,111 +450,60 @@ private struct CategoryChip: View {
     let category: FoodCategory
     let isSelected: Bool
     let action: () -> Void
+    @EnvironmentObject private var gradientManager: GradientManager
+    @Environment(\.colorScheme) private var colorScheme
 
     var body: some View {
         Button(action: action) {
-            HStack(spacing: AppSpacing.xSmall) {
+            HStack(spacing: AppSpacing.xs) {
                 Image(systemName: category.icon)
+                    .font(.system(size: 14, weight: .medium))
                 Text(category.name)
+                    .font(.system(size: 14, weight: .medium))
             }
-            .font(AppFonts.footnote)
-            .padding(.horizontal, AppSpacing.medium)
-            .padding(.vertical, AppSpacing.xSmall)
-            .foregroundColor(isSelected ? AppColors.textOnAccent : AppColors.accentColor)
-            .background(isSelected ? AppColors.accentColor : AppColors.accentColor.opacity(0.15))
+            .padding(.horizontal, AppSpacing.md)
+            .padding(.vertical, AppSpacing.xs)
+            .foregroundStyle(
+                isSelected ?
+                    AnyShapeStyle(Color.white) :
+                    AnyShapeStyle(LinearGradient(
+                        colors: gradientManager.active.colors(for: colorScheme),
+                        startPoint: .topLeading,
+                        endPoint: .bottomTrailing
+                    ))
+            )
+            .background {
+                if isSelected {
+                    LinearGradient(
+                        colors: gradientManager.active.colors(for: colorScheme),
+                        startPoint: .topLeading,
+                        endPoint: .bottomTrailing
+                    )
+                } else {
+                    Color.primary.opacity(0.08)
+                }
+            }
             .clipShape(Capsule())
+            .overlay {
+                if !isSelected {
+                    Capsule()
+                        .stroke(
+                            LinearGradient(
+                                colors: gradientManager.active.colors(for: colorScheme).map { $0.opacity(0.3) },
+                                startPoint: .topLeading,
+                                endPoint: .bottomTrailing
+                            ),
+                            lineWidth: 1
+                        )
+                }
+            }
+            .shadow(color: isSelected ? gradientManager.active.colors(for: colorScheme).first?.opacity(0.3) ?? .clear : .clear, radius: 8, y: 4)
         }
     }
 }
 
-// MARK: - Empty State View
-private struct EmptyStateView: View {
-    let icon: String
-    let title: String
-    let message: String
-
-    var body: some View {
-        VStack(spacing: AppSpacing.medium) {
-            Image(systemName: icon)
-                .font(.system(size: 50))
-                .foregroundColor(AppColors.textTertiary)
-            Text(title)
-                .font(AppFonts.title3)
-                .fontWeight(.semibold)
-                .foregroundColor(AppColors.textPrimary)
-            Text(message)
-                .font(AppFonts.body)
-                .foregroundColor(AppColors.textSecondary)
-                .multilineTextAlignment(.center)
-                .padding(.horizontal)
-        }
-        .frame(maxWidth: .infinity, maxHeight: .infinity)
-        .padding(AppSpacing.large)
-    }
-}
+// MARK: - Empty State View - Using CommonComponents.EmptyStateView
 
 
 // MARK: - Previews
-#if DEBUG
-#Preview("Default State") {
-    let container = try! ModelContainer(for: User.self, configurations: ModelConfiguration(isStoredInMemoryOnly: true))
-    let context = container.mainContext
-    
-    let user = User(
-        id: UUID(),
-        createdAt: Date(),
-        lastActiveAt: Date(),
-        email: "test@example.com",
-        name: "Test User",
-        preferredUnits: "metric"
-    )
-    context.insert(user)
-    
-    NavigationStack {
-        // Create a minimal working view model for preview
-        let coordinator = FoodTrackingCoordinator()
-        let viewModel = FoodTrackingViewModel(
-            modelContext: context,
-            user: user,
-            foodVoiceAdapter: FoodVoiceAdapter(),
-            nutritionService: nil,
-            foodDatabaseService: PreviewFoodDatabaseService(),
-            coachEngine: PreviewCoachEngine(),
-            coordinator: coordinator
-        )
-        
-        NutritionSearchView(viewModel: viewModel)
-    }
-    .modelContainer(container)
-}
-
-// MARK: - Preview Services
-private final class PreviewFoodDatabaseService: FoodDatabaseServiceProtocol {
-    func searchFoods(query: String) async throws -> [FoodSearchResult] {
-        return [
-            FoodSearchResult(name: "Apple", calories: 95, protein: 0.5, carbs: 25, fat: 0.3, servingSize: "1 medium"),
-            FoodSearchResult(name: "Banana", calories: 105, protein: 1.3, carbs: 27, fat: 0.4, servingSize: "1 medium")
-        ]
-    }
-    
-    func getFoodDetails(id: String) async throws -> FoodSearchResult? {
-        return FoodSearchResult(name: "Apple", calories: 95, protein: 0.5, carbs: 25, fat: 0.3, servingSize: "1 medium")
-    }
-}
-
-private final class PreviewCoachEngine: FoodCoachEngineProtocol {
-    func processUserMessage(_ message: String, context: HealthContextSnapshot?) async throws -> [String: SendableValue] {
-        return [:]
-    }
-    
-    func executeFunction(_ functionCall: AIFunctionCall, for user: User) async throws -> FunctionExecutionResult {
-        return FunctionExecutionResult(
-            success: true,
-            message: "Preview function executed",
-            data: [:],
-            executionTimeMs: 100,
-            functionName: functionCall.name
-        )
-    }
-}
-#endif
+// TODO: Fix preview to handle async CoachEngine.createDefault

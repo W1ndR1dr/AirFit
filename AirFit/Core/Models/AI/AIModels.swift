@@ -2,6 +2,20 @@ import Foundation
 
 // MARK: - Core AI Types
 
+// AI Model information
+struct AIModel: Sendable, Codable {
+    let id: String
+    let name: String
+    let provider: AIProvider
+    let contextWindow: Int
+    let costPerThousandTokens: TokenCost
+
+    struct TokenCost: Sendable, Codable {
+        let input: Double
+        let output: Double
+    }
+}
+
 enum AIMessageRole: String, Codable, Sendable {
     case system
     case user
@@ -150,6 +164,15 @@ struct AIRequest: Sendable {
     let maxTokens: Int?
     let stream: Bool
     let user: String
+    let responseFormat: LLMRequest.ResponseFormat?
+    let timeout: TimeInterval  // Request timeout in seconds
+    // Optional model override for this request (e.g., GPT-5 for onboarding persona)
+    let model: String?
+
+    // Provider-specific features
+    let enableGrounding: Bool  // Google Gemini grounding
+    let cacheKey: String?      // Anthropic context caching
+    let audioData: Data?       // OpenAI audio input
 
     init(
         systemPrompt: String,
@@ -158,7 +181,13 @@ struct AIRequest: Sendable {
         temperature: Double = 0.7,
         maxTokens: Int? = nil,
         stream: Bool = true,
-        user: String
+        user: String,
+        responseFormat: LLMRequest.ResponseFormat? = nil,
+        timeout: TimeInterval = 30.0,  // Default 30 second timeout
+        enableGrounding: Bool = false,
+        cacheKey: String? = nil,
+        audioData: Data? = nil,
+        model: String? = nil
     ) {
         self.systemPrompt = systemPrompt
         self.messages = messages
@@ -167,6 +196,12 @@ struct AIRequest: Sendable {
         self.maxTokens = maxTokens
         self.stream = stream
         self.user = user
+        self.responseFormat = responseFormat
+        self.timeout = timeout
+        self.enableGrounding = enableGrounding
+        self.cacheKey = cacheKey
+        self.audioData = audioData
+        self.model = model
     }
 }
 
@@ -174,6 +209,7 @@ enum AIResponse: Sendable {
     case text(String)
     case textDelta(String)
     case functionCall(AIFunctionCall)
+    case structuredData(Data)
     case error(AIError)
     case done(usage: AITokenUsage?)
 }
@@ -191,6 +227,7 @@ enum AIError: LocalizedError, Sendable {
     case modelOverloaded
     case contextLengthExceeded
     case unauthorized
+    case timeout(TimeInterval)
 
     var errorDescription: String? {
         switch self {
@@ -209,26 +246,18 @@ enum AIError: LocalizedError, Sendable {
             return "Conversation is too long. Starting a new context."
         case .unauthorized:
             return "AI service authorization failed."
+        case .timeout(let duration):
+            return "Request timed out after \(Int(duration)) seconds."
         }
     }
 }
 
 // MARK: - AI Provider Configuration
 
-enum AIProvider: String, CaseIterable, Sendable {
+enum AIProvider: String, CaseIterable, Sendable, Codable {
     case openAI
     case gemini
     case anthropic
-    case openRouter
-
-    var baseURL: String {
-        switch self {
-        case .openAI: return "https://api.openai.com/v1"
-        case .gemini: return "https://generativelanguage.googleapis.com"
-        case .anthropic: return "https://api.anthropic.com/v1"
-        case .openRouter: return "https://openrouter.ai/api/v1"
-        }
-    }
 }
 
 // MARK: - AIAnyCodable for flexible JSON handling

@@ -1,6 +1,6 @@
 import SwiftUI
 
-public struct AppShadows {
+public struct AppShadows: Sendable {
     // MARK: - Shadow Styles
     static let small = Shadow(
         color: Color.black.opacity(0.08),
@@ -39,21 +39,21 @@ public struct AppShadows {
 
     // MARK: - Colored Shadows
     static let accent = Shadow(
-        color: AppColors.accentColor.opacity(0.3),
+        color: Color.accentColor.opacity(0.3),
         radius: 12,
         x: 0,
         y: 6
     )
 
     static let success = Shadow(
-        color: AppColors.successColor.opacity(0.3),
+        color: Color.green.opacity(0.3),
         radius: 8,
         x: 0,
         y: 4
     )
 
     static let error = Shadow(
-        color: AppColors.errorColor.opacity(0.3),
+        color: Color.red.opacity(0.3),
         radius: 8,
         x: 0,
         y: 4
@@ -61,7 +61,7 @@ public struct AppShadows {
 }
 
 // MARK: - Shadow Model
-struct Shadow {
+struct Shadow: Sendable {
     let color: Color
     let radius: CGFloat
     let x: CGFloat

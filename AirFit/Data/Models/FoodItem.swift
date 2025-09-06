@@ -64,6 +64,20 @@ final class FoodItem: @unchecked Sendable {
         !name.isEmpty && calories != nil && calories! >= 0
     }
 
+    var formattedQuantity: String {
+        guard let quantity = quantity else { return "1 serving" }
+        let formatter = NumberFormatter()
+        formatter.maximumFractionDigits = 1
+        formatter.minimumFractionDigits = 0
+        let quantityString = formatter.string(from: NSNumber(value: quantity)) ?? "\(quantity)"
+
+        if let unit = unit, !unit.isEmpty {
+            return "\(quantityString) \(unit)"
+        } else {
+            return "\(quantityString) serving\(quantity == 1 ? "" : "s")"
+        }
+    }
+
     // MARK: - Initialization
     init(
         id: UUID = UUID(),

@@ -3,13 +3,41 @@ import Foundation
 
 @Model
 final class CoachMessage: @unchecked Sendable {
+    // MARK: - Database Performance Optimization
+    // CRITICAL: iOS 18 SwiftData indexing for query performance
+    // PHASE 2 FIX: Direct userID property for efficient database filtering
+    // Composite indexes for the most common query patterns: (userID+conversationID+timestamp)
+    #Index<CoachMessage>([\.userID], [\.timestamp], [\.role], [\.conversationID], [\.messageTypeRawValue], [\.userID, \.conversationID], [\.userID, \.conversationID, \.timestamp])
+
     // MARK: - Properties
     var id: UUID
+
+    // Indexed for all temporal queries and sorting operations
     var timestamp: Date
+
+    // Indexed for filtering user vs assistant messages
     var role: String
+
     @Attribute(.externalStorage)
     var content: String
+
+    // PHASE 2 FIX: Direct userID for efficient SwiftData predicate filtering
+    // This eliminates the need for relationship-based filtering in predicates
+    var userID: UUID
+
+    // Indexed for conversation-specific queries
     var conversationID: UUID?
+
+    // FUTURE: Message type classification for performance optimization
+    // Commands need minimal history (5 messages), conversations need full history (20 messages)
+    // Using raw value storage for SwiftData compatibility with enum indexing
+    private var messageTypeRawValue: String = MessageType.conversation.rawValue
+
+    // MARK: - Message Type Accessor
+    var messageType: MessageType {
+        get { MessageType(rawValue: messageTypeRawValue) ?? .conversation }
+        set { messageTypeRawValue = newValue.rawValue }
+    }
 
     // AI Metadata
     var modelUsed: String?
@@ -29,11 +57,17 @@ final class CoachMessage: @unchecked Sendable {
     var wasHelpful: Bool?
 
     // MARK: - Relationships
+    // User relationship enables composite index optimization for (user.id, conversationID, timestamp)
     var user: User?
 
     // MARK: - Computed Properties
     var messageRole: MessageRole? {
         MessageRole(rawValue: role)
+    }
+
+    // FUTURE: Convenience property for message classification
+    var isCommand: Bool {
+        messageType == .command
     }
 
     var functionCall: FunctionCall? {
@@ -52,6 +86,8 @@ final class CoachMessage: @unchecked Sendable {
 
         // Rough cost estimates per 1K tokens
         let costPer1K: Double = switch model {
+        case "gpt-5": 0.03      // placeholder
+        case "gpt-5-mini": 0.01 // placeholder
         case "gpt-4": 0.03
         case "gpt-3.5-turbo": 0.002
         case "claude-3": 0.025
@@ -68,14 +104,17 @@ final class CoachMessage: @unchecked Sendable {
         role: MessageRole,
         content: String,
         conversationID: UUID? = nil,
-        user: User? = nil
+        user: User,
+        messageType: MessageType = .conversation
     ) {
         self.id = id
         self.timestamp = timestamp
         self.role = role.rawValue
         self.content = content
         self.conversationID = conversationID
+        self.userID = user.id
         self.user = user
+        self.messageTypeRawValue = messageType.rawValue
     }
 
     // MARK: - Methods

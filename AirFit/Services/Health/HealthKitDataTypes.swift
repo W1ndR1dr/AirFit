@@ -31,13 +31,20 @@ enum HealthKitDataTypes {
             .bodyFatPercentage,
             .leanBodyMass,
             .bodyMassIndex,
+            .height,  // Required for BMR calculations
             // Vitals
             .bloodPressureSystolic,
             .bloodPressureDiastolic,
             .bodyTemperature,
             .oxygenSaturation,
             // Nutrition
-            .dietaryWater
+            .dietaryEnergyConsumed,
+            .dietaryProtein,
+            .dietaryCarbohydrates,
+            .dietaryFatTotal,
+            .dietaryFiber,
+            .dietarySugar,
+            .dietarySodium
         ]
 
         for identifier in quantityIdentifiers {
@@ -58,13 +65,10 @@ enum HealthKitDataTypes {
             }
         }
 
-        // iOS 16+ sleep stages (not iOS 18 - correcting the specification)
-        if #available(iOS 16.0, *) {
-            // Sleep stages were introduced in iOS 16, not iOS 18
-            // Using the correct category type for sleep analysis which includes stages
-            if let sleepType = HKObjectType.categoryType(forIdentifier: .sleepAnalysis) {
-                types.insert(sleepType)
-            }
+        // Sleep stages (available since iOS 16)
+        // Using the correct category type for sleep analysis which includes stages
+        if let sleepType = HKObjectType.categoryType(forIdentifier: .sleepAnalysis) {
+            types.insert(sleepType)
         }
 
         // Workout type
@@ -78,9 +82,18 @@ enum HealthKitDataTypes {
         var types = Set<HKSampleType>()
 
         let writeIdentifiers: [HKQuantityTypeIdentifier] = [
+            // Body Metrics
             .bodyMass,
             .bodyFatPercentage,
-            .dietaryWater
+            .leanBodyMass,
+            // Nutrition
+            .dietaryEnergyConsumed,
+            .dietaryProtein,
+            .dietaryCarbohydrates,
+            .dietaryFatTotal,
+            .dietaryFiber,
+            .dietarySugar,
+            .dietarySodium
         ]
 
         for identifier in writeIdentifiers {

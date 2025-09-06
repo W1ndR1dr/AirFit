@@ -2,6 +2,15 @@ import Foundation
 import SwiftData
 import CryptoKit
 
+// MARK: - Exercise Info for AI Services
+struct ExerciseInfo: Sendable {
+    let id: String
+    let name: String
+    let primaryMuscles: [String]
+    let equipment: [String]
+    let category: String
+}
+
 // MARK: - Exercise Definition Model
 @Model
 final class ExerciseDefinition: Identifiable, Codable {
@@ -109,9 +118,7 @@ private struct RawExerciseData: Codable {
 
 // MARK: - Exercise Database
 @MainActor
-final class ExerciseDatabase: ObservableObject {
-    static let shared = ExerciseDatabase()
-
+final class ExerciseDatabase: ObservableObject, ServiceProtocol {
     @Published private(set) var isLoading = false
     @Published private(set) var loadingProgress: Double = 0
     @Published private(set) var error: ExerciseDatabaseError?
@@ -120,13 +127,70 @@ final class ExerciseDatabase: ObservableObject {
     private var exercises: [ExerciseDefinition] = []
     private let cacheQueue = DispatchQueue(label: "exercise.cache", qos: .utility)
 
-    private init() {
+    // MARK: - ServiceProtocol
+    nonisolated let serviceIdentifier = "exercise-database"
+    private var _isConfigured = false
+    nonisolated var isConfigured: Bool {
+        MainActor.assumeIsolated { _isConfigured }
+    }
+
+    init(container: ModelContainer? = nil) {
         do {
-            container = try ModelContainer(for: ExerciseDefinition.self)
-            Task { await initializeDatabase() }
+            self.container = try container ?? ModelContainer(for: ExerciseDefinition.self)
         } catch {
-            AppLogger.error("Failed to initialize ExerciseDatabase", error: error, category: .data)
-            fatalError("Failed to initialize ExerciseDatabase: \(error)")
+            AppLogger.error("Failed to initialize ExerciseDatabase, using in-memory container", error: error, category: .data)
+            // Create an in-memory container as fallback
+            let configuration = ModelConfiguration(isStoredInMemoryOnly: true)
+            do {
+                self.container = try ModelContainer(for: ExerciseDefinition.self, configurations: configuration)
+            } catch {
+                // This should never fail for in-memory container, but handle it gracefully
+                AppLogger.fault("Failed to create in-memory container for ExerciseDatabase: \(error)", category: .data)
+                // Final fallback: attempt schema-based in-memory container; if this fails, keep an empty database state
+                let schema = Schema([ExerciseDefinition.self])
+                if let fallback = try? ModelContainer(for: schema, configurations: [ModelConfiguration(isStoredInMemoryOnly: true)]) {
+                    self.container = fallback
+                } else {
+                    // As a last resort, log and create a best-effort in-memory container on a background schema
+                    AppLogger.fault("All ExerciseDatabase container fallbacks failed; operating with empty in-memory store", category: .data)
+                    // This will create a container but further fetches may return empty; avoids a hard crash
+                    self.container = try! ModelContainer(for: schema, configurations: [ModelConfiguration(isStoredInMemoryOnly: true)])
+                }
+            }
+            self.exercises = []
+        }
+    }
+
+    // MARK: - ServiceProtocol Methods
+
+    func configure() async throws {
+        guard !_isConfigured else { return }
+        await initializeDatabase()
+        _isConfigured = true
+        AppLogger.info("ExerciseDatabase configured", category: .data)
+    }
+
+    func reset() async {
+        exercises.removeAll()
+        _isConfigured = false
+        AppLogger.info("ExerciseDatabase reset", category: .data)
+    }
+
+    nonisolated func healthCheck() async -> ServiceHealth {
+        await MainActor.run {
+            let hasExercises = !exercises.isEmpty
+            let status: ServiceHealth.Status = hasExercises ? .healthy : .degraded
+
+            return ServiceHealth(
+                status: status,
+                lastCheckTime: Date(),
+                responseTime: nil,
+                errorMessage: hasExercises ? nil : "No exercises loaded",
+                metadata: [
+                    "exerciseCount": "\(exercises.count)",
+                    "isLoading": "\(isLoading)"
+                ]
+            )
         }
     }
 
@@ -182,6 +246,43 @@ final class ExerciseDatabase: ObservableObject {
             exercise.id == id
         }
         return try? container.mainContext.fetch(FetchDescriptor(predicate: predicate)).first
+    }
+
+    // MARK: - AI Service Support
+
+    func filterExercises(equipment: [String]? = nil, primaryMuscles: [String]? = nil) async -> [ExerciseInfo] {
+        var filteredExercises = exercises
+
+        // Filter by equipment if specified
+        if let equipment = equipment, !equipment.isEmpty {
+            let equipmentSet = Set(equipment.map { $0.lowercased() })
+            filteredExercises = filteredExercises.filter { exercise in
+                exercise.equipment.contains { equip in
+                    equipmentSet.contains(equip.rawValue.lowercased())
+                }
+            }
+        }
+
+        // Filter by primary muscles if specified
+        if let muscles = primaryMuscles, !muscles.isEmpty {
+            let muscleSet = Set(muscles.map { $0.lowercased() })
+            filteredExercises = filteredExercises.filter { exercise in
+                exercise.muscleGroups.contains { muscle in
+                    muscleSet.contains(muscle.displayName.lowercased())
+                }
+            }
+        }
+
+        // Convert to ExerciseInfo for AI service
+        return filteredExercises.map { exercise in
+            ExerciseInfo(
+                id: exercise.id,
+                name: exercise.name,
+                primaryMuscles: exercise.muscleGroups.map { $0.displayName },
+                equipment: exercise.equipment.map { $0.displayName },
+                category: exercise.category.displayName
+            )
+        }
     }
 
     // MARK: - Private Methods

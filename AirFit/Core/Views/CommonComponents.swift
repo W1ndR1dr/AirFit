@@ -78,9 +78,9 @@ public struct EmptyStateView: View {
             if let action = action, let actionTitle = actionTitle {
                 Button(action: action) {
                     Text(actionTitle)
+                        .frame(maxWidth: .infinity)
                 }
-                .buttonStyle(.borderedProminent)
-                .controlSize(.large)
+                .buttonStyle(.softPrimary)
             }
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity)
@@ -89,6 +89,7 @@ public struct EmptyStateView: View {
 }
 
 // MARK: - Card View
+/// Legacy card view for backward compatibility. New code should use GlassCard.
 public struct Card<Content: View>: View {
     let content: () -> Content
 
@@ -97,11 +98,10 @@ public struct Card<Content: View>: View {
     }
 
     public var body: some View {
-        content()
-            .padding(AppSpacing.medium)
-            .background(AppColors.cardBackground)
-            .clipShape(RoundedRectangle(cornerRadius: AppSpacing.medium))
-            .shadow(color: .black.opacity(0.05), radius: 5, y: 2)
+        // Use GlassCard internally for consistency
+        GlassCard {
+            content()
+        }
     }
 }
 
@@ -118,22 +118,15 @@ public struct LoadingOverlay: ViewModifier {
 
             if isLoading {
                 VStack(spacing: AppSpacing.medium) {
-                    ProgressView()
-                        .scaleEffect(1.5)
-
-                    if let message = message {
-                        Text(message)
-                            .font(.callout)
-                            .foregroundStyle(.secondary)
-                    }
+                    TextLoadingView(message: message ?? "Loading")
+                        .font(.callout)
                 }
                 .padding(AppSpacing.xLarge)
-                .background(.regularMaterial)
-                .clipShape(RoundedRectangle(cornerRadius: AppSpacing.medium))
+                .glassEffect(.regular, in: .rect(cornerRadius: AppSpacing.medium))
                 .shadow(radius: 10)
             }
         }
-        .animation(.easeInOut(duration: 0.2), value: isLoading)
+        .animation(.smooth(duration: 0.2), value: isLoading)
     }
 }
 

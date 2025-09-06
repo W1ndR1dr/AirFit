@@ -1,0 +1,14 @@
+{
+    "items": [
+        {
+            "name": "Broken Food",
+            "brand": null,
+            "quantity": 1.0,
+            "unit": "serving",
+            "calories": 100,
+            "proteinGrams": 5.0,
+            "carbGrams": 20.0,
+            "fatGrams": 2.0
+        }
+    // Missing closing bracket and brace
+}

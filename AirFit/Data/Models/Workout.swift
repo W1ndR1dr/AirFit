@@ -1,6 +1,6 @@
 import SwiftData
 import Foundation
-import SwiftUI
+import HealthKit
 
 @Model
 final class Workout: @unchecked Sendable {
@@ -14,13 +14,13 @@ final class Workout: @unchecked Sendable {
     var notes: String?
     var workoutType: String
     var intensity: String? // "low", "moderate", "high"
+    var distance: Double? // Distance in meters
 
     // HealthKit Integration
     var healthKitWorkoutID: String?
     var healthKitSyncedDate: Date?
 
-    // Template Reference
-    var templateID: UUID?
+    // Template reference removed - AI-native generation
 
     // AI Analysis
     var aiAnalysis: String?
@@ -102,36 +102,11 @@ final class Workout: @unchecked Sendable {
         exercise.workout = self
     }
 
-    func createFromTemplate(_ template: WorkoutTemplate) {
-        self.name = template.name
-        self.workoutType = template.workoutType
-        self.templateID = template.id
-
-        // Copy exercises from template
-        for templateExercise in template.exercises {
-            let exercise = Exercise(
-                name: templateExercise.name,
-                muscleGroups: templateExercise.muscleGroups
-            )
-
-            // Copy sets from template
-            for templateSet in templateExercise.sets {
-                let set = ExerciseSet(
-                    setNumber: templateSet.setNumber,
-                    targetReps: templateSet.targetReps,
-                    targetWeightKg: templateSet.targetWeightKg,
-                    targetDurationSeconds: templateSet.targetDurationSeconds
-                )
-                exercise.addSet(set)
-            }
-
-            addExercise(exercise)
-        }
-    }
+    // Template creation method removed - AI generates personalized workouts on-demand
 }
 
 // MARK: - WorkoutType Enum
-enum WorkoutType: String, Codable, CaseIterable, Sendable {
+public enum WorkoutType: String, Codable, CaseIterable, Sendable {
     case strength
     case cardio
     case flexibility
@@ -141,7 +116,7 @@ enum WorkoutType: String, Codable, CaseIterable, Sendable {
     case yoga
     case pilates
 
-    var displayName: String {
+    public var displayName: String {
         switch self {
         case .strength: return "Strength Training"
         case .cardio: return "Cardio"
@@ -177,6 +152,28 @@ enum WorkoutType: String, Codable, CaseIterable, Sendable {
         case .hiit: return .red
         case .yoga: return .indigo
         case .pilates: return .teal
+        }
+    }
+
+    /// Converts WorkoutType to HKWorkoutActivityType
+    func toHealthKitType() -> HKWorkoutActivityType {
+        switch self {
+        case .strength:
+            return .traditionalStrengthTraining
+        case .cardio:
+            return .running // Default cardio, could be more specific
+        case .flexibility:
+            return .flexibility
+        case .sports:
+            return .discSports
+        case .general:
+            return .other
+        case .hiit:
+            return .highIntensityIntervalTraining
+        case .yoga:
+            return .yoga
+        case .pilates:
+            return .pilates
         }
     }
 }

@@ -11,15 +11,17 @@ struct MacroRingsView: View {
     var animateOnAppear: Bool = true
 
     @State private var animateRings = false
+    @EnvironmentObject private var gradientManager: GradientManager
+    @Environment(\.colorScheme) private var colorScheme
 
     enum Style {
         case full
         case compact
     }
 
-    private let ringWidthFull: CGFloat = 16
-    private let ringWidthCompact: CGFloat = 8
-    private let ringSpacing: CGFloat = 4
+    private let ringWidthFull: CGFloat = 20
+    private let ringWidthCompact: CGFloat = 10
+    private let ringSpacing: CGFloat = 8
 
     var body: some View {
         Group {
@@ -32,7 +34,7 @@ struct MacroRingsView: View {
         }
         .onAppear {
             if animateOnAppear {
-                withAnimation(.easeInOut(duration: 1.0).delay(0.2)) {
+                withAnimation(MotionToken.standardSpring.delay(0.2)) {
                     animateRings = true
                 }
             } else {
@@ -43,77 +45,129 @@ struct MacroRingsView: View {
 
     // MARK: - Full Rings View
     private var fullRingsView: some View {
-        VStack(spacing: AppSpacing.large) {
-            ZStack {
-                // Background rings
-                ForEach(0..<3, id: \.self) { index in
+        GlassCard {
+            VStack(spacing: AppSpacing.lg) {
+                // Rings container with gradient accent
+                ZStack {
+                    // Gradient glow behind rings
                     Circle()
-                        .stroke(AppColors.backgroundTertiary, lineWidth: ringWidthFull)
-                        .frame(width: ringDiameter(for: index), height: ringDiameter(for: index))
-                }
-
-                // Progress rings
-                ForEach(Array(macroData.enumerated()), id: \.offset) { index, macro in
-                    Circle()
-                        .trim(from: 0, to: animateRings ? macro.progress : 0)
-                        .stroke(
-                            macro.color,
-                            style: StrokeStyle(lineWidth: ringWidthFull, lineCap: .round)
+                        .fill(
+                            RadialGradient(
+                                colors: [
+                                    gradientManager.active.colors(for: colorScheme).first?.opacity(0.2) ?? Color.clear,
+                                    Color.clear
+                                ],
+                                center: .center,
+                                startRadius: 60,
+                                endRadius: 120
+                            )
                         )
-                        .frame(width: ringDiameter(for: index), height: ringDiameter(for: index))
-                        .rotationEffect(.degrees(-90))
-                        .animation(.easeInOut(duration: 1.0).delay(Double(index) * 0.2), value: animateRings)
-                }
+                        .frame(width: 240, height: 240)
+                        .blur(radius: 20)
+                        .opacity(animateRings ? 1 : 0)
 
-                // Center calories
-                VStack(spacing: 2) {
-                    Text("\(Int(nutrition.calories))")
-                        .font(AppFonts.title)
-                        .fontWeight(.bold)
-                        .foregroundColor(AppColors.textPrimary)
-                    Text("cal")
-                        .font(AppFonts.caption)
-                        .foregroundColor(AppColors.textSecondary)
+                    // Background rings with glass effect
+                    ForEach(0..<3, id: \.self) { index in
+                        Circle()
+                            .stroke(Color.primary.opacity(0.05), lineWidth: ringWidthFull)
+                            .frame(width: ringDiameter(for: index), height: ringDiameter(for: index))
+                            .blur(radius: 0.5)
+                    }
+
+                    // Progress rings with gradients
+                    ForEach(Array(macroData.enumerated()), id: \.offset) { index, macro in
+                        Circle()
+                            .trim(from: 0, to: animateRings ? macro.progress : 0)
+                            .stroke(
+                                LinearGradient(
+                                    colors: [macro.color, macro.color.opacity(0.6)],
+                                    startPoint: .topLeading,
+                                    endPoint: .bottomTrailing
+                                ),
+                                style: StrokeStyle(lineWidth: ringWidthFull, lineCap: .round)
+                            )
+                            .frame(width: ringDiameter(for: index), height: ringDiameter(for: index))
+                            .rotationEffect(.degrees(-90))
+                            .shadow(color: macro.color.opacity(0.3), radius: 4, y: 2)
+                            .animation(MotionToken.standardSpring.delay(Double(index) * 0.15), value: animateRings)
+                    }
+
+                    // Center calories with gradient number
+                    VStack(spacing: 4) {
+                        GradientNumber(value: Double(nutrition.calories))
+                            .font(.system(size: 42, weight: .bold, design: .rounded))
+
+                        Text("calories")
+                            .font(.system(size: 14, weight: .medium))
+                            .foregroundStyle(Color.secondary)
+                    }
+                    .scaleEffect(animateRings ? 1 : 0.8)
+                    .opacity(animateRings ? 1 : 0)
+                    .animation(MotionToken.standardSpring.delay(0.3), value: animateRings)
+                }
+                .frame(height: 220)
+
+                // Gradient divider
+                Rectangle()
+                    .fill(
+                        LinearGradient(
+                            colors: [
+                                Color.clear,
+                                gradientManager.active.colors(for: colorScheme).first?.opacity(0.2) ?? Color.clear,
+                                Color.clear
+                            ],
+                            startPoint: .leading,
+                            endPoint: .trailing
+                        )
+                    )
+                    .frame(height: 1)
+                    .padding(.horizontal, AppSpacing.md)
+
+                // Legend with staggered animation
+                HStack(spacing: AppSpacing.lg) {
+                    MacroLegendItem(
+                        title: "Protein",
+                        value: nutrition.protein,
+                        goal: nutrition.proteinGoal,
+                        color: Color(hex: "#FF6B6B"),
+                        unit: "g",
+                        index: 0,
+                        animateIn: animateRings
+                    )
+                    MacroLegendItem(
+                        title: "Carbs",
+                        value: nutrition.carbs,
+                        goal: nutrition.carbGoal,
+                        color: Color(hex: "#4ECDC4"),
+                        unit: "g",
+                        index: 1,
+                        animateIn: animateRings
+                    )
+                    MacroLegendItem(
+                        title: "Fat",
+                        value: nutrition.fat,
+                        goal: nutrition.fatGoal,
+                        color: Color(hex: "#FFD93D"),
+                        unit: "g",
+                        index: 2,
+                        animateIn: animateRings
+                    )
                 }
             }
-            .frame(height: 200)
-
-            // Legend
-            HStack(spacing: AppSpacing.large) {
-                MacroLegendItem(
-                    title: "Protein",
-                    value: nutrition.protein,
-                    goal: nutrition.proteinGoal,
-                    color: AppColors.proteinColor,
-                    unit: "g"
-                )
-                MacroLegendItem(
-                    title: "Carbs",
-                    value: nutrition.carbs,
-                    goal: nutrition.carbGoal,
-                    color: AppColors.carbsColor,
-                    unit: "g"
-                )
-                MacroLegendItem(
-                    title: "Fat",
-                    value: nutrition.fat,
-                    goal: nutrition.fatGoal,
-                    color: AppColors.fatColor,
-                    unit: "g"
-                )
-            }
+            .padding(AppSpacing.md)
         }
     }
 
     // MARK: - Compact Rings View
     private var compactRingsView: some View {
-        HStack(spacing: AppSpacing.medium) {
+        HStack(spacing: AppSpacing.md) {
             ForEach(Array(macroData.enumerated()), id: \.offset) { index, macro in
                 CompactRingView(
                     macro: macro,
                     animate: animateRings,
                     delay: Double(index) * 0.1
                 )
+                .environmentObject(gradientManager)
             }
         }
     }
@@ -125,21 +179,21 @@ struct MacroRingsView: View {
                 label: "P",
                 value: nutrition.protein,
                 goal: nutrition.proteinGoal,
-                color: AppColors.proteinColor,
+                color: Color(hex: "#FF6B6B"),
                 progress: min(nutrition.protein / nutrition.proteinGoal, 1.0)
             ),
             MacroData(
                 label: "C",
                 value: nutrition.carbs,
                 goal: nutrition.carbGoal,
-                color: AppColors.carbsColor,
+                color: Color(hex: "#4ECDC4"),
                 progress: min(nutrition.carbs / nutrition.carbGoal, 1.0)
             ),
             MacroData(
                 label: "F",
                 value: nutrition.fat,
                 goal: nutrition.fatGoal,
-                color: AppColors.fatColor,
+                color: Color(hex: "#FFD93D"),
                 progress: min(nutrition.fat / nutrition.fatGoal, 1.0)
             )
         ]
@@ -159,6 +213,10 @@ struct MacroLegendItem: View {
     let goal: Double
     let color: Color
     let unit: String
+    let index: Int
+    let animateIn: Bool
+
+    @State private var isPressed = false
 
     private var progress: Double {
         min(value / goal, 1.0)
@@ -169,41 +227,80 @@ struct MacroLegendItem: View {
     }
 
     var body: some View {
-        VStack(spacing: AppSpacing.xSmall) {
-            // Progress indicator
+        VStack(spacing: AppSpacing.xs) {
+            // Progress indicator with gradient
             ZStack {
                 Circle()
-                    .stroke(AppColors.backgroundTertiary, lineWidth: 4)
-                    .frame(width: 40, height: 40)
+                    .stroke(Color.primary.opacity(0.1), lineWidth: 5)
+                    .frame(width: 44, height: 44)
 
                 Circle()
-                    .trim(from: 0, to: progress)
-                    .stroke(color, style: StrokeStyle(lineWidth: 4, lineCap: .round))
-                    .frame(width: 40, height: 40)
+                    .trim(from: 0, to: animateIn ? progress : 0)
+                    .stroke(
+                        LinearGradient(
+                            colors: [color, color.opacity(0.7)],
+                            startPoint: .topLeading,
+                            endPoint: .bottomTrailing
+                        ),
+                        style: StrokeStyle(lineWidth: 5, lineCap: .round)
+                    )
+                    .frame(width: 44, height: 44)
                     .rotationEffect(.degrees(-90))
+                    .shadow(color: color.opacity(0.3), radius: 2, y: 1)
+                    .animation(MotionToken.standardSpring.delay(Double(index) * 0.15 + 0.5), value: animateIn)
 
                 Text(title.prefix(1))
-                    .font(AppFonts.caption)
-                    .fontWeight(.semibold)
-                    .foregroundColor(color)
+                    .font(.system(size: 16, weight: .bold, design: .rounded))
+                    .foregroundStyle(color)
+                    .scaleEffect(animateIn ? 1 : 0.8)
+                    .opacity(animateIn ? 1 : 0)
+                    .animation(MotionToken.standardSpring.delay(Double(index) * 0.15 + 0.6), value: animateIn)
             }
 
-            // Values
+            // Values with gradient when over goal
             VStack(spacing: 2) {
-                Text("\(Int(value))")
-                    .font(AppFonts.callout)
-                    .fontWeight(.semibold)
-                    .foregroundColor(isOverGoal ? AppColors.errorColor : AppColors.textPrimary)
+                if isOverGoal {
+                    Text("\(Int(value))")
+                        .font(.system(size: 18, weight: .bold, design: .rounded))
+                        .foregroundStyle(
+                            LinearGradient(
+                                colors: [Color.red, Color.orange],
+                                startPoint: .topLeading,
+                                endPoint: .bottomTrailing
+                            )
+                        )
+                } else {
+                    GradientNumber(value: value)
+                        .font(.system(size: 18, weight: .bold, design: .rounded))
+                }
 
                 Text("/ \(Int(goal))\(unit)")
-                    .font(AppFonts.caption)
-                    .foregroundColor(AppColors.textSecondary)
+                    .font(.system(size: 11, weight: .medium))
+                    .foregroundStyle(Color.secondary.opacity(0.8))
             }
+            .opacity(animateIn ? 1 : 0)
+            .offset(y: animateIn ? 0 : 10)
+            .animation(MotionToken.standardSpring.delay(Double(index) * 0.15 + 0.7), value: animateIn)
 
             // Title
             Text(title)
-                .font(AppFonts.caption)
-                .foregroundColor(AppColors.textSecondary)
+                .font(.system(size: 12, weight: .medium))
+                .foregroundStyle(Color.secondary)
+                .opacity(animateIn ? 1 : 0)
+                .animation(MotionToken.standardSpring.delay(Double(index) * 0.15 + 0.8), value: animateIn)
+        }
+        .scaleEffect(isPressed ? 0.95 : 1.0)
+        .animation(MotionToken.microAnimation, value: isPressed)
+        .onTapGesture {
+            HapticService.impact(.light)
+            withAnimation(MotionToken.microAnimation) {
+                isPressed = true
+            }
+            DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
+                withAnimation(MotionToken.microAnimation) {
+                    isPressed = false
+                }
+            }
         }
         .accessibilityElement(children: .combine)
         .accessibilityLabel("\(title): \(Int(value)) of \(Int(goal)) \(unit)")
@@ -217,30 +314,84 @@ struct CompactRingView: View {
     let delay: Double
 
     @State private var animateProgress = false
+    @State private var isPressed = false
+    @EnvironmentObject private var gradientManager: GradientManager
+    @Environment(\.colorScheme) private var colorScheme
 
     var body: some View {
-        VStack(spacing: AppSpacing.xSmall) {
+        VStack(spacing: AppSpacing.xs) {
             ZStack {
+                // Gradient glow
                 Circle()
-                    .stroke(AppColors.backgroundTertiary, lineWidth: 6)
-                    .frame(width: 50, height: 50)
+                    .fill(
+                        RadialGradient(
+                            colors: [
+                                macro.color.opacity(0.2),
+                                Color.clear
+                            ],
+                            center: .center,
+                            startRadius: 15,
+                            endRadius: 30
+                        )
+                    )
+                    .frame(width: 60, height: 60)
+                    .blur(radius: 8)
+                    .opacity(animateProgress ? 1 : 0)
 
+                // Background ring with glass effect
+                Circle()
+                    .stroke(Color.primary.opacity(0.08), lineWidth: 8)
+                    .frame(width: 52, height: 52)
+                    .blur(radius: 0.3)
+
+                // Progress ring with gradient
                 Circle()
                     .trim(from: 0, to: animateProgress ? macro.progress : 0)
-                    .stroke(macro.color, style: StrokeStyle(lineWidth: 6, lineCap: .round))
-                    .frame(width: 50, height: 50)
+                    .stroke(
+                        LinearGradient(
+                            colors: [macro.color, macro.color.opacity(0.7)],
+                            startPoint: .topLeading,
+                            endPoint: .bottomTrailing
+                        ),
+                        style: StrokeStyle(lineWidth: 8, lineCap: .round)
+                    )
+                    .frame(width: 52, height: 52)
                     .rotationEffect(.degrees(-90))
-                    .animation(.easeInOut(duration: 0.8).delay(delay), value: animateProgress)
+                    .shadow(color: macro.color.opacity(0.4), radius: 3, y: 1)
+                    .animation(MotionToken.standardSpring.delay(delay), value: animateProgress)
 
                 Text(macro.label)
-                    .font(AppFonts.caption)
-                    .fontWeight(.semibold)
-                    .foregroundColor(macro.color)
+                    .font(.system(size: 18, weight: .bold, design: .rounded))
+                    .foregroundStyle(macro.color)
+                    .scaleEffect(animateProgress ? 1 : 0.8)
+                    .opacity(animateProgress ? 1 : 0)
+                    .animation(MotionToken.standardSpring.delay(delay + 0.2), value: animateProgress)
             }
 
-            Text("\(Int(macro.value))g")
-                .font(AppFonts.caption)
-                .foregroundColor(AppColors.textSecondary)
+            VStack(spacing: 0) {
+                GradientNumber(value: macro.value)
+                    .font(.system(size: 16, weight: .bold, design: .rounded))
+
+                Text("g")
+                    .font(.system(size: 11, weight: .medium))
+                    .foregroundStyle(Color.secondary.opacity(0.8))
+            }
+            .opacity(animateProgress ? 1 : 0)
+            .offset(y: animateProgress ? 0 : 8)
+            .animation(MotionToken.standardSpring.delay(delay + 0.3), value: animateProgress)
+        }
+        .scaleEffect(isPressed ? 0.92 : 1.0)
+        .animation(MotionToken.microAnimation, value: isPressed)
+        .onTapGesture {
+            HapticService.impact(.light)
+            withAnimation(MotionToken.microAnimation) {
+                isPressed = true
+            }
+            DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
+                withAnimation(MotionToken.microAnimation) {
+                    isPressed = false
+                }
+            }
         }
         .onChange(of: animate) { _, newValue in
             animateProgress = newValue
@@ -265,14 +416,14 @@ struct MacroData {
 #Preview("Full Style") {
     MacroRingsView(
         nutrition: FoodNutritionSummary(
-            calories: 1850,
+            calories: 1_850,
             protein: 120,
             carbs: 180,
             fat: 65,
             fiber: 25,
             sugar: 45,
-            sodium: 2100,
-            calorieGoal: 2000,
+            sodium: 2_100,
+            calorieGoal: 2_000,
             proteinGoal: 150,
             carbGoal: 200,
             fatGoal: 70
@@ -285,14 +436,14 @@ struct MacroData {
 #Preview("Compact Style") {
     MacroRingsView(
         nutrition: FoodNutritionSummary(
-            calories: 1850,
+            calories: 1_850,
             protein: 120,
             carbs: 180,
             fat: 65,
             fiber: 25,
             sugar: 45,
-            sodium: 2100,
-            calorieGoal: 2000,
+            sodium: 2_100,
+            calorieGoal: 2_000,
             proteinGoal: 150,
             carbGoal: 200,
             fatGoal: 70

@@ -15,6 +15,7 @@ excluded:
   - "**/.DS_Store"
   - "**/*.generated.swift"
   - AirFit/Docs
+  - "**/Deprecated"
 
 # Disabled Rules (Too strict for production)
 disabled_rules:
@@ -76,4 +77,43 @@ attributes:
   always_on_line_above: ["@discardableResult", "@MainActor", "@Observable"]
 
 # Reporter
-reporter: "xcode" 
+reporter: "xcode"
+
+# Custom Rules for Architecture Boundaries
+custom_rules:
+  no_swiftdata_in_ui:
+    included: ["AirFit/Modules"]
+    name: "No SwiftData in UI"
+    regex: "(?s)import\\s+SwiftData"
+    message: "UI/ViewModels cannot import SwiftData; use repositories/services."
+    severity: warning
+    
+  no_notificationcenter_chat:
+    included: ["AirFit/Modules/AI", "AirFit/Modules/Chat"]
+    name: "No NotificationCenter for chat"
+    regex: "NotificationCenter\\.default\\.(post|addObserver)"
+    message: "Use ChatStreamingStore for streaming."
+    severity: warning
+    
+  no_force_ops:
+    included: ["AirFit"]
+    excluded: ["AirFit/**/Tests/**", "AirFit/**/Previews/**", "AirFit/Services/ExerciseDatabase.swift"]
+    name: "No force ops"
+    regex: "try!| as!| !\\."
+    message: "Replace force ops with safe handling."
+    severity: error
+    
+  require_mainactor_viewmodels:
+    included: ["AirFit/Modules"]
+    name: "ViewModels must be @MainActor"
+    regex: "class\\s+\\w+ViewModel(?!.*@MainActor)"
+    message: "ViewModels must be annotated with @MainActor"
+    severity: warning
+    
+  no_direct_urlsession:
+    included: ["AirFit"]
+    excluded: ["AirFit/Services/Network/**", "AirFit/**/Tests/**"]
+    name: "No direct URLSession usage"
+    regex: "URLSession\\.|dataTask\\("
+    message: "Use NetworkClientProtocol instead of direct URLSession"
+    severity: warning

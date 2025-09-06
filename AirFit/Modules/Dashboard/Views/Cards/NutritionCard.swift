@@ -1,6 +1,8 @@
 import SwiftUI
 
 struct NutritionCard: View {
+    @EnvironmentObject private var gradientManager: GradientManager
+
     let summary: NutritionSummary
     let targets: NutritionTargets
     var onTap: (() -> Void)?
@@ -27,30 +29,38 @@ struct NutritionCard: View {
         return min(summary.fat / targets.fat, 1.0)
     }
 
-    private var waterProgress: Double {
-        guard targets.water > 0 else { return 0 }
-        return min(summary.waterLiters / targets.water, 1.0)
-    }
-
     var body: some View {
-        VStack(alignment: .leading, spacing: AppSpacing.medium) {
+        VStack(alignment: .leading, spacing: AppSpacing.sm) {
             cardHeader
 
-            HStack(spacing: AppSpacing.medium) {
+            HStack(spacing: AppSpacing.md) {
                 caloriesRing
                 macroBreakdown
             }
-
-            waterIntakeRow
+            
+            // Show photo logging tip if calories are low
+            if summary.calories < 500 {
+                HStack(spacing: AppSpacing.xs) {
+                    Image(systemName: "camera.fill")
+                        .font(.system(size: 12, weight: .light))
+                        .foregroundStyle(.orange)
+                    
+                    Text("Try our new photo logging!")
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                    
+                    Spacer()
+                }
+                .padding(.top, AppSpacing.xs)
+                .opacity(0.8)
+            }
         }
-        .padding()
-        .background(AppColors.cardBackground)
-        .cornerRadius(AppConstants.Layout.defaultCornerRadius)
-        .shadow(color: AppColors.shadowColor, radius: 4, x: 0, y: 2)
-        .contentShape(Rectangle())
-        .onTapGesture { onTap?() }
+        .onTapGesture {
+            HapticService.impact(.soft)
+            onTap?()
+        }
         .onAppear {
-            withAnimation(.bouncy.delay(0.1)) {
+            withAnimation(MotionToken.standardSpring.delay(0.1)) {
                 animateRings = true
             }
         }
@@ -63,32 +73,35 @@ private extension NutritionCard {
         HStack {
             Label("Nutrition", systemImage: "fork.knife")
                 .font(AppFonts.headline)
-                .foregroundStyle(AppColors.textPrimary)
+                .foregroundStyle(.primary)
 
             Spacer()
 
             Image(systemName: "chevron.right")
                 .font(.caption)
-                .foregroundStyle(AppColors.textTertiary)
+                .foregroundStyle(.tertiary)
         }
     }
 
     var caloriesRing: some View {
-        ZStack {
-            AnimatedRing(
-                progress: animateRings ? caloriesProgress : 0,
-                gradient: AppColors.caloriesGradient,
-                lineWidth: 12
-            )
-            .frame(width: 80, height: 80)
-
+        MetricRing(
+            value: animateRings ? summary.calories : 0,
+            goal: targets.calories,
+            lineWidth: 12,
+            size: 80,
+            showPercentage: false
+        )
+        .overlay {
             VStack(spacing: 2) {
-                Text("\(Int(summary.calories))")
-                    .font(AppFonts.headline)
-                    .foregroundStyle(AppColors.textPrimary)
+                GradientNumber(
+                    value: summary.calories,
+                    fontSize: 20,
+                    fontWeight: .semibold
+                )
                 Text("cal")
-                    .font(AppFonts.caption)
-                    .foregroundStyle(AppColors.textSecondary)
+                    .font(.caption)
+                    .fontWeight(.medium)
+                    .foregroundStyle(.secondary)
             }
         }
     }
@@ -99,7 +112,7 @@ private extension NutritionCard {
                 label: "Protein",
                 value: summary.protein,
                 target: targets.protein,
-                color: AppColors.proteinColor,
+                color: Color(hex: "#FF6B6B"),
                 progress: animateRings ? proteinProgress : 0
             )
 
@@ -107,7 +120,7 @@ private extension NutritionCard {
                 label: "Carbs",
                 value: summary.carbs,
                 target: targets.carbs,
-                color: AppColors.carbsColor,
+                color: Color(hex: "#4ECDC4"),
                 progress: animateRings ? carbsProgress : 0
             )
 
@@ -115,29 +128,12 @@ private extension NutritionCard {
                 label: "Fat",
                 value: summary.fat,
                 target: targets.fat,
-                color: AppColors.fatColor,
+                color: Color(hex: "#FFD93D"),
                 progress: animateRings ? fatProgress : 0
             )
         }
     }
 
-    var waterIntakeRow: some View {
-        HStack {
-            Image(systemName: "drop.fill")
-                .foregroundStyle(.blue)
-                .font(.caption)
-
-            Text("\(summary.waterLiters, specifier: "%.1f")L / \(targets.water, specifier: "%.1f")L")
-                .font(AppFonts.caption)
-                .foregroundStyle(AppColors.textSecondary)
-
-            Spacer()
-
-            ProgressView(value: waterProgress)
-                .progressViewStyle(LinearProgressViewStyle(tint: .blue))
-                .frame(width: 60)
-        }
-    }
 }
 
 // MARK: - Components
@@ -156,12 +152,12 @@ private struct MacroRow: View {
 
             Text(label)
                 .font(AppFonts.caption)
-                .foregroundStyle(AppColors.textSecondary)
+                .foregroundStyle(.secondary)
                 .frame(width: 50, alignment: .leading)
 
             Text("\(Int(value))g")
                 .font(AppFonts.caption)
-                .foregroundStyle(AppColors.textPrimary)
+                .foregroundStyle(.primary)
 
             ProgressView(value: progress)
                 .progressViewStyle(LinearProgressViewStyle(tint: color))
@@ -180,13 +176,13 @@ private struct AnimatedRing: View {
     var body: some View {
         ZStack {
             Circle()
-                .stroke(AppColors.dividerColor, lineWidth: lineWidth)
+                .stroke(Color.primary.opacity(0.1), lineWidth: lineWidth)
 
             Circle()
                 .trim(from: 0, to: animatedProgress)
                 .stroke(gradient, style: StrokeStyle(lineWidth: lineWidth, lineCap: .round))
                 .rotationEffect(.degrees(-90))
-                .animation(.spring(response: 1.0, dampingFraction: 0.8), value: animatedProgress)
+                .animation(.bouncy(extraBounce: 0.2), value: animatedProgress)
         }
         .onAppear { animatedProgress = progress }
         .onChange(of: progress) { _, newValue in
@@ -198,7 +194,17 @@ private struct AnimatedRing: View {
 #Preview {
     NutritionCard(
         summary: NutritionSummary(
-            calories: 850, protein: 40, carbs: 120, fat: 25, fiber: 10, waterLiters: 1.2, meals: [:]
+            calories: 850,
+            caloriesTarget: 2_000,
+            protein: 40,
+            proteinTarget: 150,
+            carbs: 120,
+            carbsTarget: 250,
+            fat: 25,
+            fatTarget: 65,
+            fiber: 10,
+            fiberTarget: 25,
+            mealCount: 2
         ),
         targets: NutritionTargets.default
     )

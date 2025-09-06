@@ -1,17 +1,21 @@
 import Foundation
 
 /// Comprehensive registry of all AI functions available to the CoachEngine.
-/// Defines function schemas for workout planning, nutrition logging, performance analysis,
-/// plan adaptation, goal setting, and educational content generation.
+/// Defines function schemas for workout planning, performance analysis,
+/// plan adaptation, and goal setting.
+///
+/// NOTE: parseAndLogComplexNutrition and generateEducationalInsight have been migrated
+/// to direct AI implementation in CoachEngine for improved performance and reduced token usage.
 enum FunctionRegistry {
 
     /// All available functions that the AI coach can call to assist users.
+    /// Functions removed in Phase 3 refactor:
+    /// - parseAndLogComplexNutrition (now CoachEngine.parseAndLogNutritionDirect)
+    /// - generateEducationalInsight (now CoachEngine.generateEducationalContentDirect)
     static let availableFunctions: [AIFunctionDefinition] = [
         WorkoutFunctions.generatePersonalizedWorkoutPlan,
         WorkoutFunctions.adaptPlanBasedOnFeedback,
-        NutritionFunctions.parseAndLogComplexNutrition,
         AnalysisFunctions.analyzePerformanceTrends,
-        AnalysisFunctions.generateEducationalInsight,
         GoalFunctions.assistGoalSettingOrRefinement
     ]
 

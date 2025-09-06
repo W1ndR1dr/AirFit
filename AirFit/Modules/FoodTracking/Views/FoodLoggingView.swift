@@ -2,64 +2,98 @@ import SwiftUI
 import Charts
 import SwiftData
 
+// MARK: - Food Tracking View with DI
+struct FoodTrackingView: View {
+    let user: User
+    @State private var viewModel: FoodTrackingViewModel?
+    @Environment(\.diContainer) private var container
+
+    var body: some View {
+        Group {
+            if let viewModel = viewModel {
+                FoodLoggingView(viewModel: viewModel)
+            } else {
+                TextLoadingView.loadingNutrition()
+                    .task {
+                        let factory = DIViewModelFactory(container: container)
+                        viewModel = try? await factory.makeFoodTrackingViewModel(user: user)
+                    }
+            }
+        }
+    }
+}
+
 /// Main food logging interface with voice-first workflow and macro visualization.
 struct FoodLoggingView: View {
     @State private var viewModel: FoodTrackingViewModel
     @State private var coordinator: FoodTrackingCoordinator
+    @State private var animateIn = false
+    @EnvironmentObject private var gradientManager: GradientManager
+    @Environment(\.colorScheme) private var colorScheme
     @Environment(\.dismiss) private var dismiss
 
-    init(
-        modelContext: ModelContext,
-        user: User,
-        coordinator: FoodTrackingCoordinator
-    ) {
-        let adapter = FoodVoiceAdapter()
-        let vm = FoodTrackingViewModel(
-            modelContext: modelContext,
-            user: user,
-            foodVoiceAdapter: adapter,
-            nutritionService: nil, // Will be set asynchronously
-            foodDatabaseService: FoodDatabaseService(),
-            coachEngine: CoachEngine.createDefault(modelContext: modelContext),
-            coordinator: coordinator
-        )
-        self.viewModel = vm
-        self.coordinator = coordinator
-        
-        // Set nutrition service asynchronously to avoid actor isolation issues
-        Task { @MainActor in
-            await vm.setNutritionService(NutritionService(modelContext: modelContext))
-        }
+    init(viewModel: FoodTrackingViewModel, coordinator: FoodTrackingCoordinator = FoodTrackingCoordinator()) {
+        _viewModel = State(initialValue: viewModel)
+        _coordinator = State(initialValue: coordinator)
     }
+
 
     var body: some View {
         NavigationStack(path: $coordinator.navigationPath) {
-            ScrollView {
-                VStack(spacing: 0) {
-                    datePicker
-                    macroSummaryCard
-                        .padding(.horizontal)
-                        .padding(.top, AppSpacing.medium)
-                    quickActionsSection
-                        .padding(.horizontal)
-                        .padding(.top, AppSpacing.large)
-                    mealsSection
-                        .padding(.horizontal)
-                        .padding(.top, AppSpacing.large)
-                    if !viewModel.suggestedFoods.isEmpty {
-                        suggestionsSection
-                            .padding(.top, AppSpacing.large)
+            BaseScreen {
+                ScrollView {
+                    VStack(spacing: 0) {
+                        // Header with title
+                        if animateIn {
+                            CascadeText("Food Tracking")
+                                .font(.system(size: 34, weight: .light, design: .rounded))
+                                .padding(.horizontal, AppSpacing.screenPadding)
+                                .padding(.top, AppSpacing.md)
+                        }
+
+                        datePicker
+                            .padding(.top, AppSpacing.sm)
+                            .opacity(animateIn ? 1 : 0)
+                            .offset(y: animateIn ? 0 : 10)
+                            .animation(MotionToken.standardSpring.delay(0.2), value: animateIn)
+
+                        macroSummaryCard
+                            .padding(.horizontal, AppSpacing.screenPadding)
+                            .padding(.top, AppSpacing.md)
+                            .opacity(animateIn ? 1 : 0)
+                            .offset(y: animateIn ? 0 : 20)
+                            .animation(MotionToken.standardSpring.delay(0.3), value: animateIn)
+
+                        quickActionsSection
+                            .padding(.horizontal, AppSpacing.screenPadding)
+                            .padding(.top, AppSpacing.lg)
+                            .opacity(animateIn ? 1 : 0)
+                            .offset(y: animateIn ? 0 : 20)
+                            .animation(MotionToken.standardSpring.delay(0.4), value: animateIn)
+
+                        mealsSection
+                            .padding(.horizontal, AppSpacing.screenPadding)
+                            .padding(.top, AppSpacing.lg)
+
+                        if !viewModel.suggestedFoods.isEmpty {
+                            suggestionsSection
+                                .padding(.top, AppSpacing.lg)
+                                .transition(.move(edge: .bottom).combined(with: .opacity))
+                        }
                     }
+                    .padding(.bottom, AppSpacing.xl)
                 }
-                .padding(.bottom, AppSpacing.xLarge)
             }
-            .background(AppColors.backgroundPrimary)
-            .navigationTitle("Food Tracking")
-            .navigationBarTitleDisplayMode(.large)
-            .toolbar {
-                ToolbarItem(placement: .topBarTrailing) {
-                    Button("Done") { dismiss() }
+            .navigationBarHidden(true)
+            .overlay(alignment: .topTrailing) {
+                Button("Done") {
+                    HapticService.impact(.light)
+                    dismiss()
                 }
+                .font(.system(size: 17, weight: .medium))
+                .foregroundStyle(gradientManager.currentGradient(for: colorScheme))
+                .padding(AppSpacing.screenPadding)
+                .opacity(animateIn ? 1 : 0)
             }
             .navigationDestination(for: FoodTrackingDestination.self) { destination in
                 destinationView(for: destination)
@@ -76,11 +110,13 @@ struct FoodLoggingView: View {
             .refreshable {
                 await viewModel.loadTodaysData()
             }
-            .alert("Error", isPresented: .constant(viewModel.hasError)) {
-                Button("OK") { viewModel.clearError() }
-            } message: {
-                if let error = viewModel.currentError {
-                    Text(error.localizedDescription)
+            .errorAlert(
+                error: $viewModel.error,
+                isPresented: $viewModel.isShowingError
+            )
+            .onAppear {
+                withAnimation(MotionToken.standardSpring) {
+                    animateIn = true
                 }
             }
         }
@@ -89,115 +125,141 @@ struct FoodLoggingView: View {
     // MARK: - Date Picker
     private var datePicker: some View {
         HStack {
-            Button(action: previousDay) {
+            Button(action: {
+                HapticService.selection()
+                previousDay()
+            }) {
                 Image(systemName: "chevron.left")
-                    .font(.title3)
-                    .foregroundStyle(.secondary)
+                    .font(.system(size: 20, weight: .light))
+                    .foregroundStyle(gradientManager.currentGradient(for: colorScheme))
             }
+
             Spacer()
+
             Text(viewModel.currentDate.formatted(date: .abbreviated, time: .omitted))
-                .font(.headline)
+                .font(.system(size: 18, weight: .medium, design: .rounded))
+                .foregroundColor(.primary)
+
             Spacer()
-            Button(action: nextDay) {
+            Button(action: {
+                HapticService.selection()
+                nextDay()
+            }) {
                 Image(systemName: "chevron.right")
-                    .font(.title3)
-                    .foregroundStyle(.secondary)
+                    .font(.system(size: 20, weight: .light))
+                    .foregroundStyle(
+                        Calendar.current.isDateInToday(viewModel.currentDate) ?
+                            AnyShapeStyle(Color.secondary.opacity(0.3)) :
+                            AnyShapeStyle(gradientManager.currentGradient(for: colorScheme))
+                    )
             }
             .disabled(Calendar.current.isDateInToday(viewModel.currentDate))
         }
-        .padding(.horizontal)
-        .padding(.vertical, AppSpacing.small)
-        .background(AppColors.cardBackground)
+        .padding(.horizontal, AppSpacing.screenPadding)
+        .padding(.vertical, AppSpacing.xs)
     }
 
     // MARK: - Macro Summary
     private var macroSummaryCard: some View {
-        Card {
-            VStack(spacing: AppSpacing.medium) {
+        GlassCard {
+            VStack(spacing: AppSpacing.md) {
                 HStack {
                     Text("Today's Nutrition")
-                        .font(.headline)
+                        .font(.system(size: 20, weight: .medium, design: .rounded))
+                        .foregroundColor(.primary)
+
                     Spacer()
+
                     NavigationLink(value: FoodTrackingDestination.insights) {
-                        Text("Details")
-                            .font(.subheadline)
-                            .foregroundStyle(AppColors.accent)
+                        HStack(spacing: 4) {
+                            Text("Details")
+                                .font(.system(size: 15, weight: .light))
+                            Image(systemName: "chevron.right")
+                                .font(.system(size: 12, weight: .light))
+                        }
+                        .foregroundStyle(gradientManager.currentGradient(for: colorScheme))
                     }
                 }
-                VStack {
-                    Text("Macro Rings Placeholder")
-                        .font(.caption)
-                        .foregroundStyle(.secondary)
-                    HStack {
-                        VStack {
-                            Text("Calories")
-                            Text("\(Int(viewModel.todaysNutrition.calories))")
-                                .font(.title2)
-                                .fontWeight(.bold)
-                        }
-                        Spacer()
-                        VStack {
-                            Text("Protein")
-                            Text("\(Int(viewModel.todaysNutrition.protein))g")
-                                .font(.title2)
-                                .fontWeight(.bold)
-                        }
-                        Spacer()
-                        VStack {
-                            Text("Carbs")
-                            Text("\(Int(viewModel.todaysNutrition.carbs))g")
-                                .font(.title2)
-                                .fontWeight(.bold)
-                        }
-                        Spacer()
-                        VStack {
-                            Text("Fat")
-                            Text("\(Int(viewModel.todaysNutrition.fat))g")
-                                .font(.title2)
-                                .fontWeight(.bold)
-                        }
-                    }
+
+                // Macro rings visualization
+                HStack(spacing: AppSpacing.lg) {
+                    MacroMetric(
+                        title: "Calories",
+                        value: Int(viewModel.todaysNutrition.calories),
+                        unit: "",
+                        color: gradientManager.active == .peachRose ? Color.orange : Color.blue,
+                        icon: "flame.fill"
+                    )
+
+                    MacroMetric(
+                        title: "Protein",
+                        value: Int(viewModel.todaysNutrition.protein),
+                        unit: "g",
+                        color: .purple,
+                        icon: "p.square.fill"
+                    )
+
+                    MacroMetric(
+                        title: "Carbs",
+                        value: Int(viewModel.todaysNutrition.carbs),
+                        unit: "g",
+                        color: .green,
+                        icon: "c.square.fill"
+                    )
+
+                    MacroMetric(
+                        title: "Fat",
+                        value: Int(viewModel.todaysNutrition.fat),
+                        unit: "g",
+                        color: .yellow,
+                        icon: "f.square.fill"
+                    )
                 }
-                .padding()
-                .background(AppColors.backgroundSecondary)
-                .clipShape(RoundedRectangle(cornerRadius: AppSpacing.small))
-                
+
+                // Bottom stats bar
                 HStack {
-                    Image(systemName: "flame.fill")
-                        .foregroundStyle(.orange)
-                    Text("\(Int(viewModel.todaysNutrition.calories)) / \(Int(viewModel.todaysNutrition.calorieGoal)) cal")
-                        .font(.callout)
-                        .fontWeight(.medium)
+                    HStack(spacing: AppSpacing.xs) {
+                        Image(systemName: "flame.fill")
+                            .font(.system(size: 14))
+                            .foregroundStyle(.orange)
+                        Text("\(Int(viewModel.todaysNutrition.calories)) / \(Int(viewModel.todaysNutrition.calorieGoal)) cal")
+                            .font(.system(size: 14, weight: .medium))
+                            .foregroundColor(.primary)
+                    }
+
                     Spacer()
-                    Image(systemName: "drop.fill")
-                        .foregroundStyle(.blue)
-                    Text("\(Int(viewModel.waterIntakeML)) ml")
-                        .font(.callout)
-                        .fontWeight(.medium)
                 }
+                .padding(.top, AppSpacing.xs)
             }
         }
     }
 
     // MARK: - Quick Actions
     private var quickActionsSection: some View {
-        VStack(alignment: .leading, spacing: AppSpacing.medium) {
-            SectionHeader(title: "Quick Add", icon: "plus.circle.fill")
+        VStack(alignment: .leading, spacing: AppSpacing.sm) {
+            Text("Quick Add")
+                .font(.system(size: 18, weight: .medium, design: .rounded))
+                .foregroundColor(.primary)
+
             ScrollView(.horizontal, showsIndicators: false) {
-                HStack(spacing: AppSpacing.medium) {
-                    QuickActionButton(title: "Voice", icon: "mic.fill", color: AppColors.accent) {
+                HStack(spacing: AppSpacing.sm) {
+                    QuickActionCard(title: "Voice", icon: "mic.fill", gradientColors: [.blue, .purple]) {
+                        HapticService.impact(.light)
                         Task { await viewModel.startVoiceInput() }
                     }
-                    QuickActionButton(title: "Photo", icon: "camera.fill", color: .orange) {
-                        viewModel.startPhotoCapture()
+
+                    QuickActionCardWithBadge(title: "Photo", icon: "camera.fill", gradientColors: [.orange, .pink], badge: "New!") {
+                        HapticService.impact(.light)
+                        coordinator.showSheet(.photoCapture)
                     }
-                    QuickActionButton(title: "Search", icon: "magnifyingglass", color: .green) {
+
+                    QuickActionCard(title: "Search", icon: "magnifyingglass", gradientColors: [.green, .teal]) {
+                        HapticService.impact(.light)
                         coordinator.showSheet(.foodSearch)
                     }
-                    QuickActionButton(title: "Water", icon: "drop.fill", color: .blue) {
-                        coordinator.showSheet(.waterTracking)
-                    }
-                    QuickActionButton(title: "Manual", icon: "square.and.pencil", color: .purple) {
+
+                    QuickActionCard(title: "Manual", icon: "square.and.pencil", gradientColors: [.purple, .indigo]) {
+                        HapticService.impact(.light)
                         coordinator.showSheet(.manualEntry)
                     }
                 }
@@ -207,20 +269,31 @@ struct FoodLoggingView: View {
 
     // MARK: - Meals
     private var mealsSection: some View {
-        VStack(alignment: .leading, spacing: AppSpacing.medium) {
-            SectionHeader(title: "Today's Meals", icon: "fork.knife")
-            VStack(spacing: AppSpacing.medium) {
-                ForEach(MealType.allCases, id: \.self) { mealType in
+        VStack(alignment: .leading, spacing: AppSpacing.sm) {
+            Text("Today's Meals")
+                .font(.system(size: 18, weight: .medium, design: .rounded))
+                .foregroundColor(.primary)
+
+            VStack(spacing: AppSpacing.sm) {
+                ForEach(Array(MealType.allCases.enumerated()), id: \.element) { index, mealType in
                     MealCard(
                         mealType: mealType,
                         entries: viewModel.todaysFoodEntries.filter { $0.mealType == mealType.rawValue },
                         onAdd: {
+                            HapticService.impact(.light)
                             viewModel.setSelectedMealType(mealType)
                             Task { await viewModel.startVoiceInput() }
                         },
                         onTapEntry: { entry in
+                            HapticService.selection()
                             coordinator.showSheet(.mealDetails(entry))
                         }
+                    )
+                    .opacity(animateIn ? 1 : 0)
+                    .offset(y: animateIn ? 0 : 20)
+                    .animation(
+                        MotionToken.standardSpring.delay(0.5 + Double(index) * 0.1),
+                        value: animateIn
                     )
                 }
             }
@@ -229,18 +302,22 @@ struct FoodLoggingView: View {
 
     // MARK: - Suggestions
     private var suggestionsSection: some View {
-        VStack(alignment: .leading, spacing: AppSpacing.medium) {
-            SectionHeader(title: "Quick Add Favorites", icon: "star.fill")
-                .padding(.horizontal)
+        VStack(alignment: .leading, spacing: AppSpacing.sm) {
+            Text("Quick Add Favorites")
+                .font(.system(size: 18, weight: .medium, design: .rounded))
+                .foregroundColor(.primary)
+                .padding(.horizontal, AppSpacing.screenPadding)
+
             ScrollView(.horizontal, showsIndicators: false) {
-                HStack(spacing: AppSpacing.medium) {
+                HStack(spacing: AppSpacing.sm) {
                     ForEach(viewModel.suggestedFoods) { food in
                         SuggestionCard(food: food) {
+                            HapticService.impact(.light)
                             selectSuggestedFood(food)
                         }
                     }
                 }
-                .padding(.horizontal)
+                .padding(.horizontal, AppSpacing.screenPadding)
             }
         }
     }
@@ -261,19 +338,23 @@ struct FoodLoggingView: View {
     }
 
     private func selectSuggestedFood(_ food: FoodItem) {
-        let parsed = ParsedFoodItem(
+        let parsedItem = ParsedFoodItem(
             name: food.name,
             brand: food.brand,
             quantity: food.quantity ?? 1,
             unit: food.unit ?? "serving",
-            calories: food.calories ?? 0,
-            proteinGrams: food.proteinGrams,
-            carbGrams: food.carbGrams,
-            fatGrams: food.fatGrams,
+            calories: Int(food.calories ?? 0),
+            proteinGrams: food.proteinGrams ?? 0,
+            carbGrams: food.carbGrams ?? 0,
+            fatGrams: food.fatGrams ?? 0,
+            fiberGrams: food.fiberGrams,
+            sugarGrams: food.sugarGrams,
+            sodiumMilligrams: food.sodiumMg,
+            databaseId: nil,
             confidence: 1.0
         )
-        viewModel.setParsedItems([parsed])
-        coordinator.showFullScreenCover(.confirmation([parsed]))
+        viewModel.setParsedItems([parsedItem])
+        coordinator.showFullScreenCover(.confirmation([parsedItem]))
     }
 
     // MARK: - Navigation Helpers
@@ -290,22 +371,30 @@ struct FoodLoggingView: View {
             PlaceholderView(title: "Recipes", subtitle: "Coming in Phase 3")
         case .mealPlan:
             PlaceholderView(title: "Meal Plan", subtitle: "Coming in Phase 3")
+        case .voiceInput:
+            FoodVoiceInputView(viewModel: viewModel)
+        case .photoInput:
+            PlaceholderView(title: "Photo Input", subtitle: "Camera-based food recognition")
+        case .foodDetail(let entry):
+            PlaceholderView(title: "Food Detail", subtitle: "Entry details for \(entry.id)")
+        case .foodSearch:
+            PlaceholderView(title: "Food Search", subtitle: "Search food database")
+        case .quickLog(let food):
+            PlaceholderView(title: "Quick Log", subtitle: "Add \(food.name)")
         }
     }
 
     @ViewBuilder
-    private func sheetView(for sheet: FoodTrackingCoordinator.FoodTrackingSheet) -> some View {
+    private func sheetView(for sheet: FoodTrackingSheet) -> some View {
         switch sheet {
         case .voiceInput:
-            VoiceInputView(viewModel: viewModel)
+            FoodVoiceInputView(viewModel: viewModel)
         case .photoCapture:
             PhotoInputView(viewModel: viewModel)
         case .foodSearch:
             PlaceholderView(title: "Food Search", subtitle: "Coming in Phase 3")
         case .manualEntry:
             PlaceholderView(title: "Manual Entry", subtitle: "Coming in Phase 3")
-        case .waterTracking:
-            PlaceholderView(title: "Water Tracking", subtitle: "Coming in Phase 3")
         case .mealDetails(let entry):
             PlaceholderView(title: "Meal Details", subtitle: "Entry: \(entry.mealDisplayName)")
         }
@@ -317,32 +406,144 @@ struct FoodLoggingView: View {
         case .camera:
             PlaceholderView(title: "Camera Food Scan", subtitle: "Coming in Phase 4")
         case .confirmation(let items):
-            FoodConfirmationView(items: items, viewModel: viewModel)
+            PlaceholderView(title: "Food Confirmation", subtitle: "\(items.count) items to confirm")
         }
     }
 }
 
 // MARK: - Supporting Views
-private struct QuickActionButton: View {
+private struct MacroMetric: View {
+    let title: String
+    let value: Int
+    let unit: String
+    let color: Color
+    let icon: String
+    @State private var animateIn = false
+
+    var body: some View {
+        VStack(spacing: AppSpacing.xs) {
+            Image(systemName: icon)
+                .font(.system(size: 16, weight: .light))
+                .foregroundColor(color)
+                .scaleEffect(animateIn ? 1 : 0.5)
+                .opacity(animateIn ? 1 : 0)
+
+            GradientNumber(value: Double(value))
+                .font(.system(size: 24, weight: .bold, design: .rounded))
+
+            Text(title)
+                .font(.system(size: 12, weight: .light))
+                .foregroundColor(.secondary)
+
+            if !unit.isEmpty {
+                Text(unit)
+                    .font(.system(size: 10, weight: .light))
+                    .foregroundColor(Color.secondary.opacity(0.5))
+            }
+        }
+        .frame(maxWidth: .infinity)
+        .onAppear {
+            withAnimation(MotionToken.standardSpring.delay(0.1)) {
+                animateIn = true
+            }
+        }
+    }
+}
+
+private struct QuickActionCard: View {
     let title: String
     let icon: String
-    let color: Color
+    let gradientColors: [Color]
     let action: () -> Void
+    @State private var isPressed = false
 
     var body: some View {
         Button(action: action) {
-            VStack(spacing: AppSpacing.xSmall) {
-                Image(systemName: icon)
-                    .font(.title2)
-                    .foregroundStyle(.white)
-                    .padding(AppSpacing.xSmall)
-                    .background(color)
-                    .clipShape(Circle())
+            VStack(spacing: AppSpacing.xs) {
+                ZStack {
+                    Circle()
+                        .fill(
+                            LinearGradient(
+                                colors: gradientColors,
+                                startPoint: .topLeading,
+                                endPoint: .bottomTrailing
+                            )
+                        )
+                        .frame(width: 56, height: 56)
+
+                    Image(systemName: icon)
+                        .font(.system(size: 24, weight: .light))
+                        .foregroundColor(.white)
+                }
+
                 Text(title)
-                    .font(.caption)
-                    .foregroundStyle(.primary)
+                    .font(.system(size: 13, weight: .light))
+                    .foregroundColor(.primary)
             }
+            .frame(width: 80)
         }
+        .scaleEffect(isPressed ? 0.95 : 1.0)
+        .onLongPressGesture(minimumDuration: 0, maximumDistance: .infinity, pressing: { pressing in
+            withAnimation(MotionToken.standardSpring) {
+                isPressed = pressing
+            }
+        }, perform: {})
+    }
+}
+
+private struct QuickActionCardWithBadge: View {
+    let title: String
+    let icon: String
+    let gradientColors: [Color]
+    let badge: String
+    let action: () -> Void
+    @State private var isPressed = false
+
+    var body: some View {
+        Button(action: action) {
+            VStack(spacing: AppSpacing.xs) {
+                ZStack {
+                    Circle()
+                        .fill(
+                            LinearGradient(
+                                colors: gradientColors,
+                                startPoint: .topLeading,
+                                endPoint: .bottomTrailing
+                            )
+                        )
+                        .frame(width: 56, height: 56)
+                        .overlay(alignment: .topTrailing) {
+                            // "New!" badge
+                            Text(badge)
+                                .font(.system(size: 10, weight: .bold))
+                                .foregroundColor(.white)
+                                .padding(.horizontal, 6)
+                                .padding(.vertical, 2)
+                                .background(
+                                    Capsule()
+                                        .fill(Color.red)
+                                        .shadow(color: .black.opacity(0.2), radius: 2, y: 1)
+                                )
+                                .offset(x: 8, y: -8)
+                        }
+
+                    Image(systemName: icon)
+                        .font(.system(size: 24, weight: .light))
+                        .foregroundColor(.white)
+                }
+
+                Text(title)
+                    .font(.system(size: 13, weight: .light))
+                    .foregroundColor(.primary)
+            }
+            .frame(width: 80)
+        }
+        .scaleEffect(isPressed ? 0.95 : 1.0)
+        .onLongPressGesture(minimumDuration: 0, maximumDistance: .infinity, pressing: { pressing in
+            withAnimation(MotionToken.standardSpring) {
+                isPressed = pressing
+            }
+        }, perform: {})
     }
 }
 
@@ -351,47 +552,102 @@ private struct MealCard: View {
     let entries: [FoodEntry]
     let onAdd: () -> Void
     let onTapEntry: (FoodEntry) -> Void
+    @EnvironmentObject private var gradientManager: GradientManager
+    @Environment(\.colorScheme) private var colorScheme
 
     private var totalCalories: Int {
         entries.flatMap { $0.items }.reduce(0) { $0 + Int($1.calories ?? 0) }
     }
 
     var body: some View {
-        Card {
-            VStack(alignment: .leading, spacing: AppSpacing.small) {
+        GlassCard {
+            VStack(alignment: .leading, spacing: AppSpacing.sm) {
                 HStack {
-                    Label(mealType.displayName, systemImage: mealType.icon)
-                        .font(.headline)
+                    HStack(spacing: AppSpacing.xs) {
+                        Image(systemName: mealType.icon)
+                            .font(.system(size: 18, weight: .light))
+                            .foregroundStyle(gradientForMealType(mealType))
+
+                        Text(mealType.displayName)
+                            .font(.system(size: 18, weight: .medium, design: .rounded))
+                            .foregroundColor(.primary)
+                    }
+
                     Spacer()
+
                     if !entries.isEmpty {
                         Text("\(totalCalories) cal")
-                            .font(.subheadline)
+                            .font(.system(size: 14, weight: .light))
                             .foregroundStyle(.secondary)
                     }
+
                     Button(action: onAdd) {
                         Image(systemName: "plus.circle.fill")
-                            .foregroundStyle(AppColors.accent)
+                            .font(.system(size: 22, weight: .light))
+                            .foregroundStyle(gradientManager.currentGradient(for: colorScheme))
                     }
                 }
+
                 if !entries.isEmpty {
                     Divider()
-                    VStack(alignment: .leading, spacing: AppSpacing.xSmall) {
+                        .background(Color.white.opacity(0.1))
+
+                    VStack(alignment: .leading, spacing: AppSpacing.xs) {
                         ForEach(entries, id: \.id) { entry in
                             Button(action: { onTapEntry(entry) }) {
                                 HStack {
                                     Text(entry.mealDisplayName)
-                                        .font(.callout)
+                                        .font(.system(size: 15, weight: .light))
                                         .foregroundStyle(.primary)
+
                                     Spacer()
+
                                     Text("\(entry.totalCalories) cal")
-                                        .font(.caption)
+                                        .font(.system(size: 13, weight: .light))
                                         .foregroundStyle(.secondary)
+
+                                    Image(systemName: "chevron.right")
+                                        .font(.system(size: 12, weight: .light))
+                                        .foregroundStyle(.tertiary)
                                 }
                             }
                         }
                     }
+                } else {
+                    Divider()
+                        .background(Color.white.opacity(0.1))
+                    
+                    HStack(spacing: AppSpacing.xs) {
+                        Image(systemName: "camera.fill")
+                            .font(.system(size: 14, weight: .light))
+                            .foregroundStyle(.orange.opacity(0.8))
+                        
+                        Text("Try our new photo logging!")
+                            .font(.system(size: 13, weight: .light))
+                            .foregroundStyle(.secondary)
+                        
+                        Spacer()
+                    }
+                    .padding(.vertical, 2)
                 }
             }
+        }
+    }
+
+    private func gradientForMealType(_ type: MealType) -> LinearGradient {
+        switch type {
+        case .breakfast:
+            return LinearGradient(colors: [.orange, .yellow], startPoint: .topLeading, endPoint: .bottomTrailing)
+        case .lunch:
+            return LinearGradient(colors: [.blue, .cyan], startPoint: .topLeading, endPoint: .bottomTrailing)
+        case .dinner:
+            return LinearGradient(colors: [.purple, .indigo], startPoint: .topLeading, endPoint: .bottomTrailing)
+        case .snack:
+            return LinearGradient(colors: [.green, .mint], startPoint: .topLeading, endPoint: .bottomTrailing)
+        case .preWorkout:
+            return LinearGradient(colors: [.red, .orange], startPoint: .topLeading, endPoint: .bottomTrailing)
+        case .postWorkout:
+            return LinearGradient(colors: [.pink, .red], startPoint: .topLeading, endPoint: .bottomTrailing)
         }
     }
 }
@@ -399,27 +655,54 @@ private struct MealCard: View {
 private struct SuggestionCard: View {
     let food: FoodItem
     let action: () -> Void
+    @State private var isPressed = false
+    @EnvironmentObject private var gradientManager: GradientManager
+    @Environment(\.colorScheme) private var colorScheme
 
     var body: some View {
         Button(action: action) {
-            VStack(alignment: .leading, spacing: AppSpacing.xSmall) {
+            VStack(alignment: .leading, spacing: AppSpacing.xs) {
                 Text(food.name)
-                    .font(.callout)
-                    .fontWeight(.medium)
+                    .font(.system(size: 15, weight: .medium))
+                    .foregroundColor(.primary)
                     .lineLimit(1)
-                HStack(spacing: AppSpacing.xSmall) {
-                    Text("\(Int(food.calories ?? 0)) cal")
+
+                HStack(spacing: AppSpacing.xs) {
+                    HStack(spacing: 4) {
+                        Image(systemName: "flame.fill")
+                            .font(.system(size: 10))
+                            .foregroundStyle(.orange)
+                        Text("\(Int(food.calories ?? 0))")
+                    }
+
                     Text("•")
+                        .foregroundStyle(.tertiary)
+
                     Text(food.displayQuantity)
                 }
-                .font(.caption)
+                .font(.system(size: 12, weight: .light))
                 .foregroundStyle(.secondary)
             }
-            .padding()
             .frame(width: 140)
-            .background(AppColors.cardBackground)
-            .clipShape(RoundedRectangle(cornerRadius: AppSpacing.medium))
+            .padding(AppSpacing.sm)
+            .background(
+                RoundedRectangle(cornerRadius: 12)
+                    .fill(.ultraThinMaterial)
+                    .overlay(
+                        RoundedRectangle(cornerRadius: 12)
+                            .strokeBorder(
+                                isPressed ? gradientManager.currentGradient(for: colorScheme) : LinearGradient(colors: [Color.white.opacity(0.1)], startPoint: .top, endPoint: .bottom),
+                                lineWidth: 1
+                            )
+                    )
+            )
         }
+        .scaleEffect(isPressed ? 0.95 : 1.0)
+        .onLongPressGesture(minimumDuration: 0, maximumDistance: .infinity, pressing: { pressing in
+            withAnimation(MotionToken.standardSpring) {
+                isPressed = pressing
+            }
+        }, perform: {})
     }
 }
 
@@ -427,27 +710,53 @@ private struct SuggestionCard: View {
 private struct PlaceholderView: View {
     let title: String
     let subtitle: String
-    
+    @State private var animateIn = false
+    @EnvironmentObject private var gradientManager: GradientManager
+    @Environment(\.colorScheme) private var colorScheme
+
     var body: some View {
-        VStack(spacing: AppSpacing.large) {
-            Image(systemName: "fork.knife.circle")
-                .font(.system(size: 60))
-                .foregroundStyle(.secondary)
-            
-            VStack(spacing: AppSpacing.small) {
-                Text(title)
-                    .font(.title2)
-                    .fontWeight(.semibold)
-                
-                Text(subtitle)
-                    .font(.body)
-                    .foregroundStyle(.secondary)
-                    .multilineTextAlignment(.center)
+        BaseScreen {
+            VStack(spacing: AppSpacing.lg) {
+                Spacer()
+
+                ZStack {
+                    Circle()
+                        .fill(gradientManager.currentGradient(for: colorScheme))
+                        .frame(width: 120, height: 120)
+                        .opacity(0.2)
+                        .blur(radius: 20)
+                        .scaleEffect(animateIn ? 1.2 : 0.8)
+
+                    Image(systemName: "fork.knife.circle")
+                        .font(.system(size: 60, weight: .light))
+                        .foregroundStyle(gradientManager.currentGradient(for: colorScheme))
+                        .scaleEffect(animateIn ? 1 : 0.5)
+                }
+
+                VStack(spacing: AppSpacing.sm) {
+                    if animateIn {
+                        CascadeText(title)
+                            .font(.system(size: 28, weight: .light, design: .rounded))
+                    }
+
+                    Text(subtitle)
+                        .font(.system(size: 16, weight: .light))
+                        .foregroundStyle(.secondary)
+                        .multilineTextAlignment(.center)
+                        .opacity(animateIn ? 1 : 0)
+                        .offset(y: animateIn ? 0 : 10)
+                }
+                .padding(.horizontal, AppSpacing.screenPadding)
+
+                Spacer()
             }
         }
-        .padding()
-        .navigationTitle(title)
-        .navigationBarTitleDisplayMode(.large)
+        .navigationBarHidden(true)
+        .onAppear {
+            withAnimation(MotionToken.standardSpring) {
+                animateIn = true
+            }
+        }
     }
 }
 
@@ -475,13 +784,23 @@ private extension FoodItem {
     }
 }
 
-#if DEBUG
+#if DEBUG && false
 #Preview {
-    let container = try! ModelContainer(for: User.self, configurations: ModelConfiguration(isStoredInMemoryOnly: true))
-    let context = container.mainContext
-    let user = User.example
-    context.insert(user)
-    return FoodLoggingView(modelContext: context, user: user, coordinator: FoodTrackingCoordinator())
-        .modelContainer(container)
+    @Previewable @State var vm: FoodTrackingViewModel = {
+        let container = ModelContainer.preview
+        let context = container.mainContext
+    let user = try! context.fetch(FetchDescriptor<User>()).first! // swiftlint:disable:this force_try
+        return FoodTrackingViewModel(
+            modelContext: context,
+            user: user,
+            foodVoiceAdapter: FoodVoiceAdapter(),
+            nutritionService: NutritionService(modelContext: context),
+            coachEngine: CoachEngine.createDefault(modelContext: context),
+            coordinator: FoodTrackingCoordinator()
+        )
+    }()
+
+    FoodLoggingView(viewModel: vm)
+        .modelContainer(ModelContainer.preview)
 }
 #endif

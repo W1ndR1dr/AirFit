@@ -197,7 +197,9 @@ struct HeartHealthMetrics: Sendable, Codable {
 }
 
 struct BodyMetrics: Sendable, Codable {
+    var date: Date?
     var weight: Measurement<UnitMass>?
+    var height: Measurement<UnitLength>?
     var bodyFatPercentage: Double?
     var leanBodyMass: Measurement<UnitMass>?
     var bmi: Double?
@@ -239,11 +241,12 @@ struct AppSpecificContext: Sendable, Codable {
     var activeWorkoutName: String?
     var lastMealTime: Date?
     var lastMealSummary: String?
-    var waterIntakeToday: Measurement<UnitVolume>?
     var lastCoachInteraction: Date?
     var upcomingWorkout: String?
     var currentStreak: Int?
     var workoutContext: WorkoutContext?
+    var goalsContext: GoalsContext?
+    var strengthContext: StrengthContext?
 }
 
 // MARK: - Enhanced Workout Context Types
@@ -258,7 +261,7 @@ struct WorkoutContext: Sendable, Codable {
     var weeklyVolume: Double = 0
     var muscleGroupBalance: [String: Int] = [:]
     var intensityTrend: IntensityTrend = .stable
-    var recoveryStatus: RecoveryStatus = .unknown
+    var recoveryStatus: WorkoutFrequencyStatus = .unknown
 
     init(
         recentWorkouts: [CompactWorkout] = [],
@@ -269,7 +272,7 @@ struct WorkoutContext: Sendable, Codable {
         weeklyVolume: Double = 0,
         muscleGroupBalance: [String: Int] = [:],
         intensityTrend: IntensityTrend = .stable,
-        recoveryStatus: RecoveryStatus = .unknown
+        recoveryStatus: WorkoutFrequencyStatus = .unknown
     ) {
         self.recentWorkouts = recentWorkouts
         self.activeWorkout = activeWorkout
@@ -294,6 +297,20 @@ struct CompactWorkout: Sendable, Codable {
     let avgRPE: Double?
     let muscleGroups: [String]
     let keyExercises: [String] // Top 3 exercises
+    let exercisePerformance: [String: ExercisePerformance] // Exercise name -> performance data
+}
+
+struct ExercisePerformance: Sendable, Codable {
+    let exerciseName: String
+    let volumeTotal: Double
+    let topSet: SetPerformance?
+    let contextSummary: String
+}
+
+struct SetPerformance: Sendable, Codable {
+    let weight: Double
+    let reps: Int
+    let volume: Double
 }
 
 /// Workout pattern analysis for intelligent coaching
@@ -301,7 +318,7 @@ struct WorkoutPatterns: Sendable, Codable {
     let weeklyVolume: Double
     let muscleGroupBalance: [String: Int]
     let intensityTrend: IntensityTrend
-    let recoveryStatus: RecoveryStatus
+    let recoveryStatus: WorkoutFrequencyStatus
 }
 
 enum IntensityTrend: String, Sendable, Codable {
@@ -310,13 +327,17 @@ enum IntensityTrend: String, Sendable, Codable {
     case decreasing
 }
 
-enum RecoveryStatus: String, Sendable, Codable {
+/// Represents training frequency status based on days since last workout
+enum WorkoutFrequencyStatus: String, Sendable, Codable {
     case active      // 0-1 days since last workout
     case recovered   // 2-3 days since last workout
     case wellRested  // 4-7 days since last workout
     case detraining  // 8+ days since last workout
     case unknown
 }
+
+// Type alias for the authoritative recovery status from RecoveryInference
+typealias RecoveryStatus = RecoveryInference.RecoveryStatus
 
 // MARK: - Extensions
 
@@ -339,6 +360,97 @@ extension HKWorkoutActivityType {
         case .other: return "Other"
         default: return "Workout"
         }
+    }
+}
+
+// MARK: - Strength Context Types
+
+/// Strength progression trend
+enum StrengthTrend: String, Sendable, Codable {
+    case increasing
+    case stable
+    case decreasing
+    case insufficient // Not enough data
+
+    var displayName: String {
+        switch self {
+        case .increasing: return "Increasing"
+        case .stable: return "Stable"
+        case .decreasing: return "Decreasing"
+        case .insufficient: return "More data needed"
+        }
+    }
+
+    var symbolName: String {
+        switch self {
+        case .increasing: return "arrow.up.circle.fill"
+        case .stable: return "minus.circle.fill"
+        case .decreasing: return "arrow.down.circle.fill"
+        case .insufficient: return "questionmark.circle.fill"
+        }
+    }
+}
+
+/// Comprehensive strength context for AI-powered workout generation
+struct StrengthContext: Sendable, Codable {
+    var recentPRs: [ExercisePR] = []              // Last 5 PRs across all exercises
+    var topExercises: [ExerciseStrength] = []      // Top 10 exercises by 1RM
+    var muscleGroupVolumes: [MuscleVolume] = []    // Current week volume
+    var volumeTargets: [String: Int] = [:]         // AI-configured weekly targets
+    var strengthTrends: [String: StrengthTrend] = [:] // Trends for key exercises
+
+    init(
+        recentPRs: [ExercisePR] = [],
+        topExercises: [ExerciseStrength] = [],
+        muscleGroupVolumes: [MuscleVolume] = [],
+        volumeTargets: [String: Int] = [:],
+        strengthTrends: [String: StrengthTrend] = [:]
+    ) {
+        self.recentPRs = recentPRs
+        self.topExercises = topExercises
+        self.muscleGroupVolumes = muscleGroupVolumes
+        self.volumeTargets = volumeTargets
+        self.strengthTrends = strengthTrends
+    }
+}
+
+/// Muscle group volume information
+struct MuscleVolume: Sendable, Codable {
+    let muscleGroup: String
+    let completedSets: Int
+    let targetSets: Int
+
+    var progress: Double {
+        guard targetSets > 0 else { return 0 }
+        return min(Double(completedSets) / Double(targetSets), 1.0)
+    }
+}
+
+/// Personal record information
+struct ExercisePR: Sendable, Codable {
+    let exercise: String
+    let oneRepMax: Double
+    let date: Date
+    let improvement: Double? // Percentage improvement vs previous PR
+    let actualWeight: Double?
+    let actualReps: Int?
+
+    var displayString: String {
+        let improvementStr = improvement.map { "+\(Int($0))%" } ?? ""
+        return "\(exercise): \(Int(oneRepMax))kg \(improvementStr)"
+    }
+}
+
+/// Current strength level for an exercise
+struct ExerciseStrength: Sendable, Codable {
+    let exercise: String
+    let currentOneRM: Double
+    let lastUpdated: Date
+    let trend: StrengthTrend
+    let recentSets: Int // Sets performed in last 7 days
+
+    var daysSinceUpdate: Int {
+        Calendar.current.dateComponents([.day], from: lastUpdated, to: Date()).day ?? 0
     }
 }
 

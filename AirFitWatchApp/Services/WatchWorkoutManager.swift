@@ -1,7 +1,9 @@
 import Foundation
 import HealthKit
 import Observation
+#if os(watchOS)
 import WatchKit
+#endif
 
 @MainActor
 @Observable
@@ -28,6 +30,12 @@ final class WatchWorkoutManager: NSObject {
     private(set) var currentWorkoutData = WorkoutBuilderData()
     private var startTime: Date?
     private var elapsedTimer: Timer?
+    
+    // Planned workout support
+    private(set) var plannedWorkout: PlannedWorkoutData?
+    private(set) var currentExerciseIndex = 0
+    private(set) var currentSetIndex = 0
+    private(set) var isExecutingPlannedWorkout = false
 
     // MARK: - Workout State
     enum WorkoutState: Equatable {
@@ -112,7 +120,11 @@ final class WatchWorkoutManager: NSObject {
             startElapsedTimer()
 
             // Haptic feedback
+            #if os(watchOS)
+
             WKInterfaceDevice.current().play(.start)
+
+            #endif
 
             AppLogger.info("Workout started: \(activityType.name)", category: .health)
 
@@ -130,7 +142,11 @@ final class WatchWorkoutManager: NSObject {
         workoutState = .paused
         elapsedTimer?.invalidate()
 
+        #if os(watchOS)
+
         WKInterfaceDevice.current().play(.stop)
+
+        #endif
         AppLogger.info("Workout paused", category: .health)
     }
 
@@ -142,7 +158,11 @@ final class WatchWorkoutManager: NSObject {
         workoutState = .running
         startElapsedTimer()
 
+        #if os(watchOS)
+
         WKInterfaceDevice.current().play(.start)
+
+        #endif
         AppLogger.info("Workout resumed", category: .health)
     }
 
@@ -178,7 +198,11 @@ final class WatchWorkoutManager: NSObject {
             workoutState = .ended
 
             // Success haptic
+            #if os(watchOS)
+
             WKInterfaceDevice.current().play(.success)
+
+            #endif
 
             AppLogger.info("Workout ended and saved", category: .health)
 
@@ -199,35 +223,14 @@ final class WatchWorkoutManager: NSObject {
 
         currentWorkoutData.exercises.append(exercise)
 
+        #if os(watchOS)
+
         WKInterfaceDevice.current().play(.click)
+
+        #endif
         AppLogger.info("Started exercise: \(name)", category: .health)
     }
 
-    func logSet(reps: Int?, weight: Double?, duration: TimeInterval?, rpe: Double?) {
-        guard let currentExercise = currentWorkoutData.exercises.last else { return }
-
-        let set = SetBuilderData(
-            reps: reps,
-            weightKg: weight,
-            duration: duration,
-            rpe: rpe,
-            completedAt: Date()
-        )
-
-        currentWorkoutData.exercises[currentWorkoutData.exercises.count - 1].sets.append(set)
-
-        // Haptic feedback based on performance
-        if let lastSet = currentExercise.sets.dropLast().last,
-           let currentWeight = weight,
-           let lastWeight = lastSet.weightKg,
-           currentWeight > lastWeight {
-            WKInterfaceDevice.current().play(.success)
-        } else {
-            WKInterfaceDevice.current().play(.click)
-        }
-
-        AppLogger.info("Logged set: \(set)", category: .health)
-    }
 
     // MARK: - Private Methods
     private func startElapsedTimer() {
@@ -244,6 +247,7 @@ final class WatchWorkoutManager: NSObject {
         currentWorkoutData.workoutType = Int(selectedActivityType.rawValue)
         currentWorkoutData.startTime = workout.startDate
         currentWorkoutData.endTime = workout.endDate
+        currentWorkoutData.healthKitWorkoutID = workout.uuid.uuidString
 
         // Use activeEnergyBurned instead of deprecated totalEnergyBurned
         if let activeEnergy = workout.statistics(for: HKQuantityType(.activeEnergyBurned))?.sumQuantity() {
@@ -255,12 +259,198 @@ final class WatchWorkoutManager: NSObject {
         currentWorkoutData.totalDistance = workout.totalDistance?.doubleValue(for: .meter()) ?? 0
         currentWorkoutData.duration = workout.duration
 
-        // Send to iPhone via notification (simplified sync for now)
-        NotificationCenter.default.post(
-            name: .workoutDataReceived,
-            object: nil,
-            userInfo: ["data": currentWorkoutData]
+        // If this was a planned workout, create completion data
+        if let plannedWorkout = plannedWorkout, isExecutingPlannedWorkout {
+            // Create completion data for AI analysis
+            let completionData = WorkoutCompletionData.from(
+                workoutData: currentWorkoutData,
+                plannedWorkout: plannedWorkout,
+                healthKitID: workout.uuid.uuidString
+            )
+            
+            // Send completion data to iPhone
+            NotificationCenter.default.post(
+                name: .workoutCompletionDataReceived,
+                object: nil,
+                userInfo: ["completionData": completionData]
+            )
+        } else {
+            // Send regular workout data
+            NotificationCenter.default.post(
+                name: .workoutDataReceived,
+                object: nil,
+                userInfo: ["data": currentWorkoutData]
+            )
+        }
+    }
+    
+    // MARK: - Planned Workout Methods
+    
+    func loadPlannedWorkout(_ plan: PlannedWorkoutData) {
+        self.plannedWorkout = plan
+        self.currentExerciseIndex = 0
+        self.currentSetIndex = 0
+        self.isExecutingPlannedWorkout = true
+        
+        // Set activity type based on plan
+        if let workoutType = WorkoutType(rawValue: plan.workoutType) {
+            self.selectedActivityType = workoutType.toHealthKitType()
+        }
+        
+        AppLogger.info("Loaded planned workout: \(plan.name)", category: .health)
+    }
+    
+    func startPlannedWorkout() async throws {
+        guard let plan = plannedWorkout else {
+            throw WorkoutError.saveFailed // Should create specific error
+        }
+        
+        guard !plan.plannedExercises.isEmpty else {
+            throw WorkoutError.saveFailed // Should create specific error
+        }
+        
+        // Start the workout session
+        try await startWorkout(activityType: selectedActivityType)
+        
+        // Initialize with first exercise
+        if let firstExercise = plan.plannedExercises.first {
+            startNewExercise(
+                name: firstExercise.name,
+                muscleGroups: firstExercise.muscleGroups
+            )
+        }
+        
+        AppLogger.info("Started planned workout execution", category: .health)
+    }
+    
+    // Get current planned exercise if executing a plan
+    var currentPlannedExercise: PlannedExerciseData? {
+        guard isExecutingPlannedWorkout,
+              let plan = plannedWorkout,
+              currentExerciseIndex < plan.plannedExercises.count else {
+            return nil
+        }
+        return plan.plannedExercises[currentExerciseIndex]
+    }
+    
+    // Get current set progress
+    var currentSetProgress: (current: Int, total: Int)? {
+        guard let exercise = currentPlannedExercise else { return nil }
+        return (currentSetIndex + 1, exercise.sets)
+    }
+    
+    // Advance to next set or exercise
+    func advanceToNextSet() {
+        guard let exercise = currentPlannedExercise else { return }
+        
+        currentSetIndex += 1
+        
+        if currentSetIndex >= exercise.sets {
+            // Move to next exercise
+            advanceToNextExercise()
+        }
+        
+        #if os(watchOS)
+        WKInterfaceDevice.current().play(.click)
+        #endif
+    }
+    
+    func advanceToNextExercise() {
+        guard let plan = plannedWorkout else { return }
+        
+        currentExerciseIndex += 1
+        currentSetIndex = 0
+        
+        if currentExerciseIndex < plan.plannedExercises.count {
+            // Start next exercise
+            let nextExercise = plan.plannedExercises[currentExerciseIndex]
+            startNewExercise(
+                name: nextExercise.name,
+                muscleGroups: nextExercise.muscleGroups
+            )
+            
+            #if os(watchOS)
+            WKInterfaceDevice.current().play(.success)
+            #endif
+        } else {
+            // Workout complete
+            isExecutingPlannedWorkout = false
+            AppLogger.info("Completed all planned exercises", category: .health)
+        }
+    }
+    
+    // Skip current exercise
+    func skipCurrentExercise() {
+        advanceToNextExercise()
+    }
+    
+    // Modified logSet to track planned workout progress with support for comments and unilateral exercises
+    func logSet(reps: Int?, weight: Double?, duration: TimeInterval?, rpe: Double?, comment: String? = nil, side: String? = nil) {
+        guard let currentExercise = currentWorkoutData.exercises.last else { return }
+        
+        let set = SetBuilderData(
+            reps: reps,
+            weightKg: weight,
+            duration: duration,
+            rpe: rpe,
+            comment: comment,
+            side: side,
+            completedAt: Date()
         )
+        
+        currentWorkoutData.exercises[currentWorkoutData.exercises.count - 1].sets.append(set)
+        
+        // If executing planned workout, advance to next set
+        if isExecutingPlannedWorkout {
+            advanceToNextSet()
+        }
+        
+        // Haptic feedback
+        #if os(watchOS)
+        WKInterfaceDevice.current().play(.click)
+        #endif
+        
+        AppLogger.info("Logged set: \(String(describing: set))", category: .health)
+        
+        // Haptic feedback based on performance
+        if let lastSet = currentExercise.sets.dropLast().last,
+           let currentWeight = weight,
+           let lastWeight = lastSet.weightKg,
+           currentWeight > lastWeight {
+            #if os(watchOS)
+            WKInterfaceDevice.current().play(.success)
+            #endif
+        } else {
+            #if os(watchOS)
+            WKInterfaceDevice.current().play(.click)
+            #endif
+        }
+        
+        AppLogger.info("Logged set: \(set)", category: .health)
+    }
+}
+
+// MARK: - WorkoutType Extension for HealthKit mapping
+extension WorkoutType {
+    func toHealthKitType() -> HKWorkoutActivityType {
+        switch self {
+        case .strength:
+            return .traditionalStrengthTraining
+        case .cardio:
+            return .running
+        case .hiit:
+            return .highIntensityIntervalTraining
+        case .yoga:
+            return .yoga
+        case .run:
+            return .running
+        case .cycle:
+            return .cycling
+        case .swim:
+            return .swimming
+        case .general:
+            return .mixedCardio
+        }
     }
 }
 
@@ -370,8 +560,4 @@ extension HKWorkoutActivityType {
         // Simplified logic - could be expanded
         return self == .traditionalStrengthTraining || self == .yoga || self == .coreTraining
     }
-}
-
-extension Notification.Name {
-    static let workoutDataReceived = Notification.Name("workoutDataReceived")
 }

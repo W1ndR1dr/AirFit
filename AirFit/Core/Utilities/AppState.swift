@@ -10,21 +10,25 @@ final class AppState {
     private(set) var isLoading = true
     private(set) var currentUser: User?
     private(set) var hasCompletedOnboarding = false
+    private(set) var needsAPISetup = true
     private(set) var error: Error?
 
     // MARK: - Dependencies
     private let modelContext: ModelContext
     private let isUITesting: Bool
     private let healthKitAuthManager: HealthKitAuthManager
+    let apiKeyManager: APIKeyManagementProtocol?
 
     // MARK: - Initialization
     init(
         modelContext: ModelContext,
-        healthKitAuthManager: HealthKitAuthManager = HealthKitAuthManager()
+        healthKitAuthManager: HealthKitAuthManager,
+        apiKeyManager: APIKeyManagementProtocol? = nil
     ) {
         self.modelContext = modelContext
         self.isUITesting = ProcessInfo.processInfo.arguments.contains("--uitesting")
         self.healthKitAuthManager = healthKitAuthManager
+        self.apiKeyManager = apiKeyManager
 
         if isUITesting {
             setupUITestingState()
@@ -41,6 +45,24 @@ final class AppState {
         defer { isLoading = false }
 
         do {
+            // Check API configuration status FIRST (personal-mode: optional by default)
+            if FeatureToggles.aiOptionalForOnboarding {
+                needsAPISetup = false
+                AppLogger.info("AI/API setup optional: proceeding without keys", category: .app)
+            } else if let apiKeyManager = apiKeyManager {
+                let configuredProviders = await apiKeyManager.getAllConfiguredProviders()
+                needsAPISetup = configuredProviders.isEmpty
+
+                for provider in configuredProviders {
+                    AppLogger.info("Found configured API key for: \(provider.displayName)", category: .app)
+                }
+
+                AppLogger.info("API setup check - configured providers: \(configuredProviders.count), needs setup: \(needsAPISetup)", category: .app)
+            } else {
+                needsAPISetup = true
+                AppLogger.warning("No API key manager available, assuming API setup needed", category: .app)
+            }
+
             // Fetch the current user
             let userDescriptor = FetchDescriptor<User>(
                 sortBy: [SortDescriptor(\.createdAt, order: .reverse)]
@@ -50,10 +72,11 @@ final class AppState {
 
             // Check onboarding completion
             if let user = currentUser {
-                hasCompletedOnboarding = user.onboardingProfile != nil
+                // Use isOnboarded flag as the source of truth
+                hasCompletedOnboarding = user.isOnboarded
                 user.updateActivity()
                 try modelContext.save()
-                AppLogger.info("User state loaded - onboarding: \(hasCompletedOnboarding)", category: .app)
+                AppLogger.info("User state loaded - onboarding: \(hasCompletedOnboarding), API setup needed: \(needsAPISetup)", category: .app)
             } else {
                 hasCompletedOnboarding = false
                 AppLogger.info("No existing user found", category: .app)
@@ -69,8 +92,14 @@ final class AppState {
         modelContext.insert(user)
         try modelContext.save()
         currentUser = user
-        hasCompletedOnboarding = false
+        hasCompletedOnboarding = FeatureToggles.simpleOnboarding
+        isLoading = false
         AppLogger.info("New user created", category: .app)
+    }
+
+    func completeAPISetup() {
+        needsAPISetup = false
+        AppLogger.info("API setup completed", category: .app)
     }
 
     func completeOnboarding() async {
@@ -108,19 +137,24 @@ final class AppState {
 
 // MARK: - App State Extensions
 extension AppState {
+    var shouldShowAPISetup: Bool {
+        // API setup is now part of onboarding flow, not a separate screen
+        false
+    }
+
     var shouldShowOnboarding: Bool {
         !isLoading && currentUser != nil && !hasCompletedOnboarding
     }
 
-    var healthKitStatus: HealthKitAuthorizationStatus {
+    var healthKitStatus: AirFit.HealthKitAuthorizationStatus {
         healthKitAuthManager.authorizationStatus
     }
 
     var shouldCreateUser: Bool {
-        !isLoading && currentUser == nil
+        !isLoading && !needsAPISetup && currentUser == nil
     }
 
     var shouldShowDashboard: Bool {
-        !isLoading && currentUser != nil && hasCompletedOnboarding
+        !isLoading && !needsAPISetup && currentUser != nil && hasCompletedOnboarding
     }
 }
