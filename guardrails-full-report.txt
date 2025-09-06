@@ -1,4 +1,7 @@
+[0;34m🛡️  AirFit CI Quality Guards[0m
+===============================
 
+[1;33m📏 Checking file sizes...[0m
 [FILE_SIZE] File too large: 2257 lines (max: 1000) (AirFit/Modules/Settings/Views/SettingsListView.swift)
 [FILE_SIZE] File too large: 1112 lines (max: 1000) (AirFit/Modules/Workouts/Views/WorkoutDashboardView.swift)
 [FILE_SIZE] File too large: 1103 lines (max: 1000) (AirFit/Modules/Workouts/Views/WorkoutDetailView.swift)
@@ -6,6 +9,8 @@
 [FILE_SIZE] File too large: 2063 lines (max: 1000) (AirFit/Modules/AI/CoachEngine.swift)
 [FILE_SIZE] File too large: 1194 lines (max: 1000) (AirFit/Modules/FoodTracking/Views/PhotoInputView.swift)
 [FILE_SIZE] File too large: 1315 lines (max: 1000) (AirFit/Modules/Onboarding/OnboardingIntelligence.swift)
+
+[1;33m🔧 Checking function sizes...[0m
 [FUNCTION_SIZE] Function 'registerDataServices' too large: 68 lines (max: 50) (AirFit/Core/DI/DIBootstrapper.swift:91)
 [FUNCTION_SIZE] Function 'registerDomainServices' too large: 140 lines (max: 50) (AirFit/Core/DI/DIBootstrapper.swift:163)
 [FUNCTION_SIZE] Function 'registerUIServices' too large: 115 lines (max: 50) (AirFit/Core/DI/DIBootstrapper.swift:307)
@@ -113,6 +118,8 @@
 [FUNCTION_SIZE] Function 'savePersona' too large: 51 lines (max: 50) (AirFit/Services/Persona/PersonaService.swift:178)
 [FUNCTION_SIZE] Function 'extractPersonalityInsights' too large: 92 lines (max: 50) (AirFit/Services/Persona/PersonaService.swift:255)
 [FUNCTION_SIZE] Function 'generateAchievements' too large: 51 lines (max: 50) (AirFit/Services/Analytics/AnalyticsService.swift:246)
+
+[1;33m📝 Checking for TODO/FIXME comments...[0m
 [TODO_FIXME] Found TODO/FIXME comment (AirFit/Core/Constants/AppConstants.swift:6)
 [TODO_FIXME] Found TODO/FIXME comment (AirFit/AirFitTests/AI/NutritionParserTests.swift:21)
 [TODO_FIXME] Found TODO/FIXME comment (AirFit/Modules/Chat/ViewModels/ChatViewModel.swift:118)
@@ -131,7 +138,11 @@
 [TODO_FIXME] Found TODO/FIXME comment (AirFit/Services/AI/LLMProviders/OpenAIProvider.swift:313)
 [TODO_FIXME] Found TODO/FIXME comment (AirFit/Services/AI/LLMProviders/OpenAIProvider.swift:342)
 [TODO_FIXME] Found TODO/FIXME comment (AirFit/Services/AI/LLMProviders/GeminiProvider.swift:239)
+
+[1;33m🐛 Checking for debug statements...[0m
 [DEBUG_PRINT] Found debug print statement (AirFit/Core/Utilities/AppLogger.swift:125)
+
+[1;33m⚠️  Checking for force unwrapping...[0m
 [FORCE_UNWRAP] Found force unwrapping (!) (AirFit/Core/DI/DIBootstrapper.swift:110)
 [FORCE_UNWRAP] Found force unwrapping (!) (AirFit/Core/DI/DIBootstrapper.swift:325)
 [FORCE_UNWRAP] Found force unwrapping (!) (AirFit/AirFitTests/NutritionParserTests.swift:5)
@@ -319,6 +330,8 @@
 [FORCE_UNWRAP] Found force unwrapping (!) (AirFit/Services/AI/AIService.swift:395)
 [FORCE_UNWRAP] Found force unwrapping (!) (AirFit/Services/AI/AIService.swift:399)
 [FORCE_UNWRAP] Found force unwrapping (!) (AirFit/Services/AI/AIService.swift:417)
+
+[1;33m🌐 Checking for potential hardcoded strings...[0m
 [HARDCODED_STRING] Potential hardcoded user-facing string (AirFit/Core/Utilities/AppIconGenerator.swift:179)
 [HARDCODED_STRING] Potential hardcoded user-facing string (AirFit/Core/Utilities/AppIconGenerator.swift:185)
 [HARDCODED_STRING] Potential hardcoded user-facing string (AirFit/Core/Views/GradientText.swift:49)
@@ -759,6 +772,8 @@
 [HARDCODED_STRING] Potential hardcoded user-facing string (AirFit/Services/LiveActivity/NutritionLiveActivity.swift:203)
 [HARDCODED_STRING] Potential hardcoded user-facing string (AirFit/Services/LiveActivity/NutritionLiveActivity.swift:246)
 [HARDCODED_STRING] Potential hardcoded user-facing string (AirFit/Services/AI/AIService.swift:410)
+
+[1;33m🔒 Checking for missing access control...[0m
 [ACCESS_CONTROL] Missing access control on enum declaration (AirFit/Core/Constants/AppConstants.swift:4)
 [ACCESS_CONTROL] Missing access control on struct declaration (AirFit/Core/Enums/AppError+Conversion.swift:451)
 [ACCESS_CONTROL] Missing access control on struct declaration (AirFit/Core/Models/HealthKit/NutritionMetrics.swift:4)
@@ -1352,6 +1367,8 @@
 [ACCESS_CONTROL] Missing access control on enum declaration (AirFit/Services/Monitoring/MonitoringService.swift:428)
 [ACCESS_CONTROL] Missing access control on enum declaration (AirFit/Services/Monitoring/MonitoringService.swift:436)
 [ACCESS_CONTROL] Missing access control on struct declaration (AirFit/Services/Monitoring/MonitoringService.swift:442)
+
+[1;33m📐 Checking type sizes...[0m
 [TYPE_SIZE] Type '5:enum GradientToken: String, CaseIterable {' too large: 324 lines (max: 300) (AirFit/Core/Theme/GradientToken.swift:5)
 [TYPE_SIZE] Type '4:struct ErrorPresentationView: View {' too large: 419 lines (max: 300) (AirFit/Core/Views/ErrorPresentationView.swift:4)
 [TYPE_SIZE] Type '5:struct VoiceSettingsView: View {' too large: 349 lines (max: 300) (AirFit/Modules/Settings/Views/VoiceSettingsView.swift:5)
@@ -1374,6 +1391,8 @@
 [TYPE_SIZE] Type '8:struct PhotoInputView: View {' too large: 718 lines (max: 300) (AirFit/Modules/FoodTracking/Views/PhotoInputView.swift:8)
 [TYPE_SIZE] Type '5:struct FoodConfirmationView: View {' too large: 331 lines (max: 300) (AirFit/Modules/FoodTracking/Views/FoodConfirmationView.swift:5)
 [TYPE_SIZE] Type '26:struct FoodLoggingView: View {' too large: 385 lines (max: 300) (AirFit/Modules/FoodTracking/Views/FoodLoggingView.swift:26)
+
+[1;33m🚨 Checking error handling patterns...[0m
 [FORCE_TRY] Found force try (try!) - consider proper error handling (AirFit/Modules/Workouts/Views/WorkoutDashboardView.swift:1105)
 [FORCE_TRY] Found force try (try!) - consider proper error handling (AirFit/Modules/Body/Views/BodyDashboardView.swift:1014)
 [FORCE_TRY] Found force try (try!) - consider proper error handling (AirFit/Modules/Dashboard/Views/DashboardView.swift:219)
@@ -1383,6 +1402,8 @@
 [FORCE_TRY] Found force try (try!) - consider proper error handling (AirFit/Modules/FoodTracking/Views/FoodLoggingView.swift:719)
 [FORCE_TRY] Found force try (try!) - consider proper error handling (AirFit/Data/Managers/DataManager.swift:141)
 [FORCE_TRY] Found force try (try!) - consider proper error handling (AirFit/Services/ExerciseDatabase.swift:157)
+
+[1;33m🏗️  Checking SwiftData imports in UI/ViewModels...[0m
 [SWIFTDATA_UI] SwiftData import found in UI/ViewModel - use repositories/services instead (AirFit/Modules/Settings/ViewModels/SettingsViewModel.swift:2)
 [SWIFTDATA_UI] SwiftData import found in UI/ViewModel - use repositories/services instead (AirFit/Modules/Settings/Views/NutritionSettingsView.swift:2)
 [SWIFTDATA_UI] SwiftData import found in UI/ViewModel - use repositories/services instead (AirFit/Modules/Settings/Views/SettingsListView.swift:2)
@@ -1398,14 +1419,24 @@
 [SWIFTDATA_UI] SwiftData import found in UI/ViewModel - use repositories/services instead (AirFit/Modules/Dashboard/Views/DashboardView.swift:2)
 [SWIFTDATA_UI] SwiftData import found in UI/ViewModel - use repositories/services instead (AirFit/Modules/Dashboard/Views/NutritionDashboardView.swift:2)
 [SWIFTDATA_UI] SwiftData import found in UI/ViewModel - use repositories/services instead (AirFit/Modules/Dashboard/Views/TodayDashboardView.swift:2)
+
+[1;33m📦 Checking for ad-hoc ModelContainer usage...[0m
 [ADHOC_MODELCONTAINER] Ad-hoc ModelContainer usage - should use DI container (AirFit/Modules/Workouts/Views/WorkoutDashboardView.swift:1105)
 [ADHOC_MODELCONTAINER] Ad-hoc ModelContainer usage - should use DI container (AirFit/Modules/Body/Views/BodyDashboardView.swift:1014)
 [ADHOC_MODELCONTAINER] Ad-hoc ModelContainer usage - should use DI container (AirFit/Modules/Dashboard/Views/DashboardView.swift:219)
 [ADHOC_MODELCONTAINER] Ad-hoc ModelContainer usage - should use DI container (AirFit/Modules/Dashboard/Views/NutritionDashboardView.swift:936)
 [ADHOC_MODELCONTAINER] Ad-hoc ModelContainer usage - should use DI container (AirFit/Modules/Dashboard/Views/TodayDashboardView.swift:632)
+
+[1;33m📡 Checking NotificationCenter usage in Chat/AI...[0m
 [NOTIFICATIONCENTER_CHAT] NotificationCenter usage in Chat/AI - use ChatStreamingStore protocol (AirFit/Modules/Chat/ViewModels/ChatViewModel.swift:57)
 [NOTIFICATIONCENTER_CHAT] NotificationCenter usage in Chat/AI - use ChatStreamingStore protocol (AirFit/Modules/AI/ConversationManager.swift:82)
+
+[1;33m🎭 Checking ViewModels for @MainActor...[0m
+
+[1;33m🌐 Checking for direct URLSession usage...[0m
 [DIRECT_URLSESSION] Direct URLSession usage - use NetworkClientProtocol (AirFit/Core/Utilities/NetworkReachability.swift:84)
+
+[1;33m🔗 Checking SwiftUI binding patterns...[0m
 [STATE_NOT_PRIVATE] @State should be private - found public/internal @State (AirFit/Application/MainTabView.swift:19)
 [STATE_NOT_PRIVATE] @State should be private - found public/internal @State (AirFit/Application/MainTabView.swift:278)
 [STATE_NOT_PRIVATE] @State should be private - found public/internal @State (AirFit/Application/MainTabView.swift:300)
@@ -1420,3 +1451,21 @@
 [STATE_NOT_PRIVATE] @State should be private - found public/internal @State (AirFit/Modules/FoodTracking/Views/FoodConfirmationView.swift:539)
 [STATE_NOT_PRIVATE] @State should be private - found public/internal @State (AirFit/Modules/FoodTracking/Views/FoodConfirmationView.swift:641)
 [STATE_NOT_PRIVATE] @State should be private - found public/internal @State (AirFit/Modules/FoodTracking/Views/FoodLoggingView.swift:716)
+
+[0;34m📊 Generating summary...[0m
+
+[0;34m=== DETAILED VIOLATION BREAKDOWN ===[0m
+Scripts/ci-guards.sh: line 240: IFS:: command not found
+
+[0;34m=== FIX PRIORITY RECOMMENDATIONS ===[0m
+[0;31m🚨 CRITICAL (Fix First):[0m
+Scripts/ci-guards.sh: line 247: IFS:: command not found
+[1;33m⚠️  HIGH (Fix Soon):[0m
+Scripts/ci-guards.sh: line 256: IFS:: command not found
+[0;34m📋 MEDIUM (Fix When Convenient):[0m
+Scripts/ci-guards.sh: line 265: IFS:: command not found
+
+[0;34m================================[0m
+[0;34m🛡️  CI Guards Summary[0m
+[0;34m================================[0m
+[0;32m✅ No violations found! Code quality looks great.[0m

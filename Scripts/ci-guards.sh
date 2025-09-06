@@ -160,16 +160,123 @@ find AirFit -name "*.swift" -not -path "*/.*" -exec grep -n "try!" {} + | while 
     fi
 done
 
+# Guard 10: Check for SwiftData imports in UI/ViewModels
+echo -e "\n${YELLOW}🏗️  Checking SwiftData imports in UI/ViewModels...${NC}"
+find AirFit/Modules -path "*/Views/*" -o -path "*/ViewModels/*" | grep "\.swift$" | while read -r file; do
+    if [ -f "$file" ] && grep -q "import SwiftData" "$file"; then
+        line_num=$(grep -n "import SwiftData" "$file" | cut -d: -f1)
+        log_violation "SWIFTDATA_UI" "SwiftData import found in UI/ViewModel - use repositories/services instead" "$file" "$line_num"
+    fi
+done
+
+# Guard 11: Check for ad-hoc ModelContainer usage outside DI/tests/previews
+echo -e "\n${YELLOW}📦 Checking for ad-hoc ModelContainer usage...${NC}"
+find AirFit -name "*.swift" -not -path "*/.*" | while read -r file; do
+    if [ -f "$file" ] && grep -q "ModelContainer(" "$file"; then
+        # Skip allowed locations
+        if [[ ! "$file" =~ (DI/|Tests/|Test|Preview|DataManager\.swift|AirFitApp\.swift|ExerciseDatabase\.swift|ModelContainer\+Test\.swift) ]]; then
+            line_num=$(grep -n "ModelContainer(" "$file" | cut -d: -f1)
+            log_violation "ADHOC_MODELCONTAINER" "Ad-hoc ModelContainer usage - should use DI container" "$file" "$line_num"
+        fi
+    fi
+done
+
+# Guard 12: Check for NotificationCenter usage in Chat/AI modules
+echo -e "\n${YELLOW}📡 Checking NotificationCenter usage in Chat/AI...${NC}"
+find AirFit/Modules/Chat AirFit/Modules/AI -name "*.swift" 2>/dev/null | while read -r file; do
+    if [ -f "$file" ] && grep -q "NotificationCenter\.default\." "$file"; then
+        line_num=$(grep -n "NotificationCenter\.default\." "$file" | cut -d: -f1)
+        log_violation "NOTIFICATIONCENTER_CHAT" "NotificationCenter usage in Chat/AI - use ChatStreamingStore protocol" "$file" "$line_num"
+    fi
+done
+
+# Guard 13: Check for missing @MainActor on ViewModels
+echo -e "\n${YELLOW}🎭 Checking ViewModels for @MainActor...${NC}"
+find AirFit/Modules -path "*/ViewModels/*" -name "*.swift" | while read -r file; do
+    if [ -f "$file" ]; then
+        # Look for ViewModel class definitions without @MainActor
+        grep -n "class.*ViewModel" "$file" | while IFS=: read -r line_num class_line; do
+            # Check if @MainActor is present before the class (within 3 lines)
+            context_start=$((line_num - 3))
+            if [ $context_start -lt 1 ]; then context_start=1; fi
+            
+            has_mainactor=$(sed -n "${context_start},${line_num}p" "$file" | grep -c "@MainActor")
+            if [ "$has_mainactor" -eq 0 ]; then
+                class_name=$(echo "$class_line" | sed 's/.*class \([^: ]*\).*/\1/')
+                log_violation "MISSING_MAINACTOR" "ViewModel '$class_name' missing @MainActor annotation" "$file" "$line_num"
+            fi
+        done
+    fi
+done
+
+# Guard 14: Check for direct URLSession usage outside network layer
+echo -e "\n${YELLOW}🌐 Checking for direct URLSession usage...${NC}"
+find AirFit -name "*.swift" -not -path "*/.*" | while read -r file; do
+    if [ -f "$file" ] && [[ ! "$file" =~ (Services/Network/|Test|ExerciseDatabase\.swift) ]] && grep -q "URLSession\." "$file"; then
+        line_num=$(grep -n "URLSession\." "$file" | cut -d: -f1)
+        log_violation "DIRECT_URLSESSION" "Direct URLSession usage - use NetworkClientProtocol" "$file" "$line_num"
+    fi
+done
+
+# Guard 15: Check for SwiftUI binding misuse (direct @State access from outside view)
+echo -e "\n${YELLOW}🔗 Checking SwiftUI binding patterns...${NC}"
+find AirFit -name "*.swift" -not -path "*/.*" | while read -r file; do
+    if [ -f "$file" ] && grep -q "@State.*private" "$file"; then
+        # Check for potential violations where @State isn't private
+        grep -n "@State" "$file" | grep -v "private" | while IFS=: read -r line_num state_line; do
+            log_violation "STATE_NOT_PRIVATE" "@State should be private - found public/internal @State" "$file" "$line_num"
+        done
+    fi
+done
+
 # Generate summary
 echo -e "\n${BLUE}📊 Generating summary...${NC}"
 
 # Count violations by category
 categories=$(cat "$VIOLATIONS_FILE" | grep -o '^\[[^]]*\]' | sort | uniq -c | sed 's/^\s*\([0-9]*\)\s*\[\([^]]*\)\]/\1:\2/')
 
+# Create detailed summary with statistics  
+echo -e "\n${BLUE}=== DETAILED VIOLATION BREAKDOWN ===${NC}"
+echo "$categories" | while IFS=':' read -r count category; do
+    if [ -n "$count" ] && [ -n "$category" ]; then
+        echo -e "  ${YELLOW}$category:${NC} $count violations"
+    fi
+done
+
+# Generate fix priority recommendations
+echo -e "\n${BLUE}=== FIX PRIORITY RECOMMENDATIONS ===${NC}"
+echo -e "${RED}🚨 CRITICAL (Fix First):${NC}"
+echo "$categories" | while IFS=':' read -r count category; do
+    case $category in
+        "ADHOC_MODELCONTAINER"|"SWIFTDATA_UI"|"FORCE_TRY"|"FORCE_UNWRAP")
+            echo -e "  • $category ($count violations) - Architecture/Safety violations"
+            ;;
+    esac
+done
+
+echo -e "${YELLOW}⚠️  HIGH (Fix Soon):${NC}"
+echo "$categories" | while IFS=':' read -r count category; do
+    case $category in
+        "MISSING_MAINACTOR"|"NOTIFICATIONCENTER_CHAT"|"DIRECT_URLSESSION")
+            echo -e "  • $category ($count violations) - Threading/Architecture issues"
+            ;;
+    esac
+done
+
+echo -e "${BLUE}📋 MEDIUM (Fix When Convenient):${NC}"
+echo "$categories" | while IFS=':' read -r count category; do
+    case $category in
+        "DEBUG_PRINT"|"TODO_FIXME"|"ACCESS_CONTROL"|"HARDCODED_STRING"|"FILE_SIZE"|"FUNCTION_SIZE"|"TYPE_SIZE"|"STATE_NOT_PRIVATE")
+            echo -e "  • $category ($count violations) - Code quality issues"
+            ;;
+    esac
+done
+
 # Create JSON summary
 jq --argjson violations "$violations_count" \
    --arg categories "$categories" \
-   '.summary.total_violations = $violations | .summary.categories = $categories' \
+   --arg timestamp "$(date -u +%Y-%m-%dT%H:%M:%SZ)" \
+   '.summary.total_violations = $violations | .summary.categories = $categories | .timestamp = $timestamp' \
    "$SUMMARY_FILE" > temp_summary.json && mv temp_summary.json "$SUMMARY_FILE"
 
 # Print results
@@ -183,8 +290,10 @@ if [ "$violations_count" -eq 0 ]; then
 else
     echo -e "${RED}⚠️  Found $violations_count violations:${NC}"
     echo ""
-    echo "$categories" | while IFS: read -r count category; do
-        echo -e "  ${YELLOW}$category:${NC} $count violations"
+    echo "$categories" | while IFS=':' read -r count category; do
+        if [ -n "$count" ] && [ -n "$category" ]; then
+            echo -e "  ${YELLOW}$category:${NC} $count violations"
+        fi
     done
     echo ""
     echo -e "📄 Full report: ${VIOLATIONS_FILE}"
