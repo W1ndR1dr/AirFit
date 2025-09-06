@@ -328,7 +328,6 @@ struct DashboardView: View {
 struct WorkoutHistoryViewWrapper: View {
     let user: User
     let container: DIContainer
-    let modelContext: ModelContext
 
     @State private var muscleGroupVolumeService: MuscleGroupVolumeServiceProtocol?
     @State private var strengthProgressionService: StrengthProgressionServiceProtocol?
@@ -371,8 +370,7 @@ struct WorkoutHistoryViewWrapper: View {
                 WorkoutHistoryView(
                     user: user,
                     muscleGroupVolumeService: muscleGroupVolumeService!,
-                    strengthProgressionService: strengthProgressionService!,
-                    modelContext: modelContext
+                    strengthProgressionService: strengthProgressionService!
                 )
             }
         }
