@@ -161,8 +161,12 @@ final class DirectAIProcessor {
             return result
 
         } catch let error as DirectAIError {
+            let errorTime = Int((CFAbsoluteTimeGetCurrent() - startTime) * 1000)
+            os_signpost(.end, log: performanceLog, name: "Nutrition Parsing", signpostID: processingId, "Failed after %{public}dms: %{public}@", errorTime, error.localizedDescription)
             throw error
         } catch {
+            let errorTime = Int((CFAbsoluteTimeGetCurrent() - startTime) * 1000)
+            os_signpost(.end, log: performanceLog, name: "Nutrition Parsing", signpostID: processingId, "Failed after %{public}dms: %{public}@", errorTime, error.localizedDescription)
             throw DirectAIError.nutritionParsingFailed(error.localizedDescription)
         }
     }

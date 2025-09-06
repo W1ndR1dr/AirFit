@@ -85,7 +85,7 @@ public enum Formatters {
     }()
 
     // MARK: - ISO8601 Formatter
-    static let iso8601: ISO8601DateFormatter = {
+    nonisolated(unsafe) static let iso8601: ISO8601DateFormatter = {
         return ISO8601DateFormatter()
     }()
 
