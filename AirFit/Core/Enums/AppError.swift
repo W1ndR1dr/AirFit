@@ -94,6 +94,12 @@ public enum AppError: LocalizedError, Sendable {
             return "Please verify your API keys and try again"
         case .configuration:
             return "Please check your settings and try again"
+        case .fileSystemError:
+            return "Please restart the app. If the problem persists, check device storage"
+        case .dataCorruption:
+            return "Data may need to be reset. Please contact support if this persists"
+        case .modelContainerError:
+            return "Please restart the app. If the problem persists, data may need to be reset"
         }
     }
 }
