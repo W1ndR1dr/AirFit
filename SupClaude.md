@@ -132,6 +132,87 @@ Status: Updated by Coordinator — T06 tokens added + applied to Tab Bar and chi
 
 ---
 
+CTO Direction — Remediation Sprint (Phase R)
+
+Context
+- Read SupCodex: Phase 0–A05 validated serious issues. Production readiness is NO‑GO until we fix build, tests, and architectural violations. Treat this as a focused remediation sprint.
+
+Order of Operations (must follow)
+1) Restore a clean build on `main` (no warnings) and enable unit tests to run.
+2) Reduce architectural violations to zero for guardrails (chat streaming, SwiftData UI, ModelContainer, force ops).
+3) Re‑run Performance validation on device and publish results.
+
+Assignments (4 agents in parallel)
+
+R01 — Build Unblock (HealthKit + Test Targets)
+- Branch: `claude/R01-build-unblock-healthkit-tests`
+- Scope:
+  - Fix Swift compilation errors in HealthKit services (imports, availability, mismatched types).
+  - Resolve test target conflicts and broken testable imports so `xcodebuild test -testPlan AirFit-Unit` runs.
+  - Do not down‑level the deployment target; gate specific iOS 26 APIs if needed and open issues.
+- Exit: `xcodegen generate` + SwiftLint strict + build + unit tests all green locally.
+
+R02 — Force Ops Elimination (200+)
+- Branch: `claude/R02-force-ops-elimination`
+- Scope:
+  - Remove remaining 196 force unwraps and 9 force try (focus where guards list offenders).
+  - Replace with safe handling and typed errors; avoid silencing with lint disables unless justified and documented.
+- Exit: Guards report 0 force ops in app target; CI green.
+
+R03 — SwiftData in UI Purge (15 sites)
+- Branch: `claude/R03-sd-ui-purge`
+- Scope:
+  - Replace SwiftData imports in UI/ViewModels with repository usage (FoodTracking & Dashboard are reference patterns).
+  - Update DI registrations and factories accordingly.
+- Exit: `rg "^import\s+SwiftData" AirFit/Modules` returns none for Views/ViewModels.
+
+R04 — ModelContainer Cleanup (5 ad‑hoc)
+- Branch: `claude/R04-modelcontainer-cleanup`
+- Scope:
+  - Remove ad‑hoc `ModelContainer(` instances outside DI/tests/previews. Use DI to resolve container and `.mainContext`.
+  - Starter list to remove:
+    - `AirFit/Services/ExerciseDatabase.swift` (several `ModelContainer` calls)
+    - `AirFit/Data/Managers/DataManager.swift` (several calls incl. force_try)
+    - Views using `try! ModelContainer(for: User.self)`:
+      - `Modules/Body/Views/BodyDashboardView.swift`
+      - `Modules/Workouts/Views/WorkoutDashboardView.swift`
+      - `Modules/Dashboard/Views/{DashboardView,TodayDashboardView,NutritionDashboardView}.swift`
+- Exit: `rg "ModelContainer\s*\(" AirFit` returns only DI/tests/previews.
+
+R05 — Guards to Enforce (wire quickly after R01 passes)
+- Branch: `claude/R05-guards-enforce`
+- Scope: Flip guards from advisory to failing for:
+  - Force ops, ad‑hoc ModelContainer, SwiftData in UI, NotificationCenter chat.
+  - Keep a single rerun gate to allow quick fixes (documented in CI log).
+
+R06 — Performance Validation (after R01–R04)
+- Branch: `claude/R06-perf-validation`
+- Scope: Run device validation on iPhone 16 Pro; capture TTFT and context timings using shared signpost names:
+  - Pipeline: `coach.pipeline`, stages: `coach.parse`, `coach.context`, `coach.infer`, `coach.act`
+  - Streaming: `stream.start`, `stream.first_token`, `stream.delta`, `stream.complete`
+- Exit: `Docs/Performance/RESULTS.md` with charts; numbers hit budgets (TTFT < 300ms p50/< 500ms p95; context < 500ms cold/< 10ms warm).
+
+Coordination
+- Open small PRs per task; include QUALITY_GATES checklist and paste guard summaries + key logs.
+- Pause non‑essential merges until R01 lands. After R01 is merged, proceed in order with R02–R04; re‑run Phase 0 snapshot after R04.
+- Do not change CoachEngine public APIs; Codex is refactoring pipeline internals in C01.
+
+Notes
+- Chat streaming: We removed NotificationCenter from ChatViewModel/ConversationManager. Re‑run A01 guard to confirm zero chat NC violations.
+- DI: Ensure `ChatStreamingStore` + `ChatStreamingMetricsAdapter` remain registered; no duplicate stores.
+
+Codex (CTO) — My Workstream (in parallel)
+- C01 Stage 2 (pipeline)
+  - Add signposts at `coach.parse/context/infer/act` in CoachEngine; wrap stages behind a `COACH_PIPELINE_V2` flag.
+  - Draft `CoachPipeline` actor wrappers for heavy tasks (nutrition/context), no public API changes.
+- Performance tooling
+  - Create micro-benchmark harness for TTFT/context; align with Docs/Observability/SIGNPOSTS.md.
+  - Assist R06 with device capture if needed.
+- Docs & PR hygiene
+  - Maintain Docs/HANDOFF.md and update PR template (QUALITY_GATES + guard summary paste).
+  - Provide `Scripts/validation/collect-status.sh` and `Docs/Codebase-Status/STATUS_SNAPSHOT_TEMPLATE.md`.
+- Coordination
+  - Review/merge R01 first; then R02–R04 in order; freeze non-essential merges until R01 is green.
 New Claude Instance — Kickoff Briefing (Read Me First)
 - Context: Personal iOS app (iPhone 16 Pro, iOS 26 only). Guardrails: no NotificationCenter for chat (ChatStreamingStore only), no SwiftData in UI/ViewModels, single DI-owned ModelContainer, all ViewModels @MainActor, no force ops.
 - Workflow: Small PRs targeting `main`. Branch naming: `claude/<task-id-or-scope>-<slug>`. Keep CI green per `.github/workflows/ci.yml`.
