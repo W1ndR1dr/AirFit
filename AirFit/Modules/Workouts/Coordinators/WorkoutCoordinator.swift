@@ -10,23 +10,16 @@ final class WorkoutCoordinator: SheetCoordinator<WorkoutCoordinator.WorkoutDesti
     // MARK: - Destinations
     enum WorkoutDestination: Hashable {
         case workoutDetail(Workout)
-        case exerciseLibrary
         case allWorkouts
         case statistics
     }
 
-    // MARK: - Sheets
+    // MARK: - Sheets  
     enum WorkoutSheet: Identifiable, Hashable {
-        case newTemplate
-        case exerciseDetail(Exercise)
-        case voiceWorkoutInput  // New: for quick voice-based workout creation
+        case voiceWorkoutInput  // For quick voice-based workout creation
 
         var id: String {
             switch self {
-            case .newTemplate:
-                return "newTemplate"
-            case .exerciseDetail(let exercise):
-                return "exerciseDetail-\(exercise.id)"
             case .voiceWorkoutInput:
                 return "voiceWorkoutInput"
             }

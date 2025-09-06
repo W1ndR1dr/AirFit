@@ -143,12 +143,6 @@ struct WorkoutListView: View {
                     coordinator.showSheet(.voiceWorkoutInput)
                 }
                 .environmentObject(gradientManager)
-
-                QuickActionCard(title: "Exercise Library", icon: "books.vertical.fill", index: 1) {
-                    HapticService.impact(.medium)
-                    coordinator.navigateTo(.exerciseLibrary)
-                }
-                .environmentObject(gradientManager)
             }
             .padding(.horizontal, AppSpacing.md)
         }
@@ -211,8 +205,6 @@ struct WorkoutListView: View {
         switch destination {
         case .workoutDetail(let workout):
             WorkoutDetailView(workout: workout, viewModel: viewModel)
-        case .exerciseLibrary:
-            ExerciseLibraryView()
         case .allWorkouts:
             Text("All Workouts")
         case .statistics:
@@ -228,10 +220,6 @@ struct WorkoutListView: View {
             // In a real implementation, this would navigate to the chat interface
             VoiceWorkoutInputPlaceholder(coordinator: coordinator)
                 .environmentObject(gradientManager)
-        case .newTemplate:
-            Text("New Template")
-        case .exerciseDetail(let exercise):
-            Text(exercise.name)
         }
     }
 }
