@@ -211,7 +211,7 @@ struct DashboardContent: View {
             NutritionDetailView(user: user)
         case .workoutHistory:
             // Create WorkoutHistoryView with proper dependencies
-            WorkoutHistoryViewWrapper(user: user, container: diContainer, modelContext: modelContext)
+            WorkoutHistoryViewWrapper(user: user, container: diContainer)
         case .recoveryDetail:
             RecoveryDetailView(user: user, container: diContainer)
         case .settings:
