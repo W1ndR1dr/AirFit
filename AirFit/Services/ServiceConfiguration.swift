@@ -119,15 +119,15 @@ struct ServiceConfiguration: Sendable {
 
     // MARK: - Initialization
     static func detectEnvironment() -> Environment {
-        #if DEBUG
-        return .development
-        #else
-        // Check for staging flag in Info.plist or environment variable
-        if ProcessInfo.processInfo.environment["STAGING"] != nil {
+        let detected = InfoPlistHelper.detectedEnvironment
+        switch detected {
+        case .development:
+            return .development
+        case .staging:
             return .staging
+        case .production:
+            return .production
         }
-        return .production
-        #endif
     }
 }
 
