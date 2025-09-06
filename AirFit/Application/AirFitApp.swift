@@ -17,8 +17,7 @@ struct AirFitApp: App {
 
     // MARK: - Test Mode Detection
     private var isTestMode: Bool {
-        ProcessInfo.processInfo.arguments.contains("--test-mode") ||
-            ProcessInfo.processInfo.environment["AIRFIT_TEST_MODE"] == "1"
+        AppConstants.Configuration.isTestMode
     }
 
     // MARK: - Model Schema

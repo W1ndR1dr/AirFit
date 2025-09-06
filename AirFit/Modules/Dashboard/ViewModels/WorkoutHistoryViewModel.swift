@@ -1,5 +1,4 @@
 import SwiftUI
-import SwiftData
 import Observation
 import Charts
 
@@ -29,7 +28,6 @@ final class WorkoutHistoryViewModel {
 
     // MARK: - Dependencies
     private let user: User
-    private let modelContext: ModelContext
     private let muscleGroupVolumeService: MuscleGroupVolumeServiceProtocol
     private let strengthProgressionService: StrengthProgressionServiceProtocol
 
@@ -105,12 +103,10 @@ final class WorkoutHistoryViewModel {
     // MARK: - Initialization
     init(
         user: User,
-        modelContext: ModelContext,
         muscleGroupVolumeService: MuscleGroupVolumeServiceProtocol,
         strengthProgressionService: StrengthProgressionServiceProtocol
     ) {
         self.user = user
-        self.modelContext = modelContext
         self.muscleGroupVolumeService = muscleGroupVolumeService
         self.strengthProgressionService = strengthProgressionService
         self.selectedTimeframe = .month
@@ -233,7 +229,7 @@ final class WorkoutHistoryViewModel {
         }
 
         // Create frequency data points
-        let weekdaySymbols = DateFormatter().shortWeekdaySymbols ?? []
+        let weekdaySymbols = Formatters.shortWeekdaySymbols
         var dataPoints: [FrequencyDataPoint] = []
 
         for (index, count) in weekdayFrequency.enumerated() {

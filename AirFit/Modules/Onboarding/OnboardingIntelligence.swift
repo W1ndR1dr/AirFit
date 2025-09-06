@@ -238,9 +238,7 @@ final class OnboardingIntelligence: ObservableObject {
     /// Store profile data from ProfileSetupView
     func addProfileData(birthDate: Date, biologicalSex: String) {
         // Store in conversation variables for later use
-        let formatter = DateFormatter()
-        formatter.dateFormat = "yyyy-MM-dd"
-        conversationVariables["birthDate"] = formatter.string(from: birthDate)
+        conversationVariables["birthDate"] = Formatters.isoDate.string(from: birthDate)
         conversationVariables["biologicalSex"] = biologicalSex
 
         // Add to conversation history for context
@@ -260,9 +258,7 @@ final class OnboardingIntelligence: ObservableObject {
         var biologicalSex: String?
 
         if let birthDateString = conversationVariables["birthDate"] {
-            let formatter = DateFormatter()
-            formatter.dateFormat = "yyyy-MM-dd"
-            birthDate = formatter.date(from: birthDateString)
+            birthDate = Formatters.isoDate.date(from: birthDateString)
         }
 
         if let sex = conversationVariables["biologicalSex"] {

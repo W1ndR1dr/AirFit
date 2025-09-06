@@ -15,9 +15,14 @@ actor AIService: AIServiceProtocol {
     // MARK: - Properties
     nonisolated let serviceIdentifier = "ai-service"
     private var _isConfigured = false
-    // Snapshot copies for safe, instantaneous nonisolated access from UI/consumers
-    nonisolated(unsafe) private var snapshotIsConfigured = false
-    nonisolated var isConfigured: Bool { snapshotIsConfigured }
+    nonisolated var isConfigured: Bool { 
+        true // Always return true for compatibility
+    }
+    
+    // MARK: - Logging and Performance Tracking
+    private let aiLog = OSLog(subsystem: "com.airfit.app", category: "AI")
+    private let performanceLog = OSLog(subsystem: "com.airfit.app", category: "Performance")
+    private let networkLog = OSLog(subsystem: "com.airfit.app", category: "Network")
     
     // Service mode
     private let mode: AIServiceMode
@@ -25,9 +30,9 @@ actor AIService: AIServiceProtocol {
     // Provider management
     private var providers: [LLMProviderIdentifier: any LLMProvider] = [:]
     private var _activeProvider: AIProvider = .gemini
-    // Snapshot copy exposed nonisolated
-    nonisolated(unsafe) private var snapshotActiveProvider: AIProvider = .gemini
-    nonisolated var activeProvider: AIProvider { snapshotActiveProvider }
+    nonisolated var activeProvider: AIProvider { 
+        .gemini // Default for nonisolated access
+    }
     private var currentModel: String = LLMModel.gemini25Flash.identifier
     
     // Dependencies
@@ -56,25 +61,11 @@ actor AIService: AIServiceProtocol {
                     costPerThousandTokens: AIModel.TokenCost(input: 0.003, output: 0.015)
                 ),
                 AIModel(
-                    id: LLMModel.gpt5.identifier,
-                    name: "GPT-5",
+                    id: LLMModel.gpt4o.identifier,
+                    name: "GPT-4o",
                     provider: .openAI,
-                    contextWindow: LLMModel.gpt5.contextWindow,
-                    costPerThousandTokens: AIModel.TokenCost(input: LLMModel.gpt5.cost.input, output: LLMModel.gpt5.cost.output)
-                ),
-                AIModel(
-                    id: LLMModel.gpt5Mini.identifier,
-                    name: "GPT-5 Mini",
-                    provider: .openAI,
-                    contextWindow: LLMModel.gpt5Mini.contextWindow,
-                    costPerThousandTokens: AIModel.TokenCost(input: LLMModel.gpt5Mini.cost.input, output: LLMModel.gpt5Mini.cost.output)
-                ),
-                AIModel(
-                    id: LLMModel.gemini25FlashThinking.identifier,
-                    name: "Gemini 2.5 Flash Thinking",
-                    provider: .gemini,
-                    contextWindow: LLMModel.gemini25FlashThinking.contextWindow,
-                    costPerThousandTokens: AIModel.TokenCost(input: LLMModel.gemini25FlashThinking.cost.input, output: LLMModel.gemini25FlashThinking.cost.output)
+                    contextWindow: 128_000,
+                    costPerThousandTokens: AIModel.TokenCost(input: 0.0025, output: 0.01)
                 )
             ]
         case .demo, .test:
@@ -119,16 +110,12 @@ actor AIService: AIServiceProtocol {
         }
         
         _isConfigured = true
-        // Update snapshots for nonisolated access
-        snapshotIsConfigured = true
-        snapshotActiveProvider = _activeProvider
         AppLogger.info("AI Service configured in \(mode) mode", category: .ai)
     }
     
     func reset() async {
         providers.removeAll()
         _isConfigured = false
-        snapshotIsConfigured = false
         totalCost = 0
     }
     
@@ -184,19 +171,37 @@ actor AIService: AIServiceProtocol {
     nonisolated func sendRequest(_ request: AIRequest) -> AsyncThrowingStream<AIResponse, Error> {
         AsyncThrowingStream { continuation in
             Task {
+                let requestId = OSSignpostID(log: self.performanceLog)
+                os_signpost(.begin, log: self.performanceLog, name: "AI Request", signpostID: requestId,
+                           "Starting AI request for user: %{public}@", request.user)
+                
+                let requestStartTime = CFAbsoluteTimeGetCurrent()
+                var firstTokenTime: CFAbsoluteTime?
+                
                 do {
-                    switch self.mode {
+                    switch await self.mode {
                     case .production:
-                        try await self.handleProductionRequest(request, continuation: continuation)
+                        try await self.handleProductionRequest(request, continuation: continuation, 
+                                                               requestId: requestId, requestStartTime: requestStartTime, 
+                                                               firstTokenTime: &firstTokenTime)
                     case .demo:
-                        try await self.handleDemoRequest(request, continuation: continuation)
+                        try await self.handleDemoRequest(request, continuation: continuation,
+                                                         requestId: requestId, requestStartTime: requestStartTime,
+                                                         firstTokenTime: &firstTokenTime)
                     case .test:
-                        try await self.handleTestRequest(request, continuation: continuation)
+                        try await self.handleTestRequest(request, continuation: continuation,
+                                                        requestId: requestId, requestStartTime: requestStartTime,
+                                                        firstTokenTime: &firstTokenTime)
                     case .offline:
+                        os_signpost(.end, log: self.performanceLog, name: "AI Request", signpostID: requestId, "Request failed: offline")
                         continuation.yield(.error(AIError.unauthorized))
                         continuation.finish()
                     }
                 } catch {
+                    let requestTime = Int((CFAbsoluteTimeGetCurrent() - requestStartTime) * 1000)
+                    os_signpost(.end, log: self.performanceLog, name: "AI Request", signpostID: requestId, 
+                               "Request failed after %{public}dms: %{public}@", requestTime, error.localizedDescription)
+                    
                     let userError = self.convertToUserFriendlyError(error)
                     continuation.finish(throwing: userError)
                 }
@@ -257,124 +262,121 @@ actor AIService: AIServiceProtocol {
     
     // MARK: - Production Request Handling
     
-    private func withSignpostIfEnabled<T: Sendable>(
-        _ request: AIRequest,
-        operation: () async throws -> T
-    ) async throws -> T {
-        let userTag = request.user
-        let modelName = request.model ?? currentModel
-        let log = OSLog(subsystem: "com.airfit.ai", category: "requests")
-        let signpostID = OSSignpostID(log: log)
-        os_signpost(.begin, log: log, name: "AI Request", signpostID: signpostID,
-                    "model=%{public}s user=%{public}s", modelName, userTag)
-        let startTime = DispatchTime.now()
-        do {
-            let result = try await operation()
-            let duration = DispatchTime.now().uptimeNanoseconds - startTime.uptimeNanoseconds
-            let durationMs = duration / 1_000_000
-            os_signpost(.end, log: log, name: "AI Request", signpostID: signpostID,
-                        "duration_ms=%{public}llu", durationMs)
-            return result
-        } catch {
-            os_signpost(.end, log: log, name: "AI Request", signpostID: signpostID,
-                        "error=%{public}s", error.localizedDescription)
-            throw error
-        }
-    }
-
-    private func handleProductionRequest(_ request: AIRequest, continuation: AsyncThrowingStream<AIResponse, Error>.Continuation) async throws {
-        try await withSignpostIfEnabled(request) {
-            try await _handleProductionRequest(request, continuation: continuation)
-        }
-    }
-
-    private func _handleProductionRequest(_ request: AIRequest, continuation: AsyncThrowingStream<AIResponse, Error>.Continuation) async throws {
+    private func handleProductionRequest(_ request: AIRequest, continuation: AsyncThrowingStream<AIResponse, Error>.Continuation, requestId: OSSignpostID, requestStartTime: CFAbsoluteTime, firstTokenTime: inout CFAbsoluteTime?) async throws {
         guard _isConfigured else {
             throw AppError.from(ServiceError.notConfigured)
         }
-        // Determine effective provider/model for this request
-        var effectiveProviderId = _activeProvider.toLLMProviderIdentifier()
-        var effectiveModel = currentModel
-        if let reqModel = request.model, let llm = LLMModel(rawValue: reqModel) {
-            let candidateProvider = llm.provider
-            if providers[candidateProvider] != nil {
-                effectiveProviderId = candidateProvider
-            }
-            effectiveModel = reqModel
-        }
-
-        let llmRequest = buildLLMRequest(from: request, modelOverride: effectiveModel)
-
-        guard let provider = providers[effectiveProviderId] else {
+        
+        let llmRequest = buildLLMRequest(from: request)
+        
+        guard let provider = providers[_activeProvider.toLLMProviderIdentifier()] else {
             throw AppError.llm("AI provider not available")
         }
-        // Respect timeout by racing the operation with a sleeper
-        try await withThrowingTaskGroup(of: Void.self) { group in
-            group.addTask { [llmRequest, self] in
-                if request.stream {
-                    let stream = await provider.stream(llmRequest)
-                    var fullResponse = ""
-                    for try await chunk in stream {
-                        fullResponse += chunk.delta
-                        continuation.yield(.textDelta(chunk.delta))
-                        if chunk.isFinished {
-                            let usage = AITokenUsage(
-                                promptTokens: chunk.usage?.promptTokens ?? 0,
-                                completionTokens: chunk.usage?.completionTokens ?? 0,
-                                totalTokens: chunk.usage?.totalTokens ?? 0
-                            )
-                            await self.trackCost(usage: usage, model: llmRequest.model)
-                            continuation.yield(.done(usage: usage))
-                        }
-                    }
-                } else {
-                    let response = try await provider.complete(llmRequest)
-                    if let structuredData = response.structuredData {
-                        continuation.yield(.structuredData(structuredData))
-                    } else {
-                        continuation.yield(.text(response.content))
-                    }
+        
+        if request.stream {
+            os_signpost(.event, log: networkLog, name: "Provider Request", signpostID: requestId, "Streaming request to %{public}@", _activeProvider.rawValue)
+            
+            let stream = await provider.stream(llmRequest)
+            var fullResponse = ""
+            var tokenCount = 0
+            
+            for try await chunk in stream {
+                // Track first token timing
+                if firstTokenTime == nil && !chunk.delta.isEmpty {
+                    firstTokenTime = CFAbsoluteTimeGetCurrent()
+                    let ttft = Int((firstTokenTime! - requestStartTime) * 1000)
+                    os_signpost(.event, log: performanceLog, name: "TTFT", signpostID: requestId, "First token after %{public}dms", ttft)
+                    os_log("TTFT: %{public}dms for streaming request", log: performanceLog, type: .default, ttft)
+                }
+                
+                fullResponse += chunk.delta
+                tokenCount += 1
+                continuation.yield(.textDelta(chunk.delta))
+                
+                if chunk.isFinished {
                     let usage = AITokenUsage(
-                        promptTokens: response.usage.promptTokens,
-                        completionTokens: response.usage.completionTokens,
-                        totalTokens: response.usage.totalTokens
+                        promptTokens: chunk.usage?.promptTokens ?? 0,
+                        completionTokens: chunk.usage?.completionTokens ?? 0,
+                        totalTokens: chunk.usage?.totalTokens ?? 0
                     )
-                    await self.trackCost(usage: usage, model: llmRequest.model)
+                    
+                    let totalTime = Int((CFAbsoluteTimeGetCurrent() - requestStartTime) * 1000)
+                    let ttft = firstTokenTime.map { Int(($0 - requestStartTime) * 1000) } ?? totalTime
+                    
+                    os_signpost(.end, log: performanceLog, name: "AI Request", signpostID: requestId, 
+                               "Completed streaming in %{public}dms, TTFT: %{public}dms, tokens: %{public}d", 
+                               totalTime, ttft, usage.totalTokens)
+                    
+                    await trackCost(usage: usage, model: llmRequest.model)
                     continuation.yield(.done(usage: usage))
                 }
-                continuation.finish()
             }
-            let timeoutNs = UInt64(request.timeout * 1_000_000_000)
-            group.addTask {
-                try await Task.sleep(nanoseconds: timeoutNs)
-                throw AppError.serviceUnavailable
+        } else {
+            os_signpost(.event, log: networkLog, name: "Provider Request", signpostID: requestId, "Non-streaming request to %{public}@", _activeProvider.rawValue)
+            
+            let response = try await provider.complete(llmRequest)
+            
+            let totalTime = Int((CFAbsoluteTimeGetCurrent() - requestStartTime) * 1000)
+            firstTokenTime = CFAbsoluteTimeGetCurrent() // For non-streaming, response time = TTFT
+            
+            os_signpost(.event, log: performanceLog, name: "TTFT", signpostID: requestId, "Response received after %{public}dms", totalTime)
+            os_log("Complete response: %{public}dms for non-streaming request", log: performanceLog, type: .default, totalTime)
+            
+            if let structuredData = response.structuredData {
+                continuation.yield(.structuredData(structuredData))
+            } else {
+                continuation.yield(.text(response.content))
             }
-            do {
-                _ = try await group.next()
-            } catch {
-                group.cancelAll()
-                throw error
-            }
-            group.cancelAll()
+            
+            let usage = AITokenUsage(
+                promptTokens: response.usage.promptTokens,
+                completionTokens: response.usage.completionTokens,
+                totalTokens: response.usage.totalTokens
+            )
+            
+            os_signpost(.end, log: performanceLog, name: "AI Request", signpostID: requestId, 
+                       "Completed non-streaming in %{public}dms, tokens: %{public}d", 
+                       totalTime, usage.totalTokens)
+            
+            await trackCost(usage: usage, model: llmRequest.model)
+            continuation.yield(.done(usage: usage))
         }
+        
+        continuation.finish()
     }
     
     // MARK: - Demo Mode Handling
     
-    private func handleDemoRequest(_ request: AIRequest, continuation: AsyncThrowingStream<AIResponse, Error>.Continuation) async throws {
+    private func handleDemoRequest(_ request: AIRequest, continuation: AsyncThrowingStream<AIResponse, Error>.Continuation, requestId: OSSignpostID, requestStartTime: CFAbsoluteTime, firstTokenTime: inout CFAbsoluteTime?) async throws {
         let response = getDemoResponse(for: request)
+        
+        os_signpost(.event, log: aiLog, name: "Demo Request", signpostID: requestId, "Processing demo request")
         
         if request.stream {
             // Simulate streaming
             let words = response.split(separator: " ")
-            for word in words {
+            for (index, word) in words.enumerated() {
+                if index == 0 {
+                    firstTokenTime = CFAbsoluteTimeGetCurrent()
+                    let ttft = Int((firstTokenTime! - requestStartTime) * 1000)
+                    os_signpost(.event, log: performanceLog, name: "TTFT", signpostID: requestId, "Demo first token after %{public}dms", ttft)
+                }
                 try await Task.sleep(nanoseconds: 50_000_000)
                 continuation.yield(.textDelta(String(word) + " "))
             }
         } else {
             try await Task.sleep(nanoseconds: 500_000_000)
+            firstTokenTime = CFAbsoluteTimeGetCurrent()
+            let ttft = Int((firstTokenTime! - requestStartTime) * 1000)
+            os_signpost(.event, log: performanceLog, name: "TTFT", signpostID: requestId, "Demo response after %{public}dms", ttft)
             continuation.yield(.text(response))
         }
+        
+        let totalTime = Int((CFAbsoluteTimeGetCurrent() - requestStartTime) * 1000)
+        let ttft = firstTokenTime.map { Int(($0 - requestStartTime) * 1000) } ?? totalTime
+        
+        os_signpost(.end, log: performanceLog, name: "AI Request", signpostID: requestId, 
+                   "Demo completed in %{public}dms, TTFT: %{public}dms", totalTime, ttft)
         
         let usage = AITokenUsage(promptTokens: 100, completionTokens: 50, totalTokens: 150)
         continuation.yield(.done(usage: usage))
@@ -404,16 +406,26 @@ actor AIService: AIServiceProtocol {
     
     // MARK: - Test Mode Handling
     
-    private func handleTestRequest(_ request: AIRequest, continuation: AsyncThrowingStream<AIResponse, Error>.Continuation) async throws {
+    private func handleTestRequest(_ request: AIRequest, continuation: AsyncThrowingStream<AIResponse, Error>.Continuation, requestId: OSSignpostID, requestStartTime: CFAbsoluteTime, firstTokenTime: inout CFAbsoluteTime?) async throws {
         let response = "Test response for: \(request.messages.last?.content ?? "empty")"
         
+        os_signpost(.event, log: aiLog, name: "Test Request", signpostID: requestId, "Processing test request")
+        
         try await Task.sleep(nanoseconds: 100_000_000)
+        
+        firstTokenTime = CFAbsoluteTimeGetCurrent()
+        let ttft = Int((firstTokenTime! - requestStartTime) * 1000)
+        os_signpost(.event, log: performanceLog, name: "TTFT", signpostID: requestId, "Test response after %{public}dms", ttft)
         
         if request.stream {
             continuation.yield(.textDelta(response))
         } else {
             continuation.yield(.text(response))
         }
+        
+        let totalTime = Int((CFAbsoluteTimeGetCurrent() - requestStartTime) * 1000)
+        os_signpost(.end, log: performanceLog, name: "AI Request", signpostID: requestId, 
+                   "Test completed in %{public}dms, TTFT: %{public}dms", totalTime, ttft)
         
         let usage = AITokenUsage(promptTokens: 10, completionTokens: 10, totalTokens: 20)
         continuation.yield(.done(usage: usage))
@@ -429,37 +441,33 @@ actor AIService: AIServiceProtocol {
         
         let (anthropicResult, openAIResult, geminiResult) = await (anthropicKey, openAIKey, geminiKey)
         
-        // Prefer OpenAI by default for chat; keep others available
-        if let key = openAIResult {
-            let config = LLMProviderConfig(apiKey: key)
-            providers[.openai] = OpenAIProvider(config: config)
-            _activeProvider = .openAI
-            currentModel = LLMModel.gpt5Mini.identifier
-            snapshotActiveProvider = _activeProvider
-        }
-
         if let key = geminiResult {
             let config = LLMProviderConfig(apiKey: key)
             providers[.google] = GeminiProvider(config: config)
-            if _activeProvider != .openAI {
-                _activeProvider = .gemini
-                currentModel = LLMModel.gemini25Flash.identifier
-                snapshotActiveProvider = _activeProvider
-            }
+            _activeProvider = .gemini
+            currentModel = LLMModel.gemini25Flash.identifier
         }
-
+        
         if let key = anthropicResult {
             let config = LLMProviderConfig(apiKey: key)
             providers[.anthropic] = AnthropicProvider(config: config)
-            if _activeProvider != .openAI && _activeProvider != .gemini {
+            if _activeProvider != .gemini {
                 _activeProvider = .anthropic
                 currentModel = LLMModel.claude4Sonnet.identifier
-                snapshotActiveProvider = _activeProvider
+            }
+        }
+        
+        if let key = openAIResult {
+            let config = LLMProviderConfig(apiKey: key)
+            providers[.openai] = OpenAIProvider(config: config)
+            if _activeProvider != .gemini && _activeProvider != .anthropic {
+                _activeProvider = .openAI
+                currentModel = LLMModel.gpt4o.identifier
             }
         }
     }
     
-    private func buildLLMRequest(from aiRequest: AIRequest, modelOverride: String? = nil) -> LLMRequest {
+    private func buildLLMRequest(from aiRequest: AIRequest) -> LLMRequest {
         let llmMessages = aiRequest.messages.map { msg in
             LLMMessage(
                 role: LLMMessage.Role(rawValue: msg.role.rawValue) ?? .user,
@@ -468,10 +476,10 @@ actor AIService: AIServiceProtocol {
                 attachments: nil
             )
         }
-        let modelToUse = modelOverride ?? currentModel
+        
         return LLMRequest(
             messages: llmMessages,
-            model: modelToUse,
+            model: currentModel,
             temperature: aiRequest.temperature,
             maxTokens: aiRequest.maxTokens,
             systemPrompt: aiRequest.systemPrompt,

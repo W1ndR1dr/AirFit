@@ -1,9 +1,14 @@
 import Foundation
+import os.signpost
 
 final class NetworkClient: NetworkClientProtocol, ServiceProtocol {
     private let session: URLSession
     private let decoder: JSONDecoder
     private let encoder: JSONEncoder
+    
+    // MARK: - Logging and Performance Tracking
+    private let networkLog = OSLog(subsystem: "com.airfit.app", category: "Network")
+    private let performanceLog = OSLog(subsystem: "com.airfit.app", category: "Performance")
 
     // MARK: - ServiceProtocol
     let serviceIdentifier = "network-client"

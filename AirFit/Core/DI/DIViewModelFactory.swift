@@ -21,10 +21,8 @@ public final class DIViewModelFactory {
     // MARK: - Dashboard
 
     func makeDashboardViewModel(user: User) async throws -> DashboardViewModel {
-        // Get ModelContext first (not Sendable)
-        let modelContext = try await getModelContext()
-
         // Resolve all dependencies in parallel - AICoachService is now pre-registered
+        async let dashboardRepository = container.resolve(DashboardRepositoryProtocol.self)
         async let healthKitService = container.resolve(HealthKitServiceProtocol.self)
         async let nutritionService = container.resolve(NutritionServiceProtocol.self)
         async let aiCoachService = container.resolve(AICoachServiceProtocol.self)
@@ -41,7 +39,7 @@ public final class DIViewModelFactory {
 
         return try await DashboardViewModel(
             user: user,
-            modelContext: modelContext,
+            dashboardRepository: dashboardRepository,
             healthKitService: healthKitService,
             aiCoachService: aiCoachService,
             nutritionService: nutritionService,
@@ -123,21 +121,19 @@ public final class DIViewModelFactory {
     // MARK: - Food Tracking
 
     func makeFoodTrackingViewModel(user: User) async throws -> FoodTrackingViewModel {
-        // Get ModelContext first (not Sendable)
-        let modelContext = try await getModelContext()
-
-        // Resolve other dependencies in parallel
+        // Resolve dependencies in parallel
         async let voiceInputManager = container.resolve(VoiceInputManager.self)
         async let nutritionService = container.resolve(NutritionServiceProtocol.self)
         async let coachEngine = makeCoachEngine(for: user)
         async let healthKitManager = container.resolve(HealthKitManager.self)
         async let nutritionCalculator = container.resolve(NutritionCalculatorProtocol.self)
+        async let foodRepository = container.resolve(FoodTrackingRepositoryProtocol.self)
 
         // Create adapter with resolved voice manager
         let foodVoiceAdapter = FoodVoiceAdapter(voiceInputManager: try await voiceInputManager)
 
         return try await FoodTrackingViewModel(
-            modelContext: modelContext,
+            foodRepository: foodRepository,
             user: user,
             foodVoiceAdapter: foodVoiceAdapter,
             nutritionService: nutritionService,

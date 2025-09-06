@@ -1,5 +1,4 @@
 import SwiftUI
-import SwiftData
 
 /// View allowing users to confirm AI-parsed food items, edit their nutrition values,
 /// adjust portions and save the results.
@@ -801,6 +800,39 @@ private struct ManualFoodEntryView: View {
 }
 
 #if DEBUG
+/*
+ #Preview {
+ let container = ModelContainer.preview
+ let context = container.mainContext
+ let user = try! context.fetch(FetchDescriptor<User>()).first!
+ let parsed = ParsedFoodItem(
+ name: "Apple",
+ brand: nil,
+ quantity: 1,
+ unit: "item",
+ calories: 95,
+ proteinGrams: 0.5,
+ carbGrams: 25,
+ fatGrams: 0.3,
+ fiberGrams: nil,
+ sugarGrams: nil,
+ sodiumMilligrams: nil,
+ databaseId: nil,
+ confidence: 1.0
+ )
+ let foodRepository = SwiftDataFoodTrackingRepository(modelContext: context)
+ let vm = FoodTrackingViewModel(
+ foodRepository: foodRepository,
+ user: user,
+ foodVoiceAdapter: FoodVoiceAdapter(),
+ nutritionService: MockNutritionService(),
+ coachEngine: MockCoachEngine(),
+ coordinator: FoodTrackingCoordinator()
+ )
+ FoodConfirmationView(items: [parsed], viewModel: vm)
+ .modelContainer(container)
+ }
+ */
 
 @MainActor
 final class MockNutritionService: NutritionServiceProtocol {

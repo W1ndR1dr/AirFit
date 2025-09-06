@@ -191,7 +191,7 @@ struct DashboardContent: View {
             NutritionDetailView(user: user)
         case .workoutHistory:
             // Create WorkoutHistoryView with proper dependencies
-            WorkoutHistoryViewWrapper(user: user, container: diContainer, modelContext: modelContext)
+            WorkoutHistoryViewWrapper(user: user, container: diContainer)
         case .recoveryDetail:
             RecoveryDetailView(user: user, container: diContainer)
         case .settings:
@@ -308,7 +308,6 @@ struct DashboardView: View {
 struct WorkoutHistoryViewWrapper: View {
     let user: User
     let container: DIContainer
-    let modelContext: ModelContext
 
     @State private var muscleGroupVolumeService: MuscleGroupVolumeServiceProtocol?
     @State private var strengthProgressionService: StrengthProgressionServiceProtocol?
@@ -351,8 +350,7 @@ struct WorkoutHistoryViewWrapper: View {
                 WorkoutHistoryView(
                     user: user,
                     muscleGroupVolumeService: muscleGroupVolumeService!,
-                    strengthProgressionService: strengthProgressionService!,
-                    modelContext: modelContext
+                    strengthProgressionService: strengthProgressionService!
                 )
             }
         }

@@ -78,6 +78,13 @@ final class WorkoutPlanTransferService: WorkoutPlanTransferProtocol {
     private var pendingPlans: [PlannedWorkoutData] = []
     private let encoder = JSONEncoder()
     private let decoder = JSONDecoder()
+    
+    /// Integration with centralized watch status management
+    private let watchStatusStore = WatchStatusStore.shared
+    
+    /// Transfer attempt tracking
+    private var transferAttempts: [UUID: Int] = [:]
+    private let maxDirectRetries = 3
 
     // MARK: - ServiceProtocol
     nonisolated let serviceIdentifier = "workout-plan-transfer-service"
@@ -175,9 +182,9 @@ final class WorkoutPlanTransferService: WorkoutPlanTransferProtocol {
         }
 
         guard session.isReachable else {
-            // Queue for later when connection is available
-            pendingPlans.append(plan)
-            AppLogger.warning("Watch not reachable, queuing workout plan: \(plan.name)", category: .services)
+            // Use centralized queue management
+            watchStatusStore.queuePlan(plan, reason: .watchUnavailable)
+            AppLogger.warning("Watch not reachable, queuing workout plan in WatchStatusStore: \(plan.name)", category: .services)
 
             // Post notification for UI feedback
             NotificationCenter.default.post(
@@ -225,9 +232,19 @@ final class WorkoutPlanTransferService: WorkoutPlanTransferProtocol {
                     throw error
                 }
             } catch {
-                // Queue for retry on send error
-                pendingPlans.append(plan)
-                AppLogger.error("Failed to send workout plan to watch", error: error, category: .services)
+                // Determine appropriate queue reason based on error type
+                let queueReason: QueueReason
+                if error.localizedDescription.contains("network") || error.localizedDescription.contains("connection") {
+                    queueReason = .networkError
+                } else if error.localizedDescription.contains("rejected") {
+                    queueReason = .watchRejected
+                } else {
+                    queueReason = .transferFailed
+                }
+                
+                // Use centralized queue management
+                watchStatusStore.queuePlan(plan, reason: queueReason)
+                AppLogger.error("Failed to send workout plan to watch, queued for retry", error: error, category: .services)
                 
                 // Post failure notification
                 NotificationCenter.default.post(
@@ -236,7 +253,8 @@ final class WorkoutPlanTransferService: WorkoutPlanTransferProtocol {
                     userInfo: [
                         "planId": plan.id,
                         "error": error.localizedDescription,
-                        "queued": true
+                        "queued": true,
+                        "queueReason": queueReason.rawValue
                     ]
                 )
                 
@@ -244,9 +262,9 @@ final class WorkoutPlanTransferService: WorkoutPlanTransferProtocol {
             }
 
         } catch {
-            // Add to pending queue on encoding error
-            pendingPlans.append(plan)
-            AppLogger.error("Failed to encode workout plan", error: error, category: .services)
+            // Use centralized queue management for encoding errors
+            watchStatusStore.queuePlan(plan, reason: .encodingError)
+            AppLogger.error("Failed to encode workout plan, queued for retry", error: error, category: .services)
             throw AppError.unknown(message: "Failed to transfer workout plan: \(error.localizedDescription)")
         }
     }
@@ -258,7 +276,9 @@ final class WorkoutPlanTransferService: WorkoutPlanTransferProtocol {
     }
 
     func getPendingPlans() async -> [PlannedWorkoutData] {
-        return pendingPlans
+        // Combine local pending plans with centralized queue
+        let centralizedPlans = watchStatusStore.getQueuedPlans().map(\.plan)
+        return pendingPlans + centralizedPlans
     }
 
     func retryPendingTransfers() async throws {
@@ -267,37 +287,79 @@ final class WorkoutPlanTransferService: WorkoutPlanTransferProtocol {
             return
         }
 
-        guard !pendingPlans.isEmpty else {
+        // Process both local pending plans and centralized queue
+        let localPendingCount = pendingPlans.count
+        let centralizedQueueCount = watchStatusStore.queuedPlansCount
+
+        guard localPendingCount > 0 || centralizedQueueCount > 0 else {
             AppLogger.info("No pending workout plans to retry", category: .services)
             return
         }
 
-        AppLogger.info("Retrying \(pendingPlans.count) pending workout plan transfers", category: .services)
+        AppLogger.info("Retrying \(localPendingCount) local + \(centralizedQueueCount) centralized workout plan transfers", category: .services)
 
-        let plansToRetry = pendingPlans
-        pendingPlans.removeAll()
-
-        var failedPlans: [PlannedWorkoutData] = []
-
-        for plan in plansToRetry {
-            do {
-                try await sendWorkoutPlan(plan)
-            } catch {
-                failedPlans.append(plan)
-                AppLogger.error("Failed to retry workout plan transfer: \(plan.name)", error: error, category: .services)
+        // Process local pending plans first (legacy support)
+        if !pendingPlans.isEmpty {
+            let plansToRetry = pendingPlans
+            pendingPlans.removeAll()
+            
+            for plan in plansToRetry {
+                do {
+                    try await sendWorkoutPlan(plan)
+                } catch {
+                    // Failed plans will be automatically queued by sendWorkoutPlan
+                    AppLogger.error("Failed to retry local pending workout plan: \(plan.name)", error: error, category: .services)
+                }
             }
         }
-
-        // Re-queue any that failed again
-        pendingPlans.append(contentsOf: failedPlans)
-
-        if !failedPlans.isEmpty {
-            throw AppError.unknown(message: "Failed to transfer \(failedPlans.count) workout plans")
+        
+        // Process centralized queue using enhanced retry logic
+        await watchStatusStore.processQueueWithRetry { [weak self] plan in
+            guard let self = self else { return }
+            try await self.directTransfer(plan)
         }
+    }
+    
+    /// Direct transfer without additional queueing (for centralized queue processing)
+    private func directTransfer(_ plan: PlannedWorkoutData) async throws {
+        AppLogger.info("Direct transfer attempt for: \(plan.name)", category: .services)
+        
+        // Validate plan before sending
+        try validateWorkoutPlan(plan)
+        
+        guard session.activationState == .activated else {
+            throw AppError.unknown(message: "WatchConnectivity session not activated")
+        }
+        
+        guard session.isWatchAppInstalled else {
+            throw AppError.unknown(message: "AirFit Watch app not installed")
+        }
+        
+        guard session.isReachable else {
+            throw AppError.unknown(message: "Watch not reachable")
+        }
+        
+        // Encode and send
+        let planData = try encoder.encode(plan)
+        let transferMessage = WorkoutTransferMessage(
+            planData: planData,
+            planId: plan.id,
+            timestamp: Date()
+        )
+        
+        let response = try await sendTransferMessage(transferMessage)
+        
+        guard response.success else {
+            throw AppError.unknown(message: response.errorMessage ?? "Watch rejected workout plan")
+        }
+        
+        AppLogger.info("Direct transfer successful for: \(plan.name)", category: .services)
     }
 
     func cancelPendingPlan(id: UUID) async {
+        // Remove from both local and centralized storage
         pendingPlans.removeAll { $0.id == id }
+        watchStatusStore.removePlan(id: id)
         AppLogger.info("Cancelled pending workout plan transfer: \(id)", category: .services)
     }
 

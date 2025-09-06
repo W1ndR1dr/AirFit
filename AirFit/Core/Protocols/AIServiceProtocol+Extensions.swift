@@ -5,8 +5,8 @@ import SwiftData
 // These protocols extend the base service protocols with AI-specific functionality
 // used by the FunctionCallDispatcher and AI subsystem
 
-/// AI-specific workout service capabilities
-protocol AIWorkoutServiceProtocol: WorkoutServiceProtocol {
+/// AI-specific workout service capabilities  
+protocol AIWorkoutServiceProtocol {
     /// Generate a personalized workout plan based on AI analysis
     func generatePlan(
         for user: User,

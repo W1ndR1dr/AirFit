@@ -102,7 +102,7 @@ struct WorkoutDashboardView: View {
                     ToolbarItem(placement: .navigationBarTrailing) {
                         Button {
                             HapticService.impact(.light)
-                            coordinator.showSheet(.newTemplate)
+                            coordinator.showSheet(.voiceWorkoutInput)
                         } label: {
                             Image(systemName: "plus.circle.fill")
                                 .font(.system(size: 20))
@@ -704,8 +704,7 @@ struct WorkoutDashboardView: View {
     }
 
     private func startQuickWorkout(_ type: WorkoutType) {
-        // Navigate to chat with workout type context
-        coordinator.showSheet(.voiceWorkoutInput)
+        // Deprecated: in-app workout logging removed
     }
 
     @ViewBuilder
@@ -713,8 +712,6 @@ struct WorkoutDashboardView: View {
         switch destination {
         case .workoutDetail(let workout):
             WorkoutDetailView(workout: workout, viewModel: viewModel)
-        case .exerciseLibrary:
-            ExerciseLibraryView()
         case .allWorkouts:
             Text("All Workouts")
                 .font(.largeTitle)
@@ -732,10 +729,6 @@ struct WorkoutDashboardView: View {
         case .voiceWorkoutInput:
             VoiceWorkoutInputPlaceholder(coordinator: coordinator)
                 .environmentObject(gradientManager)
-        case .newTemplate:
-            Text("New Template")
-        case .exerciseDetail(let exercise):
-            Text(exercise.name)
         }
     }
 }

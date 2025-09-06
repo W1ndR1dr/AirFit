@@ -21,10 +21,10 @@ final class ContextAssembler: ContextAssemblerProtocol, ServiceProtocol {
 
     // MARK: - Dependencies
     private let healthKitManager: HealthKitManaging
-    private let injectedContext: ModelContext?
     private let goalService: GoalServiceProtocol?
     private let muscleGroupVolumeService: MuscleGroupVolumeServiceProtocol?
     private let strengthProgressionService: StrengthProgressionServiceProtocol?
+    private let modelContainer: ModelContainer
     // Future: private let weatherService: WeatherServiceProtocol
     
     // MARK: - Caching
@@ -35,13 +35,13 @@ final class ContextAssembler: ContextAssemblerProtocol, ServiceProtocol {
         goalService: GoalServiceProtocol? = nil,
         muscleGroupVolumeService: MuscleGroupVolumeServiceProtocol? = nil,
         strengthProgressionService: StrengthProgressionServiceProtocol? = nil,
-        modelContext: ModelContext? = nil
+        modelContainer: ModelContainer
     ) {
         self.healthKitManager = healthKitManager
         self.goalService = goalService
         self.muscleGroupVolumeService = muscleGroupVolumeService
         self.strengthProgressionService = strengthProgressionService
-        self.injectedContext = modelContext
+        self.modelContainer = modelContainer
     }
 
     // MARK: - Public API
@@ -67,6 +67,11 @@ final class ContextAssembler: ContextAssemblerProtocol, ServiceProtocol {
     ) async -> HealthContextSnapshot {
         // Stage 1: Initialising
         await progressReporter?.reportProgress(.init(stage: .initializing))
+
+        // Fast return: if a fresh snapshot exists in cache and we're not forcing, return it immediately
+        if let cached = await cache.snapshot(forced: forceRefresh) {
+            return cached
+        }
 
         // MARK: Stage 2–5 ───────── Concurrent HealthKit fetches ───────────────
 
@@ -126,12 +131,15 @@ final class ContextAssembler: ContextAssemblerProtocol, ServiceProtocol {
 
         // Subjective & SwiftData work can proceed on a background context
         let (subjectiveData, appSpecificCtx) = await { () async -> (SubjectiveData, AppSpecificContext) in
-            if let context = self.injectedContext {
+            do {
+                let context = ModelContext(modelContainer)
+                context.autosaveEnabled = false
+                
                 let subjective = await self.fetchSubjectiveData(using: context)
                 let appContext = await self.createMockAppContext(using: context)
                 return (subjective, appContext)
-            } else {
-                AppLogger.warning("ContextAssembler: No injected ModelContext; skipping subjective/app context derivation", category: .data)
+            } catch {
+                AppLogger.error("Failed to create ModelContext", error: error, category: .data)
                 return (SubjectiveData(), AppSpecificContext())
             }
         }()
@@ -152,31 +160,21 @@ final class ContextAssembler: ContextAssemblerProtocol, ServiceProtocol {
             sleepSession
         )
 
-        // Report mid-stage progress
-        await progressReporter?.reportProgress(.init(stage: .analyzingTrends, subProgress: 0.3))
-
         // Calculate trends with a fresh context
         let trends: HealthTrends = await { () async -> HealthTrends in
-            guard let context = self.injectedContext else {
-                AppLogger.warning("ContextAssembler: No injected ModelContext; skipping trends calculation", category: .data)
-                await progressReporter?.reportProgress(.init(stage: .analyzingTrends, subProgress: 1.0))
+            do {
+                let context = ModelContext(modelContainer)
+                context.autosaveEnabled = false
+                return await calculateTrends(
+                    activity: activity,
+                    body: body,
+                    sleep: sleep,
+                    context: context
+                )
+            } catch {
+                AppLogger.error("Failed to create context for trends", error: error, category: .data)
                 return HealthTrends()
             }
-
-            // Report progress before calculation
-            await progressReporter?.reportProgress(.init(stage: .analyzingTrends, subProgress: 0.5))
-
-            let result = await calculateTrends(
-                activity: activity,
-                body: body,
-                sleep: sleep,
-                context: context
-            )
-
-            // Report completion of trends
-            await progressReporter?.reportProgress(.init(stage: .analyzingTrends, subProgress: 1.0))
-
-            return result
         }()
 
         // MARK: Stage 7 ───────── Assemble snapshot ──────────────────────

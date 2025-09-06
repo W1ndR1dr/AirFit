@@ -34,10 +34,7 @@ final class ChatSession: @unchecked Sendable {
     }
 
     var formattedDate: String {
-        let formatter = DateFormatter()
-        formatter.dateStyle = .medium
-        formatter.timeStyle = .short
-        return formatter.string(from: createdAt)
+        return Formatters.mediumDateTime.string(from: createdAt)
     }
 
     var hasUnreadMessages: Bool {

@@ -2,37 +2,29 @@ import XCTest
 import SwiftData
 @testable import AirFit
 
-final class NutritionParserTests: XCTestCase {
+final class NutritionParserTests: AirFitTestCase {
     
     // MARK: - Test Setup
     
     var coachEngine: CoachEngine!
-    var testUser: User!
-    var modelContainer: ModelContainer!
+    var aiServiceStub: AIServiceStub!
     
     override func setUpWithError() throws {
         try super.setUpWithError()
         
-        // Create in-memory model container for testing
-        let schema = Schema([User.self])
-        let configuration = ModelConfiguration(isStoredInMemoryOnly: true)
-        modelContainer = try ModelContainer(for: schema, configurations: [configuration])
+        // Set up AI service stub for nutrition parsing
+        aiServiceStub = AIServiceStub()
+        aiServiceStub.configureForNutritionParsing()
         
-        // Create test user
-        testUser = User()
-        testUser.name = "Test User"
-        testUser.email = "test@example.com"
-        testUser.biologicalSex = "male"
-        testUser.birthDate = Calendar.current.date(byAdding: .year, value: -30, to: Date())
-        
-        // Initialize CoachEngine with test configuration
+        // Initialize CoachEngine with stubbed AI service
         coachEngine = CoachEngine()
+        // TODO: Inject aiServiceStub into coachEngine when DI is available
     }
     
     override func tearDownWithError() throws {
         coachEngine = nil
-        testUser = nil
-        modelContainer = nil
+        Task { await aiServiceStub?.resetToDefaults() }
+        aiServiceStub = nil
         try super.tearDownWithError()
     }
     

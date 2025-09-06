@@ -1,5 +1,4 @@
 import SwiftUI
-import SwiftData
 import Observation
 import Foundation
 import UIKit
@@ -38,7 +37,7 @@ import UIKit
 @Observable
 final class FoodTrackingViewModel: ErrorHandling {
     // MARK: - Dependencies
-    private let modelContext: ModelContext
+    private let foodRepository: FoodTrackingRepositoryProtocol
     internal let user: User
     private let foodVoiceAdapter: FoodVoiceAdapterProtocol
     private let nutritionService: NutritionServiceProtocol?
@@ -104,7 +103,7 @@ final class FoodTrackingViewModel: ErrorHandling {
 
     // MARK: - Initialization
     init(
-        modelContext: ModelContext,
+        foodRepository: FoodTrackingRepositoryProtocol,
         user: User,
         foodVoiceAdapter: FoodVoiceAdapterProtocol,
         nutritionService: NutritionServiceProtocol?,
@@ -113,7 +112,7 @@ final class FoodTrackingViewModel: ErrorHandling {
         healthKitManager: HealthKitManager? = nil,
         nutritionCalculator: NutritionCalculatorProtocol? = nil
     ) {
-        self.modelContext = modelContext
+        self.foodRepository = foodRepository
         self.user = user
         self.foodVoiceAdapter = foodVoiceAdapter
         self.nutritionService = nutritionService
@@ -163,10 +162,10 @@ final class FoodTrackingViewModel: ErrorHandling {
         defer { isLoading = false }
 
         do {
-            todaysFoodEntries = try await nutritionService?.getFoodEntries(
+            todaysFoodEntries = try foodRepository.getFoodEntries(
                 for: user,
                 date: currentDate
-            ) ?? []
+            )
 
             var summary = nutritionService?.calculateNutritionSummary(
                 from: todaysFoodEntries
@@ -194,10 +193,10 @@ final class FoodTrackingViewModel: ErrorHandling {
 
             todaysNutrition = summary
 
-            recentFoods = try await nutritionService?.getRecentFoods(
+            recentFoods = try foodRepository.getRecentFoods(
                 for: user,
                 limit: 10
-            ) ?? []
+            )
 
             suggestedFoods = try await generateSmartSuggestions()
 
@@ -373,10 +372,7 @@ final class FoodTrackingViewModel: ErrorHandling {
                 entry.items.append(foodItem)
             }
 
-            user.foodEntries.append(entry)
-
-            modelContext.insert(entry)
-            try modelContext.save()
+            try foodRepository.addFoodEntryToUser(entry, user: user)
 
             // Sync to HealthKit if available
             if let healthKitManager = healthKitManager {
@@ -385,7 +381,7 @@ final class FoodTrackingViewModel: ErrorHandling {
                         let sampleIDs = try await healthKitManager.saveFoodEntry(entry)
                         entry.healthKitSampleIDs = sampleIDs
                         entry.healthKitSyncDate = Date()
-                        try modelContext.save()
+                        try foodRepository.save(entry)
 
                         AppLogger.info("Synced food entry to HealthKit with \(sampleIDs.count) samples", category: .health)
                     } catch {
@@ -416,11 +412,11 @@ final class FoodTrackingViewModel: ErrorHandling {
         let hour = Calendar.current.component(.hour, from: currentDate)
         let dayOfWeek = Calendar.current.component(.weekday, from: currentDate)
 
-        let mealHistory = try await nutritionService?.getMealHistory(
+        let mealHistory = try foodRepository.getMealHistory(
             for: user,
             mealType: selectedMealType,
             daysBack: 30
-        ) ?? []
+        )
 
         // Simplify the frequent foods calculation to avoid compiler timeout
         var foodFrequency: [String: Int] = [:]
@@ -444,8 +440,7 @@ final class FoodTrackingViewModel: ErrorHandling {
     // MARK: - Meal Management
     func deleteFoodEntry(_ entry: FoodEntry) async {
         do {
-            modelContext.delete(entry)
-            try modelContext.save()
+            try foodRepository.delete(entry)
             await loadTodaysData()
 
         } catch {
@@ -456,13 +451,7 @@ final class FoodTrackingViewModel: ErrorHandling {
 
     func duplicateFoodEntry(_ entry: FoodEntry) async {
         do {
-            let duplicate = entry.duplicate()
-            duplicate.loggedAt = currentDate
-
-            user.foodEntries.append(duplicate)
-            modelContext.insert(duplicate)
-            try modelContext.save()
-
+            _ = try foodRepository.duplicate(entry, for: currentDate)
             await loadTodaysData()
 
         } catch {

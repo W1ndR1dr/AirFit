@@ -69,19 +69,14 @@ public final class DIBootstrapper {
         // Main AI Service - Uses mode-based behavior
         container.register(AIServiceProtocol.self, lifetime: .singleton) { resolver in
             let mode: AIServiceMode = AppConstants.Configuration.isUsingDemoMode ? .demo : .production
-            let apiKeyManager = try await resolver.resolve(APIKeyManagementProtocol.self)
+            let apiKeyManager = try? await resolver.resolve(APIKeyManagementProtocol.self)
             let service = AIService(apiKeyManager: apiKeyManager, mode: mode)
 
-            // Auto-configure if API keys are available, fallback to demo mode if not
+            // Auto-configure if API keys are available
             do {
-                if mode != .demo {
-                    try await service.configure()
-                }
+                try await service.configure()
             } catch {
-                // If configuration fails (likely missing keys), fallback to demo mode
-                AppConstants.Configuration.isUsingDemoMode = true
-                AppLogger.warning("AI Service configuration failed, falling back to demo mode: \(error.localizedDescription)", category: .services)
-                return AIService(apiKeyManager: apiKeyManager, mode: .demo)
+                AppLogger.warning("AI Service auto-configuration failed: \(error.localizedDescription)", category: .services)
             }
 
             return service
@@ -94,32 +89,6 @@ public final class DIBootstrapper {
     // MARK: - Data Services (SwiftData)
 
     private static func registerDataServices(in container: DIContainer) {
-        // MARK: - Repository Layer
-        
-        // User Read Repository - Eliminates direct SwiftData access in ViewModels
-        container.register(UserReadRepositoryProtocol.self, lifetime: .singleton) { resolver in
-            let modelContainer = try await resolver.resolve(ModelContainer.self)
-            return await MainActor.run {
-                UserReadRepository(modelContext: modelContainer.mainContext)
-            }
-        }
-        
-        // Chat History Repository - Provides efficient message retrieval
-        container.register(ChatHistoryRepositoryProtocol.self, lifetime: .singleton) { resolver in
-            let modelContainer = try await resolver.resolve(ModelContainer.self)
-            return await MainActor.run {
-                ChatHistoryRepository(modelContext: modelContainer.mainContext)
-            }
-        }
-        
-        // Workout Read Repository - Efficient workout queries
-        container.register(WorkoutReadRepositoryProtocol.self, lifetime: .singleton) { resolver in
-            let modelContainer = try await resolver.resolve(ModelContainer.self)
-            return await MainActor.run {
-                WorkoutReadRepository(modelContext: modelContainer.mainContext)
-            }
-        }
-
         // User Service - SwiftData bound, needs MainActor
         container.register(UserServiceProtocol.self, lifetime: .singleton) { resolver in
             let modelContainer = try await resolver.resolve(ModelContainer.self)
@@ -138,11 +107,7 @@ public final class DIBootstrapper {
 
         // Also register concrete type for direct access
         container.register(GoalService.self, lifetime: .singleton) { resolver in
-            let anyService = try await resolver.resolve(GoalServiceProtocol.self)
-            guard let concrete = anyService as? GoalService else {
-                throw DIError.invalidType("GoalService")
-            }
-            return concrete
+            try await resolver.resolve(GoalServiceProtocol.self) as! GoalService
         }
 
         // Analytics Service
@@ -165,47 +130,6 @@ public final class DIBootstrapper {
             }
         }
 
-        // Nutrition Goal Service
-        container.register(NutritionGoalService.self, lifetime: .singleton) { resolver in
-            let modelContainer = try await resolver.resolve(ModelContainer.self)
-            let healthKitManager = try await resolver.resolve(HealthKitManaging.self)
-            return await MainActor.run {
-                NutritionGoalService(
-                    modelContext: modelContainer.mainContext,
-                    healthKit: healthKitManager
-                )
-            }
-        }
-        container.register(NutritionGoalServiceProtocol.self) { resolver in
-            try await resolver.resolve(NutritionGoalService.self)
-        }
-
-        // Nutrition Import Service
-        container.register(NutritionImportService.self, lifetime: .singleton) { resolver in
-            let modelContainer = try await resolver.resolve(ModelContainer.self)
-            let healthKitManager = try await resolver.resolve(HealthKitManaging.self)
-            return await MainActor.run {
-                NutritionImportService(
-                    modelContext: modelContainer.mainContext,
-                    healthKitManager: healthKitManager
-                )
-            }
-        }
-
-        // Workout Service
-        container.register(WorkoutServiceProtocol.self, lifetime: .transient) { resolver in
-            let modelContainer = try await resolver.resolve(ModelContainer.self)
-            let healthKitManager = try? await resolver.resolve(HealthKitManaging.self)
-            let strengthService = try? await resolver.resolve(StrengthProgressionServiceProtocol.self)
-            return await MainActor.run {
-                WorkoutService(
-                    modelContext: modelContainer.mainContext,
-                    healthKitManager: healthKitManager,
-                    strengthProgressionService: strengthService
-                )
-            }
-        }
-
         // Muscle Group Volume Service - Actor-based service for tracking weekly volume
         container.register(MuscleGroupVolumeServiceProtocol.self, lifetime: .singleton) { _ in
             MuscleGroupVolumeService()
@@ -216,8 +140,22 @@ public final class DIBootstrapper {
             StrengthProgressionService()
         }
 
-        // Dashboard uses NutritionService directly now (consolidated)
-        // DashboardNutritionService was removed as redundant
+        // Dashboard Nutrition Service
+        container.register(DashboardNutritionService.self, lifetime: .transient) { resolver in
+            let modelContainer = try await resolver.resolve(ModelContainer.self)
+            let nutritionCalculator = try await resolver.resolve(NutritionCalculatorProtocol.self)
+            return await MainActor.run {
+                DashboardNutritionService(
+                    modelContext: modelContainer.mainContext,
+                    nutritionCalculator: nutritionCalculator
+                )
+            }
+        }
+
+        // Protocol registration
+        container.register(DashboardNutritionServiceProtocol.self) { resolver in
+            try await resolver.resolve(DashboardNutritionService.self)
+        }
     }
 
     // MARK: - Domain Services
@@ -254,14 +192,13 @@ public final class DIBootstrapper {
             let goalService = try? await resolver.resolve(GoalServiceProtocol.self)
             let muscleGroupVolumeService = try? await resolver.resolve(MuscleGroupVolumeServiceProtocol.self)
             let strengthProgressionService = try? await resolver.resolve(StrengthProgressionServiceProtocol.self)
-            let modelContainer = try? await resolver.resolve(ModelContainer.self)
-            let context = modelContainer?.mainContext
+            let modelContainer = try await resolver.resolve(ModelContainer.self)
             return await ContextAssembler(
                 healthKitManager: healthKit,
                 goalService: goalService,
                 muscleGroupVolumeService: muscleGroupVolumeService,
                 strengthProgressionService: strengthProgressionService,
-                modelContext: context
+                modelContainer: modelContainer
             )
         }
 
@@ -316,7 +253,27 @@ public final class DIBootstrapper {
                 ExerciseDatabase(container: modelContainer)
             }
         }
-
+        // Workout Repository
+        container.register(WorkoutRepositoryProtocol.self, lifetime: .singleton) { resolver in
+            let modelContainer = try await resolver.resolve(ModelContainer.self)
+            return await MainActor.run {
+                SwiftDataWorkoutRepository(modelContext: modelContainer.mainContext)
+            }
+        }
+        // Dashboard Repository
+        container.register(DashboardRepositoryProtocol.self, lifetime: .singleton) { resolver in
+            let modelContainer = try await resolver.resolve(ModelContainer.self)
+            return await MainActor.run {
+                SwiftDataDashboardRepository(modelContext: modelContainer.mainContext)
+            }
+        }
+        // Food Tracking Repository
+        container.register(FoodTrackingRepositoryProtocol.self, lifetime: .singleton) { resolver in
+            let modelContainer = try await resolver.resolve(ModelContainer.self)
+            return await MainActor.run {
+                SwiftDataFoodTrackingRepository(modelContext: modelContainer.mainContext)
+            }
+        }
         // Workout Sync Service
         container.register(WorkoutSyncService.self, lifetime: .singleton) { _ in
             await MainActor.run {
@@ -365,10 +322,7 @@ public final class DIBootstrapper {
             // Resolve dependencies
             let aiService = try await resolver.resolve(AIServiceProtocol.self)
             let contextAssembler = try await resolver.resolve(ContextAssembler.self)
-            let anyProvider = try await resolver.resolve(HealthKitPrefillProviding.self)
-            guard let healthKitProvider = anyProvider as? HealthKitProvider else {
-                throw DIError.invalidType("HealthKitProvider")
-            }
+            let healthKitProvider = try await resolver.resolve(HealthKitPrefillProviding.self) as! HealthKitProvider
             let cache = try await resolver.resolve(OnboardingCache.self)
             let personaSynthesizer = try await resolver.resolve(PersonaSynthesizer.self)
             
@@ -451,11 +405,6 @@ public final class DIBootstrapper {
                     modelContext: modelContainer.mainContext
                 )
             }
-        }
-
-        // Chat Streaming Store - typed bridge for chat streaming events
-        container.register(ChatStreamingStore.self, lifetime: .singleton) { _ in
-            DefaultChatStreamingStore()
         }
     }
 
