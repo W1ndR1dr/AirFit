@@ -44,16 +44,11 @@ final class ChatMessage: @unchecked Sendable {
     }
 
     var formattedTime: String {
-        let formatter = DateFormatter()
-
         if Calendar.current.isDateInToday(timestamp) {
-            formatter.timeStyle = .short
+            return Formatters.time.string(from: timestamp)
         } else {
-            formatter.dateStyle = .short
-            formatter.timeStyle = .short
+            return Formatters.mediumDateTime.string(from: timestamp)
         }
-
-        return formatter.string(from: timestamp)
     }
 
     var isUserMessage: Bool {

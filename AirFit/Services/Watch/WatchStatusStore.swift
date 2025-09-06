@@ -65,6 +65,15 @@ final class WatchStatusStore: ObservableObject {
     /// Error state for failed operations
     @Published var lastError: WatchError?
     
+    /// Last successful queue processing time
+    @Published var lastSuccessfulProcessing: Date?
+    
+    /// Queue retry attempt in progress
+    @Published var isRetrying: Bool = false
+    
+    /// Statistics for debugging
+    @Published var queueStats: QueueStatistics = QueueStatistics()
+    
     // MARK: - Private Properties
     
     private let session: WCSession
@@ -74,11 +83,26 @@ final class WatchStatusStore: ObservableObject {
     /// Persistent queue storage key
     private let queueStorageKey = "WorkoutPlanTransferQueue"
     
+    /// Persistent stats storage key
+    private let statsStorageKey = "WatchQueueStatistics"
+    
     /// Maximum items in queue to prevent memory issues
     private let maxQueueSize = 50
     
     /// Maximum age for queued items (7 days)
     private let maxQueueAge: TimeInterval = 7 * 24 * 60 * 60
+    
+    /// Maximum retry attempts for queue items
+    private let maxRetryAttempts = 5
+    
+    /// Exponential backoff base delay (seconds)
+    private let baseRetryDelay: TimeInterval = 2.0
+    
+    /// Reachability check timer
+    private var reachabilityTimer: Timer?
+    
+    /// Background retry task
+    private var retryTask: Task<Void, Never>?
     
     /// Internal queue storage
     private var queuedPlans: [QueuedPlan] = [] {
@@ -95,9 +119,15 @@ final class WatchStatusStore: ObservableObject {
         
         setupSession()
         loadPersistedQueue()
+        loadPersistedStats()
         setupStatusMonitoring()
         
-        AppLogger.info("WatchStatusStore initialized", category: .services)
+        AppLogger.info("WatchStatusStore initialized with \(queuedPlans.count) persisted items", category: .services)
+    }
+    
+    deinit {
+        reachabilityTimer?.invalidate()
+        retryTask?.cancel()
     }
     
     // MARK: - Setup Methods
@@ -121,17 +151,30 @@ final class WatchStatusStore: ObservableObject {
             }
             .assign(to: &$overallStatus)
         
-        // Auto-retry queue when watch becomes available
+        // Enhanced auto-retry queue when watch becomes available
         $overallStatus
             .removeDuplicates()
             .sink { [weak self] status in
                 if status == .available && !self?.queuedPlans.isEmpty == true {
-                    Task {
-                        await self?.processQueue()
-                    }
+                    AppLogger.info("Watch became available, scheduling queue processing", category: .services)
+                    self?.scheduleQueueRetry(delay: 0.5) // Small delay to ensure stable connection
                 }
             }
             .store(in: &cancellables)
+        
+        // Monitor reachability changes for immediate retry opportunities
+        $isReachable
+            .removeDuplicates()
+            .sink { [weak self] reachable in
+                if reachable {
+                    AppLogger.info("Watch reachability restored", category: .services)
+                    self?.onReachabilityRestored()
+                }
+            }
+            .store(in: &cancellables)
+        
+        // Start background monitoring
+        startReachabilityMonitoring()
     }
     
     // MARK: - Public Methods
@@ -189,13 +232,31 @@ final class WatchStatusStore: ObservableObject {
     
     /// Clear all queued plans
     func clearQueue() {
+        let clearedCount = queuedPlans.count
         queuedPlans.removeAll()
-        AppLogger.info("Cleared workout plan queue", category: .services)
+        queueStats.expiredItemsRemoved += clearedCount
+        AppLogger.info("Cleared workout plan queue (\(clearedCount) items)", category: .services)
     }
     
     /// Get all queued plans (for UI display)
     func getQueuedPlans() -> [QueuedPlan] {
         return queuedPlans
+    }
+    
+    /// Get queue statistics for debugging
+    func getQueueStatistics() -> QueueStatistics {
+        return queueStats
+    }
+    
+    /// Force immediate queue processing (for debugging)
+    func forceQueueProcessing() async {
+        guard overallStatus == .available else {
+            AppLogger.warning("Cannot force queue processing - watch not available", category: .services)
+            return
+        }
+        
+        AppLogger.info("Force processing queue with \(queuedPlans.count) items", category: .services)
+        await processQueue()
     }
     
     /// Process the queue (attempt transfers)
@@ -262,6 +323,100 @@ final class WatchStatusStore: ObservableObject {
         }
     }
     
+    /// Enhanced queue processing with exponential backoff retry
+    func processQueueWithRetry(using transferHandler: @escaping (PlannedWorkoutData) async throws -> Void) async {
+        guard !isProcessingQueue else {
+            AppLogger.info("Queue already being processed, skipping", category: .services)
+            return
+        }
+        
+        guard overallStatus == .available else {
+            AppLogger.info("Cannot process queue - watch not available: \(overallStatus)", category: .services)
+            return
+        }
+        
+        isProcessingQueue = true
+        isRetrying = true
+        defer { 
+            isProcessingQueue = false
+            isRetrying = false
+        }
+        
+        AppLogger.info("Starting enhanced queue processing (\(queuedPlans.count) items)", category: .services)
+        queueStats.incrementProcessingAttempts()
+        
+        // Clean expired items first
+        cleanExpiredItems()
+        
+        guard !queuedPlans.isEmpty else {
+            AppLogger.info("Queue is empty after cleanup", category: .services)
+            return
+        }
+        
+        var processedItems: [UUID] = []
+        var failedItems: [(UUID, Error)] = []
+        
+        for queuedPlan in queuedPlans {
+            // Check if we should retry this item based on backoff
+            if shouldSkipRetry(queuedPlan) {
+                AppLogger.debug("Skipping retry for \(queuedPlan.plan.name) - in backoff period", category: .services)
+                continue
+            }
+            
+            do {
+                try await transferHandler(queuedPlan.plan)
+                processedItems.append(queuedPlan.plan.id)
+                queueStats.incrementSuccessfulTransfers()
+                
+                AppLogger.info("Successfully transferred queued plan: \(queuedPlan.plan.name)", category: .services)
+            } catch {
+                // Increment retry count with exponential backoff
+                if let index = queuedPlans.firstIndex(where: { $0.plan.id == queuedPlan.plan.id }) {
+                    queuedPlans[index].retryCount += 1
+                    queuedPlans[index].lastRetryAt = Date()
+                    
+                    // Calculate next retry time with exponential backoff
+                    let backoffDelay = calculateBackoffDelay(retryCount: queuedPlans[index].retryCount)
+                    queuedPlans[index].nextRetryAt = Date().addingTimeInterval(backoffDelay)
+                    
+                    // Remove if too many retries
+                    if queuedPlans[index].retryCount >= maxRetryAttempts {
+                        failedItems.append((queuedPlan.plan.id, error))
+                        queueStats.incrementFailedTransfers()
+                        AppLogger.error("Plan exceeded retry limit (\(maxRetryAttempts)), removing: \(queuedPlan.plan.name)", error: error, category: .services)
+                    } else {
+                        AppLogger.warning("Plan failed, scheduled retry \(queuedPlans[index].retryCount)/\(maxRetryAttempts) in \(Int(backoffDelay))s: \(queuedPlan.plan.name)", category: .services)
+                    }
+                }
+                
+                queueStats.incrementRetryAttempts()
+                AppLogger.error("Failed to transfer queued plan: \(queuedPlan.plan.name)", error: error, category: .services)
+            }
+        }
+        
+        // Remove successfully processed items
+        queuedPlans.removeAll { processedItems.contains($0.plan.id) }
+        
+        // Remove failed items that exceeded retry limit
+        queuedPlans.removeAll { item in
+            failedItems.contains { $0.0 == item.plan.id }
+        }
+        
+        if !processedItems.isEmpty {
+            lastSuccessfulProcessing = Date()
+        }
+        
+        // Schedule next retry if items remain
+        if !queuedPlans.isEmpty {
+            let nextRetryTime = queuedPlans.compactMap(\.nextRetryAt).min() ?? Date().addingTimeInterval(60)
+            let delay = max(0, nextRetryTime.timeIntervalSinceNow)
+            AppLogger.info("Scheduling next queue retry in \(Int(delay))s", category: .services)
+            scheduleQueueRetry(delay: delay)
+        }
+        
+        AppLogger.info("Enhanced queue processing complete. Processed: \(processedItems.count), Failed: \(failedItems.count), Remaining: \(queuedPlans.count)", category: .services)
+    }
+    
     // MARK: - Internal Status Updates
     
     func updateStatus(paired: Bool, installed: Bool, reachable: Bool) {
@@ -326,6 +481,41 @@ final class WatchStatusStore: ObservableObject {
         } catch {
             AppLogger.error("Failed to persist queue", error: error, category: .services)
         }
+        
+        // Also persist stats
+        persistStats()
+    }
+    
+    private func loadPersistedStats() {
+        guard let data = UserDefaults.standard.data(forKey: statsStorageKey) else {
+            AppLogger.debug("No persisted queue stats found", category: .services)
+            return
+        }
+        
+        do {
+            let decoder = JSONDecoder()
+            decoder.dateDecodingStrategy = .iso8601
+            
+            queueStats = try decoder.decode(QueueStatistics.self, from: data)
+            AppLogger.debug("Loaded queue stats: \(queueStats.debugDescription)", category: .services)
+        } catch {
+            AppLogger.error("Failed to load persisted stats", error: error, category: .services)
+            queueStats = QueueStatistics()
+        }
+    }
+    
+    private func persistStats() {
+        do {
+            let encoder = JSONEncoder()
+            encoder.dateEncodingStrategy = .iso8601
+            
+            let data = try encoder.encode(queueStats)
+            UserDefaults.standard.set(data, forKey: statsStorageKey)
+            
+            AppLogger.debug("Persisted queue stats", category: .services)
+        } catch {
+            AppLogger.error("Failed to persist stats", error: error, category: .services)
+        }
     }
     
     private func cleanExpiredItems() {
@@ -336,20 +526,88 @@ final class WatchStatusStore: ObservableObject {
         
         let removedCount = initialCount - queuedPlans.count
         if removedCount > 0 {
+            queueStats.expiredItemsRemoved += removedCount
             AppLogger.info("Removed \(removedCount) expired items from queue", category: .services)
+        }
+    }
+    
+    // MARK: - Enhanced Retry Logic
+    
+    private func shouldSkipRetry(_ queuedPlan: QueuedPlan) -> Bool {
+        guard let nextRetryAt = queuedPlan.nextRetryAt else { return false }
+        return Date() < nextRetryAt
+    }
+    
+    private func calculateBackoffDelay(retryCount: Int) -> TimeInterval {
+        // Exponential backoff with jitter: base * (2^retry) + random(0, base)
+        let exponentialDelay = baseRetryDelay * pow(2.0, Double(retryCount - 1))
+        let jitter = Double.random(in: 0...baseRetryDelay)
+        let maxDelay: TimeInterval = 300 // Cap at 5 minutes
+        
+        return min(exponentialDelay + jitter, maxDelay)
+    }
+    
+    private func scheduleQueueRetry(delay: TimeInterval) {
+        // Cancel existing retry task
+        retryTask?.cancel()
+        
+        retryTask = Task {
+            if delay > 0 {
+                try? await Task.sleep(nanoseconds: UInt64(delay * 1_000_000_000))
+            }
+            
+            guard !Task.isCancelled else { return }
+            
+            AppLogger.info("Executing scheduled queue retry", category: .services)
+            await processQueue()
+        }
+    }
+    
+    // MARK: - Reachability Monitoring
+    
+    private func startReachabilityMonitoring() {
+        reachabilityTimer = Timer.scheduledTimer(withTimeInterval: 30.0, repeats: true) { [weak self] _ in
+            Task { @MainActor [weak self] in
+                await self?.checkReachabilityAndRetry()
+            }
+        }
+    }
+    
+    private func onReachabilityRestored() {
+        guard !queuedPlans.isEmpty else { return }
+        
+        AppLogger.info("Reachability restored with \(queuedPlans.count) queued items", category: .services)
+        scheduleQueueRetry(delay: 1.0) // Small delay to ensure stable connection
+    }
+    
+    private func checkReachabilityAndRetry() async {
+        guard !queuedPlans.isEmpty else { return }
+        guard overallStatus == .available else { return }
+        guard !isProcessingQueue else { return }
+        
+        // Check if any items are ready for retry
+        let readyForRetry = queuedPlans.filter { queuedPlan in
+            guard let nextRetryAt = queuedPlan.nextRetryAt else { return true }
+            return Date() >= nextRetryAt
+        }
+        
+        if !readyForRetry.isEmpty {
+            AppLogger.info("Background reachability check found \(readyForRetry.count) items ready for retry", category: .services)
+            await processQueue()
         }
     }
 }
 
 // MARK: - Supporting Models
 
-/// Queue item with metadata
+/// Queue item with metadata and enhanced retry tracking
 struct QueuedPlan: Codable {
     let plan: PlannedWorkoutData
     let queuedAt: Date
     let reason: QueueReason
     var retryCount: Int
     var lastRetryAt: Date?
+    var nextRetryAt: Date?
     
     /// Age of the queued item
     var age: TimeInterval {
@@ -359,6 +617,19 @@ struct QueuedPlan: Codable {
     /// Whether this item is stale
     var isStale: Bool {
         age > 24 * 60 * 60 // 24 hours
+    }
+    
+    /// Whether this item is ready for retry
+    var isReadyForRetry: Bool {
+        guard let nextRetry = nextRetryAt else { return true }
+        return Date() >= nextRetry
+    }
+    
+    /// Time until next retry attempt
+    var timeUntilRetry: TimeInterval? {
+        guard let nextRetry = nextRetryAt else { return nil }
+        let remaining = nextRetry.timeIntervalSinceNow
+        return remaining > 0 ? remaining : nil
     }
 }
 
@@ -541,6 +812,42 @@ final class WatchStatusDelegateHandler: NSObject, WCSessionDelegate {
 
 // MARK: - Notification Extensions
 
+/// Queue statistics for debugging and monitoring
+struct QueueStatistics: Codable {
+    var totalProcessingAttempts: Int = 0
+    var successfulTransfers: Int = 0
+    var failedTransfers: Int = 0
+    var retryAttempts: Int = 0
+    var expiredItemsRemoved: Int = 0
+    var lastProcessingTime: Date?
+    
+    mutating func incrementProcessingAttempts() {
+        totalProcessingAttempts += 1
+        lastProcessingTime = Date()
+    }
+    
+    mutating func incrementSuccessfulTransfers() {
+        successfulTransfers += 1
+    }
+    
+    mutating func incrementFailedTransfers() {
+        failedTransfers += 1
+    }
+    
+    mutating func incrementRetryAttempts() {
+        retryAttempts += 1
+    }
+    
+    var successRate: Double {
+        guard totalProcessingAttempts > 0 else { return 0.0 }
+        return Double(successfulTransfers) / Double(totalProcessingAttempts)
+    }
+    
+    var debugDescription: String {
+        return "Attempts: \(totalProcessingAttempts), Success: \(successfulTransfers), Failed: \(failedTransfers), Retries: \(retryAttempts), Expired: \(expiredItemsRemoved), Success Rate: \(Int(successRate * 100))%"
+    }
+}
+
 extension Notification.Name {
     /// Posted when a workout plan is queued
     static let workoutPlanQueued = Notification.Name("workoutPlanQueued")
@@ -550,4 +857,10 @@ extension Notification.Name {
     
     /// Posted when queue processing completes
     static let queueProcessingCompleted = Notification.Name("queueProcessingCompleted")
+    
+    /// Posted when watch reachability changes
+    static let watchReachabilityChanged = Notification.Name("watchReachabilityChanged")
+    
+    /// Posted when queue retry is scheduled
+    static let queueRetryScheduled = Notification.Name("queueRetryScheduled")
 }

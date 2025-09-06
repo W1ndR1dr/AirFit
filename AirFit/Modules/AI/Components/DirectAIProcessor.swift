@@ -1,4 +1,5 @@
 import Foundation
+import os.signpost
 
 /// Handles direct AI operations for optimized performance
 /// Single responsibility: Execute focused AI tasks without function calling overhead
@@ -7,6 +8,10 @@ final class DirectAIProcessor {
     // MARK: - Dependencies
 
     private let aiService: AIServiceProtocol
+    
+    // MARK: - Logging and Performance Tracking
+    private let aiLog = OSLog(subsystem: "com.airfit.app", category: "AI")
+    private let performanceLog = OSLog(subsystem: "com.airfit.app", category: "Performance")
 
     // MARK: - Configuration
 
@@ -43,16 +48,30 @@ final class DirectAIProcessor {
         user: User,
         conversationId: UUID? = nil
     ) async throws -> NutritionParseResult {
+        let processingId = OSSignpostID(log: performanceLog)
+        os_signpost(.begin, log: performanceLog, name: "Nutrition Parsing", signpostID: processingId,
+                   "Starting nutrition parse for food: %{public}@", foodText)
+        
         let startTime = CFAbsoluteTimeGetCurrent()
 
         guard !foodText.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty else {
+            os_signpost(.end, log: performanceLog, name: "Nutrition Parsing", signpostID: processingId, "Failed: empty input")
             throw DirectAIError.nutritionParsingFailed("Empty food description")
         }
 
+        // Stage 1: Parse stage timing
+        os_signpost(.event, log: performanceLog, name: "Parse Stage", signpostID: processingId, "Building prompt")
+        let parseStageStart = CFAbsoluteTimeGetCurrent()
         let prompt = buildNutritionPrompt(foodText: foodText, context: context)
+        let parseTime = Int((CFAbsoluteTimeGetCurrent() - parseStageStart) * 1000)
+        os_signpost(.event, log: performanceLog, name: "Parse Stage", signpostID: processingId, "Prompt built in %{public}dms", parseTime)
 
         do {
             // Use structured output for guaranteed JSON response
+            // Stage 2: Context assembly timing (schema creation)
+            os_signpost(.event, log: performanceLog, name: "Context Assembly", signpostID: processingId, "Building schema")
+            let contextStageStart = CFAbsoluteTimeGetCurrent()
+            
             let nutritionSchema = StructuredOutputSchema.fromJSON(
                 name: "nutrition_parsing",
                 description: "Parse natural language food descriptions into structured nutrition data",
@@ -85,20 +104,38 @@ final class DirectAIProcessor {
                 strict: true
             ) ?? StructuredOutputSchema(name: "nutrition_parsing", description: "", jsonSchema: Data(), strict: true)
 
+            let contextTime = Int((CFAbsoluteTimeGetCurrent() - contextStageStart) * 1000)
+            os_signpost(.event, log: performanceLog, name: "Context Assembly", signpostID: processingId, "Schema built in %{public}dms", contextTime)
+
+            // Stage 3: Inference timing
+            os_signpost(.event, log: performanceLog, name: "Inference", signpostID: processingId, "Starting AI inference")
+            let inferenceStart = CFAbsoluteTimeGetCurrent()
+            
             let response = try await executeStructuredAIRequest(
                 prompt: prompt,
                 schema: nutritionSchema,
                 config: nutritionParsingConfig,
                 userId: user.id.uuidString
             )
+            
+            let inferenceTime = Int((CFAbsoluteTimeGetCurrent() - inferenceStart) * 1000)
+            os_signpost(.event, log: performanceLog, name: "Inference", signpostID: processingId, "AI inference completed in %{public}dms", inferenceTime)
 
+            // Stage 4: Action execution timing (parsing and validation)
+            os_signpost(.event, log: performanceLog, name: "Action Execution", signpostID: processingId, "Processing response data")
+            let actionStart = CFAbsoluteTimeGetCurrent()
+            
             let items = try parseStructuredNutritionResponse(response)
             let validated = validateNutritionItems(items)
 
             guard !validated.isEmpty else {
+                os_signpost(.end, log: performanceLog, name: "Nutrition Parsing", signpostID: processingId, "Failed: validation failed")
                 throw DirectAIError.nutritionValidationFailed
             }
 
+            let actionTime = Int((CFAbsoluteTimeGetCurrent() - actionStart) * 1000)
+            os_signpost(.event, log: performanceLog, name: "Action Execution", signpostID: processingId, "Response processed in %{public}dms", actionTime)
+            
             let processingTime = Int((CFAbsoluteTimeGetCurrent() - startTime) * 1_000)
             let confidence = validated.reduce(0) { $0 + $1.confidence } / Double(validated.count)
 
@@ -112,9 +149,12 @@ final class DirectAIProcessor {
             )
 
             // Result is stored in conversation history by CoachEngine
+            os_signpost(.end, log: performanceLog, name: "Nutrition Parsing", signpostID: processingId, 
+                       "Completed: %{public}d items, %{public}dms total, parse:%{public}dms context:%{public}dms inference:%{public}dms action:%{public}dms", 
+                       validated.count, processingTime, parseTime, contextTime, inferenceTime, actionTime)
 
             AppLogger.info(
-                "Direct nutrition: \(validated.count) items in \(processingTime)ms | Confidence: \(String(format: "%.2f", confidence))",
+                "Direct nutrition: \(validated.count) items in \(processingTime)ms | Confidence: \(String(format: "%.2f", confidence)) | Stages: parse:\(parseTime)ms context:\(contextTime)ms inference:\(inferenceTime)ms action:\(actionTime)ms",
                 category: .ai
             )
 

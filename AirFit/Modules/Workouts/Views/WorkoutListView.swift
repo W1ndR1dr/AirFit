@@ -61,7 +61,7 @@ struct WorkoutListView: View {
                             .offset(y: animateIn ? 0 : 20)
                             .animation(MotionToken.standardSpring.delay(0.1), value: animateIn)
 
-                        quickActionsSection
+                        infoSection
                             .opacity(animateIn ? 1 : 0)
                             .offset(y: animateIn ? 0 : 20)
                             .animation(MotionToken.standardSpring.delay(0.2), value: animateIn)
@@ -118,34 +118,17 @@ struct WorkoutListView: View {
     }
 
     // MARK: - Sections
-    private var quickActionsSection: some View {
-        VStack(alignment: .leading, spacing: AppSpacing.md) {
-            HStack {
-                CascadeText("Quick Actions")
+    private var infoSection: some View {
+        GlassCard {
+            VStack(alignment: .leading, spacing: AppSpacing.sm) {
+                CascadeText("Workouts from Health")
                     .font(.system(size: 22, weight: .semibold, design: .rounded))
-                Spacer()
-                Image(systemName: "bolt.fill")
-                    .font(.system(size: 18))
-                    .foregroundStyle(
-                        LinearGradient(
-                            colors: gradientManager.active.colors(for: colorScheme),
-                            startPoint: .topLeading,
-                            endPoint: .bottomTrailing
-                        )
-                    )
+                Text("In‑app workout logging is disabled. Workouts sync from Apple Health or HEVY.")
+                    .font(.system(size: 14))
+                    .foregroundStyle(.secondary)
             }
-            .padding(.horizontal, AppSpacing.md)
-
-            HStack(spacing: AppSpacing.md) {
-                QuickActionCard(title: "Start Workout", icon: "mic.fill", index: 0) {
-                    HapticService.impact(.medium)
-                    // Navigate to chat with workout context
-                    coordinator.showSheet(.voiceWorkoutInput)
-                }
-                .environmentObject(gradientManager)
-            }
-            .padding(.horizontal, AppSpacing.md)
         }
+        .padding(.horizontal, AppSpacing.md)
     }
 
     private var recentWorkoutsSection: some View {
@@ -191,11 +174,11 @@ struct WorkoutListView: View {
 
     private var emptyStateView: some View {
         EmptyStateView(
-            icon: "mic.fill",
+            icon: "bolt.heart.fill",
             title: "No Workouts Yet",
-            message: "Tell me what kind of workout you want to do",
-            action: { coordinator.showSheet(.voiceWorkoutInput) },
-            actionTitle: "Start Workout"
+            message: "Workouts will appear after syncing from Apple Health/HEVY.",
+            action: {},
+            actionTitle: ""
         )
     }
 
@@ -205,6 +188,9 @@ struct WorkoutListView: View {
         switch destination {
         case .workoutDetail(let workout):
             WorkoutDetailView(workout: workout, viewModel: viewModel)
+        case .exerciseLibrary:
+            // Deprecated
+            Text("")
         case .allWorkouts:
             Text("All Workouts")
         case .statistics:
@@ -220,6 +206,11 @@ struct WorkoutListView: View {
             // In a real implementation, this would navigate to the chat interface
             VoiceWorkoutInputPlaceholder(coordinator: coordinator)
                 .environmentObject(gradientManager)
+        case .newTemplate:
+            // Deprecated
+            Text("")
+        case .exerciseDetail(let exercise):
+            Text(exercise.name)
         }
     }
 }

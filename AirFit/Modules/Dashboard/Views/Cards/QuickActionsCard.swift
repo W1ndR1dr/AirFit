@@ -78,13 +78,12 @@ private struct QuickActionButton: View {
     }
 }
 
-#Preview(traits: .sizeThatFitsLayout) {
-    QuickActionsCard(
-        suggestedActions: [
-            QuickAction(title: "Start Workout", subtitle: "Let's get moving!", systemImage: "figure.run", color: "blue", action: .startWorkout),
-            QuickAction(title: "Check In", subtitle: "How are you feeling?", systemImage: "checkmark.circle", color: "green", action: .checkIn)
-        ],
-        onActionTap: { _ in }
-    )
-    .padding()
-}
+//#Preview(traits: .sizeThatFitsLayout) {
+//    QuickActionsCard(
+//        suggestedActions: [
+//            QuickAction(title: "Check In", subtitle: "How are you feeling?", systemImage: "checkmark.circle", color: "green", action: .checkIn)
+//        ],
+//        onActionTap: { _ in }
+//    )
+//    .padding()
+//}

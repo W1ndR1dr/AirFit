@@ -253,7 +253,13 @@ public final class DIBootstrapper {
                 ExerciseDatabase(container: modelContainer)
             }
         }
-
+        // Workout Repository
+        container.register(WorkoutRepositoryProtocol.self, lifetime: .singleton) { resolver in
+            let modelContainer = try await resolver.resolve(ModelContainer.self)
+            return await MainActor.run {
+                SwiftDataWorkoutRepository(modelContext: modelContainer.mainContext)
+            }
+        }
         // Dashboard Repository
         container.register(DashboardRepositoryProtocol.self, lifetime: .singleton) { resolver in
             let modelContainer = try await resolver.resolve(ModelContainer.self)
@@ -261,7 +267,6 @@ public final class DIBootstrapper {
                 SwiftDataDashboardRepository(modelContext: modelContainer.mainContext)
             }
         }
-
         // Food Tracking Repository
         container.register(FoodTrackingRepositoryProtocol.self, lifetime: .singleton) { resolver in
             let modelContainer = try await resolver.resolve(ModelContainer.self)
@@ -269,7 +274,6 @@ public final class DIBootstrapper {
                 SwiftDataFoodTrackingRepository(modelContext: modelContainer.mainContext)
             }
         }
-
         // Workout Sync Service
         container.register(WorkoutSyncService.self, lifetime: .singleton) { _ in
             await MainActor.run {

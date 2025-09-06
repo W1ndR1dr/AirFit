@@ -1543,7 +1543,7 @@ extension CoachEngine: FoodCoachEngineProtocol {
         // Get current context
         let hour = Calendar.current.component(.hour, from: Date())
         let dayOfWeek = Calendar.current.dateComponents([.weekday], from: Date()).weekday ?? 1
-        let weekdayName = DateFormatter().weekdaySymbols[dayOfWeek - 1]
+        let weekdayName = Formatters.weekdaySymbols[dayOfWeek - 1]
 
         // Get today's nutrition from HealthKit first (includes all apps), fallback to local
         let nutrition = await getTodaysNutrition(for: user)

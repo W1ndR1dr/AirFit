@@ -1,5 +1,4 @@
 import SwiftUI
-import SwiftData
 import Charts
 
 /// Detailed workout history view accessible from Today dashboard
@@ -15,13 +14,11 @@ struct WorkoutHistoryView: View {
     init(
         user: User,
         muscleGroupVolumeService: MuscleGroupVolumeServiceProtocol,
-        strengthProgressionService: StrengthProgressionServiceProtocol,
-        modelContext: ModelContext
+        strengthProgressionService: StrengthProgressionServiceProtocol
     ) {
         self.user = user
         self._viewModel = State(initialValue: WorkoutHistoryViewModel(
             user: user,
-            modelContext: modelContext,
             muscleGroupVolumeService: muscleGroupVolumeService,
             strengthProgressionService: strengthProgressionService
         ))

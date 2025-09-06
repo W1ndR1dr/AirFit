@@ -43,7 +43,7 @@ final class PersonaEngine {
         let goalSynthesisJSON = try self.goalSynthesis(goalSynthesis)
 
         // Get current time efficiently
-        let currentDateTime = ISO8601DateFormatter().string(from: Date())
+        let currentDateTime = Formatters.iso8601.string(from: Date())
 
         // Assemble final prompt with replacements
         let prompt = template

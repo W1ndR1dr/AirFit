@@ -55,6 +55,40 @@ public enum Formatters {
         return formatter
     }()
 
+    static let mediumDateTime: DateFormatter = {
+        let formatter = DateFormatter()
+        formatter.dateStyle = .medium
+        formatter.timeStyle = .short
+        return formatter
+    }()
+
+    static let fileName: DateFormatter = {
+        let formatter = DateFormatter()
+        formatter.dateFormat = "yyyy-MM-dd_HHmmss"
+        return formatter
+    }()
+
+    static let isoDate: DateFormatter = {
+        let formatter = DateFormatter()
+        formatter.dateFormat = "yyyy-MM-dd"
+        return formatter
+    }()
+
+    static let weekdaySymbols: [String] = {
+        let formatter = DateFormatter()
+        return formatter.weekdaySymbols
+    }()
+
+    static let shortWeekdaySymbols: [String] = {
+        let formatter = DateFormatter()
+        return formatter.shortWeekdaySymbols ?? []
+    }()
+
+    // MARK: - ISO8601 Formatter
+    static let iso8601: ISO8601DateFormatter = {
+        return ISO8601DateFormatter()
+    }()
+
     // MARK: - Static Methods
 
     // MARK: - Custom Formatters

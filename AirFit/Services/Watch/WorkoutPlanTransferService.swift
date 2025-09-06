@@ -78,6 +78,13 @@ final class WorkoutPlanTransferService: WorkoutPlanTransferProtocol {
     private var pendingPlans: [PlannedWorkoutData] = []
     private let encoder = JSONEncoder()
     private let decoder = JSONDecoder()
+    
+    /// Integration with centralized watch status management
+    private let watchStatusStore = WatchStatusStore.shared
+    
+    /// Transfer attempt tracking
+    private var transferAttempts: [UUID: Int] = [:]
+    private let maxDirectRetries = 3
 
     // MARK: - ServiceProtocol
     nonisolated let serviceIdentifier = "workout-plan-transfer-service"
@@ -175,9 +182,9 @@ final class WorkoutPlanTransferService: WorkoutPlanTransferProtocol {
         }
 
         guard session.isReachable else {
-            // Queue for later when connection is available
-            pendingPlans.append(plan)
-            AppLogger.warning("Watch not reachable, queuing workout plan: \(plan.name)", category: .services)
+            // Use centralized queue management
+            watchStatusStore.queuePlan(plan, reason: .watchUnavailable)
+            AppLogger.warning("Watch not reachable, queuing workout plan in WatchStatusStore: \(plan.name)", category: .services)
 
             // Post notification for UI feedback
             NotificationCenter.default.post(
@@ -225,9 +232,19 @@ final class WorkoutPlanTransferService: WorkoutPlanTransferProtocol {
                     throw error
                 }
             } catch {
-                // Queue for retry on send error
-                pendingPlans.append(plan)
-                AppLogger.error("Failed to send workout plan to watch", error: error, category: .services)
+                // Determine appropriate queue reason based on error type
+                let queueReason: QueueReason
+                if error.localizedDescription.contains("network") || error.localizedDescription.contains("connection") {
+                    queueReason = .networkError
+                } else if error.localizedDescription.contains("rejected") {
+                    queueReason = .watchRejected
+                } else {
+                    queueReason = .transferFailed
+                }
+                
+                // Use centralized queue management
+                watchStatusStore.queuePlan(plan, reason: queueReason)
+                AppLogger.error("Failed to send workout plan to watch, queued for retry", error: error, category: .services)
                 
                 // Post failure notification
                 NotificationCenter.default.post(
@@ -236,7 +253,8 @@ final class WorkoutPlanTransferService: WorkoutPlanTransferProtocol {
                     userInfo: [
                         "planId": plan.id,
                         "error": error.localizedDescription,
-                        "queued": true
+                        "queued": true,
+                        "queueReason": queueReason.rawValue
                     ]
                 )
                 
@@ -244,9 +262,9 @@ final class WorkoutPlanTransferService: WorkoutPlanTransferProtocol {
             }
 
         } catch {
-            // Add to pending queue on encoding error
-            pendingPlans.append(plan)
-            AppLogger.error("Failed to encode workout plan", error: error, category: .services)
+            // Use centralized queue management for encoding errors
+            watchStatusStore.queuePlan(plan, reason: .encodingError)
+            AppLogger.error("Failed to encode workout plan, queued for retry", error: error, category: .services)
             throw AppError.unknown(message: "Failed to transfer workout plan: \(error.localizedDescription)")
         }
     }
