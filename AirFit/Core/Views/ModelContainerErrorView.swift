@@ -69,9 +69,7 @@ struct ModelContainerErrorView: View {
                     }, label: {
                         HStack(spacing: AppSpacing.sm) {
                             if isRetrying {
-                                ProgressView()
-                                    .progressViewStyle(CircularProgressViewStyle(tint: .white))
-                                    .scaleEffect(0.8)
+                                TextLoadingView(message: "Retrying", style: .subtle)
                             } else {
                                 Image(systemName: "arrow.clockwise")
                                     .font(.system(size: 18, weight: .medium))

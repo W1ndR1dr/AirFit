@@ -183,9 +183,7 @@ struct NutritionSearchView: View {
 
         if viewModel.isLoading {
             VStack(spacing: AppSpacing.sm) {
-                ProgressView()
-                    .progressViewStyle(CircularProgressViewStyle(tint: gradientManager.active.colors(for: colorScheme).first ?? Color.accentColor))
-                    .scaleEffect(1.2)
+                TextLoadingView(message: "Loading nutrition data")
 
                 Text("Loading...")
                     .font(.system(size: 14, weight: .medium))
@@ -208,9 +206,7 @@ struct NutritionSearchView: View {
     private var searchResultsContent: some View {
         if viewModel.isLoading && !searchText.isEmpty {
             VStack(spacing: AppSpacing.sm) {
-                ProgressView()
-                    .progressViewStyle(CircularProgressViewStyle(tint: gradientManager.active.colors(for: colorScheme).first ?? Color.accentColor))
-                    .scaleEffect(1.2)
+                TextLoadingView(message: "Searching for foods")
 
                 CascadeText("Searching...")
                     .font(.system(size: 16, weight: .medium, design: .rounded))

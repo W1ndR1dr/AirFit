@@ -71,9 +71,7 @@ struct AirFitApp: App {
             } else if modelContainer == nil {
                 // Initial model container creation
                 VStack(spacing: 20) {
-                    ProgressView()
-                        .scaleEffect(1.5)
-                        .tint(Color.accentColor)
+                    TextLoadingView(message: "Loading database")
 
                     Text("Loading database...")
                         .font(AppFonts.headline)
@@ -93,9 +91,7 @@ struct AirFitApp: App {
             } else if isInitializing {
                 // DI container initialization
                 VStack(spacing: 20) {
-                    ProgressView()
-                        .scaleEffect(1.5)
-                        .tint(Color.accentColor)
+                    TextLoadingView(message: "Initializing AirFit")
 
                     Text("Initializing AirFit...")
                         .font(AppFonts.headline)
@@ -140,7 +136,7 @@ struct AirFitApp: App {
                         diContainer = nil
                         isInitializing = true
                     }
-                    .buttonStyle(.borderedProminent)
+                    .buttonStyle(.softPrimary)
                 }
                 .frame(maxWidth: .infinity, maxHeight: .infinity)
                 .background(
@@ -187,9 +183,6 @@ struct AirFitApp: App {
         containerError = nil
 
         Task {
-            // Small delay for UI feedback
-            try? await Task.sleep(for: .seconds(0.5))
-
             await MainActor.run {
                 modelContainer = createModelContainer()
                 isRetrying = false

@@ -1,34 +1,5 @@
 import SwiftUI
 
-// MARK: - Settings Card Component (DEPRECATED - Use GlassCard instead)
-// This is kept for backward compatibility during migration
-struct SettingsCard<Content: View>: View {
-    let content: Content
-    let style: CardStyle
-
-    init(style: CardStyle = .normal, @ViewBuilder content: () -> Content) {
-        self.style = style
-        self.content = content()
-    }
-
-    var body: some View {
-        // Now uses GlassCard internally
-        GlassCard {
-            content
-        }
-        .overlay {
-            if style == .destructive {
-                RoundedRectangle(cornerRadius: AppConstants.Layout.defaultCornerRadius)
-                    .strokeBorder(Color.red.opacity(0.3), lineWidth: 1)
-            }
-        }
-    }
-
-    enum CardStyle {
-        case normal
-        case destructive
-    }
-}
 
 // MARK: - Button Styles
 extension ButtonStyle where Self == PrimaryProminentButtonStyle {
@@ -51,7 +22,7 @@ struct PrimaryProminentButtonStyle: ButtonStyle {
                     .fill(isEnabled ? Color.accentColor : Color.gray)
             )
             .scaleEffect(configuration.isPressed ? 0.98 : 1.0)
-            .animation(.easeInOut(duration: 0.1), value: configuration.isPressed)
+            .animation(.smooth(duration: 0.1), value: configuration.isPressed)
     }
 }
 
@@ -73,7 +44,7 @@ struct SecondaryButtonStyle: ButtonStyle {
                     .stroke(Color.accentColor, lineWidth: 2)
             )
             .scaleEffect(configuration.isPressed ? 0.98 : 1.0)
-            .animation(.easeInOut(duration: 0.1), value: configuration.isPressed)
+            .animation(.smooth(duration: 0.1), value: configuration.isPressed)
     }
 }
 

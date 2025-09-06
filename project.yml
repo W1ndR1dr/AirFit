@@ -2,8 +2,7 @@ name: AirFit
 options:
   bundleIdPrefix: com.airfit
   deploymentTarget:
-    iOS: "18.0"
-    watchOS: "11.0"
+    iOS: "26.0"
   developmentLanguage: en
   xcodeVersion: "16.0"
   createIntermediateGroups: true
@@ -23,8 +22,7 @@ options:
 
 settings:
   SWIFT_VERSION: "6.0"
-  IPHONEOS_DEPLOYMENT_TARGET: "18.0"
-  WATCHOS_DEPLOYMENT_TARGET: "11.0"
+  IPHONEOS_DEPLOYMENT_TARGET: "26.0"
   ENABLE_STRICT_CONCURRENCY: YES
   SWIFT_STRICT_CONCURRENCY: complete
   DEAD_CODE_STRIPPING: YES
@@ -94,6 +92,16 @@ targets:
           - "AirFitUITests/**"
           - "Info.plist"
           - "Resources/**/*.json"  # Include json files as resources, not sources
+          # Cleanup: exclude backup and non-source artifacts so they aren't treated as resources
+          - "**/*.bak"
+          - "**/*.backup"
+          - "**/*.backup.*"
+          - "**/*.log"
+          - "**/*.html"
+          - "**/.DS_Store"
+          - "build/**"
+          - "Docs/**"
+          - "node_modules/**"
     
     resources:
       - path: AirFit/Assets.xcassets
@@ -118,11 +126,14 @@ targets:
       ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME: AccentColor
       ASSETCATALOG_COMPILER_GENERATE_SWIFT_ASSET_SYMBOL_EXTENSIONS: YES
       SWIFT_EMIT_LOC_STRINGS: YES
-      TARGETED_DEVICE_FAMILY: "1,2"
+      TARGETED_DEVICE_FAMILY: "1"
       SUPPORTS_MACCATALYST: NO
-      SUPPORTS_MAC_DESIGNED_FOR_IPHONE_IPAD: YES
+      SUPPORTS_MAC_DESIGNED_FOR_IPHONE_IPAD: NO
       DEAD_CODE_STRIPPING: YES
       ENABLE_USER_SCRIPT_SANDBOXING: YES
+      SKIP_INSTALL: NO
+      DISABLE_MANUAL_TARGET_ORDER_BUILD_WARNING: YES
+      ENABLE_APP_INTENTS_DEPLOYMENT_AWARE_PROCESSING: NO
     
     preBuildScripts:
       - script: |
@@ -157,20 +168,16 @@ targets:
             </dict>
             <key>UILaunchScreen</key>
             <dict/>
+            <key>MinimumOSVersion</key>
+            <string>26.0</string>
             <key>UIRequiredDeviceCapabilities</key>
             <array>
               <string>armv7</string>
+              <string>iphone-16-pro-minimum</string>
             </array>
             <key>UISupportedInterfaceOrientations</key>
             <array>
               <string>UIInterfaceOrientationPortrait</string>
-              <string>UIInterfaceOrientationLandscapeLeft</string>
-              <string>UIInterfaceOrientationLandscapeRight</string>
-            </array>
-            <key>UISupportedInterfaceOrientations~ipad</key>
-            <array>
-              <string>UIInterfaceOrientationPortrait</string>
-              <string>UIInterfaceOrientationPortraitUpsideDown</string>
               <string>UIInterfaceOrientationLandscapeLeft</string>
               <string>UIInterfaceOrientationLandscapeRight</string>
             </array>
@@ -221,47 +228,6 @@ targets:
       ENABLE_STRICT_CONCURRENCY: YES
       SWIFT_STRICT_CONCURRENCY: complete
 
-  AirFitWatchApp:
-    type: application
-    platform: watchOS
-    sources:
-      - path: AirFitWatchApp
-        excludes:
-          - "AirFitWatchAppTests/**"
-        createIntermediateGroups: true
-      # Shared Core Files needed by Watch
-      - path: AirFit/Core/Extensions/Double+Formatting.swift
-      - path: AirFit/Core/Extensions/TimeInterval+Formatting.swift
-      - path: AirFit/Core/Models/WorkoutBuilderData.swift
-      - path: AirFit/Core/Models/WorkoutCompletionData.swift
-      - path: AirFit/Core/Utilities/AppLogger.swift
-    settings:
-      PRODUCT_BUNDLE_IDENTIFIER: com.airfit.watchapp
-      GENERATE_INFOPLIST_FILE: YES
-      SWIFT_VERSION: "6.0"
-      WATCHOS_DEPLOYMENT_TARGET: "11.0"
-      ENABLE_STRICT_CONCURRENCY: YES
-      SWIFT_STRICT_CONCURRENCY: complete
-      CODE_SIGN_STYLE: Automatic
-      DEVELOPMENT_TEAM: 2H43Q8Y3CR
-    dependencies:
-      - target: AirFit
-
-  AirFitWatchAppTests:
-    type: bundle.unit-test
-    platform: watchOS
-    sources:
-      - path: AirFitWatchApp/AirFitWatchAppTests
-        createIntermediateGroups: true
-    dependencies:
-      - target: AirFitWatchApp
-    settings:
-      PRODUCT_BUNDLE_IDENTIFIER: com.airfit.watchapp.tests
-      GENERATE_INFOPLIST_FILE: YES
-      SWIFT_VERSION: "6.0"
-      ENABLE_TESTING_SEARCH_PATHS: YES
-      ENABLE_STRICT_CONCURRENCY: YES
-      SWIFT_STRICT_CONCURRENCY: complete
 
 schemes:
   AirFit:
@@ -283,12 +249,11 @@ schemes:
         - name: AirFitTests
           parallelizable: true
           randomExecutionOrder: true
-        - name: AirFitUITests
-          parallelizable: true
-          randomExecutionOrder: true
       testPlans:
-        - path: AirFit.xctestplan
+        - path: AirFit-Unit.xctestplan
           defaultPlan: true
+        - path: AirFit-Integration.xctestplan
+        - path: AirFit-UI.xctestplan
     profile:
       config: Release
     analyze:
@@ -321,20 +286,3 @@ schemes:
       config: Release
       revealArchiveInOrganizer: true
 
-  AirFitWatchApp:
-    build:
-      targets:
-        AirFitWatchApp: all
-        AirFitWatchAppTests: [test]
-    run:
-      config: Debug
-    test:
-      config: Debug
-      targets:
-        - name: AirFitWatchAppTests
-    profile:
-      config: Release
-    analyze:
-      config: Debug
-    archive:
-      config: Release

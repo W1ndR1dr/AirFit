@@ -49,40 +49,22 @@ struct MessageComposer: View {
                         .transition(.opacity)
                 }
 
-                Button(action: {
-                    HapticService.impact(.light)
-                    if isRecording {
-                        onVoiceToggle()
-                    } else {
-                        canSend ? onSend() : onVoiceToggle()
-                    }
-                }, label: {
-                    if isRecording {
-                        Image(systemName: "stop.circle.fill")
-                            .font(.system(size: 28, weight: .medium))
-                            .foregroundStyle(Color.red)
-                    } else {
-                        Image(systemName: canSend ? "arrow.up.circle.fill" : "mic.circle.fill")
-                            .font(.system(size: 28, weight: .light))
-                            .foregroundStyle(
-                                canSend ? AnyShapeStyle(gradientManager.currentGradient(for: colorScheme)) : AnyShapeStyle(Color.secondary)
-                            )
-                    }
-                })
-                .animation(MotionToken.standardSpring, value: isRecording)
-                .animation(MotionToken.standardSpring, value: canSend)
-                .scaleEffect(animateIn ? 1 : 0.8)
-                .opacity(animateIn ? 1 : 0)
+                actionButton
+                    .animation(MotionToken.standardSpring, value: isRecording)
+                    .animation(MotionToken.standardSpring, value: canSend)
+                    .scaleEffect(animateIn ? 1 : 0.8)
+                    .opacity(animateIn ? 1 : 0)
             }
             .padding(.horizontal, AppSpacing.md)
             .padding(.vertical, AppSpacing.sm)
             .background(
                 RoundedRectangle(cornerRadius: 24)
-                    .fill(Color(UIColor.systemGray6))
+                    .glassEffect(in: .rect(cornerRadius: 24))
                     .overlay(
                         RoundedRectangle(cornerRadius: 24)
-                            .strokeBorder(Color.gray.opacity(0.15), lineWidth: 0.5)
+                            .strokeBorder(Color.white.opacity(0.15), lineWidth: 0.5)
                     )
+                    .shadow(color: .black.opacity(0.08), radius: 8, y: 1)
             )
         }
         .onAppear {
@@ -121,6 +103,56 @@ struct MessageComposer: View {
         }
     }
 
+    // Extracted to simplify type-checking of the main body
+    @ViewBuilder
+    private var actionButton: some View {
+        // Unify foreground style types to avoid complex conditional inference
+        let iconStyle: AnyShapeStyle = {
+            if canSend {
+                return AnyShapeStyle(gradientManager.currentGradient(for: colorScheme))
+            } else {
+                return AnyShapeStyle(Color.secondary)
+            }
+        }()
+
+        Button(action: {
+            HapticService.impact(.light)
+            if isRecording {
+                onVoiceToggle()
+            } else {
+                canSend ? onSend() : onVoiceToggle()
+            }
+        }) {
+            ZStack {
+                if isRecording {
+                    Circle()
+                        .fill(Color.red.opacity(0.15))
+                        .frame(width: 44, height: 44)
+                        .overlay(
+                            Circle().stroke(Color.red.opacity(0.4), lineWidth: 1)
+                        )
+                    Image(systemName: "stop.fill")
+                        .font(.system(size: 16, weight: .semibold))
+                        .foregroundStyle(.red)
+                } else {
+                    Circle()
+                        .glassEffect(in: .circle)
+                        .frame(width: 44, height: 44)
+                        .overlay(
+                            Circle().strokeBorder(
+                                Color.white.opacity(0.2),
+                                lineWidth: 0.5
+                            )
+                        )
+                        .shadow(color: .black.opacity(0.05), radius: 4, y: 1)
+                    Image(systemName: canSend ? "arrow.up" : "mic")
+                        .font(.system(size: 16, weight: .semibold))
+                        .foregroundStyle(iconStyle)
+                }
+            }
+        }
+    }
+
     private var attachmentMenu: some View {
         Button(action: {
             HapticService.selection()
@@ -133,7 +165,7 @@ struct MessageComposer: View {
     }
 
     private var textInputView: some View {
-        TextField("Message your coach...", text: $text, axis: .vertical)
+        TextField("Message your coach…", text: $text, axis: .vertical)
             .font(.system(size: 16, weight: .regular))
             .textFieldStyle(.plain)
             .lineLimit(1...5)
@@ -224,7 +256,7 @@ private struct RecordingIndicator: View {
             .onAppear {
                 // Gentle pulsing
                 withAnimation(
-                    .easeInOut(duration: 0.8)
+                    .smooth(duration: 0.8)
                         .repeatForever(autoreverses: true)
                 ) {
                     opacity = 0.6
@@ -232,7 +264,7 @@ private struct RecordingIndicator: View {
 
                 // Expanding ring
                 withAnimation(
-                    .easeOut(duration: 1.5)
+                    .snappy(duration: 1.5)
                         .repeatForever(autoreverses: false)
                 ) {
                     isAnimating = true
@@ -263,7 +295,7 @@ private struct AttachmentPreview: View {
                     )
             } else {
                 RoundedRectangle(cornerRadius: 8)
-                    .fill(.ultraThinMaterial)
+                    .glassEffect(in: .rect(cornerRadius: 8))
                     .frame(width: 60, height: 60)
                     .overlay(
                         Image(systemName: attachment.attachmentType?.systemImage ?? "doc")

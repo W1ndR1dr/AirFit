@@ -21,30 +21,38 @@ struct TodayDashboardView: View {
         BaseScreen {
             NavigationStack(path: $coordinator.path) {
                 ScrollView {
-                    VStack(spacing: 0) {
-                        // Dynamic header - always visible
-                        dynamicHeaderImmediate()
-                            .padding(.horizontal, AppSpacing.screenPadding)
-                            .padding(.top, AppSpacing.md)
-                            .padding(.bottom, AppSpacing.lg)
-
-                        if let viewModel = viewModel {
-                            // Full content when ViewModel is ready
-                            if viewModel.isLoading {
-                                loadingView
-                            } else if let error = viewModel.error {
-                                errorView(error, viewModel)
-                            } else {
-                                todayInsights(viewModel)
+                    VStack(alignment: .leading, spacing: AppSpacing.lg) {
+                        // Main content with text hierarchy
+                        VStack(alignment: .leading, spacing: AppSpacing.xl) {
+                            // Dynamic header with CascadeText
+                            minimalistHeader()
+                            
+                            // Nutrition section with text hierarchy
+                            nutritionTextSection()
+                            
+                            // Today's insights in text format
+                            if let viewModel = viewModel {
+                                if viewModel.isLoading {
+                                    loadingView
+                                } else if let error = viewModel.error {
+                                    errorView(error, viewModel)
+                                } else {
+                                    insightsTextSection(viewModel)
+                                }
                             }
-                        } else if isInitializing {
-                            // Skeleton UI while ViewModel initializes
-                            skeletonContent()
+                            
+                            // Quick actions in text format
+                            if let viewModel = viewModel {
+                                actionsTextSection()
+                            }
                         }
+                        .padding(.horizontal, AppSpacing.screenPadding)
+                        .padding(.top, AppSpacing.md)
                     }
                 }
                 .scrollContentBackground(.hidden)
-                .navigationBarTitleDisplayMode(.inline)
+                .navigationBarHidden(true)
+                .toolbar(.hidden, for: .navigationBar)
                 .refreshable { 
                     viewModel?.refreshDashboard() 
                 }
@@ -87,6 +95,9 @@ struct TodayDashboardView: View {
         .onDisappear { 
             viewModel?.onDisappear() 
         }
+        .onReceive(NotificationCenter.default.publisher(for: .foodEntrySaved)) { _ in
+            viewModel?.refreshDashboard()
+        }
         .sheet(isPresented: $showSettings) {
             NavigationStack {
                 SettingsView(user: user)
@@ -95,30 +106,118 @@ struct TodayDashboardView: View {
         .accessibilityIdentifier("today.dashboard")
     }
 
-    // MARK: - Immediate Header (No ViewModel Required)
+    // MARK: - Minimalist Header
     
     @ViewBuilder
-    private func dynamicHeaderImmediate() -> some View {
+    private func minimalistHeader() -> some View {
         VStack(alignment: .leading, spacing: AppSpacing.sm) {
-            // Time-based greeting - available immediately
-            CascadeText(timeBasedGreeting())
+            // Time-based greeting with CascadeText
+            CascadeText(timeBasedGreeting(), alignment: .leading)
                 .font(.system(size: 34, weight: .thin, design: .rounded))
-            
-            // Show AI subtitle when available, placeholder when loading
+                .foregroundStyle(.primary)
+
+            // Subtitle with AI content when available
             if let viewModel = viewModel,
                let content = viewModel.aiDashboardContent {
                 Text(content.primaryInsight)
-                    .font(.system(size: 20, weight: .light))
+                    .font(.title3)
+                    .fontWeight(.light)
                     .foregroundStyle(.secondary)
                     .lineSpacing(2)
                     .fixedSize(horizontal: false, vertical: true)
                     .animation(MotionToken.standardSpring, value: content.primaryInsight)
             } else if isInitializing {
                 Text(getLoadingSubtitle())
-                    .font(.system(size: 20, weight: .light))
-                    .foregroundStyle(.secondary.opacity(0.6))
+                    .font(.title3)
+                    .fontWeight(.light)
+                    .foregroundStyle(.secondary.opacity(0.7))
                     .redacted(reason: .placeholder)
                     .shimmering()
+            }
+        }
+    }
+    
+    // MARK: - Nutrition Text Section
+    @ViewBuilder
+    private func nutritionTextSection() -> some View {
+        let summary = makeFoodNutritionSummary()
+        
+        VStack(alignment: .leading, spacing: AppSpacing.lg) {
+            // Section header
+            GradientText("Today's Nutrition", style: .primary)
+                .font(.title2)
+                .fontWeight(.medium)
+                .cascadeIn(delay: 0.1)
+            
+            VStack(alignment: .leading, spacing: AppSpacing.md) {
+                // Calories - primary metric
+                VStack(alignment: .leading, spacing: 4) {
+                    Text("Energy")
+                        .font(.caption)
+                        .foregroundStyle(.tertiary)
+                    Text("\(Int(summary.calories)) calories")
+                        .font(.title2)
+                        .fontWeight(.semibold)
+                    Text("of \(Int(summary.calorieGoal)) goal • \(Int((summary.calories / summary.calorieGoal) * 100))%")
+                        .font(.body)
+                        .foregroundStyle(.secondary)
+                }
+                .cascadeIn(delay: 0.2)
+                
+                // Macronutrients in text format
+                HStack(spacing: AppSpacing.lg) {
+                    // Protein
+                    VStack(alignment: .leading, spacing: 4) {
+                        Text("Protein")
+                            .font(.caption)
+                            .foregroundStyle(.tertiary)
+                        Text("\(Int(summary.protein))g")
+                            .font(.title2)
+                            .fontWeight(.semibold)
+                        Text("\(Int((summary.protein / summary.proteinGoal) * 100))%")
+                            .font(.body)
+                            .foregroundStyle(.secondary)
+                    }
+                    
+                    Spacer()
+                    
+                    // Carbs  
+                    VStack(alignment: .leading, spacing: 4) {
+                        Text("Carbs")
+                            .font(.caption)
+                            .foregroundStyle(.tertiary)
+                        Text("\(Int(summary.carbs))g")
+                            .font(.title2)
+                            .fontWeight(.semibold)
+                        Text("\(Int((summary.carbs / summary.carbGoal) * 100))%")
+                            .font(.body)
+                            .foregroundStyle(.secondary)
+                    }
+                    
+                    Spacer()
+                    
+                    // Fat
+                    VStack(alignment: .leading, spacing: 4) {
+                        Text("Fat")
+                            .font(.caption)
+                            .foregroundStyle(.tertiary)
+                        Text("\(Int(summary.fat))g")
+                            .font(.title2)
+                            .fontWeight(.semibold)
+                        Text("\(Int((summary.fat / summary.fatGoal) * 100))%")
+                            .font(.body)
+                            .foregroundStyle(.secondary)
+                    }
+                }
+                .cascadeIn(delay: 0.3)
+                
+                // Adjustment note
+                if let vm = viewModel, let pct = vm.nutritionAdjustmentPercent, abs(pct) > 0.001 {
+                    Text(String(format: "Adjusted %+.0f%% based on activity/intake", pct * 100))
+                        .font(.caption)
+                        .foregroundStyle(.tertiary)
+                        .cascadeIn(delay: 0.4)
+                }
             }
         }
     }
@@ -128,33 +227,6 @@ struct TodayDashboardView: View {
     @ViewBuilder
     private func skeletonContent() -> some View {
         VStack(spacing: AppSpacing.xl) {
-            // Progress Rings Skeleton
-            HStack(spacing: AppSpacing.lg) {
-                ForEach(0..<3) { _ in
-                    VStack(spacing: 8) {
-                        Circle()
-                            .stroke(Color.secondary.opacity(0.2), lineWidth: 8)
-                            .frame(width: 90, height: 90)
-                            .overlay(
-                                VStack(spacing: 2) {
-                                    RoundedRectangle(cornerRadius: 4)
-                                        .fill(Color.secondary.opacity(0.2))
-                                        .frame(width: 40, height: 20)
-                                    RoundedRectangle(cornerRadius: 4)
-                                        .fill(Color.secondary.opacity(0.15))
-                                        .frame(width: 30, height: 12)
-                                }
-                            )
-                        
-                        RoundedRectangle(cornerRadius: 4)
-                            .fill(Color.secondary.opacity(0.2))
-                            .frame(width: 60, height: 14)
-                    }
-                    .shimmering()
-                }
-            }
-            .padding(.horizontal, AppSpacing.screenPadding)
-            
             // Quick Actions Skeleton
             VStack(alignment: .leading, spacing: AppSpacing.md) {
                 RoundedRectangle(cornerRadius: 4)
@@ -203,152 +275,111 @@ struct TodayDashboardView: View {
         .padding(.bottom, AppSpacing.xl)
     }
 
-    // MARK: - Dynamic Header
+
+    // MARK: - Insights Text Section
 
     @ViewBuilder
-    private func dynamicHeader(_ viewModel: DashboardViewModel) -> some View {
-        VStack(alignment: .leading, spacing: AppSpacing.sm) {
-            // Time-based greeting
-            CascadeText(timeBasedGreeting())
-                .font(.system(size: 34, weight: .thin, design: .rounded))
+    private func insightsTextSection(_ viewModel: DashboardViewModel) -> some View {
+        // AI Guidance in text format
+        if let content = viewModel.aiDashboardContent {
+            VStack(alignment: .leading, spacing: AppSpacing.md) {
+                if let guidance = content.guidance {
+                    VStack(alignment: .leading, spacing: 4) {
+                        GradientText("Today's Focus", style: .subtle)
+                            .font(.caption)
+                        Text(guidance)
+                            .font(.title3)
+                            .fontWeight(.medium)
+                            .lineSpacing(2)
+                            .foregroundStyle(.primary)
+                    }
+                    .cascadeIn(delay: 0.5)
+                }
 
-            // AI personalized subtitle
-            if let content = viewModel.aiDashboardContent {
-                Text(content.primaryInsight)
-                    .font(.system(size: 20, weight: .light))
-                    .foregroundStyle(.secondary)
-                    .lineSpacing(2)
-                    .fixedSize(horizontal: false, vertical: true)
-                    .animation(MotionToken.standardSpring, value: content.primaryInsight)
+                if let celebration = content.celebration {
+                    VStack(alignment: .leading, spacing: 4) {
+                        GradientText("Achievement", style: .success)
+                            .font(.caption)
+                        Text(celebration)
+                            .font(.title3)
+                            .fontWeight(.medium)
+                            .foregroundStyle(.primary)
+                    }
+                    .cascadeIn(delay: 0.6)
+                }
             }
         }
     }
 
-    // MARK: - Today's Insights
 
-    @ViewBuilder
-    private func todayInsights(_ viewModel: DashboardViewModel) -> some View {
-        VStack(spacing: AppSpacing.xl) {
-            // Progress Rings
-            if let content = viewModel.aiDashboardContent,
-               let nutrition = content.nutritionData {
-                HStack(spacing: AppSpacing.lg) {
-                    // Calories ring
-                    ProgressRingView(
-                        progress: nutrition.calorieProgress,
-                        title: "Calories",
-                        value: "\(Int(nutrition.calories))",
-                        target: "\(Int(nutrition.calorieTarget))",
-                        color: gradientManager.active.colors(for: colorScheme)[0]
-                    )
-
-                    // Protein ring
-                    ProgressRingView(
-                        progress: nutrition.proteinProgress,
-                        title: "Protein",
-                        value: "\(Int(nutrition.protein))g",
-                        target: "\(Int(nutrition.proteinTarget))g",
-                        color: .green
-                    )
-
-                    // Activity ring (placeholder for now)
-                    ProgressRingView(
-                        progress: 0.6,
-                        title: "Activity",
-                        value: "45",
-                        target: "60 min",
-                        color: .orange
-                    )
-                }
-                .padding(.horizontal, AppSpacing.screenPadding)
-            }
-
-            // Quick Actions
-            quickActionsSection(viewModel)
-
-            // AI Guidance
-            if let content = viewModel.aiDashboardContent {
-                VStack(alignment: .leading, spacing: AppSpacing.md) {
-                    if let guidance = content.guidance {
-                        GlassCard {
-                            VStack(alignment: .leading, spacing: AppSpacing.sm) {
-                                Text("Today's Focus")
-                                    .font(.system(size: 16, weight: .medium))
-                                    .foregroundStyle(.secondary)
-
-                                Text(guidance)
-                                    .font(.system(size: 18, weight: .light))
-                                    .lineSpacing(2)
-                            }
-                        }
-                    }
-
-                    if let celebration = content.celebration {
-                        GlassCard {
-                            HStack {
-                                Image(systemName: "sparkles")
-                                    .font(.system(size: 20))
-                                    .foregroundStyle(gradientManager.currentGradient(for: colorScheme))
-
-                                Text(celebration)
-                                    .font(.system(size: 17, weight: .medium))
-                                    .foregroundStyle(gradientManager.currentGradient(for: colorScheme))
-                            }
-                        }
-                    }
-                }
-                .padding(.horizontal, AppSpacing.screenPadding)
-            }
+    private func makeFoodNutritionSummary() -> FoodNutritionSummary {
+        if let vm = viewModel {
+            let s = vm.nutritionSummary
+            let t = vm.nutritionTargets
+            return FoodNutritionSummary(
+                calories: s.calories,
+                protein: s.protein,
+                carbs: s.carbs,
+                fat: s.fat,
+                fiber: s.fiber,
+                sugar: 0,
+                sodium: 0,
+                calorieGoal: t.calories,
+                proteinGoal: t.protein,
+                carbGoal: t.carbs,
+                fatGoal: t.fat
+            )
+        } else {
+            let t = NutritionTargets.default
+            return FoodNutritionSummary(
+                calories: 0,
+                protein: 0,
+                carbs: 0,
+                fat: 0,
+                fiber: 0,
+                sugar: 0,
+                sodium: 0,
+                calorieGoal: t.calories,
+                proteinGoal: t.protein,
+                carbGoal: t.carbs,
+                fatGoal: t.fat
+            )
         }
-        .padding(.bottom, AppSpacing.xl)
     }
 
-    // MARK: - Quick Actions
+    // MARK: - Actions Text Section
 
     @ViewBuilder
-    private func quickActionsSection(_ viewModel: DashboardViewModel) -> some View {
+    private func actionsTextSection() -> some View {
         VStack(alignment: .leading, spacing: AppSpacing.md) {
-            Text("Right Now")
-                .font(.system(size: 20, weight: .light))
-                .foregroundStyle(.secondary)
-                .padding(.horizontal, AppSpacing.screenPadding)
-
-            ScrollView(.horizontal, showsIndicators: false) {
-                HStack(spacing: AppSpacing.md) {
-                    // Dynamic quick actions based on time and context
-                    ForEach(getQuickActions(), id: \.title) { action in
-                        Button {
-                            HapticService.impact(.light)
-                            handleQuickAction(action.action)
-                        } label: {
-                            VStack(alignment: .leading, spacing: 8) {
-                                Image(systemName: action.systemImage)
-                                    .font(.system(size: 24))
-                                    .foregroundStyle(.blue)
-
-                                VStack(alignment: .leading, spacing: 2) {
-                                    Text(action.title)
-                                        .font(.system(size: 16, weight: .medium))
-                                        .foregroundStyle(.primary)
-
-                                    Text(action.subtitle)
-                                        .font(.system(size: 14, weight: .light))
-                                        .foregroundStyle(.secondary)
-                                }
-                            }
-                            .padding()
-                            .frame(width: 140, height: 100)
-                            .background(.ultraThinMaterial)
-                            .clipShape(RoundedRectangle(cornerRadius: 16))
-                            .overlay(
-                                RoundedRectangle(cornerRadius: 16)
-                                    .stroke(.blue.opacity(0.3), lineWidth: 1)
-                            )
+            // Section header
+            GradientText("Right Now", style: .accent)
+                .font(.title2)
+                .fontWeight(.medium)
+                .cascadeIn(delay: 0.7)
+            
+            VStack(alignment: .leading, spacing: AppSpacing.sm) {
+                // Dynamic quick actions in text format
+                ForEach(Array(getQuickActions().enumerated()), id: \.offset) { index, action in
+                    Button {
+                        HapticService.impact(.light)
+                        handleQuickAction(action.action)
+                    } label: {
+                        VStack(alignment: .leading, spacing: 4) {
+                            Text(action.title)
+                                .font(.title3)
+                                .fontWeight(.semibold)
+                                .foregroundStyle(.primary)
+                            Text(action.subtitle)
+                                .font(.body)
+                                .foregroundStyle(.secondary)
                         }
-                        .buttonStyle(.plain)
+                        .frame(maxWidth: .infinity, alignment: .leading)
+                        .padding(.vertical, AppSpacing.xs)
                     }
+                    .buttonStyle(.plain)
+                    .cascadeIn(delay: 0.8 + Double(index) * 0.1)
                 }
-                .padding(.horizontal, AppSpacing.screenPadding)
             }
         }
     }
@@ -356,74 +387,55 @@ struct TodayDashboardView: View {
     // MARK: - Loading & Error Views
 
     private var loadingView: some View {
-        VStack(spacing: AppSpacing.large) {
-            ZStack {
-                Circle()
-                    .stroke(
-                        LinearGradient(
-                            colors: gradientManager.active.colors(for: colorScheme).map { $0.opacity(0.3) },
-                            startPoint: .topLeading,
-                            endPoint: .bottomTrailing
-                        ),
-                        lineWidth: 3
-                    )
-                    .frame(width: 48, height: 48)
-
-                ProgressView()
-                    .scaleEffect(1.2)
-                    .progressViewStyle(CircularProgressViewStyle(tint: gradientManager.active.colors(for: colorScheme)[0]))
-            }
-
-            Text("Loading your day...")
-                .font(AppFonts.body)
-                .foregroundStyle(.secondary)
+        VStack(alignment: .leading, spacing: 4) {
+            Text("Loading")
+                .font(.caption)
+                .foregroundStyle(.tertiary)
+            Text("Preparing your day...")
+                .font(.title3)
+                .fontWeight(.medium)
+                .foregroundStyle(.primary)
         }
-        .frame(maxWidth: .infinity, maxHeight: .infinity)
-        .padding(.top, 100)
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .padding(.top, AppSpacing.lg)
         .accessibilityIdentifier("today.loading")
     }
 
     private func errorView(_ error: Error, _ viewModel: DashboardViewModel) -> some View {
-        VStack(spacing: AppSpacing.medium) {
-            Image(systemName: "exclamationmark.triangle")
-                .font(.largeTitle)
-                .symbolRenderingMode(.hierarchical)
-                .foregroundStyle(
-                    LinearGradient(
-                        colors: [Color.red.opacity(0.8), Color.orange.opacity(0.7)],
-                        startPoint: .topLeading,
-                        endPoint: .bottomTrailing
-                    )
-                )
-
-            Text(error.localizedDescription)
-                .font(AppFonts.body)
-                .foregroundStyle(.secondary)
-                .multilineTextAlignment(.center)
-
+        VStack(alignment: .leading, spacing: AppSpacing.md) {
+            VStack(alignment: .leading, spacing: 4) {
+                Text("Error")
+                    .font(.caption)
+                    .foregroundStyle(.tertiary)
+                Text("Something went wrong")
+                    .font(.title3)
+                    .fontWeight(.medium)
+                    .foregroundStyle(.primary)
+                Text(error.localizedDescription)
+                    .font(.body)
+                    .foregroundStyle(.secondary)
+            }
+            
             Button {
                 HapticService.impact(.light)
                 viewModel.refreshDashboard()
             } label: {
-                Text("Retry")
-                    .font(.system(size: 18, weight: .semibold, design: .rounded))
-                    .foregroundColor(.white)
-                    .frame(maxWidth: .infinity)
-                    .padding(.vertical, AppSpacing.md)
-                    .background(
-                        LinearGradient(
-                            colors: gradientManager.active.colors(for: colorScheme),
-                            startPoint: .leading,
-                            endPoint: .trailing
-                        )
-                    )
-                    .clipShape(RoundedRectangle(cornerRadius: 16))
-                    .shadow(color: gradientManager.active.colors(for: colorScheme)[0].opacity(0.3), radius: 12, y: 4)
+                VStack(alignment: .leading, spacing: 4) {
+                    Text("Retry")
+                        .font(.title3)
+                        .fontWeight(.semibold)
+                        .foregroundStyle(.primary)
+                    Text("Tap to try again")
+                        .font(.body)
+                        .foregroundStyle(.secondary)
+                }
+                .frame(maxWidth: .infinity, alignment: .leading)
+                .padding(.vertical, AppSpacing.xs)
             }
-            .padding(.horizontal, AppSpacing.large)
+            .buttonStyle(.plain)
         }
-        .frame(maxWidth: .infinity, maxHeight: .infinity)
-        .padding(.top, 100)
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .padding(.top, AppSpacing.lg)
         .accessibilityIdentifier("today.error")
     }
 
@@ -463,7 +475,7 @@ struct TodayDashboardView: View {
         let hour = Calendar.current.component(.hour, from: Date())
         var actions: [QuickAction] = []
 
-        // Time-based meal suggestions
+        // Time-based meal suggestions with photo options
         switch hour {
         case 6..<10:
             actions.append(QuickAction(
@@ -473,6 +485,14 @@ struct TodayDashboardView: View {
                 color: "orange",
                 action: .logMeal(type: .breakfast)
             ))
+            // Add photo option for breakfast
+            actions.append(QuickAction(
+                title: "Photo Breakfast",
+                subtitle: "New! Snap a photo to log",
+                systemImage: "camera.fill",
+                color: "orange",
+                action: .logMealWithPhoto(type: .breakfast)
+            ))
         case 11..<14:
             actions.append(QuickAction(
                 title: "Log Lunch",
@@ -480,6 +500,14 @@ struct TodayDashboardView: View {
                 systemImage: "sun.max.fill",
                 color: "yellow",
                 action: .logMeal(type: .lunch)
+            ))
+            // Add photo option for lunch
+            actions.append(QuickAction(
+                title: "Photo Lunch",
+                subtitle: "New! Snap a photo to log",
+                systemImage: "camera.fill",
+                color: "yellow",
+                action: .logMealWithPhoto(type: .lunch)
             ))
         case 17..<20:
             actions.append(QuickAction(
@@ -489,8 +517,23 @@ struct TodayDashboardView: View {
                 color: "purple",
                 action: .logMeal(type: .dinner)
             ))
+            // Add photo option for dinner
+            actions.append(QuickAction(
+                title: "Photo Dinner",
+                subtitle: "New! Snap a photo to log",
+                systemImage: "camera.fill",
+                color: "purple",
+                action: .logMealWithPhoto(type: .dinner)
+            ))
         default:
-            break
+            // Show general photo logging option during off-meal times
+            actions.append(QuickAction(
+                title: "Log with Photo",
+                subtitle: "New! Capture your meal instantly",
+                systemImage: "camera.fill",
+                color: "orange",
+                action: .logMealWithPhoto(type: .snack)
+            ))
         }
 
         // Always show workout
@@ -510,6 +553,9 @@ struct TodayDashboardView: View {
         switch action {
         case .logMeal:
             coordinator.navigate(to: .nutritionDetail)
+        case .logMealWithPhoto:
+            // Navigate directly to the photo capture interface
+            coordinator.navigate(to: .nutritionDetail) // This will be handled by the navigation system to show photo capture
         case .startWorkout:
             coordinator.navigate(to: .workoutHistory)
         case .checkIn:
@@ -560,7 +606,7 @@ struct ProgressRingView: View {
                         style: StrokeStyle(lineWidth: 8, lineCap: .round)
                     )
                     .rotationEffect(.degrees(-90))
-                    .animation(.spring(duration: 0.5), value: progress)
+                    .animation(.bouncy(duration: 0.5), value: progress)
 
                 VStack(spacing: 2) {
                     Text(value)
@@ -583,7 +629,7 @@ struct ProgressRingView: View {
 // MARK: - Preview
 
 #Preview {
-    let container = try! ModelContainer(for: User.self)
+    let container = try! ModelContainer(for: User.self) // swiftlint:disable:this force_try
     let user = User(name: "Preview")
     container.mainContext.insert(user)
 

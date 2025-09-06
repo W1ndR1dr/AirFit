@@ -203,7 +203,7 @@ struct ExampleRow: View {
             Text(selectedSystem == .imperial ? imperial : metric)
                 .fontWeight(.medium)
                 .foregroundStyle(Color.primary)
-                .animation(.easeInOut(duration: 0.2), value: selectedSystem)
+                .animation(.smooth(duration: 0.2), value: selectedSystem)
         }
         .padding(.vertical, AppSpacing.xs)
     }

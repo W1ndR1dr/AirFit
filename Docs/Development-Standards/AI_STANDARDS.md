@@ -1,6 +1,6 @@
 # AI System Standards
 
-**Last Updated**: 2025-01-04  
+**Last Updated**: 2025-09-03  
 **Status**: Active  
 **Priority**: 🚨 Critical - AI is core to the app experience
 
@@ -34,7 +34,7 @@ This document defines how AI services are implemented, integrated, and presented
 
 ## Architecture Patterns
 
-### AI Service Hierarchy
+### AI Service Hierarchy (Current)
 
 ```
 ┌─────────────────────────────────────────────────┐
@@ -42,9 +42,7 @@ This document defines how AI services are implemented, integrated, and presented
 ├─────────────────────────────────────────────────┤
 │         DirectAIProcessor  │  StreamingHandler   │ ← Specialized processors
 ├─────────────────────────────────────────────────┤
-│                  AIService                       │ ← Provider abstraction
-├─────────────────────────────────────────────────┤
-│              LLMOrchestrator                     │ ← Multi-provider management
+│                  AIService                       │ ← Provider abstraction & orchestration
 ├─────────────────────────────────────────────────┤
 │  OpenAIProvider │ AnthropicProvider │ GeminiProvider │ ← Provider implementations
 └─────────────────────────────────────────────────┘
@@ -410,6 +408,42 @@ let request = AIRequest(
 ```
 
 ## Quick Reference
+
+---
+
+## Streaming UX & Events (New)
+
+AirFit presents streaming responses as an ephemeral bubble in Chat, then replaces it with a persisted assistant message when complete.
+
+### Event Bus
+- `.chatStreamStarted`: userInfo `{ conversationId: UUID }`
+- `.chatStreamDelta`: userInfo `{ conversationId: UUID, delta: String }`
+- `.chatStreamFinished`: userInfo `{ conversationId: UUID }`
+
+### ViewModel Rules
+- Maintain an ephemeral `streamingText` buffer; never persist partial deltas.
+- Show Typing Indicator until first delta arrives; switch to Streaming Bubble afterward.
+- On `.coachAssistantMessageCreated`, append the persisted assistant message, clear `streamingText`, cancel stream task, set `isStreaming = false`.
+- Provide a “Stop” action: cancel the stream task and persist the current `streamingText` as an assistant message.
+
+### CoachEngine Responsibilities
+- Post Started/Delta/Finished notifications during streaming.
+- Create the final assistant message via `ConversationManager.createAssistantMessage` after streaming completes.
+
+### Do Nots
+- Do not write placeholder ChatMessage during streaming.
+- Do not duplicate the final message when it persists.
+
+---
+
+## Function Calls
+
+Function calls are centralized in `CoachEngine+Functions` with graceful behavior when tools are unavailable.
+
+### Standards
+- Validate tool availability; if not available, write an assistant note, e.g., “(Note: watch transfer isn’t configured yet)”.
+- Do not crash or block; proceed with conversation even when a function isn’t executed.
+- Persist function call metadata on the assistant message for traceability.
 
 ### Do's ✅
 - Always use structured output for JSON responses

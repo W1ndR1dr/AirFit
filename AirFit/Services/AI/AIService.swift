@@ -1,4 +1,5 @@
 import Foundation
+import os.signpost
 
 /// AI Service Mode - Determines behavior when no API keys are configured
 enum AIServiceMode {
@@ -14,9 +15,9 @@ actor AIService: AIServiceProtocol {
     // MARK: - Properties
     nonisolated let serviceIdentifier = "ai-service"
     private var _isConfigured = false
-    nonisolated var isConfigured: Bool { 
-        true // Always return true for compatibility
-    }
+    // Snapshot copies for safe, instantaneous nonisolated access from UI/consumers
+    nonisolated(unsafe) private var snapshotIsConfigured = false
+    nonisolated var isConfigured: Bool { snapshotIsConfigured }
     
     // Service mode
     private let mode: AIServiceMode
@@ -24,9 +25,9 @@ actor AIService: AIServiceProtocol {
     // Provider management
     private var providers: [LLMProviderIdentifier: any LLMProvider] = [:]
     private var _activeProvider: AIProvider = .gemini
-    nonisolated var activeProvider: AIProvider { 
-        .gemini // Default for nonisolated access
-    }
+    // Snapshot copy exposed nonisolated
+    nonisolated(unsafe) private var snapshotActiveProvider: AIProvider = .gemini
+    nonisolated var activeProvider: AIProvider { snapshotActiveProvider }
     private var currentModel: String = LLMModel.gemini25Flash.identifier
     
     // Dependencies
@@ -55,11 +56,25 @@ actor AIService: AIServiceProtocol {
                     costPerThousandTokens: AIModel.TokenCost(input: 0.003, output: 0.015)
                 ),
                 AIModel(
-                    id: LLMModel.gpt4o.identifier,
-                    name: "GPT-4o",
+                    id: LLMModel.gpt5.identifier,
+                    name: "GPT-5",
                     provider: .openAI,
-                    contextWindow: 128_000,
-                    costPerThousandTokens: AIModel.TokenCost(input: 0.0025, output: 0.01)
+                    contextWindow: LLMModel.gpt5.contextWindow,
+                    costPerThousandTokens: AIModel.TokenCost(input: LLMModel.gpt5.cost.input, output: LLMModel.gpt5.cost.output)
+                ),
+                AIModel(
+                    id: LLMModel.gpt5Mini.identifier,
+                    name: "GPT-5 Mini",
+                    provider: .openAI,
+                    contextWindow: LLMModel.gpt5Mini.contextWindow,
+                    costPerThousandTokens: AIModel.TokenCost(input: LLMModel.gpt5Mini.cost.input, output: LLMModel.gpt5Mini.cost.output)
+                ),
+                AIModel(
+                    id: LLMModel.gemini25FlashThinking.identifier,
+                    name: "Gemini 2.5 Flash Thinking",
+                    provider: .gemini,
+                    contextWindow: LLMModel.gemini25FlashThinking.contextWindow,
+                    costPerThousandTokens: AIModel.TokenCost(input: LLMModel.gemini25FlashThinking.cost.input, output: LLMModel.gemini25FlashThinking.cost.output)
                 )
             ]
         case .demo, .test:
@@ -104,12 +119,16 @@ actor AIService: AIServiceProtocol {
         }
         
         _isConfigured = true
+        // Update snapshots for nonisolated access
+        snapshotIsConfigured = true
+        snapshotActiveProvider = _activeProvider
         AppLogger.info("AI Service configured in \(mode) mode", category: .ai)
     }
     
     func reset() async {
         providers.removeAll()
         _isConfigured = false
+        snapshotIsConfigured = false
         totalCost = 0
     }
     
@@ -166,7 +185,7 @@ actor AIService: AIServiceProtocol {
         AsyncThrowingStream { continuation in
             Task {
                 do {
-                    switch await self.mode {
+                    switch self.mode {
                     case .production:
                         try await self.handleProductionRequest(request, continuation: continuation)
                     case .demo:
@@ -238,56 +257,106 @@ actor AIService: AIServiceProtocol {
     
     // MARK: - Production Request Handling
     
+    private func withSignpostIfEnabled<T: Sendable>(
+        _ request: AIRequest,
+        operation: () async throws -> T
+    ) async throws -> T {
+        let userTag = request.user
+        let modelName = request.model ?? currentModel
+        let log = OSLog(subsystem: "com.airfit.ai", category: "requests")
+        let signpostID = OSSignpostID(log: log)
+        os_signpost(.begin, log: log, name: "AI Request", signpostID: signpostID,
+                    "model=%{public}s user=%{public}s", modelName, userTag)
+        let startTime = DispatchTime.now()
+        do {
+            let result = try await operation()
+            let duration = DispatchTime.now().uptimeNanoseconds - startTime.uptimeNanoseconds
+            let durationMs = duration / 1_000_000
+            os_signpost(.end, log: log, name: "AI Request", signpostID: signpostID,
+                        "duration_ms=%{public}llu", durationMs)
+            return result
+        } catch {
+            os_signpost(.end, log: log, name: "AI Request", signpostID: signpostID,
+                        "error=%{public}s", error.localizedDescription)
+            throw error
+        }
+    }
+
     private func handleProductionRequest(_ request: AIRequest, continuation: AsyncThrowingStream<AIResponse, Error>.Continuation) async throws {
+        try await withSignpostIfEnabled(request) {
+            try await _handleProductionRequest(request, continuation: continuation)
+        }
+    }
+
+    private func _handleProductionRequest(_ request: AIRequest, continuation: AsyncThrowingStream<AIResponse, Error>.Continuation) async throws {
         guard _isConfigured else {
             throw AppError.from(ServiceError.notConfigured)
         }
-        
-        let llmRequest = buildLLMRequest(from: request)
-        
-        guard let provider = providers[_activeProvider.toLLMProviderIdentifier()] else {
+        // Determine effective provider/model for this request
+        var effectiveProviderId = _activeProvider.toLLMProviderIdentifier()
+        var effectiveModel = currentModel
+        if let reqModel = request.model, let llm = LLMModel(rawValue: reqModel) {
+            let candidateProvider = llm.provider
+            if providers[candidateProvider] != nil {
+                effectiveProviderId = candidateProvider
+            }
+            effectiveModel = reqModel
+        }
+
+        let llmRequest = buildLLMRequest(from: request, modelOverride: effectiveModel)
+
+        guard let provider = providers[effectiveProviderId] else {
             throw AppError.llm("AI provider not available")
         }
-        
-        if request.stream {
-            let stream = await provider.stream(llmRequest)
-            var fullResponse = ""
-            
-            for try await chunk in stream {
-                fullResponse += chunk.delta
-                continuation.yield(.textDelta(chunk.delta))
-                
-                if chunk.isFinished {
+        // Respect timeout by racing the operation with a sleeper
+        try await withThrowingTaskGroup(of: Void.self) { group in
+            group.addTask { [llmRequest, self] in
+                if request.stream {
+                    let stream = await provider.stream(llmRequest)
+                    var fullResponse = ""
+                    for try await chunk in stream {
+                        fullResponse += chunk.delta
+                        continuation.yield(.textDelta(chunk.delta))
+                        if chunk.isFinished {
+                            let usage = AITokenUsage(
+                                promptTokens: chunk.usage?.promptTokens ?? 0,
+                                completionTokens: chunk.usage?.completionTokens ?? 0,
+                                totalTokens: chunk.usage?.totalTokens ?? 0
+                            )
+                            await self.trackCost(usage: usage, model: llmRequest.model)
+                            continuation.yield(.done(usage: usage))
+                        }
+                    }
+                } else {
+                    let response = try await provider.complete(llmRequest)
+                    if let structuredData = response.structuredData {
+                        continuation.yield(.structuredData(structuredData))
+                    } else {
+                        continuation.yield(.text(response.content))
+                    }
                     let usage = AITokenUsage(
-                        promptTokens: chunk.usage?.promptTokens ?? 0,
-                        completionTokens: chunk.usage?.completionTokens ?? 0,
-                        totalTokens: chunk.usage?.totalTokens ?? 0
+                        promptTokens: response.usage.promptTokens,
+                        completionTokens: response.usage.completionTokens,
+                        totalTokens: response.usage.totalTokens
                     )
-                    
-                    await trackCost(usage: usage, model: llmRequest.model)
+                    await self.trackCost(usage: usage, model: llmRequest.model)
                     continuation.yield(.done(usage: usage))
                 }
+                continuation.finish()
             }
-        } else {
-            let response = try await provider.complete(llmRequest)
-            
-            if let structuredData = response.structuredData {
-                continuation.yield(.structuredData(structuredData))
-            } else {
-                continuation.yield(.text(response.content))
+            let timeoutNs = UInt64(request.timeout * 1_000_000_000)
+            group.addTask {
+                try await Task.sleep(nanoseconds: timeoutNs)
+                throw AppError.serviceUnavailable
             }
-            
-            let usage = AITokenUsage(
-                promptTokens: response.usage.promptTokens,
-                completionTokens: response.usage.completionTokens,
-                totalTokens: response.usage.totalTokens
-            )
-            
-            await trackCost(usage: usage, model: llmRequest.model)
-            continuation.yield(.done(usage: usage))
+            do {
+                _ = try await group.next()
+            } catch {
+                group.cancelAll()
+                throw error
+            }
+            group.cancelAll()
         }
-        
-        continuation.finish()
     }
     
     // MARK: - Demo Mode Handling
@@ -360,33 +429,37 @@ actor AIService: AIServiceProtocol {
         
         let (anthropicResult, openAIResult, geminiResult) = await (anthropicKey, openAIKey, geminiKey)
         
-        if let key = geminiResult {
-            let config = LLMProviderConfig(apiKey: key)
-            providers[.google] = GeminiProvider(config: config)
-            _activeProvider = .gemini
-            currentModel = LLMModel.gemini25Flash.identifier
-        }
-        
-        if let key = anthropicResult {
-            let config = LLMProviderConfig(apiKey: key)
-            providers[.anthropic] = AnthropicProvider(config: config)
-            if _activeProvider != .gemini {
-                _activeProvider = .anthropic
-                currentModel = LLMModel.claude4Sonnet.identifier
-            }
-        }
-        
+        // Prefer OpenAI by default for chat; keep others available
         if let key = openAIResult {
             let config = LLMProviderConfig(apiKey: key)
             providers[.openai] = OpenAIProvider(config: config)
-            if _activeProvider != .gemini && _activeProvider != .anthropic {
-                _activeProvider = .openAI
-                currentModel = LLMModel.gpt4o.identifier
+            _activeProvider = .openAI
+            currentModel = LLMModel.gpt5Mini.identifier
+            snapshotActiveProvider = _activeProvider
+        }
+
+        if let key = geminiResult {
+            let config = LLMProviderConfig(apiKey: key)
+            providers[.google] = GeminiProvider(config: config)
+            if _activeProvider != .openAI {
+                _activeProvider = .gemini
+                currentModel = LLMModel.gemini25Flash.identifier
+                snapshotActiveProvider = _activeProvider
+            }
+        }
+
+        if let key = anthropicResult {
+            let config = LLMProviderConfig(apiKey: key)
+            providers[.anthropic] = AnthropicProvider(config: config)
+            if _activeProvider != .openAI && _activeProvider != .gemini {
+                _activeProvider = .anthropic
+                currentModel = LLMModel.claude4Sonnet.identifier
+                snapshotActiveProvider = _activeProvider
             }
         }
     }
     
-    private func buildLLMRequest(from aiRequest: AIRequest) -> LLMRequest {
+    private func buildLLMRequest(from aiRequest: AIRequest, modelOverride: String? = nil) -> LLMRequest {
         let llmMessages = aiRequest.messages.map { msg in
             LLMMessage(
                 role: LLMMessage.Role(rawValue: msg.role.rawValue) ?? .user,
@@ -395,10 +468,10 @@ actor AIService: AIServiceProtocol {
                 attachments: nil
             )
         }
-        
+        let modelToUse = modelOverride ?? currentModel
         return LLMRequest(
             messages: llmMessages,
-            model: currentModel,
+            model: modelToUse,
             temperature: aiRequest.temperature,
             maxTokens: aiRequest.maxTokens,
             systemPrompt: aiRequest.systemPrompt,

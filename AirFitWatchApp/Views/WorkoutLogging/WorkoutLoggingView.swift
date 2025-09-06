@@ -91,7 +91,7 @@ struct WorkoutLoggingView: View {
                     ))
                 }
             }
-            .animation(.easeInOut(duration: 0.3), value: coordinator.currentScreen)
+            .animation(.smooth(duration: 0.3), value: coordinator.currentScreen)
             
             // Progress indicator
             VStack {
@@ -119,7 +119,7 @@ struct ProgressIndicator: View {
                 Capsule()
                     .fill(index <= current ? Color.blue : Color.gray.opacity(0.3))
                     .frame(width: index == current ? 20 : 12, height: 4)
-                    .animation(.easeInOut(duration: 0.2), value: current)
+                    .animation(.smooth(duration: 0.2), value: current)
             }
         }
         .padding(.horizontal)

@@ -120,14 +120,13 @@ final class GradientManager: ObservableObject {
 
         // Animate transition
         isTransitioning = true
-        withAnimation(.easeInOut(duration: 0.6)) {
+        withAnimation(SoftMotion.background) {
             active = selectedGradient
             updateAccentColor()
         }
 
         // Reset transition flag after animation
         Task {
-            try? await Task.sleep(for: .milliseconds(600))
             isTransitioning = false
         }
     }
@@ -135,7 +134,7 @@ final class GradientManager: ObservableObject {
     /// Forces a specific gradient (useful for onboarding or special states)
     func setGradient(_ token: GradientToken, animated: Bool = true) {
         if animated {
-            withAnimation(.easeInOut(duration: 0.6)) {
+            withAnimation(SoftMotion.background) {
                 active = token
                 updateAccentColor()
             }

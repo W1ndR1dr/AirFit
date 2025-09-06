@@ -15,7 +15,7 @@ struct ServiceConfiguration: Sendable {
 
         static let `default` = AIConfiguration(
             defaultProvider: .openAI,
-            defaultModel: "gpt-4o-mini",
+            defaultModel: "gpt-5-mini",
             maxRetries: 3,
             timeout: 30,
             cacheEnabled: true,

@@ -26,7 +26,7 @@ struct MinimalMessageBubble: View {
                 if message.roleEnum == .assistant && hasSource {
                     sourceLink
                         .opacity(animateIn ? 1 : 0)
-                        .animation(.easeInOut(duration: 0.3).delay(0.1), value: animateIn)
+                        .animation(.smooth(duration: 0.3).delay(0.1), value: animateIn)
                 }
             }
 
@@ -36,7 +36,7 @@ struct MinimalMessageBubble: View {
         }
         .padding(.horizontal, 16)
         .onAppear {
-            withAnimation(.easeOut(duration: 0.3)) {
+            withAnimation(.snappy(duration: 0.3)) {
                 animateIn = true
             }
         }

@@ -75,11 +75,8 @@ struct InsightsConfirmationView: View {
                     .padding(24)
                 }
                 .frame(maxHeight: 300)
-                .background(
-                    RoundedRectangle(cornerRadius: 24, style: .continuous)
-                        .fill(Material.regular)
-                )
-                .padding(.horizontal, 24)
+                .glassEffect(.regular, in: .rect(cornerRadius: 24))
+                .padding(.horizontal, AppSpacing.lg)
                 .opacity(isVisible ? 1 : 0)
                 .offset(y: isVisible ? 0 : 20)
             } else {
@@ -88,7 +85,7 @@ struct InsightsConfirmationView: View {
                     .font(.system(size: 18, weight: .light))
                     .foregroundStyle(.secondary)
                     .multilineTextAlignment(.center)
-                    .padding(.horizontal, 40)
+                    .padding(.horizontal, AppSpacing.xl)
             }
 
             Spacer()
@@ -96,35 +93,24 @@ struct InsightsConfirmationView: View {
             // Action Buttons
             VStack(spacing: 12) {
                 Button(action: onConfirm) {
-                    HStack {
-                        Text("This sounds right")
-                        Image(systemName: "checkmark.circle.fill")
-                    }
-                    .frame(maxWidth: .infinity)
-                    .padding(.vertical, 16)
-                    .background(Color.accentColor)
-                    .foregroundColor(.white)
-                    .clipShape(RoundedRectangle(cornerRadius: 14, style: .continuous))
+                    Label("This sounds right", systemImage: "checkmark.circle.fill")
                 }
+                .buttonStyle(.softPrimary)
 
                 Button(action: onRefine) {
                     Text("Let me clarify")
                         .frame(maxWidth: .infinity)
-                        .padding(.vertical, 16)
-                        .background(
-                            RoundedRectangle(cornerRadius: 14, style: .continuous)
-                                .stroke(Color.secondary.opacity(0.5), lineWidth: 1)
-                        )
-                        .foregroundStyle(.primary)
+                        .padding(.vertical, 14)
                 }
+                .buttonStyle(.softSecondary)
             }
-            .padding(.horizontal, 24)
-            .padding(.bottom, 40)
+            .padding(.horizontal, AppSpacing.lg)
+            .padding(.bottom, AppSpacing.xl)
             .opacity(isVisible ? 1 : 0)
             .offset(y: isVisible ? 0 : 10)
         }
         .onAppear {
-            withAnimation(.easeOut(duration: 0.5)) {
+            withAnimation(.snappy(duration: 0.5)) {
                 isVisible = true
             }
         }
@@ -178,4 +164,5 @@ private struct InsightRow: View {
         onRefine: {}
     )
     .preferredColorScheme(.dark)
+    .environmentObject(GradientManager())
 }

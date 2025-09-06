@@ -871,8 +871,7 @@ struct QuickWorkoutCard: View {
                 .offset(y: animateIn ? 0 : 10)
             }
             .frame(width: 100, height: 100)
-            .background(.ultraThinMaterial)
-            .clipShape(RoundedRectangle(cornerRadius: 16))
+            .glassEffect(in: .rect(cornerRadius: 16))
             .overlay(
                 RoundedRectangle(cornerRadius: 16)
                     .stroke(color.opacity(0.3), lineWidth: 1)
@@ -1110,7 +1109,7 @@ extension TimeInterval {
 // MARK: - Preview
 
 #Preview {
-    let container = try! ModelContainer(for: User.self)
+    let container = try! ModelContainer(for: User.self) // swiftlint:disable:this force_try
     let user = User(name: "Preview")
     container.mainContext.insert(user)
 

@@ -21,7 +21,9 @@ final class VoiceInputManager: VoiceInputProtocol {
 
     // MARK: - WhisperKit Integration
     private var whisperKit: WhisperKit?
-    private let preferredModel = "large-v3-turbo" // Will use Q4 quantized version
+    private var preferredModel: String {
+        DeviceCapabilities.isHighEnd ? "large-v3-turbo" : "base"
+    }
 
     // MARK: - Recording Configuration
     private let maxRecordingDuration: TimeInterval = 60.0 // Updated from 30s to 60s

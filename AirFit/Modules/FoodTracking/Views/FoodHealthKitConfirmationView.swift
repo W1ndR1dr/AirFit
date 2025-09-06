@@ -231,8 +231,7 @@ struct FoodHealthKitConfirmationView: View {
             }
         } label: {
             if isSaving {
-                ProgressView()
-                    .tint(.black)
+                TextLoadingView(message: "Saving to HealthKit", style: .subtle)
                     .frame(maxWidth: .infinity)
                     .padding()
                     .background(Color.white)

@@ -131,7 +131,7 @@ struct CommentInputView: View {
             VStack(spacing: 12) {
                 // Continue/Skip button
                 Button {
-                    withAnimation(.easeInOut(duration: 0.2)) {
+                    withAnimation(.smooth(duration: 0.2)) {
                         coordinator.navigateForward()
                     }
                 } label: {
@@ -148,7 +148,7 @@ struct CommentInputView: View {
                 // Back button
                 HStack {
                     Button {
-                        withAnimation(.easeInOut(duration: 0.2)) {
+                        withAnimation(.smooth(duration: 0.2)) {
                             coordinator.navigateBackward()
                         }
                     } label: {

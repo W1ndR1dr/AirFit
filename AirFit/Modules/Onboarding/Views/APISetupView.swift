@@ -14,9 +14,8 @@ struct APISetupView: View {
         if let manager = apiKeyManager {
             _viewModel = StateObject(wrappedValue: APISetupViewModel(apiKeyManager: manager))
         } else {
-            // For preview - create a mock
-            let mockManager = MockAPIKeyManager()
-            _viewModel = StateObject(wrappedValue: APISetupViewModel(apiKeyManager: mockManager))
+            // Fallback: use production APIKeyManager with shared keychain
+            _viewModel = StateObject(wrappedValue: APISetupViewModel(apiKeyManager: APIKeyManager()))
         }
     }
 
@@ -149,22 +148,17 @@ struct APISetupView: View {
                                 }
                             }) {
                                 if isSaving {
-                                    ProgressView()
-                                        .progressViewStyle(CircularProgressViewStyle(tint: .white))
+                                    TextLoadingView(message: "Saving settings", style: .subtle)
                                         .frame(maxWidth: .infinity)
                                         .padding()
                                 } else {
                                     Label("Continue to Onboarding", systemImage: "arrow.right.circle.fill")
                                         .font(.headline)
-                                        .foregroundColor(.white)
                                         .frame(maxWidth: .infinity)
-                                        .padding()
+                                        .padding(.vertical, 14)
                                 }
                             }
-                            .background(
-                                RoundedRectangle(cornerRadius: 16)
-                                    .fill(Color.purple.gradient)
-                            )
+                            .buttonStyle(.softPrimary)
                             .disabled(isSaving)
                             .padding(.horizontal)
                         } else if !viewModel.configuredProviders.isEmpty {
@@ -189,10 +183,15 @@ struct APISetupView: View {
             }
             .navigationBarHidden(true)
         }
-        .alert("Error", isPresented: .constant(saveError != nil), presenting: saveError) { _ in
-            Button("OK") {
-                saveError = nil
-            }
+        .alert(
+            "Error",
+            isPresented: Binding(
+                get: { saveError != nil },
+                set: { newValue in if newValue == false { saveError = nil } }
+            ),
+            presenting: saveError
+        ) { _ in
+            Button("OK") { saveError = nil }
         } message: { error in
             Text(error.localizedDescription)
         }
@@ -204,7 +203,7 @@ struct ProviderSelector: View {
 
     let providers: [(AIProvider, String, String)] = [
         (.anthropic, "Anthropic", "Claude 4 Series"),
-        (.openAI, "OpenAI", "o3 & o4 Series"),
+        (.openAI, "OpenAI", "GPT-5 Series"),
         (.gemini, "Google", "Gemini 2.5 Series")
     ]
 
@@ -229,13 +228,15 @@ struct ProviderButton: View {
     let models: String
     let isSelected: Bool
     let action: () -> Void
+    @EnvironmentObject private var gradientManager: GradientManager
+    @Environment(\.colorScheme) private var colorScheme
 
     var body: some View {
         Button(action: action) {
             VStack(spacing: 4) {
                 Image(systemName: iconName)
                     .font(.title2)
-                    .foregroundColor(isSelected ? .white : .purple)
+                    .foregroundStyle(isSelected ? .white : gradientManager.active.accentColor(for: colorScheme))
 
                 Text(name)
                     .font(.caption.bold())
@@ -248,10 +249,10 @@ struct ProviderButton: View {
                     .lineLimit(2)
             }
             .frame(maxWidth: .infinity)
-            .padding(.vertical, 12)
+            .padding(.vertical, AppSpacing.sm)
             .background(
                 RoundedRectangle(cornerRadius: 12)
-                    .fill(isSelected ? Color.purple : Color.white.opacity(0.8))
+                    .fill(isSelected ? gradientManager.active.accentColor(for: colorScheme) : Color.white.opacity(0.8))
                     .shadow(color: .black.opacity(0.1), radius: 4, y: 2)
             )
         }
@@ -274,27 +275,11 @@ struct APIKeyInputCard: View {
     @State private var selectedModel = ""
     @State private var isValidating = false
     @State private var validationResult: ValidationResult?
+    @EnvironmentObject private var gradientManager: GradientManager
+    @Environment(\.colorScheme) private var colorScheme
 
     var availableModels: [(id: String, display: String)] {
-        switch provider {
-        case .anthropic:
-            return [
-                ("claude-4-opus", "Claude 4 Opus"),
-                ("claude-4-sonnet", "Claude 4 Sonnet")
-            ]
-        case .openAI:
-            return [
-                ("o3", "o3"),
-                ("o3-mini", "o3-mini"),
-                ("o4-mini", "o4-mini"),
-                ("gpt-4o", "GPT-4o")
-            ]
-        case .gemini:
-            return [
-                ("gemini-2.5-flash", "Gemini 2.5 Flash"),
-                ("gemini-2.5-pro", "Gemini 2.5 Pro")
-            ]
-        }
+        LLMModelCatalog.models(for: provider)
     }
 
     var body: some View {
@@ -303,7 +288,7 @@ struct APIKeyInputCard: View {
             HStack {
                 Image(systemName: providerIcon)
                     .font(.title3)
-                    .foregroundColor(.purple)
+                    .foregroundStyle(gradientManager.active.accentColor(for: colorScheme))
 
                 Text("\(provider.displayName) Configuration")
                     .font(.headline)
@@ -348,8 +333,7 @@ struct APIKeyInputCard: View {
                     // Voice transcription available via WhisperVoiceButton if needed
 
                     if isValidating {
-                        ProgressView()
-                            .scaleEffect(0.8)
+                        TextLoadingView(message: "Validating key", style: .subtle)
                     }
                 }
                 .padding()
@@ -371,14 +355,14 @@ struct APIKeyInputCard: View {
                     Label("Validate", systemImage: "checkmark.shield")
                         .font(.subheadline)
                 }
-                .buttonStyle(APISetupSecondaryButtonStyle())
+                .buttonStyle(.softSecondary)
                 .disabled(apiKey.isEmpty || selectedModel.isEmpty || isValidating)
 
                 Button(action: saveKey) {
                     Label("Save", systemImage: "lock.fill")
                         .font(.subheadline)
                 }
-                .buttonStyle(APISetupPrimaryButtonStyle())
+                .buttonStyle(.softPrimary)
                 .disabled(validationResult?.isValid != true)
             }
         }
@@ -457,21 +441,23 @@ struct APIModelChip: View {
     let model: String
     let isSelected: Bool
     let action: () -> Void
+    @EnvironmentObject private var gradientManager: GradientManager
+    @Environment(\.colorScheme) private var colorScheme
 
     var body: some View {
         Button(action: action) {
             Text(model)
                 .font(.caption)
                 .fontWeight(isSelected ? .semibold : .regular)
-                .foregroundColor(isSelected ? .white : .primary)
+                .foregroundStyle(isSelected ? .white : .primary)
                 .padding(.horizontal, 12)
                 .padding(.vertical, 6)
                 .background(
                     Capsule()
-                        .fill(isSelected ? Color.purple : Color.gray.opacity(0.2))
+                        .fill(isSelected ? gradientManager.active.accentColor(for: colorScheme) : Color.gray.opacity(0.2))
                 )
         }
-        .buttonStyle(PlainButtonStyle())
+        .buttonStyle(SoftChipButtonStyle())
     }
 }
 
@@ -517,34 +503,7 @@ struct ConfiguredProvidersList: View {
     }
 }
 
-// Button Styles
-struct APISetupPrimaryButtonStyle: ButtonStyle {
-    func makeBody(configuration: Configuration) -> some View {
-        configuration.label
-            .foregroundColor(.white)
-            .padding(.horizontal, 16)
-            .padding(.vertical, 8)
-            .background(
-                RoundedRectangle(cornerRadius: 8)
-                    .fill(Color.purple)
-            )
-            .scaleEffect(configuration.isPressed ? 0.95 : 1)
-    }
-}
-
-struct APISetupSecondaryButtonStyle: ButtonStyle {
-    func makeBody(configuration: Configuration) -> some View {
-        configuration.label
-            .foregroundColor(.purple)
-            .padding(.horizontal, 16)
-            .padding(.vertical, 8)
-            .background(
-                RoundedRectangle(cornerRadius: 8)
-                    .stroke(Color.purple, lineWidth: 1)
-            )
-            .scaleEffect(configuration.isPressed ? 0.95 : 1)
-    }
-}
+// Button Styles removed in favor of global Soft styles
 
 // Supporting types
 struct ValidationResult {
@@ -555,4 +514,5 @@ struct ValidationResult {
 
 #Preview {
     APISetupView()
+        .environmentObject(GradientManager())
 }

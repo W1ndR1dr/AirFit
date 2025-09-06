@@ -190,15 +190,8 @@ struct VoiceSettingsView: View {
                     Text("More options coming soon")
                 }
             }
-            .navigationTitle("Voice Settings")
-            .navigationBarTitleDisplayMode(.large)
-            .toolbar {
-                ToolbarItem(placement: .navigationBarTrailing) {
-                    Button("Done") {
-                        dismiss()
-                    }
-                }
-            }
+            .navigationBarHidden(true)
+            .toolbar(.hidden, for: .navigationBar)
         }
         .alert("Delete Model?", isPresented: $showingDeleteConfirmation) {
             Button("Delete", role: .destructive) {
@@ -243,8 +236,7 @@ struct VoiceSettingsView: View {
 
         case .downloading:
             HStack(spacing: 4) {
-                ProgressView()
-                    .scaleEffect(0.8)
+                TextLoadingView(message: "Downloading", style: .subtle)
                 Text("Downloading...")
             }
             .foregroundStyle(.blue)
@@ -252,8 +244,7 @@ struct VoiceSettingsView: View {
 
         case .downloaded, .loading:
             HStack(spacing: 4) {
-                ProgressView()
-                    .scaleEffect(0.8)
+                TextLoadingView(message: "Loading", style: .subtle)
                 Text("Loading...")
             }
             .foregroundStyle(.orange)
@@ -332,7 +323,7 @@ struct VoiceSettingsView: View {
     }
 
     private func cancelDownload() async {
-        await whisperManager.cancelDownload()
+        whisperManager.cancelDownload()
         HapticService.notification(.warning)
     }
 
@@ -406,8 +397,7 @@ private struct TestTranscriptionSheet: View {
                             onTranscription(transcribedText)
                             dismiss()
                         }
-                        .buttonStyle(.borderedProminent)
-                        .controlSize(.large)
+                        .buttonStyle(.softPrimary)
                     }
                     .transition(.opacity)
                 }

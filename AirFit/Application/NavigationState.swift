@@ -36,6 +36,9 @@ public final class NavigationState {
     // MARK: - Quick Action State
     public var suggestedQuickActions: [QuickAction] = []
     public var lastQuickActionUpdate = Date()
+    
+    // MARK: - iOS 26 Liquid Glass Morphing
+    @Namespace public var navigationMorphing
 
     // MARK: - Public Methods
 
@@ -73,11 +76,30 @@ public final class NavigationState {
 
     /// Toggle floating assistant expansion
     public func toggleFAB() {
-        withAnimation(.spring(duration: 0.3)) {
+        withAnimation(.bouncy(duration: 0.3)) {
             fabIsExpanded.toggle()
             fabScale = fabIsExpanded ? 1.2 : 1.0
         }
         HapticService.impact(.medium)
+    }
+
+    /// Show photo capture from anywhere using Camera Control
+    public func showPhotoCapture() {
+        // Determine current meal type based on time
+        let hour = Calendar.current.component(.hour, from: Date())
+        let mealType: MealType = {
+            switch hour {
+            case 6...9: return .breakfast
+            case 11...13: return .lunch
+            case 17...20: return .dinner
+            default: return .snack
+            }
+        }()
+        
+        navigateToTab(.nutrition, with: .showFood(date: Date(), mealType: mealType))
+        HapticService.impact(.medium)
+        
+        AppLogger.info("NavigationState: Camera Control quick photo capture for \(mealType.rawValue)", category: .app)
     }
 
     /// Update quick actions based on context
@@ -169,6 +191,10 @@ public final class NavigationState {
         switch type {
         case .logMeal(let mealType):
             navigateToTab(.nutrition, with: .showFood(date: Date(), mealType: mealType))
+        case .logMealWithPhoto(let mealType):
+            // Navigate to nutrition tab and directly open photo capture
+            navigateToTab(.nutrition, with: .showFood(date: Date(), mealType: mealType))
+            // Note: The FoodTrackingView will automatically show photo capture when appropriate
         case .startWorkout:
             navigateToTab(.workouts, with: .startWorkout(type: nil))
         case .checkIn:

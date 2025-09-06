@@ -13,7 +13,7 @@ struct WorkoutView: View {
             if let viewModel = viewModel {
                 WorkoutListView(viewModel: viewModel)
             } else {
-                ProgressView()
+                TextLoadingView(message: "Loading workouts", style: .standard)
                     .task {
                         let factory = DIViewModelFactory(container: container)
                         viewModel = try? await factory.makeWorkoutViewModel(user: user)
@@ -576,7 +576,7 @@ struct VoiceWorkoutInputPlaceholder: View {
                             .scaleEffect(animateIn ? 1.0 : 0.8)
                             .opacity(animateIn ? 0.2 : 0)
                             .animation(
-                                Animation.easeOut(duration: 1.5)
+                                Animation.snappy(duration: 1.5)
                                     .repeatForever(autoreverses: true),
                                 value: animateIn
                             )

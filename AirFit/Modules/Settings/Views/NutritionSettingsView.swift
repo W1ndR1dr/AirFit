@@ -1,4 +1,5 @@
 import SwiftUI
+import SwiftData
 
 /// Settings view for adjusting personalized nutrition macros
 struct NutritionSettingsView: View {
@@ -11,6 +12,8 @@ struct NutritionSettingsView: View {
     @State private var macroFlexibility: String
     @State private var showingResetAlert = false
     @State private var hasChanges = false
+    @State private var adaptiveEnabled: Bool = UserDefaults.standard.bool(forKey: "AirFit.AdaptiveNutritionEnabled")
+    @State private var adjustments: [DailyNutritionAdjustment] = []
 
     let user: User
     private let originalProtein: Double
@@ -66,6 +69,70 @@ struct NutritionSettingsView: View {
                         }
                         .padding(.horizontal, AppSpacing.lg)
                     }
+
+                    // Adaptive Goals Toggle
+                    GlassCard {
+                        HStack {
+                            VStack(alignment: .leading, spacing: 6) {
+                                Text("Adaptive Goals")
+                                    .font(.system(size: 16, weight: .semibold, design: .rounded))
+                                Text("Automatically adjusts daily targets based on activity and recent intake")
+                                    .font(.system(size: 12, design: .rounded))
+                                    .foregroundStyle(.secondary)
+                            }
+                            Spacer()
+                            Toggle("", isOn: $adaptiveEnabled)
+                                .labelsHidden()
+                                .tint(Color(gradientManager.active.colors(for: colorScheme).first ?? .accentColor))
+                                .onChange(of: adaptiveEnabled) { _, newValue in
+                                    UserDefaults.standard.set(newValue, forKey: "AirFit.AdaptiveNutritionEnabled")
+                                    HapticService.play(.dataUpdated)
+                                }
+                        }
+                        .padding(AppSpacing.md)
+                    }
+                    .padding(.horizontal, AppSpacing.lg)
+
+                    // Recent Adjustments
+                    GlassCard {
+                        VStack(alignment: .leading, spacing: AppSpacing.sm) {
+                            HStack {
+                                Text("Recent Adjustments")
+                                    .font(.system(size: 13, weight: .medium, design: .rounded))
+                                    .textCase(.uppercase)
+                                    .foregroundStyle(.secondary.opacity(0.8))
+                                Spacer()
+                            }
+                            if adjustments.isEmpty {
+                                Text("No adjustments recorded yet.")
+                                    .font(.system(size: 14, design: .rounded))
+                                    .foregroundStyle(.secondary)
+                            } else {
+                                ForEach(adjustments.prefix(7), id: \.id) { adj in
+                                    HStack(spacing: AppSpacing.sm) {
+                                        let pct = adj.percent
+                                        Image(systemName: pct >= 0 ? "arrow.up.right" : "arrow.down.right")
+                                            .font(.system(size: 12, weight: .semibold))
+                                            .foregroundStyle(pct >= 0 ? .green : .orange)
+                                        Text("\(formattedDate(adj.date))")
+                                            .font(.system(size: 13, design: .rounded))
+                                            .foregroundStyle(.secondary)
+                                        Text(String(format: "%+.0f%%", pct * 100))
+                                            .font(.system(size: 13, weight: .semibold, design: .rounded))
+                                        Spacer()
+                                        if let r = adj.rationale, !r.isEmpty {
+                                            Text(r)
+                                                .font(.system(size: 11, design: .rounded))
+                                                .foregroundStyle(.secondary)
+                                        }
+                                    }
+                                    if adj.id != adjustments.prefix(7).last?.id { Divider() }
+                                }
+                            }
+                        }
+                        .padding(AppSpacing.md)
+                    }
+                    .padding(.horizontal, AppSpacing.lg)
 
                     // Protein Settings
                     VStack(spacing: AppSpacing.md) {
@@ -202,7 +269,7 @@ struct NutritionSettingsView: View {
                             VStack(spacing: AppSpacing.xs) {
                                 ForEach(["strict", "balanced", "flexible"], id: \.self) { style in
                                     Button {
-                                        withAnimation(.easeInOut(duration: 0.2)) {
+                                        withAnimation(.smooth(duration: 0.2)) {
                                             macroFlexibility = style
                                             hasChanges = true
                                         }
@@ -284,8 +351,9 @@ struct NutritionSettingsView: View {
                 }
             }
         }
-        .navigationTitle("Nutrition")
-        .navigationBarTitleDisplayMode(.inline)
+        .task { await loadAdjustments() }
+        .navigationBarHidden(true)
+        .toolbar(.hidden, for: .navigationBar)
         .alert("Reset to AI Recommendations?", isPresented: $showingResetAlert) {
             Button("Cancel", role: .cancel) { }
             Button("Reset", role: .destructive) {
@@ -424,6 +492,24 @@ struct NutritionSettingsView: View {
         } catch {
             AppLogger.error("Failed to save nutrition settings", error: error, category: .data)
         }
+    }
+
+    private func loadAdjustments() async {
+        let userId = user.id
+        var desc = FetchDescriptor<DailyNutritionAdjustment>(
+            predicate: #Predicate<DailyNutritionAdjustment> { adj in
+                adj.userID == userId
+            },
+            sortBy: [SortDescriptor(\.date, order: .reverse)]
+        )
+        desc.fetchLimit = 14
+        adjustments = (try? modelContext.fetch(desc)) ?? []
+    }
+
+    private func formattedDate(_ date: Date) -> String {
+        let df = DateFormatter()
+        df.dateStyle = .medium
+        return df.string(from: date)
     }
 }
 

@@ -218,14 +218,16 @@ final class DirectAIProcessor {
     private func executeAIRequest(
         prompt: String,
         config: AIConfig,
-        userId: String
+        userId: String,
+        timeout: TimeInterval = 15.0
     ) async throws -> String {
         let request = AIRequest(
             systemPrompt: config.systemPrompt,
             messages: [AIChatMessage(role: .user, content: prompt)],
             temperature: config.temperature,
             maxTokens: config.maxTokens,
-            user: userId
+            user: userId,
+            timeout: timeout
         )
 
         var fullResponse = ""
@@ -254,7 +256,8 @@ final class DirectAIProcessor {
         prompt: String,
         schema: StructuredOutputSchema,
         config: AIConfig,
-        userId: String
+        userId: String,
+        timeout: TimeInterval = 10.0
     ) async throws -> Data {
         let request = AIRequest(
             systemPrompt: config.systemPrompt,
@@ -262,7 +265,8 @@ final class DirectAIProcessor {
             temperature: config.temperature,
             maxTokens: config.maxTokens,
             user: userId,
-            responseFormat: .structuredJson(schema: schema)
+            responseFormat: .structuredJson(schema: schema),
+            timeout: timeout
         )
 
         var structuredData: Data?
@@ -271,6 +275,10 @@ final class DirectAIProcessor {
             switch response {
             case .structuredData(let data):
                 structuredData = data
+            case .text(let text):
+                if let d = text.data(using: .utf8) {
+                    structuredData = d
+                }
             case .error(let error):
                 throw error
             case .done:

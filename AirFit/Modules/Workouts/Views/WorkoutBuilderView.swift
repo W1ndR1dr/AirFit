@@ -610,9 +610,7 @@ struct ExercisePickerView: View {
 
                     if isLoading {
                         Spacer()
-                        ProgressView()
-                            .progressViewStyle(CircularProgressViewStyle(tint: gradientManager.active.colors(for: colorScheme).first ?? Color.accentColor))
-                            .scaleEffect(1.2)
+                        TextLoadingView(message: "Building workout")
                         Spacer()
                     } else {
                         ScrollView {

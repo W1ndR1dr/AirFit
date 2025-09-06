@@ -220,8 +220,7 @@ struct BodyDashboardView: View {
             }
         }
         .padding(4)
-        .background(.thickMaterial)
-        .clipShape(RoundedRectangle(cornerRadius: 16))
+        .glassEffect(.thick, in: .rect(cornerRadius: 16))
     }
 
     @ViewBuilder
@@ -550,8 +549,7 @@ struct BodyDashboardView: View {
                                 .foregroundStyle(.secondary)
                         }
                         .frame(width: 100, height: 120)
-                        .background(.ultraThinMaterial)
-                        .clipShape(RoundedRectangle(cornerRadius: 12))
+                        .glassEffect(in: .rect(cornerRadius: 12))
                     }
                     .buttonStyle(.plain)
                     
@@ -1013,7 +1011,7 @@ struct PhotoCaptureView: View {
 // MARK: - Preview
 
 #Preview {
-    let container = try! ModelContainer(for: User.self)
+    let container = try! ModelContainer(for: User.self) // swiftlint:disable:this force_try
     let user = User(name: "Preview")
     container.mainContext.insert(user)
 

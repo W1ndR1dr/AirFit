@@ -11,8 +11,7 @@ struct VoiceInputDownloadView: View {
         VStack(spacing: 20) {
             switch state {
             case .idle:
-                ProgressView()
-                    .progressViewStyle(CircularProgressViewStyle())
+                TextLoadingView(message: "Initializing voice input")
                 Text("Initializing voice input...")
                     .font(.headline)
 
@@ -94,8 +93,7 @@ struct VoiceInputDownloadView: View {
 
             case .preparingModel:
                 VStack(spacing: 16) {
-                    ProgressView()
-                        .progressViewStyle(CircularProgressViewStyle())
+                    TextLoadingView(message: "Preparing voice model")
 
                     Text("Preparing voice model...")
                         .font(.headline)
@@ -185,7 +183,7 @@ struct VoiceInputDownloadOverlay: ViewModifier {
                         .transition(.scale.combined(with: .opacity))
                     }
                 }
-                .animation(.easeInOut(duration: 0.3), value: shouldShow)
+                .animation(.smooth(duration: 0.3), value: shouldShow)
             )
     }
 }

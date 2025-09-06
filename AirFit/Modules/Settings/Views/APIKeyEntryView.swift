@@ -114,13 +114,13 @@ struct APIKeyEntryView: View {
                                 .focused($isKeyFieldFocused)
                                 .autocorrectionDisabled()
                                 .textInputAutocapitalization(.never)
-                            // .voiceTranscriptionEnabled($apiKey) // TODO: Implement voice transcription
+                            // Note: Voice input intentionally excluded for API keys due to privacy/security concerns
                         } else {
                             SecureField("Enter your API key", text: $apiKey)
                                 .textFieldStyle(.plain)
                                 .font(.system(size: 16, weight: .regular, design: .monospaced))
                                 .focused($isKeyFieldFocused)
-                            // .voiceTranscriptionEnabled($apiKey) // TODO: Implement voice transcription
+                            // Note: Voice input intentionally excluded for API keys due to privacy/security concerns
                         }
 
                         Button {
@@ -135,8 +135,7 @@ struct APIKeyEntryView: View {
 
                     if isValidating {
                         HStack(spacing: AppSpacing.sm) {
-                            ProgressView()
-                                .controlSize(.small)
+                            TextLoadingView(message: "Validating", style: .subtle)
                                 .tint(Color.accentColor)
                             Text("Validating key...")
                                 .font(.system(size: 14, weight: .regular, design: .rounded))

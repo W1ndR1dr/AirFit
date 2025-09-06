@@ -21,6 +21,7 @@ final class ContextAssembler: ContextAssemblerProtocol, ServiceProtocol {
 
     // MARK: - Dependencies
     private let healthKitManager: HealthKitManaging
+    private let injectedContext: ModelContext?
     private let goalService: GoalServiceProtocol?
     private let muscleGroupVolumeService: MuscleGroupVolumeServiceProtocol?
     private let strengthProgressionService: StrengthProgressionServiceProtocol?
@@ -33,12 +34,14 @@ final class ContextAssembler: ContextAssemblerProtocol, ServiceProtocol {
         healthKitManager: HealthKitManaging,
         goalService: GoalServiceProtocol? = nil,
         muscleGroupVolumeService: MuscleGroupVolumeServiceProtocol? = nil,
-        strengthProgressionService: StrengthProgressionServiceProtocol? = nil
+        strengthProgressionService: StrengthProgressionServiceProtocol? = nil,
+        modelContext: ModelContext? = nil
     ) {
         self.healthKitManager = healthKitManager
         self.goalService = goalService
         self.muscleGroupVolumeService = muscleGroupVolumeService
         self.strengthProgressionService = strengthProgressionService
+        self.injectedContext = modelContext
     }
 
     // MARK: - Public API
@@ -123,16 +126,12 @@ final class ContextAssembler: ContextAssemblerProtocol, ServiceProtocol {
 
         // Subjective & SwiftData work can proceed on a background context
         let (subjectiveData, appSpecificCtx) = await { () async -> (SubjectiveData, AppSpecificContext) in
-            do {
-                let container = try ModelContainer(for: User.self)
-                let context = ModelContext(container)
-                context.autosaveEnabled = false
-                
+            if let context = self.injectedContext {
                 let subjective = await self.fetchSubjectiveData(using: context)
                 let appContext = await self.createMockAppContext(using: context)
                 return (subjective, appContext)
-            } catch {
-                AppLogger.error("Failed to create ModelContext", error: error, category: .data)
+            } else {
+                AppLogger.warning("ContextAssembler: No injected ModelContext; skipping subjective/app context derivation", category: .data)
                 return (SubjectiveData(), AppSpecificContext())
             }
         }()
@@ -153,22 +152,31 @@ final class ContextAssembler: ContextAssemblerProtocol, ServiceProtocol {
             sleepSession
         )
 
+        // Report mid-stage progress
+        await progressReporter?.reportProgress(.init(stage: .analyzingTrends, subProgress: 0.3))
+
         // Calculate trends with a fresh context
         let trends: HealthTrends = await { () async -> HealthTrends in
-            do {
-                let container = try ModelContainer(for: User.self)
-                let context = ModelContext(container)
-                context.autosaveEnabled = false
-                return await calculateTrends(
-                    activity: activity,
-                    body: body,
-                    sleep: sleep,
-                    context: context
-                )
-            } catch {
-                AppLogger.error("Failed to create context for trends", error: error, category: .data)
+            guard let context = self.injectedContext else {
+                AppLogger.warning("ContextAssembler: No injected ModelContext; skipping trends calculation", category: .data)
+                await progressReporter?.reportProgress(.init(stage: .analyzingTrends, subProgress: 1.0))
                 return HealthTrends()
             }
+
+            // Report progress before calculation
+            await progressReporter?.reportProgress(.init(stage: .analyzingTrends, subProgress: 0.5))
+
+            let result = await calculateTrends(
+                activity: activity,
+                body: body,
+                sleep: sleep,
+                context: context
+            )
+
+            // Report completion of trends
+            await progressReporter?.reportProgress(.init(stage: .analyzingTrends, subProgress: 1.0))
+
+            return result
         }()
 
         // MARK: Stage 7 ───────── Assemble snapshot ──────────────────────

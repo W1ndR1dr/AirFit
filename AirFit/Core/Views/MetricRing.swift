@@ -62,7 +62,7 @@ struct MetricRing: View {
                 )
                 .rotationEffect(.degrees(-90))
                 .animation(
-                    animation ? .spring(response: 0.6, dampingFraction: 0.7) : nil,
+                    animation ? .bouncy(extraBounce: 0.2) : nil,
                     value: animatedValue
                 )
 

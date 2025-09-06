@@ -116,17 +116,23 @@ AirFit/
 ### Key Commands
 ```bash
 # Generate project and lint
-xcodegen generate && swiftlint --strict
+xcodegen generate && swiftlint --strict --config AirFit/.swiftlint.yml
 
 # Build verification (must be 0 errors, 0 warnings)
 xcodebuild clean build -scheme "AirFit" -destination 'platform=iOS Simulator,name=iPhone 16 Pro,OS=18.4'
 ```
 
+### Development Notes
+- Use XcodeGen to manage the project (`xcodegen generate`).
+- Keep slices small and document changes in `Docs/STATUS.md` so the next agent can pick up quickly.
+
 ### Documentation
-- **Development Standards**: `Docs/Development-Standards/`
-- **Architecture**: `Docs/Development-Standards/ARCHITECTURE.md`
-- **UI Standards**: `Docs/Development-Standards/UI_STANDARDS.md`
-- **AI Implementation**: `Docs/AI_SYSTEM_IMPLEMENTATION_STATUS.md`
+- Development Standards: `Docs/Development-Standards/`
+- Architecture: `Docs/Development-Standards/ARCHITECTURE.md`
+- UI Standards: `Docs/Development-Standards/UI_STANDARDS.md`
+- AI Standards: `Docs/Development-Standards/AI_STANDARDS.md`
+- Personal App Playbook: `Docs/PERSONAL_PLAYBOOK.md`
+ - Handoffs: `Docs/HANDOFF.md` template and `Docs/HANDOFFS/*`
 
 ## Current Status
 
@@ -146,7 +152,7 @@ Next features:
 
 ## Contributing
 
-See `CLAUDE.md` for AI assistant guidelines and development philosophy.
+Follow `Docs/STATUS.md` and `Docs/Development-Standards/` for guidance on architecture and coding standards.
 
 ## License
 

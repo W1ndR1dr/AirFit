@@ -47,7 +47,7 @@ struct GlassCard<Content: View>: View {
         ZStack {
             // Ultra thin material for glass effect
             RoundedRectangle(cornerRadius: cornerRadius, style: .continuous)
-                .fill(.ultraThinMaterial)
+                .glassEffect(in: .rect(cornerRadius: cornerRadius))
                 .overlay(
                     RoundedRectangle(cornerRadius: cornerRadius, style: .continuous)
                         .strokeBorder(
@@ -106,13 +106,13 @@ struct InteractiveGlassCard<Content: View>: View {
             HapticService.impact(.soft)
 
             // Visual feedback
-            withAnimation(.easeInOut(duration: 0.1)) {
+            withAnimation(.smooth(duration: 0.1)) {
                 isPressed = true
             }
 
             // Execute action
             DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
-                withAnimation(.easeInOut(duration: 0.1)) {
+                withAnimation(.smooth(duration: 0.1)) {
                     isPressed = false
                 }
                 action()
@@ -147,7 +147,7 @@ struct FloatingGlassCard<Content: View>: View {
         .onAppear {
             if !isDragging {
                 withAnimation(
-                    Animation.easeInOut(duration: 3)
+                    Animation.smooth(duration: 3)
                         .repeatForever(autoreverses: true)
                 ) {
                     offset = CGSize(

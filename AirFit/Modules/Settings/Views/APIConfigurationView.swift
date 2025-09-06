@@ -171,23 +171,10 @@ struct APIConfigurationView: View {
     }
 
     private var saveButton: some View {
-        Button {
-            saveConfiguration()
-        } label: {
+        Button(action: saveConfiguration) {
             Label("Save Configuration", systemImage: "checkmark.circle.fill")
-                .font(.system(size: 16, weight: .medium, design: .rounded))
-                .foregroundColor(.white)
-                .frame(maxWidth: .infinity)
-                .padding(.vertical, AppSpacing.sm)
-                .background(
-                    LinearGradient(
-                        colors: [Color.accentColor, Color.accentColor.opacity(0.8)],
-                        startPoint: .leading,
-                        endPoint: .trailing
-                    )
-                )
-                .clipShape(RoundedRectangle(cornerRadius: 12))
         }
+        .buttonStyle(.softPrimary)
         .disabled(!viewModel.installedAPIKeys.contains(selectedProvider))
     }
 
@@ -300,7 +287,7 @@ struct ModelDetailsCard: View {
     let provider: AIProvider
 
     private var modelEnum: LLMModel? {
-        LLMModel.allCases.first { $0.identifier == model }
+        LLMModel(rawValue: model)
     }
 
     var body: some View {
@@ -363,27 +350,7 @@ struct ModelChip: View {
         provider.pricing(for: model)
     }
 
-    private var displayName: String {
-        // Extract display name from model identifier
-        switch model {
-        case "gpt-4o": return "GPT-4o"
-        case "gpt-4o-mini": return "GPT-4o Mini"
-        case "gpt-4-turbo-2024-04-09": return "GPT-4 Turbo"
-        case "gpt-4": return "GPT-4"
-        case "gpt-3.5-turbo": return "GPT-3.5 Turbo"
-        case "claude-3-5-sonnet-20241022": return "Claude 3.5 Sonnet"
-        case "claude-3-opus-20240229": return "Claude 3 Opus"
-        case "claude-3-sonnet-20240229": return "Claude 3 Sonnet"
-        case "claude-3-5-haiku-20241022": return "Claude 3.5 Haiku"
-        case "claude-3-haiku-20240307": return "Claude 3 Haiku"
-        case "gemini-2.0-flash-thinking-exp": return "Gemini 2.0 Flash Thinking"
-        case "gemini-2.0-flash-exp": return "Gemini 2.0 Flash"
-        case "gemini-1.5-pro-002": return "Gemini 1.5 Pro"
-        case "gemini-1.5-flash-002": return "Gemini 1.5 Flash"
-        case "gemini-1.0-pro": return "Gemini 1.0 Pro"
-        default: return model
-        }
-    }
+    private var displayName: String { LLMModel(rawValue: model)?.displayName ?? model }
 
     private var priceString: String? {
         guard let pricing = pricing else { return nil }
@@ -454,23 +421,12 @@ struct APIKeyRow: View {
                         )
                 }
             } else {
-                Button {
-                    onAdd()
-                } label: {
+                Button(action: onAdd) {
                     Label("Add Key", systemImage: "plus.circle")
                         .font(.system(size: 14, weight: .medium, design: .rounded))
-                        .foregroundColor(.white)
-                        .padding(.horizontal, AppSpacing.sm)
-                        .padding(.vertical, 6)
-                        .background(
-                            LinearGradient(
-                                colors: [Color.accentColor, Color.accentColor.opacity(0.8)],
-                                startPoint: .leading,
-                                endPoint: .trailing
-                            )
-                        )
-                        .clipShape(RoundedRectangle(cornerRadius: 8))
+                        .frame(height: 30)
                 }
+                .buttonStyle(.softPrimary)
             }
         }
     }

@@ -299,9 +299,7 @@ struct ErrorPresentationView: View {
             }
         }, label: {
             if isRetrying {
-                ProgressView()
-                    .progressViewStyle(CircularProgressViewStyle(tint: .white))
-                    .scaleEffect(0.8)
+                TextLoadingView(message: "Retrying", style: .subtle)
             } else {
                 Label("Retry", systemImage: "arrow.clockwise")
                     .font(.system(size: 14, weight: .medium, design: .rounded))
@@ -321,9 +319,7 @@ struct ErrorPresentationView: View {
         }, label: {
             HStack(spacing: AppSpacing.xs) {
                 if isRetrying {
-                    ProgressView()
-                        .progressViewStyle(CircularProgressViewStyle(tint: .white))
-                        .scaleEffect(0.8)
+                    TextLoadingView(message: "Retrying", style: .subtle)
                 } else {
                     Image(systemName: "arrow.clockwise")
                         .font(.system(size: 16, weight: .medium))
@@ -331,19 +327,9 @@ struct ErrorPresentationView: View {
                         .font(.system(size: 16, weight: .semibold, design: .rounded))
                 }
             }
-            .foregroundColor(.white)
             .frame(minWidth: 100)
-            .padding(.vertical, AppSpacing.sm)
-            .background(
-                LinearGradient(
-                    colors: gradientManager.active.colors(for: colorScheme),
-                    startPoint: .leading,
-                    endPoint: .trailing
-                )
-            )
-            .clipShape(RoundedRectangle(cornerRadius: 12))
-            .shadow(color: gradientManager.active.colors(for: colorScheme)[0].opacity(0.3), radius: 8, y: 4)
         })
+        .buttonStyle(.softPrimary)
         .disabled(isRetrying)
     }
 
@@ -358,9 +344,7 @@ struct ErrorPresentationView: View {
         }, label: {
             HStack(spacing: AppSpacing.sm) {
                 if isRetrying {
-                    ProgressView()
-                        .progressViewStyle(CircularProgressViewStyle(tint: .white))
-                        .scaleEffect(1.0)
+                    TextLoadingView(message: "Retrying", style: .subtle)
                 } else {
                     Image(systemName: "arrow.clockwise")
                         .font(.system(size: 18, weight: .medium))
@@ -368,19 +352,9 @@ struct ErrorPresentationView: View {
                         .font(.system(size: 18, weight: .semibold, design: .rounded))
                 }
             }
-            .foregroundColor(.white)
             .frame(maxWidth: .infinity)
-            .padding(.vertical, AppSpacing.md)
-            .background(
-                LinearGradient(
-                    colors: gradientManager.active.colors(for: colorScheme),
-                    startPoint: .leading,
-                    endPoint: .trailing
-                )
-            )
-            .clipShape(RoundedRectangle(cornerRadius: 16))
-            .shadow(color: gradientManager.active.colors(for: colorScheme)[0].opacity(0.3), radius: 12, y: 4)
         })
+        .buttonStyle(.softPrimary)
         .disabled(isRetrying)
     }
 
@@ -478,7 +452,7 @@ extension View {
                     .transition(.scale.combined(with: .opacity))
                 }
             }
-            .animation(.easeInOut(duration: 0.2), value: error.wrappedValue != nil)
+            .animation(.smooth(duration: 0.2), value: error.wrappedValue != nil)
         )
     }
 
@@ -507,7 +481,7 @@ extension View {
                 }
                 Spacer()
             }
-            .animation(.easeInOut(duration: 0.3), value: error.wrappedValue != nil)
+            .animation(.smooth(duration: 0.3), value: error.wrappedValue != nil)
         )
     }
 }

@@ -1,5 +1,4 @@
 import Foundation
-import SwiftUI
 
 /// Container for all global enums used throughout the app
 public enum GlobalEnums {

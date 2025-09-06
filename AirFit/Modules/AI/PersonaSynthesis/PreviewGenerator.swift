@@ -45,36 +45,28 @@ final class PreviewGenerator: ObservableObject {
         conversationData: ConversationData
     ) async {
         do {
-            // Stage 1: Analyzing personality
-            updateStage(.analyzingPersonality)
-            try await Task.sleep(nanoseconds: 500_000_000) // 0.5s for effect
-
-            // Create initial preview during analysis
-            preview = PersonaPreview(
-                name: "Analyzing...",
-                archetype: "Discovering your ideal coach type",
-                sampleGreeting: "Getting to know you...",
-                voiceDescription: "Understanding your preferences"
-            )
-
-            // Stage 2: Creating identity
-            updateStage(.creatingIdentity)
-
-            // Simulate streaming effect with preview updates
-            let placeholderNames = ["Creating", "Creating your", "Creating your unique", "Creating your unique coach..."]
-            for (index, text) in placeholderNames.enumerated() {
-                preview = PersonaPreview(
-                    name: text,
-                    archetype: "Crafting personality...",
-                    sampleGreeting: "Preparing to meet you...",
-                    voiceDescription: "Building communication style"
-                )
-                progress = 0.2 + (Double(index) / Double(placeholderNames.count)) * 0.2
-                try await Task.sleep(nanoseconds: 200_000_000)
+            // Subscribe to real synthesizer progress
+            let stream = await synthesizer.createProgressStream()
+            let progressTask = Task { [weak self] in
+                for await p in stream {
+                    await MainActor.run {
+                        self?.progress = p.progress
+                        // Map PersonaSynthesisPhase to UI stages
+                        switch p.phase {
+                        case .preparing:
+                            self?.updateStage(.analyzingPersonality)
+                        case .analyzingPersonality, .understandingGoals:
+                            self?.updateStage(.analyzingPersonality)
+                        case .craftingVoice:
+                            self?.updateStage(.creatingIdentity)
+                        case .buildingStrategies, .generatingContent:
+                            self?.updateStage(.buildingPersonality)
+                        case .finalizing:
+                            self?.updateStage(.finalizing)
+                        }
+                    }
+                }
             }
-
-            // Stage 3: Building personality
-            updateStage(.buildingPersonality)
 
             // Convert PersonalityInsights to ConversationPersonalityInsights
             let conversationInsights = ConversationPersonalityInsights(
@@ -96,20 +88,13 @@ final class PreviewGenerator: ObservableObject {
             )
 
             // Update preview with real data
-            // Update preview with real data
             preview = PersonaPreview(
                 name: persona.name,
                 archetype: persona.archetype,
                 sampleGreeting: generateSampleGreeting(for: persona),
                 voiceDescription: generateVoiceDescription(for: persona)
             )
-            progress = 0.7
-
-            // Stage 4: Finalizing
-            updateStage(.finalizing)
-            try await Task.sleep(nanoseconds: 1_000_000_000) // 1s
-
-            // Stage 5: Complete
+            // Complete
             updateStage(.complete(persona))
             progress = 1.0
 
@@ -120,6 +105,7 @@ final class PreviewGenerator: ObservableObject {
                 sampleGreeting: generateFinalGreeting(for: persona),
                 voiceDescription: generateFinalVoiceDescription(for: persona)
             )
+            progressTask.cancel()
 
         } catch {
             if error is CancellationError {

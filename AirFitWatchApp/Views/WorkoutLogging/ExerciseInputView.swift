@@ -73,7 +73,7 @@ struct ExerciseInputView: View {
             
             // Continue button
             Button {
-                withAnimation(.easeInOut(duration: 0.2)) {
+                withAnimation(.smooth(duration: 0.2)) {
                     coordinator.navigateForward()
                 }
             } label: {

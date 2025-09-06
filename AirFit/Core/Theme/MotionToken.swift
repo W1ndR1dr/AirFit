@@ -41,15 +41,15 @@ enum MotionToken {
 
     /// Micro-interactions (0.12s - 0.3s)
     static let microDuration: Double = 0.2
-    static let microAnimation = Animation.easeOut(duration: microDuration)
+    static let microAnimation = Animation.snappy(duration: microDuration)
 
     /// Content transitions (0.6s)
     static let contentDuration: Double = 0.6
-    static let contentAnimation = Animation.easeInOut(duration: contentDuration)
+    static let contentAnimation = Animation.smooth(duration: contentDuration)
 
     /// Gradient cross-fades (0.6s)
     static let gradientDuration: Double = 0.6
-    static let gradientAnimation = Animation.easeInOut(duration: gradientDuration)
+    static let gradientAnimation = Animation.bouncy(duration: gradientDuration, extraBounce: 0.2)
 
     // MARK: - Glass Card Entrance
 
@@ -141,10 +141,7 @@ extension MotionToken {
     /// Determines if device supports ProMotion (120Hz)
     @MainActor
     static var supportsProMotion: Bool {
-        if #available(iOS 15.0, *) {
-            return UIScreen.main.maximumFramesPerSecond > 60
-        }
-        return false
+        return UIScreen.main.maximumFramesPerSecond > 60
     }
 
     /// Adjusts animation parameters for 60Hz displays

@@ -216,9 +216,7 @@ private extension WorkoutDetailView {
                     Spacer()
 
                     if viewModel.isGeneratingAnalysis {
-                        ProgressView()
-                            .controlSize(.small)
-                            .progressViewStyle(CircularProgressViewStyle(tint: gradientManager.active.colors(for: colorScheme).first ?? .accentColor))
+                        TextLoadingView(message: "Analyzing workout", style: .subtle)
                     }
                 }
 

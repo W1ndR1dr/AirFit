@@ -20,7 +20,7 @@ actor OpenAIProvider: LLMProvider, ServiceProtocol {
         supportsVision: true
     )
 
-    let costPerKToken: (input: Double, output: Double) = (0.01, 0.03) // Default GPT-4 Turbo pricing
+    let costPerKToken: (input: Double, output: Double) = (0.01, 0.03) // Placeholder pricing
 
     init(config: LLMProviderConfig) {
         self.config = config
@@ -158,7 +158,7 @@ actor OpenAIProvider: LLMProvider, ServiceProtocol {
     func validateAPIKey(_ key: String) async throws -> Bool {
         let testRequest = LLMRequest(
             messages: [LLMMessage(role: .user, content: "Hi", name: nil, attachments: nil)],
-            model: LLMModel.o4Mini.identifier,
+            model: LLMModel.gpt5Mini.identifier,
             temperature: 0,
             maxTokens: 1,
             systemPrompt: nil,
@@ -300,7 +300,7 @@ actor OpenAIProvider: LLMProvider, ServiceProtocol {
         }
 
         // Check for refusal (structured outputs safety feature)
-        if let refusal = choice.message.refusal {
+        if choice.message.refusal != nil {
             throw AppError.from(LLMError.contentFilter)
         }
 
@@ -535,10 +535,10 @@ private struct ResponseFormat: Codable {
         let strict: Bool
 
         struct Schema: Codable {
-            let type: String = "object"
+            var type: String = "object"
             let properties: [String: Property]
             let required: [String]
-            let additionalProperties: Bool = false
+            var additionalProperties: Bool = false
 
             struct Property: Codable {
                 let type: String

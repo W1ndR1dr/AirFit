@@ -52,6 +52,9 @@ final class NutritionService: NutritionServiceProtocol, ServiceProtocol {
         modelContext.insert(entry)
         try modelContext.save()
 
+        // Notify observers (e.g., Dashboard) that today's nutrition changed
+        NotificationCenter.default.post(name: .foodEntrySaved, object: entry)
+
         // 2. Save to HealthKit (best effort, but synchronous for now)
         do {
             guard let healthKitManager else {

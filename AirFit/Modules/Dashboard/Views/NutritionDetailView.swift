@@ -62,8 +62,8 @@ struct NutritionDetailView: View {
                     .padding(.bottom, AppSpacing.xl)
                 }
             }
-            .navigationTitle("Nutrition Analytics")
-            .navigationBarTitleDisplayMode(.inline)
+            .navigationBarHidden(true)
+            .toolbar(.hidden, for: .navigationBar)
         }
     }
 
@@ -330,8 +330,7 @@ struct NutritionDetailView: View {
             }
             .frame(maxWidth: .infinity)
             .padding(.vertical, AppSpacing.lg)
-            .background(.ultraThinMaterial)
-            .clipShape(RoundedRectangle(cornerRadius: 16))
+            .glassEffect(in: .rect(cornerRadius: 16))
         }
         .buttonStyle(.plain)
     }

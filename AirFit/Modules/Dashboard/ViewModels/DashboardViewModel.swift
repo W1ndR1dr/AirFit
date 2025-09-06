@@ -37,7 +37,12 @@ final class DashboardViewModel: ErrorHandling {
     private let modelContext: ModelContext
     private let healthKitService: HealthKitServiceProtocol
     private let aiCoachService: AICoachServiceProtocol
-    private let nutritionService: DashboardNutritionServiceProtocol
+    private let nutritionService: NutritionServiceProtocol
+    private let nutritionImportSync: ((User) async -> Void)?
+    private var nutritionGoalService: NutritionGoalServiceProtocol?
+
+    // Adjustment state for UI
+    private(set) var nutritionAdjustmentPercent: Double? = nil
 
     // MARK: - Private State
     private var refreshTask: Task<Void, Never>?
@@ -52,13 +57,17 @@ final class DashboardViewModel: ErrorHandling {
         modelContext: ModelContext,
         healthKitService: HealthKitServiceProtocol,
         aiCoachService: AICoachServiceProtocol,
-        nutritionService: DashboardNutritionServiceProtocol
+        nutritionService: NutritionServiceProtocol,
+        nutritionImportSync: ((User) async -> Void)? = nil,
+        nutritionGoalService: NutritionGoalServiceProtocol? = nil
     ) {
         self.user = user
         self.modelContext = modelContext
         self.healthKitService = healthKitService
         self.aiCoachService = aiCoachService
         self.nutritionService = nutritionService
+        self.nutritionImportSync = nutritionImportSync
+        self.nutritionGoalService = nutritionGoalService
     }
 
     // MARK: - Public Methods
@@ -225,13 +234,40 @@ final class DashboardViewModel: ErrorHandling {
             self.nutritionSummary = summary
 
             // Extract targets from summary
-            self.nutritionTargets = NutritionTargets(
+            var targets = NutritionTargets(
                 calories: summary.caloriesTarget,
                 protein: summary.proteinTarget,
                 carbs: summary.carbsTarget,
                 fat: summary.fatTarget,
                 fiber: summary.fiberTarget
             )
+
+            // Adjust targets based on activity and recent intake if available
+            if let goalService = nutritionGoalService {
+                let base = DynamicNutritionTargets(
+                    baseCalories: summary.caloriesTarget,
+                    activeCalorieBonus: 0,
+                    totalCalories: summary.caloriesTarget,
+                    protein: summary.proteinTarget,
+                    carbs: summary.carbsTarget,
+                    fat: summary.fatTarget
+                )
+                let adjusted = try await goalService.adjustTodayTargets(for: user, base: base)
+                targets = adjusted
+                // Set adjustment percent for UI
+                if let pct = await goalService.todayAdjustmentPercent(for: user) {
+                    nutritionAdjustmentPercent = pct
+                } else {
+                    // Fallback compute from calories
+                    let baseCals = summary.caloriesTarget
+                    nutritionAdjustmentPercent = baseCals > 0 ? (adjusted.calories / baseCals - 1) : nil
+                }
+            }
+
+            self.nutritionTargets = targets
+
+            // Sync nutrition data with import service
+            await nutritionImportSync?(user)
 
         } catch {
             AppLogger.error("Failed to load nutrition data", error: error, category: .data)

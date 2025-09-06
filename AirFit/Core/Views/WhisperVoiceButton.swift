@@ -29,7 +29,7 @@ public struct WhisperVoiceButton: View {
 
     // Constants
     private let maxWaveformSamples = 50
-    private let characterStreamDelay: TimeInterval = 0.02
+    private let characterStreamDelay: TimeInterval = 0.005
 
     // MARK: - Types
 
@@ -147,7 +147,7 @@ public struct WhisperVoiceButton: View {
             ZStack {
                 // Background
                 RoundedRectangle(cornerRadius: 12)
-                    .fill(Material.regular)
+                    .glassEffect(.regular, in: .rect(cornerRadius: 12))
                     .overlay(
                         RoundedRectangle(cornerRadius: 12)
                             .strokeBorder(
@@ -231,7 +231,7 @@ public struct WhisperVoiceButton: View {
                     .frame(width: 6, height: 6)
                     .scaleEffect(animateIn ? 1.0 : 0.5)
                     .animation(
-                        Animation.easeInOut(duration: 0.6)
+                        Animation.smooth(duration: 0.6)
                             .repeatForever()
                             .delay(Double(index) * 0.2),
                         value: animateIn
@@ -272,7 +272,7 @@ public struct WhisperVoiceButton: View {
         config.heightMultiplier = 0.7
         config.useGradientOpacity = true
         config.animateEntrance = true
-        config.levelAnimation = .spring(response: 0.2, dampingFraction: 0.8)
+        config.levelAnimation = .bouncy(extraBounce: 0.2)
         return config
     }
 
@@ -392,7 +392,7 @@ public struct WhisperVoiceButton: View {
             return .preparingModel
         case .ready:
             return .ready
-        case .error(let error):
+        case .error(_):
             return .error(.whisperInitializationFailed)
         }
     }
@@ -461,7 +461,7 @@ private struct ScaleButtonStyle: ButtonStyle {
     func makeBody(configuration: Configuration) -> some View {
         configuration.label
             .scaleEffect(configuration.isPressed ? scale : 1.0)
-            .animation(.easeInOut(duration: 0.1), value: configuration.isPressed)
+            .animation(.smooth(duration: 0.1), value: configuration.isPressed)
     }
 }
 
@@ -475,7 +475,7 @@ private struct RecordingIndicator: View {
             .fill(Color.red)
             .opacity(isAnimating ? 0.3 : 1.0)
             .animation(
-                Animation.easeInOut(duration: 0.8)
+                Animation.smooth(duration: 0.8)
                     .repeatForever(autoreverses: true),
                 value: isAnimating
             )

@@ -74,7 +74,7 @@ final class SettingsViewModel: ErrorHandling {
         self.hapticFeedback = user.hapticFeedbackEnabled
         self.analyticsEnabled = user.analyticsEnabled
         self.selectedProvider = user.selectedAIProvider ?? .openAI
-        self.selectedModel = user.selectedAIModel ?? "gpt-4"
+        self.selectedModel = user.selectedAIModel ?? "gpt-5-mini"
         self.notificationPreferences = user.notificationPreferences ?? NotificationPreferences()
         self.quietHours = user.quietHours ?? QuietHours()
         self.biometricLockEnabled = user.biometricLockEnabled
@@ -113,6 +113,17 @@ final class SettingsViewModel: ErrorHandling {
             handleError(error)
             AppLogger.error("Failed to load settings", error: error, category: .general)
         }
+    }
+
+    // MARK: - API Key Availability Refresh
+    func refreshInstalledAPIKeys() async {
+        var keysFound: [AIProvider] = []
+        for provider in AIProvider.allCases {
+            if await hasAPIKey(for: provider) {
+                keysFound.append(provider)
+            }
+        }
+        installedAPIKeys = Set(keysFound)
     }
 
     // MARK: - Preference Updates

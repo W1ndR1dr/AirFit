@@ -38,44 +38,36 @@ extension AIProvider {
         }
     }
 
-    /// Default model for each provider
+    /// Default model for each provider (standardized with LLMModel identifiers)
     var defaultModel: String {
         switch self {
         case .openAI:
-            return "gpt-4o-mini"
+            return "gpt-5-mini"
         case .anthropic:
-            return "claude-3-5-sonnet-20241022"
+            return "claude-4-sonnet-20250514"
         case .gemini:
-            return "gemini-1.5-flash-002"
+            return "gemini-2.5-flash"
         }
     }
 
-    /// Available models for each provider
+    /// Available models for each provider (standardized identifiers)
     var availableModels: [String] {
         switch self {
         case .openAI:
             return [
-                "gpt-4o",
-                "gpt-4o-mini",
-                "gpt-4-turbo-2024-04-09",
-                "gpt-4",
-                "gpt-3.5-turbo"
+                "gpt-5",
+                "gpt-5-mini"
             ]
         case .anthropic:
             return [
-                "claude-3-5-sonnet-20241022",
-                "claude-3-opus-20240229",
-                "claude-3-sonnet-20240229",
-                "claude-3-5-haiku-20241022",
-                "claude-3-haiku-20240307"
+                "claude-4-opus-20250514",
+                "claude-4-sonnet-20250514"
             ]
         case .gemini:
             return [
-                "gemini-2.0-flash-thinking-exp",
-                "gemini-2.0-flash-exp",
-                "gemini-1.5-pro-002",
-                "gemini-1.5-flash-002",
-                "gemini-1.0-pro"
+                "gemini-2.5-pro",
+                "gemini-2.5-flash",
+                "gemini-2.5-flash-thinking-preview-05-20"
             ]
         }
     }
@@ -84,7 +76,7 @@ extension AIProvider {
     var defaultContextWindow: Int {
         switch self {
         case .openAI:
-            return 128_000 // GPT-4o-mini
+            return 128_000 // GPT-5/GPT-5 mini (placeholder)
         case .anthropic:
             return 200_000 // Claude 3 Sonnet
         case .gemini:
@@ -112,7 +104,7 @@ extension AIProvider {
     var freeRateLimit: Int? {
         switch self {
         case .openAI:
-            return 3 // GPT-4 free tier
+            return 3 // OpenAI free tier
         case .anthropic:
             return 5 // Claude free tier
         case .gemini:
@@ -154,42 +146,34 @@ extension AIProvider {
             switch model {
             case "gpt-4o":
                 return (input: 5.0, output: 15.0)
-            case "gpt-4o-mini":
+            case "o3":
+                return (input: 15.0, output: 60.0)
+            case "o3-mini":
+                return (input: 3.0, output: 12.0)
+            case "o4-mini":
                 return (input: 0.15, output: 0.6)
-            case "gpt-4-turbo-2024-04-09":
-                return (input: 10.0, output: 30.0)
-            case "gpt-4":
-                return (input: 30.0, output: 60.0)
-            case "gpt-3.5-turbo":
-                return (input: 0.5, output: 1.5)
+            case "gpt-5", "gpt-5-mini":
+                return nil // Unknown; update when pricing is available
             default:
                 return nil
             }
         case .anthropic:
             switch model {
-            case "claude-3-5-sonnet-20241022":
-                return (input: 3.0, output: 15.0)
-            case "claude-3-opus-20240229":
+            case "claude-4-opus-20250514":
                 return (input: 15.0, output: 75.0)
-            case "claude-3-sonnet-20240229":
+            case "claude-4-sonnet-20250514":
                 return (input: 3.0, output: 15.0)
-            case "claude-3-5-haiku-20241022":
-                return (input: 1.0, output: 5.0)
-            case "claude-3-haiku-20240307":
-                return (input: 0.25, output: 1.25)
             default:
                 return nil
             }
         case .gemini:
             switch model {
-            case "gemini-2.0-flash-thinking-exp", "gemini-2.0-flash-exp":
-                return (input: 0.0, output: 0.0) // Free during experimental phase
-            case "gemini-1.5-pro-002":
+            case "gemini-2.5-pro":
                 return (input: 1.25, output: 5.0)
-            case "gemini-1.5-flash-002":
-                return (input: 0.075, output: 0.3)
-            case "gemini-1.0-pro":
-                return (input: 0.5, output: 1.5)
+            case "gemini-2.5-flash":
+                return (input: 0.15, output: 0.3)
+            case "gemini-2.5-flash-thinking-preview-05-20":
+                return (input: 0.15, output: 0.3)
             default:
                 return nil
             }

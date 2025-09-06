@@ -33,7 +33,7 @@ struct MuscleVolumeView: View {
                                         height: 4
                                     )
                                     .animation(
-                                        .spring(response: 0.6, dampingFraction: 0.8)
+                                        .bouncy(extraBounce: 0.2)
                                             .delay(Double(volumes.firstIndex(where: { $0.id == volume.id }) ?? 0) * 0.05),
                                         value: animateBars
                                     )

@@ -1,4 +1,3 @@
-import SwiftUI
 import SwiftData
 
 /// Coordinator for managing notification module navigation and dependencies

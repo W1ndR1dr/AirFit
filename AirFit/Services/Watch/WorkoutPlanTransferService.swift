@@ -401,7 +401,7 @@ final class WorkoutPlanTransferDelegateHandler: NSObject, WCSessionDelegate {
         let errorToPass = error
         
         Task { @MainActor [weak service] in
-            await service?.handleSessionActivation(activationState: activationStateValue, error: errorToPass)
+            service?.handleSessionActivation(activationState: activationStateValue, error: errorToPass)
         }
     }
 
@@ -410,7 +410,7 @@ final class WorkoutPlanTransferDelegateHandler: NSObject, WCSessionDelegate {
         let isReachable = session.isReachable
         
         Task { @MainActor [weak service] in
-            await service?.handleSessionReachabilityChange(isReachable: isReachable)
+            service?.handleSessionReachabilityChange(isReachable: isReachable)
         }
     }
 

@@ -1,6 +1,5 @@
 import SwiftData
 import Foundation
-import SwiftUI
 import HealthKit
 
 @Model

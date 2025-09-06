@@ -28,16 +28,11 @@ actor HealthKitProvider: HealthKitPrefillProviding {
     private let store = HKHealthStore()
 
     // MARK: - Types We Need
-    private let readTypes: Set<HKObjectType> = [
-        HKQuantityType(.bodyMass),
-        HKQuantityType(.height),
-        HKQuantityType(.stepCount),
-        HKQuantityType(.activeEnergyBurned),
-        HKQuantityType(.heartRate),
-        HKQuantityType(.heartRateVariabilitySDNN),
-        HKCategoryType(.sleepAnalysis),
-        HKObjectType.workoutType()
-    ]
+    // Use the same comprehensive set as HealthKitDataTypes for consistency
+    private var readTypes: Set<HKObjectType> {
+        // Reuse the centralized definition to ensure consistency
+        return Set(HealthKitDataTypes.readTypes)
+    }
 
     // MARK: - Authorization
     func requestAuthorization() async throws -> Bool {

@@ -37,7 +37,7 @@ struct GradientNumber: View {
             .contentTransition(.numericText(value: displayValue))
             .onAppear {
                 if animation {
-                    withAnimation(.spring(response: 0.6, dampingFraction: 0.7)) {
+                    withAnimation(.bouncy(extraBounce: 0.2)) {
                         displayValue = value
                     }
                 } else {
@@ -46,7 +46,7 @@ struct GradientNumber: View {
             }
             .onChange(of: value) { _, newValue in
                 if animation {
-                    withAnimation(.spring(response: 0.6, dampingFraction: 0.7)) {
+                    withAnimation(.bouncy(extraBounce: 0.2)) {
                         displayValue = newValue
                     }
                 } else {
@@ -134,7 +134,7 @@ struct AnimatedNumberCounter: View {
         )
         .onAppear {
             value = from
-            withAnimation(.easeInOut(duration: duration)) {
+            withAnimation(.smooth(duration: duration)) {
                 value = to
             }
         }

@@ -19,34 +19,16 @@ struct ContentView: View {
 
     var body: some View {
         BaseScreen {
-            if isRecreatingContainer {
-                LoadingView()
-            } else if let appState = appState {
+            if let appState = appState {
                 if appState.isLoading {
                     LoadingView()
-                } else if appState.shouldShowAPISetup {
-                    APISetupView(apiKeyManager: appState.apiKeyManager) {
-                        // Completion handler - only called when user explicitly continues
-                        appState.completeAPISetup()
-                        // Need to recreate the DI container with the new API key
-                        isRecreatingContainer = true
-                        Task {
-                            await recreateContainer()
-                        }
-                    }
                 } else if appState.shouldCreateUser {
                     WelcomeView(appState: appState)
                 } else if appState.shouldShowOnboarding {
-                    // Use the new 3-file onboarding flow from the manifesto
-                    OnboardingView()
+                    PersonaOnboardingView()
                         .withDIContainer(activeContainer ?? diContainer)
-                        .onAppear {
-                            AppLogger.info("ContentView: Using manifesto onboarding with container ID: \(ObjectIdentifier(activeContainer ?? diContainer))", category: .app)
-                        }
                         .onReceive(NotificationCenter.default.publisher(for: .onboardingCompleted)) { _ in
-                            Task {
-                                await appState.completeOnboarding()
-                            }
+                            Task { await appState.completeOnboarding() }
                         }
                 } else if appState.shouldShowDashboard, let user = appState.currentUser {
                     MainTabView(user: user)
@@ -120,39 +102,7 @@ struct ContentView: View {
         }
     }
 
-    private func recreateContainer() async {
-        // Recreate the container with updated API keys
-        AppLogger.info("ContentView: Recreating DI container after API setup", category: .app)
-
-        do {
-            // Get the model container from current environment
-            let modelContainer = try await diContainer.resolve(ModelContainer.self)
-
-            // Create new container with API keys now available
-            let newContainer = DIBootstrapper.createAppContainer(modelContainer: modelContainer)
-            
-            // Validate that AI services are properly initialized in the new container
-            do {
-                let aiService = try await newContainer.resolve(AIServiceProtocol.self)
-                AppLogger.info("ContentView: Successfully resolved AI service in new container", category: .app)
-            } catch {
-                AppLogger.error("ContentView: Failed to resolve AI service in new container", error: error, category: .app)
-                // Continue anyway - the error will be caught during onboarding
-            }
-
-            // Update our local reference
-            activeContainer = newContainer
-
-            // Recreate AppState with new container
-            await createAppState()
-        } catch {
-            AppLogger.error("ContentView: Failed to recreate container", error: error, category: .app)
-            // The error will be caught when trying to load onboarding
-        }
-
-        isRecreatingContainer = false
-        await appState?.loadUserState()
-    }
+    private func recreateContainer() async {}
 }
 
 // MARK: - Supporting Views
@@ -175,9 +125,7 @@ private struct LoadingView: View {
                     )
                     .frame(width: 48, height: 48)
 
-                ProgressView()
-                    .scaleEffect(1.2)
-                    .progressViewStyle(CircularProgressViewStyle(tint: gradientManager.active.colors(for: colorScheme)[0]))
+                TextLoadingView(message: "Loading AirFit")
             }
 
             HStack(spacing: 0) {

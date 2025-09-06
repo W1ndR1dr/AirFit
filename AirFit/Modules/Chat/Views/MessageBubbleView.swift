@@ -102,7 +102,7 @@ struct MessageBubbleView: View {
             gradientManager.currentGradient(for: colorScheme)
         } else {
             Color.clear
-                .background(.ultraThinMaterial)
+                .glassEffect()
                 .overlay(
                     LinearGradient(
                         colors: [Color.white.opacity(0.05), Color.clear],
@@ -237,10 +237,7 @@ struct MessageBubbleView: View {
     private var messageFooter: some View {
         HStack(spacing: AppSpacing.xs) {
             if message.roleEnum == .user && isStreaming {
-                ProgressView()
-                    .controlSize(.mini)
-                    .scaleEffect(0.8)
-                    .tint(gradientManager.active == .peachRose ? Color.pink : Color.blue)
+                TextLoadingView(message: "Processing", style: .subtle)
             }
 
             // Timestamp
@@ -552,7 +549,7 @@ struct MessageContent: View {
                 displayedCount = 0
                 for i in 1...text.count {
                     displayedCount = i
-                    try? await Task.sleep(for: .milliseconds(20))
+                    try? await Task.sleep(for: .milliseconds(5))
                 }
             }
     }

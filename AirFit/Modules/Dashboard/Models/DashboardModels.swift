@@ -150,6 +150,7 @@ public struct QuickAction: Sendable, Identifiable {
 
     public enum QuickActionType: Sendable, Equatable, Hashable {
         case logMeal(type: MealType)
+        case logMealWithPhoto(type: MealType)
         case startWorkout
         case checkIn
     }

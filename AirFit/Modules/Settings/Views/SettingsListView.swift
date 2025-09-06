@@ -21,7 +21,7 @@ struct SettingsView: View {
             if let viewModel = viewModel {
                 SettingsListView(viewModel: viewModel, user: user)
             } else {
-                ProgressView()
+                TextLoadingView.checkingSettings()
                     .task {
                         let factory = DIViewModelFactory(container: container)
                         viewModel = try? await factory.makeSettingsViewModel(user: user)
@@ -55,42 +55,69 @@ struct SettingsListView: View {
                     VStack(spacing: 0) {
                         // Settings header
                         HStack {
-                            CascadeText("Settings")
+                            GradientText("Settings", style: .primary)
                                 .font(.system(size: 34, weight: .bold, design: .rounded))
                                 .opacity(animateIn ? 1 : 0)
                             Spacer()
+                            
+                            Button(action: {
+                                HapticService.impact(.soft)
+                                dismiss()
+                            }) {
+                                Text("Done")
+                                    .font(.system(size: 17, weight: .medium, design: .rounded))
+                                    .foregroundStyle(
+                                        gradientManager.currentGradient(for: colorScheme)
+                                    )
+                            }
+                            .opacity(animateIn ? 1 : 0)
                         }
                         .padding(.horizontal, AppSpacing.lg)
                         .padding(.top, AppSpacing.sm)
                         .padding(.bottom, AppSpacing.lg)
 
-                        // Animated sections
+                        // Animated sections with glass unions
                         VStack(spacing: AppSpacing.md) {
                             if animateIn {
-                                aiSection
-                                    .transition(.opacity.combined(with: .move(edge: .trailing)))
-                                    .animation(.easeOut(duration: 0.3).delay(0.1), value: animateIn)
+                                // AI & Core Settings Group
+                                VStack(spacing: AppSpacing.sm) {
+                                    aiSection
+                                        .glassEffect(.regular)
+                                        .transition(.opacity.combined(with: .move(edge: .trailing)))
+                                        .animation(.snappy(duration: 0.3).delay(0.1), value: animateIn)
 
-                                preferencesSection
-                                    .transition(.opacity.combined(with: .move(edge: .trailing)))
-                                    .animation(.easeOut(duration: 0.3).delay(0.2), value: animateIn)
+                                    preferencesSection
+                                        .glassEffect(.regular)
+                                        .transition(.opacity.combined(with: .move(edge: .trailing)))
+                                        .animation(.snappy(duration: 0.3).delay(0.2), value: animateIn)
+                                }
+                                .glassEffectUnion() // Unifies AI and Preferences as core settings
 
-                                privacySection
-                                    .transition(.opacity.combined(with: .move(edge: .trailing)))
-                                    .animation(.easeOut(duration: 0.3).delay(0.3), value: animateIn)
+                                // Privacy & Data Group
+                                VStack(spacing: AppSpacing.sm) {
+                                    privacySection
+                                        .glassEffect(.thin)
+                                        .transition(.opacity.combined(with: .move(edge: .trailing)))
+                                        .animation(.snappy(duration: 0.3).delay(0.3), value: animateIn)
 
-                                dataSection
-                                    .transition(.opacity.combined(with: .move(edge: .trailing)))
-                                    .animation(.easeOut(duration: 0.3).delay(0.4), value: animateIn)
+                                    dataSection
+                                        .glassEffect(.thin)
+                                        .transition(.opacity.combined(with: .move(edge: .trailing)))
+                                        .animation(.snappy(duration: 0.3).delay(0.4), value: animateIn)
+                                }
+                                .glassEffectUnion() // Unifies Privacy and Data management
 
+                                // Support section standalone
                                 supportSection
+                                    .glassEffect(.thin)
                                     .transition(.opacity.combined(with: .move(edge: .trailing)))
-                                    .animation(.easeOut(duration: 0.3).delay(0.5), value: animateIn)
+                                    .animation(.snappy(duration: 0.3).delay(0.5), value: animateIn)
 
                                 #if DEBUG
                                 debugSection
+                                    .glassEffect(.thin)
                                     .transition(.opacity.combined(with: .move(edge: .trailing)))
-                                    .animation(.easeOut(duration: 0.3).delay(0.6), value: animateIn)
+                                    .animation(.snappy(duration: 0.3).delay(0.6), value: animateIn)
                                 #endif
                             }
                         }
@@ -98,22 +125,8 @@ struct SettingsListView: View {
                         .padding(.bottom, AppSpacing.xl)
                     }
                 }
-                .navigationTitle("")
-                .navigationBarTitleDisplayMode(.inline)
-                .toolbar {
-                    ToolbarItem(placement: .navigationBarTrailing) {
-                        Button(action: {
-                            HapticService.impact(.soft)
-                            dismiss()
-                        }, label: {
-                            Text("Done")
-                                .font(.system(size: 17, weight: .medium, design: .rounded))
-                                .foregroundStyle(
-                                    gradientManager.currentGradient(for: colorScheme)
-                                )
-                        })
-                    }
-                }
+                .navigationBarHidden(true)
+                .toolbar(.hidden, for: .navigationBar)
             }
             .navigationDestination(for: SettingsDestination.self) { destination in
                 destinationView(for: destination)
@@ -124,15 +137,18 @@ struct SettingsListView: View {
             }
             .alert(item: $coordinator.activeAlert) { alert in
                 alertView(for: alert)
+        }
+        .task {
+            await viewModel.loadSettings()
+        }
+        .onReceive(NotificationCenter.default.publisher(for: .apiKeysChanged)) { _ in
+            Task { await viewModel.refreshInstalledAPIKeys() }
+        }
+        .onAppear {
+            withAnimation(.snappy(duration: 0.3)) {
+                animateIn = true
             }
-            .task {
-                await viewModel.loadSettings()
-            }
-            .onAppear {
-                withAnimation(.easeOut(duration: 0.3)) {
-                    animateIn = true
-                }
-            }
+        }
         }
     }
 
@@ -141,10 +157,9 @@ struct SettingsListView: View {
         VStack(spacing: AppSpacing.xs) {
             // Section header
             HStack {
-                Text("AI Configuration")
+                GradientText("AI Configuration", style: .accent)
                     .font(.system(size: 13, weight: .medium, design: .rounded))
                     .textCase(.uppercase)
-                    .foregroundStyle(.secondary.opacity(0.8))
                 Spacer()
             }
             .padding(.horizontal, AppSpacing.xs)
@@ -278,10 +293,9 @@ struct SettingsListView: View {
     private var preferencesSection: some View {
         VStack(spacing: AppSpacing.xs) {
             HStack {
-                Text("Preferences")
+                GradientText("Preferences", style: .subtle)
                     .font(.system(size: 13, weight: .medium, design: .rounded))
                     .textCase(.uppercase)
-                    .foregroundStyle(.secondary.opacity(0.8))
                 Spacer()
             }
             .padding(.horizontal, AppSpacing.xs)
@@ -1056,13 +1070,8 @@ struct PersonaRefinementFlow: View {
                 }
                 .padding()
             }
-            .navigationTitle("Refine Your Coach")
-            .navigationBarTitleDisplayMode(.inline)
-            .toolbar {
-                ToolbarItem(placement: .cancellationAction) {
-                    Button("Cancel") { dismiss() }
-                }
-            }
+            .navigationBarHidden(true)
+            .toolbar(.hidden, for: .navigationBar)
             .interactiveDismissDisabled(isProcessing)
         }
         .onAppear {
@@ -1206,9 +1215,6 @@ struct PersonaRefinementFlow: View {
         isProcessing = true
 
         Task {
-            // Simulate processing
-            try? await Task.sleep(nanoseconds: 2_000_000_000)
-
             await MainActor.run {
                 HapticService.play(.success)
                 dismiss()
@@ -1411,8 +1417,7 @@ struct DataExportProgressView: View {
                                     Spacer()
 
                                     if step.isActive {
-                                        ProgressView()
-                                            .controlSize(.small)
+                                        TextLoadingView(message: "Processing", style: .subtle)
                                     }
                                 }
                             }
@@ -1423,14 +1428,8 @@ struct DataExportProgressView: View {
                 }
             }
             .frame(maxWidth: .infinity, maxHeight: .infinity)
-            .navigationTitle("Export Progress")
-            .navigationBarTitleDisplayMode(.inline)
-            .toolbar {
-                ToolbarItem(placement: .cancellationAction) {
-                    Button("Cancel") { dismiss() }
-                        .disabled(exportURL != nil)
-                }
-            }
+            .navigationBarHidden(true)
+            .toolbar(.hidden, for: .navigationBar)
             .interactiveDismissDisabled(exportURL == nil && exportError == nil)
         }
         .onAppear {
@@ -1577,15 +1576,19 @@ struct DeleteAccountView: View {
                                 .font(.callout)
                                 .foregroundStyle(.secondary)
 
-                            TextField("Type here...", text: $confirmationText)
-                                .textFieldStyle(.roundedBorder)
-                                .autocorrectionDisabled()
-                                .textInputAutocapitalization(.characters)
-                                .focused($isTextFieldFocused)
-                                .onChange(of: confirmationText) { _, newValue in
-                                    // Force uppercase for easier matching
-                                    confirmationText = newValue.uppercased()
-                                }
+                            HStack {
+                                TextField("Type here...", text: $confirmationText)
+                                    .textFieldStyle(.roundedBorder)
+                                    .autocorrectionDisabled()
+                                    .textInputAutocapitalization(.characters)
+                                    .focused($isTextFieldFocused)
+                                    .onChange(of: confirmationText) { _, newValue in
+                                        // Force uppercase for easier matching
+                                        confirmationText = newValue.uppercased()
+                                    }
+                                WhisperVoiceButton(text: $confirmationText)
+                                    .frame(width: 32, height: 32)
+                            }
                         }
                     }
 
@@ -1594,8 +1597,7 @@ struct DeleteAccountView: View {
                         showFinalConfirmation = true
                     } label: {
                         if isDeleting {
-                            ProgressView()
-                                .tint(.white)
+                            TextLoadingView(message: "Deleting account", style: .subtle)
                                 .frame(maxWidth: .infinity)
                                 .frame(height: 44)
                                 .background(
@@ -1628,14 +1630,8 @@ struct DeleteAccountView: View {
                 }
                 .padding()
             }
-            .navigationTitle("Delete Account")
-            .navigationBarTitleDisplayMode(.inline)
-            .toolbar {
-                ToolbarItem(placement: .cancellationAction) {
-                    Button("Cancel") { dismiss() }
-                        .disabled(isDeleting)
-                }
-            }
+            .navigationBarHidden(true)
+            .toolbar(.hidden, for: .navigationBar)
             .interactiveDismissDisabled(isDeleting)
             .alert("Final Confirmation", isPresented: $showFinalConfirmation) {
                 Button("Cancel", role: .cancel) { }
@@ -1776,8 +1772,8 @@ struct AboutView: View {
                 })
             }
         }
-        .navigationTitle("About AirFit")
-        .navigationBarTitleDisplayMode(.large)
+        .navigationBarHidden(true)
+        .toolbar(.hidden, for: .navigationBar)
         .sheet(isPresented: $showAcknowledgments) {
             AcknowledgmentsView()
         }
@@ -1844,13 +1840,8 @@ struct AcknowledgmentsView: View {
                         .padding(.vertical, AppSpacing.sm)
                 }
             }
-            .navigationTitle("Acknowledgments")
-            .navigationBarTitleDisplayMode(.inline)
-            .toolbar {
-                ToolbarItem(placement: .cancellationAction) {
-                    Button("Done") { dismiss() }
-                }
-            }
+            .navigationBarHidden(true)
+            .toolbar(.hidden, for: .navigationBar)
         }
     }
 }
@@ -1974,8 +1965,8 @@ struct DebugSettingsView: View {
                 }
             }
         }
-        .navigationTitle("Debug Tools")
-        .navigationBarTitleDisplayMode(.inline)
+        .navigationBarHidden(true)
+        .toolbar(.hidden, for: .navigationBar)
         .alert("Clear Cache?", isPresented: $showClearCacheAlert) {
             Button("Cancel", role: .cancel) { }
             Button("Clear", role: .destructive) {
@@ -2036,7 +2027,6 @@ struct DebugSettingsView: View {
                 HapticService.play(.success)
                 // Clear status after delay
                 Task {
-                    try? await Task.sleep(nanoseconds: 3_000_000_000)
                     statusMessage = ""
                 }
             }
@@ -2174,7 +2164,6 @@ struct DebugSettingsView: View {
 
                     // Clear status after delay
                     Task {
-                        try? await Task.sleep(nanoseconds: 3_000_000_000)
                         statusMessage = ""
                     }
                 }
@@ -2214,7 +2203,6 @@ struct DebugSettingsView: View {
 
                     // Clear status after delay
                     Task {
-                        try? await Task.sleep(nanoseconds: 3_000_000_000)
                         statusMessage = ""
                     }
                 }
@@ -2247,8 +2235,8 @@ struct FeatureFlagsView: View {
                 Toggle("Mock AI Responses", isOn: $mockAIResponses)
             }
         }
-        .navigationTitle("Feature Flags")
-        .navigationBarTitleDisplayMode(.inline)
+        .navigationBarHidden(true)
+        .toolbar(.hidden, for: .navigationBar)
     }
 }
 

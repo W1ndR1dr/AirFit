@@ -25,34 +25,18 @@ final class APISetupViewModel: ObservableObject {
     }
 
     func validateAPIKey(_ key: String, for provider: AIProvider, model: String) async throws -> Bool {
-        // First check format
-        let formatValid: Bool
-        switch provider {
-        case .anthropic:
-            formatValid = key.hasPrefix("sk-ant-") && key.count > 40
-        case .openAI:
-            formatValid = key.hasPrefix("sk-") && key.count > 40
-        case .gemini:
-            formatValid = key.count > 30
-        }
-
-        guard formatValid else {
-            throw AppError.validationError(message: "Invalid API key format for \(provider.displayName)")
-        }
-
-        // Now validate with actual API call
+        // Validate with provider API (source of truth). Formats change; avoid strict client-side rejection.
         let config = LLMProviderConfig(apiKey: key)
-
         switch provider {
         case .anthropic:
-            let provider = AnthropicProvider(config: config)
-            return try await provider.validateAPIKey(key)
+            let p = AnthropicProvider(config: config)
+            return try await p.validateAPIKey(key)
         case .openAI:
-            let provider = OpenAIProvider(config: config)
-            return try await provider.validateAPIKey(key)
+            let p = OpenAIProvider(config: config)
+            return try await p.validateAPIKey(key)
         case .gemini:
-            let provider = GeminiProvider(config: config)
-            return try await provider.validateAPIKey(key)
+            let p = GeminiProvider(config: config)
+            return try await p.validateAPIKey(key)
         }
     }
 
@@ -98,6 +82,12 @@ final class APISetupViewModel: ObservableObject {
             )
         }
 
+        // Auto-select active provider if none selected
+        if selectedActiveProvider == nil,
+           let first = configuredProviders.first(where: { $0.provider == provider }) {
+            selectedActiveProvider = first
+        }
+
         // Save to UserDefaults for quick access
         UserDefaults.standard.set(model, forKey: "selected_model_\(provider.rawValue)")
     }
@@ -133,9 +123,33 @@ final class APISetupViewModel: ObservableObject {
             throw AppError.configuration("No active provider selected")
         }
         
+        // Sanity-check that the selected provider's key actually works
+        do {
+            let keychainKey = "airfit_api_key_\(activeProvider.provider.rawValue)"
+            if let apiKey = keychain.get(key: keychainKey) {
+                let config = LLMProviderConfig(apiKey: apiKey)
+                let isValid: Bool
+                switch activeProvider.provider {
+                case .anthropic:
+                    isValid = try await AnthropicProvider(config: config).validateAPIKey(apiKey)
+                case .openAI:
+                    isValid = try await OpenAIProvider(config: config).validateAPIKey(apiKey)
+                case .gemini:
+                    isValid = try await GeminiProvider(config: config).validateAPIKey(apiKey)
+                }
+                if !isValid {
+                    throw AppError.validationError(message: "API key failed validation for \(activeProvider.provider.displayName)")
+                }
+            } else {
+                throw AppError.configuration("Missing API key for selected provider")
+            }
+        } catch {
+            throw AppError.apiConfiguration("\(activeProvider.provider.displayName) key check failed: \(error.localizedDescription)")
+        }
+
         // Save active provider configuration
-        UserDefaults.standard.set(activeProvider.provider.rawValue, forKey: "default_ai_provider")
-        UserDefaults.standard.set(activeProvider.model, forKey: "default_ai_model")
+        UserDefaults.standard.set(activeProvider.provider.rawValue, forKey: DefaultsKeys.defaultAIProvider)
+        UserDefaults.standard.set(activeProvider.model, forKey: DefaultsKeys.defaultAIModel)
         
         // Verify API key manager has the keys loaded
         for config in configuredProviders {
@@ -152,10 +166,7 @@ final class APISetupViewModel: ObservableObject {
         }
         
         // Mark API setup as complete only after verification
-        UserDefaults.standard.set(true, forKey: "api_setup_complete")
-        
-        // Force synchronization to ensure values are persisted
-        UserDefaults.standard.synchronize()
+        UserDefaults.standard.set(true, forKey: DefaultsKeys.apiSetupComplete)
         
         AppLogger.info("API setup completed with provider: \(activeProvider.provider.displayName) model: \(activeProvider.model)", category: .app)
     }
@@ -167,7 +178,7 @@ final class APISetupViewModel: ObservableObject {
             let keychainKey = "airfit_api_key_\(provider.rawValue)"
             let keychainModel = "airfit_model_\(provider.rawValue)"
 
-            if let apiKey = keychain.get(key: keychainKey),
+            if let _ = keychain.get(key: keychainKey),
                let model = keychain.get(key: keychainModel) {
                 // Load into API key manager - will be done on demand in saveAndContinue
                 // This avoids race conditions during initialization

@@ -93,6 +93,7 @@ actor APIKeyManager: APIKeyManagementProtocol, ServiceProtocol {
         try keychain.save(data, forKey: keychainKey)
 
         AppLogger.info("Saved API key for provider: \(provider.rawValue)", category: .security)
+        NotificationCenter.default.post(name: .apiKeysChanged, object: provider)
     }
 
     func getAPIKey(for provider: AIProvider) async throws -> String {
@@ -115,6 +116,7 @@ actor APIKeyManager: APIKeyManagementProtocol, ServiceProtocol {
         try keychain.delete(key: keychainKey)
 
         AppLogger.info("Deleted API key for provider: \(provider.rawValue)", category: .security)
+        NotificationCenter.default.post(name: .apiKeysChanged, object: provider)
     }
 
     func hasAPIKey(for provider: AIProvider) async -> Bool {

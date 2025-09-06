@@ -166,6 +166,8 @@ struct AIRequest: Sendable {
     let user: String
     let responseFormat: LLMRequest.ResponseFormat?
     let timeout: TimeInterval  // Request timeout in seconds
+    // Optional model override for this request (e.g., GPT-5 for onboarding persona)
+    let model: String?
 
     // Provider-specific features
     let enableGrounding: Bool  // Google Gemini grounding
@@ -184,7 +186,8 @@ struct AIRequest: Sendable {
         timeout: TimeInterval = 30.0,  // Default 30 second timeout
         enableGrounding: Bool = false,
         cacheKey: String? = nil,
-        audioData: Data? = nil
+        audioData: Data? = nil,
+        model: String? = nil
     ) {
         self.systemPrompt = systemPrompt
         self.messages = messages
@@ -198,6 +201,7 @@ struct AIRequest: Sendable {
         self.enableGrounding = enableGrounding
         self.cacheKey = cacheKey
         self.audioData = audioData
+        self.model = model
     }
 }
 

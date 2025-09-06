@@ -45,7 +45,7 @@ struct RecoveryDetailView: View {
                         .padding(.top, AppSpacing.lg)
 
                     if isLoading {
-                        ProgressView()
+                        TextLoadingView(message: "Loading recovery insights", style: .standard)
                             .padding(.top, 100)
                             .frame(maxWidth: .infinity)
                     } else {
@@ -164,7 +164,7 @@ struct RecoveryDetailView: View {
                             )
                             .frame(width: 180, height: 180)
                             .rotationEffect(.degrees(-90))
-                            .animation(.easeInOut(duration: 0.8), value: recoveryData?.readinessScore)
+                            .animation(.smooth(duration: 0.8), value: recoveryData?.readinessScore)
 
                         VStack(spacing: AppSpacing.xs) {
                             Text("\(Int(recoveryData?.readinessScore ?? 0))")

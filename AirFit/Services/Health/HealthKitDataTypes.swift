@@ -65,13 +65,10 @@ enum HealthKitDataTypes {
             }
         }
 
-        // iOS 16+ sleep stages (not iOS 18 - correcting the specification)
-        if #available(iOS 16.0, *) {
-            // Sleep stages were introduced in iOS 16, not iOS 18
-            // Using the correct category type for sleep analysis which includes stages
-            if let sleepType = HKObjectType.categoryType(forIdentifier: .sleepAnalysis) {
-                types.insert(sleepType)
-            }
+        // Sleep stages (available since iOS 16)
+        // Using the correct category type for sleep analysis which includes stages
+        if let sleepType = HKObjectType.categoryType(forIdentifier: .sleepAnalysis) {
+            types.insert(sleepType)
         }
 
         // Workout type

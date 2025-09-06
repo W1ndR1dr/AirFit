@@ -77,7 +77,7 @@ struct WeightInputView: View {
             // Navigation
             HStack(spacing: 12) {
                 Button {
-                    withAnimation(.easeInOut(duration: 0.2)) {
+                    withAnimation(.smooth(duration: 0.2)) {
                         coordinator.navigateBackward()
                     }
                 } label: {
@@ -117,7 +117,7 @@ struct WeightInputView: View {
         }
         .contentShape(Rectangle())
         .onTapGesture {
-            withAnimation(.easeInOut(duration: 0.2)) {
+            withAnimation(.smooth(duration: 0.2)) {
                 coordinator.navigateForward()
             }
         }
@@ -205,7 +205,7 @@ struct DropSetWeightInputView: View {
             // Navigation
             HStack(spacing: 12) {
                 Button {
-                    withAnimation(.easeInOut(duration: 0.2)) {
+                    withAnimation(.smooth(duration: 0.2)) {
                         coordinator.navigateBackward()
                     }
                 } label: {
@@ -224,7 +224,7 @@ struct DropSetWeightInputView: View {
         }
         .contentShape(Rectangle())
         .onTapGesture {
-            withAnimation(.easeInOut(duration: 0.2)) {
+            withAnimation(.smooth(duration: 0.2)) {
                 coordinator.navigateForward()
             }
         }

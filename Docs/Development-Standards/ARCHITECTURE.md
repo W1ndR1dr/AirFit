@@ -1,6 +1,6 @@
 # AirFit Architecture Overview
 
-**Last Updated**: 2025-06-14  
+**Last Updated**: 2025-09-03  
 **Status**: Active - Core Architecture Reference
 
 ## Executive Summary
@@ -238,3 +238,31 @@ Glass morphism design system with pastel gradients, physics-based animations, an
 AirFit's architecture balances elegance with pragmatism. Every architectural decision serves our users by ensuring the app is fast, reliable, and delightful to use. The codebase should be a joy to work with - clear, consistent, and well-documented.
 
 **Remember**: Good architecture is invisible to users but invaluable to developers.
+---
+
+## Adaptive Nutrition Goals (New)
+
+AirFit adjusts daily nutrition targets based on activity and recent intake. This is implemented by:
+- `NutritionGoalServiceProtocol` + `NutritionGoalService` (@MainActor) computing an adjustment percent (clamped to ±15%).
+- `DailyNutritionAdjustment` (SwiftData) persists applied targets and rationale per day.
+- `DashboardViewModel` uses adjusted targets for Today’s Macro Rings and shows a small note (e.g., “Adjusted +8% based on activity/intake”).
+
+Signals:
+- Activity signal: today’s active energy vs baseline (~300 kcal), scaled to ±10%.
+- Intake trend: recent 3‑day average vs baseline 2000 kcal, scaled to ±8%.
+
+DI:
+- `DIBootstrapper` registers `NutritionGoalService` as a singleton.
+- `DIViewModelFactory` injects the service into `DashboardViewModel`.
+
+---
+
+## Streaming Notification Flow (New)
+
+Chat streaming uses a small NotificationCenter bus to deliver deltas to the UI:
+- CoachEngine posts `.chatStreamStarted`, `.chatStreamDelta`, `.chatStreamFinished`.
+- ChatViewModel maintains an ephemeral `streamingText` buffer and renders a streaming bubble.
+- ConversationManager persists the final assistant message and posts `.coachAssistantMessageCreated`, upon which ChatViewModel appends and clears streaming state.
+
+Stop Action:
+- Chat exposes a “Stop” button to cancel streaming and persist the partial text as an assistant message.

@@ -43,29 +43,11 @@ struct DashboardContent: View {
                     }
                 }
                 .scrollContentBackground(.hidden)
-                .navigationBarTitleDisplayMode(.inline)
+                .navigationBarHidden(true)
+                .toolbar(.hidden, for: .navigationBar)
                 .refreshable { viewModel.refreshDashboard() }
                 .navigationDestination(for: DashboardDestination.self) { destination in
                     destinationView(for: destination)
-                }
-                .toolbar {
-                    ToolbarItem(placement: .navigationBarTrailing) {
-                        Button {
-                            HapticService.impact(.light)
-                            coordinator.navigate(to: .settings)
-                        } label: {
-                            Image(systemName: "gearshape.fill")
-                                .font(.system(size: 18))
-                                .foregroundStyle(
-                                    LinearGradient(
-                                        colors: gradientManager.active.colors(for: colorScheme),
-                                        startPoint: .topLeading,
-                                        endPoint: .bottomTrailing
-                                    )
-                                )
-                        }
-                        .accessibilityLabel("Settings")
-                    }
                 }
             }
         }
@@ -93,9 +75,7 @@ struct DashboardContent: View {
                     )
                     .frame(width: 48, height: 48)
 
-                ProgressView()
-                    .scaleEffect(1.2)
-                    .progressViewStyle(CircularProgressViewStyle(tint: gradientManager.active.colors(for: colorScheme)[0]))
+                TextLoadingView(message: "Loading dashboard", style: .standard)
             }
 
             Text("Loading dashboard…")
@@ -314,7 +294,7 @@ struct DashboardView: View {
             if let viewModel = viewModel {
                 DashboardContent(viewModel: viewModel, user: user)
             } else {
-                ProgressView()
+                TextLoadingView.preparingData()
                     .task {
                         let factory = DIViewModelFactory(container: container)
                         viewModel = try? await factory.makeDashboardViewModel(user: user)
@@ -338,7 +318,7 @@ struct WorkoutHistoryViewWrapper: View {
     var body: some View {
         ZStack {
             if isLoading {
-                ProgressView()
+                TextLoadingView(message: "Loading workout analytics", style: .standard)
                     .frame(maxWidth: .infinity, maxHeight: .infinity)
                     .task {
                         do {

@@ -24,18 +24,18 @@ struct CascadeText: View {
             .onAppear {
                 if reduceMotion {
                     // Simple fade for reduced motion
-                    withAnimation(.linear(duration: 0.2)) {
+                    withAnimation(.smooth(duration: 0.2)) {
                         isVisible = true
                         weight = 300
                     }
                 } else {
                     // Full animation
-                    withAnimation(.spring(response: 0.8, dampingFraction: 0.7)) {
+                    withAnimation(.bouncy(extraBounce: 0.2)) {
                         isVisible = true
                     }
 
                     // Animate weight separately for breathing effect
-                    withAnimation(.easeInOut(duration: 1.2)) {
+                    withAnimation(.smooth(duration: 1.2)) {
                         weight = 300
                     }
                 }
@@ -132,7 +132,7 @@ struct LetterCascadeText: View {
 
         for i in 0...totalChars {
             withAnimation(
-                .spring(response: 0.5, dampingFraction: 0.8)
+                .bouncy(extraBounce: 0.2)
                     .delay(Double(i) * 0.03)
             ) {
                 visibleCharacters = i
@@ -194,13 +194,13 @@ struct CascadeInModifier: ViewModifier {
             .onAppear {
                 if reduceMotion {
                     // Simple fade for reduced motion
-                    withAnimation(.linear(duration: 0.15).delay(min(delay, 0.1))) {
+                    withAnimation(.smooth(duration: 0.15).delay(min(delay, 0.1))) {
                         isVisible = true
                     }
                 } else {
                     // Full cascade animation
                     withAnimation(
-                        .spring(response: 0.8, dampingFraction: 0.7)
+                        .bouncy(extraBounce: 0.2)
                             .delay(delay)
                     ) {
                         isVisible = true

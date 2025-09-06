@@ -218,9 +218,7 @@ struct HealthKitTestDataDetailView: View {
                     Button(action: generateData) {
                         HStack {
                             if isGenerating {
-                                ProgressView()
-                                    .progressViewStyle(CircularProgressViewStyle(tint: .white))
-                                    .scaleEffect(0.8)
+                                TextLoadingView(message: "Generating", style: .subtle)
                             } else {
                                 Image(systemName: "wand.and.stars")
                             }

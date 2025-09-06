@@ -31,8 +31,7 @@ struct WorkoutHistoryView: View {
         BaseScreen {
             if viewModel.isLoading {
                 VStack {
-                    ProgressView()
-                        .scaleEffect(1.5)
+                    TextLoadingView(message: "Loading workouts")
                         .frame(maxWidth: .infinity, maxHeight: .infinity)
                 }
             } else {
@@ -106,7 +105,7 @@ struct WorkoutHistoryView: View {
         HStack(spacing: 0) {
             ForEach(WorkoutHistoryViewModel.TimeframeOption.allCases, id: \.self) { timeframe in
                 Button {
-                    withAnimation(.spring(duration: 0.3)) {
+                    withAnimation(.bouncy(duration: 0.3)) {
                         viewModel.selectedTimeframe = timeframe
                         HapticService.impact(.light)
                     }
@@ -149,7 +148,7 @@ struct WorkoutHistoryView: View {
         let isSelected = viewModel.selectedMuscleGroup == group
 
         Button {
-            withAnimation(.spring(duration: 0.3)) {
+            withAnimation(.bouncy(duration: 0.3)) {
                 viewModel.selectedMuscleGroup = group
                 HapticService.impact(.light)
             }

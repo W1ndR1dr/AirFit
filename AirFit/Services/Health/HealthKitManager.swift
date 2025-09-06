@@ -275,11 +275,14 @@ final class HealthKitManager: HealthKitManaging, ServiceProtocol {
                         duration: workout.duration
                     )
                     
+                    // Get active energy burned from statistics
+                    let activeEnergy = workout.statistics(for: HKQuantityType(.activeEnergyBurned))?.sumQuantity()?.doubleValue(for: .kilocalorie()) ?? 0
+                    
                     return WorkoutData(
                         workoutType: String(workout.workoutActivityType.rawValue),
                         startDate: workout.startDate,
                         duration: workout.duration,
-                        totalEnergyBurned: workout.totalEnergyBurned?.doubleValue(for: .kilocalorie()) ?? 0,
+                        totalEnergyBurned: activeEnergy,
                         averageHeartRate: avgHR
                     )
                 }
@@ -637,7 +640,7 @@ final class HealthKitManager: HealthKitManaging, ServiceProtocol {
     
     func saveWorkout(_ workout: Workout) async throws -> String {
         // Convert our Workout model to HKWorkout
-        let hkWorkoutType: HKWorkoutActivityType = .other  // TODO: Map workout types properly
+        let _ : HKWorkoutActivityType = .other  // TODO: Map workout types properly
         
         let totalEnergy = workout.exercises.reduce(0.0) { total, exercise in
             total + exercise.sets.reduce(0.0) { setTotal, set in
@@ -648,7 +651,7 @@ final class HealthKitManager: HealthKitManaging, ServiceProtocol {
             }
         }
         
-        let energyQuantity = HKQuantity(unit: .kilocalorie(), doubleValue: totalEnergy)
+        let _ = HKQuantity(unit: .kilocalorie(), doubleValue: totalEnergy)
         
         // HKWorkout constructor changed in newer APIs
         // For now, return a dummy ID - implement proper workout saving later
@@ -851,7 +854,11 @@ final class HealthKitManager: HealthKitManaging, ServiceProtocol {
                     }
                 }
 
-                Task { await HealthKitCacheActor.shared.setValue(out, for: key) }
+                let valuesToCache = out
+                let cacheKey = key
+                Task.detached(priority: nil) { @Sendable in
+                    await HealthKitCacheActor.shared.setValue(valuesToCache, for: cacheKey)
+                }
                 continuation.resume(returning: out)
             }
             self.store.execute(query)
@@ -944,3 +951,4 @@ private extension Calendar {
         return dates
     }
 }
+

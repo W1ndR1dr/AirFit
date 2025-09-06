@@ -114,7 +114,7 @@ private struct MuscleRing: View {
                     .rotationEffect(.degrees(-90))
                     .frame(width: size, height: size)
                     .animation(
-                        .spring(response: 0.8, dampingFraction: 0.7)
+                        .bouncy(extraBounce: 0.2)
                             .delay(delayForMuscle(volume.name)),
                         value: progress
                     )

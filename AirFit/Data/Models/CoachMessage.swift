@@ -86,6 +86,8 @@ final class CoachMessage: @unchecked Sendable {
 
         // Rough cost estimates per 1K tokens
         let costPer1K: Double = switch model {
+        case "gpt-5": 0.03      // placeholder
+        case "gpt-5-mini": 0.01 // placeholder
         case "gpt-4": 0.03
         case "gpt-3.5-turbo": 0.002
         case "claude-3": 0.025

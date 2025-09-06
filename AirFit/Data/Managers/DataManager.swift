@@ -138,7 +138,7 @@ extension ModelContainer {
         ])
 
         let configuration = ModelConfiguration(isStoredInMemoryOnly: true)
-        return try! ModelContainer(for: schema, configurations: [configuration])
+        return try! ModelContainer(for: schema, configurations: [configuration]) // swiftlint:disable:this force_try
     }
 }
 #endif

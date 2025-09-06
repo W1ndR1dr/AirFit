@@ -26,15 +26,27 @@ public final class DIViewModelFactory {
 
         // Resolve all dependencies in parallel - AICoachService is now pre-registered
         async let healthKitService = container.resolve(HealthKitServiceProtocol.self)
-        async let nutritionService = container.resolve(DashboardNutritionServiceProtocol.self)
+        async let nutritionService = container.resolve(NutritionServiceProtocol.self)
         async let aiCoachService = container.resolve(AICoachServiceProtocol.self)
+        async let nutritionImportService = container.resolve(NutritionImportService.self)
+        async let nutritionGoalService = container.resolve(NutritionGoalServiceProtocol.self)
+
+        // Resolve import service now and bridge as a closure (avoid capturing async let)
+        let importServiceResolved = try? await nutritionImportService
+        let importSync: @MainActor (User) async -> Void = { user in
+            if let svc = importServiceResolved {
+                await svc.syncToday(for: user)
+            }
+        }
 
         return try await DashboardViewModel(
             user: user,
             modelContext: modelContext,
             healthKitService: healthKitService,
             aiCoachService: aiCoachService,
-            nutritionService: nutritionService
+            nutritionService: nutritionService,
+            nutritionImportSync: importSync,
+            nutritionGoalService: try? await nutritionGoalService
         )
     }
 
@@ -70,7 +82,9 @@ public final class DIViewModelFactory {
         // Resolve other dependencies in parallel
         async let healthKitManager = container.resolve(HealthKitManager.self)
         async let exerciseDatabase = container.resolve(ExerciseDatabase.self)
+        async let streamStore = container.resolve(ChatStreamingStore.self)
         async let workoutSyncService = container.resolve(WorkoutSyncService.self)
+        async let liveActivityManager = container.resolve(LiveActivityManager.self)
         async let coachEngine = makeCoachEngine(for: user)
 
         return try await WorkoutViewModel(
@@ -79,29 +93,30 @@ public final class DIViewModelFactory {
             coachEngine: coachEngine,
             healthKitManager: healthKitManager,
             exerciseDatabase: exerciseDatabase,
-            workoutSyncService: workoutSyncService
+            workoutSyncService: workoutSyncService,
+            liveActivityManager: liveActivityManager
         )
     }
 
     // MARK: - Chat
 
     func makeChatViewModel(user: User) async throws -> ChatViewModel {
-        // Get ModelContext first (not Sendable)
-        let modelContext = try await getModelContext()
-
-        // Resolve other dependencies in parallel
-        async let aiService = container.resolve(AIServiceProtocol.self, name: "adaptive")
+        // Resolve dependencies in parallel - no longer need direct ModelContext access
+        async let chatHistoryRepository = container.resolve(ChatHistoryRepositoryProtocol.self)
+        async let aiService = container.resolve(AIServiceProtocol.self)
         async let voiceManager = container.resolve(VoiceInputManager.self)
         async let coachEngine = makeCoachEngine(for: user)
+        async let streamStore = container.resolve(ChatStreamingStore.self)
 
         // Await all at once and create ViewModel
         return try await ChatViewModel(
-            modelContext: modelContext,
+            chatHistoryRepository: chatHistoryRepository,
             user: user,
             coachEngine: coachEngine,
             aiService: aiService,
             coordinator: ChatCoordinator(),
-            voiceManager: voiceManager
+            voiceManager: voiceManager,
+            streamStore: try? await streamStore
         )
     }
 
@@ -190,7 +205,8 @@ public final class DIViewModelFactory {
             healthKitManager: healthKitManager,
             nutritionCalculator: nutritionCalculator,
             muscleGroupVolumeService: muscleGroupVolumeService,
-            exerciseDatabase: exerciseDatabase
+            exerciseDatabase: exerciseDatabase,
+            streamStore: try? await streamStore
         )
     }
 

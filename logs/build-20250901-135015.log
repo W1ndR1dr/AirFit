@@ -1,0 +1,171 @@
+Command line invocation:
+    /Applications/Xcode.app/Contents/Developer/usr/bin/xcodebuild build -scheme AirFit -destination "platform=iOS Simulator,name=iPhone 16 Pro,OS=18.4"
+
+Resolve Package Graph
+
+
+Resolved source packages:
+  swift-transformers: https://github.com/huggingface/swift-transformers.git @ 0.1.15
+  Jinja: https://github.com/johnmai-dev/Jinja @ 1.2.0
+  swift-collections: https://github.com/apple/swift-collections.git @ 1.2.0
+  whisperkit: https://github.com/argmaxinc/WhisperKit @ 0.13.0
+  swift-argument-parser: https://github.com/apple/swift-argument-parser.git @ 1.6.1
+
+--- xcodebuild: WARNING: Using the first of multiple matching destinations:
+{ platform:iOS Simulator, arch:arm64, id:526F0A03-9537-4798-95CD-0BBB89CB0284, OS:18.4, name:iPhone 16 Pro }
+{ platform:iOS Simulator, arch:x86_64, id:526F0A03-9537-4798-95CD-0BBB89CB0284, OS:18.4, name:iPhone 16 Pro }
+ComputePackagePrebuildTargetDependencyGraph
+
+Prepare packages
+
+CreateBuildRequest
+
+SendProjectDescription
+
+CreateBuildOperation
+
+ComputeTargetDependencyGraph
+note: Building targets in dependency order
+note: Target dependency graph (15 targets)
+    Target 'AirFit' in project 'AirFit'
+        ➜ Explicit dependency on target 'WhisperKit' in project 'whisperkit'
+    Target 'WhisperKit' in project 'whisperkit'
+        ➜ Explicit dependency on target 'WhisperKit' in project 'whisperkit'
+        ➜ Explicit dependency on target 'Transformers' in project 'swift-transformers'
+    Target 'WhisperKit' in project 'whisperkit'
+        ➜ Explicit dependency on target 'Transformers' in project 'swift-transformers'
+    Target 'Transformers' in project 'swift-transformers'
+        ➜ Explicit dependency on target 'Tokenizers' in project 'swift-transformers'
+        ➜ Explicit dependency on target 'Generation' in project 'swift-transformers'
+        ➜ Explicit dependency on target 'Models' in project 'swift-transformers'
+        ➜ Explicit dependency on target 'Hub' in project 'swift-transformers'
+        ➜ Explicit dependency on target 'TensorUtils' in project 'swift-transformers'
+        ➜ Explicit dependency on target 'Jinja' in project 'Jinja'
+    Target 'Models' in project 'swift-transformers'
+        ➜ Explicit dependency on target 'Hub' in project 'swift-transformers'
+        ➜ Explicit dependency on target 'Tokenizers' in project 'swift-transformers'
+        ➜ Explicit dependency on target 'TensorUtils' in project 'swift-transformers'
+        ➜ Explicit dependency on target 'Generation' in project 'swift-transformers'
+        ➜ Explicit dependency on target 'Jinja' in project 'Jinja'
+    Target 'Generation' in project 'swift-transformers'
+        ➜ Explicit dependency on target 'Hub' in project 'swift-transformers'
+        ➜ Explicit dependency on target 'Tokenizers' in project 'swift-transformers'
+        ➜ Explicit dependency on target 'TensorUtils' in project 'swift-transformers'
+        ➜ Explicit dependency on target 'Jinja' in project 'Jinja'
+    Target 'TensorUtils' in project 'swift-transformers' (no dependencies)
+    Target 'Tokenizers' in project 'swift-transformers'
+        ➜ Explicit dependency on target 'Hub' in project 'swift-transformers'
+        ➜ Explicit dependency on target 'Jinja' in project 'Jinja'
+    Target 'Jinja' in project 'Jinja'
+        ➜ Explicit dependency on target 'Jinja' in project 'Jinja'
+        ➜ Explicit dependency on target 'OrderedCollections' in project 'swift-collections'
+    Target 'Jinja' in project 'Jinja'
+        ➜ Explicit dependency on target 'OrderedCollections' in project 'swift-collections'
+    Target 'OrderedCollections' in project 'swift-collections'
+        ➜ Explicit dependency on target 'OrderedCollections' in project 'swift-collections'
+        ➜ Explicit dependency on target 'InternalCollectionsUtilities' in project 'swift-collections'
+    Target 'OrderedCollections' in project 'swift-collections'
+        ➜ Explicit dependency on target 'InternalCollectionsUtilities' in project 'swift-collections'
+    Target 'InternalCollectionsUtilities' in project 'swift-collections' (no dependencies)
+    Target 'Hub' in project 'swift-transformers'
+        ➜ Explicit dependency on target 'swift-transformers_Hub' in project 'swift-transformers'
+    Target 'swift-transformers_Hub' in project 'swift-transformers' (no dependencies)
+
+GatherProvisioningInputs
+
+CreateBuildDescription
+
+ExecuteExternalTool /Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/bin/swiftc --version
+
+ExecuteExternalTool /Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/bin/clang -v -E -dM -isysroot /Applications/Xcode.app/Contents/Developer/Platforms/iPhoneSimulator.platform/Developer/SDKs/iPhoneSimulator18.5.sdk -x c -c /dev/null
+
+ExecuteExternalTool /Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/bin/ld -version_details
+
+ReadFileContents /Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/share/docc/features.json
+
+Build description signature: 569d1bc91c96b90257f24f8c2105f18a
+Build description path: /Users/Brian/Library/Developer/Xcode/DerivedData/AirFit-byirbnjrjkaivfbuyqrmiapiyxae/Build/Intermediates.noindex/XCBuildData/569d1bc91c96b90257f24f8c2105f18a.xcbuilddata
+ClangStatCache /Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/bin/clang-stat-cache /Applications/Xcode.app/Contents/Developer/Platforms/iPhoneSimulator.platform/Developer/SDKs/iPhoneSimulator18.5.sdk /Users/Brian/Library/Developer/Xcode/DerivedData/SDKStatCaches.noindex/iphonesimulator18.5-22F76-d5fc8ad4295d2ef488fb7d0f804ce0c4.sdkstatcache
+    cd /Users/Brian/Coding\ Projects/AirFit/AirFit.xcodeproj
+    /Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/bin/clang-stat-cache /Applications/Xcode.app/Contents/Developer/Platforms/iPhoneSimulator.platform/Developer/SDKs/iPhoneSimulator18.5.sdk -o /Users/Brian/Library/Developer/Xcode/DerivedData/SDKStatCaches.noindex/iphonesimulator18.5-22F76-d5fc8ad4295d2ef488fb7d0f804ce0c4.sdkstatcache
+
+ProcessInfoPlistFile /Users/Brian/Library/Developer/Xcode/DerivedData/AirFit-byirbnjrjkaivfbuyqrmiapiyxae/Build/Products/Debug-iphonesimulator/swift-transformers_Hub.bundle/Info.plist /Users/Brian/Library/Developer/Xcode/DerivedData/AirFit-byirbnjrjkaivfbuyqrmiapiyxae/Build/Intermediates.noindex/swift-transformers.build/Debug-iphonesimulator/swift-transformers_Hub.build/empty-swift-transformers_Hub.plist (in target 'swift-transformers_Hub' from project 'swift-transformers')
+    cd /Users/Brian/Library/Developer/Xcode/DerivedData/AirFit-byirbnjrjkaivfbuyqrmiapiyxae/SourcePackages/checkouts/swift-transformers
+    builtin-infoPlistUtility /Users/Brian/Library/Developer/Xcode/DerivedData/AirFit-byirbnjrjkaivfbuyqrmiapiyxae/Build/Intermediates.noindex/swift-transformers.build/Debug-iphonesimulator/swift-transformers_Hub.build/empty-swift-transformers_Hub.plist -producttype com.apple.product-type.bundle -expandbuildsettings -format binary -platform iphonesimulator -o /Users/Brian/Library/Developer/Xcode/DerivedData/AirFit-byirbnjrjkaivfbuyqrmiapiyxae/Build/Products/Debug-iphonesimulator/swift-transformers_Hub.bundle/Info.plist
+
+WriteAuxiliaryFile /Users/Brian/Library/Developer/Xcode/DerivedData/AirFit-byirbnjrjkaivfbuyqrmiapiyxae/Build/Intermediates.noindex/AirFit.build/Debug-iphonesimulator/AirFit.build/Objects-normal/arm64/AirFit.SwiftFileList (in target 'AirFit' from project 'AirFit')
+    cd /Users/Brian/Coding\ Projects/AirFit
+    write-file /Users/Brian/Library/Developer/Xcode/DerivedData/AirFit-byirbnjrjkaivfbuyqrmiapiyxae/Build/Intermediates.noindex/AirFit.build/Debug-iphonesimulator/AirFit.build/Objects-normal/arm64/AirFit.SwiftFileList
+
+WriteAuxiliaryFile /Users/Brian/Library/Developer/Xcode/DerivedData/AirFit-byirbnjrjkaivfbuyqrmiapiyxae/Build/Intermediates.noindex/AirFit.build/Debug-iphonesimulator/AirFit.build/Objects-normal/arm64/AirFit.LinkFileList (in target 'AirFit' from project 'AirFit')
+    cd /Users/Brian/Coding\ Projects/AirFit
+    write-file /Users/Brian/Library/Developer/Xcode/DerivedData/AirFit-byirbnjrjkaivfbuyqrmiapiyxae/Build/Intermediates.noindex/AirFit.build/Debug-iphonesimulator/AirFit.build/Objects-normal/arm64/AirFit.LinkFileList
+
+WriteAuxiliaryFile /Users/Brian/Library/Developer/Xcode/DerivedData/AirFit-byirbnjrjkaivfbuyqrmiapiyxae/Build/Intermediates.noindex/AirFit.build/Debug-iphonesimulator/AirFit.build/Objects-normal/arm64/AirFit.SwiftConstValuesFileList (in target 'AirFit' from project 'AirFit')
+    cd /Users/Brian/Coding\ Projects/AirFit
+    write-file /Users/Brian/Library/Developer/Xcode/DerivedData/AirFit-byirbnjrjkaivfbuyqrmiapiyxae/Build/Intermediates.noindex/AirFit.build/Debug-iphonesimulator/AirFit.build/Objects-normal/arm64/AirFit.SwiftConstValuesFileList
+
+WriteAuxiliaryFile /Users/Brian/Library/Developer/Xcode/DerivedData/AirFit-byirbnjrjkaivfbuyqrmiapiyxae/Build/Intermediates.noindex/AirFit.build/Debug-iphonesimulator/AirFit.build/Objects-normal/arm64/AirFit-OutputFileMap.json (in target 'AirFit' from project 'AirFit')
+    cd /Users/Brian/Coding\ Projects/AirFit
+    write-file /Users/Brian/Library/Developer/Xcode/DerivedData/AirFit-byirbnjrjkaivfbuyqrmiapiyxae/Build/Intermediates.noindex/AirFit.build/Debug-iphonesimulator/AirFit.build/Objects-normal/arm64/AirFit-OutputFileMap.json
+
+ProcessInfoPlistFile /Users/Brian/Library/Developer/Xcode/DerivedData/AirFit-byirbnjrjkaivfbuyqrmiapiyxae/Build/Products/Debug-iphonesimulator/AirFit.app/Info.plist /Users/Brian/Coding\ Projects/AirFit/AirFit/Info.plist (in target 'AirFit' from project 'AirFit')
+    cd /Users/Brian/Coding\ Projects/AirFit
+    builtin-infoPlistUtility /Users/Brian/Coding\ Projects/AirFit/AirFit/Info.plist -producttype com.apple.product-type.application -genpkginfo /Users/Brian/Library/Developer/Xcode/DerivedData/AirFit-byirbnjrjkaivfbuyqrmiapiyxae/Build/Products/Debug-iphonesimulator/AirFit.app/PkgInfo -expandbuildsettings -format binary -platform iphonesimulator -scanforprivacyfile /Users/Brian/Library/Developer/Xcode/DerivedData/AirFit-byirbnjrjkaivfbuyqrmiapiyxae/Build/Products/Debug-iphonesimulator/AirFit.app/swift-transformers_Hub.bundle -o /Users/Brian/Library/Developer/Xcode/DerivedData/AirFit-byirbnjrjkaivfbuyqrmiapiyxae/Build/Products/Debug-iphonesimulator/AirFit.app/Info.plist
+
+SwiftDriver AirFit normal arm64 com.apple.xcode.tools.swift.compiler (in target 'AirFit' from project 'AirFit')
+    cd /Users/Brian/Coding\ Projects/AirFit
+    builtin-SwiftDriver -- /Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/bin/swiftc -module-name AirFit -Onone -enforce-exclusivity\=checked @/Users/Brian/Library/Developer/Xcode/DerivedData/AirFit-byirbnjrjkaivfbuyqrmiapiyxae/Build/Intermediates.noindex/AirFit.build/Debug-iphonesimulator/AirFit.build/Objects-normal/arm64/AirFit.SwiftFileList -DDEBUG -enable-experimental-feature DebugDescriptionMacro -sdk /Applications/Xcode.app/Contents/Developer/Platforms/iPhoneSimulator.platform/Developer/SDKs/iPhoneSimulator18.5.sdk -target arm64-apple-ios18.0-simulator -g -module-cache-path /Users/Brian/Library/Developer/Xcode/DerivedData/ModuleCache.noindex -Xfrontend -serialize-debugging-options -profile-coverage-mapping -profile-generate -enable-testing -index-store-path /Users/Brian/Library/Developer/Xcode/DerivedData/AirFit-byirbnjrjkaivfbuyqrmiapiyxae/Index.noindex/DataStore -swift-version 6 -I /Users/Brian/Library/Developer/Xcode/DerivedData/AirFit-byirbnjrjkaivfbuyqrmiapiyxae/Build/Products/Debug-iphonesimulator -F /Users/Brian/Library/Developer/Xcode/DerivedData/AirFit-byirbnjrjkaivfbuyqrmiapiyxae/Build/Products/Debug-iphonesimulator/PackageFrameworks -F /Users/Brian/Library/Developer/Xcode/DerivedData/AirFit-byirbnjrjkaivfbuyqrmiapiyxae/Build/Products/Debug-iphonesimulator/PackageFrameworks -F /Users/Brian/Library/Developer/Xcode/DerivedData/AirFit-byirbnjrjkaivfbuyqrmiapiyxae/Build/Products/Debug-iphonesimulator/PackageFrameworks -F /Users/Brian/Library/Developer/Xcode/DerivedData/AirFit-byirbnjrjkaivfbuyqrmiapiyxae/Build/Products/Debug-iphonesimulator/PackageFrameworks -F /Users/Brian/Library/Developer/Xcode/DerivedData/AirFit-byirbnjrjkaivfbuyqrmiapiyxae/Build/Products/Debug-iphonesimulator/PackageFrameworks -F /Users/Brian/Library/Developer/Xcode/DerivedData/AirFit-byirbnjrjkaivfbuyqrmiapiyxae/Build/Products/Debug-iphonesimulator/PackageFrameworks -F /Users/Brian/Library/Developer/Xcode/DerivedData/AirFit-byirbnjrjkaivfbuyqrmiapiyxae/Build/Products/Debug-iphonesimulator/PackageFrameworks -F /Users/Brian/Library/Developer/Xcode/DerivedData/AirFit-byirbnjrjkaivfbuyqrmiapiyxae/Build/Products/Debug-iphonesimulator/PackageFrameworks -F /Users/Brian/Library/Developer/Xcode/DerivedData/AirFit-byirbnjrjkaivfbuyqrmiapiyxae/Build/Products/Debug-iphonesimulator/PackageFrameworks -F /Users/Brian/Library/Developer/Xcode/DerivedData/AirFit-byirbnjrjkaivfbuyqrmiapiyxae/Build/Products/Debug-iphonesimulator -emit-localized-strings -emit-localized-strings-path /Users/Brian/Library/Developer/Xcode/DerivedData/AirFit-byirbnjrjkaivfbuyqrmiapiyxae/Build/Intermediates.noindex/AirFit.build/Debug-iphonesimulator/AirFit.build/Objects-normal/arm64 -c -j16 -enable-batch-mode -incremental -Xcc -ivfsstatcache -Xcc /Users/Brian/Library/Developer/Xcode/DerivedData/SDKStatCaches.noindex/iphonesimulator18.5-22F76-d5fc8ad4295d2ef488fb7d0f804ce0c4.sdkstatcache -output-file-map /Users/Brian/Library/Developer/Xcode/DerivedData/AirFit-byirbnjrjkaivfbuyqrmiapiyxae/Build/Intermediates.noindex/AirFit.build/Debug-iphonesimulator/AirFit.build/Objects-normal/arm64/AirFit-OutputFileMap.json -use-frontend-parseable-output -save-temps -no-color-diagnostics -serialize-diagnostics -emit-dependencies -emit-module -emit-module-path /Users/Brian/Library/Developer/Xcode/DerivedData/AirFit-byirbnjrjkaivfbuyqrmiapiyxae/Build/Intermediates.noindex/AirFit.build/Debug-iphonesimulator/AirFit.build/Objects-normal/arm64/AirFit.swiftmodule -validate-clang-modules-once -clang-build-session-file /Users/Brian/Library/Developer/Xcode/DerivedData/ModuleCache.noindex/Session.modulevalidation -Xcc -I/Users/Brian/Library/Developer/Xcode/DerivedData/AirFit-byirbnjrjkaivfbuyqrmiapiyxae/Build/Intermediates.noindex/AirFit.build/Debug-iphonesimulator/AirFit.build/swift-overrides.hmap -emit-const-values -Xfrontend -const-gather-protocols-file -Xfrontend /Users/Brian/Library/Developer/Xcode/DerivedData/AirFit-byirbnjrjkaivfbuyqrmiapiyxae/Build/Intermediates.noindex/AirFit.build/Debug-iphonesimulator/AirFit.build/Objects-normal/arm64/AirFit_const_extract_protocols.json -Xcc -iquote -Xcc /Users/Brian/Library/Developer/Xcode/DerivedData/AirFit-byirbnjrjkaivfbuyqrmiapiyxae/Build/Intermediates.noindex/AirFit.build/Debug-iphonesimulator/AirFit.build/AirFit-generated-files.hmap -Xcc -I/Users/Brian/Library/Developer/Xcode/DerivedData/AirFit-byirbnjrjkaivfbuyqrmiapiyxae/Build/Intermediates.noindex/AirFit.build/Debug-iphonesimulator/AirFit.build/AirFit-own-target-headers.hmap -Xcc -I/Users/Brian/Library/Developer/Xcode/DerivedData/AirFit-byirbnjrjkaivfbuyqrmiapiyxae/Build/Intermediates.noindex/AirFit.build/Debug-iphonesimulator/AirFit.build/AirFit-all-non-framework-target-headers.hmap -Xcc -ivfsoverlay -Xcc /Users/Brian/Library/Developer/Xcode/DerivedData/AirFit-byirbnjrjkaivfbuyqrmiapiyxae/Build/Intermediates.noindex/AirFit.build/Debug-iphonesimulator/AirFit-ebd97daffa3a1e236f047a59eef70a3a-VFS-iphonesimulator/all-product-headers.yaml -Xcc -iquote -Xcc /Users/Brian/Library/Developer/Xcode/DerivedData/AirFit-byirbnjrjkaivfbuyqrmiapiyxae/Build/Intermediates.noindex/AirFit.build/Debug-iphonesimulator/AirFit.build/AirFit-project-headers.hmap -Xcc -I/Users/Brian/Library/Developer/Xcode/DerivedData/AirFit-byirbnjrjkaivfbuyqrmiapiyxae/Build/Products/Debug-iphonesimulator/include -Xcc -I/Users/Brian/Library/Developer/Xcode/DerivedData/AirFit-byirbnjrjkaivfbuyqrmiapiyxae/Build/Intermediates.noindex/AirFit.build/Debug-iphonesimulator/AirFit.build/DerivedSources-normal/arm64 -Xcc -I/Users/Brian/Library/Developer/Xcode/DerivedData/AirFit-byirbnjrjkaivfbuyqrmiapiyxae/Build/Intermediates.noindex/AirFit.build/Debug-iphonesimulator/AirFit.build/DerivedSources/arm64 -Xcc -I/Users/Brian/Library/Developer/Xcode/DerivedData/AirFit-byirbnjrjkaivfbuyqrmiapiyxae/Build/Intermediates.noindex/AirFit.build/Debug-iphonesimulator/AirFit.build/DerivedSources -Xcc -DDEBUG\=1 -emit-objc-header -emit-objc-header-path /Users/Brian/Library/Developer/Xcode/DerivedData/AirFit-byirbnjrjkaivfbuyqrmiapiyxae/Build/Intermediates.noindex/AirFit.build/Debug-iphonesimulator/AirFit.build/Objects-normal/arm64/AirFit-Swift.h -working-directory /Users/Brian/Coding\ Projects/AirFit -experimental-emit-module-separately -disable-cmo
+
+SwiftCompile normal arm64 Compiling\ FeatureToggles.swift /Users/Brian/Coding\ Projects/AirFit/AirFit/Core/Utilities/FeatureToggles.swift (in target 'AirFit' from project 'AirFit')
+
+SwiftCompile normal arm64 /Users/Brian/Coding\ Projects/AirFit/AirFit/Core/Utilities/FeatureToggles.swift (in target 'AirFit' from project 'AirFit')
+    cd /Users/Brian/Coding\ Projects/AirFit
+    
+
+SwiftEmitModule normal arm64 Emitting\ module\ for\ AirFit (in target 'AirFit' from project 'AirFit')
+EmitSwiftModule normal arm64 (in target 'AirFit' from project 'AirFit')
+    cd /Users/Brian/Coding\ Projects/AirFit
+    
+
+SwiftCompile normal arm64 Compiling\ PersonaOnboardingView.swift /Users/Brian/Coding\ Projects/AirFit/AirFit/Modules/Onboarding/PersonaOnboardingView.swift (in target 'AirFit' from project 'AirFit')
+Failed frontend command:
+/Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/bin/swift-frontend -frontend -c -filelist /Users/Brian/Library/Developer/Xcode/DerivedData/AirFit-byirbnjrjkaivfbuyqrmiapiyxae/Build/Intermediates.noindex/AirFit.build/Debug-iphonesimulator/AirFit.build/Objects-normal/arm64/sources-1 -primary-file /Users/Brian/Coding\ Projects/AirFit/AirFit/Modules/Onboarding/PersonaOnboardingView.swift -emit-dependencies-path /Users/Brian/Library/Developer/Xcode/DerivedData/AirFit-byirbnjrjkaivfbuyqrmiapiyxae/Build/Intermediates.noindex/AirFit.build/Debug-iphonesimulator/AirFit.build/Objects-normal/arm64/PersonaOnboardingView.d -emit-const-values-path /Users/Brian/Library/Developer/Xcode/DerivedData/AirFit-byirbnjrjkaivfbuyqrmiapiyxae/Build/Intermediates.noindex/AirFit.build/Debug-iphonesimulator/AirFit.build/Objects-normal/arm64/PersonaOnboardingView.swiftconstvalues -emit-reference-dependencies-path /Users/Brian/Library/Developer/Xcode/DerivedData/AirFit-byirbnjrjkaivfbuyqrmiapiyxae/Build/Intermediates.noindex/AirFit.build/Debug-iphonesimulator/AirFit.build/Objects-normal/arm64/PersonaOnboardingView.swiftdeps -serialize-diagnostics-path /Users/Brian/Library/Developer/Xcode/DerivedData/AirFit-byirbnjrjkaivfbuyqrmiapiyxae/Build/Intermediates.noindex/AirFit.build/Debug-iphonesimulator/AirFit.build/Objects-normal/arm64/PersonaOnboardingView.dia -emit-localized-strings -emit-localized-strings-path /Users/Brian/Library/Developer/Xcode/DerivedData/AirFit-byirbnjrjkaivfbuyqrmiapiyxae/Build/Intermediates.noindex/AirFit.build/Debug-iphonesimulator/AirFit.build/Objects-normal/arm64 -target arm64-apple-ios18.0-simulator -Xllvm -aarch64-use-tbi -enable-objc-interop -sdk /Applications/Xcode.app/Contents/Developer/Platforms/iPhoneSimulator.platform/Developer/SDKs/iPhoneSimulator18.5.sdk -I /Users/Brian/Library/Developer/Xcode/DerivedData/AirFit-byirbnjrjkaivfbuyqrmiapiyxae/Build/Products/Debug-iphonesimulator -F /Users/Brian/Library/Developer/Xcode/DerivedData/AirFit-byirbnjrjkaivfbuyqrmiapiyxae/Build/Products/Debug-iphonesimulator/PackageFrameworks -F /Users/Brian/Library/Developer/Xcode/DerivedData/AirFit-byirbnjrjkaivfbuyqrmiapiyxae/Build/Products/Debug-iphonesimulator/PackageFrameworks -F /Users/Brian/Library/Developer/Xcode/DerivedData/AirFit-byirbnjrjkaivfbuyqrmiapiyxae/Build/Products/Debug-iphonesimulator/PackageFrameworks -F /Users/Brian/Library/Developer/Xcode/DerivedData/AirFit-byirbnjrjkaivfbuyqrmiapiyxae/Build/Products/Debug-iphonesimulator/PackageFrameworks -F /Users/Brian/Library/Developer/Xcode/DerivedData/AirFit-byirbnjrjkaivfbuyqrmiapiyxae/Build/Products/Debug-iphonesimulator/PackageFrameworks -F /Users/Brian/Library/Developer/Xcode/DerivedData/AirFit-byirbnjrjkaivfbuyqrmiapiyxae/Build/Products/Debug-iphonesimulator/PackageFrameworks -F /Users/Brian/Library/Developer/Xcode/DerivedData/AirFit-byirbnjrjkaivfbuyqrmiapiyxae/Build/Products/Debug-iphonesimulator/PackageFrameworks -F /Users/Brian/Library/Developer/Xcode/DerivedData/AirFit-byirbnjrjkaivfbuyqrmiapiyxae/Build/Products/Debug-iphonesimulator/PackageFrameworks -F /Users/Brian/Library/Developer/Xcode/DerivedData/AirFit-byirbnjrjkaivfbuyqrmiapiyxae/Build/Products/Debug-iphonesimulator/PackageFrameworks -F /Users/Brian/Library/Developer/Xcode/DerivedData/AirFit-byirbnjrjkaivfbuyqrmiapiyxae/Build/Products/Debug-iphonesimulator -no-color-diagnostics -enable-testing -g -debug-info-format\=dwarf -dwarf-version\=5 -module-cache-path /Users/Brian/Library/Developer/Xcode/DerivedData/ModuleCache.noindex -profile-generate -profile-coverage-mapping -swift-version 6 -enforce-exclusivity\=checked -Onone -D DEBUG -serialize-debugging-options -const-gather-protocols-file /Users/Brian/Library/Developer/Xcode/DerivedData/AirFit-byirbnjrjkaivfbuyqrmiapiyxae/Build/Intermediates.noindex/AirFit.build/Debug-iphonesimulator/AirFit.build/Objects-normal/arm64/AirFit_const_extract_protocols.json -enable-experimental-feature DebugDescriptionMacro -empty-abi-descriptor -validate-clang-modules-once -clang-build-session-file /Users/Brian/Library/Developer/Xcode/DerivedData/ModuleCache.noindex/Session.modulevalidation -Xcc -working-directory -Xcc /Users/Brian/Coding\ Projects/AirFit -resource-dir /Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/lib/swift -enable-anonymous-context-mangled-names -file-compilation-dir /Users/Brian/Coding\ Projects/AirFit -Xcc -ivfsstatcache -Xcc /Users/Brian/Library/Developer/Xcode/DerivedData/SDKStatCaches.noindex/iphonesimulator18.5-22F76-d5fc8ad4295d2ef488fb7d0f804ce0c4.sdkstatcache -Xcc -I/Users/Brian/Library/Developer/Xcode/DerivedData/AirFit-byirbnjrjkaivfbuyqrmiapiyxae/Build/Intermediates.noindex/AirFit.build/Debug-iphonesimulator/AirFit.build/swift-overrides.hmap -Xcc -iquote -Xcc /Users/Brian/Library/Developer/Xcode/DerivedData/AirFit-byirbnjrjkaivfbuyqrmiapiyxae/Build/Intermediates.noindex/AirFit.build/Debug-iphonesimulator/AirFit.build/AirFit-generated-files.hmap -Xcc -I/Users/Brian/Library/Developer/Xcode/DerivedData/AirFit-byirbnjrjkaivfbuyqrmiapiyxae/Build/Intermediates.noindex/AirFit.build/Debug-iphonesimulator/AirFit.build/AirFit-own-target-headers.hmap -Xcc -I/Users/Brian/Library/Developer/Xcode/DerivedData/AirFit-byirbnjrjkaivfbuyqrmiapiyxae/Build/Intermediates.noindex/AirFit.build/Debug-iphonesimulator/AirFit.build/AirFit-all-non-framework-target-headers.hmap -Xcc -ivfsoverlay -Xcc /Users/Brian/Library/Developer/Xcode/DerivedData/AirFit-byirbnjrjkaivfbuyqrmiapiyxae/Build/Intermediates.noindex/AirFit.build/Debug-iphonesimulator/AirFit-ebd97daffa3a1e236f047a59eef70a3a-VFS-iphonesimulator/all-product-headers.yaml -Xcc -iquote -Xcc /Users/Brian/Library/Developer/Xcode/DerivedData/AirFit-byirbnjrjkaivfbuyqrmiapiyxae/Build/Intermediates.noindex/AirFit.build/Debug-iphonesimulator/AirFit.build/AirFit-project-headers.hmap -Xcc -I/Users/Brian/Library/Developer/Xcode/DerivedData/AirFit-byirbnjrjkaivfbuyqrmiapiyxae/Build/Products/Debug-iphonesimulator/include -Xcc -I/Users/Brian/Library/Developer/Xcode/DerivedData/AirFit-byirbnjrjkaivfbuyqrmiapiyxae/Build/Intermediates.noindex/AirFit.build/Debug-iphonesimulator/AirFit.build/DerivedSources-normal/arm64 -Xcc -I/Users/Brian/Library/Developer/Xcode/DerivedData/AirFit-byirbnjrjkaivfbuyqrmiapiyxae/Build/Intermediates.noindex/AirFit.build/Debug-iphonesimulator/AirFit.build/DerivedSources/arm64 -Xcc -I/Users/Brian/Library/Developer/Xcode/DerivedData/AirFit-byirbnjrjkaivfbuyqrmiapiyxae/Build/Intermediates.noindex/AirFit.build/Debug-iphonesimulator/AirFit.build/DerivedSources -Xcc -DDEBUG\=1 -module-name AirFit -frontend-parseable-output -disable-clang-spi -target-sdk-version 18.5 -target-sdk-name iphonesimulator18.5 -external-plugin-path /Applications/Xcode.app/Contents/Developer/Platforms/iPhoneOS.platform/Developer/usr/lib/swift/host/plugins\#/Applications/Xcode.app/Contents/Developer/Platforms/iPhoneOS.platform/Developer/usr/bin/swift-plugin-server -external-plugin-path /Applications/Xcode.app/Contents/Developer/Platforms/iPhoneOS.platform/Developer/usr/local/lib/swift/host/plugins\#/Applications/Xcode.app/Contents/Developer/Platforms/iPhoneOS.platform/Developer/usr/bin/swift-plugin-server -in-process-plugin-server-path /Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/lib/swift/host/libSwiftInProcPluginServer.dylib -plugin-path /Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/lib/swift/host/plugins -plugin-path /Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/local/lib/swift/host/plugins -o /Users/Brian/Library/Developer/Xcode/DerivedData/AirFit-byirbnjrjkaivfbuyqrmiapiyxae/Build/Intermediates.noindex/AirFit.build/Debug-iphonesimulator/AirFit.build/Objects-normal/arm64/PersonaOnboardingView.o -index-unit-output-path /AirFit.build/Debug-iphonesimulator/AirFit.build/Objects-normal/arm64/PersonaOnboardingView.o -index-store-path /Users/Brian/Library/Developer/Xcode/DerivedData/AirFit-byirbnjrjkaivfbuyqrmiapiyxae/Index.noindex/DataStore -index-system-modules
+
+SwiftCompile normal arm64 /Users/Brian/Coding\ Projects/AirFit/AirFit/Modules/Onboarding/PersonaOnboardingView.swift (in target 'AirFit' from project 'AirFit')
+    cd /Users/Brian/Coding\ Projects/AirFit
+    
+/Users/Brian/Coding Projects/AirFit/AirFit/Modules/Onboarding/PersonaOnboardingView.swift:112:41: error: value of optional type 'String?' must be unwrapped to a value of type 'String'
+                    progressMessage = p.message
+                                        ^
+/Users/Brian/Coding Projects/AirFit/AirFit/Modules/Onboarding/PersonaOnboardingView.swift:112:41: note: coalesce using '??' to provide a default when the optional value contains 'nil'
+                    progressMessage = p.message
+                                        ^
+                                                ?? <#default value#>
+/Users/Brian/Coding Projects/AirFit/AirFit/Modules/Onboarding/PersonaOnboardingView.swift:112:41: note: force-unwrap using '!' to abort execution if the optional value contains 'nil'
+                    progressMessage = p.message
+                                        ^
+                                               !
+
+SwiftCompile normal arm64 Compiling\ ContentView.swift /Users/Brian/Coding\ Projects/AirFit/AirFit/Application/ContentView.swift (in target 'AirFit' from project 'AirFit')
+
+SwiftCompile normal arm64 /Users/Brian/Coding\ Projects/AirFit/AirFit/Application/ContentView.swift (in target 'AirFit' from project 'AirFit')
+    cd /Users/Brian/Coding\ Projects/AirFit
+    
+
+SwiftDriverJobDiscovery normal arm64 Compiling FeatureToggles.swift (in target 'AirFit' from project 'AirFit')
+
+SwiftCompile normal arm64 Compiling\ AppState.swift /Users/Brian/Coding\ Projects/AirFit/AirFit/Core/Utilities/AppState.swift (in target 'AirFit' from project 'AirFit')
+
+SwiftCompile normal arm64 /Users/Brian/Coding\ Projects/AirFit/AirFit/Core/Utilities/AppState.swift (in target 'AirFit' from project 'AirFit')
+    cd /Users/Brian/Coding\ Projects/AirFit
+    
+
+** BUILD FAILED **
+
+
+The following build commands failed:
+	SwiftCompile normal arm64 Compiling\ PersonaOnboardingView.swift /Users/Brian/Coding\ Projects/AirFit/AirFit/Modules/Onboarding/PersonaOnboardingView.swift (in target 'AirFit' from project 'AirFit')
+	SwiftCompile normal arm64 /Users/Brian/Coding\ Projects/AirFit/AirFit/Modules/Onboarding/PersonaOnboardingView.swift (in target 'AirFit' from project 'AirFit')
+	Building project AirFit with scheme AirFit
+(3 failures)

@@ -62,7 +62,7 @@ struct RepsInputView: View {
             // Navigation
             HStack(spacing: 12) {
                 Button {
-                    withAnimation(.easeInOut(duration: 0.2)) {
+                    withAnimation(.smooth(duration: 0.2)) {
                         coordinator.navigateBackward()
                     }
                 } label: {
@@ -81,7 +81,7 @@ struct RepsInputView: View {
         }
         .contentShape(Rectangle())
         .onTapGesture {
-            withAnimation(.easeInOut(duration: 0.2)) {
+            withAnimation(.smooth(duration: 0.2)) {
                 coordinator.navigateForward()
             }
         }
@@ -166,7 +166,7 @@ struct UnilateralRepsInputView: View {
             // Navigation
             HStack(spacing: 12) {
                 Button {
-                    withAnimation(.easeInOut(duration: 0.2)) {
+                    withAnimation(.smooth(duration: 0.2)) {
                         if currentSide == "right" {
                             currentSide = "left"
                         } else {
@@ -189,7 +189,7 @@ struct UnilateralRepsInputView: View {
         }
         .contentShape(Rectangle())
         .onTapGesture {
-            withAnimation(.easeInOut(duration: 0.2)) {
+            withAnimation(.smooth(duration: 0.2)) {
                 if currentSide == "left" {
                     currentSide = "right"
                     #if os(watchOS)

@@ -20,6 +20,10 @@ struct PhotoInputView: View {
     @State private var analysisProgress: Double = 0
     @State private var showingTips = false
     @State private var animateIn = false
+    @State private var cameraControlPressed = false
+    
+    // iOS 26 Liquid Glass morphing namespace for camera states
+    @Namespace private var cameraMorphing
 
     var body: some View {
         BaseScreen {
@@ -30,8 +34,9 @@ struct PhotoInputView: View {
 
                 // Camera preview or placeholder
                 cameraPreviewLayer
-                    .scaleEffect(animateIn ? 1 : 0.95)
+                    .scaleEffect(cameraControlPressed ? 0.95 : (animateIn ? 1 : 0.95))
                     .opacity(animateIn ? 1 : 0)
+                    .animation(.snappy, value: cameraControlPressed)
 
                 // Overlay UI
                 VStack {
@@ -49,9 +54,11 @@ struct PhotoInputView: View {
                 }
                 .padding(AppSpacing.md)
 
-                // Analysis overlay
+                // Analysis overlay with morphing
                 if isAnalyzing {
                     analysisOverlay
+                        .glassEffect(.regular, in: .rect(cornerRadius: 20))
+                        .glassEffectID("analysis-overlay", in: cameraMorphing)
                         .transition(.opacity.combined(with: .scale(scale: 0.9)))
                 }
             }
@@ -103,6 +110,64 @@ struct PhotoInputView: View {
                     analyzePhoto(image)
                 }
             }
+            .onCameraCaptureEvent { phase in
+                switch phase {
+                case .began:
+                    // Light press - show focus indicator and provide haptic feedback
+                    HapticService.impact(.light)
+                    withAnimation(.snappy(duration: 0.1)) {
+                        cameraControlPressed = true
+                    }
+                    
+                case .ended:
+                    // Full press - capture photo
+                    withAnimation(.snappy(duration: 0.1)) {
+                        cameraControlPressed = false
+                    }
+                    HapticService.impact(.medium)
+                    capturePhoto()
+                    
+                case .cancelled:
+                    // Press was cancelled
+                    withAnimation(.snappy(duration: 0.1)) {
+                        cameraControlPressed = false
+                    }
+                
+                @unknown default:
+                    withAnimation(.snappy(duration: 0.1)) {
+                        cameraControlPressed = false
+                    }
+                }
+            }
+            .cameraControlOverlay {
+                // Custom controls that appear on light press
+                HStack(spacing: AppSpacing.lg) {
+                    // Flash toggle
+                    Button("Flash") { 
+                        HapticService.selection()
+                        cameraManager.toggleFlash() 
+                    }
+                    .foregroundStyle(.white)
+                    .padding(.horizontal, 16)
+                    .padding(.vertical, 8)
+                    .glassEffect()
+                    .clipShape(Capsule())
+                    
+                    Spacer()
+                    
+                    // Switch camera
+                    Button("Switch") { 
+                        HapticService.selection()
+                        cameraManager.switchCamera() 
+                    }
+                    .foregroundStyle(.white)
+                    .padding(.horizontal, 16)
+                    .padding(.vertical, 8)
+                    .glassEffect()
+                    .clipShape(Capsule())
+                }
+                .padding(.horizontal, AppSpacing.md)
+            }
         }
         .preferredColorScheme(.dark) // Force dark mode for camera UI
     }
@@ -119,7 +184,7 @@ struct PhotoInputView: View {
                     )
                     .overlay(alignment: .center) {
                         // Focus indicator with gradient stroke
-                        if cameraManager.isFocusing {
+                        if cameraManager.isFocusing || cameraControlPressed {
                             RoundedRectangle(cornerRadius: 8)
                                 .stroke(
                                     LinearGradient(
@@ -130,10 +195,13 @@ struct PhotoInputView: View {
                                     lineWidth: 2
                                 )
                                 .frame(width: 80, height: 80)
-                                .scaleEffect(cameraManager.focusScale)
+                                .scaleEffect(cameraControlPressed ? 1.2 : cameraManager.focusScale)
                                 .animation(MotionToken.microAnimation, value: cameraManager.focusScale)
+                                .animation(.snappy, value: cameraControlPressed)
                         }
                     }
+                    .glassEffect(.regular, in: .rect(cornerRadius: 20))
+                    .glassEffectID("camera-preview", in: cameraMorphing)
                     .accessibilityLabel("Camera preview")
                     .accessibilityHint("Live camera feed for food photo capture")
                     .accessibilityIdentifier("camera_preview")
@@ -141,6 +209,8 @@ struct PhotoInputView: View {
                 CameraPlaceholder {
                     requestCameraPermission()
                 }
+                .glassEffect(.thin, in: .rect(cornerRadius: 20))
+                .glassEffectID("camera-placeholder", in: cameraMorphing)
                 .environmentObject(gradientManager)
             }
         }
@@ -160,7 +230,7 @@ struct PhotoInputView: View {
                     .frame(width: 44, height: 44)
                     .background {
                         Circle()
-                            .fill(.ultraThinMaterial)
+                            .glassEffect()
                             .overlay {
                                 Circle()
                                     .stroke(Color.white.opacity(0.2), lineWidth: 1)
@@ -188,7 +258,7 @@ struct PhotoInputView: View {
                     .frame(width: 44, height: 44)
                     .background {
                         Circle()
-                            .fill(.ultraThinMaterial)
+                            .glassEffect()
                             .overlay {
                                 Circle()
                                     .stroke(Color.white.opacity(0.2), lineWidth: 1)
@@ -218,7 +288,7 @@ struct PhotoInputView: View {
                     .frame(width: 60, height: 60)
                     .background {
                         Circle()
-                            .fill(.ultraThinMaterial)
+                            .glassEffect()
                             .overlay {
                                 Circle()
                                     .stroke(Color.white.opacity(0.2), lineWidth: 1)
@@ -300,7 +370,7 @@ struct PhotoInputView: View {
                     .frame(width: 60, height: 60)
                     .background {
                         Circle()
-                            .fill(.ultraThinMaterial)
+                            .glassEffect()
                             .overlay {
                                 Circle()
                                     .stroke(
@@ -333,7 +403,7 @@ struct PhotoInputView: View {
             // Softer background with glass effect
             Color.black.opacity(0.4)
                 .ignoresSafeArea()
-                .background(.ultraThinMaterial)
+                .glassEffect()
 
             GlassCard {
                 VStack(spacing: AppSpacing.md) {
@@ -475,7 +545,7 @@ struct PhotoInputView: View {
 
     private func updateProgress(to value: Double, message: String) async {
         await MainActor.run {
-            withAnimation(.easeInOut(duration: 0.3)) {
+            withAnimation(.smooth(duration: 0.3)) {
                 analysisProgress = value
             }
         }
@@ -721,17 +791,9 @@ final class CameraManager: NSObject, ObservableObject {
             session.addOutput(photoOutput)
 
             // Configure photo output for high quality
-            if #available(iOS 16.0, *) {
-                photoOutput.maxPhotoDimensions = CMVideoDimensions(width: 4_032, height: 3_024)
-            } else {
-                photoOutput.isHighResolutionCaptureEnabled = true
-            }
+            photoOutput.maxPhotoDimensions = CMVideoDimensions(width: 4_032, height: 3_024)
             if let connection = photoOutput.connection(with: .video) {
-                if #available(iOS 17.0, *) {
-                    connection.videoRotationAngle = 90
-                } else {
-                    connection.videoOrientation = .portrait
-                }
+                connection.videoRotationAngle = 90
             }
         }
 

@@ -1,4 +1,3 @@
-import SwiftUI
 
 /// Protocol for food tracking navigation coordination
 @MainActor

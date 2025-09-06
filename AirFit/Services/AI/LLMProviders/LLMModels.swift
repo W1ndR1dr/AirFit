@@ -11,6 +11,8 @@ enum LLMModel: CaseIterable {
     case o3
     case o3Mini
     case o4Mini
+    case gpt5
+    case gpt5Mini
 
     // Google Gemini - 2.5 Series (2025)
     case gemini25Pro
@@ -27,6 +29,8 @@ enum LLMModel: CaseIterable {
         case .o3: return "o3"
         case .o3Mini: return "o3-mini"
         case .o4Mini: return "o4-mini"
+        case .gpt5: return "gpt-5"
+        case .gpt5Mini: return "gpt-5-mini"
         // Google Gemini - 2.5 Series
         case .gemini25Pro: return "gemini-2.5-pro"
         case .gemini25Flash: return "gemini-2.5-flash"
@@ -48,6 +52,8 @@ enum LLMModel: CaseIterable {
             return .anthropic
         case .gpt4o, .o3, .o3Mini, .o4Mini:
             return .openai
+        case .gpt5, .gpt5Mini:
+            return .openai
         case .gemini25Pro, .gemini25Flash, .gemini25FlashThinking:
             return .google
         }
@@ -65,6 +71,10 @@ enum LLMModel: CaseIterable {
             return 128_000  // Reasoning models
         case .o4Mini:
             return 64_000   // Smaller context for mini
+        case .gpt5:
+            return 128_000
+        case .gpt5Mini:
+            return 64_000
         // Google Gemini - 2.5 series has large context
         case .gemini25Pro:
             return 2_097_152  // 2M tokens
@@ -90,6 +100,10 @@ enum LLMModel: CaseIterable {
             return (0.003, 0.012)  // Mini reasoning model
         case .o4Mini:
             return (0.00015, 0.0006)  // Same as GPT-4o Mini
+        case .gpt5:
+            return (0.005, 0.015)  // Placeholder; update per OpenAI pricing
+        case .gpt5Mini:
+            return (0.00015, 0.0006) // Placeholder; update per OpenAI pricing
         // Google Gemini 2.5 Series
         case .gemini25Pro:
             return (0.00125, 0.005)  // Premium pricing
@@ -110,6 +124,8 @@ enum LLMModel: CaseIterable {
         case .o3: return "o3"
         case .o3Mini: return "o3-mini"
         case .o4Mini: return "o4-mini"
+        case .gpt5: return "GPT-5"
+        case .gpt5Mini: return "GPT-5 mini"
         // Google Gemini 2.5
         case .gemini25Pro: return "Gemini 2.5 Pro"
         case .gemini25Flash: return "Gemini 2.5 Flash"
@@ -123,10 +139,12 @@ enum LLMModel: CaseIterable {
         case .claude4Opus: return "Most powerful, best for complex reasoning"
         case .claude4Sonnet: return "Best balance of intelligence and speed"
         // OpenAI Latest
-        case .gpt4o: return "Latest multimodal flagship model"
+        case .gpt4o: return "Multimodal flagship (legacy)"
         case .o3: return "Advanced reasoning with chain-of-thought"
         case .o3Mini: return "Efficient reasoning model"
         case .o4Mini: return "Ultra-fast, cost-effective"
+        case .gpt5: return "Next-gen flagship"
+        case .gpt5Mini: return "Fast, lower cost variant"
         // Google Gemini 2.5
         case .gemini25Pro: return "Largest context window (2M tokens)"
         case .gemini25Flash: return "Fast with 1M context window"
@@ -140,6 +158,10 @@ enum LLMModel: CaseIterable {
             return ["Function calling", "Context caching", "Computer use", "200K context"]
         case .gpt4o:
             return ["Function calling", "Vision", "Audio input/output", "Real-time API"]
+        case .gpt5:
+            return ["Function calling", "Vision", "Advanced reasoning"]
+        case .gpt5Mini:
+            return ["Function calling", "Fast responses"]
         case .o3, .o3Mini:
             return ["Chain-of-thought reasoning", "Function calling", "Extended thinking"]
         case .o4Mini:
@@ -166,15 +188,15 @@ enum AITask {
     var recommendedModels: [LLMModel] {
         switch self {
         case .personalityExtraction:
-            return [.claude4Sonnet, .gpt4o, .gemini25Flash]
+            return [.claude4Sonnet, .gpt5, .gemini25Flash]
         case .personaSynthesis:
-            return [.claude4Opus, .o3, .gemini25FlashThinking]
+            return [.claude4Opus, .gpt5, .gemini25FlashThinking]
         case .conversationAnalysis:
-            return [.gemini25Flash, .o4Mini, .claude4Sonnet]
+            return [.gemini25Flash, .gpt5Mini, .claude4Sonnet]
         case .coaching:
-            return [.claude4Sonnet, .gpt4o, .gemini25Pro]
+            return [.claude4Sonnet, .gpt5, .gemini25Pro]
         case .quickResponse:
-            return [.o4Mini, .gemini25Flash]
+            return [.gpt5Mini, .gemini25Flash]
         }
     }
 }

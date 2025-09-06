@@ -40,10 +40,10 @@ public struct VoiceWaveformView: View {
         public var barShape: BarShape = .capsule
 
         /// Animation style for level changes
-        public var levelAnimation: Animation = .spring(response: 0.3, dampingFraction: 0.7)
+        public var levelAnimation: Animation = .bouncy(extraBounce: 0.2)
 
         /// Animation style for entrance
-        public var entranceAnimation: Animation = .spring(response: 0.4, dampingFraction: 0.8)
+        public var entranceAnimation: Animation = .bouncy(extraBounce: 0.2)
 
         public enum BarShape {
             case capsule
@@ -65,7 +65,7 @@ public struct VoiceWaveformView: View {
             config.useGradientOpacity = false
             config.animateEntrance = false
             config.barShape = .roundedRectangle(cornerRadius: 2)
-            config.levelAnimation = .easeInOut(duration: 0.1)
+            config.levelAnimation = .smooth(duration: 0.1)
             return config
         }
     }

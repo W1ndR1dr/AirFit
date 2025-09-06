@@ -359,7 +359,7 @@ struct EnergyOption: View {
             HapticService.impact(.light)
             onTap()
         }
-        .animation(.spring(response: 0.3, dampingFraction: 0.7), value: isSelected)
+        .animation(.bouncy(extraBounce: 0.2), value: isSelected)
     }
 }
 

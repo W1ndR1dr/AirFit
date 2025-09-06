@@ -33,8 +33,8 @@ struct AIPersonaSettingsView: View {
                 }
             }
         }
-        .navigationTitle("")
-        .navigationBarTitleDisplayMode(.inline)
+        .navigationBarHidden(true)
+        .toolbar(.hidden, for: .navigationBar)
         .sheet(isPresented: $showPersonaRefinement) {
             // Shows conversational refinement flow for synthesized personas
             ConversationalPersonaRefinement(
@@ -138,8 +138,7 @@ struct AIPersonaSettingsView: View {
                                 Spacer()
 
                                 if isGeneratingPreview {
-                                    ProgressView()
-                                        .controlSize(.small)
+                                    TextLoadingView(message: "Generating", style: .subtle)
                                 }
                             }
 
@@ -492,8 +491,7 @@ struct NaturalLanguagePersonaAdjustment: View {
                 applyAdjustment()
             } label: {
                 if isProcessing {
-                    ProgressView()
-                        .tint(.white)
+                    TextLoadingView(message: "Processing", style: .subtle)
                         .frame(maxWidth: .infinity)
                         .frame(height: 44)
                         .background(
@@ -521,8 +519,8 @@ struct NaturalLanguagePersonaAdjustment: View {
             Spacer()
         }
         .padding()
-        .navigationTitle("Adjust Persona")
-        .navigationBarTitleDisplayMode(.inline)
+        .navigationBarHidden(true)
+        .toolbar(.hidden, for: .navigationBar)
         .onAppear {
             isTextFieldFocused = true
         }
@@ -670,23 +668,10 @@ struct ConversationalPersonaRefinement: View {
                     .disabled(inputText.isEmpty)
                 }
                 .padding()
-                .background(.ultraThinMaterial)
+                .glassEffect()
             }
-            .navigationTitle("Refine Your Coach")
-            .navigationBarTitleDisplayMode(.inline)
-            .toolbar {
-                ToolbarItem(placement: .cancellationAction) {
-                    Button("Cancel") { dismiss() }
-                }
-
-                ToolbarItem(placement: .confirmationAction) {
-                    Button("Done") {
-                        applyRefinements()
-                        dismiss()
-                    }
-                    .disabled(messages.isEmpty)
-                }
-            }
+            .navigationBarHidden(true)
+            .toolbar(.hidden, for: .navigationBar)
             .onAppear {
                 isInputFocused = true
             }
@@ -805,7 +790,7 @@ struct TypingIndicator: View {
             }
         }
         .onAppear {
-            withAnimation(.easeInOut(duration: 0.6).repeatForever()) {
+            withAnimation(.smooth(duration: 0.6).repeatForever()) {
                 animationPhase = 2
             }
         }

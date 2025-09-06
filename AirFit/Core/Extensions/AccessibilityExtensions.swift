@@ -8,11 +8,7 @@ extension View {
         _ animation: Animation? = .default,
         value: V
     ) -> some View {
-        if #available(iOS 17.0, *) {
-            self.animation(animation, value: value)
-        } else {
-            self.animation(animation, value: value)
-        }
+        self.animation(animation, value: value)
     }
 
     /// Apply transition only if reduce motion is not enabled
@@ -40,13 +36,13 @@ struct AccessibleCascadeInModifier: ViewModifier {
             .onAppear {
                 if reduceMotion {
                     // Simple fade without motion
-                    withAnimation(.linear(duration: 0.2).delay(delay)) {
+                    withAnimation(.smooth(duration: 0.2).delay(delay)) {
                         isVisible = true
                     }
                 } else {
                     // Full cascade effect
                     withAnimation(
-                        .spring(response: 0.8, dampingFraction: 0.7)
+                        .bouncy(extraBounce: 0.2)
                             .delay(delay)
                     ) {
                         isVisible = true

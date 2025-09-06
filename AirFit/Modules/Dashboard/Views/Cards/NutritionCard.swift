@@ -37,6 +37,23 @@ struct NutritionCard: View {
                 caloriesRing
                 macroBreakdown
             }
+            
+            // Show photo logging tip if calories are low
+            if summary.calories < 500 {
+                HStack(spacing: AppSpacing.xs) {
+                    Image(systemName: "camera.fill")
+                        .font(.system(size: 12, weight: .light))
+                        .foregroundStyle(.orange)
+                    
+                    Text("Try our new photo logging!")
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                    
+                    Spacer()
+                }
+                .padding(.top, AppSpacing.xs)
+                .opacity(0.8)
+            }
         }
         .onTapGesture {
             HapticService.impact(.soft)
@@ -165,7 +182,7 @@ private struct AnimatedRing: View {
                 .trim(from: 0, to: animatedProgress)
                 .stroke(gradient, style: StrokeStyle(lineWidth: lineWidth, lineCap: .round))
                 .rotationEffect(.degrees(-90))
-                .animation(.spring(response: 1.0, dampingFraction: 0.8), value: animatedProgress)
+                .animation(.bouncy(extraBounce: 0.2), value: animatedProgress)
         }
         .onAppear { animatedProgress = progress }
         .onChange(of: progress) { _, newValue in

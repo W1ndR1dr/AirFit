@@ -1,4 +1,3 @@
-import Foundation
 import SwiftUI
 
 /// Modern dependency injection container for AirFit

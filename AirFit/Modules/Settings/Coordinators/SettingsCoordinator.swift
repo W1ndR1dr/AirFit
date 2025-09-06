@@ -1,4 +1,3 @@
-import SwiftUI
 import Observation
 
 /// Manages navigation for the Settings module

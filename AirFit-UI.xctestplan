@@ -1,0 +1,36 @@
+{
+  "configurations" : [
+    {
+      "id" : "C5A6B7D8-0912-4F3E-8A2B-98A7B6C5D4E3",
+      "name" : "UI",
+      "options" : {
+        "maximumTestExecutionTimeAllowance" : 1200,
+        "testTimeoutsEnabled" : true
+      }
+    }
+  ],
+  "defaultOptions" : {
+    "language" : "en",
+    "region" : "US",
+    "testRepetitionMode" : "retryOnFailure",
+    "maximumTestRepetitions" : 1,
+    "testTimeoutsEnabled" : true,
+    "targetForVariableExpansion" : {
+      "containerPath" : "container:AirFit.xcodeproj",
+      "identifier" : "AirFit",
+      "name" : "AirFit"
+    }
+  },
+  "testTargets" : [
+    {
+      "parallelizable" : true,
+      "target" : {
+        "containerPath" : "container:AirFit.xcodeproj",
+        "identifier" : "AirFitUITests",
+        "name" : "AirFitUITests"
+      }
+    }
+  ],
+  "version" : 1
+}
+

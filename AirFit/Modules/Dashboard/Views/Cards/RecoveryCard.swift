@@ -70,7 +70,7 @@ struct RecoveryCard: View {
             }
         }
         .onAppear {
-            withAnimation(.spring(response: 0.6, dampingFraction: 0.8).delay(0.1)) {
+            withAnimation(.bouncy(extraBounce: 0.2).delay(0.1)) {
                 animateRing = true
             }
         }
@@ -158,7 +158,7 @@ private struct ProgressRing: View {
                 .trim(from: 0, to: animatedProgress)
                 .stroke(gradient, style: StrokeStyle(lineWidth: lineWidth, lineCap: .round))
                 .rotationEffect(.degrees(-90))
-                .animation(.spring(response: 0.8, dampingFraction: 0.8), value: animatedProgress)
+                .animation(.bouncy(extraBounce: 0.2), value: animatedProgress)
             Text(label)
                 .font(AppFonts.headline)
                 .foregroundStyle(.primary)

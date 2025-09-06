@@ -14,9 +14,8 @@ struct ModelRecommendationView: View {
             ]
         case .openAI:
             return [
-                ("gpt-4o", "Most capable - excellent for complex personas", true),
-                ("gpt-4o-mini", "Good balance - recommended for most users", false),
-                ("gpt-3.5-turbo", "Fast and economical", false)
+                ("gpt-5", "Most capable - excellent for complex personas", true),
+                ("gpt-5-mini", "Good balance - recommended for most users", false)
             ]
         case .gemini:
             return [
@@ -176,7 +175,7 @@ private struct ModelOption: View {
 
         ModelRecommendationView(
             provider: .openAI,
-            selectedModel: .constant("gpt-4o")
+            selectedModel: .constant("gpt-5")
         )
     }
     .padding()

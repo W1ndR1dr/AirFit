@@ -78,7 +78,6 @@ final class StreamingResponseHandler {
     /// Collects all text from a stream without processing
     func collectText(from stream: AsyncThrowingStream<AIResponse, Error>) async throws -> String {
         var result = ""
-
         for try await response in stream {
             switch response {
             case .text(let text), .textDelta(let text):
@@ -89,8 +88,26 @@ final class StreamingResponseHandler {
                 break
             }
         }
-
         return result
+    }
+
+    /// Collects text and token usage for callers that want both
+    func collectTextWithUsage(from stream: AsyncThrowingStream<AIResponse, Error>) async throws -> (String, Int?) {
+        var result = ""
+        var usage: Int?
+        for try await response in stream {
+            switch response {
+            case .text(let text), .textDelta(let text):
+                result += text
+            case .done(let u):
+                usage = u?.totalTokens
+            case .error(let error):
+                throw error
+            default:
+                break
+            }
+        }
+        return (result, usage)
     }
 
     // MARK: - Private Helpers

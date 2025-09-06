@@ -13,7 +13,7 @@ struct FoodTrackingView: View {
             if let viewModel = viewModel {
                 FoodLoggingView(viewModel: viewModel)
             } else {
-                ProgressView()
+                TextLoadingView.loadingNutrition()
                     .task {
                         let factory = DIViewModelFactory(container: container)
                         viewModel = try? await factory.makeFoodTrackingViewModel(user: user)
@@ -248,7 +248,7 @@ struct FoodLoggingView: View {
                         Task { await viewModel.startVoiceInput() }
                     }
 
-                    QuickActionCard(title: "Photo", icon: "camera.fill", gradientColors: [.orange, .pink]) {
+                    QuickActionCardWithBadge(title: "Photo", icon: "camera.fill", gradientColors: [.orange, .pink], badge: "New!") {
                         HapticService.impact(.light)
                         coordinator.showSheet(.photoCapture)
                     }
@@ -491,6 +491,62 @@ private struct QuickActionCard: View {
     }
 }
 
+private struct QuickActionCardWithBadge: View {
+    let title: String
+    let icon: String
+    let gradientColors: [Color]
+    let badge: String
+    let action: () -> Void
+    @State private var isPressed = false
+
+    var body: some View {
+        Button(action: action) {
+            VStack(spacing: AppSpacing.xs) {
+                ZStack {
+                    Circle()
+                        .fill(
+                            LinearGradient(
+                                colors: gradientColors,
+                                startPoint: .topLeading,
+                                endPoint: .bottomTrailing
+                            )
+                        )
+                        .frame(width: 56, height: 56)
+                        .overlay(alignment: .topTrailing) {
+                            // "New!" badge
+                            Text(badge)
+                                .font(.system(size: 10, weight: .bold))
+                                .foregroundColor(.white)
+                                .padding(.horizontal, 6)
+                                .padding(.vertical, 2)
+                                .background(
+                                    Capsule()
+                                        .fill(Color.red)
+                                        .shadow(color: .black.opacity(0.2), radius: 2, y: 1)
+                                )
+                                .offset(x: 8, y: -8)
+                        }
+
+                    Image(systemName: icon)
+                        .font(.system(size: 24, weight: .light))
+                        .foregroundColor(.white)
+                }
+
+                Text(title)
+                    .font(.system(size: 13, weight: .light))
+                    .foregroundColor(.primary)
+            }
+            .frame(width: 80)
+        }
+        .scaleEffect(isPressed ? 0.95 : 1.0)
+        .onLongPressGesture(minimumDuration: 0, maximumDistance: .infinity, pressing: { pressing in
+            withAnimation(MotionToken.standardSpring) {
+                isPressed = pressing
+            }
+        }, perform: {})
+    }
+}
+
 private struct MealCard: View {
     let mealType: MealType
     let entries: [FoodEntry]
@@ -557,6 +613,22 @@ private struct MealCard: View {
                             }
                         }
                     }
+                } else {
+                    Divider()
+                        .background(Color.white.opacity(0.1))
+                    
+                    HStack(spacing: AppSpacing.xs) {
+                        Image(systemName: "camera.fill")
+                            .font(.system(size: 14, weight: .light))
+                            .foregroundStyle(.orange.opacity(0.8))
+                        
+                        Text("Try our new photo logging!")
+                            .font(.system(size: 13, weight: .light))
+                            .foregroundStyle(.secondary)
+                        
+                        Spacer()
+                    }
+                    .padding(.vertical, 2)
                 }
             }
         }
@@ -717,7 +789,7 @@ private extension FoodItem {
     @Previewable @State var vm: FoodTrackingViewModel = {
         let container = ModelContainer.preview
         let context = container.mainContext
-        let user = try! context.fetch(FetchDescriptor<User>()).first!
+    let user = try! context.fetch(FetchDescriptor<User>()).first! // swiftlint:disable:this force_try
         return FoodTrackingViewModel(
             modelContext: context,
             user: user,

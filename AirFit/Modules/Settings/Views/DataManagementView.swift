@@ -231,7 +231,7 @@ struct DataExportProgressSheet: View {
                         )
                         .frame(width: 120, height: 120)
                         .rotationEffect(.degrees(-90))
-                        .animation(.easeInOut(duration: 0.5), value: progress)
+                        .animation(.smooth(duration: 0.5), value: progress)
 
                     VStack {
                         Text("\(Int(progress * 100))%")

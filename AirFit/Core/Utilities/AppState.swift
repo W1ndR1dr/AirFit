@@ -45,22 +45,20 @@ final class AppState {
         defer { isLoading = false }
 
         do {
-            // Check API configuration status FIRST
-            if let apiKeyManager = apiKeyManager {
+            // Check API configuration status FIRST (personal-mode: optional by default)
+            if FeatureToggles.aiOptionalForOnboarding {
+                needsAPISetup = false
+                AppLogger.info("AI/API setup optional: proceeding without keys", category: .app)
+            } else if let apiKeyManager = apiKeyManager {
                 let configuredProviders = await apiKeyManager.getAllConfiguredProviders()
                 needsAPISetup = configuredProviders.isEmpty
 
-                // Debug: Log which providers are configured
                 for provider in configuredProviders {
                     AppLogger.info("Found configured API key for: \(provider.displayName)", category: .app)
                 }
 
                 AppLogger.info("API setup check - configured providers: \(configuredProviders.count), needs setup: \(needsAPISetup)", category: .app)
-
-                // For testing: uncomment the next line to force API setup screen
-                // needsAPISetup = true
             } else {
-                // If no API key manager, assume we need setup
                 needsAPISetup = true
                 AppLogger.warning("No API key manager available, assuming API setup needed", category: .app)
             }
@@ -94,7 +92,7 @@ final class AppState {
         modelContext.insert(user)
         try modelContext.save()
         currentUser = user
-        hasCompletedOnboarding = false
+        hasCompletedOnboarding = FeatureToggles.simpleOnboarding
         isLoading = false
         AppLogger.info("New user created", category: .app)
     }
@@ -140,11 +138,12 @@ final class AppState {
 // MARK: - App State Extensions
 extension AppState {
     var shouldShowAPISetup: Bool {
-        !isLoading && needsAPISetup
+        // API setup is now part of onboarding flow, not a separate screen
+        false
     }
 
     var shouldShowOnboarding: Bool {
-        !isLoading && !needsAPISetup && currentUser != nil && !hasCompletedOnboarding
+        !isLoading && currentUser != nil && !hasCompletedOnboarding
     }
 
     var healthKitStatus: AirFit.HealthKitAuthorizationStatus {

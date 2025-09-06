@@ -11,8 +11,7 @@ extension View {
 
     func cardStyle() -> some View {
         self
-            .background(.ultraThinMaterial)
-            .cornerRadius(AppConstants.Layout.defaultCornerRadius)
+            .glassEffect(in: .rect(cornerRadius: AppConstants.Layout.defaultCornerRadius))
             .shadow(color: Color.black.opacity(0.1), radius: 4, x: 0, y: 2)
     }
 

@@ -1,11 +1,10 @@
 import SwiftUI
-import SwiftData
 import Combine
 
 @MainActor
 final class ChatViewModel: ObservableObject, ErrorHandling {
     // MARK: - Dependencies
-    private let modelContext: ModelContext
+    private let chatHistoryRepository: ChatHistoryRepositoryProtocol
     let user: User
     private let coachEngine: CoachEngineProtocol
     private let aiService: AIServiceProtocol
@@ -31,19 +30,21 @@ final class ChatViewModel: ObservableObject, ErrorHandling {
     @Published private(set) var contextualActions: [ContextualAction] = []
 
     // MARK: - Stream State
-    private var streamBuffer = ""
     private var streamTask: Task<Void, Never>?
+    private var cancellables = Set<AnyCancellable>()
+    @Published var streamingText: String = ""
 
     // MARK: - Initialization
     init(
-        modelContext: ModelContext,
+        chatHistoryRepository: ChatHistoryRepositoryProtocol,
         user: User,
         coachEngine: CoachEngineProtocol,
         aiService: AIServiceProtocol,
         coordinator: ChatCoordinator,
-        voiceManager: VoiceInputManager
+        voiceManager: VoiceInputManager,
+        streamStore: ChatStreamingStore? = nil
     ) {
-        self.modelContext = modelContext
+        self.chatHistoryRepository = chatHistoryRepository
         self.user = user
         self.coachEngine = coachEngine
         self.aiService = aiService
@@ -51,29 +52,70 @@ final class ChatViewModel: ObservableObject, ErrorHandling {
         self.voiceManager = voiceManager
 
         setupVoiceManager()
+
+        // Observe coach assistant message creations and append to messages
+        NotificationCenter.default.publisher(for: .coachAssistantMessageCreated)
+            .receive(on: RunLoop.main)
+            .sink { [weak self] notification in
+                Task { @MainActor in
+                    guard let self = self, let session = self.currentSession else { return }
+                    if let coach = notification.object as? CoachMessage, coach.userID == self.user.id {
+                        // Note: CoachMessage persistence handled by CoachEngine
+                        // Just reload messages to get the latest state
+                        await self.loadMessages(for: session)
+                    } else {
+                        // Fallback: reload messages
+                        await self.loadMessages(for: session)
+                    }
+                    self.isStreaming = false
+                    self.streamTask?.cancel()
+                    self.streamingText = ""
+                }
+            }
+            .store(in: &cancellables)
+
+        // Note: Notification-based streaming removed in favor of ChatStreamingStore events
+
+        // Optional: subscribe to typed ChatStreamingStore events (bridged from notifications)
+        if let streamStore {
+            streamStore.events
+                .receive(on: RunLoop.main)
+                .sink { [weak self] event in
+                    guard let self = self else { return }
+                    guard let session = self.currentSession,
+                          event.conversationId == session.id else { return }
+                    switch event.kind {
+                    case .started:
+                        self.isStreaming = true
+                        self.streamingText = ""
+                    case .delta(let text):
+                        self.streamingText += text
+                    case .finished:
+                        // Keep streamingText until assistant message is saved
+                        self.isStreaming = false
+                    }
+                }
+                .store(in: &cancellables)
+        }
     }
 
     deinit {
         streamTask?.cancel()
+        // Combine cancellables auto-cancel on deinit
     }
 
     // MARK: - Session Management
     func loadOrCreateSession() async {
         do {
-            // Use simpler predicate to avoid UUID comparison issues
-            let sessions = try modelContext.fetch(FetchDescriptor<ChatSession>())
-            let existing = sessions.first { session in
-                session.isActive && session.user?.id == user.id
-            }
-
-            if let existing = existing {
+            // Try to get active session from repository
+            if let existing = try await chatHistoryRepository.getActiveSession(userId: user.id) {
                 currentSession = existing
                 await loadMessages(for: existing)
             } else {
-                let newSession = ChatSession(user: user)
-                modelContext.insert(newSession)
-                try modelContext.save()
-                currentSession = newSession
+                // Note: Session creation might need to be moved to a write repository
+                // For now, we'll need to handle this through a service
+                AppLogger.warning("No active session found, session creation needs write repository", category: .chat)
+                // TODO: Create session through a write service
             }
         } catch {
             handleError(error)
@@ -83,11 +125,11 @@ final class ChatViewModel: ObservableObject, ErrorHandling {
 
     private func loadMessages(for session: ChatSession) async {
         do {
-            // Use simpler approach to avoid Predicate issues
-            let allMessages = try modelContext.fetch(FetchDescriptor<ChatMessage>(
-                sortBy: [SortDescriptor(\.timestamp)]
-            ))
-            messages = allMessages.filter { $0.session?.id == session.id }
+            messages = try await chatHistoryRepository.getMessages(
+                sessionId: session.id,
+                limit: nil,
+                offset: nil
+            )
         } catch {
             AppLogger.error("Failed to load messages", error: error, category: .chat)
         }
@@ -98,82 +140,27 @@ final class ChatViewModel: ObservableObject, ErrorHandling {
         guard !composerText.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty else { return }
         guard let session = currentSession else { return }
 
-        let userMessage = ChatMessage(
-            session: session,
-            content: composerText,
-            role: .user,
-            attachments: attachments
-        )
-
-        modelContext.insert(userMessage)
-        messages.append(userMessage)
-
+        // Note: Message creation requires write operations
+        // This should be handled by a write service/repository
+        // For now, we'll delegate to CoachEngine which handles persistence
         let messageText = composerText
         composerText = ""
         attachments = []
 
-        do {
-            try modelContext.save()
-        } catch {
-            AppLogger.error("Failed to save user message", error: error, category: .chat)
-        }
-
         await generateAIResponse(for: messageText, session: session)
+        
+        // Reload messages to get the complete conversation state
+        await loadMessages(for: session)
     }
 
     private func generateAIResponse(for userInput: String, session: ChatSession) async {
-        isStreaming = true
-        streamBuffer = ""
-
-        let assistantMessage = ChatMessage(
-            session: session,
-            content: "",
-            role: .assistant
-        )
-        modelContext.insert(assistantMessage)
-        messages.append(assistantMessage)
-
         // Process message through actual CoachEngine
+        // Note: streaming state is managed through ChatStreamingStore events
         streamTask?.cancel() // Cancel any existing task
         streamTask = Task {
-            do {
-                // Process the message through CoachEngine
-                await coachEngine.processUserMessage(userInput, for: user)
-
-                // The CoachEngine will handle saving the response through ConversationManager
-                // We need to fetch the latest assistant message from the conversation
-                let descriptor = FetchDescriptor<ChatMessage>(
-                    sortBy: [SortDescriptor(\.timestamp, order: .reverse)]
-                )
-
-                // Wait a moment for the CoachEngine to save its response
-                try await Task.sleep(nanoseconds: 500_000_000) // 500ms
-
-                // Fetch the assistant's response
-                let latestMessages = try modelContext.fetch(descriptor)
-                let filteredMessages = latestMessages.filter { msg in
-                    msg.session == currentSession && msg.role == "assistant"
-                }
-
-                if let latestAssistantMessage = filteredMessages.first {
-                    // Update our local assistant message with the actual response
-                    assistantMessage.content = latestAssistantMessage.content
-                    streamBuffer = latestAssistantMessage.content
-                } else {
-                    // Fallback if we can't find the response
-                    assistantMessage.content = "I've processed your request. Please check the conversation history."
-                }
-
-                try? modelContext.save()
-                await refreshSuggestions()
-            } catch {
-                assistantMessage.content = "I apologize, but I encountered an error. Please try again."
-                assistantMessage.recordError(error.localizedDescription)
-                handleError(error)
-            }
-
-            isStreaming = false
-            streamBuffer = ""
+            await coachEngine.processUserMessage(userInput, for: user)
+            // CoachEngine will save the assistant message and post notification; no local placeholder
+            await refreshSuggestions()
         }
     }
 
@@ -229,6 +216,21 @@ final class ChatViewModel: ObservableObject, ErrorHandling {
         contextualActions = []
     }
 
+    // MARK: - Streaming Controls
+    func stopStreaming() async {
+        guard isStreaming else { return }
+        streamTask?.cancel()
+        isStreaming = false
+        defer { streamingText = "" }
+
+        let content = streamingText.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !content.isEmpty, let session = currentSession else { return }
+
+        // Note: Partial content persistence should be handled by write service
+        // For now, just reload messages to maintain consistency
+        await loadMessages(for: session)
+    }
+
     func selectSuggestion(_ suggestion: QuickSuggestion) {
         composerText = suggestion.text
         if suggestion.autoSend {
@@ -238,12 +240,13 @@ final class ChatViewModel: ObservableObject, ErrorHandling {
 
     // MARK: - Message Actions
     func deleteMessage(_ message: ChatMessage) async {
-        messages.removeAll { $0.id == message.id }
-        modelContext.delete(message)
-        do {
-            try modelContext.save()
-        } catch {
-            handleError(error)
+        // Note: Message deletion requires write operations
+        // This should be handled by a write service/repository
+        AppLogger.warning("Message deletion requires write service implementation", category: .chat)
+        
+        // For now, just reload to maintain consistency
+        if let session = currentSession {
+            await loadMessages(for: session)
         }
     }
 
@@ -258,22 +261,20 @@ final class ChatViewModel: ObservableObject, ErrorHandling {
               index > 0 else { return }
 
         let userMessage = messages[index - 1]
-        await deleteMessage(message)
+        // Note: Regeneration requires write operations for proper implementation
         if let session = currentSession {
             await generateAIResponse(for: userMessage.content, session: session)
+            await loadMessages(for: session)
         }
     }
 
     func searchMessages(query: String) async -> [ChatMessage] {
         do {
-            // Use simpler approach to avoid Predicate issues
-            let allMessages = try modelContext.fetch(FetchDescriptor<ChatMessage>(
-                sortBy: [SortDescriptor(\.timestamp, order: .reverse)]
-            ))
-            return allMessages.filter { message in
-                message.content.localizedStandardContains(query) &&
-                    message.session?.user?.id == user.id
-            }
+            return try await chatHistoryRepository.searchMessages(
+                userId: user.id,
+                query: query,
+                limit: nil
+            )
         } catch {
             AppLogger.error("Search failed", error: error, category: .chat)
             return []

@@ -62,32 +62,23 @@ actor HealthKitSleepAnalyzer: ServiceProtocol {
         for sample in samples {
             let duration = sample.endDate.timeIntervalSince(sample.startDate)
 
-            // iOS 16+ sleep stages analysis
-            if #available(iOS 16.0, *) {
-                switch sample.value {
-                case HKCategoryValueSleepAnalysis.asleepREM.rawValue:
-                    remTime += duration
-                    totalSleepTime += duration
-                case HKCategoryValueSleepAnalysis.asleepCore.rawValue:
-                    coreTime += duration
-                    totalSleepTime += duration
-                case HKCategoryValueSleepAnalysis.asleepDeep.rawValue:
-                    deepTime += duration
-                    totalSleepTime += duration
-                case HKCategoryValueSleepAnalysis.awake.rawValue:
-                    awakeTime += duration
-                case HKCategoryValueSleepAnalysis.asleepUnspecified.rawValue:
-                    totalSleepTime += duration
-                default:
-                    break
-                }
-            } else {
-                // Fallback for older iOS versions
-                if sample.value == HKCategoryValueSleepAnalysis.asleepUnspecified.rawValue {
-                    totalSleepTime += duration
-                } else if sample.value == HKCategoryValueSleepAnalysis.awake.rawValue {
-                    awakeTime += duration
-                }
+            // Sleep stages analysis (available since iOS 16)
+            switch sample.value {
+            case HKCategoryValueSleepAnalysis.asleepREM.rawValue:
+                remTime += duration
+                totalSleepTime += duration
+            case HKCategoryValueSleepAnalysis.asleepCore.rawValue:
+                coreTime += duration
+                totalSleepTime += duration
+            case HKCategoryValueSleepAnalysis.asleepDeep.rawValue:
+                deepTime += duration
+                totalSleepTime += duration
+            case HKCategoryValueSleepAnalysis.awake.rawValue:
+                awakeTime += duration
+            case HKCategoryValueSleepAnalysis.asleepUnspecified.rawValue:
+                totalSleepTime += duration
+            default:
+                break
             }
         }
 

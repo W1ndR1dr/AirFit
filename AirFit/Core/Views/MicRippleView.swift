@@ -64,7 +64,7 @@ struct MicRippleView: View {
                             : AnyShapeStyle(Color.primary.opacity(0.6))
                     )
                     .scaleEffect(isRecording ? 1.1 : 1.0)
-                    .animation(.easeInOut(duration: 0.3), value: isRecording)
+                    .animation(.smooth(duration: 0.3), value: isRecording)
             }
             .frame(width: size, height: size)
             .shadow(
@@ -94,7 +94,7 @@ struct MicRippleView: View {
 
         // Primary ripple
         withAnimation(
-            Animation.easeOut(duration: 2.0)
+            Animation.snappy(duration: 2.0)
                 .repeatForever(autoreverses: false)
         ) {
             rippleScale = 2.0
@@ -105,7 +105,7 @@ struct MicRippleView: View {
         DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) {
             if isAnimating {
                 withAnimation(
-                    Animation.easeOut(duration: 2.0)
+                    Animation.snappy(duration: 2.0)
                         .repeatForever(autoreverses: false)
                 ) {
                     secondaryRippleScale = 2.0
@@ -131,7 +131,7 @@ struct MicRippleView: View {
     private func stopRippleAnimation() {
         isAnimating = false
 
-        withAnimation(.easeOut(duration: 0.3)) {
+        withAnimation(.snappy(duration: 0.3)) {
             rippleScale = 0.5
             rippleOpacity = 0.0
             secondaryRippleScale = 0.5
@@ -154,12 +154,12 @@ struct VoiceInputButton: View {
             .onTapGesture {
                 HapticService.impact(.medium)
 
-                withAnimation(.easeInOut(duration: 0.1)) {
+                withAnimation(.smooth(duration: 0.1)) {
                     isPressed = true
                 }
 
                 DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
-                    withAnimation(.easeInOut(duration: 0.1)) {
+                    withAnimation(.smooth(duration: 0.1)) {
                         isPressed = false
                     }
                     action()

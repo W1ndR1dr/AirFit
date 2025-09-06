@@ -149,7 +149,7 @@ struct FoodVoiceInputView: View {
                     .transition(.opacity)
             }
         }
-        .animation(.easeInOut(duration: 0.2), value: viewModel.voiceWaveform)
+        .animation(.smooth(duration: 0.2), value: viewModel.voiceWaveform)
     }
 
     private var transcriptionSection: some View {
@@ -193,8 +193,7 @@ struct FoodVoiceInputView: View {
                 Text("Listening...")
                     .foregroundStyle(.red)
             } else if viewModel.isProcessingAI {
-                ProgressView()
-                    .controlSize(.small)
+                TextLoadingView(message: "Processing voice input", style: .subtle)
                     .tint(gradientManager.active == .peachRose ? Color.pink : Color.blue)
                 Text("Processing...")
                     .foregroundStyle(.secondary)

@@ -1,6 +1,6 @@
 # Development Standards Guide
 
-**Last Updated**: 2025-01-04  
+**Last Updated**: 2025-09-03  
 **Purpose**: Essential standards for AI agents working on AirFit codebase  
 **Status**: Consolidated and aligned with production implementation
 
@@ -30,9 +30,9 @@
 - **[DOCUMENTATION_STANDARDS.md](./DOCUMENTATION_STANDARDS.md)** - Documentation requirements
 - **[HEALTHKIT_TEST_DATA.md](./HEALTHKIT_TEST_DATA.md)** - Test data patterns for HealthKit
 
-## AI Agent Quick Start
+## Agent Quick Start
 
-**Essential Reading Order for New AI Agents**:
+**Essential Reading Order**:
 
 1. **[ARCHITECTURE.md](./ARCHITECTURE.md)** - Complete architecture overview and principles
 2. **[DEPENDENCY_INJECTION_STANDARDS.md](./DEPENDENCY_INJECTION_STANDARDS.md)** - Master lazy async DI patterns before coding
@@ -43,13 +43,20 @@
 7. **[SERVICE__LAYER_STANDARDS.md](./SERVICE__LAYER_STANDARDS.md)** - Service protocols and actor patterns
 
 **Key Constraints**:
-- Build must pass with 0 errors, 0 warnings
-- Run `xcodebuild build` after every change
-- SwiftLint must pass strict validation
-- All services are actors except SwiftData-constrained ones
-- UI uses gradient system, no solid backgrounds
-- AI responses must be authentic - no fake content
-- Test suite is currently deprecated (ignore test files)
+- Build must pass with 0 errors (warnings minimized).
+- Run `xcodegen generate && xcodebuild build` after meaningful changes.
+- SwiftLint must pass strict validation (`AirFit/.swiftlint.yml`).
+- Services are actors unless bound to SwiftData (@MainActor); respect isolation.
+- UI uses the gradient system and material backgrounds; avoid solid fills.
+- AI responses must be authentic; no template content.
+- Add unit tests for critical logic when value is clear; keep UI tests minimal.
+
+### First 60 Minutes Checklist
+- Read `Docs/STATUS.md` to see recent work and next slices.
+- Build locally with the iOS 18.4 sim, verify app launches to Today/Chat.
+- Skim `ARCHITECTURE.md`, `AI_STANDARDS.md`, and `UI_STANDARDS.md` to align implementation details.
+- Scan `Core/DI/DIBootstrapper.swift` to see current service wiring.
+- If touching SwiftData, review `SWIFTDATA_STANDARDS.md` predicate and indexing guidance.
 
 ## Production Implementation Status
 

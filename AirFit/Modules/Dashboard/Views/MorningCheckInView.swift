@@ -28,7 +28,7 @@ struct MorningCheckInView: View {
                 checkInView
             }
         }
-        .animation(.easeInOut(duration: 0.3), value: recoveryOutput != nil)
+        .animation(.smooth(duration: 0.3), value: recoveryOutput != nil)
     }
     
     private var checkInView: some View {
@@ -74,27 +74,22 @@ struct MorningCheckInView: View {
                 Button(action: { analyzeRecovery(skipRating: false) }) {
                     HStack {
                         if isAnalyzing {
-                            ProgressView()
-                                .scaleEffect(0.8)
+                            TextLoadingView(message: "Analyzing recovery", style: .subtle)
                         } else {
                             Text("Analyze Recovery")
                         }
                     }
-                    .frame(maxWidth: .infinity)
-                    .padding(.vertical, AppSpacing.md)
-                    .background(Color.accentColor)
-                    .foregroundColor(.white)
-                    .clipShape(RoundedRectangle(cornerRadius: 14, style: .continuous))
                 }
+                .buttonStyle(.softPrimary)
                 .disabled(isAnalyzing)
                 
                 Button("Skip for now") {
                     // Analyze without subjective rating
                     Task {
-                        await analyzeRecovery(skipRating: true)
+                        analyzeRecovery(skipRating: true)
                     }
                 }
-                .foregroundStyle(.secondary)
+                .buttonStyle(.softSecondary)
             }
             .padding(.horizontal, AppSpacing.xl)
             .padding(.bottom, AppSpacing.xl)
@@ -176,11 +171,7 @@ struct MorningCheckInView: View {
                 Button("Got it") {
                     dismiss()
                 }
-                .frame(maxWidth: .infinity)
-                .padding(.vertical, AppSpacing.md)
-                .background(Color.accentColor)
-                .foregroundColor(.white)
-                .clipShape(RoundedRectangle(cornerRadius: 14, style: .continuous))
+                .buttonStyle(.softPrimary)
                 .padding(.horizontal, AppSpacing.xl)
                 .padding(.top, AppSpacing.lg)
             }

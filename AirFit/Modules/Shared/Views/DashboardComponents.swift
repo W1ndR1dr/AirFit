@@ -44,7 +44,7 @@ struct DashboardLoadingView: View {
                 .scaleEffect(animateGradient ? 1.1 : 0.9)
                 .opacity(animateGradient ? 0.8 : 1.0)
                 .animation(
-                    .easeInOut(duration: 2.0).repeatForever(autoreverses: true),
+                    .smooth(duration: 2.0).repeatForever(autoreverses: true),
                     value: animateGradient
                 )
 
@@ -84,7 +84,7 @@ struct DashboardErrorView: View {
                 )
                 .scaleEffect(animate ? 1.0 : 0.9)
                 .animation(
-                    .spring(duration: 0.6).repeatForever(autoreverses: true),
+                    .bouncy(duration: 0.6).repeatForever(autoreverses: true),
                     value: animate
                 )
 
@@ -157,8 +157,7 @@ struct DashboardTimeframePicker<T: RawRepresentable & CaseIterable & Hashable>: 
             }
         }
         .padding(4)
-        .background(.ultraThinMaterial)
-        .clipShape(RoundedRectangle(cornerRadius: 12))
+        .glassEffect(in: .rect(cornerRadius: 12))
     }
 
     @ViewBuilder
@@ -166,7 +165,7 @@ struct DashboardTimeframePicker<T: RawRepresentable & CaseIterable & Hashable>: 
         let isSelected = selection == timeframe
 
         Button {
-            withAnimation(.spring(duration: 0.3)) {
+            withAnimation(.bouncy(duration: 0.3)) {
                 selection = timeframe
                 HapticService.impact(.light)
                 onChange?(timeframe)
@@ -239,7 +238,7 @@ struct DashboardEmptyStateView: View {
                 .scaleEffect(animate ? 1.0 : 0.9)
                 .opacity(animate ? 1.0 : 0.6)
                 .animation(
-                    .easeInOut(duration: 2.0).repeatForever(autoreverses: true),
+                    .smooth(duration: 2.0).repeatForever(autoreverses: true),
                     value: animate
                 )
 
@@ -349,7 +348,7 @@ struct DashboardProgressIndicator: View {
                             )
                         )
                         .frame(width: animateIn ? geometry.size.width * progress : 0, height: 8)
-                        .animation(.spring(duration: 0.8), value: animateIn)
+                        .animation(.bouncy(duration: 0.8), value: animateIn)
                 }
             }
             .frame(height: 8)

@@ -20,10 +20,7 @@ protocol AICoachServiceProtocol: Sendable {
     func generateDashboardContent(for user: User) async throws -> AIDashboardContent
 }
 
-/// Supplies nutrition summaries and targets for dashboard display.
-protocol DashboardNutritionServiceProtocol: Sendable {
-    func getTodaysSummary(for user: User) async throws -> NutritionSummary
-}
+// DashboardNutritionServiceProtocol removed - use NutritionServiceProtocol directly
 
 /// Lightweight health context used by the dashboard.
 struct HealthContext: Sendable {

@@ -13,7 +13,7 @@ struct Chat: View {
             if let viewModel = viewModel {
                 ChatView(viewModel: viewModel, user: user)
             } else {
-                ProgressView()
+                TextLoadingView.connectingToCoach()
                     .task {
                         let factory = DIViewModelFactory(container: container)
                         viewModel = try? await factory.makeChatViewModel(user: user)
@@ -32,6 +32,9 @@ struct ChatView: View {
     @State private var animateIn = false
     @EnvironmentObject private var gradientManager: GradientManager
     @Environment(\.colorScheme) private var colorScheme
+    
+    // iOS 26 Liquid Glass morphing namespace for messages
+    @Namespace private var messageMorphing
 
     var body: some View {
         NavigationStack(path: $coordinator.navigationPath) {
@@ -40,16 +43,15 @@ struct ChatView: View {
                     // Gradient header with coach name
                     if animateIn {
                         VStack(spacing: AppSpacing.xs) {
-                            CascadeText("AI Coach")
+                            GradientText("AI Coach", style: .primary)
                                 .font(.system(size: 24, weight: .light, design: .rounded))
 
-                            Text("Your Personal Fitness Guide")
+                            GradientText("Your Personal Fitness Guide", style: .subtle)
                                 .font(.system(size: 14, weight: .light))
-                                .foregroundColor(.secondary)
                         }
-                        .padding(.vertical, AppSpacing.sm)
+                        .padding(.vertical, AppSpacing.xs)
                         .frame(maxWidth: .infinity)
-                        .background(.ultraThinMaterial)
+                        .glassEffect(.thin)
                     }
 
                     messagesScrollView
@@ -70,7 +72,7 @@ struct ChatView: View {
                     .focused($isComposerFocused)
                     .padding(.horizontal, AppSpacing.sm)
                     .padding(.vertical, AppSpacing.xs)
-                    .background(.ultraThinMaterial)
+                    .glassEffect()
                 }
             }
             .navigationBarHidden(true)
@@ -125,10 +127,31 @@ struct ChatView: View {
             }
 
             if viewModel.isStreaming {
-                typingIndicator
+                if !viewModel.streamingText.isEmpty {
+                    StreamingAssistantText(text: viewModel.streamingText)
+                        .transition(.opacity.combined(with: .move(edge: .bottom)))
+                    HStack {
+                        Spacer()
+                        Button {
+                            Task { await viewModel.stopStreaming() }
+                        } label: {
+                            Label("Stop", systemImage: "stop.fill")
+                                .font(.system(size: 14, weight: .semibold))
+                        }
+                        .buttonStyle(.bordered)
+                        .tint(.red)
+                        .padding(.horizontal, AppSpacing.screenPadding)
+                    }
+                } else {
+                    typingIndicator
+                }
             }
         }
         .padding(.vertical, 20)
+        // Auto-scroll as streaming text updates
+        .onChange(of: viewModel.streamingText) { _, _ in
+            scrollToBottom()
+        }
     }
 
     @ViewBuilder
@@ -140,13 +163,12 @@ struct ChatView: View {
                     .foregroundStyle(gradientIcon)
                     .accessibilityHidden(true)
 
-                CascadeText("Welcome! How can I help you today?")
+                GradientText("Welcome! How can I help you today?", style: .primary)
                     .font(.system(size: 20, weight: .light, design: .rounded))
                     .multilineTextAlignment(.center)
 
-                Text("I'm your personalized AI coach, here to support your fitness journey.")
+                GradientText("I'm your personalized AI coach, here to support your fitness journey.", style: .subtle)
                     .font(.system(size: 14, weight: .light))
-                    .foregroundColor(.secondary)
                     .multilineTextAlignment(.center)
             }
             .padding(AppSpacing.md)
@@ -160,21 +182,22 @@ struct ChatView: View {
 
     @ViewBuilder
     private func messageRow(message: ChatMessage, index: Int) -> some View {
-        MinimalMessageBubble(
+        TextStreamMessage(
             message: message,
             isStreaming: viewModel.isStreaming && message == viewModel.messages.last,
+            messageMorphing: messageMorphing,
             onAction: { action in
                 handleMessageAction(action, message: message)
             }
         )
         .id(message.id)
         .transition(.asymmetric(
-            insertion: .move(edge: .bottom).combined(with: .opacity),
+            insertion: .scale.combined(with: .opacity),
             removal: .opacity
         ))
         .opacity(animateIn ? 1 : 0)
         .animation(
-            .easeOut(duration: 0.3).delay(Double(index) * 0.05),
+            .snappy(duration: 0.3).delay(Double(index) * 0.05),
             value: animateIn
         )
         .accessibilityElement(children: .contain)
@@ -186,10 +209,10 @@ struct ChatView: View {
     private var typingIndicator: some View {
         HStack {
             ChatTypingIndicator()
+                .padding(.leading, AppSpacing.sm)
             Spacer()
         }
-        .padding(.leading, AppSpacing.md)
-        .transition(.scale.combined(with: .opacity))
+        .transition(.scale.combined(with: .opacity).combined(with: .move(edge: .leading)))
         .accessibilityLabel("AI is typing")
         .accessibilityValue("Generating response")
     }
@@ -220,7 +243,7 @@ struct ChatView: View {
             .padding(.horizontal, AppSpacing.screenPadding)
             .padding(.vertical, AppSpacing.xs)
         }
-        .background(.ultraThinMaterial)
+        .glassEffect()
     }
 
     // MARK: - Toolbar
@@ -282,7 +305,7 @@ struct ChatView: View {
         case .sessionSettings:
             SessionSettingsView(session: viewModel.currentSession)
         case .progressView:
-            ProgressView("Loading Progress...")
+            TextLoadingView(message: "Loading progress")
         }
     }
 
@@ -353,6 +376,60 @@ struct ChatView: View {
     }
 }
 
+// MARK: - Streaming Assistant Text
+private struct StreamingAssistantText: View {
+    let text: String
+    @Environment(\.colorScheme) private var colorScheme
+    @EnvironmentObject private var gradientManager: GradientManager
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 0) {
+            HStack(alignment: .top, spacing: AppSpacing.xs) {
+                // Assistant indicator - same as TextStreamMessage
+                HStack(spacing: 6) {
+                    Circle()
+                        .fill(
+                            LinearGradient(
+                                colors: gradientManager.active.colors(for: colorScheme),
+                                startPoint: .topLeading,
+                                endPoint: .bottomTrailing
+                            )
+                        )
+                        .frame(width: 8, height: 8)
+                    
+                    Text("AI Coach")
+                        .font(.system(size: 12, weight: .medium))
+                        .foregroundStyle(.primary)
+                }
+                
+                // Message content
+                VStack(alignment: .leading, spacing: AppSpacing.xs) {
+                    Text(text)
+                        .font(.system(size: 16, weight: .regular))
+                        .foregroundStyle(.primary)
+                        .multilineTextAlignment(.leading)
+                        .frame(maxWidth: .infinity, alignment: .leading)
+                    
+                    // Subtle progress indicator
+                    HStack {
+                        TextLoadingView(message: "Coach is thinking", style: .subtle)
+                        
+                        Text("Generating response...")
+                            .font(.system(size: 11, weight: .light))
+                            .foregroundStyle(.tertiary)
+                            .opacity(0.7)
+                        
+                        Spacer()
+                    }
+                }
+                .frame(maxWidth: .infinity, alignment: .leading)
+            }
+            .padding(.horizontal, AppSpacing.sm)
+            .padding(.vertical, AppSpacing.xs)
+        }
+    }
+}
+
 // MARK: - Mock Services
 private final class ChatMockCoachEngine: CoachEngineProtocol, @unchecked Sendable {
     func generatePostWorkoutAnalysis(_ request: PostWorkoutAnalysisRequest) async throws -> String {
@@ -382,7 +459,7 @@ private struct SuggestionChip: View {
                 .padding(.vertical, AppSpacing.xs)
                 .background(
                     Capsule()
-                        .fill(.ultraThinMaterial)
+                        .glassEffect(in: .capsule)
                         .overlay(
                             Capsule()
                                 .strokeBorder(
@@ -428,11 +505,11 @@ private struct ChatTypingIndicator: View {
         .padding(.vertical, AppSpacing.xs)
         .background(
             Capsule()
-                .fill(.ultraThinMaterial)
+                .glassEffect(in: .capsule)
         )
         .onAppear {
             withAnimation(
-                .easeInOut(duration: 1.4)
+                .smooth(duration: 1.4)
                     .repeatForever(autoreverses: false)
             ) {
                 animationPhase = 3
@@ -488,4 +565,172 @@ private struct ChatExportView: View {
 private struct ImagePickerView: View {
     var onPick: (UIImage) -> Void
     var body: some View { Text("Image Picker") }
+}
+
+// MARK: - Text Stream Message Component
+
+struct TextStreamMessage: View {
+    let message: ChatMessage
+    let isStreaming: Bool
+    let messageMorphing: Namespace.ID
+    let onAction: (MessageAction) -> Void
+    
+    @State private var animateIn = false
+    @EnvironmentObject private var gradientManager: GradientManager
+    @Environment(\.colorScheme) private var colorScheme
+    
+    var body: some View {
+        VStack(alignment: .leading, spacing: 0) {
+            HStack(alignment: .top, spacing: AppSpacing.xs) {
+                // Role indicator
+                roleIndicator
+                
+                // Message content
+                VStack(alignment: .leading, spacing: AppSpacing.xs) {
+                    messageContent
+                }
+                .frame(maxWidth: .infinity, alignment: .leading)
+            }
+            .padding(.horizontal, AppSpacing.sm)
+            .padding(.vertical, AppSpacing.xs)
+        }
+        .glassEffect(
+            message.roleEnum == .user ? .thin : .regular,
+            in: .rect(cornerRadius: 16)
+        )
+        .glassEffectID("message-\(message.id)", in: messageMorphing)
+        .contextMenu {
+            messageContextMenu
+        }
+        .onAppear {
+            withAnimation(.snappy(duration: 0.3)) {
+                animateIn = true
+            }
+        }
+    }
+    
+    @ViewBuilder
+    private var roleIndicator: some View {
+        if message.roleEnum == .user {
+            // User messages: indented with subtle opacity
+            HStack(spacing: 4) {
+                Circle()
+                    .fill(Color.secondary.opacity(0.3))
+                    .frame(width: 6, height: 6)
+                
+                Text("You")
+                    .font(.system(size: 12, weight: .medium))
+                    .foregroundStyle(.secondary)
+                    .opacity(0.7)
+            }
+        } else {
+            // Assistant messages: full width with accent dot
+            HStack(spacing: 6) {
+                Circle()
+                    .fill(
+                        LinearGradient(
+                            colors: gradientManager.active.colors(for: colorScheme),
+                            startPoint: .topLeading,
+                            endPoint: .bottomTrailing
+                        )
+                    )
+                    .frame(width: 8, height: 8)
+                
+                Text("AI Coach")
+                    .font(.system(size: 12, weight: .medium))
+                    .foregroundStyle(.primary)
+            }
+        }
+    }
+    
+    @ViewBuilder
+    private var messageContent: some View {
+        if isStreaming {
+            StreamingTextContent(
+                text: message.content,
+                isUser: message.roleEnum == .user
+            )
+        } else {
+            Text(message.content)
+                .font(.system(size: 16, weight: .regular))
+                .foregroundStyle(message.roleEnum == .user ? .secondary : .primary)
+                .multilineTextAlignment(.leading)
+                .opacity(message.roleEnum == .user ? 0.8 : 1.0)
+        }
+        
+        // Timestamp
+        HStack {
+            Spacer()
+            Text(formatTimestamp(message.timestamp))
+                .font(.system(size: 11, weight: .light))
+                .foregroundStyle(.tertiary)
+                .opacity(0.6)
+        }
+        .padding(.top, AppSpacing.xs)
+    }
+    
+    @ViewBuilder
+    private var messageContextMenu: some View {
+        Button(action: { onAction(.copy) }) {
+            Label("Copy", systemImage: "doc.on.doc")
+        }
+        
+        if message.roleEnum == .assistant {
+            Button(action: { onAction(.regenerate) }) {
+                Label("Regenerate", systemImage: "arrow.clockwise")
+            }
+        }
+        
+        Button(role: .destructive, action: { onAction(.delete) }) {
+            Label("Delete", systemImage: "trash")
+        }
+    }
+    
+    private func formatTimestamp(_ date: Date) -> String {
+        let calendar = Calendar.current
+        
+        if calendar.isDateInToday(date) {
+            return date.formatted(.dateTime.hour().minute())
+        } else if calendar.isDateInYesterday(date) {
+            return "Yesterday " + date.formatted(.dateTime.hour().minute())
+        } else {
+            return date.formatted(.dateTime.month().day().hour().minute())
+        }
+    }
+}
+
+// MARK: - Streaming Text Content
+
+struct StreamingTextContent: View {
+    let text: String
+    let isUser: Bool
+    
+    @State private var displayedText = ""
+    @State private var currentIndex = 0
+    
+    var body: some View {
+        Text(displayedText)
+            .font(.system(size: 16, weight: .regular))
+            .foregroundStyle(isUser ? .secondary : .primary)
+            .multilineTextAlignment(.leading)
+            .opacity(isUser ? 0.8 : 1.0)
+            .task {
+                await streamText()
+            }
+    }
+    
+    private func streamText() async {
+        displayedText = ""
+        currentIndex = 0
+        
+        let characters = Array(text)
+        for (index, character) in characters.enumerated() {
+            displayedText.append(character)
+            currentIndex = index
+            
+            // Variable delay for natural streaming
+            let delay = character == " " ? 15 : 25
+            try? await Task.sleep(for: .milliseconds(delay))
+        }
+    }
 }

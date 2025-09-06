@@ -18,61 +18,74 @@ struct MainTabView: View {
     // For tab bar gradient animation
     @State
     private var tabBarGradientPhase: CGFloat = 0
+    
+    // iOS 26 Liquid Glass morphing namespace
+    @Namespace private var tabMorphing
 
     var body: some View {
         ZStack {
-            // Main tab content
-            TabView(selection: $navigationState.selectedTab) {
+            // Main tab content - Custom implementation
+            ZStack {
                 // Chat - Primary interaction
-                NavigationStack {
-                    ChatViewWrapper(user: user)
+                if navigationState.selectedTab == .chat {
+                    NavigationStack {
+                        ChatViewWrapper(user: user)
+                            .navigationBarHidden(true)
+                            .toolbar(.hidden, for: .navigationBar)
+                    }
+                    .transition(.opacity)
                 }
-                .tag(AppTab.chat)
-                .tabItem {
-                    Label(AppTab.chat.displayName, systemImage: AppTab.chat.systemImage)
-                }
-
+                
                 // Today - Daily overview
-                NavigationStack {
-                    TodayDashboardView(user: user)
+                if navigationState.selectedTab == .today {
+                    NavigationStack {
+                        TodayDashboardView(user: user)
+                            .navigationBarHidden(true)
+                            .toolbar(.hidden, for: .navigationBar)
+                    }
+                    .transition(.opacity)
                 }
-                .tag(AppTab.today)
-                .tabItem {
-                    Label(AppTab.today.displayName, systemImage: AppTab.today.systemImage)
-                }
-
+                
                 // Nutrition - Enhanced nutrition dashboard
-                NavigationStack {
-                    NutritionDashboardView(user: user)
+                if navigationState.selectedTab == .nutrition {
+                    NavigationStack {
+                        NutritionDashboardView(user: user)
+                            .navigationBarHidden(true)
+                            .toolbar(.hidden, for: .navigationBar)
+                    }
+                    .transition(.opacity)
                 }
-                .tag(AppTab.nutrition)
-                .tabItem {
-                    Label(AppTab.nutrition.displayName, systemImage: AppTab.nutrition.systemImage)
-                }
-
+                
                 // Workouts - Enhanced workout dashboard
-                NavigationStack {
-                    WorkoutDashboardView(user: user)
+                if navigationState.selectedTab == .workouts {
+                    NavigationStack {
+                        WorkoutDashboardView(user: user)
+                            .navigationBarHidden(true)
+                            .toolbar(.hidden, for: .navigationBar)
+                    }
+                    .transition(.opacity)
                 }
-                .tag(AppTab.workouts)
-                .tabItem {
-                    Label(AppTab.workouts.displayName, systemImage: AppTab.workouts.systemImage)
-                }
-
+                
                 // Body - Metrics & progress
-                NavigationStack {
-                    BodyDashboardView(user: user)
-                }
-                .tag(AppTab.body)
-                .tabItem {
-                    Label(AppTab.body.displayName, systemImage: AppTab.body.systemImage)
+                if navigationState.selectedTab == .body {
+                    NavigationStack {
+                        BodyDashboardView(user: user)
+                            .navigationBarHidden(true)
+                            .toolbar(.hidden, for: .navigationBar)
+                    }
+                    .transition(.opacity)
                 }
             }
-            .tint(gradientManager.active.colors(for: colorScheme)[0])
-            .onAppear {
-                customizeTabBar()
-            }
+            .animation(SoftMotion.standard, value: navigationState.selectedTab)
 
+            // Custom Glass Morphism Tab Bar
+            VStack {
+                Spacer()
+                CustomTabBar(selectedTab: $navigationState.selectedTab, tabMorphing: tabMorphing)
+                    .padding(.horizontal, AppSpacing.screenPadding)
+                    .padding(.bottom, AppSpacing.md)
+            }
+            
             // Floating AI Assistant overlay
             if navigationState.selectedTab != .chat {
                 FloatingAIAssistant(navigationState: navigationState)
@@ -88,22 +101,17 @@ struct MainTabView: View {
                 await updateQuickActions()
             }
         }
+        .onCameraCaptureEvent { phase in
+            // Global Camera Control support for quick photo capture
+            if phase == .ended && navigationState.selectedTab != .nutrition {
+                // Only handle Camera Control if not already on nutrition tab
+                // (PhotoInputView will handle it when on nutrition)
+                navigationState.showPhotoCapture()
+            }
+        }
     }
 
     // MARK: - Helper Methods
-
-    private func customizeTabBar() {
-        let appearance = UITabBarAppearance()
-        appearance.configureWithOpaqueBackground()
-
-        // Glass morphism effect
-        appearance.backgroundColor = UIColor.systemBackground.withAlphaComponent(0.8)
-        appearance.backgroundEffect = UIBlurEffect(style: .systemMaterial)
-
-        // Apply to tab bar
-        UITabBar.appearance().standardAppearance = appearance
-        UITabBar.appearance().scrollEdgeAppearance = appearance
-    }
 
     private func updateQuickActions() async {
         // Fetch today's food entries to determine logged meals
@@ -182,7 +190,7 @@ struct FloatingAIAssistant: View {
                                 .scaleEffect(pulseAnimation ? 1.1 : 1.0)
                                 .opacity(pulseAnimation ? 0.8 : 1.0)
                                 .animation(
-                                    .easeInOut(duration: 2)
+                                    .smooth(duration: 2)
                                         .repeatForever(autoreverses: true),
                                     value: pulseAnimation
                                 )
@@ -192,7 +200,7 @@ struct FloatingAIAssistant: View {
                                 .font(.system(size: 24, weight: .semibold))
                                 .foregroundColor(.white)
                                 .rotationEffect(.degrees(navigationState.fabIsExpanded ? 90 : 0))
-                                .animation(.spring(duration: 0.3), value: navigationState.fabIsExpanded)
+                                .animation(.bouncy(duration: 0.3), value: navigationState.fabIsExpanded)
                         }
                         .shadow(color: gradientManager.active.colors(for: colorScheme)[0].opacity(0.3), radius: 12, y: 4)
                     }
@@ -243,8 +251,7 @@ struct FloatingAIAssistant: View {
                                 .foregroundColor(.primary)
                                 .padding(.horizontal, 16)
                                 .padding(.vertical, 8)
-                                .background(.thinMaterial)
-                                .clipShape(Capsule())
+                                .glassEffect(.thin, in: .capsule)
                             }
                         }
                         .padding(.trailing, 80)
@@ -275,8 +282,7 @@ struct FloatingQuickActionButton: View {
             .foregroundColor(.primary)
             .padding(.horizontal, 16)
             .padding(.vertical, 8)
-            .background(.thinMaterial)
-            .clipShape(Capsule())
+            .glassEffect(.thin, in: .capsule)
         }
     }
 }
@@ -300,7 +306,7 @@ struct ChatViewWrapper: View {
             if let viewModel = viewModel {
                 ChatView(viewModel: viewModel, user: user)
             } else {
-                ProgressView()
+                TextLoadingView(message: "Loading coach")
                     .task {
                         let factory = DIViewModelFactory(container: container)
                         viewModel = try? await factory.makeChatViewModel(user: user)
@@ -322,13 +328,142 @@ struct FoodLoggingViewWrapper: View {
             if let viewModel = viewModel {
                 FoodLoggingView(viewModel: viewModel)
             } else {
-                ProgressView()
+                TextLoadingView(message: "Loading nutrition tracker")
                     .task {
                         let factory = DIViewModelFactory(container: container)
                         viewModel = try? await factory.makeFoodTrackingViewModel(user: user)
                     }
             }
         }
+    }
+}
+
+// MARK: - Custom Tab Bar
+
+struct CustomTabBar: View {
+    @Binding var selectedTab: AppTab
+    let tabMorphing: Namespace.ID
+    @Environment(\.colorScheme) private var colorScheme
+    @EnvironmentObject private var gradientManager: GradientManager
+    
+    var body: some View {
+        HStack(spacing: 0) {
+            ForEach(AppTab.allCases, id: \.self) { tab in
+                TabBarButton(
+                    tab: tab,
+                    isSelected: selectedTab == tab,
+                    tabMorphing: tabMorphing,
+                    action: {
+                        withAnimation(.bouncy) {
+                            selectedTab = tab
+                        }
+                        // Haptic feedback
+                        let impact = UIImpactFeedbackGenerator(style: .light)
+                        impact.impactOccurred()
+                    }
+                )
+                .frame(maxWidth: .infinity)
+            }
+        }
+        .frame(height: 60)
+        .background {
+            // Glass morphism background
+            ZStack {
+                // Base material
+                RoundedRectangle(cornerRadius: 30, style: .continuous)
+                    .glassEffect(in: .rect(cornerRadius: 30))
+                
+                // Gradient overlay at 5% opacity
+                RoundedRectangle(cornerRadius: 30, style: .continuous)
+                    .fill(
+                        LinearGradient(
+                            colors: gradientManager.active.colors(for: colorScheme)
+                                .map { $0.opacity(0.05) },
+                            startPoint: .topLeading,
+                            endPoint: .bottomTrailing
+                        )
+                    )
+                
+                // Border subtle highlight
+                RoundedRectangle(cornerRadius: 30, style: .continuous)
+                    .stroke(
+                        LinearGradient(
+                            colors: [
+                                Color.white.opacity(0.2),
+                                Color.clear
+                            ],
+                            startPoint: .top,
+                            endPoint: .bottom
+                        ),
+                        lineWidth: 0.5
+                    )
+            }
+        }
+        .shadow(
+            color: .black.opacity(0.1),
+            radius: 20,
+            x: 0,
+            y: 8
+        )
+        .padding(.horizontal, AppSpacing.xs)
+    }
+}
+
+struct TabBarButton: View {
+    let tab: AppTab
+    let isSelected: Bool
+    let tabMorphing: Namespace.ID
+    let action: () -> Void
+    @Environment(\.colorScheme) private var colorScheme
+    @EnvironmentObject private var gradientManager: GradientManager
+    
+    var body: some View {
+        Button(action: action) {
+            VStack(spacing: 4) {
+                // Icon
+                Image(systemName: tab.systemImage)
+                    .font(.system(size: 20, weight: .medium))
+                    .foregroundStyle(
+                        isSelected ? 
+                        AnyShapeStyle(
+                            LinearGradient(
+                                colors: gradientManager.active.colors(for: colorScheme),
+                                startPoint: .topLeading,
+                                endPoint: .bottomTrailing
+                            )
+                        ) :
+                        AnyShapeStyle(.secondary)
+                    )
+                    .opacity(isSelected ? 1.0 : 0.6)
+                    .scaleEffect(isSelected ? 1.1 : 1.0)
+                    .animation(SoftMotion.emphasize, value: isSelected)
+                
+                // Gradient dot indicator for selected tab
+                if isSelected {
+                    Circle()
+                        .fill(
+                            LinearGradient(
+                                colors: gradientManager.active.colors(for: colorScheme),
+                                startPoint: .topLeading,
+                                endPoint: .bottomTrailing
+                            )
+                        )
+                        .frame(width: 4, height: 4)
+                        .transition(.scale.combined(with: .opacity))
+                        .animation(SoftMotion.emphasize, value: isSelected)
+                } else {
+                    Circle()
+                        .fill(Color.clear)
+                        .frame(width: 4, height: 4)
+                }
+            }
+        }
+        .buttonStyle(PlainButtonStyle())
+        .glassEffect(
+            isSelected ? .regular : .thin,
+            in: .rect(cornerRadius: 20)
+        )
+        .glassEffectID("tab-\(tab.rawValue)", in: tabMorphing)
     }
 }
 

@@ -273,14 +273,10 @@ final class NotificationManager: NSObject, ServiceProtocol {
     // MARK: - Badge Management
     func updateBadgeCount(_ count: Int) async {
         await MainActor.run {
-            if #available(iOS 17.0, *) {
-                UNUserNotificationCenter.current().setBadgeCount(count) { error in
-                    if let error = error {
-                        AppLogger.error("Failed to set badge count: \(error)", category: .notifications)
-                    }
+            UNUserNotificationCenter.current().setBadgeCount(count) { error in
+                if let error = error {
+                    AppLogger.error("Failed to set badge count: \(error)", category: .notifications)
                 }
-            } else {
-                UIApplication.shared.applicationIconBadgeNumber = count
             }
         }
     }

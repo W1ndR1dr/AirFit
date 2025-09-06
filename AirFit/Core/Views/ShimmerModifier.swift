@@ -20,7 +20,7 @@ struct ShimmerModifier: ViewModifier {
                 .mask(content)
             )
             .onAppear {
-                withAnimation(.linear(duration: 1.5).repeatForever(autoreverses: false)) {
+                withAnimation(.smooth(duration: 1.5).repeatForever(autoreverses: false)) {
                     phase = 400
                 }
             }

@@ -44,7 +44,7 @@ struct RestTimerView: View {
                     )
                     .frame(width: 140, height: 140)
                     .rotationEffect(.degrees(-90))
-                    .animation(.linear(duration: 0.1), value: progress)
+                    .animation(.smooth(duration: 0.1), value: progress)
                 
                 VStack(spacing: 4) {
                     Text(formatTime(timeRemaining))

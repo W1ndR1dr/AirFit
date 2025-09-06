@@ -63,14 +63,10 @@ final class OnboardingIntelligence: ObservableObject {
         // Note: No Haiku in Claude 4 series yet
 
         case .openAI:
-            if modelId.contains("gpt-4o") && !modelId.contains("mini") {
-                selectedModel = .gpt4o
-            } else if modelId.contains("o3") && !modelId.contains("mini") {
-                selectedModel = .o3
-            } else if modelId.contains("o3-mini") {
-                selectedModel = .o3Mini
-            } else if modelId.contains("o4-mini") || modelId.contains("gpt-4o-mini") {
-                selectedModel = .o4Mini
+            if modelId.contains("gpt-5") && !modelId.contains("mini") {
+                selectedModel = .gpt5
+            } else if modelId.contains("gpt-5-mini") {
+                selectedModel = .gpt5Mini
             }
 
         case .gemini:
@@ -154,6 +150,16 @@ final class OnboardingIntelligence: ObservableObject {
     func startHealthAnalysis() async {
         AppLogger.info("Starting HealthKit authorization request", category: .health)
         
+        // Ensure AI service is configured before proceeding
+        let isConfigured = await hasValidAPIKeys()
+        guard isConfigured else {
+            AppLogger.error("AI service not configured, cannot proceed with health analysis", category: .health)
+            healthDataStatus = "AI service not configured"
+            healthDataProgress = 0.0
+            isLoadingHealthData = false
+            return
+        }
+        
         // Show loading state
         isLoadingHealthData = true
         healthDataProgress = 0.0
@@ -170,38 +176,45 @@ final class OnboardingIntelligence: ObservableObject {
             if authorized {
                 // Load health data in background
                 Task {
-                    do {
-                        // Create progress reporter
-                        let progressReporter = HealthDataLoadingProgressReporter()
-                        let progressStream = await progressReporter.makeProgressStream()
-                        
-                        // Start monitoring progress
-                        Task {
-                            for await progress in progressStream {
+                    // Create progress reporter
+                    let progressReporter = HealthDataLoadingProgressReporter()
+                    let progressStream = await progressReporter.makeProgressStream()
+                    
+                    // Start monitoring progress
+                    Task {
+                        for await progress in progressStream {
+                            await MainActor.run {
                                 healthDataProgress = progress.progress
                                 healthDataStatus = progress.message
-                                
-                                if let error = progress.error {
-                                    AppLogger.error("Health data loading error at stage \(progress.stage)", error: error, category: .health)
-                                }
+                            }
+                            
+                            if let error = progress.error {
+                                AppLogger.error("Health data loading error at stage \(progress.stage)", error: error, category: .health)
+                            }
+                            
+                            // Check if we've completed
+                            if progress.stage == .complete {
+                                AppLogger.info("Health data loading completed with progress: \(progress.progress)", category: .health)
                             }
                         }
-                        
-                        // Load context with real progress reporting
-                        let context = await contextAssembler.assembleContext(
-                            forceRefresh: false,
-                            progressReporter: progressReporter
-                        )
-                        
-                        healthContext = context
-                        updatePromptsFromHealth(context)
-                        await generateSmartSuggestions(context)
-                        
-                        AppLogger.info("Health context loaded successfully", category: .health)
-                        isLoadingHealthData = false
-                    } catch {
-                        AppLogger.error("Failed to load health context", error: error, category: .health)
-                        healthDataStatus = "Failed to load data"
+                    }
+                    
+                    // Load context with real progress reporting
+                    let context = await contextAssembler.assembleContext(
+                        forceRefresh: false,
+                        progressReporter: progressReporter
+                    )
+                    
+                    healthContext = context
+                    updatePromptsFromHealth(context)
+                    await generateSmartSuggestions(context)
+                    
+                    AppLogger.info("Health context loaded successfully", category: .health)
+                    
+                    // Ensure progress reaches 100%
+                    await MainActor.run {
+                        healthDataProgress = 1.0
+                        healthDataStatus = "Complete!"
                         isLoadingHealthData = false
                     }
                 }
@@ -303,9 +316,9 @@ final class OnboardingIntelligence: ObservableObject {
         do {
             // Create conversation data for persona synthesis
             let conversationData = ConversationData(
-                messages: conversationHistory.enumerated().map { index, message in
+                messages: conversationHistory.map { message in
                     ConversationMessage(
-                        role: index % 2 == 0 ? .assistant : .user,
+                        role: .user,
                         content: message,
                         timestamp: Date()
                     )

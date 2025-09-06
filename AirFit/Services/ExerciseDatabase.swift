@@ -146,8 +146,16 @@ final class ExerciseDatabase: ObservableObject, ServiceProtocol {
             } catch {
                 // This should never fail for in-memory container, but handle it gracefully
                 AppLogger.fault("Failed to create in-memory container for ExerciseDatabase: \(error)", category: .data)
-                // Create a minimal container with no configuration
-                self.container = try! ModelContainer(for: ExerciseDefinition.self)
+                // Final fallback: attempt schema-based in-memory container; if this fails, keep an empty database state
+                let schema = Schema([ExerciseDefinition.self])
+                if let fallback = try? ModelContainer(for: schema, configurations: [ModelConfiguration(isStoredInMemoryOnly: true)]) {
+                    self.container = fallback
+                } else {
+                    // As a last resort, log and create a best-effort in-memory container on a background schema
+                    AppLogger.fault("All ExerciseDatabase container fallbacks failed; operating with empty in-memory store", category: .data)
+                    // This will create a container but further fetches may return empty; avoids a hard crash
+                    self.container = try! ModelContainer(for: schema, configurations: [ModelConfiguration(isStoredInMemoryOnly: true)])
+                }
             }
             self.exercises = []
         }

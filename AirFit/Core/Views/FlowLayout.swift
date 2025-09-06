@@ -77,8 +77,7 @@ struct SuggestionChipStyle: ViewModifier {
             .fontWeight(.light)
             .padding(.horizontal, 16)
             .padding(.vertical, 10)
-            .background(Material.thin)
-            .clipShape(Capsule())
+            .glassEffect(.thin, in: .capsule)
     }
 }
 

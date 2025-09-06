@@ -64,7 +64,7 @@ struct RPEInputView: View {
                         lineWidth: 4
                     )
                     .frame(width: 140, height: 140)
-                    .animation(.easeInOut(duration: 0.3), value: coordinator.rpe)
+                    .animation(.smooth(duration: 0.3), value: coordinator.rpe)
                 
                 // RPE value and description
                 VStack(spacing: 4) {
@@ -75,7 +75,7 @@ struct RPEInputView: View {
                     Text(rpeDescription)
                         .font(.system(size: 14, weight: .medium))
                         .foregroundStyle(rpeColor)
-                        .animation(.easeInOut(duration: 0.2), value: rpeDescription)
+                        .animation(.smooth(duration: 0.2), value: rpeDescription)
                 }
             }
             .focusable()
@@ -128,7 +128,7 @@ struct RPEInputView: View {
                 // Navigation
                 HStack(spacing: 12) {
                     Button {
-                        withAnimation(.easeInOut(duration: 0.2)) {
+                        withAnimation(.smooth(duration: 0.2)) {
                             coordinator.navigateBackward()
                         }
                     } label: {
@@ -148,7 +148,7 @@ struct RPEInputView: View {
         }
         .contentShape(Rectangle())
         .onTapGesture {
-            withAnimation(.easeInOut(duration: 0.2)) {
+            withAnimation(.smooth(duration: 0.2)) {
                 coordinator.navigateForward()
             }
         }

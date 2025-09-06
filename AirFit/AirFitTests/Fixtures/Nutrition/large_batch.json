@@ -1,0 +1,88 @@
+{
+    "items": [
+        {
+            "name": "Oatmeal",
+            "brand": "Quaker",
+            "quantity": 1.0,
+            "unit": "cup",
+            "calories": 166,
+            "proteinGrams": 5.9,
+            "carbGrams": 28.1,
+            "fatGrams": 3.6,
+            "fiberGrams": 4.0,
+            "sugarGrams": 0.6,
+            "sodiumMilligrams": 9.0,
+            "confidence": 0.92
+        },
+        {
+            "name": "Banana",
+            "brand": null,
+            "quantity": 1.0,
+            "unit": "medium",
+            "calories": 105,
+            "proteinGrams": 1.3,
+            "carbGrams": 27.0,
+            "fatGrams": 0.4,
+            "fiberGrams": 3.1,
+            "sugarGrams": 14.4,
+            "sodiumMilligrams": 1.0,
+            "confidence": 0.95
+        },
+        {
+            "name": "Almonds",
+            "brand": "Blue Diamond",
+            "quantity": 0.25,
+            "unit": "cup",
+            "calories": 207,
+            "proteinGrams": 7.6,
+            "carbGrams": 7.9,
+            "fatGrams": 18.2,
+            "fiberGrams": 4.4,
+            "sugarGrams": 1.7,
+            "sodiumMilligrams": 1.0,
+            "confidence": 0.88
+        },
+        {
+            "name": "Milk",
+            "brand": "Organic Valley",
+            "quantity": 0.5,
+            "unit": "cup",
+            "calories": 75,
+            "proteinGrams": 4.0,
+            "carbGrams": 6.0,
+            "fatGrams": 4.0,
+            "fiberGrams": 0.0,
+            "sugarGrams": 6.0,
+            "sodiumMilligrams": 55.0,
+            "confidence": 0.93
+        },
+        {
+            "name": "Honey",
+            "brand": null,
+            "quantity": 1.0,
+            "unit": "tbsp",
+            "calories": 64,
+            "proteinGrams": 0.1,
+            "carbGrams": 17.3,
+            "fatGrams": 0.0,
+            "fiberGrams": 0.0,
+            "sugarGrams": 17.2,
+            "sodiumMilligrams": 0.8,
+            "confidence": 0.96
+        },
+        {
+            "name": "Cinnamon",
+            "brand": null,
+            "quantity": 0.5,
+            "unit": "tsp",
+            "calories": 3,
+            "proteinGrams": 0.1,
+            "carbGrams": 0.8,
+            "fatGrams": 0.0,
+            "fiberGrams": 0.5,
+            "sugarGrams": 0.0,
+            "sodiumMilligrams": 0.5,
+            "confidence": 0.85
+        }
+    ]
+}

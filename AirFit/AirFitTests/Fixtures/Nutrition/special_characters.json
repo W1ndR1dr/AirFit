@@ -1,0 +1,32 @@
+{
+    "items": [
+        {
+            "name": "Café au Lait with 2% Milk",
+            "brand": "Starbucks®",
+            "quantity": 1.5,
+            "unit": "cups",
+            "calories": 150,
+            "proteinGrams": 8.0,
+            "carbGrams": 18.0,
+            "fatGrams": 4.5,
+            "fiberGrams": 0.0,
+            "sugarGrams": 16.0,
+            "sodiumMilligrams": 120.0,
+            "confidence": 0.87
+        },
+        {
+            "name": "Jalapeño & Cheese Quesadilla",
+            "brand": "Taco Bell™",
+            "quantity": 0.75,
+            "unit": "piece",
+            "calories": 285,
+            "proteinGrams": 12.5,
+            "carbGrams": 32.0,
+            "fatGrams": 12.8,
+            "fiberGrams": 2.1,
+            "sugarGrams": 2.5,
+            "sodiumMilligrams": 680.0,
+            "confidence": 0.92
+        }
+    ]
+}
