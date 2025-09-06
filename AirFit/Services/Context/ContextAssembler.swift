@@ -24,6 +24,7 @@ final class ContextAssembler: ContextAssemblerProtocol, ServiceProtocol {
     private let goalService: GoalServiceProtocol?
     private let muscleGroupVolumeService: MuscleGroupVolumeServiceProtocol?
     private let strengthProgressionService: StrengthProgressionServiceProtocol?
+    private let modelContainer: ModelContainer
     // Future: private let weatherService: WeatherServiceProtocol
     
     // MARK: - Caching
@@ -33,12 +34,14 @@ final class ContextAssembler: ContextAssemblerProtocol, ServiceProtocol {
         healthKitManager: HealthKitManaging,
         goalService: GoalServiceProtocol? = nil,
         muscleGroupVolumeService: MuscleGroupVolumeServiceProtocol? = nil,
-        strengthProgressionService: StrengthProgressionServiceProtocol? = nil
+        strengthProgressionService: StrengthProgressionServiceProtocol? = nil,
+        modelContainer: ModelContainer
     ) {
         self.healthKitManager = healthKitManager
         self.goalService = goalService
         self.muscleGroupVolumeService = muscleGroupVolumeService
         self.strengthProgressionService = strengthProgressionService
+        self.modelContainer = modelContainer
     }
 
     // MARK: - Public API
@@ -64,6 +67,11 @@ final class ContextAssembler: ContextAssemblerProtocol, ServiceProtocol {
     ) async -> HealthContextSnapshot {
         // Stage 1: Initialising
         await progressReporter?.reportProgress(.init(stage: .initializing))
+
+        // Fast return: if a fresh snapshot exists in cache and we're not forcing, return it immediately
+        if let cached = await cache.snapshot(forced: forceRefresh) {
+            return cached
+        }
 
         // MARK: Stage 2–5 ───────── Concurrent HealthKit fetches ───────────────
 
@@ -124,8 +132,7 @@ final class ContextAssembler: ContextAssemblerProtocol, ServiceProtocol {
         // Subjective & SwiftData work can proceed on a background context
         let (subjectiveData, appSpecificCtx) = await { () async -> (SubjectiveData, AppSpecificContext) in
             do {
-                let container = try ModelContainer(for: User.self)
-                let context = ModelContext(container)
+                let context = ModelContext(modelContainer)
                 context.autosaveEnabled = false
                 
                 let subjective = await self.fetchSubjectiveData(using: context)
@@ -156,8 +163,7 @@ final class ContextAssembler: ContextAssemblerProtocol, ServiceProtocol {
         // Calculate trends with a fresh context
         let trends: HealthTrends = await { () async -> HealthTrends in
             do {
-                let container = try ModelContainer(for: User.self)
-                let context = ModelContext(container)
+                let context = ModelContext(modelContainer)
                 context.autosaveEnabled = false
                 return await calculateTrends(
                     activity: activity,

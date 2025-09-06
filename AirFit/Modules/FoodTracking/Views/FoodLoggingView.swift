@@ -1,6 +1,5 @@
 import SwiftUI
 import Charts
-import SwiftData
 
 // MARK: - Food Tracking View with DI
 struct FoodTrackingView: View {
@@ -718,8 +717,9 @@ private extension FoodItem {
         let container = ModelContainer.preview
         let context = container.mainContext
         let user = try! context.fetch(FetchDescriptor<User>()).first!
+        let foodRepository = SwiftDataFoodTrackingRepository(modelContext: context)
         return FoodTrackingViewModel(
-            modelContext: context,
+            foodRepository: foodRepository,
             user: user,
             foodVoiceAdapter: FoodVoiceAdapter(),
             nutritionService: NutritionService(modelContext: context),
