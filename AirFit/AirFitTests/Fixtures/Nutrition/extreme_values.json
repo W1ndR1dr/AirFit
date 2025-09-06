@@ -1,18 +1,15 @@
 {
-  "items": [
-    {
-      "name": "Ultra High Calorie Item",
-      "brand": null,
-      "quantity": 500,
-      "unit": "grams",
-      "calories": 6000,
-      "proteinGrams": 200,
-      "carbGrams": 800,
-      "fatGrams": 300,
-      "fiberGrams": 50,
-      "sugarGrams": 400,
-      "sodiumMilligrams": 5000,
-      "confidence": 0.75
-    }
-  ]
+    "items": [
+        {
+            "name": "Impossible Food",
+            "brand": null,
+            "quantity": 100,
+            "unit": "grams",
+            "calories": 10000,
+            "proteinGrams": 500,
+            "carbGrams": 2000,
+            "fatGrams": 1000,
+            "confidence": 0.1
+        }
+    ]
 }

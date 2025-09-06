@@ -93,16 +93,7 @@ struct MainTabView: View {
     // MARK: - Helper Methods
 
     private func customizeTabBar() {
-        let appearance = UITabBarAppearance()
-        appearance.configureWithOpaqueBackground()
-
-        // Glass morphism effect
-        appearance.backgroundColor = UIColor.systemBackground.withAlphaComponent(0.8)
-        appearance.backgroundEffect = UIBlurEffect(style: .systemMaterial)
-
-        // Apply to tab bar
-        UITabBar.appearance().standardAppearance = appearance
-        UITabBar.appearance().scrollEdgeAppearance = appearance
+        SurfaceSystem.configureTabBarAppearance(for: colorScheme)
     }
 
     private func updateQuickActions() async {
@@ -241,10 +232,7 @@ struct FloatingAIAssistant: View {
                                     Image(systemName: "mic.fill")
                                 }
                                 .foregroundColor(.primary)
-                                .padding(.horizontal, 16)
-                                .padding(.vertical, 8)
-                                .background(.thinMaterial)
-                                .clipShape(Capsule())
+                                .surfaceCapsule(.thin)
                             }
                         }
                         .padding(.trailing, 80)
@@ -273,10 +261,7 @@ struct FloatingQuickActionButton: View {
                 Image(systemName: action.systemImage)
             }
             .foregroundColor(.primary)
-            .padding(.horizontal, 16)
-            .padding(.vertical, 8)
-            .background(.thinMaterial)
-            .clipShape(Capsule())
+            .surfaceCapsule(.thin)
         }
     }
 }
