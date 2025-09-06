@@ -1,0 +1,14 @@
+{
+  "items": [
+    {
+      "name": "Simple Apple",
+      "quantity": 1,
+      "unit": "medium",
+      "calories": 95,
+      "proteinGrams": 0.5,
+      "carbGrams": 25,
+      "fatGrams": 0.3,
+      "confidence": 0.92
+    }
+  ]
+}

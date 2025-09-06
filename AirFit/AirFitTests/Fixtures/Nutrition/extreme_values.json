@@ -1,18 +1,18 @@
 {
-    "items": [
-        {
-            "name": "Extreme Food",
-            "brand": "Test Brand",
-            "quantity": 1.0,
-            "unit": "serving",
-            "calories": 10000,
-            "proteinGrams": 500.0,
-            "carbGrams": 2000.0,
-            "fatGrams": 800.0,
-            "fiberGrams": 50.0,
-            "sugarGrams": 300.0,
-            "sodiumMilligrams": 15000.0,
-            "confidence": 0.5
-        }
-    ]
+  "items": [
+    {
+      "name": "Ultra High Calorie Item",
+      "brand": null,
+      "quantity": 500,
+      "unit": "grams",
+      "calories": 6000,
+      "proteinGrams": 200,
+      "carbGrams": 800,
+      "fatGrams": 300,
+      "fiberGrams": 50,
+      "sugarGrams": 400,
+      "sodiumMilligrams": 5000,
+      "confidence": 0.75
+    }
+  ]
 }

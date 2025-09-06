@@ -1,46 +1,32 @@
 {
-    "items": [
-        {
-            "name": "Greek Yogurt",
-            "brand": "Chobani",
-            "quantity": 1.0,
-            "unit": "cup",
-            "calories": 130,
-            "proteinGrams": 23.0,
-            "carbGrams": 9.0,
-            "fatGrams": 0.0,
-            "fiberGrams": 0.0,
-            "sugarGrams": 9.0,
-            "sodiumMilligrams": 65.0,
-            "confidence": 0.92
-        },
-        {
-            "name": "Blueberries",
-            "brand": null,
-            "quantity": 0.5,
-            "unit": "cup",
-            "calories": 42,
-            "proteinGrams": 0.5,
-            "carbGrams": 10.7,
-            "fatGrams": 0.2,
-            "fiberGrams": 1.8,
-            "sugarGrams": 7.4,
-            "sodiumMilligrams": 0.5,
-            "confidence": 0.88
-        },
-        {
-            "name": "Granola",
-            "brand": "Nature Valley",
-            "quantity": 2.0,
-            "unit": "tbsp",
-            "calories": 60,
-            "proteinGrams": 1.5,
-            "carbGrams": 9.0,
-            "fatGrams": 2.5,
-            "fiberGrams": 1.0,
-            "sugarGrams": 4.0,
-            "sodiumMilligrams": 35.0,
-            "confidence": 0.85
-        }
-    ]
+  "items": [
+    {
+      "name": "Greek Yogurt",
+      "brand": "Chobani",
+      "quantity": 170,
+      "unit": "grams",
+      "calories": 100,
+      "proteinGrams": 18,
+      "carbGrams": 6,
+      "fatGrams": 0,
+      "fiberGrams": 0,
+      "sugarGrams": 4,
+      "sodiumMilligrams": 65,
+      "confidence": 0.90
+    },
+    {
+      "name": "Blueberries",
+      "brand": null,
+      "quantity": 75,
+      "unit": "grams",
+      "calories": 42,
+      "proteinGrams": 0.5,
+      "carbGrams": 10.7,
+      "fatGrams": 0.2,
+      "fiberGrams": 1.8,
+      "sugarGrams": 7.3,
+      "sodiumMilligrams": 1,
+      "confidence": 0.88
+    }
+  ]
 }
