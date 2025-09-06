@@ -406,6 +406,19 @@ public final class DIBootstrapper {
                 )
             }
         }
+
+        // Chat Streaming Store (typed events)
+        container.register(ChatStreamingStore.self, lifetime: .singleton) { _ in
+            DefaultChatStreamingStore()
+        }
+
+        // Chat Streaming Metrics Adapter (observes store; side-effect logging only)
+        container.register(ChatStreamingMetricsAdapter.self, lifetime: .singleton) { resolver in
+            let store = try await resolver.resolve(ChatStreamingStore.self)
+            return await MainActor.run {
+                ChatStreamingMetricsAdapter(store: store)
+            }
+        }
     }
 
     // MARK: - Test Support

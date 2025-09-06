@@ -23,7 +23,7 @@ struct ChatStreamingEvent: Sendable {
 
 // MARK: - Default Implementation
 
-final class DefaultChatStreamingStore: ChatStreamingStore {
+final class DefaultChatStreamingStore: ChatStreamingStore, _ChatStreamingEventSource {
     private let subject = PassthroughSubject<ChatStreamingEvent, Never>()
     var events: AnyPublisher<ChatStreamingEvent, Never> { subject.eraseToAnyPublisher() }
 

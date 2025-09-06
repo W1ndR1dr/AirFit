@@ -129,3 +129,58 @@ SwiftLint custom rules (staged):
 ---
 
 Status: Updated by Coordinator — T06 tokens added + applied to Tab Bar and chips; logging and secrets tooling in place; CI runbook published. Update this file when tasks land or scopes change.
+
+---
+
+New Claude Instance — Kickoff Briefing (Read Me First)
+- Context: Personal iOS app (iPhone 16 Pro, iOS 26 only). Guardrails: no NotificationCenter for chat (ChatStreamingStore only), no SwiftData in UI/ViewModels, single DI-owned ModelContainer, all ViewModels @MainActor, no force ops.
+- Workflow: Small PRs targeting `main`. Branch naming: `claude/<task-id-or-scope>-<slug>`. Keep CI green per `.github/workflows/ci.yml`.
+- Current status: A “final report” claims 100%, but we want proof. Start by pulling `main` and establishing a baseline.
+
+Phase 0 — Reality Report (Start Here)
+- Branch: `claude/P0-status-snapshot`
+- Tasks:
+  - Run CI locally and in Actions (XcodeGen → SwiftLint strict → build/tests → `Scripts/ci-guards.sh`). Save logs.
+  - Run `Scripts/validation/*` where applicable; attach artifacts.
+  - Capture TTFT and context assembly timings via OSLog from a real session; include a small table.
+  - Deliver: `Docs/Codebase-Status/STATUS_SNAPSHOT.md` with hard numbers and links to CI artifacts.
+
+A01 — Guardrails Enforcement Pass
+- Branch: `claude/A01-guardrails-enforcement`
+- Tasks:
+  - Strengthen `Scripts/ci-guards.sh` to fail/warn clearly on SwiftData imports in `Modules/**/Views|ViewModels` and ad‑hoc `ModelContainer(` outside DI/tests/previews.
+  - Add/verify SwiftLint custom rules: `no_swiftdata_in_ui`, `no_notificationcenter_chat`, `no_force_ops`.
+  - Deliver: CI passing; guard output pasted in PR; list of remaining offenders (if any) with a fix plan.
+
+A02 — Dependency Map & Layering Verification
+- Branch: `claude/T16-dependency-map-refresh`
+- Tasks:
+  - Ensure `Docs/Architecture/DEPENDENCY_MAP.md` and DOT graph exist and reflect current state.
+  - Document/enforce `Docs/Architecture/LAYERING_RULES.md`. Note hotspots and any cross-layer leaks.
+
+A03 — ChatStreamingStore Unification (Typed Events + Metrics)
+- Branch: `claude/T23-chatstreamingstore-unification`
+- Tasks:
+  - Ensure a single `ChatStreamingStore` API used app-wide: keep typed event model; add internal adapter to forward metrics to MonitoringService/OSLog.
+  - Confirm DI registers one store; update consumers accordingly.
+  - Deliver: One coherent store with typed events + metrics; DIResolutionTests updated if needed.
+
+A04 — Workout Removal Verification
+- Branch: `claude/T17-workout-removal-verification`
+- Tasks:
+  - Verify no remaining “Start Workout” UI/notifications/navigation hooks; ensure deprecated destinations are no‑ops only.
+  - Remove stale strings/assets related to in‑app logging.
+  - Deliver: Grep/guard outputs proving zero references.
+
+A05 — CI Pipeline Review & Artifacts
+- Branch: `claude/T24-ci-review-artifacts`
+- Tasks:
+  - Confirm all pipeline stages run; ensure guard/periphery (if configured) artifacts upload and are linked from PRs.
+  - Update `Docs/CI/PIPELINE.md` if the runbook changed.
+
+Coordination
+- Keep PRs small; include QUALITY_GATES checklist + screenshots/logs. Ping before merging if touching AI engine or DI.
+- Do not modify the CoachEngine pipeline — Codex is actively refactoring C01 Stage 2.
+
+Codex Focus (parallel)
+- Continuing C01 Stage 2 (signposts + pipeline wrapper, actorized heavy tasks) and will share precise signpost names for your T23 alignment.
