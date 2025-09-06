@@ -266,6 +266,14 @@ public final class DIBootstrapper {
             }
         }
 
+        // Dashboard Repository
+        container.register(DashboardRepositoryProtocol.self, lifetime: .singleton) { resolver in
+            let modelContainer = try await resolver.resolve(ModelContainer.self)
+            return await MainActor.run {
+                SwiftDataDashboardRepository(modelContext: modelContainer.mainContext)
+            }
+        }
+
         // Workout Sync Service
         container.register(WorkoutSyncService.self, lifetime: .singleton) { _ in
             await MainActor.run {

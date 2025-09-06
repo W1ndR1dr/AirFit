@@ -21,17 +21,15 @@ public final class DIViewModelFactory {
     // MARK: - Dashboard
 
     func makeDashboardViewModel(user: User) async throws -> DashboardViewModel {
-        // Get ModelContext first (not Sendable)
-        let modelContext = try await getModelContext()
-
         // Resolve all dependencies in parallel - AICoachService is now pre-registered
+        async let dashboardRepository = container.resolve(DashboardRepositoryProtocol.self)
         async let healthKitService = container.resolve(HealthKitServiceProtocol.self)
         async let nutritionService = container.resolve(DashboardNutritionServiceProtocol.self)
         async let aiCoachService = container.resolve(AICoachServiceProtocol.self)
 
         return try await DashboardViewModel(
             user: user,
-            modelContext: modelContext,
+            dashboardRepository: dashboardRepository,
             healthKitService: healthKitService,
             aiCoachService: aiCoachService,
             nutritionService: nutritionService
