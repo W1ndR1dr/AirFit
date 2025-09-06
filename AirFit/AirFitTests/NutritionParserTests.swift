@@ -8,7 +8,9 @@ final class NutritionParserTests: XCTestCase {
     override func setUp() {
         super.setUp()
         parser = AIParser()
-        fixturesPath = Bundle.main.path(forResource: "AirFitTests", ofType: nil)! + "/Fixtures/Nutrition"
+        
+        // Get the path to the test bundle fixtures - use absolute path since we know the structure
+        fixturesPath = "/Users/Brian/Coding Projects/AirFit/AirFit/AirFitTests/Fixtures/Nutrition"
     }
     
     override func tearDown() {

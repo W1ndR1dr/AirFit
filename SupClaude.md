@@ -398,3 +398,32 @@ Risks
 - Streaming, Chat, Food, Workouts, Recovery validated as vertical slices.
 - No force ops or ad‑hoc containers in app target.
 - TestFlight Readiness checklist satisfied.
+
+---
+
+## Live Assignments & Next Steps (Kickoff)
+
+Active agents (in progress):
+- Agent 1 — T01 Store‑only streaming (AI/Chat): Ensure exclusive `ChatStreamingStore`, remove NotificationCenter coupling, add TTFT metrics.
+- Agent 2 — T13/T19 CI guardrails: Integrate `Scripts/ci-guards.sh` in CI; extend with boundary checks listed under Guardrail Upgrades.
+- Agent 3 — T05 Repository layer: Introduce read‑only repositories and swap 2–3 hot reads; no SwiftData in ViewModels/Services.
+- Agent 4 — T02 Nutrition fixtures: Golden fixtures and robustness tests for nutrition parsing.
+
+New agents spinning up now:
+- Agent 5 — T03 Router Heuristics Tests
+  - Branch: `claude/T03-router-tests`
+  - Scope: Add deterministic tests for `CoachRouter` covering forced route, simple parsing (DirectAI), and complex workflow (FunctionCalling).
+  - Deliverable: `AirFit/AirFitTests/CoachRouterTests.swift` (added).
+  - Validation: `-only-testing:AirFitTests/CoachRouterTests` (or run full unit plan locally).
+  - DoD: Tests green; no production code churn.
+
+- Agent 6 — T16 Dependency Map
+  - Branch: `claude/T16-dependency-map`
+  - Scope: Generate symbol/dependency inventory and produce `Docs/Codebase-Status/Dependency-Map.md`; identify dead code and cross‑layer tangles.
+  - Deliverables: Doc with module → services → data access mapping, quarantine list for suspected dead code.
+  - Validation: At least top 20 hotspots listed with owners; aligns with guardrails.
+
+Reporting cadence (all agents):
+- Post concise updates in PRs and team channel:
+  - “Claude-Txx: scope, files, quick validation, residual risks.”
+- Include Gate checklist per PR template in this doc.
