@@ -235,6 +235,9 @@ echo -e "\n${BLUE}📊 Generating summary...${NC}"
 # Count violations by category
 categories=$(cat "$VIOLATIONS_FILE" | grep -o '^\[[^]]*\]' | sort | uniq -c | sed 's/^\s*\([0-9]*\)\s*\[\([^]]*\)\]/\1:\2/')
 
+# Recalculate total violations from file (subshells don't preserve the counter)
+violations_count=$(grep -c '^\[' "$VIOLATIONS_FILE" || echo 0)
+
 # Create detailed summary with statistics  
 echo -e "\n${BLUE}=== DETAILED VIOLATION BREAKDOWN ===${NC}"
 echo "$categories" | while IFS=':' read -r count category; do
