@@ -1,0 +1,576 @@
+import SwiftUI
+
+struct VoiceSettingsView: View {
+    @ObservedObject var modelManager: WhisperModelManager
+    @Environment(\.dismiss) private var dismiss
+    @State private var downloadError: Error?
+    @State private var showDeleteConfirmation: String?
+    @AppStorage("voice.autoSelectModel") private var autoSelectModel = true
+    @AppStorage("voice.downloadCellular") private var downloadCellular = false
+
+    var body: some View {
+        NavigationStack {
+            BaseScreen {
+                ScrollView {
+                    VStack(spacing: 0) {
+                        // Title header
+                        HStack {
+                            CascadeText("Voice Settings")
+                                .font(.system(size: 34, weight: .bold, design: .rounded))
+                            Spacer()
+                        }
+                        .padding(.horizontal, AppSpacing.lg)
+                        .padding(.top, AppSpacing.sm)
+                        .padding(.bottom, AppSpacing.lg)
+                        
+                        VStack(spacing: AppSpacing.xl) {
+                            currentModelSection
+                            availableModelsSection
+                            storageInfoSection
+                            advancedSettingsSection
+                        }
+                        .padding(.horizontal, AppSpacing.lg)
+                        .padding(.bottom, AppSpacing.xl)
+                    }
+                }
+            }
+            .navigationBarTitleDisplayMode(.inline)
+            .toolbar {
+                ToolbarItem(placement: .confirmationAction) {
+                    Button("Done") { 
+                        HapticService.impact(.light)
+                        dismiss() 
+                    }
+                    .foregroundStyle(Color.accentColor)
+                }
+            }
+            .alert("Delete Model?", isPresented: .init(
+                get: { showDeleteConfirmation != nil },
+                set: { if !$0 { showDeleteConfirmation = nil } }
+            )) {
+                Button("Cancel", role: .cancel) { showDeleteConfirmation = nil }
+                Button("Delete", role: .destructive) {
+                    if let id = showDeleteConfirmation {
+                        try? modelManager.deleteModel(id)
+                        showDeleteConfirmation = nil
+                    }
+                }
+            } message: {
+                Text("This will remove the model from your device. You can download it again later.")
+            }
+            .alert("Download Error", isPresented: .init(
+                get: { downloadError != nil },
+                set: { if !$0 { downloadError = nil } }
+            )) {
+                Button("OK") { downloadError = nil }
+            } message: {
+                if let error = downloadError {
+                    Text(error.localizedDescription)
+                }
+            }
+        }
+    }
+
+    // MARK: - Sections
+    @EnvironmentObject private var gradientManager: GradientManager
+    @Environment(\.colorScheme) private var colorScheme
+    
+    private var currentModelSection: some View {
+        VStack(alignment: .leading, spacing: AppSpacing.md) {
+            HStack {
+                Text("Current Voice Model")
+                    .font(.system(size: 13, weight: .medium, design: .rounded))
+                    .textCase(.uppercase)
+                    .foregroundStyle(.secondary.opacity(0.8))
+                Spacer()
+            }
+            
+            GlassCard {
+                VStack(spacing: AppSpacing.md) {
+                    HStack {
+                        HStack(spacing: AppSpacing.sm) {
+                            Image(systemName: "waveform")
+                                .font(.system(size: 18, weight: .medium))
+                                .foregroundStyle(
+                                    LinearGradient(
+                                        colors: gradientManager.active.colors(for: colorScheme),
+                                        startPoint: .topLeading,
+                                        endPoint: .bottomTrailing
+                                    )
+                                )
+                            Text("Active Model")
+                                .font(.system(size: 16, weight: .medium))
+                        }
+                        Spacer()
+                        Text(modelManager.activeModel)
+                            .font(.system(size: 15, weight: .regular, design: .monospaced))
+                            .foregroundStyle(.secondary)
+                    }
+                    
+                    if let active = modelManager.availableModels.first(where: { $0.id == modelManager.activeModel }) {
+                        Divider()
+                            .background(Color.primary.opacity(0.05))
+                        
+                        HStack(spacing: AppSpacing.lg) {
+                            ModelMetric(icon: "chart.line.uptrend.xyaxis", label: "Accuracy", value: active.accuracy)
+                            ModelMetric(icon: "speedometer", label: "Speed", value: active.speed)
+                            ModelMetric(icon: "internaldrive", label: "Size", value: active.size)
+                        }
+                    }
+                }
+                .padding(AppSpacing.md)
+            }
+            
+            Text("The active model is used for voice transcription. Larger models provide better accuracy but use more storage and memory.")
+                .font(.system(size: 13, weight: .regular))
+                .foregroundStyle(.secondary)
+                .padding(.horizontal, AppSpacing.xs)
+        }
+    }
+
+    private var availableModelsSection: some View {
+        VStack(alignment: .leading, spacing: AppSpacing.md) {
+            HStack {
+                Text("Available Models")
+                    .font(.system(size: 13, weight: .medium, design: .rounded))
+                    .textCase(.uppercase)
+                    .foregroundStyle(.secondary.opacity(0.8))
+                Spacer()
+            }
+            
+            VStack(spacing: AppSpacing.sm) {
+                ForEach(modelManager.availableModels) { model in
+                    ModelRow(
+                        model: model,
+                        isDownloaded: modelManager.downloadedModels.contains(model.id),
+                        isActive: modelManager.activeModel == model.id,
+                        isDownloading: modelManager.isDownloading[model.id] ?? false,
+                        downloadProgress: modelManager.downloadProgress[model.id] ?? 0,
+                        onDownload: {
+                            HapticService.impact(.light)
+                            Task {
+                                do {
+                                    try await modelManager.downloadModel(model.id)
+                                } catch {
+                                    downloadError = error
+                                }
+                            }
+                        },
+                        onDelete: { 
+                            HapticService.impact(.medium)
+                            showDeleteConfirmation = model.id 
+                        },
+                        onActivate: { 
+                            HapticService.impact(.medium)
+                            modelManager.activeModel = model.id 
+                        }
+                    )
+                }
+            }
+            
+            Text("Download additional models for better accuracy or different languages. Models are stored locally and work offline.")
+                .font(.system(size: 13, weight: .regular))
+                .foregroundStyle(.secondary)
+                .padding(.horizontal, AppSpacing.xs)
+        }
+    }
+
+    private var storageInfoSection: some View {
+        VStack(alignment: .leading, spacing: AppSpacing.md) {
+            HStack {
+                Text("Storage")
+                    .font(.system(size: 13, weight: .medium, design: .rounded))
+                    .textCase(.uppercase)
+                    .foregroundStyle(.secondary.opacity(0.8))
+                Spacer()
+            }
+            
+            GlassCard {
+                StorageInfoView(modelManager: modelManager)
+                    .padding(AppSpacing.md)
+            }
+        }
+    }
+
+    private var advancedSettingsSection: some View {
+        VStack(alignment: .leading, spacing: AppSpacing.md) {
+            HStack {
+                Text("Advanced")
+                    .font(.system(size: 13, weight: .medium, design: .rounded))
+                    .textCase(.uppercase)
+                    .foregroundStyle(.secondary.opacity(0.8))
+                Spacer()
+            }
+            
+            VStack(spacing: AppSpacing.xs) {
+                GlassCard {
+                    Toggle(isOn: $autoSelectModel) {
+                        Label("Auto-Select Best Model", systemImage: "wand.and.stars")
+                            .font(.system(size: 16, weight: .regular))
+                    }
+                    .padding(AppSpacing.md)
+                    .onChange(of: autoSelectModel) { _, _ in
+                        HapticService.impact(.light)
+                    }
+                }
+                
+                GlassCard {
+                    Toggle(isOn: $downloadCellular) {
+                        Label("Download Over Cellular", systemImage: "antenna.radiowaves.left.and.right")
+                            .font(.system(size: 16, weight: .regular))
+                    }
+                    .padding(AppSpacing.md)
+                    .onChange(of: downloadCellular) { _, _ in
+                        HapticService.impact(.light)
+                    }
+                }
+                
+                Button {
+                    HapticService.impact(.medium)
+                    Task {
+                        do {
+                            try modelManager.clearUnusedModels()
+                        } catch {
+                            AppLogger.error("Failed to clear model cache", error: error, category: .storage)
+                        }
+                    }
+                } label: {
+                    HStack {
+                        Image(systemName: "trash")
+                            .font(.system(size: 16, weight: .medium))
+                        Text("Clear Model Cache")
+                            .font(.system(size: 16, weight: .medium, design: .rounded))
+                        Spacer()
+                    }
+                    .foregroundColor(Color.red)
+                    .padding(AppSpacing.md)
+                    .background(
+                        GlassCard {
+                            Color.red.opacity(0.1)
+                        }
+                    )
+                }
+                .buttonStyle(.plain)
+            }
+        }
+    }
+}
+
+// MARK: - Model Metric Component
+private struct ModelMetric: View {
+    let icon: String
+    let label: String
+    let value: String
+    @EnvironmentObject private var gradientManager: GradientManager
+    @Environment(\.colorScheme) private var colorScheme
+    
+    var body: some View {
+        VStack(spacing: AppSpacing.xs) {
+            Image(systemName: icon)
+                .font(.system(size: 16, weight: .medium))
+                .foregroundStyle(
+                    LinearGradient(
+                        colors: gradientManager.active.colors(for: colorScheme),
+                        startPoint: .topLeading,
+                        endPoint: .bottomTrailing
+                    )
+                )
+            
+            Text(label)
+                .font(.system(size: 11, weight: .medium))
+                .foregroundStyle(.secondary)
+            
+            Text(value)
+                .font(.system(size: 13, weight: .semibold))
+                .foregroundStyle(.primary)
+        }
+        .frame(maxWidth: .infinity)
+    }
+}
+
+// MARK: - Model Row
+private struct ModelRow: View {
+    let model: WhisperModelManager.WhisperModel
+    let isDownloaded: Bool
+    let isActive: Bool
+    let isDownloading: Bool
+    let downloadProgress: Double
+    let onDownload: () -> Void
+    let onDelete: () -> Void
+    let onActivate: () -> Void
+    @EnvironmentObject private var gradientManager: GradientManager
+    @Environment(\.colorScheme) private var colorScheme
+
+    var body: some View {
+        GlassCard {
+            VStack(alignment: .leading, spacing: AppSpacing.md) {
+                HStack {
+                    VStack(alignment: .leading, spacing: AppSpacing.xs) {
+                        Text(model.displayName)
+                            .font(.system(size: 18, weight: .semibold, design: .rounded))
+                            .foregroundStyle(.primary)
+                        
+                        HStack(spacing: AppSpacing.lg) {
+                            ModelAttribute(icon: "chart.line.uptrend.xyaxis", value: model.accuracy)
+                            ModelAttribute(icon: "speedometer", value: model.speed)
+                            ModelAttribute(icon: "internaldrive", value: model.size)
+                        }
+                    }
+                    
+                    Spacer()
+                    
+                    if isDownloading {
+                        ZStack {
+                            Circle()
+                                .stroke(Color.primary.opacity(0.1), lineWidth: 3)
+                                .frame(width: 40, height: 40)
+                            
+                            Circle()
+                                .trim(from: 0, to: downloadProgress)
+                                .stroke(
+                                    LinearGradient(
+                                        colors: gradientManager.active.colors(for: colorScheme),
+                                        startPoint: .topLeading,
+                                        endPoint: .bottomTrailing
+                                    ),
+                                    style: StrokeStyle(lineWidth: 3, lineCap: .round)
+                                )
+                                .frame(width: 40, height: 40)
+                                .rotationEffect(.degrees(-90))
+                                .animation(.easeInOut, value: downloadProgress)
+                            
+                            Text("\(Int(downloadProgress * 100))%")
+                                .font(.system(size: 11, weight: .semibold, design: .rounded))
+                        }
+                    } else if isDownloaded {
+                        if isActive {
+                            Image(systemName: "checkmark.circle.fill")
+                                .font(.system(size: 28, weight: .medium))
+                                .foregroundStyle(
+                                    LinearGradient(
+                                        colors: [Color.green, Color.green.opacity(0.8)],
+                                        startPoint: .topLeading,
+                                        endPoint: .bottomTrailing
+                                    )
+                                )
+                        } else {
+                            Menu {
+                                Button {
+                                    onActivate()
+                                } label: {
+                                    Label("Use This Model", systemImage: "checkmark.circle")
+                                }
+                                
+                                Button(role: .destructive) {
+                                    onDelete()
+                                } label: {
+                                    Label("Delete", systemImage: "trash")
+                                }
+                            } label: {
+                                Image(systemName: "ellipsis.circle")
+                                    .font(.system(size: 24, weight: .regular))
+                                    .foregroundStyle(
+                                        LinearGradient(
+                                            colors: gradientManager.active.colors(for: colorScheme),
+                                            startPoint: .topLeading,
+                                            endPoint: .bottomTrailing
+                                        )
+                                    )
+                            }
+                        }
+                    } else {
+                        Button(action: onDownload) {
+                            Image(systemName: "arrow.down.circle.fill")
+                                .font(.system(size: 28, weight: .medium))
+                                .foregroundStyle(
+                                    LinearGradient(
+                                        colors: gradientManager.active.colors(for: colorScheme),
+                                        startPoint: .topLeading,
+                                        endPoint: .bottomTrailing
+                                    )
+                                )
+                        }
+                    }
+                }
+                
+                if isDownloading {
+                    VStack(spacing: AppSpacing.xs) {
+                        GeometryReader { geometry in
+                            ZStack(alignment: .leading) {
+                                Capsule()
+                                    .fill(Color.primary.opacity(0.05))
+                                    .frame(height: 6)
+                                
+                                Capsule()
+                                    .fill(
+                                        LinearGradient(
+                                            colors: gradientManager.active.colors(for: colorScheme),
+                                            startPoint: .leading,
+                                            endPoint: .trailing
+                                        )
+                                    )
+                                    .frame(width: geometry.size.width * downloadProgress, height: 6)
+                                    .animation(.easeInOut, value: downloadProgress)
+                            }
+                        }
+                        .frame(height: 6)
+                        
+                        HStack {
+                            Text("Downloading...")
+                                .font(.system(size: 13, weight: .medium))
+                                .foregroundStyle(.secondary)
+                            Spacer()
+                            Text(formatBytes(Int(Double(model.sizeBytes) * downloadProgress)) + " / " + model.size)
+                                .font(.system(size: 12, weight: .regular, design: .monospaced))
+                                .foregroundStyle(.secondary)
+                        }
+                    }
+                }
+            }
+            .padding(AppSpacing.md)
+        }
+        .overlay(
+            RoundedRectangle(cornerRadius: 16)
+                .strokeBorder(
+                    isActive ? LinearGradient(
+                        colors: [Color.green, Color.green.opacity(0.6)],
+                        startPoint: .topLeading,
+                        endPoint: .bottomTrailing
+                    ) : LinearGradient(
+                        colors: [Color.clear, Color.clear],
+                        startPoint: .topLeading,
+                        endPoint: .bottomTrailing
+                    ),
+                    lineWidth: 2
+                )
+        )
+    }
+    
+    private func formatBytes(_ bytes: Int) -> String {
+        let formatter = ByteCountFormatter()
+        formatter.countStyle = .file
+        return formatter.string(fromByteCount: Int64(bytes))
+    }
+}
+
+// MARK: - Model Attribute
+private struct ModelAttribute: View {
+    let icon: String
+    let value: String
+    
+    var body: some View {
+        HStack(spacing: 4) {
+            Image(systemName: icon)
+                .font(.system(size: 12, weight: .medium))
+                .foregroundStyle(.secondary)
+            Text(value)
+                .font(.system(size: 13, weight: .regular))
+                .foregroundStyle(.secondary)
+        }
+    }
+}
+
+// MARK: - Storage Info
+private struct StorageInfoView: View {
+    @ObservedObject var modelManager: WhisperModelManager
+    @EnvironmentObject private var gradientManager: GradientManager
+    @Environment(\.colorScheme) private var colorScheme
+
+    private var totalModelSize: Int {
+        modelManager.downloadedModels.compactMap { id in
+            modelManager.availableModels.first { $0.id == id }?.sizeBytes
+        }.reduce(0, +)
+    }
+
+    var body: some View {
+        VStack(spacing: AppSpacing.md) {
+            StorageRow(
+                icon: "square.stack.3d.down.right",
+                label: "Models Downloaded",
+                value: "\(modelManager.downloadedModels.count)"
+            )
+            
+            Divider()
+                .background(Color.primary.opacity(0.05))
+            
+            StorageRow(
+                icon: "internaldrive",
+                label: "Total Size",
+                value: formatBytes(totalModelSize)
+            )
+            
+            if let deviceStorage = getDeviceStorage() {
+                Divider()
+                    .background(Color.primary.opacity(0.05))
+                
+                StorageRow(
+                    icon: "externaldrive",
+                    label: "Available Storage",
+                    value: formatBytes(deviceStorage.available),
+                    isHighlighted: deviceStorage.available < 1_000_000_000 // Less than 1GB
+                )
+            }
+        }
+    }
+
+    private func formatBytes(_ bytes: Int) -> String {
+        let formatter = ByteCountFormatter()
+        formatter.countStyle = .file
+        return formatter.string(fromByteCount: Int64(bytes))
+    }
+
+    private func getDeviceStorage() -> (available: Int, total: Int)? {
+        do {
+            let attributes = try FileManager.default.attributesOfFileSystem(forPath: NSHomeDirectory())
+            if let free = attributes[.systemFreeSize] as? Int64,
+               let total = attributes[.systemSize] as? Int64 {
+                return (available: Int(free), total: Int(total))
+            }
+        } catch {
+            return nil
+        }
+        return nil
+    }
+}
+
+// MARK: - Storage Row
+private struct StorageRow: View {
+    let icon: String
+    let label: String
+    let value: String
+    var isHighlighted: Bool = false
+    @EnvironmentObject private var gradientManager: GradientManager
+    @Environment(\.colorScheme) private var colorScheme
+    
+    var body: some View {
+        HStack {
+            HStack(spacing: AppSpacing.sm) {
+                Image(systemName: icon)
+                    .font(.system(size: 16, weight: .medium))
+                    .foregroundStyle(
+                        isHighlighted 
+                            ? LinearGradient(
+                                colors: [Color.orange, Color.orange.opacity(0.8)],
+                                startPoint: .topLeading,
+                                endPoint: .bottomTrailing
+                              )
+                            : LinearGradient(
+                                colors: gradientManager.active.colors(for: colorScheme),
+                                startPoint: .topLeading,
+                                endPoint: .bottomTrailing
+                              )
+                    )
+                
+                Text(label)
+                    .font(.system(size: 15, weight: .regular))
+                    .foregroundStyle(.primary)
+            }
+            
+            Spacer()
+            
+            Text(value)
+                .font(.system(size: 15, weight: .medium, design: .monospaced))
+                .foregroundStyle(isHighlighted ? Color.orange : .secondary)
+        }
+    }
+}

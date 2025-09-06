@@ -1,0 +1,15 @@
+{
+    "items": [
+        {
+            "name": "Impossible Food",
+            "brand": null,
+            "quantity": 100,
+            "unit": "grams",
+            "calories": 10000,
+            "proteinGrams": 500,
+            "carbGrams": 2000,
+            "fatGrams": 1000,
+            "confidence": 0.1
+        }
+    ]
+}

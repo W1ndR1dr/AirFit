@@ -9,6 +9,15 @@ public enum AppError: LocalizedError, Sendable {
     case unknown(message: String)
     case healthKitNotAuthorized
     case cameraNotAuthorized
+    case userNotFound
+    case unsupportedProvider
+    case serviceUnavailable
+    case invalidInput(message: String)
+    case llm(String)
+    case authentication(String)
+    case keychain(String)
+    case apiConfiguration(String)
+    case configuration(String)
 
     public var errorDescription: String? {
         switch self {
@@ -27,7 +36,25 @@ public enum AppError: LocalizedError, Sendable {
         case .healthKitNotAuthorized:
             return "Health access is required for this feature"
         case .cameraNotAuthorized:
-            return "Camera access is required to scan barcodes"
+            return "Camera access is required to take meal photos"
+        case .userNotFound:
+            return "User profile not found"
+        case .unsupportedProvider:
+            return "This AI provider is not supported"
+        case .serviceUnavailable:
+            return "Service is currently unavailable"
+        case .invalidInput(let message):
+            return message
+        case .llm(let message):
+            return "AI Error: \(message)"
+        case .authentication(let message):
+            return "Authentication Error: \(message)"
+        case .keychain(let message):
+            return "Keychain Error: \(message)"
+        case .apiConfiguration(let message):
+            return "API Configuration Error: \(message)"
+        case .configuration(let message):
+            return "Configuration Error: \(message)"
         }
     }
 
@@ -37,14 +64,42 @@ public enum AppError: LocalizedError, Sendable {
             return "Please check your internet connection and try again"
         case .decodingError:
             return "Please try updating the app"
+        case .validationError:
+            return nil
         case .unauthorized:
             return "Tap here to log in"
+        case .serverError:
+            return "Please try again later"
+        case .unknown:
+            return nil
         case .healthKitNotAuthorized:
             return "Grant access in Settings > Privacy > Health"
         case .cameraNotAuthorized:
             return "Grant access in Settings > Privacy > Camera"
-        default:
-            return nil
+        case .userNotFound:
+            return "Please complete the setup process"
+        case .unsupportedProvider:
+            return "Please check your AI provider configuration"
+        case .serviceUnavailable:
+            return "Please try again later"
+        case .invalidInput:
+            return "Please check your input and try again"
+        case .llm:
+            return "Please try again or check your AI service configuration"
+        case .authentication:
+            return "Please check your API key configuration"
+        case .keychain:
+            return "Please try again. If the problem persists, reinstall the app"
+        case .apiConfiguration:
+            return "Please verify your API keys and try again"
+        case .configuration:
+            return "Please check your settings and try again"
+        case .fileSystemError:
+            return "Please restart the app. If the problem persists, check device storage"
+        case .dataCorruption:
+            return "Data may need to be reset. Please contact support if this persists"
+        case .modelContainerError:
+            return "Please restart the app. If the problem persists, data may need to be reset"
         }
     }
 }

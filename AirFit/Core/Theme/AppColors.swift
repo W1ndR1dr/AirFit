@@ -1,6 +1,6 @@
 import SwiftUI
 
-public struct AppColors {
+public struct AppColors: Sendable {
     // MARK: - Background Colors
     static let backgroundPrimary = Color("BackgroundPrimary")
     static let backgroundSecondary = Color("BackgroundSecondary")
@@ -22,6 +22,7 @@ public struct AppColors {
     static let buttonBackground = Color("ButtonBackground")
     static let buttonText = Color("ButtonText")
     static let accentColor = Color("AccentColor")
+    static let accent = accentColor // Alias for consistency
     static let accentSecondary = Color("AccentSecondary")
 
     // MARK: - Semantic Colors

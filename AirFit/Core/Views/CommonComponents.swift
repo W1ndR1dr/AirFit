@@ -89,6 +89,7 @@ public struct EmptyStateView: View {
 }
 
 // MARK: - Card View
+/// Legacy card view for backward compatibility. New code should use GlassCard.
 public struct Card<Content: View>: View {
     let content: () -> Content
 
@@ -97,11 +98,10 @@ public struct Card<Content: View>: View {
     }
 
     public var body: some View {
-        content()
-            .padding(AppSpacing.medium)
-            .background(Color.cardBackground)
-            .clipShape(RoundedRectangle(cornerRadius: AppSpacing.medium))
-            .shadow(color: .black.opacity(0.05), radius: 5, y: 2)
+        // Use GlassCard internally for consistency
+        GlassCard {
+            content()
+        }
     }
 }
 

@@ -1,0 +1,541 @@
+import Foundation
+
+// MARK: - AppError Extensions for Error Type Consolidation
+
+extension AppError {
+
+    // MARK: - AI Errors
+
+    /// Creates AppError from AIError
+    static func from(_ aiError: AIError) -> AppError {
+        switch aiError {
+        case .networkError(let message):
+            return .networkError(underlying: NSError(domain: "AI", code: 0, userInfo: [NSLocalizedDescriptionKey: message]))
+        case .rateLimitExceeded(let retryAfter):
+            let message = retryAfter.map { "Rate limit exceeded. Try again in \(Int($0)) seconds." }
+                ?? "Rate limit exceeded. Please try again later."
+            return .serverError(code: 429, message: message)
+        case .invalidResponse(let message):
+            return .decodingError(underlying: NSError(domain: "AI", code: 0, userInfo: [NSLocalizedDescriptionKey: message]))
+        case .modelOverloaded:
+            return .serverError(code: 503, message: "AI service temporarily unavailable")
+        case .contextLengthExceeded:
+            return .validationError(message: "Message too long for AI processing")
+        case .unauthorized:
+            return .unauthorized
+        case .timeout(let duration):
+            return .networkError(underlying: NSError(domain: "AI", code: -1001, userInfo: [NSLocalizedDescriptionKey: "Request timed out after \(Int(duration)) seconds"]))
+        }
+    }
+
+    /// Creates AppError from DirectAIError
+    static func from(_ directAIError: DirectAIError) -> AppError {
+        switch directAIError {
+        case .nutritionParsingFailed(let reason):
+            return .validationError(message: "Failed to parse nutrition: \(reason)")
+        case .nutritionValidationFailed:
+            return .validationError(message: "Invalid nutrition data")
+        case .educationalContentFailed(let reason):
+            return .unknown(message: "Failed to generate content: \(reason)")
+        case .invalidResponse, .emptyResponse:
+            return .decodingError(underlying: NSError(domain: "DirectAI", code: 0))
+        case .timeout:
+            return .networkError(underlying: NSError(domain: "DirectAI", code: -1_001))
+        case .invalidJSONResponse(let response):
+            return .decodingError(underlying: NSError(domain: "DirectAI", code: 0, userInfo: [NSLocalizedDescriptionKey: response]))
+        case .invalidNutritionValues(let details):
+            return .validationError(message: "Invalid nutrition values: \(details)")
+        }
+    }
+
+    // MARK: - Network Errors
+
+    /// Creates AppError from NetworkError
+    static func from(_ networkError: NetworkError) -> AppError {
+        switch networkError {
+        case .invalidURL:
+            return .validationError(message: "Invalid URL")
+        case .invalidResponse:
+            return .networkError(underlying: NSError(domain: "Network", code: 0, userInfo: [NSLocalizedDescriptionKey: "Invalid response from server"]))
+        case .noData:
+            return .networkError(underlying: NSError(domain: "Network", code: 0, userInfo: [NSLocalizedDescriptionKey: "No data received"]))
+        case .decodingError(let error):
+            return .decodingError(underlying: error)
+        case let .httpError(statusCode, data):
+            return .serverError(code: statusCode, message: String(data: data ?? Data(), encoding: .utf8))
+        case .networkError(let error):
+            return .networkError(underlying: error)
+        case .timeout:
+            return .networkError(underlying: NSError(domain: "Network", code: -1_001, userInfo: [NSLocalizedDescriptionKey: "Request timed out"]))
+        }
+    }
+
+    // MARK: - Service Errors
+
+    /// Creates AppError from ServiceError
+    static func from(_ serviceError: ServiceError) -> AppError {
+        switch serviceError {
+        case .notConfigured:
+            return .unknown(message: "Service not configured")
+        case .invalidConfiguration(let detail):
+            return .unknown(message: "Invalid configuration: \(detail)")
+        case .networkUnavailable:
+            return .networkError(underlying: NSError(domain: "Service", code: 0, userInfo: [NSLocalizedDescriptionKey: "Network unavailable"]))
+        case .authenticationFailed:
+            return .unauthorized
+        case .rateLimitExceeded(let retryAfter):
+            let message = retryAfter.map { "Rate limit exceeded. Retry after \(Int($0)) seconds" }
+                ?? "Rate limit exceeded"
+            return .serverError(code: 429, message: message)
+        case .invalidResponse(let detail):
+            return .decodingError(underlying: NSError(domain: "Service", code: 0, userInfo: [NSLocalizedDescriptionKey: detail]))
+        case .streamingError(let detail):
+            return .unknown(message: "Streaming error: \(detail)")
+        case .timeout:
+            return .networkError(underlying: NSError(domain: "Service", code: -1_001, userInfo: [NSLocalizedDescriptionKey: "Request timed out"]))
+        case .cancelled:
+            return .unknown(message: "Request was cancelled")
+        case let .providerError(code, message):
+            return .unknown(message: "Provider error [\(code)]: \(message)")
+        case .unknown(let error):
+            return .unknown(message: error.localizedDescription)
+        }
+    }
+
+    // MARK: - Workout Errors
+
+    /// Creates AppError from WorkoutError
+    static func from(_ workoutError: WorkoutError) -> AppError {
+        switch workoutError {
+        case .saveFailed:
+            return .unknown(message: "Failed to save workout")
+        case .syncFailed:
+            return .networkError(underlying: NSError(domain: "WorkoutSync", code: 0, userInfo: [NSLocalizedDescriptionKey: "Failed to sync workout data"]))
+        }
+    }
+
+    // MARK: - HealthKit Errors
+
+    /// Creates AppError from HealthKitError
+    static func from(_ healthKitError: HealthKitError) -> AppError {
+        switch healthKitError {
+        case .notAvailable:
+            return .unknown(message: "HealthKit is not available on this device")
+        case .authorizationDenied:
+            return .healthKitNotAuthorized
+        case .noData, .dataNotAvailable:
+            return .unknown(message: "No health data found")
+        }
+    }
+
+    // MARK: - LLM Errors
+
+    /// Creates AppError from LLMError
+    static func from(_ llmError: LLMError) -> AppError {
+        switch llmError {
+        case .invalidAPIKey:
+            return .unauthorized
+        case .rateLimitExceeded(let retryAfter):
+            let message = retryAfter.map { "Rate limit exceeded. Try again in \(Int($0)) seconds." }
+                ?? "Rate limit exceeded. Please try again later."
+            return .serverError(code: 429, message: message)
+        case let .contextLengthExceeded(max, requested):
+            return .validationError(message: "Message too long. Maximum: \(max) tokens, requested: \(requested)")
+        case .invalidResponse(let detail):
+            return .decodingError(underlying: NSError(domain: "LLM", code: 0, userInfo: [NSLocalizedDescriptionKey: detail]))
+        case .networkError(let error):
+            return .networkError(underlying: error)
+        case let .serverError(statusCode, message):
+            return .serverError(code: statusCode, message: message)
+        case .timeout:
+            return .networkError(underlying: NSError(domain: "LLM", code: -1_001, userInfo: [NSLocalizedDescriptionKey: "Request timed out"]))
+        case .cancelled:
+            return .unknown(message: "Request was cancelled")
+        case .unsupportedFeature:
+            return .unsupportedProvider
+        case .contentFilter:
+            return .validationError(message: "Content was filtered for safety reasons")
+        }
+    }
+
+    // MARK: - Keychain Errors
+
+    /// Creates AppError from KeychainError
+    static func from(_ keychainError: KeychainError) -> AppError {
+        switch keychainError {
+        case .itemNotFound:
+            return .unknown(message: "Keychain item not found")
+        case .duplicateItem:
+            return .unknown(message: "Keychain item already exists")
+        case .invalidData:
+            return .decodingError(underlying: NSError(domain: "Keychain", code: 0))
+        case .unhandledError(let status):
+            return .unknown(message: "Keychain error: \(status)")
+        }
+    }
+
+    /// Creates AppError from KeychainHelperError
+    static func from(_ keychainHelperError: KeychainHelperError) -> AppError {
+        switch keychainHelperError {
+        case .itemNotFound:
+            return .unknown(message: "Keychain item not found")
+        case .duplicateItem:
+            return .unknown(message: "Keychain item already exists")
+        case .invalidItemFormat:
+            return .validationError(message: "Invalid keychain item format")
+        case .unexpectedItemData:
+            return .decodingError(underlying: NSError(domain: "KeychainHelper", code: 0, userInfo: [NSLocalizedDescriptionKey: "Unexpected item data from keychain"]))
+        case .encodingError:
+            return .decodingError(underlying: NSError(domain: "KeychainHelper", code: 1, userInfo: [NSLocalizedDescriptionKey: "Failed to encode data for keychain"]))
+        case .decodingError:
+            return .decodingError(underlying: NSError(domain: "KeychainHelper", code: 2, userInfo: [NSLocalizedDescriptionKey: "Failed to decode data from keychain"]))
+        case .unhandledError(let status):
+            return .unknown(message: "Keychain error: \(status)")
+        }
+    }
+
+    // MARK: - Onboarding Errors
+    // Removed - Onboarding now uses standard AppError types
+
+    // MARK: - Food Tracking Errors
+
+    /// Creates AppError from FoodTrackingError
+    static func from(_ foodError: FoodTrackingError) -> AppError {
+        switch foodError {
+        case .transcriptionFailed:
+            return .unknown(message: "Failed to transcribe voice input")
+        case .aiParsingFailed:
+            return .unknown(message: "Failed to parse food information")
+        case .noFoodFound:
+            return .validationError(message: "No food items detected")
+        case .networkError:
+            return .networkError(underlying: NSError(domain: "FoodTracking", code: 0, userInfo: [NSLocalizedDescriptionKey: "Network error"]))
+        case .invalidInput:
+            return .validationError(message: "Invalid input provided")
+        case .permissionDenied:
+            return .unauthorized
+        case .aiProcessingTimeout:
+            return .networkError(underlying: NSError(domain: "FoodTracking", code: -1_001, userInfo: [NSLocalizedDescriptionKey: "AI processing timed out"]))
+        case .invalidNutritionResponse:
+            return .decodingError(underlying: NSError(domain: "FoodTracking", code: 0, userInfo: [NSLocalizedDescriptionKey: "Invalid nutrition data from AI"]))
+        case .invalidNutritionData:
+            return .validationError(message: "Malformed nutrition information")
+        case .invalidImage:
+            return .validationError(message: "Invalid image provided")
+        }
+    }
+
+    /// Creates AppError from FoodVoiceError
+    static func from(_ voiceError: FoodVoiceError) -> AppError {
+        switch voiceError {
+        case .voiceInputManagerUnavailable:
+            return .unknown(message: "Voice input manager is not available")
+        case .transcriptionFailed:
+            return .unknown(message: "Failed to transcribe voice input")
+        case .permissionDenied:
+            return .cameraNotAuthorized // Using similar auth error type
+        }
+    }
+
+    // MARK: - Chat Errors
+
+    /// Creates AppError from ChatError
+    static func from(_ chatError: ChatError) -> AppError {
+        switch chatError {
+        case .noActiveSession:
+            return .unknown(message: "No active chat session")
+        case .exportFailed(let reason):
+            return .unknown(message: "Export failed: \(reason)")
+        case .voiceRecognitionUnavailable:
+            return .unknown(message: "Voice recognition is not available")
+        }
+    }
+
+    // MARK: - Settings Errors
+
+    /// Creates AppError from SettingsError
+    static func from(_ settingsError: SettingsError) -> AppError {
+        switch settingsError {
+        case .missingAPIKey(let provider):
+            return .validationError(message: "Please add an API key for \(provider.displayName)")
+        case .invalidAPIKey:
+            return .validationError(message: "Invalid API key format")
+        case .apiKeyTestFailed:
+            return .validationError(message: "API key validation failed. Please check your key.")
+        case .biometricsNotAvailable:
+            return .unknown(message: "Biometric authentication is not available on this device")
+        case .exportFailed(let reason):
+            return .unknown(message: "Export failed: \(reason)")
+        case .personaNotConfigured:
+            return .unknown(message: "Coach persona is not configured")
+        case .personaAdjustmentFailed(let reason):
+            return .unknown(message: "Failed to adjust persona: \(reason)")
+        }
+    }
+
+    // MARK: - AI Module Errors
+
+    /// Creates AppError from ConversationManagerError
+    static func from(_ conversationError: ConversationManagerError) -> AppError {
+        switch conversationError {
+        case .userNotFound:
+            return .userNotFound
+        case .conversationNotFound:
+            return .unknown(message: "Conversation not found")
+        case .invalidMessageRole:
+            return .validationError(message: "Invalid message role")
+        case .encodingFailed:
+            return .decodingError(underlying: NSError(domain: "ConversationManager", code: 0, userInfo: [NSLocalizedDescriptionKey: "Failed to encode message data"]))
+        case .saveFailed(let error):
+            return .unknown(message: "Failed to save message: \(error.localizedDescription)")
+        }
+    }
+
+    // MARK: - FunctionError conversion removed
+    // FunctionError enum has been removed from the codebase as part of Phase 3 simplification
+    // Function execution errors are now handled directly by AppError
+
+    /// Creates AppError from PersonaEngineError
+    static func from(_ personaEngineError: PersonaEngineError) -> AppError {
+        switch personaEngineError {
+        case .promptTooLong(let tokens):
+            return .validationError(message: "System prompt too long: ~\(tokens) tokens")
+        case .invalidProfile:
+            return .validationError(message: "Invalid user profile data")
+        case .encodingFailed:
+            return .decodingError(underlying: NSError(domain: "PersonaEngine", code: 0, userInfo: [NSLocalizedDescriptionKey: "Failed to encode profile data"]))
+        }
+    }
+
+    /// Creates AppError from PersonaError
+    static func from(_ personaError: PersonaError) -> AppError {
+        switch personaError {
+        case .invalidResponse(let message):
+            return .decodingError(underlying: NSError(domain: "Persona", code: 0, userInfo: [NSLocalizedDescriptionKey: "Invalid AI response: \(message)"]))
+        case .missingField(let field):
+            return .validationError(message: "Missing required field: \(field)")
+        case let .invalidFormat(field, expected):
+            return .validationError(message: "Invalid format for \(field). Expected: \(expected)")
+        }
+    }
+
+    // MARK: - Notifications Errors
+
+    /// Creates AppError from LiveActivityError
+    static func from(_ liveActivityError: LiveActivityError) -> AppError {
+        switch liveActivityError {
+        case .notEnabled:
+            return .unknown(message: "Live Activities are not enabled")
+        case .failedToStart(let error):
+            return .unknown(message: "Failed to start activity: \(error.localizedDescription)")
+        }
+    }
+
+    // MARK: - Coach Engine Errors
+
+    /// Creates AppError from CoachEngineError
+    static func from(_ coachError: CoachEngineError) -> AppError {
+        switch coachError {
+        case .noActiveConversation:
+            return .unknown(message: "No active conversation")
+        case .noMessageToRegenerate:
+            return .validationError(message: "No message to regenerate")
+        case .aiServiceUnavailable:
+            return .unknown(message: "AI service unavailable")
+        case .streamingTimeout:
+            return .networkError(underlying: NSError(domain: "Streaming", code: -1_001))
+        case .functionExecutionFailed(let details):
+            return .unknown(message: "Function execution failed: \(details)")
+        case .contextAssemblyFailed:
+            return .unknown(message: "Failed to assemble context")
+        case .invalidUserProfile:
+            return .validationError(message: "Invalid user profile")
+        case .nutritionParsingFailed(let details):
+            return .validationError(message: "Nutrition parsing failed: \(details)")
+        case .educationalContentFailed(let details):
+            return .unknown(message: "Educational content failed: \(details)")
+        }
+    }
+
+    // MARK: - Request Optimizer Errors
+
+    /// Creates AppError from RequestOptimizerError
+    static func from(_ optimizerError: RequestOptimizerError) -> AppError {
+        switch optimizerError {
+        case .offline:
+            return .networkError(underlying: NSError(domain: "RequestOptimizer", code: 0, userInfo: [NSLocalizedDescriptionKey: "No internet connection"]))
+        case .timeout:
+            return .networkError(underlying: NSError(domain: "RequestOptimizer", code: -1_001, userInfo: [NSLocalizedDescriptionKey: "Request timed out"]))
+        case .connectionLost:
+            return .networkError(underlying: NSError(domain: "RequestOptimizer", code: -1_005, userInfo: [NSLocalizedDescriptionKey: "Connection lost"]))
+        case .duplicate:
+            return .unknown(message: "Request already in progress")
+        case .invalidResponse:
+            return .decodingError(underlying: NSError(domain: "RequestOptimizer", code: 0, userInfo: [NSLocalizedDescriptionKey: "Invalid server response"]))
+        case let .httpError(statusCode, data):
+            return .serverError(code: statusCode, message: String(data: data, encoding: .utf8))
+        case .rateLimited(let retryAfter):
+            let message = retryAfter.map { "Rate limited. Retry after: \($0)" } ?? "Rate limited"
+            return .serverError(code: 429, message: message)
+        }
+    }
+
+    // MARK: - Voice Input Errors
+
+    /// Creates AppError from VoiceInputError
+    static func from(_ voiceInputError: VoiceInputError) -> AppError {
+        switch voiceInputError {
+        case .notAuthorized:
+            return .unauthorized
+        case .whisperNotReady:
+            return .unknown(message: "Voice model not ready")
+        case .whisperInitializationFailed:
+            return .unknown(message: "Failed to initialize voice model")
+        case .modelDownloadFailed(let reason):
+            return .networkError(underlying: NSError(domain: "VoiceInput", code: 0, userInfo: [NSLocalizedDescriptionKey: "Model download failed: \(reason)"]))
+        case .transcriptionFailed:
+            return .unknown(message: "Failed to transcribe audio")
+        case .recordingFailed(let reason):
+            return .unknown(message: "Recording failed: \(reason)")
+        case .noAudioDetected:
+            return .validationError(message: "No audio detected")
+        }
+    }
+}
+
+// MARK: - Error Handling Utilities
+
+extension AppError {
+    /// Determines if the error is recoverable by the user
+    var isRecoverable: Bool {
+        switch self {
+        case .networkError, .unauthorized, .healthKitNotAuthorized, .cameraNotAuthorized:
+            return true
+        case .serverError(let code, _):
+            return code >= 500 // Server errors might resolve
+        default:
+            return false
+        }
+    }
+
+    /// Determines if the error should trigger a retry
+    var shouldRetry: Bool {
+        switch self {
+        case .networkError:
+            return true
+        case let .serverError(code, _) where code >= 500:
+            return true
+        default:
+            return false
+        }
+    }
+
+    /// Suggested retry delay in seconds
+    var retryDelay: TimeInterval? {
+        switch self {
+        case .serverError(429, _): // Rate limited
+            return 60.0
+        case let .serverError(code, _) where code >= 500:
+            return 5.0
+        case .networkError:
+            return 2.0
+        default:
+            return nil
+        }
+    }
+}
+
+// MARK: - Error Context
+
+/// Provides additional context for errors
+struct ErrorContext: Sendable {
+    let error: AppError
+    let file: String
+    let function: String
+    let line: Int
+    let additionalInfo: [String: String]? // Changed to Sendable type
+
+    init(
+        error: AppError,
+        file: String = #file,
+        function: String = #function,
+        line: Int = #line,
+        additionalInfo: [String: String]? = nil
+    ) {
+        self.error = error
+        self.file = URL(fileURLWithPath: file).lastPathComponent
+        self.function = function
+        self.line = line
+        self.additionalInfo = additionalInfo
+    }
+}
+
+// MARK: - Error Extension
+
+extension Error {
+    /// Converts any Error to AppError using the Result extension
+    var asAppError: AppError {
+        switch Result<Void, Error>.failure(self).mapToAppError() {
+        case .failure(let appError):
+            return appError
+        case .success:
+            // This should never happen
+            return AppError.unknown(message: "Unexpected error conversion")
+        }
+    }
+}
+
+// MARK: - Result Extensions
+
+extension Result where Failure == Error {
+    /// Maps any error to AppError
+    func mapToAppError() -> Result<Success, AppError> {
+        mapError { error in
+            if let appError = error as? AppError {
+                return appError
+            } else if let aiError = error as? AIError {
+                return AppError.from(aiError)
+            } else if let networkError = error as? NetworkError {
+                return AppError.from(networkError)
+            } else if let serviceError = error as? ServiceError {
+                return AppError.from(serviceError)
+            } else if let workoutError = error as? WorkoutError {
+                return AppError.from(workoutError)
+            } else if let keychainError = error as? KeychainError {
+                return AppError.from(keychainError)
+            } else if let keychainHelperError = error as? KeychainHelperError {
+                return AppError.from(keychainHelperError)
+            } else if let coachError = error as? CoachEngineError {
+                return AppError.from(coachError)
+            } else if let directAIError = error as? DirectAIError {
+                return AppError.from(directAIError)
+            } else if let foodError = error as? FoodTrackingError {
+                return AppError.from(foodError)
+            } else if let voiceError = error as? FoodVoiceError {
+                return AppError.from(voiceError)
+            } else if let chatError = error as? ChatError {
+                return AppError.from(chatError)
+            } else if let settingsError = error as? SettingsError {
+                return AppError.from(settingsError)
+            } else if let conversationError = error as? ConversationManagerError {
+                return AppError.from(conversationError)
+            } else if let personaEngineError = error as? PersonaEngineError {
+                return AppError.from(personaEngineError)
+            } else if let personaError = error as? PersonaError {
+                return AppError.from(personaError)
+            } else if let liveActivityError = error as? LiveActivityError {
+                return AppError.from(liveActivityError)
+            } else if let healthKitError = error as? HealthKitError {
+                return AppError.from(healthKitError)
+            } else if let llmError = error as? LLMError {
+                return AppError.from(llmError)
+            } else if let optimizerError = error as? RequestOptimizerError {
+                return AppError.from(optimizerError)
+            } else if let voiceInputError = error as? VoiceInputError {
+                return AppError.from(voiceInputError)
+            } else {
+                return AppError.networkError(underlying: error)
+            }
+        }
+    }
+}

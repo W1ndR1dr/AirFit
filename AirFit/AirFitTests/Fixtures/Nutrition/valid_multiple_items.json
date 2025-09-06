@@ -1,0 +1,32 @@
+{
+  "items": [
+    {
+      "name": "Greek Yogurt",
+      "brand": "Chobani",
+      "quantity": 170,
+      "unit": "grams",
+      "calories": 100,
+      "proteinGrams": 18,
+      "carbGrams": 6,
+      "fatGrams": 0,
+      "fiberGrams": 0,
+      "sugarGrams": 4,
+      "sodiumMilligrams": 65,
+      "confidence": 0.90
+    },
+    {
+      "name": "Blueberries",
+      "brand": null,
+      "quantity": 75,
+      "unit": "grams",
+      "calories": 42,
+      "proteinGrams": 0.5,
+      "carbGrams": 10.7,
+      "fatGrams": 0.2,
+      "fiberGrams": 1.8,
+      "sugarGrams": 7.3,
+      "sodiumMilligrams": 1,
+      "confidence": 0.88
+    }
+  ]
+}

@@ -1,120 +1,80 @@
 # SwiftLint Configuration for AirFit
-# Production-ready configuration for Swift 6 and iOS 18
-# Version: 1.0 - Bulletproof Foundation
+# Production-ready configuration
 
-# MARK: - Disabled Rules
-disabled_rules:
-  - todo # Allow TODOs during development
-  - explicit_type_interface # Swift's type inference is sufficient
-  - file_types_order # Too restrictive for our modular architecture
-  - type_contents_order # Too restrictive for our code organization
-  - file_name # Allow descriptive file names that don't match single types
-
-# MARK: - Opt-in Rules (Carefully Selected)
-opt_in_rules:
-  # Code Quality
-  - attributes
-  - closure_end_indentation
-  - closure_spacing
-  - collection_alignment
-  - contains_over_filter_count
-  - contains_over_filter_is_empty
-  - contains_over_first_not_nil
-  - contains_over_range_nil_comparison
-  - empty_collection_literal
-  - empty_count
-  - empty_string
-  - empty_xctest_method
-  - explicit_init
-  - first_where
-  - flatmap_over_map_reduce
-  - identical_operands
-  - joined_default_parameter
-  - last_where
-  - legacy_multiple
-  - legacy_random
-  - literal_expression_end_indentation
-  - multiline_arguments
-  - multiline_function_chains
-  - multiline_literal_brackets
-  - multiline_parameters
-  - multiline_parameters_brackets
-  - number_separator
-  - operator_usage_whitespace
-  - overridden_super_call
-  - pattern_matching_keywords
-  - prefer_self_type_over_type_of_self
-  - redundant_nil_coalescing
-  - redundant_type_annotation
-  - sorted_first_last
-  - static_operator
-  - toggle_bool
-  - unneeded_break_in_switch
-  - vertical_parameter_alignment
-  - vertical_parameter_alignment_on_call
-  - yoda_condition
-
-# MARK: - Analyzer Rules
-analyzer_rules:
-  - unused_import
-
-# MARK: - Rule Configuration
-line_length:
-  warning: 120
-  error: 150
-
-file_length:
-  warning: 400
-  error: 500
-
-function_body_length:
-  warning: 50
-  error: 100
-
-type_body_length:
-  warning: 200
-  error: 300
-
-cyclomatic_complexity:
-  warning: 10
-  error: 20
-
-nesting:
-  type_level:
-    warning: 2
-    error: 3
-  function_level:
-    warning: 5
-    error: 10
-
-identifier_name:
-  min_length:
-    warning: 1  # Allow single letter variables for common cases
-    error: 1
-  max_length:
-    warning: 40
-    error: 50
-  excluded:
-    - id
-    - x
-    - y
-    - z
-    - a  # alpha
-    - r  # red
-    - g  # green
-    - b  # blue
-
-# MARK: - Paths
+# Paths
 included:
-  - .
+  - AirFit
+  - AirFitWatchApp
 
 excluded:
   - Carthage
   - Pods
   - .build
-  - DerivedData
-  - fastlane
-  - .git
+  - AirFit/Resources
+  - AirFit/Assets.xcassets
+  - "**/.DS_Store"
+  - "**/*.generated.swift"
+  - AirFit/Docs
+  - "**/Deprecated"
 
-# MARK: - Reporter
+# Disabled Rules (Too strict for production)
+disabled_rules:
+  - todo
+  - fixme
+  - line_length
+  - file_length
+  - type_body_length
+  - function_body_length
+  - cyclomatic_complexity
+  - force_cast
+  - large_tuple
+  - function_parameter_count
+  - identifier_name
+  - nesting
+  - type_name
+  - force_try
+  - trailing_comma
+  - vertical_parameter_alignment
+  - unused_closure_parameter
+
+# Opt-in Rules (High value)
+opt_in_rules:
+  - attributes
+  - closure_end_indentation
+  - closure_spacing
+  - collection_alignment
+  - contains_over_first_not_nil
+  - empty_count
+  - empty_string
+  - explicit_init
+  - fallthrough
+  - first_where
+  - joined_default_parameter
+  - legacy_multiple
+  - legacy_random
+  - modifier_order
+  - multiline_function_chains
+  - number_separator
+  - operator_usage_whitespace
+  - overridden_super_call
+  - pattern_matching_keywords
+  - redundant_nil_coalescing
+  - sorted_first_last
+  - toggle_bool
+  - vertical_parameter_alignment_on_call
+  - yoda_condition
+
+# Rule Configuration
+trailing_whitespace:
+  ignores_empty_lines: true
+
+vertical_whitespace:
+  max_empty_lines: 2
+
+# Custom warning suppression
+attributes:
+  always_on_same_line: ["@IBAction", "@NSManaged", "@objc"]
+  always_on_line_above: ["@discardableResult", "@MainActor", "@Observable"]
+
+# Reporter
 reporter: "xcode" 

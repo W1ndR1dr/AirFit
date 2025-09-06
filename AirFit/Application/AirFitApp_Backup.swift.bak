@@ -1,0 +1,118 @@
+import SwiftUI
+import SwiftData
+
+@main
+struct AirFitApp: App {
+    // MARK: - DI Container
+    @State private var diContainer: DIContainer?
+    @State private var isInitializing = true
+    
+    // MARK: - Test Mode Detection
+    private var isTestMode: Bool {
+        ProcessInfo.processInfo.arguments.contains("--test-mode") ||
+        ProcessInfo.processInfo.environment["AIRFIT_TEST_MODE"] == "1"
+    }
+    
+    // MARK: - Shared Model Container
+    static let sharedModelContainer: ModelContainer = {
+        let schema = Schema([
+            User.self,
+            OnboardingProfile.self,
+            FoodEntry.self,
+            Workout.self,
+            DailyLog.self,
+            CoachMessage.self,
+            HealthKitSyncRecord.self,
+            ChatSession.self,
+            ChatMessage.self,
+            ConversationSession.self,
+            ConversationResponse.self,
+            TrackedGoal.self
+        ])
+
+        let modelConfiguration = ModelConfiguration(
+            schema: schema,
+            isStoredInMemoryOnly: false
+        )
+
+        do {
+            let container = try ModelContainer(for: schema, configurations: [modelConfiguration])
+            return container
+        } catch {
+            fatalError("Could not create ModelContainer: \(error)")
+        }
+    }()
+
+    var body: some Scene {
+        WindowGroup {
+            if isInitializing {
+                // Show loading screen while DI container initializes
+                VStack(spacing: 20) {
+                    ProgressView()
+                        .scaleEffect(1.5)
+                        .tint(AppColors.accentColor)
+                    
+                    Text("Initializing AirFit...")
+                        .font(AppFonts.headline)
+                        .foregroundColor(AppColors.textSecondary)
+                }
+                .frame(maxWidth: .infinity, maxHeight: .infinity)
+                .background(AppColors.backgroundPrimary)
+                .task {
+                    await initializeApp()
+                }
+            } else if let diContainer = diContainer {
+                ContentView()
+                    .modelContainer(Self.sharedModelContainer)
+                    .withDIContainer(diContainer)
+            } else {
+                // Error state - should not happen
+                VStack(spacing: 20) {
+                    Image(systemName: "exclamationmark.triangle.fill")
+                        .font(.largeTitle)
+                        .foregroundColor(AppColors.errorColor)
+                    
+                    Text("Failed to initialize")
+                        .font(AppFonts.headline)
+                        .foregroundColor(AppColors.textPrimary)
+                    
+                    Button("Retry") {
+                        Task {
+                            await initializeApp()
+                        }
+                    }
+                    .buttonStyle(.borderedProminent)
+                }
+                .frame(maxWidth: .infinity, maxHeight: .infinity)
+                .background(AppColors.backgroundPrimary)
+            }
+        }
+    }
+    
+    private func initializeApp() async {
+        isInitializing = true
+        
+        do {
+            if isTestMode {
+                AppLogger.info("Running in TEST MODE with mock services", category: .app)
+                diContainer = try await DIBootstrapper.createMockContainer(
+                    modelContainer: Self.sharedModelContainer
+                )
+            } else {
+                AppLogger.info("AirFitApp: Creating DI container", category: .app)
+                diContainer = try await DIBootstrapper.createAppContainer(
+                    modelContainer: Self.sharedModelContainer
+                )
+                AppLogger.info("AirFitApp: DI container created with ID: \(ObjectIdentifier(diContainer!))", category: .app)
+            }
+        } catch {
+            AppLogger.error("Failed to create DI container", error: error, category: .app)
+            // Create a minimal container with just the model container
+            let container = DIContainer()
+            container.registerSingleton(ModelContainer.self, instance: Self.sharedModelContainer)
+            diContainer = container
+        }
+        
+        isInitializing = false
+    }
+}

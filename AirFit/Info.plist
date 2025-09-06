@@ -1,0 +1,79 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+	<key>CFBundleDevelopmentRegion</key>
+	<string>$(DEVELOPMENT_LANGUAGE)</string>
+	<key>CFBundleDisplayName</key>
+	<string>AirFit</string>
+	<key>CFBundleExecutable</key>
+	<string>$(EXECUTABLE_NAME)</string>
+	<key>CFBundleIdentifier</key>
+	<string>$(PRODUCT_BUNDLE_IDENTIFIER)</string>
+	<key>CFBundleInfoDictionaryVersion</key>
+	<string>6.0</string>
+	<key>CFBundleName</key>
+	<string>$(PRODUCT_NAME)</string>
+	<key>CFBundlePackageType</key>
+	<string>APPL</string>
+	<key>CFBundleShortVersionString</key>
+	<string>1.0</string>
+	<key>CFBundleVersion</key>
+	<string>1</string>
+	<key>LSRequiresIPhoneOS</key>
+	<true/>
+	<key>UIApplicationSceneManifest</key>
+	<dict>
+		<key>UIApplicationSupportsMultipleScenes</key>
+		<false/>
+	</dict>
+	<key>UIApplicationSupportsIndirectInputEvents</key>
+	<true/>
+	<key>UILaunchScreen</key>
+	<dict/>
+	<key>UIRequiredDeviceCapabilities</key>
+	<array>
+		<string>armv7</string>
+	</array>
+	<key>UISupportedInterfaceOrientations</key>
+	<array>
+		<string>UIInterfaceOrientationPortrait</string>
+		<string>UIInterfaceOrientationLandscapeLeft</string>
+		<string>UIInterfaceOrientationLandscapeRight</string>
+	</array>
+	<key>UISupportedInterfaceOrientations~ipad</key>
+	<array>
+		<string>UIInterfaceOrientationPortrait</string>
+		<string>UIInterfaceOrientationPortraitUpsideDown</string>
+		<string>UIInterfaceOrientationLandscapeLeft</string>
+		<string>UIInterfaceOrientationLandscapeRight</string>
+	</array>
+        <key>NSHealthShareUsageDescription</key>
+        <string>AirFit personalizes your fitness journey by analyzing your activity, sleep, heart health, body metrics, and nutrition data. Your AI coach uses this data to provide tailored recommendations and track your progress. All health data remains private and is never shared without your explicit consent.</string>
+
+        <key>NSHealthUpdateUsageDescription</key>
+        <string>AirFit saves your workouts, nutrition data, water intake, and body measurements to Apple Health, keeping all your fitness and health data synchronized. This helps you track progress across all your devices and contributes to your activity rings.</string>
+
+        <key>NSHealthClinicalHealthRecordsShareUsageDescription</key>
+        <string>AirFit does not access clinical health records.</string>
+        <key>NSMicrophoneUsageDescription</key>
+        <string>AirFit uses your microphone to transcribe voice messages to your AI coach using advanced on-device speech recognition.</string>
+	<key>NSCameraUsageDescription</key>
+	<string>AirFit uses the camera to take photos of your meals for nutrition tracking.</string>
+	<key>NSPhotoLibraryUsageDescription</key>
+	<string>AirFit needs access to your photo library to save and retrieve meal photos.</string>
+	<key>BGTaskSchedulerPermittedIdentifiers</key>
+	<array>
+		<string>com.airfit.lapseDetection</string>
+		<string>com.airfit.engagementAnalysis</string>
+	</array>
+	<key>NSSupportsLiveActivities</key>
+	<true/>
+	<key>UIBackgroundModes</key>
+	<array>
+		<string>fetch</string>
+		<string>processing</string>
+		<string>remote-notification</string>
+	</array>
+</dict>
+</plist>
