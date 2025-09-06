@@ -1,0 +1,18 @@
+{
+  "items": [
+    {
+      "name": "Boundary Test Item",
+      "brand": null,
+      "quantity": 1,
+      "unit": "gram",
+      "calories": 1,
+      "proteinGrams": 0.1,
+      "carbGrams": 0.1,
+      "fatGrams": 0.1,
+      "fiberGrams": 0,
+      "sugarGrams": 0,
+      "sodiumMilligrams": 0,
+      "confidence": 0.01
+    }
+  ]
+}

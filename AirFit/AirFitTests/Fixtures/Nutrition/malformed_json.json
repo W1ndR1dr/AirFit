@@ -1,0 +1,13 @@
+{
+  "items": [
+    {
+      "name": "Test Item",
+      "quantity": 100,
+      "unit": "grams",
+      "calories": 200,
+      "proteinGrams": 15,
+      "carbGrams": 20
+      "fatGrams": 8,
+      "confidence": 0.85
+    }
+  ]
