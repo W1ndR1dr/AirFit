@@ -206,11 +206,13 @@ public final class DIBootstrapper {
             let goalService = try? await resolver.resolve(GoalServiceProtocol.self)
             let muscleGroupVolumeService = try? await resolver.resolve(MuscleGroupVolumeServiceProtocol.self)
             let strengthProgressionService = try? await resolver.resolve(StrengthProgressionServiceProtocol.self)
+            let modelContainer = try await resolver.resolve(ModelContainer.self)
             return await ContextAssembler(
                 healthKitManager: healthKit,
                 goalService: goalService,
                 muscleGroupVolumeService: muscleGroupVolumeService,
-                strengthProgressionService: strengthProgressionService
+                strengthProgressionService: strengthProgressionService,
+                modelContainer: modelContainer
             )
         }
 
@@ -271,6 +273,14 @@ public final class DIBootstrapper {
             let modelContainer = try await resolver.resolve(ModelContainer.self)
             return await MainActor.run {
                 SwiftDataDashboardRepository(modelContext: modelContainer.mainContext)
+            }
+        }
+
+        // Food Tracking Repository
+        container.register(FoodTrackingRepositoryProtocol.self, lifetime: .singleton) { resolver in
+            let modelContainer = try await resolver.resolve(ModelContainer.self)
+            return await MainActor.run {
+                SwiftDataFoodTrackingRepository(modelContext: modelContainer.mainContext)
             }
         }
 

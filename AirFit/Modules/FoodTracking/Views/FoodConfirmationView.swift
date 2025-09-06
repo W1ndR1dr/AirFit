@@ -1,5 +1,4 @@
 import SwiftUI
-import SwiftData
 
 /// View allowing users to confirm AI-parsed food items, edit their nutrition values,
 /// adjust portions and save the results.
@@ -821,8 +820,9 @@ private struct ManualFoodEntryView: View {
  databaseId: nil,
  confidence: 1.0
  )
+ let foodRepository = SwiftDataFoodTrackingRepository(modelContext: context)
  let vm = FoodTrackingViewModel(
- modelContext: context,
+ foodRepository: foodRepository,
  user: user,
  foodVoiceAdapter: FoodVoiceAdapter(),
  nutritionService: MockNutritionService(),

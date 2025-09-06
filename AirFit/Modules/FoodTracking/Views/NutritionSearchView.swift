@@ -1,5 +1,4 @@
 import SwiftUI
-import SwiftData
 
 /// Search interface for finding and selecting foods to log
 struct NutritionSearchView: View {
