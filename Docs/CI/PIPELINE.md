@@ -147,9 +147,8 @@ graph TD
 ## Test Matrix (PR Only)
 
 For pull requests, an additional job runs tests across multiple device configurations:
-- iPhone 16 Pro (iOS 18.4)
-- iPhone SE 3rd Gen (iOS 18.4)
-- iPad Pro 13-inch M4 (iOS 18.4)
+- iPhone 16 Pro (device validation, iOS 26.0)
+- CI may run iOS 18.4 simulator targets for advisory checks only
 
 ## Running Locally
 

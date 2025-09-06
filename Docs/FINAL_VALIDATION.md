@@ -1,6 +1,6 @@
 # AirFit Final Validation Checklist
 **Branch**: `claude/T30-final-gate-sweep`  
-**Target Device**: iPhone 16 Pro with iOS 18.4  
+**Target Device**: iPhone 16 Pro with iOS 26.0  
 **Date**: 2025-01-06  
 **Status**: 🚧 In Progress
 
@@ -112,7 +112,7 @@ echo "Record result: _____ seconds"
 ```
 === PERFORMANCE BASELINE RESULTS ===
 Date: _________
-Device: iPhone 16 Pro (iOS 18.4)
+Device: iPhone 16 Pro (iOS 26.0)
 App Version: _________
 
 App Launch Time: _____ seconds (Target: < 1s)

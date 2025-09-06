@@ -52,7 +52,7 @@ AirFit is an AI-powered fitness & nutrition tracking app built with SwiftUI, Swi
 ## Component Layers
 
 ### 1. Presentation Layer (Views)
-- **Technology**: SwiftUI, iOS 18.0+
+- **Technology**: SwiftUI, iOS 26.0 (device: iPhone 16 Pro)
 - **Patterns**: MVVM with @Observable ViewModels
 - **Standards**: GlassCard, CascadeText, gradient system (current UI standards)
 - **Navigation**: Type-safe coordinator pattern

@@ -10,6 +10,7 @@ final class ChatViewModel: ObservableObject, ErrorHandling {
     private let aiService: AIServiceProtocol
     var voiceManager: VoiceInputManager
     private let coordinator: ChatCoordinator
+    private let streamStore: ChatStreamingStore
 
     // MARK: - Published State
     @Published private(set) var messages: [ChatMessage] = []
@@ -42,7 +43,7 @@ final class ChatViewModel: ObservableObject, ErrorHandling {
         aiService: AIServiceProtocol,
         coordinator: ChatCoordinator,
         voiceManager: VoiceInputManager,
-        streamStore: ChatStreamingStore? = nil
+        streamStore: ChatStreamingStore
     ) {
         self.chatHistoryRepository = chatHistoryRepository
         self.user = user
@@ -50,10 +51,39 @@ final class ChatViewModel: ObservableObject, ErrorHandling {
         self.aiService = aiService
         self.coordinator = coordinator
         self.voiceManager = voiceManager
+        self.streamStore = streamStore
 
         setupVoiceManager()
-
-        // Observe coach assistant message creations and append to messages
+        setupStreamingObservation()
+        setupMessageCompletionObservation()
+    }
+    
+    // MARK: - Private Setup Methods
+    
+    private func setupStreamingObservation() {
+        // Subscribe to unified ChatStreamingStore events for real-time streaming updates
+        streamStore.events
+            .receive(on: RunLoop.main)
+            .sink { [weak self] event in
+                guard let self = self else { return }
+                guard let session = self.currentSession,
+                      event.conversationId == session.id else { return }
+                switch event.kind {
+                case .started:
+                    self.isStreaming = true
+                    self.streamingText = ""
+                case .delta(let text):
+                    self.streamingText += text
+                case .finished:
+                    // Keep streamingText until assistant message is saved
+                    self.isStreaming = false
+                }
+            }
+            .store(in: &cancellables)
+    }
+    
+    private func setupMessageCompletionObservation() {
+        // Observe coach assistant message creations for message list updates
         NotificationCenter.default.publisher(for: .coachAssistantMessageCreated)
             .receive(on: RunLoop.main)
             .sink { [weak self] notification in
@@ -73,30 +103,6 @@ final class ChatViewModel: ObservableObject, ErrorHandling {
                 }
             }
             .store(in: &cancellables)
-
-        // Note: Notification-based streaming removed in favor of ChatStreamingStore events
-
-        // Optional: subscribe to typed ChatStreamingStore events (bridged from notifications)
-        if let streamStore {
-            streamStore.events
-                .receive(on: RunLoop.main)
-                .sink { [weak self] event in
-                    guard let self = self else { return }
-                    guard let session = self.currentSession,
-                          event.conversationId == session.id else { return }
-                    switch event.kind {
-                    case .started:
-                        self.isStreaming = true
-                        self.streamingText = ""
-                    case .delta(let text):
-                        self.streamingText += text
-                    case .finished:
-                        // Keep streamingText until assistant message is saved
-                        self.isStreaming = false
-                    }
-                }
-                .store(in: &cancellables)
-        }
     }
 
     deinit {

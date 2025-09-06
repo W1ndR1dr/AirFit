@@ -2,16 +2,18 @@ import Foundation
 import Combine
 import os
 
+/// Legacy metrics adapter for ChatStreamingStore.
+/// Note: Since ChatStreamingStore now handles metrics collection directly,
+/// this adapter is deprecated but maintained for compatibility.
 @MainActor
 final class ChatStreamingMetricsAdapter {
     private var cancellable: AnyCancellable?
     private let logger = ObsCategories.streaming
 
     init(store: ChatStreamingStore) {
-        // Subscribe to typed streaming events if available
-        // This adapter assumes the store exposes a Combine publisher of events
-        // and will no-op if such a publisher is not present at runtime.
-
+        // Subscribe to typed streaming events for additional metrics collection
+        // The primary metrics collection is now handled directly in DefaultChatStreamingStore
+        
         // Dynamic cast to an internal protocol that exposes events
         if let eventSource = store as? _ChatStreamingEventSource {
             cancellable = eventSource.events.sink { [weak self] event in
@@ -21,25 +23,20 @@ final class ChatStreamingMetricsAdapter {
     }
 
     private func handle(_ event: ChatStreamingEvent) {
+        // Additional legacy metrics handling if needed
+        // Primary metrics collection is now in DefaultChatStreamingStore
         switch event.kind {
         case .started:
-            var id = OSSignpostID(log: logger)
-            spBegin(logger, StaticString(SignpostNames.streamStart), &id)
-            active[event.conversationId] = id
-        case .delta(let token):
-            // Emit a signpost for deltas to enable token/sec sampling
-            if let id = active[event.conversationId] {
-                os_signpost(.event, log: logger, name: StaticString(SignpostNames.streamDelta), signpostID: id, "len=%d", token.count)
-            }
-        case .finished:
-            if let id = active.removeValue(forKey: event.conversationId) {
-                spEnd(logger, StaticString(SignpostNames.streamComplete), id)
-            }
+            // Legacy signpost handling - now handled in store
+            break
+        case .delta(_):
+            // Legacy delta tracking - now handled in store
+            break
+        case .finished(_):
+            // Legacy completion tracking - now handled in store
+            break
         }
     }
-
-    // Keep track of active streams to pair begin/end
-    private var active: [UUID: OSSignpostID] = [:]
 }
 
 // Internal protocol to allow the adapter to observe events without constraining ChatStreamingStore

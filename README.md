@@ -1,6 +1,6 @@
 # AirFit
 
-AI-powered fitness & nutrition tracking app for iOS 18.0+ using SwiftUI, SwiftData, and multi-LLM AI integration. Features Whisper transcription as an optional input method for text fields.
+AI-powered fitness & nutrition tracking app for iPhone 16 Pro, iOS 26 only. Built with SwiftUI, SwiftData (via repositories only), and multi‑LLM AI integration.
 
 ## Core Vision
 
@@ -38,7 +38,7 @@ AirFit is an AI-native fitness coach that lives on your phone. Talk to it like a
 ## Technical Architecture
 
 ### Core Stack
-- **iOS 18.0+** minimum deployment
+- **iOS 26.0** minimum deployment (device: iPhone 16 Pro)
 - **SwiftUI** for all UI
 - **SwiftData** for local persistence
 - **HealthKit** for fitness data
@@ -119,6 +119,7 @@ AirFit/
 xcodegen generate && swiftlint --strict --config AirFit/.swiftlint.yml
 
 # Build verification (must be 0 errors, 0 warnings)
+# Note: CI may run an iOS 18.4 simulator for runner stability; device validation is iOS 26 on iPhone 16 Pro
 xcodebuild clean build -scheme "AirFit" -destination 'platform=iOS Simulator,name=iPhone 16 Pro,OS=18.4'
 ```
 
@@ -127,28 +128,17 @@ xcodebuild clean build -scheme "AirFit" -destination 'platform=iOS Simulator,nam
 - Keep slices small and document changes in `Docs/STATUS.md` so the next agent can pick up quickly.
 
 ### Documentation
+- Handoff Guide (start here): `Docs/HANDOFF.md`
+- CI Pipeline: `Docs/CI/PIPELINE.md`
+- Environments: `Docs/Development-Standards/ENVIRONMENTS.md`
+- Architecture Overview: `Docs/Development-Standards/ARCHITECTURE.md`
 - Development Standards: `Docs/Development-Standards/`
-- Architecture: `Docs/Development-Standards/ARCHITECTURE.md`
-- UI Standards: `Docs/Development-Standards/UI_STANDARDS.md`
-- AI Standards: `Docs/Development-Standards/AI_STANDARDS.md`
-- Personal App Playbook: `Docs/PERSONAL_PLAYBOOK.md`
- - Handoffs: `Docs/HANDOFF.md` template and `Docs/HANDOFFS/*`
+- Release Readiness: `Docs/Release/TestFlight-Readiness.md`
 
 ## Current Status
 
-The app architecture is complete with:
-- ✅ World-class DI system with lazy resolution
-- ✅ Swift 6 concurrency compliance
-- ✅ Complete UI design system (GlassCard, gradients)
-- ✅ Multi-LLM integration with streaming
-- ✅ AI-powered nutrition parsing
-- ✅ Persona synthesis during onboarding
-
-Next features:
-- 🚧 Macro rings display (convert bars to rings)
-- 🚧 Muscle group volume tracking
-- 🚧 Dynamic goal adjustment via AI
-- 🚧 HealthKit nutrition sync
+- Active coordination files: `SupClaude.md` (instructions to Claude), `SupCodex.md` (status back to Codex)
+- A verification pass (Phase 0) is in progress to validate CI, guards, and performance. Treat “100% complete” claims as unverified until Phase 0 publishes `Docs/Codebase-Status/STATUS_SNAPSHOT.md`.
 
 ## Contributing
 

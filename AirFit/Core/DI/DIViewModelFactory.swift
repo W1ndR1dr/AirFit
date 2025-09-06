@@ -114,7 +114,7 @@ public final class DIViewModelFactory {
             aiService: aiService,
             coordinator: ChatCoordinator(),
             voiceManager: voiceManager,
-            streamStore: try? await streamStore
+            streamStore: streamStore
         )
     }
 
@@ -185,6 +185,7 @@ public final class DIViewModelFactory {
         async let nutritionCalculator = container.resolve(NutritionCalculatorProtocol.self)
         async let muscleGroupVolumeService = container.resolve(MuscleGroupVolumeServiceProtocol.self)
         async let exerciseDatabase = container.resolve(ExerciseDatabase.self)
+        async let streamStore = container.resolve(ChatStreamingStore.self)
 
         // Create components that don't need async resolution
         let localCommandParser = LocalCommandParser()
@@ -202,7 +203,7 @@ public final class DIViewModelFactory {
             nutritionCalculator: nutritionCalculator,
             muscleGroupVolumeService: muscleGroupVolumeService,
             exerciseDatabase: exerciseDatabase,
-            streamStore: try? await streamStore
+            streamStore: streamStore
         )
     }
 

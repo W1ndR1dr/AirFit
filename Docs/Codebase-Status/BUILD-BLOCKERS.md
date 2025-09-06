@@ -16,6 +16,8 @@ These files still have force unwraps that could crash:
 
 ### If iOS 26 APIs Don't Compile
 
+> Source of truth is iOS 26 on iPhone 16 Pro. CI may use iOS 18.4 simulators for advisory checks. Do not change the deployment target; if a specific iOS 26 API blocks builds, temporarily gate that specific usage behind a flag and open an issue.
+
 ```swift
 // Replace these iOS 26 features with iOS 18 temporarily:
 
@@ -92,16 +94,7 @@ open AirFit.xcodeproj
 
 ## ⚠️ IF XCODEGEN FAILS
 
-The project.yml has iOS 26.0 target. If that fails:
-
-```yaml
-# Edit project.yml:
-deploymentTarget:
-  iOS: "18.0"  # Fallback to iOS 18
-
-# Then regenerate:
-xcodegen generate
-```
+Do not down‑level the deployment target. Investigate the error and open an issue. As a temporary measure, you may comment out specific iOS 26 feature usage and note it in the PR.
 
 ---
 
