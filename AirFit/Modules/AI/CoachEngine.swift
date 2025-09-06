@@ -449,7 +449,7 @@ final class CoachEngine {
         // Execute the command based on type
         switch command {
         case .showDashboard, .navigateToTab, .showSettings, .showProfile,
-             .startWorkout, .showFood, .showWorkouts, .showStats,
+             .showFood, .showWorkouts, .showStats,
              .showRecovery, .showProgress:
             // Navigation commands - execute through NavigationState
             if let navigationState = await getNavigationState() {

@@ -92,8 +92,7 @@ final class MessageProcessor {
             return "[System: Navigated to settings]"
         case .showProfile:
             return "[System: Navigated to profile]"
-        case .startWorkout:
-            return "[System: Opened workout starter]"
+        // case .startWorkout - removed, deprecated
         case .help:
             return "[System: User requested help]"
         case .none:
@@ -146,7 +145,7 @@ final class MessageProcessor {
             case .logMeal(let mealType):
                 return "[System: Opened \(mealType.rawValue) logging]"
             case .startWorkout:
-                return "[System: Started workout flow]"
+                return "[System: Workout logging deprecated - redirected to watch app]"
             case .checkIn:
                 return "[System: Opened check-in]"
             }

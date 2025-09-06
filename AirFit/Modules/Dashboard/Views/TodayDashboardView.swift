@@ -536,16 +536,6 @@ struct TodayDashboardView: View {
             ))
         }
 
-        // Always show workout
-
-        actions.append(QuickAction(
-            title: "Start Workout",
-            subtitle: "Let's move",
-            systemImage: "figure.run",
-            color: "green",
-            action: .startWorkout
-        ))
-
         return actions
     }
 

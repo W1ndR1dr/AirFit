@@ -108,7 +108,7 @@ struct WorkoutDashboardView: View {
                                 .font(.system(size: 20))
                                 .foregroundStyle(gradientManager.currentGradient(for: colorScheme))
                         }
-                        .accessibilityLabel("Start Workout")
+                        .accessibilityLabel("Create Workout Plan")
                         .disabled(viewModel == nil)
                         .opacity(viewModel == nil ? 0.5 : 1)
                     }

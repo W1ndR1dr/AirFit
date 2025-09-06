@@ -143,17 +143,7 @@ public final class NavigationState {
             break
         }
 
-        // Activity-based suggestions
-        if let lastWorkout = context.lastWorkoutDate,
-           Calendar.current.dateComponents([.day], from: lastWorkout, to: Date()).day ?? 0 > 2 {
-            actions.append(QuickAction(
-                title: "Start Workout",
-                subtitle: "Time to get moving",
-                systemImage: "figure.run",
-                color: "green",
-                action: .startWorkout
-            ))
-        }
+        // Activity-based suggestions removed - in-app workout logging deprecated
 
         // No hydration reminder - water tracking removed
 
@@ -169,7 +159,8 @@ public final class NavigationState {
         case .showFood:
             navigateToTab(.nutrition)
         case .startWorkout:
-            navigateToTab(.workouts)
+            // Deprecated: in-app workout logging removed - no-op
+            break
         case .showStats:
             navigateToTab(.body)
         case .logQuickAction(let type):
@@ -196,7 +187,8 @@ public final class NavigationState {
             navigateToTab(.nutrition, with: .showFood(date: Date(), mealType: mealType))
             // Note: The FoodTrackingView will automatically show photo capture when appropriate
         case .startWorkout:
-            navigateToTab(.workouts, with: .startWorkout(type: nil))
+            // Deprecated: in-app workout logging removed - no-op
+            break
         case .checkIn:
             navigateToTab(.today)
         }
@@ -211,7 +203,8 @@ public final class NavigationState {
         case .showProfile:
             navigateToTab(.body)
         case .startWorkout:
-            navigateToTab(.workouts, with: .startWorkout(type: nil))
+            // Deprecated: in-app workout logging removed - no-op
+            break
         case .showFood(let date, let mealType):
             navigateToTab(.nutrition, with: .showFood(date: date, mealType: mealType))
         case .showWorkouts(let filter):
@@ -340,13 +333,7 @@ extension NavigationState {
                 color: "orange",
                 action: .logMeal(type: .breakfast)
             ),
-            QuickAction(
-                title: "Start Workout",
-                subtitle: "Time to get moving",
-                systemImage: "figure.run",
-                color: "green",
-                action: .startWorkout
-            )
+            // Workout action removed - in-app logging deprecated
         ]
         return state
     }
