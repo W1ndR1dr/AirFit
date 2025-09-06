@@ -89,3 +89,6 @@ pass "No hardcoded secrets found"
 
 echo ""
 echo "${GREEN}All CI guards passed successfully!${NC}"
+echo ""
+echo "Architecture boundary enforcement complete."
+echo "For more information see: Scripts/README.md"
