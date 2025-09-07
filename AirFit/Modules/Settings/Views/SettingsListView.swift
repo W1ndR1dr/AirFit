@@ -1997,7 +1997,9 @@ struct DebugSettingsView: View {
 
     private func getCacheSize() -> String {
         // Calculate actual cache size
-        let cacheURL = FileManager.default.urls(for: .cachesDirectory, in: .userDomainMask).first!
+        guard let cacheURL = FileManager.default.urls(for: .cachesDirectory, in: .userDomainMask).first else {
+            return "Unknown"
+        }
         let size = try? FileManager.default.contentsOfDirectory(at: cacheURL, includingPropertiesForKeys: [.fileSizeKey])
             .reduce(0) { total, url in
                 let fileSize = try? url.resourceValues(forKeys: [.fileSizeKey]).fileSize
@@ -2016,9 +2018,10 @@ struct DebugSettingsView: View {
             URLCache.shared.removeAllCachedResponses()
 
             // Clear custom cache directories
-            let cacheURL = FileManager.default.urls(for: .cachesDirectory, in: .userDomainMask).first!
-            try? FileManager.default.removeItem(at: cacheURL)
-            try? FileManager.default.createDirectory(at: cacheURL, withIntermediateDirectories: true)
+            if let cacheURL = FileManager.default.urls(for: .cachesDirectory, in: .userDomainMask).first {
+                try? FileManager.default.removeItem(at: cacheURL)
+                try? FileManager.default.createDirectory(at: cacheURL, withIntermediateDirectories: true)
+            }
 
             await MainActor.run {
                 isProcessing = false
