@@ -233,7 +233,7 @@ struct NutritionDetailView: View {
                 insightCard(
                     icon: "lightbulb.fill",
                     title: "Protein Timing",
-                    message: "Your protein intake is well-distributed throughout the day. Keep it up!",
+                    message: "Your protein intake is well-distributed throughout the day. Keep it up.",
                     color: .blue
                 )
 
@@ -247,7 +247,7 @@ struct NutritionDetailView: View {
                 insightCard(
                     icon: "leaf.fill",
                     title: "Micronutrients",
-                    message: "Great fiber intake! You're consistently hitting 25g+ daily.",
+                    message: "Great fiber intake. You're consistently hitting 25g+ daily.",
                     color: .green
                 )
             }

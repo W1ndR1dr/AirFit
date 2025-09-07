@@ -522,7 +522,7 @@ struct PhotoInputView: View {
                 await updateProgress(to: 0.9, message: "Calculating nutrition...")
 
                 // Final processing
-                await updateProgress(to: 1.0, message: "Complete!")
+                await updateProgress(to: 1.0, message: "Complete")
 
                 // Process results
                 await MainActor.run {

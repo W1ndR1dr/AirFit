@@ -370,7 +370,7 @@ struct EnergyOption: View {
             sleepHours: 7.5,
             weather: "Sunny, 23°C",
             todaysSchedule: "Morning run at 7am",
-            recentAchievements: ["5 day streak!"]
+            recentAchievements: ["5 day streak"]
         ),
         currentEnergy: 3,
         onEnergyLog: { _ in }

@@ -10,7 +10,7 @@ public struct HealthDataLoadingProgress: Sendable {
         case fetchingSleep = "Loading sleep data..."
         case analyzingTrends = "Analyzing fitness patterns..."
         case assemblingContext = "Personalizing suggestions..."
-        case complete = "Complete!"
+        case complete = "Complete"
         
         var weight: Double {
             switch self {

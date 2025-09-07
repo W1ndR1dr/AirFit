@@ -151,7 +151,7 @@ public struct RecoveryInference: Sendable {
         
         public var description: String {
             switch self {
-            case .highIntensity: return "Go for it! Your body is ready for challenging workouts."
+            case .highIntensity: return "Go for it. Your body is ready for challenging workouts."
             case .moderate: return "Moderate intensity work is appropriate today."
             case .activeRecovery: return "Light movement and recovery activities recommended."
             case .rest: return "Focus on rest and recovery today."

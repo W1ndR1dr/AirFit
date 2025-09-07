@@ -81,7 +81,7 @@ struct InsightsConfirmationView: View {
                 .offset(y: isVisible ? 0 : 20)
             } else {
                 // Fallback if no insights
-                Text("I'm still learning about you. Let's continue our conversation!")
+                Text("I'm still learning about you. Let's continue our conversation.")
                     .font(.system(size: 18, weight: .light))
                     .foregroundStyle(.secondary)
                     .multilineTextAlignment(.center)

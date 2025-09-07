@@ -257,7 +257,7 @@ actor AIService: AIServiceProtocol {
             }
         }
         
-        return responseText.isEmpty ? "I'll help you achieve your fitness goals! Let's create a personalized plan together." : responseText
+        return responseText.isEmpty ? "I'll help you achieve your fitness goals. Let's create a personalized plan together." : responseText
     }
     
     // MARK: - Production Request Handling
@@ -357,8 +357,9 @@ actor AIService: AIServiceProtocol {
             let words = response.split(separator: " ")
             for (index, word) in words.enumerated() {
                 if index == 0 {
-                    firstTokenTime = CFAbsoluteTimeGetCurrent()
-                    let ttft = Int((firstTokenTime! - requestStartTime) * 1000)
+                    let currentTime = CFAbsoluteTimeGetCurrent()
+                    firstTokenTime = currentTime
+                    let ttft = Int((currentTime - requestStartTime) * 1000)
                     os_signpost(.event, log: performanceLog, name: "TTFT", signpostID: requestId, "Demo first token after %{public}dms", ttft)
                 }
                 try await Task.sleep(nanoseconds: 50_000_000)
@@ -366,8 +367,9 @@ actor AIService: AIServiceProtocol {
             }
         } else {
             try await Task.sleep(nanoseconds: 500_000_000)
-            firstTokenTime = CFAbsoluteTimeGetCurrent()
-            let ttft = Int((firstTokenTime! - requestStartTime) * 1000)
+            let currentTime = CFAbsoluteTimeGetCurrent()
+            firstTokenTime = currentTime
+            let ttft = Int((currentTime - requestStartTime) * 1000)
             os_signpost(.event, log: performanceLog, name: "TTFT", signpostID: requestId, "Demo response after %{public}dms", ttft)
             continuation.yield(.text(response))
         }
@@ -385,18 +387,18 @@ actor AIService: AIServiceProtocol {
     
     private func getDemoResponse(for request: AIRequest) -> String {
         guard let lastMessage = request.messages.last else {
-            return "I'm here to help you with your fitness journey!"
+            return "I'm here to help you with your fitness journey."
         }
         
         let content = lastMessage.content.lowercased()
         
         // Context-aware demo responses
         if content.contains("workout") {
-            return "Let's create a workout plan that fits your goals! I'd recommend starting with 3-4 sessions per week focusing on compound movements."
+            return "Let's create a workout plan that fits your goals. I'd recommend starting with 3-4 sessions per week focusing on compound movements."
         } else if content.contains("nutrition") || content.contains("food") || content.contains("ate") {
             return "Nutrition is key to your fitness goals. Based on what you've told me, I'd suggest aiming for balanced macros with adequate protein."
         } else if content.contains("goal") {
-            return "That's a great goal! Let's break it down into actionable steps. We'll track your progress weekly and adjust as needed."
+            return "That's a great goal. Let's break it down into actionable steps. We'll track your progress weekly and adjust as needed."
         } else if content.contains("tired") || content.contains("motivation") {
             return "I understand how you feel. Remember, progress isn't always linear. Even small steps forward count. What's one thing you can do today?"
         } else {
@@ -413,8 +415,9 @@ actor AIService: AIServiceProtocol {
         
         try await Task.sleep(nanoseconds: 100_000_000)
         
-        firstTokenTime = CFAbsoluteTimeGetCurrent()
-        let ttft = Int((firstTokenTime! - requestStartTime) * 1000)
+        let currentTime = CFAbsoluteTimeGetCurrent()
+        firstTokenTime = currentTime
+        let ttft = Int((currentTime - requestStartTime) * 1000)
         os_signpost(.event, log: performanceLog, name: "TTFT", signpostID: requestId, "Test response after %{public}dms", ttft)
         
         if request.stream {

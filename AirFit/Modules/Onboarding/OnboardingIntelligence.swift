@@ -214,7 +214,7 @@ final class OnboardingIntelligence: ObservableObject {
                     // Ensure progress reaches 100%
                     await MainActor.run {
                         healthDataProgress = 1.0
-                        healthDataStatus = "Complete!"
+                        healthDataStatus = "Complete"
                         isLoadingHealthData = false
                     }
                 }
@@ -1025,7 +1025,7 @@ final class OnboardingIntelligence: ObservableObject {
 
                 // Restore current prompt based on where we left off
                 if conversationTurnCount > 0 {
-                    currentPrompt = "Welcome back! Let's continue where we left off."
+                    currentPrompt = "Welcome back. Let's continue where we left off."
 
                     // Re-analyze the last input to restore context quality
                     if let lastInput = conversationHistory.last {

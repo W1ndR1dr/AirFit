@@ -272,7 +272,7 @@ final class GoalService: GoalServiceProtocol, ServiceProtocol {
                 goal.userId == userId &&
                     goal.status.rawValue == "completed" &&
                     goal.completedDate != nil &&
-                    goal.completedDate! >= cutoffDate
+                    (goal.completedDate ?? Date.distantPast) >= cutoffDate
             },
             sortBy: [SortDescriptor(\.completedDate, order: .reverse)]
         )

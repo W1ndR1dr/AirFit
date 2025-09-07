@@ -487,7 +487,7 @@ struct TodayDashboardView: View {
             // Add photo option for breakfast
             actions.append(QuickAction(
                 title: "Photo Breakfast",
-                subtitle: "New! Snap a photo to log",
+                subtitle: "New - Snap a photo to log",
                 systemImage: "camera.fill",
                 color: "orange",
                 action: .logMealWithPhoto(type: .breakfast)
@@ -503,7 +503,7 @@ struct TodayDashboardView: View {
             // Add photo option for lunch
             actions.append(QuickAction(
                 title: "Photo Lunch",
-                subtitle: "New! Snap a photo to log",
+                subtitle: "New - Snap a photo to log",
                 systemImage: "camera.fill",
                 color: "yellow",
                 action: .logMealWithPhoto(type: .lunch)
@@ -519,7 +519,7 @@ struct TodayDashboardView: View {
             // Add photo option for dinner
             actions.append(QuickAction(
                 title: "Photo Dinner",
-                subtitle: "New! Snap a photo to log",
+                subtitle: "New - Snap a photo to log",
                 systemImage: "camera.fill",
                 color: "purple",
                 action: .logMealWithPhoto(type: .dinner)
@@ -528,7 +528,7 @@ struct TodayDashboardView: View {
             // Show general photo logging option during off-meal times
             actions.append(QuickAction(
                 title: "Log with Photo",
-                subtitle: "New! Capture your meal instantly",
+                subtitle: "New - Capture your meal instantly",
                 systemImage: "camera.fill",
                 color: "orange",
                 action: .logMealWithPhoto(type: .snack)

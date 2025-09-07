@@ -259,7 +259,7 @@ final class EngagementEngine: ServiceProtocol {
 
         // Parse AI response
         let components = message.split(separator: "|", maxSplits: 1)
-        let title = String(components.first ?? "We miss you!")
+        let title = String(components.first ?? "We miss you")
         let body = String(components.last ?? "Your coach is waiting to help you get back on track.")
 
         return (title: title, body: body)
@@ -307,7 +307,7 @@ final class EngagementEngine: ServiceProtocol {
 
             try await notificationManager.scheduleNotification(
                 identifier: NotificationManager.NotificationIdentifier.morning,
-                title: "Good morning, \(user.name ?? "there")! ☀️",
+                title: "Good morning, \(user.name ?? "there") ☀️",
                 body: greeting,
                 categoryIdentifier: NotificationManager.NotificationCategory.dailyCheck,
                 userInfo: ["type": "morning"],
@@ -505,9 +505,9 @@ extension CoachEngine {
     func generateReEngagementMessage(_ context: ReEngagementContext) async throws -> String {
         // Simple, contextual re-engagement message
         if context.daysSinceLastActive <= 7 {
-            return "\(context.userName), we've missed you!|Your fitness journey continues whenever you're ready."
+            return "\(context.userName), we've missed you.|Your fitness journey continues whenever you're ready."
         } else {
-            return "Hey \(context.userName)!|No pressure - just checking in. I'm here when you're ready."
+            return "Hey \(context.userName)|No pressure - just checking in. I'm here when you're ready."
         }
     }
 
@@ -518,24 +518,24 @@ extension CoachEngine {
 
         switch hour {
         case 5..<12:
-            return "Good morning, \(userName)! Ready to make today count?"
+            return "Good morning, \(userName). Ready to make today count?"
         case 12..<17:
-            return "Good afternoon, \(userName)! How's your day going?"
+            return "Good afternoon, \(userName). How's your day going?"
         default:
-            return "Hello, \(userName)! Great to see you."
+            return "Hello, \(userName). Great to see you."
         }
     }
 
     func generateWorkoutReminder(workoutType: String, userName: String) async throws -> (title: String, body: String) {
         return (
-            title: "Time for \(workoutType)!",
+            title: "Time for \(workoutType)",
             body: "Ready when you are, \(userName)."
         )
     }
 
     func generateMealReminder(mealType: MealType, userName: String) async throws -> (title: String, body: String) {
         return (
-            title: "\(mealType.displayName) time!",
+            title: "\(mealType.displayName) time",
             body: "Don't forget to log your meal, \(userName)."
         )
     }

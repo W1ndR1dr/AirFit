@@ -223,7 +223,7 @@ struct CoachLiveActivityPreview: View {
                         .fontWeight(.bold)
                 }
                 
-                Text("Great form on those squats! Try to go a bit deeper on the next set.")
+                Text("Great form on those squats. Try to go a bit deeper on the next set.")
                     .font(.caption)
                     .foregroundStyle(.secondary)
                     .lineLimit(2)

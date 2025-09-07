@@ -543,9 +543,9 @@ struct NutritionDashboardView: View {
         switch hour {
         case 6..<12:
             if summary.calories < summary.calorieGoal * 0.2 {
-                return "Good morning! Start strong with a protein-rich breakfast to fuel your day."
+                return "Good morning. Start strong with a protein-rich breakfast to fuel your day."
             }
-            return "Morning nutrition is on track. Keep the momentum going!"
+            return "Morning nutrition is on track. Keep the momentum going."
 
         case 12..<17:
             if remainingCalories > summary.calorieGoal * 0.6 {
@@ -557,7 +557,7 @@ struct NutritionDashboardView: View {
             if remainingCalories > 500 {
                 return "Evening wind-down. \(Int(remainingCalories)) calories left to meet your goals."
             }
-            return "Excellent nutrition day! Your consistency is paying off."
+            return "Excellent nutrition day. Your consistency is paying off."
 
         default:
             return "Rest and recovery mode. Your nutrition foundation is strong."
