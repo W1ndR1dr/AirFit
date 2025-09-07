@@ -7,7 +7,7 @@ on:
     branches: [ main ]
 
 env:
-  DEVELOPER_DIR: /Applications/Xcode_16.0.app/Contents/Developer
+  DEVELOPER_DIR: /Applications/Xcode-beta.app/Contents/Developer
 
 jobs:
   ci:
@@ -69,7 +69,7 @@ jobs:
         echo "🔨 Building AirFit project..."
         xcodebuild build \
           -scheme AirFit \
-          -destination 'platform=iOS Simulator,name=iPhone 16 Pro,OS=18.4' \
+          -destination 'platform=iOS Simulator,name=iPhone 16 Pro,OS=26.0' \
           -configuration Debug \
           -quiet \
           | xcpretty --color
@@ -90,7 +90,7 @@ jobs:
         echo "🧪 Running unit tests..."
         xcodebuild test \
           -scheme AirFit \
-          -destination 'platform=iOS Simulator,name=iPhone 16 Pro,OS=18.4' \
+          -destination 'platform=iOS Simulator,name=iPhone 16 Pro,OS=26.0' \
           -testPlan AirFit \
           -only-testing:AirFitTests \
           -parallel-testing-enabled YES \
@@ -105,7 +105,7 @@ jobs:
         echo "🖥️ Running UI tests..."
         xcodebuild test \
           -scheme AirFit \
-          -destination 'platform=iOS Simulator,name=iPhone 16 Pro,OS=18.4' \
+          -destination 'platform=iOS Simulator,name=iPhone 16 Pro,OS=26.0' \
           -testPlan AirFit \
           -only-testing:AirFitUITests \
           -resultBundlePath TestResults/ui-tests.xcresult \
