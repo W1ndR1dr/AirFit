@@ -6,11 +6,20 @@ extension AIProvider {
     var baseURL: URL {
         switch self {
         case .openAI:
-            return URL(string: "https://api.openai.com/v1")!
+            guard let url = URL(string: "https://api.openai.com/v1") else {
+                fatalError("Invalid OpenAI API URL")
+            }
+            return url
         case .anthropic:
-            return URL(string: "https://api.anthropic.com/v1")!
+            guard let url = URL(string: "https://api.anthropic.com/v1") else {
+                fatalError("Invalid Anthropic API URL")
+            }
+            return url
         case .gemini:
-            return URL(string: "https://generativelanguage.googleapis.com")!
+            guard let url = URL(string: "https://generativelanguage.googleapis.com") else {
+                fatalError("Invalid Gemini API URL")
+            }
+            return url
         }
     }
 
