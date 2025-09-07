@@ -381,7 +381,10 @@ actor PersonaSynthesizer {
                 "signatureMotif":["type":"string","maxLength":80]
             ]
         ]
-        return StructuredOutputSchema.fromJSON(name: "PersonaIdentity", description: "Identity regen", schema: schema, strict: true)!
+        guard let schema = StructuredOutputSchema.fromJSON(name: "PersonaIdentity", description: "Identity regen", schema: schema, strict: true) else {
+            throw PersonaError.invalidResponse("Failed to create PersonaIdentity schema")
+        }
+        return schema
     }
 
     private func identityPrompt(spec: PersonaSpec, reason: String) -> String {
@@ -731,7 +734,10 @@ private func makeVoicePackSchema() throws -> StructuredOutputSchema {
             "style": ["type":"object"]
         ]
     ]
-    return StructuredOutputSchema.fromJSON(name: "VoicePack", description: "Voice + interaction style", schema: schema, strict: true)!
+    guard let schema = StructuredOutputSchema.fromJSON(name: "VoicePack", description: "Voice + interaction style", schema: schema, strict: true) else {
+        throw PersonaError.invalidResponse("Failed to create VoicePack schema")
+    }
+    return schema
 }
 
 private func makeNarrativeSchema() throws -> StructuredOutputSchema {
@@ -740,7 +746,10 @@ private func makeNarrativeSchema() throws -> StructuredOutputSchema {
         "required":["backgroundStory"],
         "properties":["backgroundStory":["type":"string","minLength":80,"maxLength":400]]
     ]
-    return StructuredOutputSchema.fromJSON(name: "Narrative", description: "Backstory", schema: schema, strict: true)!
+    guard let schema = StructuredOutputSchema.fromJSON(name: "Narrative", description: "Backstory", schema: schema, strict: true) else {
+        throw PersonaError.invalidResponse("Failed to create Narrative schema")
+    }
+    return schema
 }
 
 private func makeNutritionSchema() throws -> StructuredOutputSchema {
@@ -757,7 +766,10 @@ private func makeNutritionSchema() throws -> StructuredOutputSchema {
             "flexibilityNotes":["type":"string","maxLength":160]
         ]
     ]
-    return StructuredOutputSchema.fromJSON(name: "NutritionRecs", description: "Nutrition recommendations", schema: schema, strict: true)!
+    guard let schema = StructuredOutputSchema.fromJSON(name: "NutritionRecs", description: "Nutrition recommendations", schema: schema, strict: true) else {
+        throw PersonaError.invalidResponse("Failed to create NutritionRecs schema")
+    }
+    return schema
 }
 
 private func stableSeed(convo: ConversationData, insights: ConversationPersonalityInsights) -> UInt64 {

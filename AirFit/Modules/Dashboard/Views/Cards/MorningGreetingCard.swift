@@ -110,7 +110,7 @@ struct MorningGreetingCard: View {
         .accessibilityElement(children: .combine)
         .accessibilityLabel("Morning greeting: \(greeting)")
         .accessibilityHint(
-            currentEnergy == nil ? "Tap to log your energy level" : "Your energy is logged as \(currentEnergy!)"
+            currentEnergy == nil ? "Tap to log your energy level" : "Your energy is logged as \(currentEnergy.map(String.init) ?? "unknown")"
         )
     }
 

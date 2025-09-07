@@ -4,7 +4,7 @@ import Charts
 struct AIPersonaSettingsView: View {
     @Bindable var viewModel: SettingsViewModel
     @State private var showPersonaRefinement = false
-    @State private var previewText = "Let's crush today's workout! I see you're feeling energized - perfect timing for that strength session we planned."
+    @State private var previewText = "Let's crush today's workout. I see you're feeling energized - perfect timing for that strength session we planned."
     @State private var isGeneratingPreview = false
 
     var body: some View {
@@ -384,7 +384,7 @@ struct AIPersonaSettingsView: View {
             } catch {
                 await MainActor.run {
                     isGeneratingPreview = false
-                    previewText = "Let's make today count! Ready to push your limits?"
+                    previewText = "Let's make today count. Ready to push your limits?"
                 }
             }
         }
@@ -580,7 +580,7 @@ struct ConversationalPersonaRefinement: View {
                             RefinementMessageBubble(
                                 message: RefinementMessage(
                                     id: UUID(),
-                                    content: "Hi! I'm here to help refine how I communicate with you. Tell me what you'd like to change about my coaching style, personality, or the way I interact with you.",
+                                    content: "Hi, I'm here to help refine how I communicate with you. Tell me what you'd like to change about my coaching style, personality, or the way I interact with you.",
                                     isUser: false,
                                     timestamp: Date()
                                 ),
@@ -714,15 +714,15 @@ struct ConversationalPersonaRefinement: View {
     private func generateResponse(for input: String) -> String {
         // Simulate intelligent responses based on input
         if input.lowercased().contains("encouraging") {
-            return "Great! I'll be more encouraging and celebratory of your achievements. I'll focus on positive reinforcement and cheer you on throughout your fitness journey. Is there anything specific you'd like me to be encouraging about?"
+            return "Great. I'll be more encouraging and celebratory of your achievements. I'll focus on positive reinforcement and cheer you on throughout your fitness journey. Is there anything specific you'd like me to be encouraging about?"
         } else if input.lowercased().contains("humor") {
-            return "You got it! I'll add more humor and keep things light while still being helpful. I'll throw in some fitness puns and keep our conversations fun. Any particular style of humor you enjoy?"
+            return "You got it. I'll add more humor and keep things light while still being helpful. I'll throw in some fitness puns and keep our conversations fun. Any particular style of humor you enjoy?"
         } else if input.lowercased().contains("data") || input.lowercased().contains("analytics") {
-            return "Understood! I'll provide more detailed metrics, progress analytics, and data-driven insights. I'll include specific numbers, trends, and comparisons to help you track your progress. What metrics matter most to you?"
+            return "Understood. I'll provide more detailed metrics, progress analytics, and data-driven insights. I'll include specific numbers, trends, and comparisons to help you track your progress. What metrics matter most to you?"
         } else if input.lowercased().contains("simple") || input.lowercased().contains("jargon") {
-            return "Perfect! I'll use clearer, everyday language and avoid technical fitness terms unless necessary. I'll make sure my explanations are easy to understand. Let me know if I ever use a term that's unclear!"
+            return "Perfect. I'll use clearer, everyday language and avoid technical fitness terms unless necessary. I'll make sure my explanations are easy to understand. Let me know if I ever use a term that's unclear."
         } else {
-            return "I understand! I'll adjust my coaching style based on your feedback. These changes will help me be a better coach for you. Is there anything else you'd like me to adjust?"
+            return "I understand. I'll adjust my coaching style based on your feedback. These changes will help me be a better coach for you. Is there anything else you'd like me to adjust?"
         }
     }
 

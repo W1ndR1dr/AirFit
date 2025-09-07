@@ -345,11 +345,12 @@ struct WorkoutHistoryViewWrapper: View {
                         .foregroundStyle(.secondary)
                 }
                 .frame(maxWidth: .infinity, maxHeight: .infinity)
-            } else {
+            } else if let volumeService = muscleGroupVolumeService,
+                        let strengthService = strengthProgressionService {
                 WorkoutHistoryView(
                     user: user,
-                    muscleGroupVolumeService: muscleGroupVolumeService!,
-                    strengthProgressionService: strengthProgressionService!
+                    muscleGroupVolumeService: volumeService,
+                    strengthProgressionService: strengthService
                 )
             }
         }

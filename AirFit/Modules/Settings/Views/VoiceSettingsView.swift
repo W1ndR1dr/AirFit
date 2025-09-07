@@ -389,7 +389,7 @@ private struct TestTranscriptionSheet: View {
 
                 if !transcribedText.isEmpty {
                     VStack(spacing: 16) {
-                        Text("Transcription successful!")
+                        Text("Transcription successful")
                             .font(.headline)
                             .foregroundStyle(.green)
 

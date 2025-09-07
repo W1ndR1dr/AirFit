@@ -142,8 +142,9 @@ final class StreamingResponseHandler {
 
     private func handleTextResponse(_ text: String, state: inout StreamingState) {
         if state.firstTokenTime == nil {
-            state.firstTokenTime = CFAbsoluteTimeGetCurrent() - state.startTime
-            logFirstToken(state.firstTokenTime!)
+            let timeToFirstToken = CFAbsoluteTimeGetCurrent() - state.startTime
+            state.firstTokenTime = timeToFirstToken
+            logFirstToken(timeToFirstToken)
         }
 
         state.fullResponse += text
@@ -157,8 +158,9 @@ final class StreamingResponseHandler {
 
     private func handleTextDelta(_ delta: String, state: inout StreamingState) {
         if state.firstTokenTime == nil {
-            state.firstTokenTime = CFAbsoluteTimeGetCurrent() - state.startTime
-            logFirstToken(state.firstTokenTime!)
+            let timeToFirstToken = CFAbsoluteTimeGetCurrent() - state.startTime
+            state.firstTokenTime = timeToFirstToken
+            logFirstToken(timeToFirstToken)
         }
 
         state.fullResponse += delta

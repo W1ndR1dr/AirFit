@@ -489,7 +489,9 @@ final class FoodTrackingViewModel: ErrorHandling {
                 throw AppError.unknown(message: "AI processing timed out")
             }
 
-            let result = try await group.next()!
+            guard let result = try await group.next() else {
+                throw AppError.unknown(message: "Task group completed without result")
+            }
             group.cancelAll()
             return result
         }
