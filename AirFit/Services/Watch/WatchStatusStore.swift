@@ -155,7 +155,7 @@ final class WatchStatusStore: ObservableObject {
         $overallStatus
             .removeDuplicates()
             .sink { [weak self] status in
-                if status == .available && !self?.queuedPlans.isEmpty == true {
+                if status == .available && (self?.queuedPlans.isEmpty == false) {
                     AppLogger.info("Watch became available, scheduling queue processing", category: .services)
                     self?.scheduleQueueRetry(delay: 0.5) // Small delay to ensure stable connection
                 }

@@ -193,7 +193,7 @@ final class WhisperModelManager: ObservableObject {
     /// Delete a downloaded model
     func deleteModel(_ modelSize: ModelSize) async throws {
         guard let documentsUrl = FileManager.default.urls(for: .documentDirectory, in: .userDomainMask).first else {
-            throw WhisperError.modelError("Could not access documents directory")
+            throw NSError(domain: "WhisperModelManager", code: 1, userInfo: [NSLocalizedDescriptionKey: "Could not access documents directory"])
         }
         let modelFolder = documentsUrl.appendingPathComponent("WhisperModels")
         let modelPath = modelFolder.appendingPathComponent(modelSize.whisperKitModelName)

@@ -264,6 +264,31 @@ public final class DIBootstrapper {
                 ExerciseDatabase(container: modelContainer)
             }
         }
+        
+        // AI Coach Service
+        container.register(AICoachServiceProtocol.self, lifetime: .singleton) { resolver in
+            let modelContainer = try await resolver.resolve(ModelContainer.self)
+            let aiService = try await resolver.resolve(AIServiceProtocol.self)
+            let contextAssembler = try await resolver.resolve(ContextAssemblerProtocol.self)
+            return AICoachService(
+                modelContext: modelContainer.mainContext,
+                aiService: aiService,
+                contextAssembler: contextAssembler
+            )
+        }
+        
+        // Nutrition Import Service
+        container.register(NutritionImportService.self, lifetime: .singleton) { resolver in
+            let modelContainer = try await resolver.resolve(ModelContainer.self)
+            let healthKitManager = try? await resolver.resolve(HealthKitManaging.self)
+            return await MainActor.run {
+                NutritionImportService(
+                    modelContext: modelContainer.mainContext,
+                    healthKitManager: healthKitManager
+                )
+            }
+        }
+        
         // Workout Repository
         container.register(WorkoutRepositoryProtocol.self, lifetime: .singleton) { resolver in
             let modelContainer = try await resolver.resolve(ModelContainer.self)
@@ -317,6 +342,22 @@ public final class DIBootstrapper {
                 SwiftDataUserWriteRepository(modelContext: modelContainer.mainContext)
             }
         }
+        // Read Repositories
+        container.register(UserReadRepositoryProtocol.self, lifetime: .singleton) { resolver in
+            let modelContainer = try await resolver.resolve(ModelContainer.self)
+            return UserReadRepository(modelContext: modelContainer.mainContext)
+        }
+        
+        container.register(ChatHistoryRepositoryProtocol.self, lifetime: .singleton) { resolver in
+            let modelContainer = try await resolver.resolve(ModelContainer.self)
+            return ChatHistoryRepository(modelContext: modelContainer.mainContext)
+        }
+        
+        container.register(WorkoutReadRepositoryProtocol.self, lifetime: .singleton) { resolver in
+            let modelContainer = try await resolver.resolve(ModelContainer.self)
+            return WorkoutReadRepository(modelContext: modelContainer.mainContext)
+        }
+        
         // Workout Sync Service
         container.register(WorkoutSyncService.self, lifetime: .singleton) { _ in
             await MainActor.run {

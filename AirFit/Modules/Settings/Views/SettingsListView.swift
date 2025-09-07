@@ -1,4 +1,5 @@
 import SwiftUI
+import SwiftData
 #if DEBUG
 import HealthKit
 #endif
@@ -103,8 +104,7 @@ struct SettingsListView: View {
                                         .glassEffect(.thin)
                                         .transition(.opacity.combined(with: .move(edge: .trailing)))
                                         .animation(.snappy(duration: 0.3).delay(0.4), value: animateIn)
-                                }
-                                .glassEffectUnion() // Unifies Privacy and Data management
+                                } // Unifies Privacy and Data management
 
                                 // Support section standalone
                                 supportSection
