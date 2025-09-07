@@ -202,27 +202,41 @@ final class DashboardViewModel: ErrorHandling {
 
     private func loadNutritionData() async {
         do {
-            let summary = try await nutritionService.getTodaysSummary(for: user)
-            self.nutritionSummary = summary
+            let foodSummary = try await nutritionService.getTodaysSummary(for: user)
+            // Convert FoodNutritionSummary to NutritionSummary
+            self.nutritionSummary = NutritionSummary(
+                calories: foodSummary.calories,
+                caloriesTarget: foodSummary.calorieGoal,
+                protein: foodSummary.protein,
+                proteinTarget: foodSummary.proteinGoal,
+                carbs: foodSummary.carbs,
+                carbsTarget: foodSummary.carbGoal,
+                fat: foodSummary.fat,
+                fatTarget: foodSummary.fatGoal,
+                fiber: foodSummary.fiber,
+                fiberTarget: 25.0,  // Default fiber target
+                mealCount: 0,
+                meals: []
+            )
 
             // Extract targets from summary
             var targets = NutritionTargets(
-                calories: summary.caloriesTarget,
-                protein: summary.proteinTarget,
-                carbs: summary.carbsTarget,
-                fat: summary.fatTarget,
-                fiber: summary.fiberTarget
+                calories: foodSummary.calorieGoal,
+                protein: foodSummary.proteinGoal,
+                carbs: foodSummary.carbGoal,
+                fat: foodSummary.fatGoal,
+                fiber: 25.0
             )
 
             // Adjust targets based on activity and recent intake if available
             if let goalService = nutritionGoalService {
                 let base = DynamicNutritionTargets(
-                    baseCalories: summary.caloriesTarget,
+                    baseCalories: foodSummary.calorieGoal,
                     activeCalorieBonus: 0,
-                    totalCalories: summary.caloriesTarget,
-                    protein: summary.proteinTarget,
-                    carbs: summary.carbsTarget,
-                    fat: summary.fatTarget
+                    totalCalories: foodSummary.calorieGoal,
+                    protein: foodSummary.proteinGoal,
+                    carbs: foodSummary.carbGoal,
+                    fat: foodSummary.fatGoal
                 )
                 let adjusted = try await goalService.adjustTodayTargets(for: user, base: base)
                 targets = adjusted
@@ -231,7 +245,7 @@ final class DashboardViewModel: ErrorHandling {
                     nutritionAdjustmentPercent = pct
                 } else {
                     // Fallback compute from calories
-                    let baseCals = summary.caloriesTarget
+                    let baseCals = foodSummary.calorieGoal
                     nutritionAdjustmentPercent = baseCals > 0 ? (adjusted.calories / baseCals - 1) : nil
                 }
             }

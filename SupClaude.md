@@ -121,6 +121,44 @@ SwiftLint custom rules (staged):
 - Clear scope, files, and validation; screenshots/video for UI
 - No force ops in app target; no ad‑hoc `ModelContainer(`
 
+---
+
+# CTO — Sprint Plan (Authoritative, Start Now)
+
+We are green on critical safety checks and aligned on iOS 26.0. Execute these four tasks in parallel. Keep PRs small, paste guard summaries, and rebase off `origin/main`. Do not change CoachEngine public APIs.
+
+## T41 — Real Performance Capture (R06 follow‑through)
+- Goal: Publish real TTFT and context timings.
+- Do:
+  - Run `Scripts/validation/performance-benchmarks.sh` on simulator/device (iPhone 16 Pro, iOS 26.0).
+  - Capture signposts: `coach.pipeline`, `stream.first_token`, `stream.complete`.
+  - Update `Docs/Performance/RESULTS.md` with measured numbers (TTFT p50/p95; context cold/warm) and the exact commands used.
+- Acceptance: RESULTS.md shows real numbers with timestamp and environment.
+
+## T42 — Unit Test Stabilization & Coverage
+- Goal: AirFit-Unit test plan passes under Xcode‑beta/iOS 26.0 and coverage is reported.
+- Do:
+  - `DEVELOPER_DIR=/Applications/Xcode-beta.app/Contents/Developer xcodebuild test -scheme AirFit -testPlan AirFit-Unit -destination 'platform=iOS Simulator,name=iPhone 16 Pro,OS=26.0'`
+  - Fix failing tests only; document any necessary test updates.
+  - Paste coverage % in PR body.
+- Acceptance: Tests green locally and in CI; coverage included.
+
+## T43 — Advisory Guard Reduction (ACCESS_CONTROL)
+- Goal: Reduce ACCESS_CONTROL violations to ≤ 100 without risky refactors.
+- Do: Add explicit `private`/`internal` in app code (exclude tests). Avoid changing public surfaces unless necessary; document when you must.
+- Acceptance: `./Scripts/ci-guards.sh` shows ACCESS_CONTROL ≤ 100; CRITICAL remains 0.
+
+## T44 — User‑Facing Strings Hygiene (HARDCODED_STRING)
+- Goal: Reduce top offenders and improve localization readiness.
+- Do: Prioritize Dashboard, Workouts, FoodTracking; move obvious user‑facing strings into constants/localization stubs. Skip deep refactors.
+- Acceptance: Each PR reduces HARDCODED_STRING by ≥ 25% (show before/after in PR).
+
+Branching
+- `claude/T41-perf-capture`, `claude/T42-tests-stabilize`, `claude/T43-access-control-pass`, `claude/T44-strings-hygiene-pass`.
+
+Validation
+- Rebase on `origin/main`; run XcodeGen → SwiftLint → build/tests → guards; paste summaries and coverage in PRs.
+
 ## Next Safe Tasks (available now)
 - T06: Apply `surfaceCapsule` to other chips/buttons in Dashboard entry screens (limit to 1–2 spots per PR).
 - T24: Add a short README section linking this runbook and QUALITY_GATES (done).
@@ -236,6 +274,32 @@ Priority Freeze
 - Do not start R06 until R02 is merged and CI is green.
 
 New Claude Instance — Kickoff Briefing (Read Me First)
+ 
+---
+ 
+# Quality Gates — Anti‑Reward‑Hacking Policy (MANDATORY)
+
+Intent
+- We ship the right solutions, not “test‑only” workarounds. The rules below are required for every PR.
+
+Hard Rules
+- No production code paths gated by test flags. Forbid `#if TESTING` or equivalent in non‑test targets.
+- No weakening/rewriting tests just to pass unless the production behavior truly changed; link to source diff and explain why.
+- No sleep‑based timing hacks; use signposts, expectations, or dependency injection.
+- No stubbing singletons in production code; use DI (enforced by architecture guardrails).
+- Do not bypass guardrails: `ALLOW_GUARD_FAIL` only with explicit CTO approval in PR.
+
+What to include in every PR body
+- Behavior summary: what changed and why (1–2 lines)
+- Guard summary (before/after counts); CRITICAL must remain 0
+- Coverage % (from CI) and changed‑lines coverage note (no unexplained drops)
+- If tests changed: link to source lines that justify the change
+- Perf PRs: attach signpost evidence (xctrace/OSLog export) proving real runs
+
+CTO pre‑merge checks (what I will verify)
+- CRITICAL = 0; advisory movements match PR scope
+- Test diffs match source changes; no test‑only flags in production modules
+- Coverage and guard outputs look healthy; perf evidence is real, not mocked
 - Context: Personal iOS app (iPhone 16 Pro, iOS 26 only). Guardrails: no NotificationCenter for chat (ChatStreamingStore only), no SwiftData in UI/ViewModels, single DI-owned ModelContainer, all ViewModels @MainActor, no force ops.
 - Workflow: Small PRs targeting `main`. Branch naming: `claude/<task-id-or-scope>-<slug>`. Keep CI green per `.github/workflows/ci.yml`.
 - Current status: A “final report” claims 100%, but we want proof. Start by pulling `main` and establishing a baseline.
