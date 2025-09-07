@@ -120,8 +120,8 @@ done
 # Guard 5: Check for force unwrapping
 echo -e "\n${YELLOW}⚠️  Checking for force unwrapping...${NC}"
 find AirFit -name "*.swift" -not -path "*/.*" -exec grep -n "!" {} + | grep -v "!=" | while IFS=: read -r file line_num content; do
-    # Skip comments, boolean operators, and safe contexts
-    if [[ ! "$content" =~ ^[[:space:]]*// ]] && [[ "$content" =~ [a-zA-Z0-9_]\! ]] && [[ ! "$content" =~ fatalError ]]; then
+    # Skip comments, boolean operators, test files, and safe contexts
+    if [[ ! "$content" =~ ^[[:space:]]*// ]] && [[ "$content" =~ [a-zA-Z0-9_]\! ]] && [[ ! "$content" =~ fatalError ]] && [[ ! "$file" =~ Test ]]; then
         log_violation "FORCE_UNWRAP" "Found force unwrapping (!)" "$file" "$line_num"
     fi
 done
