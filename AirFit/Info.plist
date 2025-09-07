@@ -35,8 +35,7 @@
 	<string>26.0</string>
 	<key>UIRequiredDeviceCapabilities</key>
 	<array>
-		<string>armv7</string>
-		<string>iphone-16-pro-minimum</string>
+		<string>arm64</string>
 	</array>
 	<key>UISupportedInterfaceOrientations</key>
 	<array>

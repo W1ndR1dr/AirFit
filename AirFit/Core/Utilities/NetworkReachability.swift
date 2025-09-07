@@ -5,9 +5,6 @@ import Combine
 /// Monitors network connectivity status and provides reactive updates
 @MainActor
 final class NetworkReachability: ObservableObject {
-    // MARK: - Singleton
-    static let shared = NetworkReachability()
-
     // MARK: - Published Properties
     @Published private(set) var isConnected: Bool = true
     @Published private(set) var connectionType: ConnectionType = .unknown
@@ -18,6 +15,7 @@ final class NetworkReachability: ObservableObject {
     private let monitor: NWPathMonitor
     private let queue = DispatchQueue(label: "com.airfit.networkmonitor")
     private var cancellables = Set<AnyCancellable>()
+    private let networkManager: NetworkManagementProtocol
 
     // MARK: - Types
     enum ConnectionType: String, CaseIterable {
@@ -49,8 +47,10 @@ final class NetworkReachability: ObservableObject {
     }
 
     // MARK: - Initialization
-    private init() {
-        monitor = NWPathMonitor()
+    init(networkManager: NetworkManagementProtocol, initialIsConnected: Bool = true) {
+        self.networkManager = networkManager
+        self.isConnected = initialIsConnected
+        self.monitor = NWPathMonitor()
         startMonitoring()
     }
 
@@ -75,21 +75,10 @@ final class NetworkReachability: ObservableObject {
         monitor.cancel()
     }
 
-    /// Checks if a specific host is reachable
-    func isHostReachable(_ host: String) async -> Bool {
-        guard isConnected else { return false }
-
-        do {
-            let url = URL(string: "https://\(host)")!
-            let (_, response) = try await URLSession.shared.data(from: url)
-            if let httpResponse = response as? HTTPURLResponse {
-                return (200...299).contains(httpResponse.statusCode)
-            }
-            return false
-        } catch {
-            return false
-        }
-    }
+    /// Returns whether the network is currently reachable (host-agnostic)
+    /// If host-specific reachability is required in the future, route through
+    /// `NetworkManagementProtocol` to perform a lightweight HEAD/GET check.
+    func isHostReachable(_ host: String) async -> Bool { isConnected }
 
     /// Waits for connectivity with optional timeout
     func waitForConnectivity(timeout: TimeInterval = 30) async throws {

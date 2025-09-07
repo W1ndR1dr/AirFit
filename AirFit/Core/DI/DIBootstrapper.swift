@@ -51,6 +51,14 @@ public final class DIBootstrapper {
         container.register(NetworkManagementProtocol.self, lifetime: .singleton) { _ in
             NetworkManager()
         }
+
+        // Network Reachability - Observes NWPathMonitor, DI-injected
+        container.register(NetworkReachability.self, lifetime: .singleton) { resolver in
+            let networkManager = try await resolver.resolve(NetworkManagementProtocol.self)
+            return await MainActor.run {
+                NetworkReachability(networkManager: networkManager)
+            }
+        }
     }
 
     // MARK: - AI Services
