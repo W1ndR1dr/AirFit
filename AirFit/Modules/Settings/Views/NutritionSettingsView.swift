@@ -1,5 +1,4 @@
 import SwiftUI
-import SwiftData
 
 /// Settings view for adjusting personalized nutrition macros
 struct NutritionSettingsView: View {

@@ -2,6 +2,7 @@ import Foundation
 import SwiftData
 import Observation
 import UIKit
+import os
 
 // MARK: - Direct AI Error Types
 enum DirectAIError: Error, LocalizedError {
@@ -449,7 +450,7 @@ final class CoachEngine {
         // Execute the command based on type
         switch command {
         case .showDashboard, .navigateToTab, .showSettings, .showProfile,
-             .startWorkout, .showFood, .showWorkouts, .showStats,
+             .showFood, .showWorkouts, .showStats,
              .showRecovery, .showProgress:
             // Navigation commands - execute through NavigationState
             if let navigationState = await getNavigationState() {
@@ -491,20 +492,42 @@ final class CoachEngine {
     ) async {
         let startTime = CFAbsoluteTimeGetCurrent()
 
+        // C01 Pipeline V2 signposted flow (no public API change)
+        var pipelineSp: OSSignpostID = .init(log: ObsCategories.ai)
+        if AppConstants.Configuration.coachPipelineV2Enabled {
+            spBegin(ObsCategories.ai, StaticString(SignpostNames.pipeline), &pipelineSp)
+        }
+
         do {
+            // Step 0: Parse (classification done earlier; mark for timing)
+            if AppConstants.Configuration.coachPipelineV2Enabled {
+                var parseSp: OSSignpostID = .init(log: ObsCategories.ai)
+                spBegin(ObsCategories.ai, StaticString(SignpostNames.parse), &parseSp)
+                spEnd(ObsCategories.ai, StaticString(SignpostNames.parse), parseSp)
+            }
+
             // Step 1: Assemble health context
-            let healthContext = await contextAssembler.assembleContext()
+            var contextSp: OSSignpostID = .init(log: ObsCategories.ai)
+            if AppConstants.Configuration.coachPipelineV2Enabled {
+                spBegin(ObsCategories.ai, StaticString(SignpostNames.assembleContext), &contextSp)
+            }
 
             // Step 2: Get conversation history with optimized limit based on message type
             let historyLimit = await stateManager.getOptimalHistoryLimit(
                 for: conversationId,
                 messageType: messageType
             )
-            let conversationHistory = try await conversationManager.getRecentMessages(
-                for: user,
-                conversationId: conversationId,
-                limit: historyLimit
-            )
+            async let healthContextAsync: HealthContextSnapshot = contextAssembler.assembleContext()
+            async let conversationHistoryAsync: [AIChatMessage] = conversationManager.getRecentMessages(
+                    for: user,
+                    conversationId: conversationId,
+                    limit: historyLimit
+                )
+            let healthContext = await healthContextAsync
+            if AppConstants.Configuration.coachPipelineV2Enabled {
+                spEnd(ObsCategories.ai, StaticString(SignpostNames.assembleContext), contextSp)
+            }
+            let conversationHistory = try await conversationHistoryAsync
 
             AppLogger.debug(
                 "Using \(historyLimit) message history limit for \(messageType.rawValue) (retrieved \(conversationHistory.count) messages)",
@@ -544,6 +567,10 @@ final class CoachEngine {
             // Step 4: Route based on strategy
             switch routingStrategy.route {
             case .directAI:
+                var inferSp: OSSignpostID = .init(log: ObsCategories.ai)
+                if AppConstants.Configuration.coachPipelineV2Enabled {
+                    spBegin(ObsCategories.ai, StaticString(SignpostNames.infer), &inferSp)
+                }
                 await processWithDirectAI(
                     text: text,
                     user: user,
@@ -553,8 +580,15 @@ final class CoachEngine {
                     routingStrategy: routingStrategy,
                     startTime: startTime
                 )
+                if AppConstants.Configuration.coachPipelineV2Enabled {
+                    spEnd(ObsCategories.ai, StaticString(SignpostNames.infer), inferSp)
+                }
 
             case .functionCalling, .hybrid:
+                var inferSp: OSSignpostID = .init(log: ObsCategories.ai)
+                if AppConstants.Configuration.coachPipelineV2Enabled {
+                    spBegin(ObsCategories.ai, StaticString(SignpostNames.infer), &inferSp)
+                }
                 await processWithFunctionCalling(
                     text: text,
                     user: user,
@@ -564,8 +598,15 @@ final class CoachEngine {
                     routingStrategy: routingStrategy,
                     startTime: startTime
                 )
+                if AppConstants.Configuration.coachPipelineV2Enabled {
+                    spEnd(ObsCategories.ai, StaticString(SignpostNames.infer), inferSp)
+                }
             }
 
+            if AppConstants.Configuration.coachPipelineV2Enabled {
+                // Act stage is implicit (message persistence and UI update). Mark the end of the pipeline.
+                spEnd(ObsCategories.ai, StaticString(SignpostNames.pipeline), pipelineSp)
+            }
         } catch {
             await handleError(error)
         }

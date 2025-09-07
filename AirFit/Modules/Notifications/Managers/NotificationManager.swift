@@ -127,11 +127,7 @@ final class NotificationManager: NSObject, ServiceProtocol {
             UNNotificationCategory(
                 identifier: NotificationCategory.workout.rawValue,
                 actions: [
-                    UNNotificationAction(
-                        identifier: "START_WORKOUT",
-                        title: "Start Workout",
-                        options: .foreground
-                    ),
+                    // Start Workout action removed - in-app logging deprecated
                     UNNotificationAction(
                         identifier: "SNOOZE_30",
                         title: "Remind in 30 min",

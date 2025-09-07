@@ -10,6 +10,7 @@ final class ChatViewModel: ObservableObject, ErrorHandling {
     private let aiService: AIServiceProtocol
     var voiceManager: VoiceInputManager
     private let coordinator: ChatCoordinator
+    private let streamStore: ChatStreamingStore
 
     // MARK: - Published State
     @Published private(set) var messages: [ChatMessage] = []
@@ -42,7 +43,7 @@ final class ChatViewModel: ObservableObject, ErrorHandling {
         aiService: AIServiceProtocol,
         coordinator: ChatCoordinator,
         voiceManager: VoiceInputManager,
-        streamStore: ChatStreamingStore? = nil
+        streamStore: ChatStreamingStore
     ) {
         self.chatHistoryRepository = chatHistoryRepository
         self.user = user
@@ -50,54 +51,42 @@ final class ChatViewModel: ObservableObject, ErrorHandling {
         self.aiService = aiService
         self.coordinator = coordinator
         self.voiceManager = voiceManager
+        self.streamStore = streamStore
 
         setupVoiceManager()
-
-        // Observe coach assistant message creations and append to messages
-        NotificationCenter.default.publisher(for: .coachAssistantMessageCreated)
+        setupStreamingObservation()
+        // Message completion events are handled via ChatStreamingStore .finished events
+    }
+    
+    // MARK: - Private Setup Methods
+    
+    private func setupStreamingObservation() {
+        // Subscribe to unified ChatStreamingStore events for real-time streaming updates
+        streamStore.events
             .receive(on: RunLoop.main)
-            .sink { [weak self] notification in
-                Task { @MainActor in
-                    guard let self = self, let session = self.currentSession else { return }
-                    if let coach = notification.object as? CoachMessage, coach.userID == self.user.id {
-                        // Note: CoachMessage persistence handled by CoachEngine
-                        // Just reload messages to get the latest state
-                        await self.loadMessages(for: session)
-                    } else {
-                        // Fallback: reload messages
-                        await self.loadMessages(for: session)
-                    }
-                    self.isStreaming = false
-                    self.streamTask?.cancel()
+            .sink { [weak self] event in
+                guard let self = self else { return }
+                guard let session = self.currentSession,
+                      event.conversationId == session.id else { return }
+                switch event.kind {
+                case .started:
+                    self.isStreaming = true
                     self.streamingText = ""
+                case .delta(let text):
+                    self.streamingText += text
+                case .finished:
+                    self.isStreaming = false
+                    Task { @MainActor in
+                        if let session = self.currentSession { await self.loadMessages(for: session) }
+                        self.streamTask?.cancel()
+                        self.streamingText = ""
+                    }
                 }
             }
             .store(in: &cancellables)
-
-        // Note: Notification-based streaming removed in favor of ChatStreamingStore events
-
-        // Optional: subscribe to typed ChatStreamingStore events (bridged from notifications)
-        if let streamStore {
-            streamStore.events
-                .receive(on: RunLoop.main)
-                .sink { [weak self] event in
-                    guard let self = self else { return }
-                    guard let session = self.currentSession,
-                          event.conversationId == session.id else { return }
-                    switch event.kind {
-                    case .started:
-                        self.isStreaming = true
-                        self.streamingText = ""
-                    case .delta(let text):
-                        self.streamingText += text
-                    case .finished:
-                        // Keep streamingText until assistant message is saved
-                        self.isStreaming = false
-                    }
-                }
-                .store(in: &cancellables)
-        }
     }
+    
+    private func setupMessageCompletionObservation() { /* deprecated */ }
 
     deinit {
         streamTask?.cancel()

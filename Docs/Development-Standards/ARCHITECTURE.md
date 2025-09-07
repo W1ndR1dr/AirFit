@@ -52,7 +52,7 @@ AirFit is an AI-powered fitness & nutrition tracking app built with SwiftUI, Swi
 ## Component Layers
 
 ### 1. Presentation Layer (Views)
-- **Technology**: SwiftUI, iOS 18.0+
+- **Technology**: SwiftUI, iOS 26.0 (device: iPhone 16 Pro)
 - **Patterns**: MVVM with @Observable ViewModels
 - **Standards**: GlassCard, CascadeText, gradient system (current UI standards)
 - **Navigation**: Type-safe coordinator pattern
@@ -257,12 +257,13 @@ DI:
 
 ---
 
-## Streaming Notification Flow (New)
+## Chat Streaming Architecture
 
-Chat streaming uses a small NotificationCenter bus to deliver deltas to the UI:
-- CoachEngine posts `.chatStreamStarted`, `.chatStreamDelta`, `.chatStreamFinished`.
-- ChatViewModel maintains an ephemeral `streamingText` buffer and renders a streaming bubble.
-- ConversationManager persists the final assistant message and posts `.coachAssistantMessageCreated`, upon which ChatViewModel appends and clears streaming state.
+Chat streaming uses the unified ChatStreamingStore to deliver updates to the UI:
+- ChatStreamingStore provides a single source of truth for all streaming events
+- Typed events flow through the store with built-in metrics and observability
+- ChatViewModel subscribes to the store for real-time updates
+- See `Docs/Architecture/ChatStreamingStore-Unified-Architecture.md` for detailed implementation
 
 Stop Action:
-- Chat exposes a “Stop” button to cancel streaming and persist the partial text as an assistant message.
+- Chat exposes a "Stop" button to cancel streaming and persist the partial text as an assistant message.

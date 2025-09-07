@@ -7,7 +7,7 @@ public enum LocalCommand: Equatable {
     case quickLog(type: QuickLogType)
     case showSettings
     case showProfile
-    case startWorkout
+    // startWorkout removed - in-app logging deprecated
     case help
     case none
     // Enhanced navigation commands
@@ -55,8 +55,7 @@ final class LocalCommandParser {
             "home": .showDashboard,
             "settings": .showSettings,
             "profile": .showProfile,
-            "start workout": .startWorkout,
-            "workout": .startWorkout,
+            // workout commands removed - in-app logging deprecated
             "help": .help,
             "?": .help
         ]
@@ -256,7 +255,7 @@ extension LocalCommand {
     var requiresNavigation: Bool {
         switch self {
         case .showDashboard, .navigateToTab, .showSettings,
-             .showProfile, .startWorkout, .showFood, .showWorkouts,
+             .showProfile, .showFood, .showWorkouts,
              .showStats, .showRecovery, .showProgress:
             return true
         default:
@@ -271,7 +270,7 @@ extension LocalCommand {
         case .quickLog(let type): return "quick_log_\(type)"
         case .showSettings: return "show_settings"
         case .showProfile: return "show_profile"
-        case .startWorkout: return "start_workout"
+        // case .startWorkout: return "start_workout" // removed - deprecated
         case .help: return "help"
         case .none: return "none"
         case .showFood: return "show_food"

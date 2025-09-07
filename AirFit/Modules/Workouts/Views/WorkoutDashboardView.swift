@@ -1,5 +1,4 @@
 import SwiftUI
-import SwiftData
 import Charts
 
 /// Enhanced Workout Dashboard - Comprehensive workout tracking with AI insights
@@ -108,7 +107,7 @@ struct WorkoutDashboardView: View {
                                 .font(.system(size: 20))
                                 .foregroundStyle(gradientManager.currentGradient(for: colorScheme))
                         }
-                        .accessibilityLabel("Start Workout")
+                        .accessibilityLabel("Create Workout Plan")
                         .disabled(viewModel == nil)
                         .opacity(viewModel == nil ? 0.5 : 1)
                     }
@@ -1102,7 +1101,7 @@ extension TimeInterval {
 // MARK: - Preview
 
 #Preview {
-    let container = try! ModelContainer(for: User.self) // swiftlint:disable:this force_try
+    let container = ModelContainer.preview
     let user = User(name: "Preview")
     container.mainContext.insert(user)
 

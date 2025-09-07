@@ -430,7 +430,7 @@ final class CoachOrchestrator {
     private func executeLocalCommand(_ command: LocalCommand) async {
         switch command {
         case .showDashboard, .navigateToTab, .showSettings, .showProfile,
-             .startWorkout, .showFood, .showWorkouts, .showStats,
+             .showFood, .showWorkouts, .showStats,
              .showRecovery, .showProgress:
             // No-op (UI integration point); keep parity without adding NotificationCenter.
             AppLogger.info("Local navigation command executed: \(command)", category: .ai)

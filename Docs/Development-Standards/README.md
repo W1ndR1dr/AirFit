@@ -53,7 +53,7 @@
 
 ### First 60 Minutes Checklist
 - Read `Docs/STATUS.md` to see recent work and next slices.
-- Build locally with the iOS 18.4 sim, verify app launches to Today/Chat.
+- Build locally with the iOS 18.4 sim (CI advisory), verify device validation on iPhone 16 Pro (iOS 26).
 - Skim `ARCHITECTURE.md`, `AI_STANDARDS.md`, and `UI_STANDARDS.md` to align implementation details.
 - Scan `Core/DI/DIBootstrapper.swift` to see current service wiring.
 - If touching SwiftData, review `SWIFTDATA_STANDARDS.md` predicate and indexing guidance.

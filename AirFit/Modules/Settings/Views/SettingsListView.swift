@@ -1,5 +1,4 @@
 import SwiftUI
-import SwiftData
 #if DEBUG
 import HealthKit
 #endif

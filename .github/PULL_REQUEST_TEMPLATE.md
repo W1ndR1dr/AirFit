@@ -5,7 +5,7 @@
 - Title: 
 - Context: 
 - Goals (Exit Criteria): 
-- Constraints: iOS 18+, Swift 6 strict concurrency, SwiftLint strict
+- Constraints: iPhone 16 Pro only, iOS 26 only; Swift 6 strict concurrency; SwiftLint strict
 - Scope (modules/files): 
 - Validation commands: 
 - Test plan: 
@@ -13,12 +13,21 @@
 
 ## Screenshots / Demos (if UI)
 
-## Checklist
+## Checklist (QUALITY_GATES)
 - [ ] Ran `xcodegen generate`
 - [ ] `swiftlint --strict` passes
-- [ ] Build passes: `xcodebuild build -scheme AirFit -destination 'platform=iOS Simulator,name=iPhone 16 Pro,OS=18.4'`
-- [ ] Tests updated/passing or quarantined with rationale
+- [ ] Build passes: `xcodebuild build -scheme AirFit -destination 'platform=iOS Simulator,name=iPhone 16 Pro,OS=26.0'`
+- [ ] Unit tests updated/passing or quarantined with rationale
+- [ ] `./Scripts/ci-guards.sh` summary pasted below; no new violations
+- [ ] No SwiftData imports in UI/ViewModels
+- [ ] No ad‑hoc `ModelContainer(` outside DI/tests/previews
+- [ ] No force ops (`try!`, `as!`, force unwrap) in app target
+- [ ] Chat streaming uses `ChatStreamingStore` only (no NotificationCenter)
 - [ ] No secrets, no extraneous files, no TODOs left
 - [ ] Adheres to `Docs/Development-Standards/`
 - [ ] Linked ADR(s) if architecture decisions changed
-- [ ] (Optional) Attached Claude output or prompt used
+
+### Guard Summary
+```
+# Paste the tail of ./Scripts/ci-guards.sh here
+```

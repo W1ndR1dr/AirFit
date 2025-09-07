@@ -169,7 +169,7 @@ targets:
             <key>UILaunchScreen</key>
             <dict/>
             <key>MinimumOSVersion</key>
-            <string>26.0</string>
+            <string>18.4</string>
             <key>UIRequiredDeviceCapabilities</key>
             <array>
               <string>arm64</string>

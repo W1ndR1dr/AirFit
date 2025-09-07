@@ -120,7 +120,7 @@ extension Shape where Self == Capsule {
 
 // MARK: - Motion Tokens for Consistent Animations
 
-struct MotionToken {
+struct WidgetMotionToken {
     static let standardSpring = Animation.spring(response: 0.5, dampingFraction: 0.8, blendDuration: 0)
     static let gentleSpring = Animation.spring(response: 0.7, dampingFraction: 0.9, blendDuration: 0)
     static let snappySpring = Animation.spring(response: 0.3, dampingFraction: 0.7, blendDuration: 0)

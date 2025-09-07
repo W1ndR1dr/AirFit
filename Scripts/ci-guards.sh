@@ -6,6 +6,9 @@
 
 set -e
 
+# Check if we should allow guard failures (bypass for emergency deployments)
+ALLOW_GUARD_FAIL=${ALLOW_GUARD_FAIL:-0}
+
 # Colors for output
 RED='\033[0;31m'
 GREEN='\033[0;32m'
@@ -28,6 +31,21 @@ echo "" > "$VIOLATIONS_FILE"
 echo '{"timestamp":"'$(date -u +%Y-%m-%dT%H:%M:%SZ)'","violations":[],"summary":{}}' > "$SUMMARY_FILE"
 
 violations_count=0
+critical_violations_count=0
+
+# Define critical violation categories
+critical_categories=("FORCE_TRY" "FORCE_UNWRAP" "ADHOC_MODELCONTAINER" "SWIFTDATA_UI" "NOTIFICATIONCENTER_CHAT")
+
+# Helper function to check if category is critical
+is_critical_category() {
+    local category="$1"
+    for critical in "${critical_categories[@]}"; do
+        if [[ "$category" == "$critical" ]]; then
+            return 0  # true
+        fi
+    done
+    return 1  # false
+}
 
 # Helper function to log violations
 log_violation() {
@@ -37,6 +55,11 @@ log_violation() {
     local line="${4:-}"
     
     violations_count=$((violations_count + 1))
+    
+    # Check if this is a critical violation
+    if is_critical_category "$category"; then
+        critical_violations_count=$((critical_violations_count + 1))
+    fi
     
     if [ -n "$line" ]; then
         echo "[$category] $message ($file:$line)" | tee -a "$VIOLATIONS_FILE"
@@ -97,8 +120,8 @@ done
 # Guard 5: Check for force unwrapping
 echo -e "\n${YELLOW}⚠️  Checking for force unwrapping...${NC}"
 find AirFit -name "*.swift" -not -path "*/.*" -exec grep -n "!" {} + | grep -v "!=" | while IFS=: read -r file line_num content; do
-    # Skip comments, boolean operators, and safe contexts
-    if [[ ! "$content" =~ ^[[:space:]]*// ]] && [[ "$content" =~ [a-zA-Z0-9_]\! ]] && [[ ! "$content" =~ fatalError ]]; then
+    # Skip comments, boolean operators, test files, and safe contexts
+    if [[ ! "$content" =~ ^[[:space:]]*// ]] && [[ "$content" =~ [a-zA-Z0-9_]\! ]] && [[ ! "$content" =~ fatalError ]] && [[ ! "$file" =~ Test ]]; then
         log_violation "FORCE_UNWRAP" "Found force unwrapping (!)" "$file" "$line_num"
     fi
 done
@@ -160,16 +183,149 @@ find AirFit -name "*.swift" -not -path "*/.*" -exec grep -n "try!" {} + | while 
     fi
 done
 
+# Guard 10: Check for SwiftData imports in UI/ViewModels
+echo -e "\n${YELLOW}🏗️  Checking SwiftData imports in UI/ViewModels...${NC}"
+find AirFit/Modules -path "*/Views/*" -o -path "*/ViewModels/*" | grep "\.swift$" | while read -r file; do
+    if [ -f "$file" ] && grep -q "import SwiftData" "$file"; then
+        line_num=$(grep -n "import SwiftData" "$file" | cut -d: -f1)
+        log_violation "SWIFTDATA_UI" "SwiftData import found in UI/ViewModel - use repositories/services instead" "$file" "$line_num"
+    fi
+done
+
+# Guard 11: Check for ad-hoc ModelContainer usage outside DI/tests/previews
+echo -e "\n${YELLOW}📦 Checking for ad-hoc ModelContainer usage...${NC}"
+find AirFit -name "*.swift" -not -path "*/.*" | while read -r file; do
+    if [ -f "$file" ] && grep -q "ModelContainer(" "$file"; then
+        # Skip allowed locations
+        if [[ ! "$file" =~ (DI/|Tests/|Test|Preview|DataManager\.swift|AirFitApp\.swift|ExerciseDatabase\.swift|ModelContainer\+Test\.swift) ]]; then
+            line_num=$(grep -n "ModelContainer(" "$file" | cut -d: -f1)
+            log_violation "ADHOC_MODELCONTAINER" "Ad-hoc ModelContainer usage - should use DI container" "$file" "$line_num"
+        fi
+    fi
+done
+
+# Guard 12: Check for NotificationCenter usage in Chat/AI modules
+echo -e "\n${YELLOW}📡 Checking NotificationCenter usage in Chat/AI...${NC}"
+find AirFit/Modules/Chat AirFit/Modules/AI -name "*.swift" 2>/dev/null | while read -r file; do
+    if [ -f "$file" ] && grep -q "NotificationCenter\.default\." "$file"; then
+        line_num=$(grep -n "NotificationCenter\.default\." "$file" | cut -d: -f1)
+        log_violation "NOTIFICATIONCENTER_CHAT" "NotificationCenter usage in Chat/AI - use ChatStreamingStore protocol" "$file" "$line_num"
+    fi
+done
+
+# Guard 13: Check for missing @MainActor on ViewModels
+echo -e "\n${YELLOW}🎭 Checking ViewModels for @MainActor...${NC}"
+find AirFit/Modules -path "*/ViewModels/*" -name "*.swift" | while read -r file; do
+    if [ -f "$file" ]; then
+        # Look for ViewModel class definitions without @MainActor
+        grep -n "class.*ViewModel" "$file" | while IFS=: read -r line_num class_line; do
+            # Check if @MainActor is present before the class (within 3 lines)
+            context_start=$((line_num - 3))
+            if [ $context_start -lt 1 ]; then context_start=1; fi
+            
+            has_mainactor=$(sed -n "${context_start},${line_num}p" "$file" | grep -c "@MainActor")
+            if [ "$has_mainactor" -eq 0 ]; then
+                class_name=$(echo "$class_line" | sed 's/.*class \([^: ]*\).*/\1/')
+                log_violation "MISSING_MAINACTOR" "ViewModel '$class_name' missing @MainActor annotation" "$file" "$line_num"
+            fi
+        done
+    fi
+done
+
+# Guard 14: Check for direct URLSession usage outside network layer
+echo -e "\n${YELLOW}🌐 Checking for direct URLSession usage...${NC}"
+find AirFit -name "*.swift" -not -path "*/.*" | while read -r file; do
+    if [ -f "$file" ] && [[ ! "$file" =~ (Services/Network/|Test|ExerciseDatabase\.swift) ]] && grep -q "URLSession\." "$file"; then
+        line_num=$(grep -n "URLSession\." "$file" | cut -d: -f1)
+        log_violation "DIRECT_URLSESSION" "Direct URLSession usage - use NetworkClientProtocol" "$file" "$line_num"
+    fi
+done
+
+# Guard 15: Check for SwiftUI binding misuse (direct @State access from outside view)
+echo -e "\n${YELLOW}🔗 Checking SwiftUI binding patterns...${NC}"
+find AirFit -name "*.swift" -not -path "*/.*" | while read -r file; do
+    if [ -f "$file" ] && grep -q "@State.*private" "$file"; then
+        # Check for potential violations where @State isn't private
+        grep -n "@State" "$file" | grep -v "private" | while IFS=: read -r line_num state_line; do
+            log_violation "STATE_NOT_PRIVATE" "@State should be private - found public/internal @State" "$file" "$line_num"
+        done
+    fi
+done
+
 # Generate summary
 echo -e "\n${BLUE}📊 Generating summary...${NC}"
 
 # Count violations by category
-categories=$(cat "$VIOLATIONS_FILE" | grep -o '^\[[^]]*\]' | sort | uniq -c | sed 's/^\s*\([0-9]*\)\s*\[\([^]]*\)\]/\1:\2/')
+# Build category summary as "count:Category" lines (BSD/GNU sed compatible)
+categories=$(grep -o '^\[[^]]*\]' "$VIOLATIONS_FILE" \
+  | sed -E 's/^\[([^]]*)\]$/\1/' \
+  | sort \
+  | uniq -c \
+  | sed -E 's/^[[:space:]]*([0-9]+)[[:space:]]+(.*)$/\1:\2/')
+
+# Recalculate total violations from file (subshells don't preserve the counter)
+violations_count=$(grep -c '^\[' "$VIOLATIONS_FILE" || echo 0)
+
+# Recalculate critical violations
+# Recalculate critical violations
+critical_violations_count=0
+while IFS= read -r line; do
+  count=$(echo "$line" | cut -d: -f1)
+  catname=$(echo "$line" | cut -d: -f2-)
+  for critical in "${critical_categories[@]}"; do
+    if [ "$catname" = "$critical" ]; then
+      critical_violations_count=$((critical_violations_count + count))
+    fi
+  done
+done <<< "$categories"
+
+# Create detailed summary with statistics  
+echo -e "\n${BLUE}=== DETAILED VIOLATION BREAKDOWN ===${NC}"
+echo "$categories" | while IFS=':' read -r count category; do
+    if [ -n "$count" ] && [ -n "$category" ]; then
+        if is_critical_category "$category"; then
+            echo -e "  🚨 ${RED}$category:${NC} $count violations (CRITICAL)"
+        else
+            echo -e "  ${YELLOW}$category:${NC} $count violations"
+        fi
+    fi
+done
+
+# Generate fix priority recommendations
+echo -e "\n${BLUE}=== FIX PRIORITY RECOMMENDATIONS ===${NC}"
+echo -e "${RED}🚨 CRITICAL (Fix First):${NC}"
+echo "$categories" | while IFS=':' read -r count category; do
+    case $category in
+        "ADHOC_MODELCONTAINER"|"SWIFTDATA_UI"|"FORCE_TRY"|"FORCE_UNWRAP"|"NOTIFICATIONCENTER_CHAT")
+            echo -e "  • $category ($count violations) - Architecture/Safety violations"
+            ;;
+    esac
+done
+
+echo -e "${YELLOW}⚠️  HIGH (Fix Soon):${NC}"
+echo "$categories" | while IFS=':' read -r count category; do
+    case $category in
+        "MISSING_MAINACTOR"|"DIRECT_URLSESSION")
+            echo -e "  • $category ($count violations) - Threading/Architecture issues"
+            ;;
+    esac
+done
+
+echo -e "${BLUE}📋 MEDIUM (Fix When Convenient):${NC}"
+echo "$categories" | while IFS=':' read -r count category; do
+    case $category in
+        "DEBUG_PRINT"|"TODO_FIXME"|"ACCESS_CONTROL"|"HARDCODED_STRING"|"FILE_SIZE"|"FUNCTION_SIZE"|"TYPE_SIZE"|"STATE_NOT_PRIVATE")
+            echo -e "  • $category ($count violations) - Code quality issues"
+            ;;
+    esac
+done
 
 # Create JSON summary
 jq --argjson violations "$violations_count" \
+   --argjson critical "$critical_violations_count" \
    --arg categories "$categories" \
-   '.summary.total_violations = $violations | .summary.categories = $categories' \
+   --arg timestamp "$(date -u +%Y-%m-%dT%H:%M:%SZ)" \
+   '.summary.total_violations = $violations | .summary.critical_violations = $critical | .summary.categories = $categories | .timestamp = $timestamp' \
    "$SUMMARY_FILE" > temp_summary.json && mv temp_summary.json "$SUMMARY_FILE"
 
 # Print results
@@ -181,17 +337,43 @@ if [ "$violations_count" -eq 0 ]; then
     echo -e "${GREEN}✅ No violations found! Code quality looks great.${NC}"
     exit 0
 else
-    echo -e "${RED}⚠️  Found $violations_count violations:${NC}"
+    echo -e "${RED}⚠️  Found $violations_count total violations (${critical_violations_count} critical):${NC}"
     echo ""
-    echo "$categories" | while IFS: read -r count category; do
-        echo -e "  ${YELLOW}$category:${NC} $count violations"
+    echo "$categories" | while IFS=':' read -r count category; do
+        if [ -n "$count" ] && [ -n "$category" ]; then
+            # Mark critical categories with 🚨
+            if is_critical_category "$category"; then
+                echo -e "  🚨 ${RED}$category:${NC} $count violations (CRITICAL)"
+            else
+                echo -e "  ${YELLOW}$category:${NC} $count violations"
+            fi
+        fi
     done
     echo ""
     echo -e "📄 Full report: ${VIOLATIONS_FILE}"
     echo -e "📊 JSON summary: ${SUMMARY_FILE}"
     
-    # For now, exit with success (allow failures)
-    # TODO: Change to exit 1 when we're ready to enforce
-    echo -e "\n${YELLOW}ℹ️  Currently in monitoring mode - violations logged but not failing CI${NC}"
-    exit 0
+    # Check if we should fail on critical violations
+    if [ "$critical_violations_count" -gt 0 ] && [ "$ALLOW_GUARD_FAIL" != "1" ]; then
+        echo -e "\n${RED}🚨 CRITICAL VIOLATIONS DETECTED${NC}"
+        echo -e "${RED}Found $critical_violations_count critical violations that must be fixed:${NC}"
+        for critical in "${critical_categories[@]}"; do
+            critical_count=$(echo "$categories" | awk -F: -v key="$critical" '$2==key {print $1}')
+            if [ -n "$critical_count" ] && [ "$critical_count" -gt 0 ]; then
+                echo -e "  • ${RED}$critical${NC}: $critical_count violations"
+            fi
+        done
+        echo -e "\n${YELLOW}To bypass this check temporarily, set ALLOW_GUARD_FAIL=1${NC}"
+        echo -e "${YELLOW}But please fix these critical issues as soon as possible!${NC}"
+        exit 1
+    elif [ "$critical_violations_count" -gt 0 ] && [ "$ALLOW_GUARD_FAIL" = "1" ]; then
+        echo -e "\n${YELLOW}⚠️  CRITICAL VIOLATIONS BYPASSED${NC}"
+        echo -e "${YELLOW}Found $critical_violations_count critical violations but ALLOW_GUARD_FAIL=1${NC}"
+        echo -e "${RED}Please fix these critical issues as soon as possible!${NC}"
+        exit 0
+    else
+        echo -e "\n${GREEN}ℹ️  No critical violations found${NC}"
+        echo -e "${YELLOW}Non-critical violations are advisory only and don't fail CI${NC}"
+        exit 0
+    fi
 fi

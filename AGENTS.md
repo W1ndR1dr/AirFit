@@ -1,4 +1,4 @@
-# Repository Guidelines
+# Repository Guidelines & Multi-Agent Workflow
 
 ## Project Structure & Module Organization
 - Source: `AirFit/` with layers `Application/`, `Core/`, `Data/`, `Modules/` (feature areas like `AI`, `Dashboard`, `Workouts`), and `Services/` (`Network`, `Health`, `Weather`).
@@ -31,4 +31,17 @@
 - Do not hardcode keys; prefer Keychain/Info.plist configuration or env vars.
 - Environment selection uses `ServiceConfiguration.detectEnvironment()`; set `STAGING=1` for staging.
 - Never commit secrets; verify `.gitignore` before pushing.
+
+## Multi-Agent Coordination (Codex + Claude)
+- Coordination files:
+  - `SupClaude.md` — Codex instructions to Claude; lists tasks, guardrails, merge order
+  - `SupCodex.md` — Claude’s status report back to Codex (treat claims as unverified until Phase 0 snapshot)
+- Handoff guide (required): `Docs/HANDOFF.md`
+- Branch naming: `claude/<task>` or `codex/<task>`; keep PRs small with QUALITY_GATES checklist
+- CI pipeline: `.github/workflows/ci.yml`; match locally before opening PRs
+- Guardrails (never violate):
+  - No NotificationCenter for chat; use `ChatStreamingStore`
+  - No SwiftData in UI/ViewModels; use repositories/services
+  - Single DI-owned `ModelContainer`; no ad‑hoc new instances
+  - All ViewModels `@MainActor`; no force ops (`try!`, `as!`, force unwrap)
 

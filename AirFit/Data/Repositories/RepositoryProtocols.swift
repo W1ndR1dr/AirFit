@@ -176,7 +176,7 @@ protocol FoodEntryRepositoryProtocol: ReadRepositoryProtocol {
     func getRecentFoodEntries(userId: UUID, limit: Int) async throws -> [FoodEntry]
     
     /// Get nutrition summary for date
-    func getNutritionSummary(userId: UUID, date: Date) async throws -> NutritionSummary?
+    func getNutritionSummary(userId: UUID, date: Date) async throws -> NutritionDataSummary?
 }
 
 struct FoodFilter: Sendable {
@@ -193,7 +193,7 @@ struct FoodFilter: Sendable {
     }
 }
 
-struct NutritionSummary: Sendable {
+struct NutritionDataSummary: Sendable {
     let date: Date
     let totalCalories: Double
     let totalProtein: Double

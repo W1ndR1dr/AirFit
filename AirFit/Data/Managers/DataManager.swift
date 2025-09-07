@@ -83,34 +83,12 @@ extension ModelContext {
 extension DataManager {
     static var preview: DataManager {
         let manager = DataManager()
-        // Create in-memory container for previews
-        let schema = Schema([
-            User.self,
-            OnboardingProfile.self,
-            FoodEntry.self,
-            Workout.self,
-            DailyLog.self,
-            CoachMessage.self,
-            ChatSession.self,
-            ConversationSession.self,
-            ConversationResponse.self
-        ])
-
-        let configuration = ModelConfiguration(isStoredInMemoryOnly: true)
-        if let container = try? ModelContainer(for: schema, configurations: [configuration]) {
-            manager._previewContainer = container
-        }
+        manager._previewContainer = ModelContainer.preview
         return manager
     }
 
     static var previewContainer: ModelContainer {
-        // Create in-memory container
-        do {
-            let configuration = ModelConfiguration(isStoredInMemoryOnly: true)
-            return try ModelContainer(for: User.self, OnboardingProfile.self, configurations: configuration)
-        } catch {
-            fatalError("Failed to create preview container: \(error)")
-        }
+        return ModelContainer.preview
     }
 
     private var _previewContainer: ModelContainer? {
@@ -119,26 +97,8 @@ extension DataManager {
     }
 
     var modelContext: ModelContext {
-        _previewContainer?.mainContext ?? ModelContainer.createMemoryContainer().mainContext
+        _previewContainer?.mainContext ?? ModelContainer.preview.mainContext
     }
 }
 
-extension ModelContainer {
-    static func createMemoryContainer() -> ModelContainer {
-        let schema = Schema([
-            User.self,
-            OnboardingProfile.self,
-            FoodEntry.self,
-            Workout.self,
-            DailyLog.self,
-            CoachMessage.self,
-            ChatSession.self,
-            ConversationSession.self,
-            ConversationResponse.self
-        ])
-
-        let configuration = ModelConfiguration(isStoredInMemoryOnly: true)
-        return try! ModelContainer(for: schema, configurations: [configuration]) // swiftlint:disable:this force_try
-    }
-}
 #endif

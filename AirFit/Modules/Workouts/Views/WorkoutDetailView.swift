@@ -1,7 +1,6 @@
 import SwiftUI
 import Charts
 import Observation
-import SwiftData
 
 struct WorkoutDetailView: View {
     let workout: Workout

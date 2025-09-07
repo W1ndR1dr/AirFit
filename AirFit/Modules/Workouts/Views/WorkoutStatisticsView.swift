@@ -1,6 +1,5 @@
 import SwiftUI
 import Charts
-import SwiftData
 
 struct WorkoutStatisticsView: View {
     @State var viewModel: WorkoutViewModel

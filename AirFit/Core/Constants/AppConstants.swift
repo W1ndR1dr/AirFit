@@ -86,6 +86,12 @@ enum AppConstants {
         static var isPreviewMode: Bool {
             ProcessInfo.processInfo.environment["XCODE_RUNNING_FOR_PREVIEWS"] == "1"
         }
+
+        /// Feature flag for C01 pipeline v2 with signposted stages
+        static var coachPipelineV2Enabled: Bool {
+            get { UserDefaults.standard.bool(forKey: "AirFit.C01.PipelineV2") }
+            set { UserDefaults.standard.set(newValue, forKey: "AirFit.C01.PipelineV2") }
+        }
     }
 
     // MARK: - Static Properties

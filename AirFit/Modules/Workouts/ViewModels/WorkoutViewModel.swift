@@ -1,5 +1,4 @@
 import Foundation
-import SwiftData
 import Observation
 
 @MainActor
@@ -24,7 +23,8 @@ final class WorkoutViewModel: ErrorHandling {
     private var currentHeartRate: Int?
 
     // MARK: - Dependencies
-    private let modelContext: ModelContext
+    private let workoutReadRepository: WorkoutReadRepositoryProtocol
+    private let workoutWriteRepository: WorkoutWriteRepositoryProtocol
     private let user: User
     private let coachEngine: CoachEngineProtocol
     private let healthKitManager: HealthKitManaging
@@ -35,7 +35,8 @@ final class WorkoutViewModel: ErrorHandling {
 
     // MARK: - Init
     init(
-        modelContext: ModelContext,
+        workoutReadRepository: WorkoutReadRepositoryProtocol,
+        workoutWriteRepository: WorkoutWriteRepositoryProtocol,
         user: User,
         coachEngine: CoachEngineProtocol,
         healthKitManager: HealthKitManaging,
@@ -43,7 +44,8 @@ final class WorkoutViewModel: ErrorHandling {
         workoutSyncService: WorkoutSyncService,
         liveActivityManager: LiveActivityManager
     ) {
-        self.modelContext = modelContext
+        self.workoutReadRepository = workoutReadRepository
+        self.workoutWriteRepository = workoutWriteRepository
         self.user = user
         self.coachEngine = coachEngine
         self.healthKitManager = healthKitManager
@@ -86,11 +88,8 @@ final class WorkoutViewModel: ErrorHandling {
         isLoading = true
         defer { isLoading = false }
         do {
-            var descriptor = FetchDescriptor<Workout>(
-                sortBy: [SortDescriptor(\.completedDate, order: .reverse)]
-            )
-            descriptor.fetchLimit = 0
-            workouts = try modelContext.fetch(descriptor)
+            let filter = WorkoutFilter(userId: user.id, isCompleted: true)
+            workouts = try await workoutReadRepository.find(filter: filter)
             await calculateWeeklyStats()
         } catch {
             handleError(error)
@@ -139,7 +138,7 @@ final class WorkoutViewModel: ErrorHandling {
 
             // Save analysis to workout
             workout.aiAnalysis = analysis
-            try modelContext.save()
+            try workoutWriteRepository.save(workout)
         } catch {
             handleError(error)
             AppLogger.error("Failed to generate AI analysis", error: error, category: .ai)

@@ -1,5 +1,4 @@
 import SwiftUI
-import SwiftData
 import Combine
 
 // MARK: - Chat Container with DI

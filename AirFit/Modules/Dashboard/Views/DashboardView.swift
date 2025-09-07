@@ -1,5 +1,4 @@
 import SwiftUI
-import SwiftData
 
 /// Dashboard content view that displays the actual dashboard UI
 struct DashboardContent: View {
@@ -205,8 +204,8 @@ struct DashboardContent: View {
             // Navigate to nutrition/food logging
             coordinator.navigate(to: .nutritionDetail)
         case .startWorkout:
-            // Navigate to workout view
-            coordinator.navigate(to: .workoutHistory)
+            // Deprecated: in-app workout logging removed
+            AppLogger.info("Start workout action deprecated - redirecting to workout history", category: .app)
         case .checkIn:
             // Navigate to recovery/check-in view
             coordinator.navigate(to: .recoveryDetail)
@@ -216,7 +215,7 @@ struct DashboardContent: View {
 
 // MARK: - Preview
 #Preview {
-    let container = try! ModelContainer(for: User.self) // swiftlint:disable:this force_try
+    let container = ModelContainer.preview
     let user = User(name: "Preview")
     container.mainContext.insert(user)
 

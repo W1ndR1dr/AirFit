@@ -259,7 +259,7 @@ find AirFit/Modules -name "*.swift" | while read f; do
 done
 
 # Clean and rebuild:
-xcodebuild clean build -scheme "AirFit" -destination 'platform=iOS Simulator,name=iPhone 16 Pro,OS=18.4'
+xcodebuild clean build -scheme "AirFit" -destination 'platform=iOS Simulator,name=iPhone 16 Pro,OS=26.0'
 ```
 
 This guide ensures no files are missed and builds remain stable as we add new modules. 

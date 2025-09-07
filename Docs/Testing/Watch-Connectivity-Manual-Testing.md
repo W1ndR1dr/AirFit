@@ -6,7 +6,7 @@ This document provides comprehensive manual testing procedures for the enhanced 
 ## Prerequisites
 
 ### Hardware Setup
-- iPhone with iOS 18.0+ running AirFit
+- iPhone 16 Pro with iOS 26.0 running AirFit
 - Apple Watch (Series 4+) paired with iPhone
 - AirFit Watch App installed on Apple Watch
 - Both devices charged and nearby
