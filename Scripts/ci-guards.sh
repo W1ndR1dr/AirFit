@@ -256,19 +256,28 @@ done
 echo -e "\n${BLUE}📊 Generating summary...${NC}"
 
 # Count violations by category
-categories=$(cat "$VIOLATIONS_FILE" | grep -o '^\[[^]]*\]' | sort | uniq -c | sed 's/^\s*\([0-9]*\)\s*\[\([^]]*\)\]/\1:\2/')
+# Build category summary as "count:Category" lines (BSD/GNU sed compatible)
+categories=$(grep -o '^\[[^]]*\]' "$VIOLATIONS_FILE" \
+  | sed -E 's/^\[([^]]*)\]$/\1/' \
+  | sort \
+  | uniq -c \
+  | sed -E 's/^[[:space:]]*([0-9]+)[[:space:]]+(.*)$/\1:\2/')
 
 # Recalculate total violations from file (subshells don't preserve the counter)
 violations_count=$(grep -c '^\[' "$VIOLATIONS_FILE" || echo 0)
 
 # Recalculate critical violations
+# Recalculate critical violations
 critical_violations_count=0
-for critical in "${critical_categories[@]}"; do
-    count=$(echo "$categories" | grep ":${critical}$" | cut -d: -f1 || echo "0")
-    if [ -n "$count" ] && [ "$count" -gt 0 ]; then
-        critical_violations_count=$((critical_violations_count + count))
+while IFS= read -r line; do
+  count=$(echo "$line" | cut -d: -f1)
+  catname=$(echo "$line" | cut -d: -f2-)
+  for critical in "${critical_categories[@]}"; do
+    if [ "$catname" = "$critical" ]; then
+      critical_violations_count=$((critical_violations_count + count))
     fi
-done
+  done
+done <<< "$categories"
 
 # Create detailed summary with statistics  
 echo -e "\n${BLUE}=== DETAILED VIOLATION BREAKDOWN ===${NC}"
@@ -349,7 +358,7 @@ else
         echo -e "\n${RED}🚨 CRITICAL VIOLATIONS DETECTED${NC}"
         echo -e "${RED}Found $critical_violations_count critical violations that must be fixed:${NC}"
         for critical in "${critical_categories[@]}"; do
-            critical_count=$(echo "$categories" | grep ":${critical}$" | cut -d: -f1 || echo "0")
+            critical_count=$(echo "$categories" | awk -F: -v key="$critical" '$2==key {print $1}')
             if [ -n "$critical_count" ] && [ "$critical_count" -gt 0 ]; then
                 echo -e "  • ${RED}$critical${NC}: $critical_count violations"
             fi
