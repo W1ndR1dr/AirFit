@@ -1,125 +1,40 @@
-# T32 - Phase 0 Status Snapshot
+# AirFit Status Snapshot
 
-**Generated:** September 6, 2025  
-**Branch:** Codex1  
-**Project:** AirFit iOS Application  
+Date: $(date '+%Y-%m-%d %H:%M %Z')
+Branch: main
+Status: CI baseline + guard enforcement merged; critical violations present
 
-## Build & Test Status
+## Build & Test Status (local)
+- XcodeGen: Not run locally in this session
+- Build: Not run locally (requires Xcode 26 beta)
+- Tests: Not run locally
 
-### Build Status ✅ SUCCESS
-**Command:** `xcodebuild -project AirFit.xcodeproj -scheme AirFit -destination 'platform=iOS Simulator,id=D93FAE62-C85C-43F3-BCB7-E6BCC501A51E' build`
+Use CI to validate with Xcode-beta and iOS 26.0 destinations.
 
-- **Status:** BUILD SUCCEEDED
-- **Target:** iOS Simulator (iPhone 16, iOS 26.0)
-- **Swift Packages Resolved:** 5 packages
-  - Jinja @ 1.2.0
-  - whisperkit @ 0.13.0
-  - swift-transformers @ 0.1.15
-  - swift-argument-parser @ 1.6.1
-  - swift-collections @ 1.2.0
-- **Artifact Path:** `/Users/Brian/Library/Developer/Xcode/DerivedData/AirFit-byirbnjrjkaivfbuyqrmiapiyxae/Build/Products/Debug-iphonesimulator/AirFit.app`
+## Quality Guards Summary (local run)
+- Total violations: 1349
+- Critical violations: 147 (FORCE_UNWRAP)
 
-### Test Status ❌ FAILED
-**Command:** `xcodebuild -project AirFit.xcodeproj -scheme AirFit -destination 'platform=iOS Simulator,id=D93FAE62-C85C-43F3-BCB7-E6BCC501A51E' test`
+Breakdown (top categories):
+- FORCE_UNWRAP (critical): 147
+- ACCESS_CONTROL: 595
+- HARDCODED_STRING: 440
+- FUNCTION_SIZE: 105
+- FILE_SIZE: 7
+- STATE_NOT_PRIVATE: 14
+- TODO_FIXME: 18
+- TYPE_SIZE: 22
 
-- **Status:** TEST FAILED
-- **Issue:** Multiple commands produce duplicate output files
-- **Specific Error:** `NutritionParserTests.stringsdata` conflict
-- **Test Results Path:** `/Users/Brian/Library/Developer/Xcode/DerivedData/AirFit-byirbnjrjkaivfbuyqrmiapiyxae/Logs/Test/Test-AirFit-2025.09.06_22-45-24--0700.xcresult`
-- **Build Failure:** Testing cancelled due to build failure
+Artifacts (local):
+- ci-guards-violations.txt (root)
+- ci-guards-summary.json (root)
 
-### Warnings
-- iOS Simulator deployment target set to 26.0 (supported range: 12.0 to 18.5.99)
-- Duplicate output file warnings in AirFitTests target
+## Commands Used
+```
+./Scripts/ci-guards.sh
+```
 
-## Code Quality Metrics
+## Notes
+- CI workflow now uses Xcode-beta and iOS 26.0 destinations across build/tests and the test matrix.
+- Guard step enforces CRITICAL categories and preserves artifacts even on failure.
 
-### SwiftLint Analysis
-**Command:** `swiftlint --reporter json`
-
-- **Total Issues:** 1,202
-- **Errors:** 4
-- **Warnings:** 1,198
-- **Artifact:** `/tmp/swiftlint_output.json`
-
-#### Top Issue Categories:
-- Trailing newline violations
-- Attributes formatting violations  
-- Number separator violations
-- Trailing whitespace violations
-- Orphaned doc comment violations
-
-## Guard Violations Analysis
-
-### CI Quality Guards
-**Command:** `Scripts/ci-guards.sh`
-
-#### File Size Violations: 7 files
-- `AirFit/Modules/Settings/Views/SettingsListView.swift`: 2,257 lines (max: 1,000)
-- `AirFit/Modules/AI/CoachEngine.swift`: 2,063 lines (max: 1,000)
-- `AirFit/Modules/Onboarding/OnboardingIntelligence.swift`: 1,315 lines (max: 1,000)
-- `AirFit/Modules/FoodTracking/Views/PhotoInputView.swift`: 1,194 lines (max: 1,000)
-- `AirFit/Modules/Workouts/Views/WorkoutDashboardView.swift`: 1,112 lines (max: 1,000)
-- `AirFit/Modules/Workouts/Views/WorkoutDetailView.swift`: 1,103 lines (max: 1,000)
-- `AirFit/Modules/Body/Views/BodyDashboardView.swift`: 1,021 lines (max: 1,000)
-
-#### Function Size Violations: 109 functions
-**Sample violations:**
-- `registerDomainServices` in DIBootstrapper.swift: 140 lines (max: 50)
-- `workoutSkeletonContent` in WorkoutDashboardView.swift: 131 lines (max: 50)
-- `parseNutrition` in DirectAIProcessor.swift: 127 lines (max: 50)
-- `bodySkeletonContent` in BodyDashboardView.swift: 115 lines (max: 50)
-
-#### Critical Issues
-- **Force Unwrapping (!):** 178 instances
-- **TODO/FIXME Comments:** 18 instances
-- **Debug Print Statements:** 1 instance
-
-## Codebase Metrics
-
-### Source Code
-- **Swift Files:** 330
-- **Total Lines of Code:** 81,577
-- **Dependencies:** 5 Swift Package Manager packages
-
-### Project Structure
-- **Main Target:** AirFit
-- **Test Targets:** AirFitTests, AirFitUITests
-- **Watch App:** AirFitWatchApp
-- **Deployment Target:** iOS 26.0 (⚠️ Outside supported range)
-
-## Performance Metrics
-
-### Build Performance
-- **Package Resolution:** ~3 seconds
-- **Full Build Time:** ~45 seconds (estimated)
-- **Derived Data Size:** ~2.1 GB
-
-### Quality Score Breakdown
-- **Build Status:** 50% (builds but tests fail)
-- **Code Style:** 15% (1,202 SwiftLint violations)
-- **Architecture:** 40% (large files, oversized functions)
-- **Safety:** 25% (178 force unwraps)
-
-**Overall Quality Score: 33%** ❌
-
-## Critical Actions Required
-
-1. **Fix Test Build Conflicts** - Resolve duplicate output file generation
-2. **Reduce File Sizes** - 7 files exceed 1,000 line limit  
-3. **Address Force Unwrapping** - 178 critical safety violations
-4. **Fix Deployment Target** - Currently set to unsupported iOS 26.0
-5. **SwiftLint Cleanup** - 1,202 code style violations
-
-## Artifact Locations
-
-- **Build Logs:** `/tmp/xcodebuild_build.log`
-- **Test Logs:** `/tmp/xcodebuild_test.log`
-- **SwiftLint Report:** `/tmp/swiftlint_output.json`
-- **Guard Analysis:** `/tmp/ci-guards_output.log`
-- **Xcode Results:** `/Users/Brian/Library/Developer/Xcode/DerivedData/AirFit-byirbnjrjkaivfbuyqrmiapiyxae/`
-
----
-
-**Report Generated by:** T32 Phase 0 Status Analysis  
-**Next Phase:** Address critical build and test failures before proceeding
