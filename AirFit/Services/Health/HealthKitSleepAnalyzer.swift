@@ -82,8 +82,19 @@ actor HealthKitSleepAnalyzer: ServiceProtocol {
             }
         }
 
-        let timeInBed = bedtime != nil && wakeTime != nil ? wakeTime!.timeIntervalSince(bedtime!) : nil
-        let efficiency = timeInBed != nil && timeInBed! > 0 ? (totalSleepTime / timeInBed!) * 100 : nil
+        let timeInBed: TimeInterval?
+        if let bedtime = bedtime, let wakeTime = wakeTime {
+            timeInBed = wakeTime.timeIntervalSince(bedtime)
+        } else {
+            timeInBed = nil
+        }
+        
+        let efficiency: Double?
+        if let timeInBed = timeInBed, timeInBed > 0 {
+            efficiency = (totalSleepTime / timeInBed) * 100
+        } else {
+            efficiency = nil
+        }
 
         return SleepAnalysis.SleepSession(
             bedtime: bedtime,

@@ -62,7 +62,7 @@ final class WorkoutAnalysisEngine {
                 fallback += " - \(workout.totalSets) sets completed"
             }
 
-            fallback += ". Strong work today!"
+            fallback += ". Strong work today."
 
             return fallback
         }

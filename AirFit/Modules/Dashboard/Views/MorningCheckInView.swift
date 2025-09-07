@@ -37,7 +37,7 @@ struct MorningCheckInView: View {
             
             // Header
             VStack(spacing: AppSpacing.md) {
-                Text("Good morning!")
+                Text("Good morning")
                     .font(.largeTitle)
                     .fontWeight(.light)
                 

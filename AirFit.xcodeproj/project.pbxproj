@@ -251,6 +251,7 @@
 		ABAE8613C48D9BACC1175724 /* DataManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4E5CB706D892FB3AF4615186 /* DataManager.swift */; };
 		ABCDDDC312C2E442541D5875 /* NutritionSchemas.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4DA94074AE4037445A24C5F6 /* NutritionSchemas.swift */; };
 		AC9EB106FA4AD8EAF16B047F /* BaseCoordinator.swift in Sources */ = {isa = PBXBuildFile; fileRef = 13A40A209A749116125B96DB /* BaseCoordinator.swift */; };
+		B00FFB254B67E7CCEF94F3C0 /* NetworkReachabilityTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6BE99CCEA27F8DF94129A1AD /* NetworkReachabilityTests.swift */; };
 		B04CE9E42B99E927A4897C9F /* RecoveryInference.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5D70B643B4022B31C2312ED7 /* RecoveryInference.swift */; };
 		B0DF22B010EA4D30B75BD718 /* SettingsRepositoryProtocol.swift in Sources */ = {isa = PBXBuildFile; fileRef = EE950D5489E65AF40C55CB13 /* SettingsRepositoryProtocol.swift */; };
 		B1320B3429B8DC623C653436 /* ChatStreamingStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = B526199B4776790F9B56C5B6 /* ChatStreamingStore.swift */; };
@@ -536,6 +537,7 @@
 		693E315B9FF4CA16CA70A209 /* OnboardingIntelligence.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OnboardingIntelligence.swift; sourceTree = "<group>"; };
 		6A4D0FA69A3F9FF7087F395B /* DIEnvironment.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DIEnvironment.swift; sourceTree = "<group>"; };
 		6B9F838EB453669F6A2C03B1 /* AppError+Conversion.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "AppError+Conversion.swift"; sourceTree = "<group>"; };
+		6BE99CCEA27F8DF94129A1AD /* NetworkReachabilityTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NetworkReachabilityTests.swift; sourceTree = "<group>"; };
 		6DBBF997EE860EFC5A0AC13C /* DailyLog.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DailyLog.swift; sourceTree = "<group>"; };
 		6E5D78643BB4573F71DA0016 /* SwiftDataSettingsRepository.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SwiftDataSettingsRepository.swift; sourceTree = "<group>"; };
 		6E8DA3FDA52F51F69DC6C303 /* NutritionLiveActivity.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NutritionLiveActivity.swift; sourceTree = "<group>"; };
@@ -2040,6 +2042,7 @@
 				EB61B756C682245F8D762D2F /* DIResolutionTests.swift */,
 				2453F36BE2DB0AFB4B80E3DE /* DISmokeTests.swift */,
 				0726506736E8F772D3E07295 /* HealthKitManagerTests.swift */,
+				6BE99CCEA27F8DF94129A1AD /* NetworkReachabilityTests.swift */,
 				F460F9ADD960FEA1E951CBED /* NutritionCalculatorTests.swift */,
 				F6905BF017A97C4198A9D87E /* NutritionParserTests.swift */,
 				68FC5EF2DA043DD26C3176A8 /* PersonaSynthesizerTests.swift */,
@@ -2201,7 +2204,7 @@
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 			shellPath = /bin/sh;
-			shellScript = "# Ensure Info.plist exists\nif [ ! -f \"${SRCROOT}/AirFit/Info.plist\" ]; then\n  echo '<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n<!DOCTYPE plist PUBLIC \"-//Apple//DTD PLIST 1.0//EN\" \"http://www.apple.com/DTDs/PropertyList-1.0.dtd\">\n<plist version=\"1.0\">\n<dict>\n  <key>CFBundleDevelopmentRegion</key>\n  <string>$(DEVELOPMENT_LANGUAGE)</string>\n  <key>CFBundleExecutable</key>\n  <string>$(EXECUTABLE_NAME)</string>\n  <key>CFBundleIdentifier</key>\n  <string>$(PRODUCT_BUNDLE_IDENTIFIER)</string>\n  <key>CFBundleInfoDictionaryVersion</key>\n  <string>6.0</string>\n  <key>CFBundleName</key>\n  <string>$(PRODUCT_NAME)</string>\n  <key>CFBundlePackageType</key>\n  <string>$(PRODUCT_BUNDLE_PACKAGE_TYPE)</string>\n  <key>CFBundleShortVersionString</key>\n  <string>1.0</string>\n  <key>CFBundleVersion</key>\n  <string>1</string>\n  <key>LSRequiresIPhoneOS</key>\n  <true/>\n  <key>UIApplicationSceneManifest</key>\n  <dict>\n    <key>UIApplicationSupportsMultipleScenes</key>\n    <true/>\n  </dict>\n  <key>UILaunchScreen</key>\n  <dict/>\n  <key>MinimumOSVersion</key>\n  <string>18.4</string>\n  <key>UIRequiredDeviceCapabilities</key>\n  <array>\n    <string>armv7</string>\n    <string>iphone-16-pro-minimum</string>\n  </array>\n  <key>UISupportedInterfaceOrientations</key>\n  <array>\n    <string>UIInterfaceOrientationPortrait</string>\n    <string>UIInterfaceOrientationLandscapeLeft</string>\n    <string>UIInterfaceOrientationLandscapeRight</string>\n  </array>\n  <key>NSHealthShareUsageDescription</key>\n  <string>AirFit needs access to your health data to provide personalized fitness coaching and track your progress.</string>\n  <key>NSHealthUpdateUsageDescription</key>\n  <string>AirFit needs permission to save workout data to Apple Health.</string>\n  <key>NSMicrophoneUsageDescription</key>\n  <string>AirFit needs access to your microphone for voice input during coaching sessions.</string>\n  <key>NSSpeechRecognitionUsageDescription</key>\n  <string>AirFit uses speech recognition to process your voice commands and coaching responses.</string>\n</dict>\n</plist>' > \"${SRCROOT}/AirFit/Info.plist\"\nfi\n";
+			shellScript = "# Ensure Info.plist exists\nif [ ! -f \"${SRCROOT}/AirFit/Info.plist\" ]; then\n  echo '<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n<!DOCTYPE plist PUBLIC \"-//Apple//DTD PLIST 1.0//EN\" \"http://www.apple.com/DTDs/PropertyList-1.0.dtd\">\n<plist version=\"1.0\">\n<dict>\n  <key>CFBundleDevelopmentRegion</key>\n  <string>$(DEVELOPMENT_LANGUAGE)</string>\n  <key>CFBundleExecutable</key>\n  <string>$(EXECUTABLE_NAME)</string>\n  <key>CFBundleIdentifier</key>\n  <string>$(PRODUCT_BUNDLE_IDENTIFIER)</string>\n  <key>CFBundleInfoDictionaryVersion</key>\n  <string>6.0</string>\n  <key>CFBundleName</key>\n  <string>$(PRODUCT_NAME)</string>\n  <key>CFBundlePackageType</key>\n  <string>$(PRODUCT_BUNDLE_PACKAGE_TYPE)</string>\n  <key>CFBundleShortVersionString</key>\n  <string>1.0</string>\n  <key>CFBundleVersion</key>\n  <string>1</string>\n  <key>LSRequiresIPhoneOS</key>\n  <true/>\n  <key>UIApplicationSceneManifest</key>\n  <dict>\n    <key>UIApplicationSupportsMultipleScenes</key>\n    <true/>\n  </dict>\n  <key>UILaunchScreen</key>\n  <dict/>\n  <key>MinimumOSVersion</key>\n  <string>18.4</string>\n  <key>UIRequiredDeviceCapabilities</key>\n  <array>\n    <string>arm64</string>\n  </array>\n  <key>UISupportedInterfaceOrientations</key>\n  <array>\n    <string>UIInterfaceOrientationPortrait</string>\n    <string>UIInterfaceOrientationLandscapeLeft</string>\n    <string>UIInterfaceOrientationLandscapeRight</string>\n  </array>\n  <key>NSHealthShareUsageDescription</key>\n  <string>AirFit needs access to your health data to provide personalized fitness coaching and track your progress.</string>\n  <key>NSHealthUpdateUsageDescription</key>\n  <string>AirFit needs permission to save workout data to Apple Health.</string>\n  <key>NSMicrophoneUsageDescription</key>\n  <string>AirFit needs access to your microphone for voice input during coaching sessions.</string>\n  <key>NSSpeechRecognitionUsageDescription</key>\n  <string>AirFit uses speech recognition to process your voice commands and coaching responses.</string>\n</dict>\n</plist>' > \"${SRCROOT}/AirFit/Info.plist\"\nfi\n";
 			showEnvVarsInLog = 0;
 		};
 /* End PBXShellScriptBuildPhase section */
@@ -2219,6 +2222,7 @@
 				2DD987918C4E875733846215 /* DISmokeTests.swift in Sources */,
 				4BCD0C0478359CF2B5D1334E /* HealthKitManagerFake.swift in Sources */,
 				4ABDF8D69B93F0C8C22672B5 /* HealthKitManagerTests.swift in Sources */,
+				B00FFB254B67E7CCEF94F3C0 /* NetworkReachabilityTests.swift in Sources */,
 				063447978AC147117EF305BE /* NutritionCalculatorTests.swift in Sources */,
 				98038FC4B006CC81EA5DFC30 /* NutritionParserTests.swift in Sources */,
 				3C95B1245C8D9C5756C0B968 /* NutritionParserTests.swift in Sources */,

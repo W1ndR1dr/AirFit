@@ -378,7 +378,7 @@ struct CoachPersona: Codable, Sendable {
         self.behaviors = CoachingBehaviors(
             greetingStyle: personaProfile.interactionStyle.greetingStyle,
             feedbackStyle: personaProfile.interactionStyle.acknowledgmentStyle,
-            encouragementStyle: personaProfile.interactionStyle.encouragementPhrases.first ?? "Great job!",
+            encouragementStyle: personaProfile.interactionStyle.encouragementPhrases.first ?? "Great job.",
             adaptations: personaProfile.adaptationRules
         )
         self.quirks = []

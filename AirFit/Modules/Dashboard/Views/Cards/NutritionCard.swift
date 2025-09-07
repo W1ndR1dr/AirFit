@@ -45,7 +45,7 @@ struct NutritionCard: View {
                         .font(.system(size: 12, weight: .light))
                         .foregroundStyle(.orange)
                     
-                    Text("Try our new photo logging!")
+                    Text("Try our new photo logging.")
                         .font(.caption)
                         .foregroundStyle(.secondary)
                     

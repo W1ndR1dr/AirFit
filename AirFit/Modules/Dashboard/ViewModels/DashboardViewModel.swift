@@ -10,7 +10,7 @@ final class DashboardViewModel: ErrorHandling {
     var isShowingError = false
 
     // Morning Greeting
-    private(set) var morningGreeting = "Good morning!"
+    private(set) var morningGreeting = "Good morning."
     private(set) var greetingContext: GreetingContext?
 
     // Energy Logging
@@ -289,13 +289,13 @@ final class DashboardViewModel: ErrorHandling {
 
         switch hour {
         case 5..<12:
-            return "Good morning, \(name)! Ready to make today count?"
+            return "Good morning, \(name). Ready to make today count?"
         case 12..<17:
-            return "Good afternoon, \(name)! How's your day going?"
+            return "Good afternoon, \(name). How's your day going?"
         case 17..<22:
-            return "Good evening, \(name)! Time to wind down."
+            return "Good evening, \(name). Time to wind down."
         default:
-            return "Hello, \(name)! Still up?"
+            return "Hello, \(name). Still up?"
         }
     }
 

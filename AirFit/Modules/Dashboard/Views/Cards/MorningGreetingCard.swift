@@ -110,7 +110,7 @@ struct MorningGreetingCard: View {
         .accessibilityElement(children: .combine)
         .accessibilityLabel("Morning greeting: \(greeting)")
         .accessibilityHint(
-            currentEnergy == nil ? "Tap to log your energy level" : "Your energy is logged as \(currentEnergy!)"
+            currentEnergy == nil ? "Tap to log your energy level" : "Your energy is logged as \(currentEnergy.map(String.init) ?? "unknown")"
         )
     }
 
@@ -365,12 +365,12 @@ struct EnergyOption: View {
 
 #Preview {
     MorningGreetingCard(
-        greeting: "Good morning, Alex! Ready to conquer the day?",
+        greeting: "Good morning, Alex. Ready to conquer the day?",
         context: GreetingContext(
             sleepHours: 7.5,
             weather: "Sunny, 23°C",
             todaysSchedule: "Morning run at 7am",
-            recentAchievements: ["5 day streak!"]
+            recentAchievements: ["5 day streak"]
         ),
         currentEnergy: 3,
         onEnergyLog: { _ in }

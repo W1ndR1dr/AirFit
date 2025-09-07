@@ -41,7 +41,7 @@ final class NotificationContentGenerator: ServiceProtocol {
                 AppLogger.info("AI generated morning greeting successfully on attempt \(attempt)", category: .ai)
 
                 return NotificationContent(
-                    title: "Good morning, \(user.name ?? "there")! ☀️",
+                    title: "Good morning, \(user.name ?? "there") ☀️",
                     body: aiContent,
                     imageKey: selectMorningImage(context: context)
                 )
@@ -87,7 +87,7 @@ final class NotificationContentGenerator: ServiceProtocol {
                 title: selectWorkoutTitle(context: context),
                 body: aiContent,
                 actions: [
-                    NotificationAction(id: "START_WORKOUT", title: "Let's Go! 💪"),
+                    NotificationAction(id: "START_WORKOUT", title: "Let's Go 💪"),
                     NotificationAction(id: "SNOOZE_30", title: "In 30 min")
                 ]
             )
@@ -117,7 +117,7 @@ final class NotificationContentGenerator: ServiceProtocol {
             )
 
             return NotificationContent(
-                title: "\(mealType.emoji) \(mealType.displayName) time!",
+                title: "\(mealType.emoji) \(mealType.displayName) time",
                 body: aiContent,
                 actions: [
                     NotificationAction(id: "LOG_MEAL", title: "Log Meal"),
@@ -150,7 +150,7 @@ final class NotificationContentGenerator: ServiceProtocol {
             )
 
             return NotificationContent(
-                title: "🎉 Achievement Unlocked!",
+                title: "🎉 Achievement Unlocked",
                 body: aiContent,
                 imageKey: achievement.imageKey,
                 sound: .achievement
@@ -198,10 +198,10 @@ final class NotificationContentGenerator: ServiceProtocol {
 
     private func selectWorkoutTitle(context: WorkoutReminderContext) -> String {
         let titles = [
-            "Time to crush your \(context.workoutType)! 💪",
+            "Time to crush your \(context.workoutType) 💪",
             "Ready for today's \(context.workoutType)?",
-            "Your \(context.workoutType) awaits! 🏋️",
-            "Let's make today count! 🎯"
+            "Your \(context.workoutType) awaits 🏋️",
+            "Let's make today count 🎯"
         ]
 
         // Use streak to select title for variety
@@ -300,11 +300,11 @@ struct NotificationTemplates {
         // Build body with available context
         var body = greeting
         if !greeting.contains(name) && !greeting.contains("Day") {
-            body += " \(name)!"
+            body += " \(name)"
         }
 
         return NotificationContent(
-            title: "Good morning, \(name)! ☀️",
+            title: "Good morning, \(name) ☀️",
             body: body
         )
     }
@@ -312,10 +312,10 @@ struct NotificationTemplates {
     func workoutReminder(context: WorkoutReminderContext) -> NotificationContent {
         // Generate contextual reminder based on streak and workout type
         let streakMessage = context.streak > 0 ? "Day \(context.streak + 1) - " : ""
-        let body = "\(streakMessage)Your \(context.workoutType) is ready. Let's keep the momentum going!"
+        let body = "\(streakMessage)Your \(context.workoutType) is ready. Let's keep the momentum going."
 
         return NotificationContent(
-            title: "Workout Time! 🏋️",
+            title: "Workout Time 🏋️",
             body: body
         )
     }
@@ -323,7 +323,7 @@ struct NotificationTemplates {
     func mealReminder(mealType: MealType, context: MealReminderContext) -> NotificationContent {
         // Simple contextual message without arrays
         let timeSensitive = context.lastMealLogged == nil ? "Start your nutrition tracking with " : "Time for "
-        let body = "\(timeSensitive)\(mealType.displayName.lowercased()). Every meal logged brings you closer to your goals!"
+        let body = "\(timeSensitive)\(mealType.displayName.lowercased()). Every meal logged brings you closer to your goals."
 
         return NotificationContent(
             title: "\(mealType.emoji) \(mealType.displayName) Reminder",
@@ -333,9 +333,9 @@ struct NotificationTemplates {
 
     func achievement(achievement: Achievement, context: AchievementContext) -> NotificationContent {
         // Contextual achievement message
-        let personalBestSuffix = context.personalBest ? " - a new personal best!" : "!"
+        let personalBestSuffix = context.personalBest ? " - a new personal best." : "."
         return NotificationContent(
-            title: "🎉 Achievement Unlocked!",
+            title: "🎉 Achievement Unlocked",
             body: "\(achievement.name)\(personalBestSuffix) \(achievement.description)"
         )
     }
@@ -343,17 +343,17 @@ struct NotificationTemplates {
     private func getTimeBasedGreeting(context: MorningContext) -> String {
         // Use context to build a meaningful greeting
         if context.currentStreak > 10 {
-            return "Day \(context.currentStreak + 1) of excellence!"
+            return "Day \(context.currentStreak + 1) of excellence."
         } else if let workout = context.plannedWorkout {
             return "Ready for your \(workout.name)?"
         } else if let sleep = context.sleepQuality {
             switch sleep {
-            case .excellent: return "Well-rested and ready!"
-            case .good: return "Good morning! Feeling refreshed?"
-            case .fair, .poor: return "Morning! Let's take it easy today."
+            case .excellent: return "Well-rested and ready."
+            case .good: return "Good morning. Feeling refreshed?"
+            case .fair, .poor: return "Morning. Let's take it easy today."
             }
         } else {
-            return "Rise and shine!"
+            return "Rise and shine."
         }
     }
 }

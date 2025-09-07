@@ -115,7 +115,10 @@ public final class DIBootstrapper {
 
         // Also register concrete type for direct access
         container.register(GoalService.self, lifetime: .singleton) { resolver in
-            try await resolver.resolve(GoalServiceProtocol.self) as! GoalService
+            guard let goalService = try await resolver.resolve(GoalServiceProtocol.self) as? GoalService else {
+                throw DIError.registrationFailed("Failed to resolve GoalService from GoalServiceProtocol")
+            }
+            return goalService
         }
 
         // Analytics Service
@@ -362,7 +365,9 @@ public final class DIBootstrapper {
             // Resolve dependencies
             let aiService = try await resolver.resolve(AIServiceProtocol.self)
             let contextAssembler = try await resolver.resolve(ContextAssembler.self)
-            let healthKitProvider = try await resolver.resolve(HealthKitPrefillProviding.self) as! HealthKitProvider
+            guard let healthKitProvider = try await resolver.resolve(HealthKitPrefillProviding.self) as? HealthKitProvider else {
+                throw DIError.registrationFailed("Failed to resolve HealthKitProvider from HealthKitPrefillProviding")
+            }
             let cache = try await resolver.resolve(OnboardingCache.self)
             let personaSynthesizer = try await resolver.resolve(PersonaSynthesizer.self)
             

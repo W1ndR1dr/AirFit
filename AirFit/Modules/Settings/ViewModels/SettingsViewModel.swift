@@ -420,7 +420,7 @@ final class SettingsViewModel: ErrorHandling {
             return responseText
         }
 
-        return "Let's make today count! Ready to push your limits?"
+        return "Let's make today count. Ready to push your limits?"
     }
 
     func applyNaturalLanguageAdjustment(_ adjustmentText: String) async throws {

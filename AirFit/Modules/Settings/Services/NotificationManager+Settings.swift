@@ -83,7 +83,7 @@ extension NotificationManager {
 
         try? await scheduleNotification(
             identifier: .morning,
-            title: "Time to Move! 💪",
+            title: "Time to Move💪",
             body: "Ready for today's workout? Your AI coach is here to help.",
             categoryIdentifier: .workout,
             trigger: trigger
@@ -94,7 +94,7 @@ extension NotificationManager {
         // Schedule meal reminders at typical meal times
         let mealTimes = [
             (hour: 8, type: MealType.breakfast, title: "Breakfast Time", body: "Start your day with a nutritious meal"),
-            (hour: 12, type: MealType.lunch, title: "Lunch Break", body: "Time to refuel! Don't forget to log your meal"),
+            (hour: 12, type: MealType.lunch, title: "Lunch Break", body: "Time to refuel. Don't forget to log your meal"),
             (hour: 18, type: MealType.dinner, title: "Dinner Time", body: "End your day with a balanced dinner")
         ]
 

@@ -110,7 +110,7 @@ struct NutritionLiveActivity: Widget {
                                 Image(systemName: "checkmark.circle.fill")
                                     .foregroundStyle(.green)
                                     .font(.system(size: 14))
-                                Text("Goal reached!")
+                                Text("Goal reached")
                                     .font(.caption)
                                     .fontWeight(.medium)
                                     .foregroundStyle(.green)

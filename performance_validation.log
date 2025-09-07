@@ -1,0 +1,4289 @@
+[1;33m=== AirFit Performance Benchmark Suite ===[0m
+This script provides frameworks for measuring performance metrics
+
+[0;34m📱 Device Performance Framework[0m
+
+=== Build Performance Test ===
+Testing local build performance...
+Running xcodegen and build test...
+[0;32m✅ Project generation: 0s[0m
+[0;31m❌ Build failed[0m
+
+=== Test Performance ===
+[0;31m❌ Tests failed[0m
+
+=== Code Quality Analysis ===
+Linting Swift files in current working directory
+warning: Invalid configuration for 'no_direct_urlsession' rule. Falling back to default.
+warning: Invalid configuration for 'no_swiftdata_in_ui' rule. Falling back to default.
+warning: Invalid configuration for 'no_force_ops' rule. Falling back to default.
+warning: Invalid configuration for 'no_adhoc_modelcontainer' rule. Falling back to default.
+warning: Invalid configuration for 'no_public_state' rule. Falling back to default.
+warning: Invalid configuration for 'no_force_ops' rule. Falling back to default.
+warning: Invalid configuration for 'no_swiftdata_in_ui' rule. Falling back to default.
+warning: Invalid configuration for 'no_public_state' rule. Falling back to default.
+warning: Invalid configuration for 'no_direct_urlsession' rule. Falling back to default.
+warning: Invalid configuration for 'no_swiftdata_in_ui' rule. Falling back to default.
+warning: Invalid configuration for 'no_adhoc_modelcontainer' rule. Falling back to default.
+warning: Invalid configuration for 'no_direct_urlsession' rule. Falling back to default.
+warning: Invalid configuration for 'no_adhoc_modelcontainer' rule. Falling back to default.
+warning: Invalid configuration for 'no_force_ops' rule. Falling back to default.
+warning: Invalid configuration for 'no_public_state' rule. Falling back to default.
+warning: Invalid configuration for 'no_adhoc_modelcontainer' rule. Falling back to default.
+warning: Invalid configuration for 'no_direct_urlsession' rule. Falling back to default.
+warning: Invalid configuration for 'no_direct_urlsession' rule. Falling back to default.
+warning: Invalid configuration for 'no_public_state' rule. Falling back to default.
+warning: Invalid configuration for 'no_public_state' rule. Falling back to default.
+warning: Invalid configuration for 'no_swiftdata_in_ui' rule. Falling back to default.
+warning: Invalid configuration for 'no_swiftdata_in_ui' rule. Falling back to default.
+warning: Invalid configuration for 'no_swiftdata_in_ui' rule. Falling back to default.
+warning: Invalid configuration for 'no_public_state' rule. Falling back to default.
+warning: Invalid configuration for 'no_adhoc_modelcontainer' rule. Falling back to default.
+warning: Invalid configuration for 'no_swiftdata_in_ui' rule. Falling back to default.
+warning: Invalid configuration for 'no_swiftdata_in_ui' rule. Falling back to default.
+warning: Invalid configuration for 'no_public_state' rule. Falling back to default.
+warning: Invalid configuration for 'no_force_ops' rule. Falling back to default.
+warning: Invalid configuration for 'no_force_ops' rule. Falling back to default.
+warning: Invalid configuration for 'no_public_state' rule. Falling back to default.
+warning: Invalid configuration for 'no_force_ops' rule. Falling back to default.
+warning: Invalid configuration for 'no_force_ops' rule. Falling back to default.
+warning: Invalid configuration for 'no_direct_urlsession' rule. Falling back to default.
+warning: Invalid configuration for 'no_swiftdata_in_ui' rule. Falling back to default.
+warning: Invalid configuration for 'no_adhoc_modelcontainer' rule. Falling back to default.
+warning: Invalid configuration for 'no_adhoc_modelcontainer' rule. Falling back to default.
+warning: Invalid configuration for 'no_public_state' rule. Falling back to default.
+warning: Invalid configuration for 'no_swiftdata_in_ui' rule. Falling back to default.
+warning: Invalid configuration for 'no_public_state' rule. Falling back to default.
+warning: Invalid configuration for 'no_force_ops' rule. Falling back to default.
+warning: Invalid configuration for 'no_adhoc_modelcontainer' rule. Falling back to default.
+warning: Invalid configuration for 'no_adhoc_modelcontainer' rule. Falling back to default.
+warning: Invalid configuration for 'no_direct_urlsession' rule. Falling back to default.
+warning: Invalid configuration for 'no_force_ops' rule. Falling back to default.
+warning: Invalid configuration for 'no_force_ops' rule. Falling back to default.
+warning: Invalid configuration for 'no_adhoc_modelcontainer' rule. Falling back to default.
+warning: Invalid configuration for 'no_direct_urlsession' rule. Falling back to default.
+warning: Invalid configuration for 'no_force_ops' rule. Falling back to default.
+warning: Invalid configuration for 'no_adhoc_modelcontainer' rule. Falling back to default.
+warning: Invalid configuration for 'no_public_state' rule. Falling back to default.
+warning: Invalid configuration for 'no_swiftdata_in_ui' rule. Falling back to default.
+warning: Invalid configuration for 'no_adhoc_modelcontainer' rule. Falling back to default.
+warning: Invalid configuration for 'no_direct_urlsession' rule. Falling back to default.
+warning: Invalid configuration for 'no_public_state' rule. Falling back to default.
+warning: Invalid configuration for 'no_direct_urlsession' rule. Falling back to default.
+warning: Invalid configuration for 'no_swiftdata_in_ui' rule. Falling back to default.
+warning: Invalid configuration for 'no_public_state' rule. Falling back to default.
+warning: Invalid configuration for 'no_adhoc_modelcontainer' rule. Falling back to default.
+warning: Invalid configuration for 'no_direct_urlsession' rule. Falling back to default.
+warning: Invalid configuration for 'no_direct_urlsession' rule. Falling back to default.
+warning: Invalid configuration for 'no_direct_urlsession' rule. Falling back to default.
+warning: Invalid configuration for 'no_adhoc_modelcontainer' rule. Falling back to default.
+warning: Invalid configuration for 'no_public_state' rule. Falling back to default.
+warning: Invalid configuration for 'no_force_ops' rule. Falling back to default.
+warning: Invalid configuration for 'no_direct_urlsession' rule. Falling back to default.
+warning: Invalid configuration for 'no_swiftdata_in_ui' rule. Falling back to default.
+warning: Invalid configuration for 'no_force_ops' rule. Falling back to default.
+warning: Invalid configuration for 'no_public_state' rule. Falling back to default.
+warning: Invalid configuration for 'no_adhoc_modelcontainer' rule. Falling back to default.
+warning: Invalid configuration for 'no_swiftdata_in_ui' rule. Falling back to default.
+warning: Invalid configuration for 'no_direct_urlsession' rule. Falling back to default.
+warning: Invalid configuration for 'no_force_ops' rule. Falling back to default.
+warning: Invalid configuration for 'no_swiftdata_in_ui' rule. Falling back to default.
+warning: Invalid configuration for 'no_force_ops' rule. Falling back to default.
+warning: 'fixme' is not a valid rule identifier
+Valid rule identifiers:
+accessibility_label_for_image
+accessibility_trait_for_button
+anonymous_argument_in_multiline_closure
+array_init
+async_without_await
+attribute_name_spacing
+attributes
+balanced_xctest_lifecycle
+blanket_disable_command
+block_based_kvo
+capture_variable
+class_delegate_protocol
+closing_brace
+closure_body_length
+closure_end_indentation
+closure_parameter_position
+closure_spacing
+collection_alignment
+colon
+comma
+comma_inheritance
+comment_spacing
+compiler_protocol_init
+computed_accessors_order
+conditional_returns_on_newline
+contains_over_filter_count
+contains_over_filter_is_empty
+contains_over_first_not_nil
+contains_over_range_nil_comparison
+contrasted_opening_brace
+control_statement
+convenience_type
+custom_rules
+cyclomatic_complexity
+deployment_target
+direct_return
+discarded_notification_center_observer
+discouraged_assert
+discouraged_direct_init
+discouraged_none_name
+discouraged_object_literal
+discouraged_optional_boolean
+discouraged_optional_collection
+duplicate_conditions
+duplicate_enum_cases
+duplicate_imports
+duplicated_key_in_dictionary_literal
+dynamic_inline
+empty_collection_literal
+empty_count
+empty_enum_arguments
+empty_parameters
+empty_parentheses_with_trailing_closure
+empty_string
+empty_xctest_method
+enum_case_associated_values_count
+expiring_todo
+explicit_acl
+explicit_enum_raw_value
+explicit_init
+explicit_self
+explicit_top_level_acl
+explicit_type_interface
+extension_access_modifier
+fallthrough
+fatal_error_message
+file_header
+file_length
+file_name
+file_name_no_space
+file_types_order
+final_test_case
+first_where
+flatmap_over_map_reduce
+for_where
+force_cast
+force_try
+force_unwrapping
+function_body_length
+function_default_parameter_at_end
+function_parameter_count
+generic_type_name
+ibinspectable_in_extension
+identical_operands
+identifier_name
+implicit_getter
+implicit_return
+implicitly_unwrapped_optional
+inclusive_language
+indentation_width
+invalid_swiftlint_command
+is_disjoint
+joined_default_parameter
+large_tuple
+last_where
+leading_whitespace
+legacy_cggeometry_functions
+legacy_constant
+legacy_constructor
+legacy_hashing
+legacy_multiple
+legacy_nsgeometry_functions
+legacy_objc_type
+legacy_random
+let_var_whitespace
+line_length
+literal_expression_end_indentation
+local_doc_comment
+lower_acl_than_parent
+mark
+missing_docs
+modifier_order
+multiline_arguments
+multiline_arguments_brackets
+multiline_function_chains
+multiline_literal_brackets
+multiline_parameters
+multiline_parameters_brackets
+multiple_closures_with_trailing_closure
+nesting
+nimble_operator
+no_empty_block
+no_extension_access_modifier
+no_fallthrough_only
+no_grouping_extension
+no_magic_numbers
+no_notificationcenter_chat
+no_space_in_method_call
+non_optional_string_data_conversion
+non_overridable_class_declaration
+notification_center_detachment
+ns_number_init_as_function_reference
+nslocalizedstring_key
+nslocalizedstring_require_bundle
+nsobject_prefer_isequal
+number_separator
+object_literal
+one_declaration_per_file
+opening_brace
+operator_usage_whitespace
+operator_whitespace
+optional_data_string_conversion
+optional_enum_case_matching
+orphaned_doc_comment
+overridden_super_call
+override_in_extension
+pattern_matching_keywords
+period_spacing
+prefer_key_path
+prefer_nimble
+prefer_self_in_static_references
+prefer_self_type_over_type_of_self
+prefer_type_checking
+prefer_zero_over_explicit_init
+prefixed_toplevel_constant
+private_action
+private_outlet
+private_over_fileprivate
+private_subject
+private_swiftui_state
+private_unit_test
+prohibited_interface_builder
+prohibited_super_call
+protocol_property_accessors_order
+quick_discouraged_call
+quick_discouraged_focused_test
+quick_discouraged_pending_test
+raw_value_for_camel_cased_codable_enum
+reduce_boolean
+reduce_into
+redundant_discardable_let
+redundant_nil_coalescing
+redundant_objc_attribute
+redundant_optional_initialization
+redundant_self_in_closure
+redundant_sendable
+redundant_set_access_control
+redundant_string_enum_value
+redundant_type_annotation
+redundant_void_return
+require_mainactor_viewmodels
+required_deinit
+required_enum_case
+return_arrow_whitespace
+return_value_from_void_function
+self_binding
+self_in_property_initialization
+shorthand_argument
+shorthand_operator
+shorthand_optional_binding
+single_test_class
+sorted_enum_cases
+sorted_first_last
+sorted_imports
+statement_position
+static_operator
+static_over_final_class
+strict_fileprivate
+strong_iboutlet
+superfluous_disable_command
+superfluous_else
+switch_case_alignment
+switch_case_on_newline
+syntactic_sugar
+test_case_accessibility
+todo
+toggle_bool
+trailing_closure
+trailing_comma
+trailing_newline
+trailing_semicolon
+trailing_whitespace
+type_body_length
+type_contents_order
+type_name
+typesafe_array_init
+unavailable_condition
+unavailable_function
+unhandled_throwing_task
+unneeded_break_in_switch
+unneeded_override
+unneeded_parentheses_in_closure_argument
+unneeded_synthesized_initializer
+unowned_variable_capture
+untyped_error_in_catch
+unused_closure_parameter
+unused_control_flow_label
+unused_declaration
+unused_enumerated
+unused_import
+unused_optional_binding
+unused_parameter
+unused_setter_value
+valid_ibinspectable
+vertical_parameter_alignment
+vertical_parameter_alignment_on_call
+vertical_whitespace
+vertical_whitespace_between_cases
+vertical_whitespace_closing_braces
+vertical_whitespace_opening_braces
+void_function_in_ternary
+void_return
+weak_delegate
+xct_specific_matcher
+xctfail_message
+yoda_condition
+warning: 'fixme' is not a valid rule identifier
+Valid rule identifiers:
+accessibility_label_for_image
+accessibility_trait_for_button
+anonymous_argument_in_multiline_closure
+array_init
+async_without_await
+attribute_name_spacing
+attributes
+balanced_xctest_lifecycle
+blanket_disable_command
+block_based_kvo
+capture_variable
+class_delegate_protocol
+closing_brace
+closure_body_length
+closure_end_indentation
+closure_parameter_position
+closure_spacing
+collection_alignment
+colon
+comma
+comma_inheritance
+comment_spacing
+compiler_protocol_init
+computed_accessors_order
+conditional_returns_on_newline
+contains_over_filter_count
+contains_over_filter_is_empty
+contains_over_first_not_nil
+contains_over_range_nil_comparison
+contrasted_opening_brace
+control_statement
+convenience_type
+custom_rules
+cyclomatic_complexity
+deployment_target
+direct_return
+discarded_notification_center_observer
+discouraged_assert
+discouraged_direct_init
+discouraged_none_name
+discouraged_object_literal
+discouraged_optional_boolean
+discouraged_optional_collection
+duplicate_conditions
+duplicate_enum_cases
+duplicate_imports
+duplicated_key_in_dictionary_literal
+dynamic_inline
+empty_collection_literal
+empty_count
+empty_enum_arguments
+empty_parameters
+empty_parentheses_with_trailing_closure
+empty_string
+empty_xctest_method
+enum_case_associated_values_count
+expiring_todo
+explicit_acl
+explicit_enum_raw_value
+explicit_init
+explicit_self
+explicit_top_level_acl
+explicit_type_interface
+extension_access_modifier
+fallthrough
+fatal_error_message
+file_header
+file_length
+file_name
+file_name_no_space
+file_types_order
+final_test_case
+first_where
+flatmap_over_map_reduce
+for_where
+force_cast
+force_try
+force_unwrapping
+function_body_length
+function_default_parameter_at_end
+function_parameter_count
+generic_type_name
+ibinspectable_in_extension
+identical_operands
+identifier_name
+implicit_getter
+implicit_return
+implicitly_unwrapped_optional
+inclusive_language
+indentation_width
+invalid_swiftlint_command
+is_disjoint
+joined_default_parameter
+large_tuple
+last_where
+leading_whitespace
+legacy_cggeometry_functions
+legacy_constant
+legacy_constructor
+legacy_hashing
+legacy_multiple
+legacy_nsgeometry_functions
+legacy_objc_type
+legacy_random
+let_var_whitespace
+line_length
+literal_expression_end_indentation
+local_doc_comment
+lower_acl_than_parent
+mark
+missing_docs
+modifier_order
+multiline_arguments
+multiline_arguments_brackets
+multiline_function_chains
+multiline_literal_brackets
+multiline_parameters
+multiline_parameters_brackets
+multiple_closures_with_trailing_closure
+nesting
+nimble_operator
+no_empty_block
+no_extension_access_modifier
+no_fallthrough_only
+no_grouping_extension
+no_magic_numbers
+no_notificationcenter_chat
+no_space_in_method_call
+non_optional_string_data_conversion
+non_overridable_class_declaration
+notification_center_detachment
+ns_number_init_as_function_reference
+nslocalizedstring_key
+nslocalizedstring_require_bundle
+nsobject_prefer_isequal
+number_separator
+object_literal
+one_declaration_per_file
+opening_brace
+operator_usage_whitespace
+operator_whitespace
+optional_data_string_conversion
+optional_enum_case_matching
+orphaned_doc_comment
+overridden_super_call
+override_in_extension
+pattern_matching_keywords
+period_spacing
+prefer_key_path
+prefer_nimble
+prefer_self_in_static_references
+prefer_self_type_over_type_of_self
+prefer_type_checking
+prefer_zero_over_explicit_init
+prefixed_toplevel_constant
+private_action
+private_outlet
+private_over_fileprivate
+private_subject
+private_swiftui_state
+private_unit_test
+prohibited_interface_builder
+prohibited_super_call
+protocol_property_accessors_order
+quick_discouraged_call
+quick_discouraged_focused_test
+quick_discouraged_pending_test
+raw_value_for_camel_cased_codable_enum
+reduce_boolean
+reduce_into
+redundant_discardable_let
+redundant_nil_coalescing
+redundant_objc_attribute
+redundant_optional_initialization
+redundant_self_in_closure
+redundant_sendable
+redundant_set_access_control
+redundant_string_enum_value
+redundant_type_annotation
+redundant_void_return
+require_mainactor_viewmodels
+required_deinit
+required_enum_case
+return_arrow_whitespace
+return_value_from_void_function
+self_binding
+self_in_property_initialization
+shorthand_argument
+shorthand_operator
+shorthand_optional_binding
+single_test_class
+sorted_enum_cases
+sorted_first_last
+sorted_imports
+statement_position
+static_operator
+static_over_final_class
+strict_fileprivate
+strong_iboutlet
+superfluous_disable_command
+superfluous_else
+switch_case_alignment
+switch_case_on_newline
+syntactic_sugar
+test_case_accessibility
+todo
+toggle_bool
+trailing_closure
+trailing_comma
+trailing_newline
+trailing_semicolon
+trailing_whitespace
+type_body_length
+type_contents_order
+type_name
+typesafe_array_init
+unavailable_condition
+unavailable_function
+unhandled_throwing_task
+unneeded_break_in_switch
+unneeded_override
+unneeded_parentheses_in_closure_argument
+unneeded_synthesized_initializer
+unowned_variable_capture
+untyped_error_in_catch
+unused_closure_parameter
+unused_control_flow_label
+unused_declaration
+unused_enumerated
+unused_import
+unused_optional_binding
+unused_parameter
+unused_setter_value
+valid_ibinspectable
+vertical_parameter_alignment
+vertical_parameter_alignment_on_call
+vertical_whitespace
+vertical_whitespace_between_cases
+vertical_whitespace_closing_braces
+vertical_whitespace_opening_braces
+void_function_in_ternary
+void_return
+weak_delegate
+xct_specific_matcher
+xctfail_message
+yoda_condition
+warning: 'fixme' is not a valid rule identifier
+Valid rule identifiers:
+accessibility_label_for_image
+accessibility_trait_for_button
+anonymous_argument_in_multiline_closure
+array_init
+async_without_await
+attribute_name_spacing
+attributes
+balanced_xctest_lifecycle
+blanket_disable_command
+block_based_kvo
+capture_variable
+class_delegate_protocol
+closing_brace
+closure_body_length
+closure_end_indentation
+closure_parameter_position
+closure_spacing
+collection_alignment
+colon
+comma
+comma_inheritance
+comment_spacing
+compiler_protocol_init
+computed_accessors_order
+conditional_returns_on_newline
+contains_over_filter_count
+contains_over_filter_is_empty
+contains_over_first_not_nil
+contains_over_range_nil_comparison
+contrasted_opening_brace
+control_statement
+convenience_type
+custom_rules
+cyclomatic_complexity
+deployment_target
+direct_return
+discarded_notification_center_observer
+discouraged_assert
+discouraged_direct_init
+discouraged_none_name
+discouraged_object_literal
+discouraged_optional_boolean
+discouraged_optional_collection
+duplicate_conditions
+duplicate_enum_cases
+duplicate_imports
+duplicated_key_in_dictionary_literal
+dynamic_inline
+empty_collection_literal
+empty_count
+empty_enum_arguments
+empty_parameters
+empty_parentheses_with_trailing_closure
+empty_string
+empty_xctest_method
+enum_case_associated_values_count
+expiring_todo
+explicit_acl
+explicit_enum_raw_value
+explicit_init
+explicit_self
+explicit_top_level_acl
+explicit_type_interface
+extension_access_modifier
+fallthrough
+fatal_error_message
+file_header
+file_length
+file_name
+file_name_no_space
+file_types_order
+final_test_case
+first_where
+flatmap_over_map_reduce
+for_where
+force_cast
+force_try
+force_unwrapping
+function_body_length
+function_default_parameter_at_end
+function_parameter_count
+generic_type_name
+ibinspectable_in_extension
+identical_operands
+identifier_name
+implicit_getter
+implicit_return
+implicitly_unwrapped_optional
+inclusive_language
+indentation_width
+invalid_swiftlint_command
+is_disjoint
+joined_default_parameter
+large_tuple
+last_where
+leading_whitespace
+legacy_cggeometry_functions
+legacy_constant
+legacy_constructor
+legacy_hashing
+legacy_multiple
+legacy_nsgeometry_functions
+legacy_objc_type
+legacy_random
+let_var_whitespace
+line_length
+literal_expression_end_indentation
+local_doc_comment
+lower_acl_than_parent
+mark
+missing_docs
+modifier_order
+multiline_arguments
+multiline_arguments_brackets
+multiline_function_chains
+multiline_literal_brackets
+multiline_parameters
+multiline_parameters_brackets
+multiple_closures_with_trailing_closure
+nesting
+nimble_operator
+no_empty_block
+no_extension_access_modifier
+no_fallthrough_only
+no_grouping_extension
+no_magic_numbers
+no_notificationcenter_chat
+no_space_in_method_call
+non_optional_string_data_conversion
+non_overridable_class_declaration
+notification_center_detachment
+ns_number_init_as_function_reference
+nslocalizedstring_key
+nslocalizedstring_require_bundle
+nsobject_prefer_isequal
+number_separator
+object_literal
+one_declaration_per_file
+opening_brace
+operator_usage_whitespace
+operator_whitespace
+optional_data_string_conversion
+optional_enum_case_matching
+orphaned_doc_comment
+overridden_super_call
+override_in_extension
+pattern_matching_keywords
+period_spacing
+prefer_key_path
+prefer_nimble
+prefer_self_in_static_references
+prefer_self_type_over_type_of_self
+prefer_type_checking
+prefer_zero_over_explicit_init
+prefixed_toplevel_constant
+private_action
+private_outlet
+private_over_fileprivate
+private_subject
+private_swiftui_state
+private_unit_test
+prohibited_interface_builder
+prohibited_super_call
+protocol_property_accessors_order
+quick_discouraged_call
+quick_discouraged_focused_test
+quick_discouraged_pending_test
+raw_value_for_camel_cased_codable_enum
+reduce_boolean
+reduce_into
+redundant_discardable_let
+redundant_nil_coalescing
+redundant_objc_attribute
+redundant_optional_initialization
+redundant_self_in_closure
+redundant_sendable
+redundant_set_access_control
+redundant_string_enum_value
+redundant_type_annotation
+redundant_void_return
+require_mainactor_viewmodels
+required_deinit
+required_enum_case
+return_arrow_whitespace
+return_value_from_void_function
+self_binding
+self_in_property_initialization
+shorthand_argument
+shorthand_operator
+shorthand_optional_binding
+single_test_class
+sorted_enum_cases
+sorted_first_last
+sorted_imports
+statement_position
+static_operator
+static_over_final_class
+strict_fileprivate
+strong_iboutlet
+superfluous_disable_command
+superfluous_else
+switch_case_alignment
+switch_case_on_newline
+syntactic_sugar
+test_case_accessibility
+todo
+toggle_bool
+trailing_closure
+trailing_comma
+trailing_newline
+trailing_semicolon
+trailing_whitespace
+type_body_length
+type_contents_order
+type_name
+typesafe_array_init
+unavailable_condition
+unavailable_function
+unhandled_throwing_task
+unneeded_break_in_switch
+unneeded_override
+unneeded_parentheses_in_closure_argument
+unneeded_synthesized_initializer
+unowned_variable_capture
+untyped_error_in_catch
+unused_closure_parameter
+unused_control_flow_label
+unused_declaration
+unused_enumerated
+unused_import
+unused_optional_binding
+unused_parameter
+unused_setter_value
+valid_ibinspectable
+vertical_parameter_alignment
+vertical_parameter_alignment_on_call
+vertical_whitespace
+vertical_whitespace_between_cases
+vertical_whitespace_closing_braces
+vertical_whitespace_opening_braces
+void_function_in_ternary
+void_return
+weak_delegate
+xct_specific_matcher
+xctfail_message
+yoda_condition
+warning: 'fixme' is not a valid rule identifier
+Valid rule identifiers:
+accessibility_label_for_image
+accessibility_trait_for_button
+anonymous_argument_in_multiline_closure
+array_init
+async_without_await
+attribute_name_spacing
+attributes
+balanced_xctest_lifecycle
+blanket_disable_command
+block_based_kvo
+capture_variable
+class_delegate_protocol
+closing_brace
+closure_body_length
+closure_end_indentation
+closure_parameter_position
+closure_spacing
+collection_alignment
+colon
+comma
+comma_inheritance
+comment_spacing
+compiler_protocol_init
+computed_accessors_order
+conditional_returns_on_newline
+contains_over_filter_count
+contains_over_filter_is_empty
+contains_over_first_not_nil
+contains_over_range_nil_comparison
+contrasted_opening_brace
+control_statement
+convenience_type
+custom_rules
+cyclomatic_complexity
+deployment_target
+direct_return
+discarded_notification_center_observer
+discouraged_assert
+discouraged_direct_init
+discouraged_none_name
+discouraged_object_literal
+discouraged_optional_boolean
+discouraged_optional_collection
+duplicate_conditions
+duplicate_enum_cases
+duplicate_imports
+duplicated_key_in_dictionary_literal
+dynamic_inline
+empty_collection_literal
+empty_count
+empty_enum_arguments
+empty_parameters
+empty_parentheses_with_trailing_closure
+empty_string
+empty_xctest_method
+enum_case_associated_values_count
+expiring_todo
+explicit_acl
+explicit_enum_raw_value
+explicit_init
+explicit_self
+explicit_top_level_acl
+explicit_type_interface
+extension_access_modifier
+fallthrough
+fatal_error_message
+file_header
+file_length
+file_name
+file_name_no_space
+file_types_order
+final_test_case
+first_where
+flatmap_over_map_reduce
+for_where
+force_cast
+force_try
+force_unwrapping
+function_body_length
+function_default_parameter_at_end
+function_parameter_count
+generic_type_name
+ibinspectable_in_extension
+identical_operands
+identifier_name
+implicit_getter
+implicit_return
+implicitly_unwrapped_optional
+inclusive_language
+indentation_width
+invalid_swiftlint_command
+is_disjoint
+joined_default_parameter
+large_tuple
+last_where
+leading_whitespace
+legacy_cggeometry_functions
+legacy_constant
+legacy_constructor
+legacy_hashing
+legacy_multiple
+legacy_nsgeometry_functions
+legacy_objc_type
+legacy_random
+let_var_whitespace
+line_length
+literal_expression_end_indentation
+local_doc_comment
+lower_acl_than_parent
+mark
+missing_docs
+modifier_order
+multiline_arguments
+multiline_arguments_brackets
+multiline_function_chains
+multiline_literal_brackets
+multiline_parameters
+multiline_parameters_brackets
+multiple_closures_with_trailing_closure
+nesting
+nimble_operator
+no_empty_block
+no_extension_access_modifier
+no_fallthrough_only
+no_grouping_extension
+no_magic_numbers
+no_notificationcenter_chat
+no_space_in_method_call
+non_optional_string_data_conversion
+non_overridable_class_declaration
+notification_center_detachment
+ns_number_init_as_function_reference
+nslocalizedstring_key
+nslocalizedstring_require_bundle
+nsobject_prefer_isequal
+number_separator
+object_literal
+one_declaration_per_file
+opening_brace
+operator_usage_whitespace
+operator_whitespace
+optional_data_string_conversion
+optional_enum_case_matching
+orphaned_doc_comment
+overridden_super_call
+override_in_extension
+pattern_matching_keywords
+period_spacing
+prefer_key_path
+prefer_nimble
+prefer_self_in_static_references
+prefer_self_type_over_type_of_self
+prefer_type_checking
+prefer_zero_over_explicit_init
+prefixed_toplevel_constant
+private_action
+private_outlet
+private_over_fileprivate
+private_subject
+private_swiftui_state
+private_unit_test
+prohibited_interface_builder
+prohibited_super_call
+protocol_property_accessors_order
+quick_discouraged_call
+quick_discouraged_focused_test
+quick_discouraged_pending_test
+raw_value_for_camel_cased_codable_enum
+reduce_boolean
+reduce_into
+redundant_discardable_let
+redundant_nil_coalescing
+redundant_objc_attribute
+redundant_optional_initialization
+redundant_self_in_closure
+redundant_sendable
+redundant_set_access_control
+redundant_string_enum_value
+redundant_type_annotation
+redundant_void_return
+require_mainactor_viewmodels
+required_deinit
+required_enum_case
+return_arrow_whitespace
+return_value_from_void_function
+self_binding
+self_in_property_initialization
+shorthand_argument
+shorthand_operator
+shorthand_optional_binding
+single_test_class
+sorted_enum_cases
+sorted_first_last
+sorted_imports
+statement_position
+static_operator
+static_over_final_class
+strict_fileprivate
+strong_iboutlet
+superfluous_disable_command
+superfluous_else
+switch_case_alignment
+switch_case_on_newline
+syntactic_sugar
+test_case_accessibility
+todo
+toggle_bool
+trailing_closure
+trailing_comma
+trailing_newline
+trailing_semicolon
+trailing_whitespace
+type_body_length
+type_contents_order
+type_name
+typesafe_array_init
+unavailable_condition
+unavailable_function
+unhandled_throwing_task
+unneeded_break_in_switch
+unneeded_override
+unneeded_parentheses_in_closure_argument
+unneeded_synthesized_initializer
+unowned_variable_capture
+untyped_error_in_catch
+unused_closure_parameter
+unused_control_flow_label
+unused_declaration
+unused_enumerated
+unused_import
+unused_optional_binding
+unused_parameter
+unused_setter_value
+valid_ibinspectable
+vertical_parameter_alignment
+vertical_parameter_alignment_on_call
+vertical_whitespace
+vertical_whitespace_between_cases
+vertical_whitespace_closing_braces
+vertical_whitespace_opening_braces
+void_function_in_ternary
+void_return
+weak_delegate
+xct_specific_matcher
+xctfail_message
+yoda_condition
+warning: 'fixme' is not a valid rule identifier
+Valid rule identifiers:
+accessibility_label_for_image
+accessibility_trait_for_button
+anonymous_argument_in_multiline_closure
+array_init
+async_without_await
+attribute_name_spacing
+attributes
+balanced_xctest_lifecycle
+blanket_disable_command
+block_based_kvo
+capture_variable
+class_delegate_protocol
+closing_brace
+closure_body_length
+closure_end_indentation
+closure_parameter_position
+closure_spacing
+collection_alignment
+colon
+comma
+comma_inheritance
+comment_spacing
+compiler_protocol_init
+computed_accessors_order
+conditional_returns_on_newline
+contains_over_filter_count
+contains_over_filter_is_empty
+contains_over_first_not_nil
+contains_over_range_nil_comparison
+contrasted_opening_brace
+control_statement
+convenience_type
+custom_rules
+cyclomatic_complexity
+deployment_target
+direct_return
+discarded_notification_center_observer
+discouraged_assert
+discouraged_direct_init
+discouraged_none_name
+discouraged_object_literal
+discouraged_optional_boolean
+discouraged_optional_collection
+duplicate_conditions
+duplicate_enum_cases
+duplicate_imports
+duplicated_key_in_dictionary_literal
+dynamic_inline
+empty_collection_literal
+empty_count
+empty_enum_arguments
+empty_parameters
+empty_parentheses_with_trailing_closure
+empty_string
+empty_xctest_method
+enum_case_associated_values_count
+expiring_todo
+explicit_acl
+explicit_enum_raw_value
+explicit_init
+explicit_self
+explicit_top_level_acl
+explicit_type_interface
+extension_access_modifier
+fallthrough
+fatal_error_message
+file_header
+file_length
+file_name
+file_name_no_space
+file_types_order
+final_test_case
+first_where
+flatmap_over_map_reduce
+for_where
+force_cast
+force_try
+force_unwrapping
+function_body_length
+function_default_parameter_at_end
+function_parameter_count
+generic_type_name
+ibinspectable_in_extension
+identical_operands
+identifier_name
+implicit_getter
+implicit_return
+implicitly_unwrapped_optional
+inclusive_language
+indentation_width
+invalid_swiftlint_command
+is_disjoint
+joined_default_parameter
+large_tuple
+last_where
+leading_whitespace
+legacy_cggeometry_functions
+legacy_constant
+legacy_constructor
+legacy_hashing
+legacy_multiple
+legacy_nsgeometry_functions
+legacy_objc_type
+legacy_random
+let_var_whitespace
+line_length
+literal_expression_end_indentation
+local_doc_comment
+lower_acl_than_parent
+mark
+missing_docs
+modifier_order
+multiline_arguments
+multiline_arguments_brackets
+multiline_function_chains
+multiline_literal_brackets
+multiline_parameters
+multiline_parameters_brackets
+multiple_closures_with_trailing_closure
+nesting
+nimble_operator
+no_empty_block
+no_extension_access_modifier
+no_fallthrough_only
+no_grouping_extension
+no_magic_numbers
+no_notificationcenter_chat
+no_space_in_method_call
+non_optional_string_data_conversion
+non_overridable_class_declaration
+notification_center_detachment
+ns_number_init_as_function_reference
+nslocalizedstring_key
+nslocalizedstring_require_bundle
+nsobject_prefer_isequal
+number_separator
+object_literal
+one_declaration_per_file
+opening_brace
+operator_usage_whitespace
+operator_whitespace
+optional_data_string_conversion
+optional_enum_case_matching
+orphaned_doc_comment
+overridden_super_call
+override_in_extension
+pattern_matching_keywords
+period_spacing
+prefer_key_path
+prefer_nimble
+prefer_self_in_static_references
+prefer_self_type_over_type_of_self
+prefer_type_checking
+prefer_zero_over_explicit_init
+prefixed_toplevel_constant
+private_action
+private_outlet
+private_over_fileprivate
+private_subject
+private_swiftui_state
+private_unit_test
+prohibited_interface_builder
+prohibited_super_call
+protocol_property_accessors_order
+quick_discouraged_call
+quick_discouraged_focused_test
+quick_discouraged_pending_test
+raw_value_for_camel_cased_codable_enum
+reduce_boolean
+reduce_into
+redundant_discardable_let
+redundant_nil_coalescing
+redundant_objc_attribute
+redundant_optional_initialization
+redundant_self_in_closure
+redundant_sendable
+redundant_set_access_control
+redundant_string_enum_value
+redundant_type_annotation
+redundant_void_return
+require_mainactor_viewmodels
+required_deinit
+required_enum_case
+return_arrow_whitespace
+return_value_from_void_function
+self_binding
+self_in_property_initialization
+shorthand_argument
+shorthand_operator
+shorthand_optional_binding
+single_test_class
+sorted_enum_cases
+sorted_first_last
+sorted_imports
+statement_position
+static_operator
+static_over_final_class
+strict_fileprivate
+strong_iboutlet
+superfluous_disable_command
+superfluous_else
+switch_case_alignment
+switch_case_on_newline
+syntactic_sugar
+test_case_accessibility
+todo
+toggle_bool
+trailing_closure
+trailing_comma
+trailing_newline
+trailing_semicolon
+trailing_whitespace
+type_body_length
+type_contents_order
+type_name
+typesafe_array_init
+unavailable_condition
+unavailable_function
+unhandled_throwing_task
+unneeded_break_in_switch
+unneeded_override
+unneeded_parentheses_in_closure_argument
+unneeded_synthesized_initializer
+unowned_variable_capture
+untyped_error_in_catch
+unused_closure_parameter
+unused_control_flow_label
+unused_declaration
+unused_enumerated
+unused_import
+unused_optional_binding
+unused_parameter
+unused_setter_value
+valid_ibinspectable
+vertical_parameter_alignment
+vertical_parameter_alignment_on_call
+vertical_whitespace
+vertical_whitespace_between_cases
+vertical_whitespace_closing_braces
+vertical_whitespace_opening_braces
+void_function_in_ternary
+void_return
+weak_delegate
+xct_specific_matcher
+xctfail_message
+yoda_condition
+warning: 'fixme' is not a valid rule identifier
+Valid rule identifiers:
+accessibility_label_for_image
+accessibility_trait_for_button
+anonymous_argument_in_multiline_closure
+array_init
+async_without_await
+attribute_name_spacing
+attributes
+balanced_xctest_lifecycle
+blanket_disable_command
+block_based_kvo
+capture_variable
+class_delegate_protocol
+closing_brace
+closure_body_length
+closure_end_indentation
+closure_parameter_position
+closure_spacing
+collection_alignment
+colon
+comma
+comma_inheritance
+comment_spacing
+compiler_protocol_init
+computed_accessors_order
+conditional_returns_on_newline
+contains_over_filter_count
+contains_over_filter_is_empty
+contains_over_first_not_nil
+contains_over_range_nil_comparison
+contrasted_opening_brace
+control_statement
+convenience_type
+custom_rules
+cyclomatic_complexity
+deployment_target
+direct_return
+discarded_notification_center_observer
+discouraged_assert
+discouraged_direct_init
+discouraged_none_name
+discouraged_object_literal
+discouraged_optional_boolean
+discouraged_optional_collection
+duplicate_conditions
+duplicate_enum_cases
+duplicate_imports
+duplicated_key_in_dictionary_literal
+dynamic_inline
+empty_collection_literal
+empty_count
+empty_enum_arguments
+empty_parameters
+empty_parentheses_with_trailing_closure
+empty_string
+empty_xctest_method
+enum_case_associated_values_count
+expiring_todo
+explicit_acl
+explicit_enum_raw_value
+explicit_init
+explicit_self
+explicit_top_level_acl
+explicit_type_interface
+extension_access_modifier
+fallthrough
+fatal_error_message
+file_header
+file_length
+file_name
+file_name_no_space
+file_types_order
+final_test_case
+first_where
+flatmap_over_map_reduce
+for_where
+force_cast
+force_try
+force_unwrapping
+function_body_length
+function_default_parameter_at_end
+function_parameter_count
+generic_type_name
+ibinspectable_in_extension
+identical_operands
+identifier_name
+implicit_getter
+implicit_return
+implicitly_unwrapped_optional
+inclusive_language
+indentation_width
+invalid_swiftlint_command
+is_disjoint
+joined_default_parameter
+large_tuple
+last_where
+leading_whitespace
+legacy_cggeometry_functions
+legacy_constant
+legacy_constructor
+legacy_hashing
+legacy_multiple
+legacy_nsgeometry_functions
+legacy_objc_type
+legacy_random
+let_var_whitespace
+line_length
+literal_expression_end_indentation
+local_doc_comment
+lower_acl_than_parent
+mark
+missing_docs
+modifier_order
+multiline_arguments
+multiline_arguments_brackets
+multiline_function_chains
+multiline_literal_brackets
+multiline_parameters
+multiline_parameters_brackets
+multiple_closures_with_trailing_closure
+nesting
+nimble_operator
+no_empty_block
+no_extension_access_modifier
+no_fallthrough_only
+no_grouping_extension
+no_magic_numbers
+no_notificationcenter_chat
+no_space_in_method_call
+non_optional_string_data_conversion
+non_overridable_class_declaration
+notification_center_detachment
+ns_number_init_as_function_reference
+nslocalizedstring_key
+nslocalizedstring_require_bundle
+nsobject_prefer_isequal
+number_separator
+object_literal
+one_declaration_per_file
+opening_brace
+operator_usage_whitespace
+operator_whitespace
+optional_data_string_conversion
+optional_enum_case_matching
+orphaned_doc_comment
+overridden_super_call
+override_in_extension
+pattern_matching_keywords
+period_spacing
+prefer_key_path
+prefer_nimble
+prefer_self_in_static_references
+prefer_self_type_over_type_of_self
+prefer_type_checking
+prefer_zero_over_explicit_init
+prefixed_toplevel_constant
+private_action
+private_outlet
+private_over_fileprivate
+private_subject
+private_swiftui_state
+private_unit_test
+prohibited_interface_builder
+prohibited_super_call
+protocol_property_accessors_order
+quick_discouraged_call
+quick_discouraged_focused_test
+quick_discouraged_pending_test
+raw_value_for_camel_cased_codable_enum
+reduce_boolean
+reduce_into
+redundant_discardable_let
+redundant_nil_coalescing
+redundant_objc_attribute
+redundant_optional_initialization
+redundant_self_in_closure
+redundant_sendable
+redundant_set_access_control
+redundant_string_enum_value
+redundant_type_annotation
+redundant_void_return
+require_mainactor_viewmodels
+required_deinit
+required_enum_case
+return_arrow_whitespace
+return_value_from_void_function
+self_binding
+self_in_property_initialization
+shorthand_argument
+shorthand_operator
+shorthand_optional_binding
+single_test_class
+sorted_enum_cases
+sorted_first_last
+sorted_imports
+statement_position
+static_operator
+static_over_final_class
+strict_fileprivate
+strong_iboutlet
+superfluous_disable_command
+superfluous_else
+switch_case_alignment
+switch_case_on_newline
+syntactic_sugar
+test_case_accessibility
+todo
+toggle_bool
+trailing_closure
+trailing_comma
+trailing_newline
+trailing_semicolon
+trailing_whitespace
+type_body_length
+type_contents_order
+type_name
+typesafe_array_init
+unavailable_condition
+unavailable_function
+unhandled_throwing_task
+unneeded_break_in_switch
+unneeded_override
+unneeded_parentheses_in_closure_argument
+unneeded_synthesized_initializer
+unowned_variable_capture
+untyped_error_in_catch
+unused_closure_parameter
+unused_control_flow_label
+unused_declaration
+unused_enumerated
+unused_import
+unused_optional_binding
+unused_parameter
+unused_setter_value
+valid_ibinspectable
+vertical_parameter_alignment
+vertical_parameter_alignment_on_call
+vertical_whitespace
+vertical_whitespace_between_cases
+vertical_whitespace_closing_braces
+vertical_whitespace_opening_braces
+void_function_in_ternary
+void_return
+weak_delegate
+xct_specific_matcher
+xctfail_message
+yoda_condition
+warning: 'fixme' is not a valid rule identifier
+warning: 'fixme' is not a valid rule identifier
+warning: 'fixme' is not a valid rule identifier
+Valid rule identifiers:
+accessibility_label_for_image
+accessibility_trait_for_button
+anonymous_argument_in_multiline_closure
+array_init
+async_without_await
+attribute_name_spacing
+attributes
+balanced_xctest_lifecycle
+blanket_disable_command
+block_based_kvo
+capture_variable
+class_delegate_protocol
+closing_brace
+closure_body_length
+closure_end_indentation
+closure_parameter_position
+closure_spacing
+collection_alignment
+colon
+comma
+comma_inheritance
+comment_spacing
+compiler_protocol_init
+computed_accessors_order
+conditional_returns_on_newline
+contains_over_filter_count
+contains_over_filter_is_empty
+contains_over_first_not_nil
+contains_over_range_nil_comparison
+contrasted_opening_brace
+control_statement
+convenience_type
+custom_rules
+cyclomatic_complexity
+deployment_target
+direct_return
+discarded_notification_center_observer
+discouraged_assert
+discouraged_direct_init
+discouraged_none_name
+discouraged_object_literal
+discouraged_optional_boolean
+discouraged_optional_collection
+duplicate_conditions
+duplicate_enum_cases
+duplicate_imports
+duplicated_key_in_dictionary_literal
+dynamic_inline
+empty_collection_literal
+empty_count
+empty_enum_arguments
+empty_parameters
+empty_parentheses_with_trailing_closure
+empty_string
+empty_xctest_method
+enum_case_associated_values_count
+expiring_todo
+explicit_acl
+explicit_enum_raw_value
+explicit_init
+explicit_self
+explicit_top_level_acl
+explicit_type_interface
+extension_access_modifier
+fallthrough
+fatal_error_message
+file_header
+file_length
+file_name
+file_name_no_space
+file_types_order
+final_test_case
+first_where
+flatmap_over_map_reduce
+for_where
+force_cast
+force_try
+force_unwrapping
+function_body_length
+function_default_parameter_at_end
+function_parameter_count
+generic_type_name
+ibinspectable_in_extension
+identical_operands
+identifier_name
+implicit_getter
+implicit_return
+implicitly_unwrapped_optional
+inclusive_language
+indentation_width
+invalid_swiftlint_command
+is_disjoint
+joined_default_parameter
+large_tuple
+last_where
+leading_whitespace
+legacy_cggeometry_functions
+legacy_constant
+legacy_constructor
+legacy_hashing
+legacy_multiple
+legacy_nsgeometry_functions
+legacy_objc_type
+legacy_random
+let_var_whitespace
+line_length
+literal_expression_end_indentation
+local_doc_comment
+lower_acl_than_parent
+mark
+missing_docs
+modifier_order
+multiline_arguments
+multiline_arguments_brackets
+multiline_function_chains
+multiline_literal_brackets
+multiline_parameters
+multiline_parameters_brackets
+multiple_closures_with_trailing_closure
+nesting
+nimble_operator
+no_empty_block
+no_extension_access_modifier
+no_fallthrough_only
+no_grouping_extension
+no_magic_numbers
+no_notificationcenter_chat
+no_space_in_method_call
+non_optional_string_data_conversion
+non_overridable_class_declaration
+notification_center_detachment
+ns_number_init_as_function_reference
+nslocalizedstring_key
+nslocalizedstring_require_bundle
+nsobject_prefer_isequal
+number_separator
+object_literal
+one_declaration_per_file
+opening_brace
+operator_usage_whitespace
+operator_whitespace
+optional_data_string_conversion
+optional_enum_case_matching
+orphaned_doc_comment
+overridden_super_call
+override_in_extension
+pattern_matching_keywords
+period_spacing
+prefer_key_path
+prefer_nimble
+prefer_self_in_static_references
+prefer_self_type_over_type_of_self
+prefer_type_checking
+prefer_zero_over_explicit_init
+prefixed_toplevel_constant
+private_action
+private_outlet
+private_over_fileprivate
+private_subject
+private_swiftui_state
+private_unit_test
+prohibited_interface_builder
+prohibited_super_call
+protocol_property_accessors_order
+quick_discouraged_call
+quick_discouraged_focused_test
+quick_discouraged_pending_test
+raw_value_for_camel_cased_codable_enum
+reduce_boolean
+reduce_into
+redundant_discardable_let
+redundant_nil_coalescing
+redundant_objc_attribute
+redundant_optional_initialization
+redundant_self_in_closure
+redundant_sendable
+redundant_set_access_control
+redundant_string_enum_value
+redundant_type_annotation
+redundant_void_return
+require_mainactor_viewmodels
+required_deinit
+required_enum_case
+return_arrow_whitespace
+return_value_from_void_function
+self_binding
+self_in_property_initialization
+shorthand_argument
+shorthand_operator
+shorthand_optional_binding
+single_test_class
+sorted_enum_cases
+sorted_first_last
+sorted_imports
+statement_position
+static_operator
+static_over_final_class
+strict_fileprivate
+strong_iboutlet
+superfluous_disable_command
+superfluous_else
+switch_case_alignment
+switch_case_on_newline
+syntactic_sugar
+test_case_accessibility
+todo
+toggle_bool
+trailing_closure
+trailing_comma
+trailing_newline
+trailing_semicolon
+trailing_whitespace
+type_body_length
+type_contents_order
+type_name
+typesafe_array_init
+unavailable_condition
+unavailable_function
+unhandled_throwing_task
+unneeded_break_in_switch
+unneeded_override
+unneeded_parentheses_in_closure_argument
+unneeded_synthesized_initializer
+unowned_variable_capture
+untyped_error_in_catch
+unused_closure_parameter
+unused_control_flow_label
+unused_declaration
+unused_enumerated
+unused_import
+unused_optional_binding
+unused_parameter
+unused_setter_value
+valid_ibinspectable
+vertical_parameter_alignment
+vertical_parameter_alignment_on_call
+vertical_whitespace
+vertical_whitespace_between_cases
+vertical_whitespace_closing_braces
+vertical_whitespace_opening_braces
+void_function_in_ternary
+void_return
+weak_delegate
+xct_specific_matcher
+xctfail_message
+yoda_condition
+Valid rule identifiers:
+accessibility_label_for_image
+accessibility_trait_for_button
+anonymous_argument_in_multiline_closure
+array_init
+async_without_await
+attribute_name_spacing
+attributes
+balanced_xctest_lifecycle
+blanket_disable_command
+block_based_kvo
+capture_variable
+class_delegate_protocol
+closing_brace
+closure_body_length
+closure_end_indentation
+closure_parameter_position
+closure_spacing
+collection_alignment
+colon
+comma
+comma_inheritance
+comment_spacing
+compiler_protocol_init
+computed_accessors_order
+conditional_returns_on_newline
+contains_over_filter_count
+contains_over_filter_is_empty
+contains_over_first_not_nil
+contains_over_range_nil_comparison
+contrasted_opening_brace
+control_statement
+convenience_type
+custom_rules
+cyclomatic_complexity
+deployment_target
+direct_return
+discarded_notification_center_observer
+discouraged_assert
+discouraged_direct_init
+discouraged_none_name
+discouraged_object_literal
+discouraged_optional_boolean
+discouraged_optional_collection
+duplicate_conditions
+duplicate_enum_cases
+duplicate_imports
+duplicated_key_in_dictionary_literal
+dynamic_inline
+empty_collection_literal
+empty_count
+empty_enum_arguments
+empty_parameters
+empty_parentheses_with_trailing_closure
+empty_string
+empty_xctest_method
+enum_case_associated_values_count
+expiring_todo
+explicit_acl
+explicit_enum_raw_value
+explicit_init
+explicit_self
+explicit_top_level_acl
+explicit_type_interface
+extension_access_modifier
+fallthrough
+fatal_error_message
+file_header
+file_length
+file_name
+file_name_no_space
+file_types_order
+final_test_case
+first_where
+flatmap_over_map_reduce
+for_where
+force_cast
+force_try
+force_unwrapping
+function_body_length
+function_default_parameter_at_end
+function_parameter_count
+generic_type_name
+ibinspectable_in_extension
+identical_operands
+identifier_name
+implicit_getter
+implicit_return
+implicitly_unwrapped_optional
+inclusive_language
+indentation_width
+invalid_swiftlint_command
+is_disjoint
+joined_default_parameter
+large_tuple
+last_where
+leading_whitespace
+legacy_cggeometry_functions
+legacy_constant
+legacy_constructor
+legacy_hashing
+legacy_multiple
+legacy_nsgeometry_functions
+legacy_objc_type
+legacy_random
+let_var_whitespace
+line_length
+literal_expression_end_indentation
+local_doc_comment
+lower_acl_than_parent
+mark
+missing_docs
+modifier_order
+multiline_arguments
+multiline_arguments_brackets
+multiline_function_chains
+multiline_literal_brackets
+multiline_parameters
+multiline_parameters_brackets
+multiple_closures_with_trailing_closure
+nesting
+nimble_operator
+no_empty_block
+no_extension_access_modifier
+no_fallthrough_only
+no_grouping_extension
+no_magic_numbers
+no_notificationcenter_chat
+no_space_in_method_call
+non_optional_string_data_conversion
+non_overridable_class_declaration
+notification_center_detachment
+ns_number_init_as_function_reference
+nslocalizedstring_key
+nslocalizedstring_require_bundle
+nsobject_prefer_isequal
+number_separator
+object_literal
+one_declaration_per_file
+opening_brace
+operator_usage_whitespace
+operator_whitespace
+optional_data_string_conversion
+optional_enum_case_matching
+orphaned_doc_comment
+overridden_super_call
+override_in_extension
+pattern_matching_keywords
+period_spacing
+prefer_key_path
+prefer_nimble
+prefer_self_in_static_references
+prefer_self_type_over_type_of_self
+prefer_type_checking
+prefer_zero_over_explicit_init
+prefixed_toplevel_constant
+private_action
+private_outlet
+private_over_fileprivate
+private_subject
+private_swiftui_state
+private_unit_test
+prohibited_interface_builder
+prohibited_super_call
+protocol_property_accessors_order
+quick_discouraged_call
+quick_discouraged_focused_test
+quick_discouraged_pending_test
+raw_value_for_camel_cased_codable_enum
+reduce_boolean
+reduce_into
+redundant_discardable_let
+redundant_nil_coalescing
+redundant_objc_attribute
+redundant_optional_initialization
+redundant_self_in_closure
+redundant_sendable
+redundant_set_access_control
+redundant_string_enum_value
+redundant_type_annotation
+redundant_void_return
+require_mainactor_viewmodels
+required_deinit
+required_enum_case
+return_arrow_whitespace
+return_value_from_void_function
+self_binding
+self_in_property_initialization
+shorthand_argument
+shorthand_operator
+shorthand_optional_binding
+single_test_class
+sorted_enum_cases
+sorted_first_last
+sorted_imports
+statement_position
+static_operator
+static_over_final_class
+strict_fileprivate
+strong_iboutlet
+superfluous_disable_command
+superfluous_else
+switch_case_alignment
+switch_case_on_newline
+syntactic_sugar
+test_case_accessibility
+todo
+toggle_bool
+trailing_closure
+trailing_comma
+trailing_newline
+trailing_semicolon
+trailing_whitespace
+type_body_length
+type_contents_order
+type_name
+typesafe_array_init
+unavailable_condition
+unavailable_function
+unhandled_throwing_task
+unneeded_break_in_switch
+unneeded_override
+unneeded_parentheses_in_closure_argument
+unneeded_synthesized_initializer
+unowned_variable_capture
+untyped_error_in_catch
+unused_closure_parameter
+unused_control_flow_label
+unused_declaration
+unused_enumerated
+unused_import
+unused_optional_binding
+unused_parameter
+unused_setter_value
+valid_ibinspectable
+vertical_parameter_alignment
+vertical_parameter_alignment_on_call
+vertical_whitespace
+vertical_whitespace_between_cases
+vertical_whitespace_closing_braces
+vertical_whitespace_opening_braces
+void_function_in_ternary
+void_return
+weak_delegate
+xct_specific_matcher
+xctfail_message
+yoda_condition
+Valid rule identifiers:
+accessibility_label_for_image
+accessibility_trait_for_button
+anonymous_argument_in_multiline_closure
+array_init
+async_without_await
+attribute_name_spacing
+attributes
+balanced_xctest_lifecycle
+blanket_disable_command
+block_based_kvo
+capture_variable
+class_delegate_protocol
+closing_brace
+closure_body_length
+closure_end_indentation
+closure_parameter_position
+closure_spacing
+collection_alignment
+colon
+comma
+comma_inheritance
+comment_spacing
+compiler_protocol_init
+computed_accessors_order
+conditional_returns_on_newline
+contains_over_filter_count
+contains_over_filter_is_empty
+contains_over_first_not_nil
+contains_over_range_nil_comparison
+contrasted_opening_brace
+control_statement
+convenience_type
+custom_rules
+cyclomatic_complexity
+deployment_target
+direct_return
+discarded_notification_center_observer
+discouraged_assert
+discouraged_direct_init
+discouraged_none_name
+discouraged_object_literal
+discouraged_optional_boolean
+discouraged_optional_collection
+duplicate_conditions
+duplicate_enum_cases
+duplicate_imports
+duplicated_key_in_dictionary_literal
+dynamic_inline
+empty_collection_literal
+empty_count
+empty_enum_arguments
+empty_parameters
+empty_parentheses_with_trailing_closure
+empty_string
+empty_xctest_method
+enum_case_associated_values_count
+expiring_todo
+explicit_acl
+explicit_enum_raw_value
+explicit_init
+explicit_self
+explicit_top_level_acl
+explicit_type_interface
+extension_access_modifier
+fallthrough
+fatal_error_message
+file_header
+file_length
+file_name
+file_name_no_space
+file_types_order
+final_test_case
+first_where
+flatmap_over_map_reduce
+for_where
+force_cast
+force_try
+force_unwrapping
+function_body_length
+function_default_parameter_at_end
+function_parameter_count
+generic_type_name
+ibinspectable_in_extension
+identical_operands
+identifier_name
+implicit_getter
+implicit_return
+implicitly_unwrapped_optional
+inclusive_language
+indentation_width
+invalid_swiftlint_command
+is_disjoint
+joined_default_parameter
+large_tuple
+last_where
+leading_whitespace
+legacy_cggeometry_functions
+legacy_constant
+legacy_constructor
+legacy_hashing
+legacy_multiple
+legacy_nsgeometry_functions
+legacy_objc_type
+legacy_random
+let_var_whitespace
+line_length
+literal_expression_end_indentation
+local_doc_comment
+lower_acl_than_parent
+mark
+missing_docs
+modifier_order
+multiline_arguments
+multiline_arguments_brackets
+multiline_function_chains
+multiline_literal_brackets
+multiline_parameters
+multiline_parameters_brackets
+multiple_closures_with_trailing_closure
+nesting
+nimble_operator
+no_empty_block
+no_extension_access_modifier
+no_fallthrough_only
+no_grouping_extension
+no_magic_numbers
+no_notificationcenter_chat
+no_space_in_method_call
+non_optional_string_data_conversion
+non_overridable_class_declaration
+notification_center_detachment
+ns_number_init_as_function_reference
+nslocalizedstring_key
+nslocalizedstring_require_bundle
+nsobject_prefer_isequal
+number_separator
+object_literal
+one_declaration_per_file
+opening_brace
+operator_usage_whitespace
+operator_whitespace
+optional_data_string_conversion
+optional_enum_case_matching
+orphaned_doc_comment
+overridden_super_call
+override_in_extension
+pattern_matching_keywords
+period_spacing
+prefer_key_path
+prefer_nimble
+prefer_self_in_static_references
+prefer_self_type_over_type_of_self
+prefer_type_checking
+prefer_zero_over_explicit_init
+prefixed_toplevel_constant
+private_action
+private_outlet
+private_over_fileprivate
+private_subject
+private_swiftui_state
+private_unit_test
+prohibited_interface_builder
+prohibited_super_call
+protocol_property_accessors_order
+quick_discouraged_call
+quick_discouraged_focused_test
+quick_discouraged_pending_test
+raw_value_for_camel_cased_codable_enum
+reduce_boolean
+reduce_into
+redundant_discardable_let
+redundant_nil_coalescing
+redundant_objc_attribute
+redundant_optional_initialization
+redundant_self_in_closure
+redundant_sendable
+redundant_set_access_control
+redundant_string_enum_value
+redundant_type_annotation
+redundant_void_return
+require_mainactor_viewmodels
+required_deinit
+required_enum_case
+return_arrow_whitespace
+return_value_from_void_function
+self_binding
+self_in_property_initialization
+shorthand_argument
+shorthand_operator
+shorthand_optional_binding
+single_test_class
+sorted_enum_cases
+sorted_first_last
+sorted_imports
+statement_position
+static_operator
+static_over_final_class
+strict_fileprivate
+strong_iboutlet
+superfluous_disable_command
+superfluous_else
+switch_case_alignment
+switch_case_on_newline
+syntactic_sugar
+test_case_accessibility
+todo
+toggle_bool
+trailing_closure
+trailing_comma
+trailing_newline
+trailing_semicolon
+trailing_whitespace
+type_body_length
+type_contents_order
+type_name
+typesafe_array_init
+unavailable_condition
+unavailable_function
+unhandled_throwing_task
+unneeded_break_in_switch
+unneeded_override
+unneeded_parentheses_in_closure_argument
+unneeded_synthesized_initializer
+unowned_variable_capture
+untyped_error_in_catch
+unused_closure_parameter
+unused_control_flow_label
+unused_declaration
+unused_enumerated
+unused_import
+unused_optional_binding
+unused_parameter
+unused_setter_value
+valid_ibinspectable
+vertical_parameter_alignment
+vertical_parameter_alignment_on_call
+vertical_whitespace
+vertical_whitespace_between_cases
+vertical_whitespace_closing_braces
+vertical_whitespace_opening_braces
+void_function_in_ternary
+void_return
+weak_delegate
+xct_specific_matcher
+xctfail_message
+yoda_condition
+warning: 'fixme' is not a valid rule identifier
+Valid rule identifiers:
+accessibility_label_for_image
+accessibility_trait_for_button
+anonymous_argument_in_multiline_closure
+array_init
+async_without_await
+attribute_name_spacing
+attributes
+balanced_xctest_lifecycle
+blanket_disable_command
+block_based_kvo
+capture_variable
+class_delegate_protocol
+closing_brace
+closure_body_length
+closure_end_indentation
+closure_parameter_position
+closure_spacing
+collection_alignment
+colon
+comma
+comma_inheritance
+comment_spacing
+compiler_protocol_init
+computed_accessors_order
+conditional_returns_on_newline
+contains_over_filter_count
+contains_over_filter_is_empty
+contains_over_first_not_nil
+contains_over_range_nil_comparison
+contrasted_opening_brace
+control_statement
+convenience_type
+custom_rules
+cyclomatic_complexity
+deployment_target
+direct_return
+discarded_notification_center_observer
+discouraged_assert
+discouraged_direct_init
+discouraged_none_name
+discouraged_object_literal
+discouraged_optional_boolean
+discouraged_optional_collection
+duplicate_conditions
+duplicate_enum_cases
+duplicate_imports
+duplicated_key_in_dictionary_literal
+dynamic_inline
+empty_collection_literal
+empty_count
+empty_enum_arguments
+empty_parameters
+empty_parentheses_with_trailing_closure
+empty_string
+empty_xctest_method
+enum_case_associated_values_count
+expiring_todo
+explicit_acl
+explicit_enum_raw_value
+explicit_init
+explicit_self
+explicit_top_level_acl
+explicit_type_interface
+extension_access_modifier
+fallthrough
+fatal_error_message
+file_header
+file_length
+file_name
+file_name_no_space
+file_types_order
+final_test_case
+first_where
+flatmap_over_map_reduce
+for_where
+force_cast
+force_try
+force_unwrapping
+function_body_length
+function_default_parameter_at_end
+function_parameter_count
+generic_type_name
+ibinspectable_in_extension
+identical_operands
+identifier_name
+implicit_getter
+implicit_return
+implicitly_unwrapped_optional
+inclusive_language
+indentation_width
+invalid_swiftlint_command
+is_disjoint
+joined_default_parameter
+large_tuple
+last_where
+leading_whitespace
+legacy_cggeometry_functions
+legacy_constant
+legacy_constructor
+legacy_hashing
+legacy_multiple
+legacy_nsgeometry_functions
+legacy_objc_type
+legacy_random
+let_var_whitespace
+line_length
+literal_expression_end_indentation
+local_doc_comment
+lower_acl_than_parent
+mark
+missing_docs
+modifier_order
+multiline_arguments
+multiline_arguments_brackets
+multiline_function_chains
+multiline_literal_brackets
+multiline_parameters
+multiline_parameters_brackets
+multiple_closures_with_trailing_closure
+nesting
+nimble_operator
+no_empty_block
+no_extension_access_modifier
+no_fallthrough_only
+no_grouping_extension
+no_magic_numbers
+no_notificationcenter_chat
+no_space_in_method_call
+non_optional_string_data_conversion
+non_overridable_class_declaration
+notification_center_detachment
+ns_number_init_as_function_reference
+nslocalizedstring_key
+nslocalizedstring_require_bundle
+nsobject_prefer_isequal
+number_separator
+object_literal
+one_declaration_per_file
+opening_brace
+operator_usage_whitespace
+operator_whitespace
+optional_data_string_conversion
+optional_enum_case_matching
+orphaned_doc_comment
+overridden_super_call
+override_in_extension
+pattern_matching_keywords
+period_spacing
+prefer_key_path
+prefer_nimble
+prefer_self_in_static_references
+prefer_self_type_over_type_of_self
+prefer_type_checking
+prefer_zero_over_explicit_init
+prefixed_toplevel_constant
+private_action
+private_outlet
+private_over_fileprivate
+private_subject
+private_swiftui_state
+private_unit_test
+prohibited_interface_builder
+prohibited_super_call
+protocol_property_accessors_order
+quick_discouraged_call
+quick_discouraged_focused_test
+quick_discouraged_pending_test
+raw_value_for_camel_cased_codable_enum
+reduce_boolean
+reduce_into
+redundant_discardable_let
+redundant_nil_coalescing
+redundant_objc_attribute
+redundant_optional_initialization
+redundant_self_in_closure
+redundant_sendable
+redundant_set_access_control
+redundant_string_enum_value
+redundant_type_annotation
+redundant_void_return
+require_mainactor_viewmodels
+required_deinit
+required_enum_case
+return_arrow_whitespace
+return_value_from_void_function
+self_binding
+self_in_property_initialization
+shorthand_argument
+shorthand_operator
+shorthand_optional_binding
+single_test_class
+sorted_enum_cases
+sorted_first_last
+sorted_imports
+statement_position
+static_operator
+static_over_final_class
+strict_fileprivate
+strong_iboutlet
+superfluous_disable_command
+superfluous_else
+switch_case_alignment
+switch_case_on_newline
+syntactic_sugar
+test_case_accessibility
+todo
+toggle_bool
+trailing_closure
+trailing_comma
+trailing_newline
+trailing_semicolon
+trailing_whitespace
+type_body_length
+type_contents_order
+type_name
+typesafe_array_init
+unavailable_condition
+unavailable_function
+unhandled_throwing_task
+unneeded_break_in_switch
+unneeded_override
+unneeded_parentheses_in_closure_argument
+unneeded_synthesized_initializer
+unowned_variable_capture
+untyped_error_in_catch
+unused_closure_parameter
+unused_control_flow_label
+unused_declaration
+unused_enumerated
+unused_import
+unused_optional_binding
+unused_parameter
+unused_setter_value
+valid_ibinspectable
+vertical_parameter_alignment
+vertical_parameter_alignment_on_call
+vertical_whitespace
+vertical_whitespace_between_cases
+vertical_whitespace_closing_braces
+vertical_whitespace_opening_braces
+void_function_in_ternary
+void_return
+weak_delegate
+xct_specific_matcher
+xctfail_message
+yoda_condition
+warning: 'fixme' is not a valid rule identifier
+warning: 'fixme' is not a valid rule identifier
+warning: 'fixme' is not a valid rule identifier
+Valid rule identifiers:
+accessibility_label_for_image
+accessibility_trait_for_button
+anonymous_argument_in_multiline_closure
+array_init
+async_without_await
+attribute_name_spacing
+attributes
+balanced_xctest_lifecycle
+blanket_disable_command
+block_based_kvo
+capture_variable
+class_delegate_protocol
+closing_brace
+closure_body_length
+closure_end_indentation
+closure_parameter_position
+closure_spacing
+collection_alignment
+colon
+comma
+comma_inheritance
+comment_spacing
+compiler_protocol_init
+computed_accessors_order
+conditional_returns_on_newline
+contains_over_filter_count
+contains_over_filter_is_empty
+contains_over_first_not_nil
+contains_over_range_nil_comparison
+contrasted_opening_brace
+control_statement
+convenience_type
+custom_rules
+cyclomatic_complexity
+deployment_target
+direct_return
+discarded_notification_center_observer
+discouraged_assert
+discouraged_direct_init
+discouraged_none_name
+discouraged_object_literal
+discouraged_optional_boolean
+discouraged_optional_collection
+duplicate_conditions
+duplicate_enum_cases
+duplicate_imports
+duplicated_key_in_dictionary_literal
+dynamic_inline
+empty_collection_literal
+empty_count
+empty_enum_arguments
+empty_parameters
+empty_parentheses_with_trailing_closure
+empty_string
+empty_xctest_method
+enum_case_associated_values_count
+expiring_todo
+explicit_acl
+explicit_enum_raw_value
+explicit_init
+explicit_self
+explicit_top_level_acl
+explicit_type_interface
+extension_access_modifier
+fallthrough
+fatal_error_message
+file_header
+file_length
+file_name
+file_name_no_space
+file_types_order
+final_test_case
+first_where
+flatmap_over_map_reduce
+for_where
+force_cast
+force_try
+force_unwrapping
+function_body_length
+function_default_parameter_at_end
+function_parameter_count
+generic_type_name
+ibinspectable_in_extension
+identical_operands
+identifier_name
+implicit_getter
+implicit_return
+implicitly_unwrapped_optional
+inclusive_language
+indentation_width
+invalid_swiftlint_command
+is_disjoint
+joined_default_parameter
+large_tuple
+last_where
+leading_whitespace
+legacy_cggeometry_functions
+legacy_constant
+legacy_constructor
+legacy_hashing
+legacy_multiple
+legacy_nsgeometry_functions
+legacy_objc_type
+legacy_random
+let_var_whitespace
+line_length
+literal_expression_end_indentation
+local_doc_comment
+lower_acl_than_parent
+mark
+missing_docs
+modifier_order
+multiline_arguments
+multiline_arguments_brackets
+multiline_function_chains
+multiline_literal_brackets
+multiline_parameters
+multiline_parameters_brackets
+multiple_closures_with_trailing_closure
+nesting
+nimble_operator
+no_empty_block
+no_extension_access_modifier
+no_fallthrough_only
+no_grouping_extension
+no_magic_numbers
+no_notificationcenter_chat
+no_space_in_method_call
+non_optional_string_data_conversion
+non_overridable_class_declaration
+notification_center_detachment
+ns_number_init_as_function_reference
+nslocalizedstring_key
+nslocalizedstring_require_bundle
+nsobject_prefer_isequal
+number_separator
+object_literal
+one_declaration_per_file
+opening_brace
+operator_usage_whitespace
+operator_whitespace
+optional_data_string_conversion
+optional_enum_case_matching
+orphaned_doc_comment
+overridden_super_call
+override_in_extension
+pattern_matching_keywords
+period_spacing
+prefer_key_path
+prefer_nimble
+prefer_self_in_static_references
+prefer_self_type_over_type_of_self
+prefer_type_checking
+prefer_zero_over_explicit_init
+prefixed_toplevel_constant
+private_action
+private_outlet
+private_over_fileprivate
+private_subject
+private_swiftui_state
+private_unit_test
+prohibited_interface_builder
+prohibited_super_call
+protocol_property_accessors_order
+quick_discouraged_call
+quick_discouraged_focused_test
+quick_discouraged_pending_test
+raw_value_for_camel_cased_codable_enum
+reduce_boolean
+reduce_into
+redundant_discardable_let
+redundant_nil_coalescing
+redundant_objc_attribute
+redundant_optional_initialization
+redundant_self_in_closure
+redundant_sendable
+redundant_set_access_control
+redundant_string_enum_value
+redundant_type_annotation
+redundant_void_return
+require_mainactor_viewmodels
+required_deinit
+required_enum_case
+return_arrow_whitespace
+return_value_from_void_function
+self_binding
+self_in_property_initialization
+shorthand_argument
+shorthand_operator
+shorthand_optional_binding
+single_test_class
+sorted_enum_cases
+sorted_first_last
+sorted_imports
+statement_position
+static_operator
+static_over_final_class
+strict_fileprivate
+strong_iboutlet
+superfluous_disable_command
+superfluous_else
+switch_case_alignment
+switch_case_on_newline
+syntactic_sugar
+test_case_accessibility
+todo
+toggle_bool
+trailing_closure
+trailing_comma
+trailing_newline
+trailing_semicolon
+trailing_whitespace
+type_body_length
+type_contents_order
+type_name
+typesafe_array_init
+unavailable_condition
+unavailable_function
+unhandled_throwing_task
+unneeded_break_in_switch
+unneeded_override
+unneeded_parentheses_in_closure_argument
+unneeded_synthesized_initializer
+unowned_variable_capture
+untyped_error_in_catch
+unused_closure_parameter
+unused_control_flow_label
+unused_declaration
+unused_enumerated
+unused_import
+unused_optional_binding
+unused_parameter
+unused_setter_value
+valid_ibinspectable
+vertical_parameter_alignment
+vertical_parameter_alignment_on_call
+vertical_whitespace
+vertical_whitespace_between_cases
+vertical_whitespace_closing_braces
+vertical_whitespace_opening_braces
+void_function_in_ternary
+void_return
+weak_delegate
+xct_specific_matcher
+xctfail_message
+yoda_condition
+Valid rule identifiers:
+accessibility_label_for_image
+accessibility_trait_for_button
+anonymous_argument_in_multiline_closure
+array_init
+async_without_await
+attribute_name_spacing
+attributes
+balanced_xctest_lifecycle
+blanket_disable_command
+block_based_kvo
+capture_variable
+class_delegate_protocol
+closing_brace
+closure_body_length
+closure_end_indentation
+closure_parameter_position
+closure_spacing
+collection_alignment
+colon
+comma
+comma_inheritance
+comment_spacing
+compiler_protocol_init
+computed_accessors_order
+conditional_returns_on_newline
+contains_over_filter_count
+contains_over_filter_is_empty
+contains_over_first_not_nil
+contains_over_range_nil_comparison
+contrasted_opening_brace
+control_statement
+convenience_type
+custom_rules
+cyclomatic_complexity
+deployment_target
+direct_return
+discarded_notification_center_observer
+discouraged_assert
+discouraged_direct_init
+discouraged_none_name
+discouraged_object_literal
+discouraged_optional_boolean
+discouraged_optional_collection
+duplicate_conditions
+duplicate_enum_cases
+duplicate_imports
+duplicated_key_in_dictionary_literal
+dynamic_inline
+empty_collection_literal
+empty_count
+empty_enum_arguments
+empty_parameters
+empty_parentheses_with_trailing_closure
+empty_string
+empty_xctest_method
+enum_case_associated_values_count
+expiring_todo
+explicit_acl
+explicit_enum_raw_value
+explicit_init
+explicit_self
+explicit_top_level_acl
+explicit_type_interface
+extension_access_modifier
+fallthrough
+fatal_error_message
+file_header
+file_length
+file_name
+file_name_no_space
+file_types_order
+final_test_case
+first_where
+flatmap_over_map_reduce
+for_where
+force_cast
+force_try
+force_unwrapping
+function_body_length
+function_default_parameter_at_end
+function_parameter_count
+generic_type_name
+ibinspectable_in_extension
+identical_operands
+identifier_name
+implicit_getter
+implicit_return
+implicitly_unwrapped_optional
+inclusive_language
+indentation_width
+invalid_swiftlint_command
+is_disjoint
+joined_default_parameter
+large_tuple
+last_where
+leading_whitespace
+legacy_cggeometry_functions
+legacy_constant
+legacy_constructor
+legacy_hashing
+legacy_multiple
+legacy_nsgeometry_functions
+legacy_objc_type
+legacy_random
+let_var_whitespace
+line_length
+literal_expression_end_indentation
+local_doc_comment
+lower_acl_than_parent
+mark
+missing_docs
+modifier_order
+multiline_arguments
+multiline_arguments_brackets
+multiline_function_chains
+multiline_literal_brackets
+multiline_parameters
+multiline_parameters_brackets
+multiple_closures_with_trailing_closure
+nesting
+nimble_operator
+no_empty_block
+no_extension_access_modifier
+no_fallthrough_only
+no_grouping_extension
+no_magic_numbers
+no_notificationcenter_chat
+no_space_in_method_call
+non_optional_string_data_conversion
+non_overridable_class_declaration
+notification_center_detachment
+ns_number_init_as_function_reference
+nslocalizedstring_key
+nslocalizedstring_require_bundle
+nsobject_prefer_isequal
+number_separator
+object_literal
+one_declaration_per_file
+opening_brace
+operator_usage_whitespace
+operator_whitespace
+optional_data_string_conversion
+optional_enum_case_matching
+orphaned_doc_comment
+overridden_super_call
+override_in_extension
+pattern_matching_keywords
+period_spacing
+prefer_key_path
+prefer_nimble
+prefer_self_in_static_references
+prefer_self_type_over_type_of_self
+prefer_type_checking
+prefer_zero_over_explicit_init
+prefixed_toplevel_constant
+private_action
+private_outlet
+private_over_fileprivate
+private_subject
+private_swiftui_state
+private_unit_test
+prohibited_interface_builder
+prohibited_super_call
+protocol_property_accessors_order
+quick_discouraged_call
+quick_discouraged_focused_test
+quick_discouraged_pending_test
+raw_value_for_camel_cased_codable_enum
+reduce_boolean
+reduce_into
+redundant_discardable_let
+redundant_nil_coalescing
+redundant_objc_attribute
+redundant_optional_initialization
+redundant_self_in_closure
+redundant_sendable
+redundant_set_access_control
+redundant_string_enum_value
+redundant_type_annotation
+redundant_void_return
+require_mainactor_viewmodels
+required_deinit
+required_enum_case
+return_arrow_whitespace
+return_value_from_void_function
+self_binding
+self_in_property_initialization
+shorthand_argument
+shorthand_operator
+shorthand_optional_binding
+single_test_class
+sorted_enum_cases
+sorted_first_last
+sorted_imports
+statement_position
+static_operator
+static_over_final_class
+strict_fileprivate
+strong_iboutlet
+superfluous_disable_command
+superfluous_else
+switch_case_alignment
+switch_case_on_newline
+syntactic_sugar
+test_case_accessibility
+todo
+toggle_bool
+trailing_closure
+trailing_comma
+trailing_newline
+trailing_semicolon
+trailing_whitespace
+type_body_length
+type_contents_order
+type_name
+typesafe_array_init
+unavailable_condition
+unavailable_function
+unhandled_throwing_task
+unneeded_break_in_switch
+unneeded_override
+unneeded_parentheses_in_closure_argument
+unneeded_synthesized_initializer
+unowned_variable_capture
+untyped_error_in_catch
+unused_closure_parameter
+unused_control_flow_label
+unused_declaration
+unused_enumerated
+unused_import
+unused_optional_binding
+unused_parameter
+unused_setter_value
+valid_ibinspectable
+vertical_parameter_alignment
+vertical_parameter_alignment_on_call
+vertical_whitespace
+vertical_whitespace_between_cases
+vertical_whitespace_closing_braces
+vertical_whitespace_opening_braces
+void_function_in_ternary
+void_return
+weak_delegate
+xct_specific_matcher
+xctfail_message
+yoda_condition
+Valid rule identifiers:
+accessibility_label_for_image
+accessibility_trait_for_button
+anonymous_argument_in_multiline_closure
+array_init
+async_without_await
+attribute_name_spacing
+attributes
+balanced_xctest_lifecycle
+blanket_disable_command
+block_based_kvo
+capture_variable
+class_delegate_protocol
+closing_brace
+closure_body_length
+closure_end_indentation
+closure_parameter_position
+closure_spacing
+collection_alignment
+colon
+comma
+comma_inheritance
+comment_spacing
+compiler_protocol_init
+computed_accessors_order
+conditional_returns_on_newline
+contains_over_filter_count
+contains_over_filter_is_empty
+contains_over_first_not_nil
+contains_over_range_nil_comparison
+contrasted_opening_brace
+control_statement
+convenience_type
+custom_rules
+cyclomatic_complexity
+deployment_target
+direct_return
+discarded_notification_center_observer
+discouraged_assert
+discouraged_direct_init
+discouraged_none_name
+discouraged_object_literal
+discouraged_optional_boolean
+discouraged_optional_collection
+duplicate_conditions
+duplicate_enum_cases
+duplicate_imports
+duplicated_key_in_dictionary_literal
+dynamic_inline
+empty_collection_literal
+empty_count
+empty_enum_arguments
+empty_parameters
+empty_parentheses_with_trailing_closure
+empty_string
+empty_xctest_method
+enum_case_associated_values_count
+expiring_todo
+explicit_acl
+explicit_enum_raw_value
+explicit_init
+explicit_self
+explicit_top_level_acl
+explicit_type_interface
+extension_access_modifier
+fallthrough
+fatal_error_message
+file_header
+file_length
+file_name
+file_name_no_space
+file_types_order
+final_test_case
+first_where
+flatmap_over_map_reduce
+for_where
+force_cast
+force_try
+force_unwrapping
+function_body_length
+function_default_parameter_at_end
+function_parameter_count
+generic_type_name
+ibinspectable_in_extension
+identical_operands
+identifier_name
+implicit_getter
+implicit_return
+implicitly_unwrapped_optional
+inclusive_language
+indentation_width
+invalid_swiftlint_command
+is_disjoint
+joined_default_parameter
+large_tuple
+last_where
+leading_whitespace
+legacy_cggeometry_functions
+legacy_constant
+legacy_constructor
+legacy_hashing
+legacy_multiple
+legacy_nsgeometry_functions
+legacy_objc_type
+legacy_random
+let_var_whitespace
+line_length
+literal_expression_end_indentation
+local_doc_comment
+lower_acl_than_parent
+mark
+missing_docs
+modifier_order
+multiline_arguments
+multiline_arguments_brackets
+multiline_function_chains
+multiline_literal_brackets
+multiline_parameters
+multiline_parameters_brackets
+multiple_closures_with_trailing_closure
+nesting
+nimble_operator
+no_empty_block
+no_extension_access_modifier
+no_fallthrough_only
+no_grouping_extension
+no_magic_numbers
+no_notificationcenter_chat
+no_space_in_method_call
+non_optional_string_data_conversion
+non_overridable_class_declaration
+notification_center_detachment
+ns_number_init_as_function_reference
+nslocalizedstring_key
+nslocalizedstring_require_bundle
+nsobject_prefer_isequal
+number_separator
+object_literal
+one_declaration_per_file
+opening_brace
+operator_usage_whitespace
+operator_whitespace
+optional_data_string_conversion
+optional_enum_case_matching
+orphaned_doc_comment
+overridden_super_call
+override_in_extension
+pattern_matching_keywords
+period_spacing
+prefer_key_path
+prefer_nimble
+prefer_self_in_static_references
+prefer_self_type_over_type_of_self
+prefer_type_checking
+prefer_zero_over_explicit_init
+prefixed_toplevel_constant
+private_action
+private_outlet
+private_over_fileprivate
+private_subject
+private_swiftui_state
+private_unit_test
+prohibited_interface_builder
+prohibited_super_call
+protocol_property_accessors_order
+quick_discouraged_call
+quick_discouraged_focused_test
+quick_discouraged_pending_test
+raw_value_for_camel_cased_codable_enum
+reduce_boolean
+reduce_into
+redundant_discardable_let
+redundant_nil_coalescing
+redundant_objc_attribute
+redundant_optional_initialization
+redundant_self_in_closure
+redundant_sendable
+redundant_set_access_control
+redundant_string_enum_value
+redundant_type_annotation
+redundant_void_return
+require_mainactor_viewmodels
+required_deinit
+required_enum_case
+return_arrow_whitespace
+return_value_from_void_function
+self_binding
+self_in_property_initialization
+shorthand_argument
+shorthand_operator
+shorthand_optional_binding
+single_test_class
+sorted_enum_cases
+sorted_first_last
+sorted_imports
+statement_position
+static_operator
+static_over_final_class
+strict_fileprivate
+strong_iboutlet
+superfluous_disable_command
+superfluous_else
+switch_case_alignment
+switch_case_on_newline
+syntactic_sugar
+test_case_accessibility
+todo
+toggle_bool
+trailing_closure
+trailing_comma
+trailing_newline
+trailing_semicolon
+trailing_whitespace
+type_body_length
+type_contents_order
+type_name
+typesafe_array_init
+unavailable_condition
+unavailable_function
+unhandled_throwing_task
+unneeded_break_in_switch
+unneeded_override
+unneeded_parentheses_in_closure_argument
+unneeded_synthesized_initializer
+unowned_variable_capture
+untyped_error_in_catch
+unused_closure_parameter
+unused_control_flow_label
+unused_declaration
+unused_enumerated
+unused_import
+unused_optional_binding
+unused_parameter
+unused_setter_value
+valid_ibinspectable
+vertical_parameter_alignment
+vertical_parameter_alignment_on_call
+vertical_whitespace
+vertical_whitespace_between_cases
+vertical_whitespace_closing_braces
+vertical_whitespace_opening_braces
+void_function_in_ternary
+void_return
+weak_delegate
+xct_specific_matcher
+xctfail_message
+yoda_condition
+warning: 'fixme' is not a valid rule identifier
+Valid rule identifiers:
+accessibility_label_for_image
+accessibility_trait_for_button
+anonymous_argument_in_multiline_closure
+array_init
+async_without_await
+attribute_name_spacing
+attributes
+balanced_xctest_lifecycle
+blanket_disable_command
+block_based_kvo
+capture_variable
+class_delegate_protocol
+closing_brace
+closure_body_length
+closure_end_indentation
+closure_parameter_position
+closure_spacing
+collection_alignment
+colon
+comma
+comma_inheritance
+comment_spacing
+compiler_protocol_init
+computed_accessors_order
+conditional_returns_on_newline
+contains_over_filter_count
+contains_over_filter_is_empty
+contains_over_first_not_nil
+contains_over_range_nil_comparison
+contrasted_opening_brace
+control_statement
+convenience_type
+custom_rules
+cyclomatic_complexity
+deployment_target
+direct_return
+discarded_notification_center_observer
+discouraged_assert
+discouraged_direct_init
+discouraged_none_name
+discouraged_object_literal
+discouraged_optional_boolean
+discouraged_optional_collection
+duplicate_conditions
+duplicate_enum_cases
+duplicate_imports
+duplicated_key_in_dictionary_literal
+dynamic_inline
+empty_collection_literal
+empty_count
+empty_enum_arguments
+empty_parameters
+empty_parentheses_with_trailing_closure
+empty_string
+empty_xctest_method
+enum_case_associated_values_count
+expiring_todo
+explicit_acl
+explicit_enum_raw_value
+explicit_init
+explicit_self
+explicit_top_level_acl
+explicit_type_interface
+extension_access_modifier
+fallthrough
+fatal_error_message
+file_header
+file_length
+file_name
+file_name_no_space
+file_types_order
+final_test_case
+first_where
+flatmap_over_map_reduce
+for_where
+force_cast
+force_try
+force_unwrapping
+function_body_length
+function_default_parameter_at_end
+function_parameter_count
+generic_type_name
+ibinspectable_in_extension
+identical_operands
+identifier_name
+implicit_getter
+implicit_return
+implicitly_unwrapped_optional
+inclusive_language
+indentation_width
+invalid_swiftlint_command
+is_disjoint
+joined_default_parameter
+large_tuple
+last_where
+leading_whitespace
+legacy_cggeometry_functions
+legacy_constant
+legacy_constructor
+legacy_hashing
+legacy_multiple
+legacy_nsgeometry_functions
+legacy_objc_type
+legacy_random
+let_var_whitespace
+line_length
+literal_expression_end_indentation
+local_doc_comment
+lower_acl_than_parent
+mark
+missing_docs
+modifier_order
+multiline_arguments
+multiline_arguments_brackets
+multiline_function_chains
+multiline_literal_brackets
+multiline_parameters
+multiline_parameters_brackets
+multiple_closures_with_trailing_closure
+nesting
+nimble_operator
+no_empty_block
+no_extension_access_modifier
+no_fallthrough_only
+no_grouping_extension
+no_magic_numbers
+no_notificationcenter_chat
+no_space_in_method_call
+non_optional_string_data_conversion
+non_overridable_class_declaration
+notification_center_detachment
+ns_number_init_as_function_reference
+nslocalizedstring_key
+nslocalizedstring_require_bundle
+nsobject_prefer_isequal
+number_separator
+object_literal
+one_declaration_per_file
+opening_brace
+operator_usage_whitespace
+operator_whitespace
+optional_data_string_conversion
+optional_enum_case_matching
+orphaned_doc_comment
+overridden_super_call
+override_in_extension
+pattern_matching_keywords
+period_spacing
+prefer_key_path
+prefer_nimble
+prefer_self_in_static_references
+prefer_self_type_over_type_of_self
+prefer_type_checking
+prefer_zero_over_explicit_init
+prefixed_toplevel_constant
+private_action
+private_outlet
+private_over_fileprivate
+private_subject
+private_swiftui_state
+private_unit_test
+prohibited_interface_builder
+prohibited_super_call
+protocol_property_accessors_order
+quick_discouraged_call
+quick_discouraged_focused_test
+quick_discouraged_pending_test
+raw_value_for_camel_cased_codable_enum
+reduce_boolean
+reduce_into
+redundant_discardable_let
+redundant_nil_coalescing
+redundant_objc_attribute
+redundant_optional_initialization
+redundant_self_in_closure
+redundant_sendable
+redundant_set_access_control
+redundant_string_enum_value
+redundant_type_annotation
+redundant_void_return
+require_mainactor_viewmodels
+required_deinit
+required_enum_case
+return_arrow_whitespace
+return_value_from_void_function
+self_binding
+self_in_property_initialization
+shorthand_argument
+shorthand_operator
+shorthand_optional_binding
+single_test_class
+sorted_enum_cases
+sorted_first_last
+sorted_imports
+statement_position
+static_operator
+static_over_final_class
+strict_fileprivate
+strong_iboutlet
+superfluous_disable_command
+superfluous_else
+switch_case_alignment
+switch_case_on_newline
+syntactic_sugar
+test_case_accessibility
+todo
+toggle_bool
+trailing_closure
+trailing_comma
+trailing_newline
+trailing_semicolon
+trailing_whitespace
+type_body_length
+type_contents_order
+type_name
+typesafe_array_init
+unavailable_condition
+unavailable_function
+unhandled_throwing_task
+unneeded_break_in_switch
+unneeded_override
+unneeded_parentheses_in_closure_argument
+unneeded_synthesized_initializer
+unowned_variable_capture
+untyped_error_in_catch
+unused_closure_parameter
+unused_control_flow_label
+unused_declaration
+unused_enumerated
+unused_import
+unused_optional_binding
+unused_parameter
+unused_setter_value
+valid_ibinspectable
+vertical_parameter_alignment
+vertical_parameter_alignment_on_call
+vertical_whitespace
+vertical_whitespace_between_cases
+vertical_whitespace_closing_braces
+vertical_whitespace_opening_braces
+void_function_in_ternary
+void_return
+weak_delegate
+xct_specific_matcher
+xctfail_message
+yoda_condition
+warning: 'fixme' is not a valid rule identifier
+Valid rule identifiers:
+accessibility_label_for_image
+accessibility_trait_for_button
+anonymous_argument_in_multiline_closure
+array_init
+async_without_await
+attribute_name_spacing
+attributes
+balanced_xctest_lifecycle
+blanket_disable_command
+block_based_kvo
+capture_variable
+class_delegate_protocol
+closing_brace
+closure_body_length
+closure_end_indentation
+closure_parameter_position
+closure_spacing
+collection_alignment
+colon
+comma
+comma_inheritance
+comment_spacing
+compiler_protocol_init
+computed_accessors_order
+conditional_returns_on_newline
+contains_over_filter_count
+contains_over_filter_is_empty
+contains_over_first_not_nil
+contains_over_range_nil_comparison
+contrasted_opening_brace
+control_statement
+convenience_type
+custom_rules
+cyclomatic_complexity
+deployment_target
+direct_return
+discarded_notification_center_observer
+discouraged_assert
+discouraged_direct_init
+discouraged_none_name
+discouraged_object_literal
+discouraged_optional_boolean
+discouraged_optional_collection
+duplicate_conditions
+duplicate_enum_cases
+duplicate_imports
+duplicated_key_in_dictionary_literal
+dynamic_inline
+empty_collection_literal
+empty_count
+empty_enum_arguments
+empty_parameters
+empty_parentheses_with_trailing_closure
+empty_string
+empty_xctest_method
+enum_case_associated_values_count
+expiring_todo
+explicit_acl
+explicit_enum_raw_value
+explicit_init
+explicit_self
+explicit_top_level_acl
+explicit_type_interface
+extension_access_modifier
+fallthrough
+fatal_error_message
+file_header
+file_length
+file_name
+file_name_no_space
+file_types_order
+final_test_case
+first_where
+flatmap_over_map_reduce
+for_where
+force_cast
+force_try
+force_unwrapping
+function_body_length
+function_default_parameter_at_end
+function_parameter_count
+generic_type_name
+ibinspectable_in_extension
+identical_operands
+identifier_name
+implicit_getter
+implicit_return
+implicitly_unwrapped_optional
+inclusive_language
+indentation_width
+invalid_swiftlint_command
+is_disjoint
+joined_default_parameter
+large_tuple
+last_where
+leading_whitespace
+legacy_cggeometry_functions
+legacy_constant
+legacy_constructor
+legacy_hashing
+legacy_multiple
+legacy_nsgeometry_functions
+legacy_objc_type
+legacy_random
+let_var_whitespace
+line_length
+literal_expression_end_indentation
+local_doc_comment
+lower_acl_than_parent
+mark
+missing_docs
+modifier_order
+multiline_arguments
+multiline_arguments_brackets
+multiline_function_chains
+multiline_literal_brackets
+multiline_parameters
+multiline_parameters_brackets
+multiple_closures_with_trailing_closure
+nesting
+nimble_operator
+no_empty_block
+no_extension_access_modifier
+no_fallthrough_only
+no_grouping_extension
+no_magic_numbers
+no_notificationcenter_chat
+no_space_in_method_call
+non_optional_string_data_conversion
+non_overridable_class_declaration
+notification_center_detachment
+ns_number_init_as_function_reference
+nslocalizedstring_key
+nslocalizedstring_require_bundle
+nsobject_prefer_isequal
+number_separator
+object_literal
+one_declaration_per_file
+opening_brace
+operator_usage_whitespace
+operator_whitespace
+optional_data_string_conversion
+optional_enum_case_matching
+orphaned_doc_comment
+overridden_super_call
+override_in_extension
+pattern_matching_keywords
+period_spacing
+prefer_key_path
+prefer_nimble
+prefer_self_in_static_references
+prefer_self_type_over_type_of_self
+prefer_type_checking
+prefer_zero_over_explicit_init
+prefixed_toplevel_constant
+private_action
+private_outlet
+private_over_fileprivate
+private_subject
+private_swiftui_state
+private_unit_test
+prohibited_interface_builder
+prohibited_super_call
+protocol_property_accessors_order
+quick_discouraged_call
+quick_discouraged_focused_test
+quick_discouraged_pending_test
+raw_value_for_camel_cased_codable_enum
+reduce_boolean
+reduce_into
+redundant_discardable_let
+redundant_nil_coalescing
+redundant_objc_attribute
+redundant_optional_initialization
+redundant_self_in_closure
+redundant_sendable
+redundant_set_access_control
+redundant_string_enum_value
+redundant_type_annotation
+redundant_void_return
+require_mainactor_viewmodels
+required_deinit
+required_enum_case
+return_arrow_whitespace
+return_value_from_void_function
+self_binding
+self_in_property_initialization
+shorthand_argument
+shorthand_operator
+shorthand_optional_binding
+single_test_class
+sorted_enum_cases
+sorted_first_last
+sorted_imports
+statement_position
+static_operator
+static_over_final_class
+strict_fileprivate
+strong_iboutlet
+superfluous_disable_command
+superfluous_else
+switch_case_alignment
+switch_case_on_newline
+syntactic_sugar
+test_case_accessibility
+todo
+toggle_bool
+trailing_closure
+trailing_comma
+trailing_newline
+trailing_semicolon
+trailing_whitespace
+type_body_length
+type_contents_order
+type_name
+typesafe_array_init
+unavailable_condition
+unavailable_function
+unhandled_throwing_task
+unneeded_break_in_switch
+unneeded_override
+unneeded_parentheses_in_closure_argument
+unneeded_synthesized_initializer
+unowned_variable_capture
+untyped_error_in_catch
+unused_closure_parameter
+unused_control_flow_label
+unused_declaration
+unused_enumerated
+unused_import
+unused_optional_binding
+unused_parameter
+unused_setter_value
+valid_ibinspectable
+vertical_parameter_alignment
+vertical_parameter_alignment_on_call
+vertical_whitespace
+vertical_whitespace_between_cases
+vertical_whitespace_closing_braces
+vertical_whitespace_opening_braces
+void_function_in_ternary
+void_return
+weak_delegate
+xct_specific_matcher
+xctfail_message
+yoda_condition
+Linting 'test_nutrition_parser_standalone.swift' (1/20)
+Linting 'WatchWorkoutManagerTests.swift' (2/20)
+Linting 'AirFitWatchApp.swift' (3/20)
+Linting 'SharedModels.swift' (4/20)
+Linting 'Notification+WorkoutData.swift' (5/20)
+Linting 'PlannedExerciseView.swift' (6/20)
+Linting 'WorkoutLoggingCoordinator.swift' (7/20)
+Linting 'RPEInputView.swift' (8/20)
+Linting 'ExerciseInputView.swift' (10/20)
+Linting 'DictationView.swift' (9/20)
+Linting 'WeightInputView.swift' (11/20)
+Linting 'CommentInputView.swift' (12/20)
+Linting 'RepsInputView.swift' (13/20)
+Linting 'WorkoutLoggingView.swift' (14/20)
+Linting 'RestTimerView.swift' (15/20)
+Linting 'ExerciseLoggingView.swift' (16/20)
+Linting 'WorkoutStartView.swift' (17/20)
+Linting 'ActiveWorkoutView.swift' (18/20)
+Linting 'WatchWorkoutManager.swift' (19/20)
+Linting 'WatchWorkoutPlanReceiver.swift' (20/20)
+Linting 'DIEnvironment.swift' (1/328)
+Linting 'DIViewModelFactory.swift' (2/328)
+Linting 'DIBootstrapper.swift' (3/328)
+Linting 'APIConstants.swift' (4/328)
+Linting 'AppConstants+Settings.swift' (5/328)
+Linting 'AppConstants.swift' (6/328)
+Linting 'GlobalEnums.swift' (7/328)
+Linting 'AppError+Conversion.swift' (8/328)
+Linting 'AppError.swift' (9/328)
+Linting 'MessageType.swift' (10/328)
+Linting 'HealthKitNutritionSummary.swift' (11/328)
+Linting 'NutritionMetrics.swift' (12/328)
+Linting 'FunctionModels.swift' (14/328)
+Linting 'VoiceInputState.swift' (15/328)
+Linting 'WorkoutBuilderData.swift' (13/328)
+Linting 'ServiceModels.swift' (16/328)
+Linting 'AIModels.swift' (17/328)
+Linting 'PlannedWorkoutData.swift' (18/328)
+Linting 'WorkoutCompletionData.swift' (19/328)
+Linting 'HealthContextSnapshot.swift' (20/328)
+Linting 'NutritionPreferences.swift' (21/328)
+Linting 'Signposts.swift' (22/328)
+Linting 'ChatStreamingMetricsAdapter.swift' (23/328)
+Linting 'NutritionSchemas.swift' (24/328)
+Linting 'Date+Helpers.swift' (25/328)
+Linting 'View+Styling.swift' (26/328)
+Linting 'TimeInterval+Formatting.swift' (27/328)
+Linting 'AIProvider+API.swift' (28/328)
+Linting 'Notifications+Names.swift' (29/328)
+Linting 'URLRequest+API.swift' (30/328)
+Linting 'AccessibilityExtensions.swift' (31/328)
+Linting 'Color+Fallbacks.swift' (32/328)
+Linting 'String+Helpers.swift' (33/328)
+Linting 'AppState.swift' (34/328)
+Linting 'HealthKitAuthManager.swift' (35/328)
+Linting 'DefaultsKeys.swift' (36/328)
+Linting 'InfoPlistHelper.swift' (37/328)
+Linting 'HapticService.swift' (38/328)
+Linting 'KeychainWrapper.swift' (39/328)
+Linting 'DeviceCapabilities.swift' (40/328)
+Linting 'AppLogger.swift' (41/328)
+Linting 'FeatureToggles.swift' (42/328)
+Linting 'NetworkReachability.swift' (43/328)
+Linting 'BaseCoordinator.swift' (44/328)
+Linting 'Formatters.swift' (45/328)
+Linting 'AppIconGenerator.swift' (46/328)
+Linting 'Validators.swift' (47/328)
+Linting 'AppSpacing.swift' (48/328)
+Linting 'AppColors.swift' (49/328)
+Linting 'GradientToken.swift' (50/328)
+Linting 'GradientManager.swift' (51/328)
+Linting 'SoftMotion.swift' (52/328)
+Linting 'MotionToken.swift' (53/328)
+Linting 'SurfaceSystem.swift' (54/328)
+Linting 'AppFonts.swift' (55/328)
+Linting 'MetricRing.swift' (56/328)
+Linting 'VoiceWaveformView.swift' (57/328)
+Linting 'SoftButtonStyle.swift' (58/328)
+Linting 'GradientText.swift' (59/328)
+Linting 'MicRippleView.swift' (60/328)
+Linting 'GradientNumber.swift' (61/328)
+Linting 'CascadeText.swift' (62/328)
+Linting 'GlassCard.swift' (63/328)
+Linting 'FlowLayout.swift' (64/328)
+Linting 'BaseScreen.swift' (65/328)
+Linting 'ShimmerModifier.swift' (66/328)
+Linting 'TextLoadingView.swift' (67/328)
+Linting 'CommonComponents.swift' (68/328)
+Linting 'WhisperVoiceButton.swift' (69/328)
+Linting 'ErrorPresentationView.swift' (70/328)
+Linting 'ModelContainerErrorView.swift' (71/328)
+Linting 'NetworkClientProtocol.swift' (72/328)
+Linting 'DashboardServiceProtocols.swift' (73/328)
+Linting 'HealthKitManagerProtocol.swift' (74/328)
+Linting 'FoodTrackingCoordinatorProtocol.swift' (75/328)
+Linting 'NutritionGoalServiceProtocol.swift' (76/328)
+Linting 'GoalServiceProtocol.swift' (77/328)
+Linting 'ServiceProtocol.swift' (78/328)
+Linting 'NutritionCalculatorProtocol.swift' (79/328)
+Linting 'LLMProvider.swift' (80/328)
+Linting 'ViewModelProtocol.swift' (81/328)
+Linting 'WeatherServiceProtocol.swift' (82/328)
+Linting 'ChatStreamingStore.swift' (84/328)
+Linting 'AnalyticsServiceProtocol.swift' (83/328)
+Linting 'AIServiceProtocol+Extensions.swift' (85/328)
+Linting 'AIServiceProtocol.swift' (86/328)
+Linting 'NutritionServiceProtocol.swift' (87/328)
+Linting 'ErrorHandling.swift' (88/328)
+Linting 'VoiceInputProtocol.swift' (89/328)
+Linting 'FoodVoiceAdapterProtocol.swift' (90/328)
+Linting 'UserServiceProtocol.swift' (91/328)
+Linting 'APIKeyManagementProtocol.swift' (92/328)
+Linting 'WhisperServiceWrapperProtocol.swift' (93/328)
+Linting 'FoodVoiceServiceProtocol.swift' (94/328)
+Linting 'AirFit/AirFitTests/NutritionParserTests.swift' (95/328)
+Linting 'WatchStatusStoreTests.swift' (96/328)
+Linting 'AIServiceTests.swift' (97/328)
+Linting 'TestSupport.swift' (98/328)
+Linting 'NutritionCalculatorTests.swift' (99/328)
+Linting 'WorkoutPlanTransferServiceTests.swift' (100/328)
+Linting 'DIResolutionTests.swift' (101/328)
+Linting 'CoachRouterTests.swift' (102/328)
+Linting 'AIServiceModeTests.swift' (103/328)
+Linting 'HealthKitManagerFake.swift' (104/328)
+Linting 'TestUtilities.swift' (105/328)
+Linting 'AIServiceStub.swift' (106/328)
+Linting 'HealthKitManagerTests.swift' (107/328)
+Linting 'AirFit/AirFitTests/AI/NutritionParserTests.swift' (108/328)
+Linting 'NetworkReachabilityTests.swift' (109/328)
+Linting 'DISmokeTests.swift' (110/328)
+Linting 'PersonaSynthesizerTests.swift' (111/328)
+Linting 'StrengthProgressionServiceTests.swift' (112/328)
+Linting 'AirFitUITests.swift' (113/328)
+Linting 'MainTabView.swift' (114/328)
+Linting 'AirFitApp.swift' (115/328)
+Linting 'NavigationState.swift' (116/328)
+Linting 'ContentView.swift' (117/328)
+Linting 'SettingsCoordinator.swift' (118/328)
+Linting 'SettingsViewModel.swift' (119/328)
+Linting 'SettingsModels.swift' (120/328)
+Linting 'PersonaSettingsModels.swift' (121/328)
+Linting 'AIProvider+Settings.swift' (122/328)
+Linting 'User+Settings.swift' (123/328)
+Linting 'VoiceSettingsView.swift' (124/328)
+Linting 'UnitsSettingsView.swift' (125/328)
+Linting 'ModelRecommendationView.swift' (126/328)
+Linting 'NotificationPreferencesView.swift' (127/328)
+Linting 'APIConfigurationView.swift' (128/328)
+Linting 'SettingsComponents.swift' (129/328)
+Linting 'HealthKitTestDataDetailView.swift' (130/328)
+Linting 'DataManagementView.swift' (131/328)
+Linting 'AppearanceSettingsView.swift' (132/328)
+Linting 'NutritionSettingsView.swift' (133/328)
+Linting 'APIKeyEntryView.swift' (134/328)
+Linting 'AIPersonaSettingsView.swift' (135/328)
+Linting 'PrivacySecurityView.swift' (136/328)
+Linting 'SettingsListView.swift' (137/328)
+Linting 'NotificationManager+Settings.swift' (138/328)
+Linting 'BiometricAuthManager.swift' (139/328)
+Linting 'UserDataExporter.swift' (140/328)
+Linting 'ChatCoordinator.swift' (141/328)
+Linting 'ChatViewModel.swift' (142/328)
+Linting 'ChatModels.swift' (143/328)
+Linting 'MessageBubbleView.swift' (144/328)
+Linting 'ChatView.swift' (145/328)
+Linting 'MessageComposer.swift' (146/328)
+Linting 'MinimalMessageBubble.swift' (147/328)
+Linting 'ChatSuggestionsEngine.swift' (148/328)
+Linting 'ChatExporter.swift' (149/328)
+Linting 'ChatHistoryManager.swift' (150/328)
+Linting 'WorkoutCoordinator.swift' (151/328)
+Linting 'WorkoutViewModel.swift' (152/328)
+Linting 'WorkoutModels.swift' (153/328)
+Linting 'WorkoutStatisticsView.swift' (154/328)
+Linting 'WorkoutDashboardView.swift' (155/328)
+Linting 'AllWorkoutsView.swift' (156/328)
+Linting 'WorkoutListView.swift' (157/328)
+Linting 'WorkoutDetailView.swift' (158/328)
+Linting 'WorkoutSyncService.swift' (159/328)
+Linting 'BodyCoordinator.swift' (160/328)
+Linting 'BodyViewModel.swift' (161/328)
+Linting 'BodyDashboardView.swift' (162/328)
+Linting 'DashboardComponents.swift' (163/328)
+Linting 'DashboardCoordinator.swift' (164/328)
+Linting 'WorkoutHistoryViewModel.swift' (165/328)
+Linting 'DashboardViewModel.swift' (166/328)
+Linting 'DashboardModels.swift' (167/328)
+Linting 'AIDashboardContent.swift' (168/328)
+Linting 'DashboardView.swift' (169/328)
+Linting 'MorningGreetingCard.swift' (170/328)
+Linting 'NutritionCard.swift' (171/328)
+Linting 'QuickActionsCard.swift' (172/328)
+Linting 'RecoveryCard.swift' (173/328)
+Linting 'PerformanceCard.swift' (174/328)
+Linting 'StrengthProgressionCard.swift' (175/328)
+Linting 'MuscleVolumeView.swift' (176/328)
+Linting 'NutritionRingsView.swift' (177/328)
+Linting 'MorningCheckInView.swift' (178/328)
+Linting 'WorkoutHistoryView.swift' (179/328)
+Linting 'NutritionDashboardView.swift' (180/328)
+Linting 'RecoveryDetailView.swift' (181/328)
+Linting 'TodayDashboardView.swift' (182/328)
+Linting 'NutritionDetailView.swift' (183/328)
+Linting 'HealthKitService.swift' (184/328)
+Linting 'AICoachService.swift' (185/328)
+Linting 'DashboardNutritionService.swift' (186/328)
+Linting 'ConversationManager.swift' (187/328)
+Linting 'RoutingConfiguration.swift' (188/328)
+Linting 'PersonaEngine.swift' (189/328)
+Linting 'CoachMetrics.swift' (190/328)
+Linting 'CoachRouter.swift' (191/328)
+Linting 'WorkoutStrategy.swift' (192/328)
+Linting 'CoachOrchestrator.swift' (193/328)
+Linting 'AIFormatter.swift' (194/328)
+Linting 'AIParser.swift' (195/328)
+Linting 'CoachEngine+Functions.swift' (196/328)
+Linting 'WorkoutAnalysisEngine.swift' (197/328)
+Linting 'ContextAnalyzer.swift' (198/328)
+Linting 'RecoveryStrategy.swift' (199/328)
+Linting 'NutritionStrategy.swift' (200/328)
+Linting 'DirectAIModels.swift' (201/328)
+Linting 'ConversationPersonalityInsights.swift' (202/328)
+Linting 'PersonalityInsights.swift' (203/328)
+Linting 'PersonaModels.swift' (204/328)
+Linting 'NutritionParseResult.swift' (205/328)
+Linting 'StreamingResponseHandler.swift' (206/328)
+Linting 'MessageProcessor.swift' (207/328)
+Linting 'ConversationStateManager.swift' (208/328)
+Linting 'DirectAIProcessor.swift' (209/328)
+Linting 'CoachEngine.swift' (210/328)
+Linting 'GoalFunctions.swift' (211/328)
+Linting 'AnalysisFunctions.swift' (212/328)
+Linting 'NutritionFunctions.swift' (213/328)
+Linting 'FunctionRegistry.swift' (214/328)
+Linting 'WorkoutFunctions.swift' (215/328)
+Linting 'LocalCommandParser.swift' (216/328)
+Linting 'PersonaSynthesizer.swift' (217/328)
+Linting 'PreviewGenerator.swift' (218/328)
+Linting 'FallbackPersonaGenerator.swift' (219/328)
+Linting 'PersonaSynthesisProgress.swift' (220/328)
+Linting 'FoodTrackingViewModel.swift' (221/328)
+Linting 'FoodTrackingModels.swift' (222/328)
+Linting 'PhotoInputView.swift' (223/328)
+Linting 'VoiceInputDownloadView.swift' (224/328)
+Linting 'MacroRingsView.swift' (225/328)
+Linting 'FoodVoiceInputView.swift' (226/328)
+Linting 'NutritionSearchView.swift' (227/328)
+Linting 'FoodConfirmationView.swift' (228/328)
+Linting 'FoodHealthKitConfirmationView.swift' (229/328)
+Linting 'FoodLoggingView.swift' (230/328)
+Linting 'NutritionService.swift' (231/328)
+Linting 'NutritionImportService.swift' (232/328)
+Linting 'FoodVoiceAdapter.swift' (233/328)
+Linting 'PreviewServices.swift' (234/328)
+Linting 'NotificationsCoordinator.swift' (235/328)
+Linting 'NotificationManager.swift' (236/328)
+Linting 'LiveActivityManager.swift' (237/328)
+Linting 'NotificationModels.swift' (238/328)
+Linting 'NotificationContentGenerator.swift' (239/328)
+Linting 'EngagementEngine.swift' (240/328)
+Linting 'APISetupViewModel.swift' (241/328)
+Linting 'LLMModelCatalog.swift' (242/328)
+Linting 'ExtractedInsights.swift' (243/328)
+Linting 'OnboardingIntelligence.swift' (244/328)
+Linting 'APISetupView.swift' (245/328)
+Linting 'InsightsConfirmationView.swift' (246/328)
+Linting 'PersonaOnboardingView.swift' (247/328)
+Linting 'SchemaV1.swift' (248/328)
+Linting 'DataManager.swift' (249/328)
+Linting 'SettingsRepositoryProtocol.swift' (250/328)
+Linting 'SwiftDataSettingsRepository.swift' (251/328)
+Linting 'ChatHistoryRepository.swift' (252/328)
+Linting 'SwiftDataChatWriteRepository.swift' (253/328)
+Linting 'ChatWriteRepositoryProtocol.swift' (254/328)
+Linting 'SwiftDataUserWriteRepository.swift' (255/328)
+Linting 'UserWriteRepositoryProtocol.swift' (256/328)
+Linting 'UserReadRepository.swift' (257/328)
+Linting 'SwiftDataDashboardRepository.swift' (258/328)
+Linting 'DashboardRepositoryProtocol.swift' (259/328)
+Linting 'RepositoryProtocols.swift' (260/328)
+Linting 'FoodTrackingRepositoryProtocol.swift' (261/328)
+Linting 'SwiftDataFoodTrackingRepository.swift' (262/328)
+Linting 'SwiftDataWorkoutWriteRepository.swift' (263/328)
+Linting 'WorkoutReadRepository.swift' (264/328)
+Linting 'Workout.swift' (265/328)
+Linting 'DailyLog.swift' (266/328)
+Linting 'ChatAttachment.swift' (267/328)
+Linting 'Goal.swift' (268/328)
+Linting 'ChatMessage.swift' (269/328)
+Linting 'ConversationResponse.swift' (270/328)
+Linting 'NutritionData.swift' (271/328)
+Linting 'ConversationSession.swift' (272/328)
+Linting 'ChatSession.swift' (273/328)
+Linting 'OnboardingProfile.swift' (274/328)
+Linting 'ExerciseSet.swift' (275/328)
+Linting 'StrengthRecord.swift' (276/328)
+Linting 'User.swift' (277/328)
+Linting 'FoodEntry.swift' (278/328)
+Linting 'CoachMessage.swift' (279/328)
+Linting 'FoodItem.swift' (280/328)
+Linting 'Exercise.swift' (281/328)
+Linting 'HealthKitSyncRecord.swift' (282/328)
+Linting 'DailyNutritionAdjustment.swift' (283/328)
+Linting 'ModelContainer+Test.swift' (284/328)
+Linting 'AirFitWidgetBundle.swift' (285/328)
+Linting 'AirFitLiveActivity.swift' (286/328)
+Linting 'CoachLiveActivity.swift' (287/328)
+Linting 'NutritionLiveActivity.swift' (288/328)
+Linting 'HealthDataLoadingProgress.swift' (289/328)
+Linting 'ContextAssembler.swift' (290/328)
+Linting 'OnboardingCache.swift' (291/328)
+Linting 'NutritionGoalService.swift' (292/328)
+Linting 'KeychainHelper.swift' (293/328)
+Linting 'APIKeyManager.swift' (294/328)
+Linting 'GoalService.swift' (295/328)
+Linting 'StrengthProgressionService.swift' (296/328)
+Linting 'MuscleGroupVolumeService.swift' (297/328)
+Linting 'ExerciseDatabase.swift' (298/328)
+Linting 'RecoveryDataAdapter.swift' (299/328)
+Linting 'RecoveryInference.swift' (300/328)
+Linting 'HealthKitSleepAnalyzer.swift' (301/328)
+Linting 'HealthKitTestDataGenerator.swift' (302/328)
+Linting 'HealthKitDataFetcher.swift' (303/328)
+Linting 'HealthKitProvider.swift' (304/328)
+Linting 'HealthKit+Types.swift' (305/328)
+Linting 'HealthKitManager.swift' (306/328)
+Linting 'HealthKitDataTypes.swift' (307/328)
+Linting 'NetworkClient.swift' (308/328)
+Linting 'NetworkManager.swift' (309/328)
+Linting 'RequestOptimizer.swift' (310/328)
+Linting 'UserService.swift' (311/328)
+Linting 'WhisperModelManager.swift' (312/328)
+Linting 'VoiceInputManager.swift' (313/328)
+Linting 'ServiceConfiguration.swift' (314/328)
+Linting 'AIService.swift' (315/328)
+Linting 'AnthropicProvider.swift' (316/328)
+Linting 'OpenAIProvider.swift' (317/328)
+Linting 'LLMRetryHandler.swift' (318/328)
+Linting 'LLMModels.swift' (319/328)
+Linting 'GeminiProvider.swift' (320/328)
+Linting 'WorkoutPlanTransferService.swift' (321/328)
+Linting 'WatchConnectivityManager.swift' (322/328)
+Linting 'WatchStatusStore.swift' (323/328)
+Linting 'WeatherService.swift' (324/328)
+Linting 'MonitoringService.swift' (325/328)
+Linting 'PersonaService.swift' (326/328)
+Linting 'AnalyticsService.swift' (327/328)
+Linting 'NutritionCalculator.swift' (328/328)
+Linting 'DIContainer.swift' (1/12)
+Linting 'Color+Hex.swift' (2/12)
+Linting 'Double+Formatting.swift' (3/12)
+Linting 'AppShadows.swift' (4/12)
+Linting 'NetworkManagementProtocol.swift' (5/12)
+Linting 'InitialAPISetupView.swift' (7/12)
+Linting 'SwiftDataCRUDTests.swift' (6/12)
+Linting 'MuscleGroupRingsView.swift' (8/12)
+Linting 'FoodTrackingCoordinator.swift' (9/12)
+Linting 'OnboardingModels.swift' (10/12)
+Linting 'WorkoutWriteRepositoryProtocol.swift' (11/12)
+Linting 'FetchDescriptor+Convenience.swift' (12/12)
+Done linting! Found 1195 violations, 4 serious in 360 files.
+SwiftLint analysis: 0s (0 errors)
+
+=== Manual Performance Tests ===
+The following tests require manual execution on device:
+
+[0;34m🚀 App Launch Performance Test[0m
+Instructions for App Launch Test:
+1. Force close AirFit completely
+2. Start a stopwatch
+3. Tap AirFit icon
+4. Stop timer when dashboard is interactive
+5. Record time in seconds
+Target: < 1.0 seconds
+
+[0;34m🤖 AI Response Time Test (TTFT)[0m
+Instructions for Time to First Token Test:
+1. Open AirFit Chat tab
+2. Type: "Hello, how are you today?"
+3. Start timer when you tap send
+4. Stop timer when first word appears
+5. Record time in seconds
+Target: < 2.0 seconds
+
+[0;34m📊 Context Assembly Performance Test[0m
+Instructions for Context Assembly Test:
+1. Open Dashboard tab
+2. Pull to refresh
+3. Start timer
+4. Stop when all cards show real data (not loading)
+5. Record time in seconds
+Target: < 3.0 seconds
+
+[0;34m🧠 Memory Usage Test[0m
+Instructions for Memory Usage Test:
+1. Use AirFit normally for 10 minutes
+2. Navigate between all tabs
+3. Log some food, chat with AI, etc.
+4. Check Settings > Privacy > Analytics for crashes
+5. Note any performance degradation
+Target: < 200MB, no crashes, smooth performance
+
+[0;34m🔋 Battery Impact Test[0m
+Instructions for Battery Usage Test:
+1. Note current battery percentage
+2. Use AirFit actively for 30 minutes
+3. Check Settings > Battery > Battery Usage
+4. Find AirFit in the list
+5. Record percentage of battery used
+Target: < 5% for 30 minutes of active use
+
+[1;33m=== Performance Analysis Tools ===[0m
+
+Additional Performance Analysis Tools:
+
+1. Xcode Instruments (if available):
+   - Time Profiler: Identify CPU bottlenecks
+   - Allocations: Track memory usage patterns
+   - Leaks: Detect memory leaks
+   - Energy Log: Battery impact analysis
+
+2. Console App (macOS):
+   - Connect iPhone via USB
+   - Filter for AirFit process
+   - Monitor real-time logs during testing
+
+3. iOS Analytics:
+   - Settings > Privacy & Security > Analytics & Improvements
+   - Check for AirFit crash logs
+   - Review hang detection reports
+
+4. Network Analysis:
+   - Monitor API call efficiency
+   - Check request/response sizes
+   - Verify proper caching behavior
+
+=== Benchmark Results Template ===
+
+Copy this template for recording manual test results:
+
+=== PERFORMANCE TEST RESULTS ===
+Date: Sat Sep  6 23:57:52 PDT 2025
+Device: iPhone 16 Pro (iOS 18.4)
+App Version: _______
+Tester: _______
+
+App Launch Time: _____ seconds (Target: < 1.0s) PASS/FAIL
+Time to First Token: _____ seconds (Target: < 2.0s) PASS/FAIL
+Context Assembly: _____ seconds (Target: < 3.0s) PASS/FAIL
+Memory Usage: _____ MB (Target: < 200MB) PASS/FAIL
+Battery Impact (30min): _____ % (Target: < 5%) PASS/FAIL
+
+Performance Issues Found:
+1. _______________________
+2. _______________________
+3. _______________________
+
+Recommendations:
+_________________________________
+_________________________________
+_________________________________
+
+Overall Performance Rating: ___/10
+Ready for Production: YES / NO
+
+Notes:
+_________________________________
+_________________________________
+
+[0;32mPerformance benchmark framework complete![0m
+Results logged to: performance_results_20250906_235748.json
+
+Next steps:
+1. Run manual tests on iPhone 16 Pro
+2. Record results using the template above
+3. Compare against targets
+4. Document any performance issues
+5. Make Go/No-Go decision based on results

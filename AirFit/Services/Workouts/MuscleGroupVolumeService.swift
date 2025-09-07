@@ -197,24 +197,24 @@ actor MuscleGroupVolumeService: MuscleGroupVolumeServiceProtocol {
 
             case let g where g.contains("upper"):
                 // Emphasize upper body
-                adjustedVolumes["Chest"] = Int(Double(adjustedVolumes["Chest"]!) * 1.3)
-                adjustedVolumes["Back"] = Int(Double(adjustedVolumes["Back"]!) * 1.3)
-                adjustedVolumes["Shoulders"] = Int(Double(adjustedVolumes["Shoulders"]!) * 1.2)
-                adjustedVolumes["Biceps"] = Int(Double(adjustedVolumes["Biceps"]!) * 1.2)
-                adjustedVolumes["Triceps"] = Int(Double(adjustedVolumes["Triceps"]!) * 1.2)
+                adjustedVolumes["Chest"] = Int(Double(adjustedVolumes["Chest"] ?? 0) * 1.3)
+                adjustedVolumes["Back"] = Int(Double(adjustedVolumes["Back"] ?? 0) * 1.3)
+                adjustedVolumes["Shoulders"] = Int(Double(adjustedVolumes["Shoulders"] ?? 0) * 1.2)
+                adjustedVolumes["Biceps"] = Int(Double(adjustedVolumes["Biceps"] ?? 0) * 1.2)
+                adjustedVolumes["Triceps"] = Int(Double(adjustedVolumes["Triceps"] ?? 0) * 1.2)
 
             case let g where g.contains("lower") || g.contains("legs"):
                 // Emphasize lower body
-                adjustedVolumes["Quads"] = Int(Double(adjustedVolumes["Quads"]!) * 1.3)
-                adjustedVolumes["Hamstrings"] = Int(Double(adjustedVolumes["Hamstrings"]!) * 1.3)
-                adjustedVolumes["Glutes"] = Int(Double(adjustedVolumes["Glutes"]!) * 1.3)
-                adjustedVolumes["Calves"] = Int(Double(adjustedVolumes["Calves"]!) * 1.2)
+                adjustedVolumes["Quads"] = Int(Double(adjustedVolumes["Quads"] ?? 0) * 1.3)
+                adjustedVolumes["Hamstrings"] = Int(Double(adjustedVolumes["Hamstrings"] ?? 0) * 1.3)
+                adjustedVolumes["Glutes"] = Int(Double(adjustedVolumes["Glutes"] ?? 0) * 1.3)
+                adjustedVolumes["Calves"] = Int(Double(adjustedVolumes["Calves"] ?? 0) * 1.2)
 
             case let g where g.contains("athletic") || g.contains("performance"):
                 // Balanced with emphasis on functional muscles
-                adjustedVolumes["Core"] = Int(Double(adjustedVolumes["Core"]!) * 1.5)
-                adjustedVolumes["Glutes"] = Int(Double(adjustedVolumes["Glutes"]!) * 1.3)
-                adjustedVolumes["Back"] = Int(Double(adjustedVolumes["Back"]!) * 1.2)
+                adjustedVolumes["Core"] = Int(Double(adjustedVolumes["Core"] ?? 0) * 1.5)
+                adjustedVolumes["Glutes"] = Int(Double(adjustedVolumes["Glutes"] ?? 0) * 1.3)
+                adjustedVolumes["Back"] = Int(Double(adjustedVolumes["Back"] ?? 0) * 1.2)
 
             default:
                 break

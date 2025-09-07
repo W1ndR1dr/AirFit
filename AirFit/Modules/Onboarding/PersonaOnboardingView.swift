@@ -231,7 +231,7 @@ struct PersonaOnboardingView: View {
     private func makeSampleLines(name: String, archetype: String) -> [String] {
         [
             "Let's set one small goal for today.",
-            "I'm here with \(archetype.lowercased()) energy — ready when you are!"
+            "I'm here with \(archetype.lowercased()) energy — ready when you are."
         ]
     }
 

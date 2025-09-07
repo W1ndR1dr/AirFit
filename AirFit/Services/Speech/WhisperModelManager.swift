@@ -115,7 +115,10 @@ final class WhisperModelManager: ObservableObject {
     func isModelDownloaded(_ modelSize: ModelSize) async -> Bool {
         // WhisperKit handles model management internally
         // Check if model exists in recommended folder
-        let modelFolder = FileManager.default.urls(for: .documentDirectory, in: .userDomainMask).first!.appendingPathComponent("WhisperModels")
+        guard let documentsUrl = FileManager.default.urls(for: .documentDirectory, in: .userDomainMask).first else {
+            return false
+        }
+        let modelFolder = documentsUrl.appendingPathComponent("WhisperModels")
         let modelPath = modelFolder.appendingPathComponent(modelSize.whisperKitModelName)
         return FileManager.default.fileExists(atPath: modelPath.path)
     }
@@ -189,7 +192,10 @@ final class WhisperModelManager: ObservableObject {
 
     /// Delete a downloaded model
     func deleteModel(_ modelSize: ModelSize) async throws {
-        let modelFolder = FileManager.default.urls(for: .documentDirectory, in: .userDomainMask).first!.appendingPathComponent("WhisperModels")
+        guard let documentsUrl = FileManager.default.urls(for: .documentDirectory, in: .userDomainMask).first else {
+            throw WhisperError.modelError("Could not access documents directory")
+        }
+        let modelFolder = documentsUrl.appendingPathComponent("WhisperModels")
         let modelPath = modelFolder.appendingPathComponent(modelSize.whisperKitModelName)
 
         if FileManager.default.fileExists(atPath: modelPath.path) {
@@ -206,7 +212,9 @@ final class WhisperModelManager: ObservableObject {
 
     /// Get available storage space
     func getAvailableStorage() -> Int64 {
-        let documentDirectory = FileManager.default.urls(for: .documentDirectory, in: .userDomainMask).first!
+        guard let documentDirectory = FileManager.default.urls(for: .documentDirectory, in: .userDomainMask).first else {
+            return 0
+        }
 
         do {
             let resourceValues = try documentDirectory.resourceValues(forKeys: [.volumeAvailableCapacityForImportantUsageKey])
@@ -228,7 +236,10 @@ final class WhisperModelManager: ObservableObject {
     
     /// Calculate storage used by downloaded models
     func calculateStorageUsed() -> Int64 {
-        let modelFolder = FileManager.default.urls(for: .documentDirectory, in: .userDomainMask).first!.appendingPathComponent("WhisperModels")
+        guard let documentsUrl = FileManager.default.urls(for: .documentDirectory, in: .userDomainMask).first else {
+            return 0
+        }
+        let modelFolder = documentsUrl.appendingPathComponent("WhisperModels")
         
         guard FileManager.default.fileExists(atPath: modelFolder.path) else {
             return 0

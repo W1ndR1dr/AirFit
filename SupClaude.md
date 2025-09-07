@@ -96,10 +96,10 @@ Next wave targeting Performance & Observability:
   - `swiftlint --strict --config AirFit/.swiftlint.yml AirFit AirFitWatchApp`
   - Optional: `Scripts/grep-secrets.sh`
 - CI steps (GitHub Actions or similar):
-  - Checkout → Xcode 16 toolchain
+  - Checkout → Xcode 26 beta toolchain
   - Generate: `xcodegen generate`
   - Lint: `swiftlint --strict --config AirFit/.swiftlint.yml AirFit AirFitWatchApp`
-  - Build: `xcodebuild build -scheme AirFit -destination 'platform=iOS Simulator,name=iPhone 16 Pro,OS=18.4'`
+  - Build: `xcodebuild build -scheme AirFit -destination 'platform=iOS Simulator,name=iPhone 16 Pro,OS=26.0'`
   - Test: `xcodebuild test -scheme AirFit -testPlan AirFit-Unit`
   - (After guardrails land) Guard: `Scripts/ci-guards.sh`
 
@@ -213,6 +213,28 @@ Codex (CTO) — My Workstream (in parallel)
   - Provide `Scripts/validation/collect-status.sh` and `Docs/Codebase-Status/STATUS_SNAPSHOT_TEMPLATE.md`.
 - Coordination
   - Review/merge R01 first; then R02–R04 in order; freeze non-essential merges until R01 is green.
+# CTO Directives — Active Now (T30–T33 merged, begin R02)
+
+Do not change CoachEngine public APIs. Keep PRs small. Paste guard summaries.
+
+R02 — Force‑Unwrap Elimination (CRITICAL)
+- Goal: Reduce CRITICAL guard violations (FORCE_UNWRAP) to 0 in app code.
+- Exclude: `AirFit/**/Tests/**`, `AirFit/**/Previews/**`.
+- Find:
+  - `rg -n "[^=!<>]![ \\.)]" AirFit -S -g '!**/Tests/**' -g '!**/Previews/**'`
+- Fix patterns:
+  - Replace `value!` with `guard let value = value else { /* handle */; return }` or `value ?? fallback` in UI.
+  - Replace `as!` with `as?` + guard; avoid `try!`.
+- Acceptance: `./Scripts/ci-guards.sh` shows 0 CRITICAL; build OK on iOS 26.0/Xcode‑beta; no CoachEngine API changes.
+- PRs (split by module): Workouts, Dashboard, FoodTracking, Core/Services residuals (≤ ~20 fixes/PR).
+
+R06 — Performance Validation (after R02)
+- Run `Scripts/validation/performance-benchmarks.sh`; capture signposts `coach.pipeline`, `stream.first_token`, `stream.complete`.
+- Deliver `Docs/Performance/RESULTS.md` with TTFT p50/p95 and context timings; include commands.
+
+Priority Freeze
+- Do not start R06 until R02 is merged and CI is green.
+
 New Claude Instance — Kickoff Briefing (Read Me First)
 - Context: Personal iOS app (iPhone 16 Pro, iOS 26 only). Guardrails: no NotificationCenter for chat (ChatStreamingStore only), no SwiftData in UI/ViewModels, single DI-owned ModelContainer, all ViewModels @MainActor, no force ops.
 - Workflow: Small PRs targeting `main`. Branch naming: `claude/<task-id-or-scope>-<slug>`. Keep CI green per `.github/workflows/ci.yml`.

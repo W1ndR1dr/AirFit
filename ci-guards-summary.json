@@ -1,8 +1,9 @@
 {
-  "timestamp": "2025-09-07T00:15:24Z",
+  "timestamp": "2025-09-07T07:23:02Z",
   "violations": [],
   "summary": {
-    "total_violations": 1586,
-    "categories": " 763 [ACCESS_CONTROL]\n   1 [DEBUG_PRINT]\n   2 [DIRECT_URLSESSION]\n   7 [FILE_SIZE]\n 178 [FORCE_UNWRAP]\n 105 [FUNCTION_SIZE]\n 440 [HARDCODED_STRING]\n  28 [STATE_NOT_PRIVATE]\n  18 [TODO_FIXME]\n  44 [TYPE_SIZE]"
+    "total_violations": 1207,
+    "critical_violations": 0,
+    "categories": "595:ACCESS_CONTROL\n1:DEBUG_PRINT\n7:FILE_SIZE\n106:FUNCTION_SIZE\n444:HARDCODED_STRING\n14:STATE_NOT_PRIVATE\n18:TODO_FIXME\n22:TYPE_SIZE"
   }
 }

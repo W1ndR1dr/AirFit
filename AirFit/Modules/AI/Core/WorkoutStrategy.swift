@@ -58,8 +58,8 @@ struct WorkoutStrategy {
             if let c = w.caloriesBurned, c > 0 { fallback += " burning \(Int(c)) calories" }
             fallback += ". "
             fallback += request.recentWorkouts.count > 3
-                ? "Consistent work! You're building great habits."
-                : "Great effort! Keep building momentum."
+                ? "Consistent work. You're building great habits."
+                : "Great effort. Keep building momentum."
             return fallback
         }
         return text
@@ -140,7 +140,7 @@ struct WorkoutStrategy {
 
         let workouts = try modelContext.fetch(descriptor)
         guard let last = workouts.first else {
-            return "I couldn't find a recent workout to adjust. Let's create a new one instead!"
+            return "I couldn't find a recent workout to adjust. Let's create a new one instead."
         }
 
         let prompt = """
@@ -178,6 +178,6 @@ struct WorkoutStrategy {
 
     func handleWorkoutAnalysis(_ args: [String: AIAnyCodable], user: User) async -> String {
         _ = args["workout_id"]?.value as? String ?? ""
-        return "Great job completing your workout! Based on your performance, I recommend focusing on form for the next session and gradually increasing weight on compound movements."
+        return "Great job completing your workout. Based on your performance, I recommend focusing on form for the next session and gradually increasing weight on compound movements."
     }
 }

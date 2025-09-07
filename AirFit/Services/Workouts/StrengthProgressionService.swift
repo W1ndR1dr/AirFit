@@ -59,7 +59,7 @@ actor StrengthProgressionService: StrengthProgressionServiceProtocol {
                 let currentPR = try await getCurrentOneRepMax(exercise: exercise.name, user: user)
 
                 // Only record if it's a new PR or first record
-                if currentPR == nil || bestOneRM > currentPR! {
+                if currentPR == nil || bestOneRM > (currentPR ?? 0) {
                     let record = StrengthRecord(
                         exerciseName: exercise.name,
                         oneRepMax: bestOneRM,

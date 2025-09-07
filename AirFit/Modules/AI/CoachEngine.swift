@@ -88,9 +88,9 @@ enum CoachEngineError: LocalizedError {
     var userFriendlyMessage: String {
         switch self {
         case .noActiveConversation:
-            return "Let's start a new conversation! What would you like to know?"
+            return "Let's start a new conversation. What would you like to know?"
         case .noMessageToRegenerate:
-            return "There's nothing to regenerate yet. Ask me something!"
+            return "There's nothing to regenerate yet. Ask me something."
         case .aiServiceUnavailable:
             return "I'm having trouble connecting right now. Please check your internet connection and try again."
         case .streamingTimeout:
@@ -98,7 +98,7 @@ enum CoachEngineError: LocalizedError {
         case .functionExecutionFailed:
             return "I couldn't complete that action right now, but I'm here to help in other ways."
         case .contextAssemblyFailed:
-            return "I'm having trouble accessing your health data. I can still help with general questions!"
+            return "I'm having trouble accessing your health data. I can still help with general questions."
         case .invalidUserProfile:
             return "Let me help you set up your profile so I can provide better personalized advice."
         case .nutritionParsingFailed:
@@ -386,9 +386,9 @@ final class CoachEngine {
 
             // Add encouragement based on recent history
             if request.recentWorkouts.count > 3 {
-                fallback += "Consistent work! You're building great habits."
+                fallback += "Consistent work. You're building great habits."
             } else {
-                fallback += "Great effort! Keep building momentum."
+                fallback += "Great effort. Keep building momentum."
             }
 
             return fallback
@@ -1217,9 +1217,9 @@ final class CoachEngine {
                     sentenceStructure: .moderate
                 ),
                 interactionStyle: InteractionStyle(
-                    greetingStyle: "Hey there!",
-                    closingStyle: "Keep pushing forward!",
-                    encouragementPhrases: ["Let's make progress together", "Every step counts", "You've got this!"],
+                    greetingStyle: "Hey there.",
+                    closingStyle: "Keep pushing forward.",
+                    encouragementPhrases: ["Let's make progress together", "Every step counts", "You've got this."],
                     acknowledgmentStyle: "I hear you",
                     correctionApproach: "gentle",
                     humorLevel: .light,
@@ -1410,7 +1410,7 @@ extension CoachEngine {
         // Return response or simple fallback if empty
         if response.isEmpty {
             AppLogger.warning("AI returned empty response for notification", category: .ai)
-            return "Keep up the great work!"
+            return "Keep up the great work."
         }
 
         return response.trimmingCharacters(in: .whitespacesAndNewlines)
@@ -1454,7 +1454,7 @@ extension CoachEngine {
                 prompt += "Requirements: 1-2 sentences, energetic but not pushy. "
 
                 if workoutContext.streak > 0 {
-                    prompt += "They're on day \(workoutContext.streak + 1) of their streak - acknowledge this! "
+                    prompt += "They're on day \(workoutContext.streak + 1) of their streak - acknowledge this. "
                 } else if workoutContext.lastWorkoutDays > 3 {
                     prompt += "It's been \(workoutContext.lastWorkoutDays) days since last workout - be encouraging about getting back. "
                 } else if workoutContext.lastWorkoutDays == 1 {
@@ -1491,7 +1491,7 @@ extension CoachEngine {
             if let achievementContext = context as? AchievementContext {
                 var prompt = "Celebrate \(achievementContext.userName) earning: \(achievementContext.achievementName)."
                 if achievementContext.personalBest {
-                    prompt += " This is a personal best!"
+                    prompt += " This is a personal best."
                 }
                 return prompt
             }
@@ -1629,7 +1629,7 @@ extension CoachEngine: FoodCoachEngineProtocol {
            let lastWorkoutDate = lastWorkout.completedDate {
             let daysAgo = Calendar.current.dateComponents([.day], from: lastWorkoutDate, to: Date()).day ?? 0
             if daysAgo == 0 {
-                contextParts.append("Workout completed today!")
+                contextParts.append("Workout completed today.")
             } else if daysAgo == 1 {
                 contextParts.append("Last workout: yesterday")
             } else {
@@ -1642,7 +1642,7 @@ extension CoachEngine: FoodCoachEngineProtocol {
               let persona = try? JSONDecoder().decode(CoachPersona.self, from: personaData) else {
             // Fallback to simple content
             return AIDashboardContent(
-                primaryInsight: "Welcome back! Let's make today count.",
+                primaryInsight: "Welcome back. Let's make today count.",
                 nutritionData: calories > 0 ? DashboardNutritionData(
                     calories: calories,
                     calorieTarget: dynamicTargets?.totalCalories ?? 2_000,
@@ -1738,7 +1738,7 @@ extension CoachEngine: FoodCoachEngineProtocol {
         }
 
         // Parse structured response
-        var primaryInsight = "Welcome back! Ready to make progress?"
+        var primaryInsight = "Welcome back. Ready to make progress?"
         var guidance: String?
         var celebration: String?
 
@@ -2001,7 +2001,7 @@ extension CoachEngine: FoodCoachEngineProtocol {
         - Use USDA nutrition database accuracy
         - If multiple items mentioned, include all
         - Estimate quantities if not specified
-        - Return realistic nutrition values (not 100 calories for everything!)
+        - Return realistic nutrition values (not 100 calories for everything)
         - Confidence 0.9+ for common foods, lower for ambiguous items
         - No explanations or extra text, just JSON
         """

@@ -766,7 +766,8 @@ struct SettingsListView: View {
                         .padding(.horizontal, AppSpacing.md)
 
                     // Privacy Policy link
-                    Link(destination: URL(string: AppConstants.privacyPolicyURL)!) {
+                    if let privacyURL = URL(string: AppConstants.privacyPolicyURL) {
+                        Link(destination: privacyURL) {
                         HStack(spacing: AppSpacing.md) {
                             Image(systemName: "hand.raised")
                                 .font(.system(size: 20))
@@ -790,13 +791,15 @@ struct SettingsListView: View {
                         }
                         .padding(.vertical, AppSpacing.sm)
                         .padding(.horizontal, AppSpacing.md)
+                        }
                     }
 
                     Divider()
                         .padding(.horizontal, AppSpacing.md)
 
                     // Terms of Service link
-                    Link(destination: URL(string: AppConstants.termsOfServiceURL)!) {
+                    if let termsURL = URL(string: AppConstants.termsOfServiceURL) {
+                        Link(destination: termsURL) {
                         HStack(spacing: AppSpacing.md) {
                             Image(systemName: "doc.text")
                                 .font(.system(size: 20))
@@ -820,13 +823,15 @@ struct SettingsListView: View {
                         }
                         .padding(.vertical, AppSpacing.sm)
                         .padding(.horizontal, AppSpacing.md)
+                        }
                     }
 
                     Divider()
                         .padding(.horizontal, AppSpacing.md)
 
                     // Contact Support link
-                    Link(destination: URL(string: "mailto:\(AppConstants.supportEmail)")!) {
+                    if let supportURL = URL(string: "mailto:\(AppConstants.supportEmail)") {
+                        Link(destination: supportURL) {
                         HStack(spacing: AppSpacing.md) {
                             Image(systemName: "envelope")
                                 .font(.system(size: 20))
@@ -850,6 +855,7 @@ struct SettingsListView: View {
                         }
                         .padding(.vertical, AppSpacing.sm)
                         .padding(.horizontal, AppSpacing.md)
+                        }
                     }
                 }
             }
@@ -973,7 +979,7 @@ struct SettingsListView: View {
         case .demoModeEnabled:
             return Alert(
                 title: Text("Demo Mode Enabled"),
-                message: Text("You're now using demo mode with sample AI responses. No API keys are required. Perfect for exploring the app!"),
+                message: Text("You're now using demo mode with sample AI responses. No API keys are required. Perfect for exploring the app."),
                 dismissButton: .default(Text("Got it"))
             )
         case .demoModeDisabled:
@@ -1319,7 +1325,7 @@ struct DataExportProgressView: View {
                             .font(.system(size: 60))
                             .foregroundStyle(.green)
 
-                        Text("Export Complete!")
+                        Text("Export Complete")
                             .font(.title2.bold())
 
                         VStack(spacing: AppSpacing.sm) {
@@ -1619,11 +1625,13 @@ struct DeleteAccountView: View {
 
                     // Alternative actions
                     VStack(spacing: AppSpacing.sm) {
-                        Text("Having issues? We can help!")
+                        Text("Having issues? We can help.")
                             .font(.callout.bold())
 
-                        Link("Contact Support", destination: URL(string: "mailto:\(AppConstants.supportEmail)")!)
-                            .font(.callout)
+                        if let supportURL = URL(string: "mailto:\(AppConstants.supportEmail)") {
+                            Link("Contact Support", destination: supportURL)
+                                .font(.callout)
+                        }
                     }
                     .padding(.top)
                 }
@@ -1758,12 +1766,16 @@ struct AboutView: View {
 
             // Links Section
             Section {
-                Link(destination: URL(string: "https://airfit.app")!) {
-                    Label("Website", systemImage: "globe")
+                if let websiteURL = URL(string: "https://airfit.app") {
+                    Link(destination: websiteURL) {
+                        Label("Website", systemImage: "globe")
+                    }
                 }
 
-                Link(destination: URL(string: "https://github.com/airfit/app")!) {
-                    Label("Source Code", systemImage: "chevron.left.forwardslash.chevron.right")
+                if let githubURL = URL(string: "https://github.com/airfit/app") {
+                    Link(destination: githubURL) {
+                        Label("Source Code", systemImage: "chevron.left.forwardslash.chevron.right")
+                    }
                 }
 
                 Button(action: { showAcknowledgments = true }, label: {
@@ -1997,7 +2009,9 @@ struct DebugSettingsView: View {
 
     private func getCacheSize() -> String {
         // Calculate actual cache size
-        let cacheURL = FileManager.default.urls(for: .cachesDirectory, in: .userDomainMask).first!
+        guard let cacheURL = FileManager.default.urls(for: .cachesDirectory, in: .userDomainMask).first else {
+            return "Unknown"
+        }
         let size = try? FileManager.default.contentsOfDirectory(at: cacheURL, includingPropertiesForKeys: [.fileSizeKey])
             .reduce(0) { total, url in
                 let fileSize = try? url.resourceValues(forKeys: [.fileSizeKey]).fileSize
@@ -2016,9 +2030,10 @@ struct DebugSettingsView: View {
             URLCache.shared.removeAllCachedResponses()
 
             // Clear custom cache directories
-            let cacheURL = FileManager.default.urls(for: .cachesDirectory, in: .userDomainMask).first!
-            try? FileManager.default.removeItem(at: cacheURL)
-            try? FileManager.default.createDirectory(at: cacheURL, withIntermediateDirectories: true)
+            if let cacheURL = FileManager.default.urls(for: .cachesDirectory, in: .userDomainMask).first {
+                try? FileManager.default.removeItem(at: cacheURL)
+                try? FileManager.default.createDirectory(at: cacheURL, withIntermediateDirectories: true)
+            }
 
             await MainActor.run {
                 isProcessing = false

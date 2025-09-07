@@ -263,7 +263,7 @@ actor PlaceholderAICoachService: AICoachServiceProtocol {
 
     func generateDashboardContent(for user: User) async throws -> AIDashboardContent {
         AIDashboardContent(
-            primaryInsight: "Welcome back! Ready to make today count?",
+            primaryInsight: "Welcome back. Ready to make today count?",
             nutritionData: nil,
             muscleGroupVolumes: nil,
             guidance: nil,
@@ -345,11 +345,12 @@ struct WorkoutHistoryViewWrapper: View {
                         .foregroundStyle(.secondary)
                 }
                 .frame(maxWidth: .infinity, maxHeight: .infinity)
-            } else {
+            } else if let volumeService = muscleGroupVolumeService,
+                        let strengthService = strengthProgressionService {
                 WorkoutHistoryView(
                     user: user,
-                    muscleGroupVolumeService: muscleGroupVolumeService!,
-                    strengthProgressionService: strengthProgressionService!
+                    muscleGroupVolumeService: volumeService,
+                    strengthProgressionService: strengthService
                 )
             }
         }

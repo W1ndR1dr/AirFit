@@ -233,7 +233,7 @@ struct NutritionDetailView: View {
                 insightCard(
                     icon: "lightbulb.fill",
                     title: "Protein Timing",
-                    message: "Your protein intake is well-distributed throughout the day. Keep it up!",
+                    message: "Your protein intake is well-distributed throughout the day. Keep it up.",
                     color: .blue
                 )
 
@@ -247,7 +247,7 @@ struct NutritionDetailView: View {
                 insightCard(
                     icon: "leaf.fill",
                     title: "Micronutrients",
-                    message: "Great fiber intake! You're consistently hitting 25g+ daily.",
+                    message: "Great fiber intake. You're consistently hitting 25g+ daily.",
                     color: .green
                 )
             }
@@ -379,8 +379,8 @@ private let mockMacroData: [NutritionMacroData] = {
     let calendar = Calendar.current
     let today = Date()
 
-    return (0..<7).map { dayOffset in
-        let date = calendar.date(byAdding: .day, value: -dayOffset, to: today)!
+    return (0..<7).compactMap { dayOffset in
+        guard let date = calendar.date(byAdding: .day, value: -dayOffset, to: today) else { return nil }
         return NutritionMacroData(
             date: date,
             protein: Int.random(in: 120...160),
@@ -394,8 +394,8 @@ private let mockCalorieData: [CalorieData] = {
     let calendar = Calendar.current
     let today = Date()
 
-    return (0..<30).map { dayOffset in
-        let date = calendar.date(byAdding: .day, value: -dayOffset, to: today)!
+    return (0..<30).compactMap { dayOffset in
+        guard let date = calendar.date(byAdding: .day, value: -dayOffset, to: today) else { return nil }
         let baseCalories = 2_200
         let variation = Int.random(in: -300...300)
         return CalorieData(date: date, calories: baseCalories + variation)

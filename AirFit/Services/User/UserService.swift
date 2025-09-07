@@ -171,7 +171,7 @@ final class UserService: UserServiceProtocol, ServiceProtocol {
             voiceCharacteristics: persona.communication,
             interactionStyle: InteractionStyle(
                 greetingStyle: persona.behaviors.greetingStyle,
-                closingStyle: "Talk soon!",
+                closingStyle: "Talk soon.",
                 encouragementPhrases: [persona.behaviors.encouragementStyle],
                 acknowledgmentStyle: persona.behaviors.feedbackStyle,
                 correctionApproach: "Gentle guidance",

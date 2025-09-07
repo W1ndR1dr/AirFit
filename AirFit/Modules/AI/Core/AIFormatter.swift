@@ -86,7 +86,7 @@ struct AIFormatter {
                 var p = "Generate a motivating workout reminder for \(c.userName). "
                 p += "Workout type: \(c.workoutType). "
                 p += "Requirements: 1-2 sentences, energetic but not pushy. "
-                if c.streak > 0 { p += "They're on day \(c.streak + 1) of their streak - acknowledge this! " }
+                if c.streak > 0 { p += "They're on day \(c.streak + 1) of their streak - acknowledge this. " }
                 else if c.lastWorkoutDays > 3 { p += "It's been \(c.lastWorkoutDays) days since last workout - be encouraging. " }
                 else if c.lastWorkoutDays == 1 { p += "They worked out yesterday - encourage consistency. " }
                 p += "Match their motivational style: \(c.motivationalStyle.styles.first?.rawValue ?? "encouraging")."
@@ -109,7 +109,7 @@ struct AIFormatter {
         case .achievement:
             if let c = context as? AchievementContext {
                 var p = "Celebrate \(c.userName) earning: \(c.achievementName)."
-                if c.personalBest { p += " This is a personal best!" }
+                if c.personalBest { p += " This is a personal best." }
                 return p
             }
         }

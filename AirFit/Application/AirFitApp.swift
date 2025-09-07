@@ -194,8 +194,11 @@ struct AirFitApp: App {
 
         Task {
             // Delete the database file
-            let documentsPath = FileManager.default.urls(for: .documentDirectory,
-                                                         in: .userDomainMask).first!
+            guard let documentsPath = FileManager.default.urls(for: .documentDirectory,
+                                                         in: .userDomainMask).first else {
+                AppLogger.error("Could not get documents directory", category: .data)
+                return
+            }
             let dbPath = documentsPath.appendingPathComponent("default.store")
 
             do {

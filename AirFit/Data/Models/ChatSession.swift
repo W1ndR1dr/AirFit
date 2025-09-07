@@ -79,7 +79,7 @@ final class ChatSession: @unchecked Sendable {
     }
 
     func generateTitle() {
-        guard title == nil || title!.isEmpty else { return }
+        guard title == nil || title?.isEmpty == true else { return }
 
         // Use first user message as title base
         if let firstUserMessage = messages.first(where: { $0.role == "user" }) {
@@ -89,7 +89,7 @@ final class ChatSession: @unchecked Sendable {
 
             title = String(preview.prefix(60))
             if preview.count > 60 {
-                title! += "..."
+                title = (title ?? "") + "..."
             }
         }
     }

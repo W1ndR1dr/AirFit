@@ -250,7 +250,7 @@ final class CoachOrchestrator {
                 return try await workout.handleWorkoutAdaptation(call.arguments, user: user)
 
             case "send_workout_to_watch":
-                return "Workout has been sent to your Apple Watch! Open the AirFit app on your watch to start."
+                return "Workout has been sent to your Apple Watch. Open the AirFit app on your watch to start."
 
             case "analyze_workout_completion":
                 return await workout.handleWorkoutAnalysis(call.arguments, user: user)
@@ -569,9 +569,9 @@ private extension PersonaProfile {
                 sentenceStructure: .moderate
             ),
             interactionStyle: InteractionStyle(
-                greetingStyle: "Hey there!",
-                closingStyle: "Keep pushing forward!",
-                encouragementPhrases: ["Let's make progress together", "Every step counts", "You've got this!"],
+                greetingStyle: "Hey there.",
+                closingStyle: "Keep pushing forward.",
+                encouragementPhrases: ["Let's make progress together", "Every step counts", "You've got this."],
                 acknowledgmentStyle: "I hear you",
                 correctionApproach: "gentle",
                 humorLevel: .light,
