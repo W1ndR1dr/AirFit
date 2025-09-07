@@ -23,8 +23,8 @@ open AirFit.xcodeproj
 ## 3) Build & Test Locally
 ```bash
 swiftlint --strict --config AirFit/.swiftlint.yml
-xcodebuild clean build -scheme AirFit -destination 'platform=iOS Simulator,name=iPhone 16 Pro,OS=18.4'
-xcodebuild test -scheme AirFit -testPlan AirFit-Unit -destination 'platform=iOS Simulator,name=iPhone 16 Pro,OS=18.4'
+xcodebuild clean build -scheme AirFit -destination 'platform=iOS Simulator,name=iPhone 16 Pro,OS=26.0'
+xcodebuild test -scheme AirFit -testPlan AirFit-Unit -destination 'platform=iOS Simulator,name=iPhone 16 Pro,OS=26.0'
 ```
 
 ## 4) Quality Guards

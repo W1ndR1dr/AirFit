@@ -47,7 +47,7 @@ graph TD
   # iOS App
   xcodebuild build \
     -scheme AirFit \
-    -destination 'platform=iOS Simulator,name=iPhone 16 Pro,OS=18.4' \
+    -destination 'platform=iOS Simulator,name=iPhone 16 Pro,OS=26.0' \
     -configuration Debug
     
   # Watch App  
@@ -67,7 +67,7 @@ graph TD
   # Unit Tests
   xcodebuild test \
     -scheme AirFit \
-    -destination 'platform=iOS Simulator,name=iPhone 16 Pro,OS=18.4' \
+    -destination 'platform=iOS Simulator,name=iPhone 16 Pro,OS=26.0' \
     -testPlan AirFit \
     -only-testing:AirFitTests \
     -enableCodeCoverage YES
@@ -75,7 +75,7 @@ graph TD
   # UI Tests
   xcodebuild test \
     -scheme AirFit \
-    -destination 'platform=iOS Simulator,name=iPhone 16 Pro,OS=18.4' \
+    -destination 'platform=iOS Simulator,name=iPhone 16 Pro,OS=26.0' \
     -testPlan AirFit \
     -only-testing:AirFitUITests
   ```
@@ -148,7 +148,7 @@ graph TD
 
 For pull requests, an additional job runs tests across multiple device configurations:
 - iPhone 16 Pro (device validation, iOS 26.0)
-- CI may run iOS 18.4 simulator targets for advisory checks only
+- CI runs iOS 26.0 simulator targets
 
 ## Running Locally
 
@@ -172,13 +172,13 @@ swiftlint --strict
 # 3. Build
 xcodebuild build \
   -scheme AirFit \
-  -destination 'platform=iOS Simulator,name=iPhone 16 Pro,OS=18.4' \
+  -destination 'platform=iOS Simulator,name=iPhone 16 Pro,OS=26.0' \
   -configuration Debug
 
 # 4. Test
 xcodebuild test \
   -scheme AirFit \
-  -destination 'platform=iOS Simulator,name=iPhone 16 Pro,OS=18.4' \
+  -destination 'platform=iOS Simulator,name=iPhone 16 Pro,OS=26.0' \
   -testPlan AirFit \
   -enableCodeCoverage YES
 
@@ -194,7 +194,7 @@ periphery scan --project AirFit.xcodeproj --schemes AirFit,AirFitWatchApp
 # Essential checks only
 xcodegen generate && \
 swiftlint --strict && \
-xcodebuild build -scheme AirFit -destination 'platform=iOS Simulator,name=iPhone 16 Pro,OS=18.4'
+xcodebuild build -scheme AirFit -destination 'platform=iOS Simulator,name=iPhone 16 Pro,OS=26.0'
 ```
 
 ## Interpreting Results

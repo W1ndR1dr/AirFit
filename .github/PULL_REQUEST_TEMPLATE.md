@@ -16,7 +16,7 @@
 ## Checklist (QUALITY_GATES)
 - [ ] Ran `xcodegen generate`
 - [ ] `swiftlint --strict` passes
-- [ ] Build passes: `xcodebuild build -scheme AirFit -destination 'platform=iOS Simulator,name=iPhone 16 Pro,OS=18.4'`
+- [ ] Build passes: `xcodebuild build -scheme AirFit -destination 'platform=iOS Simulator,name=iPhone 16 Pro,OS=26.0'`
 - [ ] Unit tests updated/passing or quarantined with rationale
 - [ ] `./Scripts/ci-guards.sh` summary pasted below; no new violations
 - [ ] No SwiftData imports in UI/ViewModels

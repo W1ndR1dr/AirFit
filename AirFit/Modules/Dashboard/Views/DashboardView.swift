@@ -1,5 +1,4 @@
 import SwiftUI
-import SwiftData
 
 /// Dashboard content view that displays the actual dashboard UI
 struct DashboardContent: View {

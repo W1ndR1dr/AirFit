@@ -1,7 +1,7 @@
 # AirFit Takeover Roadmap (Personal Mode)
 
 Owner: You (solo)
-Defaults: iOS 18.4 sim, Swift 6 strict, SwiftLint strict
+Defaults: iOS 26.0 sim, Swift 6 strict, SwiftLint strict
 
 ## Decision
 - See ADR 0002 — Rehab instead of rewrite. Use feature toggles and Claude‑driven slices to converge quickly.

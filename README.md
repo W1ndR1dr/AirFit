@@ -119,8 +119,8 @@ AirFit/
 xcodegen generate && swiftlint --strict --config AirFit/.swiftlint.yml
 
 # Build verification (must be 0 errors, 0 warnings)
-# Note: CI may run an iOS 18.4 simulator for runner stability; device validation is iOS 26 on iPhone 16 Pro
-xcodebuild clean build -scheme "AirFit" -destination 'platform=iOS Simulator,name=iPhone 16 Pro,OS=18.4'
+# Note: CI runs iOS 26.0 simulator on iPhone 16 Pro
+xcodebuild clean build -scheme "AirFit" -destination 'platform=iOS Simulator,name=iPhone 16 Pro,OS=26.0'
 ```
 
 ### Development Notes

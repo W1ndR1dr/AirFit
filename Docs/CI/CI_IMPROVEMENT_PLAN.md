@@ -70,7 +70,7 @@ fi
     # Run performance-focused test suite
     xcodebuild test \
       -scheme AirFit \
-      -destination 'platform=iOS Simulator,name=iPhone 16 Pro,OS=18.4' \
+      -destination 'platform=iOS Simulator,name=iPhone 16 Pro,OS=26.0' \
       -testPlan AirFit-Performance \
       -resultBundlePath TestResults/performance.xcresult \
       -enableCodeCoverage NO

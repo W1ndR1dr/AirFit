@@ -52,7 +52,7 @@ When you first open AirFit, you'll go through a friendly conversation with the a
 The entire process takes about 5-10 minutes and feels like chatting with a friend rather than filling out forms.
 
 ### Requirements
-- iPhone with iOS 18.0 or later
+- iPhone 16 Pro with iOS 26.0
 - Internet connection for AI features
 - Optional: Apple Watch for workout tracking
 
@@ -444,4 +444,4 @@ Welcome to the AirFit community – let's achieve your goals together!
 
 ---
 
-*Version 1.0 - For AirFit iOS 18.0+*
+*Version 1.0 - For AirFit iOS 26.0+*
