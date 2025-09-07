@@ -85,10 +85,10 @@ final class SwiftDataSettingsRepository: SettingsRepositoryProtocol {
         try context.save()
     }
     
-    func exportUserData(_ user: User) throws -> UserDataExport {
+    func exportUserData(_ user: User) throws -> UserDataExportPackage {
         // This would need to be implemented based on the specific export format needed
         // For now, return a placeholder
-        return UserDataExport(
+        return UserDataExportPackage(
             userData: Data(),
             exportDate: Date(),
             format: "json"

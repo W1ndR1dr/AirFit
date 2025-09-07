@@ -1,4 +1,5 @@
 import SwiftUI
+import SwiftData
 import Charts
 
 /// Enhanced Workout Dashboard - Comprehensive workout tracking with AI insights
@@ -1103,9 +1104,8 @@ extension TimeInterval {
 #Preview {
     let container = ModelContainer.preview
     let user = User(name: "Preview")
-    container.mainContext.insert(user)
-
-    return WorkoutDashboardView(user: user)
+    
+    WorkoutDashboardView(user: user)
         .withDIContainer(DIContainer())
         .modelContainer(container)
 }

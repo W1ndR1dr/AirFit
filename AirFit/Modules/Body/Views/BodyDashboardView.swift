@@ -1,4 +1,5 @@
 import SwiftUI
+import SwiftData
 import Charts
 import PhotosUI
 
@@ -1012,9 +1013,8 @@ struct PhotoCaptureView: View {
 #Preview {
     let container = ModelContainer.preview
     let user = User(name: "Preview")
-    container.mainContext.insert(user)
-
-    return BodyDashboardView(user: user)
+    
+    BodyDashboardView(user: user)
         .withDIContainer(DIContainer())
         .modelContainer(container)
 }

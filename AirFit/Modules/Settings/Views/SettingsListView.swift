@@ -90,7 +90,7 @@ struct SettingsListView: View {
                                         .transition(.opacity.combined(with: .move(edge: .trailing)))
                                         .animation(.snappy(duration: 0.3).delay(0.2), value: animateIn)
                                 }
-                                .glassEffectUnion() // Unifies AI and Preferences as core settings
+                                // .glassEffectUnion() // TODO: Fix this view modifier
 
                                 // Privacy & Data Group
                                 VStack(spacing: AppSpacing.sm) {

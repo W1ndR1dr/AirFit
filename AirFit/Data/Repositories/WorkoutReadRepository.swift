@@ -87,7 +87,7 @@ final class WorkoutReadRepository: WorkoutReadRepositoryProtocol {
         return try modelContext.fetch(descriptor).first
     }
     
-    func getWorkouts(userId: UUID, type: Workout.WorkoutType?, limit: Int?) async throws -> [Workout] {
+    func getWorkouts(userId: UUID, type: WorkoutType?, limit: Int?) async throws -> [Workout] {
         let filter = WorkoutFilter(userId: userId, workoutType: type)
         
         var descriptor = createFetchDescriptor(for: filter)

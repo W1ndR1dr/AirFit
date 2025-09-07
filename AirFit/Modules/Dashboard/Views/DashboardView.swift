@@ -1,4 +1,5 @@
 import SwiftUI
+import SwiftData
 
 /// Dashboard content view that displays the actual dashboard UI
 struct DashboardContent: View {
@@ -203,6 +204,9 @@ struct DashboardContent: View {
         case .logMeal:
             // Navigate to nutrition/food logging
             coordinator.navigate(to: .nutritionDetail)
+        case .logMealWithPhoto(type: let _):
+            // Navigate to photo-based meal logging
+            coordinator.navigate(to: .nutritionDetail)
         case .startWorkout:
             // Deprecated: in-app workout logging removed
             AppLogger.info("Start workout action deprecated - redirecting to workout history", category: .app)
@@ -217,11 +221,13 @@ struct DashboardContent: View {
 #Preview {
     let container = ModelContainer.preview
     let user = User(name: "Preview")
-    container.mainContext.insert(user)
-
-    return DashboardView(user: user)
+    
+    DashboardView(user: user)
         .withDIContainer(DIContainer()) // Empty container for preview
         .modelContainer(container)
+        .onAppear {
+            container.mainContext.insert(user)
+        }
 }
 
 // MARK: - Dashboard Destinations
@@ -272,13 +278,41 @@ actor PlaceholderAICoachService: AICoachServiceProtocol {
     }
 }
 
-actor PlaceholderNutritionService: DashboardNutritionServiceProtocol {
-    func getTodaysSummary(for user: User) async throws -> NutritionSummary {
-        NutritionSummary()
+actor PlaceholderNutritionService: NutritionServiceProtocol {
+    func saveFoodEntry(_ entry: FoodEntry) async throws {
+        // Placeholder - do nothing
     }
-
-    func getTargets(from profile: OnboardingProfile) async throws -> NutritionTargets {
-        .default
+    
+    func getFoodEntries(for date: Date) async throws -> [FoodEntry] {
+        return []
+    }
+    
+    func deleteFoodEntry(_ entry: FoodEntry) async throws {
+        // Placeholder - do nothing
+    }
+    
+    func getFoodEntries(for user: User, date: Date) async throws -> [FoodEntry] {
+        return []
+    }
+    
+    nonisolated func calculateNutritionSummary(from entries: [FoodEntry]) -> FoodNutritionSummary {
+        return FoodNutritionSummary()
+    }
+    
+    func getRecentFoods(for user: User, limit: Int) async throws -> [FoodItem] {
+        return []
+    }
+    
+    func getMealHistory(for user: User, mealType: MealType, daysBack: Int) async throws -> [FoodEntry] {
+        return []
+    }
+    
+    nonisolated func getTargets(from profile: OnboardingProfile?) -> NutritionTargets {
+        return .default
+    }
+    
+    func getTodaysSummary(for user: User) async throws -> FoodNutritionSummary {
+        return FoodNutritionSummary()
     }
 }
 

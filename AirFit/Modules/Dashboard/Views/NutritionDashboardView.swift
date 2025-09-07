@@ -1,4 +1,5 @@
 import SwiftUI
+import SwiftData
 import Charts
 
 /// Enhanced Nutrition Dashboard - Comprehensive nutrition tracking with AI insights
@@ -934,9 +935,8 @@ struct ComplianceCell: View {
 #Preview {
     let container = ModelContainer.preview
     let user = User(name: "Preview")
-    container.mainContext.insert(user)
-
-    return NutritionDashboardView(user: user)
+    
+    NutritionDashboardView(user: user)
         .withDIContainer(DIContainer())
         .modelContainer(container)
 }

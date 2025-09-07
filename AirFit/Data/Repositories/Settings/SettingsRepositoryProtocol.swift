@@ -21,7 +21,7 @@ protocol SettingsRepositoryProtocol: Sendable {
     
     // MARK: - Data Management
     func clearUserData(_ user: User) throws
-    func exportUserData(_ user: User) throws -> UserDataExport
+    func exportUserData(_ user: User) throws -> UserDataExportPackage
     
     // MARK: - User Management
     func save(_ user: User) throws
@@ -45,7 +45,7 @@ struct AIConfiguration: Sendable {
     let isDemoModeEnabled: Bool
 }
 
-struct UserDataExport: Sendable {
+struct UserDataExportPackage: Sendable {
     let userData: Data
     let exportDate: Date
     let format: String

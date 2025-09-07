@@ -5,7 +5,7 @@ protocol WorkoutWriteRepositoryProtocol: Sendable {
     // MARK: - Workout Operations
     func save(_ workout: Workout) throws
     func delete(_ workout: Workout) throws
-    func create(for user: User, plan: WorkoutPlan) throws -> Workout
+    func create(for user: User, plan: PlannedWorkoutData) throws -> Workout
     func duplicate(_ workout: Workout, for date: Date) throws -> Workout
     
     // MARK: - Workout Status

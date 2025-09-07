@@ -85,12 +85,12 @@ protocol ChatHistoryRepositoryProtocol: ReadRepositoryProtocol {
 struct ChatFilter: Sendable {
     let sessionId: UUID?
     let userId: UUID?
-    let role: ChatMessage.Role?
+    let role: MessageRole?
     let afterDate: Date?
     let beforeDate: Date?
     let containsText: String?
     
-    init(sessionId: UUID? = nil, userId: UUID? = nil, role: ChatMessage.Role? = nil, 
+    init(sessionId: UUID? = nil, userId: UUID? = nil, role: MessageRole? = nil, 
          afterDate: Date? = nil, beforeDate: Date? = nil, containsText: String? = nil) {
         self.sessionId = sessionId
         self.userId = userId
@@ -123,7 +123,7 @@ protocol WorkoutReadRepositoryProtocol: ReadRepositoryProtocol {
     func getWorkout(id: UUID) async throws -> Workout?
     
     /// Get workouts by type
-    func getWorkouts(userId: UUID, type: Workout.WorkoutType?, limit: Int?) async throws -> [Workout]
+    func getWorkouts(userId: UUID, type: WorkoutType?, limit: Int?) async throws -> [Workout]
     
     /// Get workout statistics for date range
     func getWorkoutStats(userId: UUID, startDate: Date, endDate: Date) async throws -> WorkoutStats
@@ -132,12 +132,12 @@ protocol WorkoutReadRepositoryProtocol: ReadRepositoryProtocol {
 struct WorkoutFilter: Sendable {
     let userId: UUID?
     let isCompleted: Bool?
-    let workoutType: Workout.WorkoutType?
+    let workoutType: WorkoutType?
     let startDate: Date?
     let endDate: Date?
     let muscleGroups: [String]?
     
-    init(userId: UUID? = nil, isCompleted: Bool? = nil, workoutType: Workout.WorkoutType? = nil,
+    init(userId: UUID? = nil, isCompleted: Bool? = nil, workoutType: WorkoutType? = nil,
          startDate: Date? = nil, endDate: Date? = nil, muscleGroups: [String]? = nil) {
         self.userId = userId
         self.isCompleted = isCompleted
@@ -183,9 +183,9 @@ struct FoodFilter: Sendable {
     let userId: UUID?
     let startDate: Date?
     let endDate: Date?
-    let mealType: FoodEntry.MealType?
+    let mealType: MealType?
     
-    init(userId: UUID? = nil, startDate: Date? = nil, endDate: Date? = nil, mealType: FoodEntry.MealType? = nil) {
+    init(userId: UUID? = nil, startDate: Date? = nil, endDate: Date? = nil, mealType: MealType? = nil) {
         self.userId = userId
         self.startDate = startDate
         self.endDate = endDate
