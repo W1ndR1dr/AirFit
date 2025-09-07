@@ -150,8 +150,8 @@ final class User: @unchecked Sendable {
         let cutoffDate = Calendar.current.date(byAdding: .day, value: -days, to: Date()) ?? Date()
         return workouts
             .compactMap { $0.completedDate != nil ? $0 : nil }
-            .filter { $0.completedDate! > cutoffDate }
-            .sorted { $0.completedDate! > $1.completedDate! }
+            .filter { ($0.completedDate ?? Date.distantPast) > cutoffDate }
+            .sorted { ($0.completedDate ?? Date.distantPast) > ($1.completedDate ?? Date.distantPast) }
     }
 
     func getMuscleGroupTargets() -> [String: Int] {
