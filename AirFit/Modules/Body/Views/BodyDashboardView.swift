@@ -426,10 +426,10 @@ struct BodyDashboardView: View {
         if let trend = metrics.weightTrend {
             switch trend {
             case .decreasing:
-                return "Great progress! You're consistently moving toward your goals. Keep up the momentum."
+                return "Great progress. You're consistently moving toward your goals. Keep up the momentum."
             case .increasing:
                 if viewModel.userGoal == .muscleGain {
-                    return "Solid gains! Your weight is trending up, supporting muscle growth."
+                    return "Solid gains. Your weight is trending up, supporting muscle growth."
                 } else {
                     return "Let's refocus on your goals. Small adjustments can make a big difference."
                 }
@@ -937,7 +937,7 @@ struct GoalProgressRow: View {
                     .font(.system(size: 12, weight: .light))
                     .foregroundStyle(.tertiary)
             } else {
-                Text("Goal achieved!")
+                Text("Goal achieved.")
                     .font(.system(size: 12, weight: .medium))
                     .foregroundStyle(.green)
             }
