@@ -51,10 +51,9 @@ public final class DIViewModelFactory {
     // MARK: - Settings
 
     func makeSettingsViewModel(user: User) async throws -> SettingsViewModel {
-        // Get ModelContext first (not Sendable)
-        let modelContext = try await getModelContext()
-
-        // Resolve other dependencies in parallel
+        // Resolve dependencies in parallel
+        async let settingsRepository = container.resolve(SettingsRepositoryProtocol.self)
+        async let userWriteRepository = container.resolve(UserWriteRepositoryProtocol.self)
         async let apiKeyManager = container.resolve(APIKeyManagementProtocol.self)
         async let aiService = container.resolve(AIServiceProtocol.self)
         async let notificationManager = container.resolve(NotificationManager.self)
@@ -62,7 +61,8 @@ public final class DIViewModelFactory {
         let coordinator = SettingsCoordinator()
 
         return try await SettingsViewModel(
-            modelContext: modelContext,
+            settingsRepository: settingsRepository,
+            userWriteRepository: userWriteRepository,
             user: user,
             apiKeyManager: apiKeyManager,
             aiService: aiService,
@@ -74,10 +74,9 @@ public final class DIViewModelFactory {
     // MARK: - Workouts
 
     func makeWorkoutViewModel(user: User) async throws -> WorkoutViewModel {
-        // Get ModelContext first (not Sendable)
-        let modelContext = try await getModelContext()
-
-        // Resolve other dependencies in parallel
+        // Resolve dependencies in parallel
+        async let workoutReadRepository = container.resolve(WorkoutReadRepositoryProtocol.self)
+        async let workoutWriteRepository = container.resolve(WorkoutWriteRepositoryProtocol.self)
         async let healthKitManager = container.resolve(HealthKitManager.self)
         async let exerciseDatabase = container.resolve(ExerciseDatabase.self)
         async let streamStore = container.resolve(ChatStreamingStore.self)
@@ -86,7 +85,8 @@ public final class DIViewModelFactory {
         async let coachEngine = makeCoachEngine(for: user)
 
         return try await WorkoutViewModel(
-            modelContext: modelContext,
+            workoutReadRepository: workoutReadRepository,
+            workoutWriteRepository: workoutWriteRepository,
             user: user,
             coachEngine: coachEngine,
             healthKitManager: healthKitManager,
@@ -101,6 +101,7 @@ public final class DIViewModelFactory {
     func makeChatViewModel(user: User) async throws -> ChatViewModel {
         // Resolve dependencies in parallel - no longer need direct ModelContext access
         async let chatHistoryRepository = container.resolve(ChatHistoryRepositoryProtocol.self)
+        async let chatWriteRepository = container.resolve(ChatWriteRepositoryProtocol.self)
         async let aiService = container.resolve(AIServiceProtocol.self)
         async let voiceManager = container.resolve(VoiceInputManager.self)
         async let coachEngine = makeCoachEngine(for: user)
@@ -109,6 +110,7 @@ public final class DIViewModelFactory {
         // Await all at once and create ViewModel
         return try await ChatViewModel(
             chatHistoryRepository: chatHistoryRepository,
+            chatWriteRepository: chatWriteRepository,
             user: user,
             coachEngine: coachEngine,
             aiService: aiService,
@@ -148,14 +150,12 @@ public final class DIViewModelFactory {
     // MARK: - Body
 
     func makeBodyViewModel(user: User) async throws -> BodyViewModel {
-        // Get ModelContext first (not Sendable)
-        let modelContext = try await getModelContext()
-
-        // Resolve other dependencies
+        // Resolve dependencies
+        async let userReadRepository = container.resolve(UserReadRepositoryProtocol.self)
         async let healthKitManager = container.resolve(HealthKitManaging.self)
 
         return try await BodyViewModel(
-            modelContext: modelContext,
+            userReadRepository: userReadRepository,
             user: user,
             healthKitManager: healthKitManager
         )

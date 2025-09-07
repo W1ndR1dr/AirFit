@@ -216,7 +216,7 @@ struct DashboardContent: View {
 
 // MARK: - Preview
 #Preview {
-    let container = try! ModelContainer(for: User.self) // swiftlint:disable:this force_try
+    let container = ModelContainer.preview
     let user = User(name: "Preview")
     container.mainContext.insert(user)
 

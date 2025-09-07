@@ -248,7 +248,7 @@ public final class DIBootstrapper {
 
         // Exercise Database
         container.register(ExerciseDatabase.self, lifetime: .singleton) { resolver in
-            let modelContainer = try? await resolver.resolve(ModelContainer.self)
+            let modelContainer = try await resolver.resolve(ModelContainer.self)
             return await MainActor.run {
                 ExerciseDatabase(container: modelContainer)
             }
@@ -272,6 +272,38 @@ public final class DIBootstrapper {
             let modelContainer = try await resolver.resolve(ModelContainer.self)
             return await MainActor.run {
                 SwiftDataFoodTrackingRepository(modelContext: modelContainer.mainContext)
+            }
+        }
+        
+        // Settings Repository
+        container.register(SettingsRepositoryProtocol.self, lifetime: .singleton) { resolver in
+            let modelContainer = try await resolver.resolve(ModelContainer.self)
+            return await MainActor.run {
+                SwiftDataSettingsRepository(modelContext: modelContainer.mainContext)
+            }
+        }
+        
+        // Workout Write Repository
+        container.register(WorkoutWriteRepositoryProtocol.self, lifetime: .singleton) { resolver in
+            let modelContainer = try await resolver.resolve(ModelContainer.self)
+            return await MainActor.run {
+                SwiftDataWorkoutWriteRepository(modelContext: modelContainer.mainContext)
+            }
+        }
+        
+        // Chat Write Repository
+        container.register(ChatWriteRepositoryProtocol.self, lifetime: .singleton) { resolver in
+            let modelContainer = try await resolver.resolve(ModelContainer.self)
+            return await MainActor.run {
+                SwiftDataChatWriteRepository(modelContext: modelContainer.mainContext)
+            }
+        }
+        
+        // User Write Repository
+        container.register(UserWriteRepositoryProtocol.self, lifetime: .singleton) { resolver in
+            let modelContainer = try await resolver.resolve(ModelContainer.self)
+            return await MainActor.run {
+                SwiftDataUserWriteRepository(modelContext: modelContainer.mainContext)
             }
         }
         // Workout Sync Service

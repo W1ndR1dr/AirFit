@@ -1,12 +1,12 @@
 import SwiftUI
-import SwiftData
 import Observation
 
 @MainActor
 @Observable
 final class SettingsViewModel: ErrorHandling {
     // MARK: - Dependencies
-    private let modelContext: ModelContext
+    private let settingsRepository: SettingsRepositoryProtocol
+    private let userWriteRepository: UserWriteRepositoryProtocol
     private let user: User
     private let apiKeyManager: APIKeyManagementProtocol
     private let aiService: AIServiceProtocol
@@ -54,14 +54,16 @@ final class SettingsViewModel: ErrorHandling {
 
     // MARK: - Initialization
     init(
-        modelContext: ModelContext,
+        settingsRepository: SettingsRepositoryProtocol,
+        userWriteRepository: UserWriteRepositoryProtocol,
         user: User,
         apiKeyManager: APIKeyManagementProtocol,
         aiService: AIServiceProtocol,
         notificationManager: NotificationManager,
         coordinator: SettingsCoordinator
     ) {
-        self.modelContext = modelContext
+        self.settingsRepository = settingsRepository
+        self.userWriteRepository = userWriteRepository
         self.user = user
         self.apiKeyManager = apiKeyManager
         self.aiService = aiService
@@ -130,7 +132,7 @@ final class SettingsViewModel: ErrorHandling {
     func updateUnits(_ units: MeasurementSystem) async throws {
         preferredUnits = units
         user.updatePreferredUnits(units)
-        try modelContext.save()
+        try userWriteRepository.save(user)
 
         // Post notification for UI updates
         NotificationCenter.default.post(
@@ -143,7 +145,7 @@ final class SettingsViewModel: ErrorHandling {
     func updateAppearance(_ mode: AppearanceMode) async throws {
         appearanceMode = mode
         user.appearanceMode = mode
-        try modelContext.save()
+        try userWriteRepository.save(user)
 
         // Update app appearance
         await MainActor.run {
@@ -165,13 +167,13 @@ final class SettingsViewModel: ErrorHandling {
     func updateHaptics(_ enabled: Bool) async throws {
         hapticFeedback = enabled
         user.hapticFeedbackEnabled = enabled
-        try modelContext.save()
+        try userWriteRepository.save(user)
     }
 
     func updateAnalytics(_ enabled: Bool) async throws {
         analyticsEnabled = enabled
         user.analyticsEnabled = enabled
-        try modelContext.save()
+        try userWriteRepository.save(user)
     }
 
     // MARK: - AI Configuration
@@ -186,7 +188,7 @@ final class SettingsViewModel: ErrorHandling {
         selectedModel = model
         user.selectedAIProvider = provider
         user.selectedAIModel = model
-        try modelContext.save()
+        try userWriteRepository.save(user)
 
         // Configure AI service
         let apiKey = try await getAPIKey(for: provider)
@@ -233,7 +235,7 @@ final class SettingsViewModel: ErrorHandling {
     func updateNotificationPreferences(_ prefs: NotificationPreferences) async throws {
         notificationPreferences = prefs
         user.notificationPreferences = prefs
-        try modelContext.save()
+        try userWriteRepository.save(user)
 
         // Update notification manager
         await notificationManager.updatePreferences(prefs)
@@ -242,7 +244,7 @@ final class SettingsViewModel: ErrorHandling {
     func updateQuietHours(_ hours: QuietHours) async throws {
         quietHours = hours
         user.quietHours = hours
-        try modelContext.save()
+        try userWriteRepository.save(user)
 
         // Reschedule notifications
         await notificationManager.rescheduleWithQuietHours(hours)
@@ -265,7 +267,7 @@ final class SettingsViewModel: ErrorHandling {
 
         biometricLockEnabled = enabled
         user.biometricLockEnabled = enabled
-        try modelContext.save()
+        try userWriteRepository.save(user)
     }
 
     // MARK: - Data Management
@@ -284,7 +286,7 @@ final class SettingsViewModel: ErrorHandling {
         )
         user.dataExports.append(export)
         exportHistory = user.dataExports
-        try modelContext.save()
+        try userWriteRepository.save(user)
 
         return exportURL
     }
@@ -465,7 +467,7 @@ final class SettingsViewModel: ErrorHandling {
 
             coachPersona = adjustedPersona
             user.coachPersonaData = adjustedData
-            try modelContext.save()
+            try userWriteRepository.save(user)
 
             // Track evolution
             await trackPersonaAdjustment(

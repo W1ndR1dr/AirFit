@@ -1,6 +1,6 @@
 import SwiftUI
 
-struct APIKeyEntryView: View {
+struct InitialAPISetupView: View {
     let provider: AIProvider
     @Bindable var viewModel: SettingsViewModel
     @Environment(\.dismiss) private var dismiss

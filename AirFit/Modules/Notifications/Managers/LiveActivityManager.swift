@@ -218,7 +218,7 @@ final class LiveActivityManager: ServiceProtocol {
     
     // MARK: - Nutrition Live Activities
     
-    func startNutritionActivity(dailyGoal: NutritionGoals) async throws {
+    func startNutritionActivity(dailyGoal: LiveActivityNutritionGoals) async throws {
         guard ActivityAuthorizationInfo().areActivitiesEnabled else {
             throw LiveActivityError.notEnabled
         }
@@ -477,7 +477,7 @@ enum LiveActivityError: LocalizedError {
 }
 
 // Nutrition-specific types
-struct NutritionGoals {
+struct LiveActivityNutritionGoals {
     let calories: Double
     let protein: Double
     let carbs: Double
@@ -497,7 +497,7 @@ struct NutritionActivityAttributes: ActivityAttributes {
         let isComplete: Bool
     }
     
-    let dailyGoal: NutritionGoals
+    let dailyGoal: LiveActivityNutritionGoals
     let startDate: Date
 }
 
@@ -540,7 +540,7 @@ extension Notification.Name {
 
 // MARK: - NutritionGoals Codable Conformance
 
-extension NutritionGoals: Codable, Hashable {
+extension LiveActivityNutritionGoals: Codable, Hashable {
     enum CodingKeys: String, CodingKey {
         case calories, protein, carbs, fat
     }
@@ -568,7 +568,7 @@ extension NutritionGoals: Codable, Hashable {
         hasher.combine(fat)
     }
     
-    static func == (lhs: NutritionGoals, rhs: NutritionGoals) -> Bool {
+    static func == (lhs: LiveActivityNutritionGoals, rhs: LiveActivityNutritionGoals) -> Bool {
         lhs.calories == rhs.calories &&
         lhs.protein == rhs.protein &&
         lhs.carbs == rhs.carbs &&

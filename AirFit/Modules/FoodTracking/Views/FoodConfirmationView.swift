@@ -804,7 +804,8 @@ private struct ManualFoodEntryView: View {
  #Preview {
  let container = ModelContainer.preview
  let context = container.mainContext
- let user = try! context.fetch(FetchDescriptor<User>()).first!
+ let users = (try? context.fetch(FetchDescriptor<User>())) ?? []
+ let user = users.first ?? User(name: "Preview User")
  let parsed = ParsedFoodItem(
  name: "Apple",
  brand: nil,

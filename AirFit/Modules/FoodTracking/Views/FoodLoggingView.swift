@@ -716,7 +716,8 @@ private extension FoodItem {
     @Previewable @State var vm: FoodTrackingViewModel = {
         let container = ModelContainer.preview
         let context = container.mainContext
-        let user = try! context.fetch(FetchDescriptor<User>()).first!
+        let users = (try? context.fetch(FetchDescriptor<User>())) ?? []
+        let user = users.first ?? User(name: "Preview User")
         let foodRepository = SwiftDataFoodTrackingRepository(modelContext: context)
         return FoodTrackingViewModel(
             foodRepository: foodRepository,

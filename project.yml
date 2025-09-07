@@ -2,7 +2,7 @@ name: AirFit
 options:
   bundleIdPrefix: com.airfit
   deploymentTarget:
-    iOS: "26.0"
+    iOS: "18.4"
   developmentLanguage: en
   xcodeVersion: "16.0"
   createIntermediateGroups: true
@@ -22,7 +22,7 @@ options:
 
 settings:
   SWIFT_VERSION: "6.0"
-  IPHONEOS_DEPLOYMENT_TARGET: "26.0"
+  IPHONEOS_DEPLOYMENT_TARGET: "18.4"
   ENABLE_STRICT_CONCURRENCY: YES
   SWIFT_STRICT_CONCURRENCY: complete
   DEAD_CODE_STRIPPING: YES
@@ -169,7 +169,7 @@ targets:
             <key>UILaunchScreen</key>
             <dict/>
             <key>MinimumOSVersion</key>
-            <string>26.0</string>
+            <string>18.4</string>
             <key>UIRequiredDeviceCapabilities</key>
             <array>
               <string>armv7</string>

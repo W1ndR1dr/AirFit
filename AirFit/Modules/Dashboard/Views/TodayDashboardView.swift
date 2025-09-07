@@ -1,5 +1,4 @@
 import SwiftUI
-import SwiftData
 
 /// Today Dashboard - Overview of the user's day with AI insights and quick actions
 struct TodayDashboardView: View {
@@ -619,7 +618,7 @@ struct ProgressRingView: View {
 // MARK: - Preview
 
 #Preview {
-    let container = try! ModelContainer(for: User.self) // swiftlint:disable:this force_try
+    let container = ModelContainer.preview
     let user = User(name: "Preview")
     container.mainContext.insert(user)
 

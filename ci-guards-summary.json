@@ -1,1 +1,8 @@
-{"timestamp":"2025-09-07T00:01:16Z","violations":[],"summary":{}}
+{
+  "timestamp": "2025-09-07T00:12:23Z",
+  "violations": [],
+  "summary": {
+    "total_violations": 2630,
+    "categories": "1178 [ACCESS_CONTROL]\n   2 [DEBUG_PRINT]\n   1 [DIRECT_URLSESSION]\n   7 [FILE_SIZE]\n 356 [FORCE_UNWRAP]\n 132 [FUNCTION_SIZE]\n 880 [HARDCODED_STRING]\n  14 [STATE_NOT_PRIVATE]\n   1 [SWIFTDATA_UI]\n  36 [TODO_FIXME]\n  22 [TYPE_SIZE]"
+  }
+}

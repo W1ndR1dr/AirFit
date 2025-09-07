@@ -38,7 +38,8 @@ public final class NavigationState {
     public var lastQuickActionUpdate = Date()
     
     // MARK: - iOS 26 Liquid Glass Morphing
-    @Namespace public var navigationMorphing
+    // Note: Namespace should be created in Views, not in Observable models
+    public var navigationMorphingId = UUID()
 
     // MARK: - Public Methods
 

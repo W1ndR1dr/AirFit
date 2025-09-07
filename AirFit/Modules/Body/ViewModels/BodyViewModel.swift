@@ -1,5 +1,4 @@
 import Foundation
-import SwiftData
 import SwiftUI
 import Observation
 
@@ -36,7 +35,7 @@ final class BodyViewModel: ErrorHandling {
     var isShowingError = false
 
     // MARK: - Dependencies
-    private let modelContext: ModelContext
+    private let userReadRepository: UserReadRepositoryProtocol
     private let user: User
     private let healthKitManager: HealthKitManaging
     private let contextAssembler: ContextAssembler
@@ -51,11 +50,11 @@ final class BodyViewModel: ErrorHandling {
 
     // MARK: - Init
     init(
-        modelContext: ModelContext,
+        userReadRepository: UserReadRepositoryProtocol,
         user: User,
         healthKitManager: HealthKitManaging
     ) {
-        self.modelContext = modelContext
+        self.userReadRepository = userReadRepository
         self.user = user
         self.healthKitManager = healthKitManager
         self.contextAssembler = ContextAssembler(healthKitManager: healthKitManager)
