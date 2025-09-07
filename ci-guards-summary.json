@@ -1,8 +1,1 @@
-{
-  "timestamp": "2025-09-06T22:50:21Z",
-  "violations": [],
-  "summary": {
-    "total_violations": 1421,
-    "categories": " 593 [ACCESS_CONTROL]\n   5 [ADHOC_MODELCONTAINER]\n   1 [DEBUG_PRINT]\n   1 [DIRECT_URLSESSION]\n   7 [FILE_SIZE]\n   9 [FORCE_TRY]\n 187 [FORCE_UNWRAP]\n 107 [FUNCTION_SIZE]\n 440 [HARDCODED_STRING]\n   2 [NOTIFICATIONCENTER_CHAT]\n  14 [STATE_NOT_PRIVATE]\n  15 [SWIFTDATA_UI]\n  18 [TODO_FIXME]\n  22 [TYPE_SIZE]"
-  }
-}
+{"timestamp":"2025-09-07T00:01:16Z","violations":[],"summary":{}}
