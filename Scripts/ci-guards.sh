@@ -6,6 +6,9 @@
 
 set -e
 
+# Check if we should allow guard failures (bypass for emergency deployments)
+ALLOW_GUARD_FAIL=${ALLOW_GUARD_FAIL:-0}
+
 # Colors for output
 RED='\033[0;31m'
 GREEN='\033[0;32m'
@@ -28,6 +31,21 @@ echo "" > "$VIOLATIONS_FILE"
 echo '{"timestamp":"'$(date -u +%Y-%m-%dT%H:%M:%SZ)'","violations":[],"summary":{}}' > "$SUMMARY_FILE"
 
 violations_count=0
+critical_violations_count=0
+
+# Define critical violation categories
+critical_categories=("FORCE_TRY" "FORCE_UNWRAP" "ADHOC_MODELCONTAINER" "SWIFTDATA_UI" "NOTIFICATIONCENTER_CHAT")
+
+# Helper function to check if category is critical
+is_critical_category() {
+    local category="$1"
+    for critical in "${critical_categories[@]}"; do
+        if [[ "$category" == "$critical" ]]; then
+            return 0  # true
+        fi
+    done
+    return 1  # false
+}
 
 # Helper function to log violations
 log_violation() {
@@ -37,6 +55,11 @@ log_violation() {
     local line="${4:-}"
     
     violations_count=$((violations_count + 1))
+    
+    # Check if this is a critical violation
+    if is_critical_category "$category"; then
+        critical_violations_count=$((critical_violations_count + 1))
+    fi
     
     if [ -n "$line" ]; then
         echo "[$category] $message ($file:$line)" | tee -a "$VIOLATIONS_FILE"
@@ -238,11 +261,24 @@ categories=$(cat "$VIOLATIONS_FILE" | grep -o '^\[[^]]*\]' | sort | uniq -c | se
 # Recalculate total violations from file (subshells don't preserve the counter)
 violations_count=$(grep -c '^\[' "$VIOLATIONS_FILE" || echo 0)
 
+# Recalculate critical violations
+critical_violations_count=0
+for critical in "${critical_categories[@]}"; do
+    count=$(echo "$categories" | grep ":${critical}$" | cut -d: -f1 || echo "0")
+    if [ -n "$count" ] && [ "$count" -gt 0 ]; then
+        critical_violations_count=$((critical_violations_count + count))
+    fi
+done
+
 # Create detailed summary with statistics  
 echo -e "\n${BLUE}=== DETAILED VIOLATION BREAKDOWN ===${NC}"
 echo "$categories" | while IFS=':' read -r count category; do
     if [ -n "$count" ] && [ -n "$category" ]; then
-        echo -e "  ${YELLOW}$category:${NC} $count violations"
+        if is_critical_category "$category"; then
+            echo -e "  🚨 ${RED}$category:${NC} $count violations (CRITICAL)"
+        else
+            echo -e "  ${YELLOW}$category:${NC} $count violations"
+        fi
     fi
 done
 
@@ -251,7 +287,7 @@ echo -e "\n${BLUE}=== FIX PRIORITY RECOMMENDATIONS ===${NC}"
 echo -e "${RED}🚨 CRITICAL (Fix First):${NC}"
 echo "$categories" | while IFS=':' read -r count category; do
     case $category in
-        "ADHOC_MODELCONTAINER"|"SWIFTDATA_UI"|"FORCE_TRY"|"FORCE_UNWRAP")
+        "ADHOC_MODELCONTAINER"|"SWIFTDATA_UI"|"FORCE_TRY"|"FORCE_UNWRAP"|"NOTIFICATIONCENTER_CHAT")
             echo -e "  • $category ($count violations) - Architecture/Safety violations"
             ;;
     esac
@@ -260,7 +296,7 @@ done
 echo -e "${YELLOW}⚠️  HIGH (Fix Soon):${NC}"
 echo "$categories" | while IFS=':' read -r count category; do
     case $category in
-        "MISSING_MAINACTOR"|"NOTIFICATIONCENTER_CHAT"|"DIRECT_URLSESSION")
+        "MISSING_MAINACTOR"|"DIRECT_URLSESSION")
             echo -e "  • $category ($count violations) - Threading/Architecture issues"
             ;;
     esac
@@ -277,9 +313,10 @@ done
 
 # Create JSON summary
 jq --argjson violations "$violations_count" \
+   --argjson critical "$critical_violations_count" \
    --arg categories "$categories" \
    --arg timestamp "$(date -u +%Y-%m-%dT%H:%M:%SZ)" \
-   '.summary.total_violations = $violations | .summary.categories = $categories | .timestamp = $timestamp' \
+   '.summary.total_violations = $violations | .summary.critical_violations = $critical | .summary.categories = $categories | .timestamp = $timestamp' \
    "$SUMMARY_FILE" > temp_summary.json && mv temp_summary.json "$SUMMARY_FILE"
 
 # Print results
@@ -291,19 +328,43 @@ if [ "$violations_count" -eq 0 ]; then
     echo -e "${GREEN}✅ No violations found! Code quality looks great.${NC}"
     exit 0
 else
-    echo -e "${RED}⚠️  Found $violations_count violations:${NC}"
+    echo -e "${RED}⚠️  Found $violations_count total violations (${critical_violations_count} critical):${NC}"
     echo ""
     echo "$categories" | while IFS=':' read -r count category; do
         if [ -n "$count" ] && [ -n "$category" ]; then
-            echo -e "  ${YELLOW}$category:${NC} $count violations"
+            # Mark critical categories with 🚨
+            if is_critical_category "$category"; then
+                echo -e "  🚨 ${RED}$category:${NC} $count violations (CRITICAL)"
+            else
+                echo -e "  ${YELLOW}$category:${NC} $count violations"
+            fi
         fi
     done
     echo ""
     echo -e "📄 Full report: ${VIOLATIONS_FILE}"
     echo -e "📊 JSON summary: ${SUMMARY_FILE}"
     
-    # For now, exit with success (allow failures)
-    # TODO: Change to exit 1 when we're ready to enforce
-    echo -e "\n${YELLOW}ℹ️  Currently in monitoring mode - violations logged but not failing CI${NC}"
-    exit 0
+    # Check if we should fail on critical violations
+    if [ "$critical_violations_count" -gt 0 ] && [ "$ALLOW_GUARD_FAIL" != "1" ]; then
+        echo -e "\n${RED}🚨 CRITICAL VIOLATIONS DETECTED${NC}"
+        echo -e "${RED}Found $critical_violations_count critical violations that must be fixed:${NC}"
+        for critical in "${critical_categories[@]}"; do
+            critical_count=$(echo "$categories" | grep ":${critical}$" | cut -d: -f1 || echo "0")
+            if [ -n "$critical_count" ] && [ "$critical_count" -gt 0 ]; then
+                echo -e "  • ${RED}$critical${NC}: $critical_count violations"
+            fi
+        done
+        echo -e "\n${YELLOW}To bypass this check temporarily, set ALLOW_GUARD_FAIL=1${NC}"
+        echo -e "${YELLOW}But please fix these critical issues as soon as possible!${NC}"
+        exit 1
+    elif [ "$critical_violations_count" -gt 0 ] && [ "$ALLOW_GUARD_FAIL" = "1" ]; then
+        echo -e "\n${YELLOW}⚠️  CRITICAL VIOLATIONS BYPASSED${NC}"
+        echo -e "${YELLOW}Found $critical_violations_count critical violations but ALLOW_GUARD_FAIL=1${NC}"
+        echo -e "${RED}Please fix these critical issues as soon as possible!${NC}"
+        exit 0
+    else
+        echo -e "\n${GREEN}ℹ️  No critical violations found${NC}"
+        echo -e "${YELLOW}Non-critical violations are advisory only and don't fail CI${NC}"
+        exit 0
+    fi
 fi
