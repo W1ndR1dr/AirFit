@@ -175,10 +175,10 @@ actor FallbackPersonaGenerator {
         let encouragements = generateEncouragements(motivationStyle: motivationStyle)
 
         return InteractionStyle(
-            greetingStyle: greetings.first ?? "Hello!",
-            closingStyle: "Keep it up!",
+            greetingStyle: greetings.first ?? "Hello.",
+            closingStyle: "Keep it up.",
             encouragementPhrases: encouragements,
-            acknowledgmentStyle: "Great job!",
+            acknowledgmentStyle: "Great job.",
             correctionApproach: "Gentle guidance",
             humorLevel: .light,
             formalityLevel: .casual,
@@ -192,21 +192,21 @@ actor FallbackPersonaGenerator {
         switch timePreference {
         case "morning":
             return [
-                "Good morning! What would you like to focus on today?",
-                "Morning! How are you feeling today?",
-                "Good morning! Ready when you are."
+                "Good morning. What would you like to focus on today?",
+                "Morning. How are you feeling today?",
+                "Good morning. Ready when you are."
             ]
         case "evening":
             return [
-                "Good evening! How was your day?",
-                "Evening! What can I help you with?",
-                "Good evening! Let's check in on your progress."
+                "Good evening. How was your day?",
+                "Evening. What can I help you with?",
+                "Good evening. Let's check in on your progress."
             ]
         default:
             return [
-                "Hey there! What brings you here today?",
-                "Welcome back! How can I help?",
-                "Hi! What would you like to work on?"
+                "Hey there. What brings you here today?",
+                "Welcome back. How can I help?",
+                "Hi. What would you like to work on?"
             ]
         }
     }
@@ -223,13 +223,13 @@ actor FallbackPersonaGenerator {
             ]
         case "supportive":
             return [
-                "You're doing great!",
+                "You're doing great.",
                 "Every step forward matters.",
                 "I'm here to support you."
             ]
         default:
             return [
-                "Nice work!",
+                "Nice work.",
                 "You're on the right track.",
                 "Progress is progress."
             ]

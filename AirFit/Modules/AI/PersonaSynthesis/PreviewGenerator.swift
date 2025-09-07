@@ -168,12 +168,12 @@ final class PreviewGenerator: ObservableObject {
 
     private func generateSampleGreeting(for persona: PersonaProfile) -> String {
         let greetings = [
-            "Meet \(persona.name), your \(persona.archetype) coach!",
-            "\(persona.name) is ready to guide your fitness journey!",
-            "Say hello to \(persona.name) - \(persona.archetype)!"
+            "Meet \(persona.name), your \(persona.archetype) coach.",
+            "\(persona.name) is ready to guide your fitness journey.",
+            "Say hello to \(persona.name) - \(persona.archetype)."
         ]
 
-        return greetings.randomElement() ?? "Your coach is ready!"
+        return greetings.randomElement() ?? "Your coach is ready."
     }
 
     private func generateVoiceDescription(for persona: PersonaProfile) -> String {
@@ -183,7 +183,7 @@ final class PreviewGenerator: ObservableObject {
     }
 
     private func generateFinalGreeting(for persona: PersonaProfile) -> String {
-        return "\(persona.interactionStyle.greetingStyle) I'm \(persona.name), and I'm excited to help you reach your goals!"
+        return "\(persona.interactionStyle.greetingStyle) I'm \(persona.name), and I'm excited to help you reach your goals."
     }
 
     private func generateFinalVoiceDescription(for persona: PersonaProfile) -> String {
@@ -255,7 +255,7 @@ enum SynthesisStage: Equatable {
         case .finalizing:
             return "Adding final touches..."
         case .complete:
-            return "Your coach is ready!"
+            return "Your coach is ready."
         case .failed:
             return "Something went wrong"
         case .cancelled:

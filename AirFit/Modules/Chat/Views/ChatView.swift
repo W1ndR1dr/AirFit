@@ -162,7 +162,7 @@ struct ChatView: View {
                     .foregroundStyle(gradientIcon)
                     .accessibilityHidden(true)
 
-                GradientText("Welcome! How can I help you today?", style: .primary)
+                GradientText("Welcome. How can I help you today?", style: .primary)
                     .font(.system(size: 20, weight: .light, design: .rounded))
                     .multilineTextAlignment(.center)
 
@@ -176,7 +176,7 @@ struct ChatView: View {
         .transition(.scale.combined(with: .opacity))
         .accessibilityElement(children: .combine)
         .accessibilityLabel("Welcome message")
-        .accessibilityValue("Welcome! How can I help you today? I'm your personalized AI coach, here to support your fitness journey.")
+        .accessibilityValue("Welcome. How can I help you today? I'm your personalized AI coach, here to support your fitness journey.")
     }
 
     @ViewBuilder
@@ -432,7 +432,7 @@ private struct StreamingAssistantText: View {
 // MARK: - Mock Services
 private final class ChatMockCoachEngine: CoachEngineProtocol, @unchecked Sendable {
     func generatePostWorkoutAnalysis(_ request: PostWorkoutAnalysisRequest) async throws -> String {
-        return "Great workout! You completed \(request.workout.exercises.count) exercises. Keep up the excellent work!"
+        return "Great workout. You completed \(request.workout.exercises.count) exercises. Keep up the excellent work."
     }
 
     func processUserMessage(_ text: String, for user: User) async {

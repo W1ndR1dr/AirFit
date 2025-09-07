@@ -83,7 +83,7 @@ actor PersonaSynthesizer {
             startedAt: startTime
         )
 
-        await reportProgress(.finalizing, progress: 1.0, message: "Your coach is ready!", isComplete: true)
+        await reportProgress(.finalizing, progress: 1.0, message: "Your coach is ready.", isComplete: true)
         return persona
     }
 

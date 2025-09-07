@@ -644,13 +644,13 @@ struct WorkoutDashboardView: View {
             if stats.totalWorkouts == 0 {
                 return "Ready to start strong this week? Morning workouts boost energy all day."
             }
-            return "Morning warrior! Keep that consistency going."
+            return "Morning warrior. Keep that consistency going."
 
         case 12..<17:
             if stats.totalWorkouts < 3 {
                 return "Perfect time for a quick workout. Even 20 minutes makes a difference."
             }
-            return "You're crushing it this week with \(stats.totalWorkouts) workouts!"
+            return "You're crushing it this week with \(stats.totalWorkouts) workouts."
 
         case 17..<22:
             if let lastWorkout = viewModel.workouts.first {

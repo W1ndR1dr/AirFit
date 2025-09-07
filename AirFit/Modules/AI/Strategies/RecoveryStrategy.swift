@@ -57,7 +57,7 @@ struct RecoveryStrategy {
             default: break
             }
         }
-        return text.isEmpty ? "Keep up the great work!" : text.trimmingCharacters(in: .whitespacesAndNewlines)
+        return text.isEmpty ? "Keep up the great work." : text.trimmingCharacters(in: .whitespacesAndNewlines)
     }
 
     // MARK: Dashboard
@@ -97,7 +97,7 @@ struct RecoveryStrategy {
             let persona = try? JSONDecoder().decode(CoachPersona.self, from: personaData)
         else {
             return AIDashboardContent(
-                primaryInsight: "Welcome back! Let's make today count.",
+                primaryInsight: "Welcome back. Let's make today count.",
                 nutritionData: nutritionSummary.calories > 0 ? DashboardNutritionData(
                     calories: nutritionSummary.calories,
                     calorieTarget: dynamicTargets?.totalCalories ?? 2_000,
@@ -186,7 +186,7 @@ struct RecoveryStrategy {
             }
         }
 
-        var primary = "Welcome back! Ready to make progress?"
+        var primary = "Welcome back. Ready to make progress?"
         var guidance: String?
         var celeb: String?
 

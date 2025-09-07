@@ -59,7 +59,7 @@ struct NutritionStrategy {
         - Use USDA nutrition database accuracy
         - If multiple items mentioned, include all
         - Estimate quantities if not specified
-        - Return realistic nutrition values (not 100 calories for everything!)
+        - Return realistic nutrition values (not 100 calories for everything)
         - Confidence 0.9+ for common foods, lower for ambiguous items
         - No explanations or extra text, just JSON
         """
