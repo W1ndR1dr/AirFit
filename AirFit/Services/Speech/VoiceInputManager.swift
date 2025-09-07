@@ -354,8 +354,9 @@ final class VoiceInputManager: VoiceInputProtocol {
         // Copy audio data
         audioData.withUnsafeBytes { bytes in
             let floatPointer = bytes.bindMemory(to: Float.self)
-            if let channelData = pcmBuffer.floatChannelData {
-                channelData[0].update(from: floatPointer.baseAddress!, count: frameCount)
+            if let channelData = pcmBuffer.floatChannelData,
+               let baseAddress = floatPointer.baseAddress {
+                channelData[0].update(from: baseAddress, count: frameCount)
             }
         }
 

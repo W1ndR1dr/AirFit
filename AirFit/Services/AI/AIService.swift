@@ -284,7 +284,7 @@ actor AIService: AIServiceProtocol {
                 // Track first token timing
                 if firstTokenTime == nil && !chunk.delta.isEmpty {
                     firstTokenTime = CFAbsoluteTimeGetCurrent()
-                    let ttft = Int((firstTokenTime! - requestStartTime) * 1000)
+                    let ttft = Int(((firstTokenTime ?? CFAbsoluteTimeGetCurrent()) - requestStartTime) * 1000)
                     os_signpost(.event, log: performanceLog, name: "TTFT", signpostID: requestId, "First token after %{public}dms", ttft)
                     os_log("TTFT: %{public}dms for streaming request", log: performanceLog, type: .default, ttft)
                 }
