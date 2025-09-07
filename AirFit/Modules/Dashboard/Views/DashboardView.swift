@@ -263,7 +263,7 @@ actor PlaceholderAICoachService: AICoachServiceProtocol {
 
     func generateDashboardContent(for user: User) async throws -> AIDashboardContent {
         AIDashboardContent(
-            primaryInsight: "Welcome back! Ready to make today count?",
+            primaryInsight: "Welcome back. Ready to make today count?",
             nutritionData: nil,
             muscleGroupVolumes: nil,
             guidance: nil,

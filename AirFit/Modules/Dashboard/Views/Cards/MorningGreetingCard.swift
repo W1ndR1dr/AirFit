@@ -365,7 +365,7 @@ struct EnergyOption: View {
 
 #Preview {
     MorningGreetingCard(
-        greeting: "Good morning, Alex! Ready to conquer the day?",
+        greeting: "Good morning, Alex. Ready to conquer the day?",
         context: GreetingContext(
             sleepHours: 7.5,
             weather: "Sunny, 23°C",
