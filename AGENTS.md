@@ -8,8 +8,8 @@
 
 ## Build, Test, and Development Commands
 - Generate Xcode project: `xcodegen generate` (run after editing `project.yml`).
-- Build: `xcodebuild build -scheme AirFit -destination 'platform=iOS Simulator,name=iPhone 16 Pro,OS=18.4'`.
-- Test: `xcodebuild test -scheme AirFit -testPlan AirFit -destination 'platform=iOS Simulator,name=iPhone 16 Pro,OS=18.4'` (use `-only-testing` to scope).
+- Build: `xcodebuild build -scheme AirFit -destination 'platform=iOS Simulator,name=iPhone 16 Pro,OS=26.0'`.
+- Test: `xcodebuild test -scheme AirFit -testPlan AirFit -destination 'platform=iOS Simulator,name=iPhone 16 Pro,OS=26.0'` (use `-only-testing` to scope).
 - Lint: `swiftlint --strict` (match CI).
 - Reset simulator (optional): `./reset-simulator.sh`.
 
@@ -44,4 +44,3 @@
   - No SwiftData in UI/ViewModels; use repositories/services
   - Single DI-owned `ModelContainer`; no ad‑hoc new instances
   - All ViewModels `@MainActor`; no force ops (`try!`, `as!`, force unwrap)
-

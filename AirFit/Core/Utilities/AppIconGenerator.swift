@@ -220,7 +220,7 @@ struct AppIconPreview: View {
         }
         .padding(40)
         .frame(maxWidth: .infinity, maxHeight: .infinity)
-        .background(Color(NSColor.windowBackgroundColor))
+        .background(Color(UIColor.systemBackground))
     }
 }
 

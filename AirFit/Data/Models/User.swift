@@ -89,8 +89,9 @@ final class User: @unchecked Sendable {
     @Relationship(deleteRule: .cascade, inverse: \FoodEntry.user)
     var foodEntries: [FoodEntry] = []
 
-    @Relationship(deleteRule: .cascade, inverse: \Workout.user)
-    var workouts: [Workout] = []
+    // WORKOUT TRACKING REMOVED - Workout analysis from HealthKit/external sources
+    // @Relationship(deleteRule: .cascade, inverse: \Workout.user)
+    // var workouts: [Workout] = []
 
     @Relationship(deleteRule: .cascade, inverse: \DailyLog.user)
     var dailyLogs: [DailyLog] = []
@@ -146,6 +147,8 @@ final class User: @unchecked Sendable {
             .sorted { $0.loggedAt > $1.loggedAt }
     }
 
+    // WORKOUT TRACKING REMOVED
+    /*
     func getRecentWorkouts(days: Int = 7) -> [Workout] {
         let cutoffDate = Calendar.current.date(byAdding: .day, value: -days, to: Date()) ?? Date()
         return workouts
@@ -153,6 +156,7 @@ final class User: @unchecked Sendable {
             .filter { ($0.completedDate ?? Date.distantPast) > cutoffDate }
             .sorted { ($0.completedDate ?? Date.distantPast) > ($1.completedDate ?? Date.distantPast) }
     }
+    */
 
     func getMuscleGroupTargets() -> [String: Int] {
         return muscleGroupTargets

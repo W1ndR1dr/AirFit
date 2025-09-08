@@ -89,7 +89,6 @@ public enum GlobalEnums {
         case chat
         case today
         case nutrition
-        case workouts
         case body
 
         public var systemImage: String {
@@ -97,7 +96,6 @@ public enum GlobalEnums {
             case .chat: return "message.fill"
             case .today: return "sun.max.fill"
             case .nutrition: return "leaf.fill"
-            case .workouts: return "figure.run"
             case .body: return "figure"
             }
         }
@@ -107,13 +105,13 @@ public enum GlobalEnums {
             case .chat: return "Chat"
             case .today: return "Today"
             case .nutrition: return "Nutrition"
-            case .workouts: return "Workouts"
             case .body: return "Body"
             }
         }
     }
 
-    // MARK: - Exercise Related
+    // MARK: - Exercise Related (REMOVED - no longer tracking workouts)
+    /* Removed ExerciseCategory, MuscleGroup, Equipment, Difficulty enums
     public enum ExerciseCategory: String, Codable, CaseIterable, Sendable {
         case strength
         case cardio
@@ -217,6 +215,7 @@ public enum GlobalEnums {
             }
         }
     }
+    */
 }
 
 // MARK: - Type Aliases for Convenience
@@ -225,7 +224,4 @@ public typealias ActivityLevel = GlobalEnums.ActivityLevel
 public typealias FitnessGoal = GlobalEnums.FitnessGoal
 public typealias LoadingState = GlobalEnums.LoadingState
 public typealias AppTab = GlobalEnums.AppTab
-public typealias ExerciseCategory = GlobalEnums.ExerciseCategory
-public typealias MuscleGroup = GlobalEnums.MuscleGroup
-public typealias Equipment = GlobalEnums.Equipment
-public typealias Difficulty = GlobalEnums.Difficulty
+// Removed workout-related type aliases

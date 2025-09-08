@@ -98,7 +98,7 @@ echo -e "${YELLOW}=== STAGE 3: BUILD VERIFICATION ===${NC}"
 echo "Testing iOS App build..."
 BUILD_OUTPUT=$(xcodebuild build \
     -scheme AirFit \
-    -destination 'platform=iOS Simulator,name=iPhone 16 Pro,OS=18.4' \
+    -destination 'platform=iOS Simulator,name=iPhone 16 Pro,OS=26.0' \
     -configuration Debug \
     -quiet 2>&1)
 BUILD_EXIT_CODE=$?
@@ -139,7 +139,7 @@ if [ -f "AirFit-Unit.xctestplan" ]; then
     
     TEST_OUTPUT=$(xcodebuild test \
         -scheme AirFit \
-        -destination 'platform=iOS Simulator,name=iPhone 16 Pro,OS=18.4' \
+        -destination 'platform=iOS Simulator,name=iPhone 16 Pro,OS=26.0' \
         -testPlan AirFit-Unit \
         -quiet 2>&1)
     TEST_EXIT_CODE=$?
@@ -165,7 +165,7 @@ echo -e "${YELLOW}=== STAGE 5: CODE COVERAGE ANALYSIS ===${NC}"
 echo "Analyzing code coverage..."
 COVERAGE_OUTPUT=$(xcodebuild test \
     -scheme AirFit \
-    -destination 'platform=iOS Simulator,name=iPhone 16 Pro,OS=18.4' \
+    -destination 'platform=iOS Simulator,name=iPhone 16 Pro,OS=26.0' \
     -testPlan AirFit-Unit \
     -enableCodeCoverage YES \
     -quiet 2>&1)

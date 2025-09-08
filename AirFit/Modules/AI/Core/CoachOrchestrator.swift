@@ -26,7 +26,8 @@ final class CoachOrchestrator {
     private let healthKitManager: HealthKitManaging
     private let nutritionCalculator: NutritionCalculatorProtocol
     private let muscleGroupVolumeService: MuscleGroupVolumeServiceProtocol
-    private let exerciseDatabase: ExerciseDatabase
+    // Note: ExerciseDatabase dependency stubbed - workout creation moved to external apps
+    // private let exerciseDatabase: ExerciseDatabase
     private let streamStore: ChatStreamingStore?
 
     // Subcomponents
@@ -39,13 +40,14 @@ final class CoachOrchestrator {
     private let parser = AIParser()
 
     // Strategies
-    private lazy var workout = WorkoutStrategy(
-        personaService: personaService,
-        aiService: aiService,
-        exerciseDatabase: exerciseDatabase,
-        modelContext: modelContext,
-        formatter: formatter
-    )
+    // Note: WorkoutStrategy disabled - workout creation moved to external apps
+    // private lazy var workout = WorkoutStrategy(
+    //     personaService: personaService,
+    //     aiService: aiService,
+    //     exerciseDatabase: exerciseDatabase,
+    //     modelContext: modelContext,
+    //     formatter: formatter
+    // )
 
     private lazy var nutrition = NutritionStrategy(
         aiService: aiService,
@@ -76,7 +78,7 @@ final class CoachOrchestrator {
         healthKitManager: HealthKitManaging,
         nutritionCalculator: NutritionCalculatorProtocol,
         muscleGroupVolumeService: MuscleGroupVolumeServiceProtocol,
-        exerciseDatabase: ExerciseDatabase,
+        // exerciseDatabase: ExerciseDatabase,
         streamStore: ChatStreamingStore?
     ) {
         self.personaService = personaService
@@ -88,7 +90,7 @@ final class CoachOrchestrator {
         self.healthKitManager = healthKitManager
         self.nutritionCalculator = nutritionCalculator
         self.muscleGroupVolumeService = muscleGroupVolumeService
-        self.exerciseDatabase = exerciseDatabase
+        // self.exerciseDatabase = exerciseDatabase
         self.streamStore = streamStore
 
         self.messageProcessor = MessageProcessor(localCommandParser: localCommandParser)
@@ -174,9 +176,10 @@ final class CoachOrchestrator {
     }
 
     func clearConversation(activeConversationId: inout UUID?) {
+        let oldId = activeConversationId
+        activeConversationId = nil
         Task {
-            if let old = activeConversationId { await stateManager.endSession(old) }
-            activeConversationId = nil
+            if let old = oldId { await stateManager.endSession(old) }
             delegate?.setActiveConversationId(nil)
             delegate?.updateCurrentResponse("")
         }
@@ -184,9 +187,11 @@ final class CoachOrchestrator {
 
     // Strategies exposed for shim
 
-    func postWorkoutAnalysis(_ request: PostWorkoutAnalysisRequest) async -> String {
-        await workout.generatePostWorkoutAnalysis(request)
-    }
+    // WORKOUT TRACKING REMOVED - Analysis via HealthKit only
+    // func postWorkoutAnalysis(_ request: PostWorkoutAnalysisRequest) async -> String {
+    //     // Note: Workout analysis now handled through external apps (HEVY/Apple Workouts)
+    //     return "Workout analysis is now handled through your connected fitness apps. Check your workout history in HealthKit for detailed analysis."
+    // }
 
     // Expose NutritionStrategy direct path for shim compatibility
     func parseAndLogNutritionDirect(
@@ -244,16 +249,16 @@ final class CoachOrchestrator {
                 return content
 
             case "generatePersonalizedWorkoutPlan", "generate_workout":
-                return try await workout.handleWorkoutGeneration(call.arguments, user: user)
+                return "Workout planning is now handled through external apps like HEVY or Apple Workouts. I can help you analyze your existing workout data from HealthKit instead."
 
             case "adaptPlanBasedOnFeedback":
-                return try await workout.handleWorkoutAdaptation(call.arguments, user: user)
+                return "Workout adaptation is now handled through external apps. I can help you understand your workout patterns and progress based on your HealthKit data."
 
             case "send_workout_to_watch":
                 return "Workout has been sent to your Apple Watch. Open the AirFit app on your watch to start."
 
             case "analyze_workout_completion":
-                return await workout.handleWorkoutAnalysis(call.arguments, user: user)
+                return "Workout analysis is now handled through your connected fitness apps. I can help you understand your overall workout patterns based on your HealthKit data."
 
             case "assistGoalSettingOrRefinement":
                 // Delegate to existing CoachEngine path later; placeholder
@@ -341,8 +346,7 @@ final class CoachOrchestrator {
                                          success: true,
                                          tokenUsage: res.tokenCount,
                                          confidence: res.confidence,
-                                         fallbackUsed: false,
-                                         timestamp: Date())
+                                         fallbackUsed: false)
             } else if isEdu {
                 // Reuse existing direct processor path (already efficient)
                 let profile = try await getUserProfile(for: user)
@@ -353,11 +357,10 @@ final class CoachOrchestrator {
                                          success: true,
                                          tokenUsage: content.tokenCount,
                                          confidence: content.personalizationLevel,
-                                         fallbackUsed: false,
-                                         timestamp: Date())
+                                         fallbackUsed: false)
             } else {
                 if strategy.fallbackEnabled && text.count > 150 {
-                    try await handleFunctionCalling(text: text, user: user, conversationId: conversationId, history: history, healthContext: healthContext, strategy: RoutingStrategy(route: .functionCalling, reason: "Intelligent fallback from direct AI", fallbackEnabled: false, timestamp: Date()))
+                    try await handleFunctionCalling(text: text, user: user, conversationId: conversationId, history: history, healthContext: healthContext, strategy: RoutingStrategy(route: .functionCalling, reason: "Intelligent fallback from direct AI", fallbackEnabled: false))
                     return
                 }
                 let profile = try await getUserProfile(for: user)
@@ -367,8 +370,7 @@ final class CoachOrchestrator {
                                          success: true,
                                          tokenUsage: CoachMetrics.estimateTokens(for: text) + CoachMetrics.estimateTokens(for: response),
                                          confidence: 0.8,
-                                         fallbackUsed: false,
-                                         timestamp: Date())
+                                         fallbackUsed: false)
             }
 
             _ = try await conversationManager.createAssistantMessage(response, for: user, conversationId: conversationId, functionCall: nil, isLocalCommand: false, isError: false)
@@ -382,10 +384,9 @@ final class CoachOrchestrator {
                                              success: false,
                                              tokenUsage: nil,
                                              confidence: nil,
-                                             fallbackUsed: true,
-                                             timestamp: Date())
+                                             fallbackUsed: true)
                 CoachMetrics.record(metrics, via: routingConfiguration)
-                try await handleFunctionCalling(text: text, user: user, conversationId: conversationId, history: history, healthContext: healthContext, strategy: RoutingStrategy(route: .functionCalling, reason: "Fallback from failed direct AI", fallbackEnabled: false, timestamp: Date()))
+                try await handleFunctionCalling(text: text, user: user, conversationId: conversationId, history: history, healthContext: healthContext, strategy: RoutingStrategy(route: .functionCalling, reason: "Fallback from failed direct AI", fallbackEnabled: false))
             } else {
                 throw error
             }
@@ -402,7 +403,7 @@ final class CoachOrchestrator {
     ) async throws {
         let persona = try await personaService.getActivePersona(for: user.id)
         let systemPrompt = persona.systemPrompt + "\n\nTask context: General conversation with access to functions."
-        let currentMessage = AIChatMessage(role: .user, content: text, timestamp: Date())
+        let currentMessage = AIChatMessage(role: .user, content: text)
         let req = AIRequest(
             systemPrompt: systemPrompt,
             messages: history + [currentMessage],

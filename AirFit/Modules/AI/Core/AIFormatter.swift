@@ -3,8 +3,10 @@ import Foundation
 /// Pure formatting helpers. No side effects.
 struct AIFormatter {
 
-    // MARK: Workout
-
+    // MARK: Workout - REMOVED
+    
+    // WORKOUT TRACKING REMOVED - Analysis moved to external apps
+    /*
     func workoutAnalysisPrompt(_ request: PostWorkoutAnalysisRequest) -> String {
         let workout = request.workout
         let recent = request.recentWorkouts
@@ -36,6 +38,7 @@ struct AIFormatter {
         """
         return prompt
     }
+    */
 
     // MARK: Nutrition
 

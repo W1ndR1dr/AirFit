@@ -3,7 +3,6 @@ import SwiftData
 
 /// Read-only repository for User data access
 /// Eliminates direct SwiftData dependencies in ViewModels
-@MainActor
 final class UserReadRepository: UserReadRepositoryProtocol {
     private let modelContext: ModelContext
     
@@ -45,7 +44,7 @@ final class UserReadRepository: UserReadRepositoryProtocol {
         guard let user = try await findUser(id: userId) else {
             return false
         }
-        return user.hasCompletedOnboarding
+        return user.isOnboarded
     }
     
     func getUserProfile(userId: UUID) async throws -> UserProfile? {
@@ -55,11 +54,11 @@ final class UserReadRepository: UserReadRepositoryProtocol {
         
         return UserProfile(
             id: user.id,
-            name: user.name,
+            name: user.name ?? "Unknown",
             email: user.email,
             createdAt: user.createdAt,
             lastActiveDate: user.lastActiveDate,
-            hasCompletedOnboarding: user.hasCompletedOnboarding
+            hasCompletedOnboarding: user.isOnboarded
         )
     }
     
@@ -85,7 +84,7 @@ final class UserReadRepository: UserReadRepositoryProtocol {
         
         if let hasCompletedOnboarding = filter.hasCompletedOnboarding {
             predicates.append(#Predicate { user in
-                user.hasCompletedOnboarding == hasCompletedOnboarding
+                user.isOnboarded == hasCompletedOnboarding
             })
         }
         

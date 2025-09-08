@@ -20,8 +20,7 @@ struct CoachRouter {
             return RoutingStrategy(
                 route: forced,
                 reason: "Forced route via configuration",
-                fallbackEnabled: routingConfiguration.enableIntelligentFallback,
-                timestamp: Date()
+                fallbackEnabled: routingConfiguration.enableIntelligentFallback
             )
         }
 
@@ -35,8 +34,7 @@ struct CoachRouter {
         return RoutingStrategy(
             route: suggested,
             reason: "ContextAnalyzer heuristic",
-            fallbackEnabled: routingConfiguration.enableIntelligentFallback,
-            timestamp: Date()
+            fallbackEnabled: routingConfiguration.enableIntelligentFallback
         )
     }
 }

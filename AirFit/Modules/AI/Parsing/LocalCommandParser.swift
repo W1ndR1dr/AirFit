@@ -27,7 +27,6 @@ public enum LocalCommand: Equatable {
 
     public enum WorkoutFilter: Equatable, Hashable {
         case recent
-        case type(WorkoutType)
         case thisWeek
         case thisMonth
     }
@@ -122,7 +121,7 @@ final class LocalCommandParser {
     private func parseTabNavigation(_ input: String) -> LocalCommand? {
         let tabPatterns: [(pattern: String, tab: AppTab)] = [
             ("food|nutrition|meal", .nutrition),
-            ("workout|exercise|gym", .workouts),
+            ("workout|exercise|gym", .body),
             ("coach|chat|ai", .chat),
             ("today|overview|home", .today),
             ("body|metric|weight|progress", .body)
@@ -183,7 +182,7 @@ final class LocalCommandParser {
             return nil
         }
 
-        // Determine filter if specified
+        // Determine filter if specified (analysis-only; no in-app logging)
         var filter: LocalCommand.WorkoutFilter?
         if input.contains("recent") || input.contains("last") {
             filter = .recent
@@ -191,12 +190,6 @@ final class LocalCommandParser {
             filter = .thisWeek
         } else if input.contains("this month") || input.contains("month") {
             filter = .thisMonth
-        } else if input.contains("strength") || input.contains("weight") {
-            filter = .type(.strength)
-        } else if input.contains("cardio") || input.contains("run") || input.contains("bike") {
-            filter = .type(.cardio)
-        } else if input.contains("flexibility") || input.contains("stretch") || input.contains("yoga") {
-            filter = .type(.flexibility)
         }
 
         return .showWorkouts(filter: filter)

@@ -1,9 +1,9 @@
 import SwiftUI
+// SwiftData removed - using repository pattern
 
 /// Dashboard content view that displays the actual dashboard UI
 struct DashboardContent: View {
-    @Environment(\.modelContext)
-    private var modelContext
+    // @Environment(\.modelContext) - removed, using repository pattern
     @Environment(\.colorScheme)
     private var colorScheme
     @EnvironmentObject private var gradientManager: GradientManager
@@ -203,6 +203,9 @@ struct DashboardContent: View {
         case .logMeal:
             // Navigate to nutrition/food logging
             coordinator.navigate(to: .nutritionDetail)
+        case .logMealWithPhoto(type: let _):
+            // Navigate to photo-based meal logging
+            coordinator.navigate(to: .nutritionDetail)
         case .startWorkout:
             // Deprecated: in-app workout logging removed
             AppLogger.info("Start workout action deprecated - redirecting to workout history", category: .app)
@@ -215,13 +218,15 @@ struct DashboardContent: View {
 
 // MARK: - Preview
 #Preview {
-    let container = ModelContainer.preview
+    // let container = ModelContainer.preview // REMOVED - Using DI
     let user = User(name: "Preview")
-    container.mainContext.insert(user)
-
-    return DashboardView(user: user)
+    
+    DashboardView(user: user)
         .withDIContainer(DIContainer()) // Empty container for preview
-        .modelContainer(container)
+        // .modelContainer(container) // REMOVED - Using DI
+        // .onAppear {
+        //     container.mainContext.insert(user)
+        // } // REMOVED - Using DI
 }
 
 // MARK: - Dashboard Destinations
@@ -272,13 +277,41 @@ actor PlaceholderAICoachService: AICoachServiceProtocol {
     }
 }
 
-actor PlaceholderNutritionService: DashboardNutritionServiceProtocol {
-    func getTodaysSummary(for user: User) async throws -> NutritionSummary {
-        NutritionSummary()
+actor PlaceholderNutritionService: NutritionServiceProtocol {
+    func saveFoodEntry(_ entry: FoodEntry) async throws {
+        // Placeholder - do nothing
     }
-
-    func getTargets(from profile: OnboardingProfile) async throws -> NutritionTargets {
-        .default
+    
+    func getFoodEntries(for date: Date) async throws -> [FoodEntry] {
+        return []
+    }
+    
+    func deleteFoodEntry(_ entry: FoodEntry) async throws {
+        // Placeholder - do nothing
+    }
+    
+    func getFoodEntries(for user: User, date: Date) async throws -> [FoodEntry] {
+        return []
+    }
+    
+    nonisolated func calculateNutritionSummary(from entries: [FoodEntry]) -> FoodNutritionSummary {
+        return FoodNutritionSummary()
+    }
+    
+    func getRecentFoods(for user: User, limit: Int) async throws -> [FoodItem] {
+        return []
+    }
+    
+    func getMealHistory(for user: User, mealType: MealType, daysBack: Int) async throws -> [FoodEntry] {
+        return []
+    }
+    
+    nonisolated func getTargets(from profile: OnboardingProfile?) -> NutritionTargets {
+        return .default
+    }
+    
+    func getTodaysSummary(for user: User) async throws -> FoodNutritionSummary {
+        return FoodNutritionSummary()
     }
 }
 
@@ -308,6 +341,7 @@ struct WorkoutHistoryViewWrapper: View {
     let user: User
     let container: DIContainer
 
+    // WORKOUT TRACKING REMOVED - Analysis from HealthKit/external sources
     @State private var muscleGroupVolumeService: MuscleGroupVolumeServiceProtocol?
     @State private var strengthProgressionService: StrengthProgressionServiceProtocol?
     @State private var isLoading = true
@@ -321,10 +355,12 @@ struct WorkoutHistoryViewWrapper: View {
                     .task {
                         do {
                             // Resolve services asynchronously
+                            // WORKOUT TRACKING REMOVED - Using NoOp service
                             async let volumeService = container.resolve(MuscleGroupVolumeServiceProtocol.self)
                             async let strengthService = container.resolve(StrengthProgressionServiceProtocol.self)
 
-                            let (volume, strength) = try await (volumeService, strengthService)
+                            let volume = try await volumeService
+                            let strength = try await strengthService
 
                             muscleGroupVolumeService = volume
                             strengthProgressionService = strength
@@ -346,7 +382,7 @@ struct WorkoutHistoryViewWrapper: View {
                 }
                 .frame(maxWidth: .infinity, maxHeight: .infinity)
             } else if let volumeService = muscleGroupVolumeService,
-                        let strengthService = strengthProgressionService {
+                      let strengthService = strengthProgressionService {
                 WorkoutHistoryView(
                     user: user,
                     muscleGroupVolumeService: volumeService,

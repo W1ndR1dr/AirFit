@@ -1,8 +1,11 @@
+import Foundation
+import SwiftUI
 import SwiftData
+import UserNotifications
 
 /// Coordinator for managing notification module navigation and dependencies
 @MainActor
-final class NotificationsCoordinator: ObservableObject {
+final class NotificationsCoordinator {
     private let modelContext: ModelContext
     private let notificationManager: NotificationManager
     private let engagementEngine: EngagementEngine
@@ -49,51 +52,32 @@ final class NotificationsCoordinator: ObservableObject {
     }
 
     // MARK: - Live Activities
-    func startWorkoutLiveActivity(workoutType: String) async throws {
-        try await liveActivityManager.startWorkoutActivity(
-            workoutType: workoutType,
-            startTime: Date()
-        )
+    // Note: Workout activities removed per user request - no workout logging
+    
+    func startNutritionLiveActivity(dailyGoals: LiveActivityNutritionGoals) async throws {
+        try await liveActivityManager.startNutritionActivity(dailyGoal: dailyGoals)
     }
 
-    func updateWorkoutLiveActivity(
-        elapsedTime: TimeInterval,
-        heartRate: Int,
-        activeCalories: Int,
-        currentExercise: String?
+    func updateNutritionLiveActivity(
+        calories: Int,
+        protein: Double,
+        carbs: Double,
+        fat: Double,
+        mealsLogged: Int,
+        lastMealTime: Date? = nil
     ) async {
-        await liveActivityManager.updateWorkoutActivity(
-            elapsedTime: elapsedTime,
-            heartRate: heartRate,
-            activeCalories: activeCalories,
-            currentExercise: currentExercise
+        await liveActivityManager.updateNutritionActivity(
+            calories: calories,
+            protein: protein,
+            carbs: carbs,
+            fat: fat,
+            mealsLogged: mealsLogged,
+            lastMealTime: lastMealTime
         )
     }
 
-    func endWorkoutLiveActivity() async {
-        await liveActivityManager.endWorkoutActivity()
-    }
-
-    func startMealTrackingLiveActivity(mealType: MealType) async throws {
-        try await liveActivityManager.startMealTrackingActivity(mealType: mealType)
-    }
-
-    func updateMealTrackingLiveActivity(
-        itemsLogged: Int,
-        totalCalories: Int,
-        totalProtein: Double,
-        lastFoodItem: String?
-    ) async {
-        await liveActivityManager.updateMealTracking(
-            itemsLogged: itemsLogged,
-            totalCalories: totalCalories,
-            totalProtein: totalProtein,
-            lastFoodItem: lastFoodItem
-        )
-    }
-
-    func endMealTrackingLiveActivity() async {
-        await liveActivityManager.endMealTrackingActivity()
+    func endNutritionLiveActivity() async {
+        await liveActivityManager.endNutritionActivity()
     }
 
     // MARK: - Manual Notification Scheduling

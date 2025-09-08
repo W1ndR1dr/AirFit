@@ -33,7 +33,8 @@ struct AirFitApp: App {
                 let container = try ModelContainer(
                     for: User.self, OnboardingProfile.self, DailyLog.self,
                     FoodEntry.self, FoodItem.self, NutritionData.self,
-                    Workout.self, Exercise.self, ExerciseSet.self,
+                    // WORKOUT TRACKING REMOVED
+                    // Workout.self, Exercise.self, ExerciseSet.self,
                     TrackedGoal.self, CoachMessage.self, ChatSession.self,
                     ChatMessage.self, ChatAttachment.self, ConversationSession.self,
                     ConversationResponse.self, HealthKitSyncRecord.self,

@@ -105,6 +105,8 @@ final class AnalyticsService: AnalyticsServiceProtocol, ServiceProtocol {
         // In production, this would update user profile in analytics service
     }
 
+    // WORKOUT TRACKING REMOVED
+    /*
     func trackWorkoutCompleted(_ workout: Workout) async {
         let properties: [String: String] = [
             "workout_id": workout.id.uuidString,
@@ -122,6 +124,7 @@ final class AnalyticsService: AnalyticsServiceProtocol, ServiceProtocol {
         )
         await trackEvent(event)
     }
+    */
 
     func trackMealLogged(_ meal: FoodEntry) async {
         let properties: [String: String] = [
@@ -144,13 +147,10 @@ final class AnalyticsService: AnalyticsServiceProtocol, ServiceProtocol {
     func getInsights(for user: User) async throws -> UserInsights {
         AppLogger.info("Generating insights for user \(user.id)", category: .services)
 
-        // Calculate workout frequency (workouts per week)
-        let recentWorkouts = user.getRecentWorkouts(days: 30)
-        let workoutFrequency = Double(recentWorkouts.count) / 4.3 // Average weeks in a month
-
-        // Calculate average workout duration
-        let totalDuration = recentWorkouts.compactMap { $0.durationSeconds }.reduce(0, +)
-        let averageWorkoutDuration = recentWorkouts.isEmpty ? 0 : totalDuration / Double(recentWorkouts.count)
+        // WORKOUT TRACKING REMOVED - Get workout data from HealthKit instead
+        let recentWorkouts: [Any] = [] // Will be populated from HealthKit
+        let workoutFrequency = 0.0 // To be calculated from HealthKit data
+        let averageWorkoutDuration = 0.0 // To be calculated from HealthKit data
 
         // Calculate calorie trend
         let recentMeals = user.getRecentMeals(days: 14)
@@ -243,10 +243,12 @@ final class AnalyticsService: AnalyticsServiceProtocol, ServiceProtocol {
         return streak
     }
 
-    private func generateAchievements(for user: User, workouts: [Workout], meals: [FoodEntry]) -> [UserAchievement] {
+    // WORKOUT TRACKING REMOVED
+    private func generateAchievements(for user: User, workouts: [Any], meals: [FoodEntry]) -> [UserAchievement] {
         var achievements: [UserAchievement] = []
 
-        // First workout achievement
+        // WORKOUT TRACKING REMOVED - Achievement tracking via HealthKit
+        /*
         if !workouts.isEmpty {
             achievements.append(UserAchievement(
                 id: "first_workout",
@@ -256,6 +258,7 @@ final class AnalyticsService: AnalyticsServiceProtocol, ServiceProtocol {
                 icon: "figure.run"
             ))
         }
+        */
 
         // 7-day streak achievement
         if calculateStreakDays(for: user) >= 7 {
@@ -268,7 +271,8 @@ final class AnalyticsService: AnalyticsServiceProtocol, ServiceProtocol {
             ))
         }
 
-        // 10 workouts achievement
+        // WORKOUT TRACKING REMOVED - Milestone tracking via HealthKit
+        /*
         if user.workouts.count >= 10 {
             achievements.append(UserAchievement(
                 id: "ten_workouts",
@@ -278,6 +282,7 @@ final class AnalyticsService: AnalyticsServiceProtocol, ServiceProtocol {
                 icon: "star.fill"
             ))
         }
+        */
 
         // Balanced nutrition achievement
         let macroBalance = calculateMacroBalance(from: meals)

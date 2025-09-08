@@ -1,5 +1,5 @@
 import Foundation
-import Combine
+@preconcurrency import Combine
 import os
 
 // MARK: - Chat Streaming Store Protocol
@@ -31,9 +31,10 @@ public struct ChatStreamingEvent: Sendable {
 
 // MARK: - Default Implementation
 
-public final class DefaultChatStreamingStore: ChatStreamingStore, _ChatStreamingEventSource {
+public final class DefaultChatStreamingStore: ChatStreamingStore, _ChatStreamingEventSource, @unchecked Sendable {
     private let subject = PassthroughSubject<ChatStreamingEvent, Never>()
     private let logger = OSLog(subsystem: "com.airfit", category: "streaming")
+    private let lock = NSLock()
     private var activeStreams: [UUID: StreamMetrics] = [:]
     
     var events: AnyPublisher<ChatStreamingEvent, Never> { subject.eraseToAnyPublisher() }

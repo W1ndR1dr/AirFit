@@ -1,11 +1,12 @@
 import SwiftUI
+// SwiftData removed - using repository pattern
 
 /// Today Dashboard - Overview of the user's day with AI insights and quick actions
 struct TodayDashboardView: View {
     let user: User
     @State private var viewModel: DashboardViewModel?
     @Environment(\.diContainer) private var container
-    @Environment(\.modelContext) private var modelContext
+    // @Environment(\.modelContext) - removed, using repository pattern
     @Environment(\.colorScheme) private var colorScheme
     @EnvironmentObject private var gradientManager: GradientManager
 
@@ -618,11 +619,10 @@ struct ProgressRingView: View {
 // MARK: - Preview
 
 #Preview {
-    let container = ModelContainer.preview
+    // let container = ModelContainer.preview // REMOVED - Using DI
     let user = User(name: "Preview")
-    container.mainContext.insert(user)
-
-    return TodayDashboardView(user: user)
+    
+    TodayDashboardView(user: user)
         .withDIContainer(DIContainer())
-        .modelContainer(container)
+        // .modelContainer(container) // REMOVED - Using DI
 }

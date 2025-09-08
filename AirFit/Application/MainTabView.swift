@@ -50,14 +50,6 @@ struct MainTabView: View {
                     Label(AppTab.nutrition.displayName, systemImage: AppTab.nutrition.systemImage)
                 }
 
-                // Workouts - Enhanced workout dashboard
-                NavigationStack {
-                    WorkoutDashboardView(user: user)
-                }
-                .tag(AppTab.workouts)
-                .tabItem {
-                    Label(AppTab.workouts.displayName, systemImage: AppTab.workouts.systemImage)
-                }
 
                 // Body - Metrics & progress
                 NavigationStack {

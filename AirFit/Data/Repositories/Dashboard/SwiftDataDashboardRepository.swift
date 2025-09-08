@@ -14,12 +14,13 @@ final class SwiftDataDashboardRepository: DashboardRepositoryProtocol {
     func logEnergyLevel(_ level: Int, for user: User) throws -> DailyLog {
         // Get or create today's log
         let today = Calendar.current.startOfDay(for: Date())
-        var descriptor = FetchDescriptor<DailyLog>()
-        descriptor.predicate = #Predicate { log in
+        // iOS 26 workaround: Fetch all and filter manually
+        let descriptor = FetchDescriptor<DailyLog>()
+        
+        let allLogs = try context.fetch(descriptor)
+        let logs = allLogs.filter { log in
             log.date == today
         }
-        
-        let logs = try context.fetch(descriptor)
         let dailyLog: DailyLog
         
         if let existingLog = logs.first {
@@ -39,12 +40,13 @@ final class SwiftDataDashboardRepository: DashboardRepositoryProtocol {
     
     func getCurrentEnergyLevel(for user: User) throws -> Int? {
         let today = Calendar.current.startOfDay(for: Date())
-        var descriptor = FetchDescriptor<DailyLog>()
-        descriptor.predicate = #Predicate { log in
+        // iOS 26 workaround: Fetch all and filter manually
+        let descriptor = FetchDescriptor<DailyLog>()
+        
+        let allLogs = try context.fetch(descriptor)
+        let logs = allLogs.filter { log in
             log.date == today
         }
-        
-        let logs = try context.fetch(descriptor)
         return logs.first?.subjectiveEnergyLevel
     }
     

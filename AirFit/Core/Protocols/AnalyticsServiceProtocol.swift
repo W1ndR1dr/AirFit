@@ -6,7 +6,8 @@ protocol AnalyticsServiceProtocol: AnyObject, Sendable {
     func trackEvent(_ event: AnalyticsEvent) async
     func trackScreen(_ screen: String, properties: [String: String]?) async
     func setUserProperties(_ properties: [String: String]) async
-    func trackWorkoutCompleted(_ workout: Workout) async
+    // WORKOUT TRACKING REMOVED
+    // func trackWorkoutCompleted(_ workout: Workout) async
     func trackMealLogged(_ meal: FoodEntry) async
     func getInsights(for user: User) async throws -> UserInsights
 }

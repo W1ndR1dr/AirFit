@@ -51,10 +51,10 @@ final class ChatSuggestionsEngine: ServiceProtocol {
             ])
         }
 
-        // Incorporate simple history signals
-        if !userContext.getRecentWorkouts().isEmpty {
-            contextual.append(ContextualAction(title: "Last Workout Summary", icon: "chart.bar"))
-        }
+        // WORKOUT TRACKING REMOVED
+        // if !userContext.getRecentWorkouts().isEmpty {
+        //     contextual.append(ContextualAction(title: "Last Workout Summary", icon: "chart.bar"))
+        // }
         if !userContext.getRecentMeals().isEmpty {
             contextual.append(ContextualAction(title: "Recent Meals", icon: "fork.knife"))
         }

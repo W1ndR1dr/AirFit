@@ -430,15 +430,16 @@ private struct StreamingAssistantText: View {
 }
 
 // MARK: - Mock Services
-private final class ChatMockCoachEngine: CoachEngineProtocol, @unchecked Sendable {
-    func generatePostWorkoutAnalysis(_ request: PostWorkoutAnalysisRequest) async throws -> String {
-        return "Great workout. You completed \(request.workout.exercises.count) exercises. Keep up the excellent work."
-    }
-
-    func processUserMessage(_ text: String, for user: User) async {
-        // Mock implementation - no-op for preview
-    }
-}
+// WORKOUT TRACKING REMOVED - Mock removed as it referenced workout analysis
+// private final class ChatMockCoachEngine: CoachEngineProtocol, @unchecked Sendable {
+//     func generatePostWorkoutAnalysis(_ request: PostWorkoutAnalysisRequest) async throws -> String {
+//         return "Great workout. You completed \(request.workout.exercises.count) exercises. Keep up the excellent work."
+//     }
+//
+//     func processUserMessage(_ text: String, for user: User) async {
+//         // Mock implementation - no-op for preview
+//     }
+// }
 
 // MARK: - Placeholder Types
 
@@ -597,7 +598,7 @@ struct TextStreamMessage: View {
             message.roleEnum == .user ? .thin : .regular,
             in: .rect(cornerRadius: 16)
         )
-        .glassEffectID("message-\(message.id)", in: messageMorphing)
+        // .glassEffectID("message-\(message.id)", in: messageMorphing) // TODO: Implement glass effect
         .contextMenu {
             messageContextMenu
         }

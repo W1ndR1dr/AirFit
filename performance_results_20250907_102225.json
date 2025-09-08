@@ -1,0 +1,51 @@
+{
+  "timestamp": "2025-09-07T17:22:25Z",
+  "device": "iPhone 16 Pro",
+  "os_version": "iOS 18.4",
+  "app_version": "TBD",
+  "branch": "claude/T30-final-gate-sweep",
+  "benchmarks": {
+    "build_performance": {
+      "status": "failed"
+    },
+    "test_performance": {
+      "status": "failed"
+    },
+    "code_quality": {
+      "swiftlint_seconds": 1,
+      "error_count": 0,
+      "status": "completed"
+    },
+    "manual_tests": {
+      "instructions": "These tests require physical device execution",
+      "tests": [
+        {
+          "name": "app_launch_time",
+          "target_seconds": 1.0,
+          "instructions": "Force close app, start timer, tap icon, stop when interactive"
+        },
+        {
+          "name": "time_to_first_token",
+          "target_seconds": 2.0,
+          "instructions": "Send chat message, time until first AI token appears"
+        },
+        {
+          "name": "context_assembly_time",
+          "target_seconds": 3.0,
+          "instructions": "Pull to refresh dashboard, time until all cards populated"
+        },
+        {
+          "name": "memory_usage_baseline",
+          "target_mb": 200,
+          "instructions": "Use app for 10 minutes, check for crashes and performance"
+        },
+        {
+          "name": "battery_impact_test",
+          "target_percent": 5,
+          "duration_minutes": 30,
+          "instructions": "Use app actively for 30 mins, check battery usage"
+        }
+      ]
+    }
+  }
+}

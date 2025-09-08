@@ -1,4 +1,5 @@
 import SwiftUI
+// SwiftData removed - using repository pattern
 import Charts
 
 /// Enhanced Nutrition Dashboard - Comprehensive nutrition tracking with AI insights
@@ -6,7 +7,7 @@ struct NutritionDashboardView: View {
     let user: User
     @State private var viewModel: FoodTrackingViewModel?
     @Environment(\.diContainer) private var container
-    @Environment(\.modelContext) private var modelContext
+    // @Environment(\.modelContext) - removed, using repository pattern
     @Environment(\.colorScheme) private var colorScheme
     @EnvironmentObject private var gradientManager: GradientManager
 
@@ -932,11 +933,10 @@ struct ComplianceCell: View {
 // MARK: - Preview
 
 #Preview {
-    let container = ModelContainer.preview
+    // let container = ModelContainer.preview // REMOVED - Using DI
     let user = User(name: "Preview")
-    container.mainContext.insert(user)
-
-    return NutritionDashboardView(user: user)
+    
+    NutritionDashboardView(user: user)
         .withDIContainer(DIContainer())
-        .modelContainer(container)
+        // .modelContainer(container) // REMOVED - Using DI
 }

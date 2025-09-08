@@ -20,7 +20,7 @@ FAILED_TESTS=0
 # Initialize results file
 echo "=== AirFit Device Validation Results ===" > $RESULTS_FILE
 echo "Date: $(date)" >> $RESULTS_FILE
-echo "Device: iPhone 16 Pro (iOS 18.4)" >> $RESULTS_FILE
+echo "Device: iPhone 16 Pro (iOS 26.0)" >> $RESULTS_FILE
 echo "Branch: claude/T30-final-gate-sweep" >> $RESULTS_FILE
 echo "" >> $RESULTS_FILE
 

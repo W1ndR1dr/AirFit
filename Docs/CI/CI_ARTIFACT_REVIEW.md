@@ -176,7 +176,7 @@ ENFORCE_QUALITY=("DEBUG_PRINT" "HARDCODED_STRING" "ACCESS_CONTROL")
     # Run performance tests
     xcodebuild test \
       -scheme AirFit \
-      -destination 'platform=iOS Simulator,name=iPhone 16 Pro,OS=18.4' \
+      -destination 'platform=iOS Simulator,name=iPhone 16 Pro,OS=26.0' \
       -testPlan AirFit-Performance \
       -resultBundlePath TestResults/performance.xcresult
       

@@ -6,7 +6,7 @@ final class ChatViewModel: ObservableObject, ErrorHandling {
     // MARK: - Dependencies
     private let chatHistoryRepository: ChatHistoryRepositoryProtocol
     let user: User
-    private let coachEngine: CoachEngineProtocol
+    private let coachEngine: CoachEngine
     private let aiService: AIServiceProtocol
     var voiceManager: VoiceInputManager
     private let coordinator: ChatCoordinator
@@ -39,7 +39,7 @@ final class ChatViewModel: ObservableObject, ErrorHandling {
     init(
         chatHistoryRepository: ChatHistoryRepositoryProtocol,
         user: User,
-        coachEngine: CoachEngineProtocol,
+        coachEngine: CoachEngine,
         aiService: AIServiceProtocol,
         coordinator: ChatCoordinator,
         voiceManager: VoiceInputManager,

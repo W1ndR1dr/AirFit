@@ -16,7 +16,9 @@ protocol HealthKitManaging: AnyObject, Sendable {
     func fetchRecentWorkouts(limit: Int) async throws -> [WorkoutData]
     func saveFoodEntry(_ entry: FoodEntry) async throws -> [String]
     func getNutritionData(for date: Date) async throws -> HealthKitNutritionSummary
-    func saveWorkout(_ workout: Workout) async throws -> String
+    // Note: Workout saving is now handled through external apps (HEVY, Apple Workouts)
+    // Local workout creation has been removed to eliminate SwiftData dependencies
+    // func saveWorkout(_ workout: Workout) async throws -> String
     func deleteWorkout(healthKitID: String) async throws
 
     // Body metrics methods

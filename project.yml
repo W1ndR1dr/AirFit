@@ -23,6 +23,7 @@ options:
 settings:
   SWIFT_VERSION: "6.0"
   IPHONEOS_DEPLOYMENT_TARGET: "26.0"
+  RECOMMENDED_IPHONEOS_DEPLOYMENT_TARGET: "26.0"
   ENABLE_STRICT_CONCURRENCY: YES
   SWIFT_STRICT_CONCURRENCY: complete
   DEAD_CODE_STRIPPING: YES
@@ -169,7 +170,7 @@ targets:
             <key>UILaunchScreen</key>
             <dict/>
             <key>MinimumOSVersion</key>
-            <string>18.4</string>
+            <string>26.0</string>
             <key>UIRequiredDeviceCapabilities</key>
             <array>
               <string>arm64</string>

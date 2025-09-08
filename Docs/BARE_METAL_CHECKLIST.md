@@ -3,7 +3,7 @@
 Use this as a fast, repeatable sanity list during cleanup.
 
 ## App Boot
-- [x] Build passes (iOS 18.4 sim)
+- [x] Build passes (iOS 26.0 simulator)
 - [x] Launch to Today tab without keys
 - [x] Create user path works (no crashes)
 - [x] Onboarding gated/simplified (no heavy flows by default)
@@ -36,4 +36,3 @@ Use this as a fast, repeatable sanity list during cleanup.
 - [x] XcodeGen → build loop documented
 - [x] SwiftLint strict documented (can tune noisy rules later)
 - [x] Claude wrapper + docs verified
-

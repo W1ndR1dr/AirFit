@@ -2,6 +2,12 @@ import Foundation
 import WatchConnectivity
 import Combine
 
+// WORKOUT TRACKING REMOVED - Stub for compatibility
+struct PlannedWorkoutData: Codable {
+    let id: UUID = UUID()
+    // Empty stub - workout tracking moved to external apps
+}
+
 /// # WatchStatusStore
 ///
 /// ## Purpose
@@ -104,11 +110,11 @@ final class WatchStatusStore: ObservableObject {
     /// Background retry task
     private var retryTask: Task<Void, Never>?
     
-    /// Internal queue storage
+    /// Internal queue storage (empty - workout tracking removed)
     private var queuedPlans: [QueuedPlan] = [] {
         didSet {
             queuedPlansCount = queuedPlans.count
-            persistQueue()
+            // persistQueue() // Disabled - no workout data to persist
         }
     }
     
@@ -118,14 +124,17 @@ final class WatchStatusStore: ObservableObject {
         self.session = WCSession.default
         
         setupSession()
-        loadPersistedQueue()
+        // loadPersistedQueue() // WORKOUT TRACKING REMOVED
         loadPersistedStats()
         setupStatusMonitoring()
         
-        AppLogger.info("WatchStatusStore initialized with \(queuedPlans.count) persisted items", category: .services)
+        AppLogger.info("WatchStatusStore initialized (workout queue disabled)", category: .services)
     }
     
-    deinit {
+    // iOS 26: deinit can't access non-Sendable properties from @MainActor
+    // Cleanup should be done explicitly when needed
+    @MainActor
+    func cleanup() {
         reachabilityTimer?.invalidate()
         retryTask?.cancel()
     }
@@ -155,7 +164,7 @@ final class WatchStatusStore: ObservableObject {
         $overallStatus
             .removeDuplicates()
             .sink { [weak self] status in
-                if status == .available && !self?.queuedPlans.isEmpty == true {
+                if status == .available && (self?.queuedPlans.isEmpty == false) {
                     AppLogger.info("Watch became available, scheduling queue processing", category: .services)
                     self?.scheduleQueueRetry(delay: 0.5) // Small delay to ensure stable connection
                 }
@@ -192,6 +201,8 @@ final class WatchStatusStore: ObservableObject {
         AppLogger.info("Watch status refreshed: \(overallStatus)", category: .services)
     }
     
+    // WORKOUT TRACKING REMOVED - Queue functionality disabled
+    /*
     /// Add a workout plan to the persistent queue
     func queuePlan(_ plan: PlannedWorkoutData, reason: QueueReason = .watchUnavailable) {
         // Check queue size limit
@@ -259,6 +270,10 @@ final class WatchStatusStore: ObservableObject {
         await processQueue()
     }
     
+    */
+    
+    // WORKOUT TRACKING REMOVED - Queue processing disabled
+    /*
     /// Process the queue (attempt transfers)
     /// This method is designed to be called by the transfer service
     func processQueue(using transferHandler: @escaping (PlannedWorkoutData) async throws -> Void) async {
@@ -323,6 +338,10 @@ final class WatchStatusStore: ObservableObject {
         }
     }
     
+    */
+    
+    // WORKOUT TRACKING REMOVED - Retry processing disabled
+    /*
     /// Enhanced queue processing with exponential backoff retry
     func processQueueWithRetry(using transferHandler: @escaping (PlannedWorkoutData) async throws -> Void) async {
         guard !isProcessingQueue else {
@@ -415,6 +434,12 @@ final class WatchStatusStore: ObservableObject {
         }
         
         AppLogger.info("Enhanced queue processing complete. Processed: \(processedItems.count), Failed: \(failedItems.count), Remaining: \(queuedPlans.count)", category: .services)
+    }
+    */
+    
+    // WORKOUT TRACKING REMOVED - Stub for compatibility
+    private func processQueue() async {
+        // No-op - workout tracking moved to external apps
     }
     
     // MARK: - Internal Status Updates
@@ -600,9 +625,10 @@ final class WatchStatusStore: ObservableObject {
 
 // MARK: - Supporting Models
 
+// WORKOUT TRACKING REMOVED - QueuedPlan kept for watch connectivity status
 /// Queue item with metadata and enhanced retry tracking
 struct QueuedPlan: Codable {
-    let plan: PlannedWorkoutData
+    let plan: PlannedWorkoutData // Now using stub type
     let queuedAt: Date
     let reason: QueueReason
     var retryCount: Int
@@ -633,6 +659,7 @@ struct QueuedPlan: Codable {
     }
 }
 
+// QueueReason still needed for status tracking even without workout transfer
 /// Reasons why a plan was queued
 enum QueueReason: String, Codable, CaseIterable {
     case watchUnavailable = "watch_unavailable"

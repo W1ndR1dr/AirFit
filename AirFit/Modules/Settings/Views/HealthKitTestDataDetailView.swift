@@ -317,7 +317,7 @@ struct HealthKitTestDataDetailView: View {
         isGenerating = true
         statusMessage = "Requesting HealthKit authorization..."
 
-        Task {
+        Task { @MainActor in
             do {
                 // Get HealthKit manager from DI container
                 let healthKitManager = try await container.resolve(HealthKitManaging.self)

@@ -130,9 +130,9 @@ final class UserDataExporter: ServiceProtocol {
             let date = DateFormatter.shortFormatter.string(from: workout.completedDate ?? workout.plannedDate ?? Date())
             let duration = formatDuration(workout.durationSeconds ?? 0)
             let exercises = workout.exercises.map { $0.name }.joined(separator: "; ")
-            let notes = workout.notes ?? ""
+            let notes = "" // WORKOUT TRACKING REMOVED - notes property removed
 
-            csv += "\(date),\(workout.workoutType),\(duration),\(workout.caloriesBurned ?? 0),\"\(exercises)\",\"\(notes)\"\n"
+            csv += "\(date),\(workout.workoutType),\(duration),0,\"\(exercises)\",\"\(notes)\"\n" // caloriesBurned removed
         }
 
         return csv
@@ -268,9 +268,9 @@ struct WorkoutExportData: Codable {
         self.type = workout.workoutType
         self.startTime = workout.completedDate ?? workout.plannedDate
         self.duration = workout.durationSeconds
-        self.totalCalories = workout.caloriesBurned
+        self.totalCalories = nil // WORKOUT TRACKING REMOVED - caloriesBurned removed
         self.exercises = workout.exercises.map(ExerciseExportData.init)
-        self.notes = workout.notes
+        self.notes = nil // WORKOUT TRACKING REMOVED - notes removed
     }
 }
 

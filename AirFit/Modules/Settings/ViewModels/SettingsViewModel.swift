@@ -1,4 +1,5 @@
 import SwiftUI
+// SwiftData removed - using DataExporterProtocol
 import Observation
 
 @MainActor
@@ -12,6 +13,7 @@ final class SettingsViewModel: ErrorHandling {
     private let aiService: AIServiceProtocol
     private let notificationManager: NotificationManager
     private let coordinator: SettingsCoordinator
+    private let dataExporter: DataExporterProtocol
 
     // MARK: - Published State
     private(set) var isLoading = false
@@ -60,7 +62,8 @@ final class SettingsViewModel: ErrorHandling {
         apiKeyManager: APIKeyManagementProtocol,
         aiService: AIServiceProtocol,
         notificationManager: NotificationManager,
-        coordinator: SettingsCoordinator
+        coordinator: SettingsCoordinator,
+        dataExporter: DataExporterProtocol
     ) {
         self.settingsRepository = settingsRepository
         self.userWriteRepository = userWriteRepository
@@ -69,6 +72,7 @@ final class SettingsViewModel: ErrorHandling {
         self.aiService = aiService
         self.notificationManager = notificationManager
         self.coordinator = coordinator
+        self.dataExporter = dataExporter
 
         // Initialize with user's current preferences
         self.preferredUnits = user.preferredUnitsEnum
@@ -275,8 +279,7 @@ final class SettingsViewModel: ErrorHandling {
         isLoading = true
         defer { isLoading = false }
 
-        let exporter = UserDataExporter(modelContext: modelContext)
-        let exportURL = try await exporter.exportAllData(for: user)
+        let exportURL = try await dataExporter.exportAllData(for: user)
 
         // Record export
         let export = DataExport(

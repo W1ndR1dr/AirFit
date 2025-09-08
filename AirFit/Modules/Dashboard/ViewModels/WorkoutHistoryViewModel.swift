@@ -3,6 +3,7 @@ import Observation
 import Charts
 
 /// ViewModel for workout history view with real data
+/// Note: Stubbed - workout tracking moved to external apps (HEVY/Apple Workouts)
 @MainActor
 @Observable
 final class WorkoutHistoryViewModel {
@@ -20,11 +21,11 @@ final class WorkoutHistoryViewModel {
     private(set) var frequencyData: [FrequencyDataPoint] = []
     private(set) var currentWeekFrequency: Int = 0
 
-    // Recent workouts
-    private(set) var recentWorkouts: [Workout] = []
-
     // Personal records
     private(set) var recentPRs: [PersonalRecord] = []
+    
+    // WORKOUT TRACKING REMOVED - Stub for compatibility
+    private(set) var recentWorkouts: [Any] = []
 
     // MARK: - Dependencies
     private let user: User
@@ -143,195 +144,48 @@ final class WorkoutHistoryViewModel {
     }
 
     private func loadVolumeData() async {
-        let calendar = Calendar.current
-        let endDate = Date()
-        let startDate = calendar.date(byAdding: .day, value: -selectedTimeframe.days, to: endDate) ?? endDate
-
-        // Get workouts in timeframe
-        let workouts = user.workouts.filter { workout in
-            guard let completedDate = workout.completedDate else { return false }
-            return completedDate >= startDate && completedDate <= endDate
-        }
-
-        // Filter by muscle group if needed
-        let filteredWorkouts = filterWorkoutsByMuscleGroup(workouts)
-
-        // Calculate daily volumes
-        var dailyVolumes: [Date: Double] = [:]
-
-        for workout in filteredWorkouts {
-            guard let date = workout.completedDate else { continue }
-            let dayStart = calendar.startOfDay(for: date)
-
-            let workoutVolume = calculateWorkoutVolume(workout)
-            dailyVolumes[dayStart, default: 0] += workoutVolume
-        }
-
-        // Create data points for every day in range
-        var dataPoints: [VolumeDataPoint] = []
-        var currentDate = startDate
-        var totalVol: Double = 0
-
-        while currentDate <= endDate {
-            let dayStart = calendar.startOfDay(for: currentDate)
-            let volume = dailyVolumes[dayStart] ?? 0
-            dataPoints.append(VolumeDataPoint(date: dayStart, volume: volume))
-            totalVol += volume
-            currentDate = calendar.date(byAdding: .day, value: 1, to: currentDate) ?? endDate
-        }
-
-        self.volumeData = dataPoints
-        self.totalVolume = totalVol
-
-        // Calculate weekly average
-        let weeks = Double(selectedTimeframe.days) / 7.0
-        self.weeklyAverage = totalVol / weeks
-
-        // Calculate progress vs previous period
-        let previousStartDate = calendar.date(byAdding: .day, value: -selectedTimeframe.days, to: startDate) ?? startDate
-        let previousWorkouts = user.workouts.filter { workout in
-            guard let completedDate = workout.completedDate else { return false }
-            return completedDate >= previousStartDate && completedDate < startDate
-        }
-
-        let previousVolume = filterWorkoutsByMuscleGroup(previousWorkouts)
-            .reduce(0) { $0 + calculateWorkoutVolume($1) }
-
-        if previousVolume > 0 {
-            self.volumeProgress = ((totalVol - previousVolume) / previousVolume) * 100
-        } else {
-            self.volumeProgress = 0
-        }
+        // Note: Stubbed - workout tracking moved to external apps (HEVY/Apple Workouts)
+        // Volume data should come from HealthKit integration
+        
+        // Set empty data until HealthKit integration is implemented
+        self.volumeData = []
+        self.totalVolume = 0
+        self.weeklyAverage = 0
+        self.volumeProgress = 0
+        
+        AppLogger.info("Volume data loading stubbed - awaiting HealthKit integration", category: .data)
     }
 
     private func loadFrequencyData() async {
-        let calendar = Calendar.current
-        let today = calendar.component(.weekday, from: Date())
-
-        // Initialize frequency array for 7 days
-        var weekdayFrequency = Array(repeating: 0, count: 7)
-
-        // Count workouts for each weekday in the selected timeframe
-        let endDate = Date()
-        let startDate = calendar.date(byAdding: .day, value: -selectedTimeframe.days, to: endDate) ?? endDate
-
-        let workouts = user.workouts.filter { workout in
-            guard let completedDate = workout.completedDate else { return false }
-            return completedDate >= startDate && completedDate <= endDate
-        }
-
-        let filteredWorkouts = filterWorkoutsByMuscleGroup(workouts)
-
-        for workout in filteredWorkouts {
-            guard let date = workout.completedDate else { continue }
-            let weekday = calendar.component(.weekday, from: date)
-            weekdayFrequency[weekday - 1] += 1
-        }
-
-        // Create frequency data points
-        let weekdaySymbols = Formatters.shortWeekdaySymbols
-        var dataPoints: [FrequencyDataPoint] = []
-
-        for (index, count) in weekdayFrequency.enumerated() {
-            let weekdayName = index < weekdaySymbols.count ? weekdaySymbols[index] : "Day \(index + 1)"
-            let isToday = (index + 1) == today
-            dataPoints.append(FrequencyDataPoint(
-                weekday: weekdayName,
-                count: count,
-                isToday: isToday
-            ))
-        }
-
-        self.frequencyData = dataPoints
-
-        // Calculate current week frequency
-        let currentWeekStart = calendar.dateInterval(of: .weekOfYear, for: Date())?.start ?? Date()
-        self.currentWeekFrequency = filteredWorkouts.filter { workout in
-            guard let date = workout.completedDate else { return false }
-            return date >= currentWeekStart
-        }.count
+        // Note: Stubbed - workout tracking moved to external apps (HEVY/Apple Workouts)
+        // Frequency data should come from HealthKit integration
+        
+        // Set empty data until HealthKit integration is implemented
+        self.frequencyData = []
+        self.currentWeekFrequency = 0
+        
+        AppLogger.info("Frequency data loading stubbed - awaiting HealthKit integration", category: .data)
     }
 
     private func loadRecentWorkouts() async {
-        let workouts = user.workouts
-            .filter { $0.completedDate != nil }
-            .sorted { ($0.completedDate ?? Date.distantPast) > ($1.completedDate ?? Date.distantPast) }
-
-        self.recentWorkouts = filterWorkoutsByMuscleGroup(Array(workouts.prefix(10)))
+        // Note: Stubbed - workout tracking moved to external apps (HEVY/Apple Workouts)
+        // Recent workout data should come from HealthKit integration
+        
+        AppLogger.info("Recent workouts loading stubbed - awaiting HealthKit integration", category: .data)
     }
 
     private func loadPersonalRecords() async {
-        do {
-            // Get recent PRs
-            let strengthRecords = user.strengthRecords
-                .sorted { $0.recordedDate > $1.recordedDate }
-                .prefix(5)
-
-            var records: [PersonalRecord] = []
-
-            for record in strengthRecords {
-                // Calculate improvement
-                let history = try await strengthProgressionService.getStrengthHistory(
-                    exercise: record.exerciseName,
-                    user: user,
-                    days: 90
-                )
-
-                var improvement: Double = 0
-                if history.count >= 2 {
-                    let previousPR = history[history.count - 2].oneRepMax
-                    improvement = ((record.oneRepMax - previousPR) / previousPR) * 100
-                }
-
-                // Filter by muscle group if needed
-                if selectedMuscleGroup != .all {
-                    // Check if exercise works the selected muscle group
-                    let exerciseMuscles = getMusclGroupsForExercise(record.exerciseName)
-                    if !exerciseMuscles.contains(selectedMuscleGroup.rawValue) {
-                        continue
-                    }
-                }
-
-                records.append(PersonalRecord(
-                    exercise: record.exerciseName,
-                    weight: record.oneRepMax,
-                    improvement: improvement,
-                    date: record.recordedDate
-                ))
-            }
-
-            self.recentPRs = records
-
-        } catch {
-            AppLogger.error("Failed to load personal records", error: error, category: .data)
-            self.recentPRs = []
-        }
+        // Note: Stubbed - strength tracking moved to HealthKit integration
+        // Personal records should come from HealthKit strength training data
+        
+        self.recentPRs = []
+        AppLogger.info("Personal records loading stubbed - awaiting HealthKit integration", category: .data)
     }
 
-    private func calculateWorkoutVolume(_ workout: Workout) -> Double {
-        var volume: Double = 0
-
-        for exercise in workout.exercises {
-            for set in exercise.sets where set.isCompleted {
-                let weight = set.completedWeightKg ?? 0
-                let reps = Double(set.completedReps ?? 0)
-                volume += weight * reps
-            }
-        }
-
-        return volume
-    }
-
-    private func filterWorkoutsByMuscleGroup(_ workouts: [Workout]) -> [Workout] {
-        guard selectedMuscleGroup != .all else { return workouts }
-
-        return workouts.filter { workout in
-            workout.exercises.contains { exercise in
-                exercise.muscleGroups.contains(selectedMuscleGroup.rawValue)
-            }
-        }
-    }
-
+    // Note: Helper methods stubbed - workout processing now handled via HealthKit
+    // private func calculateWorkoutVolume(_ workout: Workout) -> Double { ... }
+    // private func filterWorkoutsByMuscleGroup(_ workouts: [Workout]) -> [Workout] { ... }
+    
     private func getMusclGroupsForExercise(_ exerciseName: String) -> [String] {
         // Simple mapping - in a real app this would come from exercise database
         let exerciseLower = exerciseName.lowercased()
