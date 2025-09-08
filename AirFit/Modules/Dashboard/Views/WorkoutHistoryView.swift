@@ -339,20 +339,12 @@ struct WorkoutHistoryView: View {
                 action: { dismiss() }
             )
 
-            if viewModel.recentWorkouts.isEmpty {
-                Text("No workouts recorded yet")
-                    .font(.system(size: 16))
-                    .foregroundColor(.secondary)
-                    .frame(maxWidth: .infinity)
-                    .padding(.vertical, AppSpacing.xl)
-            } else {
-                VStack(spacing: AppSpacing.md) {
-                    ForEach(viewModel.recentWorkouts.prefix(3)) { workout in
-                        workoutRow(workout: workout)
-                    }
-                }
-                .padding(.horizontal, AppSpacing.screenPadding)
-            }
+            // WORKOUT TRACKING REMOVED - Always show empty state
+            Text("Workout tracking moved to external apps (HEVY, Apple Workouts)")
+                .font(.system(size: 16))
+                .foregroundColor(.secondary)
+                .frame(maxWidth: .infinity)
+                .padding(.vertical, AppSpacing.xl)
         }
     }
 

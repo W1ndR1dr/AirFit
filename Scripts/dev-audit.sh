@@ -5,7 +5,7 @@ set -euo pipefail
 # Safe to run repeatedly; gracefully skips steps if tools are missing.
 
 SCHEME=${SCHEME:-AirFit}
-DEST=${DEST:-platform=iOS Simulator,name=iPhone 16 Pro,OS=18.4}
+DEST=${DEST:-platform=iOS Simulator,name=iPhone 16 Pro,OS=26.0}
 
 echo "== Tooling check =="
 for tool in xcodegen xcodebuild swiftlint rg; do

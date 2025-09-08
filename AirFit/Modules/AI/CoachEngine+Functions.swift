@@ -1,3 +1,5 @@
+import Foundation
+
 extension CoachEngine {
     func handleFunctionCall(
         _ functionCall: AIFunctionCall,

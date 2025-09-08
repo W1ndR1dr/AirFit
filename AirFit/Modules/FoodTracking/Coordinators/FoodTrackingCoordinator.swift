@@ -1,4 +1,8 @@
 
+import Foundation
+import SwiftUI
+import Observation
+
 // MARK: - Navigation Destinations
 enum FoodTrackingDestination: Hashable {
     case history

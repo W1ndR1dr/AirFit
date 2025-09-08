@@ -151,7 +151,7 @@ public struct QuickAction: Sendable, Identifiable {
     public enum QuickActionType: Sendable, Equatable, Hashable {
         case logMeal(type: MealType)
         case logMealWithPhoto(type: MealType)
-        case startWorkout // Deprecated: in-app workout logging removed
+        case startWorkout // WORKOUT TRACKING REMOVED - kept for compatibility, redirects to body tab
         case checkIn
     }
 

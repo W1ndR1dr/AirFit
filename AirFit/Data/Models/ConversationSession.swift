@@ -2,7 +2,7 @@ import Foundation
 import SwiftData
 
 @Model
-final class ConversationSession {
+final class ConversationSession: @unchecked Sendable {
     @Attribute(.unique) var id: UUID
     var userId: UUID
     var startedAt: Date

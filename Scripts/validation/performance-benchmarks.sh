@@ -22,7 +22,7 @@ cat > $PERFORMANCE_LOG << EOF
 {
   "timestamp": "$(date -u +%Y-%m-%dT%H:%M:%SZ)",
   "device": "iPhone 16 Pro",
-  "os_version": "iOS 18.4",
+  "os_version": "iOS 26.0",
   "app_version": "TBD",
   "branch": "claude/T30-final-gate-sweep",
   "benchmarks": {
@@ -45,7 +45,7 @@ if xcodegen generate > /dev/null 2>&1; then
     
     # Test build
     BUILD_START_TIME=$(date +%s)
-    if xcodebuild build -scheme AirFit -destination 'platform=iOS Simulator,name=iPhone 16 Pro,OS=18.4' -configuration Debug > /dev/null 2>&1; then
+    if xcodebuild build -scheme AirFit -destination 'platform=iOS Simulator,name=iPhone 16 Pro,OS=26.0' -configuration Debug > /dev/null 2>&1; then
         BUILD_END_TIME=$(date +%s)
         BUILD_DURATION=$((BUILD_END_TIME - BUILD_START_TIME))
         echo -e "${GREEN}✅ Build successful: ${BUILD_DURATION}s${NC}"
@@ -75,7 +75,7 @@ echo "=== Test Performance ==="
 
 # Run unit tests with timing
 TEST_START_TIME=$(date +%s)
-if xcodebuild test -scheme AirFit -destination 'platform=iOS Simulator,name=iPhone 16 Pro,OS=18.4' -testPlan AirFit-Unit > /dev/null 2>&1; then
+if xcodebuild test -scheme AirFit -destination 'platform=iOS Simulator,name=iPhone 16 Pro,OS=26.0' -testPlan AirFit-Unit > /dev/null 2>&1; then
     TEST_END_TIME=$(date +%s)
     TEST_DURATION=$((TEST_END_TIME - TEST_START_TIME))
     echo -e "${GREEN}✅ Unit tests passed: ${TEST_DURATION}s${NC}"
@@ -281,7 +281,7 @@ Copy this template for recording manual test results:
 
 === PERFORMANCE TEST RESULTS ===
 Date: $(date)
-Device: iPhone 16 Pro (iOS 18.4)
+Device: iPhone 16 Pro (iOS 26.0)
 App Version: _______
 Tester: _______
 

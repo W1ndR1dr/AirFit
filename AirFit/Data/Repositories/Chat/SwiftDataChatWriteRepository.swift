@@ -12,7 +12,7 @@ final class SwiftDataChatWriteRepository: ChatWriteRepositoryProtocol {
     // MARK: - Chat Session Operations
     
     func createSession(for user: User, title: String?) throws -> ChatSession {
-        let session = ChatSession(user: user, title: title)
+        let session = ChatSession(title: title, user: user)
         context.insert(session)
         try context.save()
         return session
@@ -76,13 +76,23 @@ final class SwiftDataChatWriteRepository: ChatWriteRepositoryProtocol {
     // MARK: - Session Management
     
     func setActiveSession(_ session: ChatSession, for user: User) throws {
-        // Clear any existing active session
-        user.currentChatSession = session
+        // Clear any existing active sessions
+        for chat in user.chatSessions {
+            chat.isActive = false
+        }
+        // Set the new active session
+        session.isActive = true
+        if !user.chatSessions.contains(where: { $0.id == session.id }) {
+            user.chatSessions.append(session)
+        }
         try context.save()
     }
     
     func clearActiveSession(for user: User) throws {
-        user.currentChatSession = nil
+        // Clear all active sessions
+        for chat in user.chatSessions {
+            chat.isActive = false
+        }
         try context.save()
     }
     

@@ -104,6 +104,8 @@ extension AppError {
 
     // MARK: - Workout Errors
 
+    // WORKOUT TRACKING REMOVED
+    /*
     /// Creates AppError from WorkoutError
     static func from(_ workoutError: WorkoutError) -> AppError {
         switch workoutError {
@@ -113,6 +115,7 @@ extension AppError {
             return .networkError(underlying: NSError(domain: "WorkoutSync", code: 0, userInfo: [NSLocalizedDescriptionKey: "Failed to sync workout data"]))
         }
     }
+    */
 
     // MARK: - HealthKit Errors
 
@@ -328,6 +331,8 @@ extension AppError {
             return .unknown(message: "Live Activities are not enabled")
         case .failedToStart(let error):
             return .unknown(message: "Failed to start activity: \(error.localizedDescription)")
+        case .notFound:
+            return .unknown(message: "Live Activity not found")
         }
     }
 
@@ -499,8 +504,9 @@ extension Result where Failure == Error {
                 return AppError.from(networkError)
             } else if let serviceError = error as? ServiceError {
                 return AppError.from(serviceError)
-            } else if let workoutError = error as? WorkoutError {
-                return AppError.from(workoutError)
+            // WORKOUT TRACKING REMOVED
+            // } else if let workoutError = error as? WorkoutError {
+            //     return AppError.from(workoutError)
             } else if let keychainError = error as? KeychainError {
                 return AppError.from(keychainError)
             } else if let keychainHelperError = error as? KeychainHelperError {

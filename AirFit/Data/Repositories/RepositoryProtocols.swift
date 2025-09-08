@@ -7,7 +7,7 @@ import SwiftData
 /// Provides boundary enforcement for data access layers
 protocol ReadRepositoryProtocol: Sendable {
     associatedtype Entity
-    associatedtype Filter
+    associatedtype Filter: Sendable
     
     func find(filter: Filter) async throws -> [Entity]
     func findFirst(filter: Filter) async throws -> Entity?
@@ -104,6 +104,8 @@ struct ChatFilter: Sendable {
 // MARK: - Workout Repository
 
 /// Read-only access to Workout data
+// WORKOUT TRACKING REMOVED - Analysis from HealthKit/external sources
+/*
 /// Provides efficient workout queries with proper filtering
 @MainActor
 protocol WorkoutReadRepositoryProtocol: ReadRepositoryProtocol {
@@ -156,6 +158,7 @@ struct WorkoutStats: Sendable {
     let avgVolume: Double
     let muscleGroupDistribution: [String: Int]
 }
+*/
 
 // MARK: - Food Entry Repository
 

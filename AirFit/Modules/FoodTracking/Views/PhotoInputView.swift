@@ -1,4 +1,5 @@
 @preconcurrency import AVFoundation
+import AVKit
 import SwiftUI
 import Vision
 import Photos
@@ -109,8 +110,9 @@ struct PhotoInputView: View {
                     analyzePhoto(image)
                 }
             }
-            .onCameraCaptureEvent { phase in
-                switch phase {
+            // iOS 26 Camera Control API for iPhone 16 Pro physical button
+            .onCameraCaptureEvent { event in
+                switch event.phase {
                 case .began:
                     // Light press - show focus indicator and provide haptic feedback
                     HapticService.impact(.light)
@@ -138,7 +140,8 @@ struct PhotoInputView: View {
                     }
                 }
             }
-            .cameraControlOverlay {
+            // iOS 26: cameraControlOverlay modifier not available, using overlay instead
+            .overlay(alignment: .top) {
                 // Custom controls that appear on light press
                 HStack(spacing: AppSpacing.lg) {
                     // Flash toggle
@@ -166,6 +169,9 @@ struct PhotoInputView: View {
                     .clipShape(Capsule())
                 }
                 .padding(.horizontal, AppSpacing.md)
+                .padding(.top, 60) // Account for safe area
+                .opacity(cameraControlPressed ? 1 : 0) // Show only when camera control pressed
+                .animation(.easeInOut(duration: 0.2), value: cameraControlPressed)
             }
         }
         .preferredColorScheme(.dark) // Force dark mode for camera UI

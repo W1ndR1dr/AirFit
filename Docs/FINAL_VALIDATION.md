@@ -241,7 +241,7 @@ Notes: _________________________
 - [ ] **Thermal Management**: No overheating during intensive AI processing
 - [ ] **5G Performance**: Efficient data usage on cellular networks
 
-### iOS 18.4 Feature Integration
+### iOS 26.0 Feature Integration
 - [ ] **Privacy Permissions**: New granular HealthKit permissions working
 - [ ] **Control Center**: Widgets display correctly if implemented
 - [ ] **Shortcuts**: Siri integration functional if implemented

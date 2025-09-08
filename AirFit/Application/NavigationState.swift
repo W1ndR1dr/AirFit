@@ -28,7 +28,8 @@ public final class NavigationState {
     public var voiceInputActive = false
 
     // MARK: - Floating Assistant State
-    public var fabPosition: CGPoint = CGPoint(x: UIScreen.main.bounds.width - 80, y: UIScreen.main.bounds.height - 160)
+    // Default position will be set dynamically based on window size
+    public var fabPosition: CGPoint = CGPoint(x: 300, y: 700) // Default values, updated in view
     public var fabDragOffset: CGSize = .zero
     public var fabScale: CGFloat = 1.0
     public var fabIsExpanded = false
@@ -159,9 +160,6 @@ public final class NavigationState {
         switch intent {
         case .showFood:
             navigateToTab(.nutrition)
-        case .startWorkout:
-            // Deprecated: in-app workout logging removed - no-op
-            break
         case .showStats:
             navigateToTab(.body)
         case .logQuickAction(let type):
@@ -169,7 +167,8 @@ public final class NavigationState {
         case .executeCommand(let command):
             executeLocalCommand(command)
         case .showWorkouts:
-            navigateToTab(.workouts)
+            // WORKOUT TRACKING REMOVED - Navigate to body for analysis
+            navigateToTab(.body)
         case .showRecovery:
             navigateToTab(.today)
         case .showProgress:
@@ -187,11 +186,11 @@ public final class NavigationState {
             // Navigate to nutrition tab and directly open photo capture
             navigateToTab(.nutrition, with: .showFood(date: Date(), mealType: mealType))
             // Note: The FoodTrackingView will automatically show photo capture when appropriate
-        case .startWorkout:
-            // Deprecated: in-app workout logging removed - no-op
-            break
         case .checkIn:
             navigateToTab(.today)
+        case .startWorkout:
+            // WORKOUT TRACKING REMOVED - Navigate to body for analysis
+            navigateToTab(.body)
         }
     }
 
@@ -203,13 +202,11 @@ public final class NavigationState {
             navigateToTab(tab)
         case .showProfile:
             navigateToTab(.body)
-        case .startWorkout:
-            // Deprecated: in-app workout logging removed - no-op
-            break
         case .showFood(let date, let mealType):
             navigateToTab(.nutrition, with: .showFood(date: date, mealType: mealType))
         case .showWorkouts(let filter):
-            navigateToTab(.workouts, with: .showWorkouts(filter: filter))
+            // WORKOUT TRACKING REMOVED - Navigate to body for analysis
+            navigateToTab(.body, with: .showWorkouts(filter: filter))
         case .showStats(let metricString):
             // Convert string to HealthMetric enum
             let healthMetric = metricString.flatMap { HealthMetric(rawValue: $0) }
@@ -245,7 +242,8 @@ public enum HealthMetric: String, Hashable, CaseIterable {
 /// Represents a navigation intent that can be executed across tabs
 public enum NavigationIntent: Hashable {
     case showFood(date: Date?, mealType: MealType?)
-    case startWorkout(type: WorkoutType?)
+    // WORKOUT TRACKING REMOVED
+    // case startWorkout(type: WorkoutType?)
     case showStats(metric: HealthMetric?)
     case logQuickAction(type: QuickAction.QuickActionType)
     case executeCommand(parsed: LocalCommand)
@@ -258,8 +256,6 @@ public enum NavigationIntent: Hashable {
         switch (lhs, rhs) {
         case let (.showFood(lDate, lType), .showFood(rDate, rType)):
             return lDate == rDate && lType == rType
-        case let (.startWorkout(lType), .startWorkout(rType)):
-            return lType == rType
         case let (.showStats(lMetric), .showStats(rMetric)):
             return lMetric == rMetric
         case let (.logQuickAction(lType), .logQuickAction(rType)):
@@ -283,9 +279,6 @@ public enum NavigationIntent: Hashable {
             hasher.combine("showFood")
             hasher.combine(date)
             hasher.combine(mealType)
-        case let .startWorkout(type):
-            hasher.combine("startWorkout")
-            hasher.combine(type)
         case let .showStats(metric):
             hasher.combine("showStats")
             hasher.combine(metric)

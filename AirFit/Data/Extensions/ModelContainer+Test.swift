@@ -10,9 +10,10 @@ extension ModelContainer {
             DailyLog.self,
             FoodEntry.self,
             FoodItem.self,
-            Workout.self,
-            Exercise.self,
-            ExerciseSet.self,
+            // WORKOUT TRACKING REMOVED
+            // Workout.self,
+            // Exercise.self,
+            // ExerciseSet.self,
             TrackedGoal.self,
             CoachMessage.self,
             ChatSession.self,
@@ -77,7 +78,8 @@ extension ModelContainer {
         breakfast.addItem(eggs)
         context.insert(breakfast)
 
-        // Create sample workout
+        // WORKOUT TRACKING REMOVED - Sample workout data
+        /*
         let workout = Workout(
             name: "Morning Workout",
             workoutType: .strength,
@@ -100,6 +102,7 @@ extension ModelContainer {
 
         workout.addExercise(benchPress)
         context.insert(workout)
+        */
 
         // Save context
         try context.save()

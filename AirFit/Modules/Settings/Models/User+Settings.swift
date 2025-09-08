@@ -141,7 +141,8 @@ extension User {
     /// Current context for AI
     var currentContext: String {
         // Build context from recent activity
-        let recentWorkouts = getRecentWorkouts(days: 3).count
+        // WORKOUT TRACKING REMOVED - Analysis via HealthKit only
+        let recentWorkouts = 0 // TODO: Get from HealthKit
         let recentMeals = getRecentMeals(days: 1).count
         let todayLog = getTodaysLog()
 

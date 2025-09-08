@@ -37,29 +37,34 @@ final class SwiftDataFoodTrackingRepository: FoodTrackingRepositoryProtocol {
         let startOfDay = Calendar.current.startOfDay(for: date)
         let endOfDay = Calendar.current.date(byAdding: .day, value: 1, to: startOfDay) ?? date
         
-        var descriptor = FetchDescriptor<FoodEntry>(
-            predicate: #Predicate { entry in
-                entry.user.id == user.id && 
-                entry.loggedAt >= startOfDay && 
-                entry.loggedAt < endOfDay
-            },
+        // iOS 26 workaround: Fetch all and filter manually
+        let descriptor = FetchDescriptor<FoodEntry>(
             sortBy: [SortDescriptor(\.loggedAt, order: .forward)]
         )
         
-        return try context.fetch(descriptor)
+        let allEntries = try context.fetch(descriptor)
+        
+        // Manual filtering to avoid predicate issues
+        return allEntries.filter { entry in
+            entry.user?.id == user.id && 
+            entry.loggedAt >= startOfDay && 
+            entry.loggedAt < endOfDay
+        }
     }
     
     func getRecentFoods(for user: User, limit: Int) throws -> [FoodItem] {
-        // Get recent food entries for the user
+        // iOS 26 workaround: Fetch all and filter manually
         var descriptor = FetchDescriptor<FoodEntry>(
-            predicate: #Predicate { entry in
-                entry.user.id == user.id
-            },
             sortBy: [SortDescriptor(\.loggedAt, order: .reverse)]
         )
-        descriptor.fetchLimit = 50 // Get more entries to find unique foods
+        descriptor.fetchLimit = 500 // Get more entries to find unique foods after filtering
         
-        let recentEntries = try context.fetch(descriptor)
+        let allEntries = try context.fetch(descriptor)
+        
+        // Manual filtering
+        let recentEntries = allEntries.filter { entry in
+            entry.user?.id == user.id
+        }.prefix(50) // Take first 50 after filtering
         
         // Extract unique food items based on name
         var seenFoodNames = Set<String>()
@@ -84,16 +89,19 @@ final class SwiftDataFoodTrackingRepository: FoodTrackingRepositoryProtocol {
     func getMealHistory(for user: User, mealType: MealType, daysBack: Int) throws -> [FoodEntry] {
         let cutoffDate = Calendar.current.date(byAdding: .day, value: -daysBack, to: Date()) ?? Date()
         
-        var descriptor = FetchDescriptor<FoodEntry>(
-            predicate: #Predicate { entry in
-                entry.user.id == user.id && 
-                entry.mealType == mealType &&
-                entry.loggedAt >= cutoffDate
-            },
+        // iOS 26 workaround: Fetch all and filter manually
+        let descriptor = FetchDescriptor<FoodEntry>(
             sortBy: [SortDescriptor(\.loggedAt, order: .reverse)]
         )
         
-        return try context.fetch(descriptor)
+        let allEntries = try context.fetch(descriptor)
+        
+        // Manual filtering
+        return allEntries.filter { entry in
+            entry.user?.id == user.id && 
+            entry.mealType == mealType.rawValue &&
+            entry.loggedAt >= cutoffDate
+        }
     }
     
     // MARK: - User Management

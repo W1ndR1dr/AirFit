@@ -28,8 +28,9 @@ extension ErrorHandling {
             self.error = AppError.from(networkError)
         } else if let serviceError = error as? ServiceError {
             self.error = AppError.from(serviceError)
-        } else if let workoutError = error as? WorkoutError {
-            self.error = AppError.from(workoutError)
+        // WORKOUT TRACKING REMOVED
+        // } else if let workoutError = error as? WorkoutError {
+        //     self.error = AppError.from(workoutError)
         } else if let keychainError = error as? KeychainError {
             self.error = AppError.from(keychainError)
         } else if let coachError = error as? CoachEngineError {

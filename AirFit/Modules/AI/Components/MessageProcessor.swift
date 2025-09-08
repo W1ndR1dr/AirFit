@@ -111,8 +111,6 @@ final class MessageProcessor {
             switch filter {
             case .recent:
                 description += " (recent)"
-            case .type(let workoutType):
-                description += " (\(workoutType.rawValue))"
             case .thisWeek:
                 description += " (this week)"
             case .thisMonth:
@@ -144,6 +142,8 @@ final class MessageProcessor {
             switch actionType {
             case .logMeal(let mealType):
                 return "[System: Opened \(mealType.rawValue) logging]"
+            case .logMealWithPhoto(let mealType):
+                return "[System: Opened \(mealType.rawValue) photo logging]"
             case .startWorkout:
                 return "[System: Workout logging deprecated - redirected to watch app]"
             case .checkIn:

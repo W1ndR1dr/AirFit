@@ -9,7 +9,7 @@ Accepted
 The codebase is conceptually strong but inconsistently executed and partially non‑functional. We need a personal‑mode app with world‑class quality. The choice is either a full rewrite or a structured rehab.
 
 Signals observed:
-- Build succeeds locally (iOS 18.4). Established layering (`Application/Core/Data/Modules/Services`).
+- Build succeeds locally (iOS 26.0). Established layering (`Application/Core/Data/Modules/Services`).
 - DI, Swift 6 concurrency patterns, and modular features already exist (Chat, Dashboard, FoodTracking, Onboarding, Health).
 - Excess complexity in onboarding and AI paths; areas of dead code and placeholders.
 - Watch app present; not required for P0.

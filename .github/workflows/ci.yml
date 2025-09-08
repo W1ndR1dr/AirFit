@@ -61,7 +61,7 @@ jobs:
     - name: SwiftLint Analysis
       run: |
         echo "🔍 Running SwiftLint with strict mode..."
-        swiftlint --strict --reporter github-actions-logging
+        swiftlint --strict --config AirFit/.swiftlint.yml --reporter github-actions-logging
         
     # Step 3: Build Project
     - name: Build Project
@@ -74,15 +74,17 @@ jobs:
           -quiet \
           | xcpretty --color
           
-    - name: Build Watch App
-      run: |
-        echo "⌚ Building AirFit Watch app..."
-        xcodebuild build \
-          -scheme AirFitWatchApp \
-          -destination 'platform=watchOS Simulator,name=Apple Watch Series 10 (46mm),OS=11.0' \
-          -configuration Debug \
-          -quiet \
-          | xcpretty --color
+    # NOTE: Watch app build commented out - no watch target defined in project.yml yet
+    # Will be re-enabled when AirFitWatchApp target is added to project.yml
+    # - name: Build Watch App
+    #   run: |
+    #     echo "⌚ Building AirFit Watch app..."
+    #     xcodebuild build \
+    #       -scheme AirFitWatchApp \
+    #       -destination 'platform=watchOS Simulator,name=Apple Watch Series 10 (46mm),OS=11.0' \
+    #       -configuration Debug \
+    #       -quiet \
+    #       | xcpretty --color
         
     # Step 4: Run Unit Tests
     - name: Run Unit Tests
@@ -91,7 +93,7 @@ jobs:
         xcodebuild test \
           -scheme AirFit \
           -destination 'platform=iOS Simulator,name=iPhone 16 Pro,OS=26.0' \
-          -testPlan AirFit \
+          -testPlan AirFit-Unit \
           -only-testing:AirFitTests \
           -parallel-testing-enabled YES \
           -maximum-concurrent-test-simulator-destinations 2 \
@@ -106,7 +108,7 @@ jobs:
         xcodebuild test \
           -scheme AirFit \
           -destination 'platform=iOS Simulator,name=iPhone 16 Pro,OS=26.0' \
-          -testPlan AirFit \
+          -testPlan AirFit-UI \
           -only-testing:AirFitUITests \
           -resultBundlePath TestResults/ui-tests.xcresult \
           -quiet \
@@ -127,19 +129,19 @@ jobs:
         # Generate project first to ensure it's up to date
         xcodegen generate
         
-        # Run Periphery scan
+        # Run Periphery scan (watch target excluded until added to project.yml)
         periphery scan \
           --project AirFit.xcodeproj \
-          --schemes AirFit,AirFitWatchApp \
-          --targets AirFit,AirFitWatchApp \
+          --schemes AirFit \
+          --targets AirFit \
           --format json \
           > periphery-report.json || true
           
         # Also generate human-readable report
         periphery scan \
           --project AirFit.xcodeproj \
-          --schemes AirFit,AirFitWatchApp \
-          --targets AirFit,AirFitWatchApp \
+          --schemes AirFit \
+          --targets AirFit \
           --format checkstyle \
           > periphery-report.xml || true
           
@@ -309,7 +311,7 @@ jobs:
         xcodebuild test \
           -scheme AirFit \
           -destination '${{ matrix.destination }}' \
-          -testPlan AirFit \
+          -testPlan AirFit-Unit \
           -only-testing:AirFitTests \
           -quiet \
           | xcpretty --test --color

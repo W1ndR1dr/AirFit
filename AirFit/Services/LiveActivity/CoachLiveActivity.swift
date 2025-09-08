@@ -8,6 +8,8 @@
 
 import ActivityKit
 import SwiftUI
+import AppIntents
+import WidgetKit
 
 // MARK: - AI Coach Live Activity Widget
 
@@ -324,7 +326,7 @@ private func getUrgencyColor(_ urgency: CoachUrgency) -> Color {
 // MARK: - App Intents
 
 struct ReplyToCoachIntent: AppIntent {
-    static var title: LocalizedStringResource = "Reply to Coach"
+    static let title: LocalizedStringResource = "Reply to Coach"
     
     func perform() async throws -> some IntentResult {
         // Send notification to open chat
@@ -334,7 +336,7 @@ struct ReplyToCoachIntent: AppIntent {
 }
 
 struct StopThinkingIntent: AppIntent {
-    static var title: LocalizedStringResource = "Stop AI Response"
+    static let title: LocalizedStringResource = "Stop AI Response"
     
     func perform() async throws -> some IntentResult {
         // Send notification to stop AI response

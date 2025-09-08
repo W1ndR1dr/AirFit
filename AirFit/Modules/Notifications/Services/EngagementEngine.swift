@@ -251,7 +251,7 @@ final class EngagementEngine: ServiceProtocol {
             daysSinceLastActive: user.daysSinceLastActive,
             primaryGoal: nil, // TODO: Extract from persona or conversation data
             previousEngagementAttempts: user.reEngagementAttempts,
-            lastWorkoutType: user.workouts.last?.workoutType,
+            lastWorkoutType: nil, // WORKOUT TRACKING REMOVED - Get from HealthKit
             personalityTraits: user.onboardingProfile?.persona
         )
 

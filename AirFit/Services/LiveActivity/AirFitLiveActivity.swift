@@ -8,6 +8,8 @@
 
 import ActivityKit
 import SwiftUI
+import AppIntents
+import WidgetKit
 
 // MARK: - Live Activity Attributes
 
@@ -89,6 +91,8 @@ enum HeartRateZone: String, Codable, CaseIterable {
 
 // MARK: - Dynamic Island Views
 
+// WORKOUT FEATURES REMOVED - This entire widget is disabled
+/*
 struct AirFitLiveActivity: Widget {
     var body: some WidgetConfiguration {
         ActivityConfiguration(for: AirFitActivityAttributes.self) { context in
@@ -415,9 +419,12 @@ private func getWorkoutIcon(for workoutType: String) -> String {
         return "figure.mixed.cardio"
     }
 }
+*/
 
 // MARK: - App Intents
 
+// WORKOUT FEATURES REMOVED - These intents are no longer needed
+/*
 struct PauseWorkoutIntent: AppIntent {
     static var title: LocalizedStringResource = "Pause Workout"
     
@@ -437,10 +444,13 @@ struct EndWorkoutIntent: AppIntent {
         return .result()
     }
 }
+*/
 
 // MARK: - Notification Extensions
-
+// WORKOUT FEATURES REMOVED - These notifications are no longer needed
+/*
 extension Notification.Name {
     static let pauseWorkout = Notification.Name("pauseWorkout")
     static let endWorkout = Notification.Name("endWorkout")
 }
+*/

@@ -12,7 +12,7 @@ final class SwiftDataUserWriteRepository: UserWriteRepositoryProtocol {
     // MARK: - User Operations
     
     func create(name: String, email: String?) throws -> User {
-        let user = User(name: name, email: email)
+        let user = User(email: email, name: name)
         context.insert(user)
         try context.save()
         return user
@@ -36,7 +36,10 @@ final class SwiftDataUserWriteRepository: UserWriteRepositoryProtocol {
     }
     
     func updateOnboardingStatus(_ user: User, completed: Bool) throws {
-        user.hasCompletedOnboarding = completed
+        user.isOnboarded = completed
+        if completed {
+            user.onboardingCompletedDate = Date()
+        }
         try context.save()
     }
     
@@ -48,22 +51,30 @@ final class SwiftDataUserWriteRepository: UserWriteRepositoryProtocol {
     // MARK: - User Preferences
     
     func updatePreferences(_ user: User, preferences: UserPreferences) throws {
-        user.preferredUnits = preferences.preferredUnits
-        user.appearanceMode = preferences.appearanceMode
-        user.hapticFeedback = preferences.hapticFeedback
-        user.analyticsEnabled = preferences.analyticsEnabled
+        // Store units in User model (as String)
+        user.preferredUnits = preferences.preferredUnits == .metric ? "metric" : "imperial"
+        
+        // Store other preferences in UserDefaults since User model doesn't have these properties
+        UserDefaults.standard.set(preferences.appearanceMode.rawValue, forKey: "appearanceMode")
+        UserDefaults.standard.set(preferences.hapticFeedback, forKey: "hapticFeedback")
+        UserDefaults.standard.set(preferences.analyticsEnabled, forKey: "analyticsEnabled")
+        
         try context.save()
     }
     
     func updateAISettings(_ user: User, provider: AIProvider, model: String) throws {
-        user.selectedProvider = provider
-        user.selectedModel = model
+        // Store AI settings in UserDefaults since User model doesn't have these properties
+        UserDefaults.standard.set(provider.rawValue, forKey: "selectedProvider")
+        UserDefaults.standard.set(model, forKey: "selectedModel")
         try context.save()
     }
     
     func updateNotificationSettings(_ user: User, preferences: NotificationPreferences) throws {
-        user.notificationPreferences = preferences
-        try context.save()
+        // Store notification preferences in UserDefaults since User model doesn't have this property
+        if let encoded = try? JSONEncoder().encode(preferences) {
+            UserDefaults.standard.set(encoded, forKey: "notificationPreferences")
+        }
+        // No need to save context as nothing changed in User model
     }
     
     // MARK: - User Data Management
@@ -71,14 +82,17 @@ final class SwiftDataUserWriteRepository: UserWriteRepositoryProtocol {
     func clearUserData(_ user: User, preserveProfile: Bool) throws {
         // Clear all user-related data
         user.foodEntries.removeAll()
-        user.workouts.removeAll()
+        // WORKOUT TRACKING REMOVED - workouts removed from User model
+        // user.workouts.removeAll()
         user.dailyLogs.removeAll()
         user.chatSessions.removeAll()
         
         if !preserveProfile {
             // Reset preferences to defaults but keep the user record
-            user.hasCompletedOnboarding = false
-            user.coachPersona = nil
+            user.isOnboarded = false
+            user.onboardingCompletedDate = nil
+            // Clear coach persona from UserDefaults
+            UserDefaults.standard.removeObject(forKey: "coachPersona")
         }
         
         try context.save()
@@ -100,12 +114,11 @@ final class SwiftDataUserWriteRepository: UserWriteRepositoryProtocol {
         let descriptor = FetchDescriptor<User>()
         let allUsers = try context.fetch(descriptor)
         
-        for existingUser in allUsers {
-            existingUser.isActive = false
-        }
+        // Store active user ID in UserDefaults since User model doesn't have isActive property
+        UserDefaults.standard.set(user.id.uuidString, forKey: "activeUserId")
         
-        // Set the new active user
-        user.isActive = true
+        // Update last active date
+        user.lastActiveAt = Date()
         try context.save()
     }
     

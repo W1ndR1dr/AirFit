@@ -1,5 +1,5 @@
 import SwiftUI
-import SwiftData
+// SwiftData removed - using repository pattern
 import Charts
 import PhotosUI
 
@@ -8,7 +8,7 @@ struct BodyDashboardView: View {
     let user: User
     @State private var viewModel: BodyViewModel?
     @Environment(\.diContainer) private var container
-    @Environment(\.modelContext) private var modelContext
+    // @Environment(\.modelContext) - removed, using repository pattern
     @Environment(\.colorScheme) private var colorScheme
     @EnvironmentObject private var gradientManager: GradientManager
 
@@ -1011,10 +1011,9 @@ struct PhotoCaptureView: View {
 // MARK: - Preview
 
 #Preview {
-    let container = ModelContainer.preview
+    // ModelContainer removed - using DI
     let user = User(name: "Preview")
     
     BodyDashboardView(user: user)
         .withDIContainer(DIContainer())
-        .modelContainer(container)
 }

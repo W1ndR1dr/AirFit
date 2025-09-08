@@ -2,7 +2,7 @@ import Foundation
 import SwiftData
 
 @Model
-final class ConversationResponse {
+final class ConversationResponse: @unchecked Sendable {
     @Attribute(.unique) var id: UUID
     var sessionId: UUID
     var nodeId: String

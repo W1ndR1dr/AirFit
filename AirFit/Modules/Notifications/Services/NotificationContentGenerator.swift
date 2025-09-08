@@ -63,39 +63,7 @@ final class NotificationContentGenerator: ServiceProtocol {
         return fallbackTemplates.morningGreeting(user: user, context: context)
     }
 
-    // MARK: - Workout Reminders
-    func generateWorkoutReminder(
-        for user: User,
-        workout: Workout?
-    ) async throws -> NotificationContent {
-        let motivationalStyle = await extractMotivationalStyle(from: user) ?? MotivationalStyle()
-        let context = WorkoutReminderContext(
-            userName: user.name ?? "there",
-            workoutType: workout?.name ?? "workout",
-            lastWorkoutDays: user.daysSinceLastWorkout,
-            streak: user.workoutStreak,
-            motivationalStyle: motivationalStyle
-        )
-
-        do {
-            let aiContent = try await coachEngine.generateNotificationContent(
-                type: .workoutReminder,
-                context: context
-            )
-
-            return NotificationContent(
-                title: selectWorkoutTitle(context: context),
-                body: aiContent,
-                actions: [
-                    NotificationAction(id: "START_WORKOUT", title: "Let's Go 💪"),
-                    NotificationAction(id: "SNOOZE_30", title: "In 30 min")
-                ]
-            )
-
-        } catch {
-            return fallbackTemplates.workoutReminder(context: context)
-        }
-    }
+    // MARK: - Workout Reminders (removed — analysis only)
 
     // MARK: - Meal Reminders
     func generateMealReminder(
@@ -166,7 +134,7 @@ final class NotificationContentGenerator: ServiceProtocol {
         // Fetch recent data
         let sleepData = try? await fetchLastNightSleep(for: user)
         let weather = try? await fetchCurrentWeather()
-        let todaysWorkout = user.plannedWorkoutForToday
+        let todaysWorkout: Workout? = nil
         let currentStreak = user.overallStreak
         let motivationalStyle = await extractMotivationalStyle(from: user) ?? MotivationalStyle()
 
@@ -344,8 +312,8 @@ struct NotificationTemplates {
         // Use context to build a meaningful greeting
         if context.currentStreak > 10 {
             return "Day \(context.currentStreak + 1) of excellence."
-        } else if let workout = context.plannedWorkout {
-            return "Ready for your \(workout.name)?"
+        } else if context.plannedWorkout != nil {
+            return "Ready to move today?"
         } else if let sleep = context.sleepQuality {
             switch sleep {
             case .excellent: return "Well-rested and ready."
@@ -360,69 +328,6 @@ struct NotificationTemplates {
 
 // MARK: - User Extensions with Real Data
 extension User {
-    @MainActor
-    var workoutStreak: Int {
-        // Calculate actual streak from workout history
-        let calendar = Calendar.current
-        let today = calendar.startOfDay(for: Date())
-
-        // Get workouts sorted by date descending
-        let sortedWorkouts = workouts
-            .compactMap { workout -> (workout: Workout, date: Date)? in
-                guard let date = workout.completedDate else { return nil }
-                return (workout, date)
-            }
-            .sorted { $0.date > $1.date }
-            .map { $0.workout }
-
-        var streak = 0
-        var checkDate = today
-
-        for workout in sortedWorkouts {
-            guard let completedDate = workout.completedDate else { continue }
-            let workoutDate = calendar.startOfDay(for: completedDate)
-
-            if workoutDate == checkDate {
-                streak += 1
-                checkDate = calendar.date(byAdding: .day, value: -1, to: checkDate)!
-            } else if workoutDate < checkDate {
-                // Gap in workouts, streak is broken
-                break
-            }
-        }
-
-        return streak
-    }
-
-    @MainActor
-    var daysSinceLastWorkout: Int {
-        // Find the most recent completed workout
-        let completedWorkouts = workouts.compactMap { workout -> Date? in
-            return workout.completedDate
-        }
-
-        guard let mostRecentDate = completedWorkouts.sorted(by: >).first else {
-            return 999 // No workouts recorded
-        }
-
-        let calendar = Calendar.current
-        let days = calendar.dateComponents([.day], from: mostRecentDate, to: Date()).day ?? 0
-        return max(0, days)
-    }
-
-    @MainActor
-    var plannedWorkoutForToday: Workout? {
-        let calendar = Calendar.current
-        let today = calendar.startOfDay(for: Date())
-
-        return workouts.first { workout in
-            if let plannedDate = workout.plannedDate {
-                return calendar.isDate(plannedDate, inSameDayAs: today)
-            }
-            return false
-        }
-    }
-
     @MainActor
     var overallStreak: Int {
         // Calculate streak based on any daily activity (workout, meal logging, etc.)
@@ -511,14 +416,6 @@ extension User {
     private func hasActivityOnDate(_ date: Date) -> Bool {
         let calendar = Calendar.current
 
-        // Check workouts
-        let hasWorkout = workouts.contains { workout in
-            if let completedDate = workout.completedDate {
-                return calendar.isDate(completedDate, inSameDayAs: date)
-            }
-            return false
-        }
-
         // Check food entries
         let hasFoodEntry = foodEntries.contains { entry in
             calendar.isDate(entry.loggedAt, inSameDayAs: date)
@@ -529,6 +426,6 @@ extension User {
             calendar.isDate(log.date, inSameDayAs: date)
         }
 
-        return hasWorkout || hasFoodEntry || hasDailyLog
+        return hasFoodEntry || hasDailyLog
     }
 }

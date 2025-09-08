@@ -1,5 +1,6 @@
 import SwiftData
 import Foundation
+// MessageType is defined in Core/Enums/MessageType.swift
 
 @Model
 final class CoachMessage: @unchecked Sendable {

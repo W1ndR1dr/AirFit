@@ -11,9 +11,8 @@ import SwiftUI
 import Foundation
 import Observation
 
-@MainActor
 @Observable
-final class LiveActivityManager: ServiceProtocol {
+final class LiveActivityManager: ServiceProtocol, @unchecked Sendable {
     
     // MARK: - ServiceProtocol
     nonisolated let serviceIdentifier = "live-activity-manager"
@@ -45,7 +44,7 @@ final class LiveActivityManager: ServiceProtocol {
         
         // Check if Live Activities are available and enabled
         guard ActivityAuthorizationInfo().areActivitiesEnabled else {
-            AppLogger.warning("Live Activities are not enabled", category: .system)
+            AppLogger.warning("Live Activities are not enabled", category: .services)
             isConfigured = true
             return
         }
@@ -54,7 +53,7 @@ final class LiveActivityManager: ServiceProtocol {
         setupNotificationObservers()
         
         isConfigured = true
-        AppLogger.info("LiveActivityManager configured successfully", category: .system)
+        AppLogger.info("LiveActivityManager configured successfully", category: .services)
     }
     
     func reset() async {
@@ -136,8 +135,10 @@ final class LiveActivityManager: ServiceProtocol {
             AppLogger.info("Started workout Live Activity: \(workoutType)", category: .health)
             
             // Add subtle haptic feedback for activity start
-            let impactFeedback = UIImpactFeedbackGenerator(style: .medium)
-            impactFeedback.impactOccurred()
+            await MainActor.run {
+                let impactFeedback = UIImpactFeedbackGenerator(style: .medium)
+                impactFeedback.impactOccurred()
+            }
             
         } catch {
             AppLogger.error("Failed to start workout Live Activity", error: error, category: .health)
@@ -255,10 +256,10 @@ final class LiveActivityManager: ServiceProtocol {
             currentNutritionActivity = activity
             isNutritionActivityActive = true
             
-            AppLogger.info("Started nutrition Live Activity", category: .nutrition)
+            AppLogger.info("Started nutrition Live Activity", category: .meals)
             
         } catch {
-            AppLogger.error("Failed to start nutrition Live Activity", error: error, category: .nutrition)
+            AppLogger.error("Failed to start nutrition Live Activity", error: error, category: .meals)
             throw LiveActivityError.failedToStart(error)
         }
     }
@@ -293,7 +294,7 @@ final class LiveActivityManager: ServiceProtocol {
         do {
             await activity.update(content)
         } catch {
-            AppLogger.error("Failed to update nutrition Live Activity", error: error, category: .nutrition)
+            AppLogger.error("Failed to update nutrition Live Activity", error: error, category: .meals)
         }
     }
     
@@ -310,7 +311,7 @@ final class LiveActivityManager: ServiceProtocol {
         currentNutritionActivity = nil
         isNutritionActivityActive = false
         
-        AppLogger.info("Ended nutrition Live Activity", category: .nutrition)
+        AppLogger.info("Ended nutrition Live Activity", category: .meals)
     }
     
     // MARK: - AI Coach Live Activities
@@ -424,6 +425,8 @@ final class LiveActivityManager: ServiceProtocol {
     // MARK: - Notification Handling
     
     private func setupNotificationObservers() {
+        // WORKOUT FEATURES REMOVED - These observers are no longer needed
+        /*
         NotificationCenter.default.addObserver(
             forName: .pauseWorkout,
             object: nil,
@@ -439,6 +442,7 @@ final class LiveActivityManager: ServiceProtocol {
         ) { [weak self] _ in
             Task { await self?.handleEndWorkout() }
         }
+        */
     }
     
     private func removeNotificationObservers() {

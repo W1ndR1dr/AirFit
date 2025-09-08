@@ -38,7 +38,7 @@ final class BodyViewModel: ErrorHandling {
     private let userReadRepository: UserReadRepositoryProtocol
     private let user: User
     private let healthKitManager: HealthKitManaging
-    private let contextAssembler: ContextAssembler
+    // private let contextAssembler: ContextAssembler // TODO: Inject through DI
 
     // MARK: - Types
     enum UserGoal {
@@ -57,7 +57,7 @@ final class BodyViewModel: ErrorHandling {
         self.userReadRepository = userReadRepository
         self.user = user
         self.healthKitManager = healthKitManager
-        self.contextAssembler = ContextAssembler(healthKitManager: healthKitManager)
+        // self.contextAssembler = ContextAssembler(healthKitManager: healthKitManager) // TODO: Inject through DI
     }
 
     // MARK: - Loading

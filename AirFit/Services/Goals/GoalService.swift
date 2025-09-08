@@ -119,35 +119,43 @@ final class GoalService: GoalServiceProtocol, ServiceProtocol {
     // MARK: - Goal Retrieval
 
     func getActiveGoals(for userId: UUID) async throws -> [TrackedGoal] {
+        // iOS 26 workaround: Use simple predicate and manual filtering
         let descriptor = FetchDescriptor<TrackedGoal>(
-            predicate: #Predicate { goal in
-                goal.userId == userId && goal.status.rawValue == "active"
-            },
             sortBy: [SortDescriptor(\.priority, order: .reverse), SortDescriptor(\.createdDate)]
         )
-
-        return try modelContext.fetch(descriptor)
+        
+        let allGoals = try modelContext.fetch(descriptor)
+        
+        // Manual filtering to avoid complex predicate issues
+        return allGoals.filter { goal in
+            goal.userId == userId && goal.status.rawValue == "active"
+        }
     }
 
     func getAllGoals(for userId: UUID) async throws -> [TrackedGoal] {
+        // iOS 26 workaround: Use no predicate and manual filtering
         let descriptor = FetchDescriptor<TrackedGoal>(
-            predicate: #Predicate { goal in
-                goal.userId == userId
-            },
             sortBy: [SortDescriptor(\.createdDate, order: .reverse)]
         )
-
-        return try modelContext.fetch(descriptor)
+        
+        let allGoals = try modelContext.fetch(descriptor)
+        
+        // Manual filtering
+        return allGoals.filter { goal in
+            goal.userId == userId
+        }
     }
 
     func getGoal(by id: UUID) async throws -> TrackedGoal? {
-        let descriptor = FetchDescriptor<TrackedGoal>(
-            predicate: #Predicate { goal in
-                goal.id == id
-            }
-        )
-
-        return try modelContext.fetch(descriptor).first
+        // iOS 26 workaround: Use no predicate and manual filtering
+        let descriptor = FetchDescriptor<TrackedGoal>()
+        
+        let allGoals = try modelContext.fetch(descriptor)
+        
+        // Manual filtering
+        return allGoals.first { goal in
+            goal.id == id
+        }
     }
 
     // MARK: - Progress Tracking
@@ -267,17 +275,20 @@ final class GoalService: GoalServiceProtocol, ServiceProtocol {
     private func getRecentCompletedGoals(for userId: UUID, days: Int) async throws -> [TrackedGoal] {
         let cutoffDate = Calendar.current.date(byAdding: .day, value: -days, to: Date()) ?? Date()
 
+        // iOS 26 workaround: Fetch all and filter manually
         let descriptor = FetchDescriptor<TrackedGoal>(
-            predicate: #Predicate { goal in
-                goal.userId == userId &&
-                    goal.status.rawValue == "completed" &&
-                    goal.completedDate != nil &&
-                    (goal.completedDate ?? Date.distantPast) >= cutoffDate
-            },
             sortBy: [SortDescriptor(\.completedDate, order: .reverse)]
         )
 
-        return try modelContext.fetch(descriptor)
+        let allGoals = try modelContext.fetch(descriptor)
+        
+        // Manual filtering for complex conditions
+        return allGoals.filter { goal in
+            goal.userId == userId &&
+            goal.status.rawValue == "completed" &&
+            goal.completedDate != nil &&
+            (goal.completedDate ?? Date.distantPast) >= cutoffDate
+        }
     }
 
     private func calculateStreak(from completedGoals: [TrackedGoal]) -> Int {

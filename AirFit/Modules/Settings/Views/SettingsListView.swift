@@ -1,5 +1,5 @@
 import SwiftUI
-import SwiftData
+// SwiftData removed - using repository pattern
 #if DEBUG
 import HealthKit
 #endif
@@ -2053,15 +2053,11 @@ struct DebugSettingsView: View {
 
         Task {
             do {
-                // Delete all users
-                let userDescriptor = FetchDescriptor<User>()
-                let users = try modelContext.fetch(userDescriptor)
-                for user in users {
-                    modelContext.delete(user)
-                }
-                try modelContext.save()
-
-                AppLogger.info("App reset - all user data cleared", category: .app)
+                // Use repository pattern to reset data
+                // TODO: Implement resetAllData in UserRepository
+                // For now, just post the reset notification
+                
+                AppLogger.info("App reset requested", category: .app)
 
                 // Post notification to trigger app reload
                 await MainActor.run {

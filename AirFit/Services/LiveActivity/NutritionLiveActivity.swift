@@ -8,6 +8,8 @@
 
 import ActivityKit
 import SwiftUI
+import AppIntents
+import WidgetKit
 
 // MARK: - Nutrition Live Activity Widget
 
@@ -324,7 +326,7 @@ struct MacroProgressView: View {
 // MARK: - App Intent
 
 struct LogMealIntent: AppIntent {
-    static var title: LocalizedStringResource = "Log Meal"
+    static let title: LocalizedStringResource = "Log Meal"
     
     func perform() async throws -> some IntentResult {
         // Send notification to open meal logging

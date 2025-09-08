@@ -1,10 +1,9 @@
 import SwiftUI
-import SwiftData
+// SwiftData removed - using repository pattern
 
 /// Dashboard content view that displays the actual dashboard UI
 struct DashboardContent: View {
-    @Environment(\.modelContext)
-    private var modelContext
+    // @Environment(\.modelContext) - removed, using repository pattern
     @Environment(\.colorScheme)
     private var colorScheme
     @EnvironmentObject private var gradientManager: GradientManager
@@ -219,15 +218,15 @@ struct DashboardContent: View {
 
 // MARK: - Preview
 #Preview {
-    let container = ModelContainer.preview
+    // let container = ModelContainer.preview // REMOVED - Using DI
     let user = User(name: "Preview")
     
     DashboardView(user: user)
         .withDIContainer(DIContainer()) // Empty container for preview
-        .modelContainer(container)
-        .onAppear {
-            container.mainContext.insert(user)
-        }
+        // .modelContainer(container) // REMOVED - Using DI
+        // .onAppear {
+        //     container.mainContext.insert(user)
+        // } // REMOVED - Using DI
 }
 
 // MARK: - Dashboard Destinations
@@ -342,6 +341,7 @@ struct WorkoutHistoryViewWrapper: View {
     let user: User
     let container: DIContainer
 
+    // WORKOUT TRACKING REMOVED - Analysis from HealthKit/external sources
     @State private var muscleGroupVolumeService: MuscleGroupVolumeServiceProtocol?
     @State private var strengthProgressionService: StrengthProgressionServiceProtocol?
     @State private var isLoading = true
@@ -355,10 +355,12 @@ struct WorkoutHistoryViewWrapper: View {
                     .task {
                         do {
                             // Resolve services asynchronously
+                            // WORKOUT TRACKING REMOVED - Using NoOp service
                             async let volumeService = container.resolve(MuscleGroupVolumeServiceProtocol.self)
                             async let strengthService = container.resolve(StrengthProgressionServiceProtocol.self)
 
-                            let (volume, strength) = try await (volumeService, strengthService)
+                            let volume = try await volumeService
+                            let strength = try await strengthService
 
                             muscleGroupVolumeService = volume
                             strengthProgressionService = strength
@@ -380,7 +382,7 @@ struct WorkoutHistoryViewWrapper: View {
                 }
                 .frame(maxWidth: .infinity, maxHeight: .infinity)
             } else if let volumeService = muscleGroupVolumeService,
-                        let strengthService = strengthProgressionService {
+                      let strengthService = strengthProgressionService {
                 WorkoutHistoryView(
                     user: user,
                     muscleGroupVolumeService: volumeService,

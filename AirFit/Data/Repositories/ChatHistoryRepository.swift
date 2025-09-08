@@ -73,7 +73,7 @@ final class ChatHistoryRepository: ChatHistoryRepositoryProtocol {
     
     func getActiveSession(userId: UUID) async throws -> ChatSession? {
         var descriptor = FetchDescriptor<ChatSession>(
-            sortBy: [SortDescriptor(\.lastMessageAt, order: .reverse)]
+            sortBy: [SortDescriptor<ChatSession>(\.lastMessageDate, order: .reverse)]
         )
         
         descriptor.predicate = #Predicate<ChatSession> { session in
@@ -87,7 +87,7 @@ final class ChatHistoryRepository: ChatHistoryRepositoryProtocol {
     
     func getRecentSessions(userId: UUID, limit: Int) async throws -> [ChatSession] {
         var descriptor = FetchDescriptor<ChatSession>(
-            sortBy: [SortDescriptor(\.lastMessageAt, order: .reverse)]
+            sortBy: [SortDescriptor<ChatSession>(\.lastMessageDate, order: .reverse)]
         )
         
         descriptor.predicate = #Predicate<ChatSession> { session in
@@ -131,8 +131,15 @@ final class ChatHistoryRepository: ChatHistoryRepositoryProtocol {
         }
         
         if let role = filter.role {
+            // Convert MessageRole to MessageType for comparison
+            let messageType: ChatMessage.MessageType = switch role {
+            case .user: .user
+            case .assistant: .assistant
+            case .system: .system
+            case .function, .tool: .assistant // Map function/tool to assistant
+            }
             predicates.append(#Predicate { message in
-                message.roleEnum == role
+                message.roleEnum == messageType
             })
         }
         

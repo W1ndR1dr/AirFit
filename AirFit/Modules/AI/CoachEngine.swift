@@ -130,10 +130,12 @@ final class CoachEngine {
     private let routingConfiguration: RoutingConfiguration
     private let healthKitManager: HealthKitManaging
     private let nutritionCalculator: NutritionCalculatorProtocol
-    private let muscleGroupVolumeService: MuscleGroupVolumeServiceProtocol
-    internal let exerciseDatabase: ExerciseDatabase
+    // WORKOUT TRACKING REMOVED - Analysis will come from HealthKit/external sources
+    // private let muscleGroupVolumeService: MuscleGroupVolumeServiceProtocol
+    // internal let exerciseDatabase: ExerciseDatabase
 
     // MARK: - Components
+    internal let orchestrator: CoachOrchestrator
     private let messageProcessor: MessageProcessor
     private let stateManager: ConversationStateManager
     private let directAIProcessor: DirectAIProcessor
@@ -155,8 +157,9 @@ final class CoachEngine {
         routingConfiguration: RoutingConfiguration,
         healthKitManager: HealthKitManaging,
         nutritionCalculator: NutritionCalculatorProtocol,
-        muscleGroupVolumeService: MuscleGroupVolumeServiceProtocol,
-        exerciseDatabase: ExerciseDatabase
+        orchestrator: CoachOrchestrator
+        // muscleGroupVolumeService: MuscleGroupVolumeServiceProtocol,
+        // exerciseDatabase: ExerciseDatabase
     ) {
         self.personaService = personaService
         self.conversationManager = conversationManager
@@ -166,8 +169,9 @@ final class CoachEngine {
         self.routingConfiguration = routingConfiguration
         self.healthKitManager = healthKitManager
         self.nutritionCalculator = nutritionCalculator
-        self.muscleGroupVolumeService = muscleGroupVolumeService
-        self.exerciseDatabase = exerciseDatabase
+        self.orchestrator = orchestrator
+        // self.muscleGroupVolumeService = muscleGroupVolumeService
+        // self.exerciseDatabase = exerciseDatabase
 
         // Initialize components
         self.messageProcessor = MessageProcessor(localCommandParser: localCommandParser)
@@ -332,6 +336,8 @@ final class CoachEngine {
         }
     }
 
+    // WORKOUT TRACKING REMOVED - Analysis now via HealthKit only
+    /*
     /// Generates AI-powered post-workout analysis
     func generatePostWorkoutAnalysis(_ request: PostWorkoutAnalysisRequest) async -> String {
         let analysisPrompt = buildWorkoutAnalysisPrompt(request)
@@ -426,6 +432,7 @@ final class CoachEngine {
 
         return prompt
     }
+    */
 
     // MARK: - Private Methods
 
@@ -493,23 +500,23 @@ final class CoachEngine {
         let startTime = CFAbsoluteTimeGetCurrent()
 
         // C01 Pipeline V2 signposted flow (no public API change)
-        var pipelineSp: OSSignpostID = .init(log: ObsCategories.ai)
+        var pipelineSp = OSSignpostID(log: ObsCategories.ai)
         if AppConstants.Configuration.coachPipelineV2Enabled {
-            spBegin(ObsCategories.ai, StaticString(SignpostNames.pipeline), &pipelineSp)
+            spBegin(ObsCategories.ai, "coach.pipeline", &pipelineSp)
         }
 
         do {
             // Step 0: Parse (classification done earlier; mark for timing)
             if AppConstants.Configuration.coachPipelineV2Enabled {
-                var parseSp: OSSignpostID = .init(log: ObsCategories.ai)
-                spBegin(ObsCategories.ai, StaticString(SignpostNames.parse), &parseSp)
-                spEnd(ObsCategories.ai, StaticString(SignpostNames.parse), parseSp)
+                var parseSp = OSSignpostID(log: ObsCategories.ai)
+                spBegin(ObsCategories.ai, "coach.parse", &parseSp)
+                spEnd(ObsCategories.ai, "coach.parse", parseSp)
             }
 
             // Step 1: Assemble health context
-            var contextSp: OSSignpostID = .init(log: ObsCategories.ai)
+            var contextSp = OSSignpostID(log: ObsCategories.ai)
             if AppConstants.Configuration.coachPipelineV2Enabled {
-                spBegin(ObsCategories.ai, StaticString(SignpostNames.assembleContext), &contextSp)
+                spBegin(ObsCategories.ai, "coach.context", &contextSp)
             }
 
             // Step 2: Get conversation history with optimized limit based on message type
@@ -525,7 +532,7 @@ final class CoachEngine {
                 )
             let healthContext = await healthContextAsync
             if AppConstants.Configuration.coachPipelineV2Enabled {
-                spEnd(ObsCategories.ai, StaticString(SignpostNames.assembleContext), contextSp)
+                spEnd(ObsCategories.ai, "coach.context", contextSp)
             }
             let conversationHistory = try await conversationHistoryAsync
 
@@ -567,9 +574,9 @@ final class CoachEngine {
             // Step 4: Route based on strategy
             switch routingStrategy.route {
             case .directAI:
-                var inferSp: OSSignpostID = .init(log: ObsCategories.ai)
+                var inferSp = OSSignpostID(log: ObsCategories.ai)
                 if AppConstants.Configuration.coachPipelineV2Enabled {
-                    spBegin(ObsCategories.ai, StaticString(SignpostNames.infer), &inferSp)
+                    spBegin(ObsCategories.ai, "coach.infer", &inferSp)
                 }
                 await processWithDirectAI(
                     text: text,
@@ -581,13 +588,13 @@ final class CoachEngine {
                     startTime: startTime
                 )
                 if AppConstants.Configuration.coachPipelineV2Enabled {
-                    spEnd(ObsCategories.ai, StaticString(SignpostNames.infer), inferSp)
+                    spEnd(ObsCategories.ai, "coach.infer", inferSp)
                 }
 
             case .functionCalling, .hybrid:
-                var inferSp: OSSignpostID = .init(log: ObsCategories.ai)
+                var inferSp = OSSignpostID(log: ObsCategories.ai)
                 if AppConstants.Configuration.coachPipelineV2Enabled {
-                    spBegin(ObsCategories.ai, StaticString(SignpostNames.infer), &inferSp)
+                    spBegin(ObsCategories.ai, "coach.infer", &inferSp)
                 }
                 await processWithFunctionCalling(
                     text: text,
@@ -599,13 +606,13 @@ final class CoachEngine {
                     startTime: startTime
                 )
                 if AppConstants.Configuration.coachPipelineV2Enabled {
-                    spEnd(ObsCategories.ai, StaticString(SignpostNames.infer), inferSp)
+                    spEnd(ObsCategories.ai, "coach.infer", inferSp)
                 }
             }
 
             if AppConstants.Configuration.coachPipelineV2Enabled {
                 // Act stage is implicit (message persistence and UI update). Mark the end of the pipeline.
-                spEnd(ObsCategories.ai, StaticString(SignpostNames.pipeline), pipelineSp)
+                spEnd(ObsCategories.ai, "coach.pipeline", pipelineSp)
             }
         } catch {
             await handleError(error)
@@ -1529,12 +1536,6 @@ extension CoachEngine {
 
 }
 
-// MARK: - CoachEngineProtocol Conformance
-extension CoachEngine: CoachEngineProtocol {
-    // generatePostWorkoutAnalysis is already implemented above
-}
-
-
 // MARK: - FoodCoachEngineProtocol Conformance
 extension CoachEngine: FoodCoachEngineProtocol {
     func processUserMessage(_ message: String, context: HealthContextSnapshot?) async throws -> [String: SendableValue] {
@@ -1593,8 +1594,8 @@ extension CoachEngine: FoodCoachEngineProtocol {
         let carbs = nutrition.carbs
         let fat = nutrition.fat
 
-        // Get muscle group volumes
-        let muscleVolumes = try await muscleGroupVolumeService.getWeeklyVolumes(for: user)
+        // WORKOUT TRACKING REMOVED - Get workout data from HealthKit/external sources instead
+        // let muscleVolumes = try await muscleGroupVolumeService.getWeeklyVolumes(for: user)
 
         // Build context for AI
         var contextParts: [String] = []
@@ -1614,28 +1615,32 @@ extension CoachEngine: FoodCoachEngineProtocol {
             }
         }
 
+        // WORKOUT TRACKING REMOVED - Muscle volume tracking moved to external apps
         // Add workout context
-        if !muscleVolumes.isEmpty {
-            let volumeSummary = muscleVolumes.map { "\($0.name): \($0.sets)/\($0.target) sets" }.joined(separator: ", ")
-            contextParts.append("This week's volume: \(volumeSummary)")
-        }
+        // if !muscleVolumes.isEmpty {
+        //     let volumeSummary = muscleVolumes.map { "\($0.name): \($0.sets)/\($0.target) sets" }.joined(separator: ", ")
+        //     contextParts.append("This week's volume: \(volumeSummary)")
+        // }
 
+        // WORKOUT TRACKING REMOVED - Get workout data from HealthKit instead
         // Add recent workout info
-        let recentWorkouts = user.workouts.filter { $0.completedDate != nil }
-            .sorted { ($0.completedDate ?? Date.distantPast) > ($1.completedDate ?? Date.distantPast) }
-            .prefix(1)
+        // let recentWorkouts = user.workouts.filter { $0.completedDate != nil }
+        //     .sorted { ($0.completedDate ?? Date.distantPast) > ($1.completedDate ?? Date.distantPast) }
+        //     .prefix(1)
+        // let recentWorkouts: [Any] = [] // Empty for now
 
-        if let lastWorkout = recentWorkouts.first,
-           let lastWorkoutDate = lastWorkout.completedDate {
-            let daysAgo = Calendar.current.dateComponents([.day], from: lastWorkoutDate, to: Date()).day ?? 0
-            if daysAgo == 0 {
-                contextParts.append("Workout completed today.")
-            } else if daysAgo == 1 {
-                contextParts.append("Last workout: yesterday")
-            } else {
-                contextParts.append("Last workout: \(daysAgo) days ago")
-            }
-        }
+        // WORKOUT TRACKING REMOVED - Will be replaced with HealthKit data
+        // if let lastWorkout = recentWorkouts.first,
+        //    let lastWorkoutDate = lastWorkout.completedDate {
+        //     let daysAgo = Calendar.current.dateComponents([.day], from: lastWorkoutDate, to: Date()).day ?? 0
+        //     if daysAgo == 0 {
+        //         contextParts.append("Workout completed today.")
+        //     } else if daysAgo == 1 {
+        //         contextParts.append("Last workout: yesterday")
+        //     } else {
+        //         contextParts.append("Last workout: \(daysAgo) days ago")
+        //     }
+        // }
 
         // Get persona for consistent voice
         guard let personaData = user.coachPersonaData,
@@ -1653,7 +1658,7 @@ extension CoachEngine: FoodCoachEngineProtocol {
                     fat: fat,
                     fatTarget: dynamicTargets?.fat ?? 65
                 ) : nil,
-                muscleGroupVolumes: muscleVolumes.isEmpty ? nil : muscleVolumes,
+                muscleGroupVolumes: nil, // WORKOUT TRACKING REMOVED
                 guidance: nil,
                 celebration: nil
             )
@@ -1776,7 +1781,7 @@ extension CoachEngine: FoodCoachEngineProtocol {
                 fat: fat,
                 fatTarget: dynamicTargets?.fat ?? 65
             ) : nil,
-            muscleGroupVolumes: muscleVolumes.isEmpty ? nil : muscleVolumes,
+            muscleGroupVolumes: nil, // WORKOUT TRACKING REMOVED
             guidance: guidance,
             celebration: celebration
         )

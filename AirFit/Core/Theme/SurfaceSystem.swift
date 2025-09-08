@@ -34,6 +34,7 @@ enum SurfaceSystem {
     }
 
     /// Configure global Tab Bar appearance using tokens
+    @MainActor
     static func configureTabBarAppearance(for colorScheme: ColorScheme) {
         let style: TabBarStyle = (colorScheme == .dark) ? .glassDark : .glassLight
 
@@ -56,15 +57,7 @@ struct SurfaceCapsuleModifier: ViewModifier {
         content
             .padding(.horizontal, 16)
             .padding(.vertical, 8)
-            .background(
-                Group {
-                    if #available(iOS 15.0, *) {
-                        glass.material
-                    } else {
-                        Color.secondary.opacity(0.12)
-                    }
-                }
-            )
+            .background(glass.material)
             .clipShape(Capsule())
     }
 }

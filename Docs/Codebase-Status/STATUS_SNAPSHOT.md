@@ -6,7 +6,7 @@ Status: CI baseline + guard enforcement merged; critical violations present
 
 ## Build & Test Status (local)
 - XcodeGen: Not run locally in this session
-- Build: Not run locally (requires Xcode 26 beta)
+- Build: Not run locally (requires Xcode 16 beta)
 - Tests: Not run locally
 
 Use CI to validate with Xcode-beta and iOS 26.0 destinations.
@@ -37,4 +37,3 @@ Artifacts (local):
 ## Notes
 - CI workflow now uses Xcode-beta and iOS 26.0 destinations across build/tests and the test matrix.
 - Guard step enforces CRITICAL categories and preserves artifacts even on failure.
-

@@ -314,12 +314,8 @@ final class DashboardViewModel: ErrorHandling {
     }
 
     private func hasWorkoutToday() -> Bool {
-        let today = Calendar.current.startOfDay(for: Date())
-        return user.workouts.contains { workout in
-            if let completed = workout.completedDate {
-                return Calendar.current.isDate(completed, inSameDayAs: today)
-            }
-            return false
-        }
+        // WORKOUT TRACKING REMOVED - Get from HealthKit
+        // TODO: Query HealthKit for today's workouts
+        return false
     }
 }

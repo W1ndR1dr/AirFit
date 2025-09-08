@@ -22,7 +22,7 @@ echo ""
 cat > $ACCESSIBILITY_LOG << EOF
 === AirFit Accessibility Validation Results ===
 Date: $(date)
-Device: iPhone 16 Pro (iOS 18.4)
+Device: iPhone 16 Pro (iOS 26.0)
 Standard: WCAG 2.1 AA + iOS Accessibility Guidelines
 
 EOF

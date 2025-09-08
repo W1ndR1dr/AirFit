@@ -638,26 +638,8 @@ final class HealthKitManager: HealthKitManaging, ServiceProtocol {
         )
     }
     
-    func saveWorkout(_ workout: Workout) async throws -> String {
-        // Convert our Workout model to HKWorkout
-        let _ : HKWorkoutActivityType = .other  // TODO: Map workout types properly
-        
-        let totalEnergy = workout.exercises.reduce(0.0) { total, exercise in
-            total + exercise.sets.reduce(0.0) { setTotal, set in
-                let weight = set.completedWeightKg ?? set.targetWeightKg ?? 0
-                let reps = Double(set.completedReps ?? set.targetReps ?? 0)
-                // Rough calorie estimate: weight * reps * 0.3
-                return setTotal + (weight * reps * 0.3)
-            }
-        }
-        
-        let _ = HKQuantity(unit: .kilocalorie(), doubleValue: totalEnergy)
-        
-        // HKWorkout constructor changed in newer APIs
-        // For now, return a dummy ID - implement proper workout saving later
-        // TODO: Use HKWorkoutBuilder for creating workouts
-        return UUID().uuidString
-    }
+    // Note: saveWorkout method removed - workout creation moved to external apps (HEVY/Apple Workouts)
+    // Local workout model dependencies have been eliminated
     
     func deleteWorkout(healthKitID: String) async throws {
         guard let uuid = UUID(uuidString: healthKitID) else {

@@ -84,7 +84,7 @@ The AirFit validation framework provides comprehensive testing and quality assur
    ```
 
 2. **Device Requirements**
-   - iPhone 16 Pro with iOS 18.4
+   - iPhone 16 Pro with iOS 26.0
    - AirFit app installed and ready for testing
    - Adequate device storage (>1GB free)
 
@@ -230,7 +230,7 @@ swiftlint --strict
 ### Test Failures
 ```bash
 # Run tests with verbose output
-xcodebuild test -scheme AirFit -destination 'platform=iOS Simulator,name=iPhone 16 Pro,OS=18.4'
+xcodebuild test -scheme AirFit -destination 'platform=iOS Simulator,name=iPhone 16 Pro,OS=26.0'
 ```
 
 ### Performance Issues

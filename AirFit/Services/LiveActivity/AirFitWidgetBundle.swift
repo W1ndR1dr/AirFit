@@ -11,11 +11,11 @@ import SwiftUI
 
 // MARK: - Widget Bundle
 
-@main
+// @main - Removed to avoid duplicate main attribute (AirFitApp has @main)
 struct AirFitWidgetBundle: WidgetBundle {
     var body: some Widget {
-        // Workout tracking Live Activity
-        AirFitLiveActivity()
+        // Workout tracking Live Activity - REMOVED (workout features disabled)
+        // AirFitLiveActivity()
         
         // Nutrition tracking Live Activity  
         NutritionLiveActivity()
@@ -34,7 +34,7 @@ extension View {
         self.background(.ultraThinMaterial, in: AnyShape(shape))
             .overlay(
                 AnyShape(shape)
-                    .strokeBorder(
+                    .stroke(
                         LinearGradient(
                             colors: [
                                 .white.opacity(0.3),
@@ -95,10 +95,10 @@ enum GlassEffectStyle {
 // MARK: - Shape Type Erasure
 
 struct AnyShape: Shape {
-    private let _path: (CGRect) -> Path
+    private let _path: @Sendable (CGRect) -> Path
     
     init<S: Shape>(_ shape: S) {
-        _path = shape.path(in:)
+        _path = { rect in shape.path(in: rect) }
     }
     
     func path(in rect: CGRect) -> Path {

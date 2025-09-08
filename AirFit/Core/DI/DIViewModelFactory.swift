@@ -51,7 +51,10 @@ public final class DIViewModelFactory {
     // MARK: - Settings
 
     func makeSettingsViewModel(user: User) async throws -> SettingsViewModel {
-        // Resolve dependencies in parallel
+        // Resolve @MainActor services using resolveOnMain for iOS 26 compatibility
+        let dataExporter = try await container.resolveOnMain(DataExporterProtocol.self)
+        
+        // Resolve other dependencies in parallel
         async let settingsRepository = container.resolve(SettingsRepositoryProtocol.self)
         async let userWriteRepository = container.resolve(UserWriteRepositoryProtocol.self)
         async let apiKeyManager = container.resolve(APIKeyManagementProtocol.self)
@@ -67,34 +70,12 @@ public final class DIViewModelFactory {
             apiKeyManager: apiKeyManager,
             aiService: aiService,
             notificationManager: notificationManager,
-            coordinator: coordinator
+            coordinator: coordinator,
+            dataExporter: dataExporter
         )
     }
 
-    // MARK: - Workouts
-
-    func makeWorkoutViewModel(user: User) async throws -> WorkoutViewModel {
-        // Resolve dependencies in parallel
-        async let workoutReadRepository = container.resolve(WorkoutReadRepositoryProtocol.self)
-        async let workoutWriteRepository = container.resolve(WorkoutWriteRepositoryProtocol.self)
-        async let healthKitManager = container.resolve(HealthKitManager.self)
-        async let exerciseDatabase = container.resolve(ExerciseDatabase.self)
-        async let streamStore = container.resolve(ChatStreamingStore.self)
-        async let workoutSyncService = container.resolve(WorkoutSyncService.self)
-        async let liveActivityManager = container.resolve(LiveActivityManager.self)
-        async let coachEngine = makeCoachEngine(for: user)
-
-        return try await WorkoutViewModel(
-            workoutReadRepository: workoutReadRepository,
-            workoutWriteRepository: workoutWriteRepository,
-            user: user,
-            coachEngine: coachEngine,
-            healthKitManager: healthKitManager,
-            exerciseDatabase: exerciseDatabase,
-            workoutSyncService: workoutSyncService,
-            liveActivityManager: liveActivityManager
-        )
-    }
+    // MARK: - Workouts (REMOVED - No longer tracking workouts)
 
     // MARK: - Chat
 
@@ -182,11 +163,26 @@ public final class DIViewModelFactory {
         async let routingConfiguration = container.resolve(RoutingConfiguration.self)
         async let nutritionCalculator = container.resolve(NutritionCalculatorProtocol.self)
         async let muscleGroupVolumeService = container.resolve(MuscleGroupVolumeServiceProtocol.self)
-        async let exerciseDatabase = container.resolve(ExerciseDatabase.self)
+        async let streamStore = container.resolve(ChatStreamingStore.self)
 
         // Create components that don't need async resolution
         let localCommandParser = LocalCommandParser()
         let conversationManager = ConversationManager(modelContext: modelContext)
+
+        // Create the orchestrator
+        let orchestrator = try await CoachOrchestrator(
+            localCommandParser: localCommandParser,
+            personaService: personaService,
+            conversationManager: conversationManager,
+            aiService: aiService,
+            contextAssembler: contextAssembler,
+            modelContext: modelContext,
+            routingConfiguration: routingConfiguration,
+            healthKitManager: healthKitManager,
+            nutritionCalculator: nutritionCalculator,
+            muscleGroupVolumeService: muscleGroupVolumeService,
+            streamStore: streamStore
+        )
 
         return try await CoachEngine(
             localCommandParser: localCommandParser,
@@ -198,8 +194,7 @@ public final class DIViewModelFactory {
             routingConfiguration: routingConfiguration,
             healthKitManager: healthKitManager,
             nutritionCalculator: nutritionCalculator,
-            muscleGroupVolumeService: muscleGroupVolumeService,
-            exerciseDatabase: exerciseDatabase
+            orchestrator: orchestrator
         )
     }
 

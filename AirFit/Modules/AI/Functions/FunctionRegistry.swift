@@ -13,8 +13,9 @@ enum FunctionRegistry {
     /// - parseAndLogComplexNutrition (now CoachEngine.parseAndLogNutritionDirect)
     /// - generateEducationalInsight (now CoachEngine.generateEducationalContentDirect)
     static let availableFunctions: [AIFunctionDefinition] = [
-        WorkoutFunctions.generatePersonalizedWorkoutPlan,
-        WorkoutFunctions.adaptPlanBasedOnFeedback,
+        // WORKOUT TRACKING REMOVED - Analysis via HealthKit only
+        // WorkoutFunctions.generatePersonalizedWorkoutPlan,
+        // WorkoutFunctions.adaptPlanBasedOnFeedback,
         AnalysisFunctions.analyzePerformanceTrends,
         GoalFunctions.assistGoalSettingOrRefinement
     ]

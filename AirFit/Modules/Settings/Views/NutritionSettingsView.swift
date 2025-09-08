@@ -3,7 +3,6 @@ import SwiftUI
 /// Settings view for adjusting personalized nutrition macros
 struct NutritionSettingsView: View {
     @Environment(\.colorScheme) private var colorScheme
-    @Environment(\.modelContext) private var modelContext
     @EnvironmentObject private var gradientManager: GradientManager
 
     @State private var proteinPerPound: Double
@@ -480,7 +479,8 @@ struct NutritionSettingsView: View {
         user.macroFlexibility = macroFlexibility
 
         do {
-            try modelContext.save()
+            // TODO: Save through repository when implemented
+            // For now, just update the user model directly
             hasChanges = false
 
             // Log the change
@@ -494,15 +494,9 @@ struct NutritionSettingsView: View {
     }
 
     private func loadAdjustments() async {
-        let userId = user.id
-        var desc = FetchDescriptor<DailyNutritionAdjustment>(
-            predicate: #Predicate<DailyNutritionAdjustment> { adj in
-                adj.userID == userId
-            },
-            sortBy: [SortDescriptor(\.date, order: .reverse)]
-        )
-        desc.fetchLimit = 14
-        adjustments = (try? modelContext.fetch(desc)) ?? []
+        // TODO: Move to repository pattern
+        // For now, return empty adjustments to remove SwiftData dependency
+        adjustments = []
     }
 
     private func formattedDate(_ date: Date) -> String {
