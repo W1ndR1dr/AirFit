@@ -15,8 +15,10 @@ class HevyWorkout:
     title: str
     date: datetime
     duration_minutes: int
-    exercises: list[dict]  # [{name, sets: [{reps, weight_kg}]}]
+    exercises: list[dict]  # [{name, sets: [{reps, weight_kg}], notes}]
     total_volume_kg: float
+    notes: str = ""  # Workout-level notes - often contain valuable subjective data
+    exercise_notes: Optional[list[str]] = None  # Per-exercise notes
 
 
 async def get_api_key() -> Optional[str]:
@@ -61,6 +63,7 @@ async def get_recent_workouts(days: int = 7, limit: int = 10) -> list[HevyWorkou
                 exercises = []
                 total_volume = 0.0
 
+                exercise_notes = []
                 for ex in w.get("exercises", []):
                     sets_data = []
                     for s in ex.get("sets", []):
@@ -73,10 +76,15 @@ async def get_recent_workouts(days: int = 7, limit: int = 10) -> list[HevyWorkou
                         })
                         total_volume += weight * reps
 
+                    # Capture exercise-level notes (gold for subjective data)
+                    ex_notes = ex.get("notes", "").strip()
                     exercises.append({
                         "name": ex.get("title", "Unknown"),
-                        "sets": sets_data
+                        "sets": sets_data,
+                        "notes": ex_notes
                     })
+                    if ex_notes:
+                        exercise_notes.append(f"{ex.get('title', 'Unknown')}: {ex_notes}")
 
                 # Parse date
                 start_time = w.get("start_time", "")
@@ -101,7 +109,9 @@ async def get_recent_workouts(days: int = 7, limit: int = 10) -> list[HevyWorkou
                     date=workout_date,
                     duration_minutes=duration,
                     exercises=exercises,
-                    total_volume_kg=total_volume
+                    total_volume_kg=total_volume,
+                    notes=w.get("description", "").strip(),  # Workout-level notes
+                    exercise_notes=exercise_notes if exercise_notes else None
                 ))
 
             return workouts
@@ -130,6 +140,10 @@ def format_workout_context(workouts: list[HevyWorkout]) -> str:
 
         lines.append(f"\n{w.title} ({when}, {w.duration_minutes}min):")
 
+        # Include workout-level notes if present (subjective data is gold)
+        if w.notes:
+            lines.append(f"  Notes: \"{w.notes}\"")
+
         for ex in w.exercises[:6]:  # Limit exercises shown
             sets_summary = []
             for s in ex["sets"]:
@@ -139,7 +153,11 @@ def format_workout_context(workouts: list[HevyWorkout]) -> str:
                     sets_summary.append(f"{s['reps']} reps")
 
             if sets_summary:
-                lines.append(f"  - {ex['name']}: {', '.join(sets_summary)}")
+                ex_line = f"  - {ex['name']}: {', '.join(sets_summary)}"
+                # Include exercise-level notes inline
+                if ex.get("notes"):
+                    ex_line += f" [{ex['notes']}]"
+                lines.append(ex_line)
 
     return "\n".join(lines)
 
@@ -227,6 +245,7 @@ def _parse_workout(w: dict) -> Optional[HevyWorkout]:
     try:
         exercises = []
         total_volume = 0.0
+        exercise_notes = []
 
         for ex in w.get("exercises", []):
             sets_data = []
@@ -240,10 +259,15 @@ def _parse_workout(w: dict) -> Optional[HevyWorkout]:
                 })
                 total_volume += weight * reps
 
+            # Capture exercise-level notes
+            ex_notes = ex.get("notes", "").strip()
             exercises.append({
                 "name": ex.get("title", "Unknown"),
-                "sets": sets_data
+                "sets": sets_data,
+                "notes": ex_notes
             })
+            if ex_notes:
+                exercise_notes.append(f"{ex.get('title', 'Unknown')}: {ex_notes}")
 
         # Parse date
         start_time = w.get("start_time", "")
@@ -268,7 +292,9 @@ def _parse_workout(w: dict) -> Optional[HevyWorkout]:
             date=workout_date,
             duration_minutes=duration,
             exercises=exercises,
-            total_volume_kg=total_volume
+            total_volume_kg=total_volume,
+            notes=w.get("description", "").strip(),
+            exercise_notes=exercise_notes if exercise_notes else None
         )
     except Exception as e:
         print(f"Error parsing workout: {e}")

@@ -14,6 +14,7 @@ import nutrition
 import profile
 import context_store
 import insight_engine
+import scheduler
 
 
 @asynccontextmanager
@@ -22,7 +23,14 @@ async def lifespan(app: FastAPI):
     providers = llm_router.get_available_providers()
     print(f"AirFit server starting on http://{config.HOST}:{config.PORT}")
     print(f"Available providers: {providers or 'NONE - install claude/gemini/ollama'}")
+
+    # Start background scheduler for async AI tasks
+    scheduler.start_scheduler()
+
     yield
+
+    # Cleanup
+    scheduler.stop_scheduler()
     print("AirFit server shutting down")
 
 
@@ -58,6 +66,36 @@ async def get_status():
         "session_id": session.session_id if session else None,
         "message_count": session.message_count if session else 0
     }
+
+
+@app.get("/scheduler/status")
+async def get_scheduler_status():
+    """Get background scheduler status.
+
+    Shows what the background agents are doing:
+    - When insights were last generated
+    - When next generation will occur
+    - Current generation status
+    """
+    return scheduler.get_scheduler_status()
+
+
+@app.post("/scheduler/trigger-insights")
+async def trigger_insight_generation(force: bool = False):
+    """Manually trigger insight generation.
+
+    Args:
+        force: If True, generate even if recently generated
+    """
+    result = await scheduler.run_insight_generation(force=force)
+    return result
+
+
+@app.post("/scheduler/trigger-hevy-sync")
+async def trigger_hevy_sync():
+    """Manually trigger Hevy workout sync."""
+    result = await scheduler.run_hevy_sync()
+    return result
 
 
 # --- Request/Response Models ---
@@ -174,13 +212,26 @@ async def chat(request: ChatRequest):
 
     The server will:
     1. Load user profile for personalized context
-    2. Fetch Hevy workout data (if API key configured)
-    3. Include health context from iOS (HealthKit)
-    4. Try available LLM providers in priority order
-    5. Extract insights from conversation to evolve profile
-    6. Return the AI response
+    2. Inject pre-computed insights from background analysis
+    3. Fetch Hevy workout data (if API key configured)
+    4. Include health context from iOS (HealthKit)
+    5. Try available LLM providers in priority order
+    6. Extract insights from conversation to evolve profile
+    7. Return the AI response
     """
     context_parts = []
+
+    # Inject pre-computed insights from background agent
+    # This is the key multi-agent integration - chat stays fast because
+    # heavy insight generation already happened in background
+    insights_context = scheduler.get_insights_for_chat_context(limit=3)
+    if insights_context:
+        context_parts.append(insights_context)
+
+    # Add weekly summary for quick reference
+    weekly_summary = scheduler.get_weekly_summary_for_chat()
+    if weekly_summary:
+        context_parts.append(weekly_summary)
 
     # Get Hevy workout data (server-side)
     hevy_context = await hevy.get_hevy_context()
@@ -509,6 +560,57 @@ async def trigger_learning():
     # For now, just return current profile
     user_profile = profile.load_profile()
     return {"status": "learning complete", "patterns": user_profile.patterns}
+
+
+@app.post("/profile/finalize-onboarding")
+async def finalize_onboarding():
+    """
+    Finalize the onboarding process.
+
+    Call this after the initial conversation to:
+    1. Generate the personalized personality prompt
+    2. Mark onboarding as complete
+    3. Clear the chat session to start fresh with the new profile
+
+    The system will synthesize everything learned into a rich
+    personality profile that makes the AI feel personal.
+    """
+    # Generate the personality notes from gathered data
+    user_profile = await profile.finalize_onboarding([])
+
+    # Clear chat session so new personality takes effect
+    llm_router.clear_chat_session()
+
+    return {
+        "status": "onboarding_complete",
+        "name": user_profile.name,
+        "has_personality": bool(user_profile.personality_notes),
+        "preview": user_profile.personality_notes[:500] if user_profile.personality_notes else None
+    }
+
+
+@app.post("/profile/regenerate-personality")
+async def regenerate_personality():
+    """
+    Regenerate the personality prompt from current profile data.
+
+    Use this if you've manually updated profile fields and want
+    to regenerate the personality notes to match.
+    """
+    user_profile = profile.load_profile()
+    personality = await profile.generate_personality_notes(user_profile)
+
+    if personality:
+        user_profile.personality_notes = personality
+        profile.save_profile(user_profile)
+
+    # Clear session so new personality takes effect
+    llm_router.clear_chat_session()
+
+    return {
+        "status": "regenerated",
+        "personality": personality[:500] if personality else None
+    }
 
 
 # --- Insights Endpoints ---
