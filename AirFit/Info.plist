@@ -52,7 +52,9 @@
         <key>NSHealthClinicalHealthRecordsShareUsageDescription</key>
         <string>AirFit does not access clinical health records.</string>
         <key>NSMicrophoneUsageDescription</key>
-        <string>AirFit uses your microphone to transcribe voice messages to your AI coach using advanced on-device speech recognition.</string>
+        <string>AirFit uses your microphone to transcribe voice messages to your AI coach using on-device speech recognition.</string>
+        <key>NSSpeechRecognitionUsageDescription</key>
+        <string>AirFit uses on-device speech recognition to transcribe your voice into text for your AI coach. All processing happens locally on your device.</string>
 	<key>NSCameraUsageDescription</key>
 	<string>AirFit uses the camera to take photos of your meals for nutrition tracking.</string>
 	<key>NSPhotoLibraryUsageDescription</key>

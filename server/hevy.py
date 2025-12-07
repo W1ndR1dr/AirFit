@@ -165,3 +165,152 @@ async def get_hevy_context() -> dict:
         context["last_workout_exercises"] = ", ".join([e["name"] for e in last.exercises[:5]])
 
     return context
+
+
+async def get_all_workouts(max_pages: int = 10) -> list[HevyWorkout]:
+    """Fetch all workouts with pagination for full history.
+
+    Used for insights - syncs complete workout history to context store.
+    """
+    api_key = await get_api_key()
+    if not api_key:
+        return []
+
+    headers = {
+        "api-key": api_key,
+        "Accept": "application/json"
+    }
+
+    all_workouts = []
+    page = 1
+
+    try:
+        async with httpx.AsyncClient() as client:
+            while page <= max_pages:
+                params = {
+                    "page": page,
+                    "pageSize": 20
+                }
+
+                response = await client.get(
+                    f"{HEVY_API_BASE}/workouts",
+                    headers=headers,
+                    params=params,
+                    timeout=30.0
+                )
+                response.raise_for_status()
+                data = response.json()
+
+                workouts_data = data.get("workouts", [])
+                if not workouts_data:
+                    break
+
+                for w in workouts_data:
+                    workout = _parse_workout(w)
+                    if workout:
+                        all_workouts.append(workout)
+
+                # Check if there are more pages
+                page_count = data.get("page_count", 1)
+                if page >= page_count:
+                    break
+                page += 1
+
+    except Exception as e:
+        print(f"Hevy API error during full fetch: {e}")
+
+    return all_workouts
+
+
+def _parse_workout(w: dict) -> Optional[HevyWorkout]:
+    """Parse a single workout from API response."""
+    try:
+        exercises = []
+        total_volume = 0.0
+
+        for ex in w.get("exercises", []):
+            sets_data = []
+            for s in ex.get("sets", []):
+                weight = s.get("weight_kg", 0) or 0
+                reps = s.get("reps", 0) or 0
+                sets_data.append({
+                    "reps": reps,
+                    "weight_kg": weight,
+                    "weight_lbs": round(weight * 2.205, 1) if weight else 0
+                })
+                total_volume += weight * reps
+
+            exercises.append({
+                "name": ex.get("title", "Unknown"),
+                "sets": sets_data
+            })
+
+        # Parse date
+        start_time = w.get("start_time", "")
+        try:
+            workout_date = datetime.fromisoformat(start_time.replace("Z", "+00:00"))
+        except:
+            workout_date = datetime.now()
+
+        # Calculate duration
+        duration = 0
+        if w.get("end_time") and w.get("start_time"):
+            try:
+                end = datetime.fromisoformat(w["end_time"].replace("Z", "+00:00"))
+                start = datetime.fromisoformat(w["start_time"].replace("Z", "+00:00"))
+                duration = int((end - start).total_seconds() / 60)
+            except:
+                pass
+
+        return HevyWorkout(
+            id=w.get("id", ""),
+            title=w.get("title", "Workout"),
+            date=workout_date,
+            duration_minutes=duration,
+            exercises=exercises,
+            total_volume_kg=total_volume
+        )
+    except Exception as e:
+        print(f"Error parsing workout: {e}")
+        return None
+
+
+def aggregate_workouts_by_day(workouts: list[HevyWorkout]) -> dict[str, dict]:
+    """Aggregate workouts into daily summaries for context store.
+
+    Returns a dict mapping date strings to workout summaries.
+    """
+    from collections import defaultdict
+
+    daily = defaultdict(lambda: {
+        "workout_count": 0,
+        "total_duration_minutes": 0,
+        "total_volume_kg": 0.0,
+        "exercises": [],
+        "workout_titles": []
+    })
+
+    for w in workouts:
+        # Get date string
+        if w.date.tzinfo:
+            date_str = w.date.astimezone().strftime("%Y-%m-%d")
+        else:
+            date_str = w.date.strftime("%Y-%m-%d")
+
+        daily[date_str]["workout_count"] += 1
+        daily[date_str]["total_duration_minutes"] += w.duration_minutes
+        daily[date_str]["total_volume_kg"] += w.total_volume_kg
+        daily[date_str]["workout_titles"].append(w.title)
+
+        # Aggregate exercise data
+        for ex in w.exercises:
+            total_reps = sum(s.get("reps", 0) for s in ex.get("sets", []))
+            max_weight = max((s.get("weight_kg", 0) for s in ex.get("sets", [])), default=0)
+            daily[date_str]["exercises"].append({
+                "name": ex["name"],
+                "sets": len(ex.get("sets", [])),
+                "total_reps": total_reps,
+                "max_weight_kg": max_weight
+            })
+
+    return dict(daily)

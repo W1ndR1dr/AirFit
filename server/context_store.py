@@ -1,0 +1,414 @@
+"""Context Store - Unified time-series storage for all user data.
+
+This is the foundation of the AI-native insights system. It stores:
+- Daily snapshots of all metrics (nutrition, health, workouts)
+- Historical data for pattern analysis
+- Indexed for fast temporal queries
+
+Design principle: Store everything. Reason later.
+Future AI models will find patterns we can't imagine today.
+"""
+
+import json
+import os
+from dataclasses import dataclass, field, asdict
+from datetime import datetime, date, timedelta
+from pathlib import Path
+from typing import Optional
+import threading
+
+
+# Storage path (same directory as profile data)
+DATA_DIR = Path(__file__).parent / "data"
+CONTEXT_FILE = DATA_DIR / "context_store.json"
+LOCK = threading.Lock()
+
+
+@dataclass
+class NutritionSnapshot:
+    """Daily nutrition summary."""
+    calories: int = 0
+    protein: int = 0
+    carbs: int = 0
+    fat: int = 0
+    entry_count: int = 0
+
+    # Derived metrics (computed on aggregation)
+    protein_per_lb: Optional[float] = None  # If weight known
+    caloric_balance: Optional[int] = None   # intake - TDEE estimate
+
+
+@dataclass
+class HealthSnapshot:
+    """Daily health metrics from HealthKit."""
+    steps: int = 0
+    active_calories: int = 0
+
+    # Body composition
+    weight_lbs: Optional[float] = None
+    body_fat_pct: Optional[float] = None
+    lean_mass_lbs: Optional[float] = None
+
+    # Recovery metrics
+    sleep_hours: Optional[float] = None
+    resting_hr: Optional[int] = None
+    hrv_ms: Optional[float] = None  # Heart rate variability
+
+    # Performance
+    vo2_max: Optional[float] = None
+
+
+@dataclass
+class WorkoutSnapshot:
+    """Daily workout summary from Hevy."""
+    workout_count: int = 0
+    total_duration_minutes: int = 0
+    total_volume_kg: float = 0.0
+
+    # Exercise details (for pattern analysis)
+    exercises: list[dict] = field(default_factory=list)
+    # Each: {name, sets, total_reps, max_weight_kg}
+
+    # Workout metadata
+    workout_titles: list[str] = field(default_factory=list)
+
+
+@dataclass
+class DailySnapshot:
+    """Complete snapshot of all data for a single day.
+
+    This is the atomic unit of the context store.
+    One per day, updated as new data comes in.
+    """
+    date: str  # ISO format: YYYY-MM-DD
+
+    # Data sources
+    nutrition: NutritionSnapshot = field(default_factory=NutritionSnapshot)
+    health: HealthSnapshot = field(default_factory=HealthSnapshot)
+    workout: WorkoutSnapshot = field(default_factory=WorkoutSnapshot)
+
+    # Metadata
+    last_updated: str = ""  # ISO timestamp
+    sources_synced: list[str] = field(default_factory=list)  # ["nutrition", "health", "hevy"]
+
+    def __post_init__(self):
+        if not self.last_updated:
+            self.last_updated = datetime.now().isoformat()
+
+
+@dataclass
+class Insight:
+    """An AI-generated insight about the user's data.
+
+    Insights are the primary output of the system.
+    They represent what the AI thinks is worth knowing.
+    """
+    id: str
+    created_at: str
+
+    # Classification
+    category: str  # correlation, trend, anomaly, milestone, nudge
+    tier: int      # 1-5 priority (1 = highest value)
+
+    # Content
+    title: str
+    body: str
+    supporting_data: dict = field(default_factory=dict)
+
+    # Scoring (0-1)
+    importance: float = 0.5
+    confidence: float = 0.5
+    novelty: float = 1.0
+    actionability: float = 0.5
+
+    # Actions
+    suggested_actions: list[str] = field(default_factory=list)
+    conversation_context: str = ""  # For "tell me more"
+
+    # Lifecycle
+    surfaced_at: Optional[str] = None
+    engagement: Optional[str] = None  # viewed, tapped, dismissed, acted
+    dismissed_at: Optional[str] = None
+    user_feedback: Optional[str] = None  # agree, disagree, not_relevant
+
+
+@dataclass
+class ContextStore:
+    """The unified context store.
+
+    Contains all daily snapshots and generated insights.
+    """
+    snapshots: dict[str, dict] = field(default_factory=dict)  # date -> DailySnapshot as dict
+    insights: list[dict] = field(default_factory=list)
+
+    # Metadata
+    last_sync: str = ""
+    version: int = 1
+
+
+def _ensure_data_dir():
+    """Create data directory if it doesn't exist."""
+    DATA_DIR.mkdir(parents=True, exist_ok=True)
+
+
+def load_store() -> ContextStore:
+    """Load the context store from disk."""
+    _ensure_data_dir()
+
+    if not CONTEXT_FILE.exists():
+        return ContextStore()
+
+    with LOCK:
+        try:
+            with open(CONTEXT_FILE) as f:
+                data = json.load(f)
+            return ContextStore(
+                snapshots=data.get("snapshots", {}),
+                insights=data.get("insights", []),
+                last_sync=data.get("last_sync", ""),
+                version=data.get("version", 1)
+            )
+        except (json.JSONDecodeError, KeyError):
+            return ContextStore()
+
+
+def save_store(store: ContextStore):
+    """Save the context store to disk."""
+    _ensure_data_dir()
+
+    with LOCK:
+        data = {
+            "snapshots": store.snapshots,
+            "insights": store.insights,
+            "last_sync": datetime.now().isoformat(),
+            "version": store.version
+        }
+        with open(CONTEXT_FILE, "w") as f:
+            json.dump(data, f, indent=2, default=str)
+
+
+def get_snapshot(date_str: str) -> Optional[DailySnapshot]:
+    """Get a snapshot for a specific date."""
+    store = load_store()
+    data = store.snapshots.get(date_str)
+    if not data:
+        return None
+
+    return DailySnapshot(
+        date=data.get("date", date_str),
+        nutrition=NutritionSnapshot(**data.get("nutrition", {})),
+        health=HealthSnapshot(**data.get("health", {})),
+        workout=WorkoutSnapshot(**data.get("workout", {})),
+        last_updated=data.get("last_updated", ""),
+        sources_synced=data.get("sources_synced", [])
+    )
+
+
+def upsert_snapshot(snapshot: DailySnapshot):
+    """Insert or update a daily snapshot."""
+    store = load_store()
+
+    # Convert to dict for storage
+    snapshot_dict = {
+        "date": snapshot.date,
+        "nutrition": asdict(snapshot.nutrition),
+        "health": asdict(snapshot.health),
+        "workout": asdict(snapshot.workout),
+        "last_updated": datetime.now().isoformat(),
+        "sources_synced": snapshot.sources_synced
+    }
+
+    store.snapshots[snapshot.date] = snapshot_dict
+    save_store(store)
+
+
+def update_nutrition(date_str: str, nutrition: NutritionSnapshot):
+    """Update just the nutrition data for a date."""
+    snapshot = get_snapshot(date_str) or DailySnapshot(date=date_str)
+    snapshot.nutrition = nutrition
+    if "nutrition" not in snapshot.sources_synced:
+        snapshot.sources_synced.append("nutrition")
+    upsert_snapshot(snapshot)
+
+
+def update_health(date_str: str, health: HealthSnapshot):
+    """Update just the health data for a date."""
+    snapshot = get_snapshot(date_str) or DailySnapshot(date=date_str)
+    snapshot.health = health
+    if "health" not in snapshot.sources_synced:
+        snapshot.sources_synced.append("health")
+    upsert_snapshot(snapshot)
+
+
+def update_workout(date_str: str, workout: WorkoutSnapshot):
+    """Update just the workout data for a date."""
+    snapshot = get_snapshot(date_str) or DailySnapshot(date=date_str)
+    snapshot.workout = workout
+    if "hevy" not in snapshot.sources_synced:
+        snapshot.sources_synced.append("hevy")
+    upsert_snapshot(snapshot)
+
+
+def get_snapshots_range(start_date: str, end_date: str) -> list[DailySnapshot]:
+    """Get all snapshots in a date range (inclusive)."""
+    store = load_store()
+
+    start = datetime.strptime(start_date, "%Y-%m-%d").date()
+    end = datetime.strptime(end_date, "%Y-%m-%d").date()
+
+    snapshots = []
+    current = start
+    while current <= end:
+        date_str = current.isoformat()
+        if date_str in store.snapshots:
+            data = store.snapshots[date_str]
+            snapshots.append(DailySnapshot(
+                date=data.get("date", date_str),
+                nutrition=NutritionSnapshot(**data.get("nutrition", {})),
+                health=HealthSnapshot(**data.get("health", {})),
+                workout=WorkoutSnapshot(**data.get("workout", {})),
+                last_updated=data.get("last_updated", ""),
+                sources_synced=data.get("sources_synced", [])
+            ))
+        current += timedelta(days=1)
+
+    return snapshots
+
+
+def get_recent_snapshots(days: int = 90) -> list[DailySnapshot]:
+    """Get snapshots for the last N days."""
+    end_date = date.today().isoformat()
+    start_date = (date.today() - timedelta(days=days)).isoformat()
+    return get_snapshots_range(start_date, end_date)
+
+
+# --- Insight Management ---
+
+def add_insight(insight: Insight):
+    """Add a new insight to the store."""
+    store = load_store()
+    store.insights.append(asdict(insight))
+    save_store(store)
+
+
+def get_insights(
+    category: Optional[str] = None,
+    tier: Optional[int] = None,
+    limit: int = 20,
+    include_dismissed: bool = False
+) -> list[Insight]:
+    """Get insights, optionally filtered."""
+    store = load_store()
+
+    insights = []
+    for data in store.insights:
+        # Filter by category
+        if category and data.get("category") != category:
+            continue
+        # Filter by tier
+        if tier and data.get("tier") != tier:
+            continue
+        # Filter dismissed
+        if not include_dismissed and data.get("dismissed_at"):
+            continue
+
+        insights.append(Insight(**data))
+
+    # Sort by importance * confidence, newest first
+    insights.sort(
+        key=lambda i: (i.importance * i.confidence, i.created_at),
+        reverse=True
+    )
+
+    return insights[:limit]
+
+
+def update_insight_engagement(insight_id: str, engagement: str, feedback: Optional[str] = None):
+    """Update engagement tracking for an insight."""
+    store = load_store()
+
+    for insight_data in store.insights:
+        if insight_data.get("id") == insight_id:
+            insight_data["engagement"] = engagement
+            insight_data["surfaced_at"] = insight_data.get("surfaced_at") or datetime.now().isoformat()
+            if engagement == "dismissed":
+                insight_data["dismissed_at"] = datetime.now().isoformat()
+            if feedback:
+                insight_data["user_feedback"] = feedback
+            break
+
+    save_store(store)
+
+
+# --- Aggregation Helpers ---
+
+def compute_averages(snapshots: list[DailySnapshot]) -> dict:
+    """Compute averages from a list of snapshots."""
+    if not snapshots:
+        return {}
+
+    # Nutrition
+    total_calories = sum(s.nutrition.calories for s in snapshots)
+    total_protein = sum(s.nutrition.protein for s in snapshots)
+    total_carbs = sum(s.nutrition.carbs for s in snapshots)
+    total_fat = sum(s.nutrition.fat for s in snapshots)
+
+    # Count days with data
+    nutrition_days = sum(1 for s in snapshots if s.nutrition.calories > 0)
+
+    # Health (only count days with data)
+    weights = [s.health.weight_lbs for s in snapshots if s.health.weight_lbs]
+    sleeps = [s.health.sleep_hours for s in snapshots if s.health.sleep_hours]
+    steps_list = [s.health.steps for s in snapshots if s.health.steps > 0]
+
+    # Workouts
+    total_workouts = sum(s.workout.workout_count for s in snapshots)
+    total_volume = sum(s.workout.total_volume_kg for s in snapshots)
+
+    return {
+        "period_days": len(snapshots),
+        "nutrition_days": nutrition_days,
+
+        # Nutrition averages
+        "avg_calories": round(total_calories / nutrition_days) if nutrition_days else 0,
+        "avg_protein": round(total_protein / nutrition_days) if nutrition_days else 0,
+        "avg_carbs": round(total_carbs / nutrition_days) if nutrition_days else 0,
+        "avg_fat": round(total_fat / nutrition_days) if nutrition_days else 0,
+
+        # Health
+        "avg_weight": round(sum(weights) / len(weights), 1) if weights else None,
+        "weight_change": round(weights[-1] - weights[0], 1) if len(weights) >= 2 else None,
+        "avg_sleep": round(sum(sleeps) / len(sleeps), 1) if sleeps else None,
+        "avg_steps": round(sum(steps_list) / len(steps_list)) if steps_list else 0,
+
+        # Workouts
+        "total_workouts": total_workouts,
+        "avg_volume_per_workout": round(total_volume / total_workouts, 1) if total_workouts else 0,
+    }
+
+
+def compute_compliance(snapshots: list[DailySnapshot], protein_target: int = 160, calorie_target: int = 2200) -> dict:
+    """Compute compliance rates for targets."""
+    if not snapshots:
+        return {}
+
+    nutrition_days = [s for s in snapshots if s.nutrition.calories > 0]
+    if not nutrition_days:
+        return {}
+
+    # Protein: within 90% of target
+    protein_hits = sum(1 for s in nutrition_days if s.nutrition.protein >= protein_target * 0.9)
+
+    # Calories: within 90-110% of target
+    calorie_hits = sum(
+        1 for s in nutrition_days
+        if calorie_target * 0.9 <= s.nutrition.calories <= calorie_target * 1.1
+    )
+
+    return {
+        "days_tracked": len(nutrition_days),
+        "protein_compliance": round(protein_hits / len(nutrition_days), 2),
+        "calorie_compliance": round(calorie_hits / len(nutrition_days), 2),
+        "protein_hits": protein_hits,
+        "calorie_hits": calorie_hits,
+    }
