@@ -164,15 +164,19 @@ struct ChatView: View {
         HStack(spacing: 12) {
             VoiceMicButton(text: $inputText)
 
-            TextField("Message", text: $inputText, axis: .vertical)
+            TextField("Message", text: $inputText)
                 .textFieldStyle(.plain)
                 .autocorrectionDisabled()
+                .textContentType(.none)
                 .textInputAutocapitalization(.sentences)
                 .padding(12)
                 .background(Color(.systemGray6))
                 .clipShape(RoundedRectangle(cornerRadius: 20))
-                .lineLimit(1...5)
                 .focused($isInputFocused)
+                .submitLabel(.send)
+                .onSubmit {
+                    Task { await sendMessage() }
+                }
 
             Button {
                 Task { await sendMessage() }
@@ -222,13 +226,9 @@ struct ChatView: View {
     }
 
     private func refreshNutritionContext() async {
-        // Run SwiftData fetch on a detached task to avoid blocking main actor
-        let context = modelContext
-        cachedNutritionContext = await Task.detached {
-            await MainActor.run {
-                Self.fetchNutritionContext(from: context)
-            }
-        }.value
+        // SwiftData ModelContext is main-actor isolated, so fetch runs on main
+        // This is fine since SwiftData fetches are fast (SQLite)
+        cachedNutritionContext = Self.fetchNutritionContext(from: modelContext)
     }
 
     private static func fetchNutritionContext(from modelContext: ModelContext) -> APIClient.NutritionContext? {

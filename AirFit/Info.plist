@@ -31,8 +31,6 @@
 	<true/>
 	<key>UILaunchScreen</key>
 	<dict/>
-	<key>MinimumOSVersion</key>
-	<string>26.0</string>
 	<key>UIRequiredDeviceCapabilities</key>
 	<array>
 		<string>arm64</string>
@@ -43,34 +41,13 @@
 		<string>UIInterfaceOrientationLandscapeLeft</string>
 		<string>UIInterfaceOrientationLandscapeRight</string>
 	</array>
-        <key>NSHealthShareUsageDescription</key>
-        <string>AirFit personalizes your fitness journey by analyzing your activity, sleep, heart health, body metrics, and nutrition data. Your AI coach uses this data to provide tailored recommendations and track your progress. All health data remains private and is never shared without your explicit consent.</string>
-
-        <key>NSHealthUpdateUsageDescription</key>
-        <string>AirFit saves your workouts, nutrition data, water intake, and body measurements to Apple Health, keeping all your fitness and health data synchronized. This helps you track progress across all your devices and contributes to your activity rings.</string>
-
-        <key>NSHealthClinicalHealthRecordsShareUsageDescription</key>
-        <string>AirFit does not access clinical health records.</string>
-        <key>NSMicrophoneUsageDescription</key>
-        <string>AirFit uses your microphone to transcribe voice messages to your AI coach using on-device speech recognition.</string>
-        <key>NSSpeechRecognitionUsageDescription</key>
-        <string>AirFit uses on-device speech recognition to transcribe your voice into text for your AI coach. All processing happens locally on your device.</string>
-	<key>NSCameraUsageDescription</key>
-	<string>AirFit uses the camera to take photos of your meals for nutrition tracking.</string>
-	<key>NSPhotoLibraryUsageDescription</key>
-	<string>AirFit needs access to your photo library to save and retrieve meal photos.</string>
-	<key>BGTaskSchedulerPermittedIdentifiers</key>
-	<array>
-		<string>com.airfit.lapseDetection</string>
-		<string>com.airfit.engagementAnalysis</string>
-	</array>
-	<key>NSSupportsLiveActivities</key>
-	<true/>
-	<key>UIBackgroundModes</key>
-	<array>
-		<string>fetch</string>
-		<string>processing</string>
-		<string>remote-notification</string>
-	</array>
+	<key>NSHealthShareUsageDescription</key>
+	<string>AirFit personalizes your fitness journey by analyzing your activity, sleep, heart health, body metrics, and nutrition data.</string>
+	<key>NSHealthUpdateUsageDescription</key>
+	<string>AirFit saves your workouts and nutrition data to Apple Health.</string>
+	<key>NSMicrophoneUsageDescription</key>
+	<string>AirFit uses your microphone for voice input to your AI coach.</string>
+	<key>NSSpeechRecognitionUsageDescription</key>
+	<string>AirFit uses on-device speech recognition to transcribe your voice.</string>
 </dict>
 </plist>

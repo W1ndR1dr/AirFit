@@ -12,7 +12,7 @@ struct InsightsView: View {
     @State private var showingChat = false
 
     private let apiClient = APIClient()
-    private let syncService = InsightsSyncService()
+    @State private var syncService = InsightsSyncService()
 
     var body: some View {
         NavigationStack {
@@ -474,6 +474,26 @@ struct InsightChatSheet: View {
         }
 
         isLoading = false
+    }
+}
+
+// MARK: - Message Bubble (for Insight Chat)
+
+private struct MessageBubble: View {
+    let message: Message
+
+    var body: some View {
+        HStack {
+            if message.isUser { Spacer() }
+
+            Text(message.content)
+                .padding(12)
+                .background(message.isUser ? Color.blue : Color(.systemGray5))
+                .foregroundColor(message.isUser ? .white : .primary)
+                .clipShape(RoundedRectangle(cornerRadius: 16))
+
+            if !message.isUser { Spacer() }
+        }
     }
 }
 
