@@ -43,6 +43,23 @@ app.add_middleware(
 )
 
 
+# --- Status Endpoint ---
+
+@app.get("/status")
+async def get_status():
+    """Get server status including available LLM providers."""
+    import sessions
+    providers = llm_router.get_available_providers()
+    session = sessions.get_or_create_session(provider="claude")
+
+    return {
+        "status": "ok",
+        "available_providers": providers,
+        "session_id": session.session_id if session else None,
+        "message_count": session.message_count if session else 0
+    }
+
+
 # --- Request/Response Models ---
 
 class ChatRequest(BaseModel):

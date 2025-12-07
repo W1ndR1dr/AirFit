@@ -39,6 +39,12 @@ struct ContentView: View {
                     Label("Profile", systemImage: "brain.head.profile")
                 }
                 .tag(3)
+
+            SettingsView()
+                .tabItem {
+                    Label("Settings", systemImage: "gear")
+                }
+                .tag(4)
         }
     }
 }

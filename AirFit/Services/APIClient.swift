@@ -474,6 +474,40 @@ actor APIClient {
 
         return try JSONDecoder().decode(GenerateInsightsResponse.self, from: data)
     }
+
+    // MARK: - Server Status
+
+    struct StatusResponse: Decodable {
+        let status: String
+        let available_providers: [String]
+        let session_id: String?
+        let message_count: Int?
+    }
+
+    func getServerStatus() async throws -> ServerInfo {
+        let url = baseURL.appendingPathComponent("status")
+
+        let (data, response) = try await URLSession.shared.data(from: url)
+
+        guard let httpResponse = response as? HTTPURLResponse,
+              httpResponse.statusCode == 200 else {
+            throw APIError.serverError
+        }
+
+        let result = try JSONDecoder().decode(StatusResponse.self, from: data)
+
+        return ServerInfo(
+            host: baseURL.host ?? "unknown",
+            activeProvider: result.available_providers.first ?? "none",
+            availableProviders: result.available_providers,
+            sessionId: result.session_id,
+            messageCount: result.message_count
+        )
+    }
+
+    func clearSession() async throws {
+        try await clearChatSession()
+    }
 }
 
 enum APIError: Error, LocalizedError {
