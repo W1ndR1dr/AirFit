@@ -1,9 +1,0 @@
-{
-    "summary": "This is missing the items array",
-    "foods": [
-        {
-            "name": "Banana",
-            "calories": 105
-        }
-    ]
-}
