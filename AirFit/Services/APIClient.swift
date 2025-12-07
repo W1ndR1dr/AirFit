@@ -109,6 +109,7 @@ actor APIClient {
     }
 
     struct ProfileResponse: Decodable {
+        let name: String?
         let goals: [String]
         let constraints: [String]
         let preferences: [String]
@@ -118,6 +119,22 @@ actor APIClient {
         let insights_count: Int
         let recent_insights: [ProfileInsight]
         let has_profile: Bool
+        let onboarding_complete: Bool
+
+        // Phase tracking
+        let current_phase: String?
+        let phase_context: String?
+
+        var needsOnboarding: Bool {
+            !onboarding_complete
+        }
+    }
+
+    struct FinalizeOnboardingResponse: Decodable {
+        let status: String
+        let name: String?
+        let has_personality: Bool
+        let preview: String?
     }
 
     func sendMessage(
@@ -291,6 +308,23 @@ actor APIClient {
               httpResponse.statusCode == 200 else {
             throw APIError.serverError
         }
+    }
+
+    func finalizeOnboarding() async throws -> FinalizeOnboardingResponse {
+        let url = baseURL.appendingPathComponent("profile/finalize-onboarding")
+
+        var request = URLRequest(url: url)
+        request.httpMethod = "POST"
+        request.timeoutInterval = 60  // Personality synthesis can take time
+
+        let (data, response) = try await URLSession.shared.data(for: request)
+
+        guard let httpResponse = response as? HTTPURLResponse,
+              httpResponse.statusCode == 200 else {
+            throw APIError.serverError
+        }
+
+        return try JSONDecoder().decode(FinalizeOnboardingResponse.self, from: data)
     }
 
     func clearChatSession() async throws {

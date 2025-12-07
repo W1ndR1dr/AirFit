@@ -13,6 +13,8 @@ struct ChatView: View {
     @State private var isInitializing = true
     @State private var hasInitialized = false  // Prevent re-init on reappear
     @State private var cachedNutritionContext: APIClient.NutritionContext?  // Cache to avoid blocking
+    @State private var isOnboarding = false  // True if user needs onboarding
+    @State private var isFinalizingOnboarding = false
     @FocusState private var isInputFocused: Bool
 
     private let apiClient = APIClient()
@@ -27,6 +29,7 @@ struct ChatView: View {
             VStack(spacing: 0) {
                 // Status banners
                 serverStatusBanner
+                onboardingBanner
                 healthContextBanner
 
                 // Messages
@@ -160,6 +163,41 @@ struct ChatView: View {
         }
     }
 
+    private var onboardingBanner: some View {
+        Group {
+            if isOnboarding {
+                HStack(spacing: 12) {
+                    Image(systemName: "person.badge.plus")
+                        .foregroundColor(.blue)
+                    Text("Getting to know you...")
+                        .font(.subheadline.weight(.medium))
+                    Spacer()
+                    Button {
+                        Task { await finalizeOnboarding() }
+                    } label: {
+                        HStack(spacing: 4) {
+                            if isFinalizingOnboarding {
+                                ProgressView()
+                                    .scaleEffect(0.7)
+                            }
+                            Text(isFinalizingOnboarding ? "Creating..." : "Done")
+                        }
+                        .font(.subheadline.weight(.semibold))
+                        .padding(.horizontal, 12)
+                        .padding(.vertical, 6)
+                        .background(Color.blue)
+                        .foregroundColor(.white)
+                        .clipShape(Capsule())
+                    }
+                    .disabled(isFinalizingOnboarding)
+                }
+                .padding(.horizontal)
+                .padding(.vertical, 10)
+                .background(Color.blue.opacity(0.1))
+            }
+        }
+    }
+
     private var inputArea: some View {
         HStack(spacing: 12) {
             VoiceMicButton(text: $inputText)
@@ -216,12 +254,27 @@ struct ChatView: View {
         // If it fails, wait and retry (user might be responding to permission prompt)
         await checkServerWithRetry()
 
+        // Check if user needs onboarding
+        await checkOnboardingStatus()
+
         // Pre-fetch nutrition context in background (non-blocking)
         await refreshNutritionContext()
 
         // Done initializing
         withAnimation {
             isInitializing = false
+        }
+    }
+
+    private func checkOnboardingStatus() async {
+        do {
+            let profile = try await apiClient.getProfile()
+            withAnimation {
+                isOnboarding = profile.needsOnboarding
+            }
+        } catch {
+            // If we can't get profile, assume no onboarding needed
+            isOnboarding = false
         }
     }
 
@@ -349,6 +402,36 @@ struct ChatView: View {
             messages.append(errorMessage)
         }
         isLoading = false
+    }
+
+    private func finalizeOnboarding() async {
+        isFinalizingOnboarding = true
+
+        do {
+            let result = try await apiClient.finalizeOnboarding()
+            if result.status == "onboarding_complete" {
+                withAnimation {
+                    isOnboarding = false
+                }
+                // Clear chat to start fresh with new personality
+                await startNewChat()
+                // Add welcome message
+                let welcomeMessage = Message(
+                    content: "Profile created! I now know you better. Let's get to work.",
+                    isUser: false
+                )
+                messages.append(welcomeMessage)
+            }
+        } catch {
+            // Show error in chat
+            let errorMessage = Message(
+                content: "Couldn't complete setup: \(error.localizedDescription). Try again?",
+                isUser: false
+            )
+            messages.append(errorMessage)
+        }
+
+        isFinalizingOnboarding = false
     }
 
     private func startNewChat() async {
