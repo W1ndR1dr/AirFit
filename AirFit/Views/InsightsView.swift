@@ -9,9 +9,18 @@ struct InsightsView: View {
     @State private var lastSyncTime: Date?
     @State private var selectedInsight: APIClient.InsightData?
     @State private var showingChat = false
+    @State private var showAllInsights = false
 
     private let apiClient = APIClient()
     @State private var syncService = InsightsSyncService()
+
+    private var visibleInsights: [APIClient.InsightData] {
+        showAllInsights ? insights : Array(insights.prefix(3))
+    }
+
+    private var hasMoreInsights: Bool {
+        insights.count > 3 && !showAllInsights
+    }
 
     var body: some View {
         ZStack {
@@ -71,11 +80,6 @@ struct InsightsView: View {
 
     private var insightsSection: some View {
         VStack(alignment: .leading, spacing: 16) {
-            Text("AI INSIGHTS")
-                .font(.labelHero)
-                .tracking(2)
-                .foregroundStyle(Theme.textMuted)
-
             if isLoading && insights.isEmpty {
                 HStack {
                     Spacer()
@@ -90,7 +94,7 @@ struct InsightsView: View {
                 }
                 .padding(.vertical, 40)
             } else {
-                ForEach(Array(insights.enumerated()), id: \.element.id) { index, insight in
+                ForEach(Array(visibleInsights.enumerated()), id: \.element.id) { index, insight in
                     PremiumInsightCard(
                         insight: insight,
                         onTellMeMore: {
@@ -105,8 +109,32 @@ struct InsightsView: View {
                             }
                         }
                     )
-                    .contentShape(Rectangle())  // Prevent horizontal gesture conflicts
+                    .contentShape(Rectangle())
                     .staggeredReveal(index: index)
+                }
+
+                // Show more button
+                if hasMoreInsights {
+                    Button {
+                        withAnimation(.spring(response: 0.4, dampingFraction: 0.8)) {
+                            showAllInsights = true
+                        }
+                    } label: {
+                        HStack(spacing: 8) {
+                            Text("Show \(insights.count - 3) more")
+                                .font(.labelMedium)
+                            Image(systemName: "chevron.down")
+                                .font(.caption)
+                        }
+                        .foregroundStyle(Theme.textSecondary)
+                        .padding(.vertical, 12)
+                        .frame(maxWidth: .infinity)
+                        .background(
+                            RoundedRectangle(cornerRadius: 12, style: .continuous)
+                                .fill(Theme.surface.opacity(0.5))
+                        )
+                    }
+                    .buttonStyle(AirFitSubtleButtonStyle())
                 }
             }
         }
@@ -245,6 +273,9 @@ struct PremiumInsightCard: View {
     let onTellMeMore: () -> Void
     let onDismiss: () -> Void
 
+    @State private var dragOffset: CGFloat = 0
+    @State private var isDismissing = false
+
     private var categoryIcon: String {
         switch insight.category {
         case "correlation": return "arrow.triangle.branch"
@@ -281,29 +312,11 @@ struct PremiumInsightCard: View {
                         .font(.body)
                 }
 
-                VStack(alignment: .leading, spacing: 2) {
-                    Text(insight.title)
-                        .font(.headlineMedium)
-                        .foregroundStyle(Theme.textPrimary)
-
-                    Text(insight.category.uppercased())
-                        .font(.labelMicro)
-                        .tracking(1.5)
-                        .foregroundStyle(categoryColor)
-                }
+                Text(insight.title)
+                    .font(.headlineMedium)
+                    .foregroundStyle(Theme.textPrimary)
 
                 Spacer()
-
-                Button {
-                    onDismiss()
-                } label: {
-                    Image(systemName: "xmark")
-                        .font(.caption)
-                        .foregroundStyle(Theme.textMuted)
-                        .padding(8)
-                        .background(Circle().fill(Theme.background))
-                }
-                .buttonStyle(AirFitSubtleButtonStyle())
             }
 
             // Body
@@ -345,9 +358,39 @@ struct PremiumInsightCard: View {
         .background(
             RoundedRectangle(cornerRadius: 20, style: .continuous)
                 .fill(Theme.surface)
-                .shadow(color: .black.opacity(0.03), radius: 8, x: 0, y: 2)
-                .shadow(color: .black.opacity(0.02), radius: 16, x: 0, y: 4)
+                .shadow(color: .black.opacity(0.04), radius: 12, x: 0, y: 4)
         )
+        .offset(x: dragOffset)
+        .opacity(isDismissing ? 0 : 1.0 - Double(abs(dragOffset)) / 300.0)
+        .gesture(
+            DragGesture()
+                .onChanged { value in
+                    // Only allow left swipe (negative translation)
+                    if value.translation.width < 0 {
+                        dragOffset = value.translation.width
+                    }
+                }
+                .onEnded { value in
+                    let threshold: CGFloat = -100
+                    if value.translation.width < threshold {
+                        // Dismiss with animation
+                        withAnimation(.spring(response: 0.3, dampingFraction: 0.8)) {
+                            isDismissing = true
+                            dragOffset = -400
+                        }
+                        // Delay the actual removal to let animation complete
+                        DispatchQueue.main.asyncAfter(deadline: .now() + 0.25) {
+                            onDismiss()
+                        }
+                    } else {
+                        // Snap back
+                        withAnimation(.spring(response: 0.3, dampingFraction: 0.8)) {
+                            dragOffset = 0
+                        }
+                    }
+                }
+        )
+        .sensoryFeedback(.impact(flexibility: .soft), trigger: dragOffset < -100)
     }
 }
 
