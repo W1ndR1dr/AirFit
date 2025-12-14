@@ -8,176 +8,222 @@ struct ProfileView: View {
     private let apiClient = APIClient()
 
     var body: some View {
-        NavigationStack {
-            Group {
-                if isLoading {
-                    ProgressView("Loading...")
-                } else if let profile = profile {
-                    if profile.has_profile {
-                        profileContent(profile)
-                    } else {
-                        emptyState
-                    }
+        Group {
+            if isLoading {
+                loadingView
+            } else if let profile = profile {
+                if profile.has_profile {
+                    profileContent(profile)
                 } else {
-                    errorState
+                    emptyState
                 }
+            } else {
+                errorState
             }
-            .navigationTitle("What I Know")
-            .navigationBarTitleDisplayMode(.inline)
-            .toolbar {
-                if profile?.has_profile == true {
-                    ToolbarItem(placement: .destructiveAction) {
-                        Button("Clear") {
-                            showClearConfirm = true
-                        }
-                        .foregroundColor(.red)
+        }
+        .navigationTitle("What I Know")
+        .navigationBarTitleDisplayMode(.inline)
+        .toolbar {
+            if profile?.has_profile == true {
+                ToolbarItem(placement: .topBarTrailing) {
+                    Button {
+                        showClearConfirm = true
+                    } label: {
+                        Text("Clear")
+                            .font(.labelMedium)
+                            .foregroundStyle(Theme.error)
                     }
+                    .buttonStyle(AirFitSubtleButtonStyle())
                 }
             }
-            .confirmationDialog(
-                "Clear all learned data?",
-                isPresented: $showClearConfirm,
-                titleVisibility: .visible
-            ) {
-                Button("Clear Everything", role: .destructive) {
-                    Task { await clearProfile() }
-                }
-            } message: {
-                Text("The AI will start fresh and learn about you again through conversation.")
+        }
+        .confirmationDialog(
+            "Clear all learned data?",
+            isPresented: $showClearConfirm,
+            titleVisibility: .visible
+        ) {
+            Button("Clear Everything", role: .destructive) {
+                Task { await clearProfile() }
             }
+        } message: {
+            Text("The AI will start fresh and learn about you again through conversation.")
         }
         .task {
             await loadProfile()
         }
     }
 
+    // MARK: - Loading View
+
+    private var loadingView: some View {
+        VStack(spacing: 20) {
+            ProgressView()
+                .tint(Theme.accent)
+
+            Text("Loading profile...")
+                .font(.labelMedium)
+                .foregroundStyle(Theme.textMuted)
+        }
+    }
+
     // MARK: - Profile Content
 
     private func profileContent(_ profile: APIClient.ProfileResponse) -> some View {
-        List {
-            if !profile.goals.isEmpty {
-                Section("Goals") {
-                    ForEach(profile.goals, id: \.self) { goal in
-                        Label(goal, systemImage: "target")
-                    }
-                }
-            }
-
-            if !profile.context.isEmpty {
-                Section("About You") {
-                    ForEach(profile.context, id: \.self) { item in
-                        Label(item, systemImage: "person.fill")
-                    }
-                }
-            }
-
-            if !profile.preferences.isEmpty {
-                Section("Preferences") {
-                    ForEach(profile.preferences, id: \.self) { pref in
-                        Label(pref, systemImage: "heart.fill")
-                    }
-                }
-            }
-
-            if !profile.constraints.isEmpty {
-                Section("Constraints") {
-                    ForEach(profile.constraints, id: \.self) { constraint in
-                        Label(constraint, systemImage: "exclamationmark.triangle.fill")
-                    }
-                }
-            }
-
-            if !profile.patterns.isEmpty {
-                Section("Patterns I've Noticed") {
-                    ForEach(profile.patterns, id: \.self) { pattern in
-                        Label(pattern, systemImage: "chart.line.uptrend.xyaxis")
-                    }
-                }
-            }
-
-            if !profile.communication_style.isEmpty {
-                Section("Communication") {
-                    Label(profile.communication_style, systemImage: "bubble.left.fill")
-                }
-            }
-
-            if !profile.recent_insights.isEmpty {
-                Section("Recent Insights") {
-                    ForEach(profile.recent_insights, id: \.date) { insight in
-                        VStack(alignment: .leading, spacing: 4) {
-                            Text(insight.insight)
-                                .font(.subheadline)
-                            HStack {
-                                Text(insight.source)
-                                    .font(.caption2)
-                                    .padding(.horizontal, 6)
-                                    .padding(.vertical, 2)
-                                    .background(Color.blue.opacity(0.2))
-                                    .clipShape(Capsule())
-                                Spacer()
-                                Text(formatDate(insight.date))
-                                    .font(.caption2)
-                                    .foregroundColor(.secondary)
-                            }
+        ScrollView {
+            VStack(spacing: 24) {
+                // Goals Section
+                if !profile.goals.isEmpty {
+                    ProfileSection(title: "GOALS", icon: "target", color: Theme.accent) {
+                        ForEach(profile.goals, id: \.self) { goal in
+                            ProfileItem(text: goal, icon: "checkmark.circle.fill", color: Theme.accent)
                         }
-                        .padding(.vertical, 2)
                     }
                 }
-            }
 
-            Section {
-                Text("Total insights: \(profile.insights_count)")
-                    .font(.caption)
-                    .foregroundColor(.secondary)
+                // About You Section
+                if !profile.context.isEmpty {
+                    ProfileSection(title: "ABOUT YOU", icon: "person.fill", color: Theme.protein) {
+                        ForEach(profile.context, id: \.self) { item in
+                            ProfileItem(text: item, icon: "info.circle.fill", color: Theme.protein)
+                        }
+                    }
+                }
+
+                // Preferences Section
+                if !profile.preferences.isEmpty {
+                    ProfileSection(title: "PREFERENCES", icon: "heart.fill", color: Theme.secondary) {
+                        ForEach(profile.preferences, id: \.self) { pref in
+                            ProfileItem(text: pref, icon: "heart.fill", color: Theme.secondary)
+                        }
+                    }
+                }
+
+                // Constraints Section
+                if !profile.constraints.isEmpty {
+                    ProfileSection(title: "CONSTRAINTS", icon: "exclamationmark.triangle.fill", color: Theme.warning) {
+                        ForEach(profile.constraints, id: \.self) { constraint in
+                            ProfileItem(text: constraint, icon: "exclamationmark.circle.fill", color: Theme.warning)
+                        }
+                    }
+                }
+
+                // Patterns Section
+                if !profile.patterns.isEmpty {
+                    ProfileSection(title: "PATTERNS I'VE NOTICED", icon: "chart.line.uptrend.xyaxis", color: Theme.tertiary) {
+                        ForEach(profile.patterns, id: \.self) { pattern in
+                            ProfileItem(text: pattern, icon: "waveform.path.ecg", color: Theme.tertiary)
+                        }
+                    }
+                }
+
+                // Communication Style
+                if !profile.communication_style.isEmpty {
+                    ProfileSection(title: "COMMUNICATION", icon: "bubble.left.fill", color: Theme.accent) {
+                        ProfileItem(text: profile.communication_style, icon: "text.bubble.fill", color: Theme.accent)
+                    }
+                }
+
+                // Recent Insights
+                if !profile.recent_insights.isEmpty {
+                    ProfileSection(title: "RECENT INSIGHTS", icon: "lightbulb.fill", color: Theme.warm) {
+                        ForEach(profile.recent_insights, id: \.date) { insight in
+                            InsightItem(insight: insight)
+                        }
+                    }
+                }
+
+                // Stats footer
+                HStack {
+                    Spacer()
+                    Text("Total insights: \(profile.insights_count)")
+                        .font(.labelMicro)
+                        .foregroundStyle(Theme.textMuted)
+                    Spacer()
+                }
+                .padding(.top, 8)
             }
+            .padding(.horizontal, 20)
+            .padding(.top, 16)
+            .padding(.bottom, 40)
         }
+        .scrollIndicators(.hidden)
     }
 
     // MARK: - Empty State
 
     private var emptyState: some View {
-        VStack(spacing: 16) {
-            Image(systemName: "brain.head.profile")
-                .font(.system(size: 60))
-                .foregroundColor(.secondary)
+        VStack(spacing: 24) {
+            ZStack {
+                Circle()
+                    .fill(Theme.accentGradient)
+                    .frame(width: 100, height: 100)
+                    .blur(radius: 30)
+                    .opacity(0.5)
 
-            Text("I'm still learning about you")
-                .font(.headline)
+                Image(systemName: "brain.head.profile")
+                    .font(.system(size: 60))
+                    .foregroundStyle(Theme.accent)
+            }
 
-            Text("As we chat and you log food, I'll pick up on your goals, preferences, and patterns.")
-                .font(.subheadline)
-                .foregroundColor(.secondary)
-                .multilineTextAlignment(.center)
-                .padding(.horizontal)
+            VStack(spacing: 8) {
+                Text("I'm still learning about you")
+                    .font(.titleMedium)
+                    .foregroundStyle(Theme.textPrimary)
+
+                Text("As we chat and you log food, I'll pick up on your goals, preferences, and patterns.")
+                    .font(.bodyMedium)
+                    .foregroundStyle(Theme.textSecondary)
+                    .multilineTextAlignment(.center)
+            }
 
             Button {
                 Task { await loadProfile() }
             } label: {
                 Label("Refresh", systemImage: "arrow.clockwise")
+                    .font(.labelLarge)
+                    .foregroundStyle(.white)
+                    .padding(.horizontal, 24)
+                    .padding(.vertical, 12)
+                    .background(Theme.accentGradient)
+                    .clipShape(Capsule())
             }
-            .padding(.top)
+            .buttonStyle(AirFitButtonStyle())
         }
-        .padding()
+        .padding(40)
     }
 
     // MARK: - Error State
 
     private var errorState: some View {
-        VStack(spacing: 16) {
+        VStack(spacing: 24) {
             Image(systemName: "wifi.slash")
                 .font(.system(size: 60))
-                .foregroundColor(.secondary)
+                .foregroundStyle(Theme.textMuted)
 
-            Text("Couldn't load profile")
-                .font(.headline)
+            VStack(spacing: 8) {
+                Text("Couldn't load profile")
+                    .font(.titleMedium)
+                    .foregroundStyle(Theme.textPrimary)
+
+                Text("Check your connection and try again.")
+                    .font(.bodyMedium)
+                    .foregroundStyle(Theme.textSecondary)
+            }
 
             Button {
                 Task { await loadProfile() }
             } label: {
                 Label("Try Again", systemImage: "arrow.clockwise")
+                    .font(.labelLarge)
+                    .foregroundStyle(.white)
+                    .padding(.horizontal, 24)
+                    .padding(.vertical, 12)
+                    .background(Theme.accentGradient)
+                    .clipShape(Capsule())
             }
+            .buttonStyle(AirFitButtonStyle())
         }
-        .padding()
+        .padding(40)
     }
 
     // MARK: - Actions
@@ -190,7 +236,9 @@ struct ProfileView: View {
             print("Failed to load profile: \(error)")
             profile = nil
         }
-        isLoading = false
+        withAnimation(.airfit) {
+            isLoading = false
+        }
     }
 
     private func clearProfile() async {
@@ -198,11 +246,118 @@ struct ProfileView: View {
         do {
             try await apiClient.clearProfile()
             profile = try await apiClient.getProfile()
+            // Post notification for other views
+            NotificationCenter.default.post(name: .profileReset, object: nil)
         } catch {
             print("Failed to clear profile: \(error)")
             profile = nil
         }
-        isLoading = false
+        withAnimation(.airfit) {
+            isLoading = false
+        }
+    }
+
+    private func formatDate(_ isoDate: String) -> String {
+        let formatter = ISO8601DateFormatter()
+        formatter.formatOptions = [.withInternetDateTime, .withFractionalSeconds]
+
+        if let date = formatter.date(from: isoDate) {
+            let relative = RelativeDateTimeFormatter()
+            relative.unitsStyle = .short
+            return relative.localizedString(for: date, relativeTo: Date())
+        }
+        return isoDate
+    }
+}
+
+// MARK: - Profile Section
+
+struct ProfileSection<Content: View>: View {
+    let title: String
+    let icon: String
+    let color: Color
+    @ViewBuilder let content: () -> Content
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 16) {
+            // Header
+            HStack(spacing: 8) {
+                Image(systemName: icon)
+                    .font(.caption)
+                    .foregroundStyle(color)
+                Text(title)
+                    .font(.labelHero)
+                    .tracking(2)
+                    .foregroundStyle(Theme.textMuted)
+            }
+
+            // Content
+            VStack(spacing: 12) {
+                content()
+            }
+        }
+        .padding(20)
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .background(
+            RoundedRectangle(cornerRadius: 20, style: .continuous)
+                .fill(Theme.surface)
+                .shadow(color: .black.opacity(0.03), radius: 8, x: 0, y: 2)
+        )
+    }
+}
+
+// MARK: - Profile Item
+
+struct ProfileItem: View {
+    let text: String
+    let icon: String
+    let color: Color
+
+    var body: some View {
+        HStack(alignment: .top, spacing: 12) {
+            Image(systemName: icon)
+                .font(.caption)
+                .foregroundStyle(color)
+                .frame(width: 20)
+
+            Text(text)
+                .font(.bodyMedium)
+                .foregroundStyle(Theme.textPrimary)
+
+            Spacer()
+        }
+    }
+}
+
+// MARK: - Insight Item
+
+struct InsightItem: View {
+    let insight: APIClient.ProfileInsight
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 8) {
+            Text(insight.insight)
+                .font(.bodyMedium)
+                .foregroundStyle(Theme.textPrimary)
+
+            HStack {
+                Text(insight.source.uppercased())
+                    .font(.labelMicro)
+                    .tracking(1)
+                    .foregroundStyle(Theme.accent)
+                    .padding(.horizontal, 8)
+                    .padding(.vertical, 4)
+                    .background(Theme.accent.opacity(0.12))
+                    .clipShape(Capsule())
+
+                Spacer()
+
+                Text(formatDate(insight.date))
+                    .font(.labelMicro)
+                    .foregroundStyle(Theme.textMuted)
+            }
+        }
+        .padding(.vertical, 4)
     }
 
     private func formatDate(_ isoDate: String) -> String {
@@ -219,5 +374,7 @@ struct ProfileView: View {
 }
 
 #Preview {
-    ProfileView()
+    NavigationStack {
+        ProfileView()
+    }
 }

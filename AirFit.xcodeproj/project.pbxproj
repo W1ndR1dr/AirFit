@@ -3,42 +3,52 @@
 	archiveVersion = 1;
 	classes = {
 	};
-	objectVersion = 63;
+	objectVersion = 54;
 	objects = {
 
 /* Begin PBXBuildFile section */
-		21EF4432A032102C0CD0EE32 /* InsightsSyncService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0EB04A87A8F120957DB36B31 /* InsightsSyncService.swift */; };
+		0460671DEC39FF9F8402A71C /* NutritionActivityAttributes.swift in Sources */ = {isa = PBXBuildFile; fileRef = B157438F022A812EF8F8809C /* NutritionActivityAttributes.swift */; };
+		0890ADE661871EDA02A1AE9E /* NotificationManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = E9B044AF8CB3DAEBE3CD44E7 /* NotificationManager.swift */; };
+		2208DFB4AA8351B900923106 /* SettingsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 82D28D5292AE2F388E63FAD4 /* SettingsView.swift */; };
 		2F636B03872F5C203AED18F0 /* EnergyTracker.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8318261405BB22A0FAD1E026 /* EnergyTracker.swift */; };
+		2F774BF6C47671E511B6B773 /* AutoSyncManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = D8960CA7CDD4E1BF043AB02F /* AutoSyncManager.swift */; };
 		324A5A6A5BC0F0279CA7F937 /* APIClient.swift in Sources */ = {isa = PBXBuildFile; fileRef = 627DF30EF7B4BA47E7815BCC /* APIClient.swift */; };
+		34AA5C3E6187B5499E129179 /* InsightsSyncService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 104CBEBAFE2CC36C1764F33A /* InsightsSyncService.swift */; };
+		396815211144E101BCA78207 /* InsightsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 21D6A0C602D3EAFB82999F14 /* InsightsView.swift */; };
 		5B5D575967A5E13E5BD0D85F /* AirFitApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6D132DFA57B215A0C7FB9879 /* AirFitApp.swift */; };
+		6B5FE3A95BDF52242D65ACA6 /* Theme.swift in Sources */ = {isa = PBXBuildFile; fileRef = F20158F11AF627B20A77D9C6 /* Theme.swift */; };
 		6ECD5931F6D6667C42AF897C /* HealthKitManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = B04A21AB4B5231F3CA0D143D /* HealthKitManager.swift */; };
-		ACF4495DBF2C515D013D5FD2 /* InsightsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = F01242E69E6E9A4DDC52B127 /* InsightsView.swift */; };
+		A52412FEB692B9B64D902DA7 /* SpeechRecognizer.swift in Sources */ = {isa = PBXBuildFile; fileRef = D1D0F48138B611B89DE036DD /* SpeechRecognizer.swift */; };
 		C31A340552E9F54B10916EFF /* NutritionView.swift in Sources */ = {isa = PBXBuildFile; fileRef = C30161396CA868137F0A8528 /* NutritionView.swift */; };
+		C56C44C474AE54A74ABA7B8A /* VoiceOverlay.swift in Sources */ = {isa = PBXBuildFile; fileRef = 03FC2ED7315A4A5FD82AE857 /* VoiceOverlay.swift */; };
 		D5115F385A38D1C9F713ABF1 /* Message.swift in Sources */ = {isa = PBXBuildFile; fileRef = 44B1A40DB3222DE9F29DB911 /* Message.swift */; };
 		E502A7BA87DBCD2F936EFB99 /* NutritionEntry.swift in Sources */ = {isa = PBXBuildFile; fileRef = 534886752F052D311D77F40F /* NutritionEntry.swift */; };
+		F1097D3E7D73A94986E2632C /* ProfileView.swift in Sources */ = {isa = PBXBuildFile; fileRef = FC2E94E3F09FB50E4140F437 /* ProfileView.swift */; };
 		F1BAD78EBD0D15FA961D6063 /* ChatView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3E185281D3C137B2FC191DF3 /* ChatView.swift */; };
-		E15F164CA1534D97916F2AA7 /* SettingsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = D32B829AEF694F3BAF2569E8 /* SettingsView.swift */; };
-		'PROFILE987654321FEDCBA01' = {isa = PBXBuildFile; fileRef = PROFILE123456789ABCDEF01; };
-		'SPEECH123456789ABCDEF02' = {isa = PBXBuildFile; fileRef = SPEECH123456789ABCDEF01; };
-		'VOICE0123456789ABCDEF02' = {isa = PBXBuildFile; fileRef = VOICE0123456789ABCDEF01; };
+		F781A1F820AE0829D3E6515F /* LiveActivityManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = F433FE4F7C2C763AB6854121 /* LiveActivityManager.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
-		0EB04A87A8F120957DB36B31 /* InsightsSyncService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; name = InsightsSyncService.swift; path = AirFit/Services/InsightsSyncService.swift; sourceTree = SOURCE_ROOT; };
+		03FC2ED7315A4A5FD82AE857 /* VoiceOverlay.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = VoiceOverlay.swift; sourceTree = "<group>"; };
+		104CBEBAFE2CC36C1764F33A /* InsightsSyncService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = InsightsSyncService.swift; sourceTree = "<group>"; };
+		21D6A0C602D3EAFB82999F14 /* InsightsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = InsightsView.swift; sourceTree = "<group>"; };
 		3E185281D3C137B2FC191DF3 /* ChatView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ChatView.swift; sourceTree = "<group>"; };
-		D32B829AEF694F3BAF2569E8 /* SettingsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SettingsView.swift; sourceTree = "<group>"; };
 		44B1A40DB3222DE9F29DB911 /* Message.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Message.swift; sourceTree = "<group>"; };
 		534886752F052D311D77F40F /* NutritionEntry.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NutritionEntry.swift; sourceTree = "<group>"; };
-		586E5425AC0598693D6C2256 /* AirFit.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = AirFit.app; sourceTree = BUILT_PRODUCTS_DIR; };
+		586E5425AC0598693D6C2256 /* AirFit.app */ = {isa = PBXFileReference; includeInIndex = 0; lastKnownFileType = wrapper.application; path = AirFit.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		627DF30EF7B4BA47E7815BCC /* APIClient.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = APIClient.swift; sourceTree = "<group>"; };
 		6D132DFA57B215A0C7FB9879 /* AirFitApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AirFitApp.swift; sourceTree = "<group>"; };
+		82D28D5292AE2F388E63FAD4 /* SettingsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SettingsView.swift; sourceTree = "<group>"; };
 		8318261405BB22A0FAD1E026 /* EnergyTracker.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = EnergyTracker.swift; sourceTree = "<group>"; };
 		B04A21AB4B5231F3CA0D143D /* HealthKitManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HealthKitManager.swift; sourceTree = "<group>"; };
+		B157438F022A812EF8F8809C /* NutritionActivityAttributes.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NutritionActivityAttributes.swift; sourceTree = "<group>"; };
 		C30161396CA868137F0A8528 /* NutritionView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NutritionView.swift; sourceTree = "<group>"; };
-		F01242E69E6E9A4DDC52B127 /* InsightsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; name = InsightsView.swift; path = AirFit/Views/InsightsView.swift; sourceTree = SOURCE_ROOT; };
-		'PROFILE123456789ABCDEF01' = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ProfileView.swift; sourceTree = "<group>"; };
-		'SPEECH123456789ABCDEF01' = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SpeechRecognizer.swift; sourceTree = "<group>"; };
-		'VOICE0123456789ABCDEF01' = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = VoiceOverlay.swift; sourceTree = "<group>"; };
+		D1D0F48138B611B89DE036DD /* SpeechRecognizer.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SpeechRecognizer.swift; sourceTree = "<group>"; };
+		D8960CA7CDD4E1BF043AB02F /* AutoSyncManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AutoSyncManager.swift; sourceTree = "<group>"; };
+		E9B044AF8CB3DAEBE3CD44E7 /* NotificationManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NotificationManager.swift; sourceTree = "<group>"; };
+		F20158F11AF627B20A77D9C6 /* Theme.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Theme.swift; sourceTree = "<group>"; };
+		F433FE4F7C2C763AB6854121 /* LiveActivityManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LiveActivityManager.swift; sourceTree = "<group>"; };
+		FC2E94E3F09FB50E4140F437 /* ProfileView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ProfileView.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXGroup section */
@@ -54,6 +64,7 @@
 			isa = PBXGroup;
 			children = (
 				44B1A40DB3222DE9F29DB911 /* Message.swift */,
+				B157438F022A812EF8F8809C /* NutritionActivityAttributes.swift */,
 				534886752F052D311D77F40F /* NutritionEntry.swift */,
 			);
 			path = Models;
@@ -63,9 +74,13 @@
 			isa = PBXGroup;
 			children = (
 				627DF30EF7B4BA47E7815BCC /* APIClient.swift */,
+				D8960CA7CDD4E1BF043AB02F /* AutoSyncManager.swift */,
 				8318261405BB22A0FAD1E026 /* EnergyTracker.swift */,
 				B04A21AB4B5231F3CA0D143D /* HealthKitManager.swift */,
-				SPEECH123456789ABCDEF01,
+				104CBEBAFE2CC36C1764F33A /* InsightsSyncService.swift */,
+				F433FE4F7C2C763AB6854121 /* LiveActivityManager.swift */,
+				E9B044AF8CB3DAEBE3CD44E7 /* NotificationManager.swift */,
+				D1D0F48138B611B89DE036DD /* SpeechRecognizer.swift */,
 			);
 			path = Services;
 			sourceTree = "<group>";
@@ -75,8 +90,6 @@
 			children = (
 				D2AB432B78CE0A77B5E836FF /* AirFit */,
 				8726EB0B227738D2959722FE /* Products */,
-				F01242E69E6E9A4DDC52B127 /* InsightsView.swift */,
-				0EB04A87A8F120957DB36B31 /* InsightsSyncService.swift */,
 			);
 			sourceTree = "<group>";
 		};
@@ -92,10 +105,12 @@
 			isa = PBXGroup;
 			children = (
 				3E185281D3C137B2FC191DF3 /* ChatView.swift */,
-				D32B829AEF694F3BAF2569E8 /* SettingsView.swift */,
+				21D6A0C602D3EAFB82999F14 /* InsightsView.swift */,
 				C30161396CA868137F0A8528 /* NutritionView.swift */,
-				PROFILE123456789ABCDEF01,
-				VOICE0123456789ABCDEF01,
+				FC2E94E3F09FB50E4140F437 /* ProfileView.swift */,
+				82D28D5292AE2F388E63FAD4 /* SettingsView.swift */,
+				F20158F11AF627B20A77D9C6 /* Theme.swift */,
+				03FC2ED7315A4A5FD82AE857 /* VoiceOverlay.swift */,
 			);
 			path = Views;
 			sourceTree = "<group>";
@@ -138,7 +153,7 @@
 			isa = PBXProject;
 			attributes = {
 				BuildIndependentTargetsInParallel = YES;
-				LastUpgradeCheck = 2610;
+				LastUpgradeCheck = 1600;
 				TargetAttributes = {
 					E069A004596F5A1F5CADCE09 = {
 						DevelopmentTeam = 2H43Q8Y3CR;
@@ -156,6 +171,7 @@
 			);
 			mainGroup = 52FE9A950EE5B68C9594BF79;
 			minimizedProjectReferenceProxies = 1;
+			preferredProjectObjectVersion = 54;
 			projectDirPath = "";
 			projectRoot = "";
 			targets = (
@@ -171,18 +187,23 @@
 			files = (
 				324A5A6A5BC0F0279CA7F937 /* APIClient.swift in Sources */,
 				5B5D575967A5E13E5BD0D85F /* AirFitApp.swift in Sources */,
+				2F774BF6C47671E511B6B773 /* AutoSyncManager.swift in Sources */,
 				F1BAD78EBD0D15FA961D6063 /* ChatView.swift in Sources */,
-				E15F164CA1534D97916F2AA7 /* SettingsView.swift in Sources */,
 				2F636B03872F5C203AED18F0 /* EnergyTracker.swift in Sources */,
 				6ECD5931F6D6667C42AF897C /* HealthKitManager.swift in Sources */,
+				34AA5C3E6187B5499E129179 /* InsightsSyncService.swift in Sources */,
+				396815211144E101BCA78207 /* InsightsView.swift in Sources */,
+				F781A1F820AE0829D3E6515F /* LiveActivityManager.swift in Sources */,
 				D5115F385A38D1C9F713ABF1 /* Message.swift in Sources */,
+				0890ADE661871EDA02A1AE9E /* NotificationManager.swift in Sources */,
+				0460671DEC39FF9F8402A71C /* NutritionActivityAttributes.swift in Sources */,
 				E502A7BA87DBCD2F936EFB99 /* NutritionEntry.swift in Sources */,
 				C31A340552E9F54B10916EFF /* NutritionView.swift in Sources */,
-				PROFILE987654321FEDCBA01,
-				SPEECH123456789ABCDEF02,
-				VOICE0123456789ABCDEF02,
-				ACF4495DBF2C515D013D5FD2 /* InsightsView.swift in Sources */,
-				21EF4432A032102C0CD0EE32 /* InsightsSyncService.swift in Sources */,
+				F1097D3E7D73A94986E2632C /* ProfileView.swift in Sources */,
+				2208DFB4AA8351B900923106 /* SettingsView.swift in Sources */,
+				A52412FEB692B9B64D902DA7 /* SpeechRecognizer.swift in Sources */,
+				6B5FE3A95BDF52242D65ACA6 /* Theme.swift in Sources */,
+				C56C44C474AE54A74ABA7B8A /* VoiceOverlay.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -197,6 +218,7 @@
 				CODE_SIGN_ENTITLEMENTS = AirFit/AirFit.entitlements;
 				CODE_SIGN_IDENTITY = "iPhone Developer";
 				CODE_SIGN_STYLE = Automatic;
+				DEVELOPMENT_TEAM = 2H43Q8Y3CR;
 				INFOPLIST_FILE = AirFit/Info.plist;
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",
@@ -212,7 +234,6 @@
 			isa = XCBuildConfiguration;
 			buildSettings = {
 				ALWAYS_SEARCH_USER_PATHS = NO;
-				ASSETCATALOG_COMPILER_GENERATE_SWIFT_ASSET_SYMBOL_EXTENSIONS = YES;
 				CLANG_ANALYZER_NONNULL = YES;
 				CLANG_ANALYZER_NUMBER_OBJECT_CONVERSION = YES_AGGRESSIVE;
 				CLANG_CXX_LANGUAGE_STANDARD = "gnu++14";
@@ -245,11 +266,9 @@
 				COPY_PHASE_STRIP = NO;
 				DEAD_CODE_STRIPPING = YES;
 				DEBUG_INFORMATION_FORMAT = "dwarf-with-dsym";
-				DEVELOPMENT_TEAM = 2H43Q8Y3CR;
 				ENABLE_NS_ASSERTIONS = NO;
 				ENABLE_STRICT_CONCURRENCY = YES;
 				ENABLE_STRICT_OBJC_MSGSEND = YES;
-				ENABLE_USER_SCRIPT_SANDBOXING = YES;
 				GCC_C_LANGUAGE_STANDARD = gnu11;
 				GCC_NO_COMMON_BLOCKS = YES;
 				GCC_WARN_64_TO_32_BIT_CONVERSION = YES;
@@ -263,7 +282,6 @@
 				MTL_FAST_MATH = YES;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SDKROOT = iphoneos;
-				STRING_CATALOG_GENERATE_SYMBOLS = YES;
 				SWIFT_COMPILATION_MODE = wholemodule;
 				SWIFT_OPTIMIZATION_LEVEL = "-O";
 				SWIFT_STRICT_CONCURRENCY = complete;
@@ -275,7 +293,6 @@
 			isa = XCBuildConfiguration;
 			buildSettings = {
 				ALWAYS_SEARCH_USER_PATHS = NO;
-				ASSETCATALOG_COMPILER_GENERATE_SWIFT_ASSET_SYMBOL_EXTENSIONS = YES;
 				CLANG_ANALYZER_NONNULL = YES;
 				CLANG_ANALYZER_NUMBER_OBJECT_CONVERSION = YES_AGGRESSIVE;
 				CLANG_CXX_LANGUAGE_STANDARD = "gnu++14";
@@ -308,11 +325,9 @@
 				COPY_PHASE_STRIP = NO;
 				DEAD_CODE_STRIPPING = YES;
 				DEBUG_INFORMATION_FORMAT = dwarf;
-				DEVELOPMENT_TEAM = 2H43Q8Y3CR;
 				ENABLE_STRICT_CONCURRENCY = YES;
 				ENABLE_STRICT_OBJC_MSGSEND = YES;
 				ENABLE_TESTABILITY = YES;
-				ENABLE_USER_SCRIPT_SANDBOXING = YES;
 				GCC_C_LANGUAGE_STANDARD = gnu11;
 				GCC_DYNAMIC_NO_PIC = NO;
 				GCC_NO_COMMON_BLOCKS = YES;
@@ -333,7 +348,6 @@
 				ONLY_ACTIVE_ARCH = YES;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SDKROOT = iphoneos;
-				STRING_CATALOG_GENERATE_SYMBOLS = YES;
 				SWIFT_ACTIVE_COMPILATION_CONDITIONS = DEBUG;
 				SWIFT_OPTIMIZATION_LEVEL = "-Onone";
 				SWIFT_STRICT_CONCURRENCY = complete;
@@ -349,6 +363,7 @@
 				CODE_SIGN_ENTITLEMENTS = AirFit/AirFit.entitlements;
 				CODE_SIGN_IDENTITY = "iPhone Developer";
 				CODE_SIGN_STYLE = Automatic;
+				DEVELOPMENT_TEAM = 2H43Q8Y3CR;
 				INFOPLIST_FILE = AirFit/Info.plist;
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",

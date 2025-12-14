@@ -152,7 +152,7 @@ struct NutritionView: View {
     }
 
     var body: some View {
-        NavigationStack {
+        ZStack {
             VStack(spacing: 0) {
                 // View mode picker
                 viewModePicker
@@ -172,14 +172,14 @@ struct NutritionView: View {
 
                 // Summary section - different for retrospective vs current
                 if viewMode == .day {
-                    macroGauges
-                        .padding()
+                    premiumMacroGauges
+                        .padding(.horizontal, 20)
+                        .padding(.vertical, 16)
                 } else {
                     retrospectiveSummary
-                        .padding()
+                        .padding(.horizontal, 20)
+                        .padding(.vertical, 16)
                 }
-
-                Divider()
 
                 // Content based on view mode
                 if viewMode == .day {
@@ -187,27 +187,32 @@ struct NutritionView: View {
                 } else {
                     summaryList
                 }
+            }
 
-                // Input area (only for today in day view)
-                if viewMode == .day && isToday {
-                    inputArea
+            // Floating input area (only for today in day view)
+            if viewMode == .day && isToday {
+                VStack {
+                    Spacer()
+                    premiumInputArea
                 }
             }
-            .navigationTitle("Nutrition")
-            .navigationBarTitleDisplayMode(.inline)
-            .toolbar {
-                if !isToday || viewMode != .day {
-                    ToolbarItem(placement: .topBarTrailing) {
-                        Button {
-                            withAnimation {
-                                selectedDate = Date()
-                                viewMode = .day
-                            }
-                        } label: {
-                            Text("Today")
-                                .font(.subheadline.bold())
+        }
+        .navigationTitle("Nutrition")
+        .navigationBarTitleDisplayMode(.inline)
+        .toolbar {
+            if !isToday || viewMode != .day {
+                ToolbarItem(placement: .topBarTrailing) {
+                    Button {
+                        withAnimation(.airfit) {
+                            selectedDate = Date()
+                            viewMode = .day
                         }
+                    } label: {
+                        Text("Today")
+                            .font(.labelLarge)
+                            .foregroundStyle(Theme.accent)
                     }
+                    .buttonStyle(AirFitSubtleButtonStyle())
                 }
             }
         }
@@ -228,8 +233,8 @@ struct NutritionView: View {
             }
         }
         .pickerStyle(.segmented)
-        .padding(.horizontal)
-        .padding(.top, 8)
+        .padding(.horizontal, 20)
+        .padding(.top, 12)
     }
 
     // MARK: - Date Navigation
@@ -237,35 +242,44 @@ struct NutritionView: View {
     private var dateNavigationHeader: some View {
         HStack {
             Button {
-                navigateDate(by: -1)
+                withAnimation(.airfit) {
+                    navigateDate(by: -1)
+                }
             } label: {
                 Image(systemName: "chevron.left")
                     .font(.title3)
+                    .foregroundStyle(Theme.accent)
             }
+            .buttonStyle(AirFitSubtleButtonStyle())
 
             Spacer()
 
             Button {
-                // Tap label to go to today
-                selectedDate = Date()
+                withAnimation(.airfit) {
+                    selectedDate = Date()
+                }
             } label: {
                 Text(dateRangeLabel)
-                    .font(.headline)
-                    .foregroundColor(.primary)
+                    .font(.headlineMedium)
+                    .foregroundStyle(Theme.textPrimary)
             }
 
             Spacer()
 
             Button {
-                navigateDate(by: 1)
+                withAnimation(.airfit) {
+                    navigateDate(by: 1)
+                }
             } label: {
                 Image(systemName: "chevron.right")
                     .font(.title3)
+                    .foregroundStyle(cannotGoForward ? Theme.textMuted : Theme.accent)
             }
+            .buttonStyle(AirFitSubtleButtonStyle())
             .disabled(cannotGoForward)
         }
-        .padding(.horizontal)
-        .padding(.vertical, 8)
+        .padding(.horizontal, 20)
+        .padding(.vertical, 12)
     }
 
     private var cannotGoForward: Bool {
@@ -294,90 +308,100 @@ struct NutritionView: View {
     // MARK: - Summary List (Week/Month)
 
     private var summaryList: some View {
-        List {
-            if dailySummaries.isEmpty {
-                Text("No meals logged")
-                    .foregroundColor(.secondary)
-                    .frame(maxWidth: .infinity, alignment: .center)
-                    .listRowBackground(Color.clear)
-            } else {
-                ForEach(dailySummaries) { summary in
-                    DailySummaryRow(summary: summary, targets: targets)
-                        .contentShape(Rectangle())
-                        .onTapGesture {
-                            // Drill down to that day
-                            selectedDate = summary.date
-                            viewMode = .day
-                        }
+        ScrollView {
+            LazyVStack(spacing: 12) {
+                if dailySummaries.isEmpty {
+                    emptyStateView
+                } else {
+                    ForEach(dailySummaries) { summary in
+                        PremiumDailySummaryRow(summary: summary, targets: targets)
+                            .contentShape(Rectangle())
+                            .onTapGesture {
+                                withAnimation(.airfit) {
+                                    selectedDate = summary.date
+                                    viewMode = .day
+                                }
+                            }
+                            .scrollReveal()
+                    }
                 }
             }
+            .padding(.horizontal, 20)
+            .padding(.bottom, 20)
         }
-        .listStyle(.plain)
+        .scrollIndicators(.hidden)
     }
 
     // MARK: - Retrospective Summary (Week/Month)
 
     private var retrospectiveSummary: some View {
-        VStack(spacing: 12) {
-            // Daily averages
+        VStack(spacing: 16) {
+            // Daily averages - Hero numbers
             HStack(spacing: 0) {
-                VStack(spacing: 2) {
+                VStack(spacing: 4) {
                     Text("\(dailyAverages.cal)")
-                        .font(.title2.bold())
-                    Text("avg cal/day")
-                        .font(.caption2)
-                        .foregroundColor(.secondary)
+                        .font(.metricMedium)
+                        .foregroundStyle(Theme.calories)
+                    Text("AVG CAL/DAY")
+                        .font(.labelMicro)
+                        .tracking(1.5)
+                        .foregroundStyle(Theme.textMuted)
                 }
                 .frame(maxWidth: .infinity)
 
-                VStack(spacing: 2) {
+                VStack(spacing: 4) {
                     Text("\(dailyAverages.protein)g")
-                        .font(.title2.bold())
-                        .foregroundColor(.blue)
-                    Text("avg protein")
-                        .font(.caption2)
-                        .foregroundColor(.secondary)
+                        .font(.metricMedium)
+                        .foregroundStyle(Theme.protein)
+                    Text("AVG PROTEIN")
+                        .font(.labelMicro)
+                        .tracking(1.5)
+                        .foregroundStyle(Theme.textMuted)
                 }
                 .frame(maxWidth: .infinity)
 
-                VStack(spacing: 2) {
+                VStack(spacing: 4) {
                     Text("\(daysWithEntries)/\(viewMode == .week ? 7 : daysInPeriod)")
-                        .font(.title2.bold())
-                    Text("days tracked")
-                        .font(.caption2)
-                        .foregroundColor(.secondary)
+                        .font(.metricMedium)
+                        .foregroundStyle(Theme.accent)
+                    Text("DAYS TRACKED")
+                        .font(.labelMicro)
+                        .tracking(1.5)
+                        .foregroundStyle(Theme.textMuted)
                 }
                 .frame(maxWidth: .infinity)
             }
 
             // Compliance stats
             if daysWithEntries > 0 {
-                HStack(spacing: 16) {
-                    CompliancePill(
+                HStack(spacing: 12) {
+                    PremiumCompliancePill(
                         label: "Protein target",
                         hit: proteinCompliance.hit,
                         total: proteinCompliance.total,
-                        color: .blue
+                        color: Theme.protein
                     )
 
-                    CompliancePill(
+                    PremiumCompliancePill(
                         label: "Calorie range",
                         hit: calorieCompliance.hit,
                         total: calorieCompliance.total,
-                        color: .orange
+                        color: Theme.calories
                     )
                 }
             }
         }
-        .padding()
-        .background(Color(.systemGray6))
-        .clipShape(RoundedRectangle(cornerRadius: 12))
+        .padding(20)
+        .background(
+            RoundedRectangle(cornerRadius: 20, style: .continuous)
+                .fill(.ultraThinMaterial)
+        )
     }
 
     // MARK: - Day Toggle
 
     private var dayToggle: some View {
-        HStack {
+        HStack(spacing: 12) {
             Picker("Day Type", selection: $isTrainingDay) {
                 Text("Training").tag(true)
                 Text("Rest").tag(false)
@@ -386,66 +410,76 @@ struct NutritionView: View {
 
             if let workout = workoutName {
                 Text(workout)
-                    .font(.caption)
-                    .foregroundColor(.secondary)
+                    .font(.labelMedium)
+                    .foregroundStyle(Theme.textMuted)
                     .lineLimit(1)
             }
         }
-        .padding(.horizontal)
+        .padding(.horizontal, 20)
         .padding(.vertical, 8)
     }
 
     // MARK: - Live Balance Card
 
     private var liveBalanceCard: some View {
-        HStack(spacing: 16) {
+        HStack(spacing: 0) {
             // Calories In
-            VStack(spacing: 2) {
+            VStack(spacing: 4) {
                 Text("\(totals.cal)")
-                    .font(.title3.bold())
-                Text("In")
-                    .font(.caption2)
-                    .foregroundColor(.secondary)
+                    .font(.metricSmall)
+                    .foregroundStyle(Theme.textPrimary)
+                Text("IN")
+                    .font(.labelMicro)
+                    .tracking(1.5)
+                    .foregroundStyle(Theme.textMuted)
             }
+            .frame(maxWidth: .infinity)
 
             // Net indicator
-            VStack(spacing: 4) {
+            VStack(spacing: 6) {
                 Text(netCalories >= 0 ? "+\(netCalories)" : "\(netCalories)")
-                    .font(.title2.bold())
-                    .foregroundColor(netStatusColor)
+                    .font(.metricLarge)
+                    .foregroundStyle(netStatusColor)
+                    .contentTransition(.numericText(value: Double(netCalories)))
 
-                Text(netStatusLabel)
-                    .font(.caption)
-                    .foregroundColor(netStatusColor)
+                Text(netStatusLabel.uppercased())
+                    .font(.labelHero)
+                    .tracking(2)
+                    .foregroundStyle(netStatusColor.opacity(0.8))
 
                 if let updated = energyTracker.lastUpdated {
                     Text("Updated \(updated, style: .relative)")
-                        .font(.caption2)
-                        .foregroundColor(.secondary)
+                        .font(.labelMicro)
+                        .foregroundStyle(Theme.textMuted)
                 }
             }
             .frame(maxWidth: .infinity)
 
             // Calories Out (TDEE)
-            VStack(spacing: 2) {
+            VStack(spacing: 4) {
                 Text("\(energyTracker.todayTDEE)")
-                    .font(.title3.bold())
-                Text("Out")
-                    .font(.caption2)
-                    .foregroundColor(.secondary)
+                    .font(.metricSmall)
+                    .foregroundStyle(Theme.textPrimary)
+                Text("OUT")
+                    .font(.labelMicro)
+                    .tracking(1.5)
+                    .foregroundStyle(Theme.textMuted)
             }
+            .frame(maxWidth: .infinity)
         }
-        .padding()
-        .background(Color(.systemGray6))
-        .clipShape(RoundedRectangle(cornerRadius: 12))
-        .padding(.horizontal)
+        .padding(20)
+        .background(
+            RoundedRectangle(cornerRadius: 20, style: .continuous)
+                .fill(.ultraThinMaterial)
+        )
+        .padding(.horizontal, 20)
         .padding(.bottom, 8)
     }
 
     private var netStatusColor: Color {
-        if netCalories < -200 { return .green }
-        if netCalories > 200 { return .red }
-        return .yellow
+        if netCalories < -200 { return Theme.success }
+        if netCalories > 200 { return Theme.error }
+        return Theme.warning
     }
 
     private var netStatusLabel: String {
@@ -454,37 +488,36 @@ struct NutritionView: View {
         return "Balanced"
     }
 
-    // MARK: - Macro Gauges
+    // MARK: - Premium Macro Gauges
 
-    private var macroGauges: some View {
-        VStack(spacing: 12) {
-            MacroGauge(
+    private var premiumMacroGauges: some View {
+        VStack(spacing: 16) {
+            HeroProgressBar(
                 label: "Calories",
                 current: totals.cal,
                 target: targets.cal,
-                color: .orange
+                color: Theme.calories
             )
-            MacroGauge(
+            HeroProgressBar(
                 label: "Protein",
                 current: totals.protein,
                 target: targets.protein,
                 unit: "g",
-                color: .blue
+                color: Theme.protein
             )
-            MacroGauge(
+            HeroProgressBar(
                 label: "Carbs",
                 current: totals.carbs,
                 target: targets.carbs,
                 unit: "g",
-                color: .red
+                color: Theme.carbs
             )
-            MacroGauge(
+            HeroProgressBar(
                 label: "Fat",
                 current: totals.fat,
                 target: targets.fat,
                 unit: "g",
-                color: .yellow,
-                isCap: true
+                color: Theme.fat
             )
         }
     }
@@ -494,80 +527,107 @@ struct NutritionView: View {
     private var entriesList: some View {
         let dayEntries = filteredEntries.sorted { $0.timestamp > $1.timestamp }
 
-        return List {
-            if dayEntries.isEmpty {
-                Text(isToday ? "No meals logged today" : "No meals logged")
-                    .foregroundColor(.secondary)
-                    .frame(maxWidth: .infinity, alignment: .center)
-                    .listRowBackground(Color.clear)
-            } else {
-                ForEach(dayEntries) { entry in
-                    NutritionEntryRow(
-                        entry: entry,
-                        isExpanded: expandedEntryId == entry.id
-                    )
-                    .contentShape(Rectangle())
-                    .onTapGesture {
-                        withAnimation(.easeInOut(duration: 0.2)) {
-                            if expandedEntryId == entry.id {
-                                expandedEntryId = nil
-                            } else {
-                                expandedEntryId = entry.id
+        return ScrollView {
+            LazyVStack(spacing: 12) {
+                if dayEntries.isEmpty {
+                    emptyStateView
+                } else {
+                    ForEach(dayEntries) { entry in
+                        PremiumNutritionEntryRow(
+                            entry: entry,
+                            isExpanded: expandedEntryId == entry.id,
+                            onTap: {
+                                withAnimation(.airfit) {
+                                    if expandedEntryId == entry.id {
+                                        expandedEntryId = nil
+                                    } else {
+                                        expandedEntryId = entry.id
+                                    }
+                                }
+                            },
+                            onEdit: {
+                                editingEntry = entry
+                            },
+                            onDelete: {
+                                withAnimation(.airfit) {
+                                    modelContext.delete(entry)
+                                }
                             }
-                        }
-                    }
-                    .swipeActions(edge: .trailing) {
-                        Button(role: .destructive) {
-                            modelContext.delete(entry)
-                        } label: {
-                            Label("Delete", systemImage: "trash")
-                        }
-                    }
-                    .swipeActions(edge: .leading) {
-                        Button {
-                            editingEntry = entry
-                        } label: {
-                            Label("Edit", systemImage: "pencil")
-                        }
-                        .tint(.blue)
+                        )
+                        .scrollReveal()
                     }
                 }
             }
+            .padding(.horizontal, 20)
+            .padding(.bottom, viewMode == .day && isToday ? 100 : 20) // Space for input
         }
-        .listStyle(.plain)
+        .scrollIndicators(.hidden)
     }
 
-    // MARK: - Input Area
+    // MARK: - Empty State
 
-    private var inputArea: some View {
+    private var emptyStateView: some View {
+        VStack(spacing: 16) {
+            Image(systemName: "fork.knife")
+                .font(.system(size: 48))
+                .foregroundStyle(Theme.textMuted)
+
+            Text(isToday ? "No meals logged today" : "No meals logged")
+                .font(.headlineMedium)
+                .foregroundStyle(Theme.textSecondary)
+
+            if isToday {
+                Text("Log your first meal below")
+                    .font(.labelMedium)
+                    .foregroundStyle(Theme.textMuted)
+            }
+        }
+        .frame(maxWidth: .infinity)
+        .padding(.vertical, 60)
+    }
+
+    // MARK: - Premium Input Area
+
+    private var premiumInputArea: some View {
         HStack(spacing: 12) {
-            // TODO: Voice input disabled - threading crash needs fix
-            // VoiceMicButton(text: $inputText)
-
             TextField("Log food...", text: $inputText, axis: .vertical)
+                .font(.bodyMedium)
                 .textFieldStyle(.plain)
-                .padding(12)
-                .background(Color(.systemGray6))
-                .clipShape(RoundedRectangle(cornerRadius: 20))
+                .padding(.horizontal, 16)
+                .padding(.vertical, 12)
+                .background(.ultraThinMaterial)
+                .clipShape(RoundedRectangle(cornerRadius: 24, style: .continuous))
                 .lineLimit(1...3)
                 .focused($isInputFocused)
 
             if isLoading {
-                PulsingLoader()
-                    .frame(width: 32, height: 32)
+                PremiumPulsingLoader()
+                    .frame(width: 36, height: 36)
             } else {
                 Button {
                     Task { await logFood() }
                 } label: {
                     Image(systemName: "plus.circle.fill")
-                        .font(.system(size: 32))
-                        .foregroundColor(inputText.isEmpty ? .gray : .green)
+                        .font(.system(size: 36))
+                        .foregroundStyle(
+                            inputText.isEmpty
+                                ? LinearGradient(colors: [Theme.textMuted], startPoint: .top, endPoint: .bottom)
+                                : LinearGradient(colors: [Theme.success, Theme.tertiary], startPoint: .topLeading, endPoint: .bottomTrailing)
+                        )
+                        .symbolEffect(.bounce, value: !inputText.isEmpty)
                 }
+                .buttonStyle(AirFitButtonStyle())
                 .disabled(inputText.isEmpty)
+                .sensoryFeedback(.impact(weight: .medium), trigger: inputText.isEmpty)
             }
         }
-        .padding()
-        .background(Color(.systemBackground))
+        .padding(.horizontal, 20)
+        .padding(.vertical, 16)
+        .background(
+            Rectangle()
+                .fill(.ultraThinMaterial)
+                .ignoresSafeArea()
+        )
     }
 
     // MARK: - Actions
@@ -611,7 +671,9 @@ struct NutritionView: View {
                     confidence: result.confidence ?? "low",
                     components: components
                 )
-                modelContext.insert(entry)
+                withAnimation(.airfit) {
+                    modelContext.insert(entry)
+                }
             }
         } catch {
             print("Failed to parse nutrition: \(error)")
@@ -621,105 +683,29 @@ struct NutritionView: View {
     }
 }
 
-// MARK: - Pulsing Loader
+// MARK: - Premium Pulsing Loader
 
-struct PulsingLoader: View {
+struct PremiumPulsingLoader: View {
     @State private var isPulsing = false
 
     var body: some View {
-        Circle()
-            .fill(Color.green.opacity(0.6))
-            .scaleEffect(isPulsing ? 1.0 : 0.6)
-            .opacity(isPulsing ? 0.4 : 1.0)
-            .animation(
-                .easeInOut(duration: 0.6).repeatForever(autoreverses: true),
-                value: isPulsing
-            )
-            .onAppear { isPulsing = true }
+        ZStack {
+            Circle()
+                .fill(Theme.success.opacity(0.3))
+                .scaleEffect(isPulsing ? 1.2 : 0.8)
+
+            Circle()
+                .fill(Theme.success)
+                .scaleEffect(isPulsing ? 0.6 : 0.4)
+        }
+        .animation(.easeInOut(duration: 0.6).repeatForever(autoreverses: true), value: isPulsing)
+        .onAppear { isPulsing = true }
     }
 }
 
-// MARK: - Macro Gauge Component
+// MARK: - Premium Daily Summary Row (for Week/Month views)
 
-struct MacroGauge: View {
-    let label: String
-    let current: Int
-    let target: Int
-    var unit: String = ""
-    var color: Color = .blue
-    var isCap: Bool = false
-
-    private var progress: Double {
-        guard target > 0 else { return 0 }
-        return min(Double(current) / Double(target), 1.5)
-    }
-
-    private var remaining: Int {
-        target - current
-    }
-
-    private var statusText: String {
-        if isCap {
-            return remaining >= 0 ? "\(remaining)\(unit) left" : "\(abs(remaining))\(unit) over"
-        } else {
-            return remaining > 0 ? "\(remaining)\(unit) to go" : "Hit!"
-        }
-    }
-
-    var body: some View {
-        VStack(alignment: .leading, spacing: 4) {
-            HStack {
-                Text(label)
-                    .font(.caption)
-                    .foregroundColor(.secondary)
-                Spacer()
-                Text("\(current)/\(target)\(unit)")
-                    .font(.caption.bold())
-                Text(statusText)
-                    .font(.caption2)
-                    .foregroundColor(statusColor)
-            }
-
-            GeometryReader { geo in
-                ZStack(alignment: .leading) {
-                    RoundedRectangle(cornerRadius: 4)
-                        .fill(Color(.systemGray5))
-
-                    RoundedRectangle(cornerRadius: 4)
-                        .fill(progressColor)
-                        .frame(width: geo.size.width * min(progress, 1.0))
-
-                    if progress > 1.0 {
-                        RoundedRectangle(cornerRadius: 4)
-                            .fill(Color.red.opacity(0.6))
-                            .frame(width: geo.size.width * (progress - 1.0))
-                            .offset(x: geo.size.width)
-                    }
-                }
-            }
-            .frame(height: 8)
-        }
-    }
-
-    private var progressColor: Color {
-        if isCap && progress > 1.0 {
-            return .red
-        }
-        return color
-    }
-
-    private var statusColor: Color {
-        if isCap {
-            return remaining >= 0 ? .green : .red
-        } else {
-            return remaining <= 0 ? .green : .secondary
-        }
-    }
-}
-
-// MARK: - Daily Summary Row (for Week/Month views)
-
-struct DailySummaryRow: View {
+struct PremiumDailySummaryRow: View {
     let summary: DailySummary
     let targets: (cal: Int, protein: Int, carbs: Int, fat: Int)
 
@@ -755,9 +741,9 @@ struct DailySummaryRow: View {
 
         var color: Color {
             switch self {
-            case .good: return .green
-            case .partial: return .yellow
-            case .missed: return .red
+            case .good: return Theme.success
+            case .partial: return Theme.warning
+            case .missed: return Theme.error
             }
         }
 
@@ -771,135 +757,181 @@ struct DailySummaryRow: View {
     }
 
     var body: some View {
-        HStack(spacing: 12) {
+        HStack(spacing: 16) {
             // Status indicator
             Image(systemName: overallStatus.icon)
-                .font(.title3)
-                .foregroundColor(overallStatus.color)
+                .font(.title2)
+                .foregroundStyle(overallStatus.color)
 
-            VStack(alignment: .leading, spacing: 6) {
+            VStack(alignment: .leading, spacing: 8) {
                 // Date header
                 HStack {
                     Text(summary.date, format: .dateTime.weekday(.abbreviated).month(.abbreviated).day())
-                        .font(.subheadline.bold())
+                        .font(.labelLarge)
+                        .foregroundStyle(Theme.textPrimary)
 
                     Spacer()
 
                     Text("\(summary.entryCount) meal\(summary.entryCount == 1 ? "" : "s")")
-                        .font(.caption)
-                        .foregroundColor(.secondary)
+                        .font(.labelMicro)
+                        .foregroundStyle(Theme.textMuted)
 
                     Image(systemName: "chevron.right")
                         .font(.caption)
-                        .foregroundColor(.secondary)
+                        .foregroundStyle(Theme.textMuted)
                 }
 
                 // Macro summary
                 HStack(spacing: 12) {
-                    Text("\(summary.calories) cal")
-                        .font(.subheadline)
-                        .foregroundColor(caloriesInRange ? .primary : (calorieProgress > 1.1 ? .red : .orange))
+                    Text("\(summary.calories)")
+                        .font(.metricSmall)
+                        .foregroundStyle(caloriesInRange ? Theme.textPrimary : (calorieProgress > 1.1 ? Theme.error : Theme.warning))
 
-                    MacroPill(value: summary.protein, label: "P", color: hitProtein ? .blue : .gray)
-                    MacroPill(value: summary.carbs, label: "C", color: .red)
-                    MacroPill(value: summary.fat, label: "F", color: .yellow)
+                    PremiumMacroPill(value: summary.protein, label: "P", color: hitProtein ? Theme.protein : Theme.textMuted)
+                    PremiumMacroPill(value: summary.carbs, label: "C", color: Theme.carbs)
+                    PremiumMacroPill(value: summary.fat, label: "F", color: Theme.fat)
                 }
             }
         }
-        .padding(.vertical, 4)
+        .padding(16)
+        .background(
+            RoundedRectangle(cornerRadius: 16, style: .continuous)
+                .fill(Theme.surface)
+                .shadow(color: .black.opacity(0.03), radius: 8, x: 0, y: 2)
+        )
     }
 }
 
-// MARK: - Entry Row
+// MARK: - Premium Entry Row
 
-struct NutritionEntryRow: View {
+struct PremiumNutritionEntryRow: View {
     let entry: NutritionEntry
     let isExpanded: Bool
+    let onTap: () -> Void
+    let onEdit: () -> Void
+    let onDelete: () -> Void
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 8) {
+        VStack(alignment: .leading, spacing: 12) {
             // Main row
-            VStack(alignment: .leading, spacing: 4) {
+            VStack(alignment: .leading, spacing: 8) {
                 HStack {
                     Text(entry.name)
-                        .font(.subheadline)
+                        .font(.labelLarge)
+                        .foregroundStyle(Theme.textPrimary)
                     Spacer()
-                    Text("\(entry.calories) cal")
-                        .font(.subheadline.bold())
+                    Text("\(entry.calories)")
+                        .font(.metricSmall)
+                        .foregroundStyle(Theme.calories)
                     if !entry.components.isEmpty {
                         Image(systemName: isExpanded ? "chevron.up" : "chevron.down")
                             .font(.caption)
-                            .foregroundColor(.secondary)
+                            .foregroundStyle(Theme.textMuted)
                     }
                 }
 
-                HStack(spacing: 12) {
-                    MacroPill(value: entry.protein, label: "P", color: .blue)
-                    MacroPill(value: entry.carbs, label: "C", color: .red)
-                    MacroPill(value: entry.fat, label: "F", color: .yellow)
+                HStack(spacing: 10) {
+                    PremiumMacroPill(value: entry.protein, label: "P", color: Theme.protein)
+                    PremiumMacroPill(value: entry.carbs, label: "C", color: Theme.carbs)
+                    PremiumMacroPill(value: entry.fat, label: "F", color: Theme.fat)
 
                     Spacer()
 
                     Text(entry.timestamp, style: .time)
-                        .font(.caption2)
-                        .foregroundColor(.secondary)
+                        .font(.labelMicro)
+                        .foregroundStyle(Theme.textMuted)
                 }
             }
+            .contentShape(Rectangle())
+            .onTapGesture { onTap() }
 
             // Expanded components
             if isExpanded && !entry.components.isEmpty {
-                VStack(alignment: .leading, spacing: 4) {
+                VStack(alignment: .leading, spacing: 6) {
                     ForEach(entry.components) { component in
                         HStack {
                             Text(component.name)
-                                .font(.caption)
-                                .foregroundColor(.secondary)
+                                .font(.labelMedium)
+                                .foregroundStyle(Theme.textSecondary)
                             Spacer()
                             Text("\(component.calories)")
-                                .font(.caption.monospacedDigit())
-                            Text("P\(component.protein)")
-                                .font(.caption2)
-                                .foregroundColor(.blue)
-                            Text("C\(component.carbs)")
-                                .font(.caption2)
-                                .foregroundColor(.red)
-                            Text("F\(component.fat)")
-                                .font(.caption2)
-                                .foregroundColor(.yellow)
+                                .font(.labelMedium)
+                                .monospacedDigit()
+                            HStack(spacing: 4) {
+                                Text("P\(component.protein)")
+                                    .foregroundStyle(Theme.protein)
+                                Text("C\(component.carbs)")
+                                    .foregroundStyle(Theme.carbs)
+                                Text("F\(component.fat)")
+                                    .foregroundStyle(Theme.fat)
+                            }
+                            .font(.labelMicro)
                         }
                     }
+
+                    // Action buttons
+                    HStack(spacing: 12) {
+                        Button {
+                            onEdit()
+                        } label: {
+                            Label("Edit", systemImage: "pencil")
+                                .font(.labelMedium)
+                                .foregroundStyle(Theme.accent)
+                        }
+                        .buttonStyle(AirFitSubtleButtonStyle())
+
+                        Button {
+                            onDelete()
+                        } label: {
+                            Label("Delete", systemImage: "trash")
+                                .font(.labelMedium)
+                                .foregroundStyle(Theme.error)
+                        }
+                        .buttonStyle(AirFitSubtleButtonStyle())
+
+                        Spacer()
+                    }
+                    .padding(.top, 8)
                 }
-                .padding(.top, 4)
+                .padding(.top, 8)
                 .padding(.leading, 8)
             }
         }
-        .padding(.vertical, 4)
+        .padding(16)
+        .background(
+            RoundedRectangle(cornerRadius: 16, style: .continuous)
+                .fill(Theme.surface)
+                .shadow(color: .black.opacity(0.03), radius: 8, x: 0, y: 2)
+        )
     }
 }
 
-struct MacroPill: View {
+// MARK: - Premium Macro Pill
+
+struct PremiumMacroPill: View {
     let value: Int
     let label: String
     let color: Color
 
     var body: some View {
-        HStack(spacing: 2) {
+        HStack(spacing: 3) {
             Text(label)
-                .font(.caption2)
-                .foregroundColor(color)
+                .font(.labelMicro)
+                .foregroundStyle(color)
             Text("\(value)g")
-                .font(.caption2)
+                .font(.labelMicro)
+                .foregroundStyle(Theme.textPrimary)
         }
-        .padding(.horizontal, 6)
-        .padding(.vertical, 2)
-        .background(color.opacity(0.15))
+        .padding(.horizontal, 8)
+        .padding(.vertical, 4)
+        .background(color.opacity(0.12))
         .clipShape(Capsule())
     }
 }
 
-// MARK: - Compliance Pill (for retrospective summary)
+// MARK: - Premium Compliance Pill (for retrospective summary)
 
-struct CompliancePill: View {
+struct PremiumCompliancePill: View {
     let label: String
     let hit: Int
     let total: Int
@@ -911,28 +943,30 @@ struct CompliancePill: View {
     }
 
     private var statusColor: Color {
-        if percentage >= 80 { return .green }
-        if percentage >= 50 { return .yellow }
-        return .red
+        if percentage >= 80 { return Theme.success }
+        if percentage >= 50 { return Theme.warning }
+        return Theme.error
     }
 
     var body: some View {
-        VStack(spacing: 4) {
-            HStack(spacing: 4) {
+        VStack(spacing: 6) {
+            HStack(spacing: 6) {
                 Circle()
                     .fill(statusColor)
                     .frame(width: 8, height: 8)
                 Text("\(hit)/\(total)")
-                    .font(.subheadline.bold())
+                    .font(.labelLarge)
+                    .foregroundStyle(Theme.textPrimary)
             }
-            Text(label)
-                .font(.caption2)
-                .foregroundColor(.secondary)
+            Text(label.uppercased())
+                .font(.labelMicro)
+                .tracking(1)
+                .foregroundStyle(Theme.textMuted)
         }
         .frame(maxWidth: .infinity)
-        .padding(.vertical, 8)
-        .background(color.opacity(0.1))
-        .clipShape(RoundedRectangle(cornerRadius: 8))
+        .padding(.vertical, 12)
+        .background(color.opacity(0.08))
+        .clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
     }
 }
 
@@ -971,6 +1005,7 @@ struct EditNutritionSheet: View {
                     Button("Cancel") {
                         dismiss()
                     }
+                    .foregroundStyle(Theme.accent)
                 }
             }
             .onAppear {
@@ -986,46 +1021,48 @@ struct EditNutritionSheet: View {
     // MARK: - AI Correction View
 
     private var aiCorrectionView: some View {
-        VStack(spacing: 16) {
+        VStack(spacing: 20) {
             // Current entry summary
-            VStack(alignment: .leading, spacing: 8) {
+            VStack(alignment: .leading, spacing: 12) {
                 Text(entry.name)
-                    .font(.headline)
+                    .font(.headlineMedium)
+                    .foregroundStyle(Theme.textPrimary)
 
                 HStack(spacing: 16) {
-                    Text("\(entry.calories) cal")
-                        .font(.subheadline.bold())
-                    Text("P\(entry.protein)g")
-                        .foregroundColor(.blue)
-                    Text("C\(entry.carbs)g")
-                        .foregroundColor(.red)
-                    Text("F\(entry.fat)g")
-                        .foregroundColor(.yellow)
+                    Text("\(entry.calories)")
+                        .font(.metricSmall)
+                        .foregroundStyle(Theme.calories)
+                    PremiumMacroPill(value: entry.protein, label: "P", color: Theme.protein)
+                    PremiumMacroPill(value: entry.carbs, label: "C", color: Theme.carbs)
+                    PremiumMacroPill(value: entry.fat, label: "F", color: Theme.fat)
                 }
-                .font(.subheadline)
             }
             .frame(maxWidth: .infinity, alignment: .leading)
-            .padding()
-            .background(Color(.systemGray6))
-            .clipShape(RoundedRectangle(cornerRadius: 12))
-            .padding(.horizontal)
+            .padding(20)
+            .background(
+                RoundedRectangle(cornerRadius: 16, style: .continuous)
+                    .fill(.ultraThinMaterial)
+            )
+            .padding(.horizontal, 20)
 
             // Correction input
             VStack(alignment: .leading, spacing: 8) {
-                Text("What needs to change?")
-                    .font(.subheadline)
-                    .foregroundColor(.secondary)
+                Text("WHAT NEEDS TO CHANGE?")
+                    .font(.labelMicro)
+                    .tracking(1.5)
+                    .foregroundStyle(Theme.textMuted)
 
                 TextField("e.g., \"that was a large portion\" or \"add cheese\"",
                           text: $correctionText,
                           axis: .vertical)
+                    .font(.bodyMedium)
                     .textFieldStyle(.plain)
-                    .padding(12)
-                    .background(Color(.systemGray6))
-                    .clipShape(RoundedRectangle(cornerRadius: 12))
+                    .padding(16)
+                    .background(.ultraThinMaterial)
+                    .clipShape(RoundedRectangle(cornerRadius: 16, style: .continuous))
                     .lineLimit(2...4)
             }
-            .padding(.horizontal)
+            .padding(.horizontal, 20)
 
             // Apply button
             Button {
@@ -1033,18 +1070,21 @@ struct EditNutritionSheet: View {
             } label: {
                 if isLoading {
                     ProgressView()
+                        .tint(.white)
                         .frame(maxWidth: .infinity)
                         .padding()
                 } else {
                     Text("Apply Correction")
-                        .font(.headline)
+                        .font(.headlineMedium)
+                        .foregroundStyle(.white)
                         .frame(maxWidth: .infinity)
                         .padding()
                 }
             }
-            .buttonStyle(.borderedProminent)
+            .background(correctionText.isEmpty ? Theme.textMuted : Theme.accent)
+            .clipShape(RoundedRectangle(cornerRadius: 16, style: .continuous))
             .disabled(correctionText.isEmpty || isLoading)
-            .padding(.horizontal)
+            .padding(.horizontal, 20)
 
             Spacer()
 
@@ -1053,12 +1093,13 @@ struct EditNutritionSheet: View {
                 showManualEdit = true
             } label: {
                 Text("Enter exact values instead")
-                    .font(.caption)
-                    .foregroundColor(.secondary)
+                    .font(.labelMedium)
+                    .foregroundStyle(Theme.textMuted)
             }
-            .padding(.bottom)
+            .buttonStyle(AirFitSubtleButtonStyle())
+            .padding(.bottom, 20)
         }
-        .padding(.top)
+        .padding(.top, 20)
     }
 
     // MARK: - Manual Edit View
@@ -1067,58 +1108,74 @@ struct EditNutritionSheet: View {
         Form {
             Section("Name") {
                 TextField("Food name", text: $name)
+                    .font(.bodyMedium)
             }
 
             Section("Macros") {
                 HStack {
                     Text("Calories")
+                        .font(.bodyMedium)
                     Spacer()
                     TextField("0", text: $calories)
                         .keyboardType(.numberPad)
                         .multilineTextAlignment(.trailing)
                         .frame(width: 80)
+                        .font(.bodyMedium)
                 }
 
                 HStack {
                     Text("Protein (g)")
+                        .font(.bodyMedium)
                     Spacer()
                     TextField("0", text: $protein)
                         .keyboardType(.numberPad)
                         .multilineTextAlignment(.trailing)
                         .frame(width: 80)
+                        .font(.bodyMedium)
                 }
 
                 HStack {
                     Text("Carbs (g)")
+                        .font(.bodyMedium)
                     Spacer()
                     TextField("0", text: $carbs)
                         .keyboardType(.numberPad)
                         .multilineTextAlignment(.trailing)
                         .frame(width: 80)
+                        .font(.bodyMedium)
                 }
 
                 HStack {
                     Text("Fat (g)")
+                        .font(.bodyMedium)
                     Spacer()
                     TextField("0", text: $fat)
                         .keyboardType(.numberPad)
                         .multilineTextAlignment(.trailing)
                         .frame(width: 80)
+                        .font(.bodyMedium)
                 }
             }
 
             Section {
-                Button("Save") {
+                Button {
                     saveManualChanges()
                     dismiss()
+                } label: {
+                    Text("Save")
+                        .font(.headlineMedium)
+                        .foregroundStyle(Theme.accent)
+                        .frame(maxWidth: .infinity)
                 }
-                .frame(maxWidth: .infinity)
 
-                Button("Back to AI correction") {
+                Button {
                     showManualEdit = false
+                } label: {
+                    Text("Back to AI correction")
+                        .font(.labelMedium)
+                        .foregroundStyle(Theme.textMuted)
+                        .frame(maxWidth: .infinity)
                 }
-                .frame(maxWidth: .infinity)
-                .foregroundColor(.secondary)
             }
         }
     }
@@ -1168,6 +1225,8 @@ struct EditNutritionSheet: View {
 }
 
 #Preview {
-    NutritionView()
-        .modelContainer(for: NutritionEntry.self, inMemory: true)
+    NavigationStack {
+        NutritionView()
+            .modelContainer(for: NutritionEntry.self, inMemory: true)
+    }
 }

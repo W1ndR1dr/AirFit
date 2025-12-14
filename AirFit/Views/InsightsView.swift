@@ -15,47 +15,52 @@ struct InsightsView: View {
     @State private var syncService = InsightsSyncService()
 
     var body: some View {
-        NavigationStack {
-            ScrollView {
-                VStack(spacing: 20) {
-                    // Context Summary Card
-                    if let ctx = context {
-                        contextSummaryCard(ctx)
-                    }
+        ScrollView {
+            VStack(spacing: 24) {
+                // Context Summary Card
+                if let ctx = context {
+                    contextSummaryCard(ctx)
+                        .scrollReveal()
+                }
 
-                    // Insights Section
-                    if insights.isEmpty && !isLoading {
-                        emptyStateView
-                    } else {
-                        insightsSection
+                // Insights Section
+                if insights.isEmpty && !isLoading {
+                    emptyStateView
+                } else {
+                    insightsSection
+                }
+            }
+            .padding(.horizontal, 20)
+            .padding(.top, 16)
+            .padding(.bottom, 40)
+        }
+        .scrollIndicators(.hidden)
+        .navigationTitle("Insights")
+        .refreshable {
+            await syncAndRefresh()
+        }
+        .toolbar {
+            ToolbarItem(placement: .topBarTrailing) {
+                if isSyncing {
+                    ProgressView()
+                        .tint(Theme.accent)
+                } else {
+                    Button {
+                        Task { await syncAndRefresh() }
+                    } label: {
+                        Image(systemName: "arrow.triangle.2.circlepath")
+                            .foregroundStyle(Theme.accent)
                     }
-                }
-                .padding()
-            }
-            .navigationTitle("Insights")
-            .refreshable {
-                await syncAndRefresh()
-            }
-            .toolbar {
-                ToolbarItem(placement: .topBarTrailing) {
-                    if isSyncing {
-                        ProgressView()
-                    } else {
-                        Button {
-                            Task { await syncAndRefresh() }
-                        } label: {
-                            Image(systemName: "arrow.triangle.2.circlepath")
-                        }
-                    }
+                    .buttonStyle(AirFitSubtleButtonStyle())
                 }
             }
-            .task {
-                await loadData()
-            }
-            .sheet(isPresented: $showingChat) {
-                if let insight = selectedInsight {
-                    InsightChatSheet(insight: insight)
-                }
+        }
+        .task {
+            await loadData()
+        }
+        .sheet(isPresented: $showingChat) {
+            if let insight = selectedInsight {
+                PremiumInsightChatSheet(insight: insight)
             }
         }
     }
@@ -63,119 +68,113 @@ struct InsightsView: View {
     // MARK: - Context Summary Card
 
     private func contextSummaryCard(_ ctx: APIClient.ContextSummary) -> some View {
-        VStack(alignment: .leading, spacing: 12) {
-            Text("This Week")
-                .font(.headline)
-                .foregroundColor(.secondary)
+        VStack(alignment: .leading, spacing: 16) {
+            Text("THIS WEEK")
+                .font(.labelHero)
+                .tracking(2)
+                .foregroundStyle(Theme.textMuted)
 
             LazyVGrid(columns: [
                 GridItem(.flexible()),
+                GridItem(.flexible()),
                 GridItem(.flexible())
-            ], spacing: 12) {
-                metricTile(
+            ], spacing: 16) {
+                PremiumMetricTile(
                     icon: "flame.fill",
-                    color: .orange,
+                    color: Theme.calories,
                     value: "\(ctx.avg_calories)",
-                    label: "avg cal"
+                    label: "AVG CAL"
                 )
 
-                metricTile(
+                PremiumMetricTile(
                     icon: "p.circle.fill",
-                    color: .blue,
+                    color: Theme.protein,
                     value: "\(ctx.avg_protein)g",
-                    label: "avg protein"
+                    label: "AVG PROTEIN"
                 )
 
                 if let weight = ctx.avg_weight {
-                    metricTile(
+                    PremiumMetricTile(
                         icon: "scalemass.fill",
-                        color: .purple,
+                        color: Theme.accent,
                         value: String(format: "%.1f", weight),
-                        label: "lbs"
+                        label: "LBS"
                     )
                 }
 
                 if let sleep = ctx.avg_sleep {
-                    metricTile(
+                    PremiumMetricTile(
                         icon: "moon.fill",
-                        color: .indigo,
+                        color: Color.indigo,
                         value: String(format: "%.1f", sleep),
-                        label: "hrs sleep"
+                        label: "HRS SLEEP"
                     )
                 }
 
                 if let proteinComp = ctx.protein_compliance {
-                    metricTile(
+                    PremiumMetricTile(
                         icon: "checkmark.circle.fill",
-                        color: proteinComp >= 0.8 ? .green : (proteinComp >= 0.5 ? .yellow : .red),
+                        color: proteinComp >= 0.8 ? Theme.success : (proteinComp >= 0.5 ? Theme.warning : Theme.error),
                         value: "\(Int(proteinComp * 100))%",
-                        label: "protein hit"
+                        label: "PROTEIN HIT"
                     )
                 }
 
                 if ctx.total_workouts > 0 {
-                    metricTile(
+                    PremiumMetricTile(
                         icon: "dumbbell.fill",
-                        color: .pink,
+                        color: Theme.secondary,
                         value: "\(ctx.total_workouts)",
-                        label: "workouts"
+                        label: "WORKOUTS"
                     )
                 }
             }
 
             // Weight change callout
             if let change = ctx.weight_change {
-                HStack {
+                HStack(spacing: 8) {
                     Image(systemName: change < 0 ? "arrow.down.right" : "arrow.up.right")
-                        .foregroundColor(change < 0 ? .green : .orange)
+                        .font(.caption)
+                        .foregroundStyle(change < 0 ? Theme.success : Theme.warning)
                     Text(String(format: "%.1f lbs this week", abs(change)))
-                        .font(.subheadline)
+                        .font(.labelMedium)
+                        .foregroundStyle(Theme.textSecondary)
                 }
                 .padding(.top, 4)
             }
         }
-        .padding()
-        .background(Color(.systemGray6))
-        .clipShape(RoundedRectangle(cornerRadius: 16))
-    }
-
-    private func metricTile(icon: String, color: Color, value: String, label: String) -> some View {
-        VStack(spacing: 4) {
-            Image(systemName: icon)
-                .foregroundColor(color)
-                .font(.title2)
-
-            Text(value)
-                .font(.headline)
-
-            Text(label)
-                .font(.caption)
-                .foregroundColor(.secondary)
-        }
-        .frame(maxWidth: .infinity)
-        .padding(.vertical, 12)
-        .background(Color(.systemBackground))
-        .clipShape(RoundedRectangle(cornerRadius: 12))
+        .padding(20)
+        .background(
+            RoundedRectangle(cornerRadius: 20, style: .continuous)
+                .fill(.ultraThinMaterial)
+        )
     }
 
     // MARK: - Insights Section
 
     private var insightsSection: some View {
-        VStack(alignment: .leading, spacing: 12) {
-            Text("AI Insights")
-                .font(.headline)
-                .foregroundColor(.secondary)
+        VStack(alignment: .leading, spacing: 16) {
+            Text("AI INSIGHTS")
+                .font(.labelHero)
+                .tracking(2)
+                .foregroundStyle(Theme.textMuted)
 
             if isLoading && insights.isEmpty {
                 HStack {
                     Spacer()
-                    ProgressView()
+                    VStack(spacing: 12) {
+                        ProgressView()
+                            .tint(Theme.accent)
+                        Text("Analyzing patterns...")
+                            .font(.labelMedium)
+                            .foregroundStyle(Theme.textMuted)
+                    }
                     Spacer()
                 }
-                .padding()
+                .padding(.vertical, 40)
             } else {
-                ForEach(insights) { insight in
-                    InsightCard(
+                ForEach(Array(insights.enumerated()), id: \.element.id) { index, insight in
+                    PremiumInsightCard(
                         insight: insight,
                         onTellMeMore: {
                             selectedInsight = insight
@@ -184,11 +183,12 @@ struct InsightsView: View {
                         },
                         onDismiss: {
                             Task { await trackEngagement(insight.id, action: "dismissed") }
-                            withAnimation {
+                            withAnimation(.airfit) {
                                 insights.removeAll { $0.id == insight.id }
                             }
                         }
                     )
+                    .scrollReveal()
                 }
             }
         }
@@ -197,25 +197,40 @@ struct InsightsView: View {
     // MARK: - Empty State
 
     private var emptyStateView: some View {
-        VStack(spacing: 16) {
-            Image(systemName: "sparkles")
-                .font(.system(size: 48))
-                .foregroundColor(.secondary)
+        VStack(spacing: 20) {
+            ZStack {
+                Circle()
+                    .fill(Theme.accentGradient)
+                    .frame(width: 80, height: 80)
+                    .blur(radius: 20)
+                    .opacity(0.5)
+
+                Image(systemName: "sparkles")
+                    .font(.system(size: 48))
+                    .foregroundStyle(Theme.accent)
+            }
 
             Text("No insights yet")
-                .font(.headline)
+                .font(.titleMedium)
+                .foregroundStyle(Theme.textPrimary)
 
             Text("As you log nutrition and workouts, the AI will find patterns and surface insights here.")
-                .font(.subheadline)
-                .foregroundColor(.secondary)
+                .font(.bodyMedium)
+                .foregroundStyle(Theme.textSecondary)
                 .multilineTextAlignment(.center)
 
             Button {
                 Task { await syncAndRefresh() }
             } label: {
                 Label("Sync Data", systemImage: "arrow.triangle.2.circlepath")
+                    .font(.labelLarge)
+                    .foregroundStyle(.white)
+                    .padding(.horizontal, 24)
+                    .padding(.vertical, 12)
+                    .background(Theme.accentGradient)
+                    .clipShape(Capsule())
             }
-            .buttonStyle(.bordered)
+            .buttonStyle(AirFitButtonStyle())
         }
         .padding(40)
     }
@@ -287,9 +302,42 @@ struct InsightsView: View {
     }
 }
 
-// MARK: - Insight Card
+// MARK: - Premium Metric Tile
 
-struct InsightCard: View {
+struct PremiumMetricTile: View {
+    let icon: String
+    let color: Color
+    let value: String
+    let label: String
+
+    var body: some View {
+        VStack(spacing: 8) {
+            Image(systemName: icon)
+                .foregroundStyle(color)
+                .font(.title2)
+
+            Text(value)
+                .font(.metricSmall)
+                .foregroundStyle(Theme.textPrimary)
+
+            Text(label)
+                .font(.labelMicro)
+                .tracking(1)
+                .foregroundStyle(Theme.textMuted)
+        }
+        .frame(maxWidth: .infinity)
+        .padding(.vertical, 16)
+        .background(
+            RoundedRectangle(cornerRadius: 16, style: .continuous)
+                .fill(Theme.surface)
+                .shadow(color: .black.opacity(0.02), radius: 4, x: 0, y: 2)
+        )
+    }
+}
+
+// MARK: - Premium Insight Card
+
+struct PremiumInsightCard: View {
     let insight: APIClient.InsightData
     let onTellMeMore: () -> Void
     let onDismiss: () -> Void
@@ -307,37 +355,59 @@ struct InsightCard: View {
 
     private var categoryColor: Color {
         switch insight.category {
-        case "correlation": return .purple
-        case "trend": return .blue
-        case "anomaly": return .orange
-        case "milestone": return .yellow
-        case "nudge": return .green
-        default: return .gray
+        case "correlation": return Theme.accent
+        case "trend": return Theme.protein
+        case "anomaly": return Theme.warning
+        case "milestone": return Theme.warm
+        case "nudge": return Theme.success
+        default: return Theme.textMuted
         }
     }
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 12) {
+        VStack(alignment: .leading, spacing: 16) {
             // Header
-            HStack {
-                Image(systemName: categoryIcon)
-                    .foregroundColor(categoryColor)
-                Text(insight.title)
-                    .font(.headline)
+            HStack(spacing: 12) {
+                ZStack {
+                    Circle()
+                        .fill(categoryColor.opacity(0.15))
+                        .frame(width: 40, height: 40)
+
+                    Image(systemName: categoryIcon)
+                        .foregroundStyle(categoryColor)
+                        .font(.body)
+                }
+
+                VStack(alignment: .leading, spacing: 2) {
+                    Text(insight.title)
+                        .font(.headlineMedium)
+                        .foregroundStyle(Theme.textPrimary)
+
+                    Text(insight.category.uppercased())
+                        .font(.labelMicro)
+                        .tracking(1.5)
+                        .foregroundStyle(categoryColor)
+                }
+
                 Spacer()
+
                 Button {
                     onDismiss()
                 } label: {
                     Image(systemName: "xmark")
                         .font(.caption)
-                        .foregroundColor(.secondary)
+                        .foregroundStyle(Theme.textMuted)
+                        .padding(8)
+                        .background(Circle().fill(Theme.background))
                 }
+                .buttonStyle(AirFitSubtleButtonStyle())
             }
 
             // Body
             Text(insight.body)
-                .font(.subheadline)
-                .foregroundColor(.secondary)
+                .font(.bodyMedium)
+                .foregroundStyle(Theme.textSecondary)
+                .lineSpacing(4)
 
             // Actions
             HStack(spacing: 12) {
@@ -345,33 +415,42 @@ struct InsightCard: View {
                     onTellMeMore()
                 } label: {
                     Text("Tell me more")
-                        .font(.subheadline.weight(.medium))
+                        .font(.labelLarge)
+                        .foregroundStyle(.white)
+                        .padding(.horizontal, 20)
+                        .padding(.vertical, 10)
+                        .background(categoryColor)
+                        .clipShape(Capsule())
                 }
-                .buttonStyle(.bordered)
-                .tint(categoryColor)
+                .buttonStyle(AirFitButtonStyle())
 
                 if !insight.suggested_actions.isEmpty {
-                    ForEach(insight.suggested_actions.prefix(2), id: \.self) { action in
+                    ForEach(insight.suggested_actions.prefix(1), id: \.self) { action in
                         Button(action) {
                             // TODO: Handle action
                         }
-                        .font(.subheadline)
-                        .foregroundColor(.secondary)
+                        .font(.labelMedium)
+                        .foregroundStyle(Theme.textSecondary)
+                        .buttonStyle(AirFitSubtleButtonStyle())
                     }
                 }
 
                 Spacer()
             }
         }
-        .padding()
-        .background(Color(.systemGray6))
-        .clipShape(RoundedRectangle(cornerRadius: 16))
+        .padding(20)
+        .background(
+            RoundedRectangle(cornerRadius: 20, style: .continuous)
+                .fill(Theme.surface)
+                .shadow(color: .black.opacity(0.03), radius: 8, x: 0, y: 2)
+                .shadow(color: .black.opacity(0.02), radius: 16, x: 0, y: 4)
+        )
     }
 }
 
-// MARK: - Insight Chat Sheet
+// MARK: - Premium Insight Chat Sheet
 
-struct InsightChatSheet: View {
+struct PremiumInsightChatSheet: View {
     let insight: APIClient.InsightData
     @Environment(\.dismiss) private var dismiss
     @State private var messages: [Message] = []
@@ -384,61 +463,67 @@ struct InsightChatSheet: View {
         NavigationStack {
             VStack(spacing: 0) {
                 // Original insight card
-                VStack(alignment: .leading, spacing: 8) {
+                VStack(alignment: .leading, spacing: 12) {
                     Text(insight.title)
-                        .font(.headline)
+                        .font(.headlineMedium)
+                        .foregroundStyle(Theme.textPrimary)
                     Text(insight.body)
-                        .font(.subheadline)
-                        .foregroundColor(.secondary)
+                        .font(.bodyMedium)
+                        .foregroundStyle(Theme.textSecondary)
                 }
-                .padding()
+                .padding(20)
                 .frame(maxWidth: .infinity, alignment: .leading)
-                .background(Color(.systemGray6))
-
-                Divider()
+                .background(.ultraThinMaterial)
 
                 // Messages
                 ScrollView {
-                    LazyVStack(alignment: .leading, spacing: 12) {
+                    LazyVStack(alignment: .leading, spacing: 16) {
                         ForEach(messages) { message in
-                            MessageBubble(message: message)
+                            PremiumInsightMessageBubble(message: message)
                         }
 
                         if isLoading {
-                            HStack {
-                                ProgressView()
+                            HStack(spacing: 12) {
+                                BreathingDot()
+                                StreamingWave()
                                 Spacer()
                             }
-                            .padding(.horizontal)
+                            .padding(.horizontal, 20)
                         }
                     }
-                    .padding()
+                    .padding(20)
                 }
+                .scrollIndicators(.hidden)
 
                 // Input
                 HStack(spacing: 12) {
                     TextField("Ask about this insight...", text: $inputText)
+                        .font(.bodyMedium)
                         .textFieldStyle(.plain)
-                        .padding(12)
-                        .background(Color(.systemGray6))
-                        .clipShape(RoundedRectangle(cornerRadius: 20))
+                        .padding(.horizontal, 16)
+                        .padding(.vertical, 12)
+                        .background(.ultraThinMaterial)
+                        .clipShape(RoundedRectangle(cornerRadius: 24, style: .continuous))
 
                     Button {
                         Task { await sendMessage() }
                     } label: {
                         Image(systemName: "arrow.up.circle.fill")
-                            .font(.system(size: 32))
-                            .foregroundColor(inputText.isEmpty ? .gray : .blue)
+                            .font(.system(size: 36))
+                            .foregroundStyle(inputText.isEmpty ? Theme.textMuted : Theme.accent)
                     }
+                    .buttonStyle(AirFitButtonStyle())
                     .disabled(inputText.isEmpty || isLoading)
                 }
-                .padding()
+                .padding(20)
+                .background(.ultraThinMaterial)
             }
             .navigationTitle("Insight Details")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .topBarTrailing) {
                     Button("Done") { dismiss() }
+                        .foregroundStyle(Theme.accent)
                 }
             }
         }
@@ -449,7 +534,9 @@ struct InsightChatSheet: View {
         guard !text.isEmpty else { return }
 
         // Add user message
-        messages.append(Message(content: text, isUser: true))
+        withAnimation(.airfit) {
+            messages.append(Message(content: text, isUser: true))
+        }
         inputText = ""
 
         isLoading = true
@@ -468,36 +555,57 @@ struct InsightChatSheet: View {
 
         do {
             let response = try await apiClient.sendMessage(contextPrompt)
-            messages.append(Message(content: response, isUser: false))
+            withAnimation(.airfit) {
+                messages.append(Message(content: response, isUser: false))
+            }
         } catch {
-            messages.append(Message(content: "Sorry, I couldn't process that. Try again?", isUser: false))
+            withAnimation(.airfit) {
+                messages.append(Message(content: "Sorry, I couldn't process that. Try again?", isUser: false))
+            }
         }
 
         isLoading = false
     }
 }
 
-// MARK: - Message Bubble (for Insight Chat)
+// MARK: - Premium Insight Message Bubble
 
-private struct MessageBubble: View {
+private struct PremiumInsightMessageBubble: View {
     let message: Message
 
     var body: some View {
         HStack {
-            if message.isUser { Spacer() }
+            if message.isUser { Spacer(minLength: 60) }
 
-            Text(message.content)
-                .padding(12)
-                .background(message.isUser ? Color.blue : Color(.systemGray5))
-                .foregroundColor(message.isUser ? .white : .primary)
-                .clipShape(RoundedRectangle(cornerRadius: 16))
+            VStack(alignment: message.isUser ? .trailing : .leading, spacing: 4) {
+                if !message.isUser {
+                    HStack(spacing: 6) {
+                        BreathingDot()
+                        Text("Coach")
+                            .font(.labelMicro)
+                            .foregroundStyle(Theme.textMuted)
+                    }
+                }
 
-            if !message.isUser { Spacer() }
+                Text(message.content)
+                    .font(.bodyMedium)
+                    .foregroundStyle(message.isUser ? .white : Theme.textPrimary)
+                    .padding(16)
+                    .background(
+                        RoundedRectangle(cornerRadius: 20, style: .continuous)
+                            .fill(message.isUser ? Theme.accent : Theme.surface)
+                            .shadow(color: .black.opacity(0.03), radius: 4, x: 0, y: 2)
+                    )
+            }
+
+            if !message.isUser { Spacer(minLength: 60) }
         }
     }
 }
 
 #Preview {
-    InsightsView()
-        .modelContainer(for: NutritionEntry.self, inMemory: true)
+    NavigationStack {
+        InsightsView()
+            .modelContainer(for: NutritionEntry.self, inMemory: true)
+    }
 }

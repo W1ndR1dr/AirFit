@@ -25,7 +25,8 @@ struct ChatView: View {
     }
 
     var body: some View {
-        NavigationStack {
+        ZStack {
+            // Content
             VStack(spacing: 0) {
                 // Status banners
                 serverStatusBanner
@@ -35,59 +36,66 @@ struct ChatView: View {
                 // Messages
                 ScrollViewReader { proxy in
                     ScrollView {
-                        LazyVStack(alignment: .leading, spacing: 0) {
-                            ForEach(messages) { message in
-                                MessageView(message: message)
+                        LazyVStack(alignment: .leading, spacing: 32) {
+                            ForEach(Array(messages.enumerated()), id: \.element.id) { index, message in
+                                PremiumMessageView(message: message)
                                     .id(message.id)
+                                    .scrollReveal()
+                                    .transition(.breezeIn)
                             }
 
                             if isLoading {
-                                HStack(spacing: 12) {
-                                    ProgressView()
-                                    Text("Thinking...")
-                                        .font(.subheadline)
-                                        .foregroundColor(.secondary)
-                                    Spacer()
-                                }
-                                .padding()
+                                typingIndicator
+                                    .transition(.breezeIn)
                             }
                         }
+                        .padding(.horizontal, 20)
+                        .padding(.top, 16)
+                        .padding(.bottom, 100) // Space for input
                     }
+                    .scrollIndicators(.hidden)
                     .scrollDismissesKeyboard(.interactively)
                     .onTapGesture {
                         isInputFocused = false
                     }
                     .onChange(of: messages.count) {
                         if let lastMessage = messages.last {
-                            withAnimation {
+                            withAnimation(.airfit) {
                                 proxy.scrollTo(lastMessage.id, anchor: .bottom)
                             }
                         }
                     }
                 }
+            }
 
-                // Input area
+            // Floating input area
+            VStack {
+                Spacer()
                 inputArea
             }
-            .navigationTitle("AirFit")
-            .navigationBarTitleDisplayMode(.inline)
-            .toolbar {
-                ToolbarItem(placement: .topBarLeading) {
-                    Button {
-                        Task { await startNewChat() }
-                    } label: {
-                        Image(systemName: "square.and.pencil")
-                    }
-                    .disabled(messages.isEmpty)
+        }
+        .navigationTitle("Coach")
+        .navigationBarTitleDisplayMode(.inline)
+        .toolbar {
+            ToolbarItem(placement: .topBarLeading) {
+                Button {
+                    Task { await startNewChat() }
+                } label: {
+                    Image(systemName: "square.and.pencil")
+                        .foregroundStyle(Theme.accent)
                 }
-                ToolbarItem(placement: .topBarTrailing) {
-                    Button {
-                        Task { await refreshHealthData() }
-                    } label: {
-                        Image(systemName: "heart.circle")
-                            .foregroundColor(healthAuthorized ? .pink : .gray)
-                    }
+                .buttonStyle(AirFitSubtleButtonStyle())
+                .disabled(messages.isEmpty)
+                .sensoryFeedback(.impact(weight: .light), trigger: messages.isEmpty)
+            }
+            ToolbarItem(placement: .topBarTrailing) {
+                Button {
+                    Task { await refreshHealthData() }
+                } label: {
+                    Image(systemName: "heart.circle.fill")
+                        .foregroundStyle(healthAuthorized ? Theme.secondary : Theme.textMuted)
                 }
+                .buttonStyle(AirFitSubtleButtonStyle())
             }
         }
         .task {
@@ -95,9 +103,27 @@ struct ChatView: View {
         }
         .overlay {
             if isInitializing {
-                InitializingView()
+                PremiumInitializingView()
             }
         }
+    }
+
+    // MARK: - Typing Indicator
+
+    private var typingIndicator: some View {
+        HStack(spacing: 12) {
+            BreathingDot()
+
+            HStack(spacing: 8) {
+                StreamingWave()
+                Text("Thinking")
+                    .font(.labelMedium)
+                    .foregroundStyle(Theme.textMuted)
+            }
+
+            Spacer()
+        }
+        .padding(.vertical, 16)
     }
 
     // MARK: - Health Context Banner
@@ -106,23 +132,51 @@ struct ChatView: View {
         Group {
             if let context = healthContext {
                 ScrollView(.horizontal, showsIndicators: false) {
-                    HStack(spacing: 12) {
-                        HealthPill(icon: "figure.walk", value: "\(context.steps)", label: "steps")
-                        HealthPill(icon: "flame", value: "\(context.activeCalories)", label: "cal")
+                    HStack(spacing: 8) {
+                        StatPill(
+                            icon: "figure.walk",
+                            value: "\(context.steps)",
+                            label: "steps",
+                            color: Theme.tertiary
+                        )
+
+                        StatPill(
+                            icon: "flame.fill",
+                            value: "\(context.activeCalories)",
+                            label: "cal",
+                            color: Theme.calories
+                        )
+
                         if let sleep = context.sleepHours {
-                            HealthPill(icon: "moon.fill", value: String(format: "%.1f", sleep), label: "hrs")
+                            StatPill(
+                                icon: "moon.fill",
+                                value: String(format: "%.1f", sleep),
+                                label: "hrs",
+                                color: Color.indigo
+                            )
                         }
+
                         if let hr = context.restingHeartRate {
-                            HealthPill(icon: "heart.fill", value: "\(hr)", label: "bpm")
+                            StatPill(
+                                icon: "heart.fill",
+                                value: "\(hr)",
+                                label: "bpm",
+                                color: Theme.secondary
+                            )
                         }
+
                         if !context.recentWorkouts.isEmpty {
-                            HealthPill(icon: "dumbbell.fill", value: "\(context.recentWorkouts.count)", label: "workouts")
+                            StatPill(
+                                icon: "dumbbell.fill",
+                                value: "\(context.recentWorkouts.count)",
+                                label: "workouts",
+                                color: Theme.accent
+                            )
                         }
                     }
-                    .padding(.horizontal)
-                    .padding(.vertical, 8)
+                    .padding(.horizontal, 20)
+                    .padding(.vertical, 12)
                 }
-                .background(Color(.systemGray6))
             }
         }
     }
@@ -131,31 +185,38 @@ struct ChatView: View {
         Group {
             switch serverStatus {
             case .checking:
-                HStack {
+                HStack(spacing: 8) {
                     ProgressView()
                         .scaleEffect(0.8)
-                    Text("Connecting...")
-                        .font(.caption)
+                        .tint(Theme.accent)
+                    Text("Connecting")
+                        .font(.labelMedium)
+                        .foregroundStyle(Theme.textSecondary)
                 }
                 .frame(maxWidth: .infinity)
-                .padding(.vertical, 8)
-                .background(Color.orange.opacity(0.2))
+                .padding(.vertical, 10)
+                .background(.ultraThinMaterial)
 
             case .disconnected:
-                HStack {
-                    Image(systemName: "exclamationmark.triangle.fill")
-                        .foregroundColor(.red)
+                HStack(spacing: 12) {
+                    Image(systemName: "wifi.slash")
+                        .foregroundStyle(Theme.error)
                     Text("Server offline")
-                        .font(.caption)
-                    Button("Retry") {
+                        .font(.labelMedium)
+                        .foregroundStyle(Theme.textSecondary)
+                    Spacer()
+                    Button {
                         Task { await checkServer() }
+                    } label: {
+                        Text("Retry")
+                            .font(.labelMedium)
+                            .foregroundStyle(Theme.accent)
                     }
-                    .font(.caption)
-                    .buttonStyle(.bordered)
+                    .buttonStyle(AirFitSubtleButtonStyle())
                 }
-                .frame(maxWidth: .infinity)
-                .padding(.vertical, 8)
-                .background(Color.red.opacity(0.2))
+                .padding(.horizontal, 20)
+                .padding(.vertical, 10)
+                .background(Theme.error.opacity(0.1))
 
             case .connected:
                 EmptyView()
@@ -168,32 +229,38 @@ struct ChatView: View {
             if isOnboarding {
                 HStack(spacing: 12) {
                     Image(systemName: "person.badge.plus")
-                        .foregroundColor(.blue)
+                        .foregroundStyle(Theme.accent)
+
                     Text("Getting to know you...")
-                        .font(.subheadline.weight(.medium))
+                        .font(.labelLarge)
+                        .foregroundStyle(Theme.textPrimary)
+
                     Spacer()
+
                     Button {
                         Task { await finalizeOnboarding() }
                     } label: {
-                        HStack(spacing: 4) {
+                        HStack(spacing: 6) {
                             if isFinalizingOnboarding {
                                 ProgressView()
                                     .scaleEffect(0.7)
+                                    .tint(.white)
                             }
-                            Text(isFinalizingOnboarding ? "Creating..." : "Done")
+                            Text(isFinalizingOnboarding ? "Creating" : "Done")
+                                .font(.labelLarge)
                         }
-                        .font(.subheadline.weight(.semibold))
-                        .padding(.horizontal, 12)
-                        .padding(.vertical, 6)
-                        .background(Color.blue)
-                        .foregroundColor(.white)
+                        .foregroundStyle(.white)
+                        .padding(.horizontal, 16)
+                        .padding(.vertical, 8)
+                        .background(Theme.accentGradient)
                         .clipShape(Capsule())
                     }
+                    .buttonStyle(AirFitButtonStyle())
                     .disabled(isFinalizingOnboarding)
                 }
-                .padding(.horizontal)
-                .padding(.vertical, 10)
-                .background(Color.blue.opacity(0.1))
+                .padding(.horizontal, 20)
+                .padding(.vertical, 12)
+                .background(Theme.accent.opacity(0.08))
             }
         }
     }
@@ -203,13 +270,15 @@ struct ChatView: View {
             VoiceMicButton(text: $inputText)
 
             TextField("Message", text: $inputText)
+                .font(.bodyMedium)
                 .textFieldStyle(.plain)
                 .autocorrectionDisabled()
                 .textContentType(.none)
                 .textInputAutocapitalization(.sentences)
-                .padding(12)
-                .background(Color(.systemGray6))
-                .clipShape(RoundedRectangle(cornerRadius: 20))
+                .padding(.horizontal, 16)
+                .padding(.vertical, 12)
+                .background(.ultraThinMaterial)
+                .clipShape(RoundedRectangle(cornerRadius: 24, style: .continuous))
                 .focused($isInputFocused)
                 .submitLabel(.send)
                 .onSubmit {
@@ -220,13 +289,21 @@ struct ChatView: View {
                 Task { await sendMessage() }
             } label: {
                 Image(systemName: "arrow.up.circle.fill")
-                    .font(.system(size: 32))
-                    .foregroundColor(canSend ? .blue : .gray)
+                    .font(.system(size: 36))
+                    .foregroundStyle(canSend ? Theme.accentGradient : LinearGradient(colors: [Theme.textMuted], startPoint: .top, endPoint: .bottom))
+                    .symbolEffect(.bounce, value: canSend)
             }
+            .buttonStyle(AirFitButtonStyle())
             .disabled(!canSend)
+            .sensoryFeedback(.impact(weight: .medium), trigger: canSend)
         }
-        .padding()
-        .background(Color(.systemBackground))
+        .padding(.horizontal, 20)
+        .padding(.vertical, 16)
+        .background(
+            Rectangle()
+                .fill(.ultraThinMaterial)
+                .ignoresSafeArea()
+        )
     }
 
     private var canSend: Bool {
@@ -261,7 +338,7 @@ struct ChatView: View {
         await refreshNutritionContext()
 
         // Done initializing
-        withAnimation {
+        withAnimation(.airfit) {
             isInitializing = false
         }
     }
@@ -269,7 +346,7 @@ struct ChatView: View {
     private func checkOnboardingStatus() async {
         do {
             let profile = try await apiClient.getProfile()
-            withAnimation {
+            withAnimation(.airfit) {
                 isOnboarding = profile.needsOnboarding
             }
         } catch {
@@ -377,7 +454,9 @@ struct ChatView: View {
 
         // Add user message
         let userMessage = Message(content: text, isUser: true)
-        messages.append(userMessage)
+        withAnimation(.airfit) {
+            messages.append(userMessage)
+        }
         inputText = ""
 
         // Refresh nutrition context in background before sending
@@ -393,13 +472,17 @@ struct ChatView: View {
                 nutritionContext: cachedNutritionContext
             )
             let aiMessage = Message(content: response, isUser: false)
-            messages.append(aiMessage)
+            withAnimation(.airfit) {
+                messages.append(aiMessage)
+            }
         } catch {
             let errorMessage = Message(
                 content: "Error: \(error.localizedDescription)",
                 isUser: false
             )
-            messages.append(errorMessage)
+            withAnimation(.airfit) {
+                messages.append(errorMessage)
+            }
         }
         isLoading = false
     }
@@ -410,7 +493,7 @@ struct ChatView: View {
         do {
             let result = try await apiClient.finalizeOnboarding()
             if result.status == "onboarding_complete" {
-                withAnimation {
+                withAnimation(.airfit) {
                     isOnboarding = false
                 }
                 // Clear chat to start fresh with new personality
@@ -420,7 +503,9 @@ struct ChatView: View {
                     content: "Profile created! I now know you better. Let's get to work.",
                     isUser: false
                 )
-                messages.append(welcomeMessage)
+                withAnimation(.airfit) {
+                    messages.append(welcomeMessage)
+                }
             }
         } catch {
             // Show error in chat
@@ -428,7 +513,9 @@ struct ChatView: View {
                 content: "Couldn't complete setup: \(error.localizedDescription). Try again?",
                 isUser: false
             )
-            messages.append(errorMessage)
+            withAnimation(.airfit) {
+                messages.append(errorMessage)
+            }
         }
 
         isFinalizingOnboarding = false
@@ -439,71 +526,62 @@ struct ChatView: View {
         try? await apiClient.clearChatSession()
 
         // Clear local messages with animation
-        withAnimation {
+        withAnimation(.airfit) {
             messages = []
         }
     }
 }
 
-// MARK: - Health Pill Component
+// MARK: - Premium Message View
 
-struct HealthPill: View {
-    let icon: String
-    let value: String
-    let label: String
-
-    var body: some View {
-        HStack(spacing: 4) {
-            Image(systemName: icon)
-                .font(.caption2)
-                .foregroundColor(.secondary)
-            Text(value)
-                .font(.caption.bold())
-            Text(label)
-                .font(.caption2)
-                .foregroundColor(.secondary)
-        }
-        .padding(.horizontal, 10)
-        .padding(.vertical, 6)
-        .background(Color(.systemBackground))
-        .clipShape(Capsule())
-    }
-}
-
-// MARK: - Message View (Rich Markdown)
-
-struct MessageView: View {
+struct PremiumMessageView: View {
     let message: Message
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 8) {
+        VStack(alignment: .leading, spacing: 12) {
             // Header with role indicator
-            HStack(spacing: 6) {
-                Image(systemName: message.isUser ? "person.fill" : "figure.strengthtraining.traditional")
-                    .font(.caption)
-                    .foregroundColor(message.isUser ? .blue : .orange)
-                Text(message.isUser ? "You" : "Coach")
-                    .font(.caption.weight(.semibold))
-                    .foregroundColor(.secondary)
+            HStack(spacing: 8) {
+                if message.isUser {
+                    Image(systemName: "person.fill")
+                        .font(.caption)
+                        .foregroundStyle(Theme.accent)
+                    Text("You")
+                        .font(.labelMedium)
+                        .tracking(0.5)
+                        .foregroundStyle(Theme.textMuted)
+                } else {
+                    BreathingDot()
+                    Text("Coach")
+                        .font(.labelMedium)
+                        .tracking(0.5)
+                        .foregroundStyle(Theme.textMuted)
+                }
                 Spacer()
             }
 
             // Rich markdown content
             if message.isUser {
                 Text(message.content)
-                    .font(.body)
+                    .font(.bodyLarge)
+                    .foregroundStyle(Theme.textPrimary)
             } else {
                 MarkdownText(message.content)
             }
         }
-        .padding(.vertical, 12)
-        .padding(.horizontal, 16)
-        .background(message.isUser ? Color.blue.opacity(0.08) : Color(.systemBackground))
+        .padding(20)
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .background(
+            RoundedRectangle(cornerRadius: 20, style: .continuous)
+                .fill(message.isUser ? Theme.accent.opacity(0.08) : Theme.surface)
+                .shadow(color: .black.opacity(0.03), radius: 8, x: 0, y: 2)
+                .shadow(color: .black.opacity(0.02), radius: 16, x: 0, y: 4)
+        )
         .overlay(
-            Rectangle()
-                .fill(message.isUser ? Color.blue : Color.orange)
-                .frame(width: 3),
-            alignment: .leading
+            RoundedRectangle(cornerRadius: 20, style: .continuous)
+                .stroke(
+                    message.isUser ? Theme.accent.opacity(0.15) : Color.clear,
+                    lineWidth: 1
+                )
         )
     }
 }
@@ -518,7 +596,7 @@ struct MarkdownText: View {
     }
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 12) {
+        VStack(alignment: .leading, spacing: 16) {
             ForEach(parseBlocks(), id: \.id) { block in
                 blockView(for: block)
             }
@@ -530,51 +608,57 @@ struct MarkdownText: View {
             switch block.type {
             case .heading1:
                 Text(block.content)
-                    .font(.title2.bold())
-                    .foregroundColor(.primary)
+                    .font(.titleLarge)
+                    .foregroundStyle(Theme.textPrimary)
             case .heading2:
                 Text(block.content)
-                    .font(.title3.bold())
-                    .foregroundColor(.primary)
+                    .font(.titleMedium)
+                    .foregroundStyle(Theme.textPrimary)
             case .heading3:
                 Text(block.content)
-                    .font(.headline)
-                    .foregroundColor(.primary)
+                    .font(.headlineMedium)
+                    .foregroundStyle(Theme.textPrimary)
             case .bulletList:
-                VStack(alignment: .leading, spacing: 6) {
+                VStack(alignment: .leading, spacing: 8) {
                     ForEach(block.items, id: \.self) { item in
-                        HStack(alignment: .top, spacing: 8) {
-                            Text("•")
-                                .foregroundColor(.orange)
-                                .fontWeight(.bold)
+                        HStack(alignment: .top, spacing: 10) {
+                            Circle()
+                                .fill(Theme.accent)
+                                .frame(width: 6, height: 6)
+                                .offset(y: 7)
                             Text(parseInlineMarkdown(item))
-                                .font(.body)
+                                .font(.bodyMedium)
+                                .foregroundStyle(Theme.textPrimary)
                         }
                     }
                 }
             case .numberedList:
-                VStack(alignment: .leading, spacing: 6) {
+                VStack(alignment: .leading, spacing: 8) {
                     ForEach(Array(block.items.enumerated()), id: \.offset) { index, item in
-                        HStack(alignment: .top, spacing: 8) {
+                        HStack(alignment: .top, spacing: 10) {
                             Text("\(index + 1).")
-                                .foregroundColor(.orange)
-                                .fontWeight(.semibold)
-                                .frame(width: 20, alignment: .trailing)
+                                .font(.labelLarge)
+                                .foregroundStyle(Theme.accent)
+                                .frame(width: 24, alignment: .trailing)
                             Text(parseInlineMarkdown(item))
-                                .font(.body)
+                                .font(.bodyMedium)
+                                .foregroundStyle(Theme.textPrimary)
                         }
                     }
                 }
             case .codeBlock:
                 Text(block.content)
                     .font(.system(.callout, design: .monospaced))
-                    .padding(12)
+                    .foregroundStyle(Theme.textPrimary)
+                    .padding(16)
                     .frame(maxWidth: .infinity, alignment: .leading)
-                    .background(Color(.systemGray6))
-                    .clipShape(RoundedRectangle(cornerRadius: 8))
+                    .background(Theme.surface)
+                    .clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
             case .paragraph:
                 Text(parseInlineMarkdown(block.content))
-                    .font(.body)
+                    .font(.bodyMedium)
+                    .foregroundStyle(Theme.textPrimary)
+                    .lineSpacing(4)
             }
         }
     }
@@ -680,26 +764,54 @@ private enum MarkdownBlockType {
     case codeBlock, paragraph
 }
 
-// MARK: - Initializing View
+// MARK: - Premium Initializing View
 
-struct InitializingView: View {
+struct PremiumInitializingView: View {
+    @State private var opacity: Double = 0.4
+    @State private var scale: CGFloat = 0.95
+
     var body: some View {
         ZStack {
-            Color(.systemBackground)
+            Theme.background
                 .ignoresSafeArea()
 
-            VStack(spacing: 20) {
-                ProgressView()
-                    .scaleEffect(1.5)
+            VStack(spacing: 24) {
+                // Animated logo/icon
+                ZStack {
+                    Circle()
+                        .fill(Theme.accentGradient)
+                        .frame(width: 80, height: 80)
+                        .blur(radius: 20)
+                        .opacity(opacity)
+                        .scaleEffect(scale)
 
-                Text("Loading...")
-                    .font(.headline)
-                    .foregroundColor(.secondary)
+                    Image(systemName: "figure.run")
+                        .font(.system(size: 36, weight: .medium))
+                        .foregroundStyle(Theme.accent)
+                }
+
+                VStack(spacing: 8) {
+                    Text("AirFit")
+                        .font(.titleLarge)
+                        .foregroundStyle(Theme.textPrimary)
+
+                    Text("Preparing your coach")
+                        .font(.labelMedium)
+                        .foregroundStyle(Theme.textMuted)
+                }
+            }
+        }
+        .onAppear {
+            withAnimation(.easeInOut(duration: 1.5).repeatForever(autoreverses: true)) {
+                opacity = 0.8
+                scale = 1.05
             }
         }
     }
 }
 
 #Preview {
-    ChatView()
+    NavigationStack {
+        ChatView()
+    }
 }
