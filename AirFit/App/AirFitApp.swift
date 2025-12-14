@@ -6,6 +6,22 @@ import UserNotifications
 struct AirFitApp: App {
     @UIApplicationDelegateAdaptor(AppDelegate.self) private var appDelegate
 
+    init() {
+        // Make TabView and NavigationBar transparent
+        let tabBarAppearance = UITabBarAppearance()
+        tabBarAppearance.configureWithTransparentBackground()
+        tabBarAppearance.backgroundColor = .clear
+        UITabBar.appearance().standardAppearance = tabBarAppearance
+        UITabBar.appearance().scrollEdgeAppearance = tabBarAppearance
+
+        let navBarAppearance = UINavigationBarAppearance()
+        navBarAppearance.configureWithTransparentBackground()
+        navBarAppearance.backgroundColor = .clear
+        UINavigationBar.appearance().standardAppearance = navBarAppearance
+        UINavigationBar.appearance().scrollEdgeAppearance = navBarAppearance
+        UINavigationBar.appearance().compactAppearance = navBarAppearance
+    }
+
     var body: some Scene {
         WindowGroup {
             ContentView()
@@ -81,6 +97,7 @@ extension Notification.Name {
 struct ContentView: View {
     @Environment(\.modelContext) private var modelContext
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
+    @Environment(\.scenePhase) private var scenePhase
     @State private var selectedTab = 0
 
     var body: some View {
@@ -94,48 +111,60 @@ struct ContentView: View {
                     .ignoresSafeArea()
             }
 
-            // Main tab content
+            // Main tab content - transparent to show ethereal background
+            // Tab order: Dashboard(0), Nutrition(1), Coach(2-center), Insights(3), Profile(4)
             TabView(selection: $selectedTab) {
                 NavigationStack {
-                    ChatView()
+                    DashboardView()
+                        .background(.clear)
                 }
+                .background(.clear)
                 .tabItem {
-                    Label("Coach", systemImage: "message.fill")
+                    Label("Dashboard", systemImage: "square.grid.2x2")
                 }
                 .tag(0)
 
                 NavigationStack {
                     NutritionView()
+                        .background(.clear)
                 }
+                .background(.clear)
                 .tabItem {
                     Label("Nutrition", systemImage: "fork.knife")
                 }
                 .tag(1)
 
                 NavigationStack {
-                    InsightsView()
+                    ChatView()
+                        .background(.clear)
                 }
+                .background(.clear)
                 .tabItem {
-                    Label("Insights", systemImage: "sparkles")
+                    Label("Coach", systemImage: "bubble.left.and.bubble.right.fill")
                 }
                 .tag(2)
 
                 NavigationStack {
-                    ProfileView()
+                    InsightsView()
+                        .background(.clear)
                 }
+                .background(.clear)
                 .tabItem {
-                    Label("Profile", systemImage: "brain.head.profile")
+                    Label("Insights", systemImage: "sparkles")
                 }
                 .tag(3)
 
                 NavigationStack {
-                    SettingsView()
+                    ProfileView()
+                        .background(.clear)
                 }
+                .background(.clear)
                 .tabItem {
-                    Label("Settings", systemImage: "gear")
+                    Label("Profile", systemImage: "person.circle")
                 }
                 .tag(4)
             }
+            .background(.clear)
             .tint(Theme.accent)
         }
         .animation(.airfitMorph, value: selectedTab)
@@ -146,6 +175,14 @@ struct ContentView: View {
         .onReceive(NotificationCenter.default.publisher(for: .openNutritionTab)) { _ in
             withAnimation(.airfit) {
                 selectedTab = 1
+            }
+        }
+        .onChange(of: scenePhase) { _, newPhase in
+            if newPhase == .active {
+                // Sync when app comes to foreground (catches post-workout sync)
+                Task {
+                    await AutoSyncManager.shared.performLaunchSync(modelContext: modelContext)
+                }
             }
         }
     }

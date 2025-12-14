@@ -26,6 +26,10 @@ struct ChatView: View {
 
     var body: some View {
         ZStack {
+            // Ethereal background
+            EtherealBackground(currentTab: 2)
+                .ignoresSafeArea()
+
             // Content
             VStack(spacing: 0) {
                 // Status banners
@@ -53,7 +57,9 @@ struct ChatView: View {
                         .padding(.top, 16)
                         .padding(.bottom, 100) // Space for input
                     }
+                    .background(Color.clear)
                     .scrollIndicators(.hidden)
+                    .scrollContentBackground(.hidden)
                     .scrollDismissesKeyboard(.interactively)
                     .onTapGesture {
                         isInputFocused = false
@@ -76,6 +82,7 @@ struct ChatView: View {
         }
         .navigationTitle("Coach")
         .navigationBarTitleDisplayMode(.inline)
+        .toolbarBackground(.hidden, for: .navigationBar)
         .toolbar {
             ToolbarItem(placement: .topBarLeading) {
                 Button {
@@ -112,14 +119,11 @@ struct ChatView: View {
 
     private var typingIndicator: some View {
         HStack(spacing: 12) {
-            BreathingDot()
+            StreamingWave()
 
-            HStack(spacing: 8) {
-                StreamingWave()
-                Text("Thinking")
-                    .font(.labelMedium)
-                    .foregroundStyle(Theme.textMuted)
-            }
+            Text("Thinking")
+                .font(.labelMedium)
+                .foregroundStyle(Theme.textMuted)
 
             Spacer()
         }
@@ -772,7 +776,8 @@ struct PremiumInitializingView: View {
 
     var body: some View {
         ZStack {
-            Theme.background
+            // Transparent - let ethereal background show through
+            Color.clear
                 .ignoresSafeArea()
 
             VStack(spacing: 24) {

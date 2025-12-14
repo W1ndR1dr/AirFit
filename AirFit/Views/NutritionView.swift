@@ -161,6 +161,10 @@ struct NutritionView: View {
 
     var body: some View {
         ZStack {
+            // Ethereal background
+            EtherealBackground(currentTab: 3)
+                .ignoresSafeArea()
+
             ScrollView {
                 VStack(spacing: 0) {
                     // Scroll offset tracker
@@ -204,6 +208,8 @@ struct NutritionView: View {
             }
             .coordinateSpace(name: "scroll")
             .scrollIndicators(.hidden)
+            .scrollContentBackground(.hidden)
+            .background(Color.clear)
             .onPreferenceChange(ScrollOffsetPreferenceKey.self) { offset in
                 scrollOffset = offset
             }
@@ -218,6 +224,7 @@ struct NutritionView: View {
         }
         .navigationTitle("Nutrition")
         .navigationBarTitleDisplayMode(.inline)
+        .toolbarBackground(.hidden, for: .navigationBar)
         .toolbar {
             if !isToday || viewMode != .day {
                 ToolbarItem(placement: .topBarTrailing) {
@@ -893,11 +900,10 @@ struct PremiumNutritionEntryRow: View {
                     Text("\(entry.calories)")
                         .font(.metricSmall)
                         .foregroundStyle(Theme.calories)
-                    if !entry.components.isEmpty {
-                        Image(systemName: isExpanded ? "chevron.up" : "chevron.down")
-                            .font(.caption)
-                            .foregroundStyle(Theme.textMuted)
-                    }
+                    // Always show caret so users can access edit/delete
+                    Image(systemName: isExpanded ? "chevron.up" : "chevron.down")
+                        .font(.caption)
+                        .foregroundStyle(Theme.textMuted)
                 }
 
                 HStack(spacing: 10) {
@@ -915,31 +921,34 @@ struct PremiumNutritionEntryRow: View {
             .contentShape(Rectangle())
             .onTapGesture { onTap() }
 
-            // Expanded components
-            if isExpanded && !entry.components.isEmpty {
+            // Expanded section - always show actions, optionally show components
+            if isExpanded {
                 VStack(alignment: .leading, spacing: 6) {
-                    ForEach(entry.components) { component in
-                        HStack {
-                            Text(component.name)
-                                .font(.labelMedium)
-                                .foregroundStyle(Theme.textSecondary)
-                            Spacer()
-                            Text("\(component.calories)")
-                                .font(.labelMedium)
-                                .monospacedDigit()
-                            HStack(spacing: 4) {
-                                Text("P\(component.protein)")
-                                    .foregroundStyle(Theme.protein)
-                                Text("C\(component.carbs)")
-                                    .foregroundStyle(Theme.carbs)
-                                Text("F\(component.fat)")
-                                    .foregroundStyle(Theme.fat)
+                    // Show components if available
+                    if !entry.components.isEmpty {
+                        ForEach(entry.components) { component in
+                            HStack {
+                                Text(component.name)
+                                    .font(.labelMedium)
+                                    .foregroundStyle(Theme.textSecondary)
+                                Spacer()
+                                Text("\(component.calories)")
+                                    .font(.labelMedium)
+                                    .monospacedDigit()
+                                HStack(spacing: 4) {
+                                    Text("P\(component.protein)")
+                                        .foregroundStyle(Theme.protein)
+                                    Text("C\(component.carbs)")
+                                        .foregroundStyle(Theme.carbs)
+                                    Text("F\(component.fat)")
+                                        .foregroundStyle(Theme.fat)
+                                }
+                                .font(.labelMicro)
                             }
-                            .font(.labelMicro)
                         }
                     }
 
-                    // Action buttons
+                    // Action buttons - always show when expanded
                     HStack(spacing: 12) {
                         Button {
                             onEdit()
@@ -961,7 +970,7 @@ struct PremiumNutritionEntryRow: View {
 
                         Spacer()
                     }
-                    .padding(.top, 8)
+                    .padding(.top, entry.components.isEmpty ? 0 : 8)
                 }
                 .padding(.top, 8)
                 .padding(.leading, 8)

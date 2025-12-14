@@ -472,6 +472,48 @@ actor APIClient {
         }
     }
 
+    // MARK: - Insight Discussion (Tell Me More)
+
+    struct InsightDiscussRequest: Encodable {
+        let message: String
+    }
+
+    struct InsightDiscussResponse: Decodable {
+        let response: String
+        let provider: String
+        let success: Bool
+        let insight_title: String
+        let error: String?
+    }
+
+    /// Discuss a specific insight with full context (for "Tell me more" feature)
+    func discussInsight(id: String, message: String) async throws -> String {
+        let url = baseURL.appendingPathComponent("insights/\(id)/discuss")
+
+        var request = URLRequest(url: url)
+        request.httpMethod = "POST"
+        request.setValue("application/json", forHTTPHeaderField: "Content-Type")
+        request.timeoutInterval = 60  // Give AI time to respond with context
+
+        let body = InsightDiscussRequest(message: message)
+        request.httpBody = try JSONEncoder().encode(body)
+
+        let (data, response) = try await URLSession.shared.data(for: request)
+
+        guard let httpResponse = response as? HTTPURLResponse,
+              httpResponse.statusCode == 200 else {
+            throw APIError.serverError
+        }
+
+        let result = try JSONDecoder().decode(InsightDiscussResponse.self, from: data)
+
+        if !result.success {
+            throw APIError.llmError(result.error ?? "Failed to discuss insight")
+        }
+
+        return result.response
+    }
+
     // MARK: - Insight Generation
 
     struct GenerateInsightsRequest: Encodable {
@@ -541,6 +583,147 @@ actor APIClient {
 
     func clearSession() async throws {
         try await clearChatSession()
+    }
+
+    // MARK: - Training Tab (Hevy Data)
+
+    struct MuscleGroupData: Decodable {
+        let current: Int
+        let min: Int
+        let max: Int
+        let status: String  // in_zone, below, at_floor, above
+    }
+
+    struct SetTrackerResponse: Decodable {
+        let window_days: Int
+        let muscle_groups: [String: MuscleGroupData]
+        let last_sync: String?
+    }
+
+    struct PRData: Decodable {
+        let weight_lbs: Double
+        let reps: Int
+        let date: String
+    }
+
+    struct HistoryPoint: Decodable {
+        let date: String
+        let weight_lbs: Double
+    }
+
+    struct LiftData: Decodable, Identifiable {
+        let name: String
+        let workout_count: Int
+        let current_pr: PRData
+        let history: [HistoryPoint]
+
+        var id: String { name }
+    }
+
+    struct LiftProgressResponse: Decodable {
+        let lifts: [LiftData]
+    }
+
+    struct WorkoutSummary: Decodable, Identifiable {
+        let id: String
+        let title: String
+        let date: String
+        let days_ago: Int
+        let duration_minutes: Int
+        let exercises: [String]
+        let total_volume_lbs: Double
+    }
+
+    struct RecentWorkoutsResponse: Decodable {
+        let workouts: [WorkoutSummary]
+    }
+
+    /// Get rolling 7-day set counts by muscle group
+    func getSetTracker(days: Int = 7) async throws -> SetTrackerResponse {
+        var components = URLComponents(url: baseURL.appendingPathComponent("hevy/set-tracker"), resolvingAgainstBaseURL: false)!
+        components.queryItems = [URLQueryItem(name: "days", value: String(days))]
+
+        let (data, response) = try await URLSession.shared.data(from: components.url!)
+
+        guard let httpResponse = response as? HTTPURLResponse,
+              httpResponse.statusCode == 200 else {
+            throw APIError.serverError
+        }
+
+        return try JSONDecoder().decode(SetTrackerResponse.self, from: data)
+    }
+
+    /// Get all-time PR progress for top lifts
+    func getLiftProgress(topN: Int = 6) async throws -> LiftProgressResponse {
+        var components = URLComponents(url: baseURL.appendingPathComponent("hevy/lift-progress"), resolvingAgainstBaseURL: false)!
+        components.queryItems = [URLQueryItem(name: "top_n", value: String(topN))]
+
+        let (data, response) = try await URLSession.shared.data(from: components.url!)
+
+        guard let httpResponse = response as? HTTPURLResponse,
+              httpResponse.statusCode == 200 else {
+            throw APIError.serverError
+        }
+
+        return try JSONDecoder().decode(LiftProgressResponse.self, from: data)
+    }
+
+    /// Get recent workout summaries
+    func getRecentWorkouts(limit: Int = 7) async throws -> [WorkoutSummary] {
+        var components = URLComponents(url: baseURL.appendingPathComponent("hevy/recent-workouts"), resolvingAgainstBaseURL: false)!
+        components.queryItems = [URLQueryItem(name: "limit", value: String(limit))]
+
+        let (data, response) = try await URLSession.shared.data(from: components.url!)
+
+        guard let httpResponse = response as? HTTPURLResponse,
+              httpResponse.statusCode == 200 else {
+            throw APIError.serverError
+        }
+
+        let result = try JSONDecoder().decode(RecentWorkoutsResponse.self, from: data)
+        return result.workouts
+    }
+
+    // MARK: - Body Metrics
+
+    struct MetricPoint: Decodable {
+        let date: String
+        let value: Double
+    }
+
+    struct CurrentBodyMetrics: Decodable {
+        let weight_lbs: Double?
+        let body_fat_pct: Double?
+        let lean_mass_lbs: Double?
+    }
+
+    struct BodyTrends: Decodable {
+        let weight_change_30d: Double?
+        let body_fat_change_30d: Double?
+        let lean_mass_change_30d: Double?
+    }
+
+    struct BodyMetricsResponse: Decodable {
+        let current: CurrentBodyMetrics
+        let weight_history: [MetricPoint]
+        let body_fat_history: [MetricPoint]
+        let lean_mass_history: [MetricPoint]
+        let trends: BodyTrends
+    }
+
+    /// Get body composition history for charts
+    func getBodyMetrics(days: Int = 90) async throws -> BodyMetricsResponse {
+        var components = URLComponents(url: baseURL.appendingPathComponent("health/body-metrics"), resolvingAgainstBaseURL: false)!
+        components.queryItems = [URLQueryItem(name: "days", value: String(days))]
+
+        let (data, response) = try await URLSession.shared.data(from: components.url!)
+
+        guard let httpResponse = response as? HTTPURLResponse,
+              httpResponse.statusCode == 200 else {
+            throw APIError.serverError
+        }
+
+        return try JSONDecoder().decode(BodyMetricsResponse.self, from: data)
     }
 }
 

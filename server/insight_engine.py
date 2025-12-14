@@ -18,7 +18,8 @@ from typing import Optional
 import llm_router
 from context_store import (
     load_store, get_recent_snapshots, DailySnapshot,
-    Insight, add_insight, get_insights as get_stored_insights
+    Insight, add_insight, get_insights as get_stored_insights,
+    get_insight_by_id, get_recent_insight_titles
 )
 
 
@@ -128,6 +129,8 @@ Be specific and data-driven. Reference actual numbers from the data. Don't be ge
 
 Focus on insights the user wouldn't easily notice themselves - especially cross-domain correlations (e.g., how sleep affects training, how protein timing correlates with weight changes, etc.)
 
+IMPORTANT: Generate FRESH insights only. Do NOT repeat or rephrase insights you've already given.
+
 Respond in JSON format with an array of insights:
 ```json
 {
@@ -164,6 +167,29 @@ Tiers (1=highest priority):
 Generate 3-7 insights based on what's actually interesting in the data. Quality over quantity - only surface genuinely valuable observations."""
 
 
+def is_similar_title(new_title: str, existing_titles: list[str], threshold: float = 0.6) -> bool:
+    """Check if a new insight title is too similar to existing ones.
+
+    Uses simple word overlap ratio for fast comparison.
+    """
+    new_words = set(new_title.lower().split())
+
+    for existing in existing_titles:
+        existing_words = set(existing.lower().split())
+        if not new_words or not existing_words:
+            continue
+
+        # Jaccard similarity: intersection / union
+        intersection = len(new_words & existing_words)
+        union = len(new_words | existing_words)
+        similarity = intersection / union if union > 0 else 0
+
+        if similarity >= threshold:
+            return True
+
+    return False
+
+
 async def generate_insights(
     days: int = 90,
     profile: Optional[dict] = None,
@@ -186,12 +212,24 @@ async def generate_insights(
     # Format data compactly
     data_text = format_all_data_compact(snapshots, profile)
 
+    # Get recent insight titles for deduplication
+    recent_titles = get_recent_insight_titles(limit=20)
+    dedup_instruction = ""
+    if recent_titles:
+        titles_list = "\n".join(f"- {t}" for t in recent_titles[:10])  # Limit to save tokens
+        dedup_instruction = f"""
+
+ALREADY GIVEN (do NOT repeat or rephrase these):
+{titles_list}
+"""
+
     # Log token estimate
     token_estimate = count_tokens_estimate(data_text)
     print(f"[InsightEngine] Data formatted: {len(snapshots)} days, ~{token_estimate} tokens")
+    print(f"[InsightEngine] Deduplicating against {len(recent_titles)} existing insights")
 
     # Build the prompt
-    full_prompt = f"""{INSIGHT_PROMPT}
+    full_prompt = f"""{INSIGHT_PROMPT}{dedup_instruction}
 
 Here is the complete data:
 
@@ -224,15 +262,24 @@ Analyze this data and return your insights as JSON."""
         result = json.loads(json_str)
         insights_data = result.get("insights", [])
 
-        # Convert to Insight objects and store
+        # Convert to Insight objects and store (with dedup check)
         insights = []
+        skipped = 0
         for data in insights_data:
+            title = data.get("title", "Insight")
+
+            # Skip if too similar to existing insight
+            if is_similar_title(title, recent_titles):
+                print(f"[InsightEngine] Skipping duplicate: '{title}'")
+                skipped += 1
+                continue
+
             insight = Insight(
                 id=str(uuid.uuid4()),
                 created_at=datetime.now().isoformat(),
                 category=data.get("category", "nudge"),
                 tier=data.get("tier", 3),
-                title=data.get("title", "Insight"),
+                title=title,
                 body=data.get("body", ""),
                 supporting_data=data.get("supporting_data", {}),
                 importance=data.get("importance", 0.5),
@@ -245,7 +292,10 @@ Analyze this data and return your insights as JSON."""
             insights.append(insight)
             add_insight(insight)
 
-        print(f"[InsightEngine] Generated {len(insights)} insights via {response.provider}")
+            # Add to recent titles for checking subsequent insights in this batch
+            recent_titles.append(title)
+
+        print(f"[InsightEngine] Generated {len(insights)} insights, skipped {skipped} duplicates via {response.provider}")
         return insights
 
     except json.JSONDecodeError as e:

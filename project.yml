@@ -23,11 +23,7 @@ targets:
       - path: AirFit/Models
       - path: AirFit/Views
       - path: AirFit/Services
-
-    resources:
       - path: AirFit/Assets.xcassets
-      - path: AirFit/Info.plist
-        optional: true
 
     settings:
       PRODUCT_BUNDLE_IDENTIFIER: com.airfit.app

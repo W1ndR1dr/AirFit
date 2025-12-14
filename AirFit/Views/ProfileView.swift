@@ -4,25 +4,37 @@ struct ProfileView: View {
     @State private var profile: APIClient.ProfileResponse?
     @State private var isLoading = true
     @State private var showClearConfirm = false
+    @State private var showClearChatConfirm = false
+
+    // Settings state
+    @State private var serverStatus: ServerInfo?
+    @State private var isLoadingSettings = true
 
     private let apiClient = APIClient()
 
     var body: some View {
-        Group {
-            if isLoading {
-                loadingView
-            } else if let profile = profile {
-                if profile.has_profile {
-                    profileContent(profile)
+        ZStack {
+            // Ethereal background
+            EtherealBackground(currentTab: 4)
+                .ignoresSafeArea()
+
+            Group {
+                if isLoading {
+                    loadingView
+                } else if let profile = profile {
+                    if profile.has_profile {
+                        profileContent(profile)
+                    } else {
+                        emptyState
+                    }
                 } else {
-                    emptyState
+                    errorState
                 }
-            } else {
-                errorState
             }
         }
         .navigationTitle("What I Know")
         .navigationBarTitleDisplayMode(.inline)
+        .toolbarBackground(.hidden, for: .navigationBar)
         .toolbar {
             if profile?.has_profile == true {
                 ToolbarItem(placement: .topBarTrailing) {
@@ -48,8 +60,50 @@ struct ProfileView: View {
         } message: {
             Text("The AI will start fresh and learn about you again through conversation.")
         }
+        .confirmationDialog(
+            "Clear chat history?",
+            isPresented: $showClearChatConfirm,
+            titleVisibility: .visible
+        ) {
+            Button("Clear History", role: .destructive) {
+                Task { await clearSession() }
+            }
+        } message: {
+            Text("This will start a fresh conversation with the AI coach.")
+        }
+        .refreshable {
+            await loadAll()
+        }
         .task {
-            await loadProfile()
+            await loadAll()
+        }
+    }
+
+    private func loadAll() async {
+        async let profileTask: () = loadProfile()
+        async let statusTask: () = loadStatus()
+        await profileTask
+        await statusTask
+    }
+
+    private func loadStatus() async {
+        isLoadingSettings = true
+        do {
+            serverStatus = try await apiClient.getServerStatus()
+        } catch {
+            serverStatus = nil
+        }
+        withAnimation(.airfit) {
+            isLoadingSettings = false
+        }
+    }
+
+    private func clearSession() async {
+        do {
+            try await apiClient.clearSession()
+            await loadStatus()
+        } catch {
+            print("Failed to clear session: \(error)")
         }
     }
 
@@ -141,12 +195,162 @@ struct ProfileView: View {
                     Spacer()
                 }
                 .padding(.top, 8)
+
+                // Settings Section
+                settingsSection
             }
             .padding(.horizontal, 20)
             .padding(.top, 16)
             .padding(.bottom, 40)
         }
         .scrollIndicators(.hidden)
+        .scrollContentBackground(.hidden)
+        .background(Color.clear)
+    }
+
+    // MARK: - Settings Section
+
+    private var settingsSection: some View {
+        VStack(spacing: 24) {
+            // Server Status
+            ProfileSection(title: "SERVER", icon: "server.rack", color: Theme.tertiary) {
+                HStack {
+                    Text("Status")
+                        .font(.bodyMedium)
+                        .foregroundStyle(Theme.textPrimary)
+                    Spacer()
+                    if isLoadingSettings {
+                        ProgressView()
+                            .tint(Theme.accent)
+                    } else if serverStatus != nil {
+                        HStack(spacing: 6) {
+                            Circle()
+                                .fill(Theme.success)
+                                .frame(width: 8, height: 8)
+                            Text("Connected")
+                                .font(.labelMedium)
+                                .foregroundStyle(Theme.success)
+                        }
+                    } else {
+                        HStack(spacing: 6) {
+                            Circle()
+                                .fill(Theme.error)
+                                .frame(width: 8, height: 8)
+                            Text("Disconnected")
+                                .font(.labelMedium)
+                                .foregroundStyle(Theme.error)
+                        }
+                    }
+                }
+
+                if let status = serverStatus {
+                    HStack {
+                        Text("Host")
+                            .font(.bodyMedium)
+                            .foregroundStyle(Theme.textPrimary)
+                        Spacer()
+                        Text(status.host)
+                            .font(.labelMedium)
+                            .foregroundStyle(Theme.textMuted)
+                    }
+                }
+            }
+
+            // AI Provider Section
+            if let status = serverStatus {
+                ProfileSection(title: "AI PROVIDER", icon: "brain", color: Theme.accent) {
+                    HStack {
+                        Text("Active")
+                            .font(.bodyMedium)
+                            .foregroundStyle(Theme.textPrimary)
+                        Spacer()
+                        Text(status.activeProvider.capitalized)
+                            .font(.labelLarge)
+                            .foregroundStyle(Theme.accent)
+                    }
+
+                    ForEach(status.availableProviders, id: \.self) { provider in
+                        HStack {
+                            Text(provider.capitalized)
+                                .font(.bodyMedium)
+                                .foregroundStyle(Theme.textSecondary)
+                            Spacer()
+                            Image(systemName: "checkmark")
+                                .font(.caption)
+                                .foregroundStyle(Theme.success)
+                        }
+                    }
+                }
+
+                // Session Section
+                if let sessionId = status.sessionId {
+                    ProfileSection(title: "SESSION", icon: "number", color: Theme.protein) {
+                        HStack {
+                            Text("ID")
+                                .font(.bodyMedium)
+                                .foregroundStyle(Theme.textPrimary)
+                            Spacer()
+                            Text(String(sessionId.prefix(8)) + "...")
+                                .font(.system(.caption, design: .monospaced))
+                                .foregroundStyle(Theme.textMuted)
+                        }
+
+                        if let messageCount = status.messageCount {
+                            HStack {
+                                Text("Messages")
+                                    .font(.bodyMedium)
+                                    .foregroundStyle(Theme.textPrimary)
+                                Spacer()
+                                Text("\(messageCount)")
+                                    .font(.labelLarge)
+                                    .foregroundStyle(Theme.textSecondary)
+                            }
+                        }
+
+                        Button {
+                            showClearChatConfirm = true
+                        } label: {
+                            HStack {
+                                Image(systemName: "trash")
+                                    .font(.caption)
+                                Text("Clear Chat History")
+                                    .font(.labelMedium)
+                            }
+                            .foregroundStyle(Theme.error)
+                            .frame(maxWidth: .infinity)
+                            .padding(.vertical, 12)
+                            .background(Theme.error.opacity(0.1))
+                            .clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
+                        }
+                        .buttonStyle(AirFitButtonStyle())
+                    }
+                }
+            }
+
+            // App Info Section
+            ProfileSection(title: "ABOUT", icon: "info.circle", color: Theme.secondary) {
+                HStack {
+                    Text("Version")
+                        .font(.bodyMedium)
+                        .foregroundStyle(Theme.textPrimary)
+                    Spacer()
+                    Text(Bundle.main.infoDictionary?["CFBundleShortVersionString"] as? String ?? "1.0")
+                        .font(.labelMedium)
+                        .foregroundStyle(Theme.textMuted)
+                }
+
+                HStack {
+                    Text("Build")
+                        .font(.bodyMedium)
+                        .foregroundStyle(Theme.textPrimary)
+                    Spacer()
+                    Text(Bundle.main.infoDictionary?["CFBundleVersion"] as? String ?? "1")
+                        .font(.labelMedium)
+                        .foregroundStyle(Theme.textMuted)
+                }
+            }
+        }
+        .padding(.top, 16)
     }
 
     // MARK: - Empty State
@@ -371,6 +575,16 @@ struct InsightItem: View {
         }
         return isoDate
     }
+}
+
+// MARK: - Server Info Model
+
+struct ServerInfo {
+    let host: String
+    let activeProvider: String
+    let availableProviders: [String]
+    let sessionId: String?
+    let messageCount: Int?
 }
 
 #Preview {

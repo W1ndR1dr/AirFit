@@ -1,5 +1,10 @@
 """AirFit Server - FastAPI backend that wraps CLI LLM tools."""
+from dotenv import load_dotenv
+load_dotenv()  # Load .env before other imports that use env vars
+
+import json
 import uvicorn
+from datetime import datetime, timedelta
 from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
@@ -232,6 +237,16 @@ async def chat(request: ChatRequest):
     weekly_summary = scheduler.get_weekly_summary_for_chat()
     if weekly_summary:
         context_parts.append(weekly_summary)
+
+    # Add body composition trends (EMA-smoothed for signal, not noise)
+    body_comp_trends = context_store.format_body_comp_for_chat()
+    if body_comp_trends:
+        context_parts.append(body_comp_trends)
+
+    # Add rolling 7-day training volume (set tracker)
+    set_tracker_context = await hevy.format_set_tracker_for_chat()
+    if set_tracker_context:
+        context_parts.append(set_tracker_context)
 
     # Get Hevy workout data (server-side)
     hevy_context = await hevy.get_hevy_context()
@@ -679,6 +694,96 @@ class ContextSummary(BaseModel):
     calorie_compliance: Optional[float] = None
 
 
+# --- Body Metrics Models ---
+
+class MetricPoint(BaseModel):
+    """Single data point for time series charts."""
+    date: str
+    value: float
+
+
+class CurrentBodyMetrics(BaseModel):
+    """Current body composition values."""
+    weight_lbs: Optional[float] = None
+    body_fat_pct: Optional[float] = None
+    lean_mass_lbs: Optional[float] = None
+
+
+class BodyTrends(BaseModel):
+    """30-day change trends."""
+    weight_change_30d: Optional[float] = None
+    body_fat_change_30d: Optional[float] = None
+    lean_mass_change_30d: Optional[float] = None
+
+
+class BodyMetricsResponse(BaseModel):
+    """Body composition history for charts."""
+    current: CurrentBodyMetrics
+    weight_history: list[MetricPoint]
+    body_fat_history: list[MetricPoint]
+    lean_mass_history: list[MetricPoint]
+    trends: BodyTrends
+
+
+@app.get("/health/body-metrics", response_model=BodyMetricsResponse)
+async def get_body_metrics(days: int = 90):
+    """
+    Get body composition history for the Body tab charts.
+
+    Returns weight, body fat %, and lean mass over time.
+    """
+    snapshots = context_store.get_recent_snapshots(days)
+
+    # Build history arrays (only include days with data)
+    weight_history = []
+    body_fat_history = []
+    lean_mass_history = []
+
+    for s in sorted(snapshots, key=lambda x: x.date):
+        if s.health.weight_lbs:
+            weight_history.append(MetricPoint(date=s.date, value=s.health.weight_lbs))
+
+            # Calculate lean mass if we have body fat
+            if s.health.body_fat_pct:
+                body_fat_history.append(MetricPoint(date=s.date, value=s.health.body_fat_pct))
+                fat_mass = s.health.weight_lbs * (s.health.body_fat_pct / 100)
+                lean_mass = s.health.weight_lbs - fat_mass
+                lean_mass_history.append(MetricPoint(date=s.date, value=round(lean_mass, 1)))
+            elif s.health.lean_mass_lbs:
+                lean_mass_history.append(MetricPoint(date=s.date, value=s.health.lean_mass_lbs))
+
+    # Get current values (most recent with data)
+    current_weight = weight_history[-1].value if weight_history else None
+    current_bf = body_fat_history[-1].value if body_fat_history else None
+    current_lean = lean_mass_history[-1].value if lean_mass_history else None
+
+    # Calculate 30-day trends
+    def calc_trend(history: list[MetricPoint], days_back: int = 30) -> Optional[float]:
+        if len(history) < 2:
+            return None
+        cutoff = (datetime.now() - timedelta(days=days_back)).strftime("%Y-%m-%d")
+        recent = [p for p in history if p.date >= cutoff]
+        if len(recent) < 2:
+            return None
+        return round(recent[-1].value - recent[0].value, 2)
+
+    return BodyMetricsResponse(
+        current=CurrentBodyMetrics(
+            weight_lbs=current_weight,
+            body_fat_pct=current_bf,
+            lean_mass_lbs=current_lean
+        ),
+        weight_history=weight_history,
+        body_fat_history=body_fat_history,
+        lean_mass_history=lean_mass_history,
+        trends=BodyTrends(
+            weight_change_30d=calc_trend(weight_history),
+            body_fat_change_30d=calc_trend(body_fat_history),
+            lean_mass_change_30d=calc_trend(lean_mass_history)
+        )
+    )
+
+
 @app.post("/insights/sync")
 async def sync_insights_data(request: SyncRequest):
     """
@@ -810,6 +915,95 @@ async def engage_insight(insight_id: str, action: str, feedback: Optional[str] =
     """
     context_store.update_insight_engagement(insight_id, action, feedback)
     return {"status": "recorded"}
+
+
+class InsightDiscussRequest(BaseModel):
+    """Request to discuss an insight."""
+    message: str
+
+
+class InsightDiscussResponse(BaseModel):
+    """Response from insight discussion."""
+    response: str
+    provider: str
+    success: bool
+    insight_title: str
+    error: Optional[str] = None
+
+
+@app.post("/insights/{insight_id}/discuss", response_model=InsightDiscussResponse)
+async def discuss_insight(insight_id: str, request: InsightDiscussRequest):
+    """
+    Start or continue a conversation about a specific insight.
+
+    This endpoint provides deep-dive discussion on an insight with full context:
+    - The original insight (title, body, supporting_data)
+    - The data context that generated the insight
+    - User's profile for personalized responses
+
+    Use this for "Tell me more" functionality.
+    """
+    # Load the insight
+    insight = context_store.get_insight_by_id(insight_id)
+    if not insight:
+        return InsightDiscussResponse(
+            response="I couldn't find that insight. It may have been removed.",
+            provider="none",
+            success=False,
+            insight_title="Unknown",
+            error="Insight not found"
+        )
+
+    # Build rich context for the discussion
+    context_parts = []
+
+    # The insight itself with supporting data
+    context_parts.append(f"""The user wants to discuss this insight:
+
+INSIGHT:
+Title: {insight.title}
+Body: {insight.body}
+Category: {insight.category}
+Supporting Data: {json.dumps(insight.supporting_data) if insight.supporting_data else 'None'}
+Suggested Actions: {', '.join(insight.suggested_actions) if insight.suggested_actions else 'None'}
+""")
+
+    # Add the original data context used to generate the insight
+    if insight.conversation_context:
+        context_parts.append(f"""ORIGINAL DATA CONTEXT (what this insight was based on):
+{insight.conversation_context}
+""")
+
+    # Add recent weekly summary for additional context
+    weekly_summary = scheduler.get_weekly_summary_for_chat()
+    if weekly_summary:
+        context_parts.append(f"CURRENT WEEKLY SUMMARY:\n{weekly_summary}")
+
+    # Build the prompt
+    context_str = "\n\n".join(context_parts)
+    prompt = f"""{context_str}
+
+USER MESSAGE: {request.message}
+
+Respond conversationally. Reference specific data points from the insight and supporting data. Be helpful and actionable."""
+
+    # Use profile-based system prompt
+    user_profile = profile.load_profile()
+    system_prompt = user_profile.to_system_prompt()
+
+    # Call the LLM
+    result = await llm_router.chat(prompt, system_prompt)
+
+    # Track engagement
+    context_store.update_insight_engagement(insight_id, "discussed")
+
+    return InsightDiscussResponse(
+        response=result.text,
+        provider=result.provider,
+        success=result.success,
+        insight_title=insight.title,
+        error=result.error
+    )
 
 
 @app.get("/insights/snapshots")
@@ -983,6 +1177,141 @@ async def preview_insight_data(days: int = 90):
         "character_count": len(formatted_data),
         "data_preview": formatted_data
     }
+
+
+# --- Training Tab Endpoints (Hevy data visualization) ---
+
+class MuscleGroupData(BaseModel):
+    """Data for a single muscle group in the set tracker."""
+    current: int
+    min: int
+    max: int
+    status: str  # in_zone, below, at_floor, above
+
+
+class SetTrackerResponse(BaseModel):
+    """Rolling 7-day set tracker data by muscle group."""
+    window_days: int
+    muscle_groups: dict[str, MuscleGroupData]
+    last_sync: Optional[str] = None
+
+
+class PRData(BaseModel):
+    """Personal record data for a lift."""
+    weight_lbs: float
+    reps: int
+    date: str
+
+
+class HistoryPoint(BaseModel):
+    """Single point in lift history for sparkline."""
+    date: str
+    weight_lbs: float
+
+
+class LiftData(BaseModel):
+    """Progress data for a single lift."""
+    name: str
+    workout_count: int
+    current_pr: PRData
+    history: list[HistoryPoint]
+
+
+class LiftProgressResponse(BaseModel):
+    """All-time PR progress for top lifts."""
+    lifts: list[LiftData]
+
+
+class WorkoutSummary(BaseModel):
+    """Summary of a single workout."""
+    id: str
+    title: str
+    date: str
+    days_ago: int
+    duration_minutes: int
+    exercises: list[str]
+    total_volume_lbs: float
+
+
+class RecentWorkoutsResponse(BaseModel):
+    """Recent workouts for display."""
+    workouts: list[WorkoutSummary]
+
+
+@app.get("/hevy/set-tracker", response_model=SetTrackerResponse)
+async def get_set_tracker(days: int = 7):
+    """
+    Get rolling set counts by muscle group for the Training tab.
+
+    Returns progress toward optimal weekly volume for each muscle group.
+    Used for the "Rolling 7-Day Sets" hero section.
+    """
+    from datetime import datetime
+
+    try:
+        muscle_data = await hevy.get_rolling_set_counts(days)
+
+        return SetTrackerResponse(
+            window_days=days,
+            muscle_groups={
+                name: MuscleGroupData(**data)
+                for name, data in muscle_data.items()
+            },
+            last_sync=datetime.now().isoformat()
+        )
+    except Exception as e:
+        print(f"Error getting set tracker: {e}")
+        # Return empty data on error
+        return SetTrackerResponse(
+            window_days=days,
+            muscle_groups={},
+            last_sync=None
+        )
+
+
+@app.get("/hevy/lift-progress", response_model=LiftProgressResponse)
+async def get_lift_progress(top_n: int = 6):
+    """
+    Get all-time PR progress for top lifts.
+
+    Auto-detects the most frequently performed lifts and returns
+    their PR history for sparkline visualization.
+    """
+    try:
+        lifts = await hevy.get_lift_progress(top_n)
+
+        return LiftProgressResponse(
+            lifts=[
+                LiftData(
+                    name=lift["name"],
+                    workout_count=lift["workout_count"],
+                    current_pr=PRData(**lift["current_pr"]),
+                    history=[HistoryPoint(**h) for h in lift["history"]]
+                )
+                for lift in lifts
+            ]
+        )
+    except Exception as e:
+        print(f"Error getting lift progress: {e}")
+        return LiftProgressResponse(lifts=[])
+
+
+@app.get("/hevy/recent-workouts", response_model=RecentWorkoutsResponse)
+async def get_recent_workouts_endpoint(limit: int = 7):
+    """
+    Get recent workout summaries for display.
+
+    Returns a simple list of recent workouts with basic stats.
+    """
+    try:
+        workouts = await hevy.get_recent_workouts_summary(limit)
+
+        return RecentWorkoutsResponse(
+            workouts=[WorkoutSummary(**w) for w in workouts]
+        )
+    except Exception as e:
+        print(f"Error getting recent workouts: {e}")
+        return RecentWorkoutsResponse(workouts=[])
 
 
 if __name__ == "__main__":

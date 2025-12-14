@@ -85,38 +85,38 @@ actor HealthKitManager {
     }
 
     private func fetchLastNightSleep() async -> Double? {
-        let sleepType = HKCategoryType(.sleepAnalysis)
-        let calendar = Calendar.current
+        // Delegate to the shared implementation for today's date
+        return await fetchSleepForNight(endingOn: Date())
+    }
 
-        // Look for sleep ending today (last night's sleep)
-        let endOfToday = calendar.startOfDay(for: Date()).addingTimeInterval(86400)
-        let startOfYesterday = calendar.startOfDay(for: Date().addingTimeInterval(-86400))
-        let predicate = HKQuery.predicateForSamples(withStart: startOfYesterday, end: endOfToday, options: .strictStartDate)
+    /// Merge overlapping sleep intervals to avoid double-counting from multiple sources
+    /// (e.g., Apple Watch + AutoSleep both recording the same sleep session)
+    private func mergeOverlappingIntervals(_ samples: [HKCategorySample]) -> Double {
+        guard !samples.isEmpty else { return 0 }
 
-        return await withCheckedContinuation { continuation in
-            let query = HKSampleQuery(sampleType: sleepType, predicate: predicate, limit: HKObjectQueryNoLimit, sortDescriptors: nil) { _, samples, _ in
-                guard let samples = samples as? [HKCategorySample] else {
-                    continuation.resume(returning: nil)
-                    return
-                }
+        // Sort by start time
+        let sorted = samples.sorted { $0.startDate < $1.startDate }
 
-                // Sum up asleep time (exclude inBed, awake)
-                let asleepValues: Set<Int> = [
-                    HKCategoryValueSleepAnalysis.asleepCore.rawValue,
-                    HKCategoryValueSleepAnalysis.asleepDeep.rawValue,
-                    HKCategoryValueSleepAnalysis.asleepREM.rawValue,
-                    HKCategoryValueSleepAnalysis.asleepUnspecified.rawValue
-                ]
+        var mergedIntervals: [(start: Date, end: Date)] = []
+        var currentStart = sorted[0].startDate
+        var currentEnd = sorted[0].endDate
 
-                let totalSeconds = samples
-                    .filter { asleepValues.contains($0.value) }
-                    .reduce(0.0) { $0 + $1.endDate.timeIntervalSince($1.startDate) }
-
-                let hours = totalSeconds / 3600.0
-                continuation.resume(returning: hours > 0 ? hours : nil)
+        for sample in sorted.dropFirst() {
+            if sample.startDate <= currentEnd {
+                // Overlapping - extend current interval
+                currentEnd = max(currentEnd, sample.endDate)
+            } else {
+                // Non-overlapping - save current and start new
+                mergedIntervals.append((currentStart, currentEnd))
+                currentStart = sample.startDate
+                currentEnd = sample.endDate
             }
-            healthStore.execute(query)
         }
+        // Don't forget the last interval
+        mergedIntervals.append((currentStart, currentEnd))
+
+        // Sum the merged intervals
+        return mergedIntervals.reduce(0.0) { $0 + $1.end.timeIntervalSince($1.start) }
     }
 
     private func fetchRecentWorkouts(days: Int) async -> [WorkoutSummary] {
@@ -207,6 +207,107 @@ actor HealthKitManager {
         }
     }
 
+    /// Get body fat percentage history
+    func getBodyFatHistory(days: Int) async -> [BodyFatReading] {
+        let calendar = Calendar.current
+        let startDate = calendar.date(byAdding: .day, value: -days, to: Date())!
+        let type = HKQuantityType(.bodyFatPercentage)
+        let predicate = HKQuery.predicateForSamples(withStart: startDate, end: Date(), options: .strictStartDate)
+        let sortDescriptor = NSSortDescriptor(key: HKSampleSortIdentifierEndDate, ascending: true)
+
+        return await withCheckedContinuation { continuation in
+            let query = HKSampleQuery(sampleType: type, predicate: predicate, limit: HKObjectQueryNoLimit, sortDescriptors: [sortDescriptor]) { _, samples, _ in
+                let readings: [BodyFatReading] = (samples as? [HKQuantitySample])?.map { sample in
+                    BodyFatReading(
+                        date: sample.endDate,
+                        bodyFatPct: sample.quantity.doubleValue(for: .percent()) * 100 // Convert to percentage
+                    )
+                } ?? []
+                continuation.resume(returning: readings)
+            }
+            healthStore.execute(query)
+        }
+    }
+
+    /// Get lean body mass history
+    func getLeanMassHistory(days: Int) async -> [LeanMassReading] {
+        let calendar = Calendar.current
+        let startDate = calendar.date(byAdding: .day, value: -days, to: Date())!
+        let type = HKQuantityType(.leanBodyMass)
+        let predicate = HKQuery.predicateForSamples(withStart: startDate, end: Date(), options: .strictStartDate)
+        let sortDescriptor = NSSortDescriptor(key: HKSampleSortIdentifierEndDate, ascending: true)
+
+        return await withCheckedContinuation { continuation in
+            let query = HKSampleQuery(sampleType: type, predicate: predicate, limit: HKObjectQueryNoLimit, sortDescriptors: [sortDescriptor]) { _, samples, _ in
+                let readings: [LeanMassReading] = (samples as? [HKQuantitySample])?.map { sample in
+                    LeanMassReading(
+                        date: sample.endDate,
+                        leanMassLbs: sample.quantity.doubleValue(for: .pound())
+                    )
+                } ?? []
+                continuation.resume(returning: readings)
+            }
+            healthStore.execute(query)
+        }
+    }
+
+    /// Get all weight history (no day limit - for "All Time" view)
+    func getAllWeightHistory() async -> [WeightReading] {
+        let type = HKQuantityType(.bodyMass)
+        let sortDescriptor = NSSortDescriptor(key: HKSampleSortIdentifierEndDate, ascending: true)
+
+        return await withCheckedContinuation { continuation in
+            let query = HKSampleQuery(sampleType: type, predicate: nil, limit: HKObjectQueryNoLimit, sortDescriptors: [sortDescriptor]) { _, samples, _ in
+                let readings: [WeightReading] = (samples as? [HKQuantitySample])?.map { sample in
+                    WeightReading(
+                        date: sample.endDate,
+                        weightLbs: sample.quantity.doubleValue(for: .pound())
+                    )
+                } ?? []
+                continuation.resume(returning: readings)
+            }
+            healthStore.execute(query)
+        }
+    }
+
+    /// Get all body fat history (no day limit)
+    func getAllBodyFatHistory() async -> [BodyFatReading] {
+        let type = HKQuantityType(.bodyFatPercentage)
+        let sortDescriptor = NSSortDescriptor(key: HKSampleSortIdentifierEndDate, ascending: true)
+
+        return await withCheckedContinuation { continuation in
+            let query = HKSampleQuery(sampleType: type, predicate: nil, limit: HKObjectQueryNoLimit, sortDescriptors: [sortDescriptor]) { _, samples, _ in
+                let readings: [BodyFatReading] = (samples as? [HKQuantitySample])?.map { sample in
+                    BodyFatReading(
+                        date: sample.endDate,
+                        bodyFatPct: sample.quantity.doubleValue(for: .percent()) * 100
+                    )
+                } ?? []
+                continuation.resume(returning: readings)
+            }
+            healthStore.execute(query)
+        }
+    }
+
+    /// Get all lean mass history (no day limit)
+    func getAllLeanMassHistory() async -> [LeanMassReading] {
+        let type = HKQuantityType(.leanBodyMass)
+        let sortDescriptor = NSSortDescriptor(key: HKSampleSortIdentifierEndDate, ascending: true)
+
+        return await withCheckedContinuation { continuation in
+            let query = HKSampleQuery(sampleType: type, predicate: nil, limit: HKObjectQueryNoLimit, sortDescriptors: [sortDescriptor]) { _, samples, _ in
+                let readings: [LeanMassReading] = (samples as? [HKQuantitySample])?.map { sample in
+                    LeanMassReading(
+                        date: sample.endDate,
+                        leanMassLbs: sample.quantity.doubleValue(for: .pound())
+                    )
+                } ?? []
+                continuation.resume(returning: readings)
+            }
+            healthStore.execute(query)
+        }
+    }
+
     // MARK: - Extended Private Helpers
 
     private func fetchDaySum(_ identifier: HKQuantityTypeIdentifier, unit: HKUnit, start: Date, end: Date) async -> Double? {
@@ -240,13 +341,20 @@ actor HealthKitManager {
         let sleepType = HKCategoryType(.sleepAnalysis)
         let calendar = Calendar.current
 
-        // Sleep ending on this date (the night before)
+        // For "sleep ending on date", we want sleep where you woke up on that morning.
+        // Query a window that captures the typical sleep session (6pm previous day to noon today)
+        // then filter to samples where endDate falls on the target date.
         let startOfDay = calendar.startOfDay(for: date)
-        let startOfPreviousDay = calendar.date(byAdding: .day, value: -1, to: startOfDay)!
-        let predicate = HKQuery.predicateForSamples(withStart: startOfPreviousDay, end: calendar.date(byAdding: .day, value: 1, to: startOfDay)!, options: .strictStartDate)
+        let endOfDay = calendar.date(byAdding: .day, value: 1, to: startOfDay)!
+
+        // Query window: 6pm previous day to noon today (captures most sleep patterns)
+        let queryStart = calendar.date(byAdding: .hour, value: -6, to: startOfDay)!  // 6pm previous day
+        let queryEnd = calendar.date(byAdding: .hour, value: 12, to: startOfDay)!    // noon today
+
+        let predicate = HKQuery.predicateForSamples(withStart: queryStart, end: queryEnd, options: .strictStartDate)
 
         return await withCheckedContinuation { continuation in
-            let query = HKSampleQuery(sampleType: sleepType, predicate: predicate, limit: HKObjectQueryNoLimit, sortDescriptors: nil) { _, samples, _ in
+            let query = HKSampleQuery(sampleType: sleepType, predicate: predicate, limit: HKObjectQueryNoLimit, sortDescriptors: nil) { [calendar, startOfDay, endOfDay] _, samples, _ in
                 guard let samples = samples as? [HKCategorySample] else {
                     continuation.resume(returning: nil)
                     return
@@ -259,9 +367,16 @@ actor HealthKitManager {
                     HKCategoryValueSleepAnalysis.asleepUnspecified.rawValue
                 ]
 
-                let totalSeconds = samples
-                    .filter { asleepValues.contains($0.value) }
-                    .reduce(0.0) { $0 + $1.endDate.timeIntervalSince($1.startDate) }
+                // Filter to only asleep samples that ended on the target date
+                // This ensures we count "last night's sleep" correctly
+                let asleepSamples = samples.filter { sample in
+                    guard asleepValues.contains(sample.value) else { return false }
+                    // Only include samples where endDate is on the target date
+                    return sample.endDate >= startOfDay && sample.endDate < endOfDay
+                }
+
+                // Merge overlapping intervals to avoid double-counting from multiple sources
+                let totalSeconds = self.mergeOverlappingIntervals(asleepSamples)
 
                 let hours = totalSeconds / 3600.0
                 continuation.resume(returning: hours > 0 ? hours : nil)
@@ -353,9 +468,33 @@ struct DailyHealthSnapshot: Sendable {
 }
 
 /// Weight reading for history/trend analysis
-struct WeightReading: Sendable {
+struct WeightReading: Sendable, Identifiable {
+    let id = UUID()
     let date: Date
     let weightLbs: Double
+}
+
+/// Body fat reading for history
+struct BodyFatReading: Sendable, Identifiable {
+    let id = UUID()
+    let date: Date
+    let bodyFatPct: Double
+}
+
+/// Lean mass reading for history
+struct LeanMassReading: Sendable, Identifiable {
+    let id = UUID()
+    let date: Date
+    let leanMassLbs: Double
+}
+
+/// Combined body composition data point
+struct BodyCompositionReading: Sendable, Identifiable {
+    let id = UUID()
+    let date: Date
+    let weightLbs: Double?
+    let bodyFatPct: Double?
+    let leanMassLbs: Double?
 }
 
 // MARK: - Workout Type Names

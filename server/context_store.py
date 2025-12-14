@@ -340,6 +340,23 @@ def update_insight_engagement(insight_id: str, engagement: str, feedback: Option
     save_store(store)
 
 
+def get_insight_by_id(insight_id: str) -> Optional[Insight]:
+    """Get a specific insight by ID."""
+    store = load_store()
+
+    for insight_data in store.insights:
+        if insight_data.get("id") == insight_id:
+            return Insight(**insight_data)
+
+    return None
+
+
+def get_recent_insight_titles(limit: int = 20) -> list[str]:
+    """Get titles of recent insights for deduplication."""
+    insights = get_insights(limit=limit, include_dismissed=True)
+    return [i.title for i in insights]
+
+
 # --- Aggregation Helpers ---
 
 def compute_averages(snapshots: list[DailySnapshot]) -> dict:
@@ -412,3 +429,156 @@ def compute_compliance(snapshots: list[DailySnapshot], protein_target: int = 160
         "protein_hits": protein_hits,
         "calorie_hits": calorie_hits,
     }
+
+
+def compute_ema(values: list[float], period: int) -> list[float]:
+    """Compute Exponential Moving Average for a list of values.
+
+    Args:
+        values: List of values (must be in chronological order)
+        period: EMA period (higher = smoother)
+
+    Returns:
+        List of EMA values, same length as input
+    """
+    if not values or period <= 0:
+        return values
+
+    k = 2.0 / (period + 1)
+    ema_values = []
+    ema = values[0]
+
+    for value in values:
+        ema = (value * k) + (ema * (1 - k))
+        ema_values.append(ema)
+
+    return ema_values
+
+
+def compute_body_comp_trends() -> dict:
+    """Compute EMA-smoothed body composition trends for chat context.
+
+    Returns trends over different time periods:
+    - Monthly (30 days): 10-day EMA
+    - Yearly (365 days): 21-day EMA
+
+    Each trend includes:
+    - Current smoothed value
+    - Change over the period
+    - Direction (gaining/losing/stable)
+    """
+    trends = {
+        "monthly": {},
+        "yearly": {},
+    }
+
+    # Get data for each period
+    for period_name, days, ema_period in [("monthly", 30, 10), ("yearly", 365, 21)]:
+        snapshots = get_recent_snapshots(days)
+        if not snapshots:
+            continue
+
+        # Extract weight data (chronological order - oldest first)
+        weights = [(s.date, s.health.weight_lbs) for s in reversed(snapshots) if s.health.weight_lbs]
+        body_fats = [(s.date, s.health.body_fat_pct) for s in reversed(snapshots) if s.health.body_fat_pct]
+
+        period_trends = {}
+
+        # Weight trend
+        if len(weights) >= 3:
+            weight_values = [w[1] for w in weights]
+            ema_weights = compute_ema(weight_values, ema_period)
+
+            current_ema = ema_weights[-1]
+            start_ema = ema_weights[0] if len(ema_weights) > ema_period else weight_values[0]
+            change = current_ema - start_ema
+
+            period_trends["weight"] = {
+                "current": round(current_ema, 1),
+                "change": round(change, 1),
+                "direction": "losing" if change < -0.5 else ("gaining" if change > 0.5 else "stable"),
+                "readings": len(weights),
+            }
+
+        # Body fat trend
+        if len(body_fats) >= 3:
+            bf_values = [bf[1] for bf in body_fats]
+            ema_bf = compute_ema(bf_values, ema_period)
+
+            current_ema = ema_bf[-1]
+            start_ema = ema_bf[0] if len(ema_bf) > ema_period else bf_values[0]
+            change = current_ema - start_ema
+
+            period_trends["body_fat"] = {
+                "current": round(current_ema, 1),
+                "change": round(change, 1),
+                "direction": "losing" if change < -0.3 else ("gaining" if change > 0.3 else "stable"),
+                "readings": len(body_fats),
+            }
+
+            # Calculate lean mass if we have both weight and body fat
+            if "weight" in period_trends:
+                current_weight = period_trends["weight"]["current"]
+                current_bf = period_trends["body_fat"]["current"]
+                lean_mass = current_weight * (1 - current_bf / 100)
+
+                # Estimate lean mass change
+                if len(weights) >= 3 and len(body_fats) >= 3:
+                    # Use first values to estimate starting lean mass
+                    start_weight = weight_values[0]
+                    start_bf = bf_values[0]
+                    start_lean = start_weight * (1 - start_bf / 100)
+                    lean_change = lean_mass - start_lean
+
+                    period_trends["lean_mass"] = {
+                        "current": round(lean_mass, 1),
+                        "change": round(lean_change, 1),
+                        "direction": "gaining" if lean_change > 0.5 else ("losing" if lean_change < -0.5 else "stable"),
+                    }
+
+        trends[period_name] = period_trends
+
+    return trends
+
+
+def format_body_comp_for_chat() -> str:
+    """Format body composition trends for chat context.
+
+    Returns a concise string describing weight/body fat/lean mass trends
+    that can be injected into the chat prompt.
+    """
+    trends = compute_body_comp_trends()
+
+    parts = []
+
+    # Monthly trends (most relevant for coaching)
+    monthly = trends.get("monthly", {})
+    if monthly:
+        monthly_parts = []
+
+        if "weight" in monthly:
+            w = monthly["weight"]
+            if w["change"] != 0:
+                monthly_parts.append(f"weight {w['direction']} ({w['change']:+.1f}lbs, now {w['current']}lbs)")
+
+        if "body_fat" in monthly:
+            bf = monthly["body_fat"]
+            if bf["change"] != 0:
+                monthly_parts.append(f"body fat {bf['direction']} ({bf['change']:+.1f}%, now {bf['current']}%)")
+
+        if "lean_mass" in monthly:
+            lm = monthly["lean_mass"]
+            if lm["change"] != 0:
+                monthly_parts.append(f"lean mass {lm['direction']} ({lm['change']:+.1f}lbs)")
+
+        if monthly_parts:
+            parts.append(f"Monthly body comp trends: {', '.join(monthly_parts)}")
+
+    # Yearly trends (bigger picture)
+    yearly = trends.get("yearly", {})
+    if yearly and yearly.get("weight"):
+        w = yearly["weight"]
+        if abs(w["change"]) >= 2:  # Only mention if significant
+            parts.append(f"Yearly trend: {w['change']:+.1f}lbs over the year")
+
+    return "\n".join(parts) if parts else ""

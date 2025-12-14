@@ -204,92 +204,93 @@ struct EtherealBackground: View {
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
     @Environment(\.colorScheme) private var colorScheme
 
+    // Dark mode needs higher orb opacity
+    private var opacityMultiplier: Double {
+        colorScheme == .dark ? 2.5 : 1.0
+    }
+
     var body: some View {
+        let timeOfDay = TimeOfDay.current
+        let config = BackgroundConfig.forTab(currentTab)
+
         if reduceMotion {
-            // Static warm gradient for reduced motion
-            LinearGradient(
-                colors: [Theme.background, Theme.surface],
-                startPoint: .top,
-                endPoint: .bottom
-            )
+            timeOfDay.backgroundTint(for: colorScheme)
         } else {
             TimelineView(.animation(minimumInterval: 1/30)) { timeline in
-                Canvas { context, size in
-                    let time = timeline.date.timeIntervalSinceReferenceDate
-                    let timeOfDay = TimeOfDay.current
-                    let config = BackgroundConfig.forTab(currentTab)
+                let time = timeline.date.timeIntervalSinceReferenceDate
 
-                    // Draw time-of-day tinted base (color scheme aware)
+                Canvas { context, size in
+                    let w = size.width
+                    let h = size.height
+
+                    // Base background
                     context.fill(
                         Path(CGRect(origin: .zero, size: size)),
                         with: .color(timeOfDay.backgroundTint(for: colorScheme))
                     )
 
-                    // Draw each orb with organic motion
+                    // Draw orbs with smooth radial gradients
                     for (index, orb) in config.orbs.enumerated() {
-                        drawOrb(
-                            context: context,
-                            size: size,
-                            time: time,
-                            orb: orb,
-                            index: index,
-                            intensity: timeOfDay.orbIntensity
+                        let phaseOffset = Double(index) * 2.1
+                        let speedMult = orb.speed
+
+                        // Position with organic motion
+                        let x = orb.baseX * w + sin(time * speedMult + phaseOffset) * w * 0.15
+                        let y = orb.baseY * h + cos(time * speedMult * 0.8 + phaseOffset) * h * 0.12
+
+                        // Breathing opacity
+                        let breathPhase = sin(time * 0.15 + phaseOffset * 0.5)
+                        let breathOpacity = 0.85 + breathPhase * 0.15
+                        let finalOpacity = min(0.6, orb.opacity * breathOpacity * timeOfDay.orbIntensity * opacityMultiplier)
+
+                        let orbRadius = orb.size * min(w, h) * 0.3
+                        let center = CGPoint(x: x, y: y)
+
+                        // Many gradient stops for ultra-smooth falloff (reduces banding)
+                        var stops: [Gradient.Stop] = []
+                        let stepCount = 20
+                        for i in 0...stepCount {
+                            let t = Double(i) / Double(stepCount)
+                            // Smooth cubic falloff curve
+                            let opacity = finalOpacity * pow(1.0 - t, 2.5)
+                            stops.append(.init(color: orb.color.opacity(opacity), location: t))
+                        }
+                        let gradient = Gradient(stops: stops)
+
+                        // Draw large circle with radial gradient
+                        let outerRadius = orbRadius * 2.5
+                        let rect = CGRect(
+                            x: center.x - outerRadius,
+                            y: center.y - outerRadius,
+                            width: outerRadius * 2,
+                            height: outerRadius * 2
+                        )
+
+                        context.fill(
+                            Circle().path(in: rect),
+                            with: .radialGradient(
+                                gradient,
+                                center: center,
+                                startRadius: 0,
+                                endRadius: outerRadius
+                            )
+                        )
+                    }
+
+                    // Subtle noise overlay to break up any remaining banding
+                    for _ in 0..<800 {
+                        let nx = Double.random(in: 0...w)
+                        let ny = Double.random(in: 0...h)
+                        let noiseOpacity = Double.random(in: 0.01...0.025)
+                        let noiseSize = Double.random(in: 1...2)
+                        context.fill(
+                            Circle().path(in: CGRect(x: nx, y: ny, width: noiseSize, height: noiseSize)),
+                            with: .color(Color.white.opacity(noiseOpacity))
                         )
                     }
                 }
             }
         }
-    }
-
-    private func drawOrb(
-        context: GraphicsContext,
-        size: CGSize,
-        time: Double,
-        orb: OrbState,
-        index: Int,
-        intensity: Double
-    ) {
-        let w = size.width
-        let h = size.height
-
-        // Multi-wave organic motion (not mechanical sine)
-        let speedMult = orb.speed
-        let phaseOffset = Double(index) * 2.1
-
-        // Primary motion layer
-        let primaryX = orb.baseX * w + sin(time * speedMult + phaseOffset) * w * 0.15
-        let primaryY = orb.baseY * h + cos(time * speedMult * 0.8 + phaseOffset) * h * 0.12
-
-        // Secondary wobble - different frequency
-        let wobbleX = sin(time * speedMult * 2.3 + phaseOffset + 1.2) * w * orb.wobble * 0.04
-        let wobbleY = cos(time * speedMult * 1.9 + phaseOffset + 2.1) * h * orb.wobble * 0.03
-
-        // Tertiary micro-drift - very slow
-        let microX = sin(time * 0.05 + phaseOffset * 3.7) * w * 0.02
-        let microY = cos(time * 0.04 + phaseOffset * 5.3) * h * 0.015
-
-        let x = primaryX + wobbleX + microX
-        let y = primaryY + wobbleY + microY
-
-        // Breathing opacity (0.70-1.0 range)
-        let breathPhase = sin(time * 0.15 + phaseOffset * 0.5)
-        let breathingOpacity = 0.85 + breathPhase * 0.15
-
-        let orbSize = orb.size * min(w, h) * 0.4
-        let rect = CGRect(
-            x: x - orbSize / 2,
-            y: y - orbSize / 2,
-            width: orbSize,
-            height: orbSize
-        )
-
-        // Draw with blur
-        var blurredContext = context
-        blurredContext.addFilter(.blur(radius: orb.blur))
-        blurredContext.fill(
-            Circle().path(in: rect),
-            with: .color(orb.color.opacity(orb.opacity * breathingOpacity * intensity))
-        )
     }
 }
 
@@ -351,13 +352,23 @@ struct BreathingDot: View {
     @State private var isBreathing = false
 
     var body: some View {
-        Circle()
-            .fill(Theme.accent)
-            .frame(width: 8, height: 8)
-            .shadow(color: Theme.accent.opacity(0.4), radius: isBreathing ? 6 : 3)
-            .scaleEffect(isBreathing ? 1.1 : 0.9)
-            .animation(.bloomBreathing.repeatForever(autoreverses: true), value: isBreathing)
-            .onAppear { isBreathing = true }
+        ZStack {
+            // Outer glow pulse
+            Circle()
+                .fill(Theme.accent.opacity(0.3))
+                .frame(width: 16, height: 16)
+                .scaleEffect(isBreathing ? 1.5 : 0.8)
+                .opacity(isBreathing ? 0 : 0.6)
+
+            // Inner dot
+            Circle()
+                .fill(Theme.accent)
+                .frame(width: 10, height: 10)
+                .shadow(color: Theme.accent.opacity(0.6), radius: isBreathing ? 8 : 4)
+                .scaleEffect(isBreathing ? 1.15 : 0.85)
+        }
+        .animation(.easeInOut(duration: 1.2).repeatForever(autoreverses: true), value: isBreathing)
+        .onAppear { isBreathing = true }
     }
 }
 
@@ -365,24 +376,55 @@ struct StreamingWave: View {
     @State private var phase: CGFloat = 0
 
     var body: some View {
-        HStack(spacing: 3) {
-            ForEach(0..<5, id: \.self) { i in
-                RoundedRectangle(cornerRadius: 1.5)
-                    .fill(Theme.accentGradient)
-                    .frame(width: 3, height: barHeight(for: i))
+        TimelineView(.animation(minimumInterval: 1/30)) { timeline in
+            let time = timeline.date.timeIntervalSinceReferenceDate
+            HStack(spacing: 4) {
+                ForEach(0..<5, id: \.self) { i in
+                    RoundedRectangle(cornerRadius: 2)
+                        .fill(Theme.accentGradient)
+                        .frame(width: 4, height: barHeight(for: i, time: time))
+                }
             }
         }
-        .frame(height: 16)
-        .onAppear {
-            withAnimation(.linear(duration: 0.8).repeatForever(autoreverses: false)) {
-                phase = .pi * 2
-            }
-        }
+        .frame(height: 20)
     }
 
-    private func barHeight(for index: Int) -> CGFloat {
-        let offset = CGFloat(index) * 0.4
-        return 6 + sin(phase + offset) * 5
+    private func barHeight(for index: Int, time: Double) -> CGFloat {
+        let offset = Double(index) * 0.5
+        let wave1 = sin(time * 3.0 + offset) * 4
+        let wave2 = sin(time * 5.0 + offset * 1.3) * 2
+        return 8 + wave1 + wave2
+    }
+}
+
+/// More dramatic thinking indicator with orbiting dots
+struct ThinkingOrbs: View {
+    @State private var rotation: Double = 0
+
+    var body: some View {
+        ZStack {
+            // Center breathing glow
+            Circle()
+                .fill(Theme.accent.opacity(0.2))
+                .frame(width: 24, height: 24)
+                .blur(radius: 8)
+
+            // Orbiting dots
+            ForEach(0..<3, id: \.self) { i in
+                Circle()
+                    .fill(Theme.accent)
+                    .frame(width: 6, height: 6)
+                    .offset(x: 14)
+                    .rotationEffect(.degrees(rotation + Double(i) * 120))
+                    .opacity(0.6 + Double(i) * 0.15)
+            }
+        }
+        .frame(width: 36, height: 36)
+        .onAppear {
+            withAnimation(.linear(duration: 1.5).repeatForever(autoreverses: false)) {
+                rotation = 360
+            }
+        }
     }
 }
 

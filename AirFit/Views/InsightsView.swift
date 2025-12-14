@@ -4,7 +4,6 @@ import SwiftData
 struct InsightsView: View {
     @Environment(\.modelContext) private var modelContext
     @State private var insights: [APIClient.InsightData] = []
-    @State private var context: APIClient.ContextSummary?
     @State private var isLoading = false
     @State private var isSyncing = false
     @State private var lastSyncTime: Date?
@@ -15,27 +14,30 @@ struct InsightsView: View {
     @State private var syncService = InsightsSyncService()
 
     var body: some View {
-        ScrollView {
-            VStack(spacing: 24) {
-                // Context Summary Card
-                if let ctx = context {
-                    contextSummaryCard(ctx)
-                        .scrollReveal()
-                }
+        ZStack {
+            // Ethereal background
+            EtherealBackground(currentTab: 1)
+                .ignoresSafeArea()
 
-                // Insights Section
-                if insights.isEmpty && !isLoading {
-                    emptyStateView
-                } else {
-                    insightsSection
+            ScrollView {
+                VStack(spacing: 24) {
+                    // Insights Section
+                    if insights.isEmpty && !isLoading {
+                        emptyStateView
+                    } else {
+                        insightsSection
+                    }
                 }
+                .padding(.horizontal, 20)
+                .padding(.top, 16)
+                .padding(.bottom, 40)
             }
-            .padding(.horizontal, 20)
-            .padding(.top, 16)
-            .padding(.bottom, 40)
+            .scrollIndicators(.hidden)
+            .scrollContentBackground(.hidden)
         }
-        .scrollIndicators(.hidden)
         .navigationTitle("Insights")
+        .navigationBarTitleDisplayMode(.inline)
+        .toolbarBackground(.hidden, for: .navigationBar)
         .refreshable {
             await syncAndRefresh()
         }
@@ -63,91 +65,6 @@ struct InsightsView: View {
                 PremiumInsightChatSheet(insight: insight)
             }
         }
-    }
-
-    // MARK: - Context Summary Card
-
-    private func contextSummaryCard(_ ctx: APIClient.ContextSummary) -> some View {
-        VStack(alignment: .leading, spacing: 16) {
-            Text("THIS WEEK")
-                .font(.labelHero)
-                .tracking(2)
-                .foregroundStyle(Theme.textMuted)
-
-            LazyVGrid(columns: [
-                GridItem(.flexible()),
-                GridItem(.flexible()),
-                GridItem(.flexible())
-            ], spacing: 16) {
-                PremiumMetricTile(
-                    icon: "flame.fill",
-                    color: Theme.calories,
-                    value: "\(ctx.avg_calories)",
-                    label: "AVG CAL"
-                )
-
-                PremiumMetricTile(
-                    icon: "p.circle.fill",
-                    color: Theme.protein,
-                    value: "\(ctx.avg_protein)g",
-                    label: "AVG PROTEIN"
-                )
-
-                if let weight = ctx.avg_weight {
-                    PremiumMetricTile(
-                        icon: "scalemass.fill",
-                        color: Theme.accent,
-                        value: String(format: "%.1f", weight),
-                        label: "LBS"
-                    )
-                }
-
-                if let sleep = ctx.avg_sleep {
-                    PremiumMetricTile(
-                        icon: "moon.fill",
-                        color: Color.indigo,
-                        value: String(format: "%.1f", sleep),
-                        label: "HRS SLEEP"
-                    )
-                }
-
-                if let proteinComp = ctx.protein_compliance {
-                    PremiumMetricTile(
-                        icon: "checkmark.circle.fill",
-                        color: proteinComp >= 0.8 ? Theme.success : (proteinComp >= 0.5 ? Theme.warning : Theme.error),
-                        value: "\(Int(proteinComp * 100))%",
-                        label: "PROTEIN HIT"
-                    )
-                }
-
-                if ctx.total_workouts > 0 {
-                    PremiumMetricTile(
-                        icon: "dumbbell.fill",
-                        color: Theme.secondary,
-                        value: "\(ctx.total_workouts)",
-                        label: "WORKOUTS"
-                    )
-                }
-            }
-
-            // Weight change callout
-            if let change = ctx.weight_change {
-                HStack(spacing: 8) {
-                    Image(systemName: change < 0 ? "arrow.down.right" : "arrow.up.right")
-                        .font(.caption)
-                        .foregroundStyle(change < 0 ? Theme.success : Theme.warning)
-                    Text(String(format: "%.1f lbs this week", abs(change)))
-                        .font(.labelMedium)
-                        .foregroundStyle(Theme.textSecondary)
-                }
-                .padding(.top, 4)
-            }
-        }
-        .padding(20)
-        .background(
-            RoundedRectangle(cornerRadius: 20, style: .continuous)
-                .fill(.ultraThinMaterial)
-        )
     }
 
     // MARK: - Insights Section
@@ -188,6 +105,7 @@ struct InsightsView: View {
                             }
                         }
                     )
+                    .contentShape(Rectangle())  // Prevent horizontal gesture conflicts
                     .staggeredReveal(index: index)
                 }
             }
@@ -239,23 +157,8 @@ struct InsightsView: View {
 
     private func loadData() async {
         isLoading = true
-
-        // Load context and insights in parallel
-        async let contextTask: () = loadContext()
-        async let insightsTask: () = loadInsights()
-
-        await contextTask
-        await insightsTask
-
+        await loadInsights()
         isLoading = false
-    }
-
-    private func loadContext() async {
-        do {
-            context = try await apiClient.getInsightsContext(range: "week")
-        } catch {
-            print("Failed to load context: \(error)")
-        }
     }
 
     private func loadInsights() async {
@@ -456,6 +359,7 @@ struct PremiumInsightChatSheet: View {
     @State private var messages: [Message] = []
     @State private var inputText = ""
     @State private var isLoading = false
+    @State private var hasAutoStarted = false
 
     private let apiClient = APIClient()
 
@@ -526,7 +430,33 @@ struct PremiumInsightChatSheet: View {
                         .foregroundStyle(Theme.accent)
                 }
             }
+            .task {
+                // Auto-start conversation when sheet opens
+                guard !hasAutoStarted else { return }
+                hasAutoStarted = true
+                await sendInitialPrompt()
+            }
         }
+    }
+
+    private func sendInitialPrompt() async {
+        isLoading = true
+
+        // Use the new discussInsight endpoint that has full context
+        let initialMessage = "Tell me more about this insight. What's the full context and what should I do about it?"
+
+        do {
+            let response = try await apiClient.discussInsight(id: insight.id, message: initialMessage)
+            withAnimation(.airfit) {
+                messages.append(Message(content: response, isUser: false))
+            }
+        } catch {
+            withAnimation(.airfit) {
+                messages.append(Message(content: "I'd be happy to tell you more about this insight. What would you like to know?", isUser: false))
+            }
+        }
+
+        isLoading = false
     }
 
     private func sendMessage() async {
@@ -541,20 +471,9 @@ struct PremiumInsightChatSheet: View {
 
         isLoading = true
 
-        // Build context-aware prompt
-        let contextPrompt = """
-        The user is asking about this insight:
-        Title: \(insight.title)
-        Body: \(insight.body)
-        Category: \(insight.category)
-
-        User question: \(text)
-
-        Respond conversationally, referencing the insight and any relevant data.
-        """
-
+        // Use the discussInsight endpoint - server has full context
         do {
-            let response = try await apiClient.sendMessage(contextPrompt)
+            let response = try await apiClient.discussInsight(id: insight.id, message: text)
             withAnimation(.airfit) {
                 messages.append(Message(content: response, isUser: false))
             }
