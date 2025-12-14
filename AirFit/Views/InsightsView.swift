@@ -188,7 +188,7 @@ struct InsightsView: View {
                             }
                         }
                     )
-                    .scrollReveal()
+                    .staggeredReveal(index: index)
                 }
             }
         }

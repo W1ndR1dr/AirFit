@@ -25,6 +25,9 @@ struct NutritionView: View {
     @State private var viewMode: NutritionViewMode = .day
     @State private var selectedDate: Date = Date()
 
+    // Scrollytelling
+    @State private var scrollOffset: CGFloat = 0
+
     private let apiClient = APIClient()
 
     // Filter entries based on view mode and selected date
@@ -151,42 +154,58 @@ struct NutritionView: View {
         return true // Week/month are always retrospective-style
     }
 
+    // Scrollytelling progress (0 = expanded, 1 = collapsed)
+    private var heroProgress: CGFloat {
+        min(1, max(0, scrollOffset / 120))
+    }
+
     var body: some View {
         ZStack {
-            VStack(spacing: 0) {
-                // View mode picker
-                viewModePicker
+            ScrollView {
+                VStack(spacing: 0) {
+                    // Scroll offset tracker
+                    ScrollOffsetReader()
 
-                // Date navigation
-                dateNavigationHeader
+                    // View mode picker
+                    viewModePicker
 
-                // Day type toggle (only show for today in day view)
-                if viewMode == .day && isToday {
-                    dayToggle
+                    // Date navigation
+                    dateNavigationHeader
+
+                    // Day type toggle (only show for today in day view)
+                    if viewMode == .day && isToday {
+                        dayToggle
+                    }
+
+                    // Live energy balance (only for today in day view)
+                    if viewMode == .day && isToday && energyTracker.todayTDEE > 0 {
+                        liveBalanceCard
+                    }
+
+                    // SCROLLYTELLING HERO: Macro summary that transforms on scroll
+                    if viewMode == .day {
+                        scrollytellingMacroHero
+                            .padding(.horizontal, 20)
+                            .padding(.vertical, 16)
+                    } else {
+                        retrospectiveSummary
+                            .padding(.horizontal, 20)
+                            .padding(.vertical, 16)
+                    }
+
+                    // Content based on view mode
+                    if viewMode == .day {
+                        dayEntriesContent
+                    } else {
+                        summaryListContent
+                    }
                 }
-
-                // Live energy balance (only for today in day view)
-                if viewMode == .day && isToday && energyTracker.todayTDEE > 0 {
-                    liveBalanceCard
-                }
-
-                // Summary section - different for retrospective vs current
-                if viewMode == .day {
-                    premiumMacroGauges
-                        .padding(.horizontal, 20)
-                        .padding(.vertical, 16)
-                } else {
-                    retrospectiveSummary
-                        .padding(.horizontal, 20)
-                        .padding(.vertical, 16)
-                }
-
-                // Content based on view mode
-                if viewMode == .day {
-                    entriesList
-                } else {
-                    summaryList
-                }
+                .padding(.bottom, viewMode == .day && isToday ? 100 : 20)
+            }
+            .coordinateSpace(name: "scroll")
+            .scrollIndicators(.hidden)
+            .onPreferenceChange(ScrollOffsetPreferenceKey.self) { offset in
+                scrollOffset = offset
             }
 
             // Floating input area (only for today in day view)
@@ -221,6 +240,65 @@ struct NutritionView: View {
         }
         .sheet(item: $editingEntry) { entry in
             EditNutritionSheet(entry: entry)
+        }
+    }
+
+    // MARK: - Scrollytelling Macro Hero
+    // Transforms from big hero numbers to compact bar as you scroll
+
+    @ViewBuilder
+    private var scrollytellingMacroHero: some View {
+        let heroCalories: Text = Text("\(totals.cal)")
+            .font(.system(size: 64, weight: .bold, design: .rounded))
+        let subtitleText: Text = Text("OF \(targets.cal) CALORIES")
+            .font(.system(size: 11, weight: .semibold))
+            .tracking(2)
+
+        VStack(spacing: 0) {
+            // Hero calorie number that scales on scroll
+            heroCalories
+                .foregroundStyle(
+                    LinearGradient(
+                        colors: [Theme.calories, Theme.calories.opacity(0.7)],
+                        startPoint: .top,
+                        endPoint: .bottom
+                    )
+                )
+                .scaleEffect(1.0 - heroProgress * 0.4)
+                .contentTransition(.numericText(value: Double(totals.cal)))
+                .animation(.bloomWater, value: totals.cal)
+
+            subtitleText
+                .foregroundStyle(Theme.textMuted)
+                .opacity(1.0 - heroProgress * 0.5)
+                .scaleEffect(1.0 - heroProgress * 0.2)
+
+            // Macro bars that fade in as hero shrinks
+            VStack(spacing: 12) {
+                HeroProgressBar(
+                    label: "Protein",
+                    current: totals.protein,
+                    target: targets.protein,
+                    unit: "g",
+                    color: Theme.protein
+                )
+                HeroProgressBar(
+                    label: "Carbs",
+                    current: totals.carbs,
+                    target: targets.carbs,
+                    unit: "g",
+                    color: Theme.carbs
+                )
+                HeroProgressBar(
+                    label: "Fat",
+                    current: totals.fat,
+                    target: targets.fat,
+                    unit: "g",
+                    color: Theme.fat
+                )
+            }
+            .padding(.top, 16.0 - (heroProgress * 8.0))
+            .opacity(0.6 + heroProgress * 0.4)
         }
     }
 
@@ -305,31 +383,27 @@ struct NutritionView: View {
         }
     }
 
-    // MARK: - Summary List (Week/Month)
+    // MARK: - Summary List Content (for unified ScrollView)
 
-    private var summaryList: some View {
-        ScrollView {
-            LazyVStack(spacing: 12) {
-                if dailySummaries.isEmpty {
-                    emptyStateView
-                } else {
-                    ForEach(dailySummaries) { summary in
-                        PremiumDailySummaryRow(summary: summary, targets: targets)
-                            .contentShape(Rectangle())
-                            .onTapGesture {
-                                withAnimation(.airfit) {
-                                    selectedDate = summary.date
-                                    viewMode = .day
-                                }
+    private var summaryListContent: some View {
+        LazyVStack(spacing: 12) {
+            if dailySummaries.isEmpty {
+                emptyStateView
+            } else {
+                ForEach(Array(dailySummaries.enumerated()), id: \.element.id) { index, summary in
+                    PremiumDailySummaryRow(summary: summary, targets: targets)
+                        .contentShape(Rectangle())
+                        .onTapGesture {
+                            withAnimation(.airfit) {
+                                selectedDate = summary.date
+                                viewMode = .day
                             }
-                            .scrollReveal()
-                    }
+                        }
+                        .staggeredReveal(index: index)
                 }
             }
-            .padding(.horizontal, 20)
-            .padding(.bottom, 20)
         }
-        .scrollIndicators(.hidden)
+        .padding(.horizontal, 20)
     }
 
     // MARK: - Retrospective Summary (Week/Month)
@@ -522,46 +596,42 @@ struct NutritionView: View {
         }
     }
 
-    // MARK: - Entries List
+    // MARK: - Day Entries Content (for unified ScrollView)
 
-    private var entriesList: some View {
+    private var dayEntriesContent: some View {
         let dayEntries = filteredEntries.sorted { $0.timestamp > $1.timestamp }
 
-        return ScrollView {
-            LazyVStack(spacing: 12) {
-                if dayEntries.isEmpty {
-                    emptyStateView
-                } else {
-                    ForEach(dayEntries) { entry in
-                        PremiumNutritionEntryRow(
-                            entry: entry,
-                            isExpanded: expandedEntryId == entry.id,
-                            onTap: {
-                                withAnimation(.airfit) {
-                                    if expandedEntryId == entry.id {
-                                        expandedEntryId = nil
-                                    } else {
-                                        expandedEntryId = entry.id
-                                    }
-                                }
-                            },
-                            onEdit: {
-                                editingEntry = entry
-                            },
-                            onDelete: {
-                                withAnimation(.airfit) {
-                                    modelContext.delete(entry)
+        return LazyVStack(spacing: 12) {
+            if dayEntries.isEmpty {
+                emptyStateView
+            } else {
+                ForEach(Array(dayEntries.enumerated()), id: \.element.id) { index, entry in
+                    PremiumNutritionEntryRow(
+                        entry: entry,
+                        isExpanded: expandedEntryId == entry.id,
+                        onTap: {
+                            withAnimation(.airfit) {
+                                if expandedEntryId == entry.id {
+                                    expandedEntryId = nil
+                                } else {
+                                    expandedEntryId = entry.id
                                 }
                             }
-                        )
-                        .scrollReveal()
-                    }
+                        },
+                        onEdit: {
+                            editingEntry = entry
+                        },
+                        onDelete: {
+                            withAnimation(.airfit) {
+                                modelContext.delete(entry)
+                            }
+                        }
+                    )
+                    .staggeredReveal(index: index)
                 }
             }
-            .padding(.horizontal, 20)
-            .padding(.bottom, viewMode == .day && isToday ? 100 : 20) // Space for input
         }
-        .scrollIndicators(.hidden)
+        .padding(.horizontal, 20)
     }
 
     // MARK: - Empty State

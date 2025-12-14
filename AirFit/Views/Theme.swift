@@ -22,13 +22,25 @@ enum TimeOfDay {
         }
     }
 
-    var backgroundTint: Color {
-        switch self {
-        case .morning: return Color(hex: "E8F4F8")  // Cool, crisp
-        case .midday: return Color(hex: "FFF8F0")   // Neutral warmth (honeyed cream)
-        case .evening: return Color(hex: "FFF5EB")  // Warmer softening
-        case .night: return Color(hex: "F5F0EA")    // Twilight, restful
+    func backgroundTint(for colorScheme: ColorScheme) -> Color {
+        switch (self, colorScheme) {
+        // Light mode - warm cream tones
+        case (.morning, .light): return Color(hex: "E8F4F8")
+        case (.midday, .light): return Color(hex: "FFF8F0")
+        case (.evening, .light): return Color(hex: "FFF5EB")
+        case (.night, .light): return Color(hex: "F5F0EA")
+        // Dark mode - warm charcoal tones
+        case (.morning, .dark): return Color(hex: "1A1F22")
+        case (.midday, .dark): return Color(hex: "1C1917")
+        case (.evening, .dark): return Color(hex: "1F1A17")
+        case (.night, .dark): return Color(hex: "171514")
+        @unknown default: return Color(hex: "1C1917")
         }
+    }
+
+    // Legacy accessor for non-environment contexts
+    var backgroundTint: Color {
+        backgroundTint(for: .light)
     }
 
     var orbIntensity: Double {
@@ -41,15 +53,15 @@ enum TimeOfDay {
     }
 }
 
-// MARK: - Color Palette (Bloom's warm palette)
+// MARK: - Color Palette (Bloom's warm palette - Light/Dark adaptive)
 
 enum Theme {
-    // Primary colors - warm coral/sage/lavender
-    static let accent = Color(hex: "E88B7F")        // Warm coral (Bloom's signature)
-    static let secondary = Color(hex: "7DB095")     // Sage green (calming wellness)
-    static let tertiary = Color(hex: "B4A0C7")      // Dusty lavender (contemplative)
-    static let warmPeach = Color(hex: "F4B5A0")     // Encouragement & celebration
-    static let warmTaupe = Color(hex: "8B7E72")     // Grounding neutral
+    // Primary colors - warm coral/sage/lavender (slightly brighter in dark mode)
+    static let accent = Color.adaptive(light: "E88B7F", dark: "F4A99F")
+    static let secondary = Color.adaptive(light: "7DB095", dark: "9DCAB0")
+    static let tertiary = Color.adaptive(light: "B4A0C7", dark: "CFC0DC")
+    static let warmPeach = Color.adaptive(light: "F4B5A0", dark: "F8CFC0")
+    static let warmTaupe = Color.adaptive(light: "8B7E72", dark: "A89B8F")
 
     // Gradient
     static let accentGradient = LinearGradient(
@@ -68,27 +80,27 @@ enum Theme {
         endPoint: .bottomTrailing
     )
 
-    // Background palette - honeyed cream
-    static let background = Color(hex: "FFF8F0")    // Honeyed cream foundation
-    static let surface = Color(hex: "FBF7F3")       // Slightly elevated warm white
-    static let surfaceElevated = Color(hex: "FFFFFF")
+    // Background palette - honeyed cream (light) / warm charcoal (dark)
+    static let background = Color.adaptive(light: "FFF8F0", dark: "1C1917")
+    static let surface = Color.adaptive(light: "FBF7F3", dark: "292524")
+    static let surfaceElevated = Color.adaptive(light: "FFFFFF", dark: "3D3733")
 
-    // Text colors - soft charcoal, WCAG compliant
-    static let textPrimary = Color(hex: "3D3733")   // Soft charcoal
-    static let textSecondary = Color(hex: "5A524A") // Medium warmth
-    static let textMuted = Color(hex: "796E63")     // Warm taupe (WCAG AA)
+    // Text colors - inverted for dark mode
+    static let textPrimary = Color.adaptive(light: "3D3733", dark: "FAF7F5")
+    static let textSecondary = Color.adaptive(light: "5A524A", dark: "D6CFC8")
+    static let textMuted = Color.adaptive(light: "796E63", dark: "A89B8F")
 
-    // Macro colors - warm, not clinical
-    static let calories = Color(hex: "E89B7C")      // Warm coral
-    static let protein = Color(hex: "8BB4B8")       // Blue-green sibling to sage
-    static let carbs = Color(hex: "D9A67C")         // Warm gold
-    static let fat = Color(hex: "C4B87C")           // Muted yellow
+    // Macro colors - warm, slightly boosted saturation in dark mode
+    static let calories = Color.adaptive(light: "E89B7C", dark: "F4B09A")
+    static let protein = Color.adaptive(light: "8BB4B8", dark: "A8CED2")
+    static let carbs = Color.adaptive(light: "D9A67C", dark: "E8BFA0")
+    static let fat = Color.adaptive(light: "C4B87C", dark: "D8CEA0")
 
     // Semantic colors
-    static let success = Color(hex: "7DB095")       // Sage green
-    static let warning = Color(hex: "E9B879")       // Warm gold
-    static let error = Color(hex: "D97C7C")         // Muted red
-    static let warm = Color(hex: "F4B5A0")          // Warm peach
+    static let success = Color.adaptive(light: "7DB095", dark: "9DCAB0")
+    static let warning = Color.adaptive(light: "E9B879", dark: "F4CFA0")
+    static let error = Color.adaptive(light: "D97C7C", dark: "E89A9A")
+    static let warm = Color.adaptive(light: "F4B5A0", dark: "F8CFC0")
 }
 
 // MARK: - Typography (Three-tier Bloom system)
@@ -190,6 +202,7 @@ extension Animation {
 struct EtherealBackground: View {
     var currentTab: Int = 0
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
+    @Environment(\.colorScheme) private var colorScheme
 
     var body: some View {
         if reduceMotion {
@@ -206,10 +219,10 @@ struct EtherealBackground: View {
                     let timeOfDay = TimeOfDay.current
                     let config = BackgroundConfig.forTab(currentTab)
 
-                    // Draw time-of-day tinted base
+                    // Draw time-of-day tinted base (color scheme aware)
                     context.fill(
                         Path(CGRect(origin: .zero, size: size)),
-                        with: .color(timeOfDay.backgroundTint)
+                        with: .color(timeOfDay.backgroundTint(for: colorScheme))
                     )
 
                     // Draw each orb with organic motion
@@ -630,6 +643,68 @@ extension View {
                 .blur(radius: phase.isIdentity ? 0 : 2)
         }
     }
+
+    /// Staggered entrance animation for lists
+    func staggeredReveal(index: Int) -> some View {
+        self.scrollTransition(.interactive) { content, phase in
+            content
+                .opacity(phase.isIdentity ? 1 : 0)
+                .scaleEffect(phase.isIdentity ? 1 : 0.92)
+                .offset(y: phase.isIdentity ? 0 : 20)
+        }
+        .animation(.bloom.delay(Double(index) * 0.05), value: index)
+    }
+}
+
+// MARK: - Scroll Offset Tracking
+
+struct ScrollOffsetPreferenceKey: PreferenceKey {
+    nonisolated(unsafe) static var defaultValue: CGFloat = 0
+    static func reduce(value: inout CGFloat, nextValue: () -> CGFloat) {
+        value = nextValue()
+    }
+}
+
+/// A view that reports its scroll offset
+struct ScrollOffsetReader: View {
+    var body: some View {
+        GeometryReader { geo in
+            Color.clear
+                .preference(
+                    key: ScrollOffsetPreferenceKey.self,
+                    value: -geo.frame(in: .named("scroll")).minY
+                )
+        }
+        .frame(height: 0)
+    }
+}
+
+// MARK: - Scrollytelling Hero Header
+
+struct ScrollytellingHero<Content: View>: View {
+    let scrollOffset: CGFloat
+    let expandedHeight: CGFloat
+    let collapsedHeight: CGFloat
+    @ViewBuilder let expanded: () -> Content
+    @ViewBuilder let collapsed: () -> Content
+
+    private var progress: CGFloat {
+        min(1, max(0, scrollOffset / (expandedHeight - collapsedHeight)))
+    }
+
+    var body: some View {
+        ZStack {
+            expanded()
+                .opacity(1 - progress)
+                .scaleEffect(1 - progress * 0.1)
+
+            collapsed()
+                .opacity(progress)
+                .scaleEffect(0.9 + progress * 0.1)
+        }
+        .frame(height: expandedHeight - (expandedHeight - collapsedHeight) * progress)
+        .animation(.bloomSubtle, value: progress)
+    }
 }
 
 // MARK: - Transitions
@@ -646,7 +721,7 @@ extension AnyTransition {
     }
 }
 
-// MARK: - Color Hex Helper
+// MARK: - Color Helpers
 
 extension Color {
     init(hex: String) {
@@ -671,5 +746,14 @@ extension Color {
             blue: Double(b) / 255,
             opacity: Double(a) / 255
         )
+    }
+
+    /// Creates an adaptive color that automatically switches between light and dark mode
+    static func adaptive(light: String, dark: String) -> Color {
+        Color(uiColor: UIColor { traitCollection in
+            traitCollection.userInterfaceStyle == .dark
+                ? UIColor(Color(hex: dark))
+                : UIColor(Color(hex: light))
+        })
     }
 }
