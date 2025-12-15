@@ -378,6 +378,53 @@ actor APIClient {
         let importance: Double
         let created_at: String
         let suggested_actions: [String]
+        let supporting_data: SupportingData?
+
+        // Custom decoding to handle flexible supporting_data structure
+        init(from decoder: Decoder) throws {
+            let container = try decoder.container(keyedBy: CodingKeys.self)
+            id = try container.decode(String.self, forKey: .id)
+            category = try container.decode(String.self, forKey: .category)
+            tier = try container.decode(Int.self, forKey: .tier)
+            title = try container.decode(String.self, forKey: .title)
+            body = try container.decode(String.self, forKey: .body)
+            importance = try container.decode(Double.self, forKey: .importance)
+            created_at = try container.decode(String.self, forKey: .created_at)
+            suggested_actions = try container.decodeIfPresent([String].self, forKey: .suggested_actions) ?? []
+            supporting_data = try? container.decode(SupportingData.self, forKey: .supporting_data)
+        }
+
+        private enum CodingKeys: String, CodingKey {
+            case id, category, tier, title, body, importance, created_at, suggested_actions, supporting_data
+        }
+    }
+
+    /// Supporting data for insight visualization
+    struct SupportingData: Decodable {
+        let metric: String?
+        let values: [Double]?
+        let dates: [String]?
+        let target: Double?
+        let trend_slope: Double?
+        let current_value: Double?
+        let previous_value: Double?
+        let change_pct: Double?
+
+        init(from decoder: Decoder) throws {
+            let container = try decoder.container(keyedBy: CodingKeys.self)
+            metric = try? container.decode(String.self, forKey: .metric)
+            values = try? container.decode([Double].self, forKey: .values)
+            dates = try? container.decode([String].self, forKey: .dates)
+            target = try? container.decode(Double.self, forKey: .target)
+            trend_slope = try? container.decode(Double.self, forKey: .trend_slope)
+            current_value = try? container.decode(Double.self, forKey: .current_value)
+            previous_value = try? container.decode(Double.self, forKey: .previous_value)
+            change_pct = try? container.decode(Double.self, forKey: .change_pct)
+        }
+
+        private enum CodingKeys: String, CodingKey {
+            case metric, values, dates, target, trend_slope, current_value, previous_value, change_pct
+        }
     }
 
     struct ContextSummary: Decodable {

@@ -144,11 +144,26 @@ Respond in JSON format with an array of insights:
       "confidence": 0.0-1.0,
       "actionability": 0.0-1.0,
       "suggested_actions": ["action 1", "action 2"],
-      "supporting_data": {"key metrics or data points referenced"}
+      "supporting_data": {
+        "metric": "protein|weight|calories|sleep|steps|volume",
+        "values": [145, 150, 155, 160, 165],
+        "current_value": 165,
+        "previous_value": 145,
+        "change_pct": 13.8,
+        "target": 160,
+        "trend_slope": 5.0
+      }
     }
   ]
 }
 ```
+
+IMPORTANT for supporting_data:
+- Include "values" array with 5-10 recent data points for charting (oldest to newest)
+- Include "metric" to label the data type
+- Include "current_value" and "change_pct" when showing trends
+- Include "target" if there's a goal being measured against
+- This data powers inline sparkline visualizations in the app
 
 Categories:
 - correlation: Cross-domain patterns (highest value - things humans miss)

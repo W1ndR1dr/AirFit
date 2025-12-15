@@ -666,6 +666,7 @@ class InsightResponse(BaseModel):
     importance: float
     created_at: str
     suggested_actions: list[str] = []
+    supporting_data: dict = {}
 
 
 class ContextSummary(BaseModel):
@@ -899,7 +900,8 @@ async def get_insights(category: Optional[str] = None, limit: int = 10):
             body=i.body,
             importance=i.importance,
             created_at=i.created_at,
-            suggested_actions=i.suggested_actions
+            suggested_actions=i.suggested_actions,
+            supporting_data=i.supporting_data
         )
         for i in insights
     ]

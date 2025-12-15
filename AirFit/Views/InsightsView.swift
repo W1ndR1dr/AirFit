@@ -298,6 +298,37 @@ struct PremiumInsightCard: View {
         }
     }
 
+    private func formatValue(_ value: Double, metric: String?) -> String {
+        switch metric?.lowercased() {
+        case "weight":
+            return String(format: "%.1f lbs", value)
+        case "protein":
+            return "\(Int(value))g"
+        case "calories":
+            return "\(Int(value))"
+        case "sleep":
+            return String(format: "%.1f hrs", value)
+        case "steps":
+            return "\(Int(value))"
+        default:
+            if value == floor(value) {
+                return "\(Int(value))"
+            }
+            return String(format: "%.1f", value)
+        }
+    }
+
+    private func formatChange(_ change: Double) -> String {
+        let sign = change >= 0 ? "+" : ""
+        return "\(sign)\(String(format: "%.1f", change))%"
+    }
+
+    /// Check if we have chartable data
+    private var hasChartData: Bool {
+        guard let data = insight.supporting_data else { return false }
+        return data.values != nil && (data.values?.count ?? 0) >= 2
+    }
+
     var body: some View {
         VStack(alignment: .leading, spacing: 16) {
             // Header
@@ -317,6 +348,49 @@ struct PremiumInsightCard: View {
                     .foregroundStyle(Theme.textPrimary)
 
                 Spacer()
+            }
+
+            // Sparkline visualization (when data available)
+            if hasChartData, let data = insight.supporting_data, let values = data.values {
+                HStack(spacing: 16) {
+                    // Expanded sparkline
+                    MiniSparkline(data: values, color: categoryColor, showDots: true)
+                        .frame(width: 120, height: 32)
+
+                    // Metric summary
+                    if let current = data.current_value {
+                        VStack(alignment: .leading, spacing: 2) {
+                            Text(formatValue(current, metric: data.metric))
+                                .font(.metricSmall)
+                                .foregroundStyle(categoryColor)
+                            if let change = data.change_pct {
+                                Text(formatChange(change))
+                                    .font(.labelMicro)
+                                    .foregroundStyle(change >= 0 ? Theme.success : Theme.warning)
+                            }
+                        }
+                    }
+
+                    Spacer()
+
+                    // Target indicator
+                    if let target = data.target {
+                        VStack(alignment: .trailing, spacing: 2) {
+                            Text("Target")
+                                .font(.labelMicro)
+                                .foregroundStyle(Theme.textMuted)
+                            Text(formatValue(target, metric: data.metric))
+                                .font(.labelMedium)
+                                .foregroundStyle(Theme.textSecondary)
+                        }
+                    }
+                }
+                .padding(.vertical, 8)
+                .padding(.horizontal, 12)
+                .background(
+                    RoundedRectangle(cornerRadius: 12, style: .continuous)
+                        .fill(categoryColor.opacity(0.05))
+                )
             }
 
             // Body
