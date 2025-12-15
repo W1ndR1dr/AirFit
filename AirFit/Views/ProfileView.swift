@@ -24,113 +24,54 @@ enum AppearanceMode: String, CaseIterable {
     }
 }
 
+// MARK: - Profile View
+
 struct ProfileView: View {
     @State private var profile: APIClient.ProfileResponse?
     @State private var isLoading = true
-    @State private var showClearConfirm = false
-    @State private var showClearChatConfirm = false
-
-    // Settings state
-    @State private var serverStatus: ServerInfo?
-    @State private var isLoadingSettings = true
-
-    // Appearance
-    @AppStorage("appearanceMode") private var appearanceMode: String = AppearanceMode.system.rawValue
+    @State private var showSettings = false
 
     private let apiClient = APIClient()
 
     var body: some View {
-        ZStack {
-            // Ethereal background
-            EtherealBackground(currentTab: 4)
-                .ignoresSafeArea()
-
-            Group {
-                if isLoading {
-                    loadingView
-                } else if let profile = profile {
-                    if profile.has_profile {
-                        profileContent(profile)
-                    } else {
-                        emptyState
-                    }
+        Group {
+            if isLoading {
+                loadingView
+            } else if let profile = profile {
+                if profile.has_profile {
+                    profileContent(profile)
                 } else {
-                    errorState
+                    emptyState
                 }
+            } else {
+                errorState
             }
         }
-        .navigationTitle("What I Know")
+        .navigationTitle("Profile")
         .navigationBarTitleDisplayMode(.inline)
         .toolbarBackground(.hidden, for: .navigationBar)
         .toolbar {
-            if profile?.has_profile == true {
-                ToolbarItem(placement: .topBarTrailing) {
-                    Button {
-                        showClearConfirm = true
-                    } label: {
-                        Text("Clear")
-                            .font(.labelMedium)
-                            .foregroundStyle(Theme.error)
-                    }
-                    .buttonStyle(AirFitSubtleButtonStyle())
+            ToolbarItem(placement: .topBarTrailing) {
+                Button {
+                    showSettings = true
+                } label: {
+                    Image(systemName: "gearshape")
+                        .font(.system(size: 17))
+                        .foregroundStyle(Theme.textSecondary)
                 }
             }
         }
-        .confirmationDialog(
-            "Clear all learned data?",
-            isPresented: $showClearConfirm,
-            titleVisibility: .visible
-        ) {
-            Button("Clear Everything", role: .destructive) {
-                Task { await clearProfile() }
-            }
-        } message: {
-            Text("The AI will start fresh and learn about you again through conversation.")
-        }
-        .confirmationDialog(
-            "Clear chat history?",
-            isPresented: $showClearChatConfirm,
-            titleVisibility: .visible
-        ) {
-            Button("Clear History", role: .destructive) {
-                Task { await clearSession() }
-            }
-        } message: {
-            Text("This will start a fresh conversation with the AI coach.")
+        .navigationDestination(isPresented: $showSettings) {
+            SettingsView()
         }
         .refreshable {
-            await loadAll()
+            await loadProfile()
         }
         .task {
-            await loadAll()
+            await loadProfile()
         }
-    }
-
-    private func loadAll() async {
-        async let profileTask: () = loadProfile()
-        async let statusTask: () = loadStatus()
-        await profileTask
-        await statusTask
-    }
-
-    private func loadStatus() async {
-        isLoadingSettings = true
-        do {
-            serverStatus = try await apiClient.getServerStatus()
-        } catch {
-            serverStatus = nil
-        }
-        withAnimation(.airfit) {
-            isLoadingSettings = false
-        }
-    }
-
-    private func clearSession() async {
-        do {
-            try await apiClient.clearSession()
-            await loadStatus()
-        } catch {
-            print("Failed to clear session: \(error)")
+        .onReceive(NotificationCenter.default.publisher(for: .profileReset)) { _ in
+            Task { await loadProfile() }
         }
     }
 
@@ -142,7 +83,7 @@ struct ProfileView: View {
                 .tint(Theme.accent)
 
             Text("Loading profile...")
-                .font(.labelMedium)
+                .font(.subheadline)
                 .foregroundStyle(Theme.textMuted)
         }
     }
@@ -151,83 +92,85 @@ struct ProfileView: View {
 
     private func profileContent(_ profile: APIClient.ProfileResponse) -> some View {
         ScrollView {
-            VStack(spacing: 24) {
-                // Goals Section
-                if !profile.goals.isEmpty {
-                    ProfileSection(title: "GOALS", icon: "target", color: Theme.accent) {
-                        ForEach(profile.goals, id: \.self) { goal in
-                            ProfileItem(text: goal, icon: "checkmark.circle.fill", color: Theme.accent)
-                        }
-                    }
-                }
-
-                // About You Section
-                if !profile.context.isEmpty {
-                    ProfileSection(title: "ABOUT YOU", icon: "person.fill", color: Theme.protein) {
-                        ForEach(profile.context, id: \.self) { item in
-                            ProfileItem(text: item, icon: "info.circle.fill", color: Theme.protein)
-                        }
-                    }
-                }
-
-                // Preferences Section
-                if !profile.preferences.isEmpty {
-                    ProfileSection(title: "PREFERENCES", icon: "heart.fill", color: Theme.secondary) {
-                        ForEach(profile.preferences, id: \.self) { pref in
-                            ProfileItem(text: pref, icon: "heart.fill", color: Theme.secondary)
-                        }
-                    }
-                }
-
-                // Constraints Section
-                if !profile.constraints.isEmpty {
-                    ProfileSection(title: "CONSTRAINTS", icon: "exclamationmark.triangle.fill", color: Theme.warning) {
-                        ForEach(profile.constraints, id: \.self) { constraint in
-                            ProfileItem(text: constraint, icon: "exclamationmark.circle.fill", color: Theme.warning)
-                        }
-                    }
-                }
-
-                // Patterns Section
-                if !profile.patterns.isEmpty {
-                    ProfileSection(title: "PATTERNS I'VE NOTICED", icon: "chart.line.uptrend.xyaxis", color: Theme.tertiary) {
-                        ForEach(profile.patterns, id: \.self) { pattern in
-                            ProfileItem(text: pattern, icon: "waveform.path.ecg", color: Theme.tertiary)
-                        }
-                    }
-                }
-
-                // Communication Style
-                if !profile.communication_style.isEmpty {
-                    ProfileSection(title: "COMMUNICATION", icon: "bubble.left.fill", color: Theme.accent) {
-                        ProfileItem(text: profile.communication_style, icon: "text.bubble.fill", color: Theme.accent)
-                    }
-                }
-
-                // Recent Insights
-                if !profile.recent_insights.isEmpty {
-                    ProfileSection(title: "RECENT INSIGHTS", icon: "lightbulb.fill", color: Theme.warm) {
-                        ForEach(profile.recent_insights, id: \.date) { insight in
-                            InsightItem(insight: insight)
-                        }
-                    }
-                }
-
-                // Stats footer
-                HStack {
-                    Spacer()
-                    Text("Total insights: \(profile.insights_count)")
-                        .font(.labelMicro)
-                        .foregroundStyle(Theme.textMuted)
-                    Spacer()
-                }
+            VStack(spacing: 32) {
+                // Hero Section
+                ProfileHeroView(
+                    name: profile.name,
+                    summary: profile.summary,
+                    phase: profile.current_phase,
+                    phaseContext: profile.phase_context
+                )
                 .padding(.top, 8)
 
-                // Settings Section
-                settingsSection
+                // What you're working toward
+                if !profile.goals.isEmpty {
+                    ProfileSectionView(
+                        title: "What you're working toward",
+                        items: profile.goals,
+                        category: "goals",
+                        onItemUpdated: { old, new in updateItem("goals", old, new) },
+                        onItemDeleted: { item in deleteItem("goals", item) }
+                    )
+                }
+
+                // What I've learned
+                if !profile.context.isEmpty {
+                    ProfileSectionView(
+                        title: "What I've learned",
+                        items: profile.context,
+                        category: "context",
+                        onItemUpdated: { old, new in updateItem("context", old, new) },
+                        onItemDeleted: { item in deleteItem("context", item) }
+                    )
+                }
+
+                // Your preferences
+                if !profile.preferences.isEmpty {
+                    ProfileSectionView(
+                        title: "Your preferences",
+                        items: profile.preferences,
+                        category: "preferences",
+                        onItemUpdated: { old, new in updateItem("preferences", old, new) },
+                        onItemDeleted: { item in deleteItem("preferences", item) }
+                    )
+                }
+
+                // Things to keep in mind
+                if !profile.constraints.isEmpty {
+                    ProfileSectionView(
+                        title: "Things to keep in mind",
+                        items: profile.constraints,
+                        category: "constraints",
+                        onItemUpdated: { old, new in updateItem("constraints", old, new) },
+                        onItemDeleted: { item in deleteItem("constraints", item) }
+                    )
+                }
+
+                // Patterns I'm noticing
+                if !profile.patterns.isEmpty {
+                    ProfileSectionView(
+                        title: "Patterns I'm noticing",
+                        items: profile.patterns,
+                        category: "patterns",
+                        onItemUpdated: { old, new in updateItem("patterns", old, new) },
+                        onItemDeleted: { item in deleteItem("patterns", item) }
+                    )
+                }
+
+                // How we talk (read-only for now - communication_style is a single string)
+                if !profile.communication_style.isEmpty {
+                    ProfileSectionView(
+                        title: "How we talk",
+                        items: [profile.communication_style]
+                    )
+                }
+
+                // Recent insights
+                if !profile.recent_insights.isEmpty {
+                    RecentInsightsSection(insights: profile.recent_insights)
+                }
             }
             .padding(.horizontal, 20)
-            .padding(.top, 16)
             .padding(.bottom, 40)
         }
         .scrollIndicators(.hidden)
@@ -235,160 +178,26 @@ struct ProfileView: View {
         .background(Color.clear)
     }
 
-    // MARK: - Settings Section
-
-    private var settingsSection: some View {
-        VStack(spacing: 24) {
-            // Appearance
-            ProfileSection(title: "APPEARANCE", icon: "paintbrush.fill", color: Theme.warm) {
-                Picker("Appearance", selection: $appearanceMode) {
-                    ForEach(AppearanceMode.allCases, id: \.rawValue) { mode in
-                        Label(mode.rawValue, systemImage: mode.icon)
-                            .tag(mode.rawValue)
-                    }
-                }
-                .pickerStyle(.segmented)
-            }
-
-            // Server Status
-            ProfileSection(title: "SERVER", icon: "server.rack", color: Theme.tertiary) {
-                HStack {
-                    Text("Status")
-                        .font(.bodyMedium)
-                        .foregroundStyle(Theme.textPrimary)
-                    Spacer()
-                    if isLoadingSettings {
-                        ProgressView()
-                            .tint(Theme.accent)
-                    } else if serverStatus != nil {
-                        HStack(spacing: 6) {
-                            Circle()
-                                .fill(Theme.success)
-                                .frame(width: 8, height: 8)
-                            Text("Connected")
-                                .font(.labelMedium)
-                                .foregroundStyle(Theme.success)
-                        }
-                    } else {
-                        HStack(spacing: 6) {
-                            Circle()
-                                .fill(Theme.error)
-                                .frame(width: 8, height: 8)
-                            Text("Disconnected")
-                                .font(.labelMedium)
-                                .foregroundStyle(Theme.error)
-                        }
-                    }
-                }
-
-                if let status = serverStatus {
-                    HStack {
-                        Text("Host")
-                            .font(.bodyMedium)
-                            .foregroundStyle(Theme.textPrimary)
-                        Spacer()
-                        Text(status.host)
-                            .font(.labelMedium)
-                            .foregroundStyle(Theme.textMuted)
-                    }
-                }
-            }
-
-            // AI Provider Section
-            if let status = serverStatus {
-                ProfileSection(title: "AI PROVIDER", icon: "brain", color: Theme.accent) {
-                    HStack {
-                        Text("Active")
-                            .font(.bodyMedium)
-                            .foregroundStyle(Theme.textPrimary)
-                        Spacer()
-                        Text(status.activeProvider.capitalized)
-                            .font(.labelLarge)
-                            .foregroundStyle(Theme.accent)
-                    }
-
-                    ForEach(status.availableProviders, id: \.self) { provider in
-                        HStack {
-                            Text(provider.capitalized)
-                                .font(.bodyMedium)
-                                .foregroundStyle(Theme.textSecondary)
-                            Spacer()
-                            Image(systemName: "checkmark")
-                                .font(.caption)
-                                .foregroundStyle(Theme.success)
-                        }
-                    }
-                }
-
-                // Session Section
-                if let sessionId = status.sessionId {
-                    ProfileSection(title: "SESSION", icon: "number", color: Theme.protein) {
-                        HStack {
-                            Text("ID")
-                                .font(.bodyMedium)
-                                .foregroundStyle(Theme.textPrimary)
-                            Spacer()
-                            Text(String(sessionId.prefix(8)) + "...")
-                                .font(.system(.caption, design: .monospaced))
-                                .foregroundStyle(Theme.textMuted)
-                        }
-
-                        if let messageCount = status.messageCount {
-                            HStack {
-                                Text("Messages")
-                                    .font(.bodyMedium)
-                                    .foregroundStyle(Theme.textPrimary)
-                                Spacer()
-                                Text("\(messageCount)")
-                                    .font(.labelLarge)
-                                    .foregroundStyle(Theme.textSecondary)
-                            }
-                        }
-
-                        Button {
-                            showClearChatConfirm = true
-                        } label: {
-                            HStack {
-                                Image(systemName: "trash")
-                                    .font(.caption)
-                                Text("Clear Chat History")
-                                    .font(.labelMedium)
-                            }
-                            .foregroundStyle(Theme.error)
-                            .frame(maxWidth: .infinity)
-                            .padding(.vertical, 12)
-                            .background(Theme.error.opacity(0.1))
-                            .clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
-                        }
-                        .buttonStyle(AirFitButtonStyle())
-                    }
-                }
-            }
-
-            // App Info Section
-            ProfileSection(title: "ABOUT", icon: "info.circle", color: Theme.secondary) {
-                HStack {
-                    Text("Version")
-                        .font(.bodyMedium)
-                        .foregroundStyle(Theme.textPrimary)
-                    Spacer()
-                    Text(Bundle.main.infoDictionary?["CFBundleShortVersionString"] as? String ?? "1.0")
-                        .font(.labelMedium)
-                        .foregroundStyle(Theme.textMuted)
-                }
-
-                HStack {
-                    Text("Build")
-                        .font(.bodyMedium)
-                        .foregroundStyle(Theme.textPrimary)
-                    Spacer()
-                    Text(Bundle.main.infoDictionary?["CFBundleVersion"] as? String ?? "1")
-                        .font(.labelMedium)
-                        .foregroundStyle(Theme.textMuted)
-                }
+    private func updateItem(_ category: String, _ oldValue: String, _ newValue: String) {
+        Task {
+            do {
+                try await apiClient.updateProfileItem(category: category, oldValue: oldValue, newValue: newValue)
+                await loadProfile()
+            } catch {
+                print("Failed to update item: \(error)")
             }
         }
-        .padding(.top, 16)
+    }
+
+    private func deleteItem(_ category: String, _ value: String) {
+        Task {
+            do {
+                try await apiClient.updateProfileItem(category: category, oldValue: value, newValue: nil)
+                await loadProfile()
+            } catch {
+                print("Failed to delete item: \(error)")
+            }
+        }
     }
 
     // MARK: - Empty State
@@ -409,11 +218,11 @@ struct ProfileView: View {
 
             VStack(spacing: 8) {
                 Text("I'm still learning about you")
-                    .font(.titleMedium)
+                    .font(.title3.weight(.semibold))
                     .foregroundStyle(Theme.textPrimary)
 
                 Text("As we chat and you log food, I'll pick up on your goals, preferences, and patterns.")
-                    .font(.bodyMedium)
+                    .font(.body)
                     .foregroundStyle(Theme.textSecondary)
                     .multilineTextAlignment(.center)
             }
@@ -422,7 +231,7 @@ struct ProfileView: View {
                 Task { await loadProfile() }
             } label: {
                 Label("Refresh", systemImage: "arrow.clockwise")
-                    .font(.labelLarge)
+                    .font(.subheadline.weight(.medium))
                     .foregroundStyle(.white)
                     .padding(.horizontal, 24)
                     .padding(.vertical, 12)
@@ -444,11 +253,11 @@ struct ProfileView: View {
 
             VStack(spacing: 8) {
                 Text("Couldn't load profile")
-                    .font(.titleMedium)
+                    .font(.title3.weight(.semibold))
                     .foregroundStyle(Theme.textPrimary)
 
                 Text("Check your connection and try again.")
-                    .font(.bodyMedium)
+                    .font(.body)
                     .foregroundStyle(Theme.textSecondary)
             }
 
@@ -456,7 +265,7 @@ struct ProfileView: View {
                 Task { await loadProfile() }
             } label: {
                 Label("Try Again", systemImage: "arrow.clockwise")
-                    .font(.labelLarge)
+                    .font(.subheadline.weight(.medium))
                     .foregroundStyle(.white)
                     .padding(.horizontal, 24)
                     .padding(.vertical, 12)
@@ -478,128 +287,277 @@ struct ProfileView: View {
             print("Failed to load profile: \(error)")
             profile = nil
         }
-        withAnimation(.airfit) {
+        withAnimation(.easeOut(duration: 0.2)) {
             isLoading = false
         }
-    }
-
-    private func clearProfile() async {
-        isLoading = true
-        do {
-            try await apiClient.clearProfile()
-            profile = try await apiClient.getProfile()
-            // Post notification for other views
-            NotificationCenter.default.post(name: .profileReset, object: nil)
-        } catch {
-            print("Failed to clear profile: \(error)")
-            profile = nil
-        }
-        withAnimation(.airfit) {
-            isLoading = false
-        }
-    }
-
-    private func formatDate(_ isoDate: String) -> String {
-        let formatter = ISO8601DateFormatter()
-        formatter.formatOptions = [.withInternetDateTime, .withFractionalSeconds]
-
-        if let date = formatter.date(from: isoDate) {
-            let relative = RelativeDateTimeFormatter()
-            relative.unitsStyle = .short
-            return relative.localizedString(for: date, relativeTo: Date())
-        }
-        return isoDate
     }
 }
 
-// MARK: - Profile Section
+// MARK: - Profile Hero View
 
-struct ProfileSection<Content: View>: View {
+struct ProfileHeroView: View {
+    let name: String?
+    let summary: String?
+    let phase: String?
+    let phaseContext: String?
+
+    var body: some View {
+        VStack(spacing: 16) {
+            // Avatar
+            ZStack {
+                Circle()
+                    .fill(Theme.accentGradient)
+                    .frame(width: 80, height: 80)
+
+                Text(initials)
+                    .font(.system(size: 32, weight: .semibold))
+                    .foregroundStyle(.white)
+            }
+
+            // Name
+            if let name = name, !name.isEmpty {
+                Text(name)
+                    .font(.title2.weight(.bold))
+                    .foregroundStyle(Theme.textPrimary)
+            }
+
+            // Summary (one-liner)
+            if let summary = summary, !summary.isEmpty {
+                Text(summary)
+                    .font(.subheadline)
+                    .foregroundStyle(Theme.textSecondary)
+            }
+
+            // Phase badge
+            if let phase = phase, !phase.isEmpty {
+                HStack(spacing: 8) {
+                    Text(phase.uppercased())
+                        .font(.caption.weight(.bold))
+                        .tracking(1)
+                        .foregroundStyle(phaseColor)
+
+                    if let context = phaseContext, !context.isEmpty {
+                        Text("•")
+                            .foregroundStyle(Theme.textMuted)
+                        Text(context)
+                            .font(.caption)
+                            .foregroundStyle(Theme.textSecondary)
+                    }
+                }
+                .padding(.horizontal, 16)
+                .padding(.vertical, 8)
+                .background(phaseColor.opacity(0.1))
+                .clipShape(Capsule())
+            }
+        }
+        .frame(maxWidth: .infinity)
+        .padding(.vertical, 24)
+    }
+
+    private var initials: String {
+        guard let name = name, !name.isEmpty else { return "?" }
+        let components = name.components(separatedBy: " ")
+        if components.count >= 2 {
+            return String(components[0].prefix(1) + components[1].prefix(1)).uppercased()
+        }
+        return String(name.prefix(2)).uppercased()
+    }
+
+    private var phaseColor: Color {
+        guard let phase = phase?.lowercased() else { return Theme.accent }
+        switch phase {
+        case "cut", "cutting": return Theme.error
+        case "bulk", "bulking": return Theme.success
+        case "maintain", "maintenance": return Theme.accent
+        default: return Theme.accent
+        }
+    }
+}
+
+// MARK: - Profile Section View
+
+struct ProfileSectionView: View {
     let title: String
-    let icon: String
-    let color: Color
-    @ViewBuilder let content: () -> Content
+    let items: [String]
+    var category: String = ""  // For edit API: "goals", "context", etc.
+    var onItemUpdated: ((String, String) -> Void)?  // (oldValue, newValue)
+    var onItemDeleted: ((String) -> Void)?
+
+    @State private var isExpanded = false
+    @State private var editingItem: String?
+    @State private var editText = ""
+
+    private let previewCount = 3
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 16) {
+        VStack(alignment: .leading, spacing: 12) {
             // Header
-            HStack(spacing: 8) {
-                Image(systemName: icon)
-                    .font(.caption)
-                    .foregroundStyle(color)
-                Text(title)
-                    .font(.labelHero)
-                    .tracking(2)
-                    .foregroundStyle(Theme.textMuted)
-            }
+            Text(title)
+                .font(.subheadline)
+                .foregroundStyle(Theme.textSecondary)
 
-            // Content
-            VStack(spacing: 12) {
-                content()
+            // Items
+            VStack(alignment: .leading, spacing: 10) {
+                ForEach(displayItems, id: \.self) { item in
+                    if editingItem == item {
+                        // Edit mode
+                        ProfileItemEditor(
+                            text: $editText,
+                            onSave: {
+                                if !editText.isEmpty && editText != item {
+                                    onItemUpdated?(item, editText)
+                                }
+                                editingItem = nil
+                            },
+                            onCancel: {
+                                editingItem = nil
+                            },
+                            onDelete: {
+                                onItemDeleted?(item)
+                                editingItem = nil
+                            }
+                        )
+                    } else {
+                        // Display mode
+                        Text(item)
+                            .font(.body)
+                            .foregroundStyle(Theme.textPrimary)
+                            .fixedSize(horizontal: false, vertical: true)
+                            .contentShape(Rectangle())
+                            .onTapGesture {
+                                if onItemUpdated != nil {
+                                    editText = item
+                                    editingItem = item
+                                }
+                            }
+                    }
+                }
+
+                // Show more button
+                if items.count > previewCount {
+                    Button {
+                        withAnimation(.easeOut(duration: 0.2)) {
+                            isExpanded.toggle()
+                        }
+                    } label: {
+                        Text(isExpanded ? "Show less" : "Show \(items.count - previewCount) more")
+                            .font(.subheadline)
+                            .foregroundStyle(Theme.accent)
+                    }
+                    .padding(.top, 4)
+                }
             }
         }
-        .padding(20)
         .frame(maxWidth: .infinity, alignment: .leading)
+        .padding(20)
         .background(
-            RoundedRectangle(cornerRadius: 20, style: .continuous)
+            RoundedRectangle(cornerRadius: 16, style: .continuous)
                 .fill(Theme.surface)
-                .shadow(color: .black.opacity(0.03), radius: 8, x: 0, y: 2)
         )
+        .animation(.easeOut(duration: 0.2), value: editingItem)
     }
-}
 
-// MARK: - Profile Item
-
-struct ProfileItem: View {
-    let text: String
-    let icon: String
-    let color: Color
-
-    var body: some View {
-        HStack(alignment: .top, spacing: 12) {
-            Image(systemName: icon)
-                .font(.caption)
-                .foregroundStyle(color)
-                .frame(width: 20)
-
-            Text(text)
-                .font(.bodyMedium)
-                .foregroundStyle(Theme.textPrimary)
-
-            Spacer()
+    private var displayItems: [String] {
+        if isExpanded || items.count <= previewCount {
+            return items
         }
+        return Array(items.prefix(previewCount))
     }
 }
 
-// MARK: - Insight Item
+// MARK: - Profile Item Editor
 
-struct InsightItem: View {
-    let insight: APIClient.ProfileInsight
+struct ProfileItemEditor: View {
+    @Binding var text: String
+    let onSave: () -> Void
+    let onCancel: () -> Void
+    let onDelete: () -> Void
+
+    @FocusState private var isFocused: Bool
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 8) {
-            Text(insight.insight)
-                .font(.bodyMedium)
+        VStack(alignment: .leading, spacing: 12) {
+            TextField("", text: $text, axis: .vertical)
+                .font(.body)
                 .foregroundStyle(Theme.textPrimary)
+                .textFieldStyle(.plain)
+                .focused($isFocused)
+                .lineLimit(1...5)
+                .padding(12)
+                .background(Theme.background)
+                .clipShape(RoundedRectangle(cornerRadius: 8))
 
-            HStack {
-                Text(insight.source.uppercased())
-                    .font(.labelMicro)
-                    .tracking(1)
-                    .foregroundStyle(Theme.accent)
-                    .padding(.horizontal, 8)
-                    .padding(.vertical, 4)
-                    .background(Theme.accent.opacity(0.12))
-                    .clipShape(Capsule())
+            HStack(spacing: 12) {
+                Button(action: onCancel) {
+                    Text("Cancel")
+                        .font(.subheadline)
+                        .foregroundStyle(Theme.textMuted)
+                }
 
                 Spacer()
 
-                Text(formatDate(insight.date))
-                    .font(.labelMicro)
-                    .foregroundStyle(Theme.textMuted)
+                Button(action: onDelete) {
+                    Image(systemName: "trash")
+                        .font(.subheadline)
+                        .foregroundStyle(Theme.error)
+                }
+
+                Button(action: onSave) {
+                    Text("Save")
+                        .font(.subheadline.weight(.medium))
+                        .foregroundStyle(.white)
+                        .padding(.horizontal, 16)
+                        .padding(.vertical, 8)
+                        .background(Theme.accent)
+                        .clipShape(Capsule())
+                }
             }
         }
-        .padding(.vertical, 4)
+        .padding(12)
+        .background(Theme.surface.opacity(0.5))
+        .clipShape(RoundedRectangle(cornerRadius: 12))
+        .onAppear {
+            isFocused = true
+        }
+    }
+}
+
+// MARK: - Recent Insights Section
+
+struct RecentInsightsSection: View {
+    let insights: [APIClient.ProfileInsight]
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 12) {
+            Text("Recent insights")
+                .font(.subheadline)
+                .foregroundStyle(Theme.textSecondary)
+
+            VStack(spacing: 16) {
+                ForEach(insights.prefix(3), id: \.date) { insight in
+                    VStack(alignment: .leading, spacing: 6) {
+                        Text(insight.insight)
+                            .font(.body)
+                            .foregroundStyle(Theme.textPrimary)
+
+                        Text(formatDate(insight.date))
+                            .font(.caption)
+                            .foregroundStyle(Theme.textMuted)
+                    }
+
+                    if insight.date != insights.prefix(3).last?.date {
+                        Divider()
+                            .background(Theme.textMuted.opacity(0.2))
+                    }
+                }
+            }
+        }
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .padding(20)
+        .background(
+            RoundedRectangle(cornerRadius: 16, style: .continuous)
+                .fill(Theme.surface)
+        )
     }
 
     private func formatDate(_ isoDate: String) -> String {

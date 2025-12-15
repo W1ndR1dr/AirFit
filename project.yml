@@ -2,14 +2,14 @@ name: AirFit
 options:
   bundleIdPrefix: com.airfit
   deploymentTarget:
-    iOS: "17.0"
+    iOS: "26.0"
   developmentLanguage: en
   xcodeVersion: "16.0"
   createIntermediateGroups: true
 
 settings:
   SWIFT_VERSION: "6.0"
-  IPHONEOS_DEPLOYMENT_TARGET: "17.0"
+  IPHONEOS_DEPLOYMENT_TARGET: "26.0"
   ENABLE_STRICT_CONCURRENCY: YES
   SWIFT_STRICT_CONCURRENCY: complete
   DEAD_CODE_STRIPPING: YES

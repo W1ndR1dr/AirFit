@@ -30,7 +30,7 @@ iOS App (SwiftUI/SwiftData) ──HTTP──> Python Server (FastAPI)
        └── Widget Extension (Live Activities for macro tracking)
 ```
 
-- **iOS App**: SwiftUI with Swift 6 strict concurrency, targeting iOS 26
+- **iOS App**: SwiftUI with Swift 6 strict concurrency, targeting iOS 26+ on iPhone 16 Pro only
 - **Server**: FastAPI with async subprocess calls to LLM CLIs
 - **Data**: SwiftData on iOS, JSON files in `server/data/` on server
 - **Widget**: WidgetKit extension for Dynamic Island and Lock Screen
@@ -42,9 +42,11 @@ iOS App (SwiftUI/SwiftData) ──HTTP──> Python Server (FastAPI)
 # Generate Xcode project from project.yml (uses XcodeGen)
 xcodegen generate
 
-# Build from command line
-xcodebuild -project AirFit.xcodeproj -scheme AirFit -sdk iphonesimulator build
+# Build from command line (physical device only - no simulator testing)
+xcodebuild -project AirFit.xcodeproj -scheme AirFit -sdk iphoneos build
 ```
+
+**Target Device:** iPhone 16 Pro running iOS 26+ (physical device only, no simulator)
 
 ### Python Server
 ```bash
@@ -113,8 +115,7 @@ All service classes use Swift actors for thread safety. The codebase uses Swift 
 The server calls LLMs via CLI subprocess, not API. The router tries providers in order (claude → gemini → codex) and supports session continuity via `--resume` flag.
 
 ### Network Configuration
-- iOS Simulator: connects to `localhost:8080`
-- Physical device: connects to hardcoded IP in `APIClient.swift` (currently `192.168.86.50`)
+- Physical device connects to hardcoded IP in `APIClient.swift` (currently `192.168.86.50`)
 
 ### Profile System
 User profiles evolve through conversation. The server extracts goals, preferences, and patterns from chat, then generates a personality prompt for personalized responses.

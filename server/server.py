@@ -530,6 +530,56 @@ async def reset_profile():
     return {"status": "profile cleared", "session_cleared": True}
 
 
+class ProfileItemUpdate(BaseModel):
+    category: str  # "goals", "context", "preferences", "constraints", "patterns"
+    old_value: str
+    new_value: Optional[str] = None  # None = delete
+
+
+@app.patch("/profile/item")
+async def update_profile_item(request: ProfileItemUpdate):
+    """
+    Update or delete a single profile item.
+
+    Used for inline editing in the iOS app.
+    """
+    p = profile.load_profile()
+
+    # Get the list based on category
+    category_map = {
+        "goals": p.goals,
+        "context": p.context,
+        "preferences": p.preferences,
+        "constraints": p.constraints,
+        "patterns": p.patterns,
+        "life_context": p.life_context,
+        "training_style": p.training_style,
+    }
+
+    if request.category not in category_map:
+        raise HTTPException(status_code=400, detail=f"Invalid category: {request.category}")
+
+    items = category_map[request.category]
+
+    if request.old_value not in items:
+        raise HTTPException(status_code=404, detail="Item not found")
+
+    idx = items.index(request.old_value)
+
+    if request.new_value is None:
+        # Delete
+        items.pop(idx)
+        action = "deleted"
+    else:
+        # Update
+        items[idx] = request.new_value
+        action = "updated"
+
+    profile.save_profile(p)
+
+    return {"status": action, "category": request.category}
+
+
 @app.post("/profile/seed")
 async def seed_profile():
     """
@@ -559,6 +609,63 @@ async def clear_chat_session():
     """
     success = llm_router.clear_chat_session()
     return {"status": "session cleared" if success else "no session to clear"}
+
+
+class OnboardingChatRequest(BaseModel):
+    message: str
+    session_id: Optional[str] = None
+
+
+@app.post("/chat/onboarding")
+async def onboarding_chat(request: OnboardingChatRequest):
+    """
+    Onboarding conversation endpoint.
+
+    This uses the ONBOARDING_SYSTEM_PROMPT to conduct a structured interview
+    disguised as natural conversation. Profile data is extracted after each turn.
+    """
+    import sessions
+
+    # Get or create session
+    session = sessions.get_or_create_session(provider="claude")
+
+    # Use onboarding system prompt
+    system_prompt = profile.ONBOARDING_SYSTEM_PROMPT
+
+    # If first message (empty), get initial greeting
+    if not request.message:
+        user_message = "Hi! I'm starting the onboarding process."
+    else:
+        user_message = request.message
+
+    try:
+        response = llm_router.chat(
+            message=user_message,
+            system_prompt=system_prompt,
+            provider="claude"  # Use Claude for onboarding
+        )
+
+        # Extract profile info from conversation
+        if request.message:  # Only extract if there was actual user input
+            profile.update_profile_from_conversation(request.message, response)
+
+        # Get updated profile completeness
+        profile_summary = profile.get_profile_summary()
+        completeness = profile_summary.get("profile_completeness", {})
+
+        return {
+            "response": response,
+            "session_id": session.session_id,
+            "profile_completeness": completeness
+        }
+
+    except Exception as e:
+        return {
+            "response": "I'm having trouble connecting. Let's try again!",
+            "session_id": session.session_id if session else None,
+            "profile_completeness": None,
+            "error": str(e)
+        }
 
 
 @app.post("/profile/learn")

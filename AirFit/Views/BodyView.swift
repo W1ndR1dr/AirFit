@@ -8,12 +8,7 @@ struct BodyView: View {
     private let apiClient = APIClient()
 
     var body: some View {
-        ZStack {
-            // Ethereal background
-            EtherealBackground(currentTab: 5)
-                .ignoresSafeArea()
-
-            Group {
+        Group {
                 if isLoading {
                     loadingView
                 } else if let metrics = metrics {
@@ -26,7 +21,6 @@ struct BodyView: View {
                     errorState
                 }
             }
-        }
         .navigationTitle("Body")
         .navigationBarTitleDisplayMode(.inline)
         .toolbarBackground(.hidden, for: .navigationBar)

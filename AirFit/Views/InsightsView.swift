@@ -32,12 +32,7 @@ struct InsightsView: View {
     }
 
     var body: some View {
-        ZStack {
-            // Ethereal background
-            EtherealBackground(currentTab: 1)
-                .ignoresSafeArea()
-
-            ScrollView {
+        ScrollView {
                 VStack(spacing: 24) {
                     // Insights Section
                     if insights.isEmpty && !isLoading {
@@ -52,7 +47,6 @@ struct InsightsView: View {
             }
             .scrollIndicators(.hidden)
             .scrollContentBackground(.hidden)
-        }
         .navigationTitle("Insights")
         .navigationBarTitleDisplayMode(.inline)
         .toolbarBackground(.hidden, for: .navigationBar)

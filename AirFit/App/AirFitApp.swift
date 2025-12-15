@@ -6,6 +6,7 @@ import UserNotifications
 struct AirFitApp: App {
     @UIApplicationDelegateAdaptor(AppDelegate.self) private var appDelegate
     @AppStorage("appearanceMode") private var appearanceMode: String = "System"
+    @AppStorage("hasCompletedOnboarding") private var hasCompletedOnboarding = false
 
     private var colorScheme: ColorScheme? {
         switch appearanceMode {
@@ -33,8 +34,13 @@ struct AirFitApp: App {
 
     var body: some Scene {
         WindowGroup {
-            ContentView()
-                .preferredColorScheme(colorScheme)
+            if hasCompletedOnboarding {
+                ScrollytellingRootView()
+                    .preferredColorScheme(colorScheme)
+            } else {
+                OnboardingCoordinator()
+                    .preferredColorScheme(colorScheme)
+            }
         }
         .modelContainer(for: NutritionEntry.self)
     }

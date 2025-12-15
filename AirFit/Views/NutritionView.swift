@@ -161,10 +161,6 @@ struct NutritionView: View {
 
     var body: some View {
         ZStack {
-            // Ethereal background
-            EtherealBackground(currentTab: 3)
-                .ignoresSafeArea()
-
             ScrollView {
                 VStack(spacing: 0) {
                     // Scroll offset tracker

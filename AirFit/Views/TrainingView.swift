@@ -10,12 +10,7 @@ struct TrainingView: View {
     private let apiClient = APIClient()
 
     var body: some View {
-        ZStack {
-            // Ethereal background
-            EtherealBackground(currentTab: 2)
-                .ignoresSafeArea()
-
-            ScrollView {
+        ScrollView {
                 VStack(spacing: 24) {
                     // Set Tracker Section (Hero)
                     if let tracker = setTracker, !tracker.muscle_groups.isEmpty {
@@ -44,7 +39,6 @@ struct TrainingView: View {
             }
             .scrollIndicators(.hidden)
             .scrollContentBackground(.hidden)
-        }
         .navigationTitle("Training")
         .navigationBarTitleDisplayMode(.inline)
         .toolbarBackground(.hidden, for: .navigationBar)

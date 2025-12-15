@@ -24,12 +24,7 @@ struct DashboardView: View {
     }
 
     var body: some View {
-        ZStack {
-            // Ethereal background
-            EtherealBackground(currentTab: 0)
-                .ignoresSafeArea()
-
-            ScrollViewReader { proxy in
+        ScrollViewReader { proxy in
                 ScrollView {
                     VStack(spacing: 16) {
                         // This Week summary
@@ -70,7 +65,6 @@ struct DashboardView: View {
                     scrollTarget = nil
                 }
             }
-        }
         .navigationTitle("Dashboard")
         .navigationBarTitleDisplayMode(.inline)
         .toolbarBackground(.hidden, for: .navigationBar)
@@ -330,7 +324,7 @@ struct DashboardView: View {
 // MARK: - Body Content (fetches directly from HealthKit)
 
 struct BodyContentView: View {
-    @State private var timeRange: ChartTimeRange = .month
+    @State private var timeRange: ChartTimeRange = .year
     @State private var weightData: [ChartDataPoint] = []
     @State private var bodyFatData: [ChartDataPoint] = []
     @State private var leanMassData: [ChartDataPoint] = []

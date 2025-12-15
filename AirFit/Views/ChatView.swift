@@ -26,11 +26,6 @@ struct ChatView: View {
 
     var body: some View {
         ZStack {
-            // Ethereal background
-            EtherealBackground(currentTab: 2)
-                .ignoresSafeArea()
-
-            // Content
             VStack(spacing: 0) {
                 // Status banners
                 serverStatusBanner
@@ -73,6 +68,7 @@ struct ChatView: View {
                     }
                 }
             }
+            .background(Color.clear)
 
             // Floating input area
             VStack {
@@ -80,6 +76,7 @@ struct ChatView: View {
                 inputArea
             }
         }
+        .background(Color.clear)
         .navigationTitle("Coach")
         .navigationBarTitleDisplayMode(.inline)
         .toolbarBackground(.hidden, for: .navigationBar)

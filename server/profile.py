@@ -135,6 +135,9 @@ class UserProfile:
     # Raw insights with timestamps (audit trail)
     insights: list[dict] = field(default_factory=list)
 
+    # One-liner summary (cached, regenerated on profile change)
+    summary: str = ""  # "Surgeon. Father. Chasing 15%."
+
     # Metadata
     created_at: str = ""
     updated_at: str = ""
@@ -573,6 +576,60 @@ Generate their personality profile."""
     return ""
 
 
+SUMMARY_PROMPT = """Generate a punchy one-liner summary of this person (3-6 words, period-separated).
+
+Examples:
+- "Surgeon. Father. Chasing 15%."
+- "Engineer. Runner. Building strength."
+- "Teacher. Mom of three. Finding balance."
+- "Lawyer. Weekend warrior. Bulk season."
+
+The summary should capture:
+1. Their identity/profession (1-2 words)
+2. Life context if relevant (optional)
+3. Their current fitness mission
+
+Return ONLY the summary, nothing else."""
+
+
+async def generate_summary(profile: UserProfile) -> str:
+    """Generate a one-liner summary for the profile hero."""
+    if not profile.name:
+        return ""
+
+    # Build context
+    parts = []
+    if profile.occupation:
+        parts.append(f"Occupation: {profile.occupation}")
+    if profile.goals:
+        parts.append(f"Goals: {', '.join(profile.goals[:2])}")
+    if profile.current_phase:
+        parts.append(f"Current phase: {profile.current_phase}")
+        if profile.phase_context:
+            parts.append(f"Phase context: {profile.phase_context}")
+    if profile.life_context:
+        parts.append(f"Life: {', '.join(profile.life_context[:2])}")
+    if profile.target_body_fat_pct:
+        parts.append(f"Target body fat: {profile.target_body_fat_pct}%")
+
+    if not parts:
+        return ""
+
+    prompt = f"Person profile:\n{chr(10).join(parts)}"
+
+    result = await llm_router.chat(prompt, SUMMARY_PROMPT, use_session=False)
+
+    if result.success:
+        # Clean up - just take the text, strip quotes
+        summary = result.text.strip().strip('"').strip("'")
+        # Ensure it ends with a period
+        if summary and not summary.endswith('.'):
+            summary += '.'
+        return summary
+
+    return ""
+
+
 async def finalize_onboarding(conversation_history: list[dict]) -> UserProfile:
     """Finalize onboarding by synthesizing the personality prompt.
 
@@ -585,6 +642,11 @@ async def finalize_onboarding(conversation_history: list[dict]) -> UserProfile:
     personality = await generate_personality_notes(profile)
     if personality:
         profile.personality_notes = personality
+
+    # Generate the one-liner summary
+    summary = await generate_summary(profile)
+    if summary:
+        profile.summary = summary
 
     # Mark onboarding complete
     profile.onboarding_complete = True
@@ -657,6 +719,9 @@ def get_profile_summary() -> dict:
         "height": profile.height,
         "occupation": profile.occupation,
 
+        # One-liner summary for hero
+        "summary": profile.summary,
+
         # Current state
         "current_weight_lbs": profile.current_weight_lbs,
         "current_body_fat_pct": profile.current_body_fat_pct,
@@ -665,6 +730,10 @@ def get_profile_summary() -> dict:
         "goals": profile.goals,
         "target_weight_lbs": profile.target_weight_lbs,
         "target_body_fat_pct": profile.target_body_fat_pct,
+
+        # Phase tracking
+        "current_phase": profile.current_phase,
+        "phase_context": profile.phase_context,
 
         # Training
         "training_days_per_week": profile.training_days_per_week,
@@ -687,7 +756,15 @@ def get_profile_summary() -> dict:
         "insights_count": len(profile.insights),
         "recent_insights": profile.insights[-5:] if profile.insights else [],
         "has_profile": profile.onboarding_complete or bool(profile.name),
-        "onboarding_complete": profile.onboarding_complete
+        "onboarding_complete": profile.onboarding_complete,
+
+        # Profile completeness for onboarding progress
+        "profile_completeness": {
+            "has_name": bool(profile.name),
+            "has_goals": bool(profile.goals),
+            "has_training": bool(profile.training_style) or bool(profile.training_days_per_week),
+            "has_style": bool(profile.communication_style),
+        }
     }
 
 
@@ -705,6 +782,9 @@ def seed_brian_profile() -> UserProfile:
         age=36,
         height="5'11\"",
         occupation="Surgeon",
+
+        # One-liner summary
+        summary="Surgeon. Father. Chasing 15%.",
 
         # Current state
         current_weight_lbs=180,

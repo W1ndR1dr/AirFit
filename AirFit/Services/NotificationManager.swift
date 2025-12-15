@@ -22,21 +22,15 @@ actor NotificationManager {
 
     // MARK: - Authorization
 
+    // Notifications disabled for now
     func requestAuthorization() async -> Bool {
-        do {
-            let options: UNAuthorizationOptions = [.alert, .sound, .badge]
-            isAuthorized = try await UNUserNotificationCenter.current().requestAuthorization(options: options)
-            return isAuthorized
-        } catch {
-            print("Notification authorization failed: \(error)")
-            return false
-        }
+        isAuthorized = false
+        return false
     }
 
     func checkAuthorizationStatus() async -> Bool {
-        let settings = await UNUserNotificationCenter.current().notificationSettings()
-        isAuthorized = settings.authorizationStatus == .authorized
-        return isAuthorized
+        isAuthorized = false
+        return false
     }
 
     // MARK: - Insight Notifications

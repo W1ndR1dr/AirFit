@@ -1,0 +1,210 @@
+import SwiftUI
+
+// MARK: - Tab Color Palettes for MeshGradient
+
+/// Each tab has a 9-color palette for the 3x3 mesh grid
+/// Colors are arranged: top-left, top-center, top-right, mid-left, center, mid-right, bottom-left, bottom-center, bottom-right
+enum TabPalette {
+    /// Dashboard (0) - Warm/Active: Coral, Peach, Lavender
+    static func dashboard(for colorScheme: ColorScheme) -> [Color] {
+        colorScheme == .dark ? [
+            Color(hex: "2A1F1E"), Color(hex: "3D2A28"), Color(hex: "2D2634"),
+            Color(hex: "3D2A28"), Color(hex: "1C1917"), Color(hex: "3D2A28"),
+            Color(hex: "2D2634"), Color(hex: "3D2A28"), Color(hex: "2A1F1E")
+        ] : [
+            Color(hex: "FFF0EC"), Color(hex: "FFE8E0"), Color(hex: "F5EBF7"),
+            Color(hex: "FFE8E0"), Color(hex: "FFF8F0"), Color(hex: "FFE8E0"),
+            Color(hex: "F5EBF7"), Color(hex: "FFE8E0"), Color(hex: "FFF0EC")
+        ]
+    }
+
+    /// Nutrition (1) - Vitality: Sage Green, Peach, Warm
+    static func nutrition(for colorScheme: ColorScheme) -> [Color] {
+        colorScheme == .dark ? [
+            Color(hex: "1E2A24"), Color(hex: "2A2520"), Color(hex: "2A1F1E"),
+            Color(hex: "2A2520"), Color(hex: "1C1917"), Color(hex: "2A2520"),
+            Color(hex: "2A1F1E"), Color(hex: "2A2520"), Color(hex: "1E2A24")
+        ] : [
+            Color(hex: "E8F5ED"), Color(hex: "FFF3EC"), Color(hex: "FFF0EC"),
+            Color(hex: "FFF3EC"), Color(hex: "FFF8F0"), Color(hex: "FFF3EC"),
+            Color(hex: "FFF0EC"), Color(hex: "FFF3EC"), Color(hex: "E8F5ED")
+        ]
+    }
+
+    /// Coach (2) - Communicative: Coral, Warm Peach, Tertiary
+    static func coach(for colorScheme: ColorScheme) -> [Color] {
+        colorScheme == .dark ? [
+            Color(hex: "2A1F1E"), Color(hex: "2D2520"), Color(hex: "2D2634"),
+            Color(hex: "2D2520"), Color(hex: "1C1917"), Color(hex: "2D2520"),
+            Color(hex: "2D2634"), Color(hex: "2D2520"), Color(hex: "2A1F1E")
+        ] : [
+            Color(hex: "FFF0EC"), Color(hex: "FFF5EB"), Color(hex: "F5EBF7"),
+            Color(hex: "FFF5EB"), Color(hex: "FFF8F0"), Color(hex: "FFF5EB"),
+            Color(hex: "F5EBF7"), Color(hex: "FFF5EB"), Color(hex: "FFF0EC")
+        ]
+    }
+
+    /// Insights (3) - Contemplative: Lavender, Teal/Protein, Coral
+    static func insights(for colorScheme: ColorScheme) -> [Color] {
+        colorScheme == .dark ? [
+            Color(hex: "2D2634"), Color(hex: "1E2628"), Color(hex: "2A1F1E"),
+            Color(hex: "1E2628"), Color(hex: "1C1917"), Color(hex: "1E2628"),
+            Color(hex: "2A1F1E"), Color(hex: "1E2628"), Color(hex: "2D2634")
+        ] : [
+            Color(hex: "F5EBF7"), Color(hex: "E8F3F4"), Color(hex: "FFF0EC"),
+            Color(hex: "E8F3F4"), Color(hex: "FFF8F0"), Color(hex: "E8F3F4"),
+            Color(hex: "FFF0EC"), Color(hex: "E8F3F4"), Color(hex: "F5EBF7")
+        ]
+    }
+
+    /// Profile (4) - Grounded: Taupe, Peach, Coral
+    static func profile(for colorScheme: ColorScheme) -> [Color] {
+        colorScheme == .dark ? [
+            Color(hex: "252320"), Color(hex: "2D2520"), Color(hex: "2A1F1E"),
+            Color(hex: "2D2520"), Color(hex: "1C1917"), Color(hex: "2D2520"),
+            Color(hex: "2A1F1E"), Color(hex: "2D2520"), Color(hex: "252320")
+        ] : [
+            Color(hex: "F0EBE6"), Color(hex: "FFF5EB"), Color(hex: "FFF0EC"),
+            Color(hex: "FFF5EB"), Color(hex: "FFF8F0"), Color(hex: "FFF5EB"),
+            Color(hex: "FFF0EC"), Color(hex: "FFF5EB"), Color(hex: "F0EBE6")
+        ]
+    }
+
+    /// Get palette for tab index
+    static func forTab(_ tab: Int, colorScheme: ColorScheme) -> [Color] {
+        switch tab {
+        case 0: return dashboard(for: colorScheme)
+        case 1: return nutrition(for: colorScheme)
+        case 2: return coach(for: colorScheme)
+        case 3: return insights(for: colorScheme)
+        case 4: return profile(for: colorScheme)
+        default: return dashboard(for: colorScheme)
+        }
+    }
+}
+
+// MARK: - Breathing Mesh Background
+
+struct BreathingMeshBackground: View {
+    /// Scroll progress from 0.0 to 4.0 (5 tabs)
+    let scrollProgress: CGFloat
+
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
+    @Environment(\.colorScheme) private var colorScheme
+
+    var body: some View {
+        if reduceMotion {
+            // Static gradient for reduce motion
+            MeshGradient(
+                width: 3,
+                height: 3,
+                points: staticPoints,
+                colors: interpolatedColors
+            )
+        } else {
+            TimelineView(.animation(minimumInterval: 1/60, paused: false)) { timeline in
+                let time = timeline.date.timeIntervalSinceReferenceDate
+
+                MeshGradient(
+                    width: 3,
+                    height: 3,
+                    points: breathingPoints(time: time),
+                    colors: interpolatedColors
+                )
+            }
+        }
+    }
+
+    // MARK: - Static Points (for reduce motion)
+
+    private var staticPoints: [SIMD2<Float>] {
+        [
+            SIMD2(0.0, 0.0), SIMD2(0.5, 0.0), SIMD2(1.0, 0.0),
+            SIMD2(0.0, 0.5), SIMD2(0.5, 0.5), SIMD2(1.0, 0.5),
+            SIMD2(0.0, 1.0), SIMD2(0.5, 1.0), SIMD2(1.0, 1.0)
+        ]
+    }
+
+    // MARK: - Breathing Animation
+
+    /// 3x3 control points with gentle sine movement (±4%)
+    private func breathingPoints(time: Double) -> [SIMD2<Float>] {
+        // Primary breath cycle: 3-second period, ±4% movement
+        let breath1 = Float(sin(time * 0.3) * 0.04)
+        // Secondary subtle offset for organic feel
+        let breath2 = Float(cos(time * 0.25) * 0.02)
+
+        return [
+            // Top row
+            SIMD2(0.0, 0.0),
+            SIMD2(0.5 + breath1, 0.0 + breath2),
+            SIMD2(1.0, 0.0),
+            // Middle row
+            SIMD2(0.0 - breath2, 0.5 + breath1),
+            SIMD2(0.5 + breath2, 0.5 - breath1),
+            SIMD2(1.0 + breath2, 0.5 + breath1),
+            // Bottom row
+            SIMD2(0.0, 1.0),
+            SIMD2(0.5 - breath1, 1.0 - breath2),
+            SIMD2(1.0, 1.0)
+        ]
+    }
+
+    // MARK: - Color Interpolation
+
+    /// Interpolate between tab palettes based on scroll position
+    private var interpolatedColors: [Color] {
+        let clampedProgress = max(0, min(4, scrollProgress))
+        let fromTab = Int(clampedProgress)
+        let toTab = min(fromTab + 1, 4)
+        let fraction = clampedProgress - CGFloat(fromTab)
+
+        let fromPalette = TabPalette.forTab(fromTab, colorScheme: colorScheme)
+        let toPalette = TabPalette.forTab(toTab, colorScheme: colorScheme)
+
+        return zip(fromPalette, toPalette).map { from, to in
+            interpolateColor(from, to, fraction: fraction)
+        }
+    }
+
+    /// Linear interpolation between two colors
+    private func interpolateColor(_ from: Color, _ to: Color, fraction: CGFloat) -> Color {
+        let fromComponents = UIColor(from).cgColor.components ?? [0, 0, 0, 1]
+        let toComponents = UIColor(to).cgColor.components ?? [0, 0, 0, 1]
+
+        // Handle grayscale colors (2 components) vs RGB (4 components)
+        let fromR = fromComponents.count >= 3 ? fromComponents[0] : fromComponents[0]
+        let fromG = fromComponents.count >= 3 ? fromComponents[1] : fromComponents[0]
+        let fromB = fromComponents.count >= 3 ? fromComponents[2] : fromComponents[0]
+        let fromA = fromComponents.count >= 3 ? (fromComponents.count > 3 ? fromComponents[3] : 1.0) : (fromComponents.count > 1 ? fromComponents[1] : 1.0)
+
+        let toR = toComponents.count >= 3 ? toComponents[0] : toComponents[0]
+        let toG = toComponents.count >= 3 ? toComponents[1] : toComponents[0]
+        let toB = toComponents.count >= 3 ? toComponents[2] : toComponents[0]
+        let toA = toComponents.count >= 3 ? (toComponents.count > 3 ? toComponents[3] : 1.0) : (toComponents.count > 1 ? toComponents[1] : 1.0)
+
+        let t = Double(fraction)
+        return Color(
+            red: fromR + (toR - fromR) * t,
+            green: fromG + (toG - fromG) * t,
+            blue: fromB + (toB - fromB) * t,
+            opacity: fromA + (toA - fromA) * t
+        )
+    }
+}
+
+#Preview("Breathing Mesh - Dashboard") {
+    BreathingMeshBackground(scrollProgress: 0.0)
+        .ignoresSafeArea()
+}
+
+#Preview("Breathing Mesh - Mid-scroll") {
+    BreathingMeshBackground(scrollProgress: 1.5)
+        .ignoresSafeArea()
+}
+
+#Preview("Breathing Mesh - Dark Mode") {
+    BreathingMeshBackground(scrollProgress: 2.0)
+        .ignoresSafeArea()
+        .preferredColorScheme(.dark)
+}

@@ -61,20 +61,20 @@ enum ChartSmoothing {
         let daySpan = Calendar.current.dateComponents([.day], from: first, to: last).day ?? 0
         let dataCount = data.count
 
-        // Adaptive smoothing:
-        // - Week view: NO smoothing (not enough data for trend)
-        // - Month view: moderate smoothing (10-day EMA)
-        // - Year view: heavy smoothing (21-day EMA)
-        // - All time: heaviest smoothing (30-day EMA)
+        // Adaptive EMA smoothing (keeps fit accurate, bezier curves handle visual smoothness)
+        // - Week view: NO smoothing (too few data points)
+        // - Month view: light smoothing (5-7 day EMA)
+        // - Year view: moderate smoothing (10-14 day EMA)
+        // - All time: moderate smoothing (14-21 day EMA)
 
         if daySpan <= 7 {
             return 0  // No smoothing for week view
         } else if daySpan <= 30 {
-            return min(10, max(5, dataCount / 3))
+            return min(7, max(5, dataCount / 5))
         } else if daySpan <= 365 {
-            return min(21, max(10, dataCount / 4))
+            return min(14, max(10, dataCount / 20))
         } else {
-            return min(30, max(14, dataCount / 5))
+            return min(21, max(14, dataCount / 25))
         }
     }
 }
@@ -298,33 +298,11 @@ struct InteractiveChartView: View {
                 startPoint: .top,
                 endPoint: .bottom
             )
-            .mask(
-                Path { path in
-                    guard let firstPoint = trendPoints.first else { return }
-                    path.move(to: CGPoint(x: firstPoint.x, y: height))
-                    path.addLine(to: firstPoint)
+            .mask(smoothCurveAreaPath(through: trendPoints, height: height))
 
-                    for point in trendPoints.dropFirst() {
-                        path.addLine(to: point)
-                    }
-
-                    if let lastPoint = trendPoints.last {
-                        path.addLine(to: CGPoint(x: lastPoint.x, y: height))
-                    }
-                    path.closeSubpath()
-                }
-            )
-
-            // Smoothed trend line (thicker, main visual)
-            Path { path in
-                guard let firstPoint = trendPoints.first else { return }
-                path.move(to: firstPoint)
-
-                for point in trendPoints.dropFirst() {
-                    path.addLine(to: point)
-                }
-            }
-            .stroke(color, style: StrokeStyle(lineWidth: 3, lineCap: .round, lineJoin: .round))
+            // Smoothed trend line (thicker, main visual) - bezier curves for smoothness
+            smoothCurvePath(through: trendPoints)
+                .stroke(color, style: StrokeStyle(lineWidth: 3, lineCap: .round, lineJoin: .round))
 
             // Raw data points as subtle dots (only show significant deviations from trend)
             ForEach(Array(processedData.enumerated()), id: \.element.id) { index, point in
@@ -554,6 +532,78 @@ struct InteractiveChartView: View {
         formatter.dateStyle = .medium
         formatter.timeStyle = .short
         return formatter.string(from: date)
+    }
+
+    // MARK: - Smooth Curve Helpers (Catmull-Rom to Bezier)
+
+    /// Creates a smooth bezier curve path through all points
+    private func smoothCurvePath(through points: [CGPoint]) -> Path {
+        Path { path in
+            guard points.count >= 2 else { return }
+
+            if points.count == 2 {
+                path.move(to: points[0])
+                path.addLine(to: points[1])
+                return
+            }
+
+            path.move(to: points[0])
+
+            for i in 0..<(points.count - 1) {
+                let p0 = i > 0 ? points[i - 1] : points[0]
+                let p1 = points[i]
+                let p2 = points[i + 1]
+                let p3 = i + 2 < points.count ? points[i + 2] : points[i + 1]
+
+                let (cp1, cp2) = catmullRomToBezier(p0: p0, p1: p1, p2: p2, p3: p3)
+                path.addCurve(to: p2, control1: cp1, control2: cp2)
+            }
+        }
+    }
+
+    /// Creates a closed area path with smooth curve on top
+    private func smoothCurveAreaPath(through points: [CGPoint], height: CGFloat) -> Path {
+        Path { path in
+            guard let first = points.first, let last = points.last else { return }
+
+            // Start at bottom-left
+            path.move(to: CGPoint(x: first.x, y: height))
+            path.addLine(to: first)
+
+            if points.count == 2 {
+                path.addLine(to: points[1])
+            } else if points.count > 2 {
+                for i in 0..<(points.count - 1) {
+                    let p0 = i > 0 ? points[i - 1] : points[0]
+                    let p1 = points[i]
+                    let p2 = points[i + 1]
+                    let p3 = i + 2 < points.count ? points[i + 2] : points[i + 1]
+
+                    let (cp1, cp2) = catmullRomToBezier(p0: p0, p1: p1, p2: p2, p3: p3)
+                    path.addCurve(to: p2, control1: cp1, control2: cp2)
+                }
+            }
+
+            // Close at bottom-right
+            path.addLine(to: CGPoint(x: last.x, y: height))
+            path.closeSubpath()
+        }
+    }
+
+    /// Convert Catmull-Rom spline segment to cubic Bezier control points
+    private func catmullRomToBezier(p0: CGPoint, p1: CGPoint, p2: CGPoint, p3: CGPoint) -> (CGPoint, CGPoint) {
+        let tension: CGFloat = 0.25  // Smooth curves that still follow the data
+
+        let cp1 = CGPoint(
+            x: p1.x + (p2.x - p0.x) * tension,
+            y: p1.y + (p2.y - p0.y) * tension
+        )
+        let cp2 = CGPoint(
+            x: p2.x - (p3.x - p1.x) * tension,
+            y: p2.y - (p3.y - p1.y) * tension
+        )
+
+        return (cp1, cp2)
     }
 }
 

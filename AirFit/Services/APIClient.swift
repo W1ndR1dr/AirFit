@@ -110,6 +110,7 @@ actor APIClient {
 
     struct ProfileResponse: Decodable {
         let name: String?
+        let summary: String?  // One-liner: "Surgeon. Father. Chasing 15%."
         let goals: [String]
         let constraints: [String]
         let preferences: [String]
@@ -135,6 +136,31 @@ actor APIClient {
         let name: String?
         let has_personality: Bool
         let preview: String?
+    }
+
+    struct ProfileCompleteness: Decodable {
+        let has_name: Bool
+        let has_goals: Bool
+        let has_training: Bool
+        let has_style: Bool
+    }
+
+    struct OnboardingChatRequest: Encodable {
+        let message: String
+        let session_id: String?
+    }
+
+    struct OnboardingChatResponse: Decodable {
+        let response: String
+        let session_id: String
+        let profile_completeness: ProfileCompleteness?
+    }
+
+    struct ServerStatusResponse: Decodable {
+        let status: String
+        let providers: [String]
+        let hevy_configured: Bool
+        let version: String
     }
 
     func sendMessage(
@@ -310,6 +336,37 @@ actor APIClient {
         }
     }
 
+    // MARK: - Profile Item Editing
+
+    struct ProfileItemUpdateRequest: Encodable {
+        let category: String
+        let old_value: String
+        let new_value: String?
+    }
+
+    /// Update a profile item (or delete if newValue is nil)
+    func updateProfileItem(category: String, oldValue: String, newValue: String?) async throws {
+        let url = baseURL.appendingPathComponent("profile/item")
+
+        var request = URLRequest(url: url)
+        request.httpMethod = "PATCH"
+        request.setValue("application/json", forHTTPHeaderField: "Content-Type")
+
+        let body = ProfileItemUpdateRequest(
+            category: category,
+            old_value: oldValue,
+            new_value: newValue
+        )
+        request.httpBody = try JSONEncoder().encode(body)
+
+        let (_, response) = try await URLSession.shared.data(for: request)
+
+        guard let httpResponse = response as? HTTPURLResponse,
+              httpResponse.statusCode == 200 else {
+            throw APIError.serverError
+        }
+    }
+
     func finalizeOnboarding() async throws -> FinalizeOnboardingResponse {
         let url = baseURL.appendingPathComponent("profile/finalize-onboarding")
 
@@ -339,6 +396,42 @@ actor APIClient {
               httpResponse.statusCode == 200 else {
             throw APIError.serverError
         }
+    }
+
+    // MARK: - Onboarding
+
+    func sendOnboardingMessage(_ message: String, sessionId: String? = nil) async throws -> OnboardingChatResponse {
+        let url = baseURL.appendingPathComponent("chat/onboarding")
+
+        var request = URLRequest(url: url)
+        request.httpMethod = "POST"
+        request.setValue("application/json", forHTTPHeaderField: "Content-Type")
+        request.timeoutInterval = 60
+
+        let body = OnboardingChatRequest(message: message, session_id: sessionId)
+        request.httpBody = try JSONEncoder().encode(body)
+
+        let (data, response) = try await URLSession.shared.data(for: request)
+
+        guard let httpResponse = response as? HTTPURLResponse,
+              httpResponse.statusCode == 200 else {
+            throw APIError.serverError
+        }
+
+        return try JSONDecoder().decode(OnboardingChatResponse.self, from: data)
+    }
+
+    func getStatus() async throws -> ServerStatusResponse {
+        let url = baseURL.appendingPathComponent("health")
+
+        let (data, response) = try await URLSession.shared.data(from: url)
+
+        guard let httpResponse = response as? HTTPURLResponse,
+              httpResponse.statusCode == 200 else {
+            throw APIError.serverError
+        }
+
+        return try JSONDecoder().decode(ServerStatusResponse.self, from: data)
     }
 
     // MARK: - Insights Sync
