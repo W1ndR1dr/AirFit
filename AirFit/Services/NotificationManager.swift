@@ -14,7 +14,11 @@ actor NotificationManager {
         static let calorieReminder = "calorie-reminder"
         static let eveningCheckIn = "evening-checkin"
         static let morningBriefing = "morning-briefing"
+        static let insightAlert = "insight-alert"
     }
+
+    // Track notified insights to avoid duplicates
+    private var notifiedInsightIds: Set<String> = []
 
     // MARK: - Authorization
 
@@ -33,6 +37,76 @@ actor NotificationManager {
         let settings = await UNUserNotificationCenter.current().notificationSettings()
         isAuthorized = settings.authorizationStatus == .authorized
         return isAuthorized
+    }
+
+    // MARK: - Insight Notifications
+
+    /// Schedule notification for high-priority insights.
+    /// Only notifies for tier 1-2 insights to avoid notification fatigue.
+    func scheduleInsightNotification(
+        insightId: String,
+        title: String,
+        body: String,
+        category: String,
+        tier: Int
+    ) async {
+        guard isAuthorized else { return }
+        guard tier <= 2 else { return } // Only tier 1-2 get notifications
+        guard !notifiedInsightIds.contains(insightId) else { return } // Already notified
+
+        // Track this insight
+        notifiedInsightIds.insert(insightId)
+
+        let content = UNMutableNotificationContent()
+
+        // Different treatment for milestones vs other insights
+        if category == "milestone" {
+            content.title = "🎉 " + title
+            content.body = body
+            content.sound = UNNotificationSound.default
+        } else if category == "anomaly" {
+            content.title = "⚠️ " + title
+            content.body = body
+            content.sound = UNNotificationSound.default
+        } else {
+            content.title = "💡 " + title
+            // Truncate body for notification - tease to get them to open
+            let truncatedBody = body.count > 100 ? String(body.prefix(100)) + "..." : body
+            content.body = truncatedBody
+            content.sound = UNNotificationSound.default
+        }
+
+        content.categoryIdentifier = "INSIGHT_ALERT"
+        content.userInfo = ["insightId": insightId, "category": category]
+
+        // Show after 2 second delay (feels more natural)
+        let trigger = UNTimeIntervalNotificationTrigger(timeInterval: 2, repeats: false)
+
+        let request = UNNotificationRequest(
+            identifier: "\(NotificationID.insightAlert)-\(insightId)",
+            content: content,
+            trigger: trigger
+        )
+
+        do {
+            try await UNUserNotificationCenter.current().add(request)
+            print("[NotificationManager] Scheduled insight notification: \(title)")
+        } catch {
+            print("Failed to schedule insight notification: \(error)")
+        }
+    }
+
+    /// Check insights and notify for any high-tier ones
+    func checkAndNotifyForInsights(_ insights: [APIClient.InsightData]) async {
+        for insight in insights {
+            await scheduleInsightNotification(
+                insightId: insight.id,
+                title: insight.title,
+                body: insight.body,
+                category: insight.category,
+                tier: insight.tier
+            )
+        }
     }
 
     // MARK: - Smart Notifications
@@ -257,10 +331,24 @@ extension NotificationManager {
             options: []
         )
 
+        let viewInsightAction = UNNotificationAction(
+            identifier: "VIEW_INSIGHT",
+            title: "View Details",
+            options: [.foreground]
+        )
+
+        let insightCategory = UNNotificationCategory(
+            identifier: "INSIGHT_ALERT",
+            actions: [viewInsightAction, dismissAction],
+            intentIdentifiers: [],
+            options: []
+        )
+
         UNUserNotificationCenter.current().setNotificationCategories([
             nutritionCategory,
             checkInCategory,
-            briefingCategory
+            briefingCategory,
+            insightCategory
         ])
     }
 }

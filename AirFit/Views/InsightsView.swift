@@ -207,6 +207,9 @@ struct InsightsView: View {
     private func loadInsights() async {
         do {
             insights = try await apiClient.getInsights(limit: 10)
+
+            // Check for high-tier insights and notify
+            await NotificationManager.shared.checkAndNotifyForInsights(insights)
         } catch {
             print("Failed to load insights: \(error)")
         }
@@ -362,8 +365,14 @@ struct PremiumInsightCard: View {
     let onDismiss: () -> Void
     let onAction: (String) -> Void
 
+    /// Whether this is a milestone worth celebrating
+    private var isMilestone: Bool {
+        insight.category == "milestone"
+    }
+
     @State private var dragOffset: CGFloat = 0
     @State private var isDismissing = false
+    @State private var showCelebration = false
 
     private var categoryIcon: String {
         switch insight.category {
@@ -560,6 +569,30 @@ struct PremiumInsightCard: View {
                 }
         )
         .sensoryFeedback(.impact(flexibility: .soft), trigger: dragOffset < -100)
+        .overlay {
+            // Celebration effect for milestones
+            if isMilestone && showCelebration {
+                ZStack {
+                    // Star burst in corner
+                    StarBurst(color: categoryColor)
+                        .position(x: 40, y: 40)
+
+                    // Particle burst
+                    CelebrationBurst(color: categoryColor)
+                        .position(x: 60, y: 60)
+                }
+                .allowsHitTesting(false)
+            }
+        }
+        .onAppear {
+            // Trigger celebration for milestones
+            if isMilestone {
+                DispatchQueue.main.asyncAfter(deadline: .now() + 0.3) {
+                    showCelebration = true
+                }
+            }
+        }
+        .sensoryFeedback(.success, trigger: showCelebration)
     }
 }
 

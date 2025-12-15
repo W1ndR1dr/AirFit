@@ -72,12 +72,18 @@ class AppDelegate: NSObject, UIApplicationDelegate, UNUserNotificationCenterDele
         didReceive response: UNNotificationResponse
     ) async {
         let actionId = response.actionIdentifier
+        let categoryId = response.notification.request.content.categoryIdentifier
 
         switch actionId {
         case "LOG_FOOD":
             // Post notification to open nutrition tab
             await MainActor.run {
                 NotificationCenter.default.post(name: .openNutritionTab, object: nil)
+            }
+        case "VIEW_INSIGHT", UNNotificationDefaultActionIdentifier where categoryId == "INSIGHT_ALERT":
+            // Open insights tab when tapping insight notification
+            await MainActor.run {
+                NotificationCenter.default.post(name: .openInsightsTab, object: nil)
             }
         default:
             break
