@@ -384,6 +384,94 @@ actor HealthKitManager {
             healthStore.execute(query)
         }
     }
+
+    // MARK: - Bedtime Detection
+
+    /// Get the user's typical bedtime by analyzing their sleep history.
+    /// Returns the average start time of sleep sessions over the past 14 days.
+    func getTypicalBedtime() async -> DateComponents? {
+        let sleepType = HKCategoryType(.sleepAnalysis)
+        let calendar = Calendar.current
+        let startDate = calendar.date(byAdding: .day, value: -14, to: Date())!
+
+        let predicate = HKQuery.predicateForSamples(withStart: startDate, end: Date(), options: .strictStartDate)
+        let sortDescriptor = NSSortDescriptor(key: HKSampleSortIdentifierStartDate, ascending: false)
+
+        return await withCheckedContinuation { continuation in
+            let query = HKSampleQuery(sampleType: sleepType, predicate: predicate, limit: HKObjectQueryNoLimit, sortDescriptors: [sortDescriptor]) { _, samples, _ in
+                guard let samples = samples as? [HKCategorySample], !samples.isEmpty else {
+                    continuation.resume(returning: nil)
+                    return
+                }
+
+                // Filter to "in bed" or first asleep sample of each night
+                let inBedValues: Set<Int> = [
+                    HKCategoryValueSleepAnalysis.inBed.rawValue,
+                    HKCategoryValueSleepAnalysis.asleepCore.rawValue,
+                    HKCategoryValueSleepAnalysis.asleepDeep.rawValue,
+                    HKCategoryValueSleepAnalysis.asleepREM.rawValue,
+                    HKCategoryValueSleepAnalysis.asleepUnspecified.rawValue
+                ]
+
+                // Group samples by the night they belong to (date of wake-up)
+                var nightStarts: [Date: Date] = [:] // [wakeDate: earliestStartTime]
+
+                for sample in samples where inBedValues.contains(sample.value) {
+                    // Only consider sleep sessions starting between 6pm and 4am
+                    let hour = calendar.component(.hour, from: sample.startDate)
+                    guard hour >= 18 || hour <= 4 else { continue }
+
+                    // Determine which "night" this belongs to
+                    let wakeDate = calendar.startOfDay(for: sample.endDate)
+
+                    if let existing = nightStarts[wakeDate] {
+                        // Keep the earliest start time for this night
+                        if sample.startDate < existing {
+                            nightStarts[wakeDate] = sample.startDate
+                        }
+                    } else {
+                        nightStarts[wakeDate] = sample.startDate
+                    }
+                }
+
+                guard !nightStarts.isEmpty else {
+                    continuation.resume(returning: nil)
+                    return
+                }
+
+                // Calculate average bedtime (as minutes from midnight)
+                var totalMinutes = 0
+                for startTime in nightStarts.values {
+                    var hour = calendar.component(.hour, from: startTime)
+                    let minute = calendar.component(.minute, from: startTime)
+
+                    // Normalize: treat times after midnight as 24+
+                    if hour < 12 {
+                        hour += 24
+                    }
+
+                    totalMinutes += hour * 60 + minute
+                }
+
+                let avgMinutes = totalMinutes / nightStarts.count
+
+                // Convert back to hour/minute (handling wrap around midnight)
+                var avgHour = avgMinutes / 60
+                let avgMinute = avgMinutes % 60
+
+                if avgHour >= 24 {
+                    avgHour -= 24
+                }
+
+                var components = DateComponents()
+                components.hour = avgHour
+                components.minute = avgMinute
+
+                continuation.resume(returning: components)
+            }
+            healthStore.execute(query)
+        }
+    }
 }
 
 // MARK: - Data Models

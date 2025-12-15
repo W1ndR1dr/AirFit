@@ -5,6 +5,15 @@ import UserNotifications
 @main
 struct AirFitApp: App {
     @UIApplicationDelegateAdaptor(AppDelegate.self) private var appDelegate
+    @AppStorage("appearanceMode") private var appearanceMode: String = "System"
+
+    private var colorScheme: ColorScheme? {
+        switch appearanceMode {
+        case "Light": return .light
+        case "Dark": return .dark
+        default: return nil
+        }
+    }
 
     init() {
         // Make TabView and NavigationBar transparent
@@ -25,6 +34,7 @@ struct AirFitApp: App {
     var body: some Scene {
         WindowGroup {
             ContentView()
+                .preferredColorScheme(colorScheme)
         }
         .modelContainer(for: NutritionEntry.self)
     }

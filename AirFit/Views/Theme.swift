@@ -204,9 +204,14 @@ struct EtherealBackground: View {
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
     @Environment(\.colorScheme) private var colorScheme
 
-    // Dark mode needs higher orb opacity
+    // Light mode needs much higher opacity since pastel colors on cream background are subtle
     private var opacityMultiplier: Double {
-        colorScheme == .dark ? 2.5 : 1.0
+        colorScheme == .dark ? 2.5 : 4.0
+    }
+
+    // Cap is higher for light mode to allow orbs to actually show
+    private var opacityCap: Double {
+        colorScheme == .dark ? 0.6 : 0.85
     }
 
     var body: some View {
@@ -241,7 +246,7 @@ struct EtherealBackground: View {
                         // Breathing opacity
                         let breathPhase = sin(time * 0.15 + phaseOffset * 0.5)
                         let breathOpacity = 0.85 + breathPhase * 0.15
-                        let finalOpacity = min(0.6, orb.opacity * breathOpacity * timeOfDay.orbIntensity * opacityMultiplier)
+                        let finalOpacity = min(opacityCap, orb.opacity * breathOpacity * timeOfDay.orbIntensity * opacityMultiplier)
 
                         let orbRadius = orb.size * min(w, h) * 0.3
                         let center = CGPoint(x: x, y: y)

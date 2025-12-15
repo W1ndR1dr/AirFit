@@ -1,5 +1,29 @@
 import SwiftUI
 
+// MARK: - Appearance Mode
+
+enum AppearanceMode: String, CaseIterable {
+    case system = "System"
+    case light = "Light"
+    case dark = "Dark"
+
+    var colorScheme: ColorScheme? {
+        switch self {
+        case .system: return nil
+        case .light: return .light
+        case .dark: return .dark
+        }
+    }
+
+    var icon: String {
+        switch self {
+        case .system: return "circle.lefthalf.filled"
+        case .light: return "sun.max.fill"
+        case .dark: return "moon.fill"
+        }
+    }
+}
+
 struct ProfileView: View {
     @State private var profile: APIClient.ProfileResponse?
     @State private var isLoading = true
@@ -9,6 +33,9 @@ struct ProfileView: View {
     // Settings state
     @State private var serverStatus: ServerInfo?
     @State private var isLoadingSettings = true
+
+    // Appearance
+    @AppStorage("appearanceMode") private var appearanceMode: String = AppearanceMode.system.rawValue
 
     private let apiClient = APIClient()
 
@@ -212,6 +239,17 @@ struct ProfileView: View {
 
     private var settingsSection: some View {
         VStack(spacing: 24) {
+            // Appearance
+            ProfileSection(title: "APPEARANCE", icon: "paintbrush.fill", color: Theme.warm) {
+                Picker("Appearance", selection: $appearanceMode) {
+                    ForEach(AppearanceMode.allCases, id: \.rawValue) { mode in
+                        Label(mode.rawValue, systemImage: mode.icon)
+                            .tag(mode.rawValue)
+                    }
+                }
+                .pickerStyle(.segmented)
+            }
+
             // Server Status
             ProfileSection(title: "SERVER", icon: "server.rack", color: Theme.tertiary) {
                 HStack {

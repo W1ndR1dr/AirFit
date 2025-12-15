@@ -519,8 +519,10 @@ struct NutritionView: View {
             // Net indicator
             VStack(spacing: 6) {
                 Text(netCalories >= 0 ? "+\(netCalories)" : "\(netCalories)")
-                    .font(.metricLarge)
+                    .font(.metricMedium)
                     .foregroundStyle(netStatusColor)
+                    .minimumScaleFactor(0.7)
+                    .lineLimit(1)
                     .contentTransition(.numericText(value: Double(netCalories)))
 
                 Text(netStatusLabel.uppercased())
