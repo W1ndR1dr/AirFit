@@ -89,6 +89,10 @@ class AppDelegate: NSObject, UIApplicationDelegate, UNUserNotificationCenterDele
 
 extension Notification.Name {
     static let openNutritionTab = Notification.Name("openNutritionTab")
+    static let openDashboardTab = Notification.Name("openDashboardTab")
+    static let openCoachTab = Notification.Name("openCoachTab")
+    static let openInsightsTab = Notification.Name("openInsightsTab")
+    static let openProfileTab = Notification.Name("openProfileTab")
     static let profileReset = Notification.Name("profileReset")
 }
 
@@ -172,10 +176,20 @@ struct ContentView: View {
         .task {
             await AutoSyncManager.shared.performLaunchSync(modelContext: modelContext)
         }
+        .onReceive(NotificationCenter.default.publisher(for: .openDashboardTab)) { _ in
+            withAnimation(.airfit) { selectedTab = 0 }
+        }
         .onReceive(NotificationCenter.default.publisher(for: .openNutritionTab)) { _ in
-            withAnimation(.airfit) {
-                selectedTab = 1
-            }
+            withAnimation(.airfit) { selectedTab = 1 }
+        }
+        .onReceive(NotificationCenter.default.publisher(for: .openCoachTab)) { _ in
+            withAnimation(.airfit) { selectedTab = 2 }
+        }
+        .onReceive(NotificationCenter.default.publisher(for: .openInsightsTab)) { _ in
+            withAnimation(.airfit) { selectedTab = 3 }
+        }
+        .onReceive(NotificationCenter.default.publisher(for: .openProfileTab)) { _ in
+            withAnimation(.airfit) { selectedTab = 4 }
         }
         .onChange(of: scenePhase) { _, newPhase in
             if newPhase == .active {

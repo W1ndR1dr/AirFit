@@ -11,6 +11,11 @@ struct InsightsView: View {
     @State private var showingChat = false
     @State private var showAllInsights = false
 
+    // Undo support
+    @State private var recentlyDismissed: APIClient.InsightData?
+    @State private var showUndoToast = false
+    @State private var undoWorkItem: DispatchWorkItem?
+
     private let apiClient = APIClient()
     @State private var syncService = InsightsSyncService()
 
@@ -74,6 +79,16 @@ struct InsightsView: View {
                 PremiumInsightChatSheet(insight: insight)
             }
         }
+        .overlay(alignment: .bottom) {
+            if showUndoToast {
+                UndoToast(
+                    message: "Insight dismissed",
+                    onUndo: undoDismiss
+                )
+                .transition(.move(edge: .bottom).combined(with: .opacity))
+                .padding(.bottom, 100) // Above tab bar
+            }
+        }
     }
 
     // MARK: - Insights Section
@@ -103,10 +118,10 @@ struct InsightsView: View {
                             Task { await trackEngagement(insight.id, action: "tapped") }
                         },
                         onDismiss: {
-                            Task { await trackEngagement(insight.id, action: "dismissed") }
-                            withAnimation(.airfit) {
-                                insights.removeAll { $0.id == insight.id }
-                            }
+                            dismissInsight(insight)
+                        },
+                        onAction: { action in
+                            handleAction(action, insightId: insight.id)
                         }
                     )
                     .contentShape(Rectangle())
@@ -231,6 +246,79 @@ struct InsightsView: View {
             print("Failed to track engagement: \(error)")
         }
     }
+
+    private func dismissInsight(_ insight: APIClient.InsightData) {
+        // Cancel any pending undo expiration
+        undoWorkItem?.cancel()
+
+        // Store for potential undo
+        recentlyDismissed = insight
+
+        // Remove from list
+        withAnimation(.airfit) {
+            insights.removeAll { $0.id == insight.id }
+            showUndoToast = true
+        }
+
+        // Auto-finalize after 4 seconds
+        let workItem = DispatchWorkItem { [insight] in
+            finalizeDismiss(insight)
+        }
+        undoWorkItem = workItem
+        DispatchQueue.main.asyncAfter(deadline: .now() + 4, execute: workItem)
+    }
+
+    private func undoDismiss() {
+        guard let insight = recentlyDismissed else { return }
+
+        // Cancel finalization
+        undoWorkItem?.cancel()
+
+        // Restore insight
+        withAnimation(.airfit) {
+            insights.insert(insight, at: 0)
+            showUndoToast = false
+            recentlyDismissed = nil
+        }
+    }
+
+    private func finalizeDismiss(_ insight: APIClient.InsightData) {
+        // Track the dismissal server-side
+        Task { await trackEngagement(insight.id, action: "dismissed") }
+
+        withAnimation(.airfit) {
+            showUndoToast = false
+            recentlyDismissed = nil
+        }
+    }
+
+    private func handleAction(_ action: String, insightId: String) {
+        // Track the action
+        Task { await trackEngagement(insightId, action: "acted:\(action)") }
+
+        // Parse action string and route appropriately
+        let lowercased = action.lowercased()
+
+        if lowercased.contains("log") && (lowercased.contains("meal") || lowercased.contains("food") || lowercased.contains("nutrition")) {
+            // Navigate to Nutrition tab
+            NotificationCenter.default.post(name: .openNutritionTab, object: nil)
+        } else if lowercased.contains("workout") || lowercased.contains("training") || lowercased.contains("exercise") {
+            // Navigate to Dashboard (Training section)
+            NotificationCenter.default.post(name: .openDashboardTab, object: nil)
+        } else if lowercased.contains("profile") || lowercased.contains("target") || lowercased.contains("goal") {
+            // Navigate to Profile tab
+            NotificationCenter.default.post(name: .openProfileTab, object: nil)
+        } else if lowercased.contains("sleep") || lowercased.contains("recovery") {
+            // Navigate to Dashboard (Body section)
+            NotificationCenter.default.post(name: .openDashboardTab, object: nil)
+        } else if lowercased.contains("coach") || lowercased.contains("ask") || lowercased.contains("chat") {
+            // Navigate to Coach tab
+            NotificationCenter.default.post(name: .openCoachTab, object: nil)
+        } else {
+            // Default: open Coach to discuss the action
+            NotificationCenter.default.post(name: .openCoachTab, object: action)
+        }
+    }
 }
 
 // MARK: - Premium Metric Tile
@@ -272,6 +360,7 @@ struct PremiumInsightCard: View {
     let insight: APIClient.InsightData
     let onTellMeMore: () -> Void
     let onDismiss: () -> Void
+    let onAction: (String) -> Void
 
     @State private var dragOffset: CGFloat = 0
     @State private var isDismissing = false
@@ -416,11 +505,17 @@ struct PremiumInsightCard: View {
 
                 if !insight.suggested_actions.isEmpty {
                     ForEach(insight.suggested_actions.prefix(1), id: \.self) { action in
-                        Button(action) {
-                            // TODO: Handle action
+                        Button {
+                            onAction(action)
+                        } label: {
+                            Text(action)
+                                .font(.labelMedium)
+                                .foregroundStyle(categoryColor)
+                                .padding(.horizontal, 12)
+                                .padding(.vertical, 8)
+                                .background(categoryColor.opacity(0.1))
+                                .clipShape(Capsule())
                         }
-                        .font(.labelMedium)
-                        .foregroundStyle(Theme.textSecondary)
                         .buttonStyle(AirFitSubtleButtonStyle())
                     }
                 }
@@ -636,6 +731,40 @@ private struct PremiumInsightMessageBubble: View {
 
             if !message.isUser { Spacer(minLength: 60) }
         }
+    }
+}
+
+// MARK: - Undo Toast
+
+private struct UndoToast: View {
+    let message: String
+    let onUndo: () -> Void
+
+    var body: some View {
+        HStack(spacing: 16) {
+            Text(message)
+                .font(.labelMedium)
+                .foregroundStyle(Theme.textPrimary)
+
+            Spacer()
+
+            Button {
+                onUndo()
+            } label: {
+                Text("Undo")
+                    .font(.labelLarge)
+                    .foregroundStyle(Theme.accent)
+            }
+            .buttonStyle(AirFitSubtleButtonStyle())
+        }
+        .padding(.horizontal, 20)
+        .padding(.vertical, 14)
+        .background(
+            RoundedRectangle(cornerRadius: 16, style: .continuous)
+                .fill(.ultraThinMaterial)
+                .shadow(color: .black.opacity(0.1), radius: 10, x: 0, y: 4)
+        )
+        .padding(.horizontal, 20)
     }
 }
 
