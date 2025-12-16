@@ -328,6 +328,7 @@ struct BodyContentView: View {
     @State private var weightData: [ChartDataPoint] = []
     @State private var bodyFatData: [ChartDataPoint] = []
     @State private var leanMassData: [ChartDataPoint] = []
+    @State private var pRatioData: [ChartDataPoint] = []  // Rolling P-ratio quality scores
     @State private var isLoading = true
 
     private let healthKit = HealthKitManager()
@@ -358,6 +359,37 @@ struct BodyContentView: View {
     private var leanMassTrend: Double? {
         guard leanMassData.count >= 2 else { return nil }
         return leanMassData.last!.value - leanMassData.first!.value
+    }
+
+    // P-Ratio: Quality of body composition changes
+    // Normalized so higher = better regardless of bulk/cut/maintain
+    private var currentPRatio: Double? { pRatioData.last?.value }
+
+    private var pRatioTrend: Double? {
+        guard pRatioData.count >= 2 else { return nil }
+        return pRatioData.last!.value - pRatioData.first!.value
+    }
+
+    /// Convert P-ratio quality score (0-100) to label
+    private func pRatioLabel(for quality: Double) -> String {
+        switch quality {
+        case ..<20: return "Poor"           // Gaining fat or losing muscle
+        case 20..<40: return "Fair"         // Suboptimal partitioning
+        case 40..<60: return "Good"         // Decent quality changes
+        case 60..<80: return "Great"        // High quality gains/losses
+        default: return "Optimal"           // Elite partitioning
+        }
+    }
+
+    /// Color for P-ratio quality level - intuitive scale: red → orange → light green → green → blue
+    private func pRatioColor(for quality: Double) -> Color {
+        switch quality {
+        case ..<20: return Color(hex: "EF4444")   // Red - Poor
+        case 20..<40: return Color(hex: "F97316") // Orange - Fair
+        case 40..<60: return Color(hex: "84CC16") // Lime/Light Green - Good
+        case 60..<80: return Color(hex: "22C55E") // Green - Great
+        default: return Color(hex: "3B82F6")      // Blue - Optimal (exceptional)
+        }
     }
 
     var body: some View {
@@ -396,8 +428,14 @@ struct BodyContentView: View {
                     data: weightData,
                     unit: "lbs",
                     trend: weightTrend,
-                    trendInverted: true
+                    trendInverted: true,
+                    tooltip: "A scalar value masquerading as moral judgment. Descartes never said 'I weigh, therefore I am'—and yet here we are. The trend is signal; any single reading is noise with emotional baggage. Think longitudinally or don't bother thinking at all."
                 )
+            }
+
+            // P-Ratio - quality of body composition changes
+            if !pRatioData.isEmpty {
+                pRatioCard
             }
 
             // Body fat chart
@@ -410,6 +448,7 @@ struct BodyContentView: View {
                     unit: "%",
                     trend: bodyFatTrend,
                     trendInverted: true,
+                    tooltip: "Adipose tissue: evolution's answer to the question 'what if we needed to survive winter without DoorDash?' A Pareto-optimal storage solution—calorically dense, thermally insulating, hormonally active. The goal isn't zero; it's equilibrium.",
                     formatValue: { String(format: "%.1f%%", $0) }
                 )
             }
@@ -423,7 +462,8 @@ struct BodyContentView: View {
                     data: leanMassData,
                     unit: "lbs",
                     trend: leanMassTrend,
-                    trendInverted: false
+                    trendInverted: false,
+                    tooltip: "Metabolically active tissue—the body's standing army, expensive to maintain but existentially necessary. Muscle is the organ of longevity; everything else is just along for the ride. Sisyphus should have lifted the boulder instead."
                 )
             }
         }
@@ -549,56 +589,37 @@ struct BodyContentView: View {
         unit: String,
         trend: Double?,
         trendInverted: Bool,
+        tooltip: String? = nil,
         formatValue: @escaping (Double) -> String = { String(format: "%.1f", $0) }
     ) -> some View {
-        VStack(alignment: .leading, spacing: 16) {
-            // Header
-            HStack {
-                HStack(spacing: 8) {
-                    Image(systemName: icon)
-                        .font(.caption)
-                        .foregroundStyle(color)
-                    Text(title)
-                        .font(.labelHero)
-                        .tracking(2)
-                        .foregroundStyle(Theme.textMuted)
-                }
+        ChartCardView(
+            title: title,
+            icon: icon,
+            color: color,
+            data: data,
+            unit: unit,
+            tooltip: tooltip,
+            formatValue: formatValue
+        )
+    }
 
-                Spacer()
+    // MARK: - P-Ratio Card (quality of composition changes)
 
-                // Data point count
-                Text("\(data.count) readings")
-                    .font(.labelMicro)
-                    .foregroundStyle(Theme.textMuted)
-            }
-
-            // Interactive chart
-            InteractiveChartView(
-                data: data,
-                color: color,
-                unit: unit,
-                formatValue: formatValue
-            )
-        }
-        .padding(20)
-        .background(
-            RoundedRectangle(cornerRadius: 20, style: .continuous)
-                .fill(Theme.surface)
-                .shadow(color: .black.opacity(0.03), radius: 8, x: 0, y: 2)
+    private var pRatioCard: some View {
+        PRatioCardView(
+            data: pRatioData,
+            currentValue: currentPRatio,
+            trend: pRatioTrend,
+            timeRange: timeRange,
+            qualityLabel: pRatioLabel,
+            qualityColor: pRatioColor
         )
     }
 
     // MARK: - Loading & Empty States
 
     private var loadingView: some View {
-        VStack(spacing: 20) {
-            ProgressView()
-                .tint(Theme.accent)
-            Text("Loading body metrics...")
-                .font(.labelMedium)
-                .foregroundStyle(Theme.textMuted)
-        }
-        .frame(maxHeight: .infinity)
+        ShimmerLoadingView(text: "Loading body data...")
     }
 
     private var emptyState: some View {
@@ -645,14 +666,96 @@ struct BodyContentView: View {
 
         let (weight, bodyFat, leanMass) = await (weightTask, bodyFatTask, leanMassTask)
 
+        // Calculate rolling P-ratio quality scores
+        let pRatio = calculatePRatioQuality(weight: weight, bodyFat: bodyFat)
+
         await MainActor.run {
             withAnimation(.airfit) {
                 weightData = weight
                 bodyFatData = bodyFat
                 leanMassData = leanMass
+                pRatioData = pRatio
                 isLoading = false
             }
         }
+    }
+
+    /// Calculate P-ratio quality scores over rolling windows
+    /// P-ratio = ΔLean / ΔWeight, normalized so higher = better regardless of phase
+    /// Uses a 14-day rolling window to smooth out daily fluctuations
+    private func calculatePRatioQuality(weight: [ChartDataPoint], bodyFat: [ChartDataPoint]) -> [ChartDataPoint] {
+        guard weight.count >= 2 && bodyFat.count >= 2 else { return [] }
+
+        let calendar = Calendar.current
+        let windowDays = 14  // Rolling window size
+
+        // Build lookup of body fat by day
+        var bodyFatByDay: [Date: Double] = [:]
+        for bf in bodyFat {
+            let dayStart = calendar.startOfDay(for: bf.date)
+            bodyFatByDay[dayStart] = bf.value
+        }
+
+        // Calculate lean mass for each weight reading
+        struct CompositionPoint {
+            let date: Date
+            let weight: Double
+            let lean: Double
+            let fat: Double
+        }
+
+        var compositionData: [CompositionPoint] = []
+        for w in weight {
+            let dayStart = calendar.startOfDay(for: w.date)
+            if let bf = bodyFatByDay[dayStart], bf > 0 && bf < 100 {
+                let fatMass = w.value * (bf / 100.0)
+                let leanMass = w.value - fatMass
+                compositionData.append(CompositionPoint(date: w.date, weight: w.value, lean: leanMass, fat: fatMass))
+            }
+        }
+
+        compositionData.sort { $0.date < $1.date }
+        guard compositionData.count >= 2 else { return [] }
+
+        var results: [ChartDataPoint] = []
+
+        // For each point, compare to point ~windowDays ago
+        for i in 1..<compositionData.count {
+            let current = compositionData[i]
+
+            // Find comparison point (windowDays ago, or earliest available)
+            let targetDate = calendar.date(byAdding: .day, value: -windowDays, to: current.date)!
+            var compareIndex = 0
+            for j in 0..<i {
+                if compositionData[j].date <= targetDate {
+                    compareIndex = j
+                } else {
+                    break
+                }
+            }
+
+            let previous = compositionData[compareIndex]
+            let deltaWeight = current.weight - previous.weight
+            let deltaLean = current.lean - previous.lean
+            let deltaFat = current.fat - previous.fat
+
+            // Skip if no meaningful change
+            guard abs(deltaWeight) > 0.5 else { continue }
+
+            // Calculate quality score (0-100, higher = better)
+            let quality: Double
+            if deltaWeight > 0 {
+                // Bulking: P-ratio = what % of gain was lean
+                quality = max(0, min(100, (deltaLean / deltaWeight) * 100))
+            } else {
+                // Cutting: inverse P-ratio = what % of loss was fat
+                quality = max(0, min(100, (deltaFat / deltaWeight) * 100))
+            }
+
+            results.append(ChartDataPoint(date: current.date, value: quality))
+        }
+
+        return results
     }
 
     private func fetchWeight() async -> [ChartDataPoint] {
@@ -845,14 +948,7 @@ struct TrainingContentView: View {
     }
 
     private var loadingView: some View {
-        VStack(spacing: 20) {
-            ProgressView()
-                .tint(Theme.accent)
-            Text("Loading training data...")
-                .font(.labelMedium)
-                .foregroundStyle(Theme.textMuted)
-        }
-        .frame(maxHeight: .infinity)
+        ShimmerLoadingView(text: "Loading workouts...")
     }
 
     private var emptyStateView: some View {
@@ -935,5 +1031,943 @@ struct TrainingContentView: View {
 #Preview {
     NavigationStack {
         DashboardView()
+    }
+}
+
+// MARK: - Chart Card View with Tooltip
+
+struct ChartCardView: View {
+    let title: String
+    let icon: String
+    let color: Color
+    let data: [ChartDataPoint]
+    let unit: String
+    let tooltip: String?
+    let formatValue: (Double) -> String
+
+    @State private var showTooltip = false
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 16) {
+            // Header
+            HStack {
+                HStack(spacing: 8) {
+                    Image(systemName: icon)
+                        .font(.caption)
+                        .foregroundStyle(color)
+                    Text(title)
+                        .font(.labelHero)
+                        .tracking(2)
+                        .foregroundStyle(Theme.textMuted)
+
+                    // Info button for tooltip
+                    if tooltip != nil {
+                        Button {
+                            showTooltip = true
+                        } label: {
+                            Image(systemName: "info.circle")
+                                .font(.caption)
+                                .foregroundStyle(Theme.textMuted.opacity(0.6))
+                        }
+                        .buttonStyle(.plain)
+                    }
+                }
+
+                Spacer()
+
+                // Data point count
+                Text("\(data.count) readings")
+                    .font(.labelMicro)
+                    .foregroundStyle(Theme.textMuted)
+            }
+
+            // Interactive chart
+            InteractiveChartView(
+                data: data,
+                color: color,
+                unit: unit,
+                formatValue: formatValue
+            )
+        }
+        .padding(20)
+        .background(
+            RoundedRectangle(cornerRadius: 20, style: .continuous)
+                .fill(Theme.surface)
+                .shadow(color: .black.opacity(0.03), radius: 8, x: 0, y: 2)
+        )
+        .sheet(isPresented: $showTooltip) {
+            if let tooltip = tooltip {
+                MetricTooltipSheet(title: title, explanation: tooltip, color: color)
+                    .presentationDragIndicator(.visible)
+                    .presentationBackground(Theme.surface)
+            }
+        }
+    }
+}
+
+// MARK: - Change Quality Card View with Synchronized Gauge + Chart
+
+struct PRatioCardView: View {
+    let data: [ChartDataPoint]
+    let currentValue: Double?
+    let trend: Double?
+    let timeRange: ChartTimeRange  // Use dashboard's time range
+    let qualityLabel: (Double) -> String
+    let qualityColor: (Double) -> Color
+
+    @State private var showTooltip = false
+    @State private var selectedValue: Double?
+
+    private let tooltip = """
+    Nutrient partitioning efficiency—a measure of whether your body is building the cathedral or just piling stones. Not all mass is created equal, and this metric knows the difference.
+
+    High scores mean your inputs are becoming outputs you actually wanted. Low scores suggest your metabolism is still preparing for a famine that isn't coming. The good news: this one bends to your will.
+    """
+
+    // Shared height for perfect gauge/chart alignment
+    private let sharedHeight: CGFloat = 140
+
+    // Zone thresholds
+    private let zones: [(threshold: Double, label: String)] = [
+        (0, "Poor"),
+        (20, "Fair"),
+        (40, "Good"),
+        (60, "Great"),
+        (80, "Optimal")
+    ]
+
+    // Display value - selected or current
+    private var displayValue: Double {
+        selectedValue ?? currentValue ?? 50.0
+    }
+
+    // Filter data by time range
+    private var filteredData: [ChartDataPoint] {
+        guard let days = timeRange.days else { return data }
+        let cutoff = Calendar.current.date(byAdding: .day, value: -days, to: Date()) ?? Date()
+        return data.filter { $0.date >= cutoff }
+    }
+
+    var body: some View {
+        let color = qualityColor(displayValue)
+
+        VStack(alignment: .leading, spacing: 12) {
+            // Header
+            HStack(spacing: 8) {
+                Image(systemName: "arrow.triangle.branch")
+                    .font(.caption)
+                    .foregroundStyle(color)
+                Text("CHANGE QUALITY")
+                    .font(.labelHero)
+                    .tracking(2)
+                    .foregroundStyle(Theme.textMuted)
+
+                Button {
+                    showTooltip = true
+                } label: {
+                    Image(systemName: "info.circle")
+                        .font(.caption)
+                        .foregroundStyle(Theme.textMuted.opacity(0.6))
+                }
+                .buttonStyle(.plain)
+
+                Spacer()
+            }
+
+            // Main content: Gauge + Chart synchronized
+            QualityGaugeChartView(
+                data: filteredData,
+                displayValue: displayValue,
+                color: color,
+                zones: zones,
+                qualityColor: qualityColor,
+                chartHeight: sharedHeight,
+                onSelectionChange: { value in
+                    selectedValue = value
+                },
+                onSelectionEnd: {
+                    DispatchQueue.main.asyncAfter(deadline: .now() + 2) {
+                        withAnimation(.airfit) {
+                            selectedValue = nil
+                        }
+                    }
+                }
+            )
+
+            // X-axis labels
+            if let first = filteredData.first?.date, let last = filteredData.last?.date {
+                HStack {
+                    Text(formatAxisDate(first))
+                    Spacer()
+                    Text(formatAxisDate(last))
+                }
+                .font(.labelMicro)
+                .foregroundStyle(Theme.textMuted)
+                .padding(.leading, 50)  // Align with chart area
+            }
+        }
+        .padding(16)
+        .background(
+            RoundedRectangle(cornerRadius: 20, style: .continuous)
+                .fill(Theme.surface)
+                .shadow(color: .black.opacity(0.03), radius: 8, x: 0, y: 2)
+        )
+        .sheet(isPresented: $showTooltip) {
+            MetricTooltipSheet(title: "Change Quality", explanation: tooltip, color: color)
+                .presentationDragIndicator(.visible)
+                .presentationBackground(Theme.surface)
+        }
+        .sensoryFeedback(.selection, trigger: selectedValue != nil ? Int(displayValue / 20) : nil)
+    }
+
+    private func formatAxisDate(_ date: Date) -> String {
+        let formatter = DateFormatter()
+        formatter.dateFormat = "MMM d"
+        return formatter.string(from: date)
+    }
+}
+
+// MARK: - Combined Gauge + Chart View (for proper alignment)
+
+struct QualityGaugeChartView: View {
+    let data: [ChartDataPoint]
+    let displayValue: Double
+    let color: Color
+    let zones: [(threshold: Double, label: String)]
+    let qualityColor: (Double) -> Color
+    let chartHeight: CGFloat
+    let onSelectionChange: (Double?) -> Void
+    let onSelectionEnd: () -> Void
+
+    @State private var selectedPoint: ChartDataPoint?
+    @State private var showingDetail = false
+
+    private var smoothedData: [ChartDataPoint] {
+        guard data.count > 3 else { return data }
+        let period = ChartSmoothing.optimalPeriod(for: data)
+        return ChartSmoothing.applyEMA(to: data, period: period)
+    }
+
+    var body: some View {
+        VStack(spacing: 0) {
+            // Selection detail - appears above BOTH gauge and chart
+            if let point = selectedPoint, showingDetail {
+                HStack {
+                    Text(qualityLabel(for: point.trendValue))
+                        .font(.system(size: 16, weight: .semibold))
+                        .foregroundStyle(qualityColor(point.trendValue))
+
+                    Text("•")
+                        .foregroundStyle(Theme.textMuted)
+
+                    Text(formatDate(point.date))
+                        .font(.caption)
+                        .foregroundStyle(Theme.textMuted)
+
+                    Spacer()
+                }
+                .padding(.bottom, 8)
+                .padding(.leading, 50)  // Align with chart
+                .transition(.opacity.combined(with: .move(edge: .top)))
+            }
+
+            // Gauge + Chart side by side
+            HStack(alignment: .top, spacing: 4) {
+                // Compact gauge with aligned labels
+                CompactGaugeView(
+                    value: displayValue,
+                    color: color,
+                    zones: zones,
+                    height: chartHeight
+                )
+                .animation(.spring(response: 0.2), value: displayValue)
+
+                // Chart area
+                GeometryReader { geo in
+                    ZStack {
+                        // Zone background bands
+                        VStack(spacing: 0) {
+                            ForEach(zones.reversed(), id: \.threshold) { zone in
+                                zoneColor(for: zone.threshold).opacity(0.08)
+                            }
+                        }
+                        .clipShape(RoundedRectangle(cornerRadius: 8))
+
+                        // Zone divider lines
+                        ForEach(1..<zones.count, id: \.self) { i in
+                            let y = geo.size.height * CGFloat(i) / CGFloat(zones.count)
+                            Rectangle()
+                                .fill(Theme.textMuted.opacity(0.15))
+                                .frame(height: 1)
+                                .position(x: geo.size.width / 2, y: y)
+                        }
+
+                        // Chart content
+                        let processedData = smoothedData
+                        if processedData.count >= 2 {
+                            chartContent(data: processedData, width: geo.size.width, height: geo.size.height)
+                        } else if processedData.count == 1 {
+                            singlePointView(point: processedData[0], width: geo.size.width, height: geo.size.height)
+                        } else {
+                            Text("Not enough data")
+                                .font(.caption)
+                                .foregroundStyle(Theme.textMuted)
+                        }
+
+                        // Touch overlay
+                        Color.clear
+                            .contentShape(Rectangle())
+                            .gesture(
+                                DragGesture(minimumDistance: 0)
+                                    .onChanged { value in
+                                        handleTouch(at: value.location, width: geo.size.width, height: geo.size.height)
+                                    }
+                                    .onEnded { _ in
+                                        onSelectionEnd()
+                                        DispatchQueue.main.asyncAfter(deadline: .now() + 2) {
+                                            withAnimation(.airfit) {
+                                                showingDetail = false
+                                                selectedPoint = nil
+                                                onSelectionChange(nil)
+                                            }
+                                        }
+                                    }
+                            )
+                    }
+                }
+                .frame(height: chartHeight)
+            }
+        }
+    }
+
+    private func chartContent(data: [ChartDataPoint], width: CGFloat, height: CGFloat) -> some View {
+        let points = normalizedPoints(data: data, width: width, height: height)
+
+        return ZStack {
+            // Subtle gradient fill
+            LinearGradient(
+                colors: [Theme.textMuted.opacity(0.1), .clear],
+                startPoint: .top,
+                endPoint: .bottom
+            )
+            .mask(areaPath(through: points, height: height))
+
+            // Zone-colored line segments (muted to match pastel theme)
+            ForEach(0..<max(0, data.count - 1), id: \.self) { i in
+                let p1 = points[i]
+                let p2 = points[i + 1]
+                // Use average value of segment for color
+                let avgValue = (data[i].trendValue + data[i + 1].trendValue) / 2
+                let segmentColor = colorForValue(avgValue).opacity(0.6)
+
+                // Draw smooth curve segment
+                segmentPath(from: p1, to: p2, index: i, points: points)
+                    .stroke(segmentColor, style: StrokeStyle(lineWidth: 2.5, lineCap: .round, lineJoin: .round))
+            }
+
+            // Selected point indicator
+            if let point = selectedPoint, let index = data.firstIndex(where: { $0.id == point.id }) {
+                let pos = points[index]
+
+                Rectangle()
+                    .fill(qualityColor(point.trendValue).opacity(0.5))
+                    .frame(width: 1, height: height)
+                    .position(x: pos.x, y: height / 2)
+
+                Circle()
+                    .fill(Theme.surface)
+                    .overlay(Circle().stroke(qualityColor(point.trendValue), lineWidth: 3))
+                    .frame(width: 14, height: 14)
+                    .shadow(color: qualityColor(point.trendValue).opacity(0.5), radius: 6)
+                    .position(pos)
+            }
+        }
+    }
+
+    /// Draw a single smooth curve segment between two points
+    private func segmentPath(from p1: CGPoint, to p2: CGPoint, index i: Int, points: [CGPoint]) -> Path {
+        Path { path in
+            path.move(to: p1)
+
+            let p0 = i > 0 ? points[i - 1] : points[0]
+            let p3 = i + 2 < points.count ? points[i + 2] : points[i + 1]
+
+            let tension: CGFloat = 0.25
+            let cp1 = CGPoint(x: p1.x + (p2.x - p0.x) * tension, y: p1.y + (p2.y - p0.y) * tension)
+            let cp2 = CGPoint(x: p2.x - (p3.x - p1.x) * tension, y: p2.y - (p3.y - p1.y) * tension)
+
+            path.addCurve(to: p2, control1: cp1, control2: cp2)
+        }
+    }
+
+    private func singlePointView(point: ChartDataPoint, width: CGFloat, height: CGFloat) -> some View {
+        let y = height * (1 - point.value / 100)
+        return Circle()
+            .fill(Theme.surface)
+            .overlay(Circle().stroke(qualityColor(point.value), lineWidth: 2))
+            .frame(width: 12, height: 12)
+            .position(x: width / 2, y: y)
+    }
+
+    private func normalizedPoints(data: [ChartDataPoint], width: CGFloat, height: CGFloat) -> [CGPoint] {
+        guard data.count >= 2,
+              let firstDate = data.first?.date,
+              let lastDate = data.last?.date else { return [] }
+
+        let timeRange = lastDate.timeIntervalSince(firstDate)
+
+        return data.map { point in
+            let x = timeRange > 0
+                ? CGFloat(point.date.timeIntervalSince(firstDate) / timeRange) * width
+                : width / 2
+            let value = min(max(point.trendValue, 0), 100)
+            let y = height * (1 - value / 100)
+            return CGPoint(x: x, y: y)
+        }
+    }
+
+    private func linePath(through points: [CGPoint]) -> Path {
+        Path { path in
+            guard points.count >= 2 else { return }
+            path.move(to: points[0])
+
+            for i in 0..<(points.count - 1) {
+                let p0 = i > 0 ? points[i - 1] : points[0]
+                let p1 = points[i]
+                let p2 = points[i + 1]
+                let p3 = i + 2 < points.count ? points[i + 2] : points[i + 1]
+
+                let tension: CGFloat = 0.25
+                let cp1 = CGPoint(x: p1.x + (p2.x - p0.x) * tension, y: p1.y + (p2.y - p0.y) * tension)
+                let cp2 = CGPoint(x: p2.x - (p3.x - p1.x) * tension, y: p2.y - (p3.y - p1.y) * tension)
+
+                path.addCurve(to: p2, control1: cp1, control2: cp2)
+            }
+        }
+    }
+
+    private func areaPath(through points: [CGPoint], height: CGFloat) -> Path {
+        Path { path in
+            guard let first = points.first, let last = points.last else { return }
+
+            path.move(to: CGPoint(x: first.x, y: height))
+            path.addLine(to: first)
+
+            if points.count >= 2 {
+                for i in 0..<(points.count - 1) {
+                    let p0 = i > 0 ? points[i - 1] : points[0]
+                    let p1 = points[i]
+                    let p2 = points[i + 1]
+                    let p3 = i + 2 < points.count ? points[i + 2] : points[i + 1]
+
+                    let tension: CGFloat = 0.25
+                    let cp1 = CGPoint(x: p1.x + (p2.x - p0.x) * tension, y: p1.y + (p2.y - p0.y) * tension)
+                    let cp2 = CGPoint(x: p2.x - (p3.x - p1.x) * tension, y: p2.y - (p3.y - p1.y) * tension)
+
+                    path.addCurve(to: p2, control1: cp1, control2: cp2)
+                }
+            }
+
+            path.addLine(to: CGPoint(x: last.x, y: height))
+            path.closeSubpath()
+        }
+    }
+
+    private func handleTouch(at location: CGPoint, width: CGFloat, height: CGFloat) {
+        let processedData = smoothedData
+        guard !processedData.isEmpty else { return }
+
+        let points = normalizedPoints(data: processedData, width: width, height: height)
+        guard !points.isEmpty else { return }
+
+        var closestIndex = 0
+        var closestDistance = CGFloat.infinity
+
+        for (index, point) in points.enumerated() {
+            let distance = abs(point.x - location.x)
+            if distance < closestDistance {
+                closestDistance = distance
+                closestIndex = index
+            }
+        }
+
+        let newSelection = processedData[closestIndex]
+        if selectedPoint?.id != newSelection.id {
+            withAnimation(.spring(response: 0.2)) {
+                selectedPoint = newSelection
+                showingDetail = true
+                onSelectionChange(newSelection.trendValue)
+            }
+        }
+    }
+
+    // Intuitive color scale: red → orange → lime → green → blue
+    private func zoneColor(for threshold: Double) -> Color {
+        switch threshold {
+        case 80...: return Color(hex: "3B82F6")   // Blue - Optimal
+        case 60..<80: return Color(hex: "22C55E") // Green - Great
+        case 40..<60: return Color(hex: "84CC16") // Lime - Good
+        case 20..<40: return Color(hex: "F97316") // Orange - Fair
+        default: return Color(hex: "EF4444")      // Red - Poor
+        }
+    }
+
+    private func qualityLabel(for value: Double) -> String {
+        switch value {
+        case 80...: return "Optimal"
+        case 60..<80: return "Great"
+        case 40..<60: return "Good"
+        case 20..<40: return "Fair"
+        default: return "Poor"
+        }
+    }
+
+    // Get color for a specific value (for line segments)
+    private func colorForValue(_ value: Double) -> Color {
+        switch value {
+        case 80...: return Color(hex: "3B82F6")   // Blue - Optimal
+        case 60..<80: return Color(hex: "22C55E") // Green - Great
+        case 40..<60: return Color(hex: "84CC16") // Lime - Good
+        case 20..<40: return Color(hex: "F97316") // Orange - Fair
+        default: return Color(hex: "EF4444")      // Red - Poor
+        }
+    }
+
+    private func formatDate(_ date: Date) -> String {
+        let formatter = DateFormatter()
+        formatter.dateFormat = "MMM d"
+        return formatter.string(from: date)
+    }
+}
+
+// MARK: - Compact Gauge View with Proper Label Alignment
+
+struct CompactGaugeView: View {
+    let value: Double
+    let color: Color
+    let zones: [(threshold: Double, label: String)]
+    let height: CGFloat
+
+    private let barWidth: CGFloat = 16
+
+    var body: some View {
+        HStack(alignment: .center, spacing: 6) {
+            // Labels - each one exactly matches zone height, right-aligned
+            VStack(alignment: .trailing, spacing: 0) {
+                ForEach(zones.reversed(), id: \.threshold) { zone in
+                    Text(zone.label)
+                        .font(.system(size: 7, weight: .medium))
+                        .foregroundStyle(zoneColor(for: zone.threshold).opacity(isInZone(zone.threshold) ? 1 : 0.4))
+                        .frame(height: height / CGFloat(zones.count), alignment: .trailing)
+                }
+            }
+            .frame(width: 34, alignment: .trailing)
+
+            // Gauge bar with indicator
+            ZStack(alignment: .topLeading) {
+                // Zone colors
+                VStack(spacing: 0) {
+                    ForEach(zones.reversed(), id: \.threshold) { zone in
+                        Rectangle()
+                            .fill(zoneColor(for: zone.threshold).opacity(isInZone(zone.threshold) ? 0.5 : 0.15))
+                    }
+                }
+                .frame(width: barWidth)
+                .clipShape(RoundedRectangle(cornerRadius: 3))
+
+                // Divider lines
+                ForEach(1..<zones.count, id: \.self) { i in
+                    Rectangle()
+                        .fill(Theme.textMuted.opacity(0.25))
+                        .frame(width: barWidth, height: 1)
+                        .offset(y: height * CGFloat(i) / CGFloat(zones.count) - 0.5)
+                }
+
+                // Indicator
+                let y = height * (1 - min(max(value, 0), 100) / 100)
+                HStack(spacing: 0) {
+                    Triangle()
+                        .fill(color)
+                        .frame(width: 6, height: 6)
+                        .rotationEffect(.degrees(90))
+                    Rectangle()
+                        .fill(color)
+                        .frame(width: barWidth + 2, height: 2)
+                }
+                .offset(x: -3, y: y - 3)
+            }
+            .frame(width: barWidth, height: height)
+        }
+    }
+
+    private func isInZone(_ threshold: Double) -> Bool {
+        let nextThreshold = threshold + 20
+        return value >= threshold && value < nextThreshold
+    }
+
+    // Intuitive color scale: red → orange → lime → green → blue
+    private func zoneColor(for threshold: Double) -> Color {
+        switch threshold {
+        case 80...: return Color(hex: "3B82F6")   // Blue - Optimal (exceptional)
+        case 60..<80: return Color(hex: "22C55E") // Green - Great
+        case 40..<60: return Color(hex: "84CC16") // Lime - Good
+        case 20..<40: return Color(hex: "F97316") // Orange - Fair
+        default: return Color(hex: "EF4444")      // Red - Poor
+        }
+    }
+}
+
+// MARK: - Quality Gauge View (legacy - can be removed after confirming new view works)
+
+struct QualityGaugeView: View {
+    let value: Double
+    let color: Color
+    let zones: [(threshold: Double, label: String)]
+    let gaugeHeight: CGFloat
+
+    var body: some View {
+        CompactGaugeView(value: value, color: color, zones: zones, height: gaugeHeight)
+    }
+}
+
+// MARK: - Quality Chart with Zone Backgrounds (legacy - kept for reference)
+
+struct QualityChartView: View {
+    let data: [ChartDataPoint]
+    let zones: [(threshold: Double, label: String)]
+    let qualityColor: (Double) -> Color
+    let chartHeight: CGFloat  // Passed in to match gauge
+    let onSelectionChange: (Double?) -> Void
+    let onSelectionEnd: () -> Void
+
+    @State private var selectedPoint: ChartDataPoint?
+    @State private var showingDetail = false
+
+    // Apply EMA smoothing like other body comp charts
+    private var smoothedData: [ChartDataPoint] {
+        guard data.count > 3 else { return data }
+        let period = ChartSmoothing.optimalPeriod(for: data)
+        return ChartSmoothing.applyEMA(to: data, period: period)
+    }
+
+    var body: some View {
+        VStack(spacing: 0) {
+            // Selected point detail
+            if let point = selectedPoint, showingDetail {
+                HStack {
+                    Text("\(Int(point.trendValue))%")
+                        .font(.metricSmall)
+                        .foregroundStyle(qualityColor(point.trendValue))
+
+                    Text(formatDate(point.date))
+                        .font(.labelMicro)
+                        .foregroundStyle(Theme.textMuted)
+
+                    Spacer()
+                }
+                .padding(.bottom, 6)
+                .transition(.opacity)
+            }
+
+            // Chart with zone backgrounds
+            GeometryReader { geo in
+                ZStack {
+                    // Zone background bands (no spacing - exact alignment)
+                    VStack(spacing: 0) {
+                        ForEach(zones.reversed(), id: \.threshold) { zone in
+                            zoneColor(for: zone.threshold).opacity(0.08)
+                        }
+                    }
+                    .clipShape(RoundedRectangle(cornerRadius: 8))
+
+                    // Zone divider lines at exact boundaries
+                    ForEach(1..<zones.count, id: \.self) { i in
+                        let y = geo.size.height * CGFloat(i) / CGFloat(zones.count)
+                        Rectangle()
+                            .fill(Theme.textMuted.opacity(0.15))
+                            .frame(height: 1)
+                            .position(x: geo.size.width / 2, y: y)
+                    }
+
+                    // Line chart (smoothed)
+                    let processedData = smoothedData
+                    if processedData.count >= 2 {
+                        chartContent(data: processedData, width: geo.size.width, height: geo.size.height)
+                    } else if processedData.count == 1 {
+                        singlePointView(point: processedData[0], width: geo.size.width, height: geo.size.height)
+                    } else {
+                        Text("Not enough data")
+                            .font(.caption)
+                            .foregroundStyle(Theme.textMuted)
+                    }
+
+                    // Touch overlay
+                    Color.clear
+                        .contentShape(Rectangle())
+                        .gesture(
+                            DragGesture(minimumDistance: 0)
+                                .onChanged { value in
+                                    handleTouch(at: value.location, width: geo.size.width, height: geo.size.height)
+                                }
+                                .onEnded { _ in
+                                    onSelectionEnd()
+                                    DispatchQueue.main.asyncAfter(deadline: .now() + 2) {
+                                        withAnimation(.airfit) {
+                                            showingDetail = false
+                                            selectedPoint = nil
+                                            onSelectionChange(nil)
+                                        }
+                                    }
+                                }
+                        )
+                }
+            }
+            .frame(height: chartHeight)
+
+            // X-axis labels
+            if let first = data.first?.date, let last = data.last?.date {
+                HStack {
+                    Text(formatAxisDate(first))
+                    Spacer()
+                    Text(formatAxisDate(last))
+                }
+                .font(.labelMicro)
+                .foregroundStyle(Theme.textMuted)
+                .padding(.top, 6)
+            }
+        }
+    }
+
+    private func chartContent(data: [ChartDataPoint], width: CGFloat, height: CGFloat) -> some View {
+        let points = normalizedPoints(data: data, width: width, height: height)
+
+        return ZStack {
+            // Gradient fill under smoothed line
+            LinearGradient(
+                colors: [Theme.accent.opacity(0.25), Theme.accent.opacity(0.05), .clear],
+                startPoint: .top,
+                endPoint: .bottom
+            )
+            .mask(areaPath(through: points, height: height))
+
+            // Smoothed line
+            linePath(through: points)
+                .stroke(
+                    LinearGradient(
+                        colors: [qualityColor(80), qualityColor(50), qualityColor(20)],
+                        startPoint: .top,
+                        endPoint: .bottom
+                    ),
+                    style: StrokeStyle(lineWidth: 3, lineCap: .round, lineJoin: .round)
+                )
+
+            // Selected point indicator
+            if let point = selectedPoint, let index = data.firstIndex(where: { $0.id == point.id }) {
+                let pos = points[index]
+
+                // Vertical line
+                Rectangle()
+                    .fill(qualityColor(point.trendValue).opacity(0.5))
+                    .frame(width: 1, height: height)
+                    .position(x: pos.x, y: height / 2)
+
+                // Point on trend line
+                Circle()
+                    .fill(Theme.surface)
+                    .overlay(Circle().stroke(qualityColor(point.trendValue), lineWidth: 3))
+                    .frame(width: 14, height: 14)
+                    .shadow(color: qualityColor(point.trendValue).opacity(0.5), radius: 6)
+                    .position(pos)
+            }
+        }
+    }
+
+    private func singlePointView(point: ChartDataPoint, width: CGFloat, height: CGFloat) -> some View {
+        let y = height * (1 - point.value / 100)
+        return Circle()
+            .fill(Theme.surface)
+            .overlay(Circle().stroke(qualityColor(point.value), lineWidth: 2))
+            .frame(width: 12, height: 12)
+            .position(x: width / 2, y: y)
+    }
+
+    private func normalizedPoints(data: [ChartDataPoint], width: CGFloat, height: CGFloat) -> [CGPoint] {
+        guard data.count >= 2,
+              let firstDate = data.first?.date,
+              let lastDate = data.last?.date else { return [] }
+
+        let timeRange = lastDate.timeIntervalSince(firstDate)
+
+        return data.map { point in
+            let x = timeRange > 0
+                ? CGFloat(point.date.timeIntervalSince(firstDate) / timeRange) * width
+                : width / 2
+
+            // Fixed 0-100 scale, use smoothed trend value
+            let value = min(max(point.trendValue, 0), 100)
+            let y = height * (1 - value / 100)
+
+            return CGPoint(x: x, y: y)
+        }
+    }
+
+    private func linePath(through points: [CGPoint]) -> Path {
+        Path { path in
+            guard points.count >= 2 else { return }
+            path.move(to: points[0])
+
+            for i in 0..<(points.count - 1) {
+                let p0 = i > 0 ? points[i - 1] : points[0]
+                let p1 = points[i]
+                let p2 = points[i + 1]
+                let p3 = i + 2 < points.count ? points[i + 2] : points[i + 1]
+
+                let tension: CGFloat = 0.25
+                let cp1 = CGPoint(x: p1.x + (p2.x - p0.x) * tension, y: p1.y + (p2.y - p0.y) * tension)
+                let cp2 = CGPoint(x: p2.x - (p3.x - p1.x) * tension, y: p2.y - (p3.y - p1.y) * tension)
+
+                path.addCurve(to: p2, control1: cp1, control2: cp2)
+            }
+        }
+    }
+
+    private func areaPath(through points: [CGPoint], height: CGFloat) -> Path {
+        Path { path in
+            guard let first = points.first, let last = points.last else { return }
+
+            path.move(to: CGPoint(x: first.x, y: height))
+            path.addLine(to: first)
+
+            if points.count >= 2 {
+                for i in 0..<(points.count - 1) {
+                    let p0 = i > 0 ? points[i - 1] : points[0]
+                    let p1 = points[i]
+                    let p2 = points[i + 1]
+                    let p3 = i + 2 < points.count ? points[i + 2] : points[i + 1]
+
+                    let tension: CGFloat = 0.25
+                    let cp1 = CGPoint(x: p1.x + (p2.x - p0.x) * tension, y: p1.y + (p2.y - p0.y) * tension)
+                    let cp2 = CGPoint(x: p2.x - (p3.x - p1.x) * tension, y: p2.y - (p3.y - p1.y) * tension)
+
+                    path.addCurve(to: p2, control1: cp1, control2: cp2)
+                }
+            }
+
+            path.addLine(to: CGPoint(x: last.x, y: height))
+            path.closeSubpath()
+        }
+    }
+
+    private func handleTouch(at location: CGPoint, width: CGFloat, height: CGFloat) {
+        let processedData = smoothedData
+        guard !processedData.isEmpty else { return }
+
+        let points = normalizedPoints(data: processedData, width: width, height: height)
+        guard !points.isEmpty else { return }
+
+        var closestIndex = 0
+        var closestDistance = CGFloat.infinity
+
+        for (index, point) in points.enumerated() {
+            let distance = abs(point.x - location.x)
+            if distance < closestDistance {
+                closestDistance = distance
+                closestIndex = index
+            }
+        }
+
+        let newSelection = processedData[closestIndex]
+        if selectedPoint?.id != newSelection.id {
+            withAnimation(.spring(response: 0.2)) {
+                selectedPoint = newSelection
+                showingDetail = true
+                // Use smoothed trend value for gauge
+                onSelectionChange(newSelection.trendValue)
+            }
+        }
+    }
+
+    private func zoneColor(for threshold: Double) -> Color {
+        switch threshold {
+        case 80...: return Theme.success
+        case 60..<80: return Color(hex: "4ECDC4")
+        case 40..<60: return Theme.accent
+        case 20..<40: return Theme.warning
+        default: return Theme.error
+        }
+    }
+
+    private func formatDate(_ date: Date) -> String {
+        let formatter = DateFormatter()
+        formatter.dateFormat = "MMM d"
+        return formatter.string(from: date)
+    }
+
+    private func formatAxisDate(_ date: Date) -> String {
+        let formatter = DateFormatter()
+        formatter.dateFormat = "MMM d"
+        return formatter.string(from: date)
+    }
+}
+
+
+// MARK: - Triangle Shape
+
+struct Triangle: Shape {
+    func path(in rect: CGRect) -> Path {
+        var path = Path()
+        path.move(to: CGPoint(x: rect.midX, y: rect.minY))
+        path.addLine(to: CGPoint(x: rect.maxX, y: rect.maxY))
+        path.addLine(to: CGPoint(x: rect.minX, y: rect.maxY))
+        path.closeSubpath()
+        return path
+    }
+}
+
+// MARK: - Metric Tooltip Sheet (Self-sizing)
+
+struct MetricTooltipSheet: View {
+    let title: String
+    let explanation: String
+    let color: Color
+
+    @State private var contentHeight: CGFloat = 100
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 12) {
+            HStack(spacing: 10) {
+                Circle()
+                    .fill(color)
+                    .frame(width: 8, height: 8)
+                Text(title)
+                    .font(.system(size: 18, weight: .semibold))
+                    .foregroundStyle(Theme.textPrimary)
+            }
+
+            Text(explanation)
+                .font(.system(size: 15))
+                .foregroundStyle(Theme.textSecondary)
+                .fixedSize(horizontal: false, vertical: true)
+        }
+        .padding(.horizontal, 24)
+        .padding(.top, 16)
+        .padding(.bottom, 10)
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .background(
+            GeometryReader { geo in
+                Color.clear.preference(key: TooltipHeightKey.self, value: geo.size.height)
+            }
+        )
+        .onPreferenceChange(TooltipHeightKey.self) { height in
+            contentHeight = height
+        }
+        .presentationDetents([.height(contentHeight)])
+    }
+}
+
+private struct TooltipHeightKey: PreferenceKey {
+    static let defaultValue: CGFloat = 100
+    static func reduce(value: inout CGFloat, nextValue: () -> CGFloat) {
+        value = nextValue()
     }
 }

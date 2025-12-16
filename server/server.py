@@ -20,6 +20,7 @@ import profile
 import context_store
 import insight_engine
 import scheduler
+import chat_context
 
 
 @asynccontextmanager
@@ -224,46 +225,16 @@ async def chat(request: ChatRequest):
     6. Extract insights from conversation to evolve profile
     7. Return the AI response
     """
-    context_parts = []
-
-    # Inject pre-computed insights from background agent
-    # This is the key multi-agent integration - chat stays fast because
-    # heavy insight generation already happened in background
-    insights_context = scheduler.get_insights_for_chat_context(limit=3)
-    if insights_context:
-        context_parts.append(insights_context)
-
-    # Add weekly summary for quick reference
-    weekly_summary = scheduler.get_weekly_summary_for_chat()
-    if weekly_summary:
-        context_parts.append(weekly_summary)
-
-    # Add body composition trends (EMA-smoothed for signal, not noise)
-    body_comp_trends = context_store.format_body_comp_for_chat()
-    if body_comp_trends:
-        context_parts.append(body_comp_trends)
-
-    # Add rolling 7-day training volume (set tracker)
-    set_tracker_context = await hevy.format_set_tracker_for_chat()
-    if set_tracker_context:
-        context_parts.append(set_tracker_context)
-
-    # Get Hevy workout data (server-side)
-    hevy_context = await hevy.get_hevy_context()
-    if hevy_context.get("hevy_workouts"):
-        context_parts.append(hevy_context["hevy_workouts"])
-
-    # Add HealthKit data from iOS (if provided)
-    if request.health_context:
-        context_parts.append(format_health_context(request.health_context))
-
-    # Add nutrition data from iOS (if provided)
-    if request.nutrition_context:
-        context_parts.append(format_nutrition_context(request.nutrition_context))
+    # Build rich context using the ChatContext builder
+    context = await chat_context.build_chat_context(
+        health_context=request.health_context,
+        nutrition_context=request.nutrition_context,
+        insights_limit=3
+    )
 
     # Build the full prompt
-    if context_parts:
-        context_str = "\n\n".join(context_parts)
+    if context.has_any_context():
+        context_str = context.to_context_string()
         prompt = f"{context_str}\n\nUser message: {request.message}"
     else:
         prompt = request.message
@@ -288,69 +259,6 @@ async def chat(request: ChatRequest):
         success=result.success,
         error=result.error
     )
-
-
-def format_health_context(context: dict) -> str:
-    """Format HealthKit data into a readable context string for the LLM."""
-    parts = ["Here is the user's current health data:"]
-
-    if "steps" in context:
-        parts.append(f"- Steps today: {context['steps']}")
-    if "sleep_hours" in context:
-        parts.append(f"- Sleep last night: {context['sleep_hours']} hours")
-    if "active_calories" in context:
-        parts.append(f"- Active calories today: {context['active_calories']}")
-    if "weight_kg" in context:
-        parts.append(f"- Weight: {context['weight_kg']} kg")
-    if "resting_hr" in context:
-        parts.append(f"- Resting heart rate: {context['resting_hr']} bpm")
-
-    # Add any other keys dynamically
-    known_keys = {"steps", "sleep_hours", "active_calories", "weight_kg", "resting_hr"}
-    for key, value in context.items():
-        if key not in known_keys:
-            parts.append(f"- {key.replace('_', ' ').title()}: {value}")
-
-    return "\n".join(parts)
-
-
-def format_nutrition_context(context: dict) -> str:
-    """Format nutrition data into a readable context string for the LLM."""
-    parts = ["Here is what the user has eaten today:"]
-
-    # Totals for today
-    if "total_calories" in context:
-        parts.append(f"- Total calories: {context['total_calories']}")
-    if "total_protein" in context:
-        parts.append(f"- Total protein: {context['total_protein']}g")
-    if "total_carbs" in context:
-        parts.append(f"- Total carbs: {context['total_carbs']}g")
-    if "total_fat" in context:
-        parts.append(f"- Total fat: {context['total_fat']}g")
-
-    # Entry count
-    if "entry_count" in context:
-        parts.append(f"- Logged {context['entry_count']} food entries today")
-
-    # Today's individual entries
-    if "entries" in context and context["entries"]:
-        parts.append("\nFood logged today:")
-        for entry in context["entries"]:
-            name = entry.get("name", "Unknown")
-            cal = entry.get("calories", 0)
-            pro = entry.get("protein", 0)
-            parts.append(f"  - {name}: {cal} cal, {pro}g protein")
-
-    # Recent entries (last 2-3 days) for pattern recognition
-    if "recent_entries" in context and context["recent_entries"]:
-        parts.append("\nFood from the last few days:")
-        for entry in context["recent_entries"]:
-            name = entry.get("name", "Unknown")
-            cal = entry.get("calories", 0)
-            pro = entry.get("protein", 0)
-            parts.append(f"  - {name}: {cal} cal, {pro}g protein")
-
-    return "\n".join(parts)
 
 
 @app.post("/nutrition/parse", response_model=NutritionParseResponse)

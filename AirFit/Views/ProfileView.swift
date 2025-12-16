@@ -34,9 +34,9 @@ struct ProfileView: View {
     private let apiClient = APIClient()
 
     var body: some View {
-        Group {
+        ZStack {
             if isLoading {
-                loadingView
+                ShimmerLoadingView(text: "Connecting...")
             } else if let profile = profile {
                 if profile.has_profile {
                     profileContent(profile)
@@ -46,21 +46,29 @@ struct ProfileView: View {
             } else {
                 errorState
             }
+
+            // Settings button overlay - always accessible
+            VStack {
+                HStack {
+                    Spacer()
+                    Button {
+                        showSettings = true
+                    } label: {
+                        Image(systemName: "gearshape.fill")
+                            .font(.system(size: 20))
+                            .foregroundStyle(Theme.textSecondary)
+                            .padding(12)
+                            .background(.ultraThinMaterial, in: Circle())
+                    }
+                    .padding(.trailing, 16)
+                    .padding(.top, 8)
+                }
+                Spacer()
+            }
         }
         .navigationTitle("Profile")
         .navigationBarTitleDisplayMode(.inline)
         .toolbarBackground(.hidden, for: .navigationBar)
-        .toolbar {
-            ToolbarItem(placement: .topBarTrailing) {
-                Button {
-                    showSettings = true
-                } label: {
-                    Image(systemName: "gearshape")
-                        .font(.system(size: 17))
-                        .foregroundStyle(Theme.textSecondary)
-                }
-            }
-        }
         .navigationDestination(isPresented: $showSettings) {
             SettingsView()
         }
@@ -72,19 +80,6 @@ struct ProfileView: View {
         }
         .onReceive(NotificationCenter.default.publisher(for: .profileReset)) { _ in
             Task { await loadProfile() }
-        }
-    }
-
-    // MARK: - Loading View
-
-    private var loadingView: some View {
-        VStack(spacing: 20) {
-            ProgressView()
-                .tint(Theme.accent)
-
-            Text("Loading profile...")
-                .font(.subheadline)
-                .foregroundStyle(Theme.textMuted)
         }
     }
 

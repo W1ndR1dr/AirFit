@@ -14,7 +14,6 @@ from datetime import datetime, timedelta
 from pathlib import Path
 from typing import Optional
 from dataclasses import dataclass, asdict
-import threading
 
 import context_store
 import insight_engine
@@ -28,13 +27,16 @@ SCHEDULER_STATE_FILE = DATA_DIR / "scheduler_state.json"
 
 @dataclass
 class SchedulerState:
-    """Tracks what the background agents have done."""
+    """Tracks what the background agents have done.
+
+    NOTE: is_generating is NOT persisted - it's tracked in-memory only.
+    This prevents the footgun where a crash leaves is_generating=True forever.
+    """
     last_insight_generation: Optional[str] = None  # ISO timestamp
     last_hevy_sync: Optional[str] = None
     last_pattern_analysis: Optional[str] = None
 
     insights_generated_today: int = 0
-    is_generating: bool = False
     generation_error: Optional[str] = None
 
     # Config
@@ -43,6 +45,10 @@ class SchedulerState:
 
     def to_dict(self) -> dict:
         return asdict(self)
+
+
+# In-memory flag for generation state (resets on restart - no footgun)
+_is_generating = False
 
 
 def load_scheduler_state() -> SchedulerState:
@@ -74,11 +80,13 @@ async def run_insight_generation(force: bool = False) -> dict:
 
     Returns status dict for logging/monitoring.
     """
-    state = load_scheduler_state()
+    global _is_generating
 
-    # Check if already running
-    if state.is_generating and not force:
-        return {"status": "already_running", "started_at": state.last_insight_generation}
+    # Check if already running (in-memory flag - no disk footgun)
+    if _is_generating and not force:
+        return {"status": "already_running"}
+
+    state = load_scheduler_state()
 
     # Check if too recent (unless forced)
     if not force and state.last_insight_generation:
@@ -91,10 +99,9 @@ async def run_insight_generation(force: bool = False) -> dict:
                 "next_run_in_hours": state.insight_generation_interval_hours - hours_since
             }
 
-    # Mark as generating
-    state.is_generating = True
+    # Mark as generating (in-memory only)
+    _is_generating = True
     state.generation_error = None
-    save_scheduler_state(state)
 
     try:
         print("[Scheduler] Starting background insight generation...")
@@ -116,8 +123,8 @@ async def run_insight_generation(force: bool = False) -> dict:
             force_refresh=force
         )
 
-        # Update state
-        state.is_generating = False
+        # Update state (timestamps on disk, flag in memory)
+        _is_generating = False
         state.last_insight_generation = datetime.now().isoformat()
         state.insights_generated_today += len(insights)
         save_scheduler_state(state)
@@ -131,7 +138,7 @@ async def run_insight_generation(force: bool = False) -> dict:
         }
 
     except Exception as e:
-        state.is_generating = False
+        _is_generating = False
         state.generation_error = str(e)
         save_scheduler_state(state)
 
@@ -242,94 +249,55 @@ def get_weekly_summary_for_chat() -> str:
     return "\n".join(parts) if len(parts) > 1 else ""
 
 
-# --- Background Loop ---
+# --- Background Loop (native asyncio) ---
 
-class BackgroundScheduler:
-    """Runs scheduled tasks in background thread."""
+_scheduler_task: Optional[asyncio.Task] = None
+_scheduler_running = False
 
-    def __init__(self):
-        self._running = False
-        self._thread: Optional[threading.Thread] = None
-        self._loop: Optional[asyncio.AbstractEventLoop] = None
 
-    def start(self):
-        """Start the background scheduler."""
-        if self._running:
-            return
+async def _scheduler_loop():
+    """Main scheduler loop - runs as asyncio task in FastAPI's event loop."""
+    global _scheduler_running
 
-        self._running = True
-        self._thread = threading.Thread(target=self._run_loop, daemon=True)
-        self._thread.start()
-        print("[Scheduler] Background scheduler started")
+    # Initial delay to let server start up
+    await asyncio.sleep(5)
+    print("[Scheduler] Background scheduler started")
 
-    def stop(self):
-        """Stop the background scheduler."""
-        self._running = False
-        if self._loop:
-            self._loop.call_soon_threadsafe(self._loop.stop)
-        print("[Scheduler] Background scheduler stopped")
-
-    def _run_loop(self):
-        """Run the async event loop in background thread."""
-        self._loop = asyncio.new_event_loop()
-        asyncio.set_event_loop(self._loop)
-
+    while _scheduler_running:
         try:
-            self._loop.run_until_complete(self._scheduler_loop())
+            # Run insight generation if due
+            await run_insight_generation(force=False)
+
+            # Run Hevy sync if due
+            await run_hevy_sync()
+
         except Exception as e:
-            print(f"[Scheduler] Loop error: {e}")
-        finally:
-            self._loop.close()
+            print(f"[Scheduler] Task error: {e}")
 
-    async def _scheduler_loop(self):
-        """Main scheduler loop - runs periodic tasks."""
-        # Initial delay to let server start up
-        await asyncio.sleep(5)
-
-        while self._running:
-            try:
-                # Run insight generation if due
-                await run_insight_generation(force=False)
-
-                # Run Hevy sync if due
-                await run_hevy_sync()
-
-            except Exception as e:
-                print(f"[Scheduler] Task error: {e}")
-
-            # Check every 15 minutes
-            await asyncio.sleep(15 * 60)
-
-    def trigger_insight_generation(self, force: bool = False):
-        """Trigger insight generation from main thread."""
-        if self._loop:
-            asyncio.run_coroutine_threadsafe(
-                run_insight_generation(force=force),
-                self._loop
-            )
-
-
-# Global scheduler instance
-_scheduler: Optional[BackgroundScheduler] = None
-
-
-def get_scheduler() -> BackgroundScheduler:
-    """Get or create the global scheduler."""
-    global _scheduler
-    if _scheduler is None:
-        _scheduler = BackgroundScheduler()
-    return _scheduler
+        # Check every 15 minutes
+        await asyncio.sleep(15 * 60)
 
 
 def start_scheduler():
-    """Start the background scheduler."""
-    get_scheduler().start()
+    """Start the background scheduler as asyncio task."""
+    global _scheduler_task, _scheduler_running
+
+    if _scheduler_running:
+        return
+
+    _scheduler_running = True
+    _scheduler_task = asyncio.create_task(_scheduler_loop())
 
 
 def stop_scheduler():
     """Stop the background scheduler."""
-    if _scheduler:
-        _scheduler.stop()
+    global _scheduler_task, _scheduler_running
+
+    _scheduler_running = False
+    if _scheduler_task:
+        _scheduler_task.cancel()
+        _scheduler_task = None
+    print("[Scheduler] Background scheduler stopped")
 
 
 # --- Status Endpoint Support ---
@@ -347,8 +315,8 @@ def get_scheduler_status() -> dict:
             next_insight_gen = next_gen.isoformat()
 
     return {
-        "is_running": _scheduler is not None and _scheduler._running,
-        "is_generating_insights": state.is_generating,
+        "is_running": _scheduler_running,
+        "is_generating_insights": _is_generating,  # In-memory flag, not disk
         "last_insight_generation": state.last_insight_generation,
         "next_insight_generation": next_insight_gen,
         "last_hevy_sync": state.last_hevy_sync,

@@ -6,11 +6,12 @@ import SwiftUI
 /// Colors are arranged: top-left, top-center, top-right, mid-left, center, mid-right, bottom-left, bottom-center, bottom-right
 enum TabPalette {
     /// Dashboard (0) - Warm/Active: Coral, Peach, Lavender
+    /// Dark mode: center is bright warm glow, edges fade to dark
     static func dashboard(for colorScheme: ColorScheme) -> [Color] {
         colorScheme == .dark ? [
-            Color(hex: "2A1F1E"), Color(hex: "3D2A28"), Color(hex: "2D2634"),
-            Color(hex: "3D2A28"), Color(hex: "1C1917"), Color(hex: "3D2A28"),
-            Color(hex: "2D2634"), Color(hex: "3D2A28"), Color(hex: "2A1F1E")
+            Color(hex: "1A1614"), Color(hex: "2D2420"), Color(hex: "1A1618"),
+            Color(hex: "2D2420"), Color(hex: "4A3830"), Color(hex: "2D2420"),
+            Color(hex: "1A1618"), Color(hex: "2D2420"), Color(hex: "1A1614")
         ] : [
             Color(hex: "FFF0EC"), Color(hex: "FFE8E0"), Color(hex: "F5EBF7"),
             Color(hex: "FFE8E0"), Color(hex: "FFF8F0"), Color(hex: "FFE8E0"),
@@ -21,9 +22,9 @@ enum TabPalette {
     /// Nutrition (1) - Vitality: Sage Green, Peach, Warm
     static func nutrition(for colorScheme: ColorScheme) -> [Color] {
         colorScheme == .dark ? [
-            Color(hex: "1E2A24"), Color(hex: "2A2520"), Color(hex: "2A1F1E"),
-            Color(hex: "2A2520"), Color(hex: "1C1917"), Color(hex: "2A2520"),
-            Color(hex: "2A1F1E"), Color(hex: "2A2520"), Color(hex: "1E2A24")
+            Color(hex: "141A16"), Color(hex: "1E2820"), Color(hex: "1A1614"),
+            Color(hex: "1E2820"), Color(hex: "304838"), Color(hex: "1E2820"),
+            Color(hex: "1A1614"), Color(hex: "1E2820"), Color(hex: "141A16")
         ] : [
             Color(hex: "E8F5ED"), Color(hex: "FFF3EC"), Color(hex: "FFF0EC"),
             Color(hex: "FFF3EC"), Color(hex: "FFF8F0"), Color(hex: "FFF3EC"),
@@ -34,9 +35,9 @@ enum TabPalette {
     /// Coach (2) - Communicative: Coral, Warm Peach, Tertiary
     static func coach(for colorScheme: ColorScheme) -> [Color] {
         colorScheme == .dark ? [
-            Color(hex: "2A1F1E"), Color(hex: "2D2520"), Color(hex: "2D2634"),
-            Color(hex: "2D2520"), Color(hex: "1C1917"), Color(hex: "2D2520"),
-            Color(hex: "2D2634"), Color(hex: "2D2520"), Color(hex: "2A1F1E")
+            Color(hex: "1A1614"), Color(hex: "24201A"), Color(hex: "1A161A"),
+            Color(hex: "24201A"), Color(hex: "483828"), Color(hex: "24201A"),
+            Color(hex: "1A161A"), Color(hex: "24201A"), Color(hex: "1A1614")
         ] : [
             Color(hex: "FFF0EC"), Color(hex: "FFF5EB"), Color(hex: "F5EBF7"),
             Color(hex: "FFF5EB"), Color(hex: "FFF8F0"), Color(hex: "FFF5EB"),
@@ -47,9 +48,9 @@ enum TabPalette {
     /// Insights (3) - Contemplative: Lavender, Teal/Protein, Coral
     static func insights(for colorScheme: ColorScheme) -> [Color] {
         colorScheme == .dark ? [
-            Color(hex: "2D2634"), Color(hex: "1E2628"), Color(hex: "2A1F1E"),
-            Color(hex: "1E2628"), Color(hex: "1C1917"), Color(hex: "1E2628"),
-            Color(hex: "2A1F1E"), Color(hex: "1E2628"), Color(hex: "2D2634")
+            Color(hex: "18161A"), Color(hex: "161E20"), Color(hex: "1A1614"),
+            Color(hex: "161E20"), Color(hex: "2A3848"), Color(hex: "161E20"),
+            Color(hex: "1A1614"), Color(hex: "161E20"), Color(hex: "18161A")
         ] : [
             Color(hex: "F5EBF7"), Color(hex: "E8F3F4"), Color(hex: "FFF0EC"),
             Color(hex: "E8F3F4"), Color(hex: "FFF8F0"), Color(hex: "E8F3F4"),
@@ -60,9 +61,9 @@ enum TabPalette {
     /// Profile (4) - Grounded: Taupe, Peach, Coral
     static func profile(for colorScheme: ColorScheme) -> [Color] {
         colorScheme == .dark ? [
-            Color(hex: "252320"), Color(hex: "2D2520"), Color(hex: "2A1F1E"),
-            Color(hex: "2D2520"), Color(hex: "1C1917"), Color(hex: "2D2520"),
-            Color(hex: "2A1F1E"), Color(hex: "2D2520"), Color(hex: "252320")
+            Color(hex: "161614"), Color(hex: "201E1A"), Color(hex: "1A1614"),
+            Color(hex: "201E1A"), Color(hex: "403830"), Color(hex: "201E1A"),
+            Color(hex: "1A1614"), Color(hex: "201E1A"), Color(hex: "161614")
         ] : [
             Color(hex: "F0EBE6"), Color(hex: "FFF5EB"), Color(hex: "FFF0EC"),
             Color(hex: "FFF5EB"), Color(hex: "FFF8F0"), Color(hex: "FFF5EB"),
@@ -127,25 +128,30 @@ struct BreathingMeshBackground: View {
 
     // MARK: - Breathing Animation
 
-    /// 3x3 control points with gentle sine movement (±4%)
+    /// 3x3 control points with slow, organic movement
+    /// Creates a gentle "lava lamp" effect - noticeable but not distracting
+    /// Edge corners stay fixed to prevent clipping
     private func breathingPoints(time: Double) -> [SIMD2<Float>] {
-        // Primary breath cycle: 3-second period, ±4% movement
-        let breath1 = Float(sin(time * 0.3) * 0.04)
-        // Secondary subtle offset for organic feel
-        let breath2 = Float(cos(time * 0.25) * 0.02)
+        // Multiple overlapping sine waves for organic motion
+        // Slower periods for calm, ambient feel - but with more amplitude
+        let wave1 = Float(sin(time * 0.15) * 0.12)   // ~7s period, ±12%
+        let wave2 = Float(cos(time * 0.11) * 0.10)   // ~9s period, ±10%
+        let wave3 = Float(sin(time * 0.19) * 0.08)   // ~5s period, ±8%
+        let wave4 = Float(cos(time * 0.08) * 0.14)   // ~12s period, ±14%
+        let wave5 = Float(sin(time * 0.13) * 0.06)   // ~8s period, ±6%
 
         return [
-            // Top row
+            // Top row - corners fixed, center breathes
             SIMD2(0.0, 0.0),
-            SIMD2(0.5 + breath1, 0.0 + breath2),
+            SIMD2(0.5 + wave1, 0.0),
             SIMD2(1.0, 0.0),
-            // Middle row
-            SIMD2(0.0 - breath2, 0.5 + breath1),
-            SIMD2(0.5 + breath2, 0.5 - breath1),
-            SIMD2(1.0 + breath2, 0.5 + breath1),
-            // Bottom row
+            // Middle row - sides drift, center has most freedom (the "glow" moves)
+            SIMD2(0.0, 0.5 + wave2),
+            SIMD2(0.5 + wave3 + wave5, 0.5 + wave4),  // Center drifts most
+            SIMD2(1.0, 0.5 - wave2),
+            // Bottom row - corners fixed, center drifts opposite to top
             SIMD2(0.0, 1.0),
-            SIMD2(0.5 - breath1, 1.0 - breath2),
+            SIMD2(0.5 - wave1, 1.0),
             SIMD2(1.0, 1.0)
         ]
     }

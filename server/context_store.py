@@ -16,12 +16,21 @@ from datetime import datetime, date, timedelta
 from pathlib import Path
 from typing import Optional
 import threading
+import time
 
 
 # Storage path (same directory as profile data)
 DATA_DIR = Path(__file__).parent / "data"
 CONTEXT_FILE = DATA_DIR / "context_store.json"
+
+# Single lock protects BOTH file I/O AND cache access
+# This prevents race conditions in load-modify-save cycles
 LOCK = threading.Lock()
+
+# In-memory cache to avoid blocking async event loop
+_cache: Optional["ContextStore"] = None
+_cache_timestamp: float = 0
+CACHE_TTL_SECONDS = 5.0  # Cache for 5 seconds to avoid repeated file I/O
 
 
 @dataclass
@@ -152,28 +161,52 @@ def _ensure_data_dir():
 
 
 def load_store() -> ContextStore:
-    """Load the context store from disk."""
+    """Load the context store from disk with in-memory caching.
+
+    Uses a short-lived (5 second) in-memory cache to avoid blocking the async
+    event loop on every request. The cache is invalidated on every save_store().
+
+    Lock covers both cache access AND file I/O to prevent race conditions.
+    """
+    global _cache, _cache_timestamp
+
     _ensure_data_dir()
 
-    if not CONTEXT_FILE.exists():
-        return ContextStore()
-
     with LOCK:
+        # Check cache inside lock to prevent races
+        current_time = time.time()
+        if _cache is not None and (current_time - _cache_timestamp) < CACHE_TTL_SECONDS:
+            return _cache
+
+        if not CONTEXT_FILE.exists():
+            store = ContextStore()
+            _cache = store
+            _cache_timestamp = current_time
+            return store
+
         try:
             with open(CONTEXT_FILE) as f:
                 data = json.load(f)
-            return ContextStore(
+            store = ContextStore(
                 snapshots=data.get("snapshots", {}),
                 insights=data.get("insights", []),
                 last_sync=data.get("last_sync", ""),
                 version=data.get("version", 1)
             )
+            _cache = store
+            _cache_timestamp = current_time
+            return store
         except (json.JSONDecodeError, KeyError):
-            return ContextStore()
+            store = ContextStore()
+            _cache = store
+            _cache_timestamp = current_time
+            return store
 
 
 def save_store(store: ContextStore):
-    """Save the context store to disk."""
+    """Save the context store to disk and invalidate cache."""
+    global _cache, _cache_timestamp
+
     _ensure_data_dir()
 
     with LOCK:
@@ -185,6 +218,10 @@ def save_store(store: ContextStore):
         }
         with open(CONTEXT_FILE, "w") as f:
             json.dump(data, f, indent=2, default=str)
+
+        # Invalidate cache after write
+        _cache = store
+        _cache_timestamp = time.time()
 
 
 def get_snapshot(date_str: str) -> Optional[DailySnapshot]:
@@ -205,8 +242,13 @@ def get_snapshot(date_str: str) -> Optional[DailySnapshot]:
 
 
 def upsert_snapshot(snapshot: DailySnapshot):
-    """Insert or update a daily snapshot."""
-    store = load_store()
+    """Insert or update a daily snapshot.
+
+    Atomic: holds lock across load-modify-save to prevent race conditions.
+    """
+    global _cache, _cache_timestamp
+
+    _ensure_data_dir()
 
     # Convert to dict for storage
     snapshot_dict = {
@@ -218,35 +260,114 @@ def upsert_snapshot(snapshot: DailySnapshot):
         "sources_synced": snapshot.sources_synced
     }
 
-    store.snapshots[snapshot.date] = snapshot_dict
-    save_store(store)
+    with LOCK:
+        # Load current store (bypass cache since we're modifying)
+        if CONTEXT_FILE.exists():
+            try:
+                with open(CONTEXT_FILE) as f:
+                    data = json.load(f)
+                store = ContextStore(
+                    snapshots=data.get("snapshots", {}),
+                    insights=data.get("insights", []),
+                    last_sync=data.get("last_sync", ""),
+                    version=data.get("version", 1)
+                )
+            except (json.JSONDecodeError, KeyError):
+                store = ContextStore()
+        else:
+            store = ContextStore()
+
+        # Modify
+        store.snapshots[snapshot.date] = snapshot_dict
+
+        # Save
+        data = {
+            "snapshots": store.snapshots,
+            "insights": store.insights,
+            "last_sync": datetime.now().isoformat(),
+            "version": store.version
+        }
+        with open(CONTEXT_FILE, "w") as f:
+            json.dump(data, f, indent=2, default=str)
+
+        # Update cache
+        _cache = store
+        _cache_timestamp = time.time()
+
+
+def _atomic_update_snapshot(date_str: str, field: str, value, source_tag: str):
+    """Atomically update a single field in a snapshot.
+
+    Holds lock across read-modify-write to prevent race conditions.
+    """
+    global _cache, _cache_timestamp
+
+    _ensure_data_dir()
+
+    with LOCK:
+        # Load current store
+        if CONTEXT_FILE.exists():
+            try:
+                with open(CONTEXT_FILE) as f:
+                    data = json.load(f)
+                store = ContextStore(
+                    snapshots=data.get("snapshots", {}),
+                    insights=data.get("insights", []),
+                    last_sync=data.get("last_sync", ""),
+                    version=data.get("version", 1)
+                )
+            except (json.JSONDecodeError, KeyError):
+                store = ContextStore()
+        else:
+            store = ContextStore()
+
+        # Get or create snapshot for this date
+        existing = store.snapshots.get(date_str, {})
+        sources = existing.get("sources_synced", [])
+        if source_tag not in sources:
+            sources.append(source_tag)
+
+        # Update only the specified field
+        snapshot_dict = {
+            "date": date_str,
+            "nutrition": existing.get("nutrition", asdict(NutritionSnapshot())),
+            "health": existing.get("health", asdict(HealthSnapshot())),
+            "workout": existing.get("workout", asdict(WorkoutSnapshot())),
+            "last_updated": datetime.now().isoformat(),
+            "sources_synced": sources
+        }
+        snapshot_dict[field] = asdict(value)
+
+        store.snapshots[date_str] = snapshot_dict
+
+        # Save
+        data = {
+            "snapshots": store.snapshots,
+            "insights": store.insights,
+            "last_sync": datetime.now().isoformat(),
+            "version": store.version
+        }
+        with open(CONTEXT_FILE, "w") as f:
+            json.dump(data, f, indent=2, default=str)
+
+        # Update cache
+        _cache = store
+        _cache_timestamp = time.time()
 
 
 def update_nutrition(date_str: str, nutrition: NutritionSnapshot):
-    """Update just the nutrition data for a date."""
-    snapshot = get_snapshot(date_str) or DailySnapshot(date=date_str)
-    snapshot.nutrition = nutrition
-    if "nutrition" not in snapshot.sources_synced:
-        snapshot.sources_synced.append("nutrition")
-    upsert_snapshot(snapshot)
+    """Update just the nutrition data for a date (atomic)."""
+    _atomic_update_snapshot(date_str, "nutrition", nutrition, "nutrition")
 
 
 def update_health(date_str: str, health: HealthSnapshot):
-    """Update just the health data for a date."""
-    snapshot = get_snapshot(date_str) or DailySnapshot(date=date_str)
-    snapshot.health = health
-    if "health" not in snapshot.sources_synced:
-        snapshot.sources_synced.append("health")
-    upsert_snapshot(snapshot)
+    """Update just the health data for a date (atomic)."""
+    _atomic_update_snapshot(date_str, "health", health, "health")
 
 
 def update_workout(date_str: str, workout: WorkoutSnapshot):
-    """Update just the workout data for a date."""
-    snapshot = get_snapshot(date_str) or DailySnapshot(date=date_str)
-    snapshot.workout = workout
-    if "hevy" not in snapshot.sources_synced:
-        snapshot.sources_synced.append("hevy")
-    upsert_snapshot(snapshot)
+    """Update just the workout data for a date (atomic)."""
+    _atomic_update_snapshot(date_str, "workout", workout, "hevy")
 
 
 def get_snapshots_range(start_date: str, end_date: str) -> list[DailySnapshot]:
@@ -285,10 +406,47 @@ def get_recent_snapshots(days: int = 90) -> list[DailySnapshot]:
 # --- Insight Management ---
 
 def add_insight(insight: Insight):
-    """Add a new insight to the store."""
-    store = load_store()
-    store.insights.append(asdict(insight))
-    save_store(store)
+    """Add a new insight to the store.
+
+    Atomic: holds lock across load-modify-save to prevent race conditions.
+    """
+    global _cache, _cache_timestamp
+
+    _ensure_data_dir()
+
+    with LOCK:
+        # Load current store
+        if CONTEXT_FILE.exists():
+            try:
+                with open(CONTEXT_FILE) as f:
+                    data = json.load(f)
+                store = ContextStore(
+                    snapshots=data.get("snapshots", {}),
+                    insights=data.get("insights", []),
+                    last_sync=data.get("last_sync", ""),
+                    version=data.get("version", 1)
+                )
+            except (json.JSONDecodeError, KeyError):
+                store = ContextStore()
+        else:
+            store = ContextStore()
+
+        # Modify
+        store.insights.append(asdict(insight))
+
+        # Save
+        data = {
+            "snapshots": store.snapshots,
+            "insights": store.insights,
+            "last_sync": datetime.now().isoformat(),
+            "version": store.version
+        }
+        with open(CONTEXT_FILE, "w") as f:
+            json.dump(data, f, indent=2, default=str)
+
+        # Update cache
+        _cache = store
+        _cache_timestamp = time.time()
 
 
 def get_insights(

@@ -32,6 +32,31 @@ struct SettingsView: View {
                     .pickerStyle(.segmented)
                 }
 
+                // Permissions
+                SettingsSection(title: "Permissions") {
+                    Button {
+                        openHealthSettings()
+                    } label: {
+                        HStack {
+                            Image(systemName: "heart.fill")
+                                .font(.body)
+                                .foregroundStyle(.red)
+                            Text("Health Data Access")
+                                .font(.body)
+                                .foregroundStyle(Theme.textPrimary)
+                            Spacer()
+                            Image(systemName: "chevron.right")
+                                .font(.caption)
+                                .foregroundStyle(Theme.textMuted)
+                        }
+                    }
+                    .buttonStyle(.plain)
+
+                    Text("Manage which health metrics AirFit can read. More data = better coaching.")
+                        .font(.caption)
+                        .foregroundStyle(Theme.textMuted)
+                }
+
                 // Server Status
                 SettingsSection(title: "Server") {
                     HStack {
@@ -236,6 +261,13 @@ struct SettingsView: View {
     }
 
     // MARK: - Actions
+
+    private func openHealthSettings() {
+        // Open the Health app's Sources tab where users can manage AirFit's permissions
+        if let url = URL(string: "x-apple-health://") {
+            UIApplication.shared.open(url)
+        }
+    }
 
     private func loadStatus() async {
         isLoadingSettings = true

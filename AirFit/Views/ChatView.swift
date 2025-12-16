@@ -11,8 +11,6 @@ struct ChatView: View {
     @State private var healthContext: HealthContext?
     @State private var healthAuthorized = false
     @State private var isInitializing = true
-    @State private var hasInitialized = false  // Prevent re-init on reappear
-    @State private var cachedNutritionContext: APIClient.NutritionContext?  // Cache to avoid blocking
     @State private var isOnboarding = false  // True if user needs onboarding
     @State private var isFinalizingOnboarding = false
     @FocusState private var isInputFocused: Bool
@@ -316,9 +314,8 @@ struct ChatView: View {
     // MARK: - Actions
 
     private func initialize() async {
-        // Only initialize once - prevent re-init on view reappear
-        guard !hasInitialized else { return }
-        hasInitialized = true
+        // Only initialize once - isInitializing starts true, becomes false after init
+        guard isInitializing else { return }
 
         // Request HealthKit authorization first (this shows a system dialog)
         healthAuthorized = await healthKit.requestAuthorization()
@@ -334,9 +331,6 @@ struct ChatView: View {
 
         // Check if user needs onboarding
         await checkOnboardingStatus()
-
-        // Pre-fetch nutrition context in background (non-blocking)
-        await refreshNutritionContext()
 
         // Done initializing
         withAnimation(.airfit) {
@@ -354,12 +348,6 @@ struct ChatView: View {
             // If we can't get profile, assume no onboarding needed
             isOnboarding = false
         }
-    }
-
-    private func refreshNutritionContext() async {
-        // SwiftData ModelContext is main-actor isolated, so fetch runs on main
-        // This is fine since SwiftData fetches are fast (SQLite)
-        cachedNutritionContext = Self.fetchNutritionContext(from: modelContext)
     }
 
     private static func fetchNutritionContext(from modelContext: ModelContext) -> APIClient.NutritionContext? {
@@ -460,17 +448,16 @@ struct ChatView: View {
         }
         inputText = ""
 
-        // Refresh nutrition context in background before sending
-        // (picks up any new entries since last refresh)
-        await refreshNutritionContext()
+        // Fetch fresh nutrition context (SwiftData queries are fast)
+        let nutritionContext = Self.fetchNutritionContext(from: modelContext)
 
-        // Get AI response with health + nutrition context (use cached, non-blocking)
+        // Get AI response with health + nutrition context
         isLoading = true
         do {
             let response = try await apiClient.sendMessage(
                 text,
                 healthContext: healthContext?.toDictionary(),
-                nutritionContext: cachedNutritionContext
+                nutritionContext: nutritionContext
             )
             let aiMessage = Message(content: response, isUser: false)
             withAnimation(.airfit) {
@@ -591,14 +578,16 @@ struct PremiumMessageView: View {
 
 struct MarkdownText: View {
     let content: String
+    private let blocks: [MarkdownBlock]  // Cached at init - no re-parsing on render
 
     init(_ content: String) {
         self.content = content
+        self.blocks = Self.parseBlocks(content)
     }
 
     var body: some View {
         VStack(alignment: .leading, spacing: 16) {
-            ForEach(parseBlocks(), id: \.id) { block in
+            ForEach(blocks, id: \.id) { block in
                 blockView(for: block)
             }
         }
@@ -672,7 +661,7 @@ struct MarkdownText: View {
         return AttributedString(text)
     }
 
-    private func parseBlocks() -> [MarkdownBlock] {
+    private static func parseBlocks(_ content: String) -> [MarkdownBlock] {
         var blocks: [MarkdownBlock] = []
         let lines = content.components(separatedBy: "\n")
         var currentList: [String] = []

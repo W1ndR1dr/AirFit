@@ -98,18 +98,7 @@ struct InsightsView: View {
     private var insightsSection: some View {
         VStack(alignment: .leading, spacing: 16) {
             if isLoading && insights.isEmpty {
-                HStack {
-                    Spacer()
-                    VStack(spacing: 12) {
-                        ProgressView()
-                            .tint(Theme.accent)
-                        Text("Analyzing patterns...")
-                            .font(.labelMedium)
-                            .foregroundStyle(Theme.textMuted)
-                    }
-                    Spacer()
-                }
-                .padding(.vertical, 40)
+                ShimmerLoadingView(text: "Finding insights...")
             } else {
                 ForEach(Array(visibleInsights.enumerated()), id: \.element.id) { index, insight in
                     PremiumInsightCard(

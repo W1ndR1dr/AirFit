@@ -4,18 +4,57 @@ actor HealthKitManager {
     private let healthStore = HKHealthStore()
     private var isAuthorized = false
 
-    // Types we want to read
+    // HealthKit types - comprehensive but realistic (no CGM/BP cuff/power meters)
     private let readTypes: Set<HKObjectType> = [
+        // Activity & Movement
         HKQuantityType(.stepCount),
+        HKQuantityType(.distanceWalkingRunning),
+        HKQuantityType(.distanceCycling),
+        HKQuantityType(.distanceSwimming),
+        HKQuantityType(.flightsClimbed),
+        HKQuantityType(.appleExerciseTime),
+        HKQuantityType(.appleMoveTime),
+        HKQuantityType(.appleStandTime),
+
+        // Energy
         HKQuantityType(.activeEnergyBurned),
+        HKQuantityType(.basalEnergyBurned),
+
+        // Body Composition
         HKQuantityType(.bodyMass),
         HKQuantityType(.bodyFatPercentage),
         HKQuantityType(.leanBodyMass),
+        HKQuantityType(.height),
+
+        // Heart & Cardio (Apple Watch provides all of these)
         HKQuantityType(.heartRate),
         HKQuantityType(.restingHeartRate),
+        HKQuantityType(.walkingHeartRateAverage),
         HKQuantityType(.heartRateVariabilitySDNN),
+        HKQuantityType(.heartRateRecoveryOneMinute),  // HRR - key recovery metric!
         HKQuantityType(.vo2Max),
+        HKQuantityType(.oxygenSaturation),
+
+        // Respiratory
+        HKQuantityType(.respiratoryRate),
+
+        // Running Metrics (Apple Watch provides these)
+        HKQuantityType(.runningStrideLength),
+        HKQuantityType(.runningVerticalOscillation),
+        HKQuantityType(.runningGroundContactTime),
+        HKQuantityType(.runningSpeed),
+
+        // Cycling Metrics (basic - no power meter needed)
+        HKQuantityType(.cyclingCadence),
+        HKQuantityType(.cyclingSpeed),
+
+        // Sleep & Recovery
         HKCategoryType(.sleepAnalysis),
+
+        // Stand hours
+        HKCategoryType(.appleStandHour),
+
+        // Workouts
         HKWorkoutType.workoutType()
     ]
 

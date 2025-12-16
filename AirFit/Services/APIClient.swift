@@ -46,6 +46,15 @@ actor APIClient {
         let food_text: String
     }
 
+    /// Shared macro data - used by both parse and correct responses
+    struct MacroData: Decodable {
+        let name: String?
+        let calories: Int?
+        let protein: Int?
+        let carbs: Int?
+        let fat: Int?
+    }
+
     struct NutritionComponentResponse: Decodable {
         let name: String
         let calories: Int
@@ -64,6 +73,11 @@ actor APIClient {
         let confidence: String?
         let components: [NutritionComponentResponse]?
         let error: String?
+
+        /// Convert to MacroData for common handling
+        var macros: MacroData {
+            MacroData(name: name, calories: calories, protein: protein, carbs: carbs, fat: fat)
+        }
     }
 
     struct MacroStatusRequest: Encodable {
@@ -100,6 +114,11 @@ actor APIClient {
         let carbs: Int?
         let fat: Int?
         let error: String?
+
+        /// Convert to MacroData for common handling
+        var macros: MacroData {
+            MacroData(name: name, calories: calories, protein: protein, carbs: carbs, fat: fat)
+        }
     }
 
     struct ProfileInsight: Decodable {

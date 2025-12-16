@@ -754,6 +754,64 @@ struct ScrollytellingHero<Content: View>: View {
     }
 }
 
+// MARK: - Shimmer Text (Loading States)
+
+struct ShimmerText: View {
+    let text: String
+    var font: Font = .title2.weight(.medium)
+
+    @State private var shimmerProgress: CGFloat = 0
+
+    var body: some View {
+        Text(text)
+            .font(font)
+            .foregroundStyle(Theme.textSecondary)
+            .background(
+                GeometryReader { geo in
+                    // Shimmer gradient that spans full text width plus overflow
+                    LinearGradient(
+                        colors: [
+                            .clear,
+                            .clear,
+                            Theme.accent.opacity(0.8),
+                            Theme.warmPeach,
+                            Theme.accent.opacity(0.8),
+                            .clear,
+                            .clear
+                        ],
+                        startPoint: .leading,
+                        endPoint: .trailing
+                    )
+                    .frame(width: geo.size.width * 0.5)  // Shimmer band is 50% of text width
+                    .offset(x: -geo.size.width * 0.25 + shimmerProgress * geo.size.width * 1.5)
+                    .mask {
+                        Text(text)
+                            .font(font)
+                    }
+                }
+            )
+            .onAppear {
+                withAnimation(.easeInOut(duration: 2.0).repeatForever(autoreverses: false)) {
+                    shimmerProgress = 1
+                }
+            }
+    }
+}
+
+/// Centered loading view with shimmer text
+struct ShimmerLoadingView: View {
+    let text: String
+
+    var body: some View {
+        VStack {
+            Spacer()
+            ShimmerText(text: text)
+            Spacer()
+        }
+        .frame(maxWidth: .infinity, maxHeight: .infinity)
+    }
+}
+
 // MARK: - Transitions
 
 extension AnyTransition {
