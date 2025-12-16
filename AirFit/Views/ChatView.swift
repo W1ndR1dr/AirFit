@@ -48,7 +48,7 @@ struct ChatView: View {
                         }
                         .padding(.horizontal, 20)
                         .padding(.top, 16)
-                        .padding(.bottom, 100) // Space for input
+                        .padding(.bottom, 120) // Space for input + tab bar
                     }
                     .background(Color.clear)
                     .scrollIndicators(.hidden)
@@ -276,8 +276,12 @@ struct ChatView: View {
                 .textInputAutocapitalization(.sentences)
                 .padding(.horizontal, 16)
                 .padding(.vertical, 12)
-                .background(.ultraThinMaterial)
+                .background(Theme.surface)
                 .clipShape(RoundedRectangle(cornerRadius: 24, style: .continuous))
+                .overlay(
+                    RoundedRectangle(cornerRadius: 24, style: .continuous)
+                        .stroke(Theme.textMuted.opacity(0.2), lineWidth: 1)
+                )
                 .focused($isInputFocused)
                 .submitLabel(.send)
                 .onSubmit {
@@ -298,9 +302,10 @@ struct ChatView: View {
         }
         .padding(.horizontal, 20)
         .padding(.vertical, 16)
+        .padding(.bottom, 70) // Clear the custom tab bar
         .background(
             Rectangle()
-                .fill(.ultraThinMaterial)
+                .fill(.regularMaterial)
                 .ignoresSafeArea()
         )
     }

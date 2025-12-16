@@ -19,15 +19,15 @@ struct ChartDataPoint: Identifiable, Equatable {
 // MARK: - Smoothing Algorithm
 
 enum ChartSmoothing {
-    /// Apply Exponential Moving Average smoothing to data points
+    /// Apply LOESS-style local regression smoothing to data points
+    /// Unlike EMA, this is centered (looks both forward and backward) so it doesn't lag.
+    /// Uses tricube weighting and local linear regression for smooth, accurate fit.
     /// - Parameters:
-    ///   - data: Raw data points
-    ///   - period: Number of points for EMA calculation (higher = smoother). 0 = no smoothing.
+    ///   - data: Raw data points (must be sorted by date)
+    ///   - bandwidth: Fraction of data to use for each local fit (0.2-0.5 typical)
     /// - Returns: Data points with smoothedValue populated
-    static func applyEMA(to data: [ChartDataPoint], period: Int) -> [ChartDataPoint] {
-        // No smoothing if period is 0 or not enough data
-        guard data.count > 1, period > 0 else {
-            // Return data with smoothedValue = value (no smoothing)
+    static func applyLOESS(to data: [ChartDataPoint], bandwidth: Double) -> [ChartDataPoint] {
+        guard data.count > 2 else {
             return data.map { point in
                 var p = point
                 p.smoothedValue = point.value
@@ -35,47 +35,135 @@ enum ChartSmoothing {
             }
         }
 
-        // EMA multiplier: k = 2 / (N + 1)
-        let k = 2.0 / Double(period + 1)
+        // Convert dates to numeric x values (days since first point)
+        let calendar = Calendar.current
+        let firstDate = data[0].date
+        let xValues = data.map { point -> Double in
+            Double(calendar.dateComponents([.day], from: firstDate, to: point.date).day ?? 0)
+        }
+        let yValues = data.map { $0.value }
+
+        // Number of neighbors to use for each local fit
+        let n = data.count
+        let k = max(3, Int(Double(n) * bandwidth))
 
         var result: [ChartDataPoint] = []
-        var ema = data[0].value  // Start with first value
 
-        for point in data {
-            // EMA = (value * k) + (previous_ema * (1 - k))
-            ema = (point.value * k) + (ema * (1 - k))
+        for i in 0..<n {
+            let xi = xValues[i]
 
-            var smoothedPoint = point
-            smoothedPoint.smoothedValue = ema
+            // Find k nearest neighbors by x distance
+            var distances: [(index: Int, dist: Double)] = []
+            for j in 0..<n {
+                let dist = abs(xValues[j] - xi)
+                distances.append((j, dist))
+            }
+            distances.sort { $0.dist < $1.dist }
+            let neighbors = Array(distances.prefix(k))
+
+            // Maximum distance among neighbors (for weight calculation)
+            let maxDist = neighbors.last?.dist ?? 1.0
+
+            // Tricube kernel weights: w = (1 - (d/maxDist)^3)^3
+            var weights: [Double] = []
+            var neighborX: [Double] = []
+            var neighborY: [Double] = []
+
+            for (idx, dist) in neighbors {
+                let u = maxDist > 0 ? dist / maxDist : 0
+                let w = pow(1.0 - pow(u, 3), 3)
+                weights.append(w)
+                neighborX.append(xValues[idx])
+                neighborY.append(yValues[idx])
+            }
+
+            // Weighted linear regression: y = a + b*x
+            let smoothedY = weightedLinearRegression(
+                x: neighborX,
+                y: neighborY,
+                weights: weights,
+                predictAt: xi
+            )
+
+            var smoothedPoint = data[i]
+            smoothedPoint.smoothedValue = smoothedY
             result.append(smoothedPoint)
         }
 
         return result
     }
 
-    /// Determine optimal smoothing period based on data count and time span
-    /// Returns 0 for week view (no smoothing - not enough data for meaningful trend)
-    static func optimalPeriod(for data: [ChartDataPoint]) -> Int {
-        guard let first = data.first?.date, let last = data.last?.date else { return 0 }
+    /// Weighted linear regression to predict y at a given x
+    private static func weightedLinearRegression(
+        x: [Double],
+        y: [Double],
+        weights: [Double],
+        predictAt xi: Double
+    ) -> Double {
+        guard x.count == y.count, x.count == weights.count, !x.isEmpty else {
+            return y.first ?? 0
+        }
+
+        // Weighted means
+        let sumW = weights.reduce(0, +)
+        guard sumW > 0 else { return y.first ?? 0 }
+
+        let meanX = zip(x, weights).map { $0 * $1 }.reduce(0, +) / sumW
+        let meanY = zip(y, weights).map { $0 * $1 }.reduce(0, +) / sumW
+
+        // Weighted covariance and variance
+        var covXY = 0.0
+        var varX = 0.0
+
+        for i in 0..<x.count {
+            let dx = x[i] - meanX
+            let dy = y[i] - meanY
+            covXY += weights[i] * dx * dy
+            varX += weights[i] * dx * dx
+        }
+
+        // Calculate slope and intercept
+        let slope = varX > 0 ? covXY / varX : 0
+        let intercept = meanY - slope * meanX
+
+        // Predict at xi
+        return intercept + slope * xi
+    }
+
+    /// Determine optimal bandwidth based on data characteristics
+    /// Smaller bandwidth = tighter fit to data, larger = smoother trend
+    static func optimalBandwidth(for data: [ChartDataPoint]) -> Double {
+        guard let first = data.first?.date, let last = data.last?.date else { return 0.3 }
 
         let daySpan = Calendar.current.dateComponents([.day], from: first, to: last).day ?? 0
         let dataCount = data.count
 
-        // Adaptive EMA smoothing (keeps fit accurate, bezier curves handle visual smoothness)
-        // - Week view: NO smoothing (too few data points)
-        // - Month view: light smoothing (5-7 day EMA)
-        // - Year view: moderate smoothing (10-14 day EMA)
-        // - All time: moderate smoothing (14-21 day EMA)
+        // Adaptive bandwidth:
+        // - Week view: tight fit (0.5) - few points, show actual progression
+        // - Month view: moderate (0.35) - balance detail and trend
+        // - Year view: smoother (0.25) - show long-term trend
+        // - All time: smooth (0.2) - avoid overfitting noise
 
-        if daySpan <= 7 {
-            return 0  // No smoothing for week view
+        if daySpan <= 7 || dataCount <= 5 {
+            return 0.6  // Very tight fit for few data points
         } else if daySpan <= 30 {
-            return min(7, max(5, dataCount / 5))
+            return 0.4
         } else if daySpan <= 365 {
-            return min(14, max(10, dataCount / 20))
+            return 0.3
         } else {
-            return min(21, max(14, dataCount / 25))
+            return 0.25
         }
+    }
+
+    // Legacy compatibility - redirects to LOESS
+    static func applyEMA(to data: [ChartDataPoint], period: Int) -> [ChartDataPoint] {
+        let bandwidth = period > 0 ? min(0.5, Double(period) / Double(max(1, data.count))) : 0.3
+        return applyLOESS(to: data, bandwidth: bandwidth)
+    }
+
+    static func optimalPeriod(for data: [ChartDataPoint]) -> Int {
+        // Return non-zero to enable smoothing (actual smoothing uses bandwidth)
+        return data.count > 3 ? 5 : 0
     }
 }
 
@@ -124,11 +212,11 @@ struct InteractiveChartView: View {
     private let rawDotRadius: CGFloat = 2.5
     private let selectedDotRadius: CGFloat = 10
 
-    // Smoothed data for trend line
+    // Smoothed data for trend line (LOESS - centered, no lag)
     private var smoothedData: [ChartDataPoint] {
         guard showSmoothing, data.count > 3 else { return data }
-        let period = ChartSmoothing.optimalPeriod(for: data)
-        return ChartSmoothing.applyEMA(to: data, period: period)
+        let bandwidth = ChartSmoothing.optimalBandwidth(for: data)
+        return ChartSmoothing.applyLOESS(to: data, bandwidth: bandwidth)
     }
 
     init(

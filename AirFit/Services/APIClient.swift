@@ -884,6 +884,156 @@ actor APIClient {
 
         return try JSONDecoder().decode(BodyMetricsResponse.self, from: data)
     }
+
+    // MARK: - Strength Tracking
+
+    /// Personal record for an exercise with estimated 1RM
+    struct ExercisePR: Decodable, Equatable {
+        let weight_lbs: Double
+        let reps: Int
+        let date: String
+        let e1rm: Double  // Estimated 1RM (Epley formula)
+    }
+
+    /// Sort options for exercise list
+    enum ExerciseSortOption: String, CaseIterable {
+        case frequency = "frequency"
+        case mostImproved = "most_improved"
+        case leastImproved = "least_improved"
+
+        var displayName: String {
+            switch self {
+            case .frequency: return "Most Frequent"
+            case .mostImproved: return "Most Improved"
+            case .leastImproved: return "Least Improved"
+            }
+        }
+    }
+
+    /// Time window options for filtering
+    enum TimeWindow: Int, CaseIterable {
+        case oneMonth = 30
+        case threeMonths = 90
+        case sixMonths = 180
+        case oneYear = 365
+        case allTime = 0
+
+        var displayName: String {
+            switch self {
+            case .oneMonth: return "1M"
+            case .threeMonths: return "3M"
+            case .sixMonths: return "6M"
+            case .oneYear: return "1Y"
+            case .allTime: return "All"
+            }
+        }
+
+        var days: Int? {
+            self == .allTime ? nil : rawValue
+        }
+    }
+
+    /// A tracked exercise with PR and trend data
+    struct TrackedExercise: Decodable, Identifiable, Equatable {
+        let name: String
+        let workout_count: Int
+        let current_pr: ExercisePR?
+        let recent_trend: [Double]  // Last 8 e1RM values for mini sparkline
+        let improvement: Double?  // lbs e1RM per month
+
+        var id: String { name }
+    }
+
+    struct TrackedExercisesResponse: Decodable {
+        let exercises: [TrackedExercise]
+        let last_sync: String?
+    }
+
+    /// Single data point for strength chart
+    struct StrengthHistoryPoint: Decodable {
+        let date: String
+        let e1rm: Double
+        let weight_lbs: Double
+        let reps: Int
+    }
+
+    struct StrengthHistoryResponse: Decodable {
+        let exercise: String
+        let history: [StrengthHistoryPoint]
+        let current_pr: ExercisePR?
+        let trend: Double?  // lbs per month
+    }
+
+    struct ExerciseSyncResponse: Decodable {
+        let status: String
+        let workouts_processed: Int
+        let exercises_updated: Int
+        let error: String?
+    }
+
+    /// Get top tracked exercises with current PRs
+    func getTrackedExercises(
+        limit: Int = 20,
+        sortBy: ExerciseSortOption = .frequency,
+        timeWindow: TimeWindow = .allTime
+    ) async throws -> TrackedExercisesResponse {
+        var components = URLComponents(url: baseURL.appendingPathComponent("training/exercises"), resolvingAgainstBaseURL: false)!
+        var queryItems = [
+            URLQueryItem(name: "limit", value: String(limit)),
+            URLQueryItem(name: "sort_by", value: sortBy.rawValue)
+        ]
+
+        if let days = timeWindow.days {
+            queryItems.append(URLQueryItem(name: "days", value: String(days)))
+        }
+
+        components.queryItems = queryItems
+
+        let (data, response) = try await URLSession.shared.data(from: components.url!)
+
+        guard let httpResponse = response as? HTTPURLResponse,
+              httpResponse.statusCode == 200 else {
+            throw APIError.serverError
+        }
+
+        return try JSONDecoder().decode(TrackedExercisesResponse.self, from: data)
+    }
+
+    /// Get performance history for a specific exercise
+    func getStrengthHistory(exercise: String, days: Int = 365) async throws -> StrengthHistoryResponse {
+        var components = URLComponents(url: baseURL.appendingPathComponent("training/strength-history"), resolvingAgainstBaseURL: false)!
+        components.queryItems = [
+            URLQueryItem(name: "exercise", value: exercise),
+            URLQueryItem(name: "days", value: String(days))
+        ]
+
+        let (data, response) = try await URLSession.shared.data(from: components.url!)
+
+        guard let httpResponse = response as? HTTPURLResponse,
+              httpResponse.statusCode == 200 else {
+            throw APIError.serverError
+        }
+
+        return try JSONDecoder().decode(StrengthHistoryResponse.self, from: data)
+    }
+
+    /// Sync exercise history from Hevy workouts
+    func syncExerciseHistory(full: Bool = false) async throws -> ExerciseSyncResponse {
+        var components = URLComponents(url: baseURL.appendingPathComponent("training/sync"), resolvingAgainstBaseURL: false)!
+        components.queryItems = [URLQueryItem(name: "full", value: String(full))]
+
+        var request = URLRequest(url: components.url!)
+        request.httpMethod = "POST"
+
+        let (data, response) = try await URLSession.shared.data(for: request)
+
+        guard let httpResponse = response as? HTTPURLResponse,
+              httpResponse.statusCode == 200 else {
+            throw APIError.serverError
+        }
+
+        return try JSONDecoder().decode(ExerciseSyncResponse.self, from: data)
+    }
 }
 
 enum APIError: Error, LocalizedError {

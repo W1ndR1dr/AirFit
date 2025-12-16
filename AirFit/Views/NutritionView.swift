@@ -79,9 +79,14 @@ struct NutritionView: View {
         }
     }
 
-    // Net calories (consumed - burned) - only meaningful for today
-    private var netCalories: Int {
-        totals.cal - energyTracker.todayTDEE
+    // Net calories (consumed - projected burn) - uses predictive model
+    private var projectedNetCalories: Int {
+        totals.cal - energyTracker.projectedEndOfDayTDEE
+    }
+
+    // Confidence level for the projection (0-100%)
+    private var projectionConfidence: Int {
+        Int(energyTracker.projectedConfidence * 100)
     }
 
     // Date range label
@@ -200,7 +205,7 @@ struct NutritionView: View {
                         summaryListContent
                     }
                 }
-                .padding(.bottom, viewMode == .day && isToday ? 100 : 20)
+                .padding(.bottom, viewMode == .day && isToday ? 120 : 100) // Extra padding to scroll above tab bar
             }
             .coordinateSpace(name: "scroll")
             .scrollIndicators(.hidden)
@@ -499,52 +504,90 @@ struct NutritionView: View {
     // MARK: - Live Balance Card
 
     private var liveBalanceCard: some View {
-        HStack(spacing: 0) {
-            // Calories In
-            VStack(spacing: 4) {
-                Text("\(totals.cal)")
-                    .font(.metricSmall)
-                    .foregroundStyle(Theme.textPrimary)
-                Text("IN")
-                    .font(.labelMicro)
-                    .tracking(1.5)
-                    .foregroundStyle(Theme.textMuted)
+        VStack(spacing: 12) {
+            // Main stats row
+            HStack(spacing: 0) {
+                // Calories In
+                VStack(spacing: 4) {
+                    Text("\(totals.cal)")
+                        .font(.metricSmall)
+                        .foregroundStyle(Theme.textPrimary)
+                    Text("IN")
+                        .font(.labelMicro)
+                        .tracking(1.5)
+                        .foregroundStyle(Theme.textMuted)
+                }
+                .frame(maxWidth: .infinity)
+
+                // Projected net indicator
+                VStack(spacing: 6) {
+                    Text(projectedNetCalories >= 0 ? "+\(projectedNetCalories)" : "\(projectedNetCalories)")
+                        .font(.metricMedium)
+                        .foregroundStyle(netStatusColor)
+                        .minimumScaleFactor(0.7)
+                        .lineLimit(1)
+                        .contentTransition(.numericText(value: Double(projectedNetCalories)))
+
+                    Text("EST. \(netStatusLabel.uppercased())")
+                        .font(.labelHero)
+                        .tracking(2)
+                        .foregroundStyle(netStatusColor.opacity(0.8))
+                }
+                .frame(maxWidth: .infinity)
+
+                // Projected Calories Out
+                VStack(spacing: 4) {
+                    Text("\(energyTracker.projectedEndOfDayTDEE)")
+                        .font(.metricSmall)
+                        .foregroundStyle(Theme.textPrimary)
+                    Text("PROJ. OUT")
+                        .font(.labelMicro)
+                        .tracking(1.5)
+                        .foregroundStyle(Theme.textMuted)
+                }
+                .frame(maxWidth: .infinity)
             }
-            .frame(maxWidth: .infinity)
 
-            // Net indicator
-            VStack(spacing: 6) {
-                Text(netCalories >= 0 ? "+\(netCalories)" : "\(netCalories)")
-                    .font(.metricMedium)
-                    .foregroundStyle(netStatusColor)
-                    .minimumScaleFactor(0.7)
-                    .lineLimit(1)
-                    .contentTransition(.numericText(value: Double(netCalories)))
+            // Confidence bar and current burn
+            HStack(spacing: 12) {
+                // Current actual burn
+                HStack(spacing: 4) {
+                    Circle()
+                        .fill(Theme.accent)
+                        .frame(width: 6, height: 6)
+                    Text("Now: \(energyTracker.todayTDEE) cal burned")
+                        .font(.labelMicro)
+                        .foregroundStyle(Theme.textSecondary)
+                }
 
-                Text(netStatusLabel.uppercased())
-                    .font(.labelHero)
-                    .tracking(2)
-                    .foregroundStyle(netStatusColor.opacity(0.8))
+                Spacer()
 
-                if let updated = energyTracker.lastUpdated {
-                    Text("Updated \(updated, style: .relative)")
+                // Confidence indicator
+                HStack(spacing: 4) {
+                    // Mini confidence bar
+                    GeometryReader { geo in
+                        ZStack(alignment: .leading) {
+                            RoundedRectangle(cornerRadius: 2)
+                                .fill(Theme.textMuted.opacity(0.2))
+                            RoundedRectangle(cornerRadius: 2)
+                                .fill(confidenceColor)
+                                .frame(width: geo.size.width * energyTracker.projectedConfidence)
+                        }
+                    }
+                    .frame(width: 40, height: 4)
+
+                    Text("\(projectionConfidence)% conf")
                         .font(.labelMicro)
                         .foregroundStyle(Theme.textMuted)
                 }
             }
-            .frame(maxWidth: .infinity)
 
-            // Calories Out (TDEE)
-            VStack(spacing: 4) {
-                Text("\(energyTracker.todayTDEE)")
-                    .font(.metricSmall)
-                    .foregroundStyle(Theme.textPrimary)
-                Text("OUT")
+            // Last updated
+            if let updated = energyTracker.lastUpdated {
+                Text("Updated \(updated, style: .relative)")
                     .font(.labelMicro)
-                    .tracking(1.5)
                     .foregroundStyle(Theme.textMuted)
             }
-            .frame(maxWidth: .infinity)
         }
         .padding(20)
         .background(
@@ -553,17 +596,27 @@ struct NutritionView: View {
         )
         .padding(.horizontal, 20)
         .padding(.bottom, 8)
+        .onChange(of: totals.cal) { _, newValue in
+            // Update projection when calories consumed changes
+            energyTracker.updateProjection(caloriesConsumed: newValue)
+        }
+    }
+
+    private var confidenceColor: Color {
+        if projectionConfidence >= 70 { return Theme.success }
+        if projectionConfidence >= 40 { return Theme.warning }
+        return Theme.error
     }
 
     private var netStatusColor: Color {
-        if netCalories < -200 { return Theme.success }
-        if netCalories > 200 { return Theme.error }
+        if projectedNetCalories < -200 { return Theme.success }
+        if projectedNetCalories > 200 { return Theme.error }
         return Theme.warning
     }
 
     private var netStatusLabel: String {
-        if netCalories < -200 { return "Deficit" }
-        if netCalories > 200 { return "Surplus" }
+        if projectedNetCalories < -200 { return "Deficit" }
+        if projectedNetCalories > 200 { return "Surplus" }
         return "Balanced"
     }
 
@@ -670,8 +723,12 @@ struct NutritionView: View {
                 .textFieldStyle(.plain)
                 .padding(.horizontal, 16)
                 .padding(.vertical, 12)
-                .background(.ultraThinMaterial)
+                .background(Theme.surface)
                 .clipShape(RoundedRectangle(cornerRadius: 24, style: .continuous))
+                .overlay(
+                    RoundedRectangle(cornerRadius: 24, style: .continuous)
+                        .stroke(Theme.textMuted.opacity(0.2), lineWidth: 1)
+                )
                 .lineLimit(1...3)
                 .focused($isInputFocused)
 
@@ -698,9 +755,10 @@ struct NutritionView: View {
         }
         .padding(.horizontal, 20)
         .padding(.vertical, 16)
+        .padding(.bottom, 70) // Clear the custom tab bar
         .background(
             Rectangle()
-                .fill(.ultraThinMaterial)
+                .fill(.regularMaterial)
                 .ignoresSafeArea()
         )
     }

@@ -801,6 +801,7 @@ struct TrainingContentView: View {
     @State private var setTracker: APIClient.SetTrackerResponse?
     @State private var liftProgress: [APIClient.LiftData] = []
     @State private var recentWorkouts: [APIClient.WorkoutSummary] = []
+    @State private var trackedExercises: [APIClient.TrackedExercise] = []  // For strength tracking
     @State private var isLoading = true
     @State private var isSyncing = false
 
@@ -829,6 +830,11 @@ struct TrainingContentView: View {
                 setTrackerSection(tracker)
             }
 
+            // Strength Progress Section (drill-down to StrengthDetailView)
+            if !trackedExercises.isEmpty {
+                StrengthSummaryCard(exercises: trackedExercises)
+            }
+
             // Lift Progress Section
             if !liftProgress.isEmpty {
                 liftProgressSection
@@ -840,7 +846,7 @@ struct TrainingContentView: View {
             }
 
             // Empty state
-            if setTracker?.muscle_groups.isEmpty ?? true && liftProgress.isEmpty && !isLoading {
+            if setTracker?.muscle_groups.isEmpty ?? true && liftProgress.isEmpty && trackedExercises.isEmpty && !isLoading {
                 emptyStateView
             }
         }
@@ -984,10 +990,12 @@ struct TrainingContentView: View {
         async let setTrackerTask: () = loadSetTracker()
         async let liftProgressTask: () = loadLiftProgress()
         async let workoutsTask: () = loadRecentWorkouts()
+        async let trackedExercisesTask: () = loadTrackedExercises()
 
         await setTrackerTask
         await liftProgressTask
         await workoutsTask
+        await trackedExercisesTask
 
         isLoading = false
     }
@@ -1014,6 +1022,15 @@ struct TrainingContentView: View {
             recentWorkouts = try await apiClient.getRecentWorkouts()
         } catch {
             print("Failed to load recent workouts: \(error)")
+        }
+    }
+
+    private func loadTrackedExercises() async {
+        do {
+            let response = try await apiClient.getTrackedExercises()
+            trackedExercises = response.exercises
+        } catch {
+            print("Failed to load tracked exercises: \(error)")
         }
     }
 

@@ -104,29 +104,35 @@ struct ScrollytellingRootView: View {
 
 // MARK: - Tab Page Container
 
-/// Wrapper for each tab's content - no NavigationStack to avoid opaque backgrounds
+/// Wrapper for each tab's content with NavigationStack for proper navigation support
 private struct TabPageContainer: View {
     let index: Int
 
     var body: some View {
-        Group {
-            switch index {
-            case 0:
-                DashboardView()
-            case 1:
-                NutritionView()
-            case 2:
-                ChatView()
-            case 3:
-                InsightsView()
-            case 4:
-                ProfileView()
-            default:
-                DashboardView()
+        NavigationStack {
+            Group {
+                switch index {
+                case 0:
+                    DashboardView()
+                case 1:
+                    NutritionView()
+                case 2:
+                    ChatView()
+                case 3:
+                    InsightsView()
+                case 4:
+                    ProfileView()
+                default:
+                    DashboardView()
+                }
             }
+            .toolbarBackground(.hidden, for: .navigationBar)
+            .scrollContentBackground(.hidden)
+            .background(Color.clear)
+            .containerBackground(.clear, for: .navigation)
         }
         .scrollContentBackground(.hidden)
-        .background(.clear)
+        .background(Color.clear)
     }
 }
 

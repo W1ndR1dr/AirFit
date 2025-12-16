@@ -6,12 +6,12 @@ import SwiftUI
 /// Colors are arranged: top-left, top-center, top-right, mid-left, center, mid-right, bottom-left, bottom-center, bottom-right
 enum TabPalette {
     /// Dashboard (0) - Warm/Active: Coral, Peach, Lavender
-    /// Dark mode: center is bright warm glow, edges fade to dark
+    /// Dark mode: warm charcoal with visible coral/peach undertones
     static func dashboard(for colorScheme: ColorScheme) -> [Color] {
         colorScheme == .dark ? [
-            Color(hex: "1A1614"), Color(hex: "2D2420"), Color(hex: "1A1618"),
-            Color(hex: "2D2420"), Color(hex: "4A3830"), Color(hex: "2D2420"),
-            Color(hex: "1A1618"), Color(hex: "2D2420"), Color(hex: "1A1614")
+            Color(hex: "1E1A18"), Color(hex: "2E2622"), Color(hex: "221C20"),
+            Color(hex: "2E2622"), Color(hex: "4A3832"), Color(hex: "2E2622"),
+            Color(hex: "221C20"), Color(hex: "2E2622"), Color(hex: "1E1A18")
         ] : [
             Color(hex: "FFF0EC"), Color(hex: "FFE8E0"), Color(hex: "F5EBF7"),
             Color(hex: "FFE8E0"), Color(hex: "FFF8F0"), Color(hex: "FFE8E0"),
@@ -22,9 +22,9 @@ enum TabPalette {
     /// Nutrition (1) - Vitality: Sage Green, Peach, Warm
     static func nutrition(for colorScheme: ColorScheme) -> [Color] {
         colorScheme == .dark ? [
-            Color(hex: "141A16"), Color(hex: "1E2820"), Color(hex: "1A1614"),
-            Color(hex: "1E2820"), Color(hex: "304838"), Color(hex: "1E2820"),
-            Color(hex: "1A1614"), Color(hex: "1E2820"), Color(hex: "141A16")
+            Color(hex: "181E1A"), Color(hex: "222E26"), Color(hex: "1E1A18"),
+            Color(hex: "222E26"), Color(hex: "2E4238"), Color(hex: "222E26"),
+            Color(hex: "1E1A18"), Color(hex: "222E26"), Color(hex: "181E1A")
         ] : [
             Color(hex: "E8F5ED"), Color(hex: "FFF3EC"), Color(hex: "FFF0EC"),
             Color(hex: "FFF3EC"), Color(hex: "FFF8F0"), Color(hex: "FFF3EC"),
@@ -35,9 +35,9 @@ enum TabPalette {
     /// Coach (2) - Communicative: Coral, Warm Peach, Tertiary
     static func coach(for colorScheme: ColorScheme) -> [Color] {
         colorScheme == .dark ? [
-            Color(hex: "1A1614"), Color(hex: "24201A"), Color(hex: "1A161A"),
-            Color(hex: "24201A"), Color(hex: "483828"), Color(hex: "24201A"),
-            Color(hex: "1A161A"), Color(hex: "24201A"), Color(hex: "1A1614")
+            Color(hex: "1E1A18"), Color(hex: "2A2420"), Color(hex: "201C20"),
+            Color(hex: "2A2420"), Color(hex: "443830"), Color(hex: "2A2420"),
+            Color(hex: "201C20"), Color(hex: "2A2420"), Color(hex: "1E1A18")
         ] : [
             Color(hex: "FFF0EC"), Color(hex: "FFF5EB"), Color(hex: "F5EBF7"),
             Color(hex: "FFF5EB"), Color(hex: "FFF8F0"), Color(hex: "FFF5EB"),
@@ -48,9 +48,9 @@ enum TabPalette {
     /// Insights (3) - Contemplative: Lavender, Teal/Protein, Coral
     static func insights(for colorScheme: ColorScheme) -> [Color] {
         colorScheme == .dark ? [
-            Color(hex: "18161A"), Color(hex: "161E20"), Color(hex: "1A1614"),
-            Color(hex: "161E20"), Color(hex: "2A3848"), Color(hex: "161E20"),
-            Color(hex: "1A1614"), Color(hex: "161E20"), Color(hex: "18161A")
+            Color(hex: "1C1A1E"), Color(hex: "1A2428"), Color(hex: "1E1A18"),
+            Color(hex: "1A2428"), Color(hex: "283844"), Color(hex: "1A2428"),
+            Color(hex: "1E1A18"), Color(hex: "1A2428"), Color(hex: "1C1A1E")
         ] : [
             Color(hex: "F5EBF7"), Color(hex: "E8F3F4"), Color(hex: "FFF0EC"),
             Color(hex: "E8F3F4"), Color(hex: "FFF8F0"), Color(hex: "E8F3F4"),
@@ -61,9 +61,9 @@ enum TabPalette {
     /// Profile (4) - Grounded: Taupe, Peach, Coral
     static func profile(for colorScheme: ColorScheme) -> [Color] {
         colorScheme == .dark ? [
-            Color(hex: "161614"), Color(hex: "201E1A"), Color(hex: "1A1614"),
-            Color(hex: "201E1A"), Color(hex: "403830"), Color(hex: "201E1A"),
-            Color(hex: "1A1614"), Color(hex: "201E1A"), Color(hex: "161614")
+            Color(hex: "1A1A18"), Color(hex: "26241E"), Color(hex: "1E1A18"),
+            Color(hex: "26241E"), Color(hex: "3A342E"), Color(hex: "26241E"),
+            Color(hex: "1E1A18"), Color(hex: "26241E"), Color(hex: "1A1A18")
         ] : [
             Color(hex: "F0EBE6"), Color(hex: "FFF5EB"), Color(hex: "FFF0EC"),
             Color(hex: "FFF5EB"), Color(hex: "FFF8F0"), Color(hex: "FFF5EB"),

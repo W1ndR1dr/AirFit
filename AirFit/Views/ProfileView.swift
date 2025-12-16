@@ -166,7 +166,7 @@ struct ProfileView: View {
                 }
             }
             .padding(.horizontal, 20)
-            .padding(.bottom, 40)
+            .padding(.bottom, 120) // Extra padding to scroll above tab bar
         }
         .scrollIndicators(.hidden)
         .scrollContentBackground(.hidden)

@@ -21,6 +21,7 @@ import context_store
 import insight_engine
 import scheduler
 import chat_context
+import exercise_store
 
 
 @asynccontextmanager
@@ -304,6 +305,10 @@ async def parse_nutrition(request: NutritionParseRequest):
 async def check_training_day():
     """
     Check if today is a training day based on Hevy workouts.
+    Only counts workouts that meet a meaningful threshold:
+    - At least 20 minutes duration, OR
+    - At least 3 exercises logged
+    This filters out accidental/partial logs.
     """
     from datetime import date, datetime
 
@@ -315,10 +320,16 @@ async def check_training_day():
             # Handle timezone-aware and naive datetimes
             workout_date = w.date.date() if isinstance(w.date, datetime) else w.date
             if workout_date == today:
-                return TrainingDayResponse(
-                    is_training_day=True,
-                    workout_name=w.title
-                )
+                # Apply threshold: must be meaningful workout
+                duration_minutes = getattr(w, 'duration_minutes', 0) or 0
+                exercise_count = len(getattr(w, 'exercises', [])) if hasattr(w, 'exercises') else 0
+
+                # Count as training if: 20+ min OR 3+ exercises
+                if duration_minutes >= 20 or exercise_count >= 3:
+                    return TrainingDayResponse(
+                        is_training_day=True,
+                        workout_name=w.title
+                    )
 
     return TrainingDayResponse(is_training_day=False)
 
@@ -1329,6 +1340,170 @@ async def get_recent_workouts_endpoint(limit: int = 7):
     except Exception as e:
         print(f"Error getting recent workouts: {e}")
         return RecentWorkoutsResponse(workouts=[])
+
+
+# --- Strength Tracking Endpoints (Exercise History for Charts) ---
+
+class ExercisePR(BaseModel):
+    """Current personal record for an exercise."""
+    weight_lbs: float
+    reps: int
+    date: str
+    e1rm: float  # Estimated 1RM
+
+
+class TrackedExercise(BaseModel):
+    """A tracked exercise with PR and trend data."""
+    name: str
+    workout_count: int
+    current_pr: Optional[ExercisePR] = None
+    recent_trend: list[float] = []  # Last 8 e1RM values for mini sparkline
+    improvement: Optional[float] = None  # lbs e1RM per month (trend)
+
+
+class TrackedExercisesResponse(BaseModel):
+    """List of tracked exercises for the exercise picker."""
+    exercises: list[TrackedExercise]
+    last_sync: Optional[str] = None
+
+
+class StrengthHistoryPoint(BaseModel):
+    """Single data point for strength chart."""
+    date: str
+    e1rm: float
+    weight_lbs: float
+    reps: int
+
+
+class StrengthHistoryResponse(BaseModel):
+    """Performance history for a specific exercise."""
+    exercise: str
+    history: list[StrengthHistoryPoint]
+    current_pr: Optional[ExercisePR] = None
+    trend: Optional[float] = None  # lbs per month
+
+
+class ExerciseSyncResponse(BaseModel):
+    """Response from exercise history sync."""
+    status: str
+    workouts_processed: int
+    exercises_updated: int
+    error: Optional[str] = None
+
+
+@app.get("/training/exercises", response_model=TrackedExercisesResponse)
+async def get_tracked_exercises(
+    limit: int = 20,
+    sort_by: str = "frequency",
+    days: Optional[int] = None
+):
+    """
+    Get top tracked exercises with current PRs.
+
+    Query parameters:
+    - limit: Number of exercises to return (default 20)
+    - sort_by: "frequency" (default), "most_improved", "least_improved"
+    - days: Time window - 30, 90, 180, 365, or None for all time
+
+    Returns exercises with PR, trend sparkline, and improvement rate.
+    """
+    try:
+        # Validate sort_by
+        valid_sorts = ["frequency", "most_improved", "least_improved"]
+        if sort_by not in valid_sorts:
+            sort_by = "frequency"
+
+        exercises = exercise_store.get_top_exercises(
+            n=limit,
+            sort_by=sort_by,
+            days=days
+        )
+        last_sync = exercise_store.get_last_sync_date()
+
+        return TrackedExercisesResponse(
+            exercises=[
+                TrackedExercise(
+                    name=ex["name"],
+                    workout_count=ex["workout_count"],
+                    current_pr=ExercisePR(**ex["current_pr"]) if ex.get("current_pr") else None,
+                    recent_trend=ex.get("recent_trend", []),
+                    improvement=ex.get("improvement")
+                )
+                for ex in exercises
+            ],
+            last_sync=last_sync
+        )
+    except Exception as e:
+        print(f"Error getting tracked exercises: {e}")
+        return TrackedExercisesResponse(exercises=[], last_sync=None)
+
+
+@app.get("/training/strength-history", response_model=StrengthHistoryResponse)
+async def get_strength_history(exercise: str, days: int = 365):
+    """
+    Get performance history for a specific exercise.
+
+    Returns all performances for charting, including:
+    - Estimated 1RM (e1rm) - normalized for cross-rep-range comparison
+    - Raw weight and reps for each session
+    - Trend (lbs per month) calculated via linear regression
+
+    Used for the interactive strength chart.
+    """
+    try:
+        data = exercise_store.get_exercise_chart_data(exercise, days)
+
+        return StrengthHistoryResponse(
+            exercise=data["exercise"],
+            history=[
+                StrengthHistoryPoint(
+                    date=p["date"],
+                    e1rm=p["e1rm"],
+                    weight_lbs=p["weight_lbs"],
+                    reps=p["reps"]
+                )
+                for p in data.get("history", [])
+            ],
+            current_pr=ExercisePR(**data["current_pr"]) if data.get("current_pr") else None,
+            trend=data.get("trend")
+        )
+    except Exception as e:
+        print(f"Error getting strength history for {exercise}: {e}")
+        return StrengthHistoryResponse(
+            exercise=exercise,
+            history=[],
+            current_pr=None,
+            trend=None
+        )
+
+
+@app.post("/training/sync", response_model=ExerciseSyncResponse)
+async def sync_exercise_history(full: bool = False):
+    """
+    Sync exercise history from Hevy workouts.
+
+    By default, performs incremental sync (last 7 days).
+    Set full=True to rebuild complete history from all workouts.
+
+    This populates the exercise_store for fast chart rendering.
+    """
+    try:
+        result = await scheduler.run_exercise_history_sync(full_sync=full)
+
+        return ExerciseSyncResponse(
+            status=result.get("status", "unknown"),
+            workouts_processed=result.get("workouts_processed", 0),
+            exercises_updated=result.get("exercises_updated", 0),
+            error=result.get("error")
+        )
+    except Exception as e:
+        print(f"Error syncing exercise history: {e}")
+        return ExerciseSyncResponse(
+            status="error",
+            workouts_processed=0,
+            exercises_updated=0,
+            error=str(e)
+        )
 
 
 if __name__ == "__main__":

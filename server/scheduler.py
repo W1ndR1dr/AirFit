@@ -35,6 +35,7 @@ class SchedulerState:
     last_insight_generation: Optional[str] = None  # ISO timestamp
     last_hevy_sync: Optional[str] = None
     last_pattern_analysis: Optional[str] = None
+    last_exercise_history_sync: Optional[str] = None  # For strength tracking
 
     insights_generated_today: int = 0
     generation_error: Optional[str] = None
@@ -42,6 +43,7 @@ class SchedulerState:
     # Config
     insight_generation_interval_hours: int = 6
     hevy_sync_interval_hours: int = 1
+    exercise_history_sync_interval_hours: int = 1  # Sync exercise history hourly
 
     def to_dict(self) -> dict:
         return asdict(self)
@@ -194,6 +196,48 @@ async def run_hevy_sync() -> dict:
         return {"status": "error", "error": str(e)}
 
 
+async def run_exercise_history_sync(full_sync: bool = False) -> dict:
+    """Sync exercise history for strength tracking charts.
+
+    This populates the exercise_store with per-exercise performance data,
+    enabling fast chart rendering without on-demand API calls.
+    """
+    state = load_scheduler_state()
+
+    # Check if too recent (unless full sync requested)
+    if not full_sync and state.last_exercise_history_sync:
+        last_sync = datetime.fromisoformat(state.last_exercise_history_sync)
+        hours_since = (datetime.now() - last_sync).total_seconds() / 3600
+        if hours_since < state.exercise_history_sync_interval_hours:
+            return {"status": "skipped", "hours_since_last": hours_since}
+
+    try:
+        print("[Scheduler] Syncing exercise history for strength tracking...")
+
+        # Get last sync date for incremental sync
+        since_date = None
+        if not full_sync and state.last_exercise_history_sync:
+            # Sync from 1 day before last sync to catch any edge cases
+            last_sync = datetime.fromisoformat(state.last_exercise_history_sync)
+            since_date = (last_sync - timedelta(days=1)).strftime("%Y-%m-%d")
+
+        result = await hevy.sync_exercise_history(
+            since_date=since_date,
+            full_sync=full_sync
+        )
+
+        if result["status"] == "success":
+            state.last_exercise_history_sync = datetime.now().isoformat()
+            save_scheduler_state(state)
+            print(f"[Scheduler] Exercise history sync complete: {result['workouts_processed']} workouts, {result['exercises_updated']} exercises")
+
+        return result
+
+    except Exception as e:
+        print(f"[Scheduler] Exercise history sync failed: {e}")
+        return {"status": "error", "error": str(e)}
+
+
 # --- Context for Chat Agent ---
 
 def get_insights_for_chat_context(limit: int = 3) -> str:
@@ -271,6 +315,9 @@ async def _scheduler_loop():
             # Run Hevy sync if due
             await run_hevy_sync()
 
+            # Run exercise history sync if due (for strength tracking charts)
+            await run_exercise_history_sync(full_sync=False)
+
         except Exception as e:
             print(f"[Scheduler] Task error: {e}")
 
@@ -320,6 +367,7 @@ def get_scheduler_status() -> dict:
         "last_insight_generation": state.last_insight_generation,
         "next_insight_generation": next_insight_gen,
         "last_hevy_sync": state.last_hevy_sync,
+        "last_exercise_history_sync": state.last_exercise_history_sync,
         "insights_generated_today": state.insights_generated_today,
         "last_error": state.generation_error
     }

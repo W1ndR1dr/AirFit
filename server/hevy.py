@@ -43,7 +43,7 @@ async def get_recent_workouts(days: int = 7, limit: int = 10) -> list[HevyWorkou
 
     params = {
         "page": 1,
-        "pageSize": limit
+        "pageSize": min(limit, 10)  # Hevy API max is 10
     }
 
     try:
@@ -207,7 +207,7 @@ async def get_all_workouts(max_pages: int = 10) -> list[HevyWorkout]:
             while page <= max_pages:
                 params = {
                     "page": page,
-                    "pageSize": 20
+                    "pageSize": 10  # Hevy API max is 10
                 }
 
                 response = await client.get(
@@ -565,3 +565,83 @@ async def get_recent_workouts_summary(limit: int = 7) -> list[dict]:
         })
 
     return result
+
+
+# =============================================================================
+# Exercise History Sync Functions
+# =============================================================================
+
+async def sync_exercise_history(since_date: Optional[str] = None, full_sync: bool = False) -> dict:
+    """
+    Sync workout data to the exercise history store.
+
+    This is the main entry point for populating exercise_store with per-exercise
+    performance data for strength tracking charts.
+
+    Args:
+        since_date: ISO date string (YYYY-MM-DD) to sync from. If None, uses last 7 days.
+        full_sync: If True, fetches all history (up to 20 pages). Otherwise incremental.
+
+    Returns:
+        {
+            "status": "success" | "error" | "no_data",
+            "workouts_processed": int,
+            "exercises_updated": int,
+            "error": str (if error)
+        }
+    """
+    import exercise_store
+
+    try:
+        if full_sync:
+            # Full history sync - fetch all pages
+            print("[Hevy] Starting full exercise history sync...")
+            workouts = await get_all_workouts(max_pages=20)
+        else:
+            # Incremental sync - just recent workouts
+            days = 7
+            if since_date:
+                try:
+                    since = datetime.strptime(since_date, "%Y-%m-%d")
+                    days = max(1, (datetime.now() - since).days + 1)
+                except:
+                    pass
+
+            print(f"[Hevy] Syncing exercise history for last {days} days...")
+            workouts = await get_recent_workouts(days=days, limit=50)
+
+        if not workouts:
+            return {"status": "no_data", "workouts_processed": 0, "exercises_updated": 0}
+
+        # Track unique exercises updated
+        exercises_updated = set()
+
+        # Process each workout
+        for workout in workouts:
+            # Get date string
+            if workout.date.tzinfo:
+                date_str = workout.date.astimezone().strftime("%Y-%m-%d")
+            else:
+                date_str = workout.date.strftime("%Y-%m-%d")
+
+            # Process exercises through exercise_store
+            exercise_store.process_workout_for_exercises(date_str, workout.exercises)
+
+            # Track which exercises were updated
+            for ex in workout.exercises:
+                exercises_updated.add(ex["name"])
+
+        # Update rankings after batch processing
+        exercise_store.update_rankings()
+
+        print(f"[Hevy] Synced {len(workouts)} workouts, {len(exercises_updated)} unique exercises")
+
+        return {
+            "status": "success",
+            "workouts_processed": len(workouts),
+            "exercises_updated": len(exercises_updated)
+        }
+
+    except Exception as e:
+        print(f"[Hevy] Exercise history sync error: {e}")
+        return {"status": "error", "workouts_processed": 0, "exercises_updated": 0, "error": str(e)}

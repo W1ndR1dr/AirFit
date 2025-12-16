@@ -33,20 +33,22 @@ struct InsightsView: View {
 
     var body: some View {
         ScrollView {
-                VStack(spacing: 24) {
-                    // Insights Section
-                    if insights.isEmpty && !isLoading {
-                        emptyStateView
-                    } else {
-                        insightsSection
-                    }
+            VStack(spacing: 24) {
+                // Insights Section
+                if insights.isEmpty && !isLoading {
+                    emptyStateView
+                } else {
+                    insightsSection
                 }
-                .padding(.horizontal, 20)
-                .padding(.top, 16)
-                .padding(.bottom, 40)
             }
-            .scrollIndicators(.hidden)
-            .scrollContentBackground(.hidden)
+            .padding(.horizontal, 20)
+            .padding(.top, 16)
+            .padding(.bottom, 160) // Extra padding to scroll above tab bar
+        }
+        .scrollIndicators(.visible) // Show scroll indicators for clarity
+        .scrollContentBackground(.hidden)
+        .background(Color.clear)
+        .scrollBounceBehavior(.basedOnSize)
         .navigationTitle("Insights")
         .navigationBarTitleDisplayMode(.inline)
         .toolbarBackground(.hidden, for: .navigationBar)
