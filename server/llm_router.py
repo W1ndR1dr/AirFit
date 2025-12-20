@@ -61,7 +61,7 @@ async def call_claude(
         args = [config.CLAUDE_CLI, "-p", prompt, "--output-format", "text"]
 
     if system_prompt:
-        args.extend(["--system", system_prompt])
+        args.extend(["--system-prompt", system_prompt])
 
     try:
         process = await asyncio.create_subprocess_exec(

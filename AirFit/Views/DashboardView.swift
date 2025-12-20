@@ -13,6 +13,7 @@ struct DashboardView: View {
     @State private var weeklyProteinData: [Double] = []
     @State private var weeklyCaloriesData: [Double] = []
     @State private var weeklySleepData: [Double] = []
+    @State private var weeklySleepBreakdowns: [SleepBreakdown] = []  // Detailed sleep stages
     @State private var weeklyWorkoutData: [Double] = []  // 1 = workout day, 0 = rest
 
     private let apiClient = APIClient()
@@ -97,21 +98,28 @@ struct DashboardView: View {
             weeklyWeightData = aggregateToDailyValues(weights.map { ($0.date, $0.weightLbs) })
         }
 
-        // Load sleep history from HealthKit
+        // Load sleep history from HealthKit (both simple hours and detailed breakdowns)
         let sleepValues = await loadSleepHistory()
+        let sleepBreakdowns = await healthKit.getRecentSleepBreakdowns(nights: 7)
         await MainActor.run {
             weeklySleepData = sleepValues
+            weeklySleepBreakdowns = sleepBreakdowns
         }
 
-        // Nutrition: show flat average for now (no fake variance)
-        // TODO: Load actual daily nutrition from SwiftData when available
+        // Use actual daily data from server (no longer repeating averages!)
+        // ARCHITECTURE NOTE: Server stores daily aggregates synced from iOS.
+        // This gives us real day-to-day variance for sparklines.
         if let ctx = weekContext {
             await MainActor.run {
-                // Show flat average - no fake variance data
-                let proteinAvg = Double(ctx.avg_protein)
-                let caloriesAvg = Double(ctx.avg_calories)
-                weeklyProteinData = Array(repeating: proteinAvg, count: 7)
-                weeklyCaloriesData = Array(repeating: caloriesAvg, count: 7)
+                if let dailyNutrition = ctx.daily_nutrition, !dailyNutrition.isEmpty {
+                    // Use actual daily values from server
+                    weeklyProteinData = dailyNutrition.map { Double($0.protein) }
+                    weeklyCaloriesData = dailyNutrition.map { Double($0.calories) }
+                } else {
+                    // Fallback: repeat average (legacy behavior when no daily data)
+                    weeklyProteinData = Array(repeating: Double(ctx.avg_protein), count: 7)
+                    weeklyCaloriesData = Array(repeating: Double(ctx.avg_calories), count: 7)
+                }
 
                 // Workouts: show flat count for now
                 // TODO: Get actual workout days from Hevy data
@@ -265,7 +273,10 @@ struct DashboardView: View {
                 }
 
                 if expandedMetric == .sleep {
-                    SleepDetailView(dailyValues: weeklySleepData)
+                    SleepBreakdownView(
+                        breakdowns: weeklySleepBreakdowns,
+                        dailyValues: weeklySleepData
+                    )
                         .padding(.leading, 4)
                         .padding(.trailing, 4)
                         .padding(.bottom, 8)
@@ -798,18 +809,30 @@ struct BodyContentView: View {
 // MARK: - Training Content (extracted from TrainingView)
 
 struct TrainingContentView: View {
-    @State private var setTracker: APIClient.SetTrackerResponse?
-    @State private var liftProgress: [APIClient.LiftData] = []
-    @State private var recentWorkouts: [APIClient.WorkoutSummary] = []
-    @State private var trackedExercises: [APIClient.TrackedExercise] = []  // For strength tracking
+    @Environment(\.modelContext) private var modelContext
+
+    // Cached data (from SwiftData via HevyCacheManager)
+    @State private var cachedSetTracker: [CachedSetTracker] = []
+    @State private var cachedLiftProgress: [CachedLiftProgress] = []
+    @State private var cachedWorkouts: [CachedWorkout] = []
+
+    // Tracked exercises (still from server - for strength detail view)
+    @State private var trackedExercises: [APIClient.TrackedExercise] = []
+
+    // UI state
     @State private var isLoading = true
-    @State private var isSyncing = false
+    @State private var isCacheStale = false
+    @State private var cacheAge: String = ""
+    @State private var showHealthKitFallback = false
+    @State private var healthKitWorkouts: [HealthKitWorkout] = []
 
     private let apiClient = APIClient()
+    private let hevyCacheManager = HevyCacheManager()
+    private let healthKit = HealthKitManager()
 
     var body: some View {
         Group {
-            if isLoading && setTracker == nil {
+            if isLoading && cachedSetTracker.isEmpty && cachedWorkouts.isEmpty {
                 loadingView
             } else {
                 trainingContent
@@ -825,9 +848,14 @@ struct TrainingContentView: View {
 
     private var trainingContent: some View {
         VStack(spacing: 24) {
-            // Set Tracker Section (Hero)
-            if let tracker = setTracker, !tracker.muscle_groups.isEmpty {
-                setTrackerSection(tracker)
+            // Staleness indicator if cache is old
+            if isCacheStale {
+                stalenessIndicator
+            }
+
+            // Set Tracker Section (Hero) - from cache
+            if !cachedSetTracker.isEmpty {
+                setTrackerSection
             }
 
             // Strength Progress Section (drill-down to StrengthDetailView)
@@ -835,18 +863,23 @@ struct TrainingContentView: View {
                 StrengthSummaryCard(exercises: trackedExercises)
             }
 
-            // Lift Progress Section
-            if !liftProgress.isEmpty {
+            // Lift Progress Section - from cache
+            if !cachedLiftProgress.isEmpty {
                 liftProgressSection
             }
 
-            // Recent Workouts Section
-            if !recentWorkouts.isEmpty {
+            // Recent Workouts Section - from cache
+            if !cachedWorkouts.isEmpty {
                 recentWorkoutsSection
             }
 
+            // HealthKit fallback when no Hevy cache
+            if showHealthKitFallback && !healthKitWorkouts.isEmpty {
+                healthKitFallbackSection
+            }
+
             // Empty state
-            if setTracker?.muscle_groups.isEmpty ?? true && liftProgress.isEmpty && trackedExercises.isEmpty && !isLoading {
+            if cachedSetTracker.isEmpty && cachedLiftProgress.isEmpty && cachedWorkouts.isEmpty && healthKitWorkouts.isEmpty && !isLoading {
                 emptyStateView
             }
         }
@@ -854,7 +887,62 @@ struct TrainingContentView: View {
         .padding(.bottom, 40)
     }
 
-    private func setTrackerSection(_ tracker: APIClient.SetTrackerResponse) -> some View {
+    // MARK: - Staleness Indicator
+
+    private var stalenessIndicator: some View {
+        HStack(spacing: 8) {
+            Image(systemName: "clock")
+                .font(.caption)
+            Text("Workout data from \(cacheAge)")
+                .font(.caption)
+
+            Spacer()
+
+            if isLoading {
+                ProgressView()
+                    .scaleEffect(0.7)
+            }
+        }
+        .foregroundStyle(Theme.textMuted)
+        .padding(.horizontal, 16)
+        .padding(.vertical, 10)
+        .background(
+            RoundedRectangle(cornerRadius: 12, style: .continuous)
+                .fill(Theme.surface)
+        )
+    }
+
+    // MARK: - HealthKit Fallback Section
+
+    private var healthKitFallbackSection: some View {
+        VStack(alignment: .leading, spacing: 16) {
+            HStack(spacing: 8) {
+                Image(systemName: "heart.fill")
+                    .font(.caption)
+                    .foregroundStyle(.red)
+                Text("APPLE HEALTH WORKOUTS")
+                    .font(.labelHero)
+                    .tracking(2)
+                    .foregroundStyle(Theme.textMuted)
+            }
+
+            Text("Connect Hevy via server for detailed lift tracking")
+                .font(.caption)
+                .foregroundStyle(Theme.textMuted)
+
+            ForEach(healthKitWorkouts, id: \.id) { workout in
+                HealthKitWorkoutRow(workout: workout)
+            }
+        }
+        .padding(20)
+        .background(
+            RoundedRectangle(cornerRadius: 20, style: .continuous)
+                .fill(Theme.surface)
+                .shadow(color: .black.opacity(0.03), radius: 8, x: 0, y: 2)
+        )
+    }
+
+    private var setTrackerSection: some View {
         VStack(alignment: .leading, spacing: 16) {
             HStack {
                 HStack(spacing: 8) {
@@ -869,22 +957,22 @@ struct TrainingContentView: View {
 
                 Spacer()
 
-                if let lastSync = tracker.last_sync {
-                    Text(formatSyncTime(lastSync))
+                if !cacheAge.isEmpty {
+                    Text(cacheAge)
                         .font(.labelMicro)
                         .foregroundStyle(Theme.textMuted)
                 }
             }
 
-            let sortedMuscles = sortMuscleGroups(tracker.muscle_groups)
+            let sortedMuscles = sortMuscleGroups(cachedSetTracker)
 
-            ForEach(sortedMuscles, id: \.0) { name, data in
+            ForEach(sortedMuscles, id: \.muscleGroup) { cached in
                 MuscleProgressBar(
-                    name: name.capitalized,
-                    current: data.current,
-                    minSets: data.min,
-                    maxSets: data.max,
-                    status: data.status
+                    name: cached.muscleGroup.capitalized,
+                    current: cached.currentSets,
+                    minSets: cached.optimalMin,
+                    maxSets: cached.optimalMax,
+                    status: cached.status
                 )
             }
         }
@@ -896,11 +984,11 @@ struct TrainingContentView: View {
         )
     }
 
-    private func sortMuscleGroups(_ groups: [String: APIClient.MuscleGroupData]) -> [(String, APIClient.MuscleGroupData)] {
+    private func sortMuscleGroups(_ groups: [CachedSetTracker]) -> [CachedSetTracker] {
         let priority = ["chest", "back", "quads", "glutes", "hamstrings", "delts", "biceps", "triceps", "calves", "core"]
         return groups.sorted { a, b in
-            let aIndex = priority.firstIndex(of: a.key) ?? priority.count
-            let bIndex = priority.firstIndex(of: b.key) ?? priority.count
+            let aIndex = priority.firstIndex(of: a.muscleGroup) ?? priority.count
+            let bIndex = priority.firstIndex(of: b.muscleGroup) ?? priority.count
             return aIndex < bIndex
         }
     }
@@ -917,8 +1005,8 @@ struct TrainingContentView: View {
                     .foregroundStyle(Theme.textMuted)
             }
 
-            ForEach(liftProgress) { lift in
-                LiftProgressCard(lift: lift)
+            ForEach(cachedLiftProgress, id: \.exerciseName) { lift in
+                CachedLiftProgressCard(lift: lift)
             }
         }
         .padding(20)
@@ -941,8 +1029,8 @@ struct TrainingContentView: View {
                     .foregroundStyle(Theme.textMuted)
             }
 
-            ForEach(recentWorkouts) { workout in
-                WorkoutCard(workout: workout)
+            ForEach(cachedWorkouts, id: \.id) { workout in
+                CachedWorkoutCard(workout: workout)
             }
         }
         .padding(20)
@@ -987,42 +1075,43 @@ struct TrainingContentView: View {
     private func loadData() async {
         isLoading = true
 
-        async let setTrackerTask: () = loadSetTracker()
-        async let liftProgressTask: () = loadLiftProgress()
-        async let workoutsTask: () = loadRecentWorkouts()
-        async let trackedExercisesTask: () = loadTrackedExercises()
+        // Try to refresh cache from server first
+        let serverAvailable = await apiClient.checkHealth()
 
-        await setTrackerTask
-        await liftProgressTask
-        await workoutsTask
-        await trackedExercisesTask
+        if serverAvailable {
+            // Refresh cache from server
+            do {
+                try await hevyCacheManager.refreshFromServer(modelContext: modelContext)
+                isCacheStale = false
+            } catch {
+                print("[TrainingContent] Cache refresh failed: \(error)")
+            }
+        }
+
+        // Load from cache (fresh or stale)
+        await loadFromCache()
+
+        // Check if cache is stale
+        isCacheStale = await hevyCacheManager.isCacheStale(modelContext: modelContext)
+        cacheAge = await hevyCacheManager.cacheAgeDescription(modelContext: modelContext)
+
+        // Load tracked exercises from server (for strength detail view)
+        if serverAvailable {
+            await loadTrackedExercises()
+        }
+
+        // Fallback to HealthKit if no Hevy cache
+        if cachedWorkouts.isEmpty {
+            await loadHealthKitFallback()
+        }
 
         isLoading = false
     }
 
-    private func loadSetTracker() async {
-        do {
-            setTracker = try await apiClient.getSetTracker()
-        } catch {
-            print("Failed to load set tracker: \(error)")
-        }
-    }
-
-    private func loadLiftProgress() async {
-        do {
-            let response = try await apiClient.getLiftProgress()
-            liftProgress = response.lifts
-        } catch {
-            print("Failed to load lift progress: \(error)")
-        }
-    }
-
-    private func loadRecentWorkouts() async {
-        do {
-            recentWorkouts = try await apiClient.getRecentWorkouts()
-        } catch {
-            print("Failed to load recent workouts: \(error)")
-        }
+    private func loadFromCache() async {
+        cachedSetTracker = await hevyCacheManager.getSetTracker(modelContext: modelContext)
+        cachedLiftProgress = await hevyCacheManager.getLiftProgress(modelContext: modelContext)
+        cachedWorkouts = await hevyCacheManager.getRecentWorkouts(modelContext: modelContext)
     }
 
     private func loadTrackedExercises() async {
@@ -1034,14 +1123,12 @@ struct TrainingContentView: View {
         }
     }
 
-    private func formatSyncTime(_ isoDate: String) -> String {
-        let formatter = ISO8601DateFormatter()
-        if let date = formatter.date(from: isoDate) {
-            let relative = RelativeDateTimeFormatter()
-            relative.unitsStyle = .abbreviated
-            return relative.localizedString(for: date, relativeTo: Date())
+    private func loadHealthKitFallback() async {
+        let workouts = await healthKit.getRecentWorkouts(days: 7)
+        if !workouts.isEmpty {
+            showHealthKitFallback = true
+            healthKitWorkouts = workouts
         }
-        return ""
     }
 }
 
@@ -1136,6 +1223,8 @@ struct PRatioCardView: View {
     @State private var selectedValue: Double?
 
     private let tooltip = """
+    Based on P-Score (partitioning ratio)—the scientific measure of how much weight change comes from lean mass versus fat. A score of 100 means pure muscle; 0 means pure fat storage.
+
     Nutrient partitioning efficiency—a measure of whether your body is building the cathedral or just piling stones. Not all mass is created equal, and this metric knows the difference.
 
     High scores mean your inputs are becoming outputs you actually wanted. Low scores suggest your metabolism is still preparing for a famine that isn't coming. The good news: this one bends to your will.
@@ -1261,8 +1350,10 @@ struct QualityGaugeChartView: View {
 
     private var smoothedData: [ChartDataPoint] {
         guard data.count > 3 else { return data }
-        let period = ChartSmoothing.optimalPeriod(for: data)
-        return ChartSmoothing.applyEMA(to: data, period: period)
+        // P-ratio is inherently volatile (small weight changes → big % swings)
+        // Use aggressive smoothing (35% bandwidth) to tame the noise while
+        // preserving the overall trend shape
+        return ChartSmoothing.applyLOESS(to: data, bandwidth: 0.35)
     }
 
     var body: some View {
@@ -1986,5 +2077,229 @@ private struct TooltipHeightKey: PreferenceKey {
     static let defaultValue: CGFloat = 100
     static func reduce(value: inout CGFloat, nextValue: () -> CGFloat) {
         value = nextValue()
+    }
+}
+
+// MARK: - Cached Data Card Views
+
+/// Card for displaying cached lift progress from Hevy
+struct CachedLiftProgressCard: View {
+    let lift: CachedLiftProgress
+
+    private let dateFormatter: DateFormatter = {
+        let f = DateFormatter()
+        f.dateFormat = "MMM d"
+        return f
+    }()
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 8) {
+            HStack {
+                Text(lift.exerciseName)
+                    .font(.labelMedium)
+                    .foregroundStyle(Theme.textPrimary)
+
+                Spacer()
+
+                Text("\(lift.workoutCount) sessions")
+                    .font(.labelMicro)
+                    .foregroundStyle(Theme.textMuted)
+            }
+
+            HStack(alignment: .bottom, spacing: 16) {
+                // Current PR
+                VStack(alignment: .leading, spacing: 2) {
+                    Text("PR")
+                        .font(.labelMicro)
+                        .foregroundStyle(Theme.textMuted)
+                    HStack(alignment: .lastTextBaseline, spacing: 4) {
+                        Text("\(Int(lift.currentPRWeightLbs))")
+                            .font(.metricSmall)
+                            .foregroundStyle(Theme.protein)
+                        Text("lbs × \(lift.currentPRReps)")
+                            .font(.labelMicro)
+                            .foregroundStyle(Theme.textSecondary)
+                    }
+                }
+
+                Spacer()
+
+                // Sparkline from history
+                if !lift.history.isEmpty {
+                    SparklineView(
+                        data: lift.history.map { $0.weightLbs },
+                        color: Theme.protein,
+                        height: 24
+                    )
+                    .frame(width: 60)
+                }
+
+                // PR date
+                Text(dateFormatter.string(from: lift.currentPRDate))
+                    .font(.labelMicro)
+                    .foregroundStyle(Theme.textMuted)
+            }
+        }
+        .padding(12)
+        .background(
+            RoundedRectangle(cornerRadius: 12, style: .continuous)
+                .fill(Theme.surface)
+        )
+    }
+}
+
+/// Card for displaying cached workout from Hevy
+struct CachedWorkoutCard: View {
+    let workout: CachedWorkout
+
+    private let dateFormatter: DateFormatter = {
+        let f = DateFormatter()
+        f.dateFormat = "MMM d"
+        return f
+    }()
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 8) {
+            HStack {
+                Text(workout.title)
+                    .font(.labelMedium)
+                    .foregroundStyle(Theme.textPrimary)
+
+                Spacer()
+
+                Text(dateFormatter.string(from: workout.workoutDate))
+                    .font(.labelMicro)
+                    .foregroundStyle(Theme.textMuted)
+            }
+
+            HStack(spacing: 12) {
+                // Duration
+                HStack(spacing: 4) {
+                    Image(systemName: "clock")
+                        .font(.caption2)
+                    Text("\(workout.durationMinutes)m")
+                }
+                .font(.labelMicro)
+                .foregroundStyle(Theme.textSecondary)
+
+                // Volume
+                HStack(spacing: 4) {
+                    Image(systemName: "scalemass")
+                        .font(.caption2)
+                    Text("\(Int(workout.totalVolumeLbs)) lbs")
+                }
+                .font(.labelMicro)
+                .foregroundStyle(Theme.textSecondary)
+
+                Spacer()
+            }
+
+            // Exercises (truncated)
+            if !workout.exercises.isEmpty {
+                Text(workout.exercises.prefix(4).joined(separator: " • "))
+                    .font(.labelMicro)
+                    .foregroundStyle(Theme.textMuted)
+                    .lineLimit(1)
+            }
+        }
+        .padding(12)
+        .background(
+            RoundedRectangle(cornerRadius: 12, style: .continuous)
+                .fill(Theme.surface)
+        )
+    }
+}
+
+/// Row for displaying HealthKit workout (fallback when no Hevy cache)
+struct HealthKitWorkoutRow: View {
+    let workout: HealthKitWorkout
+
+    private let dateFormatter: DateFormatter = {
+        let f = DateFormatter()
+        f.dateFormat = "MMM d"
+        return f
+    }()
+
+    var body: some View {
+        HStack {
+            // Workout type icon
+            Image(systemName: iconForWorkoutType(workout.type))
+                .font(.body)
+                .foregroundStyle(Theme.tertiary)
+                .frame(width: 32)
+
+            VStack(alignment: .leading, spacing: 2) {
+                Text(workout.type)
+                    .font(.labelMedium)
+                    .foregroundStyle(Theme.textPrimary)
+
+                HStack(spacing: 8) {
+                    Text("\(workout.durationMinutes) min")
+                        .font(.labelMicro)
+                        .foregroundStyle(Theme.textSecondary)
+
+                    if let calories = workout.caloriesBurned {
+                        Text("\(calories) cal")
+                            .font(.labelMicro)
+                            .foregroundStyle(Theme.textSecondary)
+                    }
+                }
+            }
+
+            Spacer()
+
+            Text(dateFormatter.string(from: workout.date))
+                .font(.labelMicro)
+                .foregroundStyle(Theme.textMuted)
+        }
+        .padding(12)
+        .background(
+            RoundedRectangle(cornerRadius: 12, style: .continuous)
+                .fill(Theme.surface)
+        )
+    }
+
+    private func iconForWorkoutType(_ type: String) -> String {
+        switch type.lowercased() {
+        case let t where t.contains("run"): return "figure.run"
+        case let t where t.contains("walk"): return "figure.walk"
+        case let t where t.contains("cycl"): return "figure.outdoor.cycle"
+        case let t where t.contains("swim"): return "figure.pool.swim"
+        case let t where t.contains("strength"), let t where t.contains("weight"): return "figure.strengthtraining.traditional"
+        case let t where t.contains("yoga"): return "figure.mind.and.body"
+        case let t where t.contains("hiit"): return "figure.highintensity.intervaltraining"
+        default: return "figure.mixed.cardio"
+        }
+    }
+}
+
+/// Simple sparkline view for lift progress history
+struct SparklineView: View {
+    let data: [Double]
+    let color: Color
+    let height: CGFloat
+
+    var body: some View {
+        GeometryReader { geo in
+            if data.count >= 2, let minVal = data.min(), let maxVal = data.max(), maxVal > minVal {
+                Path { path in
+                    let range = maxVal - minVal
+                    let stepX = geo.size.width / CGFloat(data.count - 1)
+
+                    for (index, value) in data.enumerated() {
+                        let x = CGFloat(index) * stepX
+                        let y = geo.size.height - (CGFloat((value - minVal) / range) * geo.size.height)
+
+                        if index == 0 {
+                            path.move(to: CGPoint(x: x, y: y))
+                        } else {
+                            path.addLine(to: CGPoint(x: x, y: y))
+                        }
+                    }
+                }
+                .stroke(color, style: StrokeStyle(lineWidth: 2, lineCap: .round, lineJoin: .round))
+            }
+        }
+        .frame(height: height)
     }
 }

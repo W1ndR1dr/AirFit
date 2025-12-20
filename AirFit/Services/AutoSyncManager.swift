@@ -2,6 +2,11 @@ import Foundation
 import SwiftData
 import BackgroundTasks
 
+/// Notification posted when Hevy cache is updated.
+extension Notification.Name {
+    static let hevyCacheUpdated = Notification.Name("hevyCacheUpdated")
+}
+
 /// Manages automatic data synchronization on app launch and in background.
 /// Syncs HealthKit data and nutrition entries to the server for AI analysis.
 @MainActor
@@ -15,17 +20,77 @@ final class AutoSyncManager: ObservableObject {
     private let syncService = InsightsSyncService()
     private let healthKit = HealthKitManager()
     private let apiClient = APIClient()
+    private let memorySyncService = MemorySyncService()
+    private let hevyCacheManager = HevyCacheManager()
+    private let hevyService = HevyService.shared
+    private let personalitySynthesisService = PersonalitySynthesisService.shared
 
     // Minimum time between syncs (15 minutes)
     private let minSyncInterval: TimeInterval = 15 * 60
 
-    private init() {}
+    // Minimum time between workout-triggered syncs (2 minutes)
+    private let minWorkoutSyncInterval: TimeInterval = 2 * 60
+    private var lastWorkoutSyncTime: Date?
+
+    // Reference to ModelContext for workout-triggered sync
+    private weak var currentModelContext: ModelContext?
+
+    private init() {
+        setupWorkoutObserver()
+    }
+
+    /// Set up observer for HealthKit workout notifications.
+    /// When a workout is detected, immediately refreshes Hevy cache.
+    private func setupWorkoutObserver() {
+        NotificationCenter.default.addObserver(
+            forName: .healthKitWorkoutDetected,
+            object: nil,
+            queue: .main
+        ) { [weak self] notification in
+            let count = notification.userInfo?["workoutCount"] as? Int ?? 0
+            Task { @MainActor [weak self] in
+                await self?.handleWorkoutDetected(workoutCount: count)
+            }
+        }
+    }
+
+    /// Handle workout detection - immediately sync Hevy data.
+    private func handleWorkoutDetected(workoutCount: Int) async {
+        print("[AutoSync] Workout detected (\(workoutCount) new), triggering immediate Hevy sync...")
+
+        // Throttle to avoid rapid-fire syncs
+        if let lastSync = lastWorkoutSyncTime,
+           Date().timeIntervalSince(lastSync) < minWorkoutSyncInterval {
+            print("[AutoSync] Skipping workout sync - synced recently")
+            return
+        }
+
+        lastWorkoutSyncTime = Date()
+
+        // Use the stored model context
+        guard let modelContext = currentModelContext else {
+            print("[AutoSync] No model context available for workout sync")
+            return
+        }
+
+        // Immediately refresh Hevy cache
+        await syncHevyDeviceFirst(modelContext: modelContext, serverAvailable: false)
+
+        // Post notification for UI updates
+        NotificationCenter.default.post(name: .hevyCacheUpdated, object: nil)
+    }
 
     // MARK: - Public API
 
     /// Perform initial sync on app launch.
     /// Requests HealthKit permissions if needed, then syncs data.
     func performLaunchSync(modelContext: ModelContext) async {
+        // Store context for workout-triggered syncs
+        currentModelContext = modelContext
+
+        // Start the workout observer for immediate Hevy sync
+        await healthKit.startWorkoutObserver()
+
         // Seed demo data if none exists (for demos/testing)
         await seedDemoDataIfNeeded(modelContext: modelContext)
 
@@ -41,7 +106,8 @@ final class AutoSyncManager: ObservableObject {
 
     // MARK: - Demo Data Seeding
 
-    /// Seeds 7 days of plausible nutrition data if none exists.
+    /// Seeds 14 days of realistic nutrition data if none exists.
+    /// Includes training days, rest days, and one cheat day for realism.
     /// Only runs if the database has fewer than 3 entries.
     private func seedDemoDataIfNeeded(modelContext: ModelContext) async {
         // Check if we already have data
@@ -53,19 +119,21 @@ final class AutoSyncManager: ObservableObject {
             return
         }
 
-        print("[AutoSync] Seeding demo nutrition data...")
+        print("[AutoSync] Seeding demo nutrition data (14 days)...")
 
-        // Generate 7 days of realistic nutrition data
         let calendar = Calendar.current
         let today = Date()
 
         // Define realistic meals with variations
+        // Format: (name, calories, protein, carbs, fat)
         let breakfasts: [(String, Int, Int, Int, Int)] = [
             ("Greek yogurt with berries and granola", 380, 28, 52, 8),
             ("3 eggs scrambled with cheese and toast", 520, 32, 28, 32),
             ("Oatmeal with banana and peanut butter", 450, 15, 68, 14),
             ("Protein smoothie with banana and oats", 420, 35, 48, 10),
             ("Avocado toast with 2 poached eggs", 480, 24, 32, 28),
+            ("Cottage cheese with fruit and honey", 340, 26, 38, 6),
+            ("Egg white omelette with vegetables", 320, 28, 12, 14),
         ]
 
         let lunches: [(String, Int, Int, Int, Int)] = [
@@ -74,6 +142,8 @@ final class AutoSyncManager: ObservableObject {
             ("Salmon poke bowl", 650, 42, 58, 22),
             ("Chicken burrito bowl", 720, 48, 68, 24),
             ("Steak salad with sweet potato", 680, 52, 45, 28),
+            ("Tuna sandwich with side salad", 540, 38, 48, 16),
+            ("Grilled shrimp with brown rice", 520, 36, 52, 12),
         ]
 
         let dinners: [(String, Int, Int, Int, Int)] = [
@@ -82,6 +152,8 @@ final class AutoSyncManager: ObservableObject {
             ("Lean beef tacos with beans", 750, 52, 62, 28),
             ("Baked cod with roasted vegetables", 520, 42, 38, 14),
             ("Turkey meatballs with pasta", 720, 48, 72, 22),
+            ("Grilled chicken breast with sweet potato", 580, 52, 48, 12),
+            ("Pork tenderloin with quinoa", 640, 46, 42, 22),
         ]
 
         let snacks: [(String, Int, Int, Int, Int)] = [
@@ -90,51 +162,107 @@ final class AutoSyncManager: ObservableObject {
             ("Cottage cheese with fruit", 180, 22, 18, 4),
             ("Mixed nuts", 200, 6, 8, 18),
             ("Protein shake", 160, 25, 8, 3),
+            ("Hard boiled eggs (2)", 140, 12, 1, 10),
+            ("Rice cakes with peanut butter", 190, 6, 24, 8),
         ]
 
-        // Training days pattern (Mon, Tue, Thu, Fri, Sat = training)
-        let trainingDays = [2, 3, 5, 6, 7] // weekday numbers
+        // Cheat day meals - higher calories, more indulgent
+        let cheatMeals: [(String, Int, Int, Int, Int)] = [
+            ("Pancakes with syrup and bacon", 780, 18, 98, 36),
+            ("Cheeseburger with fries", 1150, 42, 88, 62),
+            ("Pizza (3 slices)", 840, 32, 78, 42),
+            ("Ice cream sundae", 480, 8, 62, 22),
+            ("Nachos with cheese and guac", 620, 16, 52, 38),
+        ]
 
-        for daysAgo in 0..<7 {
+        // Training days: Mon(2), Tue(3), Thu(5), Fri(6), Sat(7) - 5 days/week
+        let trainingWeekdays = [2, 3, 5, 6, 7]
+
+        // Calorie targets based on day type
+        let trainingDayTarget = 2600  // Higher for workout days
+        let restDayTarget = 2200      // Moderate for rest days
+
+        // Pick a cheat day (8 days ago - a Saturday)
+        let cheatDayOffset = 8
+
+        for daysAgo in 0..<14 {
             guard let date = calendar.date(byAdding: .day, value: -daysAgo, to: today) else { continue }
             let weekday = calendar.component(.weekday, from: date)
-            let isTrainingDay = trainingDays.contains(weekday)
+            let isTrainingDay = trainingWeekdays.contains(weekday)
+            let isCheatDay = daysAgo == cheatDayOffset
 
-            // Randomly pick meals for variety
-            let breakfastIdx = (daysAgo + 1) % breakfasts.count
-            let lunchIdx = (daysAgo + 2) % lunches.count
-            let dinnerIdx = (daysAgo + 3) % dinners.count
-            let snackIdx = daysAgo % snacks.count
+            // Vary meal selection based on day
+            let dayHash = daysAgo * 7 + weekday
+            let breakfastIdx = dayHash % breakfasts.count
+            let lunchIdx = (dayHash + 3) % lunches.count
+            let dinnerIdx = (dayHash + 5) % dinners.count
+            let snackIdx = (dayHash + 2) % snacks.count
 
-            let breakfast = breakfasts[breakfastIdx]
-            let lunch = lunches[lunchIdx]
-            let dinner = dinners[dinnerIdx]
-            let snack = snacks[snackIdx]
+            var dayMeals: [(String, Int, Int, Int, Int, Int)] = []
+            var targetCalories: Int
 
-            // Training days get extra snack and slightly higher totals
-            let meals: [(String, Int, Int, Int, Int, Int)] = isTrainingDay ? [
-                (breakfast.0, breakfast.1, breakfast.2, breakfast.3, breakfast.4, 8),
-                (lunch.0, lunch.1, lunch.2, lunch.3, lunch.4, 12),
-                (snack.0, snack.1, snack.2, snack.3, snack.4, 15),
-                (dinner.0, dinner.1, dinner.2, dinner.3, dinner.4, 19),
-                (snacks[(snackIdx + 1) % snacks.count].0, snacks[(snackIdx + 1) % snacks.count].1, snacks[(snackIdx + 1) % snacks.count].2, snacks[(snackIdx + 1) % snacks.count].3, snacks[(snackIdx + 1) % snacks.count].4, 21),
-            ] : [
-                (breakfast.0, breakfast.1, breakfast.2, breakfast.3, breakfast.4, 8),
-                (lunch.0, lunch.1, lunch.2, lunch.3, lunch.4, 12),
-                (dinner.0, dinner.1, dinner.2, dinner.3, dinner.4, 18),
-            ]
+            if isCheatDay {
+                // Cheat day: indulgent - no target scaling (just let it be high)
+                targetCalories = 3200  // High but we won't scale these
+                dayMeals = [
+                    (cheatMeals[0].0, cheatMeals[0].1, cheatMeals[0].2, cheatMeals[0].3, cheatMeals[0].4, 10), // Late brunch
+                    (cheatMeals[1].0, cheatMeals[1].1, cheatMeals[1].2, cheatMeals[1].3, cheatMeals[1].4, 14), // Burger
+                    (cheatMeals[2].0, cheatMeals[2].1, cheatMeals[2].2, cheatMeals[2].3, cheatMeals[2].4, 19), // Pizza
+                    (cheatMeals[3].0, cheatMeals[3].1, cheatMeals[3].2, cheatMeals[3].3, cheatMeals[3].4, 21), // Dessert
+                ]
+            } else if isTrainingDay {
+                // Training day: more food, extra snacks, higher protein - target 2600 cal
+                targetCalories = trainingDayTarget
+                let breakfast = breakfasts[breakfastIdx]
+                let lunch = lunches[lunchIdx]
+                let dinner = dinners[dinnerIdx]
+                let snack1 = snacks[snackIdx]
+                let snack2 = snacks[(snackIdx + 2) % snacks.count]
 
-            // Add some variance to hit/miss targets
-            let variance = Double.random(in: 0.85...1.10)
+                dayMeals = [
+                    (breakfast.0, breakfast.1, breakfast.2, breakfast.3, breakfast.4, 7),
+                    (snack1.0, snack1.1, snack1.2, snack1.3, snack1.4, 10),
+                    (lunch.0, lunch.1, lunch.2, lunch.3, lunch.4, 12),
+                    (snack2.0, snack2.1, snack2.2, snack2.3, snack2.4, 16),
+                    (dinner.0, dinner.1, dinner.2, dinner.3, dinner.4, 19),
+                    ("Protein shake", 160, 25, 8, 3, 21), // Post-workout recovery
+                ]
+            } else {
+                // Rest day: moderate intake, fewer snacks - target 2200 cal
+                targetCalories = restDayTarget
+                let breakfast = breakfasts[breakfastIdx]
+                let lunch = lunches[lunchIdx]
+                let dinner = dinners[dinnerIdx]
+                let snack = snacks[snackIdx]
 
-            for (name, cal, protein, carbs, fat, hour) in meals {
-                // Apply variance
-                let adjustedCal = Int(Double(cal) * variance)
-                let adjustedProtein = Int(Double(protein) * variance)
-                let adjustedCarbs = Int(Double(carbs) * variance)
-                let adjustedFat = Int(Double(fat) * variance)
+                dayMeals = [
+                    (breakfast.0, breakfast.1, breakfast.2, breakfast.3, breakfast.4, 8),
+                    (lunch.0, lunch.1, lunch.2, lunch.3, lunch.4, 12),
+                    (snack.0, snack.1, snack.2, snack.3, snack.4, 15),
+                    (dinner.0, dinner.1, dinner.2, dinner.3, dinner.4, 18),
+                ]
+            }
 
-                // Create timestamp at specific hour
+            // Calculate raw total from selected meals
+            let rawTotal = dayMeals.reduce(0) { $0 + $1.1 }
+
+            // Scale factor to hit target (only for non-cheat days)
+            let baseScale = isCheatDay ? 1.0 : (Double(targetCalories) / Double(max(1, rawTotal)))
+
+            // Apply daily variance on top of the target-based scaling
+            // This creates realistic patterns: some days under, some over target
+            let varianceFactors: [Double] = [1.0, 0.92, 1.08, 0.95, 1.05, 0.88, 1.02, 1.0, 0.90, 1.10, 0.97, 1.03, 0.94, 1.06]
+            let dayVariance = varianceFactors[daysAgo % varianceFactors.count]
+            let combinedScale = baseScale * dayVariance
+
+            for (name, cal, protein, carbs, fat, hour) in dayMeals {
+                // Apply combined scaling (target + variance)
+                let adjustedCal = Int(Double(cal) * combinedScale)
+                let adjustedProtein = Int(Double(protein) * combinedScale)
+                let adjustedCarbs = Int(Double(carbs) * combinedScale)
+                let adjustedFat = Int(Double(fat) * combinedScale)
+
+                // Create timestamp at specific hour with random minutes
                 var components = calendar.dateComponents([.year, .month, .day], from: date)
                 components.hour = hour
                 components.minute = Int.random(in: 0...59)
@@ -155,7 +283,7 @@ final class AutoSyncManager: ObservableObject {
 
         // Save
         try? modelContext.save()
-        print("[AutoSync] Seeded demo nutrition data for 7 days")
+        print("[AutoSync] Seeded demo nutrition data for 14 days (incl. cheat day)")
     }
 
     /// Force a sync regardless of timing.
@@ -171,15 +299,36 @@ final class AutoSyncManager: ObservableObject {
         isSyncing = true
         syncError = nil
 
+        let serverAvailable = await apiClient.checkHealth()
+
         do {
             // 1. Request HealthKit permissions (no-op if already granted)
             _ = await healthKit.requestAuthorization()
 
-            // 2. Sync the last 7 days of data to server
-            try await syncService.syncRecentDays(7, modelContext: modelContext)
+            // 2. Hevy sync (device-first, fallback to server)
+            await syncHevyDeviceFirst(modelContext: modelContext, serverAvailable: serverAvailable)
 
-            // 3. Trigger Hevy sync on server (if API key is configured)
-            await syncHevy()
+            if serverAvailable {
+                // Server-dependent syncs
+
+                // 3. Sync the last 7 days of data to server
+                try await syncService.syncRecentDays(7, modelContext: modelContext)
+
+                // 4. Sync memory to/from server
+                await memorySyncService.syncToServer(modelContext: modelContext)
+                await memorySyncService.syncFromServer(modelContext: modelContext)
+                print("[AutoSync] Memory sync completed")
+            } else {
+                print("[AutoSync] Server unavailable - using local data only")
+            }
+
+            // 5. Persona synthesis (runs on every sync if needed)
+            // This regenerates the LLM-synthesized coaching persona when:
+            // - No persona exists yet (and onboarding is complete)
+            // - Weekly refresh (>7 days old)
+            // - Profile was updated
+            // - Memory threshold reached (10+ new memories)
+            await regeneratePersonaIfNeeded(modelContext: modelContext)
 
             lastSyncTime = Date()
             print("[AutoSync] Sync completed successfully")
@@ -192,13 +341,53 @@ final class AutoSyncManager: ObservableObject {
         isSyncing = false
     }
 
-    private func syncHevy() async {
-        do {
-            // Call the server's Hevy sync endpoint
-            _ = try await syncHevyToServer()
-        } catch {
-            // Hevy sync is optional - don't fail the whole sync
-            print("[AutoSync] Hevy sync skipped: \(error)")
+    /// Regenerate the coaching persona if conditions are met.
+    ///
+    /// The persona is LLM-synthesized prose that captures the coaching approach.
+    /// It incorporates profile, calibration, memories, and patterns into
+    /// natural language that matures with the relationship.
+    private func regeneratePersonaIfNeeded(modelContext: ModelContext) async {
+        guard await personalitySynthesisService.shouldRegenerate(modelContext: modelContext) else {
+            return
+        }
+
+        print("[AutoSync] Regenerating coaching persona...")
+
+        let success = await personalitySynthesisService.synthesizeAndSave(modelContext: modelContext)
+
+        if success {
+            print("[AutoSync] Coaching persona regenerated successfully")
+        } else {
+            print("[AutoSync] Coaching persona regeneration failed (will retry next sync)")
+        }
+    }
+
+    /// Sync Hevy data (device-first, server fallback).
+    private func syncHevyDeviceFirst(modelContext: ModelContext, serverAvailable: Bool) async {
+        // Try device-first if API key is configured locally
+        if await hevyService.isConfigured() {
+            do {
+                try await hevyCacheManager.refreshFromDevice(modelContext: modelContext)
+                print("[AutoSync] Hevy cache refreshed (from device)")
+                return
+            } catch {
+                print("[AutoSync] Device Hevy sync failed: \(error)")
+                // Fall through to server sync
+            }
+        }
+
+        // Fallback to server
+        if serverAvailable {
+            do {
+                _ = try await syncHevyToServer()
+                try await hevyCacheManager.refreshFromServer(modelContext: modelContext)
+                print("[AutoSync] Hevy cache refreshed (from server)")
+            } catch {
+                // Hevy sync is optional - don't fail the whole sync
+                print("[AutoSync] Server Hevy sync skipped: \(error)")
+            }
+        } else {
+            print("[AutoSync] Hevy sync skipped - no local key and server unavailable")
         }
     }
 

@@ -1,5 +1,6 @@
 import SwiftUI
 import SwiftData
+import PhotosUI
 
 enum NutritionViewMode: String, CaseIterable {
     case day = "Day"
@@ -28,7 +29,27 @@ struct NutritionView: View {
     // Scrollytelling
     @State private var scrollOffset: CGFloat = 0
 
+    // Provider selection (persisted)
+    @AppStorage("aiProvider") private var aiProvider = "claude"
+
+    // Photo food logging
+    @State private var showingPhotoPicker = false
+    @State private var selectedPhoto: PhotosPickerItem?
+    @State private var isAnalyzingPhoto = false
+    @State private var showPhotoFeatureGate = false
+
+    // Voice input
+    @State private var isVoiceInputActive = false
+    @State private var showVoiceOverlay = false
+    @State private var speechManager = SpeechTranscriptionManager()
+
     private let apiClient = APIClient()
+    private let geminiService = GeminiService()
+
+    /// Whether Gemini is available for photo features
+    private var canUseGeminiForPhotos: Bool {
+        aiProvider == "both" || aiProvider == "gemini"
+    }
 
     // Filter entries based on view mode and selected date
     private var filteredEntries: [NutritionEntry] {
@@ -164,8 +185,10 @@ struct NutritionView: View {
         min(1, max(0, scrollOffset / 120))
     }
 
+    @StateObject private var keyboard = KeyboardObserver()
+
     var body: some View {
-        ZStack {
+        VStack(spacing: 0) {
             ScrollView {
                 VStack(spacing: 0) {
                     // Scroll offset tracker
@@ -205,24 +228,28 @@ struct NutritionView: View {
                         summaryListContent
                     }
                 }
-                .padding(.bottom, viewMode == .day && isToday ? 120 : 100) // Extra padding to scroll above tab bar
+                .padding(.bottom, viewMode == .day ? 20 : 100) // Reduced when input visible
             }
             .coordinateSpace(name: "scroll")
             .scrollIndicators(.hidden)
             .scrollContentBackground(.hidden)
+            .scrollDismissesKeyboard(.interactively)
             .background(Color.clear)
             .onPreferenceChange(ScrollOffsetPreferenceKey.self) { offset in
                 scrollOffset = offset
             }
+            .onTapGesture {
+                isInputFocused = false
+            }
 
-            // Floating input area (only for today in day view)
-            if viewMode == .day && isToday {
-                VStack {
-                    Spacer()
-                    premiumInputArea
-                }
+            // Input area at bottom (moves up with keyboard) - works for any day in day view
+            if viewMode == .day {
+                premiumInputArea
+                    .padding(.bottom, keyboard.keyboardHeight > 0 ? keyboard.keyboardHeight - 50 : 0)
+                    .animation(.spring(response: 0.3, dampingFraction: 0.8), value: keyboard.keyboardHeight)
             }
         }
+        .background(Color.clear)
         .navigationTitle("Nutrition")
         .navigationBarTitleDisplayMode(.inline)
         .toolbarBackground(.hidden, for: .navigationBar)
@@ -248,6 +275,42 @@ struct NutritionView: View {
         }
         .sheet(item: $editingEntry) { entry in
             EditNutritionSheet(entry: entry)
+        }
+        .sheet(isPresented: $showPhotoFeatureGate) {
+            NutritionPhotoFeatureGateSheet(
+                onEnablePhotos: {
+                    aiProvider = "both"
+                    showPhotoFeatureGate = false
+                },
+                onDismiss: {
+                    showPhotoFeatureGate = false
+                }
+            )
+        }
+        .photosPicker(
+            isPresented: $showingPhotoPicker,
+            selection: $selectedPhoto,
+            matching: .images,
+            photoLibrary: .shared()
+        )
+        .onChange(of: selectedPhoto) { _, newItem in
+            Task { await processSelectedPhoto(newItem) }
+        }
+        .fullScreenCover(isPresented: $showVoiceOverlay) {
+            VoiceInputOverlay(
+                speechManager: speechManager,
+                onComplete: { transcript in
+                    inputText = transcript
+                    showVoiceOverlay = false
+                    isVoiceInputActive = false
+                    Task { await logFood() }
+                },
+                onCancel: {
+                    showVoiceOverlay = false
+                    isVoiceInputActive = false
+                }
+            )
+            .background(ClearBackgroundView())
         }
     }
 
@@ -716,11 +779,56 @@ struct NutritionView: View {
 
     // MARK: - Premium Input Area
 
+    /// Whether the input has text that can be submitted
+    private var canSubmitFood: Bool {
+        !inputText.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty && !isLoading && !isAnalyzingPhoto
+    }
+
     private var premiumInputArea: some View {
-        HStack(spacing: 12) {
-            TextField("Log food...", text: $inputText, axis: .vertical)
-                .font(.bodyMedium)
-                .textFieldStyle(.plain)
+        VStack(spacing: 0) {
+            // Show date indicator when logging for a past day
+            if !isToday {
+                HStack(spacing: 6) {
+                    Image(systemName: "calendar.badge.clock")
+                        .font(.caption)
+                    Text("Logging for \(selectedDate, format: .dateTime.month(.abbreviated).day())")
+                        .font(.labelMedium)
+                }
+                .foregroundStyle(Theme.warning)
+                .padding(.vertical, 8)
+            }
+
+            HStack(spacing: 12) {
+                // Camera button for photo food logging
+                Button {
+                    handleCameraButtonTap()
+                } label: {
+                    Image(systemName: "camera.fill")
+                        .font(.system(size: 18))
+                        .foregroundStyle(canUseGeminiForPhotos ? Theme.accent : Theme.textMuted)
+                        .frame(width: 36, height: 36)
+                        .background(Theme.surface)
+                        .clipShape(Circle())
+                        .overlay(
+                            Circle()
+                                .stroke(Theme.textMuted.opacity(0.2), lineWidth: 1)
+                        )
+                }
+                .disabled(isLoading || isAnalyzingPhoto)
+
+                // Text field with voice input
+                HStack(spacing: 8) {
+                    TextField(isToday ? "Log food..." : "Log food for \(selectedDate, format: .dateTime.weekday(.abbreviated))...", text: $inputText, axis: .vertical)
+                        .font(.bodyMedium)
+                        .textFieldStyle(.plain)
+                        .lineLimit(1...3)
+                        .focused($isInputFocused)
+
+                    // Voice input button
+                    VoiceInputButton(isRecording: isVoiceInputActive) {
+                        startVoiceInput()
+                    }
+                }
                 .padding(.horizontal, 16)
                 .padding(.vertical, 12)
                 .background(Theme.surface)
@@ -729,39 +837,139 @@ struct NutritionView: View {
                     RoundedRectangle(cornerRadius: 24, style: .continuous)
                         .stroke(Theme.textMuted.opacity(0.2), lineWidth: 1)
                 )
-                .lineLimit(1...3)
-                .focused($isInputFocused)
 
-            if isLoading {
-                PremiumPulsingLoader()
-                    .frame(width: 36, height: 36)
-            } else {
-                Button {
-                    Task { await logFood() }
-                } label: {
-                    Image(systemName: "plus.circle.fill")
-                        .font(.system(size: 36))
-                        .foregroundStyle(
-                            inputText.isEmpty
-                                ? LinearGradient(colors: [Theme.textMuted], startPoint: .top, endPoint: .bottom)
-                                : LinearGradient(colors: [Theme.success, Theme.tertiary], startPoint: .topLeading, endPoint: .bottomTrailing)
-                        )
-                        .symbolEffect(.bounce, value: !inputText.isEmpty)
+                // Show loader when processing, submit button only when there's text
+                if isLoading || isAnalyzingPhoto {
+                    PremiumPulsingLoader()
+                        .frame(width: 36, height: 36)
+                } else if canSubmitFood {
+                    Button {
+                        Task { await logFood() }
+                    } label: {
+                        Image(systemName: "plus.circle.fill")
+                            .font(.system(size: 36))
+                            .foregroundStyle(
+                                LinearGradient(colors: [Theme.success, Theme.tertiary], startPoint: .topLeading, endPoint: .bottomTrailing)
+                            )
+                    }
+                    .buttonStyle(AirFitButtonStyle())
+                    .transition(.scale.combined(with: .opacity))
+                    .sensoryFeedback(.impact(weight: .medium), trigger: canSubmitFood)
                 }
-                .buttonStyle(AirFitButtonStyle())
-                .disabled(inputText.isEmpty)
-                .sensoryFeedback(.impact(weight: .medium), trigger: inputText.isEmpty)
+            }
+            .padding(.horizontal, 20)
+            .padding(.vertical, 12)
+            .padding(.bottom, keyboard.keyboardHeight > 0 ? 12 : 70) // Less padding when keyboard is up
+            .animation(.spring(response: 0.3, dampingFraction: 0.7), value: canSubmitFood)
+        }
+        .background(.ultraThinMaterial)
+    }
+
+    // MARK: - Photo Handling
+
+    /// Handle camera button tap - show feature gate if Gemini not available
+    private func handleCameraButtonTap() {
+        if canUseGeminiForPhotos {
+            showingPhotoPicker = true
+        } else {
+            showPhotoFeatureGate = true
+        }
+    }
+
+    // MARK: - Voice Input
+
+    /// Start voice input for speech-to-text food logging
+    private func startVoiceInput() {
+        Task {
+            do {
+                isVoiceInputActive = true
+                try await speechManager.startListening()
+                showVoiceOverlay = true
+            } catch {
+                isVoiceInputActive = false
+                print("Failed to start voice input: \(error)")
             }
         }
-        .padding(.horizontal, 20)
-        .padding(.vertical, 16)
-        .padding(.bottom, 70) // Clear the custom tab bar
-        .background(
-            Rectangle()
-                .fill(.regularMaterial)
-                .ignoresSafeArea()
-        )
     }
+
+    /// Process a selected photo for food analysis
+    private func processSelectedPhoto(_ item: PhotosPickerItem?) async {
+        guard let item else { return }
+
+        selectedPhoto = nil
+        isAnalyzingPhoto = true
+
+        // Load the image data
+        guard let data = try? await item.loadTransferable(type: Data.self),
+              let image = UIImage(data: data) else {
+            isAnalyzingPhoto = false
+            return
+        }
+
+        // Prepare image (resize and compress)
+        guard let preparedData = await geminiService.prepareImage(image) else {
+            isAnalyzingPhoto = false
+            return
+        }
+
+        // Analyze with Gemini
+        do {
+            let analysis = try await geminiService.analyzeImage(
+                imageData: preparedData,
+                prompt: Self.foodAnalysisPrompt,
+                systemPrompt: Self.foodAnalysisSystemPrompt
+            )
+
+            // Try to parse nutrition from the analysis
+            if let parsed = try? await geminiService.parseNutrition(analysis) {
+                // Create entry from photo analysis
+                let entry = NutritionEntry(
+                    name: parsed.name,
+                    calories: parsed.calories,
+                    protein: parsed.protein,
+                    carbs: parsed.carbs,
+                    fat: parsed.fat,
+                    timestamp: isToday ? Date() : Calendar.current.date(bySettingHour: 12, minute: 0, second: 0, of: selectedDate) ?? selectedDate
+                )
+
+                await MainActor.run {
+                    modelContext.insert(entry)
+                    try? modelContext.save()
+
+                    // Haptic feedback
+                    let generator = UINotificationFeedbackGenerator()
+                    generator.notificationOccurred(.success)
+                }
+
+                // Sync to HealthKit
+                let healthKit = HealthKitManager()
+                try? await healthKit.saveNutritionEntry(entry)
+            }
+        } catch {
+            print("[NutritionView] Photo analysis failed: \(error)")
+        }
+
+        isAnalyzingPhoto = false
+    }
+
+    /// System prompt for food photo analysis
+    private static let foodAnalysisSystemPrompt = """
+    You are a nutrition analyst for a fitness coaching app. Analyze food photos accurately.
+    Be precise with portion estimates. If uncertain, provide a reasonable middle estimate.
+    Format your response as a food log entry that can be parsed for macros.
+    """
+
+    /// Prompt for analyzing food photos
+    private static let foodAnalysisPrompt = """
+    Analyze this food photo and estimate the nutrition.
+
+    Respond with ONLY a single line in this format:
+    [Food name], [calories] cal, [protein]g protein, [carbs]g carbs, [fat]g fat
+
+    Example: "Grilled chicken salad with ranch, 450 cal, 35g protein, 15g carbs, 28g fat"
+
+    Be specific about portions based on visual cues (plate size, utensils for scale).
+    """
 
     // MARK: - Actions
 
@@ -781,6 +989,49 @@ struct NutritionView: View {
         isLoading = true
         inputText = ""
 
+        // Route by provider: Gemini parses directly, Claude uses server
+        if aiProvider == "gemini" {
+            await logFoodViaGemini(text)
+        } else {
+            await logFoodViaClaude(text)
+        }
+
+        isLoading = false
+    }
+
+    /// Parse nutrition via Gemini API (direct, no server needed)
+    private func logFoodViaGemini(_ text: String) async {
+        do {
+            let result = try await geminiService.parseNutrition(text)
+
+            // Use selected date for past days, current time for today
+            let entryTimestamp: Date
+            if isToday {
+                entryTimestamp = Date()
+            } else {
+                entryTimestamp = Calendar.current.date(bySettingHour: 12, minute: 0, second: 0, of: selectedDate) ?? selectedDate
+            }
+
+            let entry = NutritionEntry(
+                name: result.name,
+                calories: result.calories,
+                protein: result.protein,
+                carbs: result.carbs,
+                fat: result.fat,
+                confidence: result.confidence,
+                timestamp: entryTimestamp,
+                components: []  // Gemini parsing doesn't return components yet
+            )
+            withAnimation(.airfit) {
+                modelContext.insert(entry)
+            }
+        } catch {
+            print("[NutritionView] Gemini parsing failed: \(error)")
+        }
+    }
+
+    /// Parse nutrition via Claude server (existing path)
+    private func logFoodViaClaude(_ text: String) async {
         do {
             let result = try await apiClient.parseNutrition(text)
 
@@ -795,6 +1046,15 @@ struct NutritionView: View {
                     )
                 }
 
+                // Use selected date for past days, current time for today
+                let entryTimestamp: Date
+                if isToday {
+                    entryTimestamp = Date()
+                } else {
+                    // For past days, set to noon of that day
+                    entryTimestamp = Calendar.current.date(bySettingHour: 12, minute: 0, second: 0, of: selectedDate) ?? selectedDate
+                }
+
                 let entry = NutritionEntry(
                     name: result.name ?? text,
                     calories: result.calories ?? 0,
@@ -802,6 +1062,7 @@ struct NutritionView: View {
                     carbs: result.carbs ?? 0,
                     fat: result.fat ?? 0,
                     confidence: result.confidence ?? "low",
+                    timestamp: entryTimestamp,
                     components: components
                 )
                 withAnimation(.airfit) {
@@ -809,10 +1070,8 @@ struct NutritionView: View {
                 }
             }
         } catch {
-            print("Failed to parse nutrition: \(error)")
+            print("[NutritionView] Claude parsing failed: \(error)")
         }
-
-        isLoading = false
     }
 }
 
@@ -1111,9 +1370,17 @@ struct EditNutritionSheet: View {
     @Environment(\.dismiss) private var dismiss
     @Bindable var entry: NutritionEntry
 
+    // Provider selection (persisted)
+    @AppStorage("aiProvider") private var aiProvider = "claude"
+
     @State private var correctionText: String = ""
     @State private var isLoading = false
     @State private var showManualEdit = false
+
+    // Voice input state
+    @State private var isVoiceInputActive = false
+    @State private var showVoiceOverlay = false
+    @State private var speechManager = SpeechTranscriptionManager()
 
     // Manual edit fields
     @State private var name: String = ""
@@ -1121,8 +1388,18 @@ struct EditNutritionSheet: View {
     @State private var protein: String = ""
     @State private var carbs: String = ""
     @State private var fat: String = ""
+    @State private var timestamp: Date = Date()
+    @State private var originalTimestamp: Date = Date()  // Track if date changed
 
     private let apiClient = APIClient()
+    private let geminiService = GeminiService()
+
+    // Check if any changes were made
+    private var hasChanges: Bool {
+        let hasTextCorrection = !correctionText.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
+        let hasDateChange = timestamp != originalTimestamp
+        return hasTextCorrection || hasDateChange
+    }
 
     var body: some View {
         NavigationStack {
@@ -1137,10 +1414,13 @@ struct EditNutritionSheet: View {
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) {
-                    Button("Cancel") {
+                    Button {
                         dismiss()
+                    } label: {
+                        Image(systemName: "xmark")
+                            .font(.system(size: 14, weight: .medium))
+                            .foregroundStyle(Theme.textMuted)
                     }
-                    .foregroundStyle(Theme.accent)
                 }
             }
             .onAppear {
@@ -1149,6 +1429,36 @@ struct EditNutritionSheet: View {
                 protein = String(entry.protein)
                 carbs = String(entry.carbs)
                 fat = String(entry.fat)
+                timestamp = entry.timestamp
+                originalTimestamp = entry.timestamp
+            }
+            .overlay {
+                if showVoiceOverlay {
+                    VoiceInputOverlay(speechManager: speechManager) { transcript in
+                        correctionText = transcript
+                        isVoiceInputActive = false
+                        showVoiceOverlay = false
+                    } onCancel: {
+                        isVoiceInputActive = false
+                        showVoiceOverlay = false
+                    }
+                    .background(ClearBackgroundView())
+                }
+            }
+        }
+    }
+
+    // MARK: - Voice Input
+
+    private func startVoiceInput() {
+        Task {
+            do {
+                isVoiceInputActive = true
+                try await speechManager.startListening()
+                showVoiceOverlay = true
+            } catch {
+                isVoiceInputActive = false
+                print("Failed to start voice input: \(error)")
             }
         }
     }
@@ -1171,6 +1481,19 @@ struct EditNutritionSheet: View {
                     PremiumMacroPill(value: entry.carbs, label: "C", color: Theme.carbs)
                     PremiumMacroPill(value: entry.fat, label: "F", color: Theme.fat)
                 }
+
+                // Quick date picker - always visible
+                Divider()
+                    .padding(.vertical, 4)
+
+                DatePicker(
+                    "Logged",
+                    selection: $timestamp,
+                    in: ...Date(),
+                    displayedComponents: [.date, .hourAndMinute]
+                )
+                .font(.labelMedium)
+                .datePickerStyle(.compact)
             }
             .frame(maxWidth: .infinity, alignment: .leading)
             .padding(20)
@@ -1180,28 +1503,34 @@ struct EditNutritionSheet: View {
             )
             .padding(.horizontal, 20)
 
-            // Correction input
+            // Correction input (optional - for AI-based macro adjustments)
             VStack(alignment: .leading, spacing: 8) {
-                Text("WHAT NEEDS TO CHANGE?")
+                Text("FIX THE MACROS (OPTIONAL)")
                     .font(.labelMicro)
                     .tracking(1.5)
                     .foregroundStyle(Theme.textMuted)
 
-                TextField("e.g., \"that was a large portion\" or \"add cheese\"",
-                          text: $correctionText,
-                          axis: .vertical)
-                    .font(.bodyMedium)
-                    .textFieldStyle(.plain)
-                    .padding(16)
-                    .background(.ultraThinMaterial)
-                    .clipShape(RoundedRectangle(cornerRadius: 16, style: .continuous))
-                    .lineLimit(2...4)
+                HStack(spacing: 8) {
+                    TextField("e.g., \"that was a large portion\" or \"add cheese\"",
+                              text: $correctionText,
+                              axis: .vertical)
+                        .font(.bodyMedium)
+                        .textFieldStyle(.plain)
+                        .lineLimit(2...4)
+
+                    VoiceInputButton(isRecording: isVoiceInputActive) {
+                        startVoiceInput()
+                    }
+                }
+                .padding(16)
+                .background(.ultraThinMaterial)
+                .clipShape(RoundedRectangle(cornerRadius: 16, style: .continuous))
             }
             .padding(.horizontal, 20)
 
-            // Apply button
+            // Apply button - enabled when ANY change was made (date or text)
             Button {
-                Task { await applyCorrection() }
+                Task { await applyChanges() }
             } label: {
                 if isLoading {
                     ProgressView()
@@ -1209,16 +1538,16 @@ struct EditNutritionSheet: View {
                         .frame(maxWidth: .infinity)
                         .padding()
                 } else {
-                    Text("Apply Correction")
+                    Text("Apply")
                         .font(.headlineMedium)
                         .foregroundStyle(.white)
                         .frame(maxWidth: .infinity)
                         .padding()
                 }
             }
-            .background(correctionText.isEmpty ? Theme.textMuted : Theme.accent)
+            .background(hasChanges ? Theme.accent : Theme.textMuted)
             .clipShape(RoundedRectangle(cornerRadius: 16, style: .continuous))
-            .disabled(correctionText.isEmpty || isLoading)
+            .disabled(!hasChanges || isLoading)
             .padding(.horizontal, 20)
 
             Spacer()
@@ -1244,6 +1573,16 @@ struct EditNutritionSheet: View {
             Section("Name") {
                 TextField("Food name", text: $name)
                     .font(.bodyMedium)
+            }
+
+            Section("Date & Time") {
+                DatePicker(
+                    "When",
+                    selection: $timestamp,
+                    in: ...Date(),
+                    displayedComponents: [.date, .hourAndMinute]
+                )
+                .font(.bodyMedium)
             }
 
             Section("Macros") {
@@ -1317,12 +1656,53 @@ struct EditNutritionSheet: View {
 
     // MARK: - Actions
 
-    private func applyCorrection() async {
-        let text = correctionText.trimmingCharacters(in: .whitespacesAndNewlines)
-        guard !text.isEmpty else { return }
-
+    private func applyChanges() async {
         isLoading = true
 
+        // Always apply date change if it changed
+        if timestamp != originalTimestamp {
+            entry.timestamp = timestamp
+        }
+
+        // Apply text correction if provided
+        let text = correctionText.trimmingCharacters(in: .whitespacesAndNewlines)
+        if !text.isEmpty {
+            // Route by provider
+            if aiProvider == "gemini" {
+                await applyCorrectionViaGemini(text)
+            } else {
+                await applyCorrectionViaClaude(text)
+            }
+        } else {
+            // No text correction, just dismiss (date already saved)
+            dismiss()
+        }
+
+        isLoading = false
+    }
+
+    /// Apply correction via Gemini (re-parse with context)
+    private func applyCorrectionViaGemini(_ correction: String) async {
+        do {
+            // Build a contextual prompt that includes the correction
+            let contextualDescription = "\(entry.name), but \(correction)"
+            let result = try await geminiService.parseNutrition(contextualDescription)
+
+            entry.name = result.name
+            entry.calories = result.calories
+            entry.protein = result.protein
+            entry.carbs = result.carbs
+            entry.fat = result.fat
+            entry.confidence = "corrected"
+            // Keep user's selected timestamp (already set in applyChanges)
+            dismiss()
+        } catch {
+            print("[EditNutritionSheet] Gemini correction failed: \(error)")
+        }
+    }
+
+    /// Apply correction via Claude server
+    private func applyCorrectionViaClaude(_ correction: String) async {
         do {
             let result = try await apiClient.correctNutrition(
                 originalName: entry.name,
@@ -1330,7 +1710,7 @@ struct EditNutritionSheet: View {
                 originalProtein: entry.protein,
                 originalCarbs: entry.carbs,
                 originalFat: entry.fat,
-                correction: text
+                correction: correction
             )
 
             if result.success {
@@ -1343,10 +1723,8 @@ struct EditNutritionSheet: View {
                 dismiss()
             }
         } catch {
-            print("Correction failed: \(error)")
+            print("[EditNutritionSheet] Claude correction failed: \(error)")
         }
-
-        isLoading = false
     }
 
     private func saveManualChanges() {
@@ -1355,7 +1733,77 @@ struct EditNutritionSheet: View {
         entry.protein = Int(protein) ?? entry.protein
         entry.carbs = Int(carbs) ?? entry.carbs
         entry.fat = Int(fat) ?? entry.fat
+        entry.timestamp = timestamp
         entry.confidence = "manual"
+    }
+}
+
+// MARK: - Photo Feature Gate Sheet (Nutrition)
+
+/// Shown when user taps camera in Claude-only mode.
+/// Prompts to enable "Both" mode for photo features.
+struct NutritionPhotoFeatureGateSheet: View {
+    let onEnablePhotos: () -> Void
+    let onDismiss: () -> Void
+
+    var body: some View {
+        NavigationStack {
+            VStack(spacing: 32) {
+                Spacer()
+
+                // Icon
+                ZStack {
+                    Circle()
+                        .fill(Theme.accent.opacity(0.1))
+                        .frame(width: 100, height: 100)
+
+                    Image(systemName: "camera.fill")
+                        .font(.system(size: 40))
+                        .foregroundStyle(Theme.accent)
+                }
+
+                // Title
+                Text("Photo Food Logging")
+                    .font(.title2.weight(.bold))
+                    .foregroundStyle(Theme.textPrimary)
+
+                // Description
+                Text("Snap a photo of your meal and AI will estimate the nutrition for you.\n\nThis feature uses Gemini's vision capabilities.")
+                    .font(.body)
+                    .foregroundStyle(Theme.textSecondary)
+                    .multilineTextAlignment(.center)
+                    .padding(.horizontal, 24)
+
+                Spacer()
+
+                // Buttons
+                VStack(spacing: 12) {
+                    Button(action: onEnablePhotos) {
+                        HStack {
+                            Image(systemName: "camera.on.rectangle.fill")
+                            Text("Enable Photo Features")
+                        }
+                        .font(.headline)
+                        .foregroundStyle(.white)
+                        .frame(maxWidth: .infinity)
+                        .padding(.vertical, 16)
+                        .background(Theme.accentGradient)
+                        .clipShape(Capsule())
+                    }
+
+                    Button(action: onDismiss) {
+                        Text("Not Now")
+                            .font(.subheadline)
+                            .foregroundStyle(Theme.textMuted)
+                    }
+                }
+                .padding(.horizontal, 24)
+                .padding(.bottom, 40)
+            }
+            .background(Theme.background)
+        }
+        .presentationDetents([.medium])
+        .presentationDragIndicator(.visible)
     }
 }
 

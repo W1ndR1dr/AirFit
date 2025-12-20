@@ -7,6 +7,7 @@ struct AirFitApp: App {
     @UIApplicationDelegateAdaptor(AppDelegate.self) private var appDelegate
     @AppStorage("appearanceMode") private var appearanceMode: String = "System"
     @AppStorage("hasCompletedOnboarding") private var hasCompletedOnboarding = false
+    @State private var showSplash = true
 
     private var colorScheme: ColorScheme? {
         switch appearanceMode {
@@ -34,15 +35,39 @@ struct AirFitApp: App {
 
     var body: some Scene {
         WindowGroup {
-            if hasCompletedOnboarding {
-                ScrollytellingRootView()
-                    .preferredColorScheme(colorScheme)
-            } else {
-                OnboardingCoordinator()
-                    .preferredColorScheme(colorScheme)
+            ZStack {
+                if hasCompletedOnboarding {
+                    ScrollytellingRootView()
+                        .preferredColorScheme(colorScheme)
+                } else {
+                    OnboardingCoordinator()
+                        .preferredColorScheme(colorScheme)
+                }
+
+                if showSplash {
+                    AirFitSplashView()
+                        .transition(.opacity)
+                        .zIndex(1)
+                }
+            }
+            .onAppear {
+                // Wait for flame animation (0.8s) + shimmer (0.5s) + brief pause
+                DispatchQueue.main.asyncAfter(deadline: .now() + 1.6) {
+                    withAnimation(.easeOut(duration: 0.4)) {
+                        showSplash = false
+                    }
+                }
             }
         }
-        .modelContainer(for: NutritionEntry.self)
+        .modelContainer(for: [
+            NutritionEntry.self,
+            Conversation.self,
+            // Hevy cache models (for offline access to training data)
+            CachedWorkout.self,
+            CachedSetTracker.self,
+            CachedLiftProgress.self,
+            HevyCacheMetadata.self
+        ])
     }
 }
 
@@ -226,5 +251,12 @@ struct ContentView: View {
 
 #Preview {
     ContentView()
-        .modelContainer(for: NutritionEntry.self, inMemory: true)
+        .modelContainer(for: [
+            NutritionEntry.self,
+            Conversation.self,
+            CachedWorkout.self,
+            CachedSetTracker.self,
+            CachedLiftProgress.self,
+            HevyCacheMetadata.self
+        ], inMemory: true)
 }

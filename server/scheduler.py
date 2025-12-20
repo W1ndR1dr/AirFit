@@ -19,6 +19,7 @@ import context_store
 import insight_engine
 import hevy
 import profile as profile_module
+import memory
 
 # State file for scheduler persistence
 DATA_DIR = Path(__file__).parent / "data"
@@ -36,6 +37,7 @@ class SchedulerState:
     last_hevy_sync: Optional[str] = None
     last_pattern_analysis: Optional[str] = None
     last_exercise_history_sync: Optional[str] = None  # For strength tracking
+    last_memory_consolidation: Optional[str] = None  # For relationship memory cleanup
 
     insights_generated_today: int = 0
     generation_error: Optional[str] = None
@@ -44,6 +46,7 @@ class SchedulerState:
     insight_generation_interval_hours: int = 6
     hevy_sync_interval_hours: int = 1
     exercise_history_sync_interval_hours: int = 1  # Sync exercise history hourly
+    memory_consolidation_interval_hours: int = 168  # Weekly (7 days)
 
     def to_dict(self) -> dict:
         return asdict(self)
@@ -238,6 +241,49 @@ async def run_exercise_history_sync(full_sync: bool = False) -> dict:
         return {"status": "error", "error": str(e)}
 
 
+async def run_memory_consolidation(force: bool = False) -> dict:
+    """Consolidate relationship memories periodically (weekly).
+
+    Archives old session notes, deduplicates callbacks and threads,
+    and keeps the relationship memory file clean and focused.
+    """
+    state = load_scheduler_state()
+
+    # Check if too recent (unless forced)
+    if not force and state.last_memory_consolidation:
+        last_consolidation = datetime.fromisoformat(state.last_memory_consolidation)
+        hours_since = (datetime.now() - last_consolidation).total_seconds() / 3600
+        if hours_since < state.memory_consolidation_interval_hours:
+            return {
+                "status": "skipped",
+                "reason": f"Last consolidation was {hours_since:.1f}h ago",
+                "next_run_in_hours": state.memory_consolidation_interval_hours - hours_since
+            }
+
+    try:
+        print("[Scheduler] Consolidating relationship memories...")
+
+        result = await memory.consolidate_memories()
+
+        # Update state
+        state.last_memory_consolidation = datetime.now().isoformat()
+        save_scheduler_state(state)
+
+        if result.get("consolidated"):
+            print(f"[Scheduler] Memory consolidation complete: archived {result['archived']} session notes")
+        else:
+            print(f"[Scheduler] Memory consolidation skipped (not enough content)")
+
+        return {
+            "status": "success",
+            **result
+        }
+
+    except Exception as e:
+        print(f"[Scheduler] Memory consolidation failed: {e}")
+        return {"status": "error", "error": str(e)}
+
+
 # --- Context for Chat Agent ---
 
 def get_insights_for_chat_context(limit: int = 3) -> str:
@@ -318,6 +364,9 @@ async def _scheduler_loop():
             # Run exercise history sync if due (for strength tracking charts)
             await run_exercise_history_sync(full_sync=False)
 
+            # Run memory consolidation if due (weekly)
+            await run_memory_consolidation(force=False)
+
         except Exception as e:
             print(f"[Scheduler] Task error: {e}")
 
@@ -361,6 +410,14 @@ def get_scheduler_status() -> dict:
         if next_gen > datetime.now():
             next_insight_gen = next_gen.isoformat()
 
+    # Calculate time until next memory consolidation
+    next_memory_consolidation = None
+    if state.last_memory_consolidation:
+        last_consolidation = datetime.fromisoformat(state.last_memory_consolidation)
+        next_consolidation = last_consolidation + timedelta(hours=state.memory_consolidation_interval_hours)
+        if next_consolidation > datetime.now():
+            next_memory_consolidation = next_consolidation.isoformat()
+
     return {
         "is_running": _scheduler_running,
         "is_generating_insights": _is_generating,  # In-memory flag, not disk
@@ -368,6 +425,8 @@ def get_scheduler_status() -> dict:
         "next_insight_generation": next_insight_gen,
         "last_hevy_sync": state.last_hevy_sync,
         "last_exercise_history_sync": state.last_exercise_history_sync,
+        "last_memory_consolidation": state.last_memory_consolidation,
+        "next_memory_consolidation": next_memory_consolidation,
         "insights_generated_today": state.insights_generated_today,
         "last_error": state.generation_error
     }

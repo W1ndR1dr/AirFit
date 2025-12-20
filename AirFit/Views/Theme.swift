@@ -675,10 +675,10 @@ extension View {
     func scrollReveal() -> some View {
         self.scrollTransition(.interactive) { content, phase in
             content
-                .opacity(phase.isIdentity ? 1 : 0.4)
-                .scaleEffect(phase.isIdentity ? 1 : 0.96)
-                .offset(y: phase.isIdentity ? 0 : 8)
-                .blur(radius: phase.isIdentity ? 0 : 2)
+                .opacity(phase.isIdentity ? 1 : 0.85)  // Much more readable when scrolling
+                .scaleEffect(phase.isIdentity ? 1 : 0.98)
+                .offset(y: phase.isIdentity ? 0 : 4)
+                // No blur - keeps text readable at all scroll positions
         }
     }
 
@@ -766,32 +766,35 @@ struct ShimmerText: View {
         Text(text)
             .font(font)
             .foregroundStyle(Theme.textSecondary)
-            .background(
-                GeometryReader { geo in
-                    // Shimmer gradient that spans full text width plus overflow
-                    LinearGradient(
-                        colors: [
-                            .clear,
-                            .clear,
-                            Theme.accent.opacity(0.8),
-                            Theme.warmPeach,
-                            Theme.accent.opacity(0.8),
-                            .clear,
-                            .clear
-                        ],
-                        startPoint: .leading,
-                        endPoint: .trailing
+            .overlay {
+                // Shimmer overlay - perfectly aligned with base text
+                Text(text)
+                    .font(font)
+                    .foregroundStyle(
+                        LinearGradient(
+                            stops: [
+                                .init(color: .clear, location: 0.0),
+                                .init(color: Theme.accent.opacity(0.4), location: 0.35),
+                                .init(color: Theme.warmPeach.opacity(0.6), location: 0.5),
+                                .init(color: Theme.accent.opacity(0.4), location: 0.65),
+                                .init(color: .clear, location: 1.0)
+                            ],
+                            startPoint: .leading,
+                            endPoint: .trailing
+                        )
                     )
-                    .frame(width: geo.size.width * 0.5)  // Shimmer band is 50% of text width
-                    .offset(x: -geo.size.width * 0.25 + shimmerProgress * geo.size.width * 1.5)
                     .mask {
-                        Text(text)
-                            .font(font)
+                        // Moving mask reveals the gradient
+                        GeometryReader { geo in
+                            Rectangle()
+                                .fill(Color.white)
+                                .frame(width: geo.size.width * 0.6)
+                                .offset(x: -geo.size.width * 0.3 + shimmerProgress * geo.size.width * 1.3)
+                        }
                     }
-                }
-            )
+            }
             .onAppear {
-                withAnimation(.easeInOut(duration: 2.0).repeatForever(autoreverses: false)) {
+                withAnimation(.easeInOut(duration: 2.5).repeatForever(autoreverses: false)) {
                     shimmerProgress = 1
                 }
             }

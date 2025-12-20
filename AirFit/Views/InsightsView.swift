@@ -20,8 +20,13 @@ struct InsightsView: View {
     @State private var actionToast: ActionToastData?
     @State private var showActionToast = false
 
+    // Provider selection
+    @AppStorage("aiProvider") private var aiProvider = "claude"
+
     private let apiClient = APIClient()
     @State private var syncService = InsightsSyncService()
+    private let localInsightEngine = LocalInsightEngine()
+    private let geminiService = GeminiService()
 
     private var visibleInsights: [APIClient.InsightData] {
         showAllInsights ? insights : Array(insights.prefix(3))
@@ -34,8 +39,12 @@ struct InsightsView: View {
     var body: some View {
         ScrollView {
             VStack(spacing: 24) {
-                // Insights Section
-                if insights.isEmpty && !isLoading {
+                if isLoading && insights.isEmpty {
+                    // Centered loading view within scroll
+                    Spacer(minLength: 200)
+                    ShimmerText(text: "Finding insights...")
+                    Spacer(minLength: 200)
+                } else if insights.isEmpty {
                     emptyStateView
                 } else {
                     insightsSection
@@ -44,17 +53,18 @@ struct InsightsView: View {
             .padding(.horizontal, 20)
             .padding(.top, 16)
             .padding(.bottom, 160) // Extra padding to scroll above tab bar
+            .frame(minHeight: UIScreen.main.bounds.height - 200)
         }
-        .scrollIndicators(.visible) // Show scroll indicators for clarity
+        .scrollIndicators(.visible)
         .scrollContentBackground(.hidden)
         .background(Color.clear)
-        .scrollBounceBehavior(.basedOnSize)
-        .navigationTitle("Insights")
-        .navigationBarTitleDisplayMode(.inline)
-        .toolbarBackground(.hidden, for: .navigationBar)
+        .scrollBounceBehavior(.always)
         .refreshable {
             await syncAndRefresh()
         }
+        .navigationTitle("Insights")
+        .navigationBarTitleDisplayMode(.inline)
+        .toolbarBackground(.hidden, for: .navigationBar)
         .toolbar {
             ToolbarItem(placement: .topBarTrailing) {
                 if isSyncing {
@@ -99,10 +109,7 @@ struct InsightsView: View {
 
     private var insightsSection: some View {
         VStack(alignment: .leading, spacing: 16) {
-            if isLoading && insights.isEmpty {
-                ShimmerLoadingView(text: "Finding insights...")
-            } else {
-                ForEach(Array(visibleInsights.enumerated()), id: \.element.id) { index, insight in
+            ForEach(Array(visibleInsights.enumerated()), id: \.element.id) { index, insight in
                     PremiumInsightCard(
                         insight: insight,
                         onTellMeMore: {
@@ -143,7 +150,6 @@ struct InsightsView: View {
                     }
                     .buttonStyle(AirFitSubtleButtonStyle())
                 }
-            }
         }
     }
 
@@ -197,39 +203,67 @@ struct InsightsView: View {
     }
 
     private func loadInsights() async {
+        // Route by provider
+        if aiProvider == "gemini" {
+            await loadInsightsViaGemini()
+        } else {
+            await loadInsightsViaServer()
+        }
+    }
+
+    /// Load insights from server (Claude mode)
+    private func loadInsightsViaServer() async {
         do {
             insights = try await apiClient.getInsights(limit: 10)
 
             // Check for high-tier insights and notify
             await NotificationManager.shared.checkAndNotifyForInsights(insights)
         } catch {
-            print("Failed to load insights: \(error)")
+            print("[InsightsView] Failed to load insights from server: \(error)")
+        }
+    }
+
+    /// Generate insights via Gemini on device
+    private func loadInsightsViaGemini() async {
+        do {
+            insights = try await localInsightEngine.generateInsights(days: 7, modelContext: modelContext)
+
+            // Check for high-tier insights and notify
+            await NotificationManager.shared.checkAndNotifyForInsights(insights)
+        } catch {
+            print("[InsightsView] Failed to generate insights via Gemini: \(error)")
         }
     }
 
     private func syncAndRefresh() async {
         isSyncing = true
 
-        // Sync data to server
+        // Sync data to server (if available) - useful for Hevy cache refresh in both modes
         do {
             try await syncService.syncRecentDays(7, modelContext: modelContext)
             lastSyncTime = Date()
         } catch {
-            print("Sync failed: \(error)")
+            print("[InsightsView] Sync failed: \(error)")
         }
 
-        // Generate fresh insights from all data (uses CLI, no API cost)
-        do {
-            let result = try await apiClient.generateInsights(days: 90, force: false)
-            if result.success {
-                print("Generated \(result.insights_generated) insights (~\(result.token_estimate) tokens)")
+        // Route insight generation by provider
+        if aiProvider == "gemini" {
+            // Gemini mode: Just reload (generates fresh on device)
+            await loadData()
+        } else {
+            // Claude mode: Trigger server-side insight generation first
+            do {
+                let result = try await apiClient.generateInsights(days: 90, force: false)
+                if result.success {
+                    print("[InsightsView] Generated \(result.insights_generated) insights (~\(result.token_estimate) tokens)")
+                }
+            } catch {
+                print("[InsightsView] Server insight generation failed: \(error)")
             }
-        } catch {
-            print("Insight generation failed: \(error)")
-        }
 
-        // Reload data
-        await loadData()
+            // Then reload from server
+            await loadData()
+        }
 
         isSyncing = false
     }
@@ -797,17 +831,19 @@ struct PremiumInsightCard: View {
         )
         .offset(x: dragOffset)
         .opacity(isDismissing ? 0 : 1.0 - Double(abs(dragOffset)) / 300.0)
-        .gesture(
-            DragGesture()
+        .simultaneousGesture(
+            DragGesture(minimumDistance: 20)
                 .onChanged { value in
-                    // Only allow left swipe (negative translation)
-                    if value.translation.width < 0 {
+                    // Only respond to horizontal swipes (not vertical scrolls)
+                    let isHorizontal = abs(value.translation.width) > abs(value.translation.height) * 1.5
+                    if isHorizontal && value.translation.width < 0 {
                         dragOffset = value.translation.width
                     }
                 }
                 .onEnded { value in
                     let threshold: CGFloat = -100
-                    if value.translation.width < threshold {
+                    let isHorizontal = abs(value.translation.width) > abs(value.translation.height) * 1.5
+                    if isHorizontal && value.translation.width < threshold {
                         // Dismiss with animation
                         withAnimation(.spring(response: 0.3, dampingFraction: 0.8)) {
                             isDismissing = true
@@ -863,7 +899,32 @@ struct PremiumInsightChatSheet: View {
     @State private var isLoading = false
     @State private var hasAutoStarted = false
 
+    // Voice input
+    @State private var isVoiceInputActive = false
+    @State private var showVoiceOverlay = false
+    @State private var speechManager = SpeechTranscriptionManager()
+
+    // Provider selection
+    @AppStorage("aiProvider") private var aiProvider = "claude"
+
     private let apiClient = APIClient()
+    private let geminiService = GeminiService()
+
+    /// System prompt for insight discussions via Gemini
+    private var insightSystemPrompt: String {
+        """
+        You are an expert fitness coach discussing an insight with your client.
+
+        The insight being discussed:
+        Title: \(insight.title)
+        Category: \(insight.category)
+        Body: \(insight.body)
+        \(insight.suggested_actions.isEmpty ? "" : "Suggested actions: \(insight.suggested_actions.joined(separator: ", "))")
+
+        Provide helpful, actionable advice based on this insight. Be conversational and supportive.
+        Keep responses focused and practical - 2-3 paragraphs max.
+        """
+    }
 
     var body: some View {
         NavigationStack {
@@ -901,15 +962,22 @@ struct PremiumInsightChatSheet: View {
                 }
                 .scrollIndicators(.hidden)
 
-                // Input
+                // Input with voice
                 HStack(spacing: 12) {
-                    TextField("Ask about this insight...", text: $inputText)
-                        .font(.bodyMedium)
-                        .textFieldStyle(.plain)
-                        .padding(.horizontal, 16)
-                        .padding(.vertical, 12)
-                        .background(.ultraThinMaterial)
-                        .clipShape(RoundedRectangle(cornerRadius: 24, style: .continuous))
+                    HStack(spacing: 8) {
+                        TextField("Ask about this insight...", text: $inputText)
+                            .font(.bodyMedium)
+                            .textFieldStyle(.plain)
+
+                        // Voice input button
+                        VoiceInputButton(isRecording: isVoiceInputActive) {
+                            startVoiceInput()
+                        }
+                    }
+                    .padding(.horizontal, 16)
+                    .padding(.vertical, 12)
+                    .background(.ultraThinMaterial)
+                    .clipShape(RoundedRectangle(cornerRadius: 24, style: .continuous))
 
                     Button {
                         Task { await sendMessage() }
@@ -938,24 +1006,50 @@ struct PremiumInsightChatSheet: View {
                 hasAutoStarted = true
                 await sendInitialPrompt()
             }
+            .fullScreenCover(isPresented: $showVoiceOverlay) {
+                VoiceInputOverlay(
+                    speechManager: speechManager,
+                    onComplete: { transcript in
+                        inputText = transcript
+                        showVoiceOverlay = false
+                        isVoiceInputActive = false
+                        Task { await sendMessage() }
+                    },
+                    onCancel: {
+                        showVoiceOverlay = false
+                        isVoiceInputActive = false
+                    }
+                )
+                .background(ClearBackgroundView())
+            }
+        }
+    }
+
+    // MARK: - Voice Input
+
+    private func startVoiceInput() {
+        Task {
+            do {
+                isVoiceInputActive = true
+                try await speechManager.startListening()
+                showVoiceOverlay = true
+            } catch {
+                isVoiceInputActive = false
+                print("Failed to start voice input: \(error)")
+            }
         }
     }
 
     private func sendInitialPrompt() async {
         isLoading = true
 
-        // Use the new discussInsight endpoint that has full context
         let initialMessage = "Tell me more about this insight. What's the full context and what should I do about it?"
 
-        do {
-            let response = try await apiClient.discussInsight(id: insight.id, message: initialMessage)
-            withAnimation(.airfit) {
-                messages.append(Message(content: response, isUser: false))
-            }
-        } catch {
-            withAnimation(.airfit) {
-                messages.append(Message(content: "I'd be happy to tell you more about this insight. What would you like to know?", isUser: false))
-            }
+        // Route by provider
+        if aiProvider == "gemini" {
+            await sendViaGemini(initialMessage, isInitial: true)
+        } else {
+            await sendViaClaude(initialMessage)
         }
 
         isLoading = false
@@ -973,19 +1067,60 @@ struct PremiumInsightChatSheet: View {
 
         isLoading = true
 
-        // Use the discussInsight endpoint - server has full context
+        // Route by provider
+        if aiProvider == "gemini" {
+            await sendViaGemini(text, isInitial: false)
+        } else {
+            await sendViaClaude(text)
+        }
+
+        isLoading = false
+    }
+
+    /// Send message via Gemini API (direct, no server needed)
+    private func sendViaGemini(_ text: String, isInitial: Bool) async {
+        do {
+            // Build history from previous messages
+            let history = messages.map { msg in
+                ConversationMessage(
+                    role: msg.isUser ? "user" : "model",
+                    content: msg.content
+                )
+            }
+
+            let response = try await geminiService.chat(
+                message: text,
+                history: history,
+                systemPrompt: insightSystemPrompt
+            )
+
+            withAnimation(.airfit) {
+                messages.append(Message(content: response, isUser: false))
+            }
+        } catch {
+            print("[InsightChatSheet] Gemini failed: \(error)")
+            withAnimation(.airfit) {
+                let fallback = isInitial
+                    ? "I'd be happy to tell you more about this insight. What would you like to know?"
+                    : "Sorry, I couldn't process that. Try again?"
+                messages.append(Message(content: fallback, isUser: false))
+            }
+        }
+    }
+
+    /// Send message via Claude server
+    private func sendViaClaude(_ text: String) async {
         do {
             let response = try await apiClient.discussInsight(id: insight.id, message: text)
             withAnimation(.airfit) {
                 messages.append(Message(content: response, isUser: false))
             }
         } catch {
+            print("[InsightChatSheet] Claude failed: \(error)")
             withAnimation(.airfit) {
                 messages.append(Message(content: "Sorry, I couldn't process that. Try again?", isUser: false))
             }
         }
-
-        isLoading = false
     }
 }
 

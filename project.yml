@@ -23,6 +23,7 @@ targets:
       - path: AirFit/Models
       - path: AirFit/Views
       - path: AirFit/Services
+      - path: AirFit/Utilities
       - path: AirFit/Assets.xcassets
 
     settings:

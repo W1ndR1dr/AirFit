@@ -3,13 +3,12 @@ import Foundation
 actor APIClient {
     private let baseURL: URL
 
-    // Simulator uses localhost, real device uses Mac's IP
+    /// Initialize with server URL from shared configuration.
+    /// Each APIClient instance reads the current URL at init time.
+    /// For Tailscale/TestFlight: URL is configured during onboarding or in Settings.
     init() {
-        #if targetEnvironment(simulator)
-        self.baseURL = URL(string: "http://localhost:8080")!
-        #else
-        self.baseURL = URL(string: "http://192.168.86.50:8080")!
-        #endif
+        // Thread-safe read from UserDefaults via ServerConfiguration
+        self.baseURL = ServerConfiguration.configuredBaseURL
     }
 
     struct ChatRequest: Encodable {
@@ -229,6 +228,52 @@ actor APIClient {
         }
     }
 
+    // MARK: - Direct Gemini Support
+
+    /// Fetch context bundle for direct Gemini API calls.
+    ///
+    /// Returns system prompt, memory context, and data context that iOS
+    /// uses when calling Gemini directly (bypassing the server for chat).
+    func getChatContext() async throws -> ChatContext {
+        let url = baseURL.appendingPathComponent("chat/context")
+
+        let (data, response) = try await URLSession.shared.data(from: url)
+
+        guard let httpResponse = response as? HTTPURLResponse,
+              httpResponse.statusCode == 200 else {
+            throw APIError.serverError
+        }
+
+        return try JSONDecoder().decode(ChatContext.self, from: data)
+    }
+
+    /// Send a conversation excerpt for profile evolution processing.
+    ///
+    /// Called after Gemini conversations to extract memories and update
+    /// the user profile. This keeps the "getting to know you" evolution working.
+    func processConversation(userMessage: String, aiResponse: String) async throws {
+        let url = baseURL.appendingPathComponent("chat/process-conversation")
+
+        var request = URLRequest(url: url)
+        request.httpMethod = "POST"
+        request.setValue("application/json", forHTTPHeaderField: "Content-Type")
+
+        struct ConversationExcerpt: Encodable {
+            let user_message: String
+            let ai_response: String
+        }
+
+        let body = ConversationExcerpt(user_message: userMessage, ai_response: aiResponse)
+        request.httpBody = try JSONEncoder().encode(body)
+
+        let (_, response) = try await URLSession.shared.data(for: request)
+
+        guard let httpResponse = response as? HTTPURLResponse,
+              httpResponse.statusCode == 200 else {
+            throw APIError.serverError
+        }
+    }
+
     func parseNutrition(_ foodText: String) async throws -> NutritionParseResponse {
         let url = baseURL.appendingPathComponent("nutrition/parse")
 
@@ -353,6 +398,52 @@ actor APIClient {
               httpResponse.statusCode == 200 else {
             throw APIError.serverError
         }
+    }
+
+    // MARK: - Profile Export/Import
+
+    struct ProfileImportResponse: Decodable {
+        let success: Bool
+        let name: String?
+        let goals_count: Int?
+        let has_personality: Bool?
+        let error: String?
+    }
+
+    /// Export the full profile as JSON data for backup.
+    func exportProfile() async throws -> Data {
+        let url = baseURL.appendingPathComponent("profile/export")
+
+        var request = URLRequest(url: url)
+        request.httpMethod = "GET"
+
+        let (data, response) = try await URLSession.shared.data(for: request)
+
+        guard let httpResponse = response as? HTTPURLResponse,
+              httpResponse.statusCode == 200 else {
+            throw APIError.serverError
+        }
+
+        return data
+    }
+
+    /// Import a previously exported profile.
+    func importProfile(data: Data) async throws -> ProfileImportResponse {
+        let url = baseURL.appendingPathComponent("profile/import")
+
+        var request = URLRequest(url: url)
+        request.httpMethod = "POST"
+        request.setValue("application/json", forHTTPHeaderField: "Content-Type")
+        request.httpBody = data
+
+        let (responseData, response) = try await URLSession.shared.data(for: request)
+
+        guard let httpResponse = response as? HTTPURLResponse,
+              httpResponse.statusCode == 200 else {
+            throw APIError.serverError
+        }
+
+        return try JSONDecoder().decode(ProfileImportResponse.self, from: responseData)
     }
 
     // MARK: - Profile Item Editing
@@ -509,6 +600,29 @@ actor APIClient {
         private enum CodingKeys: String, CodingKey {
             case id, category, tier, title, body, importance, created_at, suggested_actions, supporting_data
         }
+
+        /// Manual initializer for creating InsightData locally (e.g., from Gemini response).
+        init(
+            id: String,
+            category: String,
+            tier: Int,
+            title: String,
+            body: String,
+            importance: Double,
+            created_at: String,
+            suggested_actions: [String],
+            supporting_data: SupportingData?
+        ) {
+            self.id = id
+            self.category = category
+            self.tier = tier
+            self.title = title
+            self.body = body
+            self.importance = importance
+            self.created_at = created_at
+            self.suggested_actions = suggested_actions
+            self.supporting_data = supporting_data
+        }
     }
 
     /// Supporting data for insight visualization
@@ -537,8 +651,50 @@ actor APIClient {
         private enum CodingKeys: String, CodingKey {
             case metric, values, dates, target, trend_slope, current_value, previous_value, change_pct
         }
+
+        /// Manual initializer for creating SupportingData locally.
+        init(
+            metric: String?,
+            values: [Double]?,
+            dates: [String]?,
+            target: Double?,
+            trend_slope: Double?,
+            current_value: Double?,
+            previous_value: Double?,
+            change_pct: Double?
+        ) {
+            self.metric = metric
+            self.values = values
+            self.dates = dates
+            self.target = target
+            self.trend_slope = trend_slope
+            self.current_value = current_value
+            self.previous_value = previous_value
+            self.change_pct = change_pct
+        }
     }
 
+    /// Daily nutrition data point for sparklines
+    struct DailyNutritionPoint: Decodable {
+        let date: String
+        let calories: Int
+        let protein: Int
+        let carbs: Int
+        let fat: Int
+    }
+
+    /// Daily health data point for sparklines
+    struct DailyHealthPoint: Decodable {
+        let date: String
+        let sleep_hours: Double?
+        let weight_lbs: Double?
+        let steps: Int
+        let active_calories: Int
+    }
+
+    /// Context summary with both averages AND daily breakdown
+    /// ARCHITECTURE NOTE: Server stores daily aggregates, not individual meals.
+    /// iOS device owns granular entries; server receives totals per day.
     struct ContextSummary: Decodable {
         let period_days: Int
         let nutrition_days: Int
@@ -554,6 +710,11 @@ actor APIClient {
         let avg_volume_per_workout: Double
         let protein_compliance: Double?
         let calorie_compliance: Double?
+
+        // Daily breakdown for sparklines (NEW)
+        // Exposes actual day-to-day values instead of just averages
+        let daily_nutrition: [DailyNutritionPoint]?
+        let daily_health: [DailyHealthPoint]?
     }
 
     /// Sync daily data (nutrition + health) to the server for insights

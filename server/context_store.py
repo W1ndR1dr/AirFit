@@ -1,12 +1,21 @@
-"""Context Store - Unified time-series storage for all user data.
+"""Context Store - Daily aggregate storage for AI context.
+
+ARCHITECTURE NOTE (read before modifying):
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+- iOS device owns GRANULAR nutrition entries (individual meals in SwiftData)
+- Server receives DAILY AGGREGATES only (totals per day)
+- This is intentional for Raspberry Pi storage efficiency (~2KB/day)
+- DO NOT add per-meal storage here - that stays on device
+- See server/ARCHITECTURE.md for full data ownership model
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
 This is the foundation of the AI-native insights system. It stores:
 - Daily snapshots of all metrics (nutrition, health, workouts)
 - Historical data for pattern analysis
 - Indexed for fast temporal queries
 
-Design principle: Store everything. Reason later.
-Future AI models will find patterns we can't imagine today.
+Design principle: Store daily aggregates. Device keeps granular.
+If server data is lost, device can re-sync. Granular stays safe on device.
 """
 
 import json

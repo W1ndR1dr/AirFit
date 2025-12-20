@@ -12,7 +12,7 @@ struct CustomTabBar: View {
         ("fork.knife", "Nutrition"),
         ("bubble.left.and.bubble.right.fill", "Coach"),
         ("sparkles", "Insights"),
-        ("person.circle", "Profile")
+        ("person.fill", "You")
     ]
 
     var body: some View {
@@ -53,6 +53,9 @@ private struct TabBarButton: View {
                 Image(systemName: icon)
                     .font(.system(size: 18, weight: isSelected ? .semibold : .regular))
                     .symbolEffect(.bounce, value: isSelected)
+                    // Subtle glow on selected icon
+                    .shadow(color: isSelected ? Theme.accent.opacity(0.6) : .clear, radius: 8)
+                    .shadow(color: isSelected ? Theme.accent.opacity(0.3) : .clear, radius: 16)
 
                 Text(label)
                     .font(.system(size: 9, weight: .medium))

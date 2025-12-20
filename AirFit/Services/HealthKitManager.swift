@@ -1,8 +1,27 @@
 import HealthKit
 
+/// Notification posted when a new workout is detected in HealthKit.
+/// AutoSyncManager listens for this to trigger immediate Hevy sync.
+extension Notification.Name {
+    static let healthKitWorkoutDetected = Notification.Name("healthKitWorkoutDetected")
+}
+
 actor HealthKitManager {
     private let healthStore = HKHealthStore()
     private var isAuthorized = false
+    private var workoutObserverQuery: HKObserverQuery?
+    private var lastObservedWorkoutDate: Date?
+
+    // MARK: - HealthKit Types
+
+    // Types we can write (nutrition for food logging)
+    // Note: HKCorrelationType(.food) requires special entitlements, so we write individual samples
+    private let writeTypes: Set<HKSampleType> = [
+        HKQuantityType(.dietaryEnergyConsumed),
+        HKQuantityType(.dietaryProtein),
+        HKQuantityType(.dietaryCarbohydrates),
+        HKQuantityType(.dietaryFatTotal)
+    ]
 
     // HealthKit types - comprehensive but realistic (no CGM/BP cuff/power meters)
     private let readTypes: Set<HKObjectType> = [
@@ -58,19 +77,118 @@ actor HealthKitManager {
         HKWorkoutType.workoutType()
     ]
 
-    /// Request HealthKit authorization
+    /// Request HealthKit authorization for reading health data and writing nutrition
     func requestAuthorization() async -> Bool {
         guard HKHealthStore.isHealthDataAvailable() else {
             return false
         }
 
         do {
-            try await healthStore.requestAuthorization(toShare: [], read: readTypes)
+            try await healthStore.requestAuthorization(toShare: writeTypes, read: readTypes)
             isAuthorized = true
             return true
         } catch {
             print("HealthKit authorization failed: \(error)")
             return false
+        }
+    }
+
+    // MARK: - Workout Observer
+
+    /// Start observing HealthKit for new workouts.
+    ///
+    /// When a workout is saved (from Apple Watch, Hevy, etc.), this posts
+    /// a `.healthKitWorkoutDetected` notification that AutoSyncManager listens to
+    /// for immediate Hevy sync.
+    ///
+    /// Call this once at app launch after authorization.
+    func startWorkoutObserver() {
+        guard workoutObserverQuery == nil else {
+            print("[HealthKit] Workout observer already running")
+            return
+        }
+
+        let workoutType = HKWorkoutType.workoutType()
+
+        // Store the current time as baseline
+        lastObservedWorkoutDate = Date()
+
+        let query = HKObserverQuery(sampleType: workoutType, predicate: nil) { [weak self] _, completionHandler, error in
+            if let error = error {
+                print("[HealthKit] Workout observer error: \(error)")
+                completionHandler()
+                return
+            }
+
+            // Check for new workouts since last check
+            Task { [weak self] in
+                await self?.checkForNewWorkouts()
+            }
+
+            completionHandler()
+        }
+
+        workoutObserverQuery = query
+        healthStore.execute(query)
+
+        // Enable background delivery for workouts
+        healthStore.enableBackgroundDelivery(for: workoutType, frequency: .immediate) { success, error in
+            if success {
+                print("[HealthKit] Background workout delivery enabled")
+            } else if let error = error {
+                print("[HealthKit] Background delivery failed: \(error)")
+            }
+        }
+
+        print("[HealthKit] Workout observer started")
+    }
+
+    /// Stop the workout observer.
+    func stopWorkoutObserver() {
+        guard let query = workoutObserverQuery else { return }
+        healthStore.stop(query)
+        workoutObserverQuery = nil
+        print("[HealthKit] Workout observer stopped")
+    }
+
+    /// Check for workouts newer than our last check and post notification.
+    private func checkForNewWorkouts() async {
+        guard let lastCheck = lastObservedWorkoutDate else { return }
+
+        let workoutType = HKWorkoutType.workoutType()
+        let predicate = HKQuery.predicateForSamples(
+            withStart: lastCheck,
+            end: Date(),
+            options: .strictStartDate
+        )
+
+        let newWorkouts = await withCheckedContinuation { (continuation: CheckedContinuation<[HKWorkout], Never>) in
+            let query = HKSampleQuery(
+                sampleType: workoutType,
+                predicate: predicate,
+                limit: 5,
+                sortDescriptors: [NSSortDescriptor(key: HKSampleSortIdentifierEndDate, ascending: false)]
+            ) { _, samples, _ in
+                let workouts = samples as? [HKWorkout] ?? []
+                continuation.resume(returning: workouts)
+            }
+            healthStore.execute(query)
+        }
+
+        // Update last check time
+        lastObservedWorkoutDate = Date()
+
+        if !newWorkouts.isEmpty {
+            print("[HealthKit] Detected \(newWorkouts.count) new workout(s), posting notification")
+
+            // Post notification on main thread
+            await MainActor.run {
+                NotificationCenter.default.post(
+                    name: .healthKitWorkoutDetected,
+                    object: nil,
+                    userInfo: ["workoutCount": newWorkouts.count]
+                )
+            }
         }
     }
 
@@ -179,6 +297,89 @@ actor HealthKitManager {
             }
             healthStore.execute(query)
         }
+    }
+
+    // MARK: - Public Workout Access
+
+    /// Get recent workouts from HealthKit.
+    ///
+    /// Used as fallback when Hevy cache is not available.
+    func getRecentWorkouts(days: Int = 7) async -> [WorkoutSummary] {
+        await fetchRecentWorkouts(days: days)
+    }
+
+    // MARK: - Training Day Detection
+
+    /// Check if today is a training day based on HealthKit workouts.
+    ///
+    /// Returns true if there's a strength training workout logged today,
+    /// or if there was one yesterday and it's before noon (might still be recovery).
+    ///
+    /// - Returns: Tuple with (isTrainingDay, workoutName if applicable)
+    func isTrainingDay() async -> (isTraining: Bool, workoutName: String?) {
+        let calendar = Calendar.current
+        let now = Date()
+        let startOfToday = calendar.startOfDay(for: now)
+
+        // Check today's workouts
+        let todayWorkouts = await fetchWorkoutsForDay(startOfToday)
+        let strengthWorkout = todayWorkouts.first { workout in
+            isStrengthWorkout(workout.type)
+        }
+
+        if let workout = strengthWorkout {
+            return (true, workout.type)
+        }
+
+        // If before noon, also check yesterday (might still be in recovery/high calorie mode)
+        let hour = calendar.component(.hour, from: now)
+        if hour < 12 {
+            let yesterday = calendar.date(byAdding: .day, value: -1, to: startOfToday)!
+            let yesterdayWorkouts = await fetchWorkoutsForDay(yesterday)
+            if let workout = yesterdayWorkouts.first(where: { isStrengthWorkout($0.type) }) {
+                return (true, "\(workout.type) (yesterday)")
+            }
+        }
+
+        return (false, nil)
+    }
+
+    /// Fetch workouts for a specific day.
+    private func fetchWorkoutsForDay(_ date: Date) async -> [WorkoutSummary] {
+        let calendar = Calendar.current
+        let endOfDay = calendar.date(byAdding: .day, value: 1, to: date)!
+
+        let predicate = HKQuery.predicateForSamples(withStart: date, end: endOfDay, options: .strictStartDate)
+        let sortDescriptor = NSSortDescriptor(key: HKSampleSortIdentifierEndDate, ascending: false)
+
+        return await withCheckedContinuation { continuation in
+            let query = HKSampleQuery(sampleType: HKWorkoutType.workoutType(), predicate: predicate, limit: 10, sortDescriptors: [sortDescriptor]) { _, samples, _ in
+                let workouts: [WorkoutSummary] = (samples as? [HKWorkout])?.compactMap { workout in
+                    let calories: Int? = workout.totalEnergyBurned.map { Int($0.doubleValue(for: .kilocalorie())) }
+                    return WorkoutSummary(
+                        type: workout.workoutActivityType.name,
+                        date: workout.startDate,
+                        durationMinutes: Int(workout.duration / 60),
+                        caloriesBurned: calories
+                    )
+                } ?? []
+                continuation.resume(returning: workouts)
+            }
+            healthStore.execute(query)
+        }
+    }
+
+    /// Check if a workout type is considered strength training.
+    private func isStrengthWorkout(_ type: String) -> Bool {
+        let strengthTypes = [
+            "traditional strength training",
+            "functional strength training",
+            "strength training",
+            "cross training",
+            "core training",
+            "high intensity interval training"
+        ]
+        return strengthTypes.contains { type.lowercased().contains($0) }
     }
 
     // MARK: - Extended Data for Insights
@@ -381,14 +582,15 @@ actor HealthKitManager {
         let calendar = Calendar.current
 
         // For "sleep ending on date", we want sleep where you woke up on that morning.
-        // Query a window that captures the typical sleep session (6pm previous day to noon today)
+        // Query a window that captures the typical sleep session (6pm previous day to 6pm today)
         // then filter to samples where endDate falls on the target date.
+        // Extended to 6pm to capture late sleepers and unusual schedules.
         let startOfDay = calendar.startOfDay(for: date)
         let endOfDay = calendar.date(byAdding: .day, value: 1, to: startOfDay)!
 
-        // Query window: 6pm previous day to noon today (captures most sleep patterns)
+        // Query window: 6pm previous day to 6pm today (full 24 hours, captures all patterns)
         let queryStart = calendar.date(byAdding: .hour, value: -6, to: startOfDay)!  // 6pm previous day
-        let queryEnd = calendar.date(byAdding: .hour, value: 12, to: startOfDay)!    // noon today
+        let queryEnd = calendar.date(byAdding: .hour, value: 18, to: startOfDay)!    // 6pm today
 
         let predicate = HKQuery.predicateForSamples(withStart: queryStart, end: queryEnd, options: .strictStartDate)
 
@@ -422,6 +624,129 @@ actor HealthKitManager {
             }
             healthStore.execute(query)
         }
+    }
+
+    // MARK: - Sleep Stage Breakdown
+
+    /// Get detailed sleep stage breakdown for a specific night.
+    ///
+    /// Returns time spent in each sleep stage: REM, deep, core, plus awake time and total in bed.
+    /// - Parameter date: The date to get sleep breakdown for (sleep ending on this date's morning)
+    /// - Returns: SleepBreakdown with all stage durations, or nil if no data
+    func getSleepBreakdown(for date: Date) async -> SleepBreakdown? {
+        let sleepType = HKCategoryType(.sleepAnalysis)
+        let calendar = Calendar.current
+
+        let startOfDay = calendar.startOfDay(for: date)
+        let endOfDay = calendar.date(byAdding: .day, value: 1, to: startOfDay)!
+
+        // Query window: 6pm previous day to 6pm today
+        let queryStart = calendar.date(byAdding: .hour, value: -6, to: startOfDay)!
+        let queryEnd = calendar.date(byAdding: .hour, value: 18, to: startOfDay)!
+
+        let predicate = HKQuery.predicateForSamples(withStart: queryStart, end: queryEnd, options: .strictStartDate)
+
+        return await withCheckedContinuation { continuation in
+            let query = HKSampleQuery(sampleType: sleepType, predicate: predicate, limit: HKObjectQueryNoLimit, sortDescriptors: nil) { [self, startOfDay, endOfDay] _, samples, _ in
+                guard let samples = samples as? [HKCategorySample], !samples.isEmpty else {
+                    continuation.resume(returning: nil)
+                    return
+                }
+
+                // Filter to samples ending on target date
+                let relevantSamples = samples.filter { sample in
+                    sample.endDate >= startOfDay && sample.endDate < endOfDay
+                }
+
+                guard !relevantSamples.isEmpty else {
+                    continuation.resume(returning: nil)
+                    return
+                }
+
+                // Categorize by sleep stage
+                var inBedSamples: [HKCategorySample] = []
+                var remSamples: [HKCategorySample] = []
+                var deepSamples: [HKCategorySample] = []
+                var coreSamples: [HKCategorySample] = []
+                var awakeSamples: [HKCategorySample] = []
+
+                for sample in relevantSamples {
+                    switch sample.value {
+                    case HKCategoryValueSleepAnalysis.inBed.rawValue:
+                        inBedSamples.append(sample)
+                    case HKCategoryValueSleepAnalysis.asleepREM.rawValue:
+                        remSamples.append(sample)
+                    case HKCategoryValueSleepAnalysis.asleepDeep.rawValue:
+                        deepSamples.append(sample)
+                    case HKCategoryValueSleepAnalysis.asleepCore.rawValue:
+                        coreSamples.append(sample)
+                    case HKCategoryValueSleepAnalysis.asleepUnspecified.rawValue:
+                        // Treat unspecified as core sleep
+                        coreSamples.append(sample)
+                    case HKCategoryValueSleepAnalysis.awake.rawValue:
+                        awakeSamples.append(sample)
+                    default:
+                        break
+                    }
+                }
+
+                // Calculate durations (merging overlaps)
+                let remHours = self.mergeOverlappingIntervals(remSamples) / 3600.0
+                let deepHours = self.mergeOverlappingIntervals(deepSamples) / 3600.0
+                let coreHours = self.mergeOverlappingIntervals(coreSamples) / 3600.0
+                let awakeHours = self.mergeOverlappingIntervals(awakeSamples) / 3600.0
+
+                // Total sleep = sum of all asleep stages
+                let totalSleep = remHours + deepHours + coreHours
+
+                // Time in bed: either from explicit inBed samples, or infer from sleep session span
+                var timeInBed: Double
+                if !inBedSamples.isEmpty {
+                    timeInBed = self.mergeOverlappingIntervals(inBedSamples) / 3600.0
+                } else {
+                    // Infer from total span of sleep samples
+                    let allSleepSamples = remSamples + deepSamples + coreSamples + awakeSamples
+                    if let earliest = allSleepSamples.min(by: { $0.startDate < $1.startDate }),
+                       let latest = allSleepSamples.max(by: { $0.endDate < $1.endDate }) {
+                        timeInBed = latest.endDate.timeIntervalSince(earliest.startDate) / 3600.0
+                    } else {
+                        timeInBed = totalSleep + awakeHours
+                    }
+                }
+
+                // Ensure time in bed is at least as large as sleep + awake
+                timeInBed = max(timeInBed, totalSleep + awakeHours)
+
+                let breakdown = SleepBreakdown(
+                    date: date,
+                    timeInBed: timeInBed,
+                    totalSleep: totalSleep,
+                    remSleep: remHours,
+                    deepSleep: deepHours,
+                    coreSleep: coreHours,
+                    awakeTime: awakeHours
+                )
+
+                continuation.resume(returning: breakdown)
+            }
+            healthStore.execute(query)
+        }
+    }
+
+    /// Get sleep breakdown for the last N nights.
+    func getRecentSleepBreakdowns(nights: Int = 7) async -> [SleepBreakdown] {
+        var breakdowns: [SleepBreakdown] = []
+        let calendar = Calendar.current
+
+        for dayOffset in 0..<nights {
+            if let date = calendar.date(byAdding: .day, value: -dayOffset, to: Date()) {
+                if let breakdown = await getSleepBreakdown(for: date) {
+                    breakdowns.append(breakdown)
+                }
+            }
+        }
+
+        return breakdowns.reversed()  // Oldest first
     }
 
     // MARK: - Bedtime Detection
@@ -568,12 +893,24 @@ struct HealthContext: Sendable {
     }
 }
 
-struct WorkoutSummary: Sendable {
+struct WorkoutSummary: Sendable, Identifiable {
+    let id: UUID
     let type: String
     let date: Date
     let durationMinutes: Int
     let caloriesBurned: Int?
+
+    init(type: String, date: Date, durationMinutes: Int, caloriesBurned: Int?) {
+        self.id = UUID()
+        self.type = type
+        self.date = date
+        self.durationMinutes = durationMinutes
+        self.caloriesBurned = caloriesBurned
+    }
 }
+
+/// Type alias for clarity in dashboard fallback
+typealias HealthKitWorkout = WorkoutSummary
 
 /// Comprehensive daily health snapshot for insights sync
 struct DailyHealthSnapshot: Sendable {
@@ -615,6 +952,32 @@ struct LeanMassReading: Sendable, Identifiable {
     let leanMassLbs: Double
 }
 
+/// Sleep stage breakdown for detailed sleep analysis
+struct SleepBreakdown: Sendable {
+    let date: Date
+    let timeInBed: Double      // Total time in bed (hours)
+    let totalSleep: Double     // Total actual sleep (hours)
+    let remSleep: Double       // REM stage (hours)
+    let deepSleep: Double      // Deep/slow-wave sleep (hours)
+    let coreSleep: Double      // Core/light sleep (hours)
+    let awakeTime: Double      // Time awake in bed (hours)
+
+    /// Sleep efficiency percentage (actual sleep / time in bed)
+    var efficiency: Double {
+        guard timeInBed > 0 else { return 0 }
+        return (totalSleep / timeInBed) * 100
+    }
+
+    /// Quality score based on deep + REM proportion (0-100)
+    var qualityScore: Double {
+        guard totalSleep > 0 else { return 0 }
+        // Ideal: ~20-25% REM, ~15-20% deep = ~40% high quality
+        let highQualityPct = (remSleep + deepSleep) / totalSleep
+        // Score: 40%+ = 100, 20% = 50, 0% = 0
+        return min(100, highQualityPct * 250)
+    }
+}
+
 /// Combined body composition data point
 struct BodyCompositionReading: Sendable, Identifiable {
     let id = UUID()
@@ -622,6 +985,272 @@ struct BodyCompositionReading: Sendable, Identifiable {
     let weightLbs: Double?
     let bodyFatPct: Double?
     let leanMassLbs: Double?
+}
+
+// MARK: - HealthKitManager Nutrition Extension
+
+extension HealthKitManager {
+    // MARK: - Nutrition Writing
+
+    /// Metadata key for linking HealthKit entries to SwiftData entries
+    private static var airFitEntryIDKey: String { "AirFitEntryID" }
+
+    /// Save a nutrition entry to HealthKit as individual dietary samples.
+    ///
+    /// Creates separate HKQuantitySample for each macro (calories, protein, carbs, fat).
+    /// The entry's UUID is stored in metadata for later update/delete operations.
+    ///
+    /// Note: We use individual samples instead of HKCorrelation because Food correlation
+    /// requires a special entitlement from Apple. The metadata linking approach allows
+    /// us to track and delete our own samples.
+    ///
+    /// - Parameter entry: NutritionEntry to save
+    /// - Throws: HealthKitError if save fails
+    func saveNutritionEntry(_ entry: NutritionEntry) async throws {
+        guard HKHealthStore.isHealthDataAvailable() else {
+            throw HealthKitError.notAvailable
+        }
+
+        // Metadata to link all samples back to this entry
+        let metadata: [String: Any] = [
+            Self.airFitEntryIDKey: entry.id.uuidString,
+            HKMetadataKeyFoodType: entry.name
+        ]
+
+        // Create samples for each macro
+        var samples: [HKSample] = []
+
+        // Calories
+        if entry.calories > 0 {
+            let calorieType = HKQuantityType(.dietaryEnergyConsumed)
+            let calorieQuantity = HKQuantity(unit: .kilocalorie(), doubleValue: Double(entry.calories))
+            let calorieSample = HKQuantitySample(
+                type: calorieType,
+                quantity: calorieQuantity,
+                start: entry.timestamp,
+                end: entry.timestamp,
+                metadata: metadata
+            )
+            samples.append(calorieSample)
+        }
+
+        // Protein
+        if entry.protein > 0 {
+            let proteinType = HKQuantityType(.dietaryProtein)
+            let proteinQuantity = HKQuantity(unit: .gram(), doubleValue: Double(entry.protein))
+            let proteinSample = HKQuantitySample(
+                type: proteinType,
+                quantity: proteinQuantity,
+                start: entry.timestamp,
+                end: entry.timestamp,
+                metadata: metadata
+            )
+            samples.append(proteinSample)
+        }
+
+        // Carbs
+        if entry.carbs > 0 {
+            let carbType = HKQuantityType(.dietaryCarbohydrates)
+            let carbQuantity = HKQuantity(unit: .gram(), doubleValue: Double(entry.carbs))
+            let carbSample = HKQuantitySample(
+                type: carbType,
+                quantity: carbQuantity,
+                start: entry.timestamp,
+                end: entry.timestamp,
+                metadata: metadata
+            )
+            samples.append(carbSample)
+        }
+
+        // Fat
+        if entry.fat > 0 {
+            let fatType = HKQuantityType(.dietaryFatTotal)
+            let fatQuantity = HKQuantity(unit: .gram(), doubleValue: Double(entry.fat))
+            let fatSample = HKQuantitySample(
+                type: fatType,
+                quantity: fatQuantity,
+                start: entry.timestamp,
+                end: entry.timestamp,
+                metadata: metadata
+            )
+            samples.append(fatSample)
+        }
+
+        guard !samples.isEmpty else {
+            print("[HealthKit] No nutrition data to save")
+            return
+        }
+
+        // Save samples with metadata linking them to this entry
+        try await healthStore.save(samples)
+        print("[HealthKit] Saved nutrition entry: \(entry.name) (\(entry.calories) cal, \(samples.count) samples)")
+    }
+
+    /// Update an existing nutrition entry in HealthKit.
+    ///
+    /// Deletes the old correlation and creates a new one with updated values.
+    /// Uses the AirFitEntryID metadata to find the existing entry.
+    ///
+    /// - Parameter entry: Updated NutritionEntry
+    /// - Throws: HealthKitError if update fails
+    func updateNutritionEntry(_ entry: NutritionEntry) async throws {
+        // Delete existing and save new
+        try await deleteNutritionEntry(id: entry.id)
+        try await saveNutritionEntry(entry)
+        print("[HealthKit] Updated nutrition entry: \(entry.name)")
+    }
+
+    /// Delete a nutrition entry from HealthKit.
+    ///
+    /// Finds all samples with matching AirFitEntryID metadata and deletes them.
+    /// Only samples created by AirFit can be deleted (HealthKit enforces this).
+    ///
+    /// - Parameter id: UUID of the NutritionEntry to delete
+    func deleteNutritionEntry(id: UUID) async throws {
+        let entryIDString = id.uuidString
+
+        // Query each dietary type for samples with our metadata
+        let dietaryTypes: [HKQuantityType] = [
+            HKQuantityType(.dietaryEnergyConsumed),
+            HKQuantityType(.dietaryProtein),
+            HKQuantityType(.dietaryCarbohydrates),
+            HKQuantityType(.dietaryFatTotal)
+        ]
+
+        var samplesToDelete: [HKSample] = []
+
+        for type in dietaryTypes {
+            let samples = try await querySamplesWithEntryID(type: type, entryID: entryIDString)
+            samplesToDelete.append(contentsOf: samples)
+        }
+
+        if samplesToDelete.isEmpty {
+            print("[HealthKit] No samples found for entry: \(id)")
+            return
+        }
+
+        // Delete all matching samples
+        for sample in samplesToDelete {
+            try await healthStore.delete(sample)
+        }
+
+        print("[HealthKit] Deleted \(samplesToDelete.count) samples for entry: \(id)")
+    }
+
+    /// Query samples with a specific AirFit entry ID
+    private func querySamplesWithEntryID(type: HKQuantityType, entryID: String) async throws -> [HKSample] {
+        return try await withCheckedThrowingContinuation { continuation in
+            // We need to query and filter by metadata
+            // Unfortunately, HKQuery doesn't support direct metadata filtering,
+            // so we query recent samples and filter in memory
+            let calendar = Calendar.current
+            let now = Date()
+            let startOfToday = calendar.startOfDay(for: now)
+            let endOfToday = calendar.date(byAdding: .day, value: 1, to: startOfToday)!
+
+            // Query samples from today (most common case for edits/deletes)
+            let predicate = HKQuery.predicateForSamples(
+                withStart: calendar.date(byAdding: .day, value: -7, to: startOfToday),
+                end: endOfToday,
+                options: .strictStartDate
+            )
+
+            let query = HKSampleQuery(
+                sampleType: type,
+                predicate: predicate,
+                limit: HKObjectQueryNoLimit,
+                sortDescriptors: nil
+            ) { _, samples, error in
+                if let error = error {
+                    continuation.resume(throwing: error)
+                    return
+                }
+
+                // Filter to samples with matching metadata
+                let matchingSamples = (samples ?? []).filter { sample in
+                    guard let metadata = sample.metadata,
+                          let sampleEntryID = metadata[Self.airFitEntryIDKey] as? String else {
+                        return false
+                    }
+                    return sampleEntryID == entryID
+                }
+
+                continuation.resume(returning: matchingSamples)
+            }
+
+            healthStore.execute(query)
+        }
+    }
+
+    /// Check if an entry exists in HealthKit.
+    ///
+    /// Queries for any sample with matching AirFitEntryID metadata.
+    ///
+    /// - Parameter id: UUID of the NutritionEntry
+    /// - Returns: True if samples with this entry ID exist
+    func nutritionEntryExists(id: UUID) async -> Bool {
+        let entryIDString = id.uuidString
+
+        // Check just one type (calories) for efficiency
+        do {
+            let samples = try await querySamplesWithEntryID(
+                type: HKQuantityType(.dietaryEnergyConsumed),
+                entryID: entryIDString
+            )
+            return !samples.isEmpty
+        } catch {
+            print("[HealthKit] Failed to check if entry exists: \(error)")
+            return false
+        }
+    }
+
+    /// Sync all local nutrition entries to HealthKit.
+    ///
+    /// Checks each entry and saves if not already present.
+    /// Used for initial sync or recovery.
+    ///
+    /// - Parameter entries: Array of NutritionEntry to sync
+    /// - Returns: Number of entries synced
+    func syncNutritionEntries(_ entries: [NutritionEntry]) async -> Int {
+        var syncedCount = 0
+
+        for entry in entries {
+            let exists = await nutritionEntryExists(id: entry.id)
+            if !exists {
+                do {
+                    try await saveNutritionEntry(entry)
+                    syncedCount += 1
+                } catch {
+                    print("[HealthKit] Failed to sync entry \(entry.name): \(error)")
+                }
+            }
+        }
+
+        print("[HealthKit] Synced \(syncedCount) nutrition entries to HealthKit")
+        return syncedCount
+    }
+}
+
+// MARK: - HealthKit Errors
+
+enum HealthKitError: LocalizedError {
+    case notAvailable
+    case notAuthorized
+    case saveFailed(Error)
+    case queryFailed(Error)
+
+    var errorDescription: String? {
+        switch self {
+        case .notAvailable:
+            return "HealthKit is not available on this device"
+        case .notAuthorized:
+            return "HealthKit access not authorized"
+        case .saveFailed(let error):
+            return "Failed to save to HealthKit: \(error.localizedDescription)"
+        case .queryFailed(let error):
+            return "HealthKit query failed: \(error.localizedDescription)"
+        }
+    }
 }
 
 // MARK: - Workout Type Names

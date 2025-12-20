@@ -37,6 +37,12 @@ struct ScrollytellingRootView: View {
                         TabPageContainer(index: index)
                             .containerRelativeFrame(.horizontal)
                             .id(index)
+                            // Subtle depth transition: blur and fade only (no scale to avoid edge artifacts)
+                            .scrollTransition(.interactive, axis: .horizontal) { content, phase in
+                                content
+                                    .blur(radius: phase.isIdentity ? 0 : 4)
+                                    .opacity(phase.isIdentity ? 1.0 : 0.6)
+                            }
                     }
                 }
                 .scrollTargetLayout()
@@ -57,11 +63,15 @@ struct ScrollytellingRootView: View {
                 }
             }
 
-            // Floating tab bar
-            VStack {
-                Spacer()
-                CustomTabBar(selectedTab: $selectedTab, onTap: scrollToTab)
+            // Floating tab bar - positioned at true bottom, ignoring keyboard
+            GeometryReader { geo in
+                VStack {
+                    Spacer()
+                    CustomTabBar(selectedTab: $selectedTab, onTap: scrollToTab)
+                        .padding(.bottom, geo.safeAreaInsets.bottom > 0 ? 0 : 8)
+                }
             }
+            .ignoresSafeArea(.keyboard)
         }
         .sensoryFeedback(.selection, trigger: selectedTab)
         .task {
@@ -121,7 +131,7 @@ private struct TabPageContainer: View {
                 case 3:
                     InsightsView()
                 case 4:
-                    ProfileView()
+                    YouView()
                 default:
                     DashboardView()
                 }

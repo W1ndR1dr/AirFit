@@ -183,7 +183,7 @@ struct NutritionDetailView: View {
     }
 }
 
-/// Inline expansion view for sleep - shows nightly hours
+/// Inline expansion view for sleep - shows nightly hours (legacy, used as fallback)
 struct SleepDetailView: View {
     let dailyValues: [Double]  // 7 nights of sleep hours
 
@@ -262,6 +262,322 @@ struct SleepDetailView: View {
         if hours >= 7.5 { return Theme.success }
         if hours >= 6.5 { return Color.indigo }
         return Theme.warning
+    }
+}
+
+// MARK: - Sleep Breakdown View
+
+/// Enhanced sleep detail view showing stage breakdown with stacked bars
+struct SleepBreakdownView: View {
+    let breakdowns: [SleepBreakdown]  // 7 nights of detailed data
+    let dailyValues: [Double]  // Fallback simple hours if breakdown unavailable
+
+    // Sleep stage colors
+    private let remColor = Color(red: 0.6, green: 0.4, blue: 0.9)      // Purple-ish
+    private let deepColor = Color(red: 0.2, green: 0.4, blue: 0.8)     // Deep blue
+    private let coreColor = Color(red: 0.4, green: 0.6, blue: 0.9)     // Light blue
+    private let awakeColor = Color.orange.opacity(0.6)
+
+    private let dayLabels = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"]
+
+    var body: some View {
+        VStack(spacing: 16) {
+            // Last night summary (if available)
+            if let lastNight = breakdowns.last {
+                lastNightSummary(lastNight)
+            }
+
+            Divider()
+                .background(Theme.textMuted.opacity(0.2))
+
+            // Weekly stacked bars
+            weeklyBreakdown
+        }
+        .padding(16)
+        .background(
+            RoundedRectangle(cornerRadius: 12, style: .continuous)
+                .fill(Color.indigo.opacity(0.06))
+        )
+    }
+
+    // MARK: - Last Night Summary
+
+    private func lastNightSummary(_ breakdown: SleepBreakdown) -> some View {
+        VStack(spacing: 12) {
+            // Header row
+            HStack {
+                Text("Last Night")
+                    .font(.labelMedium)
+                    .foregroundStyle(Theme.textSecondary)
+
+                Spacer()
+
+                // Efficiency badge
+                HStack(spacing: 4) {
+                    Image(systemName: efficiencyIcon(breakdown.efficiency))
+                        .font(.system(size: 10))
+                    Text("\(Int(breakdown.efficiency))% efficient")
+                        .font(.labelMicro)
+                }
+                .foregroundStyle(efficiencyColor(breakdown.efficiency))
+            }
+
+            // Time in bed vs actual sleep
+            HStack(spacing: 16) {
+                VStack(alignment: .leading, spacing: 2) {
+                    Text("In Bed")
+                        .font(.labelMicro)
+                        .foregroundStyle(Theme.textMuted)
+                    Text(formatHours(breakdown.timeInBed))
+                        .font(.system(size: 20, weight: .semibold, design: .rounded))
+                        .foregroundStyle(Theme.textSecondary)
+                }
+
+                Image(systemName: "arrow.right")
+                    .font(.caption)
+                    .foregroundStyle(Theme.textMuted)
+
+                VStack(alignment: .leading, spacing: 2) {
+                    Text("Asleep")
+                        .font(.labelMicro)
+                        .foregroundStyle(Theme.textMuted)
+                    Text(formatHours(breakdown.totalSleep))
+                        .font(.system(size: 20, weight: .semibold, design: .rounded))
+                        .foregroundStyle(Theme.textPrimary)
+                }
+
+                Spacer()
+            }
+
+            // Stacked horizontal bar
+            GeometryReader { geo in
+                HStack(spacing: 1) {
+                    // Deep sleep (most restorative)
+                    if breakdown.deepSleep > 0 {
+                        RoundedRectangle(cornerRadius: 4)
+                            .fill(deepColor)
+                            .frame(width: barWidth(breakdown.deepSleep, total: breakdown.timeInBed, availableWidth: geo.size.width))
+                    }
+
+                    // REM sleep
+                    if breakdown.remSleep > 0 {
+                        RoundedRectangle(cornerRadius: 4)
+                            .fill(remColor)
+                            .frame(width: barWidth(breakdown.remSleep, total: breakdown.timeInBed, availableWidth: geo.size.width))
+                    }
+
+                    // Core/light sleep
+                    if breakdown.coreSleep > 0 {
+                        RoundedRectangle(cornerRadius: 4)
+                            .fill(coreColor)
+                            .frame(width: barWidth(breakdown.coreSleep, total: breakdown.timeInBed, availableWidth: geo.size.width))
+                    }
+
+                    // Awake time
+                    if breakdown.awakeTime > 0 {
+                        RoundedRectangle(cornerRadius: 4)
+                            .fill(awakeColor)
+                            .frame(width: barWidth(breakdown.awakeTime, total: breakdown.timeInBed, availableWidth: geo.size.width))
+                    }
+                }
+            }
+            .frame(height: 12)
+            .clipShape(RoundedRectangle(cornerRadius: 4))
+
+            // Legend
+            HStack(spacing: 12) {
+                legendItem(color: deepColor, label: "Deep", value: breakdown.deepSleep)
+                legendItem(color: remColor, label: "REM", value: breakdown.remSleep)
+                legendItem(color: coreColor, label: "Core", value: breakdown.coreSleep)
+                if breakdown.awakeTime > 0.1 {
+                    legendItem(color: awakeColor, label: "Awake", value: breakdown.awakeTime)
+                }
+                Spacer()
+            }
+        }
+    }
+
+    private func legendItem(color: Color, label: String, value: Double) -> some View {
+        HStack(spacing: 4) {
+            Circle()
+                .fill(color)
+                .frame(width: 6, height: 6)
+            Text("\(label) \(formatHoursShort(value))")
+                .font(.system(size: 10))
+                .foregroundStyle(Theme.textMuted)
+        }
+    }
+
+    // MARK: - Weekly Breakdown
+
+    private var weeklyBreakdown: some View {
+        VStack(spacing: 8) {
+            // Day labels
+            HStack(spacing: 0) {
+                ForEach(recentDayLabels(), id: \.self) { day in
+                    Text(day)
+                        .font(.labelMicro)
+                        .foregroundStyle(Theme.textMuted)
+                        .frame(maxWidth: .infinity)
+                }
+            }
+
+            // Stacked mini bars for each day
+            HStack(spacing: 4) {
+                ForEach(0..<7, id: \.self) { index in
+                    if index < breakdowns.count {
+                        miniStackedBar(breakdowns[index])
+                    } else if index < dailyValues.count {
+                        // Fallback to simple bar
+                        simpleMiniBar(dailyValues[index])
+                    } else {
+                        emptyMiniBar
+                    }
+                }
+            }
+            .frame(height: 50)
+
+            // Hours labels
+            HStack(spacing: 0) {
+                ForEach(0..<7, id: \.self) { index in
+                    if index < breakdowns.count {
+                        Text(formatHoursShort(breakdowns[index].totalSleep))
+                            .font(.labelMicro)
+                            .foregroundStyle(sleepColor(for: breakdowns[index].totalSleep))
+                            .frame(maxWidth: .infinity)
+                    } else if index < dailyValues.count && dailyValues[index] > 0 {
+                        Text(formatHoursShort(dailyValues[index]))
+                            .font(.labelMicro)
+                            .foregroundStyle(sleepColor(for: dailyValues[index]))
+                            .frame(maxWidth: .infinity)
+                    } else {
+                        Text("—")
+                            .font(.labelMicro)
+                            .foregroundStyle(Theme.textMuted)
+                            .frame(maxWidth: .infinity)
+                    }
+                }
+            }
+        }
+    }
+
+    private func miniStackedBar(_ breakdown: SleepBreakdown) -> some View {
+        let total = breakdown.timeInBed
+        let maxHeight: CGFloat = 50
+
+        return VStack(spacing: 0) {
+            Spacer(minLength: 0)
+
+            VStack(spacing: 0) {
+                // Awake (if significant)
+                if breakdown.awakeTime > 0.1 {
+                    Rectangle()
+                        .fill(awakeColor)
+                        .frame(height: stageHeight(breakdown.awakeTime, total: total, maxHeight: maxHeight * 0.8))
+                }
+
+                // Core
+                Rectangle()
+                    .fill(coreColor)
+                    .frame(height: stageHeight(breakdown.coreSleep, total: total, maxHeight: maxHeight * 0.8))
+
+                // REM
+                Rectangle()
+                    .fill(remColor)
+                    .frame(height: stageHeight(breakdown.remSleep, total: total, maxHeight: maxHeight * 0.8))
+
+                // Deep (at bottom - most important)
+                Rectangle()
+                    .fill(deepColor)
+                    .frame(height: stageHeight(breakdown.deepSleep, total: total, maxHeight: maxHeight * 0.8))
+            }
+            .frame(height: barTotalHeight(breakdown.totalSleep, maxHeight: maxHeight))
+            .clipShape(RoundedRectangle(cornerRadius: 3))
+        }
+        .frame(maxWidth: .infinity)
+    }
+
+    private func simpleMiniBar(_ hours: Double) -> some View {
+        VStack(spacing: 0) {
+            Spacer(minLength: 0)
+            RoundedRectangle(cornerRadius: 3)
+                .fill(Color.indigo)
+                .frame(height: barTotalHeight(hours, maxHeight: 50))
+        }
+        .frame(maxWidth: .infinity)
+    }
+
+    private var emptyMiniBar: some View {
+        VStack {
+            Spacer()
+            RoundedRectangle(cornerRadius: 3)
+                .fill(Color.indigo.opacity(0.2))
+                .frame(height: 4)
+        }
+        .frame(maxWidth: .infinity)
+    }
+
+    // MARK: - Helpers
+
+    private func formatHours(_ hours: Double) -> String {
+        let h = Int(hours)
+        let m = Int((hours - Double(h)) * 60)
+        return "\(h)h \(m)m"
+    }
+
+    private func formatHoursShort(_ hours: Double) -> String {
+        return String(format: "%.1f", hours)
+    }
+
+    private func barWidth(_ stage: Double, total: Double, availableWidth: CGFloat) -> CGFloat {
+        guard total > 0 else { return 0 }
+        return (stage / total) * availableWidth
+    }
+
+    private func stageHeight(_ stage: Double, total: Double, maxHeight: CGFloat) -> CGFloat {
+        guard total > 0 else { return 0 }
+        return (stage / total) * maxHeight
+    }
+
+    private func barTotalHeight(_ hours: Double, maxHeight: CGFloat) -> CGFloat {
+        guard hours > 0 else { return 4 }
+        // Scale: 4hrs = 20%, 10hrs = 100%
+        let normalized = min(1, max(0, (hours - 4) / 6))
+        return max(8, normalized * maxHeight)
+    }
+
+    private func sleepColor(for hours: Double) -> Color {
+        guard hours > 0 else { return Theme.textMuted }
+        if hours >= 7.5 { return Theme.success }
+        if hours >= 6.5 { return Color.indigo }
+        return Theme.warning
+    }
+
+    private func efficiencyIcon(_ efficiency: Double) -> String {
+        if efficiency >= 90 { return "star.fill" }
+        if efficiency >= 80 { return "checkmark.circle.fill" }
+        return "moon.zzz.fill"
+    }
+
+    private func efficiencyColor(_ efficiency: Double) -> Color {
+        if efficiency >= 90 { return Theme.success }
+        if efficiency >= 80 { return Color.indigo }
+        return Theme.warning
+    }
+
+    private func recentDayLabels() -> [String] {
+        let calendar = Calendar.current
+        let today = Date()
+        var labels: [String] = []
+
+        for dayOffset in (0..<7).reversed() {
+            if let date = calendar.date(byAdding: .day, value: -dayOffset, to: today) {
+                let weekday = calendar.component(.weekday, from: date)
+                let dayIndex = (weekday + 5) % 7
+                labels.append(dayLabels[dayIndex])
+            }
+        }
+        return labels
     }
 }
 

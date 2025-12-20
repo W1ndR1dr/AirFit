@@ -385,7 +385,7 @@ struct LiftProgressCard: View {
 
             // Sparkline
             if lift.history.count > 1 {
-                SparklineView(data: lift.history.map { $0.weight_lbs })
+                TrainingSparkline(data: lift.history.map { $0.weight_lbs })
                     .frame(height: 32)
             }
         }
@@ -397,9 +397,9 @@ struct LiftProgressCard: View {
     }
 }
 
-// MARK: - Sparkline View
+// MARK: - Training Sparkline View
 
-struct SparklineView: View {
+private struct TrainingSparkline: View {
     let data: [Double]
 
     private var normalizedData: [Double] {

@@ -18,6 +18,7 @@ class Session:
     created_at: str
     last_used: str
     message_count: int = 0
+    last_topic: Optional[str] = None  # For tiered context continuity
 
 
 def _load_sessions() -> dict[str, Session]:
@@ -93,3 +94,19 @@ def get_session_info(user_id: str = "default", provider: str = "claude") -> Opti
     sessions = _load_sessions()
     key = f"{user_id}:{provider}"
     return sessions.get(key)
+
+
+def update_last_topic(topic: str, user_id: str = "default", provider: str = "claude") -> None:
+    """Update the last conversation topic for context continuity."""
+    sessions = _load_sessions()
+    key = f"{user_id}:{provider}"
+
+    if key in sessions:
+        sessions[key].last_topic = topic
+        _save_sessions(sessions)
+
+
+def get_last_topic(user_id: str = "default", provider: str = "claude") -> Optional[str]:
+    """Get the last conversation topic."""
+    session = get_session_info(user_id, provider)
+    return session.last_topic if session else None

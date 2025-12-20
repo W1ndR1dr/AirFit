@@ -9,6 +9,7 @@ struct WelcomeView: View {
     @State private var showHero = false
     @State private var showFeatures = [false, false, false]
     @State private var showCTAs = false
+    @State private var glowPulse = false
 
     var body: some View {
         ZStack {
@@ -18,65 +19,108 @@ struct WelcomeView: View {
             VStack(spacing: 0) {
                 Spacer()
 
-                // Hero section
-                VStack(spacing: 12) {
-                    Text("Your AI Fitness Coach")
-                        .font(.system(size: 32, weight: .bold))
-                        .foregroundStyle(Theme.textPrimary)
-                        .multilineTextAlignment(.center)
+                // Hero section with editorial typography
+                VStack(spacing: 20) {
+                    // Headline with warm glow behind
+                    ZStack {
+                        // Soft glow behind headline
+                        Text("Stop tracking.")
+                            .font(.system(size: 34, weight: .bold, design: .serif))
+                            .foregroundStyle(Theme.accent.opacity(0.4))
+                            .blur(radius: 20)
+                            .scaleEffect(glowPulse ? 1.05 : 1.0)
 
-                    Text("Personalized guidance that learns and adapts to you")
+                        VStack(spacing: 4) {
+                            Text("Stop tracking.")
+                                .font(.system(size: 34, weight: .bold, design: .serif))
+                                .foregroundStyle(Theme.textPrimary)
+
+                            Text("Start talking.")
+                                .font(.system(size: 34, weight: .bold, design: .serif))
+                                .foregroundStyle(
+                                    LinearGradient(
+                                        colors: [Theme.accent, Theme.warmPeach],
+                                        startPoint: .leading,
+                                        endPoint: .trailing
+                                    )
+                                )
+                        }
+                    }
+                    .multilineTextAlignment(.center)
+
+                    Text("A fitness coach that learns from how you naturally speak.")
                         .font(.bodyLarge)
                         .foregroundStyle(Theme.textSecondary)
                         .multilineTextAlignment(.center)
+                        .fixedSize(horizontal: false, vertical: true)
                 }
-                .padding(.horizontal, 24)
+                .padding(.horizontal, 32)
                 .opacity(showHero ? 1 : 0)
-                .offset(y: showHero ? 0 : 20)
+                .offset(y: showHero ? 0 : 30)
 
                 Spacer()
-                    .frame(height: 48)
+                    .frame(height: 56)
 
-                // Feature rows with staggered animation
-                VStack(spacing: 24) {
-                    FeatureRow(
-                        icon: "brain.head.profile",
-                        title: "Learns Your Style",
-                        description: "Adapts to your goals and preferences"
+                // Feature rows with elevated design
+                VStack(spacing: 20) {
+                    WelcomeFeatureRow(
+                        icon: "text.bubble.fill",
+                        iconColors: [Theme.accent, Theme.warmPeach],
+                        title: "Just Talk to It",
+                        description: "Log food by typing 'eggs and toast.' It figures out the rest."
                     )
                     .opacity(showFeatures[0] ? 1 : 0)
-                    .offset(y: showFeatures[0] ? 0 : 20)
+                    .offset(x: showFeatures[0] ? 0 : -20)
 
-                    FeatureRow(
-                        icon: "fork.knife",
-                        title: "Effortless Tracking",
-                        description: "Natural language nutrition logging"
+                    WelcomeFeatureRow(
+                        icon: "brain.head.profile",
+                        iconColors: [Theme.tertiary, Theme.accent],
+                        title: "Remembers Everything",
+                        description: "90 days of context in every response. No repeating yourself."
                     )
                     .opacity(showFeatures[1] ? 1 : 0)
-                    .offset(y: showFeatures[1] ? 0 : 20)
+                    .offset(x: showFeatures[1] ? 0 : -20)
 
-                    FeatureRow(
-                        icon: "sparkles",
-                        title: "Smart Insights",
-                        description: "AI-powered analysis of your progress"
+                    WelcomeFeatureRow(
+                        icon: "scope",
+                        iconColors: [Theme.secondary, Theme.tertiary],
+                        title: "Finds What You Miss",
+                        description: "Spots patterns across sleep, food, and training automatically."
                     )
                     .opacity(showFeatures[2] ? 1 : 0)
-                    .offset(y: showFeatures[2] ? 0 : 20)
+                    .offset(x: showFeatures[2] ? 0 : -20)
                 }
                 .padding(.horizontal, 24)
 
                 Spacer()
 
-                // CTAs
+                // CTAs with premium styling
                 VStack(spacing: 16) {
                     Button(action: onContinue) {
-                        Text("Get Started")
-                            .font(.headline)
-                            .foregroundStyle(.white)
-                            .frame(maxWidth: .infinity)
-                            .padding(.vertical, 16)
-                            .background(Theme.accentGradient)
-                            .clipShape(Capsule())
+                        HStack(spacing: 8) {
+                            Text("Get Started")
+                            Image(systemName: "arrow.right")
+                                .font(.subheadline.weight(.semibold))
+                        }
+                        .font(.headline)
+                        .foregroundStyle(.white)
+                        .frame(maxWidth: .infinity)
+                        .padding(.vertical, 18)
+                        .background(
+                            ZStack {
+                                // Gradient background
+                                Theme.accentGradient
+
+                                // Subtle inner glow at top
+                                LinearGradient(
+                                    colors: [.white.opacity(0.2), .clear],
+                                    startPoint: .top,
+                                    endPoint: .center
+                                )
+                            }
+                        )
+                        .clipShape(Capsule())
+                        .shadow(color: Theme.accent.opacity(0.3), radius: 12, y: 6)
                     }
                     .buttonStyle(AirFitButtonStyle())
 
@@ -87,64 +131,100 @@ struct WelcomeView: View {
                     }
                 }
                 .padding(.horizontal, 24)
+                .padding(.bottom, 8)
                 .safeAreaInset(edge: .bottom) {
-                    Color.clear.frame(height: 20)
+                    Color.clear.frame(height: 16)
                 }
                 .opacity(showCTAs ? 1 : 0)
                 .offset(y: showCTAs ? 0 : 20)
             }
         }
         .onAppear {
-            // Staggered animations
-            withAnimation(.easeOut(duration: 0.5).delay(0.1)) {
+            // Staggered animations with Bloom timing
+            withAnimation(.easeOut(duration: 0.6).delay(0.1)) {
                 showHero = true
             }
-            withAnimation(.easeOut(duration: 0.5).delay(0.25)) {
+            withAnimation(.easeOut(duration: 0.5).delay(0.3)) {
                 showFeatures[0] = true
             }
-            withAnimation(.easeOut(duration: 0.5).delay(0.35)) {
+            withAnimation(.easeOut(duration: 0.5).delay(0.42)) {
                 showFeatures[1] = true
             }
-            withAnimation(.easeOut(duration: 0.5).delay(0.45)) {
+            withAnimation(.easeOut(duration: 0.5).delay(0.54)) {
                 showFeatures[2] = true
             }
-            withAnimation(.easeOut(duration: 0.5).delay(0.55)) {
+            withAnimation(.easeOut(duration: 0.5).delay(0.66)) {
                 showCTAs = true
+            }
+
+            // Subtle glow pulse
+            withAnimation(.easeInOut(duration: 3).repeatForever(autoreverses: true).delay(1)) {
+                glowPulse = true
             }
         }
     }
 }
 
-// MARK: - Feature Row
+// MARK: - Welcome Feature Row (Elevated Design)
 
-struct FeatureRow: View {
+struct WelcomeFeatureRow: View {
     let icon: String
+    let iconColors: [Color]
     let title: String
     let description: String
 
     var body: some View {
         HStack(spacing: 16) {
+            // Icon with gradient background
             ZStack {
+                // Soft outer glow
                 Circle()
-                    .fill(Theme.accent.opacity(0.15))
-                    .frame(width: 50, height: 50)
+                    .fill(
+                        RadialGradient(
+                            colors: [iconColors[0].opacity(0.3), .clear],
+                            center: .center,
+                            startRadius: 0,
+                            endRadius: 35
+                        )
+                    )
+                    .frame(width: 70, height: 70)
+
+                // Main icon container
+                Circle()
+                    .fill(
+                        LinearGradient(
+                            colors: [iconColors[0].opacity(0.15), iconColors[1].opacity(0.08)],
+                            startPoint: .topLeading,
+                            endPoint: .bottomTrailing
+                        )
+                    )
+                    .frame(width: 52, height: 52)
 
                 Image(systemName: icon)
-                    .font(.system(size: 22))
-                    .foregroundStyle(Theme.accent)
+                    .font(.system(size: 24, weight: .medium))
+                    .foregroundStyle(
+                        LinearGradient(
+                            colors: iconColors,
+                            startPoint: .topLeading,
+                            endPoint: .bottomTrailing
+                        )
+                    )
             }
+            .frame(width: 52, height: 52)
 
-            VStack(alignment: .leading, spacing: 4) {
+            VStack(alignment: .leading, spacing: 5) {
                 Text(title)
-                    .font(.labelLarge)
+                    .font(.system(size: 16, weight: .semibold, design: .rounded))
                     .foregroundStyle(Theme.textPrimary)
 
                 Text(description)
-                    .font(.caption)
+                    .font(.system(size: 14, weight: .regular))
                     .foregroundStyle(Theme.textSecondary)
+                    .fixedSize(horizontal: false, vertical: true)
+                    .lineSpacing(2)
             }
 
-            Spacer()
+            Spacer(minLength: 0)
         }
     }
 }

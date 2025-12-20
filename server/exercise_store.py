@@ -361,11 +361,12 @@ def _calculate_improvement(performances: list[dict]) -> Optional[float]:
 
     Returns None if not enough data points or insufficient time span.
     Requires:
-    - Minimum 5 data points for statistical reliability
-    - Minimum 14 days span to avoid noise from short-term fluctuations
+    - Minimum 8 data points for statistical reliability (resists outliers)
+    - Minimum 28 days span to capture a real training cycle, not noise
     """
-    # Require minimum 5 data points for meaningful trend
-    if len(performances) < 5:
+    # Require minimum 8 data points for meaningful trend
+    # (5 can be skewed by a single outlier; 8 gives more stability)
+    if len(performances) < 8:
         return None
 
     # Simple linear regression on e1RM values
@@ -376,8 +377,8 @@ def _calculate_improvement(performances: list[dict]) -> Optional[float]:
         first_date = datetime.strptime(performances[0]["date"], "%Y-%m-%d")
         last_date = datetime.strptime(performances[-1]["date"], "%Y-%m-%d")
 
-        # Require minimum 14-day span to avoid short-term noise
-        if (last_date - first_date).days < 14:
+        # Require minimum 28-day span (4 weeks) to capture a real training cycle
+        if (last_date - first_date).days < 28:
             return None
 
         x_values = [

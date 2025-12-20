@@ -154,8 +154,9 @@ struct ServerCheckView: View {
             status = .checking
         }
 
-        // Give local network permission dialog time to appear
-        try? await Task.sleep(for: .milliseconds(500))
+        // Give local network permission time to fully propagate
+        // (permission was granted on previous screen, but iOS networking stack needs a moment)
+        try? await Task.sleep(for: .seconds(1.0))
 
         let healthy = await apiClient.checkHealth()
 

@@ -21,7 +21,11 @@ import context_store
 import insight_engine
 import scheduler
 import chat_context
+import tiered_context
 import exercise_store
+import memory
+import sessions
+import tools
 
 
 @asynccontextmanager
@@ -121,6 +125,7 @@ class ChatResponse(BaseModel):
     provider: str
     success: bool
     error: Optional[str] = None
+    detected_topics: list[str] = []  # Topics detected in user message (for debugging)
 
 
 class HealthStatus(BaseModel):
@@ -215,23 +220,29 @@ async def health_check():
 @app.post("/chat", response_model=ChatResponse)
 async def chat(request: ChatRequest):
     """
-    Send a message to the AI coach.
+    Send a message to the AI coach with tiered context injection.
 
-    The server will:
-    1. Load user profile for personalized context
-    2. Inject pre-computed insights from background analysis
-    3. Fetch Hevy workout data (if API key configured)
-    4. Include health context from iOS (HealthKit)
-    5. Try available LLM providers in priority order
-    6. Extract insights from conversation to evolve profile
-    7. Return the AI response
+    Context Strategy:
+    - Tier 1 (always): Phase, today's status, alerts, insight headlines, tool hints
+    - Tier 2 (topic-triggered): Training/nutrition/recovery/progress context
+    - Tier 3 (on-demand): Deep queries via tools (MCP/function calling)
+
+    The coach feels well-informed but doesn't data-dump.
     """
-    # Build rich context using the ChatContext builder
-    context = await chat_context.build_chat_context(
+    # Get last topic for conversation continuity
+    last_topic = sessions.get_last_topic()
+
+    # Build tiered context (selective surfacing)
+    context = await tiered_context.build_tiered_context(
+        message=request.message,
         health_context=request.health_context,
         nutrition_context=request.nutrition_context,
-        insights_limit=3
+        last_topic=last_topic
     )
+
+    # Update last topic for next message
+    if context.detected_topics:
+        sessions.update_last_topic(context.detected_topics[0])
 
     # Build the full prompt
     if context.has_any_context():
@@ -242,23 +253,180 @@ async def chat(request: ChatRequest):
 
     # Use profile-based system prompt (unless client overrides)
     user_profile = profile.load_profile()
-    system_prompt = request.system_prompt or user_profile.to_system_prompt()
+    base_system_prompt = request.system_prompt or user_profile.to_system_prompt()
+
+    # Inject relationship memory into system prompt
+    memory_context = memory.get_memory_context()
+    if memory_context:
+        system_prompt = f"{base_system_prompt}\n\n--- RELATIONSHIP MEMORY ---\n{memory_context}"
+    else:
+        system_prompt = base_system_prompt
 
     # Call the LLM
     result = await llm_router.chat(prompt, system_prompt)
 
-    # Learn from this conversation (async, don't block response)
+    # Process successful responses
     if result.success:
         import asyncio
+
+        # Extract and store any memory markers from response (async)
+        asyncio.create_task(
+            _extract_memories_async(result.text)
+        )
+
+        # Learn from this conversation to evolve profile (async)
         asyncio.create_task(
             profile.update_profile_from_conversation(request.message, result.text)
         )
 
+        # Strip memory markers from response before returning to user
+        clean_response = memory.strip_memory_markers(result.text)
+    else:
+        clean_response = result.text
+
     return ChatResponse(
-        response=result.text,
+        response=clean_response,
         provider=result.provider,
         success=result.success,
-        error=result.error
+        error=result.error,
+        detected_topics=context.detected_topics  # Return for debugging
+    )
+
+
+async def _extract_memories_async(response_text: str):
+    """Helper to extract memories asynchronously."""
+    try:
+        memory.extract_and_store_memories(response_text)
+    except Exception as e:
+        print(f"Memory extraction error: {e}")
+
+
+# --- Direct Gemini Support Endpoints ---
+# These endpoints support iOS calling Gemini directly while still
+# getting rich context and profile evolution from the server.
+
+class ChatContextResponse(BaseModel):
+    """Context bundle for direct Gemini calls from iOS."""
+    system_prompt: str
+    memory_context: str
+    data_context: str
+    profile_summary: str
+    onboarding_complete: bool
+
+
+@app.get("/chat/context", response_model=ChatContextResponse)
+async def get_chat_context_for_direct_calls(
+    include_health: bool = True,
+    include_hevy: bool = True,
+    include_insights: bool = True
+):
+    """
+    Get system prompt + context for direct Gemini API calls from iOS.
+
+    This endpoint enables the "hybrid direct API" architecture:
+    - iOS stores the API key and calls Gemini directly (fast)
+    - But still gets rich context from the server (profile, memory, insights)
+
+    The iOS app should:
+    1. Call this endpoint to get fresh context
+    2. Use the system_prompt as Gemini's system_instruction
+    3. Optionally append data_context to the first user message
+    4. Call Gemini directly with the user's API key
+    """
+    # Build full context (same assembly as /chat uses)
+    context = await chat_context.build_chat_context(
+        health_context=None,  # iOS will provide this directly to Gemini
+        nutrition_context=None,  # iOS will provide this directly to Gemini
+        insights_limit=3 if include_insights else 0
+    )
+
+    # Get profile-based system prompt
+    user_profile = profile.load_profile()
+    base_system_prompt = user_profile.to_system_prompt()
+
+    # Get relationship memory
+    memory_context = memory.get_memory_context()
+
+    # Combine system prompt with memory context
+    if memory_context:
+        full_system_prompt = f"{base_system_prompt}\n\n--- RELATIONSHIP MEMORY ---\n{memory_context}\n\n{memory.MEMORY_PROTOCOL}"
+    else:
+        full_system_prompt = f"{base_system_prompt}\n\n{memory.MEMORY_PROTOCOL}"
+
+    # Build data context string
+    data_context_parts = []
+    if context.insights:
+        data_context_parts.append(context.insights)
+    if context.weekly_summary:
+        data_context_parts.append(context.weekly_summary)
+    if context.body_comp_trends:
+        data_context_parts.append(context.body_comp_trends)
+    if include_hevy:
+        if context.set_tracker:
+            data_context_parts.append(context.set_tracker)
+        if context.hevy_workouts:
+            data_context_parts.append(context.hevy_workouts)
+
+    return ChatContextResponse(
+        system_prompt=full_system_prompt,
+        memory_context=memory_context or "",
+        data_context="\n\n".join(data_context_parts),
+        profile_summary=user_profile.summary or "",
+        onboarding_complete=user_profile.onboarding_complete
+    )
+
+
+class ConversationExcerpt(BaseModel):
+    """Conversation excerpt for profile evolution processing."""
+    user_message: str
+    ai_response: str
+
+
+class ProcessConversationResponse(BaseModel):
+    """Response from processing a conversation excerpt."""
+    status: str
+    memories_extracted: int
+    profile_updated: bool
+
+
+@app.post("/chat/process-conversation", response_model=ProcessConversationResponse)
+async def process_conversation_for_evolution(request: ConversationExcerpt):
+    """
+    Process a conversation excerpt for profile evolution and memory extraction.
+
+    Called by iOS after Gemini conversations to:
+    1. Extract memory markers from the AI response
+    2. Update the user profile based on conversation content
+    3. Keep the "getting to know you" evolution working
+
+    This endpoint should be called:
+    - When the app backgrounds
+    - When a new chat is started
+    - When 5+ memory markers have accumulated locally
+    """
+    memories_extracted = 0
+    profile_updated = False
+
+    # Extract and store any memory markers from AI response
+    if request.ai_response:
+        memories_extracted = memory.extract_and_store_memories(request.ai_response)
+
+    # Update profile from conversation (learns about user over time)
+    if request.user_message and request.ai_response:
+        try:
+            await profile.update_profile_from_conversation(
+                request.user_message,
+                request.ai_response
+            )
+            profile_updated = True
+        except Exception as e:
+            print(f"Profile update error: {e}")
+            profile_updated = False
+
+    return ProcessConversationResponse(
+        status="processed",
+        memories_extracted=memories_extracted,
+        profile_updated=profile_updated
     )
 
 
@@ -518,6 +686,95 @@ async def seed_profile():
     }
 
 
+@app.post("/profile/import")
+async def import_profile(request: Request):
+    """
+    Import a profile from JSON.
+
+    Accepts a JSON profile (like brian_profile_seed.json) and creates
+    a full UserProfile from it. Clears chat session so new personality
+    takes effect immediately.
+
+    Usage:
+        curl -X POST http://localhost:8080/profile/import \
+             -H 'Content-Type: application/json' \
+             -d @~/Desktop/brian_profile_seed.json
+    """
+    try:
+        data = await request.json()
+
+        # Build UserProfile from JSON structure
+        p = profile.UserProfile(
+            # Identity
+            name=data.get("identity", {}).get("name"),
+            age=data.get("identity", {}).get("age"),
+            height=data.get("identity", {}).get("height"),
+            occupation=data.get("identity", {}).get("occupation"),
+            summary=data.get("identity", {}).get("summary"),
+
+            # Body composition
+            current_weight_lbs=data.get("body_composition", {}).get("current_weight_lbs"),
+            current_body_fat_pct=data.get("body_composition", {}).get("current_body_fat_pct"),
+            target_weight_lbs=data.get("body_composition", {}).get("target_weight_lbs"),
+            target_body_fat_pct=data.get("body_composition", {}).get("target_body_fat_pct"),
+
+            # Goals and phase
+            goals=data.get("goals", []),
+            current_phase=data.get("phase", {}).get("current"),
+            phase_context=data.get("phase", {}).get("context"),
+            phase_started=data.get("phase", {}).get("started"),
+
+            # Training
+            training_days_per_week=data.get("training", {}).get("days_per_week"),
+            training_style=data.get("training", {}).get("style", []),
+            favorite_activities=data.get("training", {}).get("favorite_activities", []),
+
+            # Nutrition
+            training_day_targets=data.get("nutrition", {}).get("training_day"),
+            rest_day_targets=data.get("nutrition", {}).get("rest_day"),
+            nutrition_guidelines=data.get("nutrition", {}).get("guidelines", []),
+
+            # Context
+            life_context=data.get("life_context", []),
+            constraints=data.get("constraints", []),
+            preferences=data.get("preferences", []),
+            context=data.get("context", []),
+
+            # Relationship
+            relationship_notes=data.get("relationship_notes", []),
+
+            # Communication & personality
+            communication_style=data.get("communication_style"),
+            personality_notes=data.get("coaching_persona"),  # The prose persona
+
+            # Hevy quirks
+            hevy_quirks=list(filter(None, [
+                data.get("hevy_integration", {}).get("quirk"),
+                data.get("hevy_integration", {}).get("set_counting")
+            ])) if data.get("hevy_integration") else None,
+
+            # Status
+            onboarding_complete=data.get("onboarding_complete", True)
+        )
+
+        # Save the profile
+        profile.save_profile(p)
+
+        # Clear chat session so new personality takes effect
+        llm_router.clear_chat_session()
+
+        return {
+            "status": "imported",
+            "name": p.name,
+            "onboarding_complete": p.onboarding_complete,
+            "has_coaching_persona": bool(p.personality_notes),
+            "session_cleared": True
+        }
+
+    except Exception as e:
+        return {"status": "error", "message": str(e)}
+
+
 @app.delete("/chat/session")
 async def clear_chat_session():
     """
@@ -558,15 +815,20 @@ async def onboarding_chat(request: OnboardingChatRequest):
         user_message = request.message
 
     try:
-        response = llm_router.chat(
-            message=user_message,
+        result = await llm_router.chat(
+            prompt=user_message,
             system_prompt=system_prompt,
-            provider="claude"  # Use Claude for onboarding
+            use_session=True  # Maintain conversation context
         )
+
+        if not result.success:
+            raise Exception(result.error or "LLM call failed")
+
+        response = result.text
 
         # Extract profile info from conversation
         if request.message:  # Only extract if there was actual user input
-            profile.update_profile_from_conversation(request.message, response)
+            await profile.update_profile_from_conversation(request.message, response)
 
         # Get updated profile completeness
         profile_summary = profile.get_profile_summary()
@@ -654,6 +916,63 @@ async def regenerate_personality():
     }
 
 
+@app.get("/profile/export")
+async def export_profile():
+    """
+    Export the full profile as JSON for backup.
+
+    Returns the complete profile data that can be imported later.
+    """
+    from dataclasses import asdict
+
+    user_profile = profile.load_profile()
+    return {
+        "version": 1,
+        "exported_at": datetime.now().isoformat(),
+        "profile": asdict(user_profile)
+    }
+
+
+class ProfileImport(BaseModel):
+    """Profile import payload."""
+    version: int
+    profile: dict
+
+
+@app.post("/profile/import")
+async def import_profile(data: ProfileImport):
+    """
+    Import a previously exported profile.
+
+    This replaces the current profile with the imported data.
+    Optionally regenerates personality notes after import.
+    """
+    if data.version != 1:
+        return {"success": False, "error": f"Unsupported version: {data.version}"}
+
+    try:
+        # Create profile from imported data
+        imported_profile = profile.UserProfile(**data.profile)
+
+        # Update timestamps
+        imported_profile.updated_at = datetime.now().isoformat()
+
+        # Save the imported profile
+        profile.save_profile(imported_profile)
+
+        # Clear session so personality takes effect
+        llm_router.clear_chat_session()
+
+        return {
+            "success": True,
+            "name": imported_profile.name,
+            "goals_count": len(imported_profile.goals),
+            "has_personality": bool(imported_profile.personality_notes)
+        }
+    except Exception as e:
+        return {"success": False, "error": str(e)}
+
+
 # --- Insights Endpoints ---
 
 class DailySyncData(BaseModel):
@@ -695,8 +1014,32 @@ class InsightResponse(BaseModel):
     supporting_data: dict = {}
 
 
+class DailyNutritionPoint(BaseModel):
+    """Daily nutrition data point for sparklines."""
+    date: str
+    calories: int
+    protein: int
+    carbs: int
+    fat: int
+
+
+class DailyHealthPoint(BaseModel):
+    """Daily health data point for sparklines."""
+    date: str
+    sleep_hours: Optional[float] = None
+    weight_lbs: Optional[float] = None
+    steps: int = 0
+    active_calories: int = 0
+
+
 class ContextSummary(BaseModel):
-    """Aggregated context for a time range."""
+    """
+    Aggregated context for a time range.
+
+    ARCHITECTURE NOTE: Server stores DAILY AGGREGATES, not individual meals.
+    iOS device owns granular entries; server receives totals per day.
+    See server/ARCHITECTURE.md for full data ownership model.
+    """
     period_days: int
     nutrition_days: int
 
@@ -719,6 +1062,11 @@ class ContextSummary(BaseModel):
     # Compliance
     protein_compliance: Optional[float] = None
     calorie_compliance: Optional[float] = None
+
+    # Daily breakdown for sparklines (NEW)
+    # This exposes the daily data that server already has in context_store
+    daily_nutrition: Optional[list[DailyNutritionPoint]] = None
+    daily_health: Optional[list[DailyHealthPoint]] = None
 
 
 # --- Body Metrics Models ---
@@ -871,6 +1219,10 @@ async def get_insights_context(range: str = "week"):
     Get aggregated context for AI analysis.
 
     Range options: week, month, quarter (90 days)
+
+    Returns both weekly averages AND daily breakdown for sparklines.
+    The daily data enables iOS to show actual day-to-day variance
+    instead of repeating the average.
     """
     days_map = {"week": 7, "month": 30, "quarter": 90}
     days = days_map.get(range, 7)
@@ -890,6 +1242,34 @@ async def get_insights_context(range: str = "week"):
     averages = context_store.compute_averages(snapshots)
     compliance = context_store.compute_compliance(snapshots)
 
+    # Build daily breakdown for sparklines
+    # Sort by date to ensure chronological order (oldest first)
+    sorted_snapshots = sorted(snapshots, key=lambda s: s.date)
+
+    daily_nutrition = []
+    daily_health = []
+
+    for s in sorted_snapshots:
+        # Nutrition data (defaults to 0 if not present)
+        n = s.nutrition
+        daily_nutrition.append(DailyNutritionPoint(
+            date=s.date,
+            calories=n.calories if n else 0,
+            protein=n.protein if n else 0,
+            carbs=n.carbs if n else 0,
+            fat=n.fat if n else 0,
+        ))
+
+        # Health data (None for missing values)
+        h = s.health
+        daily_health.append(DailyHealthPoint(
+            date=s.date,
+            sleep_hours=h.sleep_hours if h else None,
+            weight_lbs=h.weight_lbs if h else None,
+            steps=h.steps if h else 0,
+            active_calories=h.active_calories if h else 0,
+        ))
+
     return ContextSummary(
         period_days=averages.get("period_days", days),
         nutrition_days=averages.get("nutrition_days", 0),
@@ -904,7 +1284,10 @@ async def get_insights_context(range: str = "week"):
         total_workouts=averages.get("total_workouts", 0),
         avg_volume_per_workout=averages.get("avg_volume_per_workout", 0.0),
         protein_compliance=compliance.get("protein_compliance"),
-        calorie_compliance=compliance.get("calorie_compliance")
+        calorie_compliance=compliance.get("calorie_compliance"),
+        # NEW: Daily breakdown for sparklines
+        daily_nutrition=daily_nutrition,
+        daily_health=daily_health,
     )
 
 
@@ -1504,6 +1887,77 @@ async def sync_exercise_history(full: bool = False):
             exercises_updated=0,
             error=str(e)
         )
+
+
+# --- Tool Execution Endpoints (for Gemini function calling from iOS) ---
+
+class ToolCallRequest(BaseModel):
+    """Request to execute a tool."""
+    name: str
+    arguments: dict = {}
+
+
+class ToolCallResponse(BaseModel):
+    """Response from tool execution."""
+    success: bool
+    content: str
+    error: Optional[str] = None
+
+
+class ToolSchema(BaseModel):
+    """Tool schema for function calling."""
+    name: str
+    description: str
+    parameters: dict
+
+
+class ToolSchemasResponse(BaseModel):
+    """All available tool schemas."""
+    tools: list[ToolSchema]
+
+
+@app.get("/tools/schemas", response_model=ToolSchemasResponse)
+async def get_tool_schemas():
+    """
+    Get tool schemas for Gemini function calling.
+
+    iOS calls this to get the function declarations to send to Gemini.
+    The schemas follow the Gemini function calling format.
+    """
+    return ToolSchemasResponse(
+        tools=[
+            ToolSchema(
+                name=schema["name"],
+                description=schema["description"],
+                parameters=schema["parameters"]
+            )
+            for schema in tools.TOOL_SCHEMAS
+        ]
+    )
+
+
+@app.post("/tools/execute", response_model=ToolCallResponse)
+async def execute_tool(request: ToolCallRequest):
+    """
+    Execute a tool and return results.
+
+    iOS calls this when Gemini returns a function call.
+    The result is then passed back to Gemini for the final response.
+
+    Supported tools:
+    - query_workouts: Workout history from Hevy
+    - query_nutrition: Nutrition history and compliance
+    - query_body_comp: Body composition trends
+    - query_recovery: Sleep, HRV, recovery metrics
+    - query_insights: AI-generated insights
+    """
+    result = await tools.execute_tool(request.name, request.arguments)
+
+    return ToolCallResponse(
+        success=result.success,
+        content=result.to_context_string(),
+        error=result.error
+    )
 
 
 if __name__ == "__main__":

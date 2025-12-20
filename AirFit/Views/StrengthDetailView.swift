@@ -11,69 +11,87 @@ struct StrengthDetailView: View {
     @State private var selectedExercise: APIClient.TrackedExercise?
     @State private var historyData: [ChartDataPoint] = []
     @State private var strengthHistory: APIClient.StrengthHistoryResponse?
-    @State private var timeRange: ChartTimeRange = .year
+    @State private var timeRange: ChartTimeRange = .sixMonths  // Default to 6M
     @State private var showEstimated1RM = true  // Toggle for e1RM vs raw weight
     @State private var isLoading = false
 
-    // Filter & sort options
+    // Sort option (time filtering now handled by single timeRange picker)
     @State private var sortOption: APIClient.ExerciseSortOption = .frequency
-    @State private var timeWindow: APIClient.TimeWindow = .allTime
+
+    /// Convert ChartTimeRange to server's TimeWindow for exercise filtering
+    private var serverTimeWindow: APIClient.TimeWindow {
+        switch timeRange {
+        case .week: return .oneMonth  // Minimum server granularity
+        case .month: return .oneMonth
+        case .sixMonths: return .sixMonths
+        case .year: return .oneYear
+        case .all: return .allTime
+        }
+    }
 
     private let apiClient = APIClient()
 
+    @Environment(\.colorScheme) private var colorScheme
+
     var body: some View {
-        ScrollView {
-            VStack(spacing: 24) {
-                // Filter controls
-                filterControls
-                    .padding(.top, 8)
+        ZStack {
+            // Aurora background for visual continuity
+            BreathingMeshBackground(scrollProgress: 2.0)  // Coach tab colors
+                .ignoresSafeArea()
 
-                // Exercise picker (horizontal scroll)
-                ExercisePicker(exercises: exercises, selection: $selectedExercise)
+            ScrollView {
+                VStack(spacing: 20) {
+                    // Filter controls (sort only - time is unified below chart)
+                    filterControls
+                        .padding(.top, 8)
 
-                // PR hero with trend
-                if let exercise = selectedExercise, let pr = exercise.current_pr {
-                    PRHeroView(pr: pr, trend: strengthHistory?.trend, improvement: exercise.improvement)
-                }
+                    // Exercise picker (horizontal scroll)
+                    ExercisePicker(exercises: exercises, selection: $selectedExercise)
 
-                // Metric toggle
-                Picker("Metric", selection: $showEstimated1RM) {
-                    Text("Est. 1RM").tag(true)
-                    Text("Weight").tag(false)
-                }
-                .pickerStyle(.segmented)
-                .padding(.horizontal, 20)
+                    // PR hero (simplified - stats moved below)
+                    if let exercise = selectedExercise, let pr = exercise.current_pr {
+                        PRHeroCompact(pr: pr)
+                    }
 
-                // Chart
-                if isLoading {
-                    ProgressView()
+                    // Stats row (moved up, replaces redundant hero data)
+                    if let history = strengthHistory, !history.history.isEmpty {
+                        statsRow(history)
+                    }
+
+                    // Metric toggle
+                    Picker("Metric", selection: $showEstimated1RM) {
+                        Text("Est. 1RM").tag(true)
+                        Text("Weight").tag(false)
+                    }
+                    .pickerStyle(.segmented)
+                    .padding(.horizontal, 20)
+
+                    // Chart
+                    if isLoading {
+                        ProgressView()
+                            .frame(height: 240)
+                    } else if historyData.isEmpty {
+                        emptyChartState
+                    } else {
+                        InteractiveChartView(
+                            data: filteredData,
+                            color: Theme.accent,
+                            unit: "lbs",
+                            showSmoothing: true,
+                            formatValue: { "\(Int($0)) lbs" }
+                        )
                         .frame(height: 240)
-                } else if historyData.isEmpty {
-                    emptyChartState
-                } else {
-                    InteractiveChartView(
-                        data: filteredData,
-                        color: Theme.accent,
-                        unit: "lbs",
-                        showSmoothing: true,
-                        formatValue: { "\(Int($0)) lbs" }
-                    )
-                    .frame(height: 240)
-                    .padding(.horizontal, 20)
-                }
+                        .padding(.horizontal, 20)
+                    }
 
-                // Time range picker
-                ChartTimeRangePicker(selection: $timeRange)
-                    .padding(.horizontal, 20)
-
-                // Stats section
-                if let history = strengthHistory, !history.history.isEmpty {
-                    statsSection(history)
+                    // Time range picker (single unified control)
+                    ChartTimeRangePicker(selection: $timeRange)
+                        .padding(.horizontal, 20)
                 }
+                .padding(.bottom, 120)
             }
-            .padding(.bottom, 120)
+            .scrollIndicators(.hidden)
         }
-        .scrollIndicators(.hidden)
         .scrollContentBackground(.hidden)
         .background(Color.clear)
         .navigationTitle(selectedExercise?.name ?? "Strength")
@@ -98,7 +116,8 @@ struct StrengthDetailView: View {
         .onChange(of: sortOption) { _, _ in
             Task { await loadExercises() }
         }
-        .onChange(of: timeWindow) { _, _ in
+        .onChange(of: timeRange) { _, _ in
+            // Reload exercises when time range changes (unified picker)
             Task { await loadExercises() }
         }
         .task {
@@ -110,28 +129,14 @@ struct StrengthDetailView: View {
     }
 
     private var filterControls: some View {
-        VStack(spacing: 12) {
-            // Sort option picker
-            HStack(spacing: 8) {
-                ForEach(APIClient.ExerciseSortOption.allCases, id: \.self) { option in
-                    FilterChip(
-                        label: option.displayName,
-                        isSelected: sortOption == option
-                    ) {
-                        withAnimation(.airfit) { sortOption = option }
-                    }
-                }
-            }
-
-            // Time window picker
-            HStack(spacing: 8) {
-                ForEach(APIClient.TimeWindow.allCases, id: \.self) { window in
-                    FilterChip(
-                        label: window.displayName,
-                        isSelected: timeWindow == window
-                    ) {
-                        withAnimation(.airfit) { timeWindow = window }
-                    }
+        // Sort option picker (time filtering moved to chart picker below)
+        HStack(spacing: 8) {
+            ForEach(APIClient.ExerciseSortOption.allCases, id: \.self) { option in
+                FilterChip(
+                    label: option.displayName,
+                    isSelected: sortOption == option
+                ) {
+                    withAnimation(.airfit) { sortOption = option }
                 }
             }
         }
@@ -143,7 +148,7 @@ struct StrengthDetailView: View {
             let response = try await apiClient.getTrackedExercises(
                 limit: 20,
                 sortBy: sortOption,
-                timeWindow: timeWindow
+                timeWindow: serverTimeWindow
             )
             await MainActor.run {
                 exercises = response.exercises
@@ -183,46 +188,39 @@ struct StrengthDetailView: View {
         .padding(.horizontal, 40)
     }
 
-    private func statsSection(_ history: APIClient.StrengthHistoryResponse) -> some View {
-        VStack(alignment: .leading, spacing: 16) {
-            HStack(spacing: 8) {
-                Image(systemName: "chart.bar.doc.horizontal")
-                    .font(.caption)
-                    .foregroundStyle(Theme.accent)
-                Text("STATS")
-                    .font(.labelHero)
-                    .tracking(2)
-                    .foregroundStyle(Theme.textMuted)
+    /// Compact stats row - positioned below hero, replaces redundant hero data
+    private func statsRow(_ history: APIClient.StrengthHistoryResponse) -> some View {
+        HStack(spacing: 0) {
+            // Sessions
+            StatTile(
+                value: "\(history.history.count)",
+                label: "Sessions"
+            )
+
+            // Best e1RM
+            if let pr = history.current_pr {
+                StatTile(
+                    value: "\(Int(pr.e1rm))",
+                    label: "Best e1RM",
+                    unit: "lbs"
+                )
             }
 
-            HStack(spacing: 20) {
+            // Monthly trend
+            if let trend = history.trend {
                 StatTile(
-                    value: "\(history.history.count)",
-                    label: "Sessions"
+                    value: String(format: "%+.1f", trend),
+                    label: "Monthly",
+                    unit: "lbs",
+                    color: trend >= 0 ? Theme.success : Theme.warning
                 )
-
-                if let pr = history.current_pr {
-                    StatTile(
-                        value: "\(Int(pr.e1rm))",
-                        label: "Best e1RM",
-                        unit: "lbs"
-                    )
-                }
-
-                if let trend = history.trend {
-                    StatTile(
-                        value: String(format: "%+.1f", trend),
-                        label: "Monthly",
-                        unit: "lbs",
-                        color: trend >= 0 ? Theme.success : Theme.warning
-                    )
-                }
             }
         }
-        .padding(20)
+        .padding(.vertical, 12)
+        .padding(.horizontal, 16)
         .background(
-            RoundedRectangle(cornerRadius: 20, style: .continuous)
-                .fill(Theme.surface)
+            RoundedRectangle(cornerRadius: 16, style: .continuous)
+                .fill(.ultraThinMaterial)
         )
         .padding(.horizontal, 20)
     }
@@ -301,7 +299,7 @@ struct ExercisePill: View {
             .padding(.vertical, 10)
             .background(
                 Capsule()
-                    .fill(isSelected ? Theme.accent : Theme.surface)
+                    .fill(isSelected ? AnyShapeStyle(Theme.accent) : AnyShapeStyle(.ultraThinMaterial))
             )
             .sensoryFeedback(.selection, trigger: isSelected)
     }
@@ -338,7 +336,7 @@ struct FilterChip: View {
                 .padding(.vertical, 6)
                 .background(
                     Capsule()
-                        .fill(isSelected ? Theme.accent : Theme.surface)
+                        .fill(isSelected ? AnyShapeStyle(Theme.accent) : AnyShapeStyle(.ultraThinMaterial))
                 )
         }
         .buttonStyle(.plain)
@@ -411,6 +409,33 @@ struct PRHeroView: View {
     }
 }
 
+// MARK: - PR Hero Compact
+
+/// Simplified PR display - just weight and reps, no redundant stats
+struct PRHeroCompact: View {
+    let pr: APIClient.ExercisePR
+
+    var body: some View {
+        VStack(spacing: 8) {
+            // Main PR display
+            HStack(alignment: .lastTextBaseline, spacing: 4) {
+                Text("\(Int(pr.weight_lbs))")
+                    .font(.system(size: 64, weight: .bold, design: .rounded))
+                    .foregroundStyle(Theme.accent)
+
+                Text("LBS")
+                    .font(.labelLarge)
+                    .foregroundStyle(Theme.textMuted)
+            }
+
+            Text("@ \(pr.reps) reps")
+                .font(.labelLarge)
+                .foregroundStyle(Theme.textSecondary)
+        }
+        .padding(.vertical, 8)
+    }
+}
+
 // MARK: - Stat Tile
 
 struct StatTile: View {
@@ -480,7 +505,7 @@ struct StrengthSummaryCard: View {
             .padding(20)
             .background(
                 RoundedRectangle(cornerRadius: 20, style: .continuous)
-                    .fill(Theme.surface)
+                    .fill(.ultraThinMaterial)
                     .shadow(color: .black.opacity(0.03), radius: 8, x: 0, y: 2)
             )
         }

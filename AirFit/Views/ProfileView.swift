@@ -34,7 +34,7 @@ struct ProfileView: View {
     private let apiClient = APIClient()
 
     var body: some View {
-        ZStack {
+        Group {
             if isLoading {
                 ShimmerLoadingView(text: "Connecting...")
             } else if let profile = profile {
@@ -46,29 +46,22 @@ struct ProfileView: View {
             } else {
                 errorState
             }
-
-            // Settings button overlay - always accessible
-            VStack {
-                HStack {
-                    Spacer()
-                    Button {
-                        showSettings = true
-                    } label: {
-                        Image(systemName: "gearshape.fill")
-                            .font(.system(size: 20))
-                            .foregroundStyle(Theme.textSecondary)
-                            .padding(12)
-                            .background(.ultraThinMaterial, in: Circle())
-                    }
-                    .padding(.trailing, 16)
-                    .padding(.top, 8)
-                }
-                Spacer()
-            }
         }
         .navigationTitle("Profile")
         .navigationBarTitleDisplayMode(.inline)
         .toolbarBackground(.hidden, for: .navigationBar)
+        .toolbar {
+            ToolbarItem(placement: .topBarTrailing) {
+                Button {
+                    showSettings = true
+                } label: {
+                    Image(systemName: "gearshape.fill")
+                        .font(.system(size: 18))
+                        .foregroundStyle(Theme.textSecondary)
+                }
+                .buttonStyle(AirFitSubtleButtonStyle())
+            }
+        }
         .navigationDestination(isPresented: $showSettings) {
             SettingsView()
         }

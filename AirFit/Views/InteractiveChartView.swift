@@ -172,6 +172,7 @@ enum ChartSmoothing {
 enum ChartTimeRange: String, CaseIterable {
     case week = "W"
     case month = "M"
+    case sixMonths = "6M"
     case year = "Y"
     case all = "ALL"
 
@@ -179,6 +180,7 @@ enum ChartTimeRange: String, CaseIterable {
         switch self {
         case .week: return 7
         case .month: return 30
+        case .sixMonths: return 180
         case .year: return 365
         case .all: return nil
         }
@@ -188,6 +190,7 @@ enum ChartTimeRange: String, CaseIterable {
         switch self {
         case .week: return "Week"
         case .month: return "Month"
+        case .sixMonths: return "6 Months"
         case .year: return "Year"
         case .all: return "All Time"
         }

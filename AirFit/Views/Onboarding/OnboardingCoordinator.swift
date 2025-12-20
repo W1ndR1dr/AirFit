@@ -2,19 +2,41 @@ import SwiftUI
 
 // MARK: - Onboarding Coordinator
 
+/// Manages the multi-step onboarding flow.
+///
+/// Flow:
+/// 1. Splash - animated intro
+/// 2. Welcome - new user vs returning
+/// 3. Permissions - HealthKit access
+/// 4. CoachSelection - pick AI mode (Claude/Gemini/Hybrid)
+/// 5. ServerSetup - server URL (if Claude or Hybrid)
+/// 6. GeminiSetup - API key (if Gemini or Hybrid)
+/// 7. Interview - conversational profile discovery (WHO you are)
+/// 8. Calibration - coaching style preferences (HOW you want coaching)
+/// 9. HevySetup - optional workout sync
+/// 10. Complete
+///
+/// The Interview discovers user data through conversation.
+/// The Calibration captures explicit coaching permissions (roast tolerance, advice style).
 struct OnboardingCoordinator: View {
     @AppStorage("hasCompletedOnboarding") private var hasCompletedOnboarding = false
     @AppStorage("onboardingStep") private var savedStep = 0
+    @AppStorage("aiProvider") private var aiProvider: String = "claude"
 
     @State private var currentStep: OnboardingStep = .splash
+    @State private var selectedCoachMode: CoachSelectionView.CoachMode = .claude
 
     enum OnboardingStep: Int, CaseIterable {
         case splash = 0
         case welcome = 1
         case permissions = 2
-        case serverCheck = 3
-        case interview = 4
-        case complete = 5
+        case coachSelection = 3
+        case serverSetup = 4
+        case geminiSetup = 5
+        case interview = 6
+        case calibration = 7
+        case hevySetup = 8
+        case complete = 9
     }
 
     var body: some View {
@@ -27,39 +49,76 @@ struct OnboardingCoordinator: View {
             case .welcome:
                 WelcomeView(
                     onContinue: { advanceTo(.permissions) },
-                    onReturningUser: { advanceTo(.serverCheck) }
+                    onReturningUser: { advanceTo(.coachSelection) }
                 )
-                .transition(.asymmetric(
-                    insertion: .move(edge: .trailing).combined(with: .opacity),
-                    removal: .move(edge: .leading).combined(with: .opacity)
-                ))
+                .transition(.opacity)
 
             case .permissions:
-                PermissionFlowView(onComplete: { advanceTo(.serverCheck) })
-                    .transition(.asymmetric(
-                        insertion: .move(edge: .trailing).combined(with: .opacity),
-                        removal: .move(edge: .leading).combined(with: .opacity)
-                    ))
+                PermissionFlowView(onComplete: { advanceTo(.coachSelection) })
+                    .transition(.opacity)
 
-            case .serverCheck:
-                ServerCheckView(
-                    onSuccess: { advanceTo(.interview) },
+            case .coachSelection:
+                CoachSelectionView { mode in
+                    selectedCoachMode = mode
+                    // Route based on selected mode
+                    switch mode {
+                    case .gemini:
+                        // Gemini only - skip server setup
+                        advanceTo(.geminiSetup)
+                    case .hybrid, .claude:
+                        // Need server for Claude
+                        advanceTo(.serverSetup)
+                    }
+                }
+                .transition(.opacity)
+
+            case .serverSetup:
+                ServerSetupView(
+                    onComplete: {
+                        // If hybrid, also need Gemini setup
+                        if selectedCoachMode == .hybrid {
+                            advanceTo(.geminiSetup)
+                        } else {
+                            advanceTo(.interview)
+                        }
+                    },
+                    onSkip: {
+                        if selectedCoachMode == .hybrid {
+                            advanceTo(.geminiSetup)
+                        } else {
+                            advanceTo(.interview)
+                        }
+                    }
+                )
+                .transition(.opacity)
+
+            case .geminiSetup:
+                GeminiSetupView(
+                    onComplete: { advanceTo(.interview) },
                     onSkip: { advanceTo(.interview) }
                 )
-                .transition(.asymmetric(
-                    insertion: .move(edge: .trailing).combined(with: .opacity),
-                    removal: .move(edge: .leading).combined(with: .opacity)
-                ))
+                .transition(.opacity)
 
             case .interview:
                 OnboardingInterviewView(
-                    onComplete: { completeOnboarding() },
-                    onSkip: { skipOnboarding() }
+                    onComplete: { advanceTo(.calibration) },
+                    onSkip: { advanceTo(.calibration) }
                 )
-                .transition(.asymmetric(
-                    insertion: .move(edge: .trailing).combined(with: .opacity),
-                    removal: .opacity
-                ))
+                .transition(.opacity)
+
+            case .calibration:
+                CoachingCalibrationView(
+                    onComplete: { advanceTo(.hevySetup) },
+                    onSkip: { advanceTo(.hevySetup) }
+                )
+                .transition(.opacity)
+
+            case .hevySetup:
+                HevySetupView(
+                    onComplete: { completeOnboarding() },
+                    onSkip: { completeOnboarding() }
+                )
+                .transition(.opacity)
 
             case .complete:
                 EmptyView()
@@ -70,6 +129,8 @@ struct OnboardingCoordinator: View {
             // Resume from saved step if app was killed mid-onboarding
             if savedStep > 0 && savedStep < OnboardingStep.complete.rawValue {
                 currentStep = OnboardingStep(rawValue: savedStep) ?? .splash
+                // Restore coach mode from saved provider
+                selectedCoachMode = CoachSelectionView.CoachMode(rawValue: aiProvider) ?? .claude
             }
         }
     }

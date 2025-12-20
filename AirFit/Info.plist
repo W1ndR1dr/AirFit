@@ -49,5 +49,7 @@
 	<string>AirFit uses your microphone for voice input to your AI coach.</string>
 	<key>NSSpeechRecognitionUsageDescription</key>
 	<string>AirFit uses on-device speech recognition to transcribe your voice.</string>
+	<key>NSCameraUsageDescription</key>
+	<string>AirFit uses the camera to scan server QR codes for easy setup.</string>
 </dict>
 </plist>

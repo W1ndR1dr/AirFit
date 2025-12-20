@@ -2,8 +2,11 @@ import Foundation
 import HealthKit
 import Observation
 
+// Note: HKWorkoutActivityType.name extension is in HealthKitManager.swift
+
 /// Real-time energy tracking with observer queries for live TDEE updates
 /// Includes predictive end-of-day TDEE based on historical patterns
+/// Now with training vs rest day differentiation for better accuracy
 @Observable
 @MainActor
 final class EnergyTracker {
@@ -16,17 +19,23 @@ final class EnergyTracker {
     var isAuthorized = false
     var lastUpdated: Date?
 
+    // Training day detection
+    var isTrainingDay: Bool = false
+    var todayWorkoutName: String?
+
     // Predictive model outputs
     var projectedEndOfDayTDEE: Int = 0
     var projectedConfidence: Double = 0.0  // 0.0 to 1.0
     var projectedNet: Int = 0  // Projected surplus/deficit (requires calories in)
 
-    // Historical hourly pattern (cumulative % of daily TDEE by hour 0-23)
-    private var hourlyPattern: [Double] = Array(repeating: 0, count: 24)
+    // Separate patterns for training vs rest days (cumulative % by hour 0-23)
+    private var trainingDayPattern: [Double] = Array(repeating: 0, count: 24)
+    private var restDayPattern: [Double] = Array(repeating: 0, count: 24)
     private var patternLoaded = false
 
     private let activeEnergyType = HKQuantityType(.activeEnergyBurned)
     private let basalEnergyType = HKQuantityType(.basalEnergyBurned)
+    private let workoutType = HKObjectType.workoutType()
 
     init() {
         Task {
@@ -43,12 +52,13 @@ final class EnergyTracker {
 
         guard HKHealthStore.isHealthDataAvailable() else { return }
 
-        let typesToRead: Set<HKObjectType> = [activeEnergyType, basalEnergyType]
+        let typesToRead: Set<HKObjectType> = [activeEnergyType, basalEnergyType, workoutType]
 
         do {
             try await healthStore.requestAuthorization(toShare: [], read: typesToRead)
             isAuthorized = true
-            await loadHistoricalPattern()
+            await checkTodayTrainingStatus()
+            await loadHistoricalPatterns()
             await fetchTodayEnergy()
             setupObservers()
         } catch {
@@ -56,30 +66,68 @@ final class EnergyTracker {
         }
     }
 
+    /// Check if today has any workouts recorded
+    private func checkTodayTrainingStatus() async {
+        let calendar = Calendar.current
+        let startOfDay = calendar.startOfDay(for: Date())
+        let predicate = HKQuery.predicateForSamples(withStart: startOfDay, end: Date(), options: .strictStartDate)
+
+        let workouts = await fetchWorkouts(predicate: predicate)
+        isTrainingDay = !workouts.isEmpty
+        todayWorkoutName = workouts.first?.workoutActivityType.name
+    }
+
+    private func fetchWorkouts(predicate: NSPredicate) async -> [HKWorkout] {
+        await withCheckedContinuation { continuation in
+            let query = HKSampleQuery(
+                sampleType: workoutType,
+                predicate: predicate,
+                limit: HKObjectQueryNoLimit,
+                sortDescriptors: [NSSortDescriptor(key: HKSampleSortIdentifierStartDate, ascending: false)]
+            ) { _, samples, _ in
+                let workouts = (samples as? [HKWorkout]) ?? []
+                continuation.resume(returning: workouts)
+            }
+            healthStore.execute(query)
+        }
+    }
+
     /// Mock data for simulator testing
     private func loadMockData() {
         isAuthorized = true
+
+        // Simulate training day (50% chance)
+        isTrainingDay = Bool.random()
+        todayWorkoutName = isTrainingDay ? "Strength Training" : nil
 
         // Simulate data based on current time of day
         let calendar = Calendar.current
         let currentHour = calendar.component(.hour, from: Date())
         let hourFraction = Double(currentHour) / 24.0
 
-        // Simulate typical daily totals scaling with time
-        let expectedDailyActive = 600  // Target end-of-day active
-        let expectedDailyBasal = 1850  // Target end-of-day basal
+        // Training days have higher active calories
+        let expectedDailyActive = isTrainingDay ? 800 : 500
+        let expectedDailyBasal = 1850
 
         todayActiveCalories = Int(Double(expectedDailyActive) * hourFraction * Double.random(in: 0.9...1.1))
         todayBasalCalories = Int(Double(expectedDailyBasal) * hourFraction)
         todayTDEE = todayActiveCalories + todayBasalCalories
         lastUpdated = Date()
 
-        // Set up mock pattern (typical office worker curve)
-        hourlyPattern = [
+        // Training day pattern (gym in evening, higher burn)
+        trainingDayPattern = [
             0.00, 0.04, 0.08, 0.12, 0.16, 0.20,  // 12am-5am (sleeping)
-            0.25, 0.30, 0.36, 0.42, 0.48, 0.54,  // 6am-11am (waking, active)
+            0.24, 0.28, 0.33, 0.38, 0.43, 0.48,  // 6am-11am (waking)
+            0.52, 0.56, 0.60, 0.64, 0.68, 0.74,  // 12pm-5pm (afternoon)
+            0.82, 0.90, 0.95, 0.98, 0.99, 1.00   // 6pm-11pm (gym + evening)
+        ]
+
+        // Rest day pattern (more even distribution)
+        restDayPattern = [
+            0.00, 0.04, 0.08, 0.12, 0.16, 0.20,  // 12am-5am (sleeping)
+            0.25, 0.30, 0.36, 0.42, 0.48, 0.54,  // 6am-11am (waking)
             0.60, 0.65, 0.70, 0.75, 0.80, 0.84,  // 12pm-5pm (afternoon)
-            0.88, 0.92, 0.95, 0.97, 0.99, 1.00   // 6pm-11pm (evening, winding down)
+            0.88, 0.92, 0.95, 0.97, 0.99, 1.00   // 6pm-11pm (evening)
         ]
         patternLoaded = true
 
@@ -89,7 +137,6 @@ final class EnergyTracker {
         // Simulate periodic updates
         Timer.scheduledTimer(withTimeInterval: 30, repeats: true) { [weak self] _ in
             Task { @MainActor in
-                // Slowly increment as day progresses
                 self?.todayActiveCalories += Int.random(in: 5...15)
                 self?.todayBasalCalories += Int.random(in: 10...20)
                 self?.todayTDEE = (self?.todayActiveCalories ?? 0) + (self?.todayBasalCalories ?? 0)
@@ -121,12 +168,15 @@ final class EnergyTracker {
     /// Calculate projected end-of-day TDEE and confidence
     /// Uses historical pattern: if by 2pm you've burned X% of your typical daily TDEE,
     /// project final = current / X%
+    /// Now uses separate patterns for training vs rest days
     func updateProjection(caloriesConsumed: Int = 0) {
         let calendar = Calendar.current
         let currentHour = calendar.component(.hour, from: Date())
 
         // Confidence increases as day progresses (0% at midnight, 100% at 11pm)
-        projectedConfidence = min(1.0, Double(currentHour) / 22.0)
+        // Training days get slightly higher confidence (more predictable pattern)
+        let baseConfidence = Double(currentHour) / 22.0
+        projectedConfidence = min(1.0, isTrainingDay ? baseConfidence * 1.1 : baseConfidence)
 
         // If we don't have pattern data yet, use current TDEE as projection
         guard patternLoaded, currentHour > 0 else {
@@ -135,8 +185,9 @@ final class EnergyTracker {
             return
         }
 
-        // Get expected % of daily TDEE burned by this hour
-        let expectedPercent = hourlyPattern[currentHour]
+        // Select the appropriate pattern based on training day status
+        let pattern = isTrainingDay ? trainingDayPattern : restDayPattern
+        let expectedPercent = pattern[currentHour]
 
         // If we've burned more than expected %, we're on track for higher TDEE
         // projection = current / expected%
@@ -154,69 +205,79 @@ final class EnergyTracker {
         projectedNet = caloriesConsumed - projectedEndOfDayTDEE
     }
 
-    /// Load historical hourly pattern from last 14 days
-    /// Calculates cumulative % of daily TDEE burned by each hour
-    private func loadHistoricalPattern() async {
+    /// Load historical hourly patterns from last 14 days
+    /// Separates training days vs rest days for better prediction accuracy
+    private func loadHistoricalPatterns() async {
         let calendar = Calendar.current
-        guard let twoWeeksAgo = calendar.date(byAdding: .day, value: -14, to: Date()) else { return }
 
-        // Collect hourly data for each day
-        var dailyTotals: [Date: Double] = [:]  // Day -> total TDEE
-        var hourlyTotals: [Date: [Double]] = [:]  // Day -> [hourly cumulative]
+        // Collect data for each day, categorized by training status
+        var trainingDays: [Date: [Double]] = [:]  // Day -> [hourly cumulative %]
+        var restDays: [Date: [Double]] = [:]
 
-        // Get each day's total TDEE first
-        for dayOffset in 0..<14 {
+        // Analyze last 14 days
+        for dayOffset in 1...14 {
             guard let day = calendar.date(byAdding: .day, value: -dayOffset, to: Date()) else { continue }
             let startOfDay = calendar.startOfDay(for: day)
             guard let endOfDay = calendar.date(byAdding: .day, value: 1, to: startOfDay) else { continue }
 
-            let predicate = HKQuery.predicateForSamples(withStart: startOfDay, end: endOfDay, options: .strictStartDate)
-            let active = await fetchSum(for: activeEnergyType, predicate: predicate)
-            let basal = await fetchSum(for: basalEnergyType, predicate: predicate)
-            let total = active + basal
+            // Check if this was a training day
+            let workoutPredicate = HKQuery.predicateForSamples(withStart: startOfDay, end: endOfDay, options: .strictStartDate)
+            let workouts = await fetchWorkouts(predicate: workoutPredicate)
+            let wasTrainingDay = !workouts.isEmpty
 
-            if total > 500 {  // Only count days with meaningful data
-                dailyTotals[startOfDay] = total
-            }
-        }
+            // Get total TDEE for this day
+            let energyPredicate = HKQuery.predicateForSamples(withStart: startOfDay, end: endOfDay, options: .strictStartDate)
+            let active = await fetchSum(for: activeEnergyType, predicate: energyPredicate)
+            let basal = await fetchSum(for: basalEnergyType, predicate: energyPredicate)
+            let dayTotal = active + basal
 
-        // Now get hourly cumulative for each day
-        for (startOfDay, dayTotal) in dailyTotals {
+            guard dayTotal > 500 else { continue }  // Skip days with insufficient data
+
+            // Build hourly cumulative pattern for this day
             var hourlyForDay: [Double] = Array(repeating: 0, count: 24)
-
             for hour in 0..<24 {
-                guard let hourStart = calendar.date(byAdding: .hour, value: hour, to: startOfDay),
-                      let hourEnd = calendar.date(byAdding: .hour, value: hour + 1, to: startOfDay) else { continue }
-
-                let predicate = HKQuery.predicateForSamples(withStart: startOfDay, end: hourEnd, options: .strictStartDate)
-                let active = await fetchSum(for: activeEnergyType, predicate: predicate)
-                let basal = await fetchSum(for: basalEnergyType, predicate: predicate)
-                let cumulative = active + basal
-
-                // Store as percentage of daily total
-                hourlyForDay[hour] = dayTotal > 0 ? cumulative / dayTotal : 0
+                guard let hourEnd = calendar.date(byAdding: .hour, value: hour + 1, to: startOfDay) else { continue }
+                let hourPredicate = HKQuery.predicateForSamples(withStart: startOfDay, end: hourEnd, options: .strictStartDate)
+                let hourActive = await fetchSum(for: activeEnergyType, predicate: hourPredicate)
+                let hourBasal = await fetchSum(for: basalEnergyType, predicate: hourPredicate)
+                hourlyForDay[hour] = (hourActive + hourBasal) / dayTotal
             }
 
-            hourlyTotals[startOfDay] = hourlyForDay
+            // Store in appropriate category
+            if wasTrainingDay {
+                trainingDays[startOfDay] = hourlyForDay
+            } else {
+                restDays[startOfDay] = hourlyForDay
+            }
         }
 
-        // Average the patterns across all days
-        guard !hourlyTotals.isEmpty else { return }
+        // Average each category's patterns
+        trainingDayPattern = averagePattern(from: trainingDays)
+        restDayPattern = averagePattern(from: restDays)
+
+        // If one category is empty, use the other as fallback
+        if trainingDays.isEmpty { trainingDayPattern = restDayPattern }
+        if restDays.isEmpty { restDayPattern = trainingDayPattern }
+
+        patternLoaded = !trainingDays.isEmpty || !restDays.isEmpty
+        print("[EnergyTracker] Loaded patterns: \(trainingDays.count) training days, \(restDays.count) rest days")
+    }
+
+    private func averagePattern(from days: [Date: [Double]]) -> [Double] {
+        guard !days.isEmpty else { return Array(repeating: 0, count: 24) }
 
         var avgPattern: [Double] = Array(repeating: 0, count: 24)
-        let dayCount = Double(hourlyTotals.count)
+        let dayCount = Double(days.count)
 
         for hour in 0..<24 {
             var sum = 0.0
-            for (_, hourly) in hourlyTotals {
+            for (_, hourly) in days {
                 sum += hourly[hour]
             }
             avgPattern[hour] = sum / dayCount
         }
 
-        hourlyPattern = avgPattern
-        patternLoaded = true
-        print("[EnergyTracker] Loaded pattern from \(Int(dayCount)) days")
+        return avgPattern
     }
 
     private func fetchSum(for type: HKQuantityType, predicate: NSPredicate) async -> Double {
