@@ -16,10 +16,6 @@ struct InsightsView: View {
     @State private var showUndoToast = false
     @State private var undoWorkItem: DispatchWorkItem?
 
-    // Action confirmation
-    @State private var actionToast: ActionToastData?
-    @State private var showActionToast = false
-
     // Provider selection
     @AppStorage("aiProvider") private var aiProvider = "claude"
 
@@ -88,20 +84,14 @@ struct InsightsView: View {
             PremiumInsightChatSheet(insight: insight)
         }
         .overlay(alignment: .bottom) {
-            VStack(spacing: 12) {
-                if showActionToast, let toast = actionToast {
-                    ActionConfirmationToast(data: toast)
-                        .transition(.move(edge: .bottom).combined(with: .opacity))
-                }
-                if showUndoToast {
-                    UndoToast(
-                        message: "Insight dismissed",
-                        onUndo: undoDismiss
-                    )
-                    .transition(.move(edge: .bottom).combined(with: .opacity))
-                }
+            if showUndoToast {
+                UndoToast(
+                    message: "Insight dismissed",
+                    onUndo: undoDismiss
+                )
+                .transition(.move(edge: .bottom).combined(with: .opacity))
+                .padding(.bottom, 100) // Above tab bar
             }
-            .padding(.bottom, 100) // Above tab bar
         }
     }
 
@@ -118,9 +108,6 @@ struct InsightsView: View {
                         },
                         onDismiss: {
                             dismissInsight(insight)
-                        },
-                        onAction: { action in
-                            handleAction(action, insightId: insight.id)
                         }
                     )
                     .contentShape(Rectangle())
@@ -393,298 +380,6 @@ struct InsightsView: View {
         }
     }
 
-    private func handleAction(_ action: String, insightId: String) {
-        // Track the action
-        Task { await trackEngagement(insightId, action: "acted:\(action)") }
-
-        // Parse action string and determine smart behavior
-        let lowercased = action.lowercased()
-        let actionType = classifyAction(lowercased)
-
-        switch actionType {
-        case .logFood:
-            // Navigate immediately to Nutrition tab
-            NotificationCenter.default.post(name: .openNutritionTab, object: nil)
-            showConfirmation(icon: "fork.knife", message: "Opening nutrition log", color: Theme.protein)
-
-        case .proteinReminder:
-            // Schedule a smart protein reminder for later today
-            Task {
-                await scheduleProteinReminder(action: action)
-            }
-            showConfirmation(icon: "bell.fill", message: "Reminder set for this evening", color: Theme.protein)
-
-        case .workoutReminder:
-            // Schedule workout reminder
-            Task {
-                await scheduleWorkoutReminder(action: action)
-            }
-            showConfirmation(icon: "dumbbell.fill", message: "Workout reminder scheduled", color: Theme.accent)
-
-        case .sleepGoal:
-            // Set a bedtime reminder based on user's typical bedtime
-            Task {
-                let reminderTime = await scheduleBedtimeReminderAndGetTime()
-                await MainActor.run {
-                    showConfirmation(icon: "moon.fill", message: "Reminder set for \(reminderTime)", color: Theme.success)
-                }
-            }
-            return // Don't show confirmation here - done in Task above
-
-        case .reviewProgress:
-            // Navigate to Dashboard
-            NotificationCenter.default.post(name: .openDashboardTab, object: nil)
-            showConfirmation(icon: "chart.bar.fill", message: "Opening dashboard", color: Theme.accent)
-
-        case .updateGoals:
-            // Navigate to Profile
-            NotificationCenter.default.post(name: .openProfileTab, object: nil)
-            showConfirmation(icon: "target", message: "Opening profile settings", color: Theme.warm)
-
-        case .askCoach:
-            // Navigate to Coach with context
-            NotificationCenter.default.post(name: .openCoachTab, object: action)
-            showConfirmation(icon: "bubble.left.fill", message: "Opening coach", color: Theme.accent)
-
-        case .generic:
-            // For unknown actions, create a general reminder
-            Task {
-                await scheduleGenericReminder(action: action)
-            }
-            showConfirmation(icon: "bell.badge.fill", message: "Reminder set", color: Theme.textMuted)
-        }
-    }
-
-    // MARK: - Action Classification
-
-    private enum ActionType {
-        case logFood
-        case proteinReminder
-        case workoutReminder
-        case sleepGoal
-        case reviewProgress
-        case updateGoals
-        case askCoach
-        case generic
-    }
-
-    private func classifyAction(_ action: String) -> ActionType {
-        // Log food actions - immediate
-        if action.contains("log") && (action.contains("meal") || action.contains("food") || action.contains("breakfast") || action.contains("lunch") || action.contains("dinner")) {
-            return .logFood
-        }
-
-        // Protein-related reminders
-        if action.contains("protein") || action.contains("eat more") || action.contains("high-protein") {
-            // If it says "log" go there now, otherwise schedule reminder
-            if action.contains("log") || action.contains("add") {
-                return .logFood
-            }
-            return .proteinReminder
-        }
-
-        // Workout reminders
-        if action.contains("workout") || action.contains("training") || action.contains("exercise") || action.contains("gym") || action.contains("lift") {
-            return .workoutReminder
-        }
-
-        // Sleep goals
-        if action.contains("sleep") || action.contains("bed") || action.contains("rest") || action.contains("recover") {
-            return .sleepGoal
-        }
-
-        // Review/check progress
-        if action.contains("review") || action.contains("check") || action.contains("track") || action.contains("progress") {
-            return .reviewProgress
-        }
-
-        // Update goals/targets
-        if action.contains("goal") || action.contains("target") || action.contains("update") || action.contains("adjust") || action.contains("profile") {
-            return .updateGoals
-        }
-
-        // Ask coach
-        if action.contains("ask") || action.contains("coach") || action.contains("discuss") || action.contains("talk") {
-            return .askCoach
-        }
-
-        return .generic
-    }
-
-    // MARK: - Smart Reminders
-
-    private func scheduleProteinReminder(action: String) async {
-        // Schedule for 2 hours from now or 6pm, whichever is sooner
-        let twoHours = Date().addingTimeInterval(2 * 60 * 60)
-        let sixPM = Calendar.current.date(bySettingHour: 18, minute: 0, second: 0, of: Date()) ?? twoHours
-        let reminderTime = min(twoHours, sixPM)
-
-        let content = UNMutableNotificationContent()
-        content.title = "Protein Check 💪"
-        content.body = "Time for a high-protein snack or meal to hit your target."
-        content.sound = .default
-        content.categoryIdentifier = "NUTRITION_REMINDER"
-
-        let trigger = UNTimeIntervalNotificationTrigger(
-            timeInterval: max(60, reminderTime.timeIntervalSinceNow),
-            repeats: false
-        )
-
-        let request = UNNotificationRequest(
-            identifier: "protein-action-\(UUID().uuidString)",
-            content: content,
-            trigger: trigger
-        )
-
-        try? await UNUserNotificationCenter.current().add(request)
-    }
-
-    private func scheduleWorkoutReminder(action: String) async {
-        // Schedule for tomorrow morning at 8am if it's afternoon, or 4pm if morning
-        let hour = Calendar.current.component(.hour, from: Date())
-        var components = DateComponents()
-
-        if hour >= 12 {
-            // Afternoon - remind tomorrow morning
-            components.hour = 8
-            components.minute = 0
-            let tomorrow = Calendar.current.date(byAdding: .day, value: 1, to: Date())!
-            components = Calendar.current.dateComponents([.year, .month, .day], from: tomorrow)
-            components.hour = 8
-        } else {
-            // Morning - remind this afternoon
-            components = Calendar.current.dateComponents([.year, .month, .day], from: Date())
-            components.hour = 16
-            components.minute = 0
-        }
-
-        let content = UNMutableNotificationContent()
-        content.title = "Workout Time 🏋️"
-        content.body = "Ready to train? Your body is primed for a good session."
-        content.sound = .default
-        content.categoryIdentifier = "WORKOUT_REMINDER"
-
-        let trigger = UNCalendarNotificationTrigger(dateMatching: components, repeats: false)
-
-        let request = UNNotificationRequest(
-            identifier: "workout-action-\(UUID().uuidString)",
-            content: content,
-            trigger: trigger
-        )
-
-        try? await UNUserNotificationCenter.current().add(request)
-    }
-
-    private func scheduleBedtimeReminderAndGetTime() async -> String {
-        let calendar = Calendar.current
-
-        // Try to get user's typical bedtime from HealthKit
-        let healthKit = HealthKitManager()
-        let typicalBedtime = await healthKit.getTypicalBedtime()
-
-        var reminderHour: Int
-        var reminderMinute: Int
-        var isTomorrow = false
-
-        if let bedtime = typicalBedtime, let hour = bedtime.hour, let minute = bedtime.minute {
-            // Schedule reminder 2 hours before typical bedtime
-            var totalMinutes = hour * 60 + minute - 120 // 2 hours before
-
-            // Handle wrap-around (if bedtime is 11pm, reminder at 9pm)
-            if totalMinutes < 0 {
-                totalMinutes += 24 * 60
-            }
-
-            reminderHour = totalMinutes / 60
-            reminderMinute = totalMinutes % 60
-        } else {
-            // Fallback to 9:30pm if no sleep data
-            reminderHour = 21
-            reminderMinute = 30
-        }
-
-        var components = calendar.dateComponents([.year, .month, .day], from: Date())
-        components.hour = reminderHour
-        components.minute = reminderMinute
-
-        // If the reminder time has already passed today, schedule for tomorrow
-        if let reminderDate = calendar.date(from: components), reminderDate < Date() {
-            isTomorrow = true
-            if let tomorrow = calendar.date(byAdding: .day, value: 1, to: Date()) {
-                components = calendar.dateComponents([.year, .month, .day], from: tomorrow)
-                components.hour = reminderHour
-                components.minute = reminderMinute
-            }
-        }
-
-        let content = UNMutableNotificationContent()
-        content.title = "Wind Down 🌙"
-        content.body = "Time to start your bedtime routine for better recovery."
-        content.sound = .default
-
-        let trigger = UNCalendarNotificationTrigger(dateMatching: components, repeats: false)
-
-        let request = UNNotificationRequest(
-            identifier: "sleep-action-\(UUID().uuidString)",
-            content: content,
-            trigger: trigger
-        )
-
-        try? await UNUserNotificationCenter.current().add(request)
-
-        // Format time for display
-        let formatter = DateFormatter()
-        formatter.dateFormat = "h:mm a"
-        var displayComponents = DateComponents()
-        displayComponents.hour = reminderHour
-        displayComponents.minute = reminderMinute
-        let displayDate = calendar.date(from: displayComponents) ?? Date()
-        let timeString = formatter.string(from: displayDate)
-
-        return isTomorrow ? "\(timeString) tomorrow" : timeString
-    }
-
-    private func scheduleGenericReminder(action: String) async {
-        // Schedule for 2 hours from now
-        let content = UNMutableNotificationContent()
-        content.title = "Reminder"
-        content.body = action.prefix(100).description
-        content.sound = .default
-
-        let trigger = UNTimeIntervalNotificationTrigger(timeInterval: 2 * 60 * 60, repeats: false)
-
-        let request = UNNotificationRequest(
-            identifier: "action-\(UUID().uuidString)",
-            content: content,
-            trigger: trigger
-        )
-
-        try? await UNUserNotificationCenter.current().add(request)
-    }
-
-    // MARK: - Confirmation Toast
-
-    private func showConfirmation(icon: String, message: String, color: Color) {
-        withAnimation(.spring(response: 0.4, dampingFraction: 0.8)) {
-            actionToast = ActionToastData(icon: icon, message: message, color: color)
-            showActionToast = true
-        }
-
-        // Auto-dismiss after 2 seconds
-        DispatchQueue.main.asyncAfter(deadline: .now() + 2) {
-            withAnimation(.easeOut(duration: 0.3)) {
-                showActionToast = false
-            }
-        }
-    }
-}
-
-// MARK: - Action Toast Data
-
-private struct ActionToastData {
-    let icon: String
-    let message: String
-    let color: Color
 }
 
 // MARK: - Premium Metric Tile
@@ -726,7 +421,6 @@ struct PremiumInsightCard: View {
     let insight: APIClient.InsightData
     let onTellMeMore: () -> Void
     let onDismiss: () -> Void
-    let onAction: (String) -> Void
 
     /// Whether this is a milestone worth celebrating
     private var isMilestone: Bool {
@@ -865,32 +559,19 @@ struct PremiumInsightCard: View {
                 Button {
                     onTellMeMore()
                 } label: {
-                    Text("Tell me more")
-                        .font(.labelLarge)
-                        .foregroundStyle(.white)
-                        .padding(.horizontal, 20)
-                        .padding(.vertical, 10)
-                        .background(categoryColor)
-                        .clipShape(Capsule())
+                    HStack(spacing: 6) {
+                        Image(systemName: "bubble.left.and.bubble.right")
+                            .font(.system(size: 14, weight: .medium))
+                        Text("Discuss")
+                    }
+                    .font(.labelLarge)
+                    .foregroundStyle(.white)
+                    .padding(.horizontal, 20)
+                    .padding(.vertical, 10)
+                    .background(categoryColor)
+                    .clipShape(Capsule())
                 }
                 .buttonStyle(AirFitButtonStyle())
-
-                if !insight.suggested_actions.isEmpty {
-                    ForEach(insight.suggested_actions.prefix(1), id: \.self) { action in
-                        Button {
-                            onAction(action)
-                        } label: {
-                            Text(action)
-                                .font(.labelMedium)
-                                .foregroundStyle(categoryColor)
-                                .padding(.horizontal, 12)
-                                .padding(.vertical, 8)
-                                .background(categoryColor.opacity(0.1))
-                                .clipShape(Capsule())
-                        }
-                        .buttonStyle(AirFitSubtleButtonStyle())
-                    }
-                }
 
                 Spacer()
             }
@@ -1262,47 +943,6 @@ private struct UndoToast: View {
                 .shadow(color: .black.opacity(0.1), radius: 10, x: 0, y: 4)
         )
         .padding(.horizontal, 20)
-    }
-}
-
-// MARK: - Action Confirmation Toast
-
-private struct ActionConfirmationToast: View {
-    let data: ActionToastData
-
-    var body: some View {
-        HStack(spacing: 12) {
-            // Icon with colored background
-            ZStack {
-                Circle()
-                    .fill(data.color.opacity(0.15))
-                    .frame(width: 32, height: 32)
-
-                Image(systemName: data.icon)
-                    .font(.system(size: 14, weight: .semibold))
-                    .foregroundStyle(data.color)
-            }
-
-            Text(data.message)
-                .font(.labelMedium)
-                .foregroundStyle(Theme.textPrimary)
-
-            Spacer()
-
-            // Checkmark
-            Image(systemName: "checkmark.circle.fill")
-                .font(.system(size: 20))
-                .foregroundStyle(Theme.success)
-        }
-        .padding(.horizontal, 16)
-        .padding(.vertical, 12)
-        .background(
-            RoundedRectangle(cornerRadius: 16, style: .continuous)
-                .fill(.ultraThinMaterial)
-                .shadow(color: .black.opacity(0.15), radius: 12, x: 0, y: 4)
-        )
-        .padding(.horizontal, 20)
-        .sensoryFeedback(.success, trigger: data.message)
     }
 }
 
