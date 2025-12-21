@@ -7,6 +7,14 @@ extension Notification.Name {
 }
 
 actor HealthKitManager {
+    // NOTE: Multiple instances are intentional and efficient!
+    // Each instance has its own HKHealthStore, allowing parallel queries.
+    // Actor isolation would serialize all queries through a singleton.
+    // Apple's HealthKit is designed for multiple HKHealthStore instances.
+
+    // Use UserDefaults to track auth request across instances and app launches
+    private static let authRequestedKey = "healthKitAuthRequested"
+
     private let healthStore = HKHealthStore()
     private var isAuthorized = false
     private var workoutObserverQuery: HKObserverQuery?
@@ -64,12 +72,6 @@ actor HealthKitManager {
         HKQuantityType(.runningSpeed),
         HKQuantityType(.walkingSpeed),  // Walking pace for daily mobility
 
-        // Gait/Mobility Metrics (movement quality indicators)
-        HKQuantityType(.walkingAsymmetryPercentage),       // Left/right imbalance
-        HKQuantityType(.walkingDoubleSupportPercentage),   // Stability indicator
-        HKQuantityType(.walkingStepLength),                // Step length
-        HKQuantityType(.appleWalkingSteadiness),          // Composite steadiness score
-
         // Cycling Metrics (basic - no power meter needed)
         HKQuantityType(.cyclingCadence),
         HKQuantityType(.cyclingSpeed),
@@ -90,6 +92,23 @@ actor HealthKitManager {
             return false
         }
 
+        // Skip if already authorized this session
+        if isAuthorized {
+            return true
+        }
+
+        // Skip if we've already requested (persisted across instances and restarts)
+        // User must go to Settings to re-request permissions
+        if UserDefaults.standard.bool(forKey: Self.authRequestedKey) {
+            // Still check actual auth status for at least one type
+            let status = healthStore.authorizationStatus(for: HKQuantityType(.bodyMass))
+            isAuthorized = (status == .sharingAuthorized)
+            return isAuthorized
+        }
+
+        // Mark that we've requested (before async call to prevent race)
+        UserDefaults.standard.set(true, forKey: Self.authRequestedKey)
+
         do {
             try await healthStore.requestAuthorization(toShare: writeTypes, read: readTypes)
             isAuthorized = true
@@ -98,6 +117,11 @@ actor HealthKitManager {
             print("HealthKit authorization failed: \(error)")
             return false
         }
+    }
+
+    /// Reset the authorization request flag (call from Settings when user wants to re-request)
+    static func resetAuthorizationFlag() {
+        UserDefaults.standard.removeObject(forKey: authRequestedKey)
     }
 
     // MARK: - Workout Observer
@@ -221,30 +245,34 @@ actor HealthKitManager {
     // MARK: - Private Helpers
 
     private func fetchTodaySum(_ identifier: HKQuantityTypeIdentifier, unit: HKUnit) async -> Double? {
-        let type = HKQuantityType(identifier)
-        let calendar = Calendar.current
-        let startOfDay = calendar.startOfDay(for: Date())
-        let predicate = HKQuery.predicateForSamples(withStart: startOfDay, end: Date(), options: .strictStartDate)
+        await withQueryTimeoutOptional { [healthStore] in
+            let type = HKQuantityType(identifier)
+            let calendar = Calendar.current
+            let startOfDay = calendar.startOfDay(for: Date())
+            let predicate = HKQuery.predicateForSamples(withStart: startOfDay, end: Date(), options: .strictStartDate)
 
-        return await withCheckedContinuation { continuation in
-            let query = HKStatisticsQuery(quantityType: type, quantitySamplePredicate: predicate, options: .cumulativeSum) { _, result, _ in
-                let value = result?.sumQuantity()?.doubleValue(for: unit)
-                continuation.resume(returning: value)
+            return await withCheckedContinuation { continuation in
+                let query = HKStatisticsQuery(quantityType: type, quantitySamplePredicate: predicate, options: .cumulativeSum) { _, result, _ in
+                    let value = result?.sumQuantity()?.doubleValue(for: unit)
+                    continuation.resume(returning: value)
+                }
+                healthStore.execute(query)
             }
-            healthStore.execute(query)
         }
     }
 
     private func fetchLatest(_ identifier: HKQuantityTypeIdentifier, unit: HKUnit) async -> Double? {
-        let type = HKQuantityType(identifier)
-        let sortDescriptor = NSSortDescriptor(key: HKSampleSortIdentifierEndDate, ascending: false)
+        await withQueryTimeoutOptional { [healthStore] in
+            let type = HKQuantityType(identifier)
+            let sortDescriptor = NSSortDescriptor(key: HKSampleSortIdentifierEndDate, ascending: false)
 
-        return await withCheckedContinuation { continuation in
-            let query = HKSampleQuery(sampleType: type, predicate: nil, limit: 1, sortDescriptors: [sortDescriptor]) { _, samples, _ in
-                let value = (samples?.first as? HKQuantitySample)?.quantity.doubleValue(for: unit)
-                continuation.resume(returning: value)
+            return await withCheckedContinuation { continuation in
+                let query = HKSampleQuery(sampleType: type, predicate: nil, limit: 1, sortDescriptors: [sortDescriptor]) { _, samples, _ in
+                    let value = (samples?.first as? HKQuantitySample)?.quantity.doubleValue(for: unit)
+                    continuation.resume(returning: value)
+                }
+                healthStore.execute(query)
             }
-            healthStore.execute(query)
         }
     }
 
@@ -472,124 +500,136 @@ actor HealthKitManager {
 
     /// Get weight history for trend analysis
     func getWeightHistory(days: Int) async -> [WeightReading] {
-        let calendar = Calendar.current
-        let startDate = calendar.date(byAdding: .day, value: -days, to: Date())!
-        let type = HKQuantityType(.bodyMass)
-        let predicate = HKQuery.predicateForSamples(withStart: startDate, end: Date(), options: .strictStartDate)
-        let sortDescriptor = NSSortDescriptor(key: HKSampleSortIdentifierEndDate, ascending: true)
+        await withQueryTimeout(default: []) { [healthStore] in
+            let calendar = Calendar.current
+            let startDate = calendar.date(byAdding: .day, value: -days, to: Date())!
+            let type = HKQuantityType(.bodyMass)
+            let predicate = HKQuery.predicateForSamples(withStart: startDate, end: Date(), options: .strictStartDate)
+            let sortDescriptor = NSSortDescriptor(key: HKSampleSortIdentifierEndDate, ascending: true)
 
-        return await withCheckedContinuation { continuation in
-            let query = HKSampleQuery(sampleType: type, predicate: predicate, limit: HKObjectQueryNoLimit, sortDescriptors: [sortDescriptor]) { _, samples, _ in
-                let readings: [WeightReading] = (samples as? [HKQuantitySample])?.map { sample in
-                    WeightReading(
-                        date: sample.endDate,
-                        weightLbs: sample.quantity.doubleValue(for: .pound())
-                    )
-                } ?? []
-                continuation.resume(returning: readings)
+            return await withCheckedContinuation { continuation in
+                let query = HKSampleQuery(sampleType: type, predicate: predicate, limit: HKObjectQueryNoLimit, sortDescriptors: [sortDescriptor]) { _, samples, _ in
+                    let readings: [WeightReading] = (samples as? [HKQuantitySample])?.map { sample in
+                        WeightReading(
+                            date: sample.endDate,
+                            weightLbs: sample.quantity.doubleValue(for: .pound())
+                        )
+                    } ?? []
+                    continuation.resume(returning: readings)
+                }
+                healthStore.execute(query)
             }
-            healthStore.execute(query)
         }
     }
 
     /// Get body fat percentage history
     func getBodyFatHistory(days: Int) async -> [BodyFatReading] {
-        let calendar = Calendar.current
-        let startDate = calendar.date(byAdding: .day, value: -days, to: Date())!
-        let type = HKQuantityType(.bodyFatPercentage)
-        let predicate = HKQuery.predicateForSamples(withStart: startDate, end: Date(), options: .strictStartDate)
-        let sortDescriptor = NSSortDescriptor(key: HKSampleSortIdentifierEndDate, ascending: true)
+        await withQueryTimeout(default: []) { [healthStore] in
+            let calendar = Calendar.current
+            let startDate = calendar.date(byAdding: .day, value: -days, to: Date())!
+            let type = HKQuantityType(.bodyFatPercentage)
+            let predicate = HKQuery.predicateForSamples(withStart: startDate, end: Date(), options: .strictStartDate)
+            let sortDescriptor = NSSortDescriptor(key: HKSampleSortIdentifierEndDate, ascending: true)
 
-        return await withCheckedContinuation { continuation in
-            let query = HKSampleQuery(sampleType: type, predicate: predicate, limit: HKObjectQueryNoLimit, sortDescriptors: [sortDescriptor]) { _, samples, _ in
-                let readings: [BodyFatReading] = (samples as? [HKQuantitySample])?.map { sample in
-                    BodyFatReading(
-                        date: sample.endDate,
-                        bodyFatPct: sample.quantity.doubleValue(for: .percent()) * 100 // Convert to percentage
-                    )
-                } ?? []
-                continuation.resume(returning: readings)
+            return await withCheckedContinuation { continuation in
+                let query = HKSampleQuery(sampleType: type, predicate: predicate, limit: HKObjectQueryNoLimit, sortDescriptors: [sortDescriptor]) { _, samples, _ in
+                    let readings: [BodyFatReading] = (samples as? [HKQuantitySample])?.map { sample in
+                        BodyFatReading(
+                            date: sample.endDate,
+                            bodyFatPct: sample.quantity.doubleValue(for: .percent()) * 100 // Convert to percentage
+                        )
+                    } ?? []
+                    continuation.resume(returning: readings)
+                }
+                healthStore.execute(query)
             }
-            healthStore.execute(query)
         }
     }
 
     /// Get lean body mass history
     func getLeanMassHistory(days: Int) async -> [LeanMassReading] {
-        let calendar = Calendar.current
-        let startDate = calendar.date(byAdding: .day, value: -days, to: Date())!
-        let type = HKQuantityType(.leanBodyMass)
-        let predicate = HKQuery.predicateForSamples(withStart: startDate, end: Date(), options: .strictStartDate)
-        let sortDescriptor = NSSortDescriptor(key: HKSampleSortIdentifierEndDate, ascending: true)
+        await withQueryTimeout(default: []) { [healthStore] in
+            let calendar = Calendar.current
+            let startDate = calendar.date(byAdding: .day, value: -days, to: Date())!
+            let type = HKQuantityType(.leanBodyMass)
+            let predicate = HKQuery.predicateForSamples(withStart: startDate, end: Date(), options: .strictStartDate)
+            let sortDescriptor = NSSortDescriptor(key: HKSampleSortIdentifierEndDate, ascending: true)
 
-        return await withCheckedContinuation { continuation in
-            let query = HKSampleQuery(sampleType: type, predicate: predicate, limit: HKObjectQueryNoLimit, sortDescriptors: [sortDescriptor]) { _, samples, _ in
-                let readings: [LeanMassReading] = (samples as? [HKQuantitySample])?.map { sample in
-                    LeanMassReading(
-                        date: sample.endDate,
-                        leanMassLbs: sample.quantity.doubleValue(for: .pound())
-                    )
-                } ?? []
-                continuation.resume(returning: readings)
+            return await withCheckedContinuation { continuation in
+                let query = HKSampleQuery(sampleType: type, predicate: predicate, limit: HKObjectQueryNoLimit, sortDescriptors: [sortDescriptor]) { _, samples, _ in
+                    let readings: [LeanMassReading] = (samples as? [HKQuantitySample])?.map { sample in
+                        LeanMassReading(
+                            date: sample.endDate,
+                            leanMassLbs: sample.quantity.doubleValue(for: .pound())
+                        )
+                    } ?? []
+                    continuation.resume(returning: readings)
+                }
+                healthStore.execute(query)
             }
-            healthStore.execute(query)
         }
     }
 
     /// Get all weight history (no day limit - for "All Time" view)
     func getAllWeightHistory() async -> [WeightReading] {
-        let type = HKQuantityType(.bodyMass)
-        let sortDescriptor = NSSortDescriptor(key: HKSampleSortIdentifierEndDate, ascending: true)
+        await withQueryTimeout(default: [], timeout: 15.0) { [healthStore] in
+            let type = HKQuantityType(.bodyMass)
+            let sortDescriptor = NSSortDescriptor(key: HKSampleSortIdentifierEndDate, ascending: true)
 
-        return await withCheckedContinuation { continuation in
-            let query = HKSampleQuery(sampleType: type, predicate: nil, limit: HKObjectQueryNoLimit, sortDescriptors: [sortDescriptor]) { _, samples, _ in
-                let readings: [WeightReading] = (samples as? [HKQuantitySample])?.map { sample in
-                    WeightReading(
-                        date: sample.endDate,
-                        weightLbs: sample.quantity.doubleValue(for: .pound())
-                    )
-                } ?? []
-                continuation.resume(returning: readings)
+            return await withCheckedContinuation { continuation in
+                let query = HKSampleQuery(sampleType: type, predicate: nil, limit: HKObjectQueryNoLimit, sortDescriptors: [sortDescriptor]) { _, samples, _ in
+                    let readings: [WeightReading] = (samples as? [HKQuantitySample])?.map { sample in
+                        WeightReading(
+                            date: sample.endDate,
+                            weightLbs: sample.quantity.doubleValue(for: .pound())
+                        )
+                    } ?? []
+                    continuation.resume(returning: readings)
+                }
+                healthStore.execute(query)
             }
-            healthStore.execute(query)
         }
     }
 
     /// Get all body fat history (no day limit)
     func getAllBodyFatHistory() async -> [BodyFatReading] {
-        let type = HKQuantityType(.bodyFatPercentage)
-        let sortDescriptor = NSSortDescriptor(key: HKSampleSortIdentifierEndDate, ascending: true)
+        await withQueryTimeout(default: [], timeout: 15.0) { [healthStore] in
+            let type = HKQuantityType(.bodyFatPercentage)
+            let sortDescriptor = NSSortDescriptor(key: HKSampleSortIdentifierEndDate, ascending: true)
 
-        return await withCheckedContinuation { continuation in
-            let query = HKSampleQuery(sampleType: type, predicate: nil, limit: HKObjectQueryNoLimit, sortDescriptors: [sortDescriptor]) { _, samples, _ in
-                let readings: [BodyFatReading] = (samples as? [HKQuantitySample])?.map { sample in
-                    BodyFatReading(
-                        date: sample.endDate,
-                        bodyFatPct: sample.quantity.doubleValue(for: .percent()) * 100
-                    )
-                } ?? []
-                continuation.resume(returning: readings)
+            return await withCheckedContinuation { continuation in
+                let query = HKSampleQuery(sampleType: type, predicate: nil, limit: HKObjectQueryNoLimit, sortDescriptors: [sortDescriptor]) { _, samples, _ in
+                    let readings: [BodyFatReading] = (samples as? [HKQuantitySample])?.map { sample in
+                        BodyFatReading(
+                            date: sample.endDate,
+                            bodyFatPct: sample.quantity.doubleValue(for: .percent()) * 100
+                        )
+                    } ?? []
+                    continuation.resume(returning: readings)
+                }
+                healthStore.execute(query)
             }
-            healthStore.execute(query)
         }
     }
 
     /// Get all lean mass history (no day limit)
     func getAllLeanMassHistory() async -> [LeanMassReading] {
-        let type = HKQuantityType(.leanBodyMass)
-        let sortDescriptor = NSSortDescriptor(key: HKSampleSortIdentifierEndDate, ascending: true)
+        await withQueryTimeout(default: [], timeout: 15.0) { [healthStore] in
+            let type = HKQuantityType(.leanBodyMass)
+            let sortDescriptor = NSSortDescriptor(key: HKSampleSortIdentifierEndDate, ascending: true)
 
-        return await withCheckedContinuation { continuation in
-            let query = HKSampleQuery(sampleType: type, predicate: nil, limit: HKObjectQueryNoLimit, sortDescriptors: [sortDescriptor]) { _, samples, _ in
-                let readings: [LeanMassReading] = (samples as? [HKQuantitySample])?.map { sample in
-                    LeanMassReading(
-                        date: sample.endDate,
-                        leanMassLbs: sample.quantity.doubleValue(for: .pound())
-                    )
-                } ?? []
-                continuation.resume(returning: readings)
+            return await withCheckedContinuation { continuation in
+                let query = HKSampleQuery(sampleType: type, predicate: nil, limit: HKObjectQueryNoLimit, sortDescriptors: [sortDescriptor]) { _, samples, _ in
+                    let readings: [LeanMassReading] = (samples as? [HKQuantitySample])?.map { sample in
+                        LeanMassReading(
+                            date: sample.endDate,
+                            leanMassLbs: sample.quantity.doubleValue(for: .pound())
+                        )
+                    } ?? []
+                    continuation.resume(returning: readings)
+                }
+                healthStore.execute(query)
             }
-            healthStore.execute(query)
         }
     }
 
@@ -600,23 +640,25 @@ actor HealthKitManager {
     /// Returns all HRV readings (SDNN) over the specified period.
     /// Apple Watch typically records 1-2 HRV samples per day during sleep.
     func getHRVHistory(days: Int) async -> [HRVReading] {
-        let calendar = Calendar.current
-        let startDate = calendar.date(byAdding: .day, value: -days, to: Date())!
-        let type = HKQuantityType(.heartRateVariabilitySDNN)
-        let predicate = HKQuery.predicateForSamples(withStart: startDate, end: Date(), options: .strictStartDate)
-        let sortDescriptor = NSSortDescriptor(key: HKSampleSortIdentifierEndDate, ascending: true)
+        await withQueryTimeout(default: []) { [healthStore] in
+            let calendar = Calendar.current
+            let startDate = calendar.date(byAdding: .day, value: -days, to: Date())!
+            let type = HKQuantityType(.heartRateVariabilitySDNN)
+            let predicate = HKQuery.predicateForSamples(withStart: startDate, end: Date(), options: .strictStartDate)
+            let sortDescriptor = NSSortDescriptor(key: HKSampleSortIdentifierEndDate, ascending: true)
 
-        return await withCheckedContinuation { continuation in
-            let query = HKSampleQuery(sampleType: type, predicate: predicate, limit: HKObjectQueryNoLimit, sortDescriptors: [sortDescriptor]) { _, samples, _ in
-                let readings: [HRVReading] = (samples as? [HKQuantitySample])?.map { sample in
-                    HRVReading(
-                        date: sample.endDate,
-                        hrvMs: sample.quantity.doubleValue(for: .secondUnit(with: .milli))
-                    )
-                } ?? []
-                continuation.resume(returning: readings)
+            return await withCheckedContinuation { continuation in
+                let query = HKSampleQuery(sampleType: type, predicate: predicate, limit: HKObjectQueryNoLimit, sortDescriptors: [sortDescriptor]) { _, samples, _ in
+                    let readings: [HRVReading] = (samples as? [HKQuantitySample])?.map { sample in
+                        HRVReading(
+                            date: sample.endDate,
+                            hrvMs: sample.quantity.doubleValue(for: .secondUnit(with: .milli))
+                        )
+                    } ?? []
+                    continuation.resume(returning: readings)
+                }
+                healthStore.execute(query)
             }
-            healthStore.execute(query)
         }
     }
 
@@ -732,252 +774,191 @@ actor HealthKitManager {
 
     /// Get resting heart rate history for specified days as typed readings
     func getRestingHRHistoryAsReadings(days: Int) async -> [RestingHRReading] {
-        let calendar = Calendar.current
-        let startDate = calendar.date(byAdding: .day, value: -days, to: Date())!
-        let type = HKQuantityType(.restingHeartRate)
-        let predicate = HKQuery.predicateForSamples(withStart: startDate, end: Date(), options: .strictStartDate)
-        let sortDescriptor = NSSortDescriptor(key: HKSampleSortIdentifierEndDate, ascending: true)
+        await withQueryTimeout(default: []) { [healthStore] in
+            let calendar = Calendar.current
+            let startDate = calendar.date(byAdding: .day, value: -days, to: Date())!
+            let type = HKQuantityType(.restingHeartRate)
+            let predicate = HKQuery.predicateForSamples(withStart: startDate, end: Date(), options: .strictStartDate)
+            let sortDescriptor = NSSortDescriptor(key: HKSampleSortIdentifierEndDate, ascending: true)
 
-        return await withCheckedContinuation { continuation in
-            let query = HKSampleQuery(sampleType: type, predicate: predicate, limit: HKObjectQueryNoLimit, sortDescriptors: [sortDescriptor]) { _, samples, _ in
-                let readings: [RestingHRReading] = (samples as? [HKQuantitySample])?.map { sample in
-                    RestingHRReading(
-                        date: sample.endDate,
-                        bpm: sample.quantity.doubleValue(for: .count().unitDivided(by: .minute()))
-                    )
-                } ?? []
-                continuation.resume(returning: readings)
+            return await withCheckedContinuation { continuation in
+                let query = HKSampleQuery(sampleType: type, predicate: predicate, limit: HKObjectQueryNoLimit, sortDescriptors: [sortDescriptor]) { _, samples, _ in
+                    let readings: [RestingHRReading] = (samples as? [HKQuantitySample])?.map { sample in
+                        RestingHRReading(
+                            date: sample.endDate,
+                            bpm: sample.quantity.doubleValue(for: .count().unitDivided(by: .minute()))
+                        )
+                    } ?? []
+                    continuation.resume(returning: readings)
+                }
+                healthStore.execute(query)
             }
-            healthStore.execute(query)
         }
     }
 
     /// Get all resting heart rate history (no day limit - for "All Time" view)
     func getAllRestingHRHistory() async -> [RestingHRReading] {
-        let type = HKQuantityType(.restingHeartRate)
-        let sortDescriptor = NSSortDescriptor(key: HKSampleSortIdentifierEndDate, ascending: true)
+        await withQueryTimeout(default: [], timeout: 15.0) { [healthStore] in
+            let type = HKQuantityType(.restingHeartRate)
+            let sortDescriptor = NSSortDescriptor(key: HKSampleSortIdentifierEndDate, ascending: true)
 
-        return await withCheckedContinuation { continuation in
-            let query = HKSampleQuery(sampleType: type, predicate: nil, limit: HKObjectQueryNoLimit, sortDescriptors: [sortDescriptor]) { _, samples, _ in
-                let readings: [RestingHRReading] = (samples as? [HKQuantitySample])?.map { sample in
-                    RestingHRReading(
-                        date: sample.endDate,
-                        bpm: sample.quantity.doubleValue(for: .count().unitDivided(by: .minute()))
-                    )
-                } ?? []
-                continuation.resume(returning: readings)
+            return await withCheckedContinuation { continuation in
+                let query = HKSampleQuery(sampleType: type, predicate: nil, limit: HKObjectQueryNoLimit, sortDescriptors: [sortDescriptor]) { _, samples, _ in
+                    let readings: [RestingHRReading] = (samples as? [HKQuantitySample])?.map { sample in
+                        RestingHRReading(
+                            date: sample.endDate,
+                            bpm: sample.quantity.doubleValue(for: .count().unitDivided(by: .minute()))
+                        )
+                    } ?? []
+                    continuation.resume(returning: readings)
+                }
+                healthStore.execute(query)
             }
-            healthStore.execute(query)
         }
     }
 
     // MARK: - Walking/Running Speed History
 
     /// Get walking speed history for specified days
+    /// NOTE: Walking speed queries can hang on fresh HealthKit authorization
     func getWalkingSpeedHistory(days: Int) async -> [WalkingSpeedReading] {
-        let calendar = Calendar.current
-        let startDate = calendar.date(byAdding: .day, value: -days, to: Date())!
-        let type = HKQuantityType(.walkingSpeed)
-        let predicate = HKQuery.predicateForSamples(withStart: startDate, end: Date(), options: .strictStartDate)
-        let sortDescriptor = NSSortDescriptor(key: HKSampleSortIdentifierEndDate, ascending: true)
+        await withQueryTimeout(default: []) { [healthStore] in
+            let calendar = Calendar.current
+            let startDate = calendar.date(byAdding: .day, value: -days, to: Date())!
+            let type = HKQuantityType(.walkingSpeed)
+            let predicate = HKQuery.predicateForSamples(withStart: startDate, end: Date(), options: .strictStartDate)
+            let sortDescriptor = NSSortDescriptor(key: HKSampleSortIdentifierEndDate, ascending: true)
 
-        return await withCheckedContinuation { continuation in
-            let query = HKSampleQuery(sampleType: type, predicate: predicate, limit: HKObjectQueryNoLimit, sortDescriptors: [sortDescriptor]) { _, samples, _ in
-                let readings: [WalkingSpeedReading] = (samples as? [HKQuantitySample])?.map { sample in
-                    WalkingSpeedReading(
-                        date: sample.endDate,
-                        metersPerSecond: sample.quantity.doubleValue(for: .meter().unitDivided(by: .second()))
-                    )
-                } ?? []
-                continuation.resume(returning: readings)
+            return await withCheckedContinuation { continuation in
+                let query = HKSampleQuery(sampleType: type, predicate: predicate, limit: HKObjectQueryNoLimit, sortDescriptors: [sortDescriptor]) { _, samples, _ in
+                    let readings: [WalkingSpeedReading] = (samples as? [HKQuantitySample])?.map { sample in
+                        WalkingSpeedReading(
+                            date: sample.endDate,
+                            metersPerSecond: sample.quantity.doubleValue(for: .meter().unitDivided(by: .second()))
+                        )
+                    } ?? []
+                    continuation.resume(returning: readings)
+                }
+                healthStore.execute(query)
             }
-            healthStore.execute(query)
         }
     }
 
     /// Get all walking speed history (no day limit)
+    /// NOTE: Walking speed queries can hang on fresh HealthKit authorization
     func getAllWalkingSpeedHistory() async -> [WalkingSpeedReading] {
-        let type = HKQuantityType(.walkingSpeed)
-        let sortDescriptor = NSSortDescriptor(key: HKSampleSortIdentifierEndDate, ascending: true)
+        await withQueryTimeout(default: [], timeout: 15.0) { [healthStore] in
+            let type = HKQuantityType(.walkingSpeed)
+            let sortDescriptor = NSSortDescriptor(key: HKSampleSortIdentifierEndDate, ascending: true)
 
-        return await withCheckedContinuation { continuation in
-            let query = HKSampleQuery(sampleType: type, predicate: nil, limit: HKObjectQueryNoLimit, sortDescriptors: [sortDescriptor]) { _, samples, _ in
-                let readings: [WalkingSpeedReading] = (samples as? [HKQuantitySample])?.map { sample in
-                    WalkingSpeedReading(
-                        date: sample.endDate,
-                        metersPerSecond: sample.quantity.doubleValue(for: .meter().unitDivided(by: .second()))
-                    )
-                } ?? []
-                continuation.resume(returning: readings)
+            return await withCheckedContinuation { continuation in
+                let query = HKSampleQuery(sampleType: type, predicate: nil, limit: HKObjectQueryNoLimit, sortDescriptors: [sortDescriptor]) { _, samples, _ in
+                    let readings: [WalkingSpeedReading] = (samples as? [HKQuantitySample])?.map { sample in
+                        WalkingSpeedReading(
+                            date: sample.endDate,
+                            metersPerSecond: sample.quantity.doubleValue(for: .meter().unitDivided(by: .second()))
+                        )
+                    } ?? []
+                    continuation.resume(returning: readings)
+                }
+                healthStore.execute(query)
             }
-            healthStore.execute(query)
         }
     }
 
     /// Get running speed history for specified days
     func getRunningSpeedHistory(days: Int) async -> [RunningSpeedReading] {
-        let calendar = Calendar.current
-        let startDate = calendar.date(byAdding: .day, value: -days, to: Date())!
-        let type = HKQuantityType(.runningSpeed)
-        let predicate = HKQuery.predicateForSamples(withStart: startDate, end: Date(), options: .strictStartDate)
-        let sortDescriptor = NSSortDescriptor(key: HKSampleSortIdentifierEndDate, ascending: true)
+        await withQueryTimeout(default: []) { [healthStore] in
+            let calendar = Calendar.current
+            let startDate = calendar.date(byAdding: .day, value: -days, to: Date())!
+            let type = HKQuantityType(.runningSpeed)
+            let predicate = HKQuery.predicateForSamples(withStart: startDate, end: Date(), options: .strictStartDate)
+            let sortDescriptor = NSSortDescriptor(key: HKSampleSortIdentifierEndDate, ascending: true)
 
-        return await withCheckedContinuation { continuation in
-            let query = HKSampleQuery(sampleType: type, predicate: predicate, limit: HKObjectQueryNoLimit, sortDescriptors: [sortDescriptor]) { _, samples, _ in
-                let readings: [RunningSpeedReading] = (samples as? [HKQuantitySample])?.map { sample in
-                    RunningSpeedReading(
-                        date: sample.endDate,
-                        metersPerSecond: sample.quantity.doubleValue(for: .meter().unitDivided(by: .second()))
-                    )
-                } ?? []
-                continuation.resume(returning: readings)
+            return await withCheckedContinuation { continuation in
+                let query = HKSampleQuery(sampleType: type, predicate: predicate, limit: HKObjectQueryNoLimit, sortDescriptors: [sortDescriptor]) { _, samples, _ in
+                    let readings: [RunningSpeedReading] = (samples as? [HKQuantitySample])?.map { sample in
+                        RunningSpeedReading(
+                            date: sample.endDate,
+                            metersPerSecond: sample.quantity.doubleValue(for: .meter().unitDivided(by: .second()))
+                        )
+                    } ?? []
+                    continuation.resume(returning: readings)
+                }
+                healthStore.execute(query)
             }
-            healthStore.execute(query)
         }
     }
 
     /// Get all running speed history (no day limit)
     func getAllRunningSpeedHistory() async -> [RunningSpeedReading] {
-        let type = HKQuantityType(.runningSpeed)
-        let sortDescriptor = NSSortDescriptor(key: HKSampleSortIdentifierEndDate, ascending: true)
+        await withQueryTimeout(default: [], timeout: 15.0) { [healthStore] in
+            let type = HKQuantityType(.runningSpeed)
+            let sortDescriptor = NSSortDescriptor(key: HKSampleSortIdentifierEndDate, ascending: true)
 
-        return await withCheckedContinuation { continuation in
-            let query = HKSampleQuery(sampleType: type, predicate: nil, limit: HKObjectQueryNoLimit, sortDescriptors: [sortDescriptor]) { _, samples, _ in
-                let readings: [RunningSpeedReading] = (samples as? [HKQuantitySample])?.map { sample in
-                    RunningSpeedReading(
-                        date: sample.endDate,
-                        metersPerSecond: sample.quantity.doubleValue(for: .meter().unitDivided(by: .second()))
-                    )
-                } ?? []
-                continuation.resume(returning: readings)
+            return await withCheckedContinuation { continuation in
+                let query = HKSampleQuery(sampleType: type, predicate: nil, limit: HKObjectQueryNoLimit, sortDescriptors: [sortDescriptor]) { _, samples, _ in
+                    let readings: [RunningSpeedReading] = (samples as? [HKQuantitySample])?.map { sample in
+                        RunningSpeedReading(
+                            date: sample.endDate,
+                            metersPerSecond: sample.quantity.doubleValue(for: .meter().unitDivided(by: .second()))
+                        )
+                    } ?? []
+                    continuation.resume(returning: readings)
+                }
+                healthStore.execute(query)
             }
-            healthStore.execute(query)
         }
     }
 
-    // MARK: - Gait/Movement Quality History
+    // MARK: - Timeout Protection
 
-    /// Get walking asymmetry history for specified days
-    func getWalkingAsymmetryHistory(days: Int) async -> [WalkingAsymmetryReading] {
-        let calendar = Calendar.current
-        let startDate = calendar.date(byAdding: .day, value: -days, to: Date())!
-        let type = HKQuantityType(.walkingAsymmetryPercentage)
-        let predicate = HKQuery.predicateForSamples(withStart: startDate, end: Date(), options: .strictStartDate)
-        let sortDescriptor = NSSortDescriptor(key: HKSampleSortIdentifierEndDate, ascending: true)
+    /// Default timeout for HealthKit queries (8 seconds)
+    /// Motion/gait metrics can hang indefinitely on fresh authorization
+    private let queryTimeout: Double = 8.0
 
-        return await withCheckedContinuation { continuation in
-            let query = HKSampleQuery(sampleType: type, predicate: predicate, limit: HKObjectQueryNoLimit, sortDescriptors: [sortDescriptor]) { _, samples, _ in
-                let readings: [WalkingAsymmetryReading] = (samples as? [HKQuantitySample])?.map { sample in
-                    WalkingAsymmetryReading(
-                        date: sample.endDate,
-                        percentage: sample.quantity.doubleValue(for: .percent()) * 100
-                    )
-                } ?? []
-                continuation.resume(returning: readings)
+    /// Execute a HealthKit query with timeout protection.
+    ///
+    /// Some HealthKit queries (especially motion metrics) can hang indefinitely
+    /// on fresh authorization. This wrapper ensures queries either complete or
+    /// return a default value within the timeout period.
+    ///
+    /// - Parameters:
+    ///   - defaultValue: Value to return if query times out
+    ///   - timeout: Timeout in seconds (defaults to 8s)
+    ///   - operation: The async query operation to execute
+    /// - Returns: The query result, or defaultValue if timeout occurred
+    private func withQueryTimeout<T: Sendable>(
+        default defaultValue: T,
+        timeout: Double? = nil,
+        operation: @Sendable @escaping () async -> T
+    ) async -> T {
+        let timeoutSeconds = timeout ?? queryTimeout
+
+        return await withTaskGroup(of: T.self) { group in
+            group.addTask {
+                await operation()
             }
-            healthStore.execute(query)
+            group.addTask {
+                try? await Task.sleep(for: .seconds(timeoutSeconds))
+                return defaultValue
+            }
+
+            // Return first completed result (either query or timeout)
+            if let result = await group.next() {
+                group.cancelAll()
+                return result
+            }
+            return defaultValue
         }
     }
 
-    /// Get all walking asymmetry history (no day limit)
-    func getAllWalkingAsymmetryHistory() async -> [WalkingAsymmetryReading] {
-        let type = HKQuantityType(.walkingAsymmetryPercentage)
-        let sortDescriptor = NSSortDescriptor(key: HKSampleSortIdentifierEndDate, ascending: true)
-
-        return await withCheckedContinuation { continuation in
-            let query = HKSampleQuery(sampleType: type, predicate: nil, limit: HKObjectQueryNoLimit, sortDescriptors: [sortDescriptor]) { _, samples, _ in
-                let readings: [WalkingAsymmetryReading] = (samples as? [HKQuantitySample])?.map { sample in
-                    WalkingAsymmetryReading(
-                        date: sample.endDate,
-                        percentage: sample.quantity.doubleValue(for: .percent()) * 100
-                    )
-                } ?? []
-                continuation.resume(returning: readings)
-            }
-            healthStore.execute(query)
-        }
-    }
-
-    /// Get double support percentage history for specified days
-    func getDoubleSupportHistory(days: Int) async -> [DoubleSupportReading] {
-        let calendar = Calendar.current
-        let startDate = calendar.date(byAdding: .day, value: -days, to: Date())!
-        let type = HKQuantityType(.walkingDoubleSupportPercentage)
-        let predicate = HKQuery.predicateForSamples(withStart: startDate, end: Date(), options: .strictStartDate)
-        let sortDescriptor = NSSortDescriptor(key: HKSampleSortIdentifierEndDate, ascending: true)
-
-        return await withCheckedContinuation { continuation in
-            let query = HKSampleQuery(sampleType: type, predicate: predicate, limit: HKObjectQueryNoLimit, sortDescriptors: [sortDescriptor]) { _, samples, _ in
-                let readings: [DoubleSupportReading] = (samples as? [HKQuantitySample])?.map { sample in
-                    DoubleSupportReading(
-                        date: sample.endDate,
-                        percentage: sample.quantity.doubleValue(for: .percent()) * 100
-                    )
-                } ?? []
-                continuation.resume(returning: readings)
-            }
-            healthStore.execute(query)
-        }
-    }
-
-    /// Get all double support history (no day limit)
-    func getAllDoubleSupportHistory() async -> [DoubleSupportReading] {
-        let type = HKQuantityType(.walkingDoubleSupportPercentage)
-        let sortDescriptor = NSSortDescriptor(key: HKSampleSortIdentifierEndDate, ascending: true)
-
-        return await withCheckedContinuation { continuation in
-            let query = HKSampleQuery(sampleType: type, predicate: nil, limit: HKObjectQueryNoLimit, sortDescriptors: [sortDescriptor]) { _, samples, _ in
-                let readings: [DoubleSupportReading] = (samples as? [HKQuantitySample])?.map { sample in
-                    DoubleSupportReading(
-                        date: sample.endDate,
-                        percentage: sample.quantity.doubleValue(for: .percent()) * 100
-                    )
-                } ?? []
-                continuation.resume(returning: readings)
-            }
-            healthStore.execute(query)
-        }
-    }
-
-    /// Get walking steadiness history for specified days
-    func getWalkingSteadinessHistory(days: Int) async -> [WalkingSteadinessReading] {
-        let calendar = Calendar.current
-        let startDate = calendar.date(byAdding: .day, value: -days, to: Date())!
-        let type = HKQuantityType(.appleWalkingSteadiness)
-        let predicate = HKQuery.predicateForSamples(withStart: startDate, end: Date(), options: .strictStartDate)
-        let sortDescriptor = NSSortDescriptor(key: HKSampleSortIdentifierEndDate, ascending: true)
-
-        return await withCheckedContinuation { continuation in
-            let query = HKSampleQuery(sampleType: type, predicate: predicate, limit: HKObjectQueryNoLimit, sortDescriptors: [sortDescriptor]) { _, samples, _ in
-                let readings: [WalkingSteadinessReading] = (samples as? [HKQuantitySample])?.map { sample in
-                    WalkingSteadinessReading(
-                        date: sample.endDate,
-                        percentage: sample.quantity.doubleValue(for: .percent()) * 100
-                    )
-                } ?? []
-                continuation.resume(returning: readings)
-            }
-            healthStore.execute(query)
-        }
-    }
-
-    /// Get all walking steadiness history (no day limit)
-    func getAllWalkingSteadinessHistory() async -> [WalkingSteadinessReading] {
-        let type = HKQuantityType(.appleWalkingSteadiness)
-        let sortDescriptor = NSSortDescriptor(key: HKSampleSortIdentifierEndDate, ascending: true)
-
-        return await withCheckedContinuation { continuation in
-            let query = HKSampleQuery(sampleType: type, predicate: nil, limit: HKObjectQueryNoLimit, sortDescriptors: [sortDescriptor]) { _, samples, _ in
-                let readings: [WalkingSteadinessReading] = (samples as? [HKQuantitySample])?.map { sample in
-                    WalkingSteadinessReading(
-                        date: sample.endDate,
-                        percentage: sample.quantity.doubleValue(for: .percent()) * 100
-                    )
-                } ?? []
-                continuation.resume(returning: readings)
-            }
-            healthStore.execute(query)
-        }
+    /// Execute a HealthKit query with timeout, returning nil on timeout.
+    private func withQueryTimeoutOptional<T: Sendable>(
+        timeout: Double? = nil,
+        operation: @Sendable @escaping () async -> T?
+    ) async -> T? {
+        await withQueryTimeout(default: nil, timeout: timeout, operation: operation)
     }
 
     /// Calculate resting HR baseline from last 14 days.
@@ -1095,29 +1076,33 @@ actor HealthKitManager {
     // MARK: - Extended Private Helpers
 
     private func fetchDaySum(_ identifier: HKQuantityTypeIdentifier, unit: HKUnit, start: Date, end: Date) async -> Double? {
-        let type = HKQuantityType(identifier)
-        let predicate = HKQuery.predicateForSamples(withStart: start, end: end, options: .strictStartDate)
+        await withQueryTimeoutOptional { [healthStore] in
+            let type = HKQuantityType(identifier)
+            let predicate = HKQuery.predicateForSamples(withStart: start, end: end, options: .strictStartDate)
 
-        return await withCheckedContinuation { continuation in
-            let query = HKStatisticsQuery(quantityType: type, quantitySamplePredicate: predicate, options: .cumulativeSum) { _, result, _ in
-                let value = result?.sumQuantity()?.doubleValue(for: unit)
-                continuation.resume(returning: value)
+            return await withCheckedContinuation { continuation in
+                let query = HKStatisticsQuery(quantityType: type, quantitySamplePredicate: predicate, options: .cumulativeSum) { _, result, _ in
+                    let value = result?.sumQuantity()?.doubleValue(for: unit)
+                    continuation.resume(returning: value)
+                }
+                healthStore.execute(query)
             }
-            healthStore.execute(query)
         }
     }
 
     private func fetchDayLatest(_ identifier: HKQuantityTypeIdentifier, unit: HKUnit, start: Date, end: Date) async -> Double? {
-        let type = HKQuantityType(identifier)
-        let predicate = HKQuery.predicateForSamples(withStart: start, end: end, options: .strictStartDate)
-        let sortDescriptor = NSSortDescriptor(key: HKSampleSortIdentifierEndDate, ascending: false)
+        await withQueryTimeoutOptional { [healthStore] in
+            let type = HKQuantityType(identifier)
+            let predicate = HKQuery.predicateForSamples(withStart: start, end: end, options: .strictStartDate)
+            let sortDescriptor = NSSortDescriptor(key: HKSampleSortIdentifierEndDate, ascending: false)
 
-        return await withCheckedContinuation { continuation in
-            let query = HKSampleQuery(sampleType: type, predicate: predicate, limit: 1, sortDescriptors: [sortDescriptor]) { _, samples, _ in
-                let value = (samples?.first as? HKQuantitySample)?.quantity.doubleValue(for: unit)
-                continuation.resume(returning: value)
+            return await withCheckedContinuation { continuation in
+                let query = HKSampleQuery(sampleType: type, predicate: predicate, limit: 1, sortDescriptors: [sortDescriptor]) { _, samples, _ in
+                    let value = (samples?.first as? HKQuantitySample)?.quantity.doubleValue(for: unit)
+                    continuation.resume(returning: value)
+                }
+                healthStore.execute(query)
             }
-            healthStore.execute(query)
         }
     }
 
@@ -1619,39 +1604,6 @@ struct RunningSpeedReading: Sendable, Identifiable {
     /// Convert to mph for easier interpretation
     var mph: Double {
         metersPerSecond * 2.23694
-    }
-}
-
-/// Walking asymmetry reading - left/right gait imbalance (percentage)
-/// Lower is better: <5% is normal, >10% may indicate injury/compensation
-struct WalkingAsymmetryReading: Sendable, Identifiable {
-    let id = UUID()
-    let date: Date
-    let percentage: Double  // 0-50 range typically
-}
-
-/// Double support percentage - time with both feet on ground
-/// Higher values indicate more conservative/stable gait (fall risk indicator in elderly)
-/// Normal range: 20-40% depending on walking speed
-struct DoubleSupportReading: Sendable, Identifiable {
-    let id = UUID()
-    let date: Date
-    let percentage: Double
-}
-
-/// Walking steadiness reading - Apple's composite mobility score
-/// Higher is better: Low risk (>80%), Medium risk (40-80%), High risk (<40%)
-struct WalkingSteadinessReading: Sendable, Identifiable {
-    let id = UUID()
-    let date: Date
-    let percentage: Double  // 0-100 score
-
-    var riskLevel: String {
-        switch percentage {
-        case 80...: return "Low Risk"
-        case 40..<80: return "Medium Risk"
-        default: return "High Risk"
-        }
     }
 }
 

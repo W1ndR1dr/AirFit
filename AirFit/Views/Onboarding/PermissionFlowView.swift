@@ -54,6 +54,7 @@ struct HealthKitPermissionPage: View {
     @State private var showCTAs = false
     @State private var iconPulse = false
     @State private var isRequesting = false
+    @State private var isAuthorized = false
     @State private var loadingPhase = 0
     @State private var loadingTimer: Timer?
 
@@ -73,13 +74,13 @@ struct HealthKitPermissionPage: View {
 
             // Icon with glow effect
             ZStack {
-                // Outer glow - pulses more intensely when loading
+                // Outer glow - pulses during loading, settles when authorized
                 Circle()
                     .fill(
                         RadialGradient(
                             colors: [
-                                Theme.accent.opacity(isRequesting ? 0.6 : 0.4),
-                                Theme.accent.opacity(isRequesting ? 0.2 : 0.1),
+                                (isAuthorized ? Color.green : Theme.accent).opacity(isRequesting ? 0.6 : (isAuthorized ? 0.5 : 0.4)),
+                                (isAuthorized ? Color.green : Theme.accent).opacity(isRequesting ? 0.2 : 0.1),
                                 .clear
                             ],
                             center: .center,
@@ -88,7 +89,7 @@ struct HealthKitPermissionPage: View {
                         )
                     )
                     .frame(width: 160, height: 160)
-                    .scaleEffect(iconPulse ? 1.1 : 1.0)
+                    .scaleEffect(isAuthorized ? 1.0 : (iconPulse ? 1.1 : 1.0))
 
                 // Spinning ring when loading
                 if isRequesting {
@@ -107,31 +108,49 @@ struct HealthKitPermissionPage: View {
                         .animation(.linear(duration: 1.5).repeatForever(autoreverses: false), value: iconPulse)
                 }
 
+                // Success ring when authorized
+                if isAuthorized {
+                    Circle()
+                        .stroke(Color.green.opacity(0.6), lineWidth: 3)
+                        .frame(width: 110, height: 110)
+                        .transition(.scale.combined(with: .opacity))
+                }
+
                 // Icon background
                 Circle()
                     .fill(
                         LinearGradient(
-                            colors: [Theme.accent.opacity(0.15), Theme.warmPeach.opacity(0.1)],
+                            colors: isAuthorized
+                                ? [Color.green.opacity(0.15), Color.green.opacity(0.08)]
+                                : [Theme.accent.opacity(0.15), Theme.warmPeach.opacity(0.1)],
                             startPoint: .topLeading,
                             endPoint: .bottomTrailing
                         )
                     )
                     .frame(width: 100, height: 100)
 
-                // Icon - uses symbol effect when loading
-                Image(systemName: "heart.circle.fill")
-                    .font(.system(size: 52))
-                    .foregroundStyle(
-                        LinearGradient(
-                            colors: [Theme.accent, Theme.warmPeach],
-                            startPoint: .topLeading,
-                            endPoint: .bottomTrailing
+                // Icon - shows checkmark when authorized
+                if isAuthorized {
+                    Image(systemName: "checkmark.circle.fill")
+                        .font(.system(size: 52))
+                        .foregroundStyle(Color.green)
+                        .transition(.scale.combined(with: .opacity))
+                } else {
+                    Image(systemName: "heart.circle.fill")
+                        .font(.system(size: 52))
+                        .foregroundStyle(
+                            LinearGradient(
+                                colors: [Theme.accent, Theme.warmPeach],
+                                startPoint: .topLeading,
+                                endPoint: .bottomTrailing
+                            )
                         )
-                    )
-                    .symbolEffect(.pulse.byLayer, options: .repeating, isActive: isRequesting)
+                        .symbolEffect(.pulse.byLayer, options: .repeating, isActive: isRequesting)
+                }
             }
             .opacity(showIcon ? 1 : 0)
             .scaleEffect(showIcon ? 1 : 0.7)
+            .animation(.spring(response: 0.5), value: isAuthorized)
 
             Spacer()
                 .frame(height: 44)
@@ -222,9 +241,21 @@ struct HealthKitPermissionPage: View {
         Task {
             // Use the stored reference (not a new instance)
             let _ = await manager.requestAuthorization()
+
             await MainActor.run {
                 loadingTimer?.invalidate()
                 isRequesting = false
+
+                // Show success state with animated checkmark
+                withAnimation(.spring(response: 0.5)) {
+                    isAuthorized = true
+                }
+            }
+
+            // Brief pause to show success, then advance
+            try? await Task.sleep(for: .milliseconds(800))
+
+            await MainActor.run {
                 onComplete()
             }
         }

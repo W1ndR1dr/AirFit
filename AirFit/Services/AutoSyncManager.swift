@@ -102,11 +102,16 @@ final class AutoSyncManager: ObservableObject {
     /// Perform initial sync on app launch.
     /// Requests HealthKit permissions if needed, then syncs data.
     func performLaunchSync(modelContext: ModelContext) async {
+        print("[AutoSync] 🟡 performLaunchSync START")
+        let startTime = Date()
+
         // Store context for workout-triggered syncs
         currentModelContext = modelContext
 
         // Start the workout observer for immediate Hevy sync
+        print("[AutoSync] 🟡 Starting workout observer...")
         await healthKit.startWorkoutObserver()
+        print("[AutoSync] 🟡 Workout observer started")
 
         // Seed demo data if none exists (for demos/testing)
         await seedDemoDataIfNeeded(modelContext: modelContext)
@@ -118,7 +123,9 @@ final class AutoSyncManager: ObservableObject {
             return
         }
 
+        print("[AutoSync] 🟡 Starting performSync...")
         await performSync(modelContext: modelContext)
+        print("[AutoSync] ✅ performLaunchSync COMPLETE in \(Date().timeIntervalSince(startTime))s")
     }
 
     // MARK: - Smart Workout Detection

@@ -213,6 +213,11 @@ struct ReadinessCard: View {
 
     private func loadAssessment() async {
         isLoading = true
+
+        // Defer heavy HealthKit queries to let UI render first
+        // This prevents blocking the main thread during initial layout
+        try? await Task.sleep(for: .milliseconds(100))
+
         let result = await engine.getReadinessAssessment()
         await MainActor.run {
             withAnimation(.airfit) {

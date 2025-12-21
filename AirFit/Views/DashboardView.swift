@@ -72,9 +72,14 @@ struct DashboardView: View {
         .animation(.airfit, value: selectedSegment)
         .animation(.spring(response: 0.4, dampingFraction: 0.8), value: expandedMetric)
         .task {
-            await loadWeekContext()
+            // Run context and workouts in parallel (both are network calls)
+            async let contextTask: () = loadWeekContext()
+            async let workoutsTask: () = loadRecentWorkouts()
+
+            _ = await (contextTask, workoutsTask)
+
+            // Then load HealthKit history (deferred slightly for UI responsiveness)
             await loadWeeklyHistory()
-            await loadRecentWorkouts()
         }
         .sheet(isPresented: $showWorkoutSheet) {
             WorkoutDetailSheet(workouts: recentWorkouts)
@@ -129,18 +134,29 @@ struct DashboardView: View {
         }
     }
 
-    /// Load 7 days of sleep data from HealthKit
+    /// Load 7 days of sleep data from HealthKit (parallel queries for speed)
     private func loadSleepHistory() async -> [Double] {
-        var sleepValues: [Double] = []
         let calendar = Calendar.current
 
-        for dayOffset in (0..<7).reversed() {
-            if let date = calendar.date(byAdding: .day, value: -dayOffset, to: Date()) {
-                let snapshot = await healthKit.getDailySnapshot(for: date)
-                sleepValues.append(snapshot.sleepHours ?? 0)
+        // Run all 7 days in parallel instead of serial
+        return await withTaskGroup(of: (Int, Double).self) { group in
+            for dayOffset in 0..<7 {
+                group.addTask {
+                    if let date = calendar.date(byAdding: .day, value: -dayOffset, to: Date()) {
+                        let snapshot = await self.healthKit.getDailySnapshot(for: date)
+                        return (dayOffset, snapshot.sleepHours ?? 0)
+                    }
+                    return (dayOffset, 0)
+                }
             }
+
+            // Collect results and sort by dayOffset (most recent last)
+            var results: [(Int, Double)] = []
+            for await result in group {
+                results.append(result)
+            }
+            return results.sorted { $0.0 > $1.0 }.map { $0.1 }
         }
-        return sleepValues
     }
 
     /// Aggregate readings to single daily values (most recent per day)
@@ -348,8 +364,6 @@ struct BodyContentView: View {
     @State private var pRatioData: [ChartDataPoint] = []  // Rolling P-ratio quality scores
     @State private var restingHRData: [ChartDataPoint] = []  // Long-term cardio fitness
     @State private var walkingSpeedData: [ChartDataPoint] = []  // Walking pace (mph)
-    @State private var walkingAsymmetryData: [ChartDataPoint] = []  // Gait symmetry
-    @State private var doubleSupportData: [ChartDataPoint] = []  // Stability indicator
     @State private var isLoading = true
 
     private let healthKit = HealthKitManager()
@@ -405,22 +419,6 @@ struct BodyContentView: View {
     private var walkingSpeedTrend: Double? {
         guard walkingSpeedData.count >= 2 else { return nil }
         return walkingSpeedData.last!.value - walkingSpeedData.first!.value
-    }
-
-    // Walking Asymmetry: Lower is better (symmetrical gait)
-    private var currentAsymmetry: Double? { walkingAsymmetryData.last?.value }
-
-    private var asymmetryTrend: Double? {
-        guard walkingAsymmetryData.count >= 2 else { return nil }
-        return walkingAsymmetryData.last!.value - walkingAsymmetryData.first!.value
-    }
-
-    // Double Support: Informational (higher = more stable, lower = more efficient)
-    private var currentDoubleSupport: Double? { doubleSupportData.last?.value }
-
-    private var doubleSupportTrend: Double? {
-        guard doubleSupportData.count >= 2 else { return nil }
-        return doubleSupportData.last!.value - doubleSupportData.first!.value
     }
 
     /// Convert P-ratio quality score (0-100) to label
@@ -529,61 +527,13 @@ struct BodyContentView: View {
                     data: restingHRData,
                     unit: "bpm",
                     trend: restingHRTrend,
-                    trendInverted: true,  // Lower is better
+                    trendInverted: true,
                     tooltip: "The metronome of metabolic efficiency—your heart's idle speed. Lower resting rates signal cardiovascular adaptation: more stroke volume per beat, less work for the same output. Elite endurance athletes hover in the 40s; mortals should celebrate the 50s. Improvement here is measured in months, not days.",
                     formatValue: { String(format: "%.0f", $0) }
                 )
             }
 
-            // Heart metrics card - HRV & RHR with baseline context
-            // Shows today's values as deviation from 7-day rolling baseline
-            HeartMetricsCard()
-                .padding(.horizontal, 20)
-
-            // Walking speed chart - mobility/fitness indicator
-            if !walkingSpeedData.isEmpty {
-                chartCard(
-                    title: "WALKING PACE",
-                    icon: "figure.walk",
-                    color: Theme.secondary,
-                    data: walkingSpeedData,
-                    unit: "mph",
-                    trend: walkingSpeedTrend,
-                    trendInverted: false,  // Higher is better
-                    tooltip: "Your body's preferred cruising speed—a proxy for overall mobility and cardiovascular efficiency. Research shows walking speed is one of the best predictors of longevity, outperforming many clinical measures. Faster isn't always the goal; consistent improvement across months signals systemic health gains. The Apple Watch measures this automatically during steady-state walking.",
-                    formatValue: { String(format: "%.1f", $0) }
-                )
-            }
-
-            // Walking asymmetry chart - gait symmetry indicator
-            if !walkingAsymmetryData.isEmpty {
-                chartCard(
-                    title: "GAIT SYMMETRY",
-                    icon: "figure.walk.motion",
-                    color: Theme.warning,
-                    data: walkingAsymmetryData,
-                    unit: "%",
-                    trend: asymmetryTrend,
-                    trendInverted: true,  // Lower is better (more symmetrical)
-                    tooltip: "The imbalance between your left and right leg during walking. Perfect symmetry would be 0%—anything under 5% is normal. Rising asymmetry can be an early warning of compensation patterns from injury, muscle imbalance, or fatigue. Your watch measures this passively during normal walking. Track trends, not daily noise.",
-                    formatValue: { String(format: "%.1f", $0) }
-                )
-            }
-
-            // Double support chart - stability indicator
-            if !doubleSupportData.isEmpty {
-                chartCard(
-                    title: "DOUBLE SUPPORT",
-                    icon: "figure.stand",
-                    color: Theme.sleepCore,
-                    data: doubleSupportData,
-                    unit: "%",
-                    trend: doubleSupportTrend,
-                    trendInverted: false,  // Neither direction is universally better
-                    tooltip: "Percentage of your gait cycle spent with both feet on the ground. Lower values (20-25%) indicate a more athletic, efficient gait. Higher values (30-40%) suggest a more cautious, stable pattern. This isn't a 'higher is better' metric—context matters. Athletes trend lower; those recovering from injury or with balance concerns trend higher. Watch for unexpected changes.",
-                    formatValue: { String(format: "%.0f", $0) }
-                )
-            }
+            // Walking speed temporarily disabled - motion metrics hang on fresh HealthKit auth
         }
         .padding(.horizontal, 20)
         .padding(.bottom, 40)
@@ -774,19 +724,18 @@ struct BodyContentView: View {
     private func loadData() async {
         isLoading = true
 
+        // Defer heavy HealthKit queries to let UI render first
+        try? await Task.sleep(for: .milliseconds(150))
+
         // Request authorization if needed
         _ = await healthKit.requestAuthorization()
 
-        // Fetch data based on time range
-        async let weightTask = fetchWeight()
-        async let bodyFatTask = fetchBodyFat()
-        async let leanMassTask = fetchLeanMass()
-        async let restingHRTask = fetchRestingHR()
-        async let walkingSpeedTask = fetchWalkingSpeed()
-        async let asymmetryTask = fetchWalkingAsymmetry()
-        async let doubleSupportTask = fetchDoubleSupport()
-
-        let (weight, bodyFat, leanMass, restingHR, walkingSpeed, asymmetry, doubleSupport) = await (weightTask, bodyFatTask, leanMassTask, restingHRTask, walkingSpeedTask, asymmetryTask, doubleSupportTask)
+        // Fetch body composition and heart data
+        // NOTE: Motion metrics (walking speed, gait) are skipped - they hang on fresh HealthKit auth
+        let weight = await fetchWeight()
+        let bodyFat = await fetchBodyFat()
+        let leanMass = await fetchLeanMass()
+        let restingHR = await fetchRestingHR()
 
         // Calculate rolling P-ratio quality scores
         let pRatio = calculatePRatioQuality(weight: weight, bodyFat: bodyFat)
@@ -798,9 +747,7 @@ struct BodyContentView: View {
                 leanMassData = leanMass
                 pRatioData = pRatio
                 restingHRData = restingHR
-                walkingSpeedData = walkingSpeed
-                walkingAsymmetryData = asymmetry
-                doubleSupportData = doubleSupport
+                walkingSpeedData = []
                 isLoading = false
             }
         }
@@ -943,30 +890,6 @@ struct BodyContentView: View {
 
         // Convert to mph for display
         return readings.map { ChartDataPoint(date: $0.date, value: $0.mph) }
-    }
-
-    private func fetchWalkingAsymmetry() async -> [ChartDataPoint] {
-        let readings: [WalkingAsymmetryReading]
-
-        if let days = timeRange.days {
-            readings = await healthKit.getWalkingAsymmetryHistory(days: days)
-        } else {
-            readings = await healthKit.getAllWalkingAsymmetryHistory()
-        }
-
-        return readings.map { ChartDataPoint(date: $0.date, value: $0.percentage) }
-    }
-
-    private func fetchDoubleSupport() async -> [ChartDataPoint] {
-        let readings: [DoubleSupportReading]
-
-        if let days = timeRange.days {
-            readings = await healthKit.getDoubleSupportHistory(days: days)
-        } else {
-            readings = await healthKit.getAllDoubleSupportHistory()
-        }
-
-        return readings.map { ChartDataPoint(date: $0.date, value: $0.percentage) }
     }
 }
 
@@ -1238,6 +1161,9 @@ struct TrainingContentView: View {
 
     private func loadData() async {
         isLoading = true
+
+        // Small defer to let UI render first
+        try? await Task.sleep(for: .milliseconds(50))
 
         // Try to refresh cache from server first
         let serverAvailable = await apiClient.checkHealth()

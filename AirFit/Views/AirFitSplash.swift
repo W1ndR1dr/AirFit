@@ -12,14 +12,17 @@ struct AirFitSplashView: View {
     }
 
     // Animation states - separate concerns
+    // For seamless native launch → SwiftUI transition, start SHARP (matching launch screen)
     // Logo: reveal mask + blur (opacity stays at 1)
-    @State private var flameReveal: CGFloat = 0.0
-    @State private var flameBlur: CGFloat = 20
+    @State private var flameReveal: CGFloat = 1.0  // Start revealed (matches native launch)
+    @State private var flameBlur: CGFloat = 0      // Start sharp (matches native launch)
     // Wordmark: opacity + blur (simple fade)
     @State private var wordmarkOpacity: Double = 0.0
     @State private var wordmarkBlur: CGFloat = 12
     // Glow: opacity only
-    @State private var glowOpacity: Double = 0.0
+    @State private var glowOpacity: Double = 0.4   // Start with subtle glow
+    // Track if we should animate
+    @State private var hasAnimated: Bool = false
 
     private var duration: Double { useLongAnimation ? 2.2 : 0.5 }
 
@@ -28,11 +31,11 @@ struct AirFitSplashView: View {
     private let logoY: CGFloat = -50
     private let wordmarkY: CGFloat = 155
 
-    // Appearance-adaptive colors
+    // Appearance-adaptive colors - MUST match LaunchBackground.colorset exactly for seamless transition
     private var backgroundColor: Color {
         colorScheme == .dark
-            ? Color(red: 10/255, green: 10/255, blue: 15/255)  // Dark: near black
-            : Color(red: 255/255, green: 248/255, blue: 240/255)  // Light: honeyed cream #FFF8F0
+            ? Color(red: 0.110, green: 0.098, blue: 0.090)  // Dark: matches LaunchBackground dark
+            : Color(red: 1.000, green: 0.973, blue: 0.941)  // Light: matches LaunchBackground light (#FFF8F0)
     }
 
     private var glowColors: [Color] {
@@ -124,21 +127,38 @@ struct AirFitSplashView: View {
     }
 
     private func animate() {
-        // SINGLE animation block - everything moves together
-        withAnimation(.easeOut(duration: duration)) {
-            // Logo: reveal from bottom + deblur
-            flameReveal = 1.0
-            flameBlur = 0
-            // Wordmark: fade in + deblur
-            wordmarkOpacity = 1.0
-            wordmarkBlur = 0
-            // Glow: fade in
-            glowOpacity = 0.9
-        }
+        guard !hasAnimated else { return }
+        hasAnimated = true
 
-        // Glow settles down after main animation
-        withAnimation(.easeOut(duration: 1.0).delay(duration * 0.7)) {
-            glowOpacity = 0.4
+        if useLongAnimation {
+            // Onboarding: dramatic reveal animation
+            // First reset to hidden state, then animate
+            flameReveal = 0.0
+            flameBlur = 20
+            glowOpacity = 0.0
+
+            // Small delay to ensure reset takes effect
+            DispatchQueue.main.asyncAfter(deadline: .now() + 0.05) {
+                withAnimation(.easeOut(duration: duration)) {
+                    flameReveal = 1.0
+                    flameBlur = 0
+                    wordmarkOpacity = 1.0
+                    wordmarkBlur = 0
+                    glowOpacity = 0.9
+                }
+
+                // Glow settles down after main animation
+                withAnimation(.easeOut(duration: 1.0).delay(duration * 0.7)) {
+                    glowOpacity = 0.4
+                }
+            }
+        } else {
+            // Daily launch: already sharp (seamless from native launch)
+            // Just fade in wordmark if shown
+            withAnimation(.easeOut(duration: 0.3)) {
+                wordmarkOpacity = 1.0
+                wordmarkBlur = 0
+            }
         }
     }
 }

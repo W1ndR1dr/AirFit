@@ -199,40 +199,40 @@ final class SpeechTranscriptionManager {
         let format = inputNode.outputFormat(forBus: 0)
 
         // Install tap for audio level metering
+        // IMPORTANT: This callback runs on the audio render thread, NOT the main thread
         inputNode.installTap(onBus: 0, bufferSize: 1024, format: format) { [weak self] buffer, _ in
-            self?.processAudioBuffer(buffer)
+            // Process audio on the audio thread (no MainActor access)
+            guard let channelData = buffer.floatChannelData?[0] else { return }
+            let frameLength = Int(buffer.frameLength)
+
+            // Calculate RMS (root mean square) for audio level
+            var sum: Float = 0
+            for i in 0..<frameLength {
+                let sample = channelData[i]
+                sum += sample * sample
+            }
+            let rms = sqrt(sum / Float(frameLength))
+
+            // Convert to decibels and normalize to 0-1 range
+            let db = 20 * log10(max(rms, 0.0001))
+            let normalizedLevel = max(0, min(1, (db + 50) / 50)) // -50dB to 0dB range
+
+            // Hop to MainActor to update state
+            Task { @MainActor [weak self] in
+                guard let self else { return }
+                // Smooth the level for display
+                self.audioLevel = self.audioLevel * 0.7 + normalizedLevel * 0.3
+
+                // Shift levels array and add new sample
+                self.audioLevels.removeFirst()
+                self.audioLevels.append(self.audioLevel)
+            }
         }
 
         do {
             try audioEngine.start()
         } catch {
             print("Failed to start audio engine: \(error)")
-        }
-    }
-
-    private func processAudioBuffer(_ buffer: AVAudioPCMBuffer) {
-        guard let channelData = buffer.floatChannelData?[0] else { return }
-        let frameLength = Int(buffer.frameLength)
-
-        // Calculate RMS (root mean square) for audio level
-        var sum: Float = 0
-        for i in 0..<frameLength {
-            let sample = channelData[i]
-            sum += sample * sample
-        }
-        let rms = sqrt(sum / Float(frameLength))
-
-        // Convert to decibels and normalize to 0-1 range
-        let db = 20 * log10(max(rms, 0.0001))
-        let normalizedLevel = max(0, min(1, (db + 50) / 50)) // -50dB to 0dB range
-
-        Task { @MainActor in
-            // Smooth the level for display
-            self.audioLevel = self.audioLevel * 0.7 + normalizedLevel * 0.3
-
-            // Shift levels array and add new sample
-            self.audioLevels.removeFirst()
-            self.audioLevels.append(self.audioLevel)
         }
     }
 

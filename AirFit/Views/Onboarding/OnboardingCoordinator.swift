@@ -11,9 +11,9 @@ import SwiftUI
 /// 4. CoachSelection - pick AI mode (Claude/Gemini/Hybrid)
 /// 5. ServerSetup - server URL (if Claude or Hybrid)
 /// 6. GeminiSetup - API key (if Gemini or Hybrid)
-/// 7. Interview - conversational profile discovery (WHO you are)
-/// 8. Calibration - coaching style preferences (HOW you want coaching)
-/// 9. HevySetup - optional workout sync
+/// 7. HevySetup - workout sync (right after LLM setup for data pipeline)
+/// 8. Interview - conversational profile discovery (WHO you are)
+/// 9. Calibration - coaching style preferences (HOW you want coaching)
 /// 10. Complete
 ///
 /// The Interview discovers user data through conversation.
@@ -33,9 +33,9 @@ struct OnboardingCoordinator: View {
         case coachSelection = 3
         case serverSetup = 4
         case geminiSetup = 5
-        case interview = 6
-        case calibration = 7
-        case hevySetup = 8
+        case hevySetup = 6       // Moved up: data pipeline before personalization
+        case interview = 7
+        case calibration = 8
         case complete = 9
     }
 
@@ -79,14 +79,14 @@ struct OnboardingCoordinator: View {
                         if selectedCoachMode == .hybrid {
                             advanceTo(.geminiSetup)
                         } else {
-                            advanceTo(.interview)
+                            advanceTo(.hevySetup)
                         }
                     },
                     onSkip: {
                         if selectedCoachMode == .hybrid {
                             advanceTo(.geminiSetup)
                         } else {
-                            advanceTo(.interview)
+                            advanceTo(.hevySetup)
                         }
                     }
                 )
@@ -94,8 +94,8 @@ struct OnboardingCoordinator: View {
 
             case .geminiSetup:
                 GeminiSetupView(
-                    onComplete: { advanceTo(.interview) },
-                    onSkip: { advanceTo(.interview) }
+                    onComplete: { advanceTo(.hevySetup) },
+                    onSkip: { advanceTo(.hevySetup) }
                 )
                 .transition(.opacity)
 
@@ -106,15 +106,15 @@ struct OnboardingCoordinator: View {
                 )
                 .transition(.opacity)
 
-            case .calibration:
-                CoachingCalibrationView(
-                    onComplete: { advanceTo(.hevySetup) },
-                    onSkip: { advanceTo(.hevySetup) }
+            case .hevySetup:
+                HevySetupView(
+                    onComplete: { advanceTo(.interview) },
+                    onSkip: { advanceTo(.interview) }
                 )
                 .transition(.opacity)
 
-            case .hevySetup:
-                HevySetupView(
+            case .calibration:
+                CoachingCalibrationView(
                     onComplete: { completeOnboarding() },
                     onSkip: { completeOnboarding() }
                 )
