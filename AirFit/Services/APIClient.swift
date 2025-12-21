@@ -570,6 +570,11 @@ actor APIClient {
         let hrv_baseline_ms: Double?            // 7-day rolling mean HRV
         let hrv_deviation_pct: Double?          // Today's deviation from baseline (%)
         let bedtime_consistency: String?        // "stable", "variable", or "irregular"
+
+        // Data quality assessment (Phase 2: Data Quality Filtering)
+        let quality_score: Double?              // 0.0-1.0 overall quality
+        let quality_flags: [String]?            // Array of flag strings
+        let is_baseline_excluded: Bool?         // True if should be excluded from baseline calcs
     }
 
     struct SyncRequest: Encodable {

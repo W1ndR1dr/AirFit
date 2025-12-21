@@ -232,13 +232,159 @@ actor HealthKitManager {
         async let sleepHours = fetchLastNightSleep()
         async let recentWorkouts = fetchRecentWorkouts(days: 7)
 
-        return await HealthContext(
-            steps: Int(steps ?? 0),
-            activeCalories: Int(calories ?? 0),
-            weightLbs: weight,
-            restingHeartRate: restingHR.map { Int($0) },
-            sleepHours: sleepHours,
-            recentWorkouts: recentWorkouts
+        // Await raw values
+        let rawSteps = await steps
+        let rawCalories = await calories
+        let rawWeight = await weight
+        let rawRestingHR = await restingHR
+        let rawSleep = await sleepHours
+        let workouts = await recentWorkouts
+
+        // Apply hard exclusions and compute quality
+        let validatedWeight = validateWeight(rawWeight)
+        let validatedRestingHR = validateRestingHR(rawRestingHR.map { Int($0) })
+        let validatedSleep = validateSleep(rawSleep)
+        let validatedSteps = validateSteps(Int(rawSteps ?? 0))
+        let validatedCalories = validateActiveCalories(Int(rawCalories ?? 0))
+
+        let quality = computeQuality(
+            steps: validatedSteps,
+            activeCalories: validatedCalories,
+            sleep: validatedSleep,
+            restingHR: validatedRestingHR,
+            hrvMs: nil  // Not fetched in basic context
+        )
+
+        return HealthContext(
+            steps: validatedSteps,
+            activeCalories: validatedCalories,
+            weightLbs: validatedWeight,
+            restingHeartRate: validatedRestingHR,
+            sleepHours: validatedSleep,
+            recentWorkouts: workouts,
+            quality: quality
+        )
+    }
+
+    // MARK: - Data Quality Validation
+
+    /// Apply hard exclusion to weight (returns nil if physiologically impossible)
+    private func validateWeight(_ weight: Double?) -> Double? {
+        guard let w = weight else { return nil }
+        guard w >= DataQualityThresholds.weightLbsMin,
+              w <= DataQualityThresholds.weightLbsMax else {
+            return nil  // Hard exclusion
+        }
+        return w
+    }
+
+    /// Apply hard exclusion to body fat percentage
+    private func validateBodyFat(_ bodyFat: Double?) -> Double? {
+        guard let bf = bodyFat else { return nil }
+        guard bf >= DataQualityThresholds.bodyFatPctMin,
+              bf <= DataQualityThresholds.bodyFatPctMax else {
+            return nil
+        }
+        return bf
+    }
+
+    /// Apply hard exclusion to resting heart rate
+    private func validateRestingHR(_ hr: Int?) -> Int? {
+        guard let h = hr else { return nil }
+        guard h >= DataQualityThresholds.restingHRMin,
+              h <= DataQualityThresholds.restingHRMax else {
+            return nil
+        }
+        return h
+    }
+
+    /// Apply hard exclusion to HRV
+    private func validateHRV(_ hrv: Double?) -> Double? {
+        guard let h = hrv else { return nil }
+        guard h >= DataQualityThresholds.hrvMsMin,
+              h <= DataQualityThresholds.hrvMsMax else {
+            return nil
+        }
+        return h
+    }
+
+    /// Apply hard exclusion to sleep hours
+    private func validateSleep(_ sleep: Double?) -> Double? {
+        guard let s = sleep else { return nil }
+        guard s >= DataQualityThresholds.sleepHoursMin,
+              s <= DataQualityThresholds.sleepHoursMax else {
+            return nil
+        }
+        return s
+    }
+
+    /// Apply hard exclusion to steps
+    private func validateSteps(_ steps: Int) -> Int {
+        guard steps >= 0, steps <= DataQualityThresholds.stepsMax else {
+            return 0  // Reset to 0 if impossible
+        }
+        return steps
+    }
+
+    /// Apply hard exclusion to active calories
+    private func validateActiveCalories(_ calories: Int) -> Int {
+        guard calories >= 0, calories <= DataQualityThresholds.activeCaloriesMax else {
+            return 0
+        }
+        return calories
+    }
+
+    /// Compute quality score and flags based on available data
+    private func computeQuality(
+        steps: Int,
+        activeCalories: Int,
+        sleep: Double?,
+        restingHR: Int?,
+        hrvMs: Double?,
+        sleepBreakdown: SleepBreakdown? = nil
+    ) -> DataQualityInfo {
+        var score: Double = 1.0
+        var flags: [String] = []
+
+        // Check for incomplete sleep (watch died mid-sleep pattern)
+        if let s = sleep, s > 0, s < 4, sleepBreakdown == nil {
+            score -= 0.3
+            flags.append("incomplete_sleep")
+        } else if sleep == nil {
+            score -= 0.2
+            flags.append("no_sleep_data")
+        }
+
+        // Check for minimal activity (watch likely off for extended period)
+        if steps < 500 && activeCalories > 50 {
+            score -= 0.1
+            flags.append("minimal_activity")
+        } else if steps == 0 && activeCalories == 0 {
+            score -= 0.2
+            flags.append("watch_likely_off")
+        }
+
+        // Check for missing critical metrics
+        if restingHR == nil {
+            score -= 0.1
+            flags.append("no_rhr_data")
+        }
+
+        if hrvMs == nil {
+            score -= 0.1
+            flags.append("no_hrv_data")
+        }
+
+        // Ensure score stays in valid range
+        score = max(0.0, min(1.0, score))
+
+        let isComplete = sleep != nil && restingHR != nil && steps > 0
+
+        return DataQualityInfo(
+            overallScore: score,
+            flags: flags,
+            watchWornEstimate: nil,  // Could be computed from activity patterns
+            isComplete: isComplete
         )
     }
 
@@ -439,14 +585,29 @@ actor HealthKitManager {
         async let sleepOnset = getSleepOnsetMinutes(for: date)
         async let hrvBaseline = getHRVBaseline()
 
-        // Await all values
+        // Await all raw values
+        let rawSteps = await steps
+        let rawCalories = await calories
+        let rawWeight = await weight
+        let rawBodyFat = await bodyFat
+        let rawRestingHR = await restingHR
         let hrvValue = await hrv
+        let rawSleep = await sleepHours
         let baselineResult = await hrvBaseline
         let breakdownResult = await sleepBreakdown
 
+        // Apply hard exclusions
+        let validatedSteps = validateSteps(Int(rawSteps ?? 0))
+        let validatedCalories = validateActiveCalories(Int(rawCalories ?? 0))
+        let validatedWeight = validateWeight(rawWeight)
+        let validatedBodyFat = validateBodyFat(rawBodyFat.map { $0 * 100 })  // Convert to % first
+        let validatedRestingHR = validateRestingHR(rawRestingHR.map { Int($0) })
+        let validatedHRV = validateHRV(hrvValue)
+        let validatedSleep = validateSleep(rawSleep)
+
         // Compute HRV deviation from baseline
         var hrvDeviationPct: Double? = nil
-        if let currentHRV = hrvValue, let baseline = baselineResult, baseline.isReliable {
+        if let currentHRV = validatedHRV, let baseline = baselineResult, baseline.isReliable {
             hrvDeviationPct = baseline.percentDeviation(for: currentHRV)
         }
 
@@ -463,23 +624,34 @@ actor HealthKitManager {
             sleepREMPct = breakdown.remSleep / breakdown.totalSleep
         }
 
+        // Compute quality with sleep breakdown context
+        let quality = computeQuality(
+            steps: validatedSteps,
+            activeCalories: validatedCalories,
+            sleep: validatedSleep,
+            restingHR: validatedRestingHR,
+            hrvMs: validatedHRV,
+            sleepBreakdown: breakdownResult
+        )
+
         return await DailyHealthSnapshot(
             date: date,
-            steps: Int(steps ?? 0),
-            activeCalories: Int(calories ?? 0),
-            weightLbs: weight,
-            bodyFatPct: bodyFat.map { $0 * 100 }, // Convert from 0-1 to percentage
-            sleepHours: sleepHours,
-            restingHR: restingHR.map { Int($0) },
-            hrvMs: hrvValue,
+            steps: validatedSteps,
+            activeCalories: validatedCalories,
+            weightLbs: validatedWeight,
+            bodyFatPct: validatedBodyFat,
+            sleepHours: validatedSleep,
+            restingHR: validatedRestingHR,
+            hrvMs: validatedHRV,
             // Recovery metrics
             sleepEfficiency: sleepEfficiency,
             sleepDeepPct: sleepDeepPct,
             sleepCorePct: sleepCorePct,
             sleepREMPct: sleepREMPct,
-            sleepOnsetMinutes: sleepOnset,
+            sleepOnsetMinutes: await sleepOnset,
             hrvBaselineMs: baselineResult?.mean,
-            hrvDeviationPct: hrvDeviationPct
+            hrvDeviationPct: hrvDeviationPct,
+            quality: quality
         )
     }
 
@@ -1425,6 +1597,81 @@ actor HealthKitManager {
     }
 }
 
+// MARK: - Data Quality
+
+/// Hard exclusion thresholds - values outside these ranges are physiologically impossible
+/// and indicate sensor error, data corruption, or measurement artifacts.
+enum DataQualityThresholds {
+    // Sleep
+    static let sleepHoursMin: Double = 0
+    static let sleepHoursMax: Double = 16  // Nobody sleeps 16+ hours without medical condition
+
+    // Heart Rate Variability (SDNN in milliseconds)
+    static let hrvMsMin: Double = 5
+    static let hrvMsMax: Double = 300
+
+    // Resting Heart Rate
+    static let restingHRMin: Int = 25
+    static let restingHRMax: Int = 120
+
+    // Activity
+    static let stepsMax: Int = 100_000      // ~50 miles of walking
+    static let activeCaloriesMax: Int = 10_000
+
+    // Body Composition
+    static let weightLbsMin: Double = 50
+    static let weightLbsMax: Double = 700
+    static let bodyFatPctMin: Double = 3
+    static let bodyFatPctMax: Double = 60
+
+    // Population defaults for cold start (before 14-day personal baseline)
+    static let populationHRVRange: ClosedRange<Double> = 40...60
+    static let populationRHRRange: ClosedRange<Int> = 55...75
+    static let populationSleepRange: ClosedRange<Double> = 6.5...8.5
+}
+
+/// Quality information for health data, used to flag incomplete or suspicious readings.
+/// Computed at the iOS level and propagated to both Gemini (local) and Claude (server) contexts.
+struct DataQualityInfo: Sendable, Codable {
+    /// Overall quality score from 0.0 (bad) to 1.0 (complete/valid)
+    let overallScore: Double
+
+    /// Human-readable flags describing data quality issues
+    let flags: [String]
+
+    /// Estimated hours the watch was worn (if detectable)
+    let watchWornEstimate: Double?
+
+    /// Whether all expected metrics are present with valid values
+    let isComplete: Bool
+
+    /// Perfect quality - all data present and valid
+    static let perfect = DataQualityInfo(
+        overallScore: 1.0,
+        flags: [],
+        watchWornEstimate: nil,
+        isComplete: true
+    )
+
+    /// No data available
+    static let noData = DataQualityInfo(
+        overallScore: 0.0,
+        flags: ["no_data"],
+        watchWornEstimate: nil,
+        isComplete: false
+    )
+
+    /// Format flags for LLM context injection
+    func contextNote() -> String? {
+        guard !flags.isEmpty else { return nil }
+        let formatted = flags.map { flag in
+            // Convert snake_case flags to readable text
+            flag.replacingOccurrences(of: "_", with: " ")
+        }.joined(separator: ", ")
+        return "[Data quality note: \(formatted)]"
+    }
+}
+
 // MARK: - Data Models
 
 struct HealthContext: Sendable {
@@ -1434,6 +1681,27 @@ struct HealthContext: Sendable {
     let restingHeartRate: Int?
     let sleepHours: Double?
     let recentWorkouts: [WorkoutSummary]
+
+    /// Data quality assessment for this context
+    let quality: DataQualityInfo
+
+    init(
+        steps: Int,
+        activeCalories: Int,
+        weightLbs: Double?,
+        restingHeartRate: Int?,
+        sleepHours: Double?,
+        recentWorkouts: [WorkoutSummary],
+        quality: DataQualityInfo = .perfect
+    ) {
+        self.steps = steps
+        self.activeCalories = activeCalories
+        self.weightLbs = weightLbs
+        self.restingHeartRate = restingHeartRate
+        self.sleepHours = sleepHours
+        self.recentWorkouts = recentWorkouts
+        self.quality = quality
+    }
 
     /// Convert to dictionary for API
     func toDictionary() -> [String: String] {
@@ -1518,6 +1786,9 @@ struct DailyHealthSnapshot: Sendable {
     let sleepOnsetMinutes: Int?         // Minutes from midnight (for bedtime tracking)
     let hrvBaselineMs: Double?          // 7-day rolling mean HRV
     let hrvDeviationPct: Double?        // Today's deviation from baseline (%)
+
+    // Data quality assessment
+    let quality: DataQualityInfo
 
     /// Format date as YYYY-MM-DD for API
     var dateString: String {

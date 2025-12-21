@@ -1137,6 +1137,11 @@ class DailySyncData(BaseModel):
     hrv_deviation_pct: Optional[float] = None    # Today's deviation from baseline (%)
     bedtime_consistency: Optional[str] = None    # "stable", "variable", or "irregular"
 
+    # Data quality (Phase 2: Data Quality Filtering)
+    quality_score: Optional[float] = None        # 0.0-1.0 overall quality
+    quality_flags: Optional[list[str]] = None    # Quality issue flags from iOS
+    is_baseline_excluded: Optional[bool] = None  # Exclude from baseline calculations
+
 
 class SyncRequest(BaseModel):
     """Request to sync daily data from iOS."""
@@ -1338,7 +1343,11 @@ async def sync_insights_data(request: SyncRequest):
             sleep_onset_minutes=day.sleep_onset_minutes,
             hrv_baseline_ms=day.hrv_baseline_ms,
             hrv_deviation_pct=day.hrv_deviation_pct,
-            bedtime_consistency=day.bedtime_consistency
+            bedtime_consistency=day.bedtime_consistency,
+            # Data quality (Phase 2: Data Quality Filtering)
+            quality_score=day.quality_score,
+            quality_flags=day.quality_flags or [],
+            is_baseline_excluded=day.is_baseline_excluded or False
         )
 
         # Get or create snapshot for this date

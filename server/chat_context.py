@@ -73,22 +73,43 @@ class ChatContext:
 
 
 def format_health_context(context: dict) -> str:
-    """Format HealthKit data into a readable context string for the LLM."""
+    """Format HealthKit data into a readable context string for the LLM.
+
+    Includes data quality notes when iOS indicates incomplete or suspicious data.
+    Quality flags are passed from iOS and also pulled from stored context.
+    """
     parts = ["Here is the user's current health data:"]
 
+    # Check for quality flags from iOS (Phase 2: Data Quality Filtering)
+    quality_flags = context.get("quality_flags", [])
+    quality_score = context.get("quality_score")
+
+    if quality_flags:
+        # Convert flags to readable format for LLM
+        readable_flags = ", ".join(flag.replace("_", " ") for flag in quality_flags)
+        parts.append(f"[Data quality note: {readable_flags}]")
+
+    # Format metrics with quality-aware annotations
+    has_minimal_activity = "minimal_activity" in quality_flags or "watch_likely_off" in quality_flags
+    has_incomplete_sleep = "incomplete_sleep" in quality_flags
+
     if "steps" in context:
-        parts.append(f"- Steps today: {context['steps']}")
+        suffix = " (may be incomplete)" if has_minimal_activity else ""
+        parts.append(f"- Steps today: {context['steps']}{suffix}")
     if "sleep_hours" in context:
-        parts.append(f"- Sleep last night: {context['sleep_hours']} hours")
+        suffix = " (may be incomplete)" if has_incomplete_sleep else ""
+        parts.append(f"- Sleep last night: {context['sleep_hours']} hours{suffix}")
     if "active_calories" in context:
-        parts.append(f"- Active calories today: {context['active_calories']}")
+        suffix = " (may be incomplete)" if has_minimal_activity else ""
+        parts.append(f"- Active calories today: {context['active_calories']}{suffix}")
     if "weight_kg" in context:
         parts.append(f"- Weight: {context['weight_kg']} kg")
     if "resting_hr" in context:
         parts.append(f"- Resting heart rate: {context['resting_hr']} bpm")
 
-    # Add any other keys dynamically
-    known_keys = {"steps", "sleep_hours", "active_calories", "weight_kg", "resting_hr"}
+    # Add any other keys dynamically (skip quality-related keys)
+    known_keys = {"steps", "sleep_hours", "active_calories", "weight_kg", "resting_hr",
+                  "quality_flags", "quality_score", "is_baseline_excluded"}
     for key, value in context.items():
         if key not in known_keys:
             parts.append(f"- {key.replace('_', ' ').title()}: {value}")

@@ -252,11 +252,26 @@ actor ContextManager {
     }
 
     /// Format HealthKit context for chat injection.
+    /// Includes data quality notes when data may be incomplete or suspicious.
     nonisolated private func formatHealthContext(_ context: HealthContext) -> String {
         var parts: [String] = []
 
-        parts.append("Steps: \(context.steps)")
-        parts.append("Active calories: \(context.activeCalories)")
+        // Add quality note if there are flags (works for all providers)
+        if let qualityNote = context.quality.contextNote() {
+            parts.append(qualityNote)
+        }
+
+        // Format metrics with quality-aware prefixes
+        let hasMinimalActivity = context.quality.flags.contains("minimal_activity") ||
+                                  context.quality.flags.contains("watch_likely_off")
+
+        if hasMinimalActivity {
+            parts.append("Steps: \(context.steps) (may be incomplete)")
+            parts.append("Active calories: \(context.activeCalories) (may be incomplete)")
+        } else {
+            parts.append("Steps: \(context.steps)")
+            parts.append("Active calories: \(context.activeCalories)")
+        }
 
         if let weight = context.weightLbs {
             parts.append("Weight: \(String(format: "%.1f", weight)) lbs")
@@ -264,8 +279,16 @@ actor ContextManager {
         if let hr = context.restingHeartRate {
             parts.append("Resting HR: \(hr) bpm")
         }
+
+        // Flag incomplete sleep
         if let sleep = context.sleepHours {
-            parts.append("Sleep last night: \(String(format: "%.1f", sleep)) hrs")
+            if context.quality.flags.contains("incomplete_sleep") {
+                parts.append("Sleep last night: \(String(format: "%.1f", sleep)) hrs (may be incomplete)")
+            } else {
+                parts.append("Sleep last night: \(String(format: "%.1f", sleep)) hrs")
+            }
+        } else if context.quality.flags.contains("no_sleep_data") {
+            parts.append("Sleep last night: no data")
         }
 
         return parts.joined(separator: "\n")

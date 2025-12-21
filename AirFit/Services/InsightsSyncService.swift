@@ -31,6 +31,10 @@ class InsightsSyncService {
             let nutrition = nutritionSummaries.first { $0.date == dateString }
             let health = healthSnapshots.first { $0.dateString == dateString }
 
+            // Determine if this day should be excluded from baseline calculations
+            let shouldExcludeFromBaseline = (health?.quality.overallScore ?? 1.0) < 0.5 ||
+                                             (health?.quality.flags.contains("incomplete_sleep") ?? false)
+
             syncData.append(APIClient.DailySyncData(
                 date: dateString,
                 calories: nutrition?.calories ?? 0,
@@ -53,7 +57,11 @@ class InsightsSyncService {
                 sleep_onset_minutes: health?.sleepOnsetMinutes,
                 hrv_baseline_ms: health?.hrvBaselineMs,
                 hrv_deviation_pct: health?.hrvDeviationPct,
-                bedtime_consistency: nil  // Computed server-side from sleep_onset_minutes history
+                bedtime_consistency: nil,  // Computed server-side from sleep_onset_minutes history
+                // Data quality (Phase 2: Data Quality Filtering)
+                quality_score: health?.quality.overallScore,
+                quality_flags: health?.quality.flags,
+                is_baseline_excluded: shouldExcludeFromBaseline
             ))
         }
 

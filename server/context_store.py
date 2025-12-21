@@ -85,6 +85,11 @@ class HealthSnapshot:
     hrv_deviation_pct: Optional[float] = None    # Today's deviation from baseline (%)
     bedtime_consistency: Optional[str] = None    # "stable", "variable", or "irregular"
 
+    # Data quality (Phase 2: Data Quality Filtering)
+    quality_score: Optional[float] = None        # 0.0-1.0 overall quality
+    quality_flags: list[str] = field(default_factory=list)  # Quality issue flags
+    is_baseline_excluded: bool = False           # Exclude from baseline calculations
+
 
 @dataclass
 class WorkoutSnapshot:

@@ -26,12 +26,31 @@ from context_store import (
 # --- Compact Data Formatting ---
 # Goal: Lossless compression. All data, minimal tokens.
 
-def format_day_compact(snapshot: DailySnapshot) -> str:
+def format_day_compact(snapshot: DailySnapshot, include_quality: bool = True) -> str:
     """Format a single day's data in ultra-compact form.
 
     Target: ~40-60 tokens per day with full data.
+
+    If include_quality is True and there are quality flags, adds a Q: section
+    so the LLM knows which data may be incomplete.
     """
     parts = [snapshot.date]
+
+    # Data quality marker (Phase 2: Data Quality Filtering)
+    h = snapshot.health
+    if include_quality and h.quality_flags:
+        # Compact quality indicators: ~=incomplete, ?=uncertain
+        quality_markers = []
+        if "incomplete_sleep" in h.quality_flags:
+            quality_markers.append("~sl")  # Sleep may be incomplete
+        if "watch_likely_off" in h.quality_flags or "minimal_activity" in h.quality_flags:
+            quality_markers.append("~act")  # Activity data incomplete
+        if "no_hrv_data" in h.quality_flags:
+            quality_markers.append("?hrv")
+        if "no_rhr_data" in h.quality_flags:
+            quality_markers.append("?rhr")
+        if quality_markers:
+            parts.append("Q:" + ",".join(quality_markers))
 
     # Nutrition: cal|p|c|f|entries
     n = snapshot.nutrition
@@ -39,7 +58,6 @@ def format_day_compact(snapshot: DailySnapshot) -> str:
         parts.append(f"N:{n.calories}|{n.protein}|{n.carbs}|{n.fat}|{n.entry_count}")
 
     # Health: wt|bf%|sleep|hr|hrv|steps|kcal
-    h = snapshot.health
     health_parts = []
     if h.weight_lbs:
         health_parts.append(f"w{h.weight_lbs:.1f}")
@@ -83,17 +101,27 @@ def format_day_compact(snapshot: DailySnapshot) -> str:
     return " | ".join(parts)
 
 
-def format_all_data_compact(snapshots: list[DailySnapshot], profile: Optional[dict] = None) -> str:
+def format_all_data_compact(
+    snapshots: list[DailySnapshot],
+    profile: Optional[dict] = None,
+    exclude_low_quality: bool = False
+) -> str:
     """Format all data for LLM consumption.
 
     Returns a compact string with all raw data.
     No interpretation - just data.
+
+    Args:
+        snapshots: Daily snapshots to format
+        profile: Optional user profile
+        exclude_low_quality: If True, skip days with quality_score < 0.5 entirely
     """
     lines = []
 
-    # Header with legend
+    # Header with legend (including quality markers)
     lines.append("=== RAW FITNESS DATA ===")
-    lines.append("Format: DATE | N:cal|prot|carb|fat|entries | H:w(lbs),bf(%),sl(hrs),hr,hrv(ms),st(steps),ac(kcal) | W:count|duration|volume exercises")
+    lines.append("Format: DATE | Q:quality_flags | N:cal|prot|carb|fat|entries | H:w(lbs),bf(%),sl(hrs),hr,hrv(ms),st(steps),ac(kcal) | W:count|duration|volume exercises")
+    lines.append("Quality markers: ~sl=incomplete sleep, ~act=incomplete activity, ?hrv=missing HRV, ?rhr=missing RHR")
     lines.append("")
 
     # Profile context if available
@@ -104,12 +132,21 @@ def format_all_data_compact(snapshots: list[DailySnapshot], profile: Optional[di
                 lines.append(f"{key}: {value}")
         lines.append("")
 
-    # All daily data
+    # All daily data (with optional quality filtering)
     lines.append("--- DAILY DATA (newest first) ---")
+    skipped_count = 0
     for snapshot in sorted(snapshots, key=lambda s: s.date, reverse=True):
-        day_str = format_day_compact(snapshot)
+        # Optionally skip very low quality days
+        if exclude_low_quality and snapshot.health.is_baseline_excluded:
+            skipped_count += 1
+            continue
+
+        day_str = format_day_compact(snapshot, include_quality=True)
         if len(day_str) > 12:  # Only include days with actual data
             lines.append(day_str)
+
+    if skipped_count > 0:
+        lines.append(f"\n(Note: {skipped_count} days excluded due to incomplete data)")
 
     return "\n".join(lines)
 
