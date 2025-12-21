@@ -154,7 +154,8 @@ actor AIRouter {
             response = try await sendToGemini(
                 message,
                 context: effectiveContext,
-                history: history
+                history: history,
+                modelContext: modelContext
             )
         case .claude:
             response = try await sendToClaude(message, context: effectiveContext)
@@ -176,10 +177,12 @@ actor AIRouter {
 
     // MARK: - Provider Communication
 
+    @MainActor
     private func sendToGemini(
         _ message: String,
         context: ChatContext,
-        history: [ConversationMessage]
+        history: [ConversationMessage],
+        modelContext: ModelContext
     ) async throws -> String {
         // Build full system prompt
         var systemPrompt = context.systemPrompt
@@ -187,22 +190,24 @@ actor AIRouter {
             systemPrompt += "\n\n" + context.memoryContext
         }
 
-        // Include data context in message for Gemini
-        var enrichedMessage = message
-        if !context.dataContext.isEmpty {
-            enrichedMessage = """
-            [Context]
-            \(context.dataContext)
-
-            [User Message]
-            \(message)
-            """
+        // Create a tool executor that captures the modelContext
+        // This closure runs on MainActor and executes tools locally
+        let toolExecutor: GeminiService.ToolExecutor = { @MainActor name, toolArgs in
+            await LocalToolExecutor.shared.execute(
+                name: name,
+                arguments: toolArgs.arguments,
+                modelContext: modelContext
+            )
         }
 
-        return try await geminiService.chat(
-            message: enrichedMessage,
+        // Use LOCAL tool execution for offline-first function calling
+        // This enables Tier 3 deep queries without server dependency
+        return try await geminiService.chatWithToolsLocal(
+            message: message,
             history: history,
-            systemPrompt: systemPrompt
+            systemPrompt: systemPrompt,
+            dataContext: context.dataContext,
+            toolExecutor: toolExecutor
         )
     }
 

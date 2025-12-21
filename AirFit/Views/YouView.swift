@@ -8,8 +8,11 @@ import UniformTypeIdentifiers
 struct YouView: View {
     // MARK: - State
 
-    // Profile data
-    @State private var profile: APIClient.ProfileResponse?
+    @Environment(\.modelContext) private var modelContext
+
+    // Profile data (device-first: LocalProfile is authoritative)
+    @State private var profile: APIClient.ProfileResponse?  // Server fallback
+    @State private var localProfile: LocalProfile?           // Primary source
     @State private var isLoading = true
 
     // Server/Connection state
@@ -53,6 +56,31 @@ struct YouView: View {
     private let keychainManager = KeychainManager.shared
 
     // MARK: - Computed Properties
+
+    /// Combined profile for display - LocalProfile is authoritative when available
+    private var displayProfile: APIClient.ProfileResponse? {
+        // If we have LocalProfile data, use it (device-first architecture)
+        if let local = localProfile, local.hasProfile {
+            return APIClient.ProfileResponse(
+                name: local.name,
+                summary: local.summary,
+                goals: local.goals ?? [],
+                constraints: local.constraints ?? [],
+                preferences: local.preferences ?? [],
+                context: local.lifeContext ?? [],
+                patterns: local.patterns ?? [],
+                communication_style: "",
+                insights_count: 0,
+                recent_insights: [],  // Insights come from server
+                has_profile: true,
+                onboarding_complete: local.onboardingComplete,
+                current_phase: local.goalPhase,
+                phase_context: local.phaseContext
+            )
+        }
+        // Fall back to server profile
+        return profile
+    }
 
     /// The effective AI mode based on current configuration
     private var currentMode: AIMode {
@@ -181,13 +209,13 @@ struct YouView: View {
                 quickSettingsRow
                     .padding(.top, 8)
 
-                // 2. Profile Hero
-                if let profile = profile, profile.has_profile {
+                // 2. Profile Hero (uses displayProfile: LocalProfile first, server fallback)
+                if let displayedProfile = displayProfile, displayedProfile.has_profile {
                     ProfileHeroView(
-                        name: profile.name,
-                        summary: profile.summary,
-                        phase: profile.current_phase,
-                        phaseContext: profile.phase_context
+                        name: displayedProfile.name,
+                        summary: displayedProfile.summary,
+                        phase: displayedProfile.current_phase,
+                        phaseContext: displayedProfile.phase_context
                     )
                 } else if !isLoading {
                     // No profile yet - show gentle prompt
@@ -195,13 +223,13 @@ struct YouView: View {
                 }
 
                 // 3. What I Know (THE MAIN CONTENT)
-                if let profile = profile, profile.has_profile {
-                    whatIKnowSection(profile)
+                if let displayedProfile = displayProfile, displayedProfile.has_profile {
+                    whatIKnowSection(displayedProfile)
                 }
 
-                // 4. Recent Insights
-                if let profile = profile, !profile.recent_insights.isEmpty {
-                    RecentInsightsSection(insights: profile.recent_insights)
+                // 4. Recent Insights (insights still come from server)
+                if let serverProfile = profile, !serverProfile.recent_insights.isEmpty {
+                    RecentInsightsSection(insights: serverProfile.recent_insights)
                 }
 
                 // 5. Coach Configuration Card (compact)
@@ -512,10 +540,17 @@ struct YouView: View {
     }
 
     private func loadProfile() async {
+        // DEVICE-FIRST: Load LocalProfile immediately (instant, offline-capable)
+        await MainActor.run {
+            localProfile = LocalProfile.current(in: modelContext)
+        }
+
+        // Background sync: fetch server profile for insights and backup
         do {
             profile = try await apiClient.getProfile()
         } catch {
-            print("Failed to load profile: \(error)")
+            print("[YouView] Server profile fetch failed (offline?): \(error)")
+            // That's OK - LocalProfile is authoritative
         }
     }
 

@@ -121,8 +121,13 @@ struct ServerSetupView: View {
                                             )
                                     )
 
-                                // Test button
-                                Button(action: testConnection) {
+                                // Test button - accepts placeholder if field is empty
+                                Button(action: {
+                                    if serverURL.isEmpty {
+                                        serverURL = ServerConfiguration.placeholder
+                                    }
+                                    testConnection()
+                                }) {
                                     Group {
                                         if isTesting {
                                             ProgressView()
@@ -137,7 +142,7 @@ struct ServerSetupView: View {
                                     .background(Theme.surface)
                                     .clipShape(Circle())
                                 }
-                                .disabled(serverURL.isEmpty || isTesting)
+                                .disabled(isTesting)
                             }
 
                             // Status message

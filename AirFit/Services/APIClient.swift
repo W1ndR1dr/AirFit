@@ -560,6 +560,16 @@ actor APIClient {
         let sleep_hours: Double?
         let resting_hr: Int?
         let hrv_ms: Double?
+
+        // Recovery metrics (Phase 1: HealthKit Dashboard Expansion)
+        let sleep_efficiency: Double?           // 0.0-1.0, time asleep / time in bed
+        let sleep_deep_pct: Double?             // Proportion of deep sleep (0.0-1.0)
+        let sleep_core_pct: Double?             // Proportion of core/light sleep (0.0-1.0)
+        let sleep_rem_pct: Double?              // Proportion of REM sleep (0.0-1.0)
+        let sleep_onset_minutes: Int?           // Minutes from midnight (for bedtime tracking)
+        let hrv_baseline_ms: Double?            // 7-day rolling mean HRV
+        let hrv_deviation_pct: Double?          // Today's deviation from baseline (%)
+        let bedtime_consistency: String?        // "stable", "variable", or "irregular"
     }
 
     struct SyncRequest: Encodable {

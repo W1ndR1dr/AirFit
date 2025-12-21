@@ -44,16 +44,19 @@ struct AirFitApp: App {
                         .preferredColorScheme(colorScheme)
                 }
 
-                if showSplash {
+                // Only show app-level splash for returning users
+                // New users get the onboarding splash (with wordmark) instead
+                if showSplash && hasCompletedOnboarding {
                     AirFitSplashView()
                         .transition(.opacity)
                         .zIndex(1)
                 }
             }
             .onAppear {
-                // Wait for flame animation (0.8s) + shimmer (0.5s) + brief pause
-                DispatchQueue.main.asyncAfter(deadline: .now() + 1.6) {
-                    withAnimation(.easeOut(duration: 0.4)) {
+                // Returning users: brief splash as loading mask (0.8s total)
+                // New users: onboarding handles its own splash timing
+                DispatchQueue.main.asyncAfter(deadline: .now() + 0.8) {
+                    withAnimation(.easeOut(duration: 0.3)) {
                         showSplash = false
                     }
                 }
@@ -66,7 +69,9 @@ struct AirFitApp: App {
             CachedWorkout.self,
             CachedSetTracker.self,
             CachedLiftProgress.self,
-            HevyCacheMetadata.self
+            HevyCacheMetadata.self,
+            // Gemini Direct mode insight storage
+            LocalInsight.self
         ])
     }
 }
@@ -239,11 +244,20 @@ struct ContentView: View {
             withAnimation(.airfit) { selectedTab = 4 }
         }
         .onChange(of: scenePhase) { _, newPhase in
-            if newPhase == .active {
-                // Sync when app comes to foreground (catches post-workout sync)
+            switch newPhase {
+            case .active:
+                // Smart sync: detects if user was away for a "workout-length" duration
+                // If so, aggressively syncs Hevy since they may have just logged a workout
                 Task {
-                    await AutoSyncManager.shared.performLaunchSync(modelContext: modelContext)
+                    await AutoSyncManager.shared.appDidBecomeActive(modelContext: modelContext)
                 }
+            case .background:
+                // Track when app went to background for workout duration detection
+                AutoSyncManager.shared.appDidEnterBackground()
+            case .inactive:
+                break
+            @unknown default:
+                break
             }
         }
     }
@@ -257,6 +271,7 @@ struct ContentView: View {
             CachedWorkout.self,
             CachedSetTracker.self,
             CachedLiftProgress.self,
-            HevyCacheMetadata.self
+            HevyCacheMetadata.self,
+            LocalInsight.self
         ], inMemory: true)
 }

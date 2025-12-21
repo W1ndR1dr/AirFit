@@ -133,6 +133,61 @@ def get_memory_context() -> str:
     return "\n\n".join(parts)
 
 
+def store_memories(mem_type: str, contents: list[str]) -> int:
+    """Store pre-extracted memory markers from iOS.
+
+    iOS extracts markers locally and syncs them to server for backup.
+    This allows provider parity - both Claude and Gemini responses
+    update the same memory store.
+
+    Args:
+        mem_type: One of "remember", "callback", "tone", "thread"
+        contents: List of memory content strings
+
+    Returns count of memories stored.
+    """
+    if not contents:
+        return 0
+
+    ensure_memory_dir()
+
+    today = datetime.now().strftime("%Y-%m-%d")
+    date_display = datetime.now().strftime("%b %d")
+
+    # Append to relationship.md
+    relationship_path = MEMORY_DIR / "relationship.md"
+
+    new_entries = []
+    for item in contents:
+        item = item.strip()
+        if not item:
+            continue
+        if mem_type == "callback":
+            new_entries.append(f"\n### {date_display} - Callback\n- {item}")
+        elif mem_type == "tone":
+            new_entries.append(f"\n### {date_display} - Tone Calibration\n- {item}")
+        elif mem_type == "thread":
+            new_entries.append(f"\n### {date_display} - Active Thread\n- {item}")
+        else:  # remember
+            new_entries.append(f"\n### {date_display} - Memorable\n- {item}")
+
+    if new_entries:
+        with open(relationship_path, 'a') as f:
+            f.write("\n" + "\n".join(new_entries))
+
+    # Also append to today's session notes
+    session_dir = MEMORY_DIR / "session_notes"
+    session_dir.mkdir(exist_ok=True)
+    session_path = session_dir / f"{today}.md"
+    with open(session_path, 'a') as f:
+        for item in contents:
+            item = item.strip()
+            if item:
+                f.write(f"\n- [{mem_type}] {item}")
+
+    return len([c for c in contents if c.strip()])
+
+
 def extract_and_store_memories(response_text: str) -> int:
     """Extract memory markers from response and store them.
 

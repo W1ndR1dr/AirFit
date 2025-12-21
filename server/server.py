@@ -5,7 +5,7 @@ load_dotenv()  # Load .env before other imports that use env vars
 import json
 import uvicorn
 from datetime import datetime, timedelta
-from fastapi import FastAPI, HTTPException
+from fastapi import FastAPI, HTTPException, Request
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 from typing import Optional
@@ -21,7 +21,7 @@ import context_store
 import insight_engine
 import scheduler
 import chat_context
-import tiered_context
+# Note: tiered_context.py is deprecated - we now use chat_context for AI-native context building
 import exercise_store
 import memory
 import sessions
@@ -220,31 +220,22 @@ async def health_check():
 @app.post("/chat", response_model=ChatResponse)
 async def chat(request: ChatRequest):
     """
-    Send a message to the AI coach with tiered context injection.
+    Send a message to the AI coach with rich context injection.
 
-    Context Strategy:
-    - Tier 1 (always): Phase, today's status, alerts, insight headlines, tool hints
-    - Tier 2 (topic-triggered): Training/nutrition/recovery/progress context
-    - Tier 3 (on-demand): Deep queries via tools (MCP/function calling)
+    AI-Native Philosophy:
+    - Give the LLM ALL relevant context (health, nutrition, workouts, insights)
+    - Let the LLM decide what's relevant to the current message
+    - No hardcoded keyword detection - trust the model's understanding
 
-    The coach feels well-informed but doesn't data-dump.
+    The coach has full context but uses it naturally (like an informed friend).
     """
-    # Get last topic for conversation continuity
-    last_topic = sessions.get_last_topic()
-
-    # Build tiered context (selective surfacing)
-    context = await tiered_context.build_tiered_context(
-        message=request.message,
+    # Build rich context (no topic filtering - let LLM focus naturally)
+    context = await chat_context.build_chat_context(
         health_context=request.health_context,
-        nutrition_context=request.nutrition_context,
-        last_topic=last_topic
+        nutrition_context=request.nutrition_context
     )
 
-    # Update last topic for next message
-    if context.detected_topics:
-        sessions.update_last_topic(context.detected_topics[0])
-
-    # Build the full prompt
+    # Build the full prompt with all context
     if context.has_any_context():
         context_str = context.to_context_string()
         prompt = f"{context_str}\n\nUser message: {request.message}"
@@ -289,7 +280,7 @@ async def chat(request: ChatRequest):
         provider=result.provider,
         success=result.success,
         error=result.error,
-        detected_topics=context.detected_topics  # Return for debugging
+        detected_topics=[]  # Deprecated: no longer using topic detection
     )
 
 
@@ -686,17 +677,21 @@ async def seed_profile():
     }
 
 
-@app.post("/profile/import")
-async def import_profile(request: Request):
+@app.post("/profile/import-seed")
+async def import_profile_seed(request: Request):
     """
-    Import a profile from JSON.
+    Import a profile from a seed JSON file (like brian_profile_seed.json).
 
-    Accepts a JSON profile (like brian_profile_seed.json) and creates
-    a full UserProfile from it. Clears chat session so new personality
-    takes effect immediately.
+    This endpoint handles the nested structure used in seed files:
+    - identity: {name, age, height, occupation, summary}
+    - body_composition: {current_weight_lbs, etc.}
+    - training: {days_per_week, style, etc.}
+    - nutrition: {training_day, rest_day, guidelines}
+
+    For importing from /profile/export, use POST /profile/import instead.
 
     Usage:
-        curl -X POST http://localhost:8080/profile/import \
+        curl -X POST http://localhost:8080/profile/import-seed \
              -H 'Content-Type: application/json' \
              -d @~/Desktop/brian_profile_seed.json
     """
@@ -771,6 +766,143 @@ async def import_profile(request: Request):
             "session_cleared": True
         }
 
+    except Exception as e:
+        return {"status": "error", "message": str(e)}
+
+
+class MemorySyncRequest(BaseModel):
+    """Memory markers synced from iOS device."""
+    type: str  # "remember", "callback", "tone", "thread"
+    contents: list[str]
+
+
+@app.post("/sync/memories")
+async def sync_memories(request: MemorySyncRequest):
+    """
+    Receive memory markers from iOS device.
+
+    iOS extracts memory markers from AI responses (both Claude and Gemini)
+    and syncs them to server for backup and cross-provider continuity.
+
+    Marker types:
+    - remember: Key facts about the user
+    - callback: Inside jokes, references to remember
+    - tone: Communication style preferences
+    - thread: Topics to follow up on
+    """
+    try:
+        stored_count = memory.store_memories(request.type, request.contents)
+        return {
+            "status": "synced",
+            "type": request.type,
+            "stored": stored_count
+        }
+    except Exception as e:
+        return {"status": "error", "message": str(e)}
+
+
+class ProfileSyncRequest(BaseModel):
+    """Profile data synced from iOS device."""
+    name: Optional[str] = None
+    age: Optional[int] = None
+    height: Optional[str] = None
+    occupation: Optional[str] = None
+    current_weight_lbs: Optional[float] = None
+    current_body_fat_pct: Optional[float] = None
+    target_weight_lbs: Optional[float] = None
+    target_body_fat_pct: Optional[float] = None
+    goals: list[str] = []
+    current_phase: Optional[str] = None
+    phase_context: Optional[str] = None
+    life_context: list[str] = []
+    constraints: list[str] = []
+    preferences: list[str] = []
+    communication_style: Optional[str] = None
+    personality_notes: Optional[str] = None
+    relationship_notes: Optional[str] = None
+    training_days_per_week: Optional[int] = None
+    training_style: Optional[str] = None
+    favorite_activities: list[str] = []
+    patterns: list[str] = []
+    nutrition_guidelines: list[str] = []
+    onboarding_complete: bool = False
+
+
+@app.post("/profile/sync")
+async def sync_profile_from_device(request: ProfileSyncRequest):
+    """
+    Receive profile updates from iOS device.
+
+    Device is authoritative for profile data. This endpoint merges
+    device profile into server profile for backup and Claude mode continuity.
+    Only non-None fields are updated.
+    """
+    try:
+        p = profile.load_profile()
+
+        # Merge device data into server profile (device wins for non-None fields)
+        if request.name is not None:
+            p.name = request.name
+        if request.age is not None:
+            p.age = request.age
+        if request.height is not None:
+            p.height = request.height
+        if request.occupation is not None:
+            p.occupation = request.occupation
+        if request.current_weight_lbs is not None:
+            p.current_weight_lbs = request.current_weight_lbs
+        if request.current_body_fat_pct is not None:
+            p.current_body_fat_pct = request.current_body_fat_pct
+        if request.target_weight_lbs is not None:
+            p.target_weight_lbs = request.target_weight_lbs
+        if request.target_body_fat_pct is not None:
+            p.target_body_fat_pct = request.target_body_fat_pct
+        if request.goals:
+            p.goals = request.goals
+        if request.current_phase is not None:
+            p.current_phase = request.current_phase
+        if request.phase_context is not None:
+            p.phase_context = request.phase_context
+        if request.life_context:
+            p.life_context = request.life_context
+        if request.constraints:
+            p.constraints = request.constraints
+        if request.preferences:
+            p.preferences = request.preferences
+        if request.communication_style is not None:
+            p.communication_style = request.communication_style
+        if request.personality_notes is not None:
+            p.personality_notes = request.personality_notes
+        if request.relationship_notes is not None:
+            # Server expects list, iOS sends string - handle both
+            if isinstance(request.relationship_notes, str):
+                p.relationship_notes = [request.relationship_notes] if request.relationship_notes else []
+            else:
+                p.relationship_notes = request.relationship_notes
+        if request.training_days_per_week is not None:
+            p.training_days_per_week = str(request.training_days_per_week)
+        if request.training_style is not None:
+            # Server expects list, iOS sends string - handle both
+            if isinstance(request.training_style, str):
+                p.training_style = [request.training_style] if request.training_style else []
+            else:
+                p.training_style = request.training_style
+        if request.favorite_activities:
+            p.favorite_activities = request.favorite_activities
+        if request.patterns:
+            p.patterns = request.patterns
+        if request.nutrition_guidelines:
+            p.nutrition_guidelines = request.nutrition_guidelines
+
+        p.onboarding_complete = request.onboarding_complete
+        p.updated_at = datetime.now().isoformat()
+
+        profile.save_profile(p)
+
+        return {
+            "status": "synced",
+            "server_updated_at": p.updated_at
+        }
     except Exception as e:
         return {"status": "error", "message": str(e)}
 
@@ -995,6 +1127,16 @@ class DailySyncData(BaseModel):
     resting_hr: Optional[int] = None
     hrv_ms: Optional[float] = None
 
+    # Recovery metrics (Phase 1: HealthKit Dashboard Expansion)
+    sleep_efficiency: Optional[float] = None     # 0.0-1.0, time asleep / time in bed
+    sleep_deep_pct: Optional[float] = None       # Proportion of deep sleep (0.0-1.0)
+    sleep_core_pct: Optional[float] = None       # Proportion of core/light sleep (0.0-1.0)
+    sleep_rem_pct: Optional[float] = None        # Proportion of REM sleep (0.0-1.0)
+    sleep_onset_minutes: Optional[int] = None    # Minutes from midnight (for bedtime tracking)
+    hrv_baseline_ms: Optional[float] = None      # 7-day rolling mean HRV
+    hrv_deviation_pct: Optional[float] = None    # Today's deviation from baseline (%)
+    bedtime_consistency: Optional[str] = None    # "stable", "variable", or "irregular"
+
 
 class SyncRequest(BaseModel):
     """Request to sync daily data from iOS."""
@@ -1187,7 +1329,16 @@ async def sync_insights_data(request: SyncRequest):
             body_fat_pct=day.body_fat_pct,
             sleep_hours=day.sleep_hours,
             resting_hr=day.resting_hr,
-            hrv_ms=day.hrv_ms
+            hrv_ms=day.hrv_ms,
+            # Recovery metrics (Phase 1: HealthKit Dashboard Expansion)
+            sleep_efficiency=day.sleep_efficiency,
+            sleep_deep_pct=day.sleep_deep_pct,
+            sleep_core_pct=day.sleep_core_pct,
+            sleep_rem_pct=day.sleep_rem_pct,
+            sleep_onset_minutes=day.sleep_onset_minutes,
+            hrv_baseline_ms=day.hrv_baseline_ms,
+            hrv_deviation_pct=day.hrv_deviation_pct,
+            bedtime_consistency=day.bedtime_consistency
         )
 
         # Get or create snapshot for this date

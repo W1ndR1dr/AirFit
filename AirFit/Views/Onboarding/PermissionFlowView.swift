@@ -57,6 +57,9 @@ struct HealthKitPermissionPage: View {
     @State private var loadingPhase = 0
     @State private var loadingTimer: Timer?
 
+    // Keep a strong reference to prevent deallocation during async authorization
+    @State private var healthKitManager: HealthKitManager?
+
     private let loadingPhases = [
         "Opening HealthKit...",
         "Requesting access...",
@@ -203,6 +206,10 @@ struct HealthKitPermissionPage: View {
         isRequesting = true
         loadingPhase = 0
 
+        // Create and store a strong reference to prevent deallocation during async authorization
+        let manager = HealthKitManager()
+        healthKitManager = manager
+
         // Start cycling through loading phases
         loadingTimer = Timer.scheduledTimer(withTimeInterval: 1.2, repeats: true) { [self] _ in
             Task { @MainActor in
@@ -213,8 +220,8 @@ struct HealthKitPermissionPage: View {
         }
 
         Task {
-            let healthKit = HealthKitManager()
-            let _ = await healthKit.requestAuthorization()
+            // Use the stored reference (not a new instance)
+            let _ = await manager.requestAuthorization()
             await MainActor.run {
                 loadingTimer?.invalidate()
                 isRequesting = false

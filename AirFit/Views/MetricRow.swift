@@ -272,11 +272,11 @@ struct SleepBreakdownView: View {
     let breakdowns: [SleepBreakdown]  // 7 nights of detailed data
     let dailyValues: [Double]  // Fallback simple hours if breakdown unavailable
 
-    // Sleep stage colors
-    private let remColor = Color(red: 0.6, green: 0.4, blue: 0.9)      // Purple-ish
-    private let deepColor = Color(red: 0.2, green: 0.4, blue: 0.8)     // Deep blue
-    private let coreColor = Color(red: 0.4, green: 0.6, blue: 0.9)     // Light blue
-    private let awakeColor = Color.orange.opacity(0.6)
+    // Sleep stage colors (using Theme for muted uncertainty-aware colors)
+    private var remColor: Color { Theme.sleepREM }
+    private var deepColor: Color { Theme.sleepDeep }
+    private var coreColor: Color { Theme.sleepCore }
+    private var awakeColor: Color { Theme.sleepAwake }
 
     private let dayLabels = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"]
 
@@ -384,25 +384,32 @@ struct SleepBreakdownView: View {
             .frame(height: 12)
             .clipShape(RoundedRectangle(cornerRadius: 4))
 
-            // Legend
-            HStack(spacing: 12) {
-                legendItem(color: deepColor, label: "Deep", value: breakdown.deepSleep)
-                legendItem(color: remColor, label: "REM", value: breakdown.remSleep)
-                legendItem(color: coreColor, label: "Core", value: breakdown.coreSleep)
-                if breakdown.awakeTime > 0.1 {
-                    legendItem(color: awakeColor, label: "Awake", value: breakdown.awakeTime)
+            // Legend - showing percentages per evidence-based design
+            // (Apple Watch stages are 75-85% accurate, so proportions are more honest than minutes)
+            if breakdown.totalSleep > 0 {
+                HStack(spacing: 12) {
+                    legendItem(color: deepColor, label: "Deep", percentage: safeProportion(breakdown.deepSleep, of: breakdown.totalSleep))
+                    legendItem(color: remColor, label: "REM", percentage: safeProportion(breakdown.remSleep, of: breakdown.totalSleep))
+                    legendItem(color: coreColor, label: "Core", percentage: safeProportion(breakdown.coreSleep, of: breakdown.totalSleep))
+                    if breakdown.awakeTime > 0.1 && breakdown.timeInBed > 0 {
+                        legendItem(color: awakeColor, label: "Awake", percentage: safeProportion(breakdown.awakeTime, of: breakdown.timeInBed))
+                    }
+                    Spacer()
                 }
-                Spacer()
+            } else {
+                Text("No sleep stage data")
+                    .font(.caption)
+                    .foregroundStyle(Theme.textMuted)
             }
         }
     }
 
-    private func legendItem(color: Color, label: String, value: Double) -> some View {
+    private func legendItem(color: Color, label: String, percentage: Double) -> some View {
         HStack(spacing: 4) {
             Circle()
                 .fill(color)
                 .frame(width: 6, height: 6)
-            Text("\(label) \(formatHoursShort(value))")
+            Text("\(label) \(Int(percentage * 100))%")
                 .font(.system(size: 10))
                 .foregroundStyle(Theme.textMuted)
         }
@@ -518,6 +525,11 @@ struct SleepBreakdownView: View {
     }
 
     // MARK: - Helpers
+
+    /// Safe division helper to prevent crash when denominator is 0
+    private func safeProportion(_ part: Double, of total: Double) -> Double {
+        total > 0 ? part / total : 0
+    }
 
     private func formatHours(_ hours: Double) -> String {
         let h = Int(hours)

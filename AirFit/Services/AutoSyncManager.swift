@@ -24,6 +24,7 @@ final class AutoSyncManager: ObservableObject {
     private let hevyCacheManager = HevyCacheManager()
     private let hevyService = HevyService.shared
     private let personalitySynthesisService = PersonalitySynthesisService.shared
+    private let insightTriggerService = InsightTriggerService.shared
 
     // Minimum time between syncs (15 minutes)
     private let minSyncInterval: TimeInterval = 15 * 60
@@ -34,6 +35,13 @@ final class AutoSyncManager: ObservableObject {
 
     // Reference to ModelContext for workout-triggered sync
     private weak var currentModelContext: ModelContext?
+
+    // Track when app went to background (for smart workout detection)
+    private var backgroundedAt: Date?
+
+    // Workout window detection (15 min - 2 hours is typical workout)
+    private let minWorkoutDuration: TimeInterval = 15 * 60   // 15 min
+    private let maxWorkoutDuration: TimeInterval = 120 * 60  // 2 hours
 
     private init() {
         setupWorkoutObserver()
@@ -76,6 +84,15 @@ final class AutoSyncManager: ObservableObject {
         // Immediately refresh Hevy cache
         await syncHevyDeviceFirst(modelContext: modelContext, serverAvailable: false)
 
+        // Record new workouts for insight triggering (event-driven, not clock-based)
+        await insightTriggerService.recordNewWorkouts(workoutCount)
+
+        // Check if insights should be generated based on new data
+        let insightsGenerated = await insightTriggerService.triggerIfNeeded(modelContext: modelContext)
+        if insightsGenerated > 0 {
+            NotificationCenter.default.post(name: .insightsGenerated, object: nil)
+        }
+
         // Post notification for UI updates
         NotificationCenter.default.post(name: .hevyCacheUpdated, object: nil)
     }
@@ -104,12 +121,70 @@ final class AutoSyncManager: ObservableObject {
         await performSync(modelContext: modelContext)
     }
 
+    // MARK: - Smart Workout Detection
+
+    /// Call when app goes to background.
+    func appDidEnterBackground() {
+        backgroundedAt = Date()
+        print("[AutoSync] App backgrounded at \(backgroundedAt!)")
+    }
+
+    /// Call when app becomes active. Detects potential workout logging.
+    ///
+    /// If user was away for 15min - 2hrs (typical workout), aggressively sync Hevy
+    /// because they may have just logged a workout in the Hevy app.
+    func appDidBecomeActive(modelContext: ModelContext) async {
+        guard let backgroundedAt = backgroundedAt else {
+            // First launch or no background tracking
+            await performLaunchSync(modelContext: modelContext)
+            return
+        }
+
+        let timeAway = Date().timeIntervalSince(backgroundedAt)
+        self.backgroundedAt = nil  // Reset for next background
+
+        // Check if time away matches typical workout duration
+        if timeAway >= minWorkoutDuration && timeAway <= maxWorkoutDuration {
+            // Potential workout window detected!
+            print("[AutoSync] Potential workout detected - away for \(Int(timeAway / 60))min")
+
+            // Force Hevy sync even if we synced recently
+            currentModelContext = modelContext
+            await syncHevyDeviceFirst(modelContext: modelContext, serverAvailable: false)
+
+            // Record potential workout for insight triggering
+            await insightTriggerService.recordNewWorkouts(1)
+
+            // Check if insights should be generated
+            let insightsGenerated = await insightTriggerService.triggerIfNeeded(modelContext: modelContext)
+            if insightsGenerated > 0 {
+                NotificationCenter.default.post(name: .insightsGenerated, object: nil)
+            }
+
+            NotificationCenter.default.post(name: .hevyCacheUpdated, object: nil)
+        } else {
+            // Normal foreground - use regular sync (respects throttle)
+            await performLaunchSync(modelContext: modelContext)
+        }
+    }
+
+    /// Check if current time is within typical workout hours (6am - 9pm)
+    private var isWithinWorkoutHours: Bool {
+        let hour = Calendar.current.component(.hour, from: Date())
+        return hour >= 6 && hour <= 21
+    }
+
     // MARK: - Demo Data Seeding
 
     /// Seeds 14 days of realistic nutrition data if none exists.
     /// Includes training days, rest days, and one cheat day for realism.
-    /// Only runs if the database has fewer than 3 entries.
+    /// Only runs if Developer Mode is enabled AND database has fewer than 3 entries.
     private func seedDemoDataIfNeeded(modelContext: ModelContext) async {
+        // DEVELOPER MODE GATE: Only seed demo data when explicitly enabled
+        guard UserDefaults.standard.bool(forKey: "developerModeEnabled") else {
+            return
+        }
+
         // Check if we already have data
         let descriptor = FetchDescriptor<NutritionEntry>()
         let existingCount = (try? modelContext.fetchCount(descriptor)) ?? 0
@@ -299,25 +374,37 @@ final class AutoSyncManager: ObservableObject {
         isSyncing = true
         syncError = nil
 
+        // Check current AI mode
+        let aiMode = UserDefaults.standard.string(forKey: "aiProvider") ?? "claude"
+        let isGeminiDirectMode = aiMode == "gemini"
+
+        // Check server health in ALL modes (memory backup works regardless of chat provider)
+        // This is a non-blocking check - if server is offline, we proceed with local-only
         let serverAvailable = await apiClient.checkHealth()
 
         do {
             // 1. Request HealthKit permissions (no-op if already granted)
             _ = await healthKit.requestAuthorization()
 
-            // 2. Hevy sync (device-first, fallback to server)
+            // 2. Hevy sync (device-first always, fallback to server only if available)
             await syncHevyDeviceFirst(modelContext: modelContext, serverAvailable: serverAvailable)
 
+            // Server-dependent syncs
+            // Note: Memory sync is allowed in ALL modes (it's a backup, not dependency)
+            // Only daily snapshot sync is skipped in Gemini mode (server doesn't need it)
             if serverAvailable {
-                // Server-dependent syncs
-
-                // 3. Sync the last 7 days of data to server
-                try await syncService.syncRecentDays(7, modelContext: modelContext)
-
-                // 4. Sync memory to/from server
+                // Memory sync for ALL modes (backup memories to server)
                 await memorySyncService.syncToServer(modelContext: modelContext)
                 await memorySyncService.syncFromServer(modelContext: modelContext)
                 print("[AutoSync] Memory sync completed")
+
+                // Daily snapshot sync only for Claude mode (server needs this for insights)
+                if !isGeminiDirectMode {
+                    try await syncService.syncRecentDays(7, modelContext: modelContext)
+                    print("[AutoSync] Daily snapshot sync completed")
+                }
+            } else if isGeminiDirectMode {
+                print("[AutoSync] Gemini Direct mode - server unavailable, using local data only")
             } else {
                 print("[AutoSync] Server unavailable - using local data only")
             }
@@ -329,6 +416,14 @@ final class AutoSyncManager: ObservableObject {
             // - Profile was updated
             // - Memory threshold reached (10+ new memories)
             await regeneratePersonaIfNeeded(modelContext: modelContext)
+
+            // 6. Insight generation (event-driven, not clock-based)
+            // Triggers when enough new data has accumulated or significant events occurred
+            let insightsGenerated = await insightTriggerService.triggerIfNeeded(modelContext: modelContext)
+            if insightsGenerated > 0 {
+                print("[AutoSync] Generated \(insightsGenerated) new insights")
+                NotificationCenter.default.post(name: .insightsGenerated, object: nil)
+            }
 
             lastSyncTime = Date()
             print("[AutoSync] Sync completed successfully")

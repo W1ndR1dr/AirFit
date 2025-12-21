@@ -75,6 +75,16 @@ class HealthSnapshot:
     # Performance
     vo2_max: Optional[float] = None
 
+    # Recovery metrics (Phase 1: HealthKit Dashboard Expansion)
+    sleep_efficiency: Optional[float] = None     # 0.0-1.0, time asleep / time in bed
+    sleep_deep_pct: Optional[float] = None       # Proportion of deep sleep (0.0-1.0)
+    sleep_core_pct: Optional[float] = None       # Proportion of core/light sleep (0.0-1.0)
+    sleep_rem_pct: Optional[float] = None        # Proportion of REM sleep (0.0-1.0)
+    sleep_onset_minutes: Optional[int] = None    # Minutes from midnight (for bedtime tracking)
+    hrv_baseline_ms: Optional[float] = None      # 7-day rolling mean HRV
+    hrv_deviation_pct: Optional[float] = None    # Today's deviation from baseline (%)
+    bedtime_consistency: Optional[str] = None    # "stable", "variable", or "irregular"
+
 
 @dataclass
 class WorkoutSnapshot:

@@ -48,6 +48,20 @@ xcodebuild -project AirFit.xcodeproj -scheme AirFit -sdk iphoneos build
 
 **Target Device:** iPhone 16 Pro running iOS 26+ (physical device only, no simulator)
 
+### Remote Deploy (via Tailscale)
+```bash
+# Deploy to iPhone from anywhere (requires Tailscale on both devices)
+./scripts/deploy-to-iphone.sh
+```
+
+This script builds AirFit and installs it on a connected iPhone over Tailscale VPN.
+Useful when accessing this Mac remotely via Claude Code iOS app.
+
+**Prerequisites:**
+- iPhone paired via USB at least once for wireless debugging
+- Both Mac and iPhone running Tailscale and connected to same Tailnet
+- iPhone unlocked when deploying
+
 ### Python Server
 ```bash
 cd server
@@ -61,11 +75,46 @@ python server.py
 # Server runs on http://0.0.0.0:8080
 ```
 
+## AI Provider Modes
+
+The app supports two distinct AI operation modes:
+
+1. **Server Mode** (Raspberry Pi) - Server calls CLI tools (claude, gemini, codex) via subprocess
+   - Session continuity via `--resume` flag
+   - Provider fallback chain: claude → gemini → codex
+   - MCP tools for deep data queries
+
+2. **Gemini Direct Mode** - iOS calls Gemini API directly with user's API key
+   - Supports streaming, function calling, image analysis
+   - Context caching for reduced latency (1-hour TTL)
+   - ThinkingLevel: low/medium/high for reasoning depth
+
+## Tiered Context System
+
+Context is injected based on relevance, not dumped wholesale (see `server/tiered_context.py`):
+
+- **Tier 1 (Core, ~100-150 tokens)**: Always present - phase/goal, today's status, alerts, insight headlines
+- **Tier 2 (Topic-triggered, ~200-400 tokens)**: Based on keyword detection - training, nutrition, recovery, progress, goals
+- **Tier 3 (Deep queries)**: Tool-based on-demand - MCP for Claude CLI, function calling for Gemini
+
+Topic detection uses fast keyword/regex matching, no LLM call required.
+
+## Memory System
+
+AI-native relationship memory (`server/memory.py`) simulating Anthropic's Memory Tool:
+
+- Claude marks memorable moments with `<memory:type>content</memory:type>` markers
+- Types: `remember`, `callback` (inside jokes), `tone`, `thread` (follow-ups)
+- Stored as markdown in `server/data/memories/`
+- Weekly consolidation via LLM to prevent bloat
+
 ## Key Files
 
 ### Server
 - `server/server.py` - FastAPI app, all endpoints, context injection for chat
 - `server/llm_router.py` - Calls CLI tools via subprocess with session continuity
+- `server/tiered_context.py` - Topic detection and tiered context building
+- `server/memory.py` - AI-native relationship memory system
 - `server/sessions.py` - Session management for multi-turn conversations
 - `server/config.py` - Environment-based configuration
 - `server/profile.py` - User profile management and personality generation
@@ -73,11 +122,15 @@ python server.py
 - `server/insight_engine.py` - AI-powered pattern analysis from stored data
 - `server/scheduler.py` - Background tasks for insight generation and Hevy sync
 - `server/hevy.py` - Hevy workout API integration
-- `server/nutrition.py` - Food parsing via AI
+- `server/tools.py` - MCP tool implementations for deep queries
+- `server/mcp_server.py` - MCP server for Claude CLI integration
 
 ### iOS
 - `AirFit/App/AirFitApp.swift` - App entry point with TabView
 - `AirFit/Services/APIClient.swift` - HTTP client (actor-based), defines all API request/response types
+- `AirFit/Services/GeminiService.swift` - Direct Gemini API client with function calling
+- `AirFit/Services/AIRouter.swift` - Routes between server mode and Gemini direct mode
+- `AirFit/Services/ContextManager.swift` - Builds local context for Gemini mode
 - `AirFit/Services/HealthKitManager.swift` - HealthKit queries (actor-based)
 - `AirFit/Services/LiveActivityManager.swift` - Dynamic Island Live Activity management
 - `AirFit/Services/AutoSyncManager.swift` - Background sync of nutrition/health data
@@ -106,6 +159,22 @@ Time-series storage with daily snapshots containing:
 - `HealthSnapshot`: steps, active_calories, weight, body_fat, sleep, HRV
 - `WorkoutSnapshot`: workout_count, duration, volume, exercises
 
+## Data Architecture: Device-Primary, Server-Compute
+
+**Critical rule**: iOS device owns granular data, server stores only aggregates.
+
+| Data Type | Owner | Stored On | Recovery Strategy |
+|-----------|-------|-----------|-------------------|
+| Nutrition entries (meals) | Device | SwiftData | Irreplaceable - backup device |
+| Daily aggregates | Server | context_store.json | Device re-syncs |
+| HealthKit metrics | Apple | HealthKit → Server | Device re-syncs |
+| Hevy workouts | Server | context_store.json | Re-fetch from Hevy API |
+| Profile & Insights | Server | JSON files | Regenerate from data |
+
+Why: Pi has 32GB SD card. Daily aggregates = ~2KB/day = sustainable. Granular meals would bloat storage and duplicate device data.
+
+See `server/ARCHITECTURE.md` for full details.
+
 ## Development Notes
 
 ### iOS Concurrency
@@ -119,6 +188,20 @@ The server calls LLMs via CLI subprocess, not API. The router tries providers in
 
 ### Profile System
 User profiles evolve through conversation. The server extracts goals, preferences, and patterns from chat, then generates a personality prompt for personalized responses.
+
+### Tool/Function Calling
+
+Deep queries use tools to fetch detailed data on-demand:
+
+**Available tools** (defined in `server/tools.py`, mirrored in `GeminiService.swift`):
+- `query_workouts` - Exercise history, volume, PRs from Hevy
+- `query_nutrition` - Macro trends, compliance, meal entries
+- `query_body_comp` - Weight/body fat trends with EMA smoothing
+- `query_recovery` - Sleep, HRV, fatigue patterns
+- `query_insights` - AI-generated correlations and anomalies
+
+In Server Mode: MCP server exposes tools to Claude CLI
+In Gemini Mode: Function declarations sent with each request, executed via `/tools/execute` endpoint
 
 ### Debugging Endpoints
 - `GET /status` - Server status, available providers, session info
@@ -135,3 +218,28 @@ HEVY_API_KEY=...  # Optional, for workout sync
 CLI_TIMEOUT=120   # LLM CLI timeout in seconds
 AIRFIT_PROVIDERS=claude,gemini,codex  # Provider priority order
 ```
+
+## Common Patterns
+
+### Adding a New Tool
+1. Add implementation in `server/tools.py`
+2. Add schema in `server/tools.py` TOOL_SCHEMAS
+3. Mirror in `GeminiService.swift` airfitTools property
+4. Update tiered context topic detection if needed (`tiered_context.py`)
+
+### Adding Context to Chat
+- Tier 1 (always): Add to `build_core_context()` in `tiered_context.py`
+- Tier 2 (topic-triggered): Add topic keywords + `_build_*_context()` function
+- Tier 3 (on-demand): Create new tool
+
+### iOS Service Pattern
+All services are actors. Use `@MainActor` for UI-bound work, otherwise plain actors:
+```swift
+actor MyService {
+    static let shared = MyService()
+    // Methods are automatically isolated
+}
+```
+
+### Testing Gemini Mode Locally
+Set API key via Settings → Advanced → Gemini API Key. The key is stored in Keychain, not UserDefaults.

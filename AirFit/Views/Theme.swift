@@ -101,6 +101,14 @@ enum Theme {
     static let warning = Color.adaptive(light: "E9B879", dark: "F4CFA0")
     static let error = Color.adaptive(light: "D97C7C", dark: "E89A9A")
     static let warm = Color.adaptive(light: "F4B5A0", dark: "F8CFC0")
+
+    // Sleep stage colors (muted to communicate uncertainty)
+    // Per plan: Apple Watch sleep stages are 75-85% accurate, so we use soft colors
+    // with gradient edges to honestly represent measurement limitations
+    static let sleepDeep = Color.adaptive(light: "2046B8", dark: "5080E0").opacity(0.8)    // Muted indigo
+    static let sleepREM = Color.adaptive(light: "7F5AA3", dark: "A080C8").opacity(0.8)     // Soft purple
+    static let sleepCore = Color.adaptive(light: "6B9BC3", dark: "90C0E8").opacity(0.8)    // Light blue-gray
+    static let sleepAwake = Color.adaptive(light: "F5A962", dark: "F8C898").opacity(0.4)   // Very muted orange
 }
 
 // MARK: - Typography (Three-tier Bloom system)

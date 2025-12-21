@@ -303,6 +303,12 @@ final class LocalProfile {
 
     // MARK: - Computed Properties
 
+    /// Whether this profile has meaningful data (not just an empty shell)
+    var hasProfile: Bool {
+        // Profile is "real" if it has a name or any goals set
+        (name != nil && !name!.isEmpty) || !(goals ?? []).isEmpty
+    }
+
     /// One-line summary for display
     var summary: String {
         if let stored = storedSummary, !stored.isEmpty {

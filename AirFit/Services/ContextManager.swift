@@ -50,6 +50,7 @@ actor ContextManager {
     private let healthKit = HealthKitManager()
     private let memorySyncService = MemorySyncService()
     private let hevyCacheManager = HevyCacheManager()
+    private let localInsightEngine = LocalInsightEngine()
 
     // MARK: - Staleness Thresholds (seconds)
 
@@ -71,7 +72,18 @@ actor ContextManager {
     ///
     /// - Parameter messageIntent: Optional hint about what the user is asking about
     /// - Returns: Cached or fresh ChatContext
+    ///
+    /// Note: This method may call the server. For Gemini Direct mode, prefer
+    /// `getContext(for:modelContext:)` which builds context locally.
     func getContext(for messageIntent: MessageIntent? = nil) async -> ChatContext {
+        // Check AI mode - in Gemini Direct mode, return cached context without server call
+        let aiMode = UserDefaults.standard.string(forKey: "aiProvider") ?? "claude"
+        if aiMode == "gemini" {
+            // In Gemini mode without ModelContext, return cached or empty
+            // Full local context requires ModelContext - use getContext(for:modelContext:)
+            return cachedContext ?? ChatContext.empty
+        }
+
         let needsRefresh = cachedContext == nil
             || contextAge > defaultStaleness
             || shouldRefreshForIntent(messageIntent)
@@ -81,6 +93,12 @@ actor ContextManager {
         }
 
         return cachedContext ?? ChatContext.empty
+    }
+
+    /// Cache locally-built context (called after buildLocalContext from MainActor).
+    func cacheLocalContext(_ context: ChatContext) {
+        cachedContext = context
+        lastRefresh = Date()
     }
 
     /// Force a context refresh regardless of staleness.
@@ -154,15 +172,21 @@ actor ContextManager {
             weeklyNutritionString = ""
         }
 
-        // 4. Get cached Hevy data (only if workout sharing enabled)
+        // 4. Get Hevy data (only if workout sharing enabled)
+        // Refresh cache first (5-min threshold for chat freshness)
         let workoutString: String
         if privacy.shareWorkouts {
+            await hevyCacheManager.refreshForChat(modelContext: modelContext)
             workoutString = await hevyCacheManager.buildWorkoutContext(modelContext: modelContext)
         } else {
             workoutString = ""
         }
 
-        // 5. Combine data context (only enabled categories)
+        // 5. Get local insights (AI-generated pattern analysis)
+        // Provides the "proactive coaching" awareness that Claude gets from server
+        let insightsString = await formatLocalInsights(modelContext: modelContext)
+
+        // 6. Combine data context (only enabled categories)
         var dataContextParts: [String] = []
 
         // Day status first (training vs rest) - requires health sharing
@@ -181,6 +205,9 @@ actor ContextManager {
         }
         if !workoutString.isEmpty {
             dataContextParts.append(workoutString)
+        }
+        if !insightsString.isEmpty {
+            dataContextParts.append(insightsString)
         }
 
         let combinedDataContext = dataContextParts.joined(separator: "\n\n")
@@ -239,6 +266,28 @@ actor ContextManager {
         }
         if let sleep = context.sleepHours {
             parts.append("Sleep last night: \(String(format: "%.1f", sleep)) hrs")
+        }
+
+        return parts.joined(separator: "\n")
+    }
+
+    /// Format local insights for chat context.
+    /// Provides the same "proactive coaching" awareness that server mode gets.
+    @MainActor
+    private func formatLocalInsights(modelContext: ModelContext) async -> String {
+        // Get high-priority insights (top 3, most important/recent)
+        let insights = await localInsightEngine.getHighPriorityInsights(modelContext: modelContext, limit: 3)
+
+        guard !insights.isEmpty else { return "" }
+
+        var parts: [String] = ["--- AI INSIGHTS ---"]
+        parts.append("Patterns I've noticed (use naturally in coaching, don't recite):")
+
+        for insight in insights {
+            // Format: "• [category] title: body (truncated)"
+            let bodyPreview = String(insight.body.prefix(100))
+            let truncated = insight.body.count > 100 ? "..." : ""
+            parts.append("• [\(insight.category)] \(insight.title): \(bodyPreview)\(truncated)")
         }
 
         return parts.joined(separator: "\n")

@@ -855,6 +855,25 @@ struct ChatView: View {
     }
 
     private func checkServerWithRetry() async {
+        // In Gemini Direct mode, server is optional - do a quick non-blocking check
+        // but don't retry or show scary disconnected states
+        if aiProvider == "gemini" {
+            // Don't wait - Gemini mode works without server
+            serverStatus = .connected  // Treat as "ready" since Gemini doesn't need server
+
+            // Quick background check for optional sync features (non-blocking)
+            Task { @MainActor in
+                let isHealthy = await apiClient.checkHealth()
+                // Only update if still in Gemini mode and server becomes available
+                if isHealthy {
+                    serverStatus = .connected
+                }
+                // Don't show disconnected in Gemini mode - server is optional
+            }
+            return
+        }
+
+        // Claude/Hybrid mode: Server is required, do full retry logic
         serverStatus = .checking
 
         // First attempt - this triggers the local network permission dialog on first launch
@@ -876,6 +895,9 @@ struct ChatView: View {
     }
 
     private func checkServer() async {
+        // In Gemini Direct mode, skip blocking server check entirely
+        guard aiProvider != "gemini" else { return }
+
         serverStatus = .checking
         let isHealthy = await apiClient.checkHealth()
         serverStatus = isHealthy ? .connected : .disconnected
@@ -931,10 +953,40 @@ struct ChatView: View {
                 healthContext: healthContext?.toDictionary(),
                 nutritionContext: nutritionContext
             )
-            let aiMessage = Message(content: response, isUser: false)
+
+            // PROVIDER PARITY: Extract memory markers locally (same as Gemini path)
+            // This enables device-first profile/memory even when using Claude server mode
+            let (cleanResponse, markers) = MemoryMarkerProcessor.extractAndStrip(response)
+
+            // Store markers locally in SwiftData (device-first)
+            if !markers.isEmpty {
+                await memorySyncService.storeMarkers(markers, modelContext: modelContext)
+                pendingMemoryMarkers.append(contentsOf: markers)
+            }
+
+            // Display clean response (markers stripped)
+            let aiMessage = Message(content: cleanResponse, isUser: false)
             withAnimation(.airfit) {
                 messages.append(aiMessage)
             }
+
+            // Sync to server for backup if we have enough markers
+            if pendingMemoryMarkers.count >= 5 {
+                await syncPendingMarkersToServer()
+            }
+
+            // PROVIDER PARITY: Trigger local profile evolution (same as Gemini path)
+            // This ensures LocalProfile updates regardless of which provider is used
+            let userMsg = text
+            let aiMsg = response  // Use raw response for extraction
+            Task {
+                await profileEvolutionService.extractAndUpdateProfile(
+                    userMessage: userMsg,
+                    aiResponse: aiMsg,
+                    modelContext: modelContext
+                )
+            }
+
         } catch {
             let errorMessage = Message(
                 content: "Error: \(error.localizedDescription)",
@@ -952,9 +1004,20 @@ struct ChatView: View {
         isLoading = true
 
         do {
-            // Get context with smart refresh based on message intent
+            // Refresh HealthKit before building context (ensures fresh data)
+            await refreshHealthData()
+
+            // Get context based on mode:
+            // - Gemini Direct: Build locally (no server call)
+            // - Claude/Hybrid: Fetch from server with staleness check
             let intent = ContextManager.detectIntent(from: text)
-            let context = await contextManager.getContext(for: intent)
+            let context: ChatContext
+            if aiProvider == "gemini" {
+                context = await contextManager.buildLocalContext(modelContext: modelContext)
+                await contextManager.cacheLocalContext(context)
+            } else {
+                context = await contextManager.getContext(for: intent)
+            }
 
             // Use seed system prompt if in a seed conversation, otherwise use normal coaching prompt
             let systemPromptToUse = activeSeed != nil
@@ -1032,8 +1095,11 @@ struct ChatView: View {
     }
 
     /// Send message via Gemini with streaming response (premium animated text reveal)
-    /// Only used in pure Gemini mode for that "AI typing" effect
+    /// Only used in pure Gemini Direct mode for that "AI typing" effect
     private func sendGeminiMessageStreaming(_ text: String) async {
+        // Refresh HealthKit before building context (ensures fresh data)
+        await refreshHealthData()
+
         // Create placeholder AI message immediately for instant feedback
         let placeholderMessage = Message(content: "", isUser: false)
         let messageId = placeholderMessage.id
@@ -1048,9 +1114,17 @@ struct ChatView: View {
         }
 
         do {
-            // Get context with smart refresh based on message intent
+            // Get context based on mode:
+            // - Gemini Direct: Build locally (no server call)
+            // - Claude/Hybrid: Fetch from server with staleness check
             let intent = ContextManager.detectIntent(from: text)
-            let context = await contextManager.getContext(for: intent)
+            let context: ChatContext
+            if aiProvider == "gemini" {
+                context = await contextManager.buildLocalContext(modelContext: modelContext)
+                await contextManager.cacheLocalContext(context)
+            } else {
+                context = await contextManager.getContext(for: intent)
+            }
 
             // Use seed system prompt if in a seed conversation, otherwise use normal coaching prompt
             let systemPromptToUse = activeSeed != nil
@@ -1196,13 +1270,16 @@ struct ChatView: View {
     }
 
     private func startNewChat() async {
-        // Sync any pending markers before clearing
+        // Sync any pending markers before clearing (only if server available)
         if effectiveProvider == "gemini" && !pendingMemoryMarkers.isEmpty {
             await syncPendingMarkersToServer()
         }
 
-        // Clear server-side session (conversation memory)
-        try? await apiClient.clearChatSession()
+        // Clear server-side session only when using Claude/server mode
+        // In Gemini Direct mode, there's no server session to clear
+        if aiProvider != "gemini" {
+            try? await apiClient.clearChatSession()
+        }
 
         // Clear local state on main actor
         await MainActor.run {
@@ -1333,6 +1410,8 @@ struct ChatView: View {
     private func provideFeedback(messageIndex: Int, isPositive: Bool, reason: String?) {
         guard messageIndex < messages.count, !messages[messageIndex].isUser else { return }
 
+        let aiMessage = messages[messageIndex]
+
         withAnimation(.airfit) {
             if isPositive {
                 messages[messageIndex].feedback = .positive
@@ -1341,8 +1420,25 @@ struct ChatView: View {
             }
         }
 
-        // Could sync this feedback to server for profile evolution
-        // For now, just track locally
+        // Store feedback as LocalMemory for personality evolution
+        // PersonalitySynthesisService reads this when regenerating the coaching persona
+        let feedbackType = isPositive ? "tone" : "remember"  // Positive = tone calibration, Negative = thing to avoid
+        let snippet = String(aiMessage.content.prefix(100))
+        let feedbackContent: String
+
+        if isPositive {
+            feedbackContent = "Response style that landed well: \"\(snippet)...\""
+        } else if let reason = reason, !reason.isEmpty {
+            feedbackContent = "Response style to AVOID - user disliked: \"\(snippet)...\" Reason: \(reason)"
+        } else {
+            feedbackContent = "Response style to AVOID - user disliked: \"\(snippet)...\""
+        }
+
+        let memory = LocalMemory(type: feedbackType, content: feedbackContent)
+        modelContext.insert(memory)
+        try? modelContext.save()
+
+        print("[ChatView] Stored feedback as LocalMemory for personality evolution")
     }
 
     private func requestNegativeFeedbackReason(messageIndex: Int) {

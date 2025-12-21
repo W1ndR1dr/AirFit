@@ -3,73 +3,85 @@ import SwiftUI
 // MARK: - Splash View (Onboarding)
 
 struct SplashView: View {
-    @State private var textOpacity: CGFloat = 0
-    @State private var textOffset: CGFloat = 10
-    @State private var showContinue = false
-    @State private var continuePulse = false
+    @Environment(\.colorScheme) private var colorScheme
+
+    @State private var hintOpacity: Double = 0
+    @State private var shimmerOffset: CGFloat = -1.0
+    @State private var hasCompleted = false
 
     let onComplete: () -> Void
 
+    // Appearance-adaptive colors for swipe hint
+    private var baseTextColor: Color {
+        colorScheme == .dark
+            ? .white.opacity(0.5)
+            : Color(red: 0.5, green: 0.3, blue: 0.8).opacity(0.6)  // Purple base
+    }
+
+    private var shimmerColors: [Color] {
+        colorScheme == .dark
+            ? [.clear, .white.opacity(0.4), .clear]
+            : [
+                .clear,
+                Color(red: 0.7, green: 0.4, blue: 0.9).opacity(0.8),  // Purple shimmer
+                Color(red: 0.85, green: 0.4, blue: 0.55).opacity(0.6),  // Pink shimmer
+                .clear
+            ]
+    }
+
     var body: some View {
         ZStack {
-            // Use the new AirFitSplashView with long animation for onboarding
-            AirFitSplashView(useLongAnimation: true)
+            // Splash with flame animation + wordmark
+            AirFitSplashView(useLongAnimation: true, showWordmark: true)
 
-            // App name and continue hint
+            // Swipe hint at bottom with shimmer
             VStack {
                 Spacer()
 
-                Text("AirFit")
-                    .font(.system(size: 38, weight: .bold, design: .rounded))
-                    .foregroundStyle(
+                Text("Swipe to begin")
+                    .font(.system(size: 17, weight: .medium, design: .rounded))
+                    .foregroundStyle(baseTextColor)
+                    .overlay(
+                        // Subtle shimmer sweep - adaptive colors
                         LinearGradient(
-                            colors: [
-                                Color(red: 255/255, green: 130/255, blue: 100/255),
-                                Color(red: 200/255, green: 80/255, blue: 180/255)
-                            ],
-                            startPoint: .leading,
-                            endPoint: .trailing
+                            colors: shimmerColors,
+                            startPoint: UnitPoint(x: shimmerOffset, y: 0.5),
+                            endPoint: UnitPoint(x: shimmerOffset + 0.4, y: 0.5)
+                        )
+                        .mask(
+                            Text("Swipe to begin")
+                                .font(.system(size: 17, weight: .medium, design: .rounded))
                         )
                     )
-                    .opacity(textOpacity)
-                    .offset(y: textOffset)
-
-                Spacer()
-                    .frame(height: 60)
-
-                // Tap to continue hint
-                HStack(spacing: 6) {
-                    Text("Tap to continue")
-                        .font(.system(size: 15, weight: .medium))
-                    Image(systemName: "arrow.right")
-                        .font(.system(size: 13, weight: .semibold))
-                }
-                .foregroundStyle(.white.opacity(0.5))
-                .opacity(showContinue ? (continuePulse ? 0.7 : 0.4) : 0)
-                .padding(.bottom, 60)
+                    .opacity(hintOpacity)
+                    .padding(.bottom, 70)
             }
         }
         .contentShape(Rectangle())
+        .gesture(
+            DragGesture(minimumDistance: 40)
+                .onEnded { value in
+                    if abs(value.translation.width) > 50 && hintOpacity > 0 && !hasCompleted {
+                        hasCompleted = true
+                        onComplete()
+                    }
+                }
+        )
         .onTapGesture {
-            if showContinue {
+            if hintOpacity > 0 && !hasCompleted {
+                hasCompleted = true
                 onComplete()
             }
         }
         .onAppear {
-            // Fade in app name after flame has risen
-            withAnimation(.easeOut(duration: 0.8).delay(1.8)) {
-                textOpacity = 1.0
-                textOffset = 0
+            // Fade in hint
+            withAnimation(.easeOut(duration: 0.8).delay(2.0)) {
+                hintOpacity = 1.0
             }
 
-            // Show continue hint after animation settles
-            withAnimation(.easeOut(duration: 0.6).delay(3.0)) {
-                showContinue = true
-            }
-
-            // Gentle pulse on continue hint
-            withAnimation(.easeInOut(duration: 1.5).repeatForever(autoreverses: true).delay(3.5)) {
-                continuePulse = true
+            // Start shimmer loop
+            withAnimation(.easeInOut(duration: 2.5).repeatForever(autoreverses: false).delay(2.5)) {
+                shimmerOffset = 1.2
             }
         }
     }

@@ -62,6 +62,13 @@ actor HealthKitManager {
         HKQuantityType(.runningVerticalOscillation),
         HKQuantityType(.runningGroundContactTime),
         HKQuantityType(.runningSpeed),
+        HKQuantityType(.walkingSpeed),  // Walking pace for daily mobility
+
+        // Gait/Mobility Metrics (movement quality indicators)
+        HKQuantityType(.walkingAsymmetryPercentage),       // Left/right imbalance
+        HKQuantityType(.walkingDoubleSupportPercentage),   // Stability indicator
+        HKQuantityType(.walkingStepLength),                // Step length
+        HKQuantityType(.appleWalkingSteadiness),          // Composite steadiness score
 
         // Cycling Metrics (basic - no power meter needed)
         HKQuantityType(.cyclingCadence),
@@ -390,6 +397,7 @@ actor HealthKitManager {
         let startOfDay = calendar.startOfDay(for: date)
         let endOfDay = calendar.date(byAdding: .day, value: 1, to: startOfDay)!
 
+        // Existing metrics
         async let steps = fetchDaySum(.stepCount, unit: .count(), start: startOfDay, end: endOfDay)
         async let calories = fetchDaySum(.activeEnergyBurned, unit: .kilocalorie(), start: startOfDay, end: endOfDay)
         async let weight = fetchDayLatest(.bodyMass, unit: .pound(), start: startOfDay, end: endOfDay)
@@ -397,6 +405,35 @@ actor HealthKitManager {
         async let restingHR = fetchDayLatest(.restingHeartRate, unit: .count().unitDivided(by: .minute()), start: startOfDay, end: endOfDay)
         async let hrv = fetchDayLatest(.heartRateVariabilitySDNN, unit: .secondUnit(with: .milli), start: startOfDay, end: endOfDay)
         async let sleepHours = fetchSleepForNight(endingOn: date)
+
+        // Recovery metrics (Phase 1: HealthKit Dashboard Expansion)
+        async let sleepBreakdown = getSleepBreakdown(for: date)
+        async let sleepOnset = getSleepOnsetMinutes(for: date)
+        async let hrvBaseline = getHRVBaseline()
+
+        // Await all values
+        let hrvValue = await hrv
+        let baselineResult = await hrvBaseline
+        let breakdownResult = await sleepBreakdown
+
+        // Compute HRV deviation from baseline
+        var hrvDeviationPct: Double? = nil
+        if let currentHRV = hrvValue, let baseline = baselineResult, baseline.isReliable {
+            hrvDeviationPct = baseline.percentDeviation(for: currentHRV)
+        }
+
+        // Compute sleep stage proportions
+        var sleepEfficiency: Double? = nil
+        var sleepDeepPct: Double? = nil
+        var sleepCorePct: Double? = nil
+        var sleepREMPct: Double? = nil
+
+        if let breakdown = breakdownResult, breakdown.totalSleep > 0 {
+            sleepEfficiency = breakdown.efficiency / 100.0  // Convert from 0-100 to 0-1
+            sleepDeepPct = breakdown.deepSleep / breakdown.totalSleep
+            sleepCorePct = breakdown.coreSleep / breakdown.totalSleep
+            sleepREMPct = breakdown.remSleep / breakdown.totalSleep
+        }
 
         return await DailyHealthSnapshot(
             date: date,
@@ -406,7 +443,15 @@ actor HealthKitManager {
             bodyFatPct: bodyFat.map { $0 * 100 }, // Convert from 0-1 to percentage
             sleepHours: sleepHours,
             restingHR: restingHR.map { Int($0) },
-            hrvMs: hrv
+            hrvMs: hrvValue,
+            // Recovery metrics
+            sleepEfficiency: sleepEfficiency,
+            sleepDeepPct: sleepDeepPct,
+            sleepCorePct: sleepCorePct,
+            sleepREMPct: sleepREMPct,
+            sleepOnsetMinutes: sleepOnset,
+            hrvBaselineMs: baselineResult?.mean,
+            hrvDeviationPct: hrvDeviationPct
         )
     }
 
@@ -543,6 +588,505 @@ actor HealthKitManager {
                     )
                 } ?? []
                 continuation.resume(returning: readings)
+            }
+            healthStore.execute(query)
+        }
+    }
+
+    // MARK: - Recovery & Readiness Metrics
+
+    /// Get HRV history for baseline calculation and trend analysis.
+    ///
+    /// Returns all HRV readings (SDNN) over the specified period.
+    /// Apple Watch typically records 1-2 HRV samples per day during sleep.
+    func getHRVHistory(days: Int) async -> [HRVReading] {
+        let calendar = Calendar.current
+        let startDate = calendar.date(byAdding: .day, value: -days, to: Date())!
+        let type = HKQuantityType(.heartRateVariabilitySDNN)
+        let predicate = HKQuery.predicateForSamples(withStart: startDate, end: Date(), options: .strictStartDate)
+        let sortDescriptor = NSSortDescriptor(key: HKSampleSortIdentifierEndDate, ascending: true)
+
+        return await withCheckedContinuation { continuation in
+            let query = HKSampleQuery(sampleType: type, predicate: predicate, limit: HKObjectQueryNoLimit, sortDescriptors: [sortDescriptor]) { _, samples, _ in
+                let readings: [HRVReading] = (samples as? [HKQuantitySample])?.map { sample in
+                    HRVReading(
+                        date: sample.endDate,
+                        hrvMs: sample.quantity.doubleValue(for: .secondUnit(with: .milli))
+                    )
+                } ?? []
+                continuation.resume(returning: readings)
+            }
+            healthStore.execute(query)
+        }
+    }
+
+    /// Calculate HRV baseline from the last 7 days of data.
+    ///
+    /// Uses the coefficient of variation (CV) method which is more robust than
+    /// simple mean comparison. Research shows daily HRV varies 20-30% even when stable,
+    /// so comparing to personal baseline is essential.
+    ///
+    /// - Returns: HRVBaseline with mean, SD, and CV, or nil if insufficient data
+    func getHRVBaseline() async -> HRVBaseline? {
+        let readings = await getHRVHistory(days: 7)
+
+        guard readings.count >= 3 else { return nil }
+
+        let values = readings.map { $0.hrvMs }
+        let mean = values.reduce(0, +) / Double(values.count)
+
+        // Calculate standard deviation
+        let sumSquaredDiffs = values.reduce(0) { $0 + pow($1 - mean, 2) }
+        let variance = sumSquaredDiffs / Double(values.count)
+        let standardDeviation = sqrt(variance)
+
+        // Coefficient of variation (CV = SD / mean)
+        let cv = mean > 0 ? standardDeviation / mean : 0
+
+        return HRVBaseline(
+            mean: mean,
+            standardDeviation: standardDeviation,
+            coefficientOfVariation: cv,
+            sampleCount: readings.count,
+            startDate: readings.first?.date ?? Date(),
+            endDate: readings.last?.date ?? Date()
+        )
+    }
+
+    /// Get extended HRV baseline from the last 14 days for more robust comparison.
+    func getExtendedHRVBaseline() async -> HRVBaseline? {
+        let readings = await getHRVHistory(days: 14)
+
+        guard readings.count >= 5 else { return nil }
+
+        let values = readings.map { $0.hrvMs }
+        let mean = values.reduce(0, +) / Double(values.count)
+
+        let sumSquaredDiffs = values.reduce(0) { $0 + pow($1 - mean, 2) }
+        let variance = sumSquaredDiffs / Double(values.count)
+        let standardDeviation = sqrt(variance)
+        let cv = mean > 0 ? standardDeviation / mean : 0
+
+        return HRVBaseline(
+            mean: mean,
+            standardDeviation: standardDeviation,
+            coefficientOfVariation: cv,
+            sampleCount: readings.count,
+            startDate: readings.first?.date ?? Date(),
+            endDate: readings.last?.date ?? Date()
+        )
+    }
+
+    /// Get Heart Rate Recovery history for fitness trend analysis.
+    ///
+    /// HRR is measured 1 minute after workout ends. Higher is better:
+    /// - Poor: < 20 bpm
+    /// - OK: 20-30 bpm
+    /// - Good: 30-40 bpm
+    /// - Excellent: > 40 bpm
+    ///
+    /// This is a fitness/adaptation marker (improves over weeks of training),
+    /// NOT a daily readiness indicator.
+    func getHRRecoveryHistory(days: Int) async -> [HRRecoveryReading] {
+        let calendar = Calendar.current
+        let startDate = calendar.date(byAdding: .day, value: -days, to: Date())!
+        let type = HKQuantityType(.heartRateRecoveryOneMinute)
+        let predicate = HKQuery.predicateForSamples(withStart: startDate, end: Date(), options: .strictStartDate)
+        let sortDescriptor = NSSortDescriptor(key: HKSampleSortIdentifierEndDate, ascending: true)
+
+        return await withCheckedContinuation { continuation in
+            let query = HKSampleQuery(sampleType: type, predicate: predicate, limit: HKObjectQueryNoLimit, sortDescriptors: [sortDescriptor]) { _, samples, _ in
+                let readings: [HRRecoveryReading] = (samples as? [HKQuantitySample])?.map { sample in
+                    HRRecoveryReading(
+                        date: sample.endDate,
+                        recoveryBpm: sample.quantity.doubleValue(for: .count().unitDivided(by: .minute()))
+                    )
+                } ?? []
+                continuation.resume(returning: readings)
+            }
+            healthStore.execute(query)
+        }
+    }
+
+    /// Get resting heart rate history for baseline and trend analysis.
+    func getRestingHRHistory(days: Int) async -> [(date: Date, bpm: Double)] {
+        let calendar = Calendar.current
+        let startDate = calendar.date(byAdding: .day, value: -days, to: Date())!
+        let type = HKQuantityType(.restingHeartRate)
+        let predicate = HKQuery.predicateForSamples(withStart: startDate, end: Date(), options: .strictStartDate)
+        let sortDescriptor = NSSortDescriptor(key: HKSampleSortIdentifierEndDate, ascending: true)
+
+        return await withCheckedContinuation { continuation in
+            let query = HKSampleQuery(sampleType: type, predicate: predicate, limit: HKObjectQueryNoLimit, sortDescriptors: [sortDescriptor]) { _, samples, _ in
+                let readings: [(date: Date, bpm: Double)] = (samples as? [HKQuantitySample])?.map { sample in
+                    (
+                        date: sample.endDate,
+                        bpm: sample.quantity.doubleValue(for: .count().unitDivided(by: .minute()))
+                    )
+                } ?? []
+                continuation.resume(returning: readings)
+            }
+            healthStore.execute(query)
+        }
+    }
+
+    /// Get resting heart rate history for specified days as typed readings
+    func getRestingHRHistoryAsReadings(days: Int) async -> [RestingHRReading] {
+        let calendar = Calendar.current
+        let startDate = calendar.date(byAdding: .day, value: -days, to: Date())!
+        let type = HKQuantityType(.restingHeartRate)
+        let predicate = HKQuery.predicateForSamples(withStart: startDate, end: Date(), options: .strictStartDate)
+        let sortDescriptor = NSSortDescriptor(key: HKSampleSortIdentifierEndDate, ascending: true)
+
+        return await withCheckedContinuation { continuation in
+            let query = HKSampleQuery(sampleType: type, predicate: predicate, limit: HKObjectQueryNoLimit, sortDescriptors: [sortDescriptor]) { _, samples, _ in
+                let readings: [RestingHRReading] = (samples as? [HKQuantitySample])?.map { sample in
+                    RestingHRReading(
+                        date: sample.endDate,
+                        bpm: sample.quantity.doubleValue(for: .count().unitDivided(by: .minute()))
+                    )
+                } ?? []
+                continuation.resume(returning: readings)
+            }
+            healthStore.execute(query)
+        }
+    }
+
+    /// Get all resting heart rate history (no day limit - for "All Time" view)
+    func getAllRestingHRHistory() async -> [RestingHRReading] {
+        let type = HKQuantityType(.restingHeartRate)
+        let sortDescriptor = NSSortDescriptor(key: HKSampleSortIdentifierEndDate, ascending: true)
+
+        return await withCheckedContinuation { continuation in
+            let query = HKSampleQuery(sampleType: type, predicate: nil, limit: HKObjectQueryNoLimit, sortDescriptors: [sortDescriptor]) { _, samples, _ in
+                let readings: [RestingHRReading] = (samples as? [HKQuantitySample])?.map { sample in
+                    RestingHRReading(
+                        date: sample.endDate,
+                        bpm: sample.quantity.doubleValue(for: .count().unitDivided(by: .minute()))
+                    )
+                } ?? []
+                continuation.resume(returning: readings)
+            }
+            healthStore.execute(query)
+        }
+    }
+
+    // MARK: - Walking/Running Speed History
+
+    /// Get walking speed history for specified days
+    func getWalkingSpeedHistory(days: Int) async -> [WalkingSpeedReading] {
+        let calendar = Calendar.current
+        let startDate = calendar.date(byAdding: .day, value: -days, to: Date())!
+        let type = HKQuantityType(.walkingSpeed)
+        let predicate = HKQuery.predicateForSamples(withStart: startDate, end: Date(), options: .strictStartDate)
+        let sortDescriptor = NSSortDescriptor(key: HKSampleSortIdentifierEndDate, ascending: true)
+
+        return await withCheckedContinuation { continuation in
+            let query = HKSampleQuery(sampleType: type, predicate: predicate, limit: HKObjectQueryNoLimit, sortDescriptors: [sortDescriptor]) { _, samples, _ in
+                let readings: [WalkingSpeedReading] = (samples as? [HKQuantitySample])?.map { sample in
+                    WalkingSpeedReading(
+                        date: sample.endDate,
+                        metersPerSecond: sample.quantity.doubleValue(for: .meter().unitDivided(by: .second()))
+                    )
+                } ?? []
+                continuation.resume(returning: readings)
+            }
+            healthStore.execute(query)
+        }
+    }
+
+    /// Get all walking speed history (no day limit)
+    func getAllWalkingSpeedHistory() async -> [WalkingSpeedReading] {
+        let type = HKQuantityType(.walkingSpeed)
+        let sortDescriptor = NSSortDescriptor(key: HKSampleSortIdentifierEndDate, ascending: true)
+
+        return await withCheckedContinuation { continuation in
+            let query = HKSampleQuery(sampleType: type, predicate: nil, limit: HKObjectQueryNoLimit, sortDescriptors: [sortDescriptor]) { _, samples, _ in
+                let readings: [WalkingSpeedReading] = (samples as? [HKQuantitySample])?.map { sample in
+                    WalkingSpeedReading(
+                        date: sample.endDate,
+                        metersPerSecond: sample.quantity.doubleValue(for: .meter().unitDivided(by: .second()))
+                    )
+                } ?? []
+                continuation.resume(returning: readings)
+            }
+            healthStore.execute(query)
+        }
+    }
+
+    /// Get running speed history for specified days
+    func getRunningSpeedHistory(days: Int) async -> [RunningSpeedReading] {
+        let calendar = Calendar.current
+        let startDate = calendar.date(byAdding: .day, value: -days, to: Date())!
+        let type = HKQuantityType(.runningSpeed)
+        let predicate = HKQuery.predicateForSamples(withStart: startDate, end: Date(), options: .strictStartDate)
+        let sortDescriptor = NSSortDescriptor(key: HKSampleSortIdentifierEndDate, ascending: true)
+
+        return await withCheckedContinuation { continuation in
+            let query = HKSampleQuery(sampleType: type, predicate: predicate, limit: HKObjectQueryNoLimit, sortDescriptors: [sortDescriptor]) { _, samples, _ in
+                let readings: [RunningSpeedReading] = (samples as? [HKQuantitySample])?.map { sample in
+                    RunningSpeedReading(
+                        date: sample.endDate,
+                        metersPerSecond: sample.quantity.doubleValue(for: .meter().unitDivided(by: .second()))
+                    )
+                } ?? []
+                continuation.resume(returning: readings)
+            }
+            healthStore.execute(query)
+        }
+    }
+
+    /// Get all running speed history (no day limit)
+    func getAllRunningSpeedHistory() async -> [RunningSpeedReading] {
+        let type = HKQuantityType(.runningSpeed)
+        let sortDescriptor = NSSortDescriptor(key: HKSampleSortIdentifierEndDate, ascending: true)
+
+        return await withCheckedContinuation { continuation in
+            let query = HKSampleQuery(sampleType: type, predicate: nil, limit: HKObjectQueryNoLimit, sortDescriptors: [sortDescriptor]) { _, samples, _ in
+                let readings: [RunningSpeedReading] = (samples as? [HKQuantitySample])?.map { sample in
+                    RunningSpeedReading(
+                        date: sample.endDate,
+                        metersPerSecond: sample.quantity.doubleValue(for: .meter().unitDivided(by: .second()))
+                    )
+                } ?? []
+                continuation.resume(returning: readings)
+            }
+            healthStore.execute(query)
+        }
+    }
+
+    // MARK: - Gait/Movement Quality History
+
+    /// Get walking asymmetry history for specified days
+    func getWalkingAsymmetryHistory(days: Int) async -> [WalkingAsymmetryReading] {
+        let calendar = Calendar.current
+        let startDate = calendar.date(byAdding: .day, value: -days, to: Date())!
+        let type = HKQuantityType(.walkingAsymmetryPercentage)
+        let predicate = HKQuery.predicateForSamples(withStart: startDate, end: Date(), options: .strictStartDate)
+        let sortDescriptor = NSSortDescriptor(key: HKSampleSortIdentifierEndDate, ascending: true)
+
+        return await withCheckedContinuation { continuation in
+            let query = HKSampleQuery(sampleType: type, predicate: predicate, limit: HKObjectQueryNoLimit, sortDescriptors: [sortDescriptor]) { _, samples, _ in
+                let readings: [WalkingAsymmetryReading] = (samples as? [HKQuantitySample])?.map { sample in
+                    WalkingAsymmetryReading(
+                        date: sample.endDate,
+                        percentage: sample.quantity.doubleValue(for: .percent()) * 100
+                    )
+                } ?? []
+                continuation.resume(returning: readings)
+            }
+            healthStore.execute(query)
+        }
+    }
+
+    /// Get all walking asymmetry history (no day limit)
+    func getAllWalkingAsymmetryHistory() async -> [WalkingAsymmetryReading] {
+        let type = HKQuantityType(.walkingAsymmetryPercentage)
+        let sortDescriptor = NSSortDescriptor(key: HKSampleSortIdentifierEndDate, ascending: true)
+
+        return await withCheckedContinuation { continuation in
+            let query = HKSampleQuery(sampleType: type, predicate: nil, limit: HKObjectQueryNoLimit, sortDescriptors: [sortDescriptor]) { _, samples, _ in
+                let readings: [WalkingAsymmetryReading] = (samples as? [HKQuantitySample])?.map { sample in
+                    WalkingAsymmetryReading(
+                        date: sample.endDate,
+                        percentage: sample.quantity.doubleValue(for: .percent()) * 100
+                    )
+                } ?? []
+                continuation.resume(returning: readings)
+            }
+            healthStore.execute(query)
+        }
+    }
+
+    /// Get double support percentage history for specified days
+    func getDoubleSupportHistory(days: Int) async -> [DoubleSupportReading] {
+        let calendar = Calendar.current
+        let startDate = calendar.date(byAdding: .day, value: -days, to: Date())!
+        let type = HKQuantityType(.walkingDoubleSupportPercentage)
+        let predicate = HKQuery.predicateForSamples(withStart: startDate, end: Date(), options: .strictStartDate)
+        let sortDescriptor = NSSortDescriptor(key: HKSampleSortIdentifierEndDate, ascending: true)
+
+        return await withCheckedContinuation { continuation in
+            let query = HKSampleQuery(sampleType: type, predicate: predicate, limit: HKObjectQueryNoLimit, sortDescriptors: [sortDescriptor]) { _, samples, _ in
+                let readings: [DoubleSupportReading] = (samples as? [HKQuantitySample])?.map { sample in
+                    DoubleSupportReading(
+                        date: sample.endDate,
+                        percentage: sample.quantity.doubleValue(for: .percent()) * 100
+                    )
+                } ?? []
+                continuation.resume(returning: readings)
+            }
+            healthStore.execute(query)
+        }
+    }
+
+    /// Get all double support history (no day limit)
+    func getAllDoubleSupportHistory() async -> [DoubleSupportReading] {
+        let type = HKQuantityType(.walkingDoubleSupportPercentage)
+        let sortDescriptor = NSSortDescriptor(key: HKSampleSortIdentifierEndDate, ascending: true)
+
+        return await withCheckedContinuation { continuation in
+            let query = HKSampleQuery(sampleType: type, predicate: nil, limit: HKObjectQueryNoLimit, sortDescriptors: [sortDescriptor]) { _, samples, _ in
+                let readings: [DoubleSupportReading] = (samples as? [HKQuantitySample])?.map { sample in
+                    DoubleSupportReading(
+                        date: sample.endDate,
+                        percentage: sample.quantity.doubleValue(for: .percent()) * 100
+                    )
+                } ?? []
+                continuation.resume(returning: readings)
+            }
+            healthStore.execute(query)
+        }
+    }
+
+    /// Get walking steadiness history for specified days
+    func getWalkingSteadinessHistory(days: Int) async -> [WalkingSteadinessReading] {
+        let calendar = Calendar.current
+        let startDate = calendar.date(byAdding: .day, value: -days, to: Date())!
+        let type = HKQuantityType(.appleWalkingSteadiness)
+        let predicate = HKQuery.predicateForSamples(withStart: startDate, end: Date(), options: .strictStartDate)
+        let sortDescriptor = NSSortDescriptor(key: HKSampleSortIdentifierEndDate, ascending: true)
+
+        return await withCheckedContinuation { continuation in
+            let query = HKSampleQuery(sampleType: type, predicate: predicate, limit: HKObjectQueryNoLimit, sortDescriptors: [sortDescriptor]) { _, samples, _ in
+                let readings: [WalkingSteadinessReading] = (samples as? [HKQuantitySample])?.map { sample in
+                    WalkingSteadinessReading(
+                        date: sample.endDate,
+                        percentage: sample.quantity.doubleValue(for: .percent()) * 100
+                    )
+                } ?? []
+                continuation.resume(returning: readings)
+            }
+            healthStore.execute(query)
+        }
+    }
+
+    /// Get all walking steadiness history (no day limit)
+    func getAllWalkingSteadinessHistory() async -> [WalkingSteadinessReading] {
+        let type = HKQuantityType(.appleWalkingSteadiness)
+        let sortDescriptor = NSSortDescriptor(key: HKSampleSortIdentifierEndDate, ascending: true)
+
+        return await withCheckedContinuation { continuation in
+            let query = HKSampleQuery(sampleType: type, predicate: nil, limit: HKObjectQueryNoLimit, sortDescriptors: [sortDescriptor]) { _, samples, _ in
+                let readings: [WalkingSteadinessReading] = (samples as? [HKQuantitySample])?.map { sample in
+                    WalkingSteadinessReading(
+                        date: sample.endDate,
+                        percentage: sample.quantity.doubleValue(for: .percent()) * 100
+                    )
+                } ?? []
+                continuation.resume(returning: readings)
+            }
+            healthStore.execute(query)
+        }
+    }
+
+    /// Calculate resting HR baseline from last 14 days.
+    func getRestingHRBaseline() async -> (mean: Double, standardDeviation: Double, sampleCount: Int)? {
+        let readings = await getRestingHRHistory(days: 14)
+
+        guard readings.count >= 5 else { return nil }
+
+        let values = readings.map { $0.bpm }
+        let mean = values.reduce(0, +) / Double(values.count)
+
+        let sumSquaredDiffs = values.reduce(0) { $0 + pow($1 - mean, 2) }
+        let variance = sumSquaredDiffs / Double(values.count)
+        let standardDeviation = sqrt(variance)
+
+        return (mean: mean, standardDeviation: standardDeviation, sampleCount: readings.count)
+    }
+
+    /// Get bedtime consistency over the last N days.
+    ///
+    /// Analyzes the standard deviation of sleep onset times. Research shows
+    /// bedtime consistency is the strongest predictor of feeling rested.
+    ///
+    /// - Stable: < 30 min std dev
+    /// - Variable: 30-60 min std dev
+    /// - Irregular: > 60 min std dev (social jet lag territory)
+    func getBedtimeConsistency(days: Int = 14) async -> BedtimeConsistency? {
+        let sleepType = HKCategoryType(.sleepAnalysis)
+        let calendar = Calendar.current
+        let startDate = calendar.date(byAdding: .day, value: -days, to: Date())!
+
+        let predicate = HKQuery.predicateForSamples(withStart: startDate, end: Date(), options: .strictStartDate)
+
+        return await withCheckedContinuation { continuation in
+            let query = HKSampleQuery(sampleType: sleepType, predicate: predicate, limit: HKObjectQueryNoLimit, sortDescriptors: nil) { _, samples, _ in
+                guard let samples = samples as? [HKCategorySample], !samples.isEmpty else {
+                    continuation.resume(returning: nil)
+                    return
+                }
+
+                // Filter to sleep onset samples (in bed or first asleep)
+                let sleepValues: Set<Int> = [
+                    HKCategoryValueSleepAnalysis.inBed.rawValue,
+                    HKCategoryValueSleepAnalysis.asleepCore.rawValue,
+                    HKCategoryValueSleepAnalysis.asleepDeep.rawValue,
+                    HKCategoryValueSleepAnalysis.asleepREM.rawValue,
+                    HKCategoryValueSleepAnalysis.asleepUnspecified.rawValue
+                ]
+
+                // Group by night (wake-up date) and find earliest start time
+                var nightStarts: [Date: Date] = [:]
+
+                for sample in samples where sleepValues.contains(sample.value) {
+                    let hour = calendar.component(.hour, from: sample.startDate)
+                    // Only consider bedtimes between 6pm and 4am
+                    guard hour >= 18 || hour <= 4 else { continue }
+
+                    let wakeDate = calendar.startOfDay(for: sample.endDate)
+
+                    if let existing = nightStarts[wakeDate] {
+                        if sample.startDate < existing {
+                            nightStarts[wakeDate] = sample.startDate
+                        }
+                    } else {
+                        nightStarts[wakeDate] = sample.startDate
+                    }
+                }
+
+                guard nightStarts.count >= 3 else {
+                    continuation.resume(returning: nil)
+                    return
+                }
+
+                // Convert to minutes from midnight (normalized)
+                var bedtimeMinutes: [Double] = []
+                for startTime in nightStarts.values {
+                    var hour = calendar.component(.hour, from: startTime)
+                    let minute = calendar.component(.minute, from: startTime)
+
+                    // Normalize: times after midnight as 24+
+                    if hour < 12 {
+                        hour += 24
+                    }
+
+                    bedtimeMinutes.append(Double(hour * 60 + minute))
+                }
+
+                // Calculate mean and standard deviation
+                let mean = bedtimeMinutes.reduce(0, +) / Double(bedtimeMinutes.count)
+                let sumSquaredDiffs = bedtimeMinutes.reduce(0) { $0 + pow($1 - mean, 2) }
+                let variance = sumSquaredDiffs / Double(bedtimeMinutes.count)
+                let standardDeviation = sqrt(variance)
+
+                // Convert mean back to time components
+                var avgHour = Int(mean) / 60
+                let avgMinute = Int(mean) % 60
+                if avgHour >= 24 { avgHour -= 24 }
+
+                var components = DateComponents()
+                components.hour = avgHour
+                components.minute = avgMinute
+
+                let consistency = BedtimeConsistency(
+                    averageBedtime: components,
+                    standardDeviationMinutes: standardDeviation,
+                    sampleCount: nightStarts.count
+                )
+
+                continuation.resume(returning: consistency)
             }
             healthStore.execute(query)
         }
@@ -836,6 +1380,64 @@ actor HealthKitManager {
             healthStore.execute(query)
         }
     }
+
+    /// Get sleep onset time for a specific night as minutes from midnight.
+    ///
+    /// Returns negative values for times before midnight (e.g., -120 = 10pm),
+    /// positive values for times after midnight (e.g., 60 = 1am).
+    func getSleepOnsetMinutes(for date: Date) async -> Int? {
+        let sleepType = HKCategoryType(.sleepAnalysis)
+        let calendar = Calendar.current
+
+        // Sleep for a given date = sleep that ENDS on that date's morning
+        // So we look for samples ending between midnight and noon
+        let startOfDay = calendar.startOfDay(for: date)
+        let noon = calendar.date(byAdding: .hour, value: 12, to: startOfDay)!
+
+        // Look back to 6pm previous day for start time
+        let lookbackStart = calendar.date(byAdding: .hour, value: -30, to: startOfDay)!
+
+        let predicate = HKQuery.predicateForSamples(withStart: lookbackStart, end: noon, options: .strictStartDate)
+        let sortDescriptor = NSSortDescriptor(key: HKSampleSortIdentifierStartDate, ascending: true)
+
+        return await withCheckedContinuation { continuation in
+            let query = HKSampleQuery(sampleType: sleepType, predicate: predicate, limit: HKObjectQueryNoLimit, sortDescriptors: [sortDescriptor]) { _, samples, _ in
+                guard let samples = samples as? [HKCategorySample], !samples.isEmpty else {
+                    continuation.resume(returning: nil)
+                    return
+                }
+
+                let inBedValues: Set<Int> = [
+                    HKCategoryValueSleepAnalysis.inBed.rawValue,
+                    HKCategoryValueSleepAnalysis.asleepCore.rawValue,
+                    HKCategoryValueSleepAnalysis.asleepDeep.rawValue,
+                    HKCategoryValueSleepAnalysis.asleepREM.rawValue,
+                    HKCategoryValueSleepAnalysis.asleepUnspecified.rawValue
+                ]
+
+                // Find earliest sleep sample that ends on this date (the night's sleep onset)
+                let nightSamples = samples.filter { sample in
+                    guard inBedValues.contains(sample.value) else { return false }
+                    // Ends on the target date
+                    let endsOnDate = calendar.isDate(sample.endDate, inSameDayAs: date) ||
+                                     (sample.endDate > startOfDay && sample.endDate < noon)
+                    return endsOnDate
+                }
+
+                guard let earliest = nightSamples.min(by: { $0.startDate < $1.startDate }) else {
+                    continuation.resume(returning: nil)
+                    return
+                }
+
+                // Calculate minutes from midnight
+                let previousMidnight = calendar.startOfDay(for: date)
+                let minutesFromMidnight = Int(earliest.startDate.timeIntervalSince(previousMidnight) / 60)
+
+                continuation.resume(returning: minutesFromMidnight)
+            }
+            healthStore.execute(query)
+        }
+    }
 }
 
 // MARK: - Data Models
@@ -923,6 +1525,15 @@ struct DailyHealthSnapshot: Sendable {
     let restingHR: Int?
     let hrvMs: Double?
 
+    // Recovery metrics (Phase 1: HealthKit Dashboard Expansion)
+    let sleepEfficiency: Double?        // 0.0-1.0, time asleep / time in bed
+    let sleepDeepPct: Double?           // Proportion of deep sleep (0.0-1.0)
+    let sleepCorePct: Double?           // Proportion of core/light sleep (0.0-1.0)
+    let sleepREMPct: Double?            // Proportion of REM sleep (0.0-1.0)
+    let sleepOnsetMinutes: Int?         // Minutes from midnight (for bedtime tracking)
+    let hrvBaselineMs: Double?          // 7-day rolling mean HRV
+    let hrvDeviationPct: Double?        // Today's deviation from baseline (%)
+
     /// Format date as YYYY-MM-DD for API
     var dateString: String {
         let formatter = DateFormatter()
@@ -950,6 +1561,145 @@ struct LeanMassReading: Sendable, Identifiable {
     let id = UUID()
     let date: Date
     let leanMassLbs: Double
+}
+
+/// HRV reading for recovery/readiness analysis
+struct HRVReading: Sendable, Identifiable {
+    let id = UUID()
+    let date: Date
+    let hrvMs: Double  // SDNN in milliseconds
+}
+
+/// Heart Rate Recovery reading (1-min post-exercise)
+struct HRRecoveryReading: Sendable, Identifiable {
+    let id = UUID()
+    let date: Date
+    let recoveryBpm: Double  // How much HR dropped in first minute
+}
+
+/// Resting heart rate reading for long-term cardio fitness trends
+struct RestingHRReading: Sendable, Identifiable {
+    let id = UUID()
+    let date: Date
+    let bpm: Double
+}
+
+/// Walking speed reading for cardio/mobility trends (m/s)
+struct WalkingSpeedReading: Sendable, Identifiable {
+    let id = UUID()
+    let date: Date
+    let metersPerSecond: Double
+
+    /// Convert to minutes per mile (pace format)
+    var minutesPerMile: Double {
+        guard metersPerSecond > 0 else { return 0 }
+        let milesPerSecond = metersPerSecond / 1609.34
+        return 1.0 / (milesPerSecond * 60.0)
+    }
+
+    /// Convert to mph for easier interpretation
+    var mph: Double {
+        metersPerSecond * 2.23694
+    }
+}
+
+/// Running speed reading for fitness trends (m/s)
+struct RunningSpeedReading: Sendable, Identifiable {
+    let id = UUID()
+    let date: Date
+    let metersPerSecond: Double
+
+    /// Convert to minutes per mile (pace format)
+    var minutesPerMile: Double {
+        guard metersPerSecond > 0 else { return 0 }
+        let milesPerSecond = metersPerSecond / 1609.34
+        return 1.0 / (milesPerSecond * 60.0)
+    }
+
+    /// Convert to mph for easier interpretation
+    var mph: Double {
+        metersPerSecond * 2.23694
+    }
+}
+
+/// Walking asymmetry reading - left/right gait imbalance (percentage)
+/// Lower is better: <5% is normal, >10% may indicate injury/compensation
+struct WalkingAsymmetryReading: Sendable, Identifiable {
+    let id = UUID()
+    let date: Date
+    let percentage: Double  // 0-50 range typically
+}
+
+/// Double support percentage - time with both feet on ground
+/// Higher values indicate more conservative/stable gait (fall risk indicator in elderly)
+/// Normal range: 20-40% depending on walking speed
+struct DoubleSupportReading: Sendable, Identifiable {
+    let id = UUID()
+    let date: Date
+    let percentage: Double
+}
+
+/// Walking steadiness reading - Apple's composite mobility score
+/// Higher is better: Low risk (>80%), Medium risk (40-80%), High risk (<40%)
+struct WalkingSteadinessReading: Sendable, Identifiable {
+    let id = UUID()
+    let date: Date
+    let percentage: Double  // 0-100 score
+
+    var riskLevel: String {
+        switch percentage {
+        case 80...: return "Low Risk"
+        case 40..<80: return "Medium Risk"
+        default: return "High Risk"
+        }
+    }
+}
+
+/// HRV baseline with coefficient of variation for personalized comparison
+struct HRVBaseline: Sendable {
+    let mean: Double           // 7-day rolling mean (ms)
+    let standardDeviation: Double
+    let coefficientOfVariation: Double  // CV = SD / mean
+    let sampleCount: Int
+    let startDate: Date
+    let endDate: Date
+
+    /// Whether we have enough data for a reliable baseline (need 5+ readings)
+    var isReliable: Bool { sampleCount >= 5 }
+
+    /// Calculate z-score for a given HRV value vs this baseline
+    func zScore(for hrv: Double) -> Double {
+        guard standardDeviation > 0 else { return 0 }
+        return (hrv - mean) / standardDeviation
+    }
+
+    /// Interpret deviation as percentage above/below baseline
+    func percentDeviation(for hrv: Double) -> Double {
+        guard mean > 0 else { return 0 }
+        return ((hrv - mean) / mean) * 100
+    }
+}
+
+/// Bedtime consistency metrics
+struct BedtimeConsistency: Sendable {
+    let averageBedtime: DateComponents  // Average time of sleep onset
+    let standardDeviationMinutes: Double  // How variable bedtime is
+    let sampleCount: Int
+
+    /// Consistency category based on std dev
+    var category: ConsistencyCategory {
+        switch standardDeviationMinutes {
+        case 0..<30: return .stable
+        case 30..<60: return .variable
+        default: return .irregular
+        }
+    }
+
+    enum ConsistencyCategory: String, Sendable {
+        case stable = "Stable"
+        case variable = "Variable"
+        case irregular = "Irregular"
+    }
 }
 
 /// Sleep stage breakdown for detailed sleep analysis

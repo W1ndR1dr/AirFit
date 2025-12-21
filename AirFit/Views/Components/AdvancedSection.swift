@@ -16,6 +16,9 @@ struct AdvancedSection: View {
     @State private var showRestartOnboardingConfirm = false
     @State private var showOnboardingRestarted = false
 
+    // Developer mode toggle (persisted)
+    @AppStorage("developerModeEnabled") private var developerModeEnabled = false
+
     var body: some View {
         VStack(alignment: .leading, spacing: 0) {
             // Header button - subtle, centered
@@ -63,6 +66,9 @@ struct AdvancedSection: View {
 
                         // Version Info
                         versionRow
+
+                        // Developer Mode Toggle
+                        developerModeRow
 
                         // Profile Backup
                         if onExportProfile != nil || onImportProfile != nil {
@@ -219,6 +225,35 @@ struct AdvancedSection: View {
             Text("\(appVersion) (\(buildNumber))")
                 .font(.caption.monospaced())
                 .foregroundStyle(Theme.textMuted)
+        }
+        .padding(12)
+        .background(Theme.background.opacity(0.5))
+        .clipShape(RoundedRectangle(cornerRadius: 10))
+    }
+
+    // MARK: - Developer Mode
+
+    private var developerModeRow: some View {
+        VStack(alignment: .leading, spacing: 8) {
+            Toggle(isOn: $developerModeEnabled) {
+                HStack {
+                    Image(systemName: "hammer.fill")
+                        .foregroundStyle(Theme.accent)
+                        .frame(width: 24)
+
+                    VStack(alignment: .leading, spacing: 2) {
+                        Text("Developer Mode")
+                            .font(.subheadline)
+                            .foregroundStyle(Theme.textPrimary)
+
+                        Text("Seeds demo data for testing")
+                            .font(.caption)
+                            .foregroundStyle(Theme.textMuted)
+                    }
+                }
+            }
+            .tint(Theme.accent)
+            .sensoryFeedback(.impact(weight: .light), trigger: developerModeEnabled)
         }
         .padding(12)
         .background(Theme.background.opacity(0.5))

@@ -27,17 +27,45 @@ enum AppearanceMode: String, CaseIterable {
 // MARK: - Profile View
 
 struct ProfileView: View {
+    @Environment(\.modelContext) private var modelContext
+
     @State private var profile: APIClient.ProfileResponse?
+    @State private var localProfile: LocalProfile?
     @State private var isLoading = true
     @State private var showSettings = false
 
     private let apiClient = APIClient()
 
+    /// Combined profile for display - LocalProfile is authoritative when available
+    private var displayProfile: APIClient.ProfileResponse? {
+        // If we have LocalProfile data, use it (device-first architecture)
+        if let local = localProfile, local.hasProfile {
+            return APIClient.ProfileResponse(
+                name: local.name,
+                summary: local.summary,
+                goals: local.goals ?? [],
+                constraints: local.constraints ?? [],
+                preferences: local.preferences ?? [],
+                context: local.lifeContext ?? [],
+                patterns: local.patterns ?? [],
+                communication_style: "",  // CoachingDirectives handled separately
+                insights_count: 0,
+                recent_insights: [],
+                has_profile: true,
+                onboarding_complete: local.onboardingComplete,
+                current_phase: local.goalPhase,
+                phase_context: local.phaseContext
+            )
+        }
+        // Fall back to server profile
+        return profile
+    }
+
     var body: some View {
         Group {
             if isLoading {
-                ShimmerLoadingView(text: "Connecting...")
-            } else if let profile = profile {
+                ShimmerLoadingView(text: "Loading profile...")
+            } else if let profile = displayProfile {
                 if profile.has_profile {
                     profileContent(profile)
                 } else {
@@ -269,14 +297,39 @@ struct ProfileView: View {
 
     private func loadProfile() async {
         isLoading = true
-        do {
-            profile = try await apiClient.getProfile()
-        } catch {
-            print("Failed to load profile: \(error)")
-            profile = nil
+
+        // DEVICE-FIRST: Load LocalProfile immediately (instant, offline-capable)
+        await MainActor.run {
+            localProfile = LocalProfile.current(in: modelContext)
         }
-        withAnimation(.easeOut(duration: 0.2)) {
-            isLoading = false
+
+        // If we have local data, show it immediately
+        if localProfile?.hasProfile == true {
+            withAnimation(.easeOut(duration: 0.2)) {
+                isLoading = false
+            }
+        }
+
+        // Background sync: fetch server profile for backup/comparison
+        // This keeps server in sync but doesn't block UI
+        do {
+            let serverProfile = try await apiClient.getProfile()
+            profile = serverProfile
+
+            // If local was empty but server has data, we can use server as fallback
+            if localProfile?.hasProfile != true {
+                withAnimation(.easeOut(duration: 0.2)) {
+                    isLoading = false
+                }
+            }
+        } catch {
+            print("[ProfileView] Server profile fetch failed (offline?): \(error)")
+            // That's OK - LocalProfile is authoritative, server is just backup
+            if isLoading {
+                withAnimation(.easeOut(duration: 0.2)) {
+                    isLoading = false
+                }
+            }
         }
     }
 }

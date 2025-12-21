@@ -194,6 +194,12 @@ struct DashboardView: View {
                 .foregroundStyle(Theme.textMuted)
                 .padding(.bottom, 8)
 
+            // Readiness assessment (Phase 2: HealthKit Dashboard Expansion)
+            ReadinessCard()
+                .padding(.bottom, 8)
+
+            Divider().padding(.leading, 70)
+
             // Protein row - expands inline (target: 175g)
             MetricRow(
                 label: "Protein",
@@ -340,6 +346,10 @@ struct BodyContentView: View {
     @State private var bodyFatData: [ChartDataPoint] = []
     @State private var leanMassData: [ChartDataPoint] = []
     @State private var pRatioData: [ChartDataPoint] = []  // Rolling P-ratio quality scores
+    @State private var restingHRData: [ChartDataPoint] = []  // Long-term cardio fitness
+    @State private var walkingSpeedData: [ChartDataPoint] = []  // Walking pace (mph)
+    @State private var walkingAsymmetryData: [ChartDataPoint] = []  // Gait symmetry
+    @State private var doubleSupportData: [ChartDataPoint] = []  // Stability indicator
     @State private var isLoading = true
 
     private let healthKit = HealthKitManager()
@@ -379,6 +389,38 @@ struct BodyContentView: View {
     private var pRatioTrend: Double? {
         guard pRatioData.count >= 2 else { return nil }
         return pRatioData.last!.value - pRatioData.first!.value
+    }
+
+    // Resting HR: Lower is generally better (improved cardio fitness)
+    private var currentRestingHR: Double? { restingHRData.last?.value }
+
+    private var restingHRTrend: Double? {
+        guard restingHRData.count >= 2 else { return nil }
+        return restingHRData.last!.value - restingHRData.first!.value
+    }
+
+    // Walking Speed: Higher is better (improved mobility/fitness)
+    private var currentWalkingSpeed: Double? { walkingSpeedData.last?.value }
+
+    private var walkingSpeedTrend: Double? {
+        guard walkingSpeedData.count >= 2 else { return nil }
+        return walkingSpeedData.last!.value - walkingSpeedData.first!.value
+    }
+
+    // Walking Asymmetry: Lower is better (symmetrical gait)
+    private var currentAsymmetry: Double? { walkingAsymmetryData.last?.value }
+
+    private var asymmetryTrend: Double? {
+        guard walkingAsymmetryData.count >= 2 else { return nil }
+        return walkingAsymmetryData.last!.value - walkingAsymmetryData.first!.value
+    }
+
+    // Double Support: Informational (higher = more stable, lower = more efficient)
+    private var currentDoubleSupport: Double? { doubleSupportData.last?.value }
+
+    private var doubleSupportTrend: Double? {
+        guard doubleSupportData.count >= 2 else { return nil }
+        return doubleSupportData.last!.value - doubleSupportData.first!.value
     }
 
     /// Convert P-ratio quality score (0-100) to label
@@ -475,6 +517,71 @@ struct BodyContentView: View {
                     trend: leanMassTrend,
                     trendInverted: false,
                     tooltip: "Metabolically active tissue—the body's standing army, expensive to maintain but existentially necessary. Muscle is the organ of longevity; everything else is just along for the ride. Sisyphus should have lifted the boulder instead."
+                )
+            }
+
+            // Resting heart rate chart - cardio fitness indicator
+            if !restingHRData.isEmpty {
+                chartCard(
+                    title: "RESTING HR",
+                    icon: "heart.fill",
+                    color: Theme.error,
+                    data: restingHRData,
+                    unit: "bpm",
+                    trend: restingHRTrend,
+                    trendInverted: true,  // Lower is better
+                    tooltip: "The metronome of metabolic efficiency—your heart's idle speed. Lower resting rates signal cardiovascular adaptation: more stroke volume per beat, less work for the same output. Elite endurance athletes hover in the 40s; mortals should celebrate the 50s. Improvement here is measured in months, not days.",
+                    formatValue: { String(format: "%.0f", $0) }
+                )
+            }
+
+            // Heart metrics card - HRV & RHR with baseline context
+            // Shows today's values as deviation from 7-day rolling baseline
+            HeartMetricsCard()
+                .padding(.horizontal, 20)
+
+            // Walking speed chart - mobility/fitness indicator
+            if !walkingSpeedData.isEmpty {
+                chartCard(
+                    title: "WALKING PACE",
+                    icon: "figure.walk",
+                    color: Theme.secondary,
+                    data: walkingSpeedData,
+                    unit: "mph",
+                    trend: walkingSpeedTrend,
+                    trendInverted: false,  // Higher is better
+                    tooltip: "Your body's preferred cruising speed—a proxy for overall mobility and cardiovascular efficiency. Research shows walking speed is one of the best predictors of longevity, outperforming many clinical measures. Faster isn't always the goal; consistent improvement across months signals systemic health gains. The Apple Watch measures this automatically during steady-state walking.",
+                    formatValue: { String(format: "%.1f", $0) }
+                )
+            }
+
+            // Walking asymmetry chart - gait symmetry indicator
+            if !walkingAsymmetryData.isEmpty {
+                chartCard(
+                    title: "GAIT SYMMETRY",
+                    icon: "figure.walk.motion",
+                    color: Theme.warning,
+                    data: walkingAsymmetryData,
+                    unit: "%",
+                    trend: asymmetryTrend,
+                    trendInverted: true,  // Lower is better (more symmetrical)
+                    tooltip: "The imbalance between your left and right leg during walking. Perfect symmetry would be 0%—anything under 5% is normal. Rising asymmetry can be an early warning of compensation patterns from injury, muscle imbalance, or fatigue. Your watch measures this passively during normal walking. Track trends, not daily noise.",
+                    formatValue: { String(format: "%.1f", $0) }
+                )
+            }
+
+            // Double support chart - stability indicator
+            if !doubleSupportData.isEmpty {
+                chartCard(
+                    title: "DOUBLE SUPPORT",
+                    icon: "figure.stand",
+                    color: Theme.sleepCore,
+                    data: doubleSupportData,
+                    unit: "%",
+                    trend: doubleSupportTrend,
+                    trendInverted: false,  // Neither direction is universally better
+                    tooltip: "Percentage of your gait cycle spent with both feet on the ground. Lower values (20-25%) indicate a more athletic, efficient gait. Higher values (30-40%) suggest a more cautious, stable pattern. This isn't a 'higher is better' metric—context matters. Athletes trend lower; those recovering from injury or with balance concerns trend higher. Watch for unexpected changes.",
+                    formatValue: { String(format: "%.0f", $0) }
                 )
             }
         }
@@ -674,8 +781,12 @@ struct BodyContentView: View {
         async let weightTask = fetchWeight()
         async let bodyFatTask = fetchBodyFat()
         async let leanMassTask = fetchLeanMass()
+        async let restingHRTask = fetchRestingHR()
+        async let walkingSpeedTask = fetchWalkingSpeed()
+        async let asymmetryTask = fetchWalkingAsymmetry()
+        async let doubleSupportTask = fetchDoubleSupport()
 
-        let (weight, bodyFat, leanMass) = await (weightTask, bodyFatTask, leanMassTask)
+        let (weight, bodyFat, leanMass, restingHR, walkingSpeed, asymmetry, doubleSupport) = await (weightTask, bodyFatTask, leanMassTask, restingHRTask, walkingSpeedTask, asymmetryTask, doubleSupportTask)
 
         // Calculate rolling P-ratio quality scores
         let pRatio = calculatePRatioQuality(weight: weight, bodyFat: bodyFat)
@@ -686,6 +797,10 @@ struct BodyContentView: View {
                 bodyFatData = bodyFat
                 leanMassData = leanMass
                 pRatioData = pRatio
+                restingHRData = restingHR
+                walkingSpeedData = walkingSpeed
+                walkingAsymmetryData = asymmetry
+                doubleSupportData = doubleSupport
                 isLoading = false
             }
         }
@@ -803,6 +918,55 @@ struct BodyContentView: View {
         }
 
         return readings.map { ChartDataPoint(date: $0.date, value: $0.leanMassLbs) }
+    }
+
+    private func fetchRestingHR() async -> [ChartDataPoint] {
+        let readings: [RestingHRReading]
+
+        if let days = timeRange.days {
+            readings = await healthKit.getRestingHRHistoryAsReadings(days: days)
+        } else {
+            readings = await healthKit.getAllRestingHRHistory()
+        }
+
+        return readings.map { ChartDataPoint(date: $0.date, value: $0.bpm) }
+    }
+
+    private func fetchWalkingSpeed() async -> [ChartDataPoint] {
+        let readings: [WalkingSpeedReading]
+
+        if let days = timeRange.days {
+            readings = await healthKit.getWalkingSpeedHistory(days: days)
+        } else {
+            readings = await healthKit.getAllWalkingSpeedHistory()
+        }
+
+        // Convert to mph for display
+        return readings.map { ChartDataPoint(date: $0.date, value: $0.mph) }
+    }
+
+    private func fetchWalkingAsymmetry() async -> [ChartDataPoint] {
+        let readings: [WalkingAsymmetryReading]
+
+        if let days = timeRange.days {
+            readings = await healthKit.getWalkingAsymmetryHistory(days: days)
+        } else {
+            readings = await healthKit.getAllWalkingAsymmetryHistory()
+        }
+
+        return readings.map { ChartDataPoint(date: $0.date, value: $0.percentage) }
+    }
+
+    private func fetchDoubleSupport() async -> [ChartDataPoint] {
+        let readings: [DoubleSupportReading]
+
+        if let days = timeRange.days {
+            readings = await healthKit.getDoubleSupportHistory(days: days)
+        } else {
+            readings = await healthKit.getAllDoubleSupportHistory()
+        }
+
+        return readings.map { ChartDataPoint(date: $0.date, value: $0.percentage) }
     }
 }
 

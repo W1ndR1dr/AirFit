@@ -10,6 +10,7 @@ import SwiftData
 actor LocalInsightEngine {
     private let geminiService = GeminiService()
     private let healthKit = HealthKitManager()
+    private let hevyCacheManager = HevyCacheManager()
 
     // MARK: - Public API
 
@@ -28,18 +29,149 @@ actor LocalInsightEngine {
             return []
         }
 
-        // 2. Format in compact form (same as server's format_all_data_compact)
+        // 2. Get existing insight titles for deduplication
+        let existingTitles = getRecentInsightTitles(modelContext: modelContext, limit: 20)
+        let dedupInstruction = buildDeduplicationInstruction(from: existingTitles)
+
+        // 3. Format in compact form (same as server's format_all_data_compact)
         let context = formatAllDataCompact(snapshots)
 
-        // 3. Send to Gemini
+        // 4. Build full prompt with deduplication
+        let fullPrompt = """
+        \(Self.insightPrompt)\(dedupInstruction)
+
+        Here is the complete data:
+
+        \(context)
+
+        Analyze this data and return your insights as JSON.
+        """
+
+        // 5. Send to Gemini
         let response = try await geminiService.chat(
-            message: "Analyze this fitness data and return insights as JSON:\n\n\(context)",
+            message: fullPrompt,
             history: [],
-            systemPrompt: Self.insightPrompt
+            systemPrompt: "You are an expert fitness coach. Respond only with valid JSON."
         )
 
-        // 4. Parse response
+        // 6. Parse response and return
+        // Note: We trust the LLM to respect the "ALREADY GIVEN" instruction.
+        // No hardcoded Jaccard dedup - the LLM understands semantic similarity.
         return try parseInsights(response)
+    }
+
+    /// Generate insights and save them to SwiftData.
+    ///
+    /// - Parameters:
+    ///   - days: Number of days of history to analyze
+    ///   - modelContext: SwiftData context for persistence
+    /// - Returns: Array of newly saved LocalInsight objects
+    @MainActor
+    func generateAndSaveInsights(days: Int = 7, modelContext: ModelContext) async throws -> [LocalInsight] {
+        let insightDataArray = try await generateInsights(days: days, modelContext: modelContext)
+
+        // Convert to LocalInsight and save
+        var savedInsights: [LocalInsight] = []
+        for data in insightDataArray {
+            let localInsight = LocalInsight(
+                category: data.category,
+                tier: data.tier,
+                title: data.title,
+                body: data.body,
+                importance: data.importance,
+                confidence: 0.5,  // Not provided by older format
+                actionability: data.suggested_actions.isEmpty ? 0.3 : 0.7
+            )
+
+            // Add suggested actions
+            localInsight.suggestedActions = data.suggested_actions
+
+            // Add supporting data if available
+            if let supporting = data.supporting_data {
+                localInsight.metricName = supporting.metric
+                localInsight.currentValue = supporting.current_value
+                localInsight.previousValue = supporting.previous_value
+                localInsight.changePct = supporting.change_pct
+                localInsight.targetValue = supporting.target
+                localInsight.trendSlope = supporting.trend_slope
+                if let values = supporting.values {
+                    localInsight.values = values
+                }
+            }
+
+            modelContext.insert(localInsight)
+            savedInsights.append(localInsight)
+        }
+
+        try? modelContext.save()
+        print("[LocalInsightEngine] Saved \(savedInsights.count) new insights")
+
+        return savedInsights
+    }
+
+    /// Get active (non-dismissed) insights from SwiftData.
+    @MainActor
+    func getActiveInsights(modelContext: ModelContext, limit: Int = 10) -> [LocalInsight] {
+        var descriptor = FetchDescriptor<LocalInsight>(
+            predicate: LocalInsight.active,
+            sortBy: [SortDescriptor(\LocalInsight.createdAt, order: .reverse)]
+        )
+        descriptor.fetchLimit = limit
+
+        return (try? modelContext.fetch(descriptor)) ?? []
+    }
+
+    /// Get high-priority insights (tier 1-2).
+    @MainActor
+    func getHighPriorityInsights(modelContext: ModelContext, limit: Int = 5) -> [LocalInsight] {
+        // Combine predicates: active AND high priority
+        var descriptor = FetchDescriptor<LocalInsight>(
+            sortBy: [
+                SortDescriptor(\LocalInsight.tier),  // Lower tier = higher priority
+                SortDescriptor(\LocalInsight.createdAt, order: .reverse)
+            ]
+        )
+        descriptor.fetchLimit = limit
+
+        do {
+            let all = try modelContext.fetch(descriptor)
+            return all.filter { !$0.isDismissed && $0.tier <= 2 }
+        } catch {
+            return []
+        }
+    }
+
+    // MARK: - Deduplication
+
+    /// Fetch recent insight titles from SwiftData for deduplication.
+    @MainActor
+    private func getRecentInsightTitles(modelContext: ModelContext, limit: Int) -> [String] {
+        var descriptor = FetchDescriptor<LocalInsight>(
+            predicate: LocalInsight.active,
+            sortBy: [SortDescriptor(\LocalInsight.createdAt, order: .reverse)]
+        )
+        descriptor.fetchLimit = limit
+
+        do {
+            let insights = try modelContext.fetch(descriptor)
+            return insights.map(\.title)
+        } catch {
+            print("[LocalInsightEngine] Failed to fetch insight titles: \(error)")
+            return []
+        }
+    }
+
+    /// Build deduplication instruction for the prompt.
+    private nonisolated func buildDeduplicationInstruction(from titles: [String]) -> String {
+        guard !titles.isEmpty else { return "" }
+
+        let titlesList = titles.prefix(10).map { "- \($0)" }.joined(separator: "\n")
+        return """
+
+
+        ALREADY GIVEN (do NOT repeat or rephrase these):
+        \(titlesList)
+        """
     }
 
     // MARK: - Data Gathering
@@ -74,13 +206,26 @@ actor LocalInsightEngine {
         let weight: Double
     }
 
-    /// Gather daily snapshots combining HealthKit and SwiftData.
+    /// Gather daily snapshots combining HealthKit, SwiftData, and Hevy cache.
     @MainActor
     private func gatherDailySnapshots(days: Int, modelContext: ModelContext) async -> [DailySnapshot] {
         var snapshots: [DailySnapshot] = []
         let calendar = Calendar.current
         let dateFormatter = DateFormatter()
         dateFormatter.dateFormat = "yyyy-MM-dd"
+
+        // Pre-fetch all cached workouts to avoid repeated queries
+        let cachedWorkouts = await hevyCacheManager.getRecentWorkouts(
+            modelContext: modelContext,
+            limit: min(days, 30)  // Cap at 30 workouts
+        )
+
+        // Index workouts by date string for O(1) lookup
+        var workoutsByDate: [String: [CachedWorkout]] = [:]
+        for workout in cachedWorkouts {
+            let dateKey = dateFormatter.string(from: workout.workoutDate)
+            workoutsByDate[dateKey, default: []].append(workout)
+        }
 
         for dayOffset in 0..<days {
             guard let date = calendar.date(byAdding: .day, value: -dayOffset, to: Date()) else {
@@ -93,17 +238,58 @@ actor LocalInsightEngine {
             // Get nutrition data from SwiftData
             let nutritionSummary = await getNutritionForDay(date, modelContext: modelContext)
 
+            // Get workout data from Hevy cache
+            let dateKey = dateFormatter.string(from: date)
+            let workoutSummary = buildWorkoutSummary(from: workoutsByDate[dateKey] ?? [])
+
             let snapshot = DailySnapshot(
-                date: dateFormatter.string(from: date),
+                date: dateKey,
                 health: healthSnapshot,
                 nutrition: nutritionSummary,
-                workout: nil  // TODO: Add from HevyCacheManager when implemented
+                workout: workoutSummary
             )
 
             snapshots.append(snapshot)
         }
 
         return snapshots
+    }
+
+    /// Build a workout summary for a day from cached workouts.
+    @MainActor
+    private func buildWorkoutSummary(from workouts: [CachedWorkout]) -> WorkoutSummary? {
+        guard !workouts.isEmpty else { return nil }
+
+        // Aggregate all workouts for the day
+        let totalDuration = workouts.reduce(0) { $0 + $1.durationMinutes }
+        let totalVolume = workouts.reduce(0.0) { $0 + $1.totalVolumeLbs }
+
+        // Build exercise summaries from full exercise data
+        var exercises: [ExerciseSummary] = []
+        for workout in workouts {
+            for exercise in workout.fullExercises {
+                // Find the "best" set for this exercise (highest weight × reps)
+                let bestSet = exercise.sets.max { a, b in
+                    let aScore = (a.weightLbs ?? 0) * Double(a.reps ?? 0)
+                    let bScore = (b.weightLbs ?? 0) * Double(b.reps ?? 0)
+                    return aScore < bScore
+                }
+
+                exercises.append(ExerciseSummary(
+                    name: exercise.name,
+                    sets: exercise.sets.count,
+                    reps: bestSet?.reps ?? 0,
+                    weight: bestSet?.weightLbs ?? 0
+                ))
+            }
+        }
+
+        return WorkoutSummary(
+            count: workouts.count,
+            duration: totalDuration,
+            volume: totalVolume,
+            exercises: exercises
+        )
     }
 
     /// Get nutrition totals for a specific day.

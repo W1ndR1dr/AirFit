@@ -1,4 +1,5 @@
 import Foundation
+import SwiftData
 import UIKit
 
 /// Direct Gemini API client for iOS.
@@ -720,6 +721,144 @@ actor GeminiService {
                     response: GeminiFunctionResponseContent(content: toolResult)
                 )
                 contents.append(GeminiContent(
+                    role: "function",
+                    parts: [GeminiPart(functionResponse: functionResponse)]
+                ))
+
+                // Continue loop for next iteration
+                continue
+            }
+
+            // No function call - extract text response
+            if let text = parts.first(where: { $0.text != nil })?.text {
+                return text
+            }
+
+            throw GeminiError.emptyResponse
+        }
+
+        throw GeminiError(message: "Max tool iterations reached", code: nil)
+    }
+
+    /// Tool arguments wrapper that is Sendable.
+    ///
+    /// Wraps function call arguments in a Sendable container for cross-actor passing.
+    struct ToolArguments: @unchecked Sendable {
+        let arguments: [String: Any]
+
+        init(_ dict: [String: Any]) {
+            self.arguments = dict
+        }
+
+        subscript(key: String) -> Any? {
+            arguments[key]
+        }
+    }
+
+    /// Tool executor type for local function calling.
+    ///
+    /// The executor runs on MainActor and has access to SwiftData context.
+    typealias ToolExecutor = @MainActor @Sendable (String, ToolArguments) async -> String
+
+    /// Send a chat message with function calling enabled (LOCAL execution).
+    ///
+    /// This is the **offline-first** version that executes tools locally using
+    /// SwiftData, HealthKit, and cached Hevy data. No server required.
+    ///
+    /// - Parameters:
+    ///   - message: The user's message
+    ///   - history: Previous conversation messages
+    ///   - systemPrompt: System instructions
+    ///   - dataContext: Tier 1/2 context data
+    ///   - toolExecutor: Closure that executes tools on MainActor with SwiftData access
+    ///   - thinkingLevel: How much reasoning depth to use (default: high for complex queries)
+    /// - Returns: The AI's response text
+    func chatWithToolsLocal(
+        message: String,
+        history: [ConversationMessage] = [],
+        systemPrompt: String,
+        dataContext: String? = nil,
+        toolExecutor: @escaping ToolExecutor,
+        thinkingLevel: ThinkingLevel = .high
+    ) async throws -> String {
+        guard let apiKey = await keychainManager.getGeminiAPIKey() else {
+            throw GeminiError.noAPIKey
+        }
+
+        let url = URL(string: "\(baseURL)/models/\(model):generateContent")!
+        var request = URLRequest(url: url)
+        request.httpMethod = "POST"
+        request.setValue("application/json", forHTTPHeaderField: "Content-Type")
+        request.setValue(apiKey, forHTTPHeaderField: "x-goog-api-key")
+
+        // Build system prompt with context
+        var fullSystemPrompt = systemPrompt
+        if let context = dataContext, !context.isEmpty {
+            fullSystemPrompt += "\n\n--- CURRENT CONTEXT ---\n\(context)"
+        }
+
+        // Initialize conversation contents
+        let contents = buildContents(message: message, history: history)
+
+        // Capture tools for use in loop (avoid repeated actor access)
+        let tools = airfitTools
+
+        // Mutable contents for function calling loop
+        var mutableContents = contents
+
+        // Function calling loop with LOCAL execution
+        for _ in 0..<maxToolIterations {
+            let body = GeminiRequest(
+                systemInstruction: GeminiContent(parts: [GeminiPart(text: fullSystemPrompt)]),
+                contents: mutableContents,
+                generationConfig: GeminiGenerationConfig(
+                    maxOutputTokens: 8192,
+                    temperature: 0.9,
+                    thinkingConfig: thinkingLevel.config
+                ),
+                tools: tools
+            )
+
+            request.httpBody = try JSONEncoder().encode(body)
+
+            let (data, response) = try await URLSession.shared.data(for: request)
+
+            if let httpResponse = response as? HTTPURLResponse, httpResponse.statusCode != 200 {
+                let errorMessage = parseErrorMessage(from: data) ?? "HTTP \(httpResponse.statusCode)"
+                throw GeminiError(message: errorMessage, code: httpResponse.statusCode)
+            }
+
+            let geminiResponse = try JSONDecoder().decode(GeminiResponse.self, from: data)
+
+            guard let candidate = geminiResponse.candidates?.first,
+                  let parts = candidate.content?.parts else {
+                throw GeminiError.emptyResponse
+            }
+
+            // Check if response contains a function call
+            if let functionCall = parts.first(where: { $0.functionCall != nil })?.functionCall {
+                // Convert args for tool executor (wrapped in Sendable container)
+                var argsDict: [String: Any] = [:]
+                for (key, value) in functionCall.args ?? [:] {
+                    argsDict[key] = value.value
+                }
+                let arguments = ToolArguments(argsDict)
+
+                // Execute the tool via the provided executor (runs on MainActor)
+                let toolResult = await toolExecutor(functionCall.name, arguments)
+
+                // Add the assistant's function call to contents
+                mutableContents.append(GeminiContent(
+                    role: "model",
+                    parts: parts
+                ))
+
+                // Add the function response
+                let functionResponse = GeminiFunctionResponse(
+                    name: functionCall.name,
+                    response: GeminiFunctionResponseContent(content: toolResult)
+                )
+                mutableContents.append(GeminiContent(
                     role: "function",
                     parts: [GeminiPart(functionResponse: functionResponse)]
                 ))

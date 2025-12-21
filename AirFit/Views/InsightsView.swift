@@ -223,10 +223,60 @@ struct InsightsView: View {
         }
     }
 
-    /// Generate insights via Gemini on device
+    /// Load insights from local storage (Gemini Direct mode).
+    /// Uses existing LocalInsight entries rather than regenerating each time.
     private func loadInsightsViaGemini() async {
+        // First, try to load existing insights from LocalInsight storage
+        let existingInsights = await localInsightEngine.getActiveInsights(modelContext: modelContext, limit: 10)
+
+        if !existingInsights.isEmpty {
+            // Convert LocalInsight to InsightData for display
+            insights = existingInsights.map { localInsight in
+                APIClient.InsightData(
+                    id: localInsight.id.uuidString,
+                    category: localInsight.category,
+                    tier: localInsight.tier,
+                    title: localInsight.title,
+                    body: localInsight.body,
+                    importance: localInsight.importance,
+                    created_at: ISO8601DateFormatter().string(from: localInsight.createdAt),
+                    suggested_actions: localInsight.suggestedActions,
+                    supporting_data: localInsight.metricName.map { metric in
+                        APIClient.SupportingData(
+                            metric: metric,
+                            values: localInsight.values.isEmpty ? nil : localInsight.values,
+                            dates: nil,
+                            target: localInsight.targetValue,
+                            trend_slope: localInsight.trendSlope,
+                            current_value: localInsight.currentValue,
+                            previous_value: localInsight.previousValue,
+                            change_pct: localInsight.changePct
+                        )
+                    }
+                )
+            }
+
+            // Check for high-tier insights and notify
+            await NotificationManager.shared.checkAndNotifyForInsights(insights)
+            return
+        }
+
+        // No existing insights - generate fresh ones
         do {
-            insights = try await localInsightEngine.generateInsights(days: 7, modelContext: modelContext)
+            let newInsights = try await localInsightEngine.generateAndSaveInsights(days: 7, modelContext: modelContext)
+            insights = newInsights.map { localInsight in
+                APIClient.InsightData(
+                    id: localInsight.id.uuidString,
+                    category: localInsight.category,
+                    tier: localInsight.tier,
+                    title: localInsight.title,
+                    body: localInsight.body,
+                    importance: localInsight.importance,
+                    created_at: ISO8601DateFormatter().string(from: localInsight.createdAt),
+                    suggested_actions: localInsight.suggestedActions,
+                    supporting_data: nil
+                )
+            }
 
             // Check for high-tier insights and notify
             await NotificationManager.shared.checkAndNotifyForInsights(insights)
@@ -238,20 +288,26 @@ struct InsightsView: View {
     private func syncAndRefresh() async {
         isSyncing = true
 
-        // Sync data to server (if available) - useful for Hevy cache refresh in both modes
-        do {
-            try await syncService.syncRecentDays(7, modelContext: modelContext)
-            lastSyncTime = Date()
-        } catch {
-            print("[InsightsView] Sync failed: \(error)")
-        }
-
-        // Route insight generation by provider
+        // Route by provider to avoid unnecessary server calls
         if aiProvider == "gemini" {
-            // Gemini mode: Just reload (generates fresh on device)
+            // Gemini Direct mode: Generate fresh insights locally, no server sync
+            do {
+                _ = try await localInsightEngine.generateAndSaveInsights(days: 7, modelContext: modelContext)
+                lastSyncTime = Date()
+            } catch {
+                print("[InsightsView] Local insight generation failed: \(error)")
+            }
             await loadData()
         } else {
-            // Claude mode: Trigger server-side insight generation first
+            // Claude/Server mode: Sync to server, then trigger server-side generation
+            do {
+                try await syncService.syncRecentDays(7, modelContext: modelContext)
+                lastSyncTime = Date()
+            } catch {
+                print("[InsightsView] Sync failed: \(error)")
+            }
+
+            // Trigger server-side insight generation
             do {
                 let result = try await apiClient.generateInsights(days: 90, force: false)
                 if result.success {
@@ -269,6 +325,22 @@ struct InsightsView: View {
     }
 
     private func trackEngagement(_ id: String, action: String) async {
+        // In Gemini Direct mode, track locally via LocalInsight model
+        if aiProvider == "gemini" {
+            if let uuid = UUID(uuidString: id) {
+                let descriptor = FetchDescriptor<LocalInsight>(
+                    predicate: #Predicate { $0.id == uuid }
+                )
+                if let insight = try? modelContext.fetch(descriptor).first {
+                    insight.engagement = action
+                    insight.surfacedAt = Date()
+                    try? modelContext.save()
+                }
+            }
+            return
+        }
+
+        // Claude/Server mode: track via API
         do {
             try await apiClient.engageInsight(id: id, action: action)
         } catch {

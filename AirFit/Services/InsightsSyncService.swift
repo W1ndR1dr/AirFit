@@ -44,7 +44,16 @@ class InsightsSyncService {
                 body_fat_pct: health?.bodyFatPct,
                 sleep_hours: health?.sleepHours,
                 resting_hr: health?.restingHR,
-                hrv_ms: health?.hrvMs
+                hrv_ms: health?.hrvMs,
+                // Recovery metrics (Phase 1: HealthKit Dashboard Expansion)
+                sleep_efficiency: health?.sleepEfficiency,
+                sleep_deep_pct: health?.sleepDeepPct,
+                sleep_core_pct: health?.sleepCorePct,
+                sleep_rem_pct: health?.sleepREMPct,
+                sleep_onset_minutes: health?.sleepOnsetMinutes,
+                hrv_baseline_ms: health?.hrvBaselineMs,
+                hrv_deviation_pct: health?.hrvDeviationPct,
+                bedtime_consistency: nil  // Computed server-side from sleep_onset_minutes history
             ))
         }
 

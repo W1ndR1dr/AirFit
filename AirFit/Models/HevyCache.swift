@@ -97,6 +97,11 @@ final class CachedWorkout {
         dateFormatter.dateFormat = "MMM d"
         lines.append("\(dateFormatter.string(from: workoutDate)): \(title) (\(durationMinutes)min)")
 
+        // Include workout-level notes/description if present
+        if let description = workoutDescription, !description.isEmpty {
+            lines.append("  Notes: \"\(description)\"")
+        }
+
         for exercise in fullExercises {
             let bestSet = exercise.sets.max { a, b in
                 (a.weightLbs ?? 0) * Double(a.reps ?? 0) < (b.weightLbs ?? 0) * Double(b.reps ?? 0)
@@ -105,6 +110,11 @@ final class CachedWorkout {
                 lines.append("  - \(exercise.name): \(Int(weight))lbs × \(reps) (best of \(exercise.sets.count) sets)")
             } else {
                 lines.append("  - \(exercise.name): \(exercise.sets.count) sets")
+            }
+
+            // Include exercise-level notes if present (valuable for coach feedback!)
+            if let notes = exercise.notes, !notes.isEmpty {
+                lines.append("      📝 \"\(notes)\"")
             }
         }
 

@@ -177,14 +177,15 @@ async def query_workouts(
         exercise_lower = exercise.lower()
         filtered = []
         for w in workouts:
+            # w is a HevyWorkout dataclass; w.exercises is list[dict]
             matching_exercises = [
-                e for e in w.get("exercises", [])
+                e for e in w.exercises
                 if exercise_lower in e.get("title", "").lower()
             ]
             if matching_exercises:
                 filtered.append({
-                    "date": w.get("start_time", "")[:10],
-                    "title": w.get("title", ""),
+                    "date": w.date.strftime("%Y-%m-%d"),
+                    "title": w.title,
                     "exercises": matching_exercises
                 })
         if not filtered:
@@ -205,11 +206,12 @@ async def query_workouts(
     # General workout summary
     summary = []
     for w in workouts[:10]:
-        workout_date = w.get("start_time", "")[:10]
-        exercises = [e.get("title", "")[:20] for e in w.get("exercises", [])[:5]]
+        # w is a HevyWorkout dataclass
+        workout_date = w.date.strftime("%Y-%m-%d")
+        exercises = [e.get("title", "")[:20] for e in w.exercises[:5]]
         summary.append({
             "date": workout_date,
-            "title": w.get("title", ""),
+            "title": w.title,
             "exercises": exercises
         })
 
@@ -299,16 +301,17 @@ async def query_body_comp(days: int = 90) -> dict:
     body_fats = []
 
     for s in snapshots:
-        health = s.get("health", {})
-        if health.get("weight_lbs"):
+        # s is a DailySnapshot dataclass; s.health is a HealthSnapshot dataclass
+        health = s.health
+        if health and health.weight_lbs:
             weights.append({
-                "date": s.get("date", ""),
-                "weight": health["weight_lbs"]
+                "date": s.date,
+                "weight": health.weight_lbs
             })
-        if health.get("body_fat_pct"):
+        if health and health.body_fat_pct:
             body_fats.append({
-                "date": s.get("date", ""),
-                "body_fat": health["body_fat_pct"]
+                "date": s.date,
+                "body_fat": health.body_fat_pct
             })
 
     result = {"period": f"{days} days"}
