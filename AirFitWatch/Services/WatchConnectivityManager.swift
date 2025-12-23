@@ -152,6 +152,27 @@ final class WatchConnectivityManager: NSObject, ObservableObject {
         saveCache()
     }
 
+    /// Process pre-extracted context data (for Swift 6 Sendable compliance)
+    private func processContextData(macroData: Data?, readinessData: Data?, volumeData: Data?) {
+        if let macroData,
+           let macros = try? JSONDecoder().decode(MacroProgress.self, from: macroData) {
+            self.macroProgress = macros
+        }
+
+        if let readinessData,
+           let readiness = try? JSONDecoder().decode(ReadinessData.self, from: readinessData) {
+            self.readinessData = readiness
+        }
+
+        if let volumeData,
+           let volume = try? JSONDecoder().decode(VolumeProgress.self, from: volumeData) {
+            self.volumeProgress = volume
+        }
+
+        lastSyncDate = Date()
+        saveCache()
+    }
+
     private func flushPendingVoiceLogs() {
         guard !pendingVoiceLogs.isEmpty else { return }
 
@@ -208,9 +229,11 @@ extension WatchConnectivityManager: WCSessionDelegate {
         activationDidCompleteWith activationState: WCSessionActivationState,
         error: Error?
     ) {
+        // Capture value before Task to avoid data race
+        let isReachable = session.isReachable
         Task { @MainActor in
-            self.isPhoneReachable = session.isReachable
-            if session.isReachable {
+            self.isPhoneReachable = isReachable
+            if isReachable {
                 self.requestContextUpdate()
                 self.flushPendingVoiceLogs()
             }
@@ -218,9 +241,11 @@ extension WatchConnectivityManager: WCSessionDelegate {
     }
 
     nonisolated func sessionReachabilityDidChange(_ session: WCSession) {
+        // Capture value before Task to avoid data race
+        let isReachable = session.isReachable
         Task { @MainActor in
-            self.isPhoneReachable = session.isReachable
-            if session.isReachable {
+            self.isPhoneReachable = isReachable
+            if isReachable {
                 self.requestContextUpdate()
                 self.flushPendingVoiceLogs()
             }
@@ -228,26 +253,28 @@ extension WatchConnectivityManager: WCSessionDelegate {
     }
 
     nonisolated func session(_ session: WCSession, didReceiveMessage message: [String: Any]) {
-        Task { @MainActor in
-            guard let type = message["type"] as? String else { return }
+        // Extract Sendable values before Task to avoid data race with [String: Any]
+        guard let type = message["type"] as? String else { return }
+        let data = message["data"] as? Data
 
+        Task { @MainActor in
             switch type {
             case "macroUpdate":
-                if let data = message["data"] as? Data,
+                if let data,
                    let macros = try? JSONDecoder().decode(MacroProgress.self, from: data) {
                     self.macroProgress = macros
                     self.saveCache()
                 }
 
             case "readinessUpdate":
-                if let data = message["data"] as? Data,
+                if let data,
                    let readiness = try? JSONDecoder().decode(ReadinessData.self, from: data) {
                     self.readinessData = readiness
                     self.saveCache()
                 }
 
             case "volumeUpdate":
-                if let data = message["data"] as? Data,
+                if let data,
                    let volume = try? JSONDecoder().decode(VolumeProgress.self, from: data) {
                     self.volumeProgress = volume
                     self.saveCache()
@@ -263,8 +290,13 @@ extension WatchConnectivityManager: WCSessionDelegate {
         _ session: WCSession,
         didReceiveApplicationContext applicationContext: [String: Any]
     ) {
+        // Extract Sendable Data values before Task to avoid data race with [String: Any]
+        let macroData = applicationContext["macros"] as? Data
+        let readinessData = applicationContext["readiness"] as? Data
+        let volumeData = applicationContext["volume"] as? Data
+
         Task { @MainActor in
-            self.processContextResponse(applicationContext)
+            self.processContextData(macroData: macroData, readinessData: readinessData, volumeData: volumeData)
         }
     }
 }

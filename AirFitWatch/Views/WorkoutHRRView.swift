@@ -375,7 +375,7 @@ private struct WorkoutControlButton: View {
 // MARK: - HealthKitManager Extension
 
 extension WatchHealthKitManager {
-    func setOnHeartRateSample(_ callback: @escaping (HRSample) -> Void) {
+    func setOnHeartRateSample(_ callback: @escaping @Sendable (HRSample) -> Void) {
         self.onHeartRateSample = callback
     }
 }

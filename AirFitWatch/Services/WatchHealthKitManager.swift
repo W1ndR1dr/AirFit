@@ -29,8 +29,8 @@ actor WatchHealthKitManager: ObservableObject {
     private var hrSampleBuffer: [(date: Date, bpm: Double)] = []
     private let bufferDuration: TimeInterval = 120  // 2 minutes
 
-    // Callback for new samples
-    var onHeartRateSample: ((HRSample) -> Void)?
+    // Callback for new samples (must be @Sendable for Swift 6)
+    var onHeartRateSample: (@Sendable (HRSample) -> Void)?
 
     // MARK: - Types
 

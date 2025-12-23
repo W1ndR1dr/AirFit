@@ -274,10 +274,24 @@ actor ContextManager {
         }
 
         if let weight = context.weightLbs {
-            parts.append("Weight: \(String(format: "%.1f", weight)) lbs")
+            var weightStr = "Weight: \(String(format: "%.1f", weight)) lbs"
+            if let date = context.weightDate {
+                let age = formatDataAge(date)
+                if !age.isEmpty && age != "today" {
+                    weightStr += " (logged \(age))"
+                }
+            }
+            parts.append(weightStr)
         }
         if let hr = context.restingHeartRate {
-            parts.append("Resting HR: \(hr) bpm")
+            var hrStr = "Resting HR: \(hr) bpm"
+            if let date = context.restingHRDate {
+                let age = formatDataAge(date)
+                if !age.isEmpty && age != "today" {
+                    hrStr += " (from \(age))"
+                }
+            }
+            parts.append(hrStr)
         }
 
         // Flag incomplete sleep
@@ -292,6 +306,29 @@ actor ContextManager {
         }
 
         return parts.joined(separator: "\n")
+    }
+
+    /// Format a date as a human-readable age indicator (e.g., "today", "3 days ago", "Dec 15")
+    nonisolated private func formatDataAge(_ date: Date) -> String {
+        let calendar = Calendar.current
+        let now = Date()
+        let days = calendar.dateComponents([.day], from: calendar.startOfDay(for: date), to: calendar.startOfDay(for: now)).day ?? 0
+
+        if days == 0 {
+            return "today"
+        } else if days == 1 {
+            return "yesterday"
+        } else if days < 7 {
+            return "\(days) days ago"
+        } else if days < 30 {
+            let weeks = days / 7
+            return "\(weeks) week\(weeks > 1 ? "s" : "") ago"
+        } else {
+            // Show actual date for older data
+            let formatter = DateFormatter()
+            formatter.dateFormat = "MMM d"
+            return formatter.string(from: date)
+        }
     }
 
     /// Format local insights for chat context.

@@ -26,7 +26,8 @@ struct ChatView: View {
     @State private var isAnalyzingPhoto = false  // Photo analysis in progress
     @State private var isVoiceInputActive = false  // Voice input recording state
     @State private var showVoiceOverlay = false  // Voice input overlay
-    @State private var speechManager = SpeechTranscriptionManager()
+    @State private var showModelRequired = false  // Model download sheet for voice
+    @State private var speechManager = WhisperTranscriptionService.shared
     @State private var pendingSeed: ConversationSeed?  // Conversation seed waiting to start
     @State private var activeSeed: ConversationSeed?  // Currently active seed (nil = normal coaching)
     @FocusState private var isInputFocused: Bool
@@ -225,6 +226,11 @@ struct ChatView: View {
                     showPhotoFeatureGate = false
                 }
             )
+        }
+        .sheet(isPresented: $showModelRequired) {
+            ModelRequiredSheet {
+                startVoiceInput()
+            }
         }
         .photosPicker(
             isPresented: $showingPhotoPicker,
@@ -573,13 +579,29 @@ struct ChatView: View {
     /// Start voice input for speech-to-text
     private func startVoiceInput() {
         Task {
+            // Check if WhisperKit models are installed
+            await ModelManager.shared.load()
+            let hasModels = await ModelManager.shared.hasRequiredModels()
+
+            guard hasModels else {
+                showModelRequired = true
+                return
+            }
+
             do {
                 isVoiceInputActive = true
                 try await speechManager.startListening()
                 showVoiceOverlay = true
+            } catch WhisperTranscriptionService.TranscriptionError.modelsNotInstalled {
+                isVoiceInputActive = false
+                showModelRequired = true
             } catch {
                 isVoiceInputActive = false
                 print("Failed to start voice input: \(error)")
+                // Show model sheet as fallback for model-related errors
+                if String(describing: error).lowercased().contains("model") {
+                    showModelRequired = true
+                }
             }
         }
     }

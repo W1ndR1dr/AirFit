@@ -1,4 +1,7 @@
 import SwiftUI
+import os.log
+
+private let logger = Logger(subsystem: "com.airfit.app", category: "VoiceInput")
 
 // MARK: - Voice-Enabled Text Field
 
@@ -41,9 +44,13 @@ struct VoiceTextField: View {
 
     @State private var isVoiceInputActive = false
     @State private var showOverlay = false
+    @State private var showModelRequired = false
     @FocusState private var internalFocus: Bool
 
-    @State private var speechManager = SpeechTranscriptionManager()
+    @State private var speechManager = WhisperTranscriptionService.shared
+
+    // Track if we just showed the model sheet (to prevent auto-start)
+    @State private var justShowedModelSheet = false
 
     // MARK: - Body
 
@@ -84,6 +91,14 @@ struct VoiceTextField: View {
             )
             .background(ClearBackgroundView())
         }
+        .sheet(isPresented: $showModelRequired, onDismiss: {
+            // Ensure all voice state is reset when model sheet closes
+            resetVoiceState()
+            justShowedModelSheet = true
+        }) {
+            ModelRequiredSheet()
+            // Don't auto-start - user will tap mic again to start
+        }
     }
 
     // MARK: - Text Field Content
@@ -110,7 +125,7 @@ struct VoiceTextField: View {
 
             // Voice input button
             if voiceEnabled {
-                VoiceInputButton(isRecording: isVoiceInputActive) {
+                VoiceInputButton(isRecording: isVoiceInputActive || showOverlay) {
                     startVoiceInput()
                 }
             }
@@ -137,7 +152,18 @@ struct VoiceTextField: View {
     // MARK: - Voice Input
 
     private func startVoiceInput() {
+        // Prevent multiple simultaneous attempts
+        guard !isVoiceInputActive && !showOverlay else {
+            logger.warning("🎤 Already recording, ignoring tap")
+            return
+        }
+
         Task {
+            logger.info("🎤 startVoiceInput called")
+
+            // Ensure speech manager state is clean
+            await speechManager.cancel()
+
             // Setup completion handler
             speechManager.onTranscriptionComplete = { transcript in
                 Task { @MainActor in
@@ -145,15 +171,18 @@ struct VoiceTextField: View {
                         text = transcript
                     }
                     isVoiceInputActive = false
+                    showOverlay = false
                     if useInlineMode {
-                        // Auto-submit after voice input in inline mode
                         onSubmit?()
                     }
                 }
             }
 
             do {
+                // WhisperKit handles model download automatically on first use
+                logger.info("🎤 Starting voice input (WhisperKit will download model if needed)")
                 try await speechManager.startListening()
+                logger.info("🎤 Recording started!")
 
                 if useInlineMode {
                     isVoiceInputActive = true
@@ -161,9 +190,16 @@ struct VoiceTextField: View {
                     showOverlay = true
                 }
             } catch {
-                print("Failed to start voice input: \(error)")
+                logger.error("🎤 Failed to start: \(error.localizedDescription)")
+                resetVoiceState()
+                // TODO: Show error to user
             }
         }
+    }
+
+    private func resetVoiceState() {
+        isVoiceInputActive = false
+        showOverlay = false
     }
 }
 
@@ -190,7 +226,8 @@ struct VoiceInputModifier: ViewModifier {
     var onSubmit: (() -> Void)?
 
     @State private var showOverlay = false
-    @State private var speechManager = SpeechTranscriptionManager()
+    @State private var showModelRequired = false
+    @State private var speechManager = WhisperTranscriptionService.shared
 
     func body(content: Content) -> some View {
         HStack(spacing: 8) {
@@ -214,15 +251,47 @@ struct VoiceInputModifier: ViewModifier {
             )
             .background(ClearBackgroundView())
         }
+        .sheet(isPresented: $showModelRequired, onDismiss: {
+            // Reset state when sheet closes
+            showOverlay = false
+        }) {
+            ModelRequiredSheet()
+            // Don't auto-start - user will tap mic again to start
+        }
     }
 
     private func startVoiceInput() {
+        // Prevent double-tap
+        guard !showOverlay else { return }
+
         Task {
+            // Ensure speech manager state is clean
+            await speechManager.cancel()
+
+            // Load model manager first
+            await ModelManager.shared.load()
+
+            // Check if models are installed
+            let hasModels = await ModelManager.shared.hasRequiredModels()
+            guard hasModels else {
+                showModelRequired = true
+                return
+            }
+
             do {
                 try await speechManager.startListening()
                 showOverlay = true
+            } catch WhisperTranscriptionService.TranscriptionError.modelsNotInstalled {
+                showOverlay = false
+                showModelRequired = true
             } catch {
+                showOverlay = false
                 print("Failed to start voice input: \(error)")
+                // Fallback for model-related errors
+                let errorString = String(describing: error).lowercased()
+                if errorString.contains("model") || errorString.contains("whisper") {
+                    showModelRequired = true
+                }
             }
         }
     }
@@ -246,6 +315,7 @@ extension View {
 // MARK: - Chat-Style Voice TextField
 
 /// Pre-styled voice text field matching the chat input style
+/// Uses inline waveform mode - waveform replaces text field when recording
 struct ChatVoiceTextField: View {
     let placeholder: String
     @Binding var text: String
@@ -260,7 +330,7 @@ struct ChatVoiceTextField: View {
             axis: .vertical,
             lineLimit: 1...5,
             voiceEnabled: true,
-            useInlineMode: false,
+            useInlineMode: true,  // Waveform appears in text field space
             cornerRadius: 24,
             useMaterial: false,
             focusState: $isFocused,
@@ -271,6 +341,7 @@ struct ChatVoiceTextField: View {
 }
 
 /// Pre-styled voice text field for nutrition logging
+/// Uses inline waveform mode - waveform replaces text field when recording
 struct NutritionVoiceTextField: View {
     let placeholder: String
     @Binding var text: String
@@ -285,7 +356,7 @@ struct NutritionVoiceTextField: View {
             axis: .vertical,
             lineLimit: 1...3,
             voiceEnabled: true,
-            useInlineMode: false,
+            useInlineMode: true,  // Waveform appears in text field space
             cornerRadius: 24,
             useMaterial: false,
             focusState: $isFocused,

@@ -35,6 +35,9 @@ struct SettingsView: View {
     @AppStorage("geminiParanoidMode") private var geminiParanoidMode = false
     @State private var showPrivacyDetail: PrivacyCategory?
 
+    // Tracking Features
+    @AppStorage("waterTrackingEnabled") private var waterTrackingEnabled = false
+
     private let apiClient = APIClient()
     private let keychainManager = KeychainManager.shared
 
@@ -448,6 +451,55 @@ struct SettingsView: View {
                         }
                     }
                     .pickerStyle(.segmented)
+                }
+
+                // Tracking Features
+                SettingsSection(title: "Tracking") {
+                    HStack {
+                        VStack(alignment: .leading, spacing: 2) {
+                            HStack(spacing: 6) {
+                                Image(systemName: "drop.fill")
+                                    .foregroundStyle(.blue)
+                                    .font(.subheadline)
+                                Text("Water Tracking")
+                                    .font(.body.weight(.medium))
+                                    .foregroundStyle(Theme.textPrimary)
+                            }
+                            Text("Log daily water intake on the Nutrition tab")
+                                .font(.caption)
+                                .foregroundStyle(Theme.textMuted)
+                        }
+                        Spacer()
+                        Toggle("", isOn: $waterTrackingEnabled)
+                            .labelsHidden()
+                            .tint(.blue)
+                    }
+                }
+
+                // Speech Recognition
+                SettingsSection(title: "Speech") {
+                    NavigationLink {
+                        SpeechSettingsView()
+                    } label: {
+                        HStack {
+                            Image(systemName: "waveform")
+                                .font(.body)
+                                .foregroundStyle(Theme.accent)
+                            VStack(alignment: .leading, spacing: 2) {
+                                Text("Speech Recognition")
+                                    .font(.body)
+                                    .foregroundStyle(Theme.textPrimary)
+                                Text("Manage on-device transcription models")
+                                    .font(.caption)
+                                    .foregroundStyle(Theme.textMuted)
+                            }
+                            Spacer()
+                            Image(systemName: "chevron.right")
+                                .font(.caption)
+                                .foregroundStyle(Theme.textMuted)
+                        }
+                    }
+                    .buttonStyle(.plain)
                 }
 
                 // Coaching Persona

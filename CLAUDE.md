@@ -175,6 +175,39 @@ Why: Pi has 32GB SD card. Daily aggregates = ~2KB/day = sustainable. Granular me
 
 See `server/ARCHITECTURE.md` for full details.
 
+## Coding Style
+
+### Swift
+- 4-space indentation
+- `UpperCamelCase` for types, `lowerCamelCase` for variables
+- Service classes are `actor`s with Swift 6 strict concurrency
+- One type per file, feature-aligned directories
+
+### Python
+- 4-space indentation, `snake_case` functions
+- Module-level FastAPI endpoints in `server/server.py`
+
+## Commit Conventions
+
+Follow conventional commits: `feat:`, `fix:`, `chore:`, `refactor:` with optional scopes.
+
+```bash
+feat(Insights): Add weekly trend analysis
+fix(Chat): Handle empty response from CLI
+refactor(HealthKit): Simplify query logic
+```
+
+**Branching**: Work on `main` for changes touching ≤4 files. Create a feature branch for 5+ files or risky refactors.
+
+## Testing
+
+No automated test suite. Validate manually:
+1. Run server, check `/status` and `/scheduler/status`
+2. Test on physical iOS device (iOS 26+)
+3. For UI changes, sanity-check key flows (onboarding, chat, nutrition, insights)
+
+**If tests are added**, prioritize by risk: API contracts (iOS↔Server shapes) > provider parity (all modes produce compatible output) > fallback chains > session continuity.
+
 ## Development Notes
 
 ### iOS Concurrency
@@ -243,3 +276,11 @@ actor MyService {
 
 ### Testing Gemini Mode Locally
 Set API key via Settings → Advanced → Gemini API Key. The key is stored in Keychain, not UserDefaults.
+
+### MCP Configuration
+The `.mcp.json` file configures a local MCP server for Claude Code, providing direct access to AirFit tools when working in this repo.
+
+### Code Review Mode
+For review-only tasks (no code changes):
+- Document findings in `docs/` as Markdown
+- Read `CLAUDE.md`, `USER_GUIDE.md`, and `server/ARCHITECTURE.md` first for context

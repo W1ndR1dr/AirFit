@@ -165,7 +165,7 @@ async def query_workouts(
     muscle_group: Optional[str] = None,
     days: int = 14
 ) -> dict:
-    """Query workout history from Hevy."""
+    """Query workout history from Hevy, including PRs for strength tracking."""
     days = min(max(days, 1), 90)
 
     workouts = await hevy.get_recent_workouts(days=days, limit=20)
@@ -203,7 +203,7 @@ async def query_workouts(
                 "period": f"{days} days"
             }
 
-    # General workout summary
+    # General workout summary with PRs
     summary = []
     for w in workouts[:10]:
         # w is a HevyWorkout dataclass
@@ -215,7 +215,29 @@ async def query_workouts(
             "exercises": exercises
         })
 
-    return {"workouts": summary, "total_count": len(workouts)}
+    # Include personal records for top lifts (matching Gemini mode)
+    lift_progress = await hevy.get_lift_progress(top_n=6)
+    personal_records = []
+    for lift in lift_progress:
+        pr = lift.get("current_pr", {})
+        if pr:
+            personal_records.append({
+                "exercise": lift["name"],
+                "pr_weight_lbs": pr.get("weight_lbs"),
+                "pr_reps": pr.get("reps"),
+                "pr_date": pr.get("date"),
+                "sessions": lift.get("workout_count", 0)
+            })
+
+    result = {
+        "workouts": summary,
+        "total_count": len(workouts)
+    }
+
+    if personal_records:
+        result["personal_records"] = personal_records
+
+    return result
 
 
 async def query_nutrition(
@@ -376,10 +398,26 @@ async def query_recovery(days: int = 14) -> dict:
 
     if hrv_data:
         avg_hrv = sum(d["hrv"] for d in hrv_data) / len(hrv_data)
+
+        # Compute actual trend by comparing first third vs last third of readings
+        # Matches Gemini mode's LocalToolExecutor logic
+        trend = "stable"
+        if len(hrv_data) >= 6:
+            third = len(hrv_data) // 3
+            first_third_avg = sum(d["hrv"] for d in hrv_data[:third]) / third
+            last_third_avg = sum(d["hrv"] for d in hrv_data[-third:]) / third
+            change_pct = ((last_third_avg - first_third_avg) / first_third_avg) * 100 if first_third_avg > 0 else 0
+
+            if change_pct > 5:
+                trend = "improving"
+            elif change_pct < -5:
+                trend = "declining"
+            # Otherwise stays "stable"
+
         result["hrv"] = {
             "average": round(avg_hrv),
             "readings": len(hrv_data),
-            "trend": "stable"  # Could compute actual trend
+            "trend": trend
         }
 
     if rhr_data:

@@ -6,10 +6,47 @@ and formats it for the LLM.
 """
 
 from dataclasses import dataclass, field
+from datetime import datetime, timezone
 from typing import Optional
 import scheduler
 import context_store
 import hevy
+
+
+def format_data_age(iso_date_str: str) -> str:
+    """Format an ISO date string as a human-readable age indicator.
+
+    Returns something like 'today', 'yesterday', '3 days ago', 'Dec 15', etc.
+    """
+    try:
+        # Parse ISO8601 date
+        if iso_date_str.endswith('Z'):
+            dt = datetime.fromisoformat(iso_date_str.replace('Z', '+00:00'))
+        else:
+            dt = datetime.fromisoformat(iso_date_str)
+
+        # Convert to local date for comparison
+        if dt.tzinfo is not None:
+            dt = dt.astimezone()
+
+        now = datetime.now(dt.tzinfo) if dt.tzinfo else datetime.now()
+        delta = now - dt
+        days = delta.days
+
+        if days == 0:
+            return "today"
+        elif days == 1:
+            return "yesterday"
+        elif days < 7:
+            return f"{days} days ago"
+        elif days < 30:
+            weeks = days // 7
+            return f"{weeks} week{'s' if weeks > 1 else ''} ago"
+        else:
+            # Show the actual date for older data
+            return dt.strftime("%b %d")
+    except (ValueError, TypeError):
+        return ""
 
 
 @dataclass
@@ -77,6 +114,7 @@ def format_health_context(context: dict) -> str:
 
     Includes data quality notes when iOS indicates incomplete or suspicious data.
     Quality flags are passed from iOS and also pulled from stored context.
+    Includes staleness info for weight and RHR so AI knows data freshness.
     """
     parts = ["Here is the user's current health data:"]
 
@@ -102,13 +140,28 @@ def format_health_context(context: dict) -> str:
     if "active_calories" in context:
         suffix = " (may be incomplete)" if has_minimal_activity else ""
         parts.append(f"- Active calories today: {context['active_calories']}{suffix}")
-    if "weight_kg" in context:
-        parts.append(f"- Weight: {context['weight_kg']} kg")
-    if "resting_hr" in context:
-        parts.append(f"- Resting heart rate: {context['resting_hr']} bpm")
 
-    # Add any other keys dynamically (skip quality-related keys)
-    known_keys = {"steps", "sleep_hours", "active_calories", "weight_kg", "resting_hr",
+    # Weight with staleness indicator
+    if "weight_lbs" in context:
+        weight_str = f"- Weight: {context['weight_lbs']} lbs"
+        if "weight_date" in context:
+            age = format_data_age(context["weight_date"])
+            if age and age != "today":
+                weight_str += f" (logged {age})"
+        parts.append(weight_str)
+
+    # Resting HR with staleness indicator
+    if "resting_hr" in context:
+        hr_str = f"- Resting heart rate: {context['resting_hr']} bpm"
+        if "resting_hr_date" in context:
+            age = format_data_age(context["resting_hr_date"])
+            if age and age != "today":
+                hr_str += f" (from {age})"
+        parts.append(hr_str)
+
+    # Add any other keys dynamically (skip quality-related and date keys)
+    known_keys = {"steps", "sleep_hours", "active_calories", "weight_lbs", "resting_hr",
+                  "weight_date", "resting_hr_date",
                   "quality_flags", "quality_score", "is_baseline_excluded"}
     for key, value in context.items():
         if key not in known_keys:

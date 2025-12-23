@@ -55,6 +55,6 @@
 	<key>NSSpeechRecognitionUsageDescription</key>
 	<string>AirFit uses on-device speech recognition to transcribe your voice.</string>
 	<key>NSCameraUsageDescription</key>
-	<string>AirFit uses the camera to scan server QR codes for easy setup.</string>
+	<string>AirFit uses the camera to analyze your food photos and scan QR codes.</string>
 </dict>
 </plist>

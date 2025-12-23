@@ -5,11 +5,12 @@ import SwiftUI
 /// Full-screen overlay for voice input with waveform visualization
 /// Appears when user taps the microphone button in any text field
 struct VoiceInputOverlay: View {
-    @Bindable var speechManager: SpeechTranscriptionManager
+    @Bindable var speechManager: WhisperTranscriptionService
     let onComplete: (String) -> Void
     let onCancel: () -> Void
 
     @State private var showContent = false
+    @State private var showModelRequired = false
     @Environment(\.colorScheme) private var colorScheme
 
     var body: some View {
@@ -192,7 +193,7 @@ struct VoiceInputOverlay: View {
 
 /// Smaller inline voice input that appears within the text field area
 struct InlineVoiceInputView: View {
-    @Bindable var speechManager: SpeechTranscriptionManager
+    @Bindable var speechManager: WhisperTranscriptionService
     let onComplete: (String) -> Void
     let onCancel: () -> Void
 
@@ -303,7 +304,7 @@ struct VoiceInputButton: View {
 
 #Preview("Voice Input Overlay") {
     VoiceInputOverlay(
-        speechManager: SpeechTranscriptionManager.shared,
+        speechManager: WhisperTranscriptionService.shared,
         onComplete: { text in print("Complete: \(text)") },
         onCancel: { print("Cancelled") }
     )
@@ -313,7 +314,7 @@ struct VoiceInputButton: View {
     VStack {
         Spacer()
         InlineVoiceInputView(
-            speechManager: SpeechTranscriptionManager.shared,
+            speechManager: WhisperTranscriptionService.shared,
             onComplete: { text in print("Complete: \(text)") },
             onCancel: { print("Cancelled") }
         )

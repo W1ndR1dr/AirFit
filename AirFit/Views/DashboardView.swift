@@ -1,6 +1,8 @@
 import SwiftUI
+import SwiftData
 
 struct DashboardView: View {
+    @Environment(\.modelContext) private var modelContext
     @State private var selectedSegment: DashboardSegment = .body
     @State private var weekContext: APIClient.ContextSummary?
     @State private var expandedMetric: MetricType?
@@ -111,26 +113,112 @@ struct DashboardView: View {
             weeklySleepBreakdowns = sleepBreakdowns
         }
 
-        // Use actual daily data from server (no longer repeating averages!)
-        // ARCHITECTURE NOTE: Server stores daily aggregates synced from iOS.
-        // This gives us real day-to-day variance for sparklines.
-        if let ctx = weekContext {
+        // Use actual daily data from server OR fall back to local SwiftData
+        // ARCHITECTURE NOTE: In Gemini Direct mode (or when server unavailable),
+        // we query SwiftData directly to show nutrition data on Dashboard.
+        if let ctx = weekContext, let dailyNutrition = ctx.daily_nutrition, !dailyNutrition.isEmpty {
+            // Server has daily data - use it
             await MainActor.run {
-                if let dailyNutrition = ctx.daily_nutrition, !dailyNutrition.isEmpty {
-                    // Use actual daily values from server
-                    weeklyProteinData = dailyNutrition.map { Double($0.protein) }
-                    weeklyCaloriesData = dailyNutrition.map { Double($0.calories) }
-                } else {
-                    // Fallback: repeat average (legacy behavior when no daily data)
-                    weeklyProteinData = Array(repeating: Double(ctx.avg_protein), count: 7)
-                    weeklyCaloriesData = Array(repeating: Double(ctx.avg_calories), count: 7)
-                }
+                weeklyProteinData = dailyNutrition.map { Double($0.protein) }
+                weeklyCaloriesData = dailyNutrition.map { Double($0.calories) }
 
                 // Workouts: show flat count for now
-                // TODO: Get actual workout days from Hevy data
                 let workoutCount = Double(ctx.total_workouts)
                 weeklyWorkoutData = Array(repeating: workoutCount / 7.0, count: 7)
             }
+        } else {
+            // Fallback: Query local SwiftData for nutrition (works in Gemini mode)
+            let localNutrition = await loadLocalNutritionData()
+            await MainActor.run {
+                weeklyProteinData = localNutrition.map { Double($0.protein) }
+                weeklyCaloriesData = localNutrition.map { Double($0.calories) }
+
+                // Also update weekContext with local averages for the "This Week" card
+                if weekContext == nil {
+                    let daysWithData = localNutrition.filter { $0.calories > 0 }.count
+                    let avgCalories = daysWithData == 0 ? 0 : localNutrition.reduce(0) { $0 + $1.calories } / max(daysWithData, 1)
+                    let avgProtein = daysWithData == 0 ? 0 : localNutrition.reduce(0) { $0 + $1.protein } / max(daysWithData, 1)
+                    let avgCarbs = daysWithData == 0 ? 0 : localNutrition.reduce(0) { $0 + $1.carbs } / max(daysWithData, 1)
+                    let avgFat = daysWithData == 0 ? 0 : localNutrition.reduce(0) { $0 + $1.fat } / max(daysWithData, 1)
+
+                    weekContext = APIClient.ContextSummary(
+                        period_days: 7,
+                        nutrition_days: daysWithData,
+                        avg_calories: avgCalories,
+                        avg_protein: avgProtein,
+                        avg_carbs: avgCarbs,
+                        avg_fat: avgFat,
+                        avg_weight: nil,
+                        weight_change: nil,
+                        avg_sleep: nil,
+                        avg_steps: 0,
+                        total_workouts: 0,
+                        avg_volume_per_workout: 0,
+                        protein_compliance: nil,
+                        calorie_compliance: nil,
+                        daily_nutrition: nil,
+                        daily_health: nil
+                    )
+                }
+
+                weeklyWorkoutData = Array(repeating: 0, count: 7)
+            }
+        }
+    }
+
+    /// Load nutrition data from local SwiftData for the past 7 days
+    /// Returns an array of daily totals (one per day, oldest first)
+    private func loadLocalNutritionData() async -> [(calories: Int, protein: Int, carbs: Int, fat: Int)] {
+        let calendar = Calendar.current
+        let today = calendar.startOfDay(for: Date())
+
+        // Calculate 7 days ago
+        guard let weekAgo = calendar.date(byAdding: .day, value: -6, to: today) else {
+            return []
+        }
+
+        // Query all entries from the past 7 days
+        let predicate = #Predicate<NutritionEntry> { entry in
+            entry.timestamp >= weekAgo
+        }
+
+        let descriptor = FetchDescriptor<NutritionEntry>(
+            predicate: predicate,
+            sortBy: [SortDescriptor(\.timestamp, order: .forward)]
+        )
+
+        do {
+            let entries = try modelContext.fetch(descriptor)
+
+            // Group by day and sum
+            var dailyTotals: [Date: (calories: Int, protein: Int, carbs: Int, fat: Int)] = [:]
+
+            for entry in entries {
+                let day = calendar.startOfDay(for: entry.timestamp)
+                let current = dailyTotals[day] ?? (0, 0, 0, 0)
+                dailyTotals[day] = (
+                    current.calories + entry.calories,
+                    current.protein + entry.protein,
+                    current.carbs + entry.carbs,
+                    current.fat + entry.fat
+                )
+            }
+
+            // Build array for past 7 days (fill gaps with zeros)
+            var result: [(calories: Int, protein: Int, carbs: Int, fat: Int)] = []
+            for dayOffset in 0..<7 {
+                guard let date = calendar.date(byAdding: .day, value: dayOffset, to: weekAgo) else {
+                    result.append((0, 0, 0, 0))
+                    continue
+                }
+                let day = calendar.startOfDay(for: date)
+                result.append(dailyTotals[day] ?? (0, 0, 0, 0))
+            }
+
+            return result
+        } catch {
+            print("Failed to fetch local nutrition data: \(error)")
+            return []
         }
     }
 
@@ -518,25 +606,13 @@ struct BodyContentView: View {
                 )
             }
 
-            // Resting heart rate chart - cardio fitness indicator
-            if !restingHRData.isEmpty {
-                chartCard(
-                    title: "RESTING HR",
-                    icon: "heart.fill",
-                    color: Theme.error,
-                    data: restingHRData,
-                    unit: "bpm",
-                    trend: restingHRTrend,
-                    trendInverted: true,
-                    tooltip: "The metronome of metabolic efficiency—your heart's idle speed. Lower resting rates signal cardiovascular adaptation: more stroke volume per beat, less work for the same output. Elite endurance athletes hover in the 40s; mortals should celebrate the 50s. Improvement here is measured in months, not days.",
-                    formatValue: { String(format: "%.0f", $0) }
-                )
-            }
+            // Cardiac Fitness Section
+            cardiacFitnessSection
 
             // Walking speed temporarily disabled - motion metrics hang on fresh HealthKit auth
         }
         .padding(.horizontal, 20)
-        .padding(.bottom, 40)
+        .padding(.bottom, 120)  // Extra padding for tab bar + expanded cardiac card
         .animation(.airfit, value: timeRange)
     }
 
@@ -682,6 +758,26 @@ struct BodyContentView: View {
             qualityLabel: pRatioLabel,
             qualityColor: pRatioColor
         )
+    }
+
+    // MARK: - Cardiac Fitness Section
+
+    private var cardiacFitnessSection: some View {
+        VStack(alignment: .leading, spacing: 12) {
+            // Section header
+            HStack(spacing: 8) {
+                Image(systemName: "heart.fill")
+                    .font(.caption)
+                    .foregroundStyle(Theme.error)
+                Text("CARDIAC FITNESS")
+                    .font(.labelHero)
+                    .tracking(2)
+                    .foregroundStyle(Theme.textMuted)
+            }
+            .padding(.top, 8)
+
+            CardiacFitnessCard()
+        }
     }
 
     // MARK: - Loading & Empty States
@@ -1259,9 +1355,9 @@ struct ChartCardView: View {
                         Button {
                             showTooltip = true
                         } label: {
-                            Image(systemName: "info.circle")
-                                .font(.caption)
-                                .foregroundStyle(Theme.textMuted.opacity(0.6))
+                            Image(systemName: "info.circle.fill")
+                                .font(.system(size: 14))
+                                .foregroundStyle(Theme.accent.opacity(0.5))
                         }
                         .buttonStyle(.plain)
                     }
@@ -1361,9 +1457,9 @@ struct PRatioCardView: View {
                 Button {
                     showTooltip = true
                 } label: {
-                    Image(systemName: "info.circle")
-                        .font(.caption)
-                        .foregroundStyle(Theme.textMuted.opacity(0.6))
+                    Image(systemName: "info.circle.fill")
+                        .font(.system(size: 14))
+                        .foregroundStyle(Theme.accent.opacity(0.5))
                 }
                 .buttonStyle(.plain)
 

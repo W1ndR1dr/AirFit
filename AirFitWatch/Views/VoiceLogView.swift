@@ -1,23 +1,15 @@
 import SwiftUI
-import Speech
 
 /// Voice logging view for quick food entry on Watch.
-/// Uses on-device speech recognition for transcription.
+/// Uses native watchOS dictation through TextField.
 struct VoiceLogView: View {
     @EnvironmentObject var connectivityManager: WatchConnectivityManager
     @Environment(\.dismiss) private var dismiss
 
-    @State private var isListening = false
     @State private var transcript = ""
-    @State private var audioLevel: Float = 0
-    @State private var errorMessage: String?
     @State private var isSending = false
     @State private var showConfirmation = false
-
-    private let speechRecognizer = SFSpeechRecognizer(locale: Locale(identifier: "en-US"))
-    @State private var recognitionRequest: SFSpeechAudioBufferRecognitionRequest?
-    @State private var recognitionTask: SFSpeechRecognitionTask?
-    @State private var audioEngine = AVAudioEngine()
+    @FocusState private var isTextFieldFocused: Bool
 
     var body: some View {
         VStack(spacing: 16) {
@@ -25,79 +17,56 @@ struct VoiceLogView: View {
             Text("Log Food")
                 .font(.headline)
 
-            // Waveform visualization
-            HStack(spacing: 2) {
-                ForEach(0..<8, id: \.self) { index in
-                    RoundedRectangle(cornerRadius: 2)
-                        .fill(isListening ? Color.blue : Color.gray.opacity(0.3))
-                        .frame(width: 4, height: waveformHeight(for: index))
-                        .animation(.easeInOut(duration: 0.1), value: audioLevel)
+            // Instructions
+            Text("Tap to dictate or type")
+                .font(.caption2)
+                .foregroundColor(.secondary)
+
+            // Text input with dictation support
+            TextField("30g protein shake...", text: $transcript)
+                .focused($isTextFieldFocused)
+                .textFieldStyle(.plain)
+                .padding(8)
+                .background(Color(white: 0.2))
+                .cornerRadius(8)
+                .submitLabel(.send)
+                .onSubmit {
+                    if !transcript.isEmpty {
+                        sendLog()
+                    }
                 }
-            }
-            .frame(height: 30)
-
-            // Transcript display
-            if !transcript.isEmpty {
-                Text(transcript)
-                    .font(.caption)
-                    .foregroundColor(.primary)
-                    .multilineTextAlignment(.center)
-                    .padding(.horizontal)
-                    .frame(maxHeight: 60)
-            } else if isListening {
-                Text("Listening...")
-                    .font(.caption)
-                    .foregroundColor(.secondary)
-            } else {
-                Text("Tap mic to start")
-                    .font(.caption)
-                    .foregroundColor(.secondary)
-            }
-
-            // Error message
-            if let error = errorMessage {
-                Text(error)
-                    .font(.caption2)
-                    .foregroundColor(.red)
-            }
 
             Spacer()
 
-            // Microphone button
-            Button(action: toggleListening) {
-                ZStack {
-                    Circle()
-                        .fill(isListening ? Color.red : Color.blue)
-                        .frame(width: 60, height: 60)
-
-                    if isSending {
-                        ProgressView()
-                            .tint(.white)
-                    } else {
-                        Image(systemName: isListening ? "stop.fill" : "mic.fill")
-                            .font(.title2)
-                            .foregroundColor(.white)
-                    }
-                }
-            }
-            .buttonStyle(.plain)
-            .disabled(isSending)
-
-            // Send button (when transcript exists)
-            if !transcript.isEmpty && !isListening {
-                Button(action: sendLog) {
-                    HStack {
-                        Image(systemName: "paperplane.fill")
-                        Text("Log")
-                    }
-                    .frame(maxWidth: .infinity)
-                    .padding(.vertical, 8)
-                    .background(Color.green)
-                    .foregroundColor(.white)
-                    .cornerRadius(8)
+            // Action buttons
+            HStack(spacing: 12) {
+                // Dictate button
+                Button(action: { isTextFieldFocused = true }) {
+                    Image(systemName: "mic.fill")
+                        .font(.title3)
+                        .frame(width: 44, height: 44)
+                        .background(Color.blue)
+                        .clipShape(Circle())
                 }
                 .buttonStyle(.plain)
-                .disabled(isSending)
+
+                // Send button
+                if !transcript.isEmpty {
+                    Button(action: sendLog) {
+                        if isSending {
+                            ProgressView()
+                                .frame(width: 44, height: 44)
+                        } else {
+                            Image(systemName: "paperplane.fill")
+                                .font(.title3)
+                                .frame(width: 44, height: 44)
+                                .background(Color.green)
+                                .clipShape(Circle())
+                        }
+                    }
+                    .buttonStyle(.plain)
+                    .disabled(isSending)
+                }
             }
         }
         .padding()
@@ -107,135 +76,11 @@ struct VoiceLogView: View {
             Text(connectivityManager.lastVoiceLogResult ?? "Food logged successfully")
         }
         .onAppear {
-            requestSpeechAuthorization()
-        }
-        .onDisappear {
-            stopListening()
-        }
-    }
-
-    // MARK: - Waveform
-
-    private func waveformHeight(for index: Int) -> CGFloat {
-        guard isListening else { return 8 }
-        let baseHeight: CGFloat = 8
-        let maxAdditional: CGFloat = 22
-        let variation = sin(Double(index) * 0.8 + Double(audioLevel) * 10) * 0.5 + 0.5
-        return baseHeight + CGFloat(audioLevel) * maxAdditional * CGFloat(variation)
-    }
-
-    // MARK: - Speech Recognition
-
-    private func requestSpeechAuthorization() {
-        SFSpeechRecognizer.requestAuthorization { status in
-            Task { @MainActor in
-                switch status {
-                case .authorized:
-                    errorMessage = nil
-                case .denied:
-                    errorMessage = "Speech recognition denied"
-                case .restricted:
-                    errorMessage = "Speech recognition restricted"
-                case .notDetermined:
-                    errorMessage = "Speech recognition not authorized"
-                @unknown default:
-                    errorMessage = "Unknown authorization status"
-                }
+            // Auto-focus to trigger dictation
+            DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) {
+                isTextFieldFocused = true
             }
         }
-    }
-
-    private func toggleListening() {
-        if isListening {
-            stopListening()
-        } else {
-            startListening()
-        }
-    }
-
-    private func startListening() {
-        guard let speechRecognizer, speechRecognizer.isAvailable else {
-            errorMessage = "Speech recognition unavailable"
-            return
-        }
-
-        // Reset state
-        transcript = ""
-        errorMessage = nil
-
-        // Configure audio session
-        let audioSession = AVAudioSession.sharedInstance()
-        do {
-            try audioSession.setCategory(.record, mode: .measurement, options: .duckOthers)
-            try audioSession.setActive(true, options: .notifyOthersOnDeactivation)
-        } catch {
-            errorMessage = "Audio session error"
-            return
-        }
-
-        // Create recognition request
-        recognitionRequest = SFSpeechAudioBufferRecognitionRequest()
-        guard let recognitionRequest else {
-            errorMessage = "Could not create request"
-            return
-        }
-
-        recognitionRequest.shouldReportPartialResults = true
-        recognitionRequest.requiresOnDeviceRecognition = true  // On-device for privacy
-
-        // Start recognition task
-        recognitionTask = speechRecognizer.recognitionTask(with: recognitionRequest) { result, error in
-            Task { @MainActor in
-                if let result {
-                    self.transcript = result.bestTranscription.formattedString
-                }
-
-                if error != nil || result?.isFinal == true {
-                    self.stopListening()
-                }
-            }
-        }
-
-        // Configure audio input
-        let inputNode = audioEngine.inputNode
-        let recordingFormat = inputNode.outputFormat(forBus: 0)
-
-        inputNode.installTap(onBus: 0, bufferSize: 1024, format: recordingFormat) { buffer, _ in
-            self.recognitionRequest?.append(buffer)
-
-            // Calculate audio level for visualization
-            let channelData = buffer.floatChannelData?[0]
-            let frameLength = Int(buffer.frameLength)
-            var sum: Float = 0
-            for i in 0..<frameLength {
-                sum += abs(channelData?[i] ?? 0)
-            }
-            let average = sum / Float(frameLength)
-
-            Task { @MainActor in
-                self.audioLevel = min(1.0, average * 10)
-            }
-        }
-
-        // Start audio engine
-        audioEngine.prepare()
-        do {
-            try audioEngine.start()
-            isListening = true
-        } catch {
-            errorMessage = "Audio engine error"
-        }
-    }
-
-    private func stopListening() {
-        audioEngine.stop()
-        audioEngine.inputNode.removeTap(onBus: 0)
-        recognitionRequest?.endAudio()
-        recognitionTask?.cancel()
-        recognitionRequest = nil
-        recognitionTask = nil
-        isListening = false
-        audioLevel = 0
     }
 
     // MARK: - Send Log

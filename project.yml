@@ -3,7 +3,7 @@ options:
   bundleIdPrefix: com.airfit
   deploymentTarget:
     iOS: "26.0"
-    watchOS: "11.0"
+    watchOS: "26.0"
   developmentLanguage: en
   xcodeVersion: "16.0"
   createIntermediateGroups: true
@@ -11,7 +11,7 @@ options:
 settings:
   SWIFT_VERSION: "6.0"
   IPHONEOS_DEPLOYMENT_TARGET: "26.0"
-  WATCHOS_DEPLOYMENT_TARGET: "11.0"
+  WATCHOS_DEPLOYMENT_TARGET: "26.0"
   ENABLE_STRICT_CONCURRENCY: YES
   SWIFT_STRICT_CONCURRENCY: complete
   DEAD_CODE_STRIPPING: YES
@@ -36,7 +36,7 @@ targets:
 
     dependencies:
       - package: WhisperKit
-      # - target: AirFitWatch  # Uncomment when watchOS SDK is installed
+      - target: AirFitWatch
 
     settings:
       PRODUCT_BUNDLE_IDENTIFIER: com.airfit.app
@@ -56,19 +56,22 @@ targets:
     settings:
       PRODUCT_BUNDLE_IDENTIFIER: com.airfit.app.watchkitapp
       INFOPLIST_FILE: AirFitWatch/Info.plist
+      CODE_SIGN_ENTITLEMENTS: AirFitWatch/AirFitWatch.entitlements
       CODE_SIGN_STYLE: Automatic
       DEVELOPMENT_TEAM: 2H43Q8Y3CR
       ASSETCATALOG_COMPILER_APPICON_NAME: AppIcon
       ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME: AccentColor
       SKIP_INSTALL: NO
-      WATCHOS_DEPLOYMENT_TARGET: "11.0"
+      WATCHOS_DEPLOYMENT_TARGET: "26.0"
+      # Embedding configuration
+      ALWAYS_EMBED_SWIFT_STANDARD_LIBRARIES: YES
 
 schemes:
   AirFit:
     build:
       targets:
         AirFit: all
-        # AirFitWatch: all  # Uncomment when watchOS SDK is installed
+        AirFitWatch: all
     run:
       config: Debug
   AirFitWatch:

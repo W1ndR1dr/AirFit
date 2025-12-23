@@ -227,22 +227,22 @@ actor HealthKitManager {
     func getTodayContext() async -> HealthContext {
         async let steps = fetchTodaySum(.stepCount, unit: .count())
         async let calories = fetchTodaySum(.activeEnergyBurned, unit: .kilocalorie())
-        async let weight = fetchLatest(.bodyMass, unit: .pound())
-        async let restingHR = fetchLatest(.restingHeartRate, unit: .count().unitDivided(by: .minute()))
+        async let weightWithDate = fetchLatestWithDate(.bodyMass, unit: .pound())
+        async let restingHRWithDate = fetchLatestWithDate(.restingHeartRate, unit: .count().unitDivided(by: .minute()))
         async let sleepHours = fetchLastNightSleep()
         async let recentWorkouts = fetchRecentWorkouts(days: 7)
 
         // Await raw values
         let rawSteps = await steps
         let rawCalories = await calories
-        let rawWeight = await weight
-        let rawRestingHR = await restingHR
+        let rawWeightData = await weightWithDate
+        let rawRestingHRData = await restingHRWithDate
         let rawSleep = await sleepHours
         let workouts = await recentWorkouts
 
         // Apply hard exclusions and compute quality
-        let validatedWeight = validateWeight(rawWeight)
-        let validatedRestingHR = validateRestingHR(rawRestingHR.map { Int($0) })
+        let validatedWeight = validateWeight(rawWeightData?.value)
+        let validatedRestingHR = validateRestingHR(rawRestingHRData.map { Int($0.value) })
         let validatedSleep = validateSleep(rawSleep)
         let validatedSteps = validateSteps(Int(rawSteps ?? 0))
         let validatedCalories = validateActiveCalories(Int(rawCalories ?? 0))
@@ -259,7 +259,9 @@ actor HealthKitManager {
             steps: validatedSteps,
             activeCalories: validatedCalories,
             weightLbs: validatedWeight,
+            weightDate: validatedWeight != nil ? rawWeightData?.date : nil,
             restingHeartRate: validatedRestingHR,
+            restingHRDate: validatedRestingHR != nil ? rawRestingHRData?.date : nil,
             sleepHours: validatedSleep,
             recentWorkouts: workouts,
             quality: quality
@@ -416,6 +418,26 @@ actor HealthKitManager {
                 let query = HKSampleQuery(sampleType: type, predicate: nil, limit: 1, sortDescriptors: [sortDescriptor]) { _, samples, _ in
                     let value = (samples?.first as? HKQuantitySample)?.quantity.doubleValue(for: unit)
                     continuation.resume(returning: value)
+                }
+                healthStore.execute(query)
+            }
+        }
+    }
+
+    /// Fetch the most recent value with its date for staleness tracking
+    private func fetchLatestWithDate(_ identifier: HKQuantityTypeIdentifier, unit: HKUnit) async -> (value: Double, date: Date)? {
+        await withQueryTimeoutOptional { [healthStore] in
+            let type = HKQuantityType(identifier)
+            let sortDescriptor = NSSortDescriptor(key: HKSampleSortIdentifierEndDate, ascending: false)
+
+            return await withCheckedContinuation { continuation in
+                let query = HKSampleQuery(sampleType: type, predicate: nil, limit: 1, sortDescriptors: [sortDescriptor]) { _, samples, _ in
+                    if let sample = samples?.first as? HKQuantitySample {
+                        let value = sample.quantity.doubleValue(for: unit)
+                        continuation.resume(returning: (value: value, date: sample.endDate))
+                    } else {
+                        continuation.resume(returning: nil)
+                    }
                 }
                 healthStore.execute(query)
             }
@@ -902,23 +924,73 @@ actor HealthKitManager {
     /// This is a fitness/adaptation marker (improves over weeks of training),
     /// NOT a daily readiness indicator.
     func getHRRecoveryHistory(days: Int) async -> [HRRecoveryReading] {
-        let calendar = Calendar.current
-        let startDate = calendar.date(byAdding: .day, value: -days, to: Date())!
-        let type = HKQuantityType(.heartRateRecoveryOneMinute)
-        let predicate = HKQuery.predicateForSamples(withStart: startDate, end: Date(), options: .strictStartDate)
-        let sortDescriptor = NSSortDescriptor(key: HKSampleSortIdentifierEndDate, ascending: true)
+        await withQueryTimeout(default: []) { [healthStore] in
+            let calendar = Calendar.current
+            let startDate = calendar.date(byAdding: .day, value: -days, to: Date())!
+            let type = HKQuantityType(.heartRateRecoveryOneMinute)
+            let predicate = HKQuery.predicateForSamples(withStart: startDate, end: Date(), options: .strictStartDate)
+            let sortDescriptor = NSSortDescriptor(key: HKSampleSortIdentifierEndDate, ascending: true)
 
-        return await withCheckedContinuation { continuation in
-            let query = HKSampleQuery(sampleType: type, predicate: predicate, limit: HKObjectQueryNoLimit, sortDescriptors: [sortDescriptor]) { _, samples, _ in
-                let readings: [HRRecoveryReading] = (samples as? [HKQuantitySample])?.map { sample in
-                    HRRecoveryReading(
-                        date: sample.endDate,
-                        recoveryBpm: sample.quantity.doubleValue(for: .count().unitDivided(by: .minute()))
-                    )
-                } ?? []
-                continuation.resume(returning: readings)
+            return await withCheckedContinuation { continuation in
+                let query = HKSampleQuery(sampleType: type, predicate: predicate, limit: HKObjectQueryNoLimit, sortDescriptors: [sortDescriptor]) { _, samples, _ in
+                    let readings: [HRRecoveryReading] = (samples as? [HKQuantitySample])?.map { sample in
+                        HRRecoveryReading(
+                            date: sample.endDate,
+                            recoveryBpm: sample.quantity.doubleValue(for: .count().unitDivided(by: .minute()))
+                        )
+                    } ?? []
+                    continuation.resume(returning: readings)
+                }
+                healthStore.execute(query)
             }
-            healthStore.execute(query)
+        }
+    }
+
+    // MARK: - VO2max History
+
+    /// Get VO2max history for cardiorespiratory fitness tracking.
+    /// Note: Apple Watch estimates VO2max from outdoor walking/running with GPS.
+    func getVO2maxHistory(days: Int) async -> [VO2maxReading] {
+        await withQueryTimeout(default: []) { [healthStore] in
+            let calendar = Calendar.current
+            let startDate = calendar.date(byAdding: .day, value: -days, to: Date())!
+            let type = HKQuantityType(.vo2Max)
+            let predicate = HKQuery.predicateForSamples(withStart: startDate, end: Date(), options: .strictStartDate)
+            let sortDescriptor = NSSortDescriptor(key: HKSampleSortIdentifierEndDate, ascending: true)
+
+            return await withCheckedContinuation { continuation in
+                let query = HKSampleQuery(sampleType: type, predicate: predicate, limit: HKObjectQueryNoLimit, sortDescriptors: [sortDescriptor]) { _, samples, _ in
+                    let readings: [VO2maxReading] = (samples as? [HKQuantitySample])?.map { sample in
+                        VO2maxReading(
+                            date: sample.endDate,
+                            vo2max: sample.quantity.doubleValue(for: HKUnit(from: "ml/kg*min"))
+                        )
+                    } ?? []
+                    continuation.resume(returning: readings)
+                }
+                healthStore.execute(query)
+            }
+        }
+    }
+
+    /// Get all VO2max history (no day limit - for "All Time" view)
+    func getAllVO2maxHistory() async -> [VO2maxReading] {
+        await withQueryTimeout(default: [], timeout: 15.0) { [healthStore] in
+            let type = HKQuantityType(.vo2Max)
+            let sortDescriptor = NSSortDescriptor(key: HKSampleSortIdentifierEndDate, ascending: true)
+
+            return await withCheckedContinuation { continuation in
+                let query = HKSampleQuery(sampleType: type, predicate: nil, limit: HKObjectQueryNoLimit, sortDescriptors: [sortDescriptor]) { _, samples, _ in
+                    let readings: [VO2maxReading] = (samples as? [HKQuantitySample])?.map { sample in
+                        VO2maxReading(
+                            date: sample.endDate,
+                            vo2max: sample.quantity.doubleValue(for: HKUnit(from: "ml/kg*min"))
+                        )
+                    } ?? []
+                    continuation.resume(returning: readings)
+                }
+                healthStore.execute(query)
+            }
         }
     }
 
@@ -1678,7 +1750,9 @@ struct HealthContext: Sendable {
     let steps: Int
     let activeCalories: Int
     let weightLbs: Double?
+    let weightDate: Date?
     let restingHeartRate: Int?
+    let restingHRDate: Date?
     let sleepHours: Double?
     let recentWorkouts: [WorkoutSummary]
 
@@ -1689,7 +1763,9 @@ struct HealthContext: Sendable {
         steps: Int,
         activeCalories: Int,
         weightLbs: Double?,
+        weightDate: Date? = nil,
         restingHeartRate: Int?,
+        restingHRDate: Date? = nil,
         sleepHours: Double?,
         recentWorkouts: [WorkoutSummary],
         quality: DataQualityInfo = .perfect
@@ -1697,7 +1773,9 @@ struct HealthContext: Sendable {
         self.steps = steps
         self.activeCalories = activeCalories
         self.weightLbs = weightLbs
+        self.weightDate = weightDate
         self.restingHeartRate = restingHeartRate
+        self.restingHRDate = restingHRDate
         self.sleepHours = sleepHours
         self.recentWorkouts = recentWorkouts
         self.quality = quality
@@ -1712,9 +1790,15 @@ struct HealthContext: Sendable {
 
         if let weight = weightLbs {
             dict["weight_lbs"] = String(format: "%.1f", weight)
+            if let date = weightDate {
+                dict["weight_date"] = ISO8601DateFormatter().string(from: date)
+            }
         }
         if let hr = restingHeartRate {
             dict["resting_heart_rate"] = "\(hr) bpm"
+            if let date = restingHRDate {
+                dict["resting_hr_date"] = ISO8601DateFormatter().string(from: date)
+            }
         }
         if let sleep = sleepHours {
             dict["sleep_last_night"] = String(format: "%.1f hours", sleep)
@@ -1838,6 +1922,43 @@ struct RestingHRReading: Sendable, Identifiable {
     let id = UUID()
     let date: Date
     let bpm: Double
+}
+
+/// VO2max reading for cardiorespiratory fitness tracking
+/// Note: Apple Watch estimates this from outdoor walking/running with GPS
+struct VO2maxReading: Sendable, Identifiable {
+    let id = UUID()
+    let date: Date
+    let vo2max: Double  // ml/kg/min
+
+    /// Fitness category based on typical ranges for 30-40 year old male
+    var category: VO2maxCategory {
+        switch vo2max {
+        case ..<35: return .belowAverage
+        case 35..<40: return .average
+        case 40..<45: return .aboveAverage
+        case 45..<50: return .good
+        default: return .excellent
+        }
+    }
+
+    enum VO2maxCategory: String {
+        case belowAverage = "Below Average"
+        case average = "Average"
+        case aboveAverage = "Above Average"
+        case good = "Good"
+        case excellent = "Excellent"
+
+        var color: String {
+            switch self {
+            case .belowAverage: return "error"
+            case .average: return "warning"
+            case .aboveAverage: return "accent"
+            case .good: return "success"
+            case .excellent: return "success"
+            }
+        }
+    }
 }
 
 /// Walking speed reading for cardio/mobility trends (m/s)

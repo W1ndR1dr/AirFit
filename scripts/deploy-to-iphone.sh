@@ -1,25 +1,20 @@
 #!/bin/bash
 # AirFit Remote Deploy Script
 # Run this from Claude Code to build and deploy to your iPhone
+# Always does a CLEAN INSTALL to avoid stale data issues
 
 set -e
 
 PROJECT_DIR="$(dirname "$0")/.."
 cd "$PROJECT_DIR"
 
-echo "🔨 Building AirFit..."
-xcodebuild -project AirFit.xcodeproj \
-  -scheme AirFit \
-  -sdk iphoneos \
-  -configuration Release \
-  -derivedDataPath build \
-  clean build \
-  CODE_SIGN_IDENTITY="Apple Development" \
-  | xcpretty || xcodebuild -project AirFit.xcodeproj -scheme AirFit -sdk iphoneos build
+BUNDLE_ID="com.airfit.app"
 
-echo ""
+# Find iPhone first (we need it for uninstall)
 echo "📱 Finding your iPhone..."
-DEVICE_ID=$(xcrun devicectl list devices 2>/dev/null | grep -i "iphone" | head -1 | awk '{print $NF}' | tr -d '()')
+DEVICE_INFO=$(xcrun devicectl list devices 2>/dev/null | grep -i "iphone" | head -1)
+DEVICE_ID=$(echo "$DEVICE_INFO" | awk '{for(i=1;i<=NF;i++) if($i ~ /^[0-9A-F-]{36}$/) print $i}')
+DEVICE_NAME=$(echo "$DEVICE_INFO" | awk '{print $1, $2}' | sed 's/^ *//;s/ *$//')
 
 if [ -z "$DEVICE_ID" ]; then
   echo "❌ No iPhone found. Make sure:"
@@ -29,7 +24,31 @@ if [ -z "$DEVICE_ID" ]; then
   exit 1
 fi
 
-echo "✅ Found iPhone: $DEVICE_ID"
+echo "✅ Found: $DEVICE_NAME ($DEVICE_ID)"
+
+# Always uninstall first for clean slate
+echo ""
+echo "🗑️  Uninstalling existing app (clean install)..."
+xcrun devicectl device uninstall app --device "$DEVICE_ID" "$BUNDLE_ID" 2>/dev/null || echo "   (No existing install found)"
+
+# Clean derived data for fresh build
+echo ""
+echo "🧹 Cleaning derived data..."
+rm -rf ~/Library/Developer/Xcode/DerivedData/AirFit-* 2>/dev/null || true
+
+# Build
+echo ""
+echo "🔨 Building AirFit (clean build)..."
+xcodebuild -project AirFit.xcodeproj \
+  -scheme AirFit \
+  -sdk iphoneos \
+  -configuration Debug \
+  -derivedDataPath build \
+  -allowProvisioningUpdates \
+  clean build \
+  | xcpretty || xcodebuild -project AirFit.xcodeproj -scheme AirFit -sdk iphoneos -configuration Debug -derivedDataPath build -allowProvisioningUpdates clean build
+
+# Find and install
 echo ""
 echo "📲 Installing AirFit..."
 
@@ -43,5 +62,6 @@ fi
 xcrun devicectl device install app --device "$DEVICE_ID" "$APP_PATH"
 
 echo ""
-echo "🎉 Done! AirFit has been installed on your iPhone."
-echo "   Open the app to see your changes!"
+echo "🎉 Clean install complete!"
+echo "   App data has been reset - you'll go through onboarding again."
+echo "   (HealthKit data syncs automatically, only persona needs re-setup)"

@@ -17,7 +17,8 @@ struct OnboardingInterviewView: View {
     @State private var conversationHistory: [ConversationMessage] = []
     @State private var isVoiceInputActive = false
     @State private var showVoiceOverlay = false
-    @State private var speechManager = SpeechTranscriptionManager()
+    @State private var showModelRequired = false
+    @State private var speechManager = WhisperTranscriptionService.shared
     @FocusState private var isInputFocused: Bool
 
     let onComplete: () -> Void
@@ -133,6 +134,11 @@ struct OnboardingInterviewView: View {
                 }
             )
             .background(ClearBackgroundView())
+        }
+        .sheet(isPresented: $showModelRequired) {
+            ModelRequiredSheet {
+                startVoiceInput()
+            }
         }
     }
 
@@ -370,13 +376,28 @@ struct OnboardingInterviewView: View {
 
     private func startVoiceInput() {
         Task {
+            // Check if WhisperKit models are installed
+            await ModelManager.shared.load()
+            let hasModels = await ModelManager.shared.hasRequiredModels()
+
+            guard hasModels else {
+                showModelRequired = true
+                return
+            }
+
             do {
                 isVoiceInputActive = true
                 try await speechManager.startListening()
                 showVoiceOverlay = true
+            } catch WhisperTranscriptionService.TranscriptionError.modelsNotInstalled {
+                isVoiceInputActive = false
+                showModelRequired = true
             } catch {
                 isVoiceInputActive = false
                 print("Failed to start voice input: \(error)")
+                if String(describing: error).lowercased().contains("model") {
+                    showModelRequired = true
+                }
             }
         }
     }

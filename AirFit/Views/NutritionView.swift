@@ -1,6 +1,7 @@
 import SwiftUI
 import SwiftData
 import PhotosUI
+import AVFoundation
 
 enum NutritionViewMode: String, CaseIterable {
     case day = "Day"
@@ -31,6 +32,7 @@ struct NutritionView: View {
 
     // Provider selection (persisted)
     @AppStorage("aiProvider") private var aiProvider = "claude"
+    @AppStorage("waterTrackingEnabled") private var waterTrackingEnabled = false
 
     // Photo food logging
     @State private var showingPhotoPicker = false
@@ -38,10 +40,19 @@ struct NutritionView: View {
     @State private var isAnalyzingPhoto = false
     @State private var showPhotoFeatureGate = false
 
+    // Camera capture
+    @State private var showCamera = false
+    @State private var capturedImage: UIImage?
+    @State private var showCameraPermissionAlert = false
+
+    // Workout auto-switch
+    @State private var workoutSwitchBanner = false
+
     // Voice input
     @State private var isVoiceInputActive = false
     @State private var showVoiceOverlay = false
-    @State private var speechManager = SpeechTranscriptionManager()
+    @State private var showModelRequired = false
+    @State private var speechManager = WhisperTranscriptionService.shared
 
     private let apiClient = APIClient()
     private let geminiService = GeminiService()
@@ -221,6 +232,13 @@ struct NutritionView: View {
                             .padding(.vertical, 16)
                     }
 
+                    // Water tracking card (only shown in day view for today when enabled)
+                    if waterTrackingEnabled && viewMode == .day && isToday {
+                        WaterTrackingCard()
+                            .padding(.horizontal, 20)
+                            .padding(.bottom, 8)
+                    }
+
                     // Content based on view mode
                     if viewMode == .day {
                         dayEntriesContent
@@ -272,6 +290,7 @@ struct NutritionView: View {
         }
         .task {
             await checkTrainingDay()
+            await observeWorkoutNotifications()
         }
         .sheet(item: $editingEntry) { entry in
             EditNutritionSheet(entry: entry)
@@ -296,6 +315,26 @@ struct NutritionView: View {
         .onChange(of: selectedPhoto) { _, newItem in
             Task { await processSelectedPhoto(newItem) }
         }
+        .fullScreenCover(isPresented: $showCamera) {
+            CameraView(capturedImage: $capturedImage)
+                .ignoresSafeArea()
+        }
+        .onChange(of: capturedImage) { _, newImage in
+            if let image = newImage {
+                Task { await processCapturedPhoto(image) }
+                capturedImage = nil
+            }
+        }
+        .alert("Camera Access Required", isPresented: $showCameraPermissionAlert) {
+            Button("Open Settings") {
+                if let settingsURL = URL(string: UIApplication.openSettingsURLString) {
+                    UIApplication.shared.open(settingsURL)
+                }
+            }
+            Button("Cancel", role: .cancel) {}
+        } message: {
+            Text("Please enable camera access in Settings to use food photo analysis.")
+        }
         .fullScreenCover(isPresented: $showVoiceOverlay) {
             VoiceInputOverlay(
                 speechManager: speechManager,
@@ -312,6 +351,11 @@ struct NutritionView: View {
             )
             .background(ClearBackgroundView())
         }
+        .sheet(isPresented: $showModelRequired) {
+            ModelRequiredSheet {
+                startVoiceInput()
+            }
+        }
     }
 
     // MARK: - Scrollytelling Macro Hero
@@ -319,32 +363,13 @@ struct NutritionView: View {
 
     @ViewBuilder
     private var scrollytellingMacroHero: some View {
-        let heroCalories: Text = Text("\(totals.cal)")
-            .font(.system(size: 64, weight: .bold, design: .rounded))
-        let subtitleText: Text = Text("OF \(targets.cal) CALORIES")
-            .font(.system(size: 11, weight: .semibold))
-            .tracking(2)
-
         VStack(spacing: 0) {
-            // Hero calorie number that scales on scroll
-            heroCalories
-                .foregroundStyle(
-                    LinearGradient(
-                        colors: [Theme.calories, Theme.calories.opacity(0.7)],
-                        startPoint: .top,
-                        endPoint: .bottom
-                    )
-                )
-                .scaleEffect(1.0 - heroProgress * 0.4)
-                .contentTransition(.numericText(value: Double(totals.cal)))
-                .animation(.bloomWater, value: totals.cal)
+            // Calorie ring gauge that scales on scroll
+            CalorieRingGauge(current: totals.cal, target: targets.cal)
+                .scaleEffect(1.0 - heroProgress * 0.3)
+                .opacity(1.0 - heroProgress * 0.3)
 
-            subtitleText
-                .foregroundStyle(Theme.textMuted)
-                .opacity(1.0 - heroProgress * 0.5)
-                .scaleEffect(1.0 - heroProgress * 0.2)
-
-            // Macro bars that fade in as hero shrinks
+            // Macro bars that fade in as ring shrinks
             VStack(spacing: 12) {
                 HeroProgressBar(
                     label: "Protein",
@@ -803,9 +828,9 @@ struct NutritionView: View {
                 Button {
                     handleCameraButtonTap()
                 } label: {
-                    Image(systemName: "camera.fill")
+                    Image(systemName: "camera")
                         .font(.system(size: 18))
-                        .foregroundStyle(canUseGeminiForPhotos ? Theme.accent : Theme.textMuted)
+                        .foregroundStyle(canUseGeminiForPhotos ? Theme.textSecondary : Theme.textMuted)
                         .frame(width: 36, height: 36)
                         .background(Theme.surface)
                         .clipShape(Circle())
@@ -867,13 +892,83 @@ struct NutritionView: View {
 
     // MARK: - Photo Handling
 
-    /// Handle camera button tap - show feature gate if Gemini not available
+    /// Handle camera button tap - open camera directly for food photo analysis
     private func handleCameraButtonTap() {
-        if canUseGeminiForPhotos {
-            showingPhotoPicker = true
-        } else {
+        guard canUseGeminiForPhotos else {
             showPhotoFeatureGate = true
+            return
         }
+
+        // Check camera availability
+        guard UIImagePickerController.isSourceTypeAvailable(.camera) else {
+            // Fallback to photo library if no camera
+            showingPhotoPicker = true
+            return
+        }
+
+        // Check camera permission
+        switch AVCaptureDevice.authorizationStatus(for: .video) {
+        case .authorized:
+            showCamera = true
+        case .notDetermined:
+            AVCaptureDevice.requestAccess(for: .video) { granted in
+                Task { @MainActor in
+                    if granted {
+                        showCamera = true
+                    } else {
+                        showCameraPermissionAlert = true
+                    }
+                }
+            }
+        case .denied, .restricted:
+            showCameraPermissionAlert = true
+        @unknown default:
+            showingPhotoPicker = true
+        }
+    }
+
+    /// Process captured camera image for AI analysis
+    private func processCapturedPhoto(_ image: UIImage) async {
+        isAnalyzingPhoto = true
+
+        UIImpactFeedbackGenerator(style: .medium).impactOccurred()
+
+        // Prepare image (resize and compress)
+        guard let preparedData = await geminiService.prepareImage(image) else {
+            isAnalyzingPhoto = false
+            return
+        }
+
+        // Analyze with Gemini
+        do {
+            let analysis = try await geminiService.analyzeImage(
+                imageData: preparedData,
+                prompt: Self.foodAnalysisPrompt,
+                systemPrompt: Self.foodAnalysisSystemPrompt
+            )
+
+            // Try to parse nutrition from the analysis
+            if let parsed = try? await geminiService.parseNutrition(analysis) {
+                let entry = NutritionEntry(
+                    name: parsed.name,
+                    calories: parsed.calories,
+                    protein: parsed.protein,
+                    carbs: parsed.carbs,
+                    fat: parsed.fat,
+                    timestamp: isToday ? Date() : Calendar.current.date(bySettingHour: 12, minute: 0, second: 0, of: selectedDate) ?? selectedDate
+                )
+
+                await MainActor.run {
+                    modelContext.insert(entry)
+                    try? modelContext.save()
+                }
+                UINotificationFeedbackGenerator().notificationOccurred(.success)
+            }
+        } catch {
+            // Silent fail - photo analysis is best-effort
+        }
+
+        isAnalyzingPhoto = false
     }
 
     // MARK: - Voice Input
@@ -881,13 +976,28 @@ struct NutritionView: View {
     /// Start voice input for speech-to-text food logging
     private func startVoiceInput() {
         Task {
+            // Check if WhisperKit models are installed
+            await ModelManager.shared.load()
+            let hasModels = await ModelManager.shared.hasRequiredModels()
+
+            guard hasModels else {
+                showModelRequired = true
+                return
+            }
+
             do {
                 isVoiceInputActive = true
                 try await speechManager.startListening()
                 showVoiceOverlay = true
+            } catch WhisperTranscriptionService.TranscriptionError.modelsNotInstalled {
+                isVoiceInputActive = false
+                showModelRequired = true
             } catch {
                 isVoiceInputActive = false
                 print("Failed to start voice input: \(error)")
+                if String(describing: error).lowercased().contains("model") {
+                    showModelRequired = true
+                }
             }
         }
     }
@@ -977,6 +1087,31 @@ struct NutritionView: View {
         let result = await apiClient.checkTrainingDay()
         isTrainingDay = result.isTraining
         workoutName = result.workoutName
+    }
+
+    /// Observe workout notifications to auto-switch training day
+    private func observeWorkoutNotifications() async {
+        // Observe Hevy cache updates (primary source for workout detection)
+        for await _ in NotificationCenter.default.notifications(named: .hevyCacheUpdated) {
+            await handleWorkoutDetected()
+        }
+    }
+
+    /// Handle workout detection - auto-switch to training day if meaningful workout logged
+    private func handleWorkoutDetected() async {
+        let result = await apiClient.checkTrainingDay()
+
+        // Only auto-switch if server detected a meaningful workout and we're not already on training day
+        if result.isTraining && !isTrainingDay {
+            withAnimation(.airfit) {
+                isTrainingDay = true
+                workoutName = result.workoutName
+            }
+            UINotificationFeedbackGenerator().notificationOccurred(.success)
+        } else if result.isTraining {
+            // Update workout name even if already on training day
+            workoutName = result.workoutName
+        }
     }
 
     private func logFood() async {
@@ -1380,7 +1515,8 @@ struct EditNutritionSheet: View {
     // Voice input state
     @State private var isVoiceInputActive = false
     @State private var showVoiceOverlay = false
-    @State private var speechManager = SpeechTranscriptionManager()
+    @State private var showModelRequired = false
+    @State private var speechManager = WhisperTranscriptionService.shared
 
     // Manual edit fields
     @State private var name: String = ""
@@ -1445,6 +1581,11 @@ struct EditNutritionSheet: View {
                     .background(ClearBackgroundView())
                 }
             }
+            .sheet(isPresented: $showModelRequired) {
+                ModelRequiredSheet {
+                    startVoiceInput()
+                }
+            }
         }
     }
 
@@ -1452,13 +1593,28 @@ struct EditNutritionSheet: View {
 
     private func startVoiceInput() {
         Task {
+            // Check if WhisperKit models are installed
+            await ModelManager.shared.load()
+            let hasModels = await ModelManager.shared.hasRequiredModels()
+
+            guard hasModels else {
+                showModelRequired = true
+                return
+            }
+
             do {
                 isVoiceInputActive = true
                 try await speechManager.startListening()
                 showVoiceOverlay = true
+            } catch WhisperTranscriptionService.TranscriptionError.modelsNotInstalled {
+                isVoiceInputActive = false
+                showModelRequired = true
             } catch {
                 isVoiceInputActive = false
                 print("Failed to start voice input: \(error)")
+                if String(describing: error).lowercased().contains("model") {
+                    showModelRequired = true
+                }
             }
         }
     }
