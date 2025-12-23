@@ -64,6 +64,7 @@ struct AirFitApp: App {
         }
         .modelContainer(for: [
             NutritionEntry.self,
+            WaterEntry.self,
             Conversation.self,
             // Hevy cache models (for offline access to training data)
             CachedWorkout.self,
@@ -156,6 +157,9 @@ struct ContentView: View {
     @Environment(\.scenePhase) private var scenePhase
     @State private var selectedTab = 0
 
+    // Watch connectivity handler (singleton, initialized on first access)
+    private let watchHandler = WatchConnectivityHandler.shared
+
     var body: some View {
         ZStack {
             // Ethereal animated background (respects reduce motion)
@@ -226,6 +230,8 @@ struct ContentView: View {
         .animation(.airfitMorph, value: selectedTab)
         .sensoryFeedback(.selection, trigger: selectedTab)
         .task {
+            // Configure Watch connectivity with SwiftData context
+            await watchHandler.configure(modelContext: modelContext)
             await AutoSyncManager.shared.performLaunchSync(modelContext: modelContext)
         }
         .onReceive(NotificationCenter.default.publisher(for: .openDashboardTab)) { _ in
