@@ -1,5 +1,6 @@
 import Foundation
 import WatchConnectivity
+import WidgetKit
 import Combine
 
 /// Manages WatchConnectivity session for iPhone <-> Watch communication.
@@ -218,6 +219,57 @@ final class WatchConnectivityManager: NSObject, ObservableObject {
             userDefaults.set(data, forKey: "cachedVolume")
         }
         userDefaults.set(pendingVoiceLogs, forKey: "pendingVoiceLogs")
+
+        // Also write to App Groups for WidgetKit complications
+        updateSharedDataStore()
+    }
+
+    /// Write current data to App Groups UserDefaults for WidgetKit complications
+    private func updateSharedDataStore() {
+        guard let sharedDefaults = UserDefaults(suiteName: "group.com.airfit.shared") else {
+            print("[WatchConnectivity] Failed to access App Groups UserDefaults")
+            return
+        }
+
+        // Write macro progress
+        if let data = try? JSONEncoder().encode(macroProgress) {
+            sharedDefaults.set(data, forKey: "macroProgress")
+        }
+
+        // Write readiness data
+        if let data = try? JSONEncoder().encode(readinessData) {
+            sharedDefaults.set(data, forKey: "readinessData")
+        }
+
+        // Write volume progress
+        if let data = try? JSONEncoder().encode(volumeProgress) {
+            sharedDefaults.set(data, forKey: "volumeProgress")
+        }
+
+        // Write HRR session data (for live HRR complication)
+        if let data = try? JSONEncoder().encode(hrrSessionData) {
+            sharedDefaults.set(data, forKey: "hrrSessionData")
+        }
+
+        sharedDefaults.set(Date(), forKey: "lastUpdateTime")
+
+        // Request complication refresh
+        WidgetCenter.shared.reloadAllTimelines()
+    }
+
+    /// Update HRR data and immediately refresh complications (for live updates during workout)
+    func updateHRRLive(_ data: HRRSessionData) {
+        self.hrrSessionData = data
+
+        // Write directly to App Groups for fast complication update
+        guard let sharedDefaults = UserDefaults(suiteName: "group.com.airfit.shared") else { return }
+        if let encoded = try? JSONEncoder().encode(data) {
+            sharedDefaults.set(encoded, forKey: "hrrSessionData")
+            sharedDefaults.set(Date(), forKey: "lastUpdateTime")
+        }
+
+        // Request complication refresh for HRR
+        WidgetCenter.shared.reloadTimelines(ofKind: "HRRComplication")
     }
 }
 

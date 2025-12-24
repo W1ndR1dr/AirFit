@@ -130,6 +130,7 @@ class AppDelegate: NSObject, UIApplicationDelegate, UNUserNotificationCenterDele
         case "VIEW_INSIGHT", UNNotificationDefaultActionIdentifier where categoryId == "INSIGHT_ALERT":
             // Open insights tab when tapping insight notification
             await MainActor.run {
+ 
                 NotificationCenter.default.post(name: .openInsightsTab, object: nil)
             }
         default:

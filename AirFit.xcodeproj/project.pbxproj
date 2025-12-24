@@ -18,8 +18,10 @@
 		192D58EF9C1A5E2F6576DCC9 /* MetricRow.swift in Sources */ = {isa = PBXBuildFile; fileRef = D9AFE115B10E4507A5D8D3C6 /* MetricRow.swift */; };
 		1FD926055A68B0B34091D4D3 /* DashboardView.swift in Sources */ = {isa = PBXBuildFile; fileRef = DD342DCDC0B816522BF4CBB5 /* DashboardView.swift */; };
 		211B4E93E301444B18A13A10 /* ModelDownloader.swift in Sources */ = {isa = PBXBuildFile; fileRef = DFD9732A6302AFD9D41C2F19 /* ModelDownloader.swift */; };
+		21BDFBB6FE09E96350B08DC2 /* AirFitWatchComplications.appex in Embed Foundation Extensions */ = {isa = PBXBuildFile; fileRef = 8BAA8A63724DB085B886BF78 /* AirFitWatchComplications.appex */; settings = {ATTRIBUTES = (RemoveHeadersOnCopy, ); }; };
 		2208DFB4AA8351B900923106 /* SettingsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 82D28D5292AE2F388E63FAD4 /* SettingsView.swift */; };
 		222C3B0352E8F3C32DEF0BB0 /* LocalProfile.swift in Sources */ = {isa = PBXBuildFile; fileRef = C02D34FFC9E57EF07E37CF3F /* LocalProfile.swift */; };
+		233BB2CFCFF73FA1C7CDF8FC /* AirFitWatchComplicationsBundle.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6924EEA4186751449438F6FC /* AirFitWatchComplicationsBundle.swift */; };
 		2519DB8F2F9005614DB67874 /* PermissionFlowView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 53D1CC25CA6A9303E47C8E3B /* PermissionFlowView.swift */; };
 		251EB981FF43940ED0236D03 /* ProfileEvolutionService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9A4D2E36F71D0762CFD352C8 /* ProfileEvolutionService.swift */; };
 		276B8D8E60010CADB103776F /* GeminiService.swift in Sources */ = {isa = PBXBuildFile; fileRef = A49F7B6DE7C53486B14A5EE0 /* GeminiService.swift */; };
@@ -51,6 +53,7 @@
 		5B5D575967A5E13E5BD0D85F /* AirFitApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6D132DFA57B215A0C7FB9879 /* AirFitApp.swift */; };
 		5CFF5B6206AE30EE14831048 /* ConfettiView.swift in Sources */ = {isa = PBXBuildFile; fileRef = A201180BB2B4BCEB99918CAC /* ConfettiView.swift */; };
 		5DB2700A9249C0AFA32B98DA /* VO2maxTrendChart.swift in Sources */ = {isa = PBXBuildFile; fileRef = DA713BBAEDA8BE51344F8791 /* VO2maxTrendChart.swift */; };
+		655F41AF201957A89020A737 /* ReadinessComplication.swift in Sources */ = {isa = PBXBuildFile; fileRef = 774A15E4241D1468B505BA54 /* ReadinessComplication.swift */; };
 		6594F47046B597C8C8ABD8FA /* RHRTrendChart.swift in Sources */ = {isa = PBXBuildFile; fileRef = 46549276438DFE8C2E9F4F30 /* RHRTrendChart.swift */; };
 		677240095D5C5A84C98ED69D /* WatchDataModels.swift in Sources */ = {isa = PBXBuildFile; fileRef = 89B815449FEAEFA711040303 /* WatchDataModels.swift */; };
 		67970F021B1EC088C15F9E34 /* VolumeComplication.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5E338F6BDA3765AA80C9B5A0 /* VolumeComplication.swift */; };
@@ -68,10 +71,12 @@
 		7E091E8D040AB54EEFE4A725 /* SpeechTranscriptionManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = 96358DBC9AE0E062912E1167 /* SpeechTranscriptionManager.swift */; };
 		80093BDE1E665B47A0234CCA /* CoachStatusCard.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7961D8A2A8F7F85C7E043166 /* CoachStatusCard.swift */; };
 		812F42F3931B8AE8083C229F /* OnboardingCoordinator.swift in Sources */ = {isa = PBXBuildFile; fileRef = C0E15547538637AF28712B41 /* OnboardingCoordinator.swift */; };
+		82A2B2AEA80EB9D33B583CB2 /* VolumeComplication.swift in Sources */ = {isa = PBXBuildFile; fileRef = B8FD867DF5F579D58E3908A1 /* VolumeComplication.swift */; };
 		83EE286AFC0E3E7550B95CCC /* ReadinessComplication.swift in Sources */ = {isa = PBXBuildFile; fileRef = B5B58F99B5821B8AF0328E3C /* ReadinessComplication.swift */; };
 		8405359B4D259DD35FFDCE3C /* AirFitSplash.swift in Sources */ = {isa = PBXBuildFile; fileRef = F5DD7BFAF9DF47F3F351173F /* AirFitSplash.swift */; };
 		8457392A7CFA6D3DE4DFC715 /* WatchConnectivityManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8B23ADB7ACB29AA5AA56102D /* WatchConnectivityManager.swift */; };
 		8543BCE2D3732F6645518FDC /* GeminiSetupView.swift in Sources */ = {isa = PBXBuildFile; fileRef = D886EF683348063E2E24DA8D /* GeminiSetupView.swift */; };
+		863703DD5D89B729157D81A5 /* HRRComplication.swift in Sources */ = {isa = PBXBuildFile; fileRef = 79D08D1522570C56D5426364 /* HRRComplication.swift */; };
 		86FD44E5B8A20022C5AE6153 /* PersonalitySynthesisService.swift in Sources */ = {isa = PBXBuildFile; fileRef = C54B0202E77C751F894BEBF6 /* PersonalitySynthesisService.swift */; };
 		87DEEBEBB2DFBF21705598AC /* MainWatchView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 964F349BFFA7ABE94E9CB4CD /* MainWatchView.swift */; };
 		87E07F9A83E5D34B7BD468AF /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = FC86873D36371527B00B0A75 /* Assets.xcassets */; };
@@ -128,9 +133,18 @@
 		F7D7E9864E65D5C777649501 /* ServerConfiguration.swift in Sources */ = {isa = PBXBuildFile; fileRef = 61D5722787ED5DE3EB4C5029 /* ServerConfiguration.swift */; };
 		FAA8046BA20B325A7C8845F4 /* OnboardingCompletionView.swift in Sources */ = {isa = PBXBuildFile; fileRef = E94C61DF9C75F84797C36D8A /* OnboardingCompletionView.swift */; };
 		FD6013094E025515B45673EC /* LocalInsightEngine.swift in Sources */ = {isa = PBXBuildFile; fileRef = BA80BEC06E6BA86B98B11DED /* LocalInsightEngine.swift */; };
+		FD84BA47A09768C683F55EDC /* MacroComplication.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0B37C5BC56C8105608F69578 /* MacroComplication.swift */; };
+		FE874D5831AE987042A1F6B7 /* SharedDataStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = 74B8D799CC22F72A4D25E225 /* SharedDataStore.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
+		24C6AA0D6BAD29DD0102D55E /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = 4DE6950C247E7BED46A7B7FC /* Project object */;
+			proxyType = 1;
+			remoteGlobalIDString = 3931A9F418E835F2FA67594B;
+			remoteInfo = AirFitWatchComplications;
+		};
 		43FED5FF2F8F7C85CDAF93E5 /* PBXContainerItemProxy */ = {
 			isa = PBXContainerItemProxy;
 			containerPortal = 4DE6950C247E7BED46A7B7FC /* Project object */;
@@ -141,6 +155,17 @@
 /* End PBXContainerItemProxy section */
 
 /* Begin PBXCopyFilesBuildPhase section */
+		6D1E658A03B2521FDEC27454 /* Embed Foundation Extensions */ = {
+			isa = PBXCopyFilesBuildPhase;
+			buildActionMask = 2147483647;
+			dstPath = "";
+			dstSubfolderSpec = 13;
+			files = (
+				21BDFBB6FE09E96350B08DC2 /* AirFitWatchComplications.appex in Embed Foundation Extensions */,
+			);
+			name = "Embed Foundation Extensions";
+			runOnlyForDeploymentPostprocessing = 0;
+		};
 		E93AB98E7C1FF4B8EE653EA9 /* Embed Watch Content */ = {
 			isa = PBXCopyFilesBuildPhase;
 			buildActionMask = 2147483647;
@@ -161,7 +186,9 @@
 		07E323360222BC2C7FA9E32C /* WaterEntry.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WaterEntry.swift; sourceTree = "<group>"; };
 		07E6910E70A0A2F0AAA34E2C /* BodyView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BodyView.swift; sourceTree = "<group>"; };
 		08B8E65251F5752D5A0F4F2D /* AIModeSelector.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AIModeSelector.swift; sourceTree = "<group>"; };
+		0A836B46029D296A3E09CA49 /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist; path = Info.plist; sourceTree = "<group>"; };
 		0AD4226845AA5D0FC80194E7 /* AirFitWatch.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = AirFitWatch.entitlements; sourceTree = "<group>"; };
+		0B37C5BC56C8105608F69578 /* MacroComplication.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MacroComplication.swift; sourceTree = "<group>"; };
 		0E783504FB15CA57A7979868 /* AdvancedSection.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AdvancedSection.swift; sourceTree = "<group>"; };
 		104CBEBAFE2CC36C1764F33A /* InsightsSyncService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = InsightsSyncService.swift; sourceTree = "<group>"; };
 		159333A4C593F781D6AC0D79 /* MiniSparkline.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MiniSparkline.swift; sourceTree = "<group>"; };
@@ -169,6 +196,7 @@
 		24576AB1E55D9F4DF61C99E2 /* OnboardingInterviewView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OnboardingInterviewView.swift; sourceTree = "<group>"; };
 		2E5ABACCB3A48AB4AA7DB847 /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist; path = Info.plist; sourceTree = "<group>"; };
 		3175912F7293002B8C07E099 /* SpeechSettingsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SpeechSettingsView.swift; sourceTree = "<group>"; };
+		3197A947D9269EF5205ED076 /* AirFitWatchComplications.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = AirFitWatchComplications.entitlements; sourceTree = "<group>"; };
 		34BD37F0DE6FCFF69AC1CFC4 /* CoachingCalibrationView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CoachingCalibrationView.swift; sourceTree = "<group>"; };
 		3730ED165E6DD2A679DA0686 /* DeviceCapabilities.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DeviceCapabilities.swift; sourceTree = "<group>"; };
 		3CB01FE26044B61D5F9CD978 /* HRRTracker.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HRRTracker.swift; sourceTree = "<group>"; };
@@ -196,13 +224,17 @@
 		5F483D6C61BE50EF3610BD2C /* SplashView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SplashView.swift; sourceTree = "<group>"; };
 		61D5722787ED5DE3EB4C5029 /* ServerConfiguration.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ServerConfiguration.swift; sourceTree = "<group>"; };
 		627DF30EF7B4BA47E7815BCC /* APIClient.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = APIClient.swift; sourceTree = "<group>"; };
+		6924EEA4186751449438F6FC /* AirFitWatchComplicationsBundle.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AirFitWatchComplicationsBundle.swift; sourceTree = "<group>"; };
 		6B8DB016170AEDAE9BCD966B /* KeyboardObserver.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = KeyboardObserver.swift; sourceTree = "<group>"; };
 		6CCE1F35415362BF7EB832DF /* ServerCheckView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ServerCheckView.swift; sourceTree = "<group>"; };
 		6D132DFA57B215A0C7FB9879 /* AirFitApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AirFitApp.swift; sourceTree = "<group>"; };
 		6F18291924B9B277AA417242 /* AirFitWatchApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AirFitWatchApp.swift; sourceTree = "<group>"; };
 		7197E792DA281FE91F5760EC /* StreamingTextView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StreamingTextView.swift; sourceTree = "<group>"; };
 		74549341248D29CF575D8AF0 /* LocalInsight.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LocalInsight.swift; sourceTree = "<group>"; };
+		74B8D799CC22F72A4D25E225 /* SharedDataStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SharedDataStore.swift; sourceTree = "<group>"; };
+		774A15E4241D1468B505BA54 /* ReadinessComplication.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ReadinessComplication.swift; sourceTree = "<group>"; };
 		7961D8A2A8F7F85C7E043166 /* CoachStatusCard.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CoachStatusCard.swift; sourceTree = "<group>"; };
+		79D08D1522570C56D5426364 /* HRRComplication.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HRRComplication.swift; sourceTree = "<group>"; };
 		7DCC89C5BCADFC5D2C256002 /* InsightTriggerService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = InsightTriggerService.swift; sourceTree = "<group>"; };
 		82D28D5292AE2F388E63FAD4 /* SettingsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SettingsView.swift; sourceTree = "<group>"; };
 		82D3355A740D207F6822ED94 /* ScrollytellingRootView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ScrollytellingRootView.swift; sourceTree = "<group>"; };
@@ -210,6 +242,7 @@
 		867A154742B696DA937B8788 /* HevyCache.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HevyCache.swift; sourceTree = "<group>"; };
 		89B815449FEAEFA711040303 /* WatchDataModels.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WatchDataModels.swift; sourceTree = "<group>"; };
 		8B23ADB7ACB29AA5AA56102D /* WatchConnectivityManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WatchConnectivityManager.swift; sourceTree = "<group>"; };
+		8BAA8A63724DB085B886BF78 /* AirFitWatchComplications.appex */ = {isa = PBXFileReference; explicitFileType = "wrapper.app-extension"; includeInIndex = 0; path = AirFitWatchComplications.appex; sourceTree = BUILT_PRODUCTS_DIR; };
 		8E7E1BE8AD2D4B05418365DA /* VoiceTextField.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = VoiceTextField.swift; sourceTree = "<group>"; };
 		904D6550BC2548F85F0876EF /* AIRouter.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AIRouter.swift; sourceTree = "<group>"; };
 		96358DBC9AE0E062912E1167 /* SpeechTranscriptionManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SpeechTranscriptionManager.swift; sourceTree = "<group>"; };
@@ -233,6 +266,7 @@
 		B5B58F99B5821B8AF0328E3C /* ReadinessComplication.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ReadinessComplication.swift; sourceTree = "<group>"; };
 		B69F3972B4F5C53F711F8E4A /* README.md */ = {isa = PBXFileReference; lastKnownFileType = net.daringfireball.markdown; path = README.md; sourceTree = "<group>"; };
 		B8E095EF26744F5A1439F4BE /* YouView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = YouView.swift; sourceTree = "<group>"; };
+		B8FD867DF5F579D58E3908A1 /* VolumeComplication.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = VolumeComplication.swift; sourceTree = "<group>"; };
 		BA5277C7830D32640A2C74D8 /* ServerSetupView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ServerSetupView.swift; sourceTree = "<group>"; };
 		BA80BEC06E6BA86B98B11DED /* LocalInsightEngine.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LocalInsightEngine.swift; sourceTree = "<group>"; };
 		BADF49A3FDB0FDBB1E17A356 /* ModelRecommendation.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ModelRecommendation.swift; sourceTree = "<group>"; };
@@ -375,6 +409,21 @@
 			path = Utilities;
 			sourceTree = "<group>";
 		};
+		3B8D1DCD9767E74449572189 /* AirFitWatchComplications */ = {
+			isa = PBXGroup;
+			children = (
+				3197A947D9269EF5205ED076 /* AirFitWatchComplications.entitlements */,
+				6924EEA4186751449438F6FC /* AirFitWatchComplicationsBundle.swift */,
+				79D08D1522570C56D5426364 /* HRRComplication.swift */,
+				0A836B46029D296A3E09CA49 /* Info.plist */,
+				0B37C5BC56C8105608F69578 /* MacroComplication.swift */,
+				774A15E4241D1468B505BA54 /* ReadinessComplication.swift */,
+				74B8D799CC22F72A4D25E225 /* SharedDataStore.swift */,
+				B8FD867DF5F579D58E3908A1 /* VolumeComplication.swift */,
+			);
+			path = AirFitWatchComplications;
+			sourceTree = "<group>";
+		};
 		4BB11638AA86DB7F89D7B61D /* App */ = {
 			isa = PBXGroup;
 			children = (
@@ -438,6 +487,7 @@
 			children = (
 				D2AB432B78CE0A77B5E836FF /* AirFit */,
 				A504E3798EC739FB24A0B907 /* AirFitWatch */,
+				3B8D1DCD9767E74449572189 /* AirFitWatchComplications */,
 				8726EB0B227738D2959722FE /* Products */,
 			);
 			sourceTree = "<group>";
@@ -491,6 +541,7 @@
 			children = (
 				586E5425AC0598693D6C2256 /* AirFit.app */,
 				4AC47E0251CA4678773EF7C4 /* AirFitWatch.app */,
+				8BAA8A63724DB085B886BF78 /* AirFitWatchComplications.appex */,
 			);
 			name = Products;
 			sourceTree = "<group>";
@@ -592,16 +643,35 @@
 /* End PBXGroup section */
 
 /* Begin PBXNativeTarget section */
+		3931A9F418E835F2FA67594B /* AirFitWatchComplications */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = 01A6493076FDAFAF6F47D5CB /* Build configuration list for PBXNativeTarget "AirFitWatchComplications" */;
+			buildPhases = (
+				E14A8B7D7E281BC8CC08D0CB /* Sources */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+			);
+			name = AirFitWatchComplications;
+			packageProductDependencies = (
+			);
+			productName = AirFitWatchComplications;
+			productReference = 8BAA8A63724DB085B886BF78 /* AirFitWatchComplications.appex */;
+			productType = "com.apple.product-type.app-extension";
+		};
 		A7EF7FFCFA9AD728BB8E121A /* AirFitWatch */ = {
 			isa = PBXNativeTarget;
 			buildConfigurationList = 95D3EA832D0BA2FCA48B725C /* Build configuration list for PBXNativeTarget "AirFitWatch" */;
 			buildPhases = (
 				50A1EA50F5F68320A634755D /* Sources */,
 				04AB871F95FB703FEDECE61F /* Resources */,
+				6D1E658A03B2521FDEC27454 /* Embed Foundation Extensions */,
 			);
 			buildRules = (
 			);
 			dependencies = (
+				58AF4E3EEEAFCF59BF257133 /* PBXTargetDependency */,
 			);
 			name = AirFitWatch;
 			packageProductDependencies = (
@@ -641,6 +711,10 @@
 				BuildIndependentTargetsInParallel = YES;
 				LastUpgradeCheck = 1600;
 				TargetAttributes = {
+					3931A9F418E835F2FA67594B = {
+						DevelopmentTeam = 2H43Q8Y3CR;
+						ProvisioningStyle = Automatic;
+					};
 					A7EF7FFCFA9AD728BB8E121A = {
 						DevelopmentTeam = 2H43Q8Y3CR;
 						ProvisioningStyle = Automatic;
@@ -670,6 +744,7 @@
 			targets = (
 				E069A004596F5A1F5CADCE09 /* AirFit */,
 				A7EF7FFCFA9AD728BB8E121A /* AirFitWatch */,
+				3931A9F418E835F2FA67594B /* AirFitWatchComplications */,
 			);
 		};
 /* End PBXProject section */
@@ -825,9 +900,27 @@
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
+		E14A8B7D7E281BC8CC08D0CB /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				233BB2CFCFF73FA1C7CDF8FC /* AirFitWatchComplicationsBundle.swift in Sources */,
+				863703DD5D89B729157D81A5 /* HRRComplication.swift in Sources */,
+				FD84BA47A09768C683F55EDC /* MacroComplication.swift in Sources */,
+				655F41AF201957A89020A737 /* ReadinessComplication.swift in Sources */,
+				FE874D5831AE987042A1F6B7 /* SharedDataStore.swift in Sources */,
+				82A2B2AEA80EB9D33B583CB2 /* VolumeComplication.swift in Sources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
 /* End PBXSourcesBuildPhase section */
 
 /* Begin PBXTargetDependency section */
+		58AF4E3EEEAFCF59BF257133 /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			target = 3931A9F418E835F2FA67594B /* AirFitWatchComplications */;
+			targetProxy = 24C6AA0D6BAD29DD0102D55E /* PBXContainerItemProxy */;
+		};
 		80C0376F49E389F3437C521D /* PBXTargetDependency */ = {
 			isa = PBXTargetDependency;
 			target = A7EF7FFCFA9AD728BB8E121A /* AirFitWatch */;
@@ -932,6 +1025,38 @@
 				WATCHOS_DEPLOYMENT_TARGET = 26.0;
 			};
 			name = Release;
+		};
+		216BB225B96815B9DAC7438B /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				CODE_SIGN_ENTITLEMENTS = AirFitWatchComplications/AirFitWatchComplications.entitlements;
+				CODE_SIGN_STYLE = Automatic;
+				DEVELOPMENT_TEAM = 2H43Q8Y3CR;
+				INFOPLIST_FILE = AirFitWatchComplications/Info.plist;
+				LD_RUNPATH_SEARCH_PATHS = "$(inherited) @executable_path/Frameworks @executable_path/../../Frameworks";
+				PRODUCT_BUNDLE_IDENTIFIER = com.airfit.app.watchkitapp.complications;
+				SDKROOT = watchos;
+				SKIP_INSTALL = YES;
+				TARGETED_DEVICE_FAMILY = 4;
+				WATCHOS_DEPLOYMENT_TARGET = 26.0;
+			};
+			name = Release;
+		};
+		3EC0DB27FC4002E33FFA7629 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				CODE_SIGN_ENTITLEMENTS = AirFitWatchComplications/AirFitWatchComplications.entitlements;
+				CODE_SIGN_STYLE = Automatic;
+				DEVELOPMENT_TEAM = 2H43Q8Y3CR;
+				INFOPLIST_FILE = AirFitWatchComplications/Info.plist;
+				LD_RUNPATH_SEARCH_PATHS = "$(inherited) @executable_path/Frameworks @executable_path/../../Frameworks";
+				PRODUCT_BUNDLE_IDENTIFIER = com.airfit.app.watchkitapp.complications;
+				SDKROOT = watchos;
+				SKIP_INSTALL = YES;
+				TARGETED_DEVICE_FAMILY = 4;
+				WATCHOS_DEPLOYMENT_TARGET = 26.0;
+			};
+			name = Debug;
 		};
 		60F973F73B8D48A1E495B42A /* Debug */ = {
 			isa = XCBuildConfiguration;
@@ -1040,6 +1165,15 @@
 /* End XCBuildConfiguration section */
 
 /* Begin XCConfigurationList section */
+		01A6493076FDAFAF6F47D5CB /* Build configuration list for PBXNativeTarget "AirFitWatchComplications" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				3EC0DB27FC4002E33FFA7629 /* Debug */,
+				216BB225B96815B9DAC7438B /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Debug;
+		};
 		0CAF143C94D8CC3670077696 /* Build configuration list for PBXProject "AirFit" */ = {
 			isa = XCConfigurationList;
 			buildConfigurations = (

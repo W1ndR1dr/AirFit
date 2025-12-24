@@ -50,7 +50,82 @@ final class WatchConnectivityHandler: NSObject, ObservableObject, @unchecked Sen
         self.modelContext = modelContext
     }
 
-    // MARK: - Public API
+    // MARK: - Public API (Convenience Push Methods)
+
+    /// Push current macros to Watch (call after any food log)
+    @MainActor
+    func pushMacrosToWatch(context: ModelContext) async {
+        let macros = await buildMacroProgress(context: context)
+        sendMacroUpdate(macros)
+
+        // Also update via application context for background delivery
+        if let session, !session.isReachable {
+            updateApplicationContextWithMacros(macros)
+        }
+    }
+
+    /// Push current readiness to Watch (call after readiness calculation)
+    func pushReadinessToWatch() async {
+        let readiness = await buildReadinessData()
+        sendReadinessUpdate(readiness)
+    }
+
+    /// Push current volume to Watch (call after Hevy sync)
+    func pushVolumeToWatch() async {
+        let volume = await buildVolumeProgress()
+        sendVolumeUpdate(volume)
+    }
+
+    /// Push all context to Watch (for full refresh)
+    @MainActor
+    func pushAllContextToWatch(context: ModelContext) async {
+        // Build macro progress (requires MainActor for ModelContext)
+        let macros = await buildMacroProgress(context: context)
+
+        // Build other data (can run in parallel but keeping simple for Sendable safety)
+        let readiness = await buildReadinessData()
+        let volume = await buildVolumeProgress()
+
+        sendMacroUpdate(macros)
+        sendReadinessUpdate(readiness)
+        sendVolumeUpdate(volume)
+
+        // Also update application context for background delivery
+        updateApplicationContext(macros: macros, readiness: readiness, volume: volume)
+    }
+
+    // MARK: - Application Context (for background delivery)
+
+    private func updateApplicationContextWithMacros(_ macros: MacroProgressData) {
+        guard let session else { return }
+        do {
+            let data = try JSONEncoder().encode(macros)
+            try session.updateApplicationContext(["macros": data])
+        } catch {
+            print("[WatchConnectivity] Failed to update application context: \(error)")
+        }
+    }
+
+    private func updateApplicationContext(macros: MacroProgressData, readiness: ReadinessDataPayload, volume: VolumeProgressData) {
+        guard let session else { return }
+        do {
+            var context: [String: Any] = [:]
+            if let data = try? JSONEncoder().encode(macros) {
+                context["macros"] = data
+            }
+            if let data = try? JSONEncoder().encode(readiness) {
+                context["readiness"] = data
+            }
+            if let data = try? JSONEncoder().encode(volume) {
+                context["volume"] = data
+            }
+            try session.updateApplicationContext(context)
+        } catch {
+            print("[WatchConnectivity] Failed to update application context: \(error)")
+        }
+    }
+
+    // MARK: - Low-Level Send Methods
 
     /// Push macro update to Watch
     func sendMacroUpdate(_ macros: MacroProgressData) {
@@ -197,18 +272,25 @@ final class WatchConnectivityHandler: NSObject, ObservableObject, @unchecked Sen
         let carbs = entries.reduce(0) { $0 + $1.carbs }
         let fat = entries.reduce(0) { $0 + $1.fat }
 
-        // TODO: Get targets from profile/settings
-        let isTrainingDay = calendar.isDateInWeekend(Date()) == false
+        // Check actual training status from HealthKit (logged workout today)
+        let (isTrainingDay, _) = await healthKit.isTrainingDay()
+
+        // TODO: Get actual targets from user profile
+        // For now, using standard bodybuilding targets
+        let trainingTargets = (calories: 2600, protein: 175, carbs: 330, fat: 67)
+        let restTargets = (calories: 2200, protein: 175, carbs: 250, fat: 67)
+
+        let targets = isTrainingDay ? trainingTargets : restTargets
 
         return MacroProgressData(
             calories: calories,
             protein: protein,
             carbs: carbs,
             fat: fat,
-            targetCalories: isTrainingDay ? 2600 : 2200,
-            targetProtein: 175,
-            targetCarbs: isTrainingDay ? 330 : 250,
-            targetFat: 67,
+            targetCalories: targets.calories,
+            targetProtein: targets.protein,
+            targetCarbs: targets.carbs,
+            targetFat: targets.fat,
             isTrainingDay: isTrainingDay,
             lastUpdated: Date()
         )

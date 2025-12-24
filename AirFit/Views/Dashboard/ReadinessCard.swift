@@ -225,6 +225,9 @@ struct ReadinessCard: View {
                 isLoading = false
             }
         }
+
+        // Push readiness update to Watch
+        await WatchConnectivityHandler.shared.pushReadinessToWatch()
     }
 }
 

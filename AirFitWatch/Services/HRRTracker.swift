@@ -1,11 +1,16 @@
 import Foundation
 import Combine
+import WidgetKit
 
 /// Real-time Heart Rate Recovery (HRR) tracker for detecting workout fatigue.
 /// Monitors inter-set recovery rate and detects the "asymptote" - when productive training ends.
 @MainActor
 final class HRRTracker: ObservableObject {
     static let shared = HRRTracker()
+
+    // Throttle complication updates to avoid battery drain
+    private var lastComplicationUpdate: Date = .distantPast
+    private let complicationUpdateInterval: TimeInterval = 5  // 5 seconds
 
     // MARK: - Published State
 
@@ -146,6 +151,11 @@ final class HRRTracker: ObservableObject {
 
         // Run phase detection
         updatePhaseDetection(currentBPM: bpm, timestamp: date)
+
+        // Update complications (throttled)
+        if currentPhase != .idle {
+            pushToComplications()
+        }
     }
 
     /// Reset tracker for new workout
@@ -268,6 +278,9 @@ final class HRRTracker: ObservableObject {
             endHR: peakHR,
             duration: 0
         )
+
+        // Force immediate complication update for set completion
+        pushToComplications(force: true)
     }
 
     private func transitionToResting() {
@@ -334,6 +347,7 @@ final class HRRTracker: ObservableObject {
     private func updateFatigueLevel(degradation: Double, variance: Double) {
         // Check for asymptote: low variance + significant degradation
         let isAsymptote = variance < asymptoteVariance && degradation > significantDegradation
+        let previousLevel = fatigueLevel
 
         switch (degradation, isAsymptote) {
         case (_, true) where degradation > 40:
@@ -346,6 +360,11 @@ final class HRRTracker: ObservableObject {
             fatigueLevel = .productive
         default:
             fatigueLevel = .fresh
+        }
+
+        // Force complication update on fatigue level change
+        if fatigueLevel != previousLevel {
+            pushToComplications(force: true)
         }
     }
 }
@@ -378,5 +397,19 @@ extension HRRTracker {
     /// Latest recovery rate
     var latestRecoveryRate: Double? {
         restPeriods.last?.recoveryRate
+    }
+
+    // MARK: - Complication Updates
+
+    /// Update complications with current HRR data (throttled to avoid battery drain)
+    func pushToComplications(force: Bool = false) {
+        let now = Date()
+        guard force || now.timeIntervalSince(lastComplicationUpdate) >= complicationUpdateInterval else {
+            return
+        }
+        lastComplicationUpdate = now
+
+        // Write to App Groups for WidgetKit complications
+        WatchConnectivityManager.shared.updateHRRLive(sessionData)
     }
 }

@@ -53,6 +53,8 @@ targets:
     platform: watchOS
     sources:
       - path: AirFitWatch
+    dependencies:
+      - target: AirFitWatchComplications
     settings:
       PRODUCT_BUNDLE_IDENTIFIER: com.airfit.app.watchkitapp
       INFOPLIST_FILE: AirFitWatch/Info.plist
@@ -66,17 +68,34 @@ targets:
       # Embedding configuration
       ALWAYS_EMBED_SWIFT_STANDARD_LIBRARIES: YES
 
+  AirFitWatchComplications:
+    type: app-extension
+    platform: watchOS
+    sources:
+      - path: AirFitWatchComplications
+    settings:
+      PRODUCT_BUNDLE_IDENTIFIER: com.airfit.app.watchkitapp.complications
+      INFOPLIST_FILE: AirFitWatchComplications/Info.plist
+      CODE_SIGN_ENTITLEMENTS: AirFitWatchComplications/AirFitWatchComplications.entitlements
+      CODE_SIGN_STYLE: Automatic
+      DEVELOPMENT_TEAM: 2H43Q8Y3CR
+      SKIP_INSTALL: YES
+      WATCHOS_DEPLOYMENT_TARGET: "26.0"
+      LD_RUNPATH_SEARCH_PATHS: "$(inherited) @executable_path/Frameworks @executable_path/../../Frameworks"
+
 schemes:
   AirFit:
     build:
       targets:
         AirFit: all
         AirFitWatch: all
+        AirFitWatchComplications: all
     run:
       config: Debug
   AirFitWatch:
     build:
       targets:
         AirFitWatch: all
+        AirFitWatchComplications: all
     run:
       config: Debug

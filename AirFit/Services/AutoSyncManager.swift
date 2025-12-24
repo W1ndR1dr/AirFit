@@ -466,12 +466,14 @@ final class AutoSyncManager: ObservableObject {
 
     /// Sync Hevy data (device-first, server fallback).
     private func syncHevyDeviceFirst(modelContext: ModelContext, serverAvailable: Bool) async {
+        var didSync = false
+
         // Try device-first if API key is configured locally
         if await hevyService.isConfigured() {
             do {
                 try await hevyCacheManager.refreshFromDevice(modelContext: modelContext)
                 print("[AutoSync] Hevy cache refreshed (from device)")
-                return
+                didSync = true
             } catch {
                 print("[AutoSync] Device Hevy sync failed: \(error)")
                 // Fall through to server sync
@@ -479,17 +481,23 @@ final class AutoSyncManager: ObservableObject {
         }
 
         // Fallback to server
-        if serverAvailable {
+        if !didSync && serverAvailable {
             do {
                 _ = try await syncHevyToServer()
                 try await hevyCacheManager.refreshFromServer(modelContext: modelContext)
                 print("[AutoSync] Hevy cache refreshed (from server)")
+                didSync = true
             } catch {
                 // Hevy sync is optional - don't fail the whole sync
                 print("[AutoSync] Server Hevy sync skipped: \(error)")
             }
-        } else {
+        } else if !didSync {
             print("[AutoSync] Hevy sync skipped - no local key and server unavailable")
+        }
+
+        // Push volume update to Watch after successful Hevy sync
+        if didSync {
+            await WatchConnectivityHandler.shared.pushVolumeToWatch()
         }
     }
 

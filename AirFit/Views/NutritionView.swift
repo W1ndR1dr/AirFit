@@ -963,6 +963,9 @@ struct NutritionView: View {
                     try? modelContext.save()
                 }
                 UINotificationFeedbackGenerator().notificationOccurred(.success)
+
+                // Push updated macros to Watch
+                await WatchConnectivityHandler.shared.pushMacrosToWatch(context: modelContext)
             }
         } catch {
             // Silent fail - photo analysis is best-effort
@@ -1054,6 +1057,9 @@ struct NutritionView: View {
                 // Sync to HealthKit
                 let healthKit = HealthKitManager()
                 try? await healthKit.saveNutritionEntry(entry)
+
+                // Push updated macros to Watch
+                await WatchConnectivityHandler.shared.pushMacrosToWatch(context: modelContext)
             }
         } catch {
             print("[NutritionView] Photo analysis failed: \(error)")
@@ -1160,6 +1166,9 @@ struct NutritionView: View {
             withAnimation(.airfit) {
                 modelContext.insert(entry)
             }
+
+            // Push updated macros to Watch
+            await WatchConnectivityHandler.shared.pushMacrosToWatch(context: modelContext)
         } catch {
             print("[NutritionView] Gemini parsing failed: \(error)")
         }
@@ -1203,6 +1212,9 @@ struct NutritionView: View {
                 withAnimation(.airfit) {
                     modelContext.insert(entry)
                 }
+
+                // Push updated macros to Watch
+                await WatchConnectivityHandler.shared.pushMacrosToWatch(context: modelContext)
             }
         } catch {
             print("[NutritionView] Claude parsing failed: \(error)")
