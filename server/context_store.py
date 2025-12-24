@@ -41,6 +41,11 @@ _cache: Optional["ContextStore"] = None
 _cache_timestamp: float = 0
 CACHE_TTL_SECONDS = 5.0  # Cache for 5 seconds to avoid repeated file I/O
 
+# Body comp trends cache
+_body_comp_cache: Optional[dict] = None
+_body_comp_cache_timestamp: float = 0
+BODY_COMP_CACHE_TTL = 300.0  # 5 minutes
+
 
 @dataclass
 class NutritionSnapshot:
@@ -648,7 +653,15 @@ def compute_body_comp_trends() -> dict:
     - Current smoothed value
     - Change over the period
     - Direction (gaining/losing/stable)
+
+    Cached for 5 minutes to avoid repeated computation.
     """
+    global _body_comp_cache, _body_comp_cache_timestamp
+
+    current_time = time.time()
+    if _body_comp_cache is not None and (current_time - _body_comp_cache_timestamp) < BODY_COMP_CACHE_TTL:
+        return _body_comp_cache
+
     trends = {
         "monthly": {},
         "yearly": {},
@@ -720,6 +733,8 @@ def compute_body_comp_trends() -> dict:
 
         trends[period_name] = period_trends
 
+    _body_comp_cache = trends
+    _body_comp_cache_timestamp = current_time
     return trends
 
 

@@ -121,21 +121,35 @@ class ReadinessEngine: ObservableObject {
             )
         }
 
-        // Gather all indicator data
+        // Fetch ALL required data once
+        let today = Date()
+        async let snapshotTask = healthKit.getDailySnapshot(for: today)
+        async let hrvBaselineTask = healthKit.getHRVBaseline()
+        async let rhrBaselineTask = healthKit.getRestingHRBaseline()
+        async let sleepBreakdownTask = healthKit.getSleepBreakdown(for: today)
+
+        let (snapshot, hrvBaseline, rhrBaseline, sleepBreakdown) = await (
+            snapshotTask,
+            hrvBaselineTask,
+            rhrBaselineTask,
+            sleepBreakdownTask
+        )
+
+        // Compute indicators from shared data (no more async)
         var indicators: [Indicator] = []
 
         // 1. HRV indicator (35% weight)
-        if let hrvIndicator = await computeHRVIndicator() {
+        if let hrvIndicator = computeHRVIndicator(snapshot: snapshot, baseline: hrvBaseline) {
             indicators.append(hrvIndicator)
         }
 
         // 2. Sleep indicator (30% weight)
-        if let sleepIndicator = await computeSleepIndicator() {
+        if let sleepIndicator = computeSleepIndicator(breakdown: sleepBreakdown) {
             indicators.append(sleepIndicator)
         }
 
         // 3. Resting HR indicator (20% weight)
-        if let rhrIndicator = await computeRHRIndicator() {
+        if let rhrIndicator = computeRHRIndicator(snapshot: snapshot, baseline: rhrBaseline) {
             indicators.append(rhrIndicator)
         }
 
@@ -193,15 +207,14 @@ class ReadinessEngine: ObservableObject {
 
     // MARK: - Individual Indicators
 
-    private func computeHRVIndicator() async -> Indicator? {
-        guard let baseline = await healthKit.getHRVBaseline(),
+    private func computeHRVIndicator(
+        snapshot: DailyHealthSnapshot,
+        baseline: HRVBaseline?
+    ) -> Indicator? {
+        guard let baseline = baseline,
               baseline.isReliable else {
             return nil
         }
-
-        // Get today's HRV
-        let today = Date()
-        let snapshot = await healthKit.getDailySnapshot(for: today)
 
         guard let todayHRV = snapshot.hrvMs else {
             return nil
@@ -230,9 +243,10 @@ class ReadinessEngine: ObservableObject {
         )
     }
 
-    private func computeSleepIndicator() async -> Indicator? {
-        let today = Date()
-        guard let breakdown = await healthKit.getSleepBreakdown(for: today) else {
+    private func computeSleepIndicator(
+        breakdown: SleepBreakdown?
+    ) -> Indicator? {
+        guard let breakdown = breakdown else {
             return nil
         }
 
@@ -259,15 +273,14 @@ class ReadinessEngine: ObservableObject {
         )
     }
 
-    private func computeRHRIndicator() async -> Indicator? {
-        // Use existing HealthKitManager baseline method (returns tuple)
-        guard let baseline = await healthKit.getRestingHRBaseline(),
+    private func computeRHRIndicator(
+        snapshot: DailyHealthSnapshot,
+        baseline: (mean: Double, standardDeviation: Double, sampleCount: Int)?
+    ) -> Indicator? {
+        guard let baseline = baseline,
               baseline.sampleCount >= 5 else {
             return nil
         }
-
-        let today = Date()
-        let snapshot = await healthKit.getDailySnapshot(for: today)
 
         guard let todayRHR = snapshot.restingHR else {
             return nil

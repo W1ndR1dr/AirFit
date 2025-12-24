@@ -415,7 +415,7 @@ actor GeminiService {
         let cacheRequest = CachedContentRequest(
             model: "models/\(model)",
             systemInstruction: CachedContentParts(parts: [CachedContentPart(text: fullContent)]),
-            ttl: "3600s"  // 1 hour TTL
+            ttl: "21600s"  // 6 hour TTL
         )
 
         do {
@@ -430,7 +430,7 @@ actor GeminiService {
 
                     // Store cache info
                     cachedContentName = cacheResponse.name
-                    cacheExpiry = Date().addingTimeInterval(3600)  // 1 hour from now
+                    cacheExpiry = Date().addingTimeInterval(21600)  // 6 hours from now
                     cachedContentHash = contentHash
 
                     print("[GeminiService] Context cache created: \(cacheResponse.name)")

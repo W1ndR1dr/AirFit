@@ -1,5 +1,6 @@
 """Hevy API integration - pulls workout data for AI context."""
 import os
+import time
 import httpx
 from datetime import datetime, timedelta
 from dataclasses import dataclass
@@ -480,6 +481,12 @@ async def get_lift_progress(top_n: int = 6) -> list[dict]:
     return result
 
 
+# Set tracker cache
+_set_tracker_cache: Optional[str] = None
+_set_tracker_cache_timestamp: float = 0
+SET_TRACKER_CACHE_TTL = 60.0  # 1 minute
+
+
 async def format_set_tracker_for_chat() -> str:
     """
     Format rolling 7-day set tracker data for Coach chat context.
@@ -487,46 +494,58 @@ async def format_set_tracker_for_chat() -> str:
     Returns a concise string like:
     "Rolling 7-day volume: chest 14 sets (in zone), back 12 sets (below min 15),
      quads 8 sets (at floor), delts 16 sets (in zone)"
+
+    Cached for 1 minute to avoid repeated computation.
     """
+    global _set_tracker_cache, _set_tracker_cache_timestamp
+
+    current_time = time.time()
+    if _set_tracker_cache is not None and (current_time - _set_tracker_cache_timestamp) < SET_TRACKER_CACHE_TTL:
+        return _set_tracker_cache
+
     try:
         data = await get_rolling_set_counts(days=7)
 
         if not data:
-            return ""
+            result = ""
+        else:
+            parts = []
 
-        parts = []
+            # Prioritize muscles that need attention (below/at_floor)
+            priority_order = ["below", "at_floor", "in_zone", "above"]
 
-        # Prioritize muscles that need attention (below/at_floor)
-        priority_order = ["below", "at_floor", "in_zone", "above"]
+            sorted_muscles = sorted(
+                data.items(),
+                key=lambda x: (priority_order.index(x[1]["status"]) if x[1]["status"] in priority_order else 99, x[0])
+            )
 
-        sorted_muscles = sorted(
-            data.items(),
-            key=lambda x: (priority_order.index(x[1]["status"]) if x[1]["status"] in priority_order else 99, x[0])
-        )
+            for muscle, info in sorted_muscles:
+                current = info["current"]
+                min_sets = info["min"]
+                max_sets = info["max"]
+                status = info["status"]
 
-        for muscle, info in sorted_muscles:
-            current = info["current"]
-            min_sets = info["min"]
-            max_sets = info["max"]
-            status = info["status"]
+                if current == 0 and status == "below":
+                    # Skip muscles with 0 sets that are just "below" - too noisy
+                    continue
 
-            if current == 0 and status == "below":
-                # Skip muscles with 0 sets that are just "below" - too noisy
-                continue
+                status_text = {
+                    "in_zone": "good",
+                    "below": f"below min {min_sets}",
+                    "at_floor": "at minimum",
+                    "above": f"above max {max_sets}"
+                }.get(status, status)
 
-            status_text = {
-                "in_zone": "good",
-                "below": f"below min {min_sets}",
-                "at_floor": "at minimum",
-                "above": f"above max {max_sets}"
-            }.get(status, status)
+                parts.append(f"{muscle} {current} ({status_text})")
 
-            parts.append(f"{muscle} {current} ({status_text})")
+            if not parts:
+                result = ""
+            else:
+                result = f"Rolling 7-day training volume: {', '.join(parts)}"
 
-        if not parts:
-            return ""
-
-        return f"Rolling 7-day training volume: {', '.join(parts)}"
+        _set_tracker_cache = result
+        _set_tracker_cache_timestamp = current_time
+        return result
 
     except Exception as e:
         print(f"Error formatting set tracker for chat: {e}")
