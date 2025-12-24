@@ -62,6 +62,23 @@ Useful when accessing this Mac remotely via Claude Code iOS app.
 - Both Mac and iPhone running Tailscale and connected to same Tailnet
 - iPhone unlocked when deploying
 
+### TestFlight Deployment
+```bash
+# Deploy to TestFlight (auto-bumps build number)
+./scripts/deploy-to-testflight.sh --bump-build
+```
+
+This archives, exports, and uploads to TestFlight in one command.
+
+**Prerequisites (one-time setup):**
+1. Create App Store Connect API key at https://appstoreconnect.apple.com/access/api
+2. Download the `.p8` file and set environment variables:
+```bash
+export APP_STORE_CONNECT_API_KEY_ID="XXXXXXXXXX"
+export APP_STORE_CONNECT_API_ISSUER_ID="xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx"
+export APP_STORE_CONNECT_API_KEY_PATH="/path/to/AuthKey_XXXXXXXXXX.p8"
+```
+
 ### Python Server
 ```bash
 cd server
@@ -284,3 +301,26 @@ The `.mcp.json` file configures a local MCP server for Claude Code, providing di
 For review-only tasks (no code changes):
 - Document findings in `docs/` as Markdown
 - Read `CLAUDE.md`, `USER_GUIDE.md`, and `server/ARCHITECTURE.md` first for context
+
+## TestFlight Release Workflow
+
+When the user says **"reconcile and push"**, **"push to TestFlight"**, or similar:
+
+### Pre-flight Checks
+1. **Build check**: Run `xcodebuild -project AirFit.xcodeproj -scheme AirFit -sdk iphoneos build` - must succeed
+2. **Git status**: Ensure working tree is clean (commit any pending changes first)
+
+### Deploy
+Run the TestFlight script:
+```bash
+./scripts/deploy-to-testflight.sh --bump-build
+```
+
+### Post-deploy
+1. Report the new version/build number to the user
+2. Remind them to check App Store Connect in ~10 minutes for processing status
+
+### If deployment fails
+- Check API credentials are set in environment
+- Verify signing certificates are valid
+- Check App Store Connect for any compliance issues with previous builds
