@@ -6,6 +6,44 @@ extension Notification.Name {
     static let healthKitWorkoutDetected = Notification.Name("healthKitWorkoutDetected")
 }
 
+/// In-memory cache for HealthKit queries with TTL support
+private actor HealthKitCache {
+    struct CachedSnapshot {
+        let snapshot: DailyHealthSnapshot
+        let timestamp: Date
+    }
+
+    private var snapshotCache: [String: CachedSnapshot] = [:]
+
+    private let todayTTL: TimeInterval = 30  // 30 seconds for "today"
+    private let historyTTL: TimeInterval = 300  // 5 min for historical
+
+    func getCachedSnapshot(for dateKey: String, isToday: Bool) -> DailyHealthSnapshot? {
+        guard let cached = snapshotCache[dateKey] else { return nil }
+        let ttl = isToday ? todayTTL : historyTTL
+        guard Date().timeIntervalSince(cached.timestamp) < ttl else {
+            snapshotCache.removeValue(forKey: dateKey)
+            return nil
+        }
+        return cached.snapshot
+    }
+
+    func setCachedSnapshot(_ snapshot: DailyHealthSnapshot, for dateKey: String) {
+        snapshotCache[dateKey] = CachedSnapshot(snapshot: snapshot, timestamp: Date())
+    }
+
+    func invalidateToday() {
+        let formatter = DateFormatter()
+        formatter.dateFormat = "yyyy-MM-dd"
+        let todayKey = formatter.string(from: Date())
+        snapshotCache.removeValue(forKey: todayKey)
+    }
+
+    func invalidateAll() {
+        snapshotCache.removeAll()
+    }
+}
+
 actor HealthKitManager {
     // NOTE: Multiple instances are intentional and efficient!
     // Each instance has its own HKHealthStore, allowing parallel queries.
@@ -19,6 +57,7 @@ actor HealthKitManager {
     private var isAuthorized = false
     private var workoutObserverQuery: HKObserverQuery?
     private var lastObservedWorkoutDate: Date?
+    private let cache = HealthKitCache()
 
     // MARK: - HealthKit Types
 
@@ -568,6 +607,16 @@ actor HealthKitManager {
     /// Get comprehensive health data for a specific date (for insights sync)
     func getDailySnapshot(for date: Date) async -> DailyHealthSnapshot {
         let calendar = Calendar.current
+        let formatter = DateFormatter()
+        formatter.dateFormat = "yyyy-MM-dd"
+        let dateKey = formatter.string(from: date)
+        let isToday = calendar.isDateInToday(date)
+
+        // Check cache first
+        if let cached = await cache.getCachedSnapshot(for: dateKey, isToday: isToday) {
+            return cached
+        }
+
         let startOfDay = calendar.startOfDay(for: date)
         let endOfDay = calendar.date(byAdding: .day, value: 1, to: startOfDay)!
 
@@ -634,7 +683,7 @@ actor HealthKitManager {
             sleepBreakdown: breakdownResult
         )
 
-        return await DailyHealthSnapshot(
+        let snapshot = await DailyHealthSnapshot(
             date: date,
             steps: validatedSteps,
             activeCalories: validatedCalories,
@@ -653,6 +702,10 @@ actor HealthKitManager {
             hrvDeviationPct: hrvDeviationPct,
             quality: quality
         )
+
+        // Cache before returning
+        await cache.setCachedSnapshot(snapshot, for: dateKey)
+        return snapshot
     }
 
     /// Get daily snapshots for the last N days (for bulk sync)

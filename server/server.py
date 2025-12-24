@@ -5,7 +5,7 @@ load_dotenv()  # Load .env before other imports that use env vars
 import json
 import uvicorn
 from datetime import datetime, timedelta
-from fastapi import FastAPI, HTTPException, Request
+from fastapi import FastAPI, HTTPException, Request, Response
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 from typing import Optional
@@ -1452,12 +1452,15 @@ async def get_insights_context(range: str = "week"):
 
 
 @app.get("/insights", response_model=list[InsightResponse])
-async def get_insights(category: Optional[str] = None, limit: int = 10):
+async def get_insights(category: Optional[str] = None, limit: int = 10, response: Response = None):
     """
     Get AI-generated insights.
 
     Optionally filter by category: correlation, trend, anomaly, milestone, nudge
     """
+    if response:
+        response.headers["Cache-Control"] = "max-age=3600, private"
+
     insights = context_store.get_insights(category=category, limit=limit)
 
     return [
@@ -1810,7 +1813,7 @@ class RecentWorkoutsResponse(BaseModel):
 
 
 @app.get("/hevy/set-tracker", response_model=SetTrackerResponse)
-async def get_set_tracker(days: int = 7):
+async def get_set_tracker(days: int = 7, response: Response = None):
     """
     Get rolling set counts by muscle group for the Training tab.
 
@@ -1818,6 +1821,9 @@ async def get_set_tracker(days: int = 7):
     Used for the "Rolling 7-Day Sets" hero section.
     """
     from datetime import datetime
+
+    if response:
+        response.headers["Cache-Control"] = "max-age=300, private"
 
     try:
         muscle_data = await hevy.get_rolling_set_counts(days)
@@ -1841,13 +1847,16 @@ async def get_set_tracker(days: int = 7):
 
 
 @app.get("/hevy/lift-progress", response_model=LiftProgressResponse)
-async def get_lift_progress(top_n: int = 6):
+async def get_lift_progress(top_n: int = 6, response: Response = None):
     """
     Get all-time PR progress for top lifts.
 
     Auto-detects the most frequently performed lifts and returns
     their PR history for sparkline visualization.
     """
+    if response:
+        response.headers["Cache-Control"] = "max-age=600, private"
+
     try:
         lifts = await hevy.get_lift_progress(top_n)
 
