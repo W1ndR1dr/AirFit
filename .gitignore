@@ -67,3 +67,5 @@ ENV/
 # Server data (user-specific)
 server/data/
 server/.env
+Vibe Samples/
+docs/Roadmap Features/
