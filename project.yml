@@ -36,7 +36,6 @@ targets:
 
     dependencies:
       - package: WhisperKit
-      - target: AirFitWatch
 
     settings:
       PRODUCT_BUNDLE_IDENTIFIER: com.airfit.app
