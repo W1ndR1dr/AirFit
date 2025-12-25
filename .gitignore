@@ -71,3 +71,11 @@ server/data/
 server/.env
 Vibe Samples/
 docs/Roadmap Features/
+
+# Build artifacts & distributions
+Distributions/
+ExportOptions.plist
+
+# Worktrees & tooling state
+.flowforge/
+.flowforge-worktrees/
