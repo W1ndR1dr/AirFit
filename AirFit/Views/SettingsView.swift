@@ -38,6 +38,12 @@ struct SettingsView: View {
     // Tracking Features
     @AppStorage("waterTrackingEnabled") private var waterTrackingEnabled = false
 
+    // Speech Recognition
+    @AppStorage("speechRecognitionEnabled") private var speechRecognitionEnabled = true
+    @State private var modelManager = ModelManager.shared
+    @State private var showDeleteModelsConfirm = false
+    @State private var pendingSpeechDisable = false
+
     private let apiClient = APIClient()
     private let keychainManager = KeychainManager.shared
 
@@ -478,28 +484,71 @@ struct SettingsView: View {
 
                 // Speech Recognition
                 SettingsSection(title: "Speech") {
-                    NavigationLink {
-                        SpeechSettingsView()
-                    } label: {
+                    // Enable/Disable Toggle
+                    Toggle(isOn: Binding(
+                        get: { speechRecognitionEnabled },
+                        set: { newValue in
+                            if newValue {
+                                // Enabling - just turn it on
+                                speechRecognitionEnabled = true
+                            } else {
+                                // Disabling - check if models are installed
+                                if modelManager.hasInstalledModels {
+                                    pendingSpeechDisable = true
+                                    showDeleteModelsConfirm = true
+                                } else {
+                                    speechRecognitionEnabled = false
+                                }
+                            }
+                        }
+                    )) {
                         HStack {
                             Image(systemName: "waveform")
                                 .font(.body)
-                                .foregroundStyle(Theme.accent)
+                                .foregroundStyle(speechRecognitionEnabled ? Theme.accent : Theme.textMuted)
                             VStack(alignment: .leading, spacing: 2) {
                                 Text("Speech Recognition")
                                     .font(.body)
                                     .foregroundStyle(Theme.textPrimary)
-                                Text("Manage on-device transcription models")
+                                Text("Voice input for chat messages")
                                     .font(.caption)
                                     .foregroundStyle(Theme.textMuted)
                             }
-                            Spacer()
-                            Image(systemName: "chevron.right")
-                                .font(.caption)
-                                .foregroundStyle(Theme.textMuted)
                         }
                     }
-                    .buttonStyle(.plain)
+                    .tint(Theme.accent)
+
+                    // Model settings link (only when enabled)
+                    if speechRecognitionEnabled {
+                        NavigationLink {
+                            SpeechSettingsView()
+                        } label: {
+                            HStack {
+                                Image(systemName: "square.stack.3d.up")
+                                    .font(.body)
+                                    .foregroundStyle(Theme.accent)
+                                VStack(alignment: .leading, spacing: 2) {
+                                    Text("Voice Models")
+                                        .font(.body)
+                                        .foregroundStyle(Theme.textPrimary)
+                                    if modelManager.installedModels.isEmpty {
+                                        Text("Download required for voice input")
+                                            .font(.caption)
+                                            .foregroundStyle(Theme.warning)
+                                    } else {
+                                        Text("\(modelManager.installedModels.count) model\(modelManager.installedModels.count == 1 ? "" : "s") ready")
+                                            .font(.caption)
+                                            .foregroundStyle(Theme.textMuted)
+                                    }
+                                }
+                                Spacer()
+                                Image(systemName: "chevron.right")
+                                    .font(.caption)
+                                    .foregroundStyle(Theme.textMuted)
+                            }
+                        }
+                        .buttonStyle(.plain)
+                    }
                 }
 
                 // Coaching Persona
@@ -640,10 +689,12 @@ struct SettingsView: View {
         .task {
             await loadStatus()
             await loadGeminiKeyStatus()
+            await modelManager.load()
         }
         .refreshable {
             await loadStatus()
             await loadGeminiKeyStatus()
+            await modelManager.load()
         }
         .confirmationDialog(
             "Remove Gemini API key?",
@@ -655,6 +706,28 @@ struct SettingsView: View {
             }
         } message: {
             Text("You'll need to enter a new key to use Gemini again.")
+        }
+        .confirmationDialog(
+            "Delete Voice Models?",
+            isPresented: $showDeleteModelsConfirm,
+            titleVisibility: .visible
+        ) {
+            Button("Disable & Delete Models", role: .destructive) {
+                Task {
+                    await modelManager.deleteAllModels()
+                    speechRecognitionEnabled = false
+                    pendingSpeechDisable = false
+                }
+            }
+            Button("Disable & Keep Models") {
+                speechRecognitionEnabled = false
+                pendingSpeechDisable = false
+            }
+            Button("Cancel", role: .cancel) {
+                pendingSpeechDisable = false
+            }
+        } message: {
+            Text("You have \(modelManager.installedModels.count) model\(modelManager.installedModels.count == 1 ? "" : "s") installed. Delete them to free up storage?")
         }
         .sheet(isPresented: $showServerSetup) {
             NavigationStack {

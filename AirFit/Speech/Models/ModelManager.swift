@@ -201,6 +201,27 @@ final class ModelManager {
         }
     }
 
+    /// Delete all installed models
+    func deleteAllModels() async {
+        // Cancel any in-progress downloads first
+        await cancelAllDownloads()
+
+        // Delete each installed model
+        for installed in installedModels {
+            do {
+                try await ModelStore.shared.delete(installed.descriptor)
+            } catch {
+                logger.error("Failed to delete model \(installed.descriptor.id): \(error.localizedDescription)")
+            }
+        }
+        await refreshInstalledModels()
+    }
+
+    /// Check if any models are installed
+    var hasInstalledModels: Bool {
+        !installedModels.isEmpty
+    }
+
     /// Get total disk usage
     func totalDiskUsage() async -> Int64 {
         await ModelStore.shared.totalDiskUsage()
