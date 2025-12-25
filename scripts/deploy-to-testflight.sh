@@ -2,30 +2,25 @@
 # AirFit TestFlight Deployment Script
 # Automates: Archive → Export → Upload to TestFlight
 #
-# PREREQUISITES:
-#   1. App Store Connect API Key (recommended for automation)
-#      - Create at: https://appstoreconnect.apple.com/access/api
-#      - Download the .p8 file and note the Key ID and Issuer ID
-#      - Set environment variables (or pass as arguments):
-#        export APP_STORE_CONNECT_API_KEY_ID="XXXXXXXXXX"
-#        export APP_STORE_CONNECT_API_ISSUER_ID="xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx"
-#        export APP_STORE_CONNECT_API_KEY_PATH="/path/to/AuthKey_XXXXXXXXXX.p8"
+# CREDENTIALS SETUP (one-time):
+#   1. Create API key at: https://appstoreconnect.apple.com/access/integrations/api
+#   2. Download the .p8 file to ~/.appstore/AuthKey_XXXXXX.p8
+#   3. Create ~/.appstore/credentials:
+#        export APP_STORE_CONNECT_API_KEY_ID="your-key-id"
+#        export APP_STORE_CONNECT_API_ISSUER_ID="your-issuer-id"
+#        export APP_STORE_CONNECT_API_KEY_PATH="$HOME/.appstore/AuthKey_XXXXXX.p8"
+#   4. Secure: chmod 700 ~/.appstore && chmod 600 ~/.appstore/*
 #
-#   2. Valid distribution certificate and provisioning profile
-#      - Xcode handles this automatically with "Automatic Signing"
-#
-#   3. App must exist in App Store Connect (create if first time)
+# The script auto-sources ~/.appstore/credentials if it exists.
 #
 # USAGE:
-#   ./scripts/deploy-to-testflight.sh                    # Uses env vars
+#   ./scripts/deploy-to-testflight.sh                    # Deploy current version
 #   ./scripts/deploy-to-testflight.sh --bump-build       # Auto-increment build number
 #   ./scripts/deploy-to-testflight.sh --version 1.2.0    # Set specific version
 #
-# BEST PRACTICES:
-#   - Use API keys instead of username/password (no 2FA interruption)
-#   - Run from CI/CD or dedicated build machine
-#   - Keep .p8 key file secure (never commit to git)
-#   - Use --bump-build for automated deployments
+# PREREQUISITES:
+#   - Valid distribution certificate (Xcode handles with Automatic Signing)
+#   - App must exist in App Store Connect
 
 set -e
 
@@ -82,18 +77,28 @@ echo "🚀 AirFit TestFlight Deployment"
 echo "================================"
 echo ""
 
+# Auto-source credentials from ~/.appstore/credentials if available
+CREDENTIALS_FILE="$HOME/.appstore/credentials"
+if [[ -f "$CREDENTIALS_FILE" ]]; then
+    echo "🔐 Loading credentials from ~/.appstore/credentials"
+    source "$CREDENTIALS_FILE"
+fi
+
 # Check for API key credentials
 if [[ -z "$APP_STORE_CONNECT_API_KEY_ID" ]] || \
    [[ -z "$APP_STORE_CONNECT_API_ISSUER_ID" ]] || \
    [[ -z "$APP_STORE_CONNECT_API_KEY_PATH" ]]; then
-    echo "⚠️  App Store Connect API credentials not found in environment."
+    echo "⚠️  App Store Connect API credentials not found."
     echo ""
-    echo "Set these environment variables:"
-    echo "  export APP_STORE_CONNECT_API_KEY_ID=\"your-key-id\""
-    echo "  export APP_STORE_CONNECT_API_ISSUER_ID=\"your-issuer-id\""
-    echo "  export APP_STORE_CONNECT_API_KEY_PATH=\"/path/to/AuthKey.p8\""
+    echo "Quick setup:"
+    echo "  1. Create ~/.appstore/credentials with:"
+    echo "     export APP_STORE_CONNECT_API_KEY_ID=\"your-key-id\""
+    echo "     export APP_STORE_CONNECT_API_ISSUER_ID=\"your-issuer-id\""
+    echo "     export APP_STORE_CONNECT_API_KEY_PATH=\"\$HOME/.appstore/AuthKey_XXX.p8\""
     echo ""
-    echo "Or create a key at: https://appstoreconnect.apple.com/access/api"
+    echo "  2. Secure it: chmod 600 ~/.appstore/credentials"
+    echo ""
+    echo "Get credentials at: https://appstoreconnect.apple.com/access/integrations/api"
     exit 1
 fi
 

@@ -64,20 +64,10 @@ Useful when accessing this Mac remotely via Claude Code iOS app.
 
 ### TestFlight Deployment
 ```bash
-# Deploy to TestFlight (auto-bumps build number)
 ./scripts/deploy-to-testflight.sh --bump-build
 ```
 
-This archives, exports, and uploads to TestFlight in one command.
-
-**Prerequisites (one-time setup):**
-1. Create App Store Connect API key at https://appstoreconnect.apple.com/access/api
-2. Download the `.p8` file and set environment variables:
-```bash
-export APP_STORE_CONNECT_API_KEY_ID="XXXXXXXXXX"
-export APP_STORE_CONNECT_API_ISSUER_ID="xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx"
-export APP_STORE_CONNECT_API_KEY_PATH="/path/to/AuthKey_XXXXXXXXXX.p8"
-```
+Archives, exports, and uploads to TestFlight. Credentials auto-load from `~/.appstore/`.
 
 ### Python Server
 ```bash
@@ -321,6 +311,6 @@ Run the TestFlight script:
 2. Remind them to check App Store Connect in ~10 minutes for processing status
 
 ### If deployment fails
-- Check API credentials are set in environment
-- Verify signing certificates are valid
+- Verify `~/.appstore/credentials` exists with valid Issuer ID
+- Verify signing certificates are valid in Xcode
 - Check App Store Connect for any compliance issues with previous builds

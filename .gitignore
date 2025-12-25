@@ -33,9 +33,11 @@ Carthage/Build/
 *.swp
 *~.nib
 
-# Secrets
+# Secrets & Credentials
 *.plist.secret
 Config.xcconfig
+*.p8
+AuthKey_*.p8
 
 # Test Coverage
 *.xcresult
