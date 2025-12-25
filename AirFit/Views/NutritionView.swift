@@ -743,6 +743,11 @@ struct NutritionView: View {
                             editingEntry = entry
                         },
                         onDelete: {
+                            let entryId = entry.id  // Capture before delete
+                            Task {
+                                let healthKit = HealthKitManager()
+                                try? await healthKit.deleteNutritionEntry(id: entryId)
+                            }
                             withAnimation(.airfit) {
                                 modelContext.delete(entry)
                             }
@@ -1739,6 +1744,12 @@ struct EditNutritionSheet: View {
             entry.fat = result.fat
             entry.confidence = "corrected"
             // Keep user's selected timestamp (already set in applyChanges)
+
+            // Sync corrected entry to HealthKit (capture snapshot before crossing actor boundary)
+            let snapshot = entry.snapshot()
+            let healthKit = HealthKitManager()
+            try? await healthKit.updateNutritionEntry(snapshot)
+
             dismiss()
         } catch {
             print("[EditNutritionSheet] Gemini correction failed: \(error)")
@@ -1764,6 +1775,12 @@ struct EditNutritionSheet: View {
                 entry.carbs = result.carbs ?? entry.carbs
                 entry.fat = result.fat ?? entry.fat
                 entry.confidence = "corrected"
+
+                // Sync corrected entry to HealthKit (capture snapshot before crossing actor boundary)
+                let snapshot = entry.snapshot()
+                let healthKit = HealthKitManager()
+                try? await healthKit.updateNutritionEntry(snapshot)
+
                 dismiss()
             }
         } catch {
@@ -1779,6 +1796,13 @@ struct EditNutritionSheet: View {
         entry.fat = Int(fat) ?? entry.fat
         entry.timestamp = timestamp
         entry.confidence = "manual"
+
+        // Sync updated entry to HealthKit (capture snapshot before crossing actor boundary)
+        let snapshot = entry.snapshot()
+        Task {
+            let healthKit = HealthKitManager()
+            try? await healthKit.updateNutritionEntry(snapshot)
+        }
     }
 }
 

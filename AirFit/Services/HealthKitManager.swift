@@ -2249,6 +2249,89 @@ extension HealthKitManager {
         print("[HealthKit] Updated nutrition entry: \(entry.name)")
     }
 
+    /// Update a nutrition entry in HealthKit using a Sendable snapshot.
+    /// Use this overload when crossing actor boundaries (e.g., from @MainActor views).
+    func updateNutritionEntry(_ snapshot: NutritionSnapshot) async throws {
+        try await deleteNutritionEntry(id: snapshot.id)
+        try await saveNutritionEntry(snapshot)
+        print("[HealthKit] Updated nutrition entry: \(snapshot.name)")
+    }
+
+    /// Save a nutrition entry to HealthKit using a Sendable snapshot.
+    /// Use this overload when crossing actor boundaries (e.g., from @MainActor views).
+    func saveNutritionEntry(_ snapshot: NutritionSnapshot) async throws {
+        guard HKHealthStore.isHealthDataAvailable() else {
+            throw HealthKitError.notAvailable
+        }
+
+        let metadata: [String: Any] = [
+            Self.airFitEntryIDKey: snapshot.id.uuidString,
+            HKMetadataKeyFoodType: snapshot.name
+        ]
+
+        var samples: [HKSample] = []
+
+        if snapshot.calories > 0 {
+            let calorieType = HKQuantityType(.dietaryEnergyConsumed)
+            let calorieQuantity = HKQuantity(unit: .kilocalorie(), doubleValue: Double(snapshot.calories))
+            let calorieSample = HKQuantitySample(
+                type: calorieType,
+                quantity: calorieQuantity,
+                start: snapshot.timestamp,
+                end: snapshot.timestamp,
+                metadata: metadata
+            )
+            samples.append(calorieSample)
+        }
+
+        if snapshot.protein > 0 {
+            let proteinType = HKQuantityType(.dietaryProtein)
+            let proteinQuantity = HKQuantity(unit: .gram(), doubleValue: Double(snapshot.protein))
+            let proteinSample = HKQuantitySample(
+                type: proteinType,
+                quantity: proteinQuantity,
+                start: snapshot.timestamp,
+                end: snapshot.timestamp,
+                metadata: metadata
+            )
+            samples.append(proteinSample)
+        }
+
+        if snapshot.carbs > 0 {
+            let carbsType = HKQuantityType(.dietaryCarbohydrates)
+            let carbsQuantity = HKQuantity(unit: .gram(), doubleValue: Double(snapshot.carbs))
+            let carbsSample = HKQuantitySample(
+                type: carbsType,
+                quantity: carbsQuantity,
+                start: snapshot.timestamp,
+                end: snapshot.timestamp,
+                metadata: metadata
+            )
+            samples.append(carbsSample)
+        }
+
+        if snapshot.fat > 0 {
+            let fatType = HKQuantityType(.dietaryFatTotal)
+            let fatQuantity = HKQuantity(unit: .gram(), doubleValue: Double(snapshot.fat))
+            let fatSample = HKQuantitySample(
+                type: fatType,
+                quantity: fatQuantity,
+                start: snapshot.timestamp,
+                end: snapshot.timestamp,
+                metadata: metadata
+            )
+            samples.append(fatSample)
+        }
+
+        guard !samples.isEmpty else {
+            print("[HealthKit] No samples to save for: \(snapshot.name)")
+            return
+        }
+
+        try await healthStore.save(samples)
+        print("[HealthKit] Saved \(samples.count) samples for: \(snapshot.name)")
+    }
+
     /// Delete a nutrition entry from HealthKit.
     ///
     /// Finds all samples with matching AirFitEntryID metadata and deletes them.

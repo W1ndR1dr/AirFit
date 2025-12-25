@@ -49,6 +49,32 @@ struct NutritionComponent: Codable, Identifiable {
     let fat: Int
 }
 
+/// Sendable snapshot of nutrition entry data for cross-actor sync (e.g., HealthKit)
+struct NutritionSnapshot: Sendable {
+    let id: UUID
+    let name: String
+    let calories: Int
+    let protein: Int
+    let carbs: Int
+    let fat: Int
+    let timestamp: Date
+}
+
+extension NutritionEntry {
+    /// Create a Sendable snapshot for cross-actor operations
+    func snapshot() -> NutritionSnapshot {
+        NutritionSnapshot(
+            id: id,
+            name: name,
+            calories: calories,
+            protein: protein,
+            carbs: carbs,
+            fat: fat,
+            timestamp: timestamp
+        )
+    }
+}
+
 extension NutritionEntry {
     static var today: Predicate<NutritionEntry> {
         let startOfDay = Calendar.current.startOfDay(for: Date())

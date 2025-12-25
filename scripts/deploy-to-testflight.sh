@@ -20,6 +20,7 @@
 #   ./scripts/deploy-to-testflight.sh --bump-version     # Force Claude to pick major/minor/patch
 #   ./scripts/deploy-to-testflight.sh --version 1.2.0    # Set specific version
 #   ./scripts/deploy-to-testflight.sh --skip-notes       # Skip changelog generation
+#   ./scripts/deploy-to-testflight.sh --force            # Deploy even with uncommitted changes
 #
 # FEATURES:
 #   - Auto-generates friendly release notes using Claude CLI
@@ -369,9 +370,14 @@ BUMP_VERSION=false
 AUTO_VERSION=false
 NEW_VERSION=""
 SKIP_NOTES=false
+FORCE_DEPLOY=false
 
 while [[ $# -gt 0 ]]; do
     case $1 in
+        --force)
+            FORCE_DEPLOY=true
+            shift
+            ;;
         --auto)
             AUTO_VERSION=true
             BUMP_BUILD=true  # Always bump build with --auto
@@ -453,6 +459,77 @@ if [[ ! -f "$EXPORT_OPTIONS_PATH" ]]; then
 fi
 
 echo "✅ ExportOptions.plist found"
+
+# ============================================================================
+# Git Pre-flight Check
+# ============================================================================
+
+echo ""
+echo "🔍 Checking git status..."
+
+# Check for uncommitted changes (staged or unstaged)
+STAGED_CHANGES=$(git diff --cached --name-only 2>/dev/null)
+UNSTAGED_CHANGES=$(git diff --name-only 2>/dev/null)
+UNTRACKED_FILES=$(git ls-files --others --exclude-standard 2>/dev/null | grep -E '\.(swift|m|h|plist|storyboard|xib|json|yml|yaml|sh)$' || true)
+
+HAS_ISSUES=false
+
+if [[ -n "$STAGED_CHANGES" ]]; then
+    echo ""
+    echo "⚠️  Staged changes not committed:"
+    echo "$STAGED_CHANGES" | sed 's/^/   /'
+    HAS_ISSUES=true
+fi
+
+if [[ -n "$UNSTAGED_CHANGES" ]]; then
+    echo ""
+    echo "⚠️  Unstaged changes:"
+    echo "$UNSTAGED_CHANGES" | sed 's/^/   /'
+    HAS_ISSUES=true
+fi
+
+if [[ -n "$UNTRACKED_FILES" ]]; then
+    echo ""
+    echo "⚠️  Untracked source files:"
+    echo "$UNTRACKED_FILES" | sed 's/^/   /'
+    HAS_ISSUES=true
+fi
+
+if [[ "$HAS_ISSUES" == true ]]; then
+    if [[ "$FORCE_DEPLOY" == true ]]; then
+        echo ""
+        echo "⚠️  --force specified, deploying with uncommitted changes"
+        echo "   (This build won't be fully traceable in git history)"
+    else
+        echo ""
+        echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+        echo "❌ Cannot deploy: uncommitted changes detected"
+        echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+        echo ""
+        echo "Every TestFlight build should be traceable to a git commit."
+        echo ""
+        echo "Options:"
+        echo "  1. Commit your changes:"
+        echo "     git add -A && git commit -m \"Your message\""
+        echo ""
+        echo "  2. Stash temporarily (not recommended):"
+        echo "     git stash"
+        echo ""
+        echo "  3. Force deploy anyway (use sparingly):"
+        echo "     $0 --force $*"
+        echo ""
+        exit 1
+    fi
+fi
+
+# Check if we're on a detached HEAD
+CURRENT_BRANCH=$(git rev-parse --abbrev-ref HEAD 2>/dev/null)
+if [[ "$CURRENT_BRANCH" == "HEAD" ]]; then
+    echo "⚠️  Warning: Deploying from detached HEAD state"
+fi
+
+CURRENT_COMMIT=$(git rev-parse --short HEAD 2>/dev/null)
+echo "✅ Git clean - deploying commit $CURRENT_COMMIT ($CURRENT_BRANCH)"
 
 # ============================================================================
 # Version/Build Management
