@@ -25,8 +25,8 @@ final class AudioCaptureManager {
     nonisolated(unsafe) private var audioBuffer: [Float] = []
     nonisolated(unsafe) private let bufferLock = NSLock()
 
-    /// WhisperKit expects 16kHz mono audio
-    private static let targetSampleRate: Double = 16000
+    /// WhisperKit expects 16kHz mono audio - nonisolated for audio thread access
+    nonisolated(unsafe) private static let targetSampleRate: Double = 16000
     private var converter: AVAudioConverter?
 
     // MARK: - Public API

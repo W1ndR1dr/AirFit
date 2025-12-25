@@ -1,0 +1,235 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AirFit Coach - Setup Guide</title>
+    <style>
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 40px 20px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+        }
+        .card {
+            background: white;
+            border-radius: 24px;
+            padding: 40px;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+        }
+        h1 {
+            color: #1a1a2e;
+            font-size: 2.5em;
+            margin-bottom: 10px;
+            text-align: center;
+        }
+        .subtitle {
+            color: #666;
+            text-align: center;
+            margin-bottom: 40px;
+            font-size: 1.2em;
+        }
+        .step {
+            display: flex;
+            align-items: flex-start;
+            margin-bottom: 30px;
+            padding: 20px;
+            background: #f8f9fa;
+            border-radius: 16px;
+        }
+        .step-number {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            width: 50px;
+            height: 50px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.5em;
+            font-weight: bold;
+            flex-shrink: 0;
+            margin-right: 20px;
+        }
+        .step-content h3 {
+            color: #1a1a2e;
+            margin-bottom: 8px;
+            font-size: 1.3em;
+        }
+        .step-content p {
+            color: #555;
+            line-height: 1.6;
+        }
+        .qr-section {
+            text-align: center;
+            padding: 30px;
+            background: linear-gradient(135deg, #f5f7fa 0%, #e4e8eb 100%);
+            border-radius: 20px;
+            margin: 30px 0;
+        }
+        .qr-section h2 {
+            color: #1a1a2e;
+            margin-bottom: 20px;
+        }
+        #qrcode {
+            display: inline-block;
+            padding: 20px;
+            background: white;
+            border-radius: 16px;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.1);
+        }
+        .qr-hint {
+            margin-top: 15px;
+            color: #666;
+            font-size: 0.95em;
+        }
+        .tips {
+            background: #e8f5e9;
+            padding: 25px;
+            border-radius: 16px;
+            margin-top: 30px;
+        }
+        .tips h3 {
+            color: #2e7d32;
+            margin-bottom: 15px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        .tips ul {
+            color: #1b5e20;
+            margin-left: 20px;
+        }
+        .tips li {
+            margin-bottom: 8px;
+            line-height: 1.5;
+        }
+        .footer {
+            text-align: center;
+            margin-top: 40px;
+            color: #999;
+            font-size: 0.9em;
+        }
+        .server-info {
+            background: #fff3e0;
+            padding: 15px 20px;
+            border-radius: 12px;
+            margin-top: 20px;
+            border-left: 4px solid #ff9800;
+        }
+        .server-info code {
+            background: #ffecb3;
+            padding: 4px 8px;
+            border-radius: 6px;
+            font-family: monospace;
+            font-size: 0.95em;
+        }
+        @media print {
+            body {
+                background: white;
+                padding: 0;
+            }
+            .card {
+                box-shadow: none;
+                border: 1px solid #ddd;
+            }
+        }
+    </style>
+    <script src="https://cdn.jsdelivr.net/npm/qrcode-generator@1.4.4/qrcode.min.js"></script>
+</head>
+<body>
+    <div class="card">
+        <h1>AirFit Coach</h1>
+        <p class="subtitle">Your Personal AI Fitness Coach</p>
+
+        <div class="step">
+            <div class="step-number">1</div>
+            <div class="step-content">
+                <h3>Install TestFlight</h3>
+                <p>Open the App Store on your iPhone and search for "<strong>TestFlight</strong>". Download and install the free app from Apple.</p>
+            </div>
+        </div>
+
+        <div class="step">
+            <div class="step-number">2</div>
+            <div class="step-content">
+                <h3>Accept the Invitation</h3>
+                <p>Check your email for a TestFlight invitation from Brian. Tap "<strong>View in TestFlight</strong>" to open the app in TestFlight.</p>
+            </div>
+        </div>
+
+        <div class="step">
+            <div class="step-number">3</div>
+            <div class="step-content">
+                <h3>Install AirFit Coach</h3>
+                <p>In TestFlight, tap "<strong>Install</strong>" next to AirFit Coach. Wait for the download to complete, then tap "<strong>Open</strong>".</p>
+            </div>
+        </div>
+
+        <div class="step">
+            <div class="step-number">4</div>
+            <div class="step-content">
+                <h3>Connect to the Server</h3>
+                <p>When the app opens, it will ask you to connect to the AI server. Scan the QR code below or enter the server address manually.</p>
+            </div>
+        </div>
+
+        <div class="qr-section">
+            <h2>Scan This QR Code</h2>
+            <div id="qrcode"></div>
+            <p class="qr-hint">Point your iPhone camera at this code during app setup</p>
+            <div class="server-info">
+                <strong>Manual entry:</strong> <code>http://192.168.86.50:8080</code>
+            </div>
+        </div>
+
+        <div class="step">
+            <div class="step-number">5</div>
+            <div class="step-content">
+                <h3>Allow Health Access</h3>
+                <p>The app will ask to connect to Apple Health. Tap "<strong>Allow All</strong>" so your AI coach can see your workouts, sleep, and activity data.</p>
+            </div>
+        </div>
+
+        <div class="step">
+            <div class="step-number">6</div>
+            <div class="step-content">
+                <h3>Start Chatting!</h3>
+                <p>You're all set! Start a conversation with your AI fitness coach. Ask about nutrition, workouts, recovery, or anything fitness-related.</p>
+            </div>
+        </div>
+
+        <div class="tips">
+            <h3>Quick Tips</h3>
+            <ul>
+                <li><strong>Same Wi-Fi</strong> - Make sure you're connected to the home Wi-Fi network to reach the server</li>
+                <li><strong>Track Meals</strong> - Just tell the AI what you ate, and it'll log your nutrition automatically</li>
+                <li><strong>Voice Input</strong> - Tap the microphone icon to speak instead of type</li>
+                <li><strong>Updates</strong> - TestFlight will notify you when new versions are available</li>
+            </ul>
+        </div>
+
+        <p class="footer">
+            Questions? Ask Brian for help!<br>
+            Made with AI
+        </p>
+    </div>
+
+    <script>
+        // Generate QR code
+        var typeNumber = 4;
+        var errorCorrectionLevel = 'M';
+        var qr = qrcode(typeNumber, errorCorrectionLevel);
+        qr.addData('airfit://server?url=http://192.168.86.50:8080');
+        qr.make();
+        document.getElementById('qrcode').innerHTML = qr.createSvgTag(6, 0);
+    </script>
+</body>
+</html>
