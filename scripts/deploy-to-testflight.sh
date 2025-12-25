@@ -15,8 +15,9 @@
 #
 # USAGE:
 #   ./scripts/deploy-to-testflight.sh                    # Deploy current version
-#   ./scripts/deploy-to-testflight.sh --bump-build       # Auto-increment build number
-#   ./scripts/deploy-to-testflight.sh --bump-version     # Claude decides major/minor/patch
+#   ./scripts/deploy-to-testflight.sh --auto             # [RECOMMENDED] Claude decides version bump
+#   ./scripts/deploy-to-testflight.sh --bump-build       # Only increment build number
+#   ./scripts/deploy-to-testflight.sh --bump-version     # Force Claude to pick major/minor/patch
 #   ./scripts/deploy-to-testflight.sh --version 1.2.0    # Set specific version
 #   ./scripts/deploy-to-testflight.sh --skip-notes       # Skip changelog generation
 #
@@ -113,9 +114,10 @@ EOF
 }
 
 # Determine version bump type using Claude CLI
-# Returns: MAJOR, MINOR, or PATCH
+# Returns: MAJOR, MINOR, PATCH, or BUILD (build-only, no version bump)
 determine_version_bump() {
     local previous_tag="$1"
+    local force_version="$2"  # If "true", always return a version bump (not BUILD)
 
     # Get commits since last tag (or last 20 commits if no tag)
     local commits
@@ -126,18 +128,28 @@ determine_version_bump() {
     fi
 
     if [[ -z "$commits" ]]; then
-        echo "PATCH"
+        if [[ "$force_version" == "true" ]]; then
+            echo "PATCH"
+        else
+            echo "BUILD"
+        fi
         return
     fi
 
     # Check if Claude CLI is available
     if ! command -v claude &> /dev/null; then
-        echo "PATCH"
+        if [[ "$force_version" == "true" ]]; then
+            echo "PATCH"
+        else
+            echo "BUILD"
+        fi
         return
     fi
 
     # Analyze commits with Claude
-    local prompt="You are analyzing git commits to determine the semantic version bump for an iOS app.
+    local prompt
+    if [[ "$force_version" == "true" ]]; then
+        prompt="You are analyzing git commits to determine the semantic version bump for an iOS app.
 
 RESPOND WITH EXACTLY ONE WORD: MAJOR, MINOR, or PATCH
 
@@ -150,12 +162,34 @@ Commits to analyze:
 $commits
 
 Your response (one word only):"
+    else
+        prompt="You are analyzing git commits to determine if a version bump is warranted for an iOS app.
+
+RESPOND WITH EXACTLY ONE WORD: MAJOR, MINOR, PATCH, or BUILD
+
+Rules (following semantic versioning best practices):
+- MAJOR: Breaking changes, major UI redesigns, data migrations, API changes
+- MINOR: New user-facing features, new screens, significant enhancements
+- PATCH: Bug fixes that users would notice, important stability fixes
+- BUILD: Internal changes only - refactoring, code cleanup, dev tooling, minor tweaks, chore commits
+
+Be conservative: most commits are BUILD. Only bump version for user-impacting changes.
+
+Commits to analyze:
+$commits
+
+Your response (one word only):"
+    fi
 
     local bump_type
-    bump_type=$(echo "$prompt" | claude --print 2>/dev/null | grep -oE '(MAJOR|MINOR|PATCH)' | head -1)
+    bump_type=$(echo "$prompt" | claude --print 2>/dev/null | grep -oE '(MAJOR|MINOR|PATCH|BUILD)' | head -1)
 
     if [[ -z "$bump_type" ]]; then
-        echo "PATCH"
+        if [[ "$force_version" == "true" ]]; then
+            echo "PATCH"
+        else
+            echo "BUILD"
+        fi
     else
         echo "$bump_type"
     fi
@@ -332,11 +366,17 @@ update_build_notes() {
 
 BUMP_BUILD=false
 BUMP_VERSION=false
+AUTO_VERSION=false
 NEW_VERSION=""
 SKIP_NOTES=false
 
 while [[ $# -gt 0 ]]; do
     case $1 in
+        --auto)
+            AUTO_VERSION=true
+            BUMP_BUILD=true  # Always bump build with --auto
+            shift
+            ;;
         --bump-build)
             BUMP_BUILD=true
             shift
@@ -423,16 +463,35 @@ INFO_PLIST="$PROJECT_DIR/AirFit/Info.plist"
 # Get current version for reference
 CURRENT_VERSION=$(/usr/libexec/PlistBuddy -c "Print :CFBundleShortVersionString" "$INFO_PLIST" 2>/dev/null || echo "1.0.0")
 
-# Auto-determine version bump using Claude
+# Find the previous version tag (used for both --auto and --bump-version)
+PREVIOUS_VERSION_TAG=$(git tag -l "v*" --sort=-version:refname | head -1)
+
+# Smart auto-versioning: Claude decides if version bump is needed
+if [[ "$AUTO_VERSION" == true ]]; then
+    echo ""
+    echo "🤖 Analyzing commits to determine versioning..."
+
+    # Determine bump type (can return BUILD for build-only)
+    BUMP_TYPE=$(determine_version_bump "$PREVIOUS_VERSION_TAG" "false")
+
+    if [[ "$BUMP_TYPE" == "BUILD" ]]; then
+        echo "   Decision: BUILD only (no version bump needed)"
+        echo "   Reason: Changes are internal/minor - bumping build number only"
+    else
+        # Calculate new version
+        NEW_VERSION=$(calculate_new_version "$CURRENT_VERSION" "$BUMP_TYPE")
+        echo "   Decision: $BUMP_TYPE version bump"
+        echo "   Version: $CURRENT_VERSION → $NEW_VERSION"
+    fi
+fi
+
+# Forced version bump: Claude picks major/minor/patch (no BUILD option)
 if [[ "$BUMP_VERSION" == true ]]; then
     echo ""
-    echo "🤖 Analyzing commits to determine version bump..."
+    echo "🤖 Analyzing commits to determine version bump type..."
 
-    # Find the previous version tag
-    PREVIOUS_VERSION_TAG=$(git tag -l "v*" --sort=-version:refname | head -1)
-
-    # Determine bump type
-    BUMP_TYPE=$(determine_version_bump "$PREVIOUS_VERSION_TAG")
+    # Determine bump type (forced - will return MAJOR/MINOR/PATCH, not BUILD)
+    BUMP_TYPE=$(determine_version_bump "$PREVIOUS_VERSION_TAG" "true")
 
     # Calculate new version
     NEW_VERSION=$(calculate_new_version "$CURRENT_VERSION" "$BUMP_TYPE")
