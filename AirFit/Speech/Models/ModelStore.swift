@@ -55,9 +55,37 @@ actor ModelStore {
                     installedModels[id] = model
                 }
             }
+
+            // Migrate old model IDs to new IDs
+            try await migrateModelIds()
         }
 
         isLoaded = true
+    }
+
+    /// Migrate old model IDs to new naming scheme
+    private func migrateModelIds() async throws {
+        var needsSave = false
+
+        // Migration: "small-en-realtime" -> "small-en"
+        if let oldModel = installedModels["small-en-realtime"] {
+            storeLogger.info("💾 Migrating model ID: small-en-realtime -> small-en")
+            // Create new entry with updated descriptor
+            let migratedModel = InstalledModel(
+                descriptor: ModelCatalog.realtimeSmallEN,
+                installedAt: oldModel.installedAt,
+                path: oldModel.path,
+                actualSizeBytes: oldModel.actualSizeBytes
+            )
+            installedModels["small-en"] = migratedModel
+            installedModels.removeValue(forKey: "small-en-realtime")
+            needsSave = true
+        }
+
+        if needsSave {
+            try await saveManifest()
+            storeLogger.info("💾 Model ID migration complete")
+        }
     }
 
     /// Check if a model is installed
