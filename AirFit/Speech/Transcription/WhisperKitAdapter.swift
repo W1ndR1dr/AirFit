@@ -48,7 +48,7 @@ actor WhisperKitAdapter {
 
     // MARK: - Model Loading
 
-    /// Load a WhisperKit model by variant name (e.g., "large-v3-turbo")
+    /// Load a WhisperKit model by variant name (folder name or glob)
     /// WhisperKit handles downloading and caching automatically
     func loadModel(variant: String) async throws {
         guard !isLoading else { return }

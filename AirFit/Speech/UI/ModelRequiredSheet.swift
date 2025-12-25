@@ -46,7 +46,7 @@ struct ModelRequiredSheet: View {
                         .font(.headlineLarge)
                         .foregroundStyle(Theme.textPrimary)
 
-                    Text("Your voice stays on your phone. The model runs locally for fast, private transcription.")
+                    Text("Your voice stays on your phone. We run one on-device model for fast, private transcription.")
                         .font(.bodyMedium)
                         .foregroundStyle(Theme.textSecondary)
                         .multilineTextAlignment(.center)
@@ -452,7 +452,7 @@ private struct TechDetailsSheet: View {
                                 .font(.headline)
                                 .foregroundStyle(Theme.textPrimary)
 
-                            Text("AirFit records your voice, then transcribes the full audio in one pass for accuracy and punctuation.")
+                            Text("AirFit records your voice, then transcribes the full clip in a single pass for accuracy and punctuation.")
                                 .font(.caption)
                                 .foregroundStyle(Theme.textSecondary)
 
@@ -524,6 +524,43 @@ private struct TechDetailsSheet: View {
                             }
                             .padding()
                             .background(Theme.surface, in: RoundedRectangle(cornerRadius: 12))
+                        }
+
+                        // MLX options (Mac reference)
+                        VStack(alignment: .leading, spacing: 12) {
+                            Label("MLX Options (Mac)", systemImage: "laptopcomputer")
+                                .font(.headline)
+                                .foregroundStyle(Theme.textPrimary)
+
+                            Text("For Mac apps or desktop workflows, MLX offers optimized Whisper variants. AirFit on iPhone uses CoreML via WhisperKit.")
+                                .font(.caption)
+                                .foregroundStyle(Theme.textSecondary)
+
+                            VStack(alignment: .leading, spacing: 8) {
+                                MLXOptionRow(
+                                    title: "mlx-community/whisper-large-v3-turbo",
+                                    description: "Fastest top-tier accuracy on Apple silicon."
+                                )
+                                MLXOptionRow(
+                                    title: "mlx-community/whisper-large-v3-mlx",
+                                    description: "Best quality, higher memory use."
+                                )
+                                MLXOptionRow(
+                                    title: "mlx-community/whisper-medium.en-mlx",
+                                    description: "Balanced speed and quality."
+                                )
+                            }
+                            .padding()
+                            .background(Theme.surface, in: RoundedRectangle(cornerRadius: 12))
+
+                            Link(destination: URL(string: "https://github.com/ml-explore/mlx-examples")!) {
+                                HStack(spacing: 4) {
+                                    Image(systemName: "arrow.up.right.square")
+                                    Text("MLX Whisper examples")
+                                }
+                                .font(.caption)
+                                .foregroundStyle(Theme.accent)
+                            }
                         }
                     }
                 }
@@ -620,6 +657,24 @@ private struct DetailBullet: View {
                     .font(.caption)
                     .foregroundStyle(Theme.textSecondary)
             }
+        }
+    }
+}
+
+private struct MLXOptionRow: View {
+    let title: String
+    let description: String
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 2) {
+            Text(title)
+                .font(.caption2)
+                .foregroundStyle(Theme.textPrimary)
+                .fontDesign(.monospaced)
+
+            Text(description)
+                .font(.caption)
+                .foregroundStyle(Theme.textSecondary)
         }
     }
 }

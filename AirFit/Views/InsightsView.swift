@@ -653,10 +653,6 @@ struct PremiumInsightChatSheet: View {
     @State private var hasAutoStarted = false
 
     // Voice input
-    @State private var isVoiceInputActive = false
-    @State private var showVoiceOverlay = false
-    @State private var showModelRequired = false
-    @State private var speechManager = WhisperTranscriptionService.shared
 
     // Provider selection
     @AppStorage("aiProvider") private var aiProvider = "claude"
@@ -718,20 +714,16 @@ struct PremiumInsightChatSheet: View {
 
                 // Input with voice
                 HStack(spacing: 12) {
-                    HStack(spacing: 8) {
-                        TextField("Ask about this insight...", text: $inputText)
-                            .font(.bodyMedium)
-                            .textFieldStyle(.plain)
-
-                        // Voice input button (disabled - WhisperKit crash investigation)
-                        // VoiceInputButton(isRecording: isVoiceInputActive) {
-                        //     startVoiceInput()
-                        // }
-                    }
-                    .padding(.horizontal, 16)
-                    .padding(.vertical, 12)
-                    .background(.ultraThinMaterial)
-                    .clipShape(RoundedRectangle(cornerRadius: 24, style: .continuous))
+                    VoiceTextField(
+                        placeholder: "Ask about this insight...",
+                        text: $inputText,
+                        voiceEnabled: true,
+                        useInlineMode: true,
+                        cornerRadius: 24,
+                        useMaterial: true,
+                        onSubmit: { Task { await sendMessage() } },
+                        submitLabel: .send
+                    )
 
                     Button {
                         Task { await sendMessage() }
@@ -759,58 +751,6 @@ struct PremiumInsightChatSheet: View {
                 guard !hasAutoStarted else { return }
                 hasAutoStarted = true
                 await sendInitialPrompt()
-            }
-            // MARK: - Voice Input Disabled (WhisperKit crash investigation)
-            // .fullScreenCover(isPresented: $showVoiceOverlay) {
-            //     VoiceInputOverlay(
-            //         speechManager: speechManager,
-            //         onComplete: { transcript in
-            //             inputText = transcript
-            //             showVoiceOverlay = false
-            //             isVoiceInputActive = false
-            //             Task { await sendMessage() }
-            //         },
-            //         onCancel: {
-            //             showVoiceOverlay = false
-            //             isVoiceInputActive = false
-            //         }
-            //     )
-            //     .background(ClearBackgroundView())
-            // }
-            // .sheet(isPresented: $showModelRequired) {
-            //     ModelRequiredSheet {
-            //         startVoiceInput()
-            //     }
-            // }
-        }
-    }
-
-    // MARK: - Voice Input
-
-    private func startVoiceInput() {
-        Task {
-            // Check if WhisperKit models are installed
-            await ModelManager.shared.load()
-            let hasModels = await ModelManager.shared.hasRequiredModels()
-
-            guard hasModels else {
-                showModelRequired = true
-                return
-            }
-
-            do {
-                isVoiceInputActive = true
-                try await speechManager.startListening()
-                showVoiceOverlay = true
-            } catch WhisperTranscriptionService.TranscriptionError.modelsNotInstalled {
-                isVoiceInputActive = false
-                showModelRequired = true
-            } catch {
-                isVoiceInputActive = false
-                print("Failed to start voice input: \(error)")
-                if String(describing: error).lowercased().contains("model") {
-                    showModelRequired = true
-                }
             }
         }
     }

@@ -11,7 +11,7 @@ struct ModelDescriptor: Codable, Identifiable, Sendable, Hashable {
     /// Folder name on HuggingFace (e.g., "openai_whisper-small.en_217MB")
     let folderName: String
 
-    /// Model name to pass to WhisperKit (e.g., "small.en")
+    /// Model name to pass to WhisperKit (folder name or glob)
     let whisperKitModel: String
 
     /// Approximate size in bytes
@@ -78,7 +78,7 @@ extension ModelDescriptor {
 
         var icon: String {
             switch self {
-            case .realtime: return "waveform"
+            case .realtime: return "bolt.fill"
             case .final: return "sparkles"
             }
         }

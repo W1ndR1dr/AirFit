@@ -207,11 +207,16 @@ struct InlineVoiceInputView: View {
                 spacing: 3
             )
             .padding(.horizontal, 8)
+            .frame(maxWidth: .infinity, maxHeight: .infinity)
+            .opacity(speechManager.isSpeechDetected ? 0.9 : 0.65)
+            .mask(waveformMask)
 
             HStack(spacing: 12) {
                 Text(statusText)
                     .font(.bodyMedium)
                     .foregroundStyle(Theme.textPrimary)
+                    .lineLimit(1)
+                    .minimumScaleFactor(0.8)
                     .contentTransition(.opacity)
                     .animation(.bloomSubtle, value: statusText)
 
@@ -246,7 +251,7 @@ struct InlineVoiceInputView: View {
             }
             .padding(.horizontal, 16)
         }
-        .frame(maxWidth: .infinity)
+        .frame(maxWidth: .infinity, minHeight: 24)
     }
 
     private var statusText: String {
@@ -257,6 +262,19 @@ struct InlineVoiceInputView: View {
             return "Listening..."
         }
         return "Waiting for speech..."
+    }
+
+    private var waveformMask: some View {
+        LinearGradient(
+            colors: [
+                .clear,
+                .black.opacity(0.85),
+                .black.opacity(0.85),
+                .clear
+            ],
+            startPoint: .leading,
+            endPoint: .trailing
+        )
     }
 }
 

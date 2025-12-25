@@ -15,10 +15,6 @@ struct OnboardingInterviewView: View {
     @State private var showingCompletion = false
     @State private var sessionId: String?
     @State private var conversationHistory: [ConversationMessage] = []
-    @State private var isVoiceInputActive = false
-    @State private var showVoiceOverlay = false
-    @State private var showModelRequired = false
-    @State private var speechManager = WhisperTranscriptionService.shared
     @FocusState private var isInputFocused: Bool
 
     let onComplete: () -> Void
@@ -119,28 +115,6 @@ struct OnboardingInterviewView: View {
         .task {
             await startInterview()
         }
-        // MARK: - Voice Input Disabled (WhisperKit crash investigation)
-        // .fullScreenCover(isPresented: $showVoiceOverlay) {
-        //     VoiceInputOverlay(
-        //         speechManager: speechManager,
-        //         onComplete: { transcript in
-        //             inputText = transcript
-        //             showVoiceOverlay = false
-        //             isVoiceInputActive = false
-        //             sendMessage()
-        //         },
-        //         onCancel: {
-        //             showVoiceOverlay = false
-        //             isVoiceInputActive = false
-        //         }
-        //     )
-        //     .background(ClearBackgroundView())
-        // }
-        // .sheet(isPresented: $showModelRequired) {
-        //     ModelRequiredSheet {
-        //         startVoiceInput()
-        //     }
-        // }
     }
 
     // MARK: - Header
@@ -209,32 +183,23 @@ struct OnboardingInterviewView: View {
 
     private var inputBar: some View {
         HStack(spacing: 12) {
-            // Text field with voice input
-            HStack(spacing: 8) {
-                TextField("Say something...", text: $inputText, axis: .vertical)
-                    .font(.bodyMedium)
-                    .textFieldStyle(.plain)
-                    .focused($isInputFocused)
-                    .lineLimit(1...5)
-                    .submitLabel(.send)
-                    .onSubmit {
-                        if !inputText.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
-                            sendMessage()
-                        }
+            // Text field with inline voice waveform
+            VoiceTextField(
+                placeholder: "Say something...",
+                text: $inputText,
+                axis: .vertical,
+                lineLimit: 1...5,
+                voiceEnabled: true,
+                useInlineMode: true,
+                cornerRadius: 24,
+                useMaterial: true,
+                focusState: $isInputFocused,
+                onSubmit: {
+                    if !inputText.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
+                        sendMessage()
                     }
-
-                // Voice input button (disabled - WhisperKit crash investigation)
-                // VoiceInputButton(isRecording: isVoiceInputActive) {
-                //     startVoiceInput()
-                // }
-            }
-            .padding(.horizontal, 16)
-            .padding(.vertical, 12)
-            .background(.ultraThinMaterial)
-            .clipShape(RoundedRectangle(cornerRadius: 24, style: .continuous))
-            .overlay(
-                RoundedRectangle(cornerRadius: 24, style: .continuous)
-                    .stroke(Theme.textMuted.opacity(0.2), lineWidth: 1)
+                },
+                submitLabel: .send
             )
 
             Button(action: sendMessage) {
@@ -371,36 +336,6 @@ struct OnboardingInterviewView: View {
 
         Only set a field to true when the user has CLEARLY provided that information.
         """
-    }
-
-    // MARK: - Voice Input
-
-    private func startVoiceInput() {
-        Task {
-            // Check if WhisperKit models are installed
-            await ModelManager.shared.load()
-            let hasModels = await ModelManager.shared.hasRequiredModels()
-
-            guard hasModels else {
-                showModelRequired = true
-                return
-            }
-
-            do {
-                isVoiceInputActive = true
-                try await speechManager.startListening()
-                showVoiceOverlay = true
-            } catch WhisperTranscriptionService.TranscriptionError.modelsNotInstalled {
-                isVoiceInputActive = false
-                showModelRequired = true
-            } catch {
-                isVoiceInputActive = false
-                print("Failed to start voice input: \(error)")
-                if String(describing: error).lowercased().contains("model") {
-                    showModelRequired = true
-                }
-            }
-        }
     }
 
     private func sendMessage() {

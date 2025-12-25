@@ -49,30 +49,24 @@ struct VoiceTextField: View {
 
     @State private var speechManager = WhisperTranscriptionService.shared
 
-    // Track if we just showed the model sheet (to prevent auto-start)
-    @State private var justShowedModelSheet = false
-
     // MARK: - Body
 
     var body: some View {
         ZStack {
             if isVoiceInputActive && useInlineMode {
                 // Inline voice input replaces the text field
-                InlineVoiceInputView(
-                    speechManager: speechManager,
-                    onComplete: { transcript in
-                        text = transcript
-                        isVoiceInputActive = false
-                        onSubmit?()
-                    },
-                    onCancel: {
-                        isVoiceInputActive = false
-                    }
-                )
+                fieldShell {
+                    InlineVoiceInputView(
+                        speechManager: speechManager,
+                        onCancel: {
+                            isVoiceInputActive = false
+                        }
+                    )
+                }
                 .transition(.opacity.combined(with: .scale(scale: 0.95)))
             } else {
                 // Normal text field with mic button
-                textFieldContent
+                fieldShell { textFieldCore }
                     .transition(.opacity.combined(with: .scale(scale: 0.95)))
             }
         }
@@ -94,7 +88,6 @@ struct VoiceTextField: View {
         .sheet(isPresented: $showModelRequired, onDismiss: {
             // Ensure all voice state is reset when model sheet closes
             resetVoiceState()
-            justShowedModelSheet = true
         }) {
             ModelRequiredSheet()
             // Don't auto-start - user will tap mic again to start
@@ -104,7 +97,7 @@ struct VoiceTextField: View {
     // MARK: - Text Field Content
 
     @ViewBuilder
-    private var textFieldContent: some View {
+    private var textFieldCore: some View {
         HStack(spacing: 8) {
             // Text field
             Group {
@@ -130,14 +123,21 @@ struct VoiceTextField: View {
                 }
             }
         }
-        .padding(.horizontal, 16)
-        .padding(.vertical, 12)
-        .background(backgroundView)
-        .clipShape(RoundedRectangle(cornerRadius: cornerRadius, style: .continuous))
-        .overlay(
-            RoundedRectangle(cornerRadius: cornerRadius, style: .continuous)
-                .stroke(Theme.textMuted.opacity(0.2), lineWidth: 1)
-        )
+    }
+
+    private func fieldShell<Content: View>(@ViewBuilder content: () -> Content) -> some View {
+        let isRecording = isVoiceInputActive && useInlineMode
+        let borderColor = isRecording ? Theme.accent.opacity(0.4) : Theme.textMuted.opacity(0.2)
+        return content()
+            .frame(maxWidth: .infinity)
+            .padding(.horizontal, 16)
+            .padding(.vertical, 12)
+            .background(backgroundView)
+            .clipShape(RoundedRectangle(cornerRadius: cornerRadius, style: .continuous))
+            .overlay(
+                RoundedRectangle(cornerRadius: cornerRadius, style: .continuous)
+                    .stroke(borderColor, lineWidth: 1)
+            )
     }
 
     @ViewBuilder
@@ -164,17 +164,28 @@ struct VoiceTextField: View {
             // Ensure speech manager state is clean
             await speechManager.cancel()
 
+            // Ensure model manager is loaded
+            await ModelManager.shared.load()
+
+            // Check if models are installed
+            let hasModels = await ModelManager.shared.hasRequiredModels()
+            guard hasModels else {
+                showModelRequired = true
+                return
+            }
+
             // Setup completion handler
             speechManager.onTranscriptionComplete = { transcript in
                 Task { @MainActor in
-                    if !transcript.isEmpty {
-                        text = transcript
+                    let trimmed = transcript.trimmingCharacters(in: .whitespacesAndNewlines)
+                    if !trimmed.isEmpty {
+                        text = trimmed
+                        if useInlineMode {
+                            onSubmit?()
+                        }
                     }
                     isVoiceInputActive = false
                     showOverlay = false
-                    if useInlineMode {
-                        onSubmit?()
-                    }
                 }
             }
 
@@ -192,7 +203,11 @@ struct VoiceTextField: View {
             } catch {
                 logger.error("🎤 Failed to start: \(error.localizedDescription)")
                 resetVoiceState()
-                // TODO: Show error to user
+                // Fallback for model-related errors
+                let errorString = String(describing: error).lowercased()
+                if errorString.contains("model") || errorString.contains("whisper") {
+                    showModelRequired = true
+                }
             }
         }
     }

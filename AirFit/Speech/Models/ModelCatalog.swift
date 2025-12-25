@@ -25,7 +25,7 @@ struct ModelCatalog: Sendable {
         minRAMGB: 4
     )
 
-    /// Large v3 Turbo for maximum accuracy final pass
+    /// Large v3 Turbo for maximum accuracy
     /// Note: whisperKitModel uses full folder names to avoid ambiguous matches
     static let finalLargeV3Turbo = ModelDescriptor(
         id: "large-v3-turbo",
@@ -63,7 +63,7 @@ struct ModelCatalog: Sendable {
         allModels.filter { $0.purpose == .realtime }
     }
 
-    /// Get all final pass models
+    /// Get all quality models
     static var finalModels: [ModelDescriptor] {
         allModels.filter { $0.purpose == .final }
     }

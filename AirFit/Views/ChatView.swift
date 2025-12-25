@@ -24,10 +24,6 @@ struct ChatView: View {
     @State private var showingPhotoPicker = false  // Photo picker for food logging
     @State private var selectedPhoto: PhotosPickerItem?  // Selected photo from picker
     @State private var isAnalyzingPhoto = false  // Photo analysis in progress
-    @State private var isVoiceInputActive = false  // Voice input recording state
-    @State private var showVoiceOverlay = false  // Voice input overlay
-    @State private var showModelRequired = false  // Model download sheet for voice
-    @State private var speechManager = WhisperTranscriptionService.shared
     @State private var pendingSeed: ConversationSeed?  // Conversation seed waiting to start
     @State private var activeSeed: ConversationSeed?  // Currently active seed (nil = normal coaching)
     @FocusState private var isInputFocused: Bool
@@ -227,12 +223,6 @@ struct ChatView: View {
                 }
             )
         }
-        // MARK: - Voice Input Disabled (WhisperKit crash investigation)
-        // .sheet(isPresented: $showModelRequired) {
-        //     ModelRequiredSheet {
-        //         startVoiceInput()
-        //     }
-        // }
         .photosPicker(
             isPresented: $showingPhotoPicker,
             selection: $selectedPhoto,
@@ -242,22 +232,6 @@ struct ChatView: View {
         .onChange(of: selectedPhoto) { _, newItem in
             Task { await processSelectedPhoto(newItem) }
         }
-        // .fullScreenCover(isPresented: $showVoiceOverlay) {
-        //     VoiceInputOverlay(
-        //         speechManager: speechManager,
-        //         onComplete: { transcript in
-        //             inputText = transcript
-        //             showVoiceOverlay = false
-        //             isVoiceInputActive = false
-        //             Task { await sendMessage() }
-        //         },
-        //         onCancel: {
-        //             showVoiceOverlay = false
-        //             isVoiceInputActive = false
-        //         }
-        //     )
-        //     .background(ClearBackgroundView())
-        // }
     }
 
     // MARK: - Message View Builder
@@ -516,32 +490,19 @@ struct ChatView: View {
     private var inputArea: some View {
         VStack(spacing: 0) {
             HStack(spacing: 12) {
-                // Text field with voice input
-                HStack(spacing: 8) {
-                    TextField("Message", text: $inputText)
-                        .font(.bodyMedium)
-                        .textFieldStyle(.plain)
-                        .autocorrectionDisabled()
-                        .textContentType(.none)
-                        .textInputAutocapitalization(.sentences)
-                        .focused($isInputFocused)
-                        .submitLabel(.send)
-                        .onSubmit {
-                            Task { await sendMessage() }
-                        }
-
-                    // Voice input button (disabled - WhisperKit crash investigation)
-                    // VoiceInputButton(isRecording: isVoiceInputActive) {
-                    //     startVoiceInput()
-                    // }
-                }
-                .padding(.horizontal, 16)
-                .padding(.vertical, 12)
-                .background(Theme.surface)
-                .clipShape(RoundedRectangle(cornerRadius: 24, style: .continuous))
-                .overlay(
-                    RoundedRectangle(cornerRadius: 24, style: .continuous)
-                        .stroke(Theme.textMuted.opacity(0.2), lineWidth: 1)
+                // Text field with inline voice waveform
+                VoiceTextField(
+                    placeholder: "Message",
+                    text: $inputText,
+                    axis: .vertical,
+                    lineLimit: 1...5,
+                    voiceEnabled: true,
+                    useInlineMode: true,
+                    cornerRadius: 24,
+                    useMaterial: false,
+                    focusState: $isInputFocused,
+                    onSubmit: { Task { await sendMessage() } },
+                    submitLabel: .send
                 )
 
                 // Send button - only visible when there's text
@@ -574,36 +535,6 @@ struct ChatView: View {
         } else {
             // Show feature gate prompt
             showPhotoFeatureGate = true
-        }
-    }
-
-    /// Start voice input for speech-to-text
-    private func startVoiceInput() {
-        Task {
-            // Check if WhisperKit models are installed
-            await ModelManager.shared.load()
-            let hasModels = await ModelManager.shared.hasRequiredModels()
-
-            guard hasModels else {
-                showModelRequired = true
-                return
-            }
-
-            do {
-                isVoiceInputActive = true
-                try await speechManager.startListening()
-                showVoiceOverlay = true
-            } catch WhisperTranscriptionService.TranscriptionError.modelsNotInstalled {
-                isVoiceInputActive = false
-                showModelRequired = true
-            } catch {
-                isVoiceInputActive = false
-                print("Failed to start voice input: \(error)")
-                // Show model sheet as fallback for model-related errors
-                if String(describing: error).lowercased().contains("model") {
-                    showModelRequired = true
-                }
-            }
         }
     }
 

@@ -50,6 +50,14 @@ Model selection is tuned to device RAM, with optional quality modes in Settings.
 | iPhone 15 Plus | 6 GB | distil-large-v3 |
 | Older devices | 4 GB | small-en-realtime |
 
+## MLX Options (Mac Reference)
+
+AirFit on iPhone uses CoreML via WhisperKit. For Mac apps or desktop tooling, MLX has optimized Whisper variants:
+
+- `mlx-community/whisper-large-v3-turbo` (fastest top-tier accuracy)
+- `mlx-community/whisper-large-v3-mlx` (best quality, higher memory use)
+- `mlx-community/whisper-medium.en-mlx` (balanced speed and quality)
+
 ## Storage Locations
 
 - **Models**: `Application Support/WhisperModels/{folderName}/`

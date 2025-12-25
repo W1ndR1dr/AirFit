@@ -1,7 +1,7 @@
 import Foundation
 
 /// Provides device-specific model recommendations
-/// Simplified: Only ONE model needed (no realtime preview, just final transcription)
+/// Single-pass: one model per transcription
 struct ModelRecommendation: Sendable {
 
     /// The detected device information
@@ -50,17 +50,17 @@ struct ModelRecommendation: Sendable {
     var optimizationExplanation: String {
         switch finalModel.id {
         case ModelCatalog.finalLargeV3Turbo.id:
-            return "Your \(deviceInfo.marketingName) can handle our highest-accuracy model."
+            return "Auto picked the highest-accuracy model based on your RAM and thermal headroom."
         case ModelCatalog.finalDistilLargeV3.id:
-            return "Balanced for smooth performance on your \(deviceInfo.marketingName)."
+            return "Auto picked a balanced model for accuracy with lower heat."
         default:
-            return "Optimized for reliable speech on older or lower-memory devices."
+            return "Auto picked the lightest model for stability and battery."
         }
     }
 
     /// Short tagline for the device
     var deviceTagline: String {
-        "Auto-selected for \(deviceInfo.marketingName)"
+        "Auto-selected \(finalModel.displayName) for \(deviceInfo.marketingName)"
     }
 
     /// Technical details for power users (shown in tooltip)
@@ -144,13 +144,13 @@ extension ModelRecommendation {
         var description: String {
             switch self {
             case .auto:
-                return "Picks the best model for your phone"
+                return "Best balance for your hardware"
             case .highQuality:
-                return "Highest accuracy, more memory and heat"
+                return "Highest accuracy, more heat and memory"
             case .batterySaver:
                 return "Great accuracy with cooler operation"
             case .fast:
-                return "Lightweight and quick"
+                return "Lowest latency, lightest model"
             }
         }
 

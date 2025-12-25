@@ -49,10 +49,6 @@ struct NutritionView: View {
     @State private var workoutSwitchBanner = false
 
     // Voice input
-    @State private var isVoiceInputActive = false
-    @State private var showVoiceOverlay = false
-    @State private var showModelRequired = false
-    @State private var speechManager = WhisperTranscriptionService.shared
 
     private let apiClient = APIClient()
     private let geminiService = GeminiService()
@@ -335,28 +331,6 @@ struct NutritionView: View {
         } message: {
             Text("Please enable camera access in Settings to use food photo analysis.")
         }
-        // MARK: - Voice Input Disabled (WhisperKit crash investigation)
-        // .fullScreenCover(isPresented: $showVoiceOverlay) {
-        //     VoiceInputOverlay(
-        //         speechManager: speechManager,
-        //         onComplete: { transcript in
-        //             inputText = transcript
-        //             showVoiceOverlay = false
-        //             isVoiceInputActive = false
-        //             Task { await logFood() }
-        //         },
-        //         onCancel: {
-        //             showVoiceOverlay = false
-        //             isVoiceInputActive = false
-        //         }
-        //     )
-        //     .background(ClearBackgroundView())
-        // }
-        // .sheet(isPresented: $showModelRequired) {
-        //     ModelRequiredSheet {
-        //         startVoiceInput()
-        //     }
-        // }
     }
 
     // MARK: - Scrollytelling Macro Hero
@@ -842,26 +816,21 @@ struct NutritionView: View {
                 }
                 .disabled(isLoading || isAnalyzingPhoto)
 
-                // Text field with voice input
-                HStack(spacing: 8) {
-                    TextField(isToday ? "Log food..." : "Log food for \(selectedDate, format: .dateTime.weekday(.abbreviated))...", text: $inputText, axis: .vertical)
-                        .font(.bodyMedium)
-                        .textFieldStyle(.plain)
-                        .lineLimit(1...3)
-                        .focused($isInputFocused)
-
-                    // Voice input button (disabled - WhisperKit crash investigation)
-                    // VoiceInputButton(isRecording: isVoiceInputActive) {
-                    //     startVoiceInput()
-                    // }
-                }
-                .padding(.horizontal, 16)
-                .padding(.vertical, 12)
-                .background(Theme.surface)
-                .clipShape(RoundedRectangle(cornerRadius: 24, style: .continuous))
-                .overlay(
-                    RoundedRectangle(cornerRadius: 24, style: .continuous)
-                        .stroke(Theme.textMuted.opacity(0.2), lineWidth: 1)
+                // Text field with inline voice waveform
+                VoiceTextField(
+                    placeholder: isToday
+                        ? "Log food..."
+                        : "Log food for \(selectedDate.formatted(.dateTime.weekday(.abbreviated)))...",
+                    text: $inputText,
+                    axis: .vertical,
+                    lineLimit: 1...3,
+                    voiceEnabled: true,
+                    useInlineMode: true,
+                    cornerRadius: 24,
+                    useMaterial: false,
+                    focusState: $isInputFocused,
+                    onSubmit: { Task { await logFood() } },
+                    submitLabel: .done
                 )
 
                 // Show loader when processing, submit button only when there's text
@@ -968,37 +937,6 @@ struct NutritionView: View {
         }
 
         isAnalyzingPhoto = false
-    }
-
-    // MARK: - Voice Input
-
-    /// Start voice input for speech-to-text food logging
-    private func startVoiceInput() {
-        Task {
-            // Check if WhisperKit models are installed
-            await ModelManager.shared.load()
-            let hasModels = await ModelManager.shared.hasRequiredModels()
-
-            guard hasModels else {
-                showModelRequired = true
-                return
-            }
-
-            do {
-                isVoiceInputActive = true
-                try await speechManager.startListening()
-                showVoiceOverlay = true
-            } catch WhisperTranscriptionService.TranscriptionError.modelsNotInstalled {
-                isVoiceInputActive = false
-                showModelRequired = true
-            } catch {
-                isVoiceInputActive = false
-                print("Failed to start voice input: \(error)")
-                if String(describing: error).lowercased().contains("model") {
-                    showModelRequired = true
-                }
-            }
-        }
     }
 
     /// Process a selected photo for food analysis
@@ -1520,12 +1458,6 @@ struct EditNutritionSheet: View {
     @State private var isLoading = false
     @State private var showManualEdit = false
 
-    // Voice input state
-    @State private var isVoiceInputActive = false
-    @State private var showVoiceOverlay = false
-    @State private var showModelRequired = false
-    @State private var speechManager = WhisperTranscriptionService.shared
-
     // Manual edit fields
     @State private var name: String = ""
     @State private var calories: String = ""
@@ -1575,55 +1507,6 @@ struct EditNutritionSheet: View {
                 fat = String(entry.fat)
                 timestamp = entry.timestamp
                 originalTimestamp = entry.timestamp
-            }
-            // MARK: - Voice Input Disabled (WhisperKit crash investigation)
-            // .overlay {
-            //     if showVoiceOverlay {
-            //         VoiceInputOverlay(speechManager: speechManager) { transcript in
-            //             correctionText = transcript
-            //             isVoiceInputActive = false
-            //             showVoiceOverlay = false
-            //         } onCancel: {
-            //             isVoiceInputActive = false
-            //             showVoiceOverlay = false
-            //         }
-            //         .background(ClearBackgroundView())
-            //     }
-            // }
-            // .sheet(isPresented: $showModelRequired) {
-            //     ModelRequiredSheet {
-            //         startVoiceInput()
-            //     }
-            // }
-        }
-    }
-
-    // MARK: - Voice Input
-
-    private func startVoiceInput() {
-        Task {
-            // Check if WhisperKit models are installed
-            await ModelManager.shared.load()
-            let hasModels = await ModelManager.shared.hasRequiredModels()
-
-            guard hasModels else {
-                showModelRequired = true
-                return
-            }
-
-            do {
-                isVoiceInputActive = true
-                try await speechManager.startListening()
-                showVoiceOverlay = true
-            } catch WhisperTranscriptionService.TranscriptionError.modelsNotInstalled {
-                isVoiceInputActive = false
-                showModelRequired = true
-            } catch {
-                isVoiceInputActive = false
-                print("Failed to start voice input: \(error)")
-                if String(describing: error).lowercased().contains("model") {
-                    showModelRequired = true
-                }
             }
         }
     }
@@ -1675,22 +1558,17 @@ struct EditNutritionSheet: View {
                     .tracking(1.5)
                     .foregroundStyle(Theme.textMuted)
 
-                HStack(spacing: 8) {
-                    TextField("e.g., \"that was a large portion\" or \"add cheese\"",
-                              text: $correctionText,
-                              axis: .vertical)
-                        .font(.bodyMedium)
-                        .textFieldStyle(.plain)
-                        .lineLimit(2...4)
-
-                    // Voice input disabled - WhisperKit crash investigation
-                    // VoiceInputButton(isRecording: isVoiceInputActive) {
-                    //     startVoiceInput()
-                    // }
-                }
-                .padding(16)
-                .background(.ultraThinMaterial)
-                .clipShape(RoundedRectangle(cornerRadius: 16, style: .continuous))
+                VoiceTextField(
+                    placeholder: "e.g., \"that was a large portion\" or \"add cheese\"",
+                    text: $correctionText,
+                    axis: .vertical,
+                    lineLimit: 2...4,
+                    voiceEnabled: true,
+                    useInlineMode: true,
+                    cornerRadius: 16,
+                    useMaterial: true,
+                    submitLabel: .done
+                )
             }
             .padding(.horizontal, 20)
 

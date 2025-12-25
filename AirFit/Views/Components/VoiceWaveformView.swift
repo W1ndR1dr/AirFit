@@ -5,7 +5,7 @@ import SwiftUI
 /// Beautiful real-time waveform visualization that responds to microphone input
 /// Inspired by Claude and ChatGPT voice interfaces - organic, breathing animation
 struct VoiceWaveformView: View {
-    /// Audio levels array from SpeechTranscriptionManager (0.0 - 1.0)
+    /// Audio levels array from WhisperTranscriptionService (0.0 - 1.0)
     let audioLevels: [Float]
 
     /// Whether speech is currently being detected
@@ -26,8 +26,6 @@ struct VoiceWaveformView: View {
     /// Spacing between bars
     var spacing: CGFloat = 3
 
-    @State private var animationPhase: Double = 0
-
     var body: some View {
         TimelineView(.animation(minimumInterval: 1/60)) { timeline in
             let time = timeline.date.timeIntervalSinceReferenceDate
@@ -41,7 +39,8 @@ struct VoiceWaveformView: View {
                         isSpeechDetected: isSpeechDetected,
                         minHeight: minHeight,
                         maxHeight: maxHeight,
-                        barWidth: barWidth
+                        barWidth: barWidth,
+                        totalBars: barCount
                     )
                 }
             }
@@ -72,6 +71,7 @@ struct WaveformBar: View {
     let minHeight: CGFloat
     let maxHeight: CGFloat
     let barWidth: CGFloat
+    let totalBars: Int
 
     private var height: CGFloat {
         // Base height from audio level
@@ -95,7 +95,8 @@ struct WaveformBar: View {
 
     private var barOpacity: Double {
         // Center bars are more prominent
-        let centerDistance = abs(CGFloat(index) - 12) / 12.0
+        let center = CGFloat(max(totalBars - 1, 1)) / 2
+        let centerDistance = abs(CGFloat(index) - center) / max(center, 1)
         let baseOpacity = 1.0 - (centerDistance * 0.3)
 
         // Boost opacity when speaking
@@ -170,6 +171,7 @@ struct FullWidthWaveformView: View {
             )
             .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .center)
         }
+        .frame(maxWidth: .infinity, maxHeight: .infinity)
     }
 }
 
