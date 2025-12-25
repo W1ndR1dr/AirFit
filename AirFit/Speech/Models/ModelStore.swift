@@ -46,18 +46,25 @@ actor ModelStore {
 
         // Load manifest if exists
         if FileManager.default.fileExists(atPath: manifestURL.path) {
-            let data = try Data(contentsOf: manifestURL)
-            let manifest = try JSONDecoder().decode([String: InstalledModel].self, from: data)
+            do {
+                let data = try Data(contentsOf: manifestURL)
+                let manifest = try JSONDecoder().decode([String: InstalledModel].self, from: data)
 
-            // Verify each model still exists on disk
-            for (id, model) in manifest {
-                if FileManager.default.fileExists(atPath: model.path) {
-                    installedModels[id] = model
+                // Verify each model still exists on disk
+                for (id, model) in manifest {
+                    if FileManager.default.fileExists(atPath: model.path) {
+                        installedModels[id] = model
+                    }
                 }
-            }
 
-            // Migrate old model IDs to new IDs
-            try await migrateModelIds()
+                // Migrate old model IDs to new IDs
+                try await migrateModelIds()
+            } catch {
+                // Manifest is corrupted or has outdated schema - reset it
+                storeLogger.warning("💾 Failed to decode manifest, resetting: \(error.localizedDescription)")
+                installedModels = [:]
+                try? FileManager.default.removeItem(at: manifestURL)
+            }
         }
 
         isLoaded = true
