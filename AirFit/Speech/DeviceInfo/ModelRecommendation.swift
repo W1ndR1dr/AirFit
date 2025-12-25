@@ -50,11 +50,11 @@ struct ModelRecommendation: Sendable {
     var optimizationExplanation: String {
         switch finalModel.id {
         case ModelCatalog.finalLargeV3Turbo.id:
-            return "Your \(deviceInfo.marketingName) can handle our highest-accuracy model."
+            return "Your \(deviceInfo.marketingName) has \(deviceInfo.ramGB)GB RAM—perfect for our highest-accuracy Pro model."
         case ModelCatalog.finalDistilLargeV3.id:
-            return "Balanced for smooth performance on your \(deviceInfo.marketingName)."
+            return "Standard mode balances accuracy and efficiency for your \(deviceInfo.marketingName)."
         default:
-            return "Optimized for reliable speech on older or lower-memory devices."
+            return "Lite mode selected for fast, reliable transcription on your device."
         }
     }
 
@@ -134,23 +134,32 @@ extension ModelRecommendation {
 
         var displayName: String {
             switch self {
-            case .auto: return "Auto (Recommended)"
-            case .highQuality: return "Best Quality"
-            case .batterySaver: return "Balanced"
-            case .fast: return "Fast"
+            case .auto: return "Auto"
+            case .highQuality: return "Pro"
+            case .batterySaver: return "Standard"
+            case .fast: return "Lite"
+            }
+        }
+
+        var subtitle: String {
+            switch self {
+            case .auto: return "Recommended"
+            case .highQuality: return "Whisper Large v3 Turbo"
+            case .batterySaver: return "Distil-Whisper Large v3"
+            case .fast: return "Whisper Small"
             }
         }
 
         var description: String {
             switch self {
             case .auto:
-                return "Picks the best model for your phone"
+                return "Automatically selects the best model based on your device's memory and processor"
             case .highQuality:
-                return "Highest accuracy, more memory and heat"
+                return "Maximum transcription accuracy. May use more battery during extended use."
             case .batterySaver:
-                return "Great accuracy with cooler operation"
+                return "Near-identical accuracy with 6x faster processing. Optimized for efficiency."
             case .fast:
-                return "Lightweight and quick"
+                return "Fastest processing with smallest download. English only."
             }
         }
 
@@ -160,6 +169,20 @@ extension ModelRecommendation {
             case .highQuality: return "star.fill"
             case .batterySaver: return "leaf.fill"
             case .fast: return "bolt.fill"
+            }
+        }
+
+        /// Detailed tooltip for info buttons
+        var tooltip: String {
+            switch self {
+            case .auto:
+                return "Your device is analyzed to pick the optimal model. High-RAM devices (8GB+) get Pro, mid-range (6GB) get Standard, and older devices get Lite."
+            case .highQuality:
+                return "OpenAI Whisper Large v3 Turbo with intelligent compression. ~2.4% word error rate. Requires 8GB+ RAM. Best transcription quality available."
+            case .batterySaver:
+                return "Distil-Whisper Large v3 by Hugging Face. 6x faster than Pro with 99% of the accuracy. Runs cooler for extended recording sessions."
+            case .fast:
+                return "Whisper Small optimized for English. ~3% word error rate. Only 217 MB download. Ideal for quick voice notes or limited storage."
             }
         }
     }

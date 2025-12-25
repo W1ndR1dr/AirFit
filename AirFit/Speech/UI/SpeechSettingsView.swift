@@ -236,12 +236,7 @@ struct SpeechSettingsView: View {
     }
 
     private func badgeText(for mode: ModelRecommendation.QualityMode) -> String {
-        switch mode {
-        case .auto: return "Auto"
-        case .highQuality: return "Best"
-        case .batterySaver: return "Balanced"
-        case .fast: return "Fast"
-        }
+        mode.displayName
     }
 
     private func badgeColor(for mode: ModelRecommendation.QualityMode) -> Color {
@@ -284,28 +279,49 @@ private struct InstalledModelRow: View {
     let isRecommended: Bool
     let onDelete: () -> Void
 
+    @State private var showingTooltip = false
+
     var body: some View {
         HStack(spacing: 12) {
             VStack(alignment: .leading, spacing: 4) {
                 HStack(spacing: 6) {
                     Text(model.displayName)
-                        .font(.bodyMedium)
+                        .font(.headlineMedium)
                         .foregroundStyle(Theme.textPrimary)
 
                     if isRecommended {
-                        Image(systemName: "star.fill")
+                        Text("Active")
                             .font(.caption2)
-                            .foregroundStyle(Theme.accent)
+                            .fontWeight(.medium)
+                            .foregroundStyle(.white)
+                            .padding(.horizontal, 6)
+                            .padding(.vertical, 2)
+                            .background(Theme.accent, in: Capsule())
+                    }
+
+                    // Info button for tooltip
+                    Button {
+                        showingTooltip = true
+                    } label: {
+                        Image(systemName: "info.circle")
+                            .font(.caption)
+                            .foregroundStyle(Theme.textMuted)
                     }
                 }
 
-                HStack(spacing: 8) {
-                    Label(model.purpose.displayName, systemImage: purposeIcon)
-                        .font(.caption)
-                        .foregroundStyle(Theme.textMuted)
+                Text(model.subtitle)
+                    .font(.caption)
+                    .foregroundStyle(Theme.textSecondary)
 
-                    Text("•")
-                        .foregroundStyle(Theme.textMuted)
+                HStack(spacing: 8) {
+                    if let badge = model.languageBadge {
+                        Text(badge)
+                            .font(.caption2)
+                            .foregroundStyle(Theme.accent)
+                            .padding(.horizontal, 6)
+                            .padding(.vertical, 2)
+                            .background(Theme.accent.opacity(0.12), in: Capsule())
+                    }
 
                     Text(size)
                         .font(.caption)
@@ -319,14 +335,16 @@ private struct InstalledModelRow: View {
                 onDelete()
             } label: {
                 Image(systemName: "trash")
-                    .foregroundStyle(Theme.error)
+                    .font(.body)
+                    .foregroundStyle(Theme.error.opacity(0.8))
             }
         }
-        .padding(.vertical, 4)
-    }
-
-    private var purposeIcon: String {
-        model.purpose == .realtime ? "bolt.fill" : "sparkles"
+        .padding(.vertical, 6)
+        .alert("About \(model.displayName)", isPresented: $showingTooltip) {
+            Button("OK", role: .cancel) {}
+        } message: {
+            Text(model.description)
+        }
     }
 }
 
@@ -341,13 +359,15 @@ private struct AvailableModelRow: View {
     let onDownload: () -> Void
     let onCancel: () -> Void
 
+    @State private var showingTooltip = false
+
     var body: some View {
         VStack(spacing: 8) {
             HStack(spacing: 12) {
                 VStack(alignment: .leading, spacing: 4) {
                     HStack(spacing: 6) {
                         Text(model.displayName)
-                            .font(.bodyMedium)
+                            .font(.headlineMedium)
                             .foregroundStyle(Theme.textPrimary)
 
                         if isRecommended {
@@ -359,15 +379,30 @@ private struct AvailableModelRow: View {
                                 .padding(.vertical, 2)
                                 .background(Theme.accent, in: Capsule())
                         }
+
+                        // Info button for tooltip
+                        Button {
+                            showingTooltip = true
+                        } label: {
+                            Image(systemName: "info.circle")
+                                .font(.caption)
+                                .foregroundStyle(Theme.textMuted)
+                        }
                     }
 
-                    HStack(spacing: 8) {
-                        Label(model.purpose.displayName, systemImage: purposeIcon)
-                            .font(.caption)
-                            .foregroundStyle(Theme.textMuted)
+                    Text(model.subtitle)
+                        .font(.caption)
+                        .foregroundStyle(Theme.textSecondary)
 
-                        Text("•")
-                            .foregroundStyle(Theme.textMuted)
+                    HStack(spacing: 8) {
+                        if let badge = model.languageBadge {
+                            Text(badge)
+                                .font(.caption2)
+                                .foregroundStyle(Theme.accent)
+                                .padding(.horizontal, 6)
+                                .padding(.vertical, 2)
+                                .background(Theme.accent.opacity(0.12), in: Capsule())
+                        }
 
                         Text(model.formattedSize)
                             .font(.caption)
@@ -409,11 +444,12 @@ private struct AvailableModelRow: View {
                 }
             }
         }
-        .padding(.vertical, 4)
-    }
-
-    private var purposeIcon: String {
-        model.purpose == .realtime ? "bolt.fill" : "sparkles"
+        .padding(.vertical, 6)
+        .alert("About \(model.displayName)", isPresented: $showingTooltip) {
+            Button("OK", role: .cancel) {}
+        } message: {
+            Text(model.description)
+        }
     }
 }
 
@@ -424,26 +460,63 @@ private struct QualityModeRow: View {
     let model: ModelDescriptor?
     let isSelected: Bool
 
+    @State private var showingTooltip = false
+
     var body: some View {
         HStack(spacing: 12) {
             Image(systemName: mode.iconName)
-                .font(.system(size: 16))
+                .font(.system(size: 18, weight: .medium))
                 .foregroundStyle(isSelected ? Theme.accent : Theme.textMuted)
-                .frame(width: 24)
+                .frame(width: 28)
 
-            VStack(alignment: .leading, spacing: 2) {
-                Text(mode.displayName)
-                    .font(.bodyMedium)
-                    .foregroundStyle(Theme.textPrimary)
+            VStack(alignment: .leading, spacing: 3) {
+                HStack(spacing: 6) {
+                    Text(mode.displayName)
+                        .font(.headlineMedium)
+                        .foregroundStyle(Theme.textPrimary)
+
+                    if mode == .auto {
+                        Text(mode.subtitle)
+                            .font(.caption2)
+                            .fontWeight(.medium)
+                            .foregroundStyle(Theme.accent)
+                            .padding(.horizontal, 6)
+                            .padding(.vertical, 2)
+                            .background(Theme.accent.opacity(0.12), in: Capsule())
+                    }
+
+                    // Info button for tooltip
+                    Button {
+                        showingTooltip = true
+                    } label: {
+                        Image(systemName: "info.circle")
+                            .font(.caption)
+                            .foregroundStyle(Theme.textMuted)
+                    }
+                }
+
+                if mode != .auto {
+                    Text(mode.subtitle)
+                        .font(.caption)
+                        .foregroundStyle(Theme.textSecondary)
+                }
 
                 Text(mode.description)
                     .font(.caption)
                     .foregroundStyle(Theme.textMuted)
+                    .lineLimit(2)
 
                 if let model {
-                    Text("\(model.displayName) • \(model.formattedSize)")
-                        .font(.caption2)
-                        .foregroundStyle(Theme.textSecondary)
+                    HStack(spacing: 6) {
+                        if let badge = model.languageBadge {
+                            Text(badge)
+                                .font(.caption2)
+                                .foregroundStyle(Theme.accent)
+                        }
+                        Text(model.formattedSize)
+                            .font(.caption2)
+                            .foregroundStyle(Theme.textSecondary)
+                    }
                 }
             }
 
@@ -451,18 +524,24 @@ private struct QualityModeRow: View {
 
             if isSelected {
                 Image(systemName: "checkmark.circle.fill")
+                    .font(.title3)
                     .foregroundStyle(Theme.accent)
             }
         }
-        .padding(12)
+        .padding(14)
         .background(
-            RoundedRectangle(cornerRadius: 12)
-                .fill(isSelected ? Theme.accent.opacity(0.12) : Theme.surface)
+            RoundedRectangle(cornerRadius: 14)
+                .fill(isSelected ? Theme.accent.opacity(0.10) : Theme.surface)
         )
         .overlay(
-            RoundedRectangle(cornerRadius: 12)
-                .stroke(isSelected ? Theme.accent.opacity(0.4) : Theme.textMuted.opacity(0.15), lineWidth: 1)
+            RoundedRectangle(cornerRadius: 14)
+                .stroke(isSelected ? Theme.accent.opacity(0.5) : Theme.textMuted.opacity(0.12), lineWidth: 1.5)
         )
+        .alert("About \(mode.displayName) Mode", isPresented: $showingTooltip) {
+            Button("OK", role: .cancel) {}
+        } message: {
+            Text(mode.tooltip)
+        }
     }
 }
 

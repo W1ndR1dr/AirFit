@@ -2,11 +2,17 @@ import Foundation
 
 /// Describes a WhisperKit CoreML model available for download
 struct ModelDescriptor: Codable, Identifiable, Sendable, Hashable {
-    /// Unique identifier (e.g., "small-en-realtime")
+    /// Unique identifier (e.g., "small-en", "large-v3-turbo")
     let id: String
 
-    /// User-facing display name
+    /// User-facing display name (short, e.g., "Pro", "Standard", "Lite")
     let displayName: String
+
+    /// Subtitle shown below the name (e.g., "Whisper Large v3 Turbo")
+    let subtitle: String
+
+    /// Detailed description for tooltips explaining the model's characteristics
+    let description: String
 
     /// Folder name on HuggingFace (e.g., "openai_whisper-small.en_217MB")
     let folderName: String
@@ -26,11 +32,24 @@ struct ModelDescriptor: Codable, Identifiable, Sendable, Hashable {
     /// Minimum RAM in GB required to run this model
     let minRAMGB: Int
 
+    /// Languages supported (nil = multilingual, ["en"] = English only)
+    let languages: [String]?
+
     // MARK: - Computed Properties
 
     /// Size formatted for display (e.g., "632 MB")
     var formattedSize: String {
         ByteCountFormatter.string(fromByteCount: sizeBytes, countStyle: .file)
+    }
+
+    /// Whether this model only supports English
+    var isEnglishOnly: Bool {
+        languages == ["en"]
+    }
+
+    /// Language badge text for UI
+    var languageBadge: String? {
+        isEnglishOnly ? "English" : nil
     }
 
     /// HuggingFace tree URL for the model folder

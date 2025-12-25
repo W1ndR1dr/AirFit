@@ -5,50 +5,59 @@ struct ModelCatalog: Sendable {
 
     // MARK: - Baked-in Models
 
-    /// All available models for download
+    /// All available models for download, ordered by quality (highest first)
     static let allModels: [ModelDescriptor] = [
-        realtimeSmallEN,
         finalLargeV3Turbo,
-        finalDistilLargeV3
+        finalDistilLargeV3,
+        realtimeSmallEN
     ]
 
-    /// Small English model for fast, lightweight transcription
-    /// Note: whisperKitModel uses full folder names to avoid ambiguous matches
-    static let realtimeSmallEN = ModelDescriptor(
-        id: "small-en-realtime",
-        displayName: "Fast",
-        folderName: "openai_whisper-small.en_217MB",
-        whisperKitModel: "openai_whisper-small.en_217MB",
-        sizeBytes: 217_878_408,
-        sha256: nil,
-        purpose: .realtime,
-        minRAMGB: 4
-    )
-
-    /// Large v3 Turbo for maximum accuracy final pass
-    /// Note: whisperKitModel uses full folder names to avoid ambiguous matches
+    /// OpenAI Whisper Large v3 Turbo - Maximum accuracy with intelligent compression
+    /// Best for iPhone 15 Pro and newer (8GB+ RAM)
     static let finalLargeV3Turbo = ModelDescriptor(
         id: "large-v3-turbo",
-        displayName: "Best Quality",
+        displayName: "Pro",
+        subtitle: "Whisper Large v3 Turbo",
+        description: "Highest accuracy transcription powered by OpenAI's flagship model with intelligent compression. Achieves ~2.4% word error rate. Recommended for iPhone 15 Pro and newer with 8GB+ RAM.",
         folderName: "openai_whisper-large-v3-v20240930_turbo_632MB",
         whisperKitModel: "openai_whisper-large-v3-v20240930_turbo_632MB",
         sizeBytes: 645_668_913,
         sha256: nil,
         purpose: .final,
-        minRAMGB: 8
+        minRAMGB: 8,
+        languages: nil  // Multilingual
     )
 
-    /// Distil Large v3 Turbo for balanced performance
-    /// Note: whisperKitModel uses full folder names to avoid ambiguous matches
+    /// Distil-Whisper Large v3 - 6x faster with near-identical accuracy
+    /// Optimized for efficiency and thermal management
     static let finalDistilLargeV3 = ModelDescriptor(
         id: "distil-large-v3",
-        displayName: "Balanced",
+        displayName: "Standard",
+        subtitle: "Distil-Whisper Large v3",
+        description: "Excellent accuracy with 6x faster processing than the full model. Distilled from Whisper Large v3 by Hugging Face, retaining 99% of accuracy while running cooler. Great for extended use.",
         folderName: "distil-whisper_distil-large-v3_turbo_600MB",
         whisperKitModel: "distil-whisper_distil-large-v3_turbo_600MB",
         sizeBytes: 607_114_331,
         sha256: nil,
         purpose: .final,
-        minRAMGB: 6
+        minRAMGB: 6,
+        languages: nil  // Multilingual
+    )
+
+    /// Whisper Small (English) - Lightweight and fast
+    /// Ideal for quick voice notes or older devices
+    static let realtimeSmallEN = ModelDescriptor(
+        id: "small-en",
+        displayName: "Lite",
+        subtitle: "Whisper Small (English)",
+        description: "Lightweight model optimized for speed. English-only with ~3% word error rate. Perfect for quick voice notes, older devices, or when conserving battery. Uses minimal memory.",
+        folderName: "openai_whisper-small.en_217MB",
+        whisperKitModel: "openai_whisper-small.en_217MB",
+        sizeBytes: 217_878_408,
+        sha256: nil,
+        purpose: .realtime,
+        minRAMGB: 4,
+        languages: ["en"]  // English only
     )
 
     // MARK: - Lookup

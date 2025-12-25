@@ -35,20 +35,26 @@ Model selection is tuned to device RAM, with optional quality modes in Settings.
 
 ## Models
 
-| ID | Model | Size | Purpose |
-|----|-------|------|---------|
-| `small-en-realtime` | openai_whisper-small.en_217MB | ~218 MB | Fast, lightweight |
-| `large-v3-turbo` | openai_whisper-large-v3-v20240930_turbo_632MB | ~646 MB | Best accuracy (8GB+ RAM) |
-| `distil-large-v3` | distil-whisper_distil-large-v3_turbo_600MB | ~607 MB | Balanced mode |
+| ID | Name | Subtitle | Size | WER | Languages |
+|----|------|----------|------|-----|-----------|
+| `large-v3-turbo` | Pro | Whisper Large v3 Turbo | ~632 MB | ~2.4% | Multilingual |
+| `distil-large-v3` | Standard | Distil-Whisper Large v3 | ~600 MB | ~2.5% | Multilingual |
+| `small-en` | Lite | Whisper Small | ~218 MB | ~3.0% | English only |
+
+### Model Details
+
+- **Pro**: OpenAI's Whisper Large v3 with intelligent OD-MBP compression. Highest accuracy available.
+- **Standard**: HuggingFace Distil-Whisper, 6x faster than Pro with 99% of the accuracy. Runs cooler.
+- **Lite**: Lightweight English-only model. Fast processing, smallest download.
 
 ## Device Recommendations
 
-| Device | RAM | Default Model |
-|--------|-----|---------------------|
-| iPhone 16 Pro | 8 GB | large-v3-turbo |
-| iPhone 15 Pro | 8 GB | large-v3-turbo |
-| iPhone 15 Plus | 6 GB | distil-large-v3 |
-| Older devices | 4 GB | small-en-realtime |
+| Device | RAM | Default Mode | Model Used |
+|--------|-----|--------------|------------|
+| iPhone 16 Pro | 8 GB | Pro | large-v3-turbo |
+| iPhone 15 Pro | 8 GB | Pro | large-v3-turbo |
+| iPhone 15 Plus | 6 GB | Standard | distil-large-v3 |
+| Older devices | 4 GB | Lite | small-en |
 
 ## Storage Locations
 
@@ -89,18 +95,22 @@ NavigationLink {
 ```swift
 static let newModel = ModelDescriptor(
     id: "new-model-id",
-    displayName: "Display Name",
+    displayName: "Name",           // Short name: "Pro", "Standard", "Lite"
+    subtitle: "Whisper Model Name", // Technical name for subtitle
+    description: "Detailed description for tooltips...",
     folderName: "huggingface_folder_name",
     whisperKitModel: "model-folder-name",
     sizeBytes: 500_000_000,
     sha256: nil,
     purpose: .final,
-    minRAMGB: 6
+    minRAMGB: 6,
+    languages: nil  // nil = multilingual, ["en"] = English only
 )
 ```
 
-2. Add to `allModels` array
+2. Add to `allModels` array (ordered by quality, highest first)
 3. Update `ModelRecommendation` logic if needed
+4. If changing model IDs, add migration in `ModelStore.migrateModelIds()`
 
 ## HuggingFace Integration
 
