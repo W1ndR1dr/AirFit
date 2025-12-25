@@ -26,11 +26,6 @@ struct AirFitSplashView: View {
 
     private var duration: Double { useLongAnimation ? 2.2 : 0.4 }
 
-    // FIXED positions - these NEVER change
-    private let logoSize: CGFloat = 360
-    private let logoY: CGFloat = -50
-    private let wordmarkY: CGFloat = 155
-
     // Appearance-adaptive colors - MUST match LaunchBackground.colorset exactly for seamless transition
     private var backgroundColor: Color {
         colorScheme == .dark
@@ -55,73 +50,92 @@ struct AirFitSplashView: View {
     }
 
     var body: some View {
-        ZStack {
-            // Adaptive background
-            backgroundColor
-                .ignoresSafeArea()
+        GeometryReader { geometry in
+            // Screen-relative sizing for consistent visual proportions across devices
+            // Base: iPhone 16 Pro (393 x 852), scale proportionally for other sizes
+            let screenWidth = geometry.size.width
+            let screenHeight = geometry.size.height
 
-            // Warm glow - FIXED position, appears with logo (scaled with logo size)
-            RadialGradient(
-                colors: glowColors,
-                center: .center,
-                startRadius: 50,
-                endRadius: 320
-            )
-            .opacity(glowOpacity)
-            .offset(y: logoY)
+            // Logo: ~92% of screen width on base device (360/393)
+            let logoSize = screenWidth * 0.916
+            // Y offset: ~5.9% of screen height above center (50/852)
+            let logoY = -screenHeight * 0.059
+            // Wordmark: ~18.2% of screen height below center (155/852)
+            let wordmarkY = screenHeight * 0.182
+            // Glow scales with logo
+            let glowEndRadius = logoSize * 0.89  // 320/360
+            // Font scales with screen width
+            let wordmarkFontSize = screenWidth * 0.097  // 38/393
 
-            // Logo - FIXED position, always opacity=1, animated via mask+blur
-            // Uses LaunchLogo which has light/dark variants
-            // NO scale animation - must match native launch screen exactly for seamless handoff
-            Image("LaunchLogo")
-                .resizable()
-                .aspectRatio(contentMode: .fit)
-                .frame(width: logoSize, height: logoSize)
-                // Soft radial edge fade
-                .mask(
-                    RadialGradient(
-                        colors: [.white, .white, .white.opacity(0.95), .white.opacity(0.4), .clear],
-                        center: .center,
-                        startRadius: logoSize * 0.22,
-                        endRadius: logoSize * 0.48
-                    )
+            ZStack {
+                // Adaptive background
+                backgroundColor
+                    .ignoresSafeArea()
+
+                // Warm glow - scales with logo
+                RadialGradient(
+                    colors: glowColors,
+                    center: .center,
+                    startRadius: logoSize * 0.14,  // 50/360
+                    endRadius: glowEndRadius
                 )
-                // Bottom-to-top reveal (flame rising) - for onboarding animation
-                .mask(
-                    VStack(spacing: 0) {
-                        Color.clear
-                            .frame(height: logoSize * (1 - flameReveal))
-                        Color.white
-                    }
-                    .frame(width: logoSize, height: logoSize)
-                )
-                .blur(radius: flameBlur)
+                .opacity(glowOpacity)
                 .offset(y: logoY)
 
-            // Wordmark - FIXED position, simple opacity+blur fade
-            if showWordmark {
-                Text("AirFit")
-                    .font(.system(size: 38, weight: .bold, design: .rounded))
-                    .foregroundStyle(
-                        LinearGradient(
-                            colors: colorScheme == .dark
-                                ? [
-                                    Color(red: 255/255, green: 150/255, blue: 110/255),  // Peachy orange
-                                    Color(red: 230/255, green: 105/255, blue: 155/255)   // Pink
-                                ]
-                                : [
-                                    Color(red: 0.5, green: 0.3, blue: 0.8),  // Purple to match light icon
-                                    Color(red: 0.85, green: 0.4, blue: 0.55)  // Magenta pink
-                                ],
-                            startPoint: .leading,
-                            endPoint: .trailing
+                // Logo - proportionally sized and positioned
+                // NO scale animation - must match native launch screen exactly for seamless handoff
+                Image("LaunchLogo")
+                    .resizable()
+                    .aspectRatio(contentMode: .fit)
+                    .frame(width: logoSize, height: logoSize)
+                    // Soft radial edge fade
+                    .mask(
+                        RadialGradient(
+                            colors: [.white, .white, .white.opacity(0.95), .white.opacity(0.4), .clear],
+                            center: .center,
+                            startRadius: logoSize * 0.22,
+                            endRadius: logoSize * 0.48
                         )
                     )
-                    .blur(radius: wordmarkBlur)
-                    .opacity(wordmarkOpacity)
-                    .offset(y: wordmarkY)
+                    // Bottom-to-top reveal (flame rising) - for onboarding animation
+                    .mask(
+                        VStack(spacing: 0) {
+                            Color.clear
+                                .frame(height: logoSize * (1 - flameReveal))
+                            Color.white
+                        }
+                        .frame(width: logoSize, height: logoSize)
+                    )
+                    .blur(radius: flameBlur)
+                    .offset(y: logoY)
+
+                // Wordmark - proportionally sized and positioned
+                if showWordmark {
+                    Text("AirFit")
+                        .font(.system(size: wordmarkFontSize, weight: .bold, design: .rounded))
+                        .foregroundStyle(
+                            LinearGradient(
+                                colors: colorScheme == .dark
+                                    ? [
+                                        Color(red: 255/255, green: 150/255, blue: 110/255),  // Peachy orange
+                                        Color(red: 230/255, green: 105/255, blue: 155/255)   // Pink
+                                    ]
+                                    : [
+                                        Color(red: 0.5, green: 0.3, blue: 0.8),  // Purple to match light icon
+                                        Color(red: 0.85, green: 0.4, blue: 0.55)  // Magenta pink
+                                    ],
+                                startPoint: .leading,
+                                endPoint: .trailing
+                            )
+                        )
+                        .blur(radius: wordmarkBlur)
+                        .opacity(wordmarkOpacity)
+                        .offset(y: wordmarkY)
+                }
             }
+            .frame(width: screenWidth, height: screenHeight)
         }
+        .ignoresSafeArea()
         .onAppear {
             animate()
         }
