@@ -194,72 +194,69 @@ struct VoiceInputOverlay: View {
 /// Smaller inline voice input that appears within the text field area
 struct InlineVoiceInputView: View {
     @Bindable var speechManager: WhisperTranscriptionService
-    let onComplete: (String) -> Void
     let onCancel: () -> Void
 
     var body: some View {
-        HStack(spacing: 12) {
-            // Waveform
-            CompactWaveformView(
+        ZStack {
+            FullWidthWaveformView(
                 audioLevels: speechManager.audioLevels,
-                isSpeechDetected: speechManager.isSpeechDetected
+                isSpeechDetected: speechManager.isSpeechDetected,
+                minHeight: 6,
+                maxHeight: 26,
+                barWidth: 3,
+                spacing: 3
             )
-            .frame(width: 40)
+            .padding(.horizontal, 8)
 
-            // Transcript or placeholder
-            Group {
-                if speechManager.transcript.isEmpty {
-                    Text("Listening...")
-                        .foregroundStyle(Theme.textMuted)
-                } else {
-                    Text(speechManager.transcript)
-                        .foregroundStyle(Theme.textPrimary)
-                        .lineLimit(2)
-                }
-            }
-            .font(.bodyMedium)
-            .frame(maxWidth: .infinity, alignment: .leading)
-            .contentTransition(.opacity)
-            .animation(.bloomSubtle, value: speechManager.transcript)
+            HStack(spacing: 12) {
+                Text(statusText)
+                    .font(.bodyMedium)
+                    .foregroundStyle(Theme.textPrimary)
+                    .contentTransition(.opacity)
+                    .animation(.bloomSubtle, value: statusText)
 
-            // Cancel button
-            Button {
-                Task {
-                    await speechManager.cancel()
-                    onCancel()
-                }
-            } label: {
-                Image(systemName: "xmark.circle.fill")
-                    .font(.system(size: 24))
-                    .foregroundStyle(Theme.textMuted)
-            }
+                Spacer()
 
-            // Done button
-            Button {
-                Task {
-                    await speechManager.stopListening()
-                    let text = speechManager.transcript.trimmingCharacters(in: .whitespacesAndNewlines)
-                    if !text.isEmpty {
-                        onComplete(text)
-                    } else {
+                Button {
+                    Task {
+                        await speechManager.cancel()
                         onCancel()
                     }
+                } label: {
+                    Image(systemName: "xmark")
+                        .font(.system(size: 12, weight: .semibold))
+                        .foregroundStyle(Theme.textSecondary)
+                        .frame(width: 24, height: 24)
+                        .background(Theme.surface.opacity(0.8), in: Circle())
                 }
-            } label: {
-                Image(systemName: "checkmark.circle.fill")
-                    .font(.system(size: 28))
-                    .foregroundStyle(speechManager.transcript.isEmpty ? Theme.textMuted : Theme.accent)
+                .buttonStyle(.plain)
+
+                Button {
+                    Task {
+                        await speechManager.stopListening()
+                    }
+                } label: {
+                    Image(systemName: "checkmark")
+                        .font(.system(size: 12, weight: .semibold))
+                        .foregroundStyle(.white)
+                        .frame(width: 24, height: 24)
+                        .background(Theme.accent, in: Circle())
+                }
+                .buttonStyle(.plain)
             }
-            .disabled(speechManager.transcript.isEmpty)
+            .padding(.horizontal, 16)
         }
-        .padding(.horizontal, 16)
-        .padding(.vertical, 12)
-        .background(Theme.surface)
-        .clipShape(RoundedRectangle(cornerRadius: 24, style: .continuous))
-        .overlay(
-            RoundedRectangle(cornerRadius: 24, style: .continuous)
-                .stroke(Theme.accent.opacity(0.5), lineWidth: 2)
-        )
+        .frame(maxWidth: .infinity)
+    }
+
+    private var statusText: String {
+        if speechManager.isPolishing {
+            return "Transcribing..."
+        }
+        if speechManager.isSpeechDetected {
+            return "Listening..."
+        }
+        return "Waiting for speech..."
     }
 }
 
@@ -315,7 +312,6 @@ struct VoiceInputButton: View {
         Spacer()
         InlineVoiceInputView(
             speechManager: WhisperTranscriptionService.shared,
-            onComplete: { text in print("Complete: \(text)") },
             onCancel: { print("Cancelled") }
         )
         .padding()
