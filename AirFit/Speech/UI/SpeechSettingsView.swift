@@ -9,6 +9,8 @@ struct SpeechSettingsView: View {
 
     @State private var showDeleteConfirmation = false
     @State private var modelToDelete: ModelDescriptor?
+    @State private var showCellularConfirmation = false
+    @State private var modelPendingCellularConfirmation: ModelDescriptor?
 
     var body: some View {
         ScrollView {
@@ -39,6 +41,20 @@ struct SpeechSettingsView: View {
             Button("Cancel", role: .cancel) {}
         } message: { model in
             Text("This will free \(model.formattedSize) of storage.")
+        }
+        .confirmationDialog(
+            "Download Over Cellular?",
+            isPresented: $showCellularConfirmation,
+            presenting: modelPendingCellularConfirmation
+        ) { model in
+            Button("Download Anyway (\(model.formattedSize))") {
+                Task {
+                    await modelManager.downloadModel(model)
+                }
+            }
+            Button("Wait for Wi-Fi", role: .cancel) {}
+        } message: { model in
+            Text("You're not connected to Wi-Fi. Downloading \(model.displayName) will use \(model.formattedSize) of cellular data.")
         }
     }
 
@@ -120,8 +136,10 @@ struct SpeechSettingsView: View {
                             progress: progress,
                             progressDetails: modelManager.downloadDetails[model.id],
                             onDownload: {
-                                Task {
-                                    await modelManager.downloadModel(model, wifiOnly: wifiOnly)
+                                let result = modelManager.attemptDownload(model, wifiOnly: wifiOnly)
+                                if case .needsCellularConfirmation = result {
+                                    modelPendingCellularConfirmation = model
+                                    showCellularConfirmation = true
                                 }
                             },
                             onCancel: {

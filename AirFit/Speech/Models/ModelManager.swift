@@ -1,9 +1,18 @@
 import Foundation
 import SwiftUI
+import Network
 @preconcurrency import WhisperKit
 import os.log
 
 private let logger = Logger(subsystem: "com.airfit.app", category: "ModelManager")
+
+/// Result of a download attempt when WiFi-only mode is enabled
+enum DownloadAttemptResult {
+    /// Download started successfully
+    case started
+    /// User is on cellular and WiFi-only is enabled - needs confirmation
+    case needsCellularConfirmation
+}
 
 /// Coordinates model management: catalog, downloads, storage, and recommendations
 /// Uses WhisperKit's built-in download mechanism for proper CoreML model handling
@@ -16,6 +25,9 @@ final class ModelManager {
 
     /// Current download progress by model ID (0.0 - 1.0)
     private(set) var downloadProgress: [String: Double] = [:]
+
+    /// Whether device is currently on WiFi (vs cellular)
+    private(set) var isOnWiFi: Bool = true
 
     /// Detailed progress for active downloads
     private(set) var downloadDetails: [String: ModelDownloadProgress] = [:]
@@ -40,10 +52,22 @@ final class ModelManager {
     private var activeDownloadTasks: [String: Task<Void, Never>] = [:]
     private let qualityModeKey = "speechQualityMode"
     private let legacyBatteryModeKey = "speechBatteryMode"
+    private let networkMonitor = NWPathMonitor()
 
     // MARK: - Initialization
 
-    private init() {}
+    private init() {
+        startNetworkMonitoring()
+    }
+
+    private func startNetworkMonitoring() {
+        networkMonitor.pathUpdateHandler = { [weak self] path in
+            Task { @MainActor in
+                self?.isOnWiFi = path.usesInterfaceType(.wifi)
+            }
+        }
+        networkMonitor.start(queue: DispatchQueue.global(qos: .utility))
+    }
 
     // MARK: - Public API
 
@@ -98,9 +122,23 @@ final class ModelManager {
         await ModelStore.shared.getPath(for: model)
     }
 
+    /// Attempt to download a model, checking network status first
+    /// Returns `.needsCellularConfirmation` if on cellular and wifiOnly is true
+    /// Use `downloadModel(_:)` directly to bypass WiFi check (e.g., after user confirmation)
+    func attemptDownload(_ model: ModelDescriptor, wifiOnly: Bool) -> DownloadAttemptResult {
+        if wifiOnly && !isOnWiFi {
+            return .needsCellularConfirmation
+        }
+        Task {
+            await downloadModel(model)
+        }
+        return .started
+    }
+
     /// Download a model using WhisperKit's built-in download mechanism
     /// This ensures proper CoreML model compilation and folder structure
-    func downloadModel(_ model: ModelDescriptor, wifiOnly: Bool = true) async {
+    /// Note: This bypasses WiFi check - use `attemptDownload` for WiFi-aware downloads
+    func downloadModel(_ model: ModelDescriptor) async {
         logger.info("📥 Starting WhisperKit download for \(model.id) (variant: \(model.whisperKitModel))")
         isDownloading = true
         downloadProgress[model.id] = 0
@@ -159,14 +197,27 @@ final class ModelManager {
         isDownloading = !downloadProgress.isEmpty
     }
 
+    /// Attempt to download all recommended models, checking network status first
+    /// Returns `.needsCellularConfirmation` if on cellular and wifiOnly is true
+    func attemptDownloadRecommendedModels(wifiOnly: Bool) -> DownloadAttemptResult {
+        if wifiOnly && !isOnWiFi {
+            return .needsCellularConfirmation
+        }
+        Task {
+            await downloadRecommendedModels()
+        }
+        return .started
+    }
+
     /// Download all recommended models
-    func downloadRecommendedModels(wifiOnly: Bool = true) async {
+    /// Note: This bypasses WiFi check - use `attemptDownloadRecommendedModels` for WiFi-aware downloads
+    func downloadRecommendedModels() async {
         guard let rec = recommendation else { return }
         let required = rec.modelsRequired(for: currentQualityMode())
         for model in required {
             let installed = await isInstalled(model)
             if !installed {
-                await downloadModel(model, wifiOnly: wifiOnly)
+                await downloadModel(model)
             }
         }
     }
@@ -230,13 +281,6 @@ final class ModelManager {
     /// Formatted disk usage
     func formattedDiskUsage() async -> String {
         await ModelStore.shared.formattedDiskUsage()
-    }
-
-    /// Check if on Wi-Fi (using Network framework)
-    func isOnWiFi() -> Bool {
-        // Note: WhisperKit handles download conditions internally
-        // This is a simplified check for UI purposes
-        return true
     }
 
     /// Clear error message

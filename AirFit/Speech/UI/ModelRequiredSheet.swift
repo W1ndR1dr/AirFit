@@ -12,6 +12,7 @@ struct ModelRequiredSheet: View {
     @State private var isDownloading = false
     @State private var downloadComplete = false
     @State private var showTechDetails = false
+    @State private var showCellularConfirmation = false
 
     var body: some View {
         NavigationStack {
@@ -213,6 +214,23 @@ struct ModelRequiredSheet: View {
                     selectedMode: modelManager.currentQualityMode()
                 )
             }
+            .confirmationDialog(
+                "Download Over Cellular?",
+                isPresented: $showCellularConfirmation
+            ) {
+                Button("Download Anyway") {
+                    isDownloading = true
+                    Task {
+                        await modelManager.downloadRecommendedModels()
+                        await checkDownloadComplete()
+                    }
+                }
+                Button("Wait for Wi-Fi", role: .cancel) {}
+            } message: {
+                if let model = modelManager.recommendation?.model(for: modelManager.currentQualityMode()) {
+                    Text("You're not connected to Wi-Fi. Downloading will use \(model.formattedSize) of cellular data.")
+                }
+            }
         }
         .task {
             await modelManager.load()
@@ -228,10 +246,12 @@ struct ModelRequiredSheet: View {
     }
 
     private func startDownload() {
-        isDownloading = true
-        Task {
-            await modelManager.downloadRecommendedModels(wifiOnly: wifiOnly)
-            await checkDownloadComplete()
+        let result = modelManager.attemptDownloadRecommendedModels(wifiOnly: wifiOnly)
+        switch result {
+        case .started:
+            isDownloading = true
+        case .needsCellularConfirmation:
+            showCellularConfirmation = true
         }
     }
 
