@@ -53,10 +53,11 @@ struct AirFitApp: App {
                 }
             }
             .onAppear {
-                // Returning users: brief splash as loading mask (0.8s total)
+                // Returning users: snappy splash with bloom effect (~0.5s total)
+                // Timing: 0.35s spring animation + 0.15s settle = 0.5s, then 0.25s fade
                 // New users: onboarding handles its own splash timing
-                DispatchQueue.main.asyncAfter(deadline: .now() + 0.8) {
-                    withAnimation(.easeOut(duration: 0.3)) {
+                DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) {
+                    withAnimation(.easeOut(duration: 0.25)) {
                         showSplash = false
                     }
                 }

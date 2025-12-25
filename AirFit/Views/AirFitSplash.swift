@@ -12,19 +12,21 @@ struct AirFitSplashView: View {
     }
 
     // Animation states - separate concerns
-    // For seamless native launch → SwiftUI transition, start SHARP (matching launch screen)
+    // For seamless native launch → SwiftUI transition, start matching iOS launch screen exactly
     // Logo: reveal mask + blur (opacity stays at 1)
     @State private var flameReveal: CGFloat = 1.0  // Start revealed (matches native launch)
     @State private var flameBlur: CGFloat = 0      // Start sharp (matches native launch)
+    // Scale: for daily launch, subtle "settle" animation picking up from iOS icon scaling
+    @State private var logoScale: CGFloat = 1.0    // Start at 1.0, animate for settle effect
     // Wordmark: opacity + blur (simple fade)
     @State private var wordmarkOpacity: Double = 0.0
     @State private var wordmarkBlur: CGFloat = 12
-    // Glow: opacity only
-    @State private var glowOpacity: Double = 0.4   // Start with subtle glow
+    // Glow: opacity only - starts at 0 for daily launch to create "bloom" effect
+    @State private var glowOpacity: Double = 0.0
     // Track if we should animate
     @State private var hasAnimated: Bool = false
 
-    private var duration: Double { useLongAnimation ? 2.2 : 0.5 }
+    private var duration: Double { useLongAnimation ? 2.2 : 0.4 }
 
     // FIXED positions - these NEVER change
     private let logoSize: CGFloat = 360
@@ -38,6 +40,9 @@ struct AirFitSplashView: View {
             : Color(red: 1.000, green: 0.973, blue: 0.941)  // Light: matches LaunchBackground light (#FFF8F0)
     }
 
+    // Glow colors - warm tones for both modes to complement the flame icon
+    // Light mode uses rose/coral/peach to harmonize with cream background
+    // Dark mode uses orange/amber to create that perfect warm ambiance
     private var glowColors: [Color] {
         colorScheme == .dark
             ? [
@@ -47,9 +52,10 @@ struct AirFitSplashView: View {
                 .clear
             ]
             : [
-                Color(red: 0.7, green: 0.4, blue: 0.9).opacity(0.45),  // Purple glow for light mode (boosted)
-                Color(red: 0.9, green: 0.5, blue: 0.6).opacity(0.3),   // Pink (boosted)
-                Color(red: 1.0, green: 0.6, blue: 0.4).opacity(0.12),  // Peach (subtle boost)
+                // Warm rose-coral gradient for light mode (harmonizes with cream background)
+                Color(red: 1.0, green: 0.55, blue: 0.45).opacity(0.40),   // Coral center
+                Color(red: 0.95, green: 0.45, blue: 0.50).opacity(0.25),  // Rose mid
+                Color(red: 0.85, green: 0.50, blue: 0.55).opacity(0.10),  // Dusty rose outer
                 .clear
             ]
     }
@@ -70,7 +76,7 @@ struct AirFitSplashView: View {
             .opacity(glowOpacity)
             .offset(y: logoY)
 
-            // Logo - FIXED position, always opacity=1, animated via mask+blur
+            // Logo - FIXED position, always opacity=1, animated via mask+blur+scale
             // Uses LaunchLogo which has light/dark variants
             Image("LaunchLogo")
                 .resizable()
@@ -85,7 +91,7 @@ struct AirFitSplashView: View {
                         endRadius: logoSize * 0.48
                     )
                 )
-                // Bottom-to-top reveal (flame rising) - THIS is the animation
+                // Bottom-to-top reveal (flame rising) - for onboarding animation
                 .mask(
                     VStack(spacing: 0) {
                         Color.clear
@@ -95,6 +101,7 @@ struct AirFitSplashView: View {
                     .frame(width: logoSize, height: logoSize)
                 )
                 .blur(radius: flameBlur)
+                .scaleEffect(logoScale)  // Subtle settle animation for daily launch
                 .offset(y: logoY)
 
             // Wordmark - FIXED position, simple opacity+blur fade
@@ -109,8 +116,10 @@ struct AirFitSplashView: View {
                                     Color(red: 230/255, green: 105/255, blue: 155/255)   // Pink
                                 ]
                                 : [
-                                    Color(red: 0.5, green: 0.3, blue: 0.8),  // Purple to match light icon
-                                    Color(red: 0.85, green: 0.4, blue: 0.55)  // Magenta pink
+                                    // Warm coral-to-rose gradient for light mode
+                                    // Harmonizes with the warm glow colors
+                                    Color(red: 0.95, green: 0.45, blue: 0.40),  // Coral
+                                    Color(red: 0.85, green: 0.35, blue: 0.50)   // Deep rose
                                 ],
                             startPoint: .leading,
                             endPoint: .trailing
@@ -131,33 +140,44 @@ struct AirFitSplashView: View {
         hasAnimated = true
 
         if useLongAnimation {
-            // Onboarding: dramatic reveal animation
-            // First reset to hidden state, then animate
+            // FIRST LAUNCH (Onboarding): Dramatic theatrical reveal
+            // Reset to hidden state for the flame-rise animation
             flameReveal = 0.0
             flameBlur = 20
             glowOpacity = 0.0
+            logoScale = 1.0  // No scale animation for onboarding
 
             // Small delay to ensure reset takes effect
             DispatchQueue.main.asyncAfter(deadline: .now() + 0.05) {
+                // Main reveal animation - flame rises from bottom with blur clearing
                 withAnimation(.easeOut(duration: duration)) {
                     flameReveal = 1.0
                     flameBlur = 0
                     wordmarkOpacity = 1.0
                     wordmarkBlur = 0
-                    glowOpacity = 0.9
+                    glowOpacity = 0.85  // Peak glow during reveal
                 }
 
-                // Glow settles down after main animation
-                withAnimation(.easeOut(duration: 1.0).delay(duration * 0.7)) {
-                    glowOpacity = 0.4
+                // Glow settles to ambient level after main animation
+                withAnimation(.easeOut(duration: 1.2).delay(duration * 0.6)) {
+                    glowOpacity = 0.5
                 }
             }
         } else {
-            // Daily launch: already sharp (seamless from native launch)
-            // Just fade in wordmark if shown
-            withAnimation(.easeOut(duration: 0.3)) {
-                wordmarkOpacity = 1.0
-                wordmarkBlur = 0
+            // DAILY LAUNCH: Snappy "bloom" effect that harmonizes with iOS icon scaling
+            // iOS scales the app icon up into the launch screen over ~0.3s
+            // We pick up from there with a subtle settle + glow bloom
+
+            // Start state: matches native launch screen exactly (no glow)
+            // but with imperceptible scale that we'll animate
+            logoScale = 0.985  // Slightly smaller - picks up from iOS scale animation
+            glowOpacity = 0.0   // No glow initially (matches native launch screen)
+
+            // Settle animation: logo gently scales to final size, glow blooms in
+            // Uses spring for organic feel, matching Apple's animation curves
+            withAnimation(.spring(response: 0.35, dampingFraction: 0.8)) {
+                logoScale = 1.0
+                glowOpacity = 0.45  // Glow blooms as app "comes alive"
             }
         }
     }

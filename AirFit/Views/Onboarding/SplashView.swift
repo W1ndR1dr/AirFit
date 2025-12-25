@@ -12,19 +12,21 @@ struct SplashView: View {
     let onComplete: () -> Void
 
     // Appearance-adaptive colors for swipe hint
+    // Uses warm tones that harmonize with the splash glow
     private var baseTextColor: Color {
         colorScheme == .dark
             ? .white.opacity(0.5)
-            : Color(red: 0.5, green: 0.3, blue: 0.8).opacity(0.6)  // Purple base
+            : Color(red: 0.75, green: 0.45, blue: 0.45).opacity(0.65)  // Warm dusty rose
     }
 
     private var shimmerColors: [Color] {
         colorScheme == .dark
             ? [.clear, .white.opacity(0.4), .clear]
             : [
+                // Warm coral shimmer for light mode
                 .clear,
-                Color(red: 0.7, green: 0.4, blue: 0.9).opacity(0.8),  // Purple shimmer
-                Color(red: 0.85, green: 0.4, blue: 0.55).opacity(0.6),  // Pink shimmer
+                Color(red: 0.95, green: 0.50, blue: 0.45).opacity(0.85),  // Coral shimmer
+                Color(red: 0.85, green: 0.40, blue: 0.50).opacity(0.6),   // Rose shimmer
                 .clear
             ]
     }
