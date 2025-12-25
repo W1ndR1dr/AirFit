@@ -340,12 +340,20 @@ struct HRRComplication: Widget {
         }
         .configurationDisplayName("Heart Rate Recovery")
         .description("Live fatigue tracking during workouts with recovery rate analysis.")
+        #if os(watchOS)
         .supportedFamilies([
             .accessoryCircular,
             .accessoryCorner,
             .accessoryRectangular,
             .accessoryInline
         ])
+        #else
+        .supportedFamilies([
+            .accessoryCircular,
+            .accessoryRectangular,
+            .accessoryInline
+        ])
+        #endif
     }
 }
 

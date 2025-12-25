@@ -240,12 +240,20 @@ struct VolumeComplication: Widget {
         }
         .configurationDisplayName("Volume")
         .description("Track weekly training volume by muscle group.")
+        #if os(watchOS)
         .supportedFamilies([
             .accessoryCircular,
             .accessoryCorner,
             .accessoryRectangular,
             .accessoryInline
         ])
+        #else
+        .supportedFamilies([
+            .accessoryCircular,
+            .accessoryRectangular,
+            .accessoryInline
+        ])
+        #endif
     }
 }
 

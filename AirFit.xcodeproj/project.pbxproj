@@ -49,7 +49,6 @@
 		5552EF0F9597694CF77F3F2C /* README.md in Resources */ = {isa = PBXBuildFile; fileRef = B69F3972B4F5C53F711F8E4A /* README.md */; };
 		56865E1FF04CD2EC9C93DA50 /* MacroRingComplication.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9FCB0C5196D121E2B5593D78 /* MacroRingComplication.swift */; };
 		58B73525419036D200BA051E /* ModelStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = EEDD4F8880D4423D6B29F004 /* ModelStore.swift */; };
-		593F758F65141B7ED6B1DC0A /* AirFitWatch.app in Embed Watch Content */ = {isa = PBXBuildFile; fileRef = 4AC47E0251CA4678773EF7C4 /* AirFitWatch.app */; settings = {ATTRIBUTES = (RemoveHeadersOnCopy, ); }; };
 		5B5D575967A5E13E5BD0D85F /* AirFitApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6D132DFA57B215A0C7FB9879 /* AirFitApp.swift */; };
 		5CFF5B6206AE30EE14831048 /* ConfettiView.swift in Sources */ = {isa = PBXBuildFile; fileRef = A201180BB2B4BCEB99918CAC /* ConfettiView.swift */; };
 		5DB2700A9249C0AFA32B98DA /* VO2maxTrendChart.swift in Sources */ = {isa = PBXBuildFile; fileRef = DA713BBAEDA8BE51344F8791 /* VO2maxTrendChart.swift */; };
@@ -145,13 +144,6 @@
 			remoteGlobalIDString = 3931A9F418E835F2FA67594B;
 			remoteInfo = AirFitWatchComplications;
 		};
-		43FED5FF2F8F7C85CDAF93E5 /* PBXContainerItemProxy */ = {
-			isa = PBXContainerItemProxy;
-			containerPortal = 4DE6950C247E7BED46A7B7FC /* Project object */;
-			proxyType = 1;
-			remoteGlobalIDString = A7EF7FFCFA9AD728BB8E121A;
-			remoteInfo = AirFitWatch;
-		};
 /* End PBXContainerItemProxy section */
 
 /* Begin PBXCopyFilesBuildPhase section */
@@ -164,17 +156,6 @@
 				21BDFBB6FE09E96350B08DC2 /* AirFitWatchComplications.appex in Embed Foundation Extensions */,
 			);
 			name = "Embed Foundation Extensions";
-			runOnlyForDeploymentPostprocessing = 0;
-		};
-		E93AB98E7C1FF4B8EE653EA9 /* Embed Watch Content */ = {
-			isa = PBXCopyFilesBuildPhase;
-			buildActionMask = 2147483647;
-			dstPath = "$(CONTENTS_FOLDER_PATH)/Watch";
-			dstSubfolderSpec = 16;
-			files = (
-				593F758F65141B7ED6B1DC0A /* AirFitWatch.app in Embed Watch Content */,
-			);
-			name = "Embed Watch Content";
 			runOnlyForDeploymentPostprocessing = 0;
 		};
 /* End PBXCopyFilesBuildPhase section */
@@ -687,12 +668,10 @@
 				93849077ACDC8B616B3590D8 /* Sources */,
 				C2B3974EC3F8D8C0014CEE15 /* Resources */,
 				2F36D6C312865A1A6E4DA3B8 /* Frameworks */,
-				E93AB98E7C1FF4B8EE653EA9 /* Embed Watch Content */,
 			);
 			buildRules = (
 			);
 			dependencies = (
-				80C0376F49E389F3437C521D /* PBXTargetDependency */,
 			);
 			name = AirFit;
 			packageProductDependencies = (
@@ -920,11 +899,6 @@
 			isa = PBXTargetDependency;
 			target = 3931A9F418E835F2FA67594B /* AirFitWatchComplications */;
 			targetProxy = 24C6AA0D6BAD29DD0102D55E /* PBXContainerItemProxy */;
-		};
-		80C0376F49E389F3437C521D /* PBXTargetDependency */ = {
-			isa = PBXTargetDependency;
-			target = A7EF7FFCFA9AD728BB8E121A /* AirFitWatch */;
-			targetProxy = 43FED5FF2F8F7C85CDAF93E5 /* PBXContainerItemProxy */;
 		};
 /* End PBXTargetDependency section */
 

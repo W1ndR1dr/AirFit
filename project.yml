@@ -91,6 +91,14 @@ schemes:
         AirFitWatchComplications: all
     run:
       config: Debug
+  AirFit-iOS:
+    build:
+      targets:
+        AirFit: all
+    run:
+      config: Debug
+    archive:
+      config: Release
   AirFitWatch:
     build:
       targets:

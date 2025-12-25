@@ -723,10 +723,10 @@ struct PremiumInsightChatSheet: View {
                             .font(.bodyMedium)
                             .textFieldStyle(.plain)
 
-                        // Voice input button
-                        VoiceInputButton(isRecording: isVoiceInputActive) {
-                            startVoiceInput()
-                        }
+                        // Voice input button (disabled - WhisperKit crash investigation)
+                        // VoiceInputButton(isRecording: isVoiceInputActive) {
+                        //     startVoiceInput()
+                        // }
                     }
                     .padding(.horizontal, 16)
                     .padding(.vertical, 12)
@@ -760,27 +760,28 @@ struct PremiumInsightChatSheet: View {
                 hasAutoStarted = true
                 await sendInitialPrompt()
             }
-            .fullScreenCover(isPresented: $showVoiceOverlay) {
-                VoiceInputOverlay(
-                    speechManager: speechManager,
-                    onComplete: { transcript in
-                        inputText = transcript
-                        showVoiceOverlay = false
-                        isVoiceInputActive = false
-                        Task { await sendMessage() }
-                    },
-                    onCancel: {
-                        showVoiceOverlay = false
-                        isVoiceInputActive = false
-                    }
-                )
-                .background(ClearBackgroundView())
-            }
-            .sheet(isPresented: $showModelRequired) {
-                ModelRequiredSheet {
-                    startVoiceInput()
-                }
-            }
+            // MARK: - Voice Input Disabled (WhisperKit crash investigation)
+            // .fullScreenCover(isPresented: $showVoiceOverlay) {
+            //     VoiceInputOverlay(
+            //         speechManager: speechManager,
+            //         onComplete: { transcript in
+            //             inputText = transcript
+            //             showVoiceOverlay = false
+            //             isVoiceInputActive = false
+            //             Task { await sendMessage() }
+            //         },
+            //         onCancel: {
+            //             showVoiceOverlay = false
+            //             isVoiceInputActive = false
+            //         }
+            //     )
+            //     .background(ClearBackgroundView())
+            // }
+            // .sheet(isPresented: $showModelRequired) {
+            //     ModelRequiredSheet {
+            //         startVoiceInput()
+            //     }
+            // }
         }
     }
 

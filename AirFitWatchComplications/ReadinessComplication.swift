@@ -226,12 +226,20 @@ struct ReadinessComplication: Widget {
         }
         .configurationDisplayName("Readiness")
         .description("See your training readiness at a glance.")
+        #if os(watchOS)
         .supportedFamilies([
             .accessoryCircular,
             .accessoryCorner,
             .accessoryRectangular,
             .accessoryInline
         ])
+        #else
+        .supportedFamilies([
+            .accessoryCircular,
+            .accessoryRectangular,
+            .accessoryInline
+        ])
+        #endif
     }
 }
 

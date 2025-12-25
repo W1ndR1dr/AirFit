@@ -47,9 +47,9 @@ struct AirFitSplashView: View {
                 .clear
             ]
             : [
-                Color(red: 0.7, green: 0.4, blue: 0.9).opacity(0.35),  // Purple glow for light mode
-                Color(red: 0.9, green: 0.5, blue: 0.6).opacity(0.2),
-                Color(red: 1.0, green: 0.6, blue: 0.4).opacity(0.08),
+                Color(red: 0.7, green: 0.4, blue: 0.9).opacity(0.45),  // Purple glow for light mode (boosted)
+                Color(red: 0.9, green: 0.5, blue: 0.6).opacity(0.3),   // Pink (boosted)
+                Color(red: 1.0, green: 0.6, blue: 0.4).opacity(0.12),  // Peach (subtle boost)
                 .clear
             ]
     }

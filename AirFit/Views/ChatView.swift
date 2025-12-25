@@ -227,11 +227,12 @@ struct ChatView: View {
                 }
             )
         }
-        .sheet(isPresented: $showModelRequired) {
-            ModelRequiredSheet {
-                startVoiceInput()
-            }
-        }
+        // MARK: - Voice Input Disabled (WhisperKit crash investigation)
+        // .sheet(isPresented: $showModelRequired) {
+        //     ModelRequiredSheet {
+        //         startVoiceInput()
+        //     }
+        // }
         .photosPicker(
             isPresented: $showingPhotoPicker,
             selection: $selectedPhoto,
@@ -241,22 +242,22 @@ struct ChatView: View {
         .onChange(of: selectedPhoto) { _, newItem in
             Task { await processSelectedPhoto(newItem) }
         }
-        .fullScreenCover(isPresented: $showVoiceOverlay) {
-            VoiceInputOverlay(
-                speechManager: speechManager,
-                onComplete: { transcript in
-                    inputText = transcript
-                    showVoiceOverlay = false
-                    isVoiceInputActive = false
-                    Task { await sendMessage() }
-                },
-                onCancel: {
-                    showVoiceOverlay = false
-                    isVoiceInputActive = false
-                }
-            )
-            .background(ClearBackgroundView())
-        }
+        // .fullScreenCover(isPresented: $showVoiceOverlay) {
+        //     VoiceInputOverlay(
+        //         speechManager: speechManager,
+        //         onComplete: { transcript in
+        //             inputText = transcript
+        //             showVoiceOverlay = false
+        //             isVoiceInputActive = false
+        //             Task { await sendMessage() }
+        //         },
+        //         onCancel: {
+        //             showVoiceOverlay = false
+        //             isVoiceInputActive = false
+        //         }
+        //     )
+        //     .background(ClearBackgroundView())
+        // }
     }
 
     // MARK: - Message View Builder
@@ -529,10 +530,10 @@ struct ChatView: View {
                             Task { await sendMessage() }
                         }
 
-                    // Voice input button
-                    VoiceInputButton(isRecording: isVoiceInputActive) {
-                        startVoiceInput()
-                    }
+                    // Voice input button (disabled - WhisperKit crash investigation)
+                    // VoiceInputButton(isRecording: isVoiceInputActive) {
+                    //     startVoiceInput()
+                    // }
                 }
                 .padding(.horizontal, 16)
                 .padding(.vertical, 12)

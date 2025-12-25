@@ -335,27 +335,28 @@ struct NutritionView: View {
         } message: {
             Text("Please enable camera access in Settings to use food photo analysis.")
         }
-        .fullScreenCover(isPresented: $showVoiceOverlay) {
-            VoiceInputOverlay(
-                speechManager: speechManager,
-                onComplete: { transcript in
-                    inputText = transcript
-                    showVoiceOverlay = false
-                    isVoiceInputActive = false
-                    Task { await logFood() }
-                },
-                onCancel: {
-                    showVoiceOverlay = false
-                    isVoiceInputActive = false
-                }
-            )
-            .background(ClearBackgroundView())
-        }
-        .sheet(isPresented: $showModelRequired) {
-            ModelRequiredSheet {
-                startVoiceInput()
-            }
-        }
+        // MARK: - Voice Input Disabled (WhisperKit crash investigation)
+        // .fullScreenCover(isPresented: $showVoiceOverlay) {
+        //     VoiceInputOverlay(
+        //         speechManager: speechManager,
+        //         onComplete: { transcript in
+        //             inputText = transcript
+        //             showVoiceOverlay = false
+        //             isVoiceInputActive = false
+        //             Task { await logFood() }
+        //         },
+        //         onCancel: {
+        //             showVoiceOverlay = false
+        //             isVoiceInputActive = false
+        //         }
+        //     )
+        //     .background(ClearBackgroundView())
+        // }
+        // .sheet(isPresented: $showModelRequired) {
+        //     ModelRequiredSheet {
+        //         startVoiceInput()
+        //     }
+        // }
     }
 
     // MARK: - Scrollytelling Macro Hero
@@ -849,10 +850,10 @@ struct NutritionView: View {
                         .lineLimit(1...3)
                         .focused($isInputFocused)
 
-                    // Voice input button
-                    VoiceInputButton(isRecording: isVoiceInputActive) {
-                        startVoiceInput()
-                    }
+                    // Voice input button (disabled - WhisperKit crash investigation)
+                    // VoiceInputButton(isRecording: isVoiceInputActive) {
+                    //     startVoiceInput()
+                    // }
                 }
                 .padding(.horizontal, 16)
                 .padding(.vertical, 12)
@@ -899,14 +900,8 @@ struct NutritionView: View {
             return
         }
 
-        // Check camera availability
-        guard UIImagePickerController.isSourceTypeAvailable(.camera) else {
-            // Fallback to photo library if no camera
-            showingPhotoPicker = true
-            return
-        }
-
-        // Check camera permission
+        // Check camera permission and open camera
+        // Note: Skip UIImagePickerController.isSourceTypeAvailable check as it can be unreliable
         switch AVCaptureDevice.authorizationStatus(for: .video) {
         case .authorized:
             showCamera = true
@@ -923,7 +918,8 @@ struct NutritionView: View {
         case .denied, .restricted:
             showCameraPermissionAlert = true
         @unknown default:
-            showingPhotoPicker = true
+            // Fallback: try to show camera anyway, CameraView will handle any errors
+            showCamera = true
         }
     }
 
@@ -1580,24 +1576,25 @@ struct EditNutritionSheet: View {
                 timestamp = entry.timestamp
                 originalTimestamp = entry.timestamp
             }
-            .overlay {
-                if showVoiceOverlay {
-                    VoiceInputOverlay(speechManager: speechManager) { transcript in
-                        correctionText = transcript
-                        isVoiceInputActive = false
-                        showVoiceOverlay = false
-                    } onCancel: {
-                        isVoiceInputActive = false
-                        showVoiceOverlay = false
-                    }
-                    .background(ClearBackgroundView())
-                }
-            }
-            .sheet(isPresented: $showModelRequired) {
-                ModelRequiredSheet {
-                    startVoiceInput()
-                }
-            }
+            // MARK: - Voice Input Disabled (WhisperKit crash investigation)
+            // .overlay {
+            //     if showVoiceOverlay {
+            //         VoiceInputOverlay(speechManager: speechManager) { transcript in
+            //             correctionText = transcript
+            //             isVoiceInputActive = false
+            //             showVoiceOverlay = false
+            //         } onCancel: {
+            //             isVoiceInputActive = false
+            //             showVoiceOverlay = false
+            //         }
+            //         .background(ClearBackgroundView())
+            //     }
+            // }
+            // .sheet(isPresented: $showModelRequired) {
+            //     ModelRequiredSheet {
+            //         startVoiceInput()
+            //     }
+            // }
         }
     }
 
@@ -1686,9 +1683,10 @@ struct EditNutritionSheet: View {
                         .textFieldStyle(.plain)
                         .lineLimit(2...4)
 
-                    VoiceInputButton(isRecording: isVoiceInputActive) {
-                        startVoiceInput()
-                    }
+                    // Voice input disabled - WhisperKit crash investigation
+                    // VoiceInputButton(isRecording: isVoiceInputActive) {
+                    //     startVoiceInput()
+                    // }
                 }
                 .padding(16)
                 .background(.ultraThinMaterial)

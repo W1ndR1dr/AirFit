@@ -204,12 +204,20 @@ struct MacroComplication: Widget {
         }
         .configurationDisplayName("Macros")
         .description("Track protein and calorie progress at a glance.")
+        #if os(watchOS)
         .supportedFamilies([
             .accessoryCircular,
             .accessoryCorner,
             .accessoryRectangular,
             .accessoryInline
         ])
+        #else
+        .supportedFamilies([
+            .accessoryCircular,
+            .accessoryRectangular,
+            .accessoryInline
+        ])
+        #endif
     }
 }
 

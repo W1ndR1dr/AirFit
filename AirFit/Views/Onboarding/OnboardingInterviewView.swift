@@ -119,27 +119,28 @@ struct OnboardingInterviewView: View {
         .task {
             await startInterview()
         }
-        .fullScreenCover(isPresented: $showVoiceOverlay) {
-            VoiceInputOverlay(
-                speechManager: speechManager,
-                onComplete: { transcript in
-                    inputText = transcript
-                    showVoiceOverlay = false
-                    isVoiceInputActive = false
-                    sendMessage()
-                },
-                onCancel: {
-                    showVoiceOverlay = false
-                    isVoiceInputActive = false
-                }
-            )
-            .background(ClearBackgroundView())
-        }
-        .sheet(isPresented: $showModelRequired) {
-            ModelRequiredSheet {
-                startVoiceInput()
-            }
-        }
+        // MARK: - Voice Input Disabled (WhisperKit crash investigation)
+        // .fullScreenCover(isPresented: $showVoiceOverlay) {
+        //     VoiceInputOverlay(
+        //         speechManager: speechManager,
+        //         onComplete: { transcript in
+        //             inputText = transcript
+        //             showVoiceOverlay = false
+        //             isVoiceInputActive = false
+        //             sendMessage()
+        //         },
+        //         onCancel: {
+        //             showVoiceOverlay = false
+        //             isVoiceInputActive = false
+        //         }
+        //     )
+        //     .background(ClearBackgroundView())
+        // }
+        // .sheet(isPresented: $showModelRequired) {
+        //     ModelRequiredSheet {
+        //         startVoiceInput()
+        //     }
+        // }
     }
 
     // MARK: - Header
@@ -222,10 +223,10 @@ struct OnboardingInterviewView: View {
                         }
                     }
 
-                // Voice input button
-                VoiceInputButton(isRecording: isVoiceInputActive) {
-                    startVoiceInput()
-                }
+                // Voice input button (disabled - WhisperKit crash investigation)
+                // VoiceInputButton(isRecording: isVoiceInputActive) {
+                //     startVoiceInput()
+                // }
             }
             .padding(.horizontal, 16)
             .padding(.vertical, 12)

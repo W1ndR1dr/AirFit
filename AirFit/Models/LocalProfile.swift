@@ -646,8 +646,12 @@ extension LocalProfile {
         return new
     }
 
-    // MARK: - Test Seed (Development Only)
-
+    // MARK: - Test Seed (DISABLED for TestFlight)
+    // This seed function is commented out to ensure TestFlight users get native persona generation.
+    // The AI-native PersonalitySynthesisService now generates personas from onboarding conversation.
+    //
+    // To re-enable for development, uncomment the function below.
+    /*
     /// Seed a test profile with demo data.
     ///
     /// ⚠️ FOR DEVELOPMENT/TESTING ONLY - not called in production.
@@ -801,4 +805,5 @@ extension LocalProfile {
 
         return profile
     }
+    */
 }
