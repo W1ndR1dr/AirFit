@@ -145,6 +145,34 @@ struct CompactWaveformView: View {
     }
 }
 
+// MARK: - Full-Width Waveform (for text field backgrounds)
+
+/// Full-width waveform that adapts bar count to available space
+struct FullWidthWaveformView: View {
+    let audioLevels: [Float]
+    var isSpeechDetected: Bool = false
+    var minHeight: CGFloat = 6
+    var maxHeight: CGFloat = 28
+    var barWidth: CGFloat = 3
+    var spacing: CGFloat = 3
+
+    var body: some View {
+        GeometryReader { geo in
+            let barCount = max(10, Int((geo.size.width + spacing) / (barWidth + spacing)))
+            VoiceWaveformView(
+                audioLevels: audioLevels,
+                isSpeechDetected: isSpeechDetected,
+                barCount: barCount,
+                minHeight: minHeight,
+                maxHeight: maxHeight,
+                barWidth: barWidth,
+                spacing: spacing
+            )
+            .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .center)
+        }
+    }
+}
+
 // MARK: - Circular Waveform (ChatGPT-style)
 
 /// Circular pulsing waveform visualization
