@@ -20,11 +20,13 @@ final class AudioCaptureManager {
     // MARK: - Private Properties
 
     private var audioEngine: AVAudioEngine?
-    private var audioBuffer: [Float] = []
-    private let bufferLock = NSLock()
+
+    /// Audio buffer and lock are accessed from audio thread - must be nonisolated(unsafe)
+    nonisolated(unsafe) private var audioBuffer: [Float] = []
+    nonisolated(unsafe) private let bufferLock = NSLock()
 
     /// WhisperKit expects 16kHz mono audio
-    private let targetSampleRate: Double = 16000
+    private static let targetSampleRate: Double = 16000
     private var converter: AVAudioConverter?
 
     // MARK: - Public API
@@ -56,7 +58,7 @@ final class AudioCaptureManager {
         // Create target format (16kHz mono Float32)
         guard let targetFormat = AVAudioFormat(
             commonFormat: .pcmFormatFloat32,
-            sampleRate: targetSampleRate,
+            sampleRate: Self.targetSampleRate,
             channels: 1,
             interleaved: false
         ) else {
@@ -64,7 +66,7 @@ final class AudioCaptureManager {
         }
 
         // Create converter if needed
-        if inputFormat.sampleRate != targetSampleRate || inputFormat.channelCount != 1 {
+        if inputFormat.sampleRate != Self.targetSampleRate || inputFormat.channelCount != 1 {
             converter = AVAudioConverter(from: inputFormat, to: targetFormat)
             converter?.primeMethod = .none
         }
@@ -74,9 +76,12 @@ final class AudioCaptureManager {
             audioBuffer.removeAll()
         }
 
-        // Install tap
+        // Capture converter for use in audio thread callback
+        let capturedConverter = converter
+
+        // Install tap - callback runs on audio thread, NOT main actor
         inputNode.installTap(onBus: 0, bufferSize: 4096, format: inputFormat) { [weak self] buffer, _ in
-            self?.processAudioBuffer(buffer)
+            self?.processAudioBuffer(buffer, converter: capturedConverter)
         }
 
         // Start engine
@@ -118,7 +123,7 @@ final class AudioCaptureManager {
 
     /// Get the latest N seconds of audio (for streaming transcription)
     func getLatestChunk(seconds: Double) -> [Float] {
-        let samplesNeeded = Int(targetSampleRate * seconds)
+        let samplesNeeded = Int(Self.targetSampleRate * seconds)
 
         bufferLock.lock()
         defer { bufferLock.unlock() }
@@ -136,7 +141,7 @@ final class AudioCaptureManager {
         let count = audioBuffer.count
         bufferLock.unlock()
 
-        return Double(count) / targetSampleRate
+        return Double(count) / Self.targetSampleRate
     }
 
     /// Clear the audio buffer (for starting a new segment)
@@ -146,9 +151,10 @@ final class AudioCaptureManager {
         bufferLock.unlock()
     }
 
-    // MARK: - Private Methods
+    // MARK: - Private Methods (Audio Thread)
 
-    private func processAudioBuffer(_ buffer: AVAudioPCMBuffer) {
+    /// Process audio buffer - called from audio thread, NOT main actor
+    nonisolated private func processAudioBuffer(_ buffer: AVAudioPCMBuffer, converter: AVAudioConverter?) {
         // Convert to target format if needed
         let processedBuffer: AVAudioPCMBuffer
         if let converter = converter {
@@ -162,24 +168,24 @@ final class AudioCaptureManager {
         guard let channelData = processedBuffer.floatChannelData?[0] else { return }
         let frameLength = Int(processedBuffer.frameLength)
 
-        // Append to buffer
+        // Append to buffer (thread-safe via lock)
         bufferLock.lock()
         for i in 0..<frameLength {
             audioBuffer.append(channelData[i])
         }
         bufferLock.unlock()
 
-        // Calculate audio level (RMS)
+        // Calculate audio level (RMS) and update UI
         calculateAudioLevel(from: buffer)
     }
 
-    private func convertBuffer(_ buffer: AVAudioPCMBuffer, using converter: AVAudioConverter) -> AVAudioPCMBuffer? {
-        let sampleRateRatio = targetSampleRate / buffer.format.sampleRate
+    nonisolated private func convertBuffer(_ buffer: AVAudioPCMBuffer, using converter: AVAudioConverter) -> AVAudioPCMBuffer? {
+        let sampleRateRatio = Self.targetSampleRate / buffer.format.sampleRate
         let outputFrameCapacity = AVAudioFrameCount(Double(buffer.frameLength) * sampleRateRatio)
 
         guard let targetFormat = AVAudioFormat(
             commonFormat: .pcmFormatFloat32,
-            sampleRate: targetSampleRate,
+            sampleRate: Self.targetSampleRate,
             channels: 1,
             interleaved: false
         ) else { return nil }
@@ -208,7 +214,7 @@ final class AudioCaptureManager {
         return outputBuffer
     }
 
-    private func calculateAudioLevel(from buffer: AVAudioPCMBuffer) {
+    nonisolated private func calculateAudioLevel(from buffer: AVAudioPCMBuffer) {
         guard let channelData = buffer.floatChannelData?[0] else { return }
         let frameLength = Int(buffer.frameLength)
 
