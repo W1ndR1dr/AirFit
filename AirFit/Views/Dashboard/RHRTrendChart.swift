@@ -268,12 +268,12 @@ struct RHRTrendChart: View {
             // Zone legend (condensed)
             ForEach([0, 1, 2], id: \.self) { index in
                 let zone = zones[index]
-                HStack(spacing: 3) {
+                HStack(spacing: 4) {
                     Circle()
                         .fill(zone.color)
-                        .frame(width: 5, height: 5)
+                        .frame(width: 6, height: 6)
                     Text(zone.label)
-                        .font(.system(size: 8))
+                        .font(.labelMicro)
                         .foregroundStyle(Theme.textMuted)
                 }
             }

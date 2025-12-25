@@ -579,7 +579,7 @@ struct CardiacFitnessCard: View {
                 .fill(color)
                 .frame(width: 6, height: 6)
             Text(label)
-                .font(.system(size: 9))
+                .font(.labelMicro)
                 .foregroundStyle(Theme.textMuted)
         }
     }

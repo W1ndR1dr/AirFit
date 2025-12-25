@@ -217,7 +217,7 @@ struct HRVTrendChart: View {
     }
 
     private var legendRow: some View {
-        HStack(spacing: 16) {
+        HStack(spacing: 12) {
             // Baseline legend
             if let baseline = baseline, baseline.isReliable {
                 HStack(spacing: 4) {

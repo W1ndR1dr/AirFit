@@ -14,7 +14,7 @@ struct HRVDeviationChart: View {
     @State private var selectedIndex: Int?
     @State private var showingDetail = false
 
-    private let chartHeight: CGFloat = 140
+    private let chartHeight: CGFloat = 150
     private let barSpacing: CGFloat = 2
 
     // Calculate deviation for each reading

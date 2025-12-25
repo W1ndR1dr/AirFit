@@ -279,7 +279,7 @@ struct HRRecoveryChart: View {
                         .fill(zone.color)
                         .frame(width: 6, height: 6)
                     Text(zone.label)
-                        .font(.system(size: 9))
+                        .font(.labelMicro)
                         .foregroundStyle(Theme.textMuted)
                 }
             }

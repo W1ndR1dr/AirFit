@@ -187,7 +187,7 @@ struct VO2maxTrendChart: View {
                 .foregroundStyle(Theme.textSecondary)
                 .fixedSize(horizontal: false, vertical: true)
         }
-        .padding(10)
+        .padding(12)
         .background(
             RoundedRectangle(cornerRadius: 8, style: .continuous)
                 .fill(Theme.accent.opacity(0.08))
@@ -316,15 +316,15 @@ struct VO2maxTrendChart: View {
     }
 
     private var legendRow: some View {
-        HStack(spacing: 8) {
+        HStack(spacing: 12) {
             // Only show first 3 zones to save space
             ForEach(zones.prefix(3), id: \.threshold) { zone in
-                HStack(spacing: 3) {
+                HStack(spacing: 4) {
                     Circle()
                         .fill(zone.color)
-                        .frame(width: 5, height: 5)
+                        .frame(width: 6, height: 6)
                     Text(zone.label)
-                        .font(.system(size: 8))
+                        .font(.labelMicro)
                         .foregroundStyle(Theme.textMuted)
                 }
             }
