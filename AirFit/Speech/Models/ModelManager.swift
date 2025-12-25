@@ -38,6 +38,8 @@ final class ModelManager {
     // MARK: - Private Properties
 
     private var activeDownloadTasks: [String: Task<Void, Never>] = [:]
+    private let qualityModeKey = "speechQualityMode"
+    private let legacyBatteryModeKey = "speechBatteryMode"
 
     // MARK: - Initialization
 
@@ -73,14 +75,16 @@ final class ModelManager {
                 logger.warning("📦 Still no recommendation after load, returning false")
                 return false
             }
-            let hasModels = await ModelStore.shared.hasRequiredModels(for: rec)
+            let required = rec.modelsRequired(for: currentQualityMode())
+            let hasModels = await ModelStore.shared.hasRequiredModels(required)
             logger.info("📦 hasRequiredModels after load: \(hasModels)")
-            logger.info("📦 Required models: \(rec.requiredModels.map { $0.id })")
+            logger.info("📦 Required models: \(required.map { $0.id })")
             return hasModels
         }
-        let hasModels = await ModelStore.shared.hasRequiredModels(for: rec)
+        let required = rec.modelsRequired(for: currentQualityMode())
+        let hasModels = await ModelStore.shared.hasRequiredModels(required)
         logger.info("📦 hasRequiredModels: \(hasModels)")
-        logger.info("📦 Required models: \(rec.requiredModels.map { $0.id })")
+        logger.info("📦 Required models: \(required.map { $0.id })")
         return hasModels
     }
 
@@ -158,8 +162,8 @@ final class ModelManager {
     /// Download all recommended models
     func downloadRecommendedModels(wifiOnly: Bool = true) async {
         guard let rec = recommendation else { return }
-
-        for model in rec.requiredModels {
+        let required = rec.modelsRequired(for: currentQualityMode())
+        for model in required {
             let installed = await isInstalled(model)
             if !installed {
                 await downloadModel(model, wifiOnly: wifiOnly)
@@ -217,6 +221,28 @@ final class ModelManager {
     /// Clear error message
     func clearError() {
         errorMessage = nil
+    }
+
+    /// Current user-selected quality mode (with legacy fallback)
+    func currentQualityMode() -> ModelRecommendation.QualityMode {
+        let defaults = UserDefaults.standard
+        if let raw = defaults.string(forKey: qualityModeKey),
+           let mode = ModelRecommendation.QualityMode(rawValue: raw) {
+            return mode
+        }
+        return defaults.bool(forKey: legacyBatteryModeKey) ? .batterySaver : .auto
+    }
+
+    /// Selected model descriptor for the current quality mode
+    func selectedModelDescriptor() -> ModelDescriptor? {
+        guard let rec = recommendation else { return nil }
+        return rec.model(for: currentQualityMode())
+    }
+
+    /// Required models for the current quality mode
+    func requiredModels() -> [ModelDescriptor] {
+        guard let rec = recommendation else { return [] }
+        return rec.modelsRequired(for: currentQualityMode())
     }
 }
 

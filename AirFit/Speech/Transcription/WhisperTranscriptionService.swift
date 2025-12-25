@@ -79,7 +79,8 @@ final class WhisperTranscriptionService {
 
         // Get the recommended model variant for this device
         await modelManager.load()
-        let variant = modelManager.recommendation?.finalModel.whisperKitModel ?? "large-v3-turbo"
+        let selectedModel = modelManager.selectedModelDescriptor()
+        let variant = selectedModel?.whisperKitModel ?? ModelCatalog.finalLargeV3Turbo.whisperKitModel
 
         print("[WhisperTranscription] Loading model variant: \(variant)")
 

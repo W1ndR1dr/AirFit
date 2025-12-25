@@ -20,7 +20,7 @@ Speech/
 ├── Transcription/
 │   ├── AudioCaptureManager.swift           # AVAudioEngine capture
 │   ├── WhisperKitAdapter.swift             # WhisperKit API wrapper
-│   ├── WhisperTranscriptionService.swift   # Two-stage pipeline
+│   ├── WhisperTranscriptionService.swift   # Single-pass pipeline
 │   └── TranscriptionServiceProtocol.swift  # Common interface
 │
 └── UI/
@@ -28,28 +28,27 @@ Speech/
     └── ModelRequiredSheet.swift    # First-use download prompt
 ```
 
-## Two-Stage Pipeline
+## Single-Pass Pipeline
 
-1. **Stage A (Realtime)**: `whisper-small.en` - Fast partial results while speaking
-2. **Stage B (Final)**: `whisper-large-v3-turbo` - High-quality final pass after silence
-
-This provides ChatGPT-like UX: instant feedback with polished final text.
+AirFit records your voice and transcribes the full clip in one pass for consistent accuracy and punctuation.
+Model selection is tuned to device RAM, with optional quality modes in Settings.
 
 ## Models
 
 | ID | Model | Size | Purpose |
 |----|-------|------|---------|
-| `small-en-realtime` | openai_whisper-small.en_217MB | ~217 MB | Fast realtime partials |
-| `large-v3-turbo` | openai_whisper-large-v3-v20240930_turbo_632MB | ~632 MB | Max accuracy (8GB+ RAM) |
-| `distil-large-v3` | distil-whisper_distil-large-v3_turbo_600MB | ~600 MB | Battery saver mode |
+| `small-en-realtime` | openai_whisper-small.en_217MB | ~218 MB | Fast, lightweight |
+| `large-v3-turbo` | openai_whisper-large-v3-v20240930_turbo_632MB | ~646 MB | Best accuracy (8GB+ RAM) |
+| `distil-large-v3` | distil-whisper_distil-large-v3_turbo_600MB | ~607 MB | Balanced mode |
 
 ## Device Recommendations
 
-| Device | RAM | Default Final Model |
+| Device | RAM | Default Model |
 |--------|-----|---------------------|
 | iPhone 16 Pro | 8 GB | large-v3-turbo |
 | iPhone 15 Pro | 8 GB | large-v3-turbo |
 | iPhone 15 Plus | 6 GB | distil-large-v3 |
+| Older devices | 4 GB | small-en-realtime |
 
 ## Storage Locations
 
@@ -67,7 +66,6 @@ let service = WhisperTranscriptionService.shared
 // Check for models first
 if await ModelManager.shared.hasRequiredModels() {
     try await service.startListening()
-    // transcript updates in real-time via @Observable
     // Auto-stops after silence timeout
 } else {
     // Show ModelRequiredSheet
@@ -93,7 +91,7 @@ static let newModel = ModelDescriptor(
     id: "new-model-id",
     displayName: "Display Name",
     folderName: "huggingface_folder_name",
-    whisperKitModel: "model-name",
+    whisperKitModel: "model-folder-name",
     sizeBytes: 500_000_000,
     sha256: nil,
     purpose: .final,

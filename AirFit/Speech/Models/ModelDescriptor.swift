@@ -20,7 +20,7 @@ struct ModelDescriptor: Codable, Identifiable, Sendable, Hashable {
     /// SHA256 hash for verification (optional)
     let sha256: String?
 
-    /// Model purpose in the two-stage pipeline
+    /// Model purpose in the transcription lineup
     let purpose: ModelPurpose
 
     /// Minimum RAM in GB required to run this model
@@ -52,7 +52,7 @@ struct ModelDescriptor: Codable, Identifiable, Sendable, Hashable {
 // MARK: - Model Purpose
 
 extension ModelDescriptor {
-    /// The role of a model in the two-stage transcription pipeline
+    /// The role of a model in the transcription lineup
     enum ModelPurpose: String, Codable, Sendable {
         /// Fast model for real-time partial results
         case realtime
@@ -62,17 +62,17 @@ extension ModelDescriptor {
 
         var displayName: String {
             switch self {
-            case .realtime: return "Live Preview"
-            case .final: return "Enhanced Accuracy"
+            case .realtime: return "Fast"
+            case .final: return "Quality"
             }
         }
 
         var description: String {
             switch self {
             case .realtime:
-                return "Shows words as you speak"
+                return "Lowest latency, lightest model"
             case .final:
-                return "Polishes your final text"
+                return "Higher accuracy and punctuation"
             }
         }
 

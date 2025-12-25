@@ -4,7 +4,8 @@ import SwiftUI
 struct SpeechSettingsView: View {
     @State private var modelManager = ModelManager.shared
     @AppStorage("speechWifiOnly") private var wifiOnly = true
-    @AppStorage("speechBatteryMode") private var batteryMode = false
+    @AppStorage("speechQualityMode") private var qualityModeRaw = ModelRecommendation.QualityMode.auto.rawValue
+    @AppStorage("speechBatteryMode") private var legacyBatteryMode = false
 
     @State private var showDeleteConfirmation = false
     @State private var modelToDelete: ModelDescriptor?
@@ -23,6 +24,7 @@ struct SpeechSettingsView: View {
         .background(Theme.background)
         .task {
             await modelManager.load()
+            migrateLegacyQualityModeIfNeeded()
         }
         .confirmationDialog(
             "Delete Model?",
@@ -62,21 +64,7 @@ struct SpeechSettingsView: View {
 
                     Spacer()
 
-                    if modelManager.canRunHighQuality {
-                        Label("High Quality", systemImage: "star.fill")
-                            .font(.caption)
-                            .foregroundStyle(Theme.accent)
-                            .padding(.horizontal, 10)
-                            .padding(.vertical, 4)
-                            .background(Theme.accent.opacity(0.12), in: Capsule())
-                    } else {
-                        Label("Balanced", systemImage: "leaf.fill")
-                            .font(.caption)
-                            .foregroundStyle(Theme.secondary)
-                            .padding(.horizontal, 10)
-                            .padding(.vertical, 4)
-                            .background(Theme.secondary.opacity(0.12), in: Capsule())
-                    }
+                    qualityModeBadge
                 }
             }
         }
@@ -184,32 +172,85 @@ struct SpeechSettingsView: View {
 
                 Divider()
 
-                // Battery Saver Mode
-                Toggle(isOn: $batteryMode) {
-                    HStack {
-                        Image(systemName: "leaf.fill")
-                            .foregroundStyle(Theme.secondary)
-                        VStack(alignment: .leading, spacing: 2) {
-                            Text("Battery Saver Mode")
-                                .font(.bodyMedium)
-                                .foregroundStyle(Theme.textPrimary)
-                            Text("Uses lighter model for cooler operation")
-                                .font(.caption)
-                                .foregroundStyle(Theme.textMuted)
-                        }
-                    }
-                }
-                .tint(Theme.accent)
-                .disabled(!modelManager.canRunHighQuality)
+                qualityModePicker
             }
         }
     }
 
     // MARK: - Helpers
 
+    private var qualityMode: ModelRecommendation.QualityMode {
+        ModelRecommendation.QualityMode(rawValue: qualityModeRaw) ?? .auto
+    }
+
+    private var qualityModeBadge: some View {
+        let mode = qualityMode
+        let badgeColor = badgeColor(for: mode)
+        return Label(badgeText(for: mode), systemImage: mode.iconName)
+            .font(.caption)
+            .foregroundStyle(badgeColor)
+            .padding(.horizontal, 10)
+            .padding(.vertical, 4)
+            .background(badgeColor.opacity(0.12), in: Capsule())
+    }
+
+    private var qualityModePicker: some View {
+        VStack(alignment: .leading, spacing: 12) {
+            HStack(spacing: 8) {
+                Image(systemName: "slider.horizontal.3")
+                    .foregroundStyle(Theme.accent)
+                Text("Quality Mode")
+                    .font(.bodyMedium)
+                    .foregroundStyle(Theme.textPrimary)
+            }
+
+            VStack(spacing: 10) {
+                ForEach(ModelRecommendation.QualityMode.allCases, id: \.rawValue) { mode in
+                    let model = modelManager.recommendation?.model(for: mode)
+                    Button {
+                        qualityModeRaw = mode.rawValue
+                    } label: {
+                        QualityModeRow(
+                            mode: mode,
+                            model: model,
+                            isSelected: qualityMode == mode
+                        )
+                    }
+                    .buttonStyle(.plain)
+                }
+            }
+        }
+    }
+
     private func isRecommended(_ model: ModelDescriptor) -> Bool {
         guard let rec = modelManager.recommendation else { return false }
-        return rec.requiredModels.contains(where: { $0.id == model.id })
+        let required = rec.modelsRequired(for: modelManager.currentQualityMode())
+        return required.contains(where: { $0.id == model.id })
+    }
+
+    private func migrateLegacyQualityModeIfNeeded() {
+        let defaults = UserDefaults.standard
+        guard defaults.object(forKey: "speechQualityMode") == nil else { return }
+        qualityModeRaw = legacyBatteryMode ? ModelRecommendation.QualityMode.batterySaver.rawValue
+            : ModelRecommendation.QualityMode.auto.rawValue
+    }
+
+    private func badgeText(for mode: ModelRecommendation.QualityMode) -> String {
+        switch mode {
+        case .auto: return "Auto"
+        case .highQuality: return "Best"
+        case .batterySaver: return "Balanced"
+        case .fast: return "Fast"
+        }
+    }
+
+    private func badgeColor(for mode: ModelRecommendation.QualityMode) -> Color {
+        switch mode {
+        case .auto: return Theme.accent
+        case .highQuality: return Theme.accent
+        case .batterySaver: return Theme.secondary
+        case .fast: return Theme.textMuted
+        }
     }
 }
 
@@ -373,6 +414,55 @@ private struct AvailableModelRow: View {
 
     private var purposeIcon: String {
         model.purpose == .realtime ? "bolt.fill" : "sparkles"
+    }
+}
+
+// MARK: - Quality Mode Row
+
+private struct QualityModeRow: View {
+    let mode: ModelRecommendation.QualityMode
+    let model: ModelDescriptor?
+    let isSelected: Bool
+
+    var body: some View {
+        HStack(spacing: 12) {
+            Image(systemName: mode.iconName)
+                .font(.system(size: 16))
+                .foregroundStyle(isSelected ? Theme.accent : Theme.textMuted)
+                .frame(width: 24)
+
+            VStack(alignment: .leading, spacing: 2) {
+                Text(mode.displayName)
+                    .font(.bodyMedium)
+                    .foregroundStyle(Theme.textPrimary)
+
+                Text(mode.description)
+                    .font(.caption)
+                    .foregroundStyle(Theme.textMuted)
+
+                if let model {
+                    Text("\(model.displayName) • \(model.formattedSize)")
+                        .font(.caption2)
+                        .foregroundStyle(Theme.textSecondary)
+                }
+            }
+
+            Spacer()
+
+            if isSelected {
+                Image(systemName: "checkmark.circle.fill")
+                    .foregroundStyle(Theme.accent)
+            }
+        }
+        .padding(12)
+        .background(
+            RoundedRectangle(cornerRadius: 12)
+                .fill(isSelected ? Theme.accent.opacity(0.12) : Theme.surface)
+        )
+        .overlay(
+            RoundedRectangle(cornerRadius: 12)
+                .stroke(isSelected ? Theme.accent.opacity(0.4) : Theme.textMuted.opacity(0.15), lineWidth: 1)
+        )
     }
 }
 

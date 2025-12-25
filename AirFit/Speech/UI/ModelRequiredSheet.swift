@@ -42,11 +42,11 @@ struct ModelRequiredSheet: View {
 
                 // Title & Description
                 VStack(spacing: 12) {
-                    Text("Private Voice Input")
+                    Text("Private Voice Dictation")
                         .font(.headlineLarge)
                         .foregroundStyle(Theme.textPrimary)
 
-                    Text("Enable on-device speech recognition. Your voice is processed entirely on your phone and never sent to the cloud.")
+                    Text("Your voice stays on your phone. The model runs locally for fast, private transcription.")
                         .font(.bodyMedium)
                         .foregroundStyle(Theme.textSecondary)
                         .multilineTextAlignment(.center)
@@ -55,36 +55,49 @@ struct ModelRequiredSheet: View {
 
                 // Device optimization info
                 if let recommendation = modelManager.recommendation {
+                    let mode = modelManager.currentQualityMode()
+                    let model = recommendation.model(for: mode)
                     VStack(spacing: 16) {
                         // Device tagline with info button
-                        HStack {
-                            Image(systemName: "checkmark.seal.fill")
-                                .foregroundStyle(Theme.success)
-                            Text(recommendation.deviceTagline)
-                                .font(.bodyMedium)
-                                .foregroundStyle(Theme.textPrimary)
-                            Spacer()
+                        VStack(alignment: .leading, spacing: 8) {
+                            HStack {
+                                Image(systemName: "checkmark.seal.fill")
+                                    .foregroundStyle(Theme.success)
+                                Text(recommendation.deviceTagline)
+                                    .font(.bodyMedium)
+                                    .foregroundStyle(Theme.textPrimary)
+                                Spacer()
 
-                            // Info button for power users
-                            Button {
-                                showTechDetails = true
-                            } label: {
-                                Image(systemName: "info.circle")
-                                    .foregroundStyle(Theme.textMuted)
+                                // Info button for power users
+                                Button {
+                                    showTechDetails = true
+                                } label: {
+                                    Image(systemName: "info.circle")
+                                        .foregroundStyle(Theme.textMuted)
+                                }
+                            }
+
+                            HStack(spacing: 8) {
+                                Image(systemName: mode.iconName)
+                                    .foregroundStyle(Theme.accent)
+                                Text(mode.displayName)
+                                    .font(.caption)
+                                    .foregroundStyle(Theme.textSecondary)
                             }
                         }
                         .padding()
                         .background(Theme.surface, in: RoundedRectangle(cornerRadius: 12))
 
                         // Single model - just show download status
-                        if let model = recommendation.requiredModels.first {
-                            SimpleDownloadRow(
-                                progress: modelManager.downloadProgress[model.id],
-                                size: model.formattedSize
-                            )
-                            .padding()
-                            .background(Theme.surface, in: RoundedRectangle(cornerRadius: 12))
-                        }
+                        let isInstalled = modelManager.installedModels.contains { $0.descriptor.id == model.id }
+                        SimpleDownloadRow(
+                            title: model.displayName,
+                            progress: modelManager.downloadProgress[model.id],
+                            size: model.formattedSize,
+                            isInstalled: isInstalled
+                        )
+                        .padding()
+                        .background(Theme.surface, in: RoundedRectangle(cornerRadius: 12))
 
                         // Download info - friendly format
                         HStack(spacing: 4) {
@@ -93,7 +106,7 @@ struct ModelRequiredSheet: View {
                             Text("One-time download:")
                                 .font(.caption)
                                 .foregroundStyle(Theme.textMuted)
-                            Text(recommendation.formattedRequiredSize)
+                            Text(model.formattedSize)
                                 .font(.caption)
                                 .fontWeight(.medium)
                                 .foregroundStyle(Theme.textSecondary)
@@ -104,6 +117,10 @@ struct ModelRequiredSheet: View {
                                     .foregroundStyle(Theme.textMuted)
                             }
                         }
+
+                        Text("Change quality mode in Settings → Speech Recognition.")
+                            .font(.caption2)
+                            .foregroundStyle(Theme.textMuted)
                     }
                     .padding(.horizontal)
                 }
@@ -131,7 +148,7 @@ struct ModelRequiredSheet: View {
                             dismiss()
                             onReady?()
                         } label: {
-                            Label("Ready to Go", systemImage: "checkmark.circle.fill")
+                            Label("Ready to Dictate", systemImage: "checkmark.circle.fill")
                                 .font(.bodyLarge)
                                 .fontWeight(.semibold)
                                 .foregroundStyle(.white)
@@ -157,7 +174,7 @@ struct ModelRequiredSheet: View {
                         Button {
                             startDownload()
                         } label: {
-                            Label("Set Up Now", systemImage: "arrow.down.circle.fill")
+                            Label("Download Model", systemImage: "arrow.down.circle.fill")
                                 .font(.bodyLarge)
                                 .fontWeight(.semibold)
                                 .foregroundStyle(.white)
@@ -191,7 +208,10 @@ struct ModelRequiredSheet: View {
                 }
             }
             .sheet(isPresented: $showTechDetails) {
-                TechDetailsSheet(recommendation: modelManager.recommendation)
+                TechDetailsSheet(
+                    recommendation: modelManager.recommendation,
+                    selectedMode: modelManager.currentQualityMode()
+                )
             }
         }
         .task {
@@ -228,11 +248,13 @@ struct ModelRequiredSheet: View {
 // MARK: - Simple Download Row
 
 private struct SimpleDownloadRow: View {
+    let title: String
     let progress: Double?
     let size: String
+    let isInstalled: Bool
 
     private var isComplete: Bool {
-        (progress ?? 0) >= 1.0
+        isInstalled || (progress ?? 0) >= 1.0
     }
 
     var body: some View {
@@ -241,9 +263,15 @@ private struct SimpleDownloadRow: View {
                 Image(systemName: isComplete ? "checkmark.circle.fill" : "arrow.down.circle")
                     .foregroundStyle(isComplete ? Theme.success : Theme.accent)
 
-                Text(isComplete ? "Ready" : "Downloading...")
-                    .font(.bodyMedium)
-                    .foregroundStyle(Theme.textPrimary)
+                VStack(alignment: .leading, spacing: 2) {
+                    Text(title)
+                        .font(.bodyMedium)
+                        .foregroundStyle(Theme.textPrimary)
+
+                    Text(statusText)
+                        .font(.caption)
+                        .foregroundStyle(Theme.textSecondary)
+                }
 
                 Spacer()
 
@@ -257,6 +285,13 @@ private struct SimpleDownloadRow: View {
                     .tint(Theme.accent)
             }
         }
+    }
+
+    private var statusText: String {
+        if isComplete {
+            return "Ready"
+        }
+        return progress == nil ? "Not installed" : "Downloading..."
     }
 }
 
@@ -370,6 +405,7 @@ private struct NormieModelRow: View {
 
 private struct TechDetailsSheet: View {
     let recommendation: ModelRecommendation?
+    let selectedMode: ModelRecommendation.QualityMode
     @Environment(\.dismiss) private var dismiss
 
     var body: some View {
@@ -404,36 +440,59 @@ private struct TechDetailsSheet: View {
                                 .foregroundStyle(Theme.textSecondary)
 
                             VStack(alignment: .leading, spacing: 16) {
-                                ForEach(rec.requiredModels) { model in
-                                    TechModelDetail(model: model)
-                                }
+                                TechModelDetail(model: rec.model(for: selectedMode))
                             }
                             .padding()
                             .background(Theme.surface, in: RoundedRectangle(cornerRadius: 12))
                         }
 
-                        // Two-stage pipeline explanation
+                        // Single-pass explanation
                         VStack(alignment: .leading, spacing: 12) {
-                            Label("How It Works", systemImage: "arrow.triangle.2.circlepath")
+                            Label("How It Works", systemImage: "waveform")
                                 .font(.headline)
                                 .foregroundStyle(Theme.textPrimary)
 
-                            Text("AirFit uses a two-stage transcription pipeline for the best experience:")
+                            Text("AirFit records your voice, then transcribes the full audio in one pass for accuracy and punctuation.")
+                                .font(.caption)
+                                .foregroundStyle(Theme.textSecondary)
+
+                            VStack(alignment: .leading, spacing: 8) {
+                                DetailBullet(
+                                    title: "Single-pass transcription",
+                                    description: "One model handles the full clip to keep results consistent."
+                                )
+                                DetailBullet(
+                                    title: "On-device processing",
+                                    description: "No audio leaves your phone."
+                                )
+                                DetailBullet(
+                                    title: "Optimized per device",
+                                    description: "Auto mode chooses the best balance for your hardware."
+                                )
+                            }
+                            .padding()
+                            .background(Theme.surface, in: RoundedRectangle(cornerRadius: 12))
+                        }
+
+                        // Quality modes
+                        VStack(alignment: .leading, spacing: 12) {
+                            Label("Quality Modes", systemImage: "slider.horizontal.3")
+                                .font(.headline)
+                                .foregroundStyle(Theme.textPrimary)
+
+                            Text("Pick your preferred balance of accuracy, speed, and heat.")
                                 .font(.caption)
                                 .foregroundStyle(Theme.textSecondary)
 
                             VStack(alignment: .leading, spacing: 12) {
-                                PipelineStep(
-                                    number: 1,
-                                    title: "Live Preview",
-                                    description: "Small, fast model runs continuously while you speak, showing words in real-time (~200ms latency)."
-                                )
-
-                                PipelineStep(
-                                    number: 2,
-                                    title: "Final Polish",
-                                    description: "When you stop speaking, a larger model processes the full audio for maximum accuracy and proper punctuation."
-                                )
+                                ForEach(ModelRecommendation.QualityMode.allCases, id: \.rawValue) { mode in
+                                    let model = rec.model(for: mode)
+                                    QualityModeDetail(
+                                        mode: mode,
+                                        model: model,
+                                        isSelected: mode == selectedMode
+                                    )
+                                }
                             }
                             .padding()
                             .background(Theme.surface, in: RoundedRectangle(cornerRadius: 12))
@@ -450,7 +509,7 @@ private struct TechDetailsSheet: View {
                                     .font(.bodyMedium)
                                     .foregroundStyle(Theme.textPrimary)
 
-                                Text("WhisperKit is an optimized CoreML implementation of OpenAI's Whisper speech recognition model, designed specifically for Apple Silicon. All processing happens on-device using the Neural Engine.")
+                                Text("WhisperKit runs CoreML-optimized Whisper models on-device. Audio never leaves your phone, and the Neural Engine is used when available.")
                                     .font(.caption)
                                     .foregroundStyle(Theme.textSecondary)
 
@@ -540,23 +599,16 @@ private struct TechModelDetail: View {
     }
 }
 
-private struct PipelineStep: View {
-    let number: Int
+private struct DetailBullet: View {
     let title: String
     let description: String
 
     var body: some View {
-        HStack(alignment: .top, spacing: 12) {
-            ZStack {
-                Circle()
-                    .fill(Theme.accent)
-                    .frame(width: 24, height: 24)
-
-                Text("\(number)")
-                    .font(.caption)
-                    .fontWeight(.bold)
-                    .foregroundStyle(.white)
-            }
+        HStack(alignment: .top, spacing: 10) {
+            Circle()
+                .fill(Theme.accent)
+                .frame(width: 6, height: 6)
+                .padding(.top, 6)
 
             VStack(alignment: .leading, spacing: 2) {
                 Text(title)
@@ -567,6 +619,47 @@ private struct PipelineStep: View {
                 Text(description)
                     .font(.caption)
                     .foregroundStyle(Theme.textSecondary)
+            }
+        }
+    }
+}
+
+private struct QualityModeDetail: View {
+    let mode: ModelRecommendation.QualityMode
+    let model: ModelDescriptor
+    let isSelected: Bool
+
+    var body: some View {
+        HStack(alignment: .top, spacing: 12) {
+            Image(systemName: mode.iconName)
+                .font(.system(size: 16))
+                .foregroundStyle(isSelected ? Theme.accent : Theme.textMuted)
+                .frame(width: 20)
+
+            VStack(alignment: .leading, spacing: 4) {
+                HStack(spacing: 6) {
+                    Text(mode.displayName)
+                        .font(.bodyMedium)
+                        .fontWeight(.medium)
+                        .foregroundStyle(Theme.textPrimary)
+
+                    if isSelected {
+                        Text("Selected")
+                            .font(.caption2)
+                            .foregroundStyle(.white)
+                            .padding(.horizontal, 6)
+                            .padding(.vertical, 2)
+                            .background(Theme.accent, in: Capsule())
+                    }
+                }
+
+                Text(mode.description)
+                    .font(.caption)
+                    .foregroundStyle(Theme.textSecondary)
+
+                Text("\(model.displayName) • \(model.formattedSize)")
+                    .font(.caption2)
+                    .foregroundStyle(Theme.textMuted)
             }
         }
     }

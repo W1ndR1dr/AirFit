@@ -19,9 +19,19 @@
 	<key>CFBundleShortVersionString</key>
 	<string>1.0</string>
 	<key>CFBundleVersion</key>
-	<string>2</string>
+	<string>4</string>
 	<key>LSRequiresIPhoneOS</key>
 	<true/>
+	<key>NSCameraUsageDescription</key>
+	<string>AirFit uses the camera to analyze your food photos and scan QR codes.</string>
+	<key>NSHealthShareUsageDescription</key>
+	<string>AirFit personalizes your fitness journey by analyzing your activity, sleep, heart health, body metrics, and nutrition data.</string>
+	<key>NSHealthUpdateUsageDescription</key>
+	<string>AirFit saves your workouts and nutrition data to Apple Health.</string>
+	<key>NSMicrophoneUsageDescription</key>
+	<string>AirFit uses your microphone for voice input to your AI coach.</string>
+	<key>NSSpeechRecognitionUsageDescription</key>
+	<string>AirFit uses on-device speech recognition to transcribe your voice.</string>
 	<key>UIApplicationSceneManifest</key>
 	<dict>
 		<key>UIApplicationSupportsMultipleScenes</key>
@@ -46,15 +56,5 @@
 		<string>UIInterfaceOrientationLandscapeLeft</string>
 		<string>UIInterfaceOrientationLandscapeRight</string>
 	</array>
-	<key>NSHealthShareUsageDescription</key>
-	<string>AirFit personalizes your fitness journey by analyzing your activity, sleep, heart health, body metrics, and nutrition data.</string>
-	<key>NSHealthUpdateUsageDescription</key>
-	<string>AirFit saves your workouts and nutrition data to Apple Health.</string>
-	<key>NSMicrophoneUsageDescription</key>
-	<string>AirFit uses your microphone for voice input to your AI coach.</string>
-	<key>NSSpeechRecognitionUsageDescription</key>
-	<string>AirFit uses on-device speech recognition to transcribe your voice.</string>
-	<key>NSCameraUsageDescription</key>
-	<string>AirFit uses the camera to analyze your food photos and scan QR codes.</string>
 </dict>
 </plist>

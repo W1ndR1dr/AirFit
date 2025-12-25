@@ -67,14 +67,18 @@ actor ModelStore {
 
     /// Check if all required models are installed
     func hasRequiredModels(for recommendation: ModelRecommendation) -> Bool {
-        let required = recommendation.requiredModels
-        storeLogger.info("💾 Checking \(required.count) required models")
+        hasRequiredModels(recommendation.requiredModels)
+    }
+
+    /// Check if a list of models are installed
+    func hasRequiredModels(_ models: [ModelDescriptor]) -> Bool {
+        storeLogger.info("💾 Checking \(models.count) required models")
         storeLogger.info("💾 Installed model IDs: \(Array(self.installedModels.keys))")
-        for model in required {
+        for model in models {
             let installed = isInstalled(model)
             storeLogger.info("💾 \(model.id): \(installed ? "installed" : "NOT installed")")
         }
-        return required.allSatisfy { isInstalled($0) }
+        return models.allSatisfy { isInstalled($0) }
     }
 
     /// Get the path to an installed model (verifies path still exists)

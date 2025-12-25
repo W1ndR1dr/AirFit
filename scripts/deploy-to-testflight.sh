@@ -171,7 +171,7 @@ echo "   This may take a few minutes..."
 xcodebuild archive \
     -project "$PROJECT" \
     -scheme "$SCHEME" \
-    -sdk iphoneos \
+    -destination 'generic/platform=iOS' \
     -configuration Release \
     -archivePath "$ARCHIVE_PATH" \
     -allowProvisioningUpdates \
@@ -180,7 +180,7 @@ xcodebuild archive \
     | xcpretty || xcodebuild archive \
         -project "$PROJECT" \
         -scheme "$SCHEME" \
-        -sdk iphoneos \
+        -destination 'generic/platform=iOS' \
         -configuration Release \
         -archivePath "$ARCHIVE_PATH" \
         -allowProvisioningUpdates \

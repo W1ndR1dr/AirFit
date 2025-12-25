@@ -7,11 +7,14 @@ struct ModelRecommendation: Sendable {
     /// The detected device information
     let deviceInfo: DeviceCapabilities.DeviceInfo
 
-    /// The quality model for transcription (based on RAM)
+    /// The auto-selected model for transcription (based on RAM)
     let finalModel: ModelDescriptor
 
-    /// Battery-saver alternative
+    /// Balanced alternative (lower heat, lower power)
     let batteryModeModel: ModelDescriptor
+
+    /// Fast alternative (lightest model)
+    let fastModel: ModelDescriptor
 
     /// Whether this device can run the highest quality models
     let canRunHighQuality: Bool
@@ -40,21 +43,24 @@ struct ModelRecommendation: Sendable {
 
     /// Quality level description
     var qualityDescription: String {
-        canRunHighQuality ? "High Quality" : "Balanced"
+        finalModel.displayName
     }
 
     /// User-friendly explanation of why this model was chosen
     var optimizationExplanation: String {
-        if canRunHighQuality {
-            return "Your \(deviceInfo.marketingName) has plenty of power for the best voice recognition quality."
-        } else {
-            return "Optimized for smooth performance on your \(deviceInfo.marketingName)."
+        switch finalModel.id {
+        case ModelCatalog.finalLargeV3Turbo.id:
+            return "Your \(deviceInfo.marketingName) can handle our highest-accuracy model."
+        case ModelCatalog.finalDistilLargeV3.id:
+            return "Balanced for smooth performance on your \(deviceInfo.marketingName)."
+        default:
+            return "Optimized for reliable speech on older or lower-memory devices."
         }
     }
 
     /// Short tagline for the device
     var deviceTagline: String {
-        "Optimized for \(deviceInfo.marketingName)"
+        "Auto-selected for \(deviceInfo.marketingName)"
     }
 
     /// Technical details for power users (shown in tooltip)
@@ -62,7 +68,7 @@ struct ModelRecommendation: Sendable {
         """
         Device: \(deviceInfo.identifier)
         RAM: \(deviceInfo.ramGB) GB
-        Mode: \(canRunHighQuality ? "High Quality" : "Balanced")
+        Auto Mode: \(finalModel.displayName)
 
         Model: \(finalModel.displayName) (\(finalModel.formattedSize))
         """
@@ -78,9 +84,10 @@ struct ModelRecommendation: Sendable {
 
     /// Generate recommendation for a specific device
     static func forDevice(_ deviceInfo: DeviceCapabilities.DeviceInfo) -> ModelRecommendation {
-        let batterySaver = ModelCatalog.finalDistilLargeV3
+        let fastModel = ModelCatalog.realtimeSmallEN
+        let balancedModel = deviceInfo.ramGB >= 6 ? ModelCatalog.finalDistilLargeV3 : fastModel
 
-        // 8GB+ devices get large-v3-turbo, 6GB devices get distil
+        // 8GB+ devices get large-v3-turbo, 6GB devices get distil, older devices get small
         let final: ModelDescriptor
         let canRunHighQuality: Bool
 
@@ -88,16 +95,21 @@ struct ModelRecommendation: Sendable {
             // iPhone 16 Pro, 15 Pro, etc. - use large-v3-turbo
             final = ModelCatalog.finalLargeV3Turbo
             canRunHighQuality = true
-        } else {
+        } else if deviceInfo.ramGB >= 6 {
             // iPhone 15 Plus, etc. - use distil by default
             final = ModelCatalog.finalDistilLargeV3
+            canRunHighQuality = false
+        } else {
+            // Older devices - use small for stability
+            final = fastModel
             canRunHighQuality = false
         }
 
         return ModelRecommendation(
             deviceInfo: deviceInfo,
             finalModel: final,
-            batteryModeModel: batterySaver,
+            batteryModeModel: balancedModel,
+            fastModel: fastModel,
             canRunHighQuality: canRunHighQuality
         )
     }
@@ -108,48 +120,66 @@ struct ModelRecommendation: Sendable {
 extension ModelRecommendation {
     /// User-selectable quality mode
     enum QualityMode: String, Codable, Sendable, CaseIterable {
+        /// Auto-select the best model for the device
+        case auto
+
         /// Maximum accuracy (large-v3-turbo if available)
         case highQuality
 
-        /// Battery/heat optimized (distil-large-v3)
+        /// Balanced accuracy and power (distil-large-v3)
         case batterySaver
+
+        /// Fastest, lightest option (small.en)
+        case fast
 
         var displayName: String {
             switch self {
-            case .highQuality: return "High Quality"
-            case .batterySaver: return "Battery Saver"
+            case .auto: return "Auto (Recommended)"
+            case .highQuality: return "Best Quality"
+            case .batterySaver: return "Balanced"
+            case .fast: return "Fast"
             }
         }
 
         var description: String {
             switch self {
+            case .auto:
+                return "Picks the best model for your phone"
             case .highQuality:
-                return "Best transcription accuracy, may generate more heat"
+                return "Highest accuracy, more memory and heat"
             case .batterySaver:
-                return "Slightly less accurate, cooler operation"
+                return "Great accuracy with cooler operation"
+            case .fast:
+                return "Lightweight and quick"
             }
         }
 
         var iconName: String {
             switch self {
+            case .auto: return "sparkles"
             case .highQuality: return "star.fill"
             case .batterySaver: return "leaf.fill"
+            case .fast: return "bolt.fill"
             }
         }
     }
 
     /// Get the final model for a given quality mode
-    func finalModel(for mode: QualityMode) -> ModelDescriptor {
+    func model(for mode: QualityMode) -> ModelDescriptor {
         switch mode {
+        case .auto:
+            return finalModel
         case .highQuality:
             return canRunHighQuality ? finalModel : batteryModeModel
         case .batterySaver:
             return batteryModeModel
+        case .fast:
+            return fastModel
         }
     }
 
     /// Get all models needed for a given quality mode (just ONE now!)
     func modelsRequired(for mode: QualityMode) -> [ModelDescriptor] {
-        [finalModel(for: mode)]
+        [model(for: mode)]
     }
 }

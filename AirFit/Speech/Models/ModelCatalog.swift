@@ -12,40 +12,40 @@ struct ModelCatalog: Sendable {
         finalDistilLargeV3
     ]
 
-    /// Small English model for fast realtime transcription
-    /// Note: whisperKitModel uses SHORT variant names for WhisperKitConfig(model:)
+    /// Small English model for fast, lightweight transcription
+    /// Note: whisperKitModel uses full folder names to avoid ambiguous matches
     static let realtimeSmallEN = ModelDescriptor(
         id: "small-en-realtime",
-        displayName: "Live Preview",
-        folderName: "openai_whisper-small.en",
-        whisperKitModel: "small.en",  // Short name for WhisperKitConfig
-        sizeBytes: 217_000_000,
+        displayName: "Fast",
+        folderName: "openai_whisper-small.en_217MB",
+        whisperKitModel: "openai_whisper-small.en_217MB",
+        sizeBytes: 217_878_408,
         sha256: nil,
         purpose: .realtime,
         minRAMGB: 4
     )
 
     /// Large v3 Turbo for maximum accuracy final pass
-    /// Note: whisperKitModel uses SHORT variant names for WhisperKitConfig(model:)
+    /// Note: whisperKitModel uses full folder names to avoid ambiguous matches
     static let finalLargeV3Turbo = ModelDescriptor(
         id: "large-v3-turbo",
         displayName: "Best Quality",
-        folderName: "openai_whisper-large-v3-v20240930_turbo",
-        whisperKitModel: "large-v3-turbo",  // Short name for WhisperKitConfig
-        sizeBytes: 632_000_000,
+        folderName: "openai_whisper-large-v3-v20240930_turbo_632MB",
+        whisperKitModel: "openai_whisper-large-v3-v20240930_turbo_632MB",
+        sizeBytes: 645_668_913,
         sha256: nil,
         purpose: .final,
         minRAMGB: 8
     )
 
-    /// Distil Large v3 Turbo for battery-saving final pass
-    /// Note: whisperKitModel uses SHORT variant names for WhisperKitConfig(model:)
+    /// Distil Large v3 Turbo for balanced performance
+    /// Note: whisperKitModel uses full folder names to avoid ambiguous matches
     static let finalDistilLargeV3 = ModelDescriptor(
         id: "distil-large-v3",
-        displayName: "Battery Saver",
-        folderName: "distil-whisper_distil-large-v3_turbo",
-        whisperKitModel: "distil-large-v3",  // Short name for WhisperKitConfig
-        sizeBytes: 600_000_000,
+        displayName: "Balanced",
+        folderName: "distil-whisper_distil-large-v3_turbo_600MB",
+        whisperKitModel: "distil-whisper_distil-large-v3_turbo_600MB",
+        sizeBytes: 607_114_331,
         sha256: nil,
         purpose: .final,
         minRAMGB: 6
