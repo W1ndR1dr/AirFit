@@ -16,6 +16,7 @@
 # USAGE:
 #   ./scripts/deploy-to-testflight.sh                    # Deploy current version
 #   ./scripts/deploy-to-testflight.sh --bump-build       # Auto-increment build number
+#   ./scripts/deploy-to-testflight.sh --bump-version     # Claude decides major/minor/patch
 #   ./scripts/deploy-to-testflight.sh --version 1.2.0    # Set specific version
 #   ./scripts/deploy-to-testflight.sh --skip-notes       # Skip changelog generation
 #
@@ -109,6 +110,84 @@ signature_b64 = base64url_encode(r_bytes + s_bytes)
 
 print(f"{header_b64}.{payload_b64}.{signature_b64}")
 EOF
+}
+
+# Determine version bump type using Claude CLI
+# Returns: MAJOR, MINOR, or PATCH
+determine_version_bump() {
+    local previous_tag="$1"
+
+    # Get commits since last tag (or last 20 commits if no tag)
+    local commits
+    if [[ -n "$previous_tag" ]]; then
+        commits=$(git log --oneline "$previous_tag"..HEAD 2>/dev/null | head -30)
+    else
+        commits=$(git log --oneline -20 2>/dev/null)
+    fi
+
+    if [[ -z "$commits" ]]; then
+        echo "PATCH"
+        return
+    fi
+
+    # Check if Claude CLI is available
+    if ! command -v claude &> /dev/null; then
+        echo "PATCH"
+        return
+    fi
+
+    # Analyze commits with Claude
+    local prompt="You are analyzing git commits to determine the semantic version bump for an iOS app.
+
+RESPOND WITH EXACTLY ONE WORD: MAJOR, MINOR, or PATCH
+
+Rules:
+- MAJOR: Breaking changes, major UI redesigns, data migrations, fundamental architecture changes
+- MINOR: New features, new screens, significant enhancements, new capabilities
+- PATCH: Bug fixes, UI polish, alignment fixes, refactoring, performance improvements
+
+Commits to analyze:
+$commits
+
+Your response (one word only):"
+
+    local bump_type
+    bump_type=$(echo "$prompt" | claude --print 2>/dev/null | grep -oE '(MAJOR|MINOR|PATCH)' | head -1)
+
+    if [[ -z "$bump_type" ]]; then
+        echo "PATCH"
+    else
+        echo "$bump_type"
+    fi
+}
+
+# Calculate new version based on bump type
+# Usage: calculate_new_version "1.2.3" "MINOR" -> "1.3.0"
+calculate_new_version() {
+    local current="$1"
+    local bump_type="$2"
+
+    # Parse current version (handle missing components)
+    local major minor patch
+    IFS='.' read -r major minor patch <<< "$current"
+    major=${major:-1}
+    minor=${minor:-0}
+    patch=${patch:-0}
+
+    case "$bump_type" in
+        MAJOR)
+            echo "$((major + 1)).0.0"
+            ;;
+        MINOR)
+            echo "${major}.$((minor + 1)).0"
+            ;;
+        PATCH)
+            echo "${major}.${minor}.$((patch + 1))"
+            ;;
+        *)
+            echo "${major}.${minor}.$((patch + 1))"
+            ;;
+    esac
 }
 
 # Generate friendly changelog using Claude CLI
@@ -252,6 +331,7 @@ update_build_notes() {
 # ============================================================================
 
 BUMP_BUILD=false
+BUMP_VERSION=false
 NEW_VERSION=""
 SKIP_NOTES=false
 
@@ -259,6 +339,11 @@ while [[ $# -gt 0 ]]; do
     case $1 in
         --bump-build)
             BUMP_BUILD=true
+            shift
+            ;;
+        --bump-version)
+            BUMP_VERSION=true
+            BUMP_BUILD=true  # Always bump build when bumping version
             shift
             ;;
         --version)
@@ -335,6 +420,27 @@ echo "✅ ExportOptions.plist found"
 
 INFO_PLIST="$PROJECT_DIR/AirFit/Info.plist"
 
+# Get current version for reference
+CURRENT_VERSION=$(/usr/libexec/PlistBuddy -c "Print :CFBundleShortVersionString" "$INFO_PLIST" 2>/dev/null || echo "1.0.0")
+
+# Auto-determine version bump using Claude
+if [[ "$BUMP_VERSION" == true ]]; then
+    echo ""
+    echo "🤖 Analyzing commits to determine version bump..."
+
+    # Find the previous version tag
+    PREVIOUS_VERSION_TAG=$(git tag -l "v*" --sort=-version:refname | head -1)
+
+    # Determine bump type
+    BUMP_TYPE=$(determine_version_bump "$PREVIOUS_VERSION_TAG")
+
+    # Calculate new version
+    NEW_VERSION=$(calculate_new_version "$CURRENT_VERSION" "$BUMP_TYPE")
+
+    echo "   Bump type: $BUMP_TYPE"
+    echo "   Version: $CURRENT_VERSION → $NEW_VERSION"
+fi
+
 if [[ -n "$NEW_VERSION" ]]; then
     echo ""
     echo "📝 Setting version to $NEW_VERSION..."
@@ -349,11 +455,18 @@ if [[ "$BUMP_BUILD" == true ]]; then
     /usr/libexec/PlistBuddy -c "Set :CFBundleVersion $NEW_BUILD" "$INFO_PLIST"
 fi
 
+# Refresh current version/build after changes
 CURRENT_VERSION=$(/usr/libexec/PlistBuddy -c "Print :CFBundleShortVersionString" "$INFO_PLIST" 2>/dev/null || echo "1.0")
 CURRENT_BUILD=$(/usr/libexec/PlistBuddy -c "Print :CFBundleVersion" "$INFO_PLIST" 2>/dev/null || echo "1")
 
 echo ""
 echo "📦 Version: $CURRENT_VERSION ($CURRENT_BUILD)"
+
+# Tag the version for future reference (if version was bumped)
+if [[ "$BUMP_VERSION" == true ]]; then
+    git tag -f "v$CURRENT_VERSION" HEAD 2>/dev/null || true
+    echo "🏷️  Tagged: v$CURRENT_VERSION"
+fi
 
 # ============================================================================
 # Clean & Prepare

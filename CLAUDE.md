@@ -35,6 +35,21 @@ iOS App (SwiftUI/SwiftData) ──HTTP──> Python Server (FastAPI)
 - **Data**: SwiftData on iOS, JSON files in `server/data/` on server
 - **Widget**: WidgetKit extension for Dynamic Island and Lock Screen
 
+## Before Starting Work
+
+**Always sync with remote before making any changes:**
+
+```bash
+git fetch origin && git pull origin main
+```
+
+If there are local uncommitted changes that would conflict:
+1. Stash them: `git stash`
+2. Pull: `git pull origin main`
+3. Restore: `git stash pop`
+
+This prevents divergent branches and merge conflicts. Check this first, even before reading code.
+
 ## Build Commands
 
 ### iOS App
@@ -64,10 +79,11 @@ Useful when accessing this Mac remotely via Claude Code iOS app.
 
 ### TestFlight Deployment
 ```bash
-./scripts/deploy-to-testflight.sh --bump-build
+./scripts/deploy-to-testflight.sh --bump-build      # Build number only (1.0 build 11 → 12)
+./scripts/deploy-to-testflight.sh --bump-version    # Claude decides major/minor/patch + build
 ```
 
-Archives, exports, and uploads to TestFlight. Credentials auto-load from `~/.appstore/`.
+Archives, exports, and uploads to TestFlight. `--bump-version` uses Claude to analyze commits and determine semantic version bump (MAJOR/MINOR/PATCH). Credentials auto-load from `~/.appstore/`.
 
 ### Python Server
 ```bash
