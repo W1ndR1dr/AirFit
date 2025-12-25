@@ -289,8 +289,6 @@ struct BreathingMeshBackground: View {
 
         for y in 0...3 {
             for x in 0...3 {
-                let index = y * 4 + x
-
                 // Base grid position
                 let baseX = Float(x) / 3.0
                 let baseY = Float(y) / 3.0

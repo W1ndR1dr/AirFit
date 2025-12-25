@@ -393,7 +393,7 @@ final class LocalToolExecutor {
         let includeSupporting = arguments["include_supporting_data"] as? Bool ?? true
 
         // Build query for LocalInsight
-        var descriptor = FetchDescriptor<LocalInsight>(
+        let descriptor = FetchDescriptor<LocalInsight>(
             predicate: LocalInsight.active,
             sortBy: [
                 SortDescriptor(\LocalInsight.tier),  // Lower tier = higher priority

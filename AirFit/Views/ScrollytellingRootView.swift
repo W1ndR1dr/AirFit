@@ -16,16 +16,17 @@ struct ScrollytellingRootView: View {
     @State private var selectedTab: Int = 0
     @State private var scrollPosition: Int? = 0
     @State private var scrollOffset: CGFloat = 0
+    @State private var containerWidth: CGFloat = 0
 
     /// Normalized scroll progress from 0.0 to 4.0
     private var scrollProgress: CGFloat {
-        let screenWidth = UIScreen.main.bounds.width
-        guard screenWidth > 0 else { return 0 }
-        return max(0, scrollOffset / screenWidth)
+        guard containerWidth > 0 else { return 0 }
+        return max(0, scrollOffset / containerWidth)
     }
 
     var body: some View {
-        ZStack {
+        GeometryReader { geometry in
+            ZStack {
             // Breathing background
             BreathingMeshBackground(scrollProgress: scrollProgress)
                 .ignoresSafeArea()
@@ -72,6 +73,9 @@ struct ScrollytellingRootView: View {
                 }
             }
             .ignoresSafeArea(.keyboard)
+            }
+            .onAppear { containerWidth = geometry.size.width }
+            .onChange(of: geometry.size.width) { _, newWidth in containerWidth = newWidth }
         }
         .sensoryFeedback(.selection, trigger: selectedTab)
         .task {

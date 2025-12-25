@@ -127,7 +127,8 @@ class AppDelegate: NSObject, UIApplicationDelegate, UNUserNotificationCenterDele
             await MainActor.run {
                 NotificationCenter.default.post(name: .openNutritionTab, object: nil)
             }
-        case "VIEW_INSIGHT", UNNotificationDefaultActionIdentifier where categoryId == "INSIGHT_ALERT":
+        case "VIEW_INSIGHT" where categoryId == "INSIGHT_ALERT",
+             UNNotificationDefaultActionIdentifier where categoryId == "INSIGHT_ALERT":
             // Open insights tab when tapping insight notification
             await MainActor.run {
  
@@ -232,7 +233,7 @@ struct ContentView: View {
         .sensoryFeedback(.selection, trigger: selectedTab)
         .task {
             // Configure Watch connectivity with SwiftData context
-            await watchHandler.configure(modelContext: modelContext)
+            watchHandler.configure(modelContext: modelContext)
             await AutoSyncManager.shared.performLaunchSync(modelContext: modelContext)
         }
         .onReceive(NotificationCenter.default.publisher(for: .openDashboardTab)) { _ in

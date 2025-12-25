@@ -207,8 +207,6 @@ actor WhisperKitAdapter {
                 clipTimestamps: []
             )
 
-            var accumulatedText = ""
-
             let results = try await whisper.transcribe(
                 audioArray: audioArray,
                 decodeOptions: options
@@ -216,7 +214,6 @@ actor WhisperKitAdapter {
                 // Extract current text from progress
                 let currentText = progress.text
                 if !currentText.isEmpty {
-                    accumulatedText = currentText
                     callback(currentText)
                 }
                 return true // Continue transcription

@@ -21,11 +21,13 @@ final class AudioCaptureManager {
 
     private var audioEngine: AVAudioEngine?
 
-    /// Audio buffer and lock are accessed from audio thread - must be nonisolated(unsafe)
+    /// Audio buffer accessed from audio thread - protected by bufferLock
+    /// nonisolated(unsafe) required for audio callback access
     nonisolated(unsafe) private var audioBuffer: [Float] = []
     nonisolated(unsafe) private let bufferLock = NSLock()
 
-    /// WhisperKit expects 16kHz mono audio - nonisolated for audio thread access
+    /// WhisperKit expects 16kHz mono audio
+    /// nonisolated(unsafe) required for audio callback access
     nonisolated(unsafe) private static let targetSampleRate: Double = 16000
     private var converter: AVAudioConverter?
 

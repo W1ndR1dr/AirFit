@@ -7,8 +7,8 @@ final class ServerConfiguration: ObservableObject {
     static let shared = ServerConfiguration()
 
     /// UserDefaults key for server URL (must match @AppStorage key)
-    // nonisolated(unsafe) required for access from nonisolated configuredBaseURL
-    private nonisolated(unsafe) static let urlKey = "serverURL"
+    /// nonisolated(unsafe) required for access from nonisolated configuredBaseURL
+    nonisolated(unsafe) private static let urlKey = "serverURL"
 
     /// The stored server URL string (persisted via AppStorage for SwiftUI binding)
     @AppStorage("serverURL") private var storedURL: String = ""

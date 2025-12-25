@@ -33,23 +33,25 @@ struct InsightsView: View {
     }
 
     var body: some View {
-        ScrollView {
-            VStack(spacing: 24) {
-                if isLoading && insights.isEmpty {
-                    // Centered loading view within scroll
-                    Spacer(minLength: 200)
-                    ShimmerText(text: "Finding insights...")
-                    Spacer(minLength: 200)
-                } else if insights.isEmpty {
-                    emptyStateView
-                } else {
-                    insightsSection
+        GeometryReader { geometry in
+            ScrollView {
+                VStack(spacing: 24) {
+                    if isLoading && insights.isEmpty {
+                        // Centered loading view within scroll
+                        Spacer(minLength: 200)
+                        ShimmerText(text: "Finding insights...")
+                        Spacer(minLength: 200)
+                    } else if insights.isEmpty {
+                        emptyStateView
+                    } else {
+                        insightsSection
+                    }
                 }
+                .padding(.horizontal, 20)
+                .padding(.top, 16)
+                .padding(.bottom, 160) // Extra padding to scroll above tab bar
+                .frame(minHeight: geometry.size.height - 200)
             }
-            .padding(.horizontal, 20)
-            .padding(.top, 16)
-            .padding(.bottom, 160) // Extra padding to scroll above tab bar
-            .frame(minHeight: UIScreen.main.bounds.height - 200)
         }
         .scrollIndicators(.visible)
         .scrollContentBackground(.hidden)

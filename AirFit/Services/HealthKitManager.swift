@@ -527,7 +527,8 @@ actor HealthKitManager {
         return await withCheckedContinuation { continuation in
             let query = HKSampleQuery(sampleType: HKWorkoutType.workoutType(), predicate: predicate, limit: 10, sortDescriptors: [sortDescriptor]) { _, samples, _ in
                 let workouts: [WorkoutSummary] = (samples as? [HKWorkout])?.compactMap { workout -> WorkoutSummary in
-                    let calories: Int? = workout.totalEnergyBurned.map { Int($0.doubleValue(for: .kilocalorie())) }
+                    let caloriesQuantity = workout.statistics(for: HKQuantityType(.activeEnergyBurned))?.sumQuantity()
+                    let calories: Int? = caloriesQuantity.map { Int($0.doubleValue(for: .kilocalorie())) }
                     return WorkoutSummary(
                         type: workout.workoutActivityType.name,
                         date: workout.startDate,
@@ -597,7 +598,8 @@ actor HealthKitManager {
         return await withCheckedContinuation { continuation in
             let query = HKSampleQuery(sampleType: HKWorkoutType.workoutType(), predicate: predicate, limit: 10, sortDescriptors: [sortDescriptor]) { _, samples, _ in
                 let workouts: [WorkoutSummary] = (samples as? [HKWorkout])?.compactMap { workout in
-                    let calories: Int? = workout.totalEnergyBurned.map { Int($0.doubleValue(for: .kilocalorie())) }
+                    let caloriesQuantity = workout.statistics(for: HKQuantityType(.activeEnergyBurned))?.sumQuantity()
+                    let calories: Int? = caloriesQuantity.map { Int($0.doubleValue(for: .kilocalorie())) }
                     return WorkoutSummary(
                         type: workout.workoutActivityType.name,
                         date: workout.startDate,
@@ -1421,7 +1423,7 @@ actor HealthKitManager {
         let predicate = HKQuery.predicateForSamples(withStart: queryStart, end: queryEnd, options: .strictStartDate)
 
         return await withCheckedContinuation { continuation in
-            let query = HKSampleQuery(sampleType: sleepType, predicate: predicate, limit: HKObjectQueryNoLimit, sortDescriptors: nil) { [calendar, startOfDay, endOfDay] _, samples, _ in
+            let query = HKSampleQuery(sampleType: sleepType, predicate: predicate, limit: HKObjectQueryNoLimit, sortDescriptors: nil) { [startOfDay, endOfDay] _, samples, _ in
                 guard let samples = samples as? [HKCategorySample] else {
                     continuation.resume(returning: nil)
                     return

@@ -180,7 +180,6 @@ struct HRVDeviationChart: View {
 
     private func deviationBars(width: CGFloat, height: CGFloat) -> some View {
         let barWidth = max(2, (width - CGFloat(deviationData.count - 1) * barSpacing) / CGFloat(deviationData.count))
-        let zeroY = height / 2
         let scale = (height / 2) / valueRange
 
         return HStack(alignment: .center, spacing: barSpacing) {

@@ -9,7 +9,7 @@ struct MiniSparkline: View {
     var body: some View {
         GeometryReader { geo in
             if data.count >= 2 {
-                let (minVal, maxVal, range) = computeRange()
+                let (minVal, _, range) = computeRange()
 
                 ZStack {
                     // Line path
