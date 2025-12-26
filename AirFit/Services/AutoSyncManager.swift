@@ -432,6 +432,9 @@ final class AutoSyncManager: ObservableObject {
                 NotificationCenter.default.post(name: .insightsGenerated, object: nil)
             }
 
+            // 7. Widget sync - push all data to Home Screen and Lock Screen widgets
+            await syncWidgets(modelContext: modelContext)
+
             lastSyncTime = Date()
             print("[AutoSync] Sync completed successfully")
 
@@ -462,6 +465,59 @@ final class AutoSyncManager: ObservableObject {
         } else {
             print("[AutoSync] Coaching persona regeneration failed (will retry next sync)")
         }
+    }
+
+    /// Sync all widget data to Home Screen and Lock Screen widgets.
+    private func syncWidgets(modelContext: ModelContext) async {
+        print("[AutoSync] Syncing widgets...")
+
+        // Use WidgetDataAggregator for comprehensive sync
+        await WidgetDataAggregator.shared.syncAllWidgetData(modelContext: modelContext)
+
+        // Also sync current nutrition totals
+        let calendar = Calendar.current
+        let today = Date()
+        let startOfDay = calendar.startOfDay(for: today)
+        let endOfDay = calendar.date(byAdding: .day, value: 1, to: startOfDay)!
+
+        let nutritionPredicate = #Predicate<NutritionEntry> {
+            $0.timestamp >= startOfDay && $0.timestamp < endOfDay
+        }
+        let nutritionDescriptor = FetchDescriptor<NutritionEntry>(predicate: nutritionPredicate)
+        let todayEntries = (try? modelContext.fetch(nutritionDescriptor)) ?? []
+
+        let totals = todayEntries.reduce((cal: 0, protein: 0, carbs: 0, fat: 0)) { result, entry in
+            (result.cal + entry.calories,
+             result.protein + entry.protein,
+             result.carbs + entry.carbs,
+             result.fat + entry.fat)
+        }
+
+        // Determine if it's a training day based on cached workout data
+        let workoutPredicate = #Predicate<CachedWorkout> {
+            $0.workoutDate >= startOfDay && $0.workoutDate < endOfDay
+        }
+        let workoutDescriptor = FetchDescriptor<CachedWorkout>(predicate: workoutPredicate)
+        let todayWorkouts = (try? modelContext.fetch(workoutDescriptor)) ?? []
+        let isTrainingDay = !todayWorkouts.isEmpty
+
+        let targets = isTrainingDay
+            ? (cal: 2600, protein: 175, carbs: 330, fat: 67)
+            : (cal: 2200, protein: 175, carbs: 250, fat: 57)
+
+        await WidgetSyncService.shared.syncNutrition(
+            calories: totals.cal,
+            protein: totals.protein,
+            carbs: totals.carbs,
+            fat: totals.fat,
+            targetCalories: targets.cal,
+            targetProtein: targets.protein,
+            targetCarbs: targets.carbs,
+            targetFat: targets.fat,
+            isTrainingDay: isTrainingDay
+        )
+
+        print("[AutoSync] Widget sync completed")
     }
 
     /// Sync Hevy data (device-first, server fallback).

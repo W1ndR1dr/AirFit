@@ -75,12 +75,19 @@ actor WidgetSyncService {
 
     func syncInsights(from apiInsights: [APIClient.InsightData]) {
         let widgetInsights = apiInsights.map { insight in
-            WidgetInsight(
+            // Extract sparkline values from supporting_data if available
+            var sparklineValues: [Double]?
+            if let supportingData = insight.supporting_data,
+               let values = supportingData.values {
+                sparklineValues = values
+            }
+
+            return WidgetInsight(
                 id: insight.id,
                 category: insight.category,
                 title: insight.title,
                 body: insight.body,
-                sparklineValues: nil,  // Could extract from supporting_data if available
+                sparklineValues: sparklineValues,
                 createdAt: ISO8601DateFormatter().date(from: insight.createdAt) ?? Date()
             )
         }
