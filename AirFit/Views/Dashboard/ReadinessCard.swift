@@ -226,6 +226,30 @@ struct ReadinessCard: View {
             }
         }
 
+        // Sync readiness to widgets
+        await WidgetSyncService.shared.syncReadiness(
+            category: result.category.rawValue,
+            positiveCount: result.positiveCount,
+            totalCount: result.totalCount,
+            sleepHours: result.indicators.first(where: { $0.name == "Sleep" }).flatMap { indicator in
+                // Extract sleep hours from indicator detail (e.g., "7.5h sleep")
+                let numbers = indicator.detail.components(separatedBy: CharacterSet.decimalDigits.inverted).joined()
+                return Double(numbers.prefix(2))
+            },
+            hrvDeviation: result.indicators.first(where: { $0.name == "HRV" }).flatMap { indicator in
+                // Extract HRV deviation % from indicator detail
+                if indicator.detail.contains("%") {
+                    let components = indicator.detail.components(separatedBy: "%")
+                    if let first = components.first {
+                        return Double(first.filter { $0.isNumber || $0 == "-" })
+                    }
+                }
+                return nil
+            },
+            isBaselineReady: result.isBaselineReady,
+            baselineProgress: result.baselineProgress?.currentDays
+        )
+
         // Push readiness update to Watch
         await WatchConnectivityHandler.shared.pushReadinessToWatch()
     }

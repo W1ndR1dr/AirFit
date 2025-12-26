@@ -1,8 +1,10 @@
 import ActivityKit
 import Foundation
+import WidgetKit
 
 /// Manages the Nutrition tracking Live Activity.
 /// Start it when the app opens, update as food is logged, end at midnight.
+/// Also syncs data to Home Screen and Lock Screen widgets.
 @MainActor
 final class LiveActivityManager: ObservableObject {
     static let shared = LiveActivityManager()
@@ -109,6 +111,20 @@ final class LiveActivityManager: ObservableObject {
         // Capture activity ID to avoid sending non-Sendable Activity across actors
         let activityId = activity.id
         await updateActivityById(activityId, content: content)
+
+        // Also sync to widgets
+        await WidgetSyncService.shared.syncNutrition(
+            calories: calories,
+            protein: protein,
+            carbs: carbs,
+            fat: fat,
+            targetCalories: targets.cal,
+            targetProtein: targets.protein,
+            targetCarbs: targets.carbs,
+            targetFat: targets.fat,
+            isTrainingDay: isTrainingDay
+        )
+
         print("Live Activity updated: \(calories) cal, \(protein)g protein")
     }
 
