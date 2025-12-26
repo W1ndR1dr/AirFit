@@ -205,6 +205,9 @@ struct InsightsView: View {
         do {
             insights = try await apiClient.getInsights(limit: 10)
 
+            // Sync to widgets
+            await WidgetSyncService.shared.syncInsights(from: insights)
+
             // Check for high-tier insights and notify
             await NotificationManager.shared.checkAndNotifyForInsights(insights)
         } catch {
@@ -245,6 +248,9 @@ struct InsightsView: View {
                 )
             }
 
+            // Sync to widgets
+            await WidgetSyncService.shared.syncInsights(from: insights)
+
             // Check for high-tier insights and notify
             await NotificationManager.shared.checkAndNotifyForInsights(insights)
             return
@@ -266,6 +272,9 @@ struct InsightsView: View {
                     supporting_data: nil
                 )
             }
+
+            // Sync to widgets
+            await WidgetSyncService.shared.syncInsights(from: insights)
 
             // Check for high-tier insights and notify
             await NotificationManager.shared.checkAndNotifyForInsights(insights)

@@ -61,6 +61,9 @@ struct AirFitApp: App {
                     }
                 }
             }
+            .onOpenURL { url in
+                DeepLinkHandler.shared.handle(url)
+            }
         }
         .modelContainer(for: [
             NutritionEntry.self,

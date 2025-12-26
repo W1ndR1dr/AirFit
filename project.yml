@@ -36,6 +36,7 @@ targets:
 
     dependencies:
       - package: WhisperKit
+      - target: AirFitWidget
 
     settings:
       PRODUCT_BUNDLE_IDENTIFIER: com.airfit.app
@@ -82,11 +83,27 @@ targets:
       WATCHOS_DEPLOYMENT_TARGET: "26.0"
       LD_RUNPATH_SEARCH_PATHS: "$(inherited) @executable_path/Frameworks @executable_path/../../Frameworks"
 
+  AirFitWidget:
+    type: app-extension
+    platform: iOS
+    sources:
+      - path: AirFitWidget
+    settings:
+      PRODUCT_BUNDLE_IDENTIFIER: com.airfit.app.widget
+      INFOPLIST_FILE: AirFitWidget/Info.plist
+      CODE_SIGN_ENTITLEMENTS: AirFitWidget/AirFitWidget.entitlements
+      CODE_SIGN_STYLE: Automatic
+      DEVELOPMENT_TEAM: 2H43Q8Y3CR
+      SKIP_INSTALL: YES
+      IPHONEOS_DEPLOYMENT_TARGET: "26.0"
+      LD_RUNPATH_SEARCH_PATHS: "$(inherited) @executable_path/Frameworks @executable_path/../../Frameworks"
+
 schemes:
   AirFit:
     build:
       targets:
         AirFit: all
+        AirFitWidget: all
         AirFitWatch: all
         AirFitWatchComplications: all
     run:
@@ -95,6 +112,7 @@ schemes:
     build:
       targets:
         AirFit: all
+        AirFitWidget: all
     run:
       config: Debug
     archive:

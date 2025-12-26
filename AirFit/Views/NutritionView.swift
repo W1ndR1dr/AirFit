@@ -288,6 +288,15 @@ struct NutritionView: View {
             await checkTrainingDay()
             await observeWorkoutNotifications()
         }
+        .onReceive(NotificationCenter.default.publisher(for: .toggleTrainingDay)) { notification in
+            if let isTraining = notification.userInfo?["isTrainingDay"] as? Bool {
+                withAnimation(.airfit) {
+                    isTrainingDay = isTraining
+                }
+                // Haptic feedback
+                UIImpactFeedbackGenerator(style: .medium).impactOccurred()
+            }
+        }
         .sheet(item: $editingEntry) { entry in
             EditNutritionSheet(entry: entry)
         }

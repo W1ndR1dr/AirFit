@@ -1,6 +1,7 @@
 import Foundation
 import HealthKit
 import Observation
+import WidgetKit
 
 // Note: HKWorkoutActivityType.name extension is in HealthKitManager.swift
 
@@ -203,6 +204,18 @@ final class EnergyTracker {
 
         // Calculate projected net (surplus/deficit)
         projectedNet = caloriesConsumed - projectedEndOfDayTDEE
+
+        // Sync to widgets
+        Task {
+            await WidgetSyncService.shared.syncEnergy(
+                currentTDEE: todayTDEE,
+                projectedTDEE: projectedEndOfDayTDEE,
+                projectedNet: projectedNet,
+                confidence: projectedConfidence,
+                isTrainingDay: isTrainingDay,
+                caloriesConsumed: caloriesConsumed
+            )
+        }
     }
 
     /// Load historical hourly patterns from last 14 days
